@@ -11,9 +11,17 @@ import java.time.Instant;
 
 import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIMESTAMP;
 
-public record ExchangeRequest(int id, int stationId, int memberId, Integer itemId, int inventoryId,
-                               Integer sizeId, ExchangeStatus status,
-                               String reason, Instant createdAt, Instant updatedAt) {
+public record ExchangeRequest(
+        int id,
+        int stationId,
+        int memberId,
+        Integer itemId,
+        int inventoryId,
+        Integer sizeId,
+        ExchangeStatus status,
+        String reason,
+        Instant createdAt,
+        Instant updatedAt) {
     public static RowMapping<ExchangeRequest> map() {
         return row -> new ExchangeRequest(
                 row.getInt("id"),

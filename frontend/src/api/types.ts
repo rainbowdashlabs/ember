@@ -3,7 +3,6 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-
 // -- Roles --
 
 export type RoleName =

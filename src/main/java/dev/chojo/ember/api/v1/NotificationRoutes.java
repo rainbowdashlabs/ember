@@ -23,7 +23,6 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
 import java.time.Instant;
-import java.util.List;
 
 @Singleton
 public class NotificationRoutes implements Routes {
@@ -48,10 +47,13 @@ public class NotificationRoutes implements Routes {
             methods = HttpMethod.GET,
             summary = "List all notifications (max 50)",
             tags = {"Notifications"},
-            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = NotificationResponse[].class)))
+            responses =
+                    @OpenApiResponse(status = "200", content = @OpenApiContent(from = NotificationResponse[].class)))
     private void list(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        ctx.json(notificationService.findAll(session.member().id()).stream().map(this::toResponse).toList());
+        ctx.json(notificationService.findAll(session.member().id()).stream()
+                .map(this::toResponse)
+                .toList());
     }
 
     @OpenApi(
@@ -59,10 +61,13 @@ public class NotificationRoutes implements Routes {
             methods = HttpMethod.GET,
             summary = "List unacknowledged notifications",
             tags = {"Notifications"},
-            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = NotificationResponse[].class)))
+            responses =
+                    @OpenApiResponse(status = "200", content = @OpenApiContent(from = NotificationResponse[].class)))
     private void listUnacknowledged(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        ctx.json(notificationService.findUnacknowledged(session.member().id()).stream().map(this::toResponse).toList());
+        ctx.json(notificationService.findUnacknowledged(session.member().id()).stream()
+                .map(this::toResponse)
+                .toList());
     }
 
     @OpenApi(
@@ -73,7 +78,9 @@ public class NotificationRoutes implements Routes {
             responses = @OpenApiResponse(status = "200"))
     private void count(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        ctx.json(java.util.Map.of("count", notificationService.countUnacknowledged(session.member().id())));
+        ctx.json(java.util.Map.of(
+                "count",
+                notificationService.countUnacknowledged(session.member().id())));
     }
 
     @OpenApi(
@@ -103,10 +110,10 @@ public class NotificationRoutes implements Routes {
     }
 
     private NotificationResponse toResponse(Notification n) {
-        return new NotificationResponse(n.id(), n.type().name(), n.referenceId(), n.message(),
-                n.createdAt(), n.acknowledgedAt());
+        return new NotificationResponse(
+                n.id(), n.type().name(), n.referenceId(), n.message(), n.createdAt(), n.acknowledgedAt());
     }
 
-    public record NotificationResponse(int id, String type, Integer referenceId, String message,
-                                        Instant createdAt, Instant acknowledgedAt) {}
+    public record NotificationResponse(
+            int id, String type, Integer referenceId, String message, Instant createdAt, Instant acknowledgedAt) {}
 }

@@ -37,9 +37,11 @@ public class NewsRoutes implements Routes {
     private final dev.chojo.ember.service.NotificationService notificationService;
 
     @Inject
-    public NewsRoutes(NewsService newsService, AccountRepository accountRepository,
-                      StationMemberRepository stationMemberRepository,
-                      dev.chojo.ember.service.NotificationService notificationService) {
+    public NewsRoutes(
+            NewsService newsService,
+            AccountRepository accountRepository,
+            StationMemberRepository stationMemberRepository,
+            dev.chojo.ember.service.NotificationService notificationService) {
         this.newsService = newsService;
         this.accountRepository = accountRepository;
         this.stationMemberRepository = stationMemberRepository;
@@ -72,9 +74,12 @@ public class NewsRoutes implements Routes {
         if (session.hasRole(Roles.NEWS_MANAGEMENT)) {
             newsList = newsService.findByStation(session.stationId(), offset, limit);
         } else {
-            newsList = newsService.findVisibleForMember(session.stationId(), session.member().id(), offset, limit);
+            newsList = newsService.findVisibleForMember(
+                    session.stationId(), session.member().id(), offset, limit);
         }
-        ctx.json(newsList.stream().map(n -> toResponse(n, session.hasRole(Roles.NEWS_MANAGEMENT))).toList());
+        ctx.json(newsList.stream()
+                .map(n -> toResponse(n, session.hasRole(Roles.NEWS_MANAGEMENT)))
+                .toList());
     }
 
     @OpenApi(
@@ -90,9 +95,11 @@ public class NewsRoutes implements Routes {
     private void get(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
         UserSession session = UserSession.from(ctx);
-        newsService.findById(id).ifPresentOrElse(
-                news -> ctx.json(toResponse(news, session.hasRole(Roles.NEWS_MANAGEMENT))),
-                () -> { throw new NotFoundResponse(); });
+        newsService
+                .findById(id)
+                .ifPresentOrElse(news -> ctx.json(toResponse(news, session.hasRole(Roles.NEWS_MANAGEMENT))), () -> {
+                    throw new NotFoundResponse();
+                });
     }
 
     @OpenApi(
@@ -112,12 +119,16 @@ public class NewsRoutes implements Routes {
             throw new BadRequestResponse("contentMarkdown is required");
         }
         var news = newsService.create(
-                session.stationId(), request.title(), request.contentMarkdown(),
+                session.stationId(),
+                request.title(),
+                request.contentMarkdown(),
                 request.contentHtml() != null ? request.contentHtml() : "",
                 session.member().id(),
                 request.groupIds() != null ? request.groupIds() : List.of());
-        notificationService.notifyStation(session.stationId(),
-                dev.chojo.ember.entity.NotificationType.NEW_NEWS, news.id(),
+        notificationService.notifyStation(
+                session.stationId(),
+                dev.chojo.ember.entity.NotificationType.NEW_NEWS,
+                news.id(),
                 "Neue Neuigkeit: " + request.title());
         ctx.status(HttpStatus.CREATED).json(toResponse(news, true));
     }
@@ -137,12 +148,16 @@ public class NewsRoutes implements Routes {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
         UserSession session = UserSession.from(ctx);
         var request = ctx.bodyAsClass(NewsRequest.class);
-        newsService.update(id, request.title(), request.contentMarkdown(),
-                request.contentHtml() != null ? request.contentHtml() : "",
-                request.groupIds() != null ? request.groupIds() : List.of())
-                .ifPresentOrElse(
-                        news -> ctx.json(toResponse(news, true)),
-                        () -> { throw new NotFoundResponse(); });
+        newsService
+                .update(
+                        id,
+                        request.title(),
+                        request.contentMarkdown(),
+                        request.contentHtml() != null ? request.contentHtml() : "",
+                        request.groupIds() != null ? request.groupIds() : List.of())
+                .ifPresentOrElse(news -> ctx.json(toResponse(news, true)), () -> {
+                    throw new NotFoundResponse();
+                });
     }
 
     @OpenApi(
@@ -165,15 +180,25 @@ public class NewsRoutes implements Routes {
     }
 
     private NewsResponse toResponse(News news, boolean includeRestrictions) {
-        String authorName = stationMemberRepository.findById(news.authorId())
+        String authorName = stationMemberRepository
+                .findById(news.authorId())
                 .flatMap(m -> accountRepository.findById(m.accountId()))
                 .map(a -> (a.firstName() + " " + a.lastName()).trim())
                 .orElse("");
         List<Integer> groupIds = includeRestrictions ? newsService.findGroupRestrictions(news.id()) : List.of();
         int commentCount = newsService.countComments(news.id());
-        return new NewsResponse(news.id(), news.stationId(), news.title(), news.contentMarkdown(),
-                news.contentHtml(), news.authorId(), authorName, news.publishedAt(), news.createdAt(),
-                groupIds, commentCount);
+        return new NewsResponse(
+                news.id(),
+                news.stationId(),
+                news.title(),
+                news.contentMarkdown(),
+                news.contentHtml(),
+                news.authorId(),
+                authorName,
+                news.publishedAt(),
+                news.createdAt(),
+                groupIds,
+                commentCount);
     }
 
     // -- Comments --
@@ -206,7 +231,8 @@ public class NewsRoutes implements Routes {
         if (request.content() == null || request.content().isBlank()) {
             throw new BadRequestResponse("content is required");
         }
-        var comment = newsService.createComment(newsId, request.parentId(), session.member().id(), request.content());
+        var comment = newsService.createComment(
+                newsId, request.parentId(), session.member().id(), request.content());
         ctx.status(HttpStatus.CREATED).json(toCommentResponse(comment));
     }
 
@@ -230,22 +256,44 @@ public class NewsRoutes implements Routes {
     }
 
     private CommentResponse toCommentResponse(dev.chojo.ember.entity.NewsComment comment) {
-        String authorName = stationMemberRepository.findById(comment.authorId())
+        String authorName = stationMemberRepository
+                .findById(comment.authorId())
                 .flatMap(m -> accountRepository.findById(m.accountId()))
                 .map(a -> (a.firstName() + " " + a.lastName()).trim())
                 .orElse("");
-        return new CommentResponse(comment.id(), comment.newsId(), comment.parentId(),
-                comment.authorId(), authorName, comment.content(), comment.createdAt());
+        return new CommentResponse(
+                comment.id(),
+                comment.newsId(),
+                comment.parentId(),
+                comment.authorId(),
+                authorName,
+                comment.content(),
+                comment.createdAt());
     }
 
     public record NewsRequest(String title, String contentMarkdown, String contentHtml, List<Integer> groupIds) {}
 
-    public record NewsResponse(int id, int stationId, String title, String contentMarkdown, String contentHtml,
-                               int authorId, String authorName, java.time.Instant publishedAt,
-                               java.time.Instant createdAt, List<Integer> groupIds, int commentCount) {}
+    public record NewsResponse(
+            int id,
+            int stationId,
+            String title,
+            String contentMarkdown,
+            String contentHtml,
+            int authorId,
+            String authorName,
+            java.time.Instant publishedAt,
+            java.time.Instant createdAt,
+            List<Integer> groupIds,
+            int commentCount) {}
 
     public record CommentRequest(Integer parentId, String content) {}
 
-    public record CommentResponse(int id, int newsId, Integer parentId, int authorId, String authorName,
-                                  String content, java.time.Instant createdAt) {}
+    public record CommentResponse(
+            int id,
+            int newsId,
+            Integer parentId,
+            int authorId,
+            String authorName,
+            String content,
+            java.time.Instant createdAt) {}
 }

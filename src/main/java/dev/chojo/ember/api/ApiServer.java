@@ -7,7 +7,6 @@ package dev.chojo.ember.api;
 
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.conf.file.elements.Demo;
-import dev.chojo.ember.entity.Role;
 import dev.chojo.ember.entity.StationMember;
 import dev.chojo.ember.repository.AccountRepository;
 import dev.chojo.ember.repository.StationMemberRepository;
@@ -182,8 +181,7 @@ public class ApiServer {
             accountRepository.findById(member.accountId()).ifPresent(account -> {
                 var roles = stationMemberRepository.findRoles(member.id());
                 var roleNames = roles.stream().map(r -> r.role().name()).toList();
-                accounts.add(new DemoAccount(
-                        account.email(), account.firstName(), account.lastName(), roleNames));
+                accounts.add(new DemoAccount(account.email(), account.firstName(), account.lastName(), roleNames));
             });
         }
         ctx.json(accounts);

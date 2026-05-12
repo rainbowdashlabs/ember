@@ -43,4 +43,3 @@ export async function createComment(newsId: number, data: CommentRequest): Promi
 export async function deleteComment(commentId: number): Promise<void> {
     await client.delete(`/news/comments/${commentId}`)
 }
-

@@ -1,8 +1,8 @@
 /*
-*     SPDX-License-Identifier: AGPL-3.0-only
-*
-*     Copyright (C) RainbowDashLabs and Contributor
-*/
+ *     SPDX-License-Identifier: AGPL-3.0-only
+ *
+ *     Copyright (C) RainbowDashLabs and Contributor
+ */
 <script lang="ts" setup>
 import TextInput from '@/components/input/text/TextInput.vue'
 import DateInput from '@/components/input/datetime/DateInput.vue'

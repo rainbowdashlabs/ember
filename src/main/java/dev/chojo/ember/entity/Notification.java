@@ -11,8 +11,14 @@ import java.time.Instant;
 
 import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIMESTAMP;
 
-public record Notification(int id, int memberId, NotificationType type, Integer referenceId,
-                            String message, Instant createdAt, Instant acknowledgedAt) {
+public record Notification(
+        int id,
+        int memberId,
+        NotificationType type,
+        Integer referenceId,
+        String message,
+        Instant createdAt,
+        Instant acknowledgedAt) {
     public static RowMapping<Notification> map() {
         return row -> new Notification(
                 row.getInt("id"),

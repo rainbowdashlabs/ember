@@ -45,8 +45,12 @@ public class NewsRepository {
     }
 
     public List<News> findByStation(int stationId, int offset, int limit) {
-        return Query.query("SELECT * FROM news WHERE station_id = :station_id ORDER BY published_at DESC LIMIT :limit OFFSET :offset;")
-                .single(Call.of().bind("station_id", stationId).bind("limit", limit).bind("offset", offset))
+        return Query.query(
+                        "SELECT * FROM news WHERE station_id = :station_id ORDER BY published_at DESC LIMIT :limit OFFSET :offset;")
+                .single(Call.of()
+                        .bind("station_id", stationId)
+                        .bind("limit", limit)
+                        .bind("offset", offset))
                 .map(News.map())
                 .all();
     }
@@ -64,8 +68,11 @@ public class NewsRepository {
                           )
                         ORDER BY n.published_at DESC
                         LIMIT :limit OFFSET :offset;""")
-                .single(Call.of().bind("station_id", stationId).bind("member_id", memberId)
-                        .bind("limit", limit).bind("offset", offset))
+                .single(Call.of()
+                        .bind("station_id", stationId)
+                        .bind("member_id", memberId)
+                        .bind("limit", limit)
+                        .bind("offset", offset))
                 .map(News.map())
                 .all();
     }
@@ -154,7 +161,8 @@ public class NewsRepository {
     // -- Acknowledgements --
 
     public void acknowledge(int newsId, int memberId) {
-        Query.query("INSERT INTO news_acknowledgement(news_id, member_id) VALUES(:news_id, :member_id) ON CONFLICT DO NOTHING;")
+        Query.query(
+                        "INSERT INTO news_acknowledgement(news_id, member_id) VALUES(:news_id, :member_id) ON CONFLICT DO NOTHING;")
                 .single(Call.of().bind("news_id", newsId).bind("member_id", memberId))
                 .insert();
     }

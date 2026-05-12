@@ -19,8 +19,8 @@ import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 
+import java.time.Instant;
 import java.time.LocalDate;
-import java.time.LocalTime;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -81,15 +81,16 @@ class EventRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(10)
     void createOneTimeEvent() {
+        Instant start = Instant.parse("2026-06-15T09:00:00Z");
+        Instant end = Instant.parse("2026-06-15T12:00:00Z");
         StationEvent event = eventRepo.create(
                 station.id(),
                 "Fire Drill",
                 "Annual drill",
                 "ONE_TIME",
                 null,
-                LocalDate.of(2026, 6, 15),
-                LocalTime.of(9, 0),
-                LocalTime.of(12, 0),
+                start,
+                end,
                 null,
                 false,
                 null,
@@ -98,7 +99,6 @@ class EventRepositoryTest extends RepositoryTestBase {
         assertNotNull(event);
         assertEquals("Fire Drill", event.name());
         assertEquals(StationEvent.EventType.ONE_TIME, event.eventType());
-        assertEquals(LocalDate.of(2026, 6, 15), event.eventDate());
         assertEquals(categoryId, event.categoryId());
         eventId = event.id();
     }
@@ -127,15 +127,16 @@ class EventRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(14)
     void update() {
+        Instant start = Instant.parse("2026-07-01T10:00:00Z");
+        Instant end = Instant.parse("2026-07-01T13:00:00Z");
         assertTrue(eventRepo.update(
                 eventId,
                 "Updated Drill",
                 "Updated desc",
                 "ONE_TIME",
                 null,
-                LocalDate.of(2026, 7, 1),
-                LocalTime.of(10, 0),
-                LocalTime.of(13, 0),
+                start,
+                end,
                 null,
                 true,
                 null,
@@ -151,15 +152,16 @@ class EventRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(15)
     void createRecurringEvent() {
+        Instant start = Instant.parse("2026-06-16T14:00:00Z");
+        Instant end = Instant.parse("2026-06-16T15:00:00Z");
         StationEvent event = eventRepo.create(
                 station.id(),
                 "Weekly Meeting",
                 "Team sync",
                 "RECURRING",
                 1,
-                null,
-                LocalTime.of(14, 0),
-                LocalTime.of(15, 0),
+                start,
+                end,
                 null,
                 false,
                 null,
@@ -168,7 +170,6 @@ class EventRepositoryTest extends RepositoryTestBase {
         assertNotNull(event);
         assertEquals(StationEvent.EventType.RECURRING, event.eventType());
         assertEquals(1, event.dayOfWeek());
-        assertNull(event.eventDate());
         // cleanup
         eventRepo.delete(event.id());
     }

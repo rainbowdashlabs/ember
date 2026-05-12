@@ -57,10 +57,7 @@ public class UserSettingsRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         var request = ctx.bodyAsClass(SettingsRequest.class);
         ctx.json(settingsService.updateSettings(
-                session.member().id(),
-                request.notifyNews(),
-                request.notifyNewEvents(),
-                request.notifyEventStatus()));
+                session.member().id(), request.notifyNews(), request.notifyNewEvents(), request.notifyEventStatus()));
     }
 
     public record SettingsRequest(boolean notifyNews, boolean notifyNewEvents, boolean notifyEventStatus) {}

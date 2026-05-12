@@ -10,9 +10,6 @@ import dev.chojo.ember.conf.file.elements.Auth;
 import dev.chojo.ember.conf.file.elements.Database;
 import dev.chojo.ember.conf.file.elements.Demo;
 import dev.chojo.ember.conf.file.elements.Mailing;
-import dev.chojo.ocular.key.Key;
-
-import java.nio.file.Path;
 
 public class File {
 

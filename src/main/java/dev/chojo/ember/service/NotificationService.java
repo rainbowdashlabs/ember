@@ -20,8 +20,8 @@ public class NotificationService {
     private final StationMemberRepository stationMemberRepository;
 
     @Inject
-    public NotificationService(NotificationRepository notificationRepository,
-                                StationMemberRepository stationMemberRepository) {
+    public NotificationService(
+            NotificationRepository notificationRepository, StationMemberRepository stationMemberRepository) {
         this.notificationRepository = notificationRepository;
         this.stationMemberRepository = stationMemberRepository;
     }

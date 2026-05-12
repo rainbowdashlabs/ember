@@ -35,7 +35,8 @@ public class NotificationRepository {
     }
 
     public List<Notification> findUnacknowledged(int memberId) {
-        return Query.query("SELECT * FROM notification WHERE member_id = :member_id AND acknowledged_at IS NULL ORDER BY created_at DESC;")
+        return Query.query(
+                        "SELECT * FROM notification WHERE member_id = :member_id AND acknowledged_at IS NULL ORDER BY created_at DESC;")
                 .single(Call.of().bind("member_id", memberId))
                 .map(Notification.map())
                 .all();
@@ -49,7 +50,8 @@ public class NotificationRepository {
     }
 
     public int countUnacknowledged(int memberId) {
-        return Query.query("SELECT COUNT(*) AS cnt FROM notification WHERE member_id = :member_id AND acknowledged_at IS NULL;")
+        return Query.query(
+                        "SELECT COUNT(*) AS cnt FROM notification WHERE member_id = :member_id AND acknowledged_at IS NULL;")
                 .single(Call.of().bind("member_id", memberId))
                 .map(row -> row.getInt("cnt"))
                 .first()
@@ -57,21 +59,27 @@ public class NotificationRepository {
     }
 
     public boolean acknowledge(int id, int memberId) {
-        return Query.query("UPDATE notification SET acknowledged_at = :now WHERE id = :id AND member_id = :member_id AND acknowledged_at IS NULL;")
-                .single(Call.of().bind("id", id).bind("member_id", memberId).bind("now", Instant.now(), INSTANT_TIMESTAMP))
+        return Query.query(
+                        "UPDATE notification SET acknowledged_at = :now WHERE id = :id AND member_id = :member_id AND acknowledged_at IS NULL;")
+                .single(Call.of()
+                        .bind("id", id)
+                        .bind("member_id", memberId)
+                        .bind("now", Instant.now(), INSTANT_TIMESTAMP))
                 .update()
                 .changed();
     }
 
     public int acknowledgeAll(int memberId) {
-        return Query.query("UPDATE notification SET acknowledged_at = :now WHERE member_id = :member_id AND acknowledged_at IS NULL;")
+        return Query.query(
+                        "UPDATE notification SET acknowledged_at = :now WHERE member_id = :member_id AND acknowledged_at IS NULL;")
                 .single(Call.of().bind("member_id", memberId).bind("now", Instant.now(), INSTANT_TIMESTAMP))
                 .update()
                 .rows();
     }
 
     public void deleteOldAcknowledged() {
-        Query.query("DELETE FROM notification WHERE acknowledged_at IS NOT NULL AND acknowledged_at < now() - INTERVAL '30 days';")
+        Query.query(
+                        "DELETE FROM notification WHERE acknowledged_at IS NOT NULL AND acknowledged_at < now() - INTERVAL '30 days';")
                 .single()
                 .delete();
     }

@@ -16,6 +16,7 @@ import java.util.List;
 public class Conf extends Configurations<File> {
     public static final Key<File> CONFIG =
             Key.builder(Path.of("config.yaml"), File::new).build();
+
     public Conf() {
         super(Path.of("config"), CONFIG, List.of(new YamlDataFormat()), Conf.class.getClassLoader(), null);
     }

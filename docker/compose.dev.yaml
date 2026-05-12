@@ -31,10 +31,11 @@ services:
       DB_DATABASE: ember
       DB_SCHEMA: ember_schema
       DEMO_DEV: "true"
+    volumes:
+      - ./config:/app/config
     depends_on:
       postgres:
         condition: service_healthy
 
 volumes:
   ember-dev-data:
-

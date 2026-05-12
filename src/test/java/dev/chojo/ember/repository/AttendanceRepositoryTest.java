@@ -117,7 +117,7 @@ class AttendanceRepositoryTest extends RepositoryTestBase {
     void createSession() {
         Instant start = Instant.now();
         Instant end = start.plus(2, ChronoUnit.HOURS);
-        AttendanceSession s = attendanceRepo.createSession(templateId, start, end);
+        AttendanceSession s = attendanceRepo.createSession(templateId, start, end, null, "Test Session");
         assertNotNull(s);
         assertEquals(templateId, s.templateId());
         sessionId = s.id();
@@ -140,7 +140,7 @@ class AttendanceRepositoryTest extends RepositoryTestBase {
     void updateSession() {
         Instant newStart = Instant.now().plus(1, ChronoUnit.DAYS);
         Instant newEnd = newStart.plus(3, ChronoUnit.HOURS);
-        assertTrue(attendanceRepo.updateSession(sessionId, newStart, newEnd));
+        assertTrue(attendanceRepo.updateSession(sessionId, newStart, newEnd, "Updated"));
     }
 
     // -- Session Fields --
@@ -172,10 +172,12 @@ class AttendanceRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(30)
     void createEntry() {
-        attendanceRepo.createEntry(sessionId, member.id(), "present");
+        attendanceRepo.createEntry(
+                sessionId, member.id(), AttendanceEntry.AttendanceStatus.PRESENT, AttendanceEntry.EntrySource.EXPECTED);
         var entries = attendanceRepo.findEntries(sessionId);
         assertEquals(1, entries.size());
-        assertEquals("present", entries.getFirst().status());
+        assertEquals(
+                AttendanceEntry.AttendanceStatus.PRESENT, entries.getFirst().status());
         entryId = entries.getFirst().id();
     }
 
@@ -214,11 +216,12 @@ class AttendanceRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(35)
     void updateEntryStatus() {
-        attendanceRepo.createEntry(sessionId, member.id(), "present");
+        attendanceRepo.createEntry(
+                sessionId, member.id(), AttendanceEntry.AttendanceStatus.PRESENT, AttendanceEntry.EntrySource.EXPECTED);
         var entry = attendanceRepo.findEntry(sessionId, member.id()).orElseThrow();
-        assertTrue(attendanceRepo.updateEntryStatus(entry.id(), "absent"));
+        assertTrue(attendanceRepo.updateEntryStatus(entry.id(), AttendanceEntry.AttendanceStatus.ABSENT));
         assertEquals(
-                "absent",
+                AttendanceEntry.AttendanceStatus.ABSENT,
                 attendanceRepo.findEntry(sessionId, member.id()).orElseThrow().status());
         attendanceRepo.deleteEntry(entry.id());
     }
@@ -263,8 +266,8 @@ class AttendanceRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(50)
     void createAbsence() {
-        MemberAbsence absence =
-                attendanceRepo.createAbsence(member.id(), LocalDate.now().plusDays(7), "Vacation");
+        MemberAbsence absence = attendanceRepo.createAbsence(
+                member.id(), LocalDate.now(), LocalDate.now().plusDays(7), "Vacation");
         assertNotNull(absence);
         assertEquals(member.id(), absence.memberId());
         assertEquals("Vacation", absence.reason());
@@ -307,7 +310,8 @@ class AttendanceRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(56)
     void deleteExpiredAbsences() {
-        attendanceRepo.createAbsence(member.id(), LocalDate.now().minusDays(1), "Past");
+        attendanceRepo.createAbsence(
+                member.id(), LocalDate.now().minusDays(2), LocalDate.now().minusDays(1), "Past");
         assertTrue(attendanceRepo.deleteExpiredAbsences());
         assertFalse(attendanceRepo.isAbsent(member.id()));
     }

@@ -10,7 +10,6 @@ import dev.chojo.ember.api.Roles;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.entity.Account;
-import dev.chojo.ember.entity.MemberGroup;
 import dev.chojo.ember.entity.StationMember;
 import dev.chojo.ember.entity.UserTag;
 import dev.chojo.ember.repository.AccountRepository;
@@ -23,8 +22,8 @@ import io.javalin.http.NotFoundResponse;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
 import io.javalin.openapi.OpenApiContent;
-import io.javalin.openapi.OpenApiParam;
 import io.javalin.openapi.OpenApiName;
+import io.javalin.openapi.OpenApiParam;
 import io.javalin.openapi.OpenApiRequestBody;
 import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
@@ -40,7 +39,10 @@ public class UserTagRoutes implements Routes {
     private final StationMemberRepository stationMemberRepository;
 
     @Inject
-    public UserTagRoutes(UserTagService tagService, AccountRepository accountRepository, StationMemberRepository stationMemberRepository) {
+    public UserTagRoutes(
+            UserTagService tagService,
+            AccountRepository accountRepository,
+            StationMemberRepository stationMemberRepository) {
         this.tagService = tagService;
         this.accountRepository = accountRepository;
         this.stationMemberRepository = stationMemberRepository;
@@ -153,16 +155,15 @@ public class UserTagRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MemberWithName[].class)))
     private void getMembers(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
-        ctx.json(tagService.findMembers(id).stream()
-                .map(this::toMemberWithName)
-                .toList());
+        ctx.json(tagService.findMembers(id).stream().map(this::toMemberWithName).toList());
     }
 
     @OpenApi(
             path = "/api/v1/tags/{id}/members",
             methods = HttpMethod.PUT,
             summary = "Set members of a tag (replaces all existing memberships)",
-            description = "Provide the full list of member IDs. Existing members not in the list are removed, new ones are added.",
+            description =
+                    "Provide the full list of member IDs. Existing members not in the list are removed, new ones are added.",
             tags = {"User Tags"},
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = SetMembersRequest.class)),
@@ -204,14 +205,16 @@ public class UserTagRoutes implements Routes {
             })
     private void convertToGroup(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
-        tagService.findById(id).ifPresentOrElse(
-                tag -> {
-                    tagService.convertToGroup(id);
-                    ctx.status(HttpStatus.NO_CONTENT);
-                },
-                () -> {
-                    throw new NotFoundResponse();
-                });
+        tagService
+                .findById(id)
+                .ifPresentOrElse(
+                        tag -> {
+                            tagService.convertToGroup(id);
+                            ctx.status(HttpStatus.NO_CONTENT);
+                        },
+                        () -> {
+                            throw new NotFoundResponse();
+                        });
     }
 
     private static boolean isBlank(String s) {

@@ -23,7 +23,8 @@ public class UserSettingsService {
         return settingsRepository.findOrCreate(memberId);
     }
 
-    public UserSettings updateSettings(int memberId, boolean notifyNews, boolean notifyNewEvents, boolean notifyEventStatus) {
+    public UserSettings updateSettings(
+            int memberId, boolean notifyNews, boolean notifyNewEvents, boolean notifyEventStatus) {
         return settingsRepository.update(memberId, notifyNews, notifyNewEvents, notifyEventStatus);
     }
 }

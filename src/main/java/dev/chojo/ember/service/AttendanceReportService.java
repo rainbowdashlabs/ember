@@ -413,12 +413,13 @@ public class AttendanceReportService {
             Path templateDir = templateFile.getParent();
 
             if (logo != null) {
-                String ext = switch (logo.contentType()) {
-                    case "image/png" -> "png";
-                    case "image/jpeg" -> "jpg";
-                    case "image/svg+xml" -> "svg";
-                    default -> "png";
-                };
+                String ext =
+                        switch (logo.contentType()) {
+                            case "image/png" -> "png";
+                            case "image/jpeg" -> "jpg";
+                            case "image/svg+xml" -> "svg";
+                            default -> "png";
+                        };
                 data.put("hasLogo", true);
                 data.put("logoFile", "logo." + ext);
                 Files.write(templateDir.resolve("logo." + ext), logo.data());

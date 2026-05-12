@@ -23,8 +23,13 @@ public class NewsService {
         this.newsRepository = newsRepository;
     }
 
-    public News create(int stationId, String title, String contentMarkdown, String contentHtml,
-                       int authorId, List<Integer> groupIds) {
+    public News create(
+            int stationId,
+            String title,
+            String contentMarkdown,
+            String contentHtml,
+            int authorId,
+            List<Integer> groupIds) {
         var news = newsRepository.create(stationId, title, contentMarkdown, contentHtml, authorId);
         if (!groupIds.isEmpty()) {
             newsRepository.setGroupRestrictions(news.id(), groupIds);
@@ -44,8 +49,8 @@ public class NewsService {
         return newsRepository.findVisibleForMember(stationId, memberId, offset, limit);
     }
 
-    public Optional<News> update(int id, String title, String contentMarkdown, String contentHtml,
-                                 List<Integer> groupIds) {
+    public Optional<News> update(
+            int id, String title, String contentMarkdown, String contentHtml, List<Integer> groupIds) {
         if (newsRepository.update(id, title, contentMarkdown, contentHtml)) {
             newsRepository.setGroupRestrictions(id, groupIds);
             return newsRepository.findById(id);
@@ -78,5 +83,4 @@ public class NewsService {
     public boolean deleteComment(int id) {
         return newsRepository.deleteComment(id);
     }
-
 }

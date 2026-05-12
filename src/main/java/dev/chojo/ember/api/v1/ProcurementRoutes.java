@@ -30,7 +30,6 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
 import java.time.Instant;
-import java.util.List;
 
 @Singleton
 public class ProcurementRoutes implements Routes {
@@ -40,8 +39,11 @@ public class ProcurementRoutes implements Routes {
     private final InventoryRepository inventoryRepository;
 
     @Inject
-    public ProcurementRoutes(ProcurementService procurementService, AccountRepository accountRepository,
-                             StationMemberRepository stationMemberRepository, InventoryRepository inventoryRepository) {
+    public ProcurementRoutes(
+            ProcurementService procurementService,
+            AccountRepository accountRepository,
+            StationMemberRepository stationMemberRepository,
+            InventoryRepository inventoryRepository) {
         this.procurementService = procurementService;
         this.accountRepository = accountRepository;
         this.stationMemberRepository = stationMemberRepository;
@@ -135,11 +137,13 @@ public class ProcurementRoutes implements Routes {
     }
 
     private ProcurementResponse toResponse(Procurement procurement) {
-        String memberName = stationMemberRepository.findById(procurement.memberId())
+        String memberName = stationMemberRepository
+                .findById(procurement.memberId())
                 .flatMap(m -> accountRepository.findById(m.accountId()))
                 .map(a -> (a.firstName() + " " + a.lastName()).trim())
                 .orElse("");
-        Inventory inventory = inventoryRepository.findById(procurement.inventoryId()).orElse(null);
+        Inventory inventory =
+                inventoryRepository.findById(procurement.inventoryId()).orElse(null);
         String inventoryName = inventory != null ? inventory.name() : "";
         String sizeLabel = null;
         if (procurement.sizeId() != null && inventory != null) {
@@ -149,14 +153,30 @@ public class ProcurementRoutes implements Routes {
                     .findFirst()
                     .orElse(null);
         }
-        return new ProcurementResponse(procurement.id(), procurement.inventoryId(), inventoryName,
-                procurement.memberId(), memberName, procurement.sizeId(), sizeLabel, procurement.notes(),
-                procurement.requestedAt(), procurement.fulfilledAt());
+        return new ProcurementResponse(
+                procurement.id(),
+                procurement.inventoryId(),
+                inventoryName,
+                procurement.memberId(),
+                memberName,
+                procurement.sizeId(),
+                sizeLabel,
+                procurement.notes(),
+                procurement.requestedAt(),
+                procurement.fulfilledAt());
     }
 
-    public record ProcurementResponse(int id, int inventoryId, String inventoryName, int memberId, String memberName,
-                                       Integer sizeId, String sizeLabel, String notes,
-                                       Instant requestedAt, Instant fulfilledAt) {}
+    public record ProcurementResponse(
+            int id,
+            int inventoryId,
+            String inventoryName,
+            int memberId,
+            String memberName,
+            Integer sizeId,
+            String sizeLabel,
+            String notes,
+            Instant requestedAt,
+            Instant fulfilledAt) {}
 
     public record CreateProcurementRequest(int inventoryId, int memberId, Integer sizeId, String notes) {}
 }

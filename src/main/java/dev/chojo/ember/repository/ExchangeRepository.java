@@ -20,8 +20,8 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
 @Singleton
 public class ExchangeRepository {
 
-    public ExchangeRequest create(int stationId, int memberId, Integer itemId, int inventoryId,
-                                   Integer sizeId, String reason) {
+    public ExchangeRequest create(
+            int stationId, int memberId, Integer itemId, int inventoryId, Integer sizeId, String reason) {
         return Query.query("""
                         INSERT INTO equipment_exchange_request(station_id, member_id, item_id, inventory_id, size_id, reason)
                         VALUES(:station_id, :member_id, :item_id, :inventory_id, :size_id, :reason)
@@ -46,21 +46,24 @@ public class ExchangeRepository {
     }
 
     public List<ExchangeRequest> findByStation(int stationId) {
-        return Query.query("SELECT * FROM equipment_exchange_request WHERE station_id = :station_id ORDER BY created_at DESC;")
+        return Query.query(
+                        "SELECT * FROM equipment_exchange_request WHERE station_id = :station_id ORDER BY created_at DESC;")
                 .single(Call.of().bind("station_id", stationId))
                 .map(ExchangeRequest.map())
                 .all();
     }
 
     public List<ExchangeRequest> findByMember(int memberId) {
-        return Query.query("SELECT * FROM equipment_exchange_request WHERE member_id = :member_id ORDER BY created_at DESC;")
+        return Query.query(
+                        "SELECT * FROM equipment_exchange_request WHERE member_id = :member_id ORDER BY created_at DESC;")
                 .single(Call.of().bind("member_id", memberId))
                 .map(ExchangeRequest.map())
                 .all();
     }
 
     public boolean updateStatus(int id, ExchangeStatus status) {
-        return Query.query("UPDATE equipment_exchange_request SET status = :status, updated_at = :updated_at WHERE id = :id;")
+        return Query.query(
+                        "UPDATE equipment_exchange_request SET status = :status, updated_at = :updated_at WHERE id = :id;")
                 .single(Call.of()
                         .bind("id", id)
                         .bind("status", status)
@@ -69,8 +72,8 @@ public class ExchangeRepository {
                 .changed();
     }
 
-    public ExchangeLog createLog(int requestId, ExchangeStatus oldStatus, ExchangeStatus newStatus,
-                                  int changedBy, String note) {
+    public ExchangeLog createLog(
+            int requestId, ExchangeStatus oldStatus, ExchangeStatus newStatus, int changedBy, String note) {
         return Query.query("""
                         INSERT INTO equipment_exchange_log(request_id, old_status, new_status, changed_by, note)
                         VALUES(:request_id, :old_status, :new_status, :changed_by, :note)
@@ -87,7 +90,8 @@ public class ExchangeRepository {
     }
 
     public List<ExchangeLog> findLogs(int requestId) {
-        return Query.query("SELECT * FROM equipment_exchange_log WHERE request_id = :request_id ORDER BY changed_at ASC;")
+        return Query.query(
+                        "SELECT * FROM equipment_exchange_log WHERE request_id = :request_id ORDER BY changed_at ASC;")
                 .single(Call.of().bind("request_id", requestId))
                 .map(ExchangeLog.map())
                 .all();

@@ -25,8 +25,8 @@ public class ExchangeService {
         this.exchangeRepository = exchangeRepository;
     }
 
-    public ExchangeRequest create(int stationId, int memberId, Integer itemId, int inventoryId,
-                                   Integer sizeId, String reason) {
+    public ExchangeRequest create(
+            int stationId, int memberId, Integer itemId, int inventoryId, Integer sizeId, String reason) {
         return exchangeRepository.create(stationId, memberId, itemId, inventoryId, sizeId, reason);
     }
 
@@ -43,8 +43,8 @@ public class ExchangeService {
     }
 
     public ExchangeRequest updateStatus(int id, ExchangeStatus newStatus, int changedBy, String note) {
-        var request = exchangeRepository.findById(id)
-                .orElseThrow(() -> new BadRequestResponse("Exchange request not found"));
+        var request =
+                exchangeRepository.findById(id).orElseThrow(() -> new BadRequestResponse("Exchange request not found"));
         var oldStatus = request.status();
         exchangeRepository.updateStatus(id, newStatus);
         exchangeRepository.createLog(id, oldStatus, newStatus, changedBy, note);

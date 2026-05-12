@@ -15,22 +15,22 @@ import dev.chojo.ember.conf.file.elements.Database;
 import dev.chojo.ember.conf.file.elements.Demo;
 import dev.chojo.ember.entity.AttendanceEntry;
 import dev.chojo.ember.entity.CheckResult;
+import dev.chojo.ember.entity.ExchangeStatus;
 import dev.chojo.ember.entity.ProfileFieldScope;
 import dev.chojo.ember.entity.StationMember;
 import dev.chojo.ember.repository.AccountRepository;
 import dev.chojo.ember.repository.AttendanceRepository;
 import dev.chojo.ember.repository.EventRepository;
+import dev.chojo.ember.repository.ExchangeRepository;
 import dev.chojo.ember.repository.InventoryCheckRepository;
 import dev.chojo.ember.repository.InventoryRepository;
 import dev.chojo.ember.repository.MemberGroupRepository;
 import dev.chojo.ember.repository.NewsRepository;
-import dev.chojo.ember.repository.ExchangeRepository;
 import dev.chojo.ember.repository.ProcurementRepository;
-import dev.chojo.ember.repository.UserTagRepository;
 import dev.chojo.ember.repository.ProfileFieldRepository;
-import dev.chojo.ember.entity.ExchangeStatus;
 import dev.chojo.ember.repository.StationMemberRepository;
 import dev.chojo.ember.repository.StationRepository;
+import dev.chojo.ember.repository.UserTagRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -332,7 +332,8 @@ public class DemoService {
             elternMembers.add(m);
 
             // Profile data
-            profileFieldRepository.setValue(m.id(), fieldTelefon.id(), jsonStr("0151 " + (10000000 + rng.nextInt(90000000))));
+            profileFieldRepository.setValue(
+                    m.id(), fieldTelefon.id(), jsonStr("0151 " + (10000000 + rng.nextInt(90000000))));
             profileFieldRepository.setValue(m.id(), fieldNewsletter.id(), Boolean.toString(rng.nextBoolean()));
         }
 
@@ -477,8 +478,14 @@ public class DemoService {
                 null);
 
         // -- Past attendance sessions (full year + current year so far) --
-        seedAttendanceSessions(rng, templateAnfaenger, templateFort, templateGesamt,
-                anfaengerMembers, fortgeschrittenMembers, betreuerMembers);
+        seedAttendanceSessions(
+                rng,
+                templateAnfaenger,
+                templateFort,
+                templateGesamt,
+                anfaengerMembers,
+                fortgeschrittenMembers,
+                betreuerMembers);
 
         // -- Inventory --
         seedInventory(station.id(), memberRole.id(), rng, anfaengerMembers, fortgeschrittenMembers);
@@ -580,86 +587,112 @@ public class DemoService {
         }
 
         // -- News --
-        var news1 = newsRepository.create(station.id(),
+        var news1 = newsRepository.create(
+                station.id(),
                 "Willkommen bei der Jugendfeuerwehr!",
                 "Herzlich willkommen auf unserer neuen Plattform! Hier findet ihr alle wichtigen Informationen rund um unsere **Jugendfeuerwehr**.\n\n## Was ist neu?\n\n- Übersicht über Termine und Anwesenheit\n- Inventarverwaltung für Ausrüstung\n- Profilverwaltung für alle Mitglieder\n\nBei Fragen wendet euch bitte an eure Betreuer.",
                 "<h1>Willkommen bei der Jugendfeuerwehr!</h1><p>Herzlich willkommen auf unserer neuen Plattform! Hier findet ihr alle wichtigen Informationen rund um unsere <strong>Jugendfeuerwehr</strong>.</p><h2>Was ist neu?</h2><ul><li>Übersicht über Termine und Anwesenheit</li><li>Inventarverwaltung für Ausrüstung</li><li>Profilverwaltung für alle Mitglieder</li></ul><p>Bei Fragen wendet euch bitte an eure Betreuer.</p>",
                 adminMember.id());
-        var news2 = newsRepository.create(station.id(),
+        var news2 = newsRepository.create(
+                station.id(),
                 "Kreiswettbewerb: Anmeldung geöffnet",
                 "Die Anmeldung zum **Kreiswettbewerb** am 20. des übernächsten Monats ist jetzt geöffnet!\n\nBitte meldet euch über die Terminseite an. Die Plätze sind begrenzt.\n\n*Teilnehmen dürfen alle Fortgeschrittenen.*",
                 "<p>Die Anmeldung zum <strong>Kreiswettbewerb</strong> am 20. des übernächsten Monats ist jetzt geöffnet!</p><p>Bitte meldet euch über die Terminseite an. Die Plätze sind begrenzt.</p><p><em>Teilnehmen dürfen alle Fortgeschrittenen.</em></p>",
                 betreuerMembers.getFirst().id());
 
         // Comments on news
-        var comment1 = newsRepository.createComment(news1.id(), null, elternMembers.get(0).id(),
-                "Super, endlich eine moderne Plattform!");
-        newsRepository.createComment(news1.id(), comment1.id(), betreuerMembers.get(0).id(),
-                "Danke! Bei Fragen einfach melden.");
-        newsRepository.createComment(news1.id(), null, elternMembers.get(1).id(),
-                "Kann man hier auch Abwesenheiten eintragen?");
-        newsRepository.createComment(news2.id(), null, fortgeschrittenMembers.get(0).id(),
-                "Ich bin dabei! 💪");
-        var comment2 = newsRepository.createComment(news2.id(), null, fortgeschrittenMembers.get(1).id(),
-                "Wie viele Plätze gibt es?");
-        newsRepository.createComment(news2.id(), comment2.id(), betreuerMembers.get(0).id(),
-                "Wir haben 8 Plätze. Bitte schnell anmelden!");
+        var comment1 = newsRepository.createComment(
+                news1.id(), null, elternMembers.get(0).id(), "Super, endlich eine moderne Plattform!");
+        newsRepository.createComment(
+                news1.id(), comment1.id(), betreuerMembers.get(0).id(), "Danke! Bei Fragen einfach melden.");
+        newsRepository.createComment(
+                news1.id(), null, elternMembers.get(1).id(), "Kann man hier auch Abwesenheiten eintragen?");
+        newsRepository.createComment(
+                news2.id(), null, fortgeschrittenMembers.get(0).id(), "Ich bin dabei! 💪");
+        var comment2 = newsRepository.createComment(
+                news2.id(), null, fortgeschrittenMembers.get(1).id(), "Wie viele Plätze gibt es?");
+        newsRepository.createComment(
+                news2.id(), comment2.id(), betreuerMembers.get(0).id(), "Wir haben 8 Plätze. Bitte schnell anmelden!");
 
-        var news3 = newsRepository.create(station.id(),
+        var news3 = newsRepository.create(
+                station.id(),
                 "Neue Ausrüstung eingetroffen",
                 "Die bestellten **Helme und Handschuhe** sind eingetroffen! Die Verteilung findet bei der nächsten Übung statt.\n\nBitte prüft eure Größen im Inventar und meldet euch bei Unstimmigkeiten.",
                 "<p>Die bestellten <strong>Helme und Handschuhe</strong> sind eingetroffen! Die Verteilung findet bei der nächsten Übung statt.</p><p>Bitte prüft eure Größen im Inventar und meldet euch bei Unstimmigkeiten.</p>",
                 betreuerMembers.get(1).id());
 
-        newsRepository.create(station.id(),
+        newsRepository.create(
+                station.id(),
                 "Sommerferien: Übungspause",
                 "Während der **Sommerferien** finden keine regulären Übungen statt. Der Übungsbetrieb startet wieder am ersten Montag nach den Ferien.\n\nWir wünschen allen schöne Ferien! ☀️",
                 "<p>Während der <strong>Sommerferien</strong> finden keine regulären Übungen statt. Der Übungsbetrieb startet wieder am ersten Montag nach den Ferien.</p><p>Wir wünschen allen schöne Ferien! ☀️</p>",
                 adminMember.id());
 
-        newsRepository.createComment(news3.id(), null, elternMembers.get(2).id(),
-                "Werden die alten Helme eingesammelt?");
-        newsRepository.createComment(news3.id(), null, betreuerMembers.get(1).id(),
-                "Ja, bitte zur nächsten Übung mitbringen.");
+        newsRepository.createComment(
+                news3.id(), null, elternMembers.get(2).id(), "Werden die alten Helme eingesammelt?");
+        newsRepository.createComment(
+                news3.id(), null, betreuerMembers.get(1).id(), "Ja, bitte zur nächsten Übung mitbringen.");
 
         // -- User Tags --
         var tagWettkampf = userTagRepository.create(station.id(), "Wettkampfgruppe");
         var tagErsthelfer = userTagRepository.create(station.id(), "Ersthelfer");
         // Add some Fortgeschritten to Wettkampfgruppe
         for (int i = 0; i < 6 && i < fortgeschrittenMembers.size(); i++) {
-            userTagRepository.addMember(tagWettkampf.id(), fortgeschrittenMembers.get(i).id());
+            userTagRepository.addMember(
+                    tagWettkampf.id(), fortgeschrittenMembers.get(i).id());
         }
         // Add some Betreuer as Ersthelfer
         for (int i = 0; i < 3 && i < betreuerMembers.size(); i++) {
-            userTagRepository.addMember(tagErsthelfer.id(), betreuerMembers.get(i).id());
+            userTagRepository.addMember(
+                    tagErsthelfer.id(), betreuerMembers.get(i).id());
         }
 
         // -- Equipment Exchange Requests --
         // A kid requesting a helmet exchange
-        var helmItems = inventoryRepository.findItemsByMember(anfaengerMembers.get(0).id());
+        var helmItems =
+                inventoryRepository.findItemsByMember(anfaengerMembers.get(0).id());
         if (!helmItems.isEmpty()) {
-            var helmExchange = exchangeRepository.create(station.id(), anfaengerMembers.get(0).id(),
-                    helmItems.getFirst().id(), helmItems.getFirst().inventoryId(), null, "Helm ist zu klein geworden");
+            var helmExchange = exchangeRepository.create(
+                    station.id(),
+                    anfaengerMembers.get(0).id(),
+                    helmItems.getFirst().id(),
+                    helmItems.getFirst().inventoryId(),
+                    null,
+                    "Helm ist zu klein geworden");
             // Manager progresses it
             exchangeRepository.updateStatus(helmExchange.id(), ExchangeStatus.RECEIVED);
-            exchangeRepository.createLog(helmExchange.id(), ExchangeStatus.ANNOUNCED, ExchangeStatus.RECEIVED,
-                    betreuerMembers.get(0).id(), "Neuer Helm bestellt");
+            exchangeRepository.createLog(
+                    helmExchange.id(),
+                    ExchangeStatus.ANNOUNCED,
+                    ExchangeStatus.RECEIVED,
+                    betreuerMembers.get(0).id(),
+                    "Neuer Helm bestellt");
         }
         // Another kid requesting blouson exchange
-        var blousonItems = inventoryRepository.findItemsByMember(fortgeschrittenMembers.get(0).id());
+        var blousonItems = inventoryRepository.findItemsByMember(
+                fortgeschrittenMembers.get(0).id());
         if (blousonItems.size() > 1) {
-            exchangeRepository.create(station.id(), fortgeschrittenMembers.get(0).id(),
-                    blousonItems.get(1).id(), blousonItems.get(1).inventoryId(), null, "Blouson hat einen Riss");
+            exchangeRepository.create(
+                    station.id(),
+                    fortgeschrittenMembers.get(0).id(),
+                    blousonItems.get(1).id(),
+                    blousonItems.get(1).inventoryId(),
+                    null,
+                    "Blouson hat einen Riss");
         }
 
         // -- Equipment Procurement --
         var inventories = inventoryRepository.findByStation(station.id());
         if (!inventories.isEmpty()) {
             // Need a new pair of gloves for a kid
-            var handschuheInv = inventories.stream().filter(i -> "Handschuhe".equals(i.name())).findFirst();
+            var handschuheInv = inventories.stream()
+                    .filter(i -> "Handschuhe".equals(i.name()))
+                    .findFirst();
             if (handschuheInv.isPresent()) {
                 var sizes = inventoryRepository.findSizes(handschuheInv.get().id());
-                procurementRepository.create(station.id(), handschuheInv.get().id(),
+                procurementRepository.create(
+                        station.id(),
+                        handschuheInv.get().id(),
                         anfaengerMembers.get(2).id(),
                         sizes.isEmpty() ? null : sizes.get(2 % sizes.size()).id(),
                         "Handschuhe verloren");
@@ -707,16 +740,20 @@ public class DemoService {
             if (dow == 1) { // Monday: Anfänger
                 Instant start = date.atTime(17, 30).toInstant(ZoneOffset.UTC);
                 Instant end = date.atTime(19, 0).toInstant(ZoneOffset.UTC);
-                var sess = attendanceRepository.createSession(templateAnfaenger.id(), start, end, null,
-                        "Übung Anfänger KW" + weekOfYear);
+                var sess = attendanceRepository.createSession(
+                        templateAnfaenger.id(), start, end, null, "Übung Anfänger KW" + weekOfYear);
                 for (var m : anfaenger) {
                     var status = rng.nextInt(10) < 8
-                            ? AttendanceEntry.AttendanceStatus.PRESENT : AttendanceEntry.AttendanceStatus.ABSENT;
+                            ? AttendanceEntry.AttendanceStatus.PRESENT
+                            : AttendanceEntry.AttendanceStatus.ABSENT;
                     attendanceRepository.createEntry(sess.id(), m.id(), status, AttendanceEntry.EntrySource.EXPECTED);
                 }
                 for (var m : teamForAnfaenger) {
-                    attendanceRepository.createEntry(sess.id(), m.id(),
-                            AttendanceEntry.AttendanceStatus.PRESENT, AttendanceEntry.EntrySource.EXTRA);
+                    attendanceRepository.createEntry(
+                            sess.id(),
+                            m.id(),
+                            AttendanceEntry.AttendanceStatus.PRESENT,
+                            AttendanceEntry.EntrySource.EXTRA);
                 }
                 sessionCount++;
             }
@@ -724,16 +761,20 @@ public class DemoService {
             if (dow == 3) { // Wednesday: Fortgeschritten
                 Instant start = date.atTime(18, 0).toInstant(ZoneOffset.UTC);
                 Instant end = date.atTime(19, 30).toInstant(ZoneOffset.UTC);
-                var sess = attendanceRepository.createSession(templateFort.id(), start, end, null,
-                        "Übung Fortgeschritten KW" + weekOfYear);
+                var sess = attendanceRepository.createSession(
+                        templateFort.id(), start, end, null, "Übung Fortgeschritten KW" + weekOfYear);
                 for (var m : fortgeschritten) {
                     var status = rng.nextInt(10) < 7
-                            ? AttendanceEntry.AttendanceStatus.PRESENT : AttendanceEntry.AttendanceStatus.ABSENT;
+                            ? AttendanceEntry.AttendanceStatus.PRESENT
+                            : AttendanceEntry.AttendanceStatus.ABSENT;
                     attendanceRepository.createEntry(sess.id(), m.id(), status, AttendanceEntry.EntrySource.EXPECTED);
                 }
                 for (var m : teamForFort) {
-                    attendanceRepository.createEntry(sess.id(), m.id(),
-                            AttendanceEntry.AttendanceStatus.PRESENT, AttendanceEntry.EntrySource.EXTRA);
+                    attendanceRepository.createEntry(
+                            sess.id(),
+                            m.id(),
+                            AttendanceEntry.AttendanceStatus.PRESENT,
+                            AttendanceEntry.EntrySource.EXTRA);
                 }
                 sessionCount++;
             }
@@ -741,22 +782,33 @@ public class DemoService {
             if (dow == 6 && date.getDayOfMonth() <= 7) { // 1st Saturday: Gesamtübung
                 Instant start = date.atTime(10, 0).toInstant(ZoneOffset.UTC);
                 Instant end = date.atTime(13, 0).toInstant(ZoneOffset.UTC);
-                var sess = attendanceRepository.createSession(templateGesamt.id(), start, end, null,
-                        "Gesamtübung " + date.getMonth().getDisplayName(
-                                java.time.format.TextStyle.FULL, java.util.Locale.GERMAN) + " " + date.getYear());
+                var sess = attendanceRepository.createSession(
+                        templateGesamt.id(),
+                        start,
+                        end,
+                        null,
+                        "Gesamtübung "
+                                + date.getMonth()
+                                        .getDisplayName(java.time.format.TextStyle.FULL, java.util.Locale.GERMAN)
+                                + " " + date.getYear());
                 for (var m : anfaenger) {
                     var status = rng.nextInt(10) < 7
-                            ? AttendanceEntry.AttendanceStatus.PRESENT : AttendanceEntry.AttendanceStatus.ABSENT;
+                            ? AttendanceEntry.AttendanceStatus.PRESENT
+                            : AttendanceEntry.AttendanceStatus.ABSENT;
                     attendanceRepository.createEntry(sess.id(), m.id(), status, AttendanceEntry.EntrySource.EXPECTED);
                 }
                 for (var m : fortgeschritten) {
                     var status = rng.nextInt(10) < 7
-                            ? AttendanceEntry.AttendanceStatus.PRESENT : AttendanceEntry.AttendanceStatus.ABSENT;
+                            ? AttendanceEntry.AttendanceStatus.PRESENT
+                            : AttendanceEntry.AttendanceStatus.ABSENT;
                     attendanceRepository.createEntry(sess.id(), m.id(), status, AttendanceEntry.EntrySource.EXPECTED);
                 }
                 for (var m : teamForGesamt) {
-                    attendanceRepository.createEntry(sess.id(), m.id(),
-                            AttendanceEntry.AttendanceStatus.PRESENT, AttendanceEntry.EntrySource.EXTRA);
+                    attendanceRepository.createEntry(
+                            sess.id(),
+                            m.id(),
+                            AttendanceEntry.AttendanceStatus.PRESENT,
+                            AttendanceEntry.EntrySource.EXTRA);
                 }
                 sessionCount++;
             }

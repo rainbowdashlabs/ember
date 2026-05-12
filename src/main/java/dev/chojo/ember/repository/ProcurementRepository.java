@@ -43,14 +43,16 @@ public class ProcurementRepository {
     }
 
     public List<Procurement> findByStation(int stationId) {
-        return Query.query("SELECT * FROM equipment_procurement WHERE station_id = :station_id ORDER BY requested_at DESC;")
+        return Query.query(
+                        "SELECT * FROM equipment_procurement WHERE station_id = :station_id ORDER BY requested_at DESC;")
                 .single(Call.of().bind("station_id", stationId))
                 .map(Procurement.map())
                 .all();
     }
 
     public List<Procurement> findOpen(int stationId) {
-        return Query.query("SELECT * FROM equipment_procurement WHERE station_id = :station_id AND fulfilled_at IS NULL ORDER BY requested_at ASC;")
+        return Query.query(
+                        "SELECT * FROM equipment_procurement WHERE station_id = :station_id AND fulfilled_at IS NULL ORDER BY requested_at ASC;")
                 .single(Call.of().bind("station_id", stationId))
                 .map(Procurement.map())
                 .all();

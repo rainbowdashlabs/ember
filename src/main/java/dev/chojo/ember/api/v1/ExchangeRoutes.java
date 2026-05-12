@@ -44,9 +44,12 @@ public class ExchangeRoutes implements Routes {
     private final dev.chojo.ember.service.NotificationService notificationService;
 
     @Inject
-    public ExchangeRoutes(ExchangeService exchangeService, AccountRepository accountRepository,
-                          StationMemberRepository stationMemberRepository, InventoryRepository inventoryRepository,
-                          dev.chojo.ember.service.NotificationService notificationService) {
+    public ExchangeRoutes(
+            ExchangeService exchangeService,
+            AccountRepository accountRepository,
+            StationMemberRepository stationMemberRepository,
+            InventoryRepository inventoryRepository,
+            dev.chojo.ember.service.NotificationService notificationService) {
         this.exchangeService = exchangeService;
         this.accountRepository = accountRepository;
         this.stationMemberRepository = stationMemberRepository;
@@ -93,9 +96,9 @@ public class ExchangeRoutes implements Routes {
             })
     private void get(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
-        exchangeService.findById(id).ifPresentOrElse(
-                request -> ctx.json(toResponse(request)),
-                () -> { throw new NotFoundResponse(); });
+        exchangeService.findById(id).ifPresentOrElse(request -> ctx.json(toResponse(request)), () -> {
+            throw new NotFoundResponse();
+        });
     }
 
     @OpenApi(
@@ -125,8 +128,12 @@ public class ExchangeRoutes implements Routes {
             throw new BadRequestResponse("reason is required");
         }
         var exchange = exchangeService.create(
-                session.stationId(), session.member().id(),
-                request.itemId(), request.inventoryId(), request.sizeId(), request.reason());
+                session.stationId(),
+                session.member().id(),
+                request.itemId(),
+                request.inventoryId(),
+                request.sizeId(),
+                request.reason());
         ctx.status(HttpStatus.CREATED).json(toResponse(exchange));
     }
 
@@ -156,8 +163,10 @@ public class ExchangeRoutes implements Routes {
             throw new BadRequestResponse("Invalid status: " + request.status());
         }
         var exchange = exchangeService.updateStatus(id, status, session.member().id(), request.note());
-        notificationService.notify(exchange.memberId(),
-                dev.chojo.ember.entity.NotificationType.EXCHANGE_STATUS_CHANGE, exchange.id(),
+        notificationService.notify(
+                exchange.memberId(),
+                dev.chojo.ember.entity.NotificationType.EXCHANGE_STATUS_CHANGE,
+                exchange.id(),
                 "Tausch-Status geändert: " + status.name());
         ctx.json(toResponse(exchange));
     }
@@ -182,11 +191,13 @@ public class ExchangeRoutes implements Routes {
     }
 
     private ExchangeResponse toResponse(ExchangeRequest exchange) {
-        String memberName = stationMemberRepository.findById(exchange.memberId())
+        String memberName = stationMemberRepository
+                .findById(exchange.memberId())
                 .flatMap(m -> accountRepository.findById(m.accountId()))
                 .map(a -> (a.firstName() + " " + a.lastName()).trim())
                 .orElse("");
-        Inventory inventory = inventoryRepository.findById(exchange.inventoryId()).orElse(null);
+        Inventory inventory =
+                inventoryRepository.findById(exchange.inventoryId()).orElse(null);
         String inventoryName = inventory != null ? inventory.name() : "";
         String inventoryType = inventory != null ? inventory.inventoryType() : "";
         String sizeLabel = null;
@@ -197,26 +208,61 @@ public class ExchangeRoutes implements Routes {
                     .findFirst()
                     .orElse(null);
         }
-        return new ExchangeResponse(exchange.id(), exchange.memberId(), memberName, exchange.itemId(),
-                exchange.inventoryId(), inventoryName, exchange.sizeId(), sizeLabel, inventoryType,
-                exchange.status().name(), exchange.reason(), exchange.createdAt(), exchange.updatedAt());
+        return new ExchangeResponse(
+                exchange.id(),
+                exchange.memberId(),
+                memberName,
+                exchange.itemId(),
+                exchange.inventoryId(),
+                inventoryName,
+                exchange.sizeId(),
+                sizeLabel,
+                inventoryType,
+                exchange.status().name(),
+                exchange.reason(),
+                exchange.createdAt(),
+                exchange.updatedAt());
     }
 
     private LogResponse toLogResponse(ExchangeLog log) {
-        String changedByName = stationMemberRepository.findById(log.changedBy())
+        String changedByName = stationMemberRepository
+                .findById(log.changedBy())
                 .flatMap(m -> accountRepository.findById(m.accountId()))
                 .map(a -> (a.firstName() + " " + a.lastName()).trim())
                 .orElse("");
-        return new LogResponse(log.id(), log.oldStatus().name(), log.newStatus().name(),
-                log.changedBy(), changedByName, log.changedAt(), log.note());
+        return new LogResponse(
+                log.id(),
+                log.oldStatus().name(),
+                log.newStatus().name(),
+                log.changedBy(),
+                changedByName,
+                log.changedAt(),
+                log.note());
     }
 
-    public record ExchangeResponse(int id, int memberId, String memberName, Integer itemId, int inventoryId,
-                                    String inventoryName, Integer sizeId, String sizeLabel, String inventoryType,
-                                    String status, String reason, Instant createdAt, Instant updatedAt) {}
+    public record ExchangeResponse(
+            int id,
+            int memberId,
+            String memberName,
+            Integer itemId,
+            int inventoryId,
+            String inventoryName,
+            Integer sizeId,
+            String sizeLabel,
+            String inventoryType,
+            String status,
+            String reason,
+            Instant createdAt,
+            Instant updatedAt) {}
 
-    public record LogResponse(int id, String oldStatus, String newStatus, int changedBy, String changedByName,
-                               Instant changedAt, String note) {}
+    public record LogResponse(
+            int id,
+            String oldStatus,
+            String newStatus,
+            int changedBy,
+            String changedByName,
+            Instant changedAt,
+            String note) {}
 
     public record CreateExchangeRequest(Integer itemId, int inventoryId, Integer sizeId, String reason) {}
 

@@ -30,6 +30,8 @@ services:
       DB_SCHEMA: ember_schema
       DEMO_ENABLED: "true"
       DEMO_RESETINTERVALHOURS: "1"
+    volumes:
+      - ./config:/app/config
     depends_on:
       postgres:
         condition: service_healthy
