@@ -21,6 +21,7 @@ import java.sql.SQLException;
 
 @Tag("database")
 public class TestSQL {
+
     @Test
     void verifyStructure() throws IOException {
         SaduTests.execute(1, PostgreSql.get());

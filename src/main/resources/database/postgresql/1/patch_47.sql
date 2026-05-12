@@ -1,8 +1,8 @@
-DROP TABLE IF EXISTS news_acknowledgement;
+DROP TABLE IF EXISTS ember_schema.news_acknowledgement;
 
-CREATE TABLE notification (
+CREATE TABLE ember_schema.notification (
     id SERIAL PRIMARY KEY,
-    member_id INTEGER NOT NULL REFERENCES station_member(id) ON DELETE CASCADE,
+    member_id INTEGER NOT NULL REFERENCES ember_schema.station_member(id) ON DELETE CASCADE,
     type TEXT NOT NULL,
     reference_id INTEGER,
     message TEXT NOT NULL,
@@ -10,5 +10,5 @@ CREATE TABLE notification (
     acknowledged_at TIMESTAMP
 );
 
-CREATE INDEX idx_notification_member ON notification(member_id);
-CREATE INDEX idx_notification_unacknowledged ON notification(member_id) WHERE acknowledged_at IS NULL;
+CREATE INDEX idx_notification_member ON ember_schema.notification(member_id);
+CREATE INDEX idx_notification_unacknowledged ON ember_schema.notification(member_id) WHERE acknowledged_at IS NULL;
