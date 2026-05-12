@@ -37,10 +37,10 @@ WORKDIR /app
 
 COPY --from=frontend /build/dist/ public
 COPY --from=build /home/gradle/build/install/ember/ .
-COPY templates .
+COPY templates templates
 
 RUN mkdir config
 
-WORKDIR /app/bin
+WORKDIR /app
 
-ENTRYPOINT ["sh", "-c", "env && exec ./ember"]
+ENTRYPOINT ["sh", "-c", "env && exec ./bin/ember"]
