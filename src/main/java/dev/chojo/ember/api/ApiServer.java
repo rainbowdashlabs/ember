@@ -149,6 +149,15 @@ public class ApiServer {
                 route.register(config.routes, API_PREFIX);
             }
         });
+        // SPA fallback: serve index.html for non-API routes so the Vue router can handle them
+        var indexPath = java.nio.file.Path.of(
+                System.getenv().getOrDefault("EMBER_PUBLIC_DIR", "public"), "index.html");
+        app.get("/<path>", ctx -> {
+            if (!ctx.path().startsWith(API_PREFIX)) {
+                ctx.contentType("text/html");
+                ctx.result(java.nio.file.Files.newInputStream(indexPath));
+            }
+        });
         app.start(apiConfig.host(), apiConfig.port());
         log.info("API server started on {}:{}", apiConfig.host(), apiConfig.port());
     }
