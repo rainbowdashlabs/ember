@@ -39,7 +39,7 @@ public class TestSQL {
                     .build();
             try (dataSource) {
                 SqlUpdater.builder(dataSource, PostgreSql.get())
-                        .setSchemas("repbot_schema")
+                        .setSchemas("ember_schema")
                         .execute();
             }
         }
