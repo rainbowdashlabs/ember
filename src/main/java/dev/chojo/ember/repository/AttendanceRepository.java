@@ -302,7 +302,8 @@ public class AttendanceRepository {
                                 member_id,
                                 status,
                                 check_in,
-                                check_out
+                                check_out,
+                                source
                             FROM
                                 attendance_entry
                             WHERE session_id = :session_id
