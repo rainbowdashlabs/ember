@@ -32,6 +32,9 @@ import org.slf4j.LoggerFactory;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.json.JsonMapper;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.text.SimpleDateFormat;
 import java.util.Optional;
 import java.util.Set;
@@ -98,11 +101,11 @@ public class ApiServer {
                         ctx.method() + " " + ctx.url(),
                         requireNonNullElse(ctx.queryString(), ""),
                         ctx.headerMap().entrySet().stream()
-                                .map(h -> "   " + h.getKey() + ": " + h.getValue())
-                                .collect(Collectors.joining("\n")),
+                           .map(h -> "   " + h.getKey() + ": " + h.getValue())
+                           .collect(Collectors.joining("\n")),
                         ctx.contentType() == null
-                                        || ctx.contentType().contains("text")
-                                        || ctx.contentType().equals(JSON)
+                                || ctx.contentType().contains("text")
+                                || ctx.contentType().equals(JSON)
                                 ? ctx.body().substring(0, Math.min(ctx.body().length(), 180))
                                 : "Bytes");
             });
@@ -115,16 +118,16 @@ public class ApiServer {
                         requireNonNullElse(ctx.queryString(), ""),
                         ctx.status(),
                         ctx.res().getHeaderNames().stream()
-                                .map(h -> "   " + h + ": " + ctx.res().getHeader(h))
-                                .collect(Collectors.joining("\n")),
+                           .map(h -> "   " + h + ": " + ctx.res().getHeader(h))
+                           .collect(Collectors.joining("\n")),
                         JSON.equals(ctx.res().getContentType())
                                 ? requireNonNullElse(ctx.result(), "")
-                                        .substring(
-                                                0,
-                                                Math.min(
-                                                        requireNonNullElse(ctx.result(), "")
-                                                                .length(),
-                                                        360))
+                                .substring(
+                                        0,
+                                        Math.min(
+                                                requireNonNullElse(ctx.result(), "")
+                                                        .length(),
+                                                360))
                                 : "Bytes");
             });
 
@@ -148,16 +151,22 @@ public class ApiServer {
             for (Routes route : routes) {
                 route.register(config.routes, API_PREFIX);
             }
+            var indexPath = Path.of(
+                    System.getenv().getOrDefault("EMBER_PUBLIC_DIR", "public"), "index.html");
+            String index;
+            try {
+                index = Files.readString(indexPath);
+            } catch (IOException e) {
+                throw new RuntimeException("Could not read index.html", e);
+            }
+            config.routes.get("/<path>", ctx -> {
+                if (!ctx.path().startsWith(API_PREFIX)) {
+                    ctx.contentType("text/html");
+                    ctx.result(index);
+                }
+            });
         });
         // SPA fallback: serve index.html for non-API routes so the Vue router can handle them
-        var indexPath = java.nio.file.Path.of(
-                System.getenv().getOrDefault("EMBER_PUBLIC_DIR", "public"), "index.html");
-        app.get("/<path>", ctx -> {
-            if (!ctx.path().startsWith(API_PREFIX)) {
-                ctx.contentType("text/html");
-                ctx.result(java.nio.file.Files.newInputStream(indexPath));
-            }
-        });
         app.start(apiConfig.host(), apiConfig.port());
         log.info("API server started on {}:{}", apiConfig.host(), apiConfig.port());
     }
@@ -202,7 +211,8 @@ public class ApiServer {
         ctx.json(accounts);
     }
 
-    public record DemoAccount(String email, String firstName, String lastName, java.util.List<String> roles) {}
+    public record DemoAccount(String email, String firstName, String lastName, java.util.List<String> roles) {
+    }
 
     private void handleAccess(@NotNull Context ctx) {
         Set<RouteRole> routeRoles = ctx.routeRoles();
@@ -269,18 +279,18 @@ public class ApiServer {
 
     private Jackson3Mapper jacksonMapper() {
         ObjectMapper mapper = JsonMapper.builder()
-                .defaultDateFormat(new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSX"))
-                .build();
+                                        .defaultDateFormat(new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSX"))
+                                        .build();
         return new Jackson3Mapper(mapper);
     }
 
     private void configureOpenApi(OpenApiPluginConfiguration config) {
         config.withDocumentationPath("/docs")
-                .withDefinitionConfiguration((version, definition) -> definition.info(info -> {
-                    info.title("Ember API");
-                    info.version("1.0");
-                    info.description("Documentation for the Ember API");
-                }));
+              .withDefinitionConfiguration((version, definition) -> definition.info(info -> {
+                  info.title("Ember API");
+                  info.version("1.0");
+                  info.description("Documentation for the Ember API");
+              }));
     }
 
     private void configureSwagger(SwaggerConfiguration config) {
@@ -289,16 +299,16 @@ public class ApiServer {
 
     private void setupExceptionHandlers(RoutesConfig routes) {
         routes.exception(ApiException.class, (err, ctx) -> ctx.json(
-                        new ErrorResponseWrapper(err.getClass().getSimpleName(), err.getMessage()))
-                .status(err.status()));
+                                                                      new ErrorResponseWrapper(err.getClass().getSimpleName(), err.getMessage()))
+                                                              .status(err.status()));
 
         routes.exception(HttpResponseException.class, (err, ctx) -> ctx.json(new ErrorResponseWrapper(
-                        HttpStatus.forStatus(err.getStatus()).getMessage(), err.getMessage()))
-                .status(err.getStatus()));
+                                                                               HttpStatus.forStatus(err.getStatus()).getMessage(), err.getMessage()))
+                                                                       .status(err.getStatus()));
 
         routes.exception(IllegalArgumentException.class, (err, ctx) -> ctx.json(
-                        new ErrorResponseWrapper("Invalid Input", err.getMessage()))
-                .status(HttpStatus.BAD_REQUEST));
+                                                                                  new ErrorResponseWrapper("Invalid Input", err.getMessage()))
+                                                                          .status(HttpStatus.BAD_REQUEST));
 
         routes.exception(Exception.class, (err, ctx) -> {
             log.error("Unhandled exception on route {}", ctx.path(), err);
