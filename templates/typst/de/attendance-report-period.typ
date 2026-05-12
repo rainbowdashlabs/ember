@@ -1,0 +1,93 @@
+#let data = json("data.json")
+
+#set page(
+  paper: "a4",
+  margin: 2cm,
+  footer: context {
+    let page-num = here().page()
+    let page-total = counter(page).final().first()
+    align(center)[
+      #text(size: 7pt, fill: luma(150))[
+        Erstellt von #data.generatedBy am #data.generatedAt · Seite #page-num von #page-total · #link(data.baseUrl)[#data.baseUrl]
+      ]
+    ]
+  },
+)
+#set text(font: "Liberation Sans", size: 9pt)
+
+// Header with logo and station name
+#if data.hasLogo and data.stationName != "" [
+  #align(center)[
+    #grid(
+      columns: (auto, auto),
+      column-gutter: 0.5em,
+      align: (right + horizon, left + horizon),
+      image(data.logoFile, height: 1.5cm),
+      text(size: 12pt, weight: "bold")[#data.stationName],
+    )
+  ]
+  #v(0.3em)
+] else if data.hasLogo [
+  #align(center)[#image(data.logoFile, height: 1.5cm)]
+  #v(0.3em)
+] else if data.stationName != "" [
+  #align(center)[#text(size: 12pt, weight: "bold")[#data.stationName]]
+  #v(0.3em)
+]
+
+#align(center)[
+  #text(size: 14pt, weight: "bold")[Anwesenheitsbericht]
+]
+
+#v(0.3em)
+
+#align(center)[
+  #text(size: 10pt, fill: luma(100))[
+    #data.from – #data.to · #data.filterLabel
+  ]
+]
+
+#v(1em)
+
+// Summary
+#text(size: 11pt, weight: "bold")[Übersicht]
+#v(0.3em)
+
+#table(
+  columns: (1fr, auto, auto),
+  stroke: 0.5pt + luma(180),
+  inset: 5pt,
+  align: (left, center, right),
+  table.header(
+    [*Name*], [*Termine*], [*Stunden*],
+  ),
+  ..for member in data.members {
+    (member.name, str(member.presentCount), member.totalHours)
+  }
+)
+
+#v(1em)
+
+// Sessions
+#for session in data.sessions [
+  #v(0.5em)
+  #text(size: 9pt, weight: "bold")[#session.title]
+  #h(0.5em)
+  #text(size: 8pt, fill: luma(100))[#session.date · #session.startTime – #session.endTime]
+  #v(0.1em)
+  #text(size: 8pt)[Teilnehmer: #session.presentCount]
+  #v(0.2em)
+
+  #table(
+    columns: (1fr, auto, auto, auto),
+    stroke: 0.5pt + luma(180),
+    inset: 4pt,
+    align: (left, center, center, right),
+    table.header(
+      [*Name*], [*Von*], [*Bis*], [*Std.*],
+    ),
+    ..for entry in session.entries {
+      (entry.name, entry.checkIn, entry.checkOut, entry.hours)
+    }
+  )
+]

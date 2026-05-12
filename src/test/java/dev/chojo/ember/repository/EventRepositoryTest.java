@@ -1,0 +1,299 @@
+/*
+ *     SPDX-License-Identifier: AGPL-3.0-only
+ *
+ *     Copyright (C) RainbowDashLabs and Contributor
+ */
+package dev.chojo.ember.repository;
+
+import dev.chojo.ember.entity.Account;
+import dev.chojo.ember.entity.EventBreak;
+import dev.chojo.ember.entity.EventCategory;
+import dev.chojo.ember.entity.EventRegistration;
+import dev.chojo.ember.entity.Station;
+import dev.chojo.ember.entity.StationEvent;
+import dev.chojo.ember.entity.StationMember;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.Order;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestMethodOrder;
+
+import java.time.LocalDate;
+import java.time.LocalTime;
+
+import static org.junit.jupiter.api.Assertions.*;
+
+@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
+class EventRepositoryTest extends RepositoryTestBase {
+    private static Station station;
+    private static Account account;
+    private static StationMember member;
+    private static int eventId;
+    private static int breakId;
+    private static int categoryId;
+    private static int registrationId;
+
+    @BeforeAll
+    static void setup() {
+        station = stationRepo.create("Event Station");
+        account = accountRepo.create("event@test.com", "Event", "User");
+        member = stationMemberRepo.create(station.id(), account.id());
+    }
+
+    @AfterAll
+    static void cleanup() {
+        stationRepo.delete(station.id());
+        accountRepo.delete(account.id());
+    }
+
+    // -- Categories --
+
+    @Test
+    @Order(1)
+    void createCategory() {
+        EventCategory cat = eventRepo.createCategory(station.id(), "Training", 1);
+        assertNotNull(cat);
+        assertEquals("Training", cat.name());
+        assertEquals(1, cat.position());
+        categoryId = cat.id();
+    }
+
+    @Test
+    @Order(2)
+    void findCategoriesByStation() {
+        var cats = eventRepo.findCategoriesByStation(station.id());
+        assertEquals(1, cats.size());
+        assertEquals("Training", cats.getFirst().name());
+    }
+
+    @Test
+    @Order(3)
+    void updateCategory() {
+        assertTrue(eventRepo.updateCategory(categoryId, "Exercise", 2));
+        var cats = eventRepo.findCategoriesByStation(station.id());
+        assertEquals("Exercise", cats.getFirst().name());
+        assertEquals(2, cats.getFirst().position());
+    }
+
+    // -- Events --
+
+    @Test
+    @Order(10)
+    void createOneTimeEvent() {
+        StationEvent event = eventRepo.create(
+                station.id(),
+                "Fire Drill",
+                "Annual drill",
+                "ONE_TIME",
+                null,
+                LocalDate.of(2026, 6, 15),
+                LocalTime.of(9, 0),
+                LocalTime.of(12, 0),
+                null,
+                false,
+                null,
+                false,
+                categoryId);
+        assertNotNull(event);
+        assertEquals("Fire Drill", event.name());
+        assertEquals(StationEvent.EventType.ONE_TIME, event.eventType());
+        assertEquals(LocalDate.of(2026, 6, 15), event.eventDate());
+        assertEquals(categoryId, event.categoryId());
+        eventId = event.id();
+    }
+
+    @Test
+    @Order(11)
+    void findById() {
+        var event = eventRepo.findById(eventId);
+        assertTrue(event.isPresent());
+        assertEquals("Fire Drill", event.get().name());
+    }
+
+    @Test
+    @Order(12)
+    void findByStation() {
+        var events = eventRepo.findByStation(station.id());
+        assertEquals(1, events.size());
+    }
+
+    @Test
+    @Order(13)
+    void findByIdNotFound() {
+        assertTrue(eventRepo.findById(99999).isEmpty());
+    }
+
+    @Test
+    @Order(14)
+    void update() {
+        assertTrue(eventRepo.update(
+                eventId,
+                "Updated Drill",
+                "Updated desc",
+                "ONE_TIME",
+                null,
+                LocalDate.of(2026, 7, 1),
+                LocalTime.of(10, 0),
+                LocalTime.of(13, 0),
+                null,
+                true,
+                null,
+                true,
+                categoryId));
+        StationEvent updated = eventRepo.findById(eventId).orElseThrow();
+        assertEquals("Updated Drill", updated.name());
+        assertEquals("Updated desc", updated.description());
+        assertTrue(updated.requiresRegistration());
+        assertTrue(updated.requiresConfirmation());
+    }
+
+    @Test
+    @Order(15)
+    void createRecurringEvent() {
+        StationEvent event = eventRepo.create(
+                station.id(),
+                "Weekly Meeting",
+                "Team sync",
+                "RECURRING",
+                1,
+                null,
+                LocalTime.of(14, 0),
+                LocalTime.of(15, 0),
+                null,
+                false,
+                null,
+                false,
+                null);
+        assertNotNull(event);
+        assertEquals(StationEvent.EventType.RECURRING, event.eventType());
+        assertEquals(1, event.dayOfWeek());
+        assertNull(event.eventDate());
+        // cleanup
+        eventRepo.delete(event.id());
+    }
+
+    // -- Breaks --
+
+    @Test
+    @Order(20)
+    void createBreak() {
+        EventBreak brk = eventRepo.createBreak(
+                station.id(), "Summer Break", LocalDate.of(2026, 7, 1), LocalDate.of(2026, 8, 31));
+        assertNotNull(brk);
+        assertEquals("Summer Break", brk.name());
+        assertEquals(LocalDate.of(2026, 7, 1), brk.startDate());
+        breakId = brk.id();
+    }
+
+    @Test
+    @Order(21)
+    void findBreakById() {
+        assertTrue(eventRepo.findBreakById(breakId).isPresent());
+    }
+
+    @Test
+    @Order(22)
+    void findBreaksByStation() {
+        assertEquals(1, eventRepo.findBreaksByStation(station.id()).size());
+    }
+
+    @Test
+    @Order(23)
+    void updateBreak() {
+        assertTrue(
+                eventRepo.updateBreak(breakId, "Winter Break", LocalDate.of(2026, 12, 20), LocalDate.of(2027, 1, 5)));
+        EventBreak updated = eventRepo.findBreakById(breakId).orElseThrow();
+        assertEquals("Winter Break", updated.name());
+    }
+
+    @Test
+    @Order(24)
+    void isDateInBreak() {
+        assertTrue(eventRepo.isDateInBreak(station.id(), LocalDate.of(2026, 12, 25)));
+        assertFalse(eventRepo.isDateInBreak(station.id(), LocalDate.of(2026, 6, 1)));
+    }
+
+    @Test
+    @Order(25)
+    void deleteBreak() {
+        assertTrue(eventRepo.deleteBreak(breakId));
+        assertTrue(eventRepo.findBreakById(breakId).isEmpty());
+    }
+
+    // -- Registrations --
+
+    @Test
+    @Order(30)
+    void createRegistration() {
+        LocalDate eventDate = LocalDate.of(2026, 7, 1);
+        EventRegistration reg = eventRepo.createRegistration(eventId, member.id(), eventDate);
+        assertNotNull(reg);
+        assertEquals(eventId, reg.eventId());
+        assertEquals(member.id(), reg.memberId());
+        assertEquals(EventRegistration.RegistrationStatus.PENDING, reg.status());
+        registrationId = reg.id();
+    }
+
+    @Test
+    @Order(31)
+    void findRegistrationById() {
+        assertTrue(eventRepo.findRegistrationById(registrationId).isPresent());
+    }
+
+    @Test
+    @Order(32)
+    void findRegistrations() {
+        var regs = eventRepo.findRegistrations(eventId, LocalDate.of(2026, 7, 1));
+        assertEquals(1, regs.size());
+    }
+
+    @Test
+    @Order(33)
+    void findRegistrationsByMember() {
+        assertFalse(eventRepo.findRegistrationsByMember(member.id()).isEmpty());
+    }
+
+    @Test
+    @Order(34)
+    void findPendingRegistrationsByStation() {
+        var pending = eventRepo.findPendingRegistrationsByStation(station.id());
+        assertEquals(1, pending.size());
+        assertEquals(
+                EventRegistration.RegistrationStatus.PENDING, pending.getFirst().status());
+    }
+
+    @Test
+    @Order(35)
+    void updateRegistrationStatus() {
+        assertTrue(eventRepo.updateRegistrationStatus(registrationId, "ACCEPTED"));
+        var reg = eventRepo.findRegistrationById(registrationId).orElseThrow();
+        assertEquals(EventRegistration.RegistrationStatus.ACCEPTED, reg.status());
+        // No longer pending
+        assertTrue(eventRepo.findPendingRegistrationsByStation(station.id()).isEmpty());
+    }
+
+    @Test
+    @Order(36)
+    void deleteRegistration() {
+        assertTrue(eventRepo.deleteRegistration(registrationId));
+        assertTrue(eventRepo.findRegistrationById(registrationId).isEmpty());
+    }
+
+    // -- Cleanup --
+
+    @Test
+    @Order(90)
+    void deleteCategory() {
+        // Must delete event first since it references category
+        assertTrue(eventRepo.delete(eventId));
+        assertTrue(eventRepo.deleteCategory(categoryId));
+        assertTrue(eventRepo.findCategoriesByStation(station.id()).isEmpty());
+    }
+
+    @Test
+    @Order(91)
+    void deleteEventNotFound() {
+        assertFalse(eventRepo.delete(99999));
+    }
+}

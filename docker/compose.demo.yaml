@@ -1,0 +1,38 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: ember_demo_db
+    environment:
+      POSTGRES_DB: ember
+      POSTGRES_USER: ember
+      POSTGRES_PASSWORD: ember
+    volumes:
+      - demo-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ember"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  ember:
+    container_name: ember_demo
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    ports:
+      - "8888:8080"
+    environment:
+      DB_HOST: ember_demo_db
+      DB_PORT: "5432"
+      DB_USER: ember
+      DB_PASSWORD: ember
+      DB_DATABASE: ember
+      DB_SCHEMA: ember_schema
+      DEMO_ENABLED: "true"
+      DEMO_RESETINTERVALHOURS: "1"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  demo-data:

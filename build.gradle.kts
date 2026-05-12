@@ -1,0 +1,216 @@
+import org.jetbrains.gradle.ext.ShortenCommandLine
+import org.jetbrains.gradle.ext.runConfigurations
+import org.jetbrains.gradle.ext.settings
+import java.time.ZoneOffset
+import java.time.ZonedDateTime
+import java.time.format.DateTimeFormatter
+
+plugins {
+    id("java")
+    application
+    alias(libs.plugins.spotless)
+    alias(libs.plugins.idea)
+    jacoco
+}
+
+application {
+    mainClass = "dev.chojo.ember.Bootstrapper"
+    applicationDefaultJvmArgs = listOf("-Dlogback.configurationFile=logback.xml")
+}
+
+group = "dev.chojo"
+version = "1.0.0"
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation(libs.ocular)
+    annotationProcessor(libs.ocular)
+    implementation(libs.bundles.config)
+    implementation(libs.bundles.javalin)
+
+    implementation(libs.hikari)
+    implementation(libs.postgres)
+    implementation(libs.bundles.sadu)
+
+    implementation(libs.bundles.logback)
+    implementation(libs.slf4j)
+
+    annotationProcessor(libs.javalin.openapi.annotation)
+    implementation(libs.bundles.javalin)
+
+    implementation(libs.guice)
+    implementation(libs.bcrypt)
+    implementation(libs.jspecify)
+
+    implementation(libs.angus)
+
+    testRuntimeOnly(libs.junit.platform)
+    testImplementation(libs.sadu.testing)
+    testImplementation(libs.postgres)
+    testImplementation(libs.bundles.testcontainers)
+    testImplementation(platform(libs.junit.bom))
+    testImplementation(libs.bundles.junit)
+    testImplementation(libs.mockito)
+}
+
+tasks {
+    compileJava {
+        options.isIncremental = true
+        options.compilerArgs.addAll(listOf("-parameters"))
+    }
+
+    processResources {
+        val projectVersion = project.version.toString();
+        inputs.property("projectVersion", projectVersion)
+        from(sourceSets.main.get().resources.srcDirs) {
+            filesMatching("version") {
+                var version = projectVersion
+                var workflow = (System.getenv("GITHUB_ACTIONS") ?: "false") == "true"
+                if (workflow) {
+                    val now = ZonedDateTime.now(ZoneOffset.UTC)
+                    val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
+                    val formattedDate = now.format(formatter)
+
+                    version = when (System.getenv("GITHUB_REF_TYPE")) {
+                        "branch" -> "$version ${System.getenv("GITHUB_REF_NAME")}-${
+                            System.getenv("GITHUB_SHA").substring(0, 7)
+                        } @ $formattedDate"
+
+                        "tag" -> "$version ${System.getenv("GITHUB_REF_NAME").substring(1)} @ $formattedDate"
+                        else -> "$version snapshot"
+                    }
+                }
+                expand(
+                    "version" to version
+                )
+            }
+            duplicatesStrategy = DuplicatesStrategy.INCLUDE
+        }
+    }
+
+    test {
+        useJUnitPlatform {
+            excludeTags("locale", "database")
+        }
+        testLogging {
+            events("passed", "skipped", "failed")
+        }
+    }
+
+    register<Test>("testDatabase") {
+        group = "verification"
+        description = "Runs database validation tests"
+        testClassesDirs = sourceSets.test.get().output.classesDirs
+        classpath = sourceSets.test.get().runtimeClasspath
+        useJUnitPlatform {
+            includeTags("database")
+        }
+        testLogging {
+            events("passed", "skipped", "failed")
+        }
+    }
+
+    register("checkLicenseBackend") {
+        group = "verification"
+        description = "Checks license headers for backend Java files"
+        dependsOn("spotlessJavaCheck")
+    }
+
+    register("checkLicenseFrontend") {
+        group = "verification"
+        description = "Checks license headers for frontend Vue and JavaScript files"
+        dependsOn("spotlessJavascriptCheck", "spotlessVueCheck")
+    }
+}
+
+java {
+    toolchain {
+        languageVersion.set(JavaLanguageVersion.of(25))
+    }
+    withSourcesJar()
+    withJavadocJar()
+}
+
+idea {
+    project {
+        settings {
+            var shared = listOf(
+                "-Dbot.config=config.testing.yaml",
+                //"-Dlog4j2.configurationFile=docker/config/log4j2.testing.xml",
+                "-Dbot.db.host=localhost",
+                "-Dbot.api.url=http://localhost:5173",
+                "--sun-misc-unsafe-memory-access=allow",
+                "--enable-native-access=ALL-UNNAMED"
+            )
+            runConfigurations {
+                register<org.jetbrains.gradle.ext.Gradle>("Run App") {
+                    projectPath = project.path
+                    taskNames = listOf("run")
+                    jvmArgs = shared.joinToString(" ")
+                }
+                register<org.jetbrains.gradle.ext.Gradle>("Run App - All SKUs") {
+                    projectPath = project.path
+                    taskNames = listOf("run")
+                    jvmArgs =
+                        (shared + "-Dbot.grantallsku=true" + "-Dcjda.premium.skipEntitledCheck=true").joinToString(" ")
+                }
+                register<org.jetbrains.gradle.ext.Application>("App-Testing") {
+                    mainClass = "dev.chojo.Bootstrapper"
+                    jvmArgs = shared.joinToString(" ")
+                    moduleName = "elpis.main"
+                    shortenCommandLine = ShortenCommandLine.MANIFEST
+                }
+                register<org.jetbrains.gradle.ext.Application>("App-Testing - All SKUs") {
+                    mainClass = "dev.chojo.Bootstrapper"
+                    jvmArgs =
+                        (shared + "-Dbot.grantallsku=true" + "-Dcjda.premium.skipEntitledCheck=true").joinToString(" ")
+                    moduleName = "elpis.main"
+                    shortenCommandLine = ShortenCommandLine.MANIFEST
+                }
+            }
+        }
+    }
+}
+
+spotless {
+    java {
+        target("src/**/*.java")
+        licenseHeaderFile(rootProject.file("HEADER.txt"))
+        trimTrailingWhitespace()
+        endWithNewline()
+        palantirJavaFormat("2.84.0")
+            .formatJavadoc(false)
+        removeUnusedImports()
+        importOrder("", "java", "javax", "\\#")
+        encoding("UTF-8")
+    }
+
+    format("javascript") {
+        licenseHeaderFile(rootProject.file("HEADER.txt"), "(import|const|let|var|export|//)")
+        target("frontend/src/**/*.js", "frontend/src/**/*.ts")
+        targetExclude("frontend/node_modules/**", "frontend/dist/**")
+        trimTrailingWhitespace()
+        endWithNewline()
+    }
+
+    format("vue") {
+        licenseHeaderFile(rootProject.file("HEADER.txt"), "(<template|<script|<style)")
+        target("frontend/src/**/*.vue")
+        targetExclude("frontend/node_modules/**", "frontend/dist/**")
+        trimTrailingWhitespace()
+        endWithNewline()
+    }
+
+    format("backendLocales") {
+        encoding("UTF-8")
+        target("src/main/resources/locale*.properties")
+    }
+
+    format("frontendLocales") {
+        encoding("UTF-8")
+        target("frontend/src/locales/*.json")
+    }
+}

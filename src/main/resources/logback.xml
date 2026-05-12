@@ -1,0 +1,29 @@
+<configuration>
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- Application -->
+    <logger name="dev.chojo.ember" level="TRACE" />
+
+    <!-- Jetty / Eclipse -->
+    <logger name="org.eclipse.jetty" level="WARN" />
+
+    <!-- Javalin -->
+    <logger name="io.javalin" level="INFO" />
+
+    <!-- HikariCP -->
+    <logger name="com.zaxxer.hikari" level="INFO" />
+
+    <!-- SADU -->
+    <logger name="de.chojo.sadu" level="INFO" />
+
+    <!-- Jackson -->
+    <logger name="tools.jackson" level="WARN" />
+
+    <root level="INFO">
+        <appender-ref ref="STDOUT" />
+    </root>
+</configuration>

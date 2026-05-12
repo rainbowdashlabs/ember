@@ -1,0 +1,238 @@
+/*
+ *     SPDX-License-Identifier: AGPL-3.0-only
+ *
+ *     Copyright (C) RainbowDashLabs and Contributor
+ */
+package dev.chojo.ember.api.v1;
+
+import dev.chojo.ember.api.Roles;
+import dev.chojo.ember.api.Routes;
+import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.entity.CheckResult;
+import dev.chojo.ember.service.InventoryCheckService;
+import dev.chojo.ember.service.InventoryCheckService.CheckItemRequest;
+import dev.chojo.ember.service.InventoryService;
+import io.javalin.http.BadRequestResponse;
+import io.javalin.http.Context;
+import io.javalin.http.HttpStatus;
+import io.javalin.http.NotFoundResponse;
+import io.javalin.openapi.HttpMethod;
+import io.javalin.openapi.OpenApi;
+import io.javalin.openapi.OpenApiContent;
+import io.javalin.openapi.OpenApiParam;
+import io.javalin.openapi.OpenApiRequestBody;
+import io.javalin.openapi.OpenApiResponse;
+import io.javalin.router.JavalinDefaultRoutingApi;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
+
+import java.util.List;
+
+@Singleton
+public class InventoryCheckRoutes implements Routes {
+    private final InventoryCheckService checkService;
+    private final InventoryService inventoryService;
+
+    @Inject
+    public InventoryCheckRoutes(InventoryCheckService checkService, InventoryService inventoryService) {
+        this.checkService = checkService;
+        this.inventoryService = inventoryService;
+    }
+
+    @Override
+    public void register(JavalinDefaultRoutingApi routes, String prefix) {
+        routes.get(prefix + "/inventory-checks", this::overview, Roles.INVENTORY_MANAGEMENT);
+        routes.post(prefix + "/inventory-checks/{memberId}/start", this::startCheck, Roles.INVENTORY_MANAGEMENT);
+        routes.post(prefix + "/inventory-checks/{memberId}/complete", this::completeCheck, Roles.INVENTORY_MANAGEMENT);
+        routes.post(prefix + "/inventory-checks/{memberId}/cancel", this::cancelCheck, Roles.INVENTORY_MANAGEMENT);
+        routes.get(prefix + "/inventory-checks/{memberId}/last", this::lastCheck, Roles.INVENTORY_MANAGEMENT);
+        routes.put(prefix + "/inventory-checks/{memberId}/assign", this::assignItem, Roles.INVENTORY_MANAGEMENT);
+        routes.put(prefix + "/inventory-checks/{memberId}/unassign", this::unassignItem, Roles.INVENTORY_MANAGEMENT);
+        routes.post(
+                prefix + "/inventory-checks/{memberId}/create-assign",
+                this::createAndAssign,
+                Roles.INVENTORY_MANAGEMENT);
+        routes.get(prefix + "/inventory-checks/next", this::nextMember, Roles.INVENTORY_MANAGEMENT);
+    }
+
+    @OpenApi(
+            path = "/api/v1/inventory-checks",
+            methods = HttpMethod.GET,
+            summary = "Get inventory check overview for the current station",
+            tags = {"Inventory Checks"},
+            responses = @OpenApiResponse(status = "200"))
+    private void overview(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        ctx.json(checkService.getCheckOverview(session.stationId()));
+    }
+
+    @OpenApi(
+            path = "/api/v1/inventory-checks/{memberId}/start",
+            methods = HttpMethod.POST,
+            summary = "Start an inventory check for a member",
+            tags = {"Inventory Checks"},
+            pathParams = @OpenApiParam(name = "memberId", type = Integer.class, required = true),
+            responses = @OpenApiResponse(status = "200"))
+    private void startCheck(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        int memberId = ctx.pathParamAsClass("memberId", Integer.class).get();
+        var state = checkService.startCheck(
+                session.stationId(), memberId, session.member().id());
+        ctx.json(state);
+    }
+
+    @OpenApi(
+            path = "/api/v1/inventory-checks/{memberId}/complete",
+            methods = HttpMethod.POST,
+            summary = "Complete an inventory check for a member",
+            tags = {"Inventory Checks"},
+            pathParams = @OpenApiParam(name = "memberId", type = Integer.class, required = true),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = CompleteCheckRequest.class)),
+            responses = @OpenApiResponse(status = "201"))
+    private void completeCheck(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        int memberId = ctx.pathParamAsClass("memberId", Integer.class).get();
+        var request = ctx.bodyAsClass(CompleteCheckRequest.class);
+
+        if (request.items() == null || request.items().isEmpty()) {
+            throw new BadRequestResponse("items are required");
+        }
+
+        List<CheckItemRequest> items = request.items().stream()
+                .map(i ->
+                        new CheckItemRequest(i.itemId(), i.inventoryId(), i.result(), i.note() != null ? i.note() : ""))
+                .toList();
+
+        var check = checkService.completeCheck(
+                session.stationId(), memberId, session.member().id(), items);
+        ctx.status(HttpStatus.CREATED).json(check);
+    }
+
+    @OpenApi(
+            path = "/api/v1/inventory-checks/{memberId}/cancel",
+            methods = HttpMethod.POST,
+            summary = "Cancel an inventory check for a member",
+            tags = {"Inventory Checks"},
+            pathParams = @OpenApiParam(name = "memberId", type = Integer.class, required = true),
+            responses = @OpenApiResponse(status = "204"))
+    private void cancelCheck(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        int memberId = ctx.pathParamAsClass("memberId", Integer.class).get();
+        checkService.cancelCheck(memberId, session.member().id());
+        ctx.status(HttpStatus.NO_CONTENT);
+    }
+
+    @OpenApi(
+            path = "/api/v1/inventory-checks/{memberId}/last",
+            methods = HttpMethod.GET,
+            summary = "Get the last inventory check for a member",
+            tags = {"Inventory Checks"},
+            pathParams = @OpenApiParam(name = "memberId", type = Integer.class, required = true),
+            responses = {@OpenApiResponse(status = "200"), @OpenApiResponse(status = "404")})
+    private void lastCheck(Context ctx) {
+        int memberId = ctx.pathParamAsClass("memberId", Integer.class).get();
+        var detail = checkService.lastCheckDetail(memberId);
+        if (detail.isEmpty()) throw new NotFoundResponse();
+        ctx.json(detail.get());
+    }
+
+    @OpenApi(
+            path = "/api/v1/inventory-checks/{memberId}/assign",
+            methods = HttpMethod.PUT,
+            summary = "Assign an item during an inventory check",
+            tags = {"Inventory Checks"},
+            pathParams = @OpenApiParam(name = "memberId", type = Integer.class, required = true),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = AssignItemRequest.class)),
+            responses = @OpenApiResponse(status = "200"))
+    private void assignItem(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        int memberId = ctx.pathParamAsClass("memberId", Integer.class).get();
+        var request = ctx.bodyAsClass(AssignItemRequest.class);
+        String memberName =
+                session.account().firstName() + " " + session.account().lastName();
+        // Unassign old item if swapping
+        if (request.oldItemId() != null && request.oldItemId() > 0) {
+            inventoryService.assignItem(request.oldItemId(), null, null);
+        }
+        inventoryService.assignItem(request.newItemId(), memberId, memberName);
+        // Return refreshed check state
+        var state = checkService.startCheck(
+                session.stationId(), memberId, session.member().id());
+        ctx.json(state);
+    }
+
+    @OpenApi(
+            path = "/api/v1/inventory-checks/{memberId}/unassign",
+            methods = HttpMethod.PUT,
+            summary = "Unassign an item during an inventory check",
+            tags = {"Inventory Checks"},
+            pathParams = @OpenApiParam(name = "memberId", type = Integer.class, required = true),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = UnassignItemRequest.class)),
+            responses = @OpenApiResponse(status = "200"))
+    private void unassignItem(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        int memberId = ctx.pathParamAsClass("memberId", Integer.class).get();
+        var request = ctx.bodyAsClass(UnassignItemRequest.class);
+        inventoryService.assignItem(request.itemId(), null, null);
+        var state = checkService.startCheck(
+                session.stationId(), memberId, session.member().id());
+        ctx.json(state);
+    }
+
+    @OpenApi(
+            path = "/api/v1/inventory-checks/{memberId}/create-assign",
+            methods = HttpMethod.POST,
+            summary = "Create a new item and assign it during an inventory check",
+            tags = {"Inventory Checks"},
+            pathParams = @OpenApiParam(name = "memberId", type = Integer.class, required = true),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = CreateAndAssignRequest.class)),
+            responses = @OpenApiResponse(status = "201"))
+    private void createAndAssign(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        int memberId = ctx.pathParamAsClass("memberId", Integer.class).get();
+        var request = ctx.bodyAsClass(CreateAndAssignRequest.class);
+        String memberName =
+                session.account().firstName() + " " + session.account().lastName();
+
+        // Unassign old item if swapping
+        if (request.oldItemId() != null && request.oldItemId() > 0) {
+            inventoryService.assignItem(request.oldItemId(), null, null);
+        }
+
+        // Create a new item and assign it
+        var inv = inventoryService.findById(request.inventoryId()).orElseThrow();
+        var item = inventoryService.createItem(request.inventoryId(), null, inv.name(), request.sizeId(), "{}");
+        inventoryService.assignItem(item.id(), memberId, memberName);
+
+        var state = checkService.startCheck(
+                session.stationId(), memberId, session.member().id());
+        ctx.status(HttpStatus.CREATED).json(state);
+    }
+
+    @OpenApi(
+            path = "/api/v1/inventory-checks/next",
+            methods = HttpMethod.GET,
+            summary = "Get the next member for an inventory check",
+            tags = {"Inventory Checks"},
+            queryParams = @OpenApiParam(name = "currentMemberId", type = Integer.class),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = NextMemberResponse.class)))
+    private void nextMember(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        int currentMemberId =
+                ctx.queryParamAsClass("currentMemberId", Integer.class).getOrDefault(0);
+        var next = checkService.nextMember(session.stationId(), currentMemberId);
+        ctx.json(new NextMemberResponse(next.orElse(null)));
+    }
+
+    public record CompleteCheckRequest(List<CheckItemResult> items) {}
+
+    public record CheckItemResult(Integer itemId, Integer inventoryId, CheckResult result, String note) {}
+
+    public record AssignItemRequest(int newItemId, Integer oldItemId) {}
+
+    public record UnassignItemRequest(int itemId) {}
+
+    public record CreateAndAssignRequest(int inventoryId, Integer sizeId, Integer oldItemId) {}
+
+    public record NextMemberResponse(Integer memberId) {}
+}

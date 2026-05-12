@@ -1,0 +1,163 @@
+name: Verify
+
+on: [push, pull_request, merge_group]
+
+env:
+  JAVA_VERSION: 25
+  PYTHON_VERSION: 3.14
+  NODE_VERSION: 24
+
+jobs:
+  build-backend:
+    runs-on: ubuntu-latest
+    name: Verify Backend Build
+
+    steps:
+      - uses: actions/checkout@v6
+      - name: Set up JDK
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+      - uses: gradle/actions/wrapper-validation@v6
+      - name: Build with Gradle
+        run: ./gradlew --build-cache build -x test -x spotlessCheck
+      - name: Test with Gradle
+        run: ./gradlew test --info
+
+  build-frontend:
+    runs-on: ubuntu-latest
+    name: Verify Frontend Build
+
+    steps:
+      - uses: actions/checkout@v6
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm ci
+      - name: Type check
+        working-directory: frontend
+        run: npx vue-tsc -b --noEmit
+      - name: Build frontend
+        working-directory: frontend
+        run: npm run build
+
+  verify-license-backend:
+    runs-on: ubuntu-latest
+    name: Verify Backend License Check
+
+    steps:
+      - uses: actions/checkout@v6
+      - name: Set up JDK
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+      - uses: gradle/actions/wrapper-validation@v6
+      - name: Check backend license headers
+        run: ./gradlew checkLicenseBackend
+
+  verify-license-frontend:
+    runs-on: ubuntu-latest
+    name: Verify Frontend License Check
+
+    steps:
+      - uses: actions/checkout@v6
+      - name: Set up JDK
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+      - uses: gradle/actions/wrapper-validation@v6
+      - name: Check frontend license headers
+        run: ./gradlew checkLicenseFrontend
+
+  verify-formatting-backend:
+    runs-on: ubuntu-latest
+    name: Verify Backend Format Validation
+
+    steps:
+      - uses: actions/checkout@v6
+      - name: Set up JDK
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+      - uses: gradle/actions/wrapper-validation@v6
+      - name: Run formatting tests
+        run: ./gradlew spotlessJavaCheck
+
+  verify-formatting-frontend:
+    runs-on: ubuntu-latest
+    name: Verify Frontend Format Validation
+
+    steps:
+      - uses: actions/checkout@v6
+      - name: Set up JDK
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+      - uses: gradle/actions/wrapper-validation@v6
+      - name: Run formatting tests
+        run: ./gradlew spotlessJavascriptCheck spotlessVueCheck
+
+  verify-database:
+    runs-on: ubuntu-latest
+    name: Verify Backend Database Validation
+
+    steps:
+      - uses: actions/checkout@v6
+      - name: Set up JDK
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+      - uses: gradle/actions/wrapper-validation@v6
+      - name: Run database validation tests
+        run: ./gradlew testDatabase --info
+
+
+  verify-locales-frontend:
+    runs-on: ubuntu-latest
+    name: Verify Frontend Locale Validation
+
+    steps:
+      - uses: actions/checkout@v6
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: Set up JDK
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+      - uses: gradle/actions/wrapper-validation@v6
+      - name: Check encoding
+        run: ./gradlew spotlessFrontendLocalesCheck
+
+  build-docker:
+    runs-on: ubuntu-latest
+    name: Verify Docker Build
+
+    steps:
+      - uses: actions/checkout@v6
+      - name: Build as Docker image
+        run: docker build . -f docker/Dockerfile
+
+  verify-docs:
+    runs-on: ubuntu-latest
+    name: Verify Docs Build
+
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - run: pip install pipenv && pipenv install && pipenv run mkdocs build

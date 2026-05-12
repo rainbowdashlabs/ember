@@ -1,0 +1,73 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+    /* Primary */
+    --color-primary: #FF6421;
+    --color-primary-accent: #C71100;
+
+    /* Secondary */
+    --color-secondary: #73CEFF;
+    --color-secondary-accent: #3694FF;
+
+    /* Status */
+    --color-info: #ffdd1b;
+    --color-info-accent: #b89a00;
+    --color-success: #00C507;
+    --color-error: #ec2929;
+
+    /* Light backgrounds */
+    --color-bg-light: #eaeaea;
+    --color-bg-light-accent: #CFCFCF;
+
+    /* Dark backgrounds */
+    --color-bg-dark: #212121;
+    --color-bg-dark-accent: #191919;
+}
+
+:root {
+    --bg: var(--color-bg-light);
+    --bg-accent: var(--color-bg-light-accent);
+    --text: #333333;
+    --text-muted: #666666;
+    --link: var(--color-primary);
+
+    color-scheme: light dark;
+    font-family: system-ui, 'Segoe UI', Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root:not(.light) {
+        --bg: var(--color-bg-dark);
+        --bg-accent: var(--color-bg-dark-accent);
+        --text: #e0e0e0;
+        --text-muted: #9ca3af;
+        --link: var(--color-primary);
+    }
+}
+
+:root.dark {
+    --bg: var(--color-bg-dark);
+    --bg-accent: var(--color-bg-dark-accent);
+    --text: #e0e0e0;
+    --text-muted: #9ca3af;
+    --link: var(--color-primary);
+}
+
+body {
+    margin: 0;
+    color: var(--text);
+    background: var(--bg);
+}
+
+a:not(:has(button)) {
+    color: var(--link);
+    text-decoration: none;
+}
+
+a:not(:has(button)):hover {
+    text-decoration: underline;
+}

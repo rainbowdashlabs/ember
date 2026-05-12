@@ -1,0 +1,182 @@
+/*
+ *     SPDX-License-Identifier: AGPL-3.0-only
+ *
+ *     Copyright (C) RainbowDashLabs and Contributor
+ */
+package dev.chojo.ember.repository;
+
+import de.chojo.sadu.queries.api.call.Call;
+import de.chojo.sadu.queries.api.query.Query;
+import de.chojo.sadu.queries.api.results.writing.insertion.InsertionResult;
+import dev.chojo.ember.api.Roles;
+import dev.chojo.ember.entity.Role;
+import dev.chojo.ember.entity.StationMember;
+import jakarta.inject.Singleton;
+
+import java.util.List;
+import java.util.Optional;
+
+@Singleton
+public class StationMemberRepository {
+
+    // -- Members --
+
+    public Optional<StationMember> findById(int id) {
+        return Query.query("SELECT id, station_id, account_id FROM station_member WHERE id = :id;")
+                .single(Call.of().bind("id", id))
+                .map(StationMember.map())
+                .first();
+    }
+
+    public Optional<StationMember> findByStationAndAccount(int stationId, int accountId) {
+        return Query.query("""
+                            SELECT
+                                id,
+                                station_id,
+                                account_id
+                            FROM
+                                station_member
+                            WHERE station_id = :station_id
+                              AND account_id = :account_id;
+                            """)
+                .single(Call.of().bind("station_id", stationId).bind("account_id", accountId))
+                .map(StationMember.map())
+                .first();
+    }
+
+    public List<StationMember> findByStation(int stationId) {
+        return Query.query("SELECT id, station_id, account_id FROM station_member WHERE station_id = :station_id;")
+                .single(Call.of().bind("station_id", stationId))
+                .map(StationMember.map())
+                .all();
+    }
+
+    public List<StationMember> findByAccount(int accountId) {
+        return Query.query("SELECT id, station_id, account_id FROM station_member WHERE account_id = :account_id;")
+                .single(Call.of().bind("account_id", accountId))
+                .map(StationMember.map())
+                .all();
+    }
+
+    public StationMember create(int stationId, int accountId) {
+        return Query.query(
+                        "INSERT INTO station_member(station_id, account_id) VALUES(:station_id, :account_id) RETURNING id, station_id, account_id;")
+                .single(Call.of().bind("station_id", stationId).bind("account_id", accountId))
+                .map(StationMember.map())
+                .first()
+                .orElseThrow();
+    }
+
+    public boolean delete(int id) {
+        return Query.query("DELETE FROM station_member WHERE id = :id;")
+                .single(Call.of().bind("id", id))
+                .delete()
+                .changed();
+    }
+
+    // -- Roles --
+
+    public List<Role> findAllRoles() {
+        return Query.query("SELECT id, name FROM role ORDER BY id;")
+                .single()
+                .map(Role.map())
+                .all();
+    }
+
+    public boolean hasLoginRole(int accountId) {
+        return Query.query("""
+                            SELECT 1
+                            FROM station_member sm
+                                JOIN station_member_role smr ON sm.id = smr.member_id
+                                JOIN role r ON r.id = smr.role_id
+                            WHERE sm.account_id = :account_id
+                              AND r.name IN ('LOGIN', 'MANAGER')
+                            LIMIT 1;""")
+                .single(Call.of().bind("account_id", accountId))
+                .map(row -> true)
+                .first()
+                .isPresent();
+    }
+
+    public List<Role> findRoles(int memberId) {
+        return Query.query("""
+                            SELECT
+                                r.id,
+                                r.name
+                            FROM
+                                role r
+                                    JOIN station_member_role smr
+                                    ON r.id = smr.role_id
+                            WHERE smr.member_id = :member_id;""")
+                .single(Call.of().bind("member_id", memberId))
+                .map(Role.map())
+                .all();
+    }
+
+    public Optional<Role> findRoleByName(Roles role) {
+        return Query.query("SELECT id, name FROM role WHERE name = :name;")
+                .single(Call.of().bind("name", role))
+                .map(Role.map())
+                .first();
+    }
+
+    public InsertionResult addRole(int memberId, int roleId) {
+        return Query.query("INSERT INTO station_member_role(member_id, role_id) VALUES(:member_id, :role_id);")
+                .single(Call.of().bind("member_id", memberId).bind("role_id", roleId))
+                .insert();
+    }
+
+    public boolean removeRole(int memberId, int roleId) {
+        return Query.query("DELETE FROM station_member_role WHERE member_id = :member_id AND role_id = :role_id;")
+                .single(Call.of().bind("member_id", memberId).bind("role_id", roleId))
+                .delete()
+                .changed();
+    }
+
+    // -- Manager Relations --
+
+    public List<StationMember> findManaged(int managerId) {
+        return Query.query("""
+                            SELECT
+                                sm.id,
+                                sm.station_id,
+                                sm.account_id
+                            FROM
+                                station_member sm
+                                    JOIN member_manager mm
+                                    ON sm.id = mm.managed_id
+                            WHERE mm.manager_id = :manager_id;""")
+                .single(Call.of().bind("manager_id", managerId))
+                .map(StationMember.map())
+                .all();
+    }
+
+    public List<StationMember> findManagers(int managedId) {
+        return Query.query("""
+                            SELECT
+                                sm.id,
+                                sm.station_id,
+                                sm.account_id
+                            FROM
+                                station_member sm
+                                    JOIN member_manager mm
+                                    ON sm.id = mm.manager_id
+                            WHERE mm.managed_id = :managed_id;""")
+                .single(Call.of().bind("managed_id", managedId))
+                .map(StationMember.map())
+                .all();
+    }
+
+    public InsertionResult addManager(int managerId, int managedId) {
+        return Query.query("INSERT INTO member_manager(manager_id, managed_id) VALUES(:manager_id, :managed_id);")
+                .single(Call.of().bind("manager_id", managerId).bind("managed_id", managedId))
+                .insert();
+    }
+
+    public boolean removeManager(int managerId, int managedId) {
+        return Query.query("DELETE FROM member_manager WHERE manager_id = :manager_id AND managed_id = :managed_id;")
+                .single(Call.of().bind("manager_id", managerId).bind("managed_id", managedId))
+                .delete()
+                .changed();
+    }
+}

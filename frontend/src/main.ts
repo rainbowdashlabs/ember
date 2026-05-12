@@ -1,0 +1,96 @@
+/*
+ *     SPDX-License-Identifier: AGPL-3.0-only
+ *
+ *     Copyright (C) RainbowDashLabs and Contributor
+ */
+import {createApp} from 'vue'
+import './style.css'
+import App from './App.vue'
+import router from './router'
+import i18n from './i18n'
+
+import {library} from '@fortawesome/fontawesome-svg-core'
+import {FontAwesomeIcon} from '@fortawesome/vue-fontawesome'
+import {
+    faAsterisk,
+    faBan,
+    faBars,
+    faBell,
+    faBoxesStacked,
+    faBoxOpen,
+    faBuilding,
+    faCalendarDays,
+    faCalendarPlus,
+    faChartLine,
+    faCheck,
+    faCheckDouble,
+    faChevronDown,
+    faChevronLeft,
+    faChevronRight,
+    faChevronUp,
+    faCircleCheck,
+    faCircleInfo,
+    faClipboardCheck,
+    faClipboardList,
+    faClipboardUser,
+    faClockRotateLeft,
+    faComment,
+    faCopy,
+    faDownload,
+    faEye,
+    faFire,
+    faFolderPlus,
+    faGauge,
+    faGear,
+    faGears,
+    faGripVertical,
+    faHashtag,
+    faHouse,
+    faIdCard,
+    faLayerGroup,
+    faLink,
+    faList,
+    faLock,
+    faMedal,
+    faMinus,
+    faNewspaper,
+    faMobileScreen,
+    faMoon,
+    faPen,
+    faPenToSquare,
+    faPeopleGroup,
+    faPhone,
+    faPlus,
+    faRainbow,
+    faRightFromBracket,
+    faRotate,
+    faScissors,
+    faShield,
+    faSort,
+    faSortDown,
+    faSortUp,
+    faSpinner,
+    faSun,
+    faTableColumns,
+    faTrash,
+    faTriangleExclamation,
+    faUpload,
+    faUser,
+    faUserPlus,
+    faUsers,
+    faUsersGear,
+    faXmark,
+    faXmarkCircle
+} from '@fortawesome/free-solid-svg-icons'
+import {faGithub} from '@fortawesome/free-brands-svg-icons'
+import {initTokenRefresh} from '@/api/client'
+
+library.add(faSun, faMoon, faCheck, faXmark, faXmarkCircle, faSpinner, faCircleInfo, faCircleCheck, faTriangleExclamation, faDownload, faUpload, faTrash, faPen, faLock, faRightFromBracket, faBars, faGauge, faChevronDown, faChevronRight, faHouse, faChartLine, faShield, faBuilding, faGears, faUsers, faUserPlus, faList, faLayerGroup, faBoxesStacked, faBoxOpen, faClipboardUser, faCalendarPlus, faClockRotateLeft, faClipboardCheck, faUsersGear, faPlus, faChevronLeft, faChevronUp, faGripVertical, faCopy, faBell, faPhone, faMobileScreen, faIdCard, faHashtag, faFire, faMedal, faRainbow, faCalendarDays, faPenToSquare, faFolderPlus, faClipboardList, faUser, faSort, faSortUp, faSortDown, faAsterisk, faEye, faLink, faTableColumns, faBan, faComment, faCheckDouble, faMinus, faRotate, faScissors, faNewspaper, faGear, faPeopleGroup, faGithub)
+
+initTokenRefresh()
+
+createApp(App)
+    .component('font-awesome-icon', FontAwesomeIcon)
+    .use(router)
+    .use(i18n)
+    .mount('#app')

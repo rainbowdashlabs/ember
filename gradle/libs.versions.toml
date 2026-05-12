@@ -1,0 +1,101 @@
+[versions]
+logback = "1.5.32"
+sadu = "2.3.9"
+jackson = "3.1.2"
+junit = "6.0.3"
+javalin = "7.2.0"
+testcontainers = "2.0.5"
+
+[plugins]
+spotless = { id = "com.diffplug.spotless", version = "8.4.0" }
+idea = { id = "org.jetbrains.gradle.plugin.idea-ext", version = "1.4.1" }
+pitest = { id = "info.solidsoft.pitest", version = "1.19.0" }
+
+[libraries]
+# Database
+hikari = { group = "com.zaxxer", name = "HikariCP", version = "7.0.2" }
+postgres = { group = "org.postgresql", name = "postgresql", version = "42.7.10" }
+sadu-postgresql = { group = "de.chojo.sadu", name = "sadu-postgresql", version.ref = "sadu" }
+sadu-datasource = { group = "de.chojo.sadu", name = "sadu-datasource", version.ref = "sadu" }
+sadu-queries = { group = "de.chojo.sadu", name = "sadu-queries", version.ref = "sadu" }
+sadu-mapper = { group = "de.chojo.sadu", name = "sadu-mapper", version.ref = "sadu" }
+sadu-updater = { group = "de.chojo.sadu", name = "sadu-updater", version.ref = "sadu" }
+sadu-testing = { group = "de.chojo.sadu", name = "sadu-testing", version.ref = "sadu" }
+
+# Logging
+slf4j = { group = "org.slf4j", name = "slf4j-api", version = "2.0.17" }
+logback-core = { group = "ch.qos.logback", name = "logback-core", version.ref = "logback" }
+logback-classic = { group = "ch.qos.logback", name = "logback-classic", version.ref = "logback" }
+
+# Api
+javalin-core = { group = "io.javalin", name = "javalin", version.ref = "javalin" }
+javalin-openapi-annotation = { group = "io.javalin.community.openapi", name = "openapi-annotation-processor", version.ref = "javalin" }
+javalin-openapi-swagger = { group = "io.javalin.community.openapi", name = "javalin-swagger-plugin", version.ref = "javalin" }
+javalin-openapi-openapi = { group = "io.javalin.community.openapi", name = "javalin-openapi-plugin", version.ref = "javalin" }
+
+# Configuration
+ocular = { group = "dev.chojo", name = "ocular", version = "2.2.1" }
+jackson-yaml = { group = "tools.jackson.dataformat", name = "jackson-dataformat-yaml", version.ref = "jackson" }
+jackson-toml = { group = "tools.jackson.dataformat", name = "jackson-dataformat-toml", version.ref = "jackson" }
+jackson-core = { group = "tools.jackson.core", name = "jackson-core", version.ref = "jackson" }
+jackson-databind = { group = "tools.jackson.core", name = "jackson-databind", version.ref = "jackson" }
+
+# Testing
+junit-bom = { group = "org.junit", name = "junit-bom", version.ref = "junit" }
+junit-jupiter = { group = "org.junit.jupiter", name = "junit-jupiter", version.ref = "junit" }
+junit-params = { group = "org.junit.jupiter", name = "junit-jupiter-params", version.ref = "junit" }
+junit-platform = { group = "org.junit.platform", name = "junit-platform-launcher", version.ref = "junit" }
+mockito = { group = "org.mockito", name = "mockito-core", version = "5.+" }
+
+# Database testing
+testcontainers-postgres = { group = "org.testcontainers", name = "testcontainers-postgresql", version.ref = "testcontainers" }
+testcontainers-core = { group = "org.testcontainers", name = "testcontainers", version.ref = "testcontainers" }
+testcontainers-junit = { group = "org.testcontainers", name = "testcontainers-junit-jupiter", version.ref = "testcontainers" }
+
+
+# DI
+guice = { group = "com.google.inject", name = "guice", version = "7.0.0" }
+
+# Security
+bcrypt = { group = "at.favre.lib", name = "bcrypt", version = "0.10.2" }
+
+# Annotations
+jspecify = { group = "org.jspecify", name = "jspecify", version = "1.0.0" }
+
+# mailing
+angus = { group = "org.eclipse.angus", name = "angus-mail", version = "2.0.5" }
+
+[bundles]
+logback = [
+    "logback-core",
+    "logback-classic"
+]
+sadu = [
+    "sadu-postgresql",
+    "sadu-datasource",
+    "sadu-queries",
+    "sadu-mapper",
+    "sadu-updater"
+]
+junit = [
+    "junit-jupiter",
+    "junit-params",
+    "junit-platform"
+]
+javalin = [
+    "javalin-core",
+    "javalin-openapi-swagger",
+    "javalin-openapi-openapi"
+]
+config = [
+    "ocular",
+    "jackson-core",
+    "jackson-databind",
+    "jackson-yaml",
+    "jackson-toml"
+]
+testcontainers = [
+    "testcontainers-core",
+    "testcontainers-junit",
+    "testcontainers-postgres"
+]
