@@ -29,6 +29,7 @@ RUN gradle clean installDist --no-daemon -x test -x javadocJar -x sourcesJar
 
 FROM eclipse-temurin:25-alpine AS runtime
 ENV DOCKER=true
+ENV EMBER_PUBLIC_DIR=/app/public
 
 RUN apk add --no-cache typst
 

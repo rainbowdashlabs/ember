@@ -80,6 +80,12 @@ public class ApiServer {
             config.http.defaultContentType = "application/json";
             config.jsonMapper(jacksonMapper());
 
+            var publicDir = System.getenv().getOrDefault("EMBER_PUBLIC_DIR", "public");
+            config.staticFiles.add(staticFiles -> {
+                staticFiles.directory = publicDir;
+                staticFiles.location = io.javalin.http.staticfiles.Location.EXTERNAL;
+            });
+
             config.registerPlugin(new OpenApiPlugin(this::configureOpenApi));
             config.registerPlugin(new SwaggerPlugin(this::configureSwagger));
 
