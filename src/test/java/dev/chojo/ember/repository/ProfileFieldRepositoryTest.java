@@ -77,7 +77,7 @@ class ProfileFieldRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(5)
     void update() {
-        assertTrue(profileFieldRepo.update(fieldId, "Email", "email", "{}", 2));
+        assertTrue(profileFieldRepo.update(fieldId, "Email", "email", "{}", 2, false));
         ProfileField updated = profileFieldRepo.findById(fieldId).orElseThrow();
         assertEquals("Email", updated.name());
         assertEquals(2, updated.position());
