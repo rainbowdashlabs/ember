@@ -19,6 +19,7 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import InventoryItemCard from '@/views/stationview/inventory/InventoryItemCard.vue'
 import {inventory, managedMembers, exchanges} from '@/api'
 import type {ExchangeRequestEntry, InventorySize} from '@/api/types'
+import {ExchangeStatus} from '@/api/types'
 import type {MyInventoryItem, MyRequirement} from '@/api/inventory'
 import type {ManagedMember} from '@/api/managedMembers'
 import {useSession} from '@/composables/useSession'
@@ -95,7 +96,7 @@ async function loadData() {
   try {
     try {
       const allExch = await exchanges.listExchanges()
-      activeExchanges.value = allExch.filter(e => e.status !== 'EXCHANGED')
+      activeExchanges.value = allExch.filter(e => e.status !== ExchangeStatus.EXCHANGED)
     } catch { activeExchanges.value = [] }
     const mid = viewingMemberId.value
     if (mid) {

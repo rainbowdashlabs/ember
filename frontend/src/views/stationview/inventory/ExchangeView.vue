@@ -26,14 +26,14 @@ import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import type {
   ExchangeRequestEntry,
   ExchangeLogEntry,
-  ExchangeStatus,
+  ExchangeStatusName,
   Inventory,
   InventoryItem,
   InventorySize,
   CreateExchangeRequest,
 } from '@/api/types'
 import type { ProfileField, StationMember } from '@/api/types'
-import { InventoryTypes } from '@/api/types'
+import { InventoryTypes, ExchangeStatus } from '@/api/types'
 import { exchanges, inventory, procurement, stationMembers, profileFields, managedMembers } from '@/api'
 import { useSession } from '@/composables/useSession'
 import { useStations } from '@/composables/useStations'
@@ -68,18 +68,18 @@ const managedWithItemsList = computed(() =>
 )
 
 // Status labels and flow
-function statusLabel(status: ExchangeStatus): string {
+function statusLabel(status: ExchangeStatusName): string {
   return t(`exchanges.status.${status}`)
 }
 
-const internalFlow: ExchangeStatus[] = ['ANNOUNCED', 'RECEIVED', 'EXCHANGED']
-const externalFlow: ExchangeStatus[] = ['ANNOUNCED', 'RECEIVED', 'SHIPPED', 'ARRIVED', 'EXCHANGED']
+const internalFlow: ExchangeStatusName[] = [ExchangeStatus.ANNOUNCED, ExchangeStatus.RECEIVED, ExchangeStatus.EXCHANGED]
+const externalFlow: ExchangeStatusName[] = [ExchangeStatus.ANNOUNCED, ExchangeStatus.RECEIVED, ExchangeStatus.SHIPPED, ExchangeStatus.ARRIVED, ExchangeStatus.EXCHANGED]
 
-function getFlow(inventoryType: string): ExchangeStatus[] {
+function getFlow(inventoryType: string): ExchangeStatusName[] {
   return inventoryType === InventoryTypes.INTERNAL ? internalFlow : externalFlow
 }
 
-function nextStatuses(current: ExchangeStatus, inventoryType: string): ExchangeStatus[] {
+function nextStatuses(current: ExchangeStatusName, inventoryType: string): ExchangeStatusName[] {
   const flow = getFlow(inventoryType)
   const idx = flow.indexOf(current)
   if (idx < 0 || idx >= flow.length - 1) return []
@@ -207,7 +207,7 @@ async function loadCreateMemberItems() {
     }
     const activeExchangeItemIds = new Set(
       requests.value
-        .filter(r => r.status !== 'EXCHANGED' && r.itemId)
+        .filter(r => r.status !== ExchangeStatus.EXCHANGED && r.itemId)
         .map(r => r.itemId!)
     )
     createMemberItems.value = items
@@ -522,10 +522,10 @@ onMounted(loadData)
                 <td class="px-3 py-2.5">{{ req.oldSizeLabel ?? t('common.unisize') }}</td>
                 <td class="px-3 py-2.5">{{ req.newSizeLabel ?? t('common.unisize') }}</td>
                 <td class="px-3 py-2.5">
-                  <InfoBadge v-if="req.status === 'ANNOUNCED'">{{ statusLabel(req.status) }}</InfoBadge>
-                  <PrimaryBadge v-else-if="req.status === 'RECEIVED' || req.status === 'ARRIVED'">{{ statusLabel(req.status) }}</PrimaryBadge>
-                  <SecondaryBadge v-else-if="req.status === 'SHIPPED'">{{ statusLabel(req.status) }}</SecondaryBadge>
-                  <SuccessBadge v-else-if="req.status === 'EXCHANGED'">{{ statusLabel(req.status) }}</SuccessBadge>
+                  <InfoBadge v-if="req.status === ExchangeStatus.ANNOUNCED">{{ statusLabel(req.status) }}</InfoBadge>
+                  <PrimaryBadge v-else-if="req.status === ExchangeStatus.RECEIVED || req.status === ExchangeStatus.ARRIVED">{{ statusLabel(req.status) }}</PrimaryBadge>
+                  <SecondaryBadge v-else-if="req.status === ExchangeStatus.SHIPPED">{{ statusLabel(req.status) }}</SecondaryBadge>
+                  <SuccessBadge v-else-if="req.status === ExchangeStatus.EXCHANGED">{{ statusLabel(req.status) }}</SuccessBadge>
                 </td>
                 <td class="px-3 py-2.5 text-(--text-muted) max-w-48 truncate">{{ req.reason }}</td>
                 <td class="px-3 py-2.5 text-(--text-muted)">{{ formatDate(req.createdAt) }}</td>
@@ -534,7 +534,7 @@ onMounted(loadData)
                     <SecondaryButton class="text-xs" @click="openLog(req.id)">
                       <font-awesome-icon :icon="['fas', 'clock-rotate-left']" />
                     </SecondaryButton>
-                    <SecondaryButton v-if="canManageInventory() && req.status !== 'EXCHANGED'" class="text-xs" @click="startStatusUpdate(req)">
+                    <SecondaryButton v-if="canManageInventory() && req.status !== ExchangeStatus.EXCHANGED" class="text-xs" @click="startStatusUpdate(req)">
                       <font-awesome-icon :icon="['fas', 'arrow-right']" />
                     </SecondaryButton>
                     <DeleteButton v-if="canManageInventory()" @click="deleteRequest(req.id)" />
@@ -553,7 +553,7 @@ onMounted(loadData)
                         <option v-for="s in nextStatuses(req.status, req.inventoryType)" :key="s" :value="s">{{ statusLabel(s) }}</option>
                       </SelectInput>
                     </div>
-                    <div v-if="updateTargetStatus === 'EXCHANGED'" class="space-y-1 sm:col-span-2">
+                    <div v-if="updateTargetStatus === ExchangeStatus.EXCHANGED" class="space-y-1 sm:col-span-2">
                       <label class="block text-xs font-medium text-(--text-muted)">{{ t('exchanges.exchangedItem') }}</label>
                       <template v-if="!createNewItemForExchange">
                         <SelectInput v-model="updateExchangedItemId">
@@ -718,9 +718,9 @@ onMounted(loadData)
           <div v-else class="space-y-2">
             <NeutralContainer v-for="entry in logEntries" :key="entry.id" class="text-sm space-y-1">
               <div class="flex items-center gap-2 flex-wrap">
-                <span class="font-medium">{{ statusLabel(entry.oldStatus as ExchangeStatus) }}</span>
+                <span class="font-medium">{{ statusLabel(entry.oldStatus as ExchangeStatusName) }}</span>
                 <font-awesome-icon :icon="['fas', 'arrow-right']" class="text-(--text-muted)" />
-                <span class="font-medium">{{ statusLabel(entry.newStatus as ExchangeStatus) }}</span>
+                <span class="font-medium">{{ statusLabel(entry.newStatus as ExchangeStatusName) }}</span>
               </div>
               <div class="text-(--text-muted)">
                 {{ entry.changedByName }} &mdash; {{ formatDate(entry.changedAt) }}

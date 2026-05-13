@@ -18,7 +18,7 @@ import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import type { NotificationEntry, ExchangeRequestEntry, StationEvent } from '@/api/types'
-import { RegistrationStatus } from '@/api/types'
+import { RegistrationStatus, ExchangeStatus } from '@/api/types'
 import { notifications, exchanges, events } from '@/api'
 import type { EventRegistrationEntry } from '@/api/events'
 import { useSession } from '@/composables/useSession'
@@ -50,7 +50,7 @@ const typeIcons: Record<string, string> = {
   PROFILE_FIELD_CHANGED: 'user',
 }
 
-const openExchanges = computed(() => exchangeList.value.filter(e => e.status !== 'EXCHANGED'))
+const openExchanges = computed(() => exchangeList.value.filter(e => e.status !== ExchangeStatus.EXCHANGED))
 const activeRegistrations = computed(() => registrations.value.filter(r => r.status !== RegistrationStatus.DECLINED))
 
 function eventName(eventId: number): string {
@@ -102,8 +102,8 @@ function formatDate(dateStr: string): string {
 
 function statusBadgeComponent(status: string) {
   switch (status) {
-    case 'ACCEPTED': case 'EXCHANGED': return SuccessBadge
-    case 'PENDING': case 'ANNOUNCED': case 'SHIPPED': return InfoBadge
+    case 'ACCEPTED': case ExchangeStatus.EXCHANGED: return SuccessBadge
+    case 'PENDING': case ExchangeStatus.ANNOUNCED: case ExchangeStatus.SHIPPED: return InfoBadge
     case 'DENIED': case 'DECLINED': return ErrorBadge
     default: return SecondaryBadge
   }

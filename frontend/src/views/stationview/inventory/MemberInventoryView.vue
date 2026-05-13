@@ -20,6 +20,7 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import InventoryItemCard from './InventoryItemCard.vue'
 import {inventory, exchanges, stationMembers} from '@/api'
 import type {ExchangeRequestEntry, InventorySize, StationMember} from '@/api/types'
+import {ExchangeStatus} from '@/api/types'
 import type {MyInventoryItem} from '@/api/inventory'
 import {useStations} from '@/composables/useStations'
 import {useSession} from '@/composables/useSession'
@@ -74,7 +75,7 @@ async function loadData() {
     member.value = allMembers.find(m => m.id === mid) ?? null
     try {
       const allExch = await exchanges.listExchanges()
-      activeExchanges.value = allExch.filter(e => e.memberId === mid && e.status !== 'EXCHANGED')
+      activeExchanges.value = allExch.filter(e => e.memberId === mid && e.status !== ExchangeStatus.EXCHANGED)
     } catch { activeExchanges.value = [] }
   } catch {
     error.value = t('common.error')

@@ -807,7 +807,15 @@ export interface UserSettingsRequest {
 
 // -- Equipment Exchange --
 
-export type ExchangeStatus = 'ANNOUNCED' | 'RECEIVED' | 'SHIPPED' | 'ARRIVED' | 'EXCHANGED'
+export const ExchangeStatus = {
+    ANNOUNCED: 'ANNOUNCED',
+    RECEIVED: 'RECEIVED',
+    SHIPPED: 'SHIPPED',
+    ARRIVED: 'ARRIVED',
+    EXCHANGED: 'EXCHANGED',
+} as const
+
+export type ExchangeStatusName = (typeof ExchangeStatus)[keyof typeof ExchangeStatus]
 
 export interface ExchangeRequestEntry {
     id: number
@@ -821,7 +829,7 @@ export interface ExchangeRequestEntry {
     newSizeId?: number | null
     newSizeLabel?: string | null
     inventoryType: string
-    status: ExchangeStatus
+    status: ExchangeStatusName
     reason: string
     createdAt: string
     updatedAt: string

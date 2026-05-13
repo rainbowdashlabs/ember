@@ -18,6 +18,7 @@ import InfoBadge from '@/components/badge/InfoBadge.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import type { InventoryItem, InventorySize, StationMember, ExchangeRequestEntry, ProcurementEntry } from '@/api/types'
+import { ExchangeStatus } from '@/api/types'
 import { inventory, stationMembers, exchanges, procurement } from '@/api'
 import { useStations } from '@/composables/useStations'
 
@@ -38,7 +39,7 @@ const openProcurement = ref<ProcurementEntry[]>([])
 const loading = ref(true)
 const error = ref('')
 
-const openExchanges = computed(() => exchangeList.value.filter(e => e.status !== 'EXCHANGED'))
+const openExchanges = computed(() => exchangeList.value.filter(e => e.status !== ExchangeStatus.EXCHANGED))
 
 async function loadData() {
   loading.value = true
@@ -97,9 +98,9 @@ function formatDate(dateStr?: string | null): string {
 
 function exchangeStatusBadge(status: string) {
   switch (status) {
-    case 'EXCHANGED': return SuccessBadge
-    case 'ANNOUNCED': case 'SHIPPED': return InfoBadge
-    case 'RECEIVED': case 'ARRIVED': return SecondaryBadge
+    case ExchangeStatus.EXCHANGED: return SuccessBadge
+    case ExchangeStatus.ANNOUNCED: case ExchangeStatus.SHIPPED: return InfoBadge
+    case ExchangeStatus.RECEIVED: case ExchangeStatus.ARRIVED: return SecondaryBadge
     default: return SecondaryBadge
   }
 }
@@ -145,7 +146,7 @@ watch(() => activeStation.value?.stationId, (newId, oldId) => {
                   </td>
                   <td class="px-3 py-2.5">{{ ex.memberName }}</td>
                   <td class="px-3 py-2.5">
-                    <component :is="exchangeStatusBadge(ex.status)">{{ ex.status }}</component>
+                    <component :is="exchangeStatusBadge(ex.status)">{{ t(`exchanges.status.${ex.status}`) }}</component>
                   </td>
                 </tr>
               </tbody>

@@ -22,7 +22,7 @@ import Alert from '@/components/feedback/Alert.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import ChangeHistory from './detailview/ChangeHistory.vue'
 import type { ProfileField, ProfileFieldChange, StationMember } from '@/api/types'
-import { Roles, hasTeamRole } from '@/api/types'
+import { Roles, hasTeamRole, ExchangeStatus } from '@/api/types'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import InventoryItemCard from '@/views/stationview/inventory/InventoryItemCard.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
@@ -150,7 +150,7 @@ async function loadData() {
     } catch { memberInventory.value = [] }
     try {
       const allExch = await exchanges.listExchanges()
-      memberExchanges.value = allExch.filter(e => e.memberId === memberId.value && e.status !== 'EXCHANGED')
+      memberExchanges.value = allExch.filter(e => e.memberId === memberId.value && e.status !== ExchangeStatus.EXCHANGED)
     } catch { memberExchanges.value = [] }
   } catch {
     error.value = t('common.error')

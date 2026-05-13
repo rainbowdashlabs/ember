@@ -45,12 +45,12 @@ const {t} = useI18n()
             <tr class="border-b border-bg-light-accent/50 dark:border-bg-dark-accent/50">
               <td class="px-3 py-2.5">Helme <span class="text-(--text-muted)">[M &rarr; L]</span></td>
               <td class="px-3 py-2.5">Max Mustermann</td>
-              <td class="px-3 py-2.5"><InfoBadge>ANNOUNCED</InfoBadge></td>
+              <td class="px-3 py-2.5"><InfoBadge>{{ t('exchanges.status.ANNOUNCED') }}</InfoBadge></td>
             </tr>
             <tr class="border-b border-bg-light-accent/50 dark:border-bg-dark-accent/50">
               <td class="px-3 py-2.5">Jacken <span class="text-(--text-muted)">[S &rarr; M]</span></td>
               <td class="px-3 py-2.5">Erika Musterfrau</td>
-              <td class="px-3 py-2.5"><SecondaryBadge>RECEIVED</SecondaryBadge></td>
+              <td class="px-3 py-2.5"><SecondaryBadge>{{ t('exchanges.status.RECEIVED') }}</SecondaryBadge></td>
             </tr>
           </tbody>
         </table>
