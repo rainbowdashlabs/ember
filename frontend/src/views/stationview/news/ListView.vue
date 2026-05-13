@@ -26,7 +26,7 @@ import { useSession } from '@/composables/useSession'
 
 const { t } = useI18n()
 const router = useRouter()
-const { canManageNews } = useSession()
+const { canManageNews, sessionInfo } = useSession()
 
 const PAGE_SIZE = 20
 
@@ -148,6 +148,13 @@ async function handleReply(newsId: number, parentId: number, content: string) {
   }
 }
 
+async function handleEditComment(newsId: number, commentId: number, content: string) {
+  try {
+    await news.updateComment(commentId, { content })
+    await loadComments(newsId)
+  } catch { /* ignore */ }
+}
+
 async function handleDeleteComment(newsId: number, commentId: number) {
   try {
     await news.deleteComment(commentId)
@@ -248,9 +255,11 @@ onUnmounted(() => {
                   :key="comment.id"
                   :comment="comment"
                   :all-comments="getAllComments(entry.id)"
-                  :can-delete="canManageNews()"
+                  :current-member-id="sessionInfo?.member?.id ?? 0"
+                  :can-moderate="canManageNews()"
                   :depth="0"
                   @reply="(parentId: number, content: string) => handleReply(entry.id, parentId, content)"
+                  @edit="(commentId: number, content: string) => handleEditComment(entry.id, commentId, content)"
                   @delete="(commentId: number) => handleDeleteComment(entry.id, commentId)"
                 />
 

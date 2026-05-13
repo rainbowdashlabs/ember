@@ -24,7 +24,10 @@ import Modal from '@/components/feedback/Modal.vue'
 import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
+import PrimaryBadge from '@/components/badge/PrimaryBadge.vue'
+import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import type {InventoryDetail, InventoryItem, InventoryItemHistory, InventorySize, StationMember} from '@/api/types'
+import {InventoryTypes} from '@/api/types'
 import {inventory, stationMembers} from '@/api'
 import {useStations} from '@/composables/useStations'
 
@@ -44,7 +47,7 @@ const success = ref('')
 
 // Edit inventory settings
 const editName = ref('')
-const editType = ref('internal')
+const editType = ref<string>(InventoryTypes.INTERNAL)
 const savingSettings = ref(false)
 
 // Size modal
@@ -103,7 +106,7 @@ async function loadData() {
     items.value = allItems
     members.value = allMembers
     editName.value = inv.name ?? ''
-    editType.value = inv.inventoryType ?? 'internal'
+    editType.value = inv.inventoryType ?? InventoryTypes.INTERNAL
   } catch {
     error.value = t('common.error')
   } finally {
@@ -119,7 +122,7 @@ async function saveSettings() {
   try {
     await inventory.updateInventory(inventoryId.value, {
       name: editName.value,
-      inventoryType: editType.value,
+      inventoryType: editType.value as import('@/api/types').InventoryTypeName,
       hasSizes: detail.value?.hasSizes ?? false,
     })
     success.value = t('inventory.edit.settingsSaved')
@@ -287,7 +290,7 @@ async function submitAssign() {
 async function unassignItem(item: InventoryItem) {
   error.value = ''
   try {
-    if (detail.value?.inventoryType === 'external') {
+    if (detail.value?.inventoryType === InventoryTypes.EXTERNAL) {
       // External items are removed when unassigned
       await inventory.deleteItem(item.id)
     } else {
@@ -321,6 +324,7 @@ async function submitQuickAssign() {
       name: detail.value?.name ?? '',
       sizeId,
       metadata: '{}',
+      itemSource: 'EXTERNAL',
     })
     await inventory.assignItem(item.id, {memberId, memberName})
     showQuickAssignModal.value = false
@@ -398,9 +402,9 @@ onMounted(loadData)
             <div class="space-y-1">
               <label class="block text-sm font-medium">{{ t('inventory.manage.typeLabel') }}</label>
               <SelectInput v-model="editType">
-                <option value="internal">{{ t('inventory.manage.type.internal') }}</option>
-                <option value="external">{{ t('inventory.manage.type.external') }}</option>
-                <option value="mixed">{{ t('inventory.manage.type.mixed') }}</option>
+                <option :value="InventoryTypes.INTERNAL">{{ t('inventory.manage.type.INTERNAL') }}</option>
+                <option :value="InventoryTypes.EXTERNAL">{{ t('inventory.manage.type.EXTERNAL') }}</option>
+                <option :value="InventoryTypes.MIXED">{{ t('inventory.manage.type.MIXED') }}</option>
               </SelectInput>
             </div>
           </div>
@@ -448,16 +452,20 @@ onMounted(loadData)
           <div class="flex items-center justify-between">
             <SubHeader>{{ t('inventory.edit.itemsTitle') }}</SubHeader>
             <div class="flex items-center gap-2">
-              <PrimaryButton v-if="detail.inventoryType === 'external'" class="text-sm" @click="openQuickAssign">
+              <PrimaryButton v-if="detail.inventoryType === InventoryTypes.EXTERNAL || detail.inventoryType === InventoryTypes.MIXED" class="text-sm" @click="openQuickAssign">
                 <font-awesome-icon :icon="['fas', 'user-plus']" class="mr-1"/>
                 {{ t('inventory.edit.quickAssign') }}
               </PrimaryButton>
-              <PrimaryButton class="text-sm" @click="openAddItem">
+              <PrimaryButton v-if="detail.inventoryType !== InventoryTypes.EXTERNAL" class="text-sm" @click="openAddItem">
                 <font-awesome-icon :icon="['fas', 'plus']" class="mr-2"/>
                 {{ t('inventory.edit.addItem') }}
               </PrimaryButton>
             </div>
           </div>
+
+          <p v-if="detail.inventoryType === InventoryTypes.EXTERNAL" class="text-xs text-(--text-muted)">
+            {{ t('inventory.edit.externalItemsHint') }}
+          </p>
 
           <div v-if="items.length === 0" class="text-center text-(--text-muted) py-4 text-sm">
             {{ t('inventory.edit.noItems') }}
@@ -470,6 +478,7 @@ onMounted(loadData)
                 <th class="px-3 py-2 font-medium">{{ t('inventory.edit.colName') }}</th>
                 <th class="px-3 py-2 font-medium">{{ t('inventory.edit.colId') }}</th>
                 <th v-if="detail.hasSizes" class="px-3 py-2 font-medium">{{ t('inventory.edit.colSize') }}</th>
+                <th v-if="detail.inventoryType === InventoryTypes.MIXED" class="px-3 py-2 font-medium">{{ t('inventory.edit.colSource') }}</th>
                 <th class="px-3 py-2 font-medium">{{ t('inventory.edit.colAssigned') }}</th>
                 <th class="px-3 py-2"></th>
               </tr>
@@ -488,6 +497,11 @@ onMounted(loadData)
                 <td v-if="detail.hasSizes" class="px-3 py-2.5 text-(--text-muted)">{{
                     getSizeLabel(item.sizeId) || '–'
                   }}
+                </td>
+                <td v-if="detail.inventoryType === InventoryTypes.MIXED" class="px-3 py-2.5">
+                  <PrimaryBadge v-if="item.itemSource === 'INTERNAL'">{{ t('inventory.edit.sourceInternal') }}</PrimaryBadge>
+                  <SecondaryBadge v-else-if="item.itemSource === 'EXTERNAL'">{{ t('inventory.edit.sourceExternal') }}</SecondaryBadge>
+                  <span v-else class="text-(--text-muted)">–</span>
                 </td>
                 <td class="px-3 py-2.5">
                   <span v-if="item.assignedTo" class="text-primary font-medium">{{

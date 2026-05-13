@@ -25,7 +25,7 @@ public class SavedFilterRepository {
 
     public SavedFilter create(int accountId, String tableType, String name, String filterData, int position) {
         return Query.query(
-                        "INSERT INTO saved_filter(account_id, table_type, name, filter_data, position) VALUES(:accountId, :tableType, :name, :filterData::jsonb, :position) RETURNING id, account_id, table_type, name, filter_data, position;")
+                        "INSERT INTO saved_filter(account_id, table_type, name, filter_data, position) VALUES(:accountId, :tableType, :name, :filterData::JSONB, :position) RETURNING id, account_id, table_type, name, filter_data, position;")
                 .single(Call.of()
                         .bind("accountId", accountId)
                         .bind("tableType", tableType)

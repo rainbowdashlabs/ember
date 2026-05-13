@@ -10,6 +10,7 @@ import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
+import EditButton from '@/components/button/EditButton.vue'
 import type { NewsComment } from '@/api/types'
 
 const { t } = useI18n()
@@ -17,17 +18,23 @@ const { t } = useI18n()
 const props = defineProps<{
   comment: NewsComment
   allComments: NewsComment[]
-  canDelete: boolean
+  currentMemberId: number
+  canModerate: boolean
   depth: number
 }>()
 
 const emit = defineEmits<{
   reply: [parentId: number, content: string]
+  edit: [commentId: number, content: string]
   delete: [commentId: number]
 }>()
 
 const showReply = ref(false)
 const replyContent = ref('')
+const editing = ref(false)
+const editContent = ref('')
+
+const isAuthor = computed(() => props.comment.authorId === props.currentMemberId)
 
 const children = computed(() =>
     props.allComments.filter(c => c.parentId === props.comment.id)
@@ -44,6 +51,17 @@ function submitReply() {
   emit('reply', props.comment.id, replyContent.value.trim())
   replyContent.value = ''
   showReply.value = false
+}
+
+function startEdit() {
+  editContent.value = props.comment.content
+  editing.value = true
+}
+
+function submitEdit() {
+  if (!editContent.value.trim()) return
+  emit('edit', props.comment.id, editContent.value.trim())
+  editing.value = false
 }
 </script>
 
@@ -63,10 +81,26 @@ function submitReply() {
           >
             {{ t('news.reply') }}
           </button>
-          <DeleteButton v-if="canDelete" @click="emit('delete', comment.id)" />
+          <EditButton v-if="isAuthor" @click="startEdit" />
+          <DeleteButton v-if="isAuthor || canModerate" @click="emit('delete', comment.id)" />
         </div>
       </div>
-      <p class="text-sm mt-1 whitespace-pre-wrap">{{ comment.content }}</p>
+
+      <!-- Edit form -->
+      <div v-if="editing" class="mt-1 space-y-2">
+        <TextAreaInput v-model="editContent" :rows="2" />
+        <div class="flex gap-2">
+          <PrimaryButton class="text-xs" :disabled="!editContent.trim()" @click="submitEdit">
+            {{ t('common.save') }}
+          </PrimaryButton>
+          <SecondaryButton class="text-xs" @click="editing = false">
+            {{ t('common.cancel') }}
+          </SecondaryButton>
+        </div>
+      </div>
+
+      <!-- Content -->
+      <p v-else class="text-sm mt-1 whitespace-pre-wrap">{{ comment.content }}</p>
 
       <!-- Reply form -->
       <div v-if="showReply" class="mt-2 space-y-2">
@@ -88,9 +122,11 @@ function submitReply() {
       :key="child.id"
       :comment="child"
       :all-comments="allComments"
-      :can-delete="canDelete"
+      :current-member-id="currentMemberId"
+      :can-moderate="canModerate"
       :depth="depth + 1"
       @reply="(parentId, content) => emit('reply', parentId, content)"
+      @edit="(id, content) => emit('edit', id, content)"
       @delete="(id) => emit('delete', id)"
     />
   </div>

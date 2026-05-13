@@ -172,7 +172,7 @@ function openEditField(field: ProfileField) {
   showFieldModal.value = true
 }
 
-async function saveField(data: { name: string; fieldType: string; config: string; position: number; scope: string }) {
+async function saveField(data: { name: string; fieldType: string; config: string; position: number; scope: string; keepOnArchive: boolean }) {
   error.value = ''
   try {
     if (editingField.value) {
@@ -187,6 +187,10 @@ async function saveField(data: { name: string; fieldType: string; config: string
   }
 }
 
+function updateFieldLocally(fieldId: number, patch: Partial<ProfileField>) {
+  allFields.value = allFields.value.map(f => f.id === fieldId ? { ...f, ...patch } : f)
+}
+
 async function toggleFieldConfig(field: ProfileField, key: string, value: boolean) {
   const cfg = parseConfig(field.config)
   if (value) {
@@ -194,16 +198,35 @@ async function toggleFieldConfig(field: ProfileField, key: string, value: boolea
   } else {
     delete (cfg as Record<string, unknown>)[key]
   }
+  const newConfig = JSON.stringify(cfg)
+  updateFieldLocally(field.id, { config: newConfig })
   try {
     await profileFields.updateField(field.id, {
       name: field.name ?? '',
       fieldType: field.fieldType ?? '',
-      config: JSON.stringify(cfg),
+      config: newConfig,
       position: field.position,
+      keepOnArchive: field.keepOnArchive,
     })
-    await loadFields()
   } catch {
     error.value = t('common.error')
+    await loadFields()
+  }
+}
+
+async function toggleKeepOnArchive(field: ProfileField, value: boolean) {
+  updateFieldLocally(field.id, { keepOnArchive: value })
+  try {
+    await profileFields.updateField(field.id, {
+      name: field.name ?? '',
+      fieldType: field.fieldType ?? '',
+      config: field.config ?? '{}',
+      position: field.position,
+      keepOnArchive: value,
+    })
+  } catch {
+    error.value = t('common.error')
+    await loadFields()
   }
 }
 
@@ -322,6 +345,7 @@ onMounted(loadFields)
               @edit="openEditField"
               @reorder="onReorder"
               @toggle-config="toggleFieldConfig"
+              @toggle-keep-on-archive="toggleKeepOnArchive"
           />
 
           <!-- Templates when fields exist -->

@@ -19,7 +19,7 @@ import java.util.Optional;
 @Singleton
 public class ProfileFieldRepository {
 
-    private static final String COLUMNS = "id, station_id, name, field_type, config, position, scope";
+    private static final String COLUMNS = "id, station_id, name, field_type, config, position, scope, keep_on_archive";
 
     // -- Field Definitions --
 
@@ -64,20 +64,22 @@ public class ProfileFieldRepository {
                 .orElseThrow();
     }
 
-    public boolean update(int id, String name, String fieldType, String config, int position) {
+    public boolean update(int id, String name, String fieldType, String config, int position, boolean keepOnArchive) {
         return Query.query("""
                             UPDATE profile_field
                             SET
-                                name       = :name,
-                                field_type = :field_type,
-                                config     = :config::JSONB,
-                                position   = :position
+                                name             = :name,
+                                field_type       = :field_type,
+                                config           = :config::JSONB,
+                                position         = :position,
+                                keep_on_archive  = :keep_on_archive
                             WHERE id = :id;""")
                 .single(Call.of()
                         .bind("name", name)
                         .bind("field_type", fieldType)
                         .bind("config", config)
                         .bind("position", position)
+                        .bind("keep_on_archive", keepOnArchive)
                         .bind("id", id))
                 .update()
                 .changed();
@@ -135,5 +137,17 @@ public class ProfileFieldRepository {
                 .single(Call.of().bind("member_id", memberId).bind("field_id", fieldId))
                 .delete()
                 .changed();
+    }
+
+    /**
+     * Delete all field values for a member where the field is NOT marked as keep_on_archive.
+     */
+    public void deleteNonArchivedValues(int memberId) {
+        Query.query("""
+                        DELETE FROM profile_field_value
+                        WHERE member_id = :member_id
+                          AND field_id NOT IN (
+                              SELECT id FROM profile_field WHERE keep_on_archive = true
+                          );""").single(Call.of().bind("member_id", memberId)).delete();
     }
 }

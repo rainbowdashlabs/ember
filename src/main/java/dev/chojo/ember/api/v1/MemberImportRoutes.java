@@ -23,6 +23,7 @@ import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 @Singleton
@@ -34,6 +35,15 @@ public class MemberImportRoutes implements Routes {
     @Inject
     public MemberImportRoutes(MemberImportService importService) {
         this.importService = importService;
+    }
+
+    private static void validateCsv(String csv) {
+        if (csv == null || csv.isBlank()) {
+            throw new BadRequestResponse("csv is required");
+        }
+        if (csv.getBytes(StandardCharsets.UTF_8).length > MAX_CSV_BYTES) {
+            throw new BadRequestResponse("CSV file exceeds maximum size of 2 MB");
+        }
     }
 
     @Override
@@ -141,15 +151,6 @@ public class MemberImportRoutes implements Routes {
         ctx.status(HttpStatus.CREATED)
                 .json(importService.importTeamMembers(
                         session.stationId(), request.csv(), request.separator(), request.mappings()));
-    }
-
-    private static void validateCsv(String csv) {
-        if (csv == null || csv.isBlank()) {
-            throw new BadRequestResponse("csv is required");
-        }
-        if (csv.getBytes(java.nio.charset.StandardCharsets.UTF_8).length > MAX_CSV_BYTES) {
-            throw new BadRequestResponse("CSV file exceeds maximum size of 2 MB");
-        }
     }
 
     public record CsvRequest(String csv, String separator) {}

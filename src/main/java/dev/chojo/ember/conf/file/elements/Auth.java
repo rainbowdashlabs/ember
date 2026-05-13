@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.conf.file.elements;
 
+@SuppressWarnings({"FieldCanBeLocal", "FieldMayBeFinal"})
 public class Auth {
     private int tokenBytes = 32;
     private int verifyTokenHours = 24;
@@ -25,5 +26,14 @@ public class Auth {
 
     public int sessionMinutes() {
         return sessionMinutes;
+    }
+
+    @Override
+    public String toString() {
+        return "Auth{" + "tokenBytes="
+                + tokenBytes + ", verifyTokenHours="
+                + verifyTokenHours + ", passwordTokenHours="
+                + passwordTokenHours + ", sessionMinutes="
+                + sessionMinutes + '}';
     }
 }

@@ -11,18 +11,22 @@ import dev.chojo.ember.entity.StationMember;
 import dev.chojo.ember.repository.AccountRepository;
 import dev.chojo.ember.repository.StationMemberRepository;
 import dev.chojo.ember.repository.StationRepository;
+import dev.chojo.ember.service.ProfileFieldService;
 import io.javalin.Javalin;
 import io.javalin.config.RoutesConfig;
+import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.ForbiddenResponse;
 import io.javalin.http.HandlerType;
 import io.javalin.http.HttpResponseException;
 import io.javalin.http.HttpStatus;
 import io.javalin.http.UnauthorizedResponse;
+import io.javalin.http.staticfiles.Location;
 import io.javalin.openapi.plugin.OpenApiPlugin;
 import io.javalin.openapi.plugin.OpenApiPluginConfiguration;
 import io.javalin.openapi.plugin.swagger.SwaggerConfiguration;
 import io.javalin.openapi.plugin.swagger.SwaggerPlugin;
+import io.javalin.plugin.bundled.CorsPluginConfig;
 import io.javalin.security.RouteRole;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -32,10 +36,12 @@ import org.slf4j.LoggerFactory;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.json.JsonMapper;
 
-import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -45,10 +51,9 @@ import static java.util.Objects.requireNonNullElse;
 
 @Singleton
 public class ApiServer {
+    public static final String ATTR_SESSION = "session";
     private static final Logger log = LoggerFactory.getLogger(ApiServer.class);
     private static final String API_PREFIX = "/api/v1";
-    public static final String ATTR_SESSION = "session";
-
     private static final Set<String> DEMO_BLOCKED_PATHS =
             Set.of("/api/v1/auth/change-password", "/api/v1/auth/set-password");
 
@@ -59,6 +64,7 @@ public class ApiServer {
     private final AccountRepository accountRepository;
     private final StationMemberRepository stationMemberRepository;
     private final StationRepository stationRepository;
+    private final ProfileFieldService profileFieldService;
 
     @Inject
     public ApiServer(
@@ -68,7 +74,8 @@ public class ApiServer {
             AccessManager accessManager,
             AccountRepository accountRepository,
             StationMemberRepository stationMemberRepository,
-            StationRepository stationRepository) {
+            StationRepository stationRepository,
+            ProfileFieldService profileFieldService) {
         this.routes = routes;
         this.apiConfig = apiConfig;
         this.demoConfig = demoConfig;
@@ -76,6 +83,7 @@ public class ApiServer {
         this.accountRepository = accountRepository;
         this.stationMemberRepository = stationMemberRepository;
         this.stationRepository = stationRepository;
+        this.profileFieldService = profileFieldService;
     }
 
     public void start() {
@@ -83,16 +91,21 @@ public class ApiServer {
             config.http.defaultContentType = "application/json";
             config.jsonMapper(jacksonMapper());
 
-            var publicDir = System.getenv().getOrDefault("EMBER_PUBLIC_DIR", "public");
-            config.staticFiles.add(staticFiles -> {
-                staticFiles.directory = publicDir;
-                staticFiles.location = io.javalin.http.staticfiles.Location.EXTERNAL;
-            });
+            var publicDir = Path.of(System.getenv().getOrDefault("EMBER_PUBLIC_DIR", "public"));
+            if (Files.isDirectory(publicDir)) {
+                config.staticFiles.add(staticFiles -> {
+                    staticFiles.directory = publicDir.toString();
+                    staticFiles.location = Location.EXTERNAL;
+                });
+                config.spaRoot.addFile("/", publicDir.resolve("index.html").toString(), Location.EXTERNAL);
+            } else {
+                config.spaRoot.addFile("/", "/static/index.html", Location.CLASSPATH);
+            }
 
             config.registerPlugin(new OpenApiPlugin(this::configureOpenApi));
             config.registerPlugin(new SwaggerPlugin(this::configureSwagger));
 
-            config.bundledPlugins.enableCors(cors -> cors.addRule(rule -> rule.anyHost()));
+            config.bundledPlugins.enableCors(cors -> cors.addRule(CorsPluginConfig.CorsRule::anyHost));
 
             config.routes.before(ctx -> {
                 if (ctx.method() == HandlerType.OPTIONS) return;
@@ -142,7 +155,7 @@ public class ApiServer {
             // Public demo endpoints
             config.routes.get(
                     API_PREFIX + "/demo/status",
-                    ctx -> ctx.json(java.util.Map.of("demo", demoConfig.enabled(), "dev", demoConfig.dev())));
+                    ctx -> ctx.json(Map.of("demo", demoConfig.enabled(), "dev", demoConfig.dev())));
 
             if (demoConfig.enabled() || demoConfig.dev()) {
                 config.routes.get(API_PREFIX + "/demo/accounts", this::handleDemoAccounts);
@@ -151,20 +164,6 @@ public class ApiServer {
             for (Routes route : routes) {
                 route.register(config.routes, API_PREFIX);
             }
-            var indexPath = Path.of(System.getenv().getOrDefault("EMBER_PUBLIC_DIR", "public"), "index.html");
-            String index;
-            try {
-                index = Files.readString(indexPath);
-            } catch (IOException e) {
-                throw new RuntimeException("Could not read index.html", e);
-            }
-            // SPA fallback: serve index.html for non-API routes so the Vue router can handle them
-            config.routes.get("/<path>", ctx -> {
-                if (!ctx.path().startsWith(API_PREFIX)) {
-                    ctx.contentType("text/html");
-                    ctx.result(index);
-                }
-            });
         });
         app.start(apiConfig.host(), apiConfig.port());
         log.info("API server started on {}:{}", apiConfig.host(), apiConfig.port());
@@ -176,41 +175,42 @@ public class ApiServer {
 
         // Block password changes
         if (DEMO_BLOCKED_PATHS.contains(path)) {
-            throw new io.javalin.http.BadRequestResponse("This action is disabled in demo mode");
+            throw new BadRequestResponse("This action is disabled in demo mode");
         }
 
         // Block station create/delete (but allow GET and PUT for manage)
         if (path.startsWith("/api/v1/admin/stations") && (method == HandlerType.POST || method == HandlerType.DELETE)) {
-            throw new io.javalin.http.BadRequestResponse("Station management is disabled in demo mode");
+            throw new BadRequestResponse("Station management is disabled in demo mode");
         }
 
         // Block role changes on members and groups
         if (method == HandlerType.PUT
                 && (path.matches("/api/v1/station-members/\\d+/roles") || path.matches("/api/v1/groups/\\d+/roles"))) {
-            throw new io.javalin.http.BadRequestResponse("Role changes are disabled in demo mode");
+            throw new BadRequestResponse("Role changes are disabled in demo mode");
         }
     }
 
     private void handleDemoAccounts(@NotNull Context ctx) {
         var allStations = stationRepository.findAll();
         if (allStations.isEmpty()) {
-            ctx.json(java.util.List.of());
+            ctx.json(List.of());
             return;
         }
         int stationId = allStations.getFirst().id();
         var members = stationMemberRepository.findByStation(stationId);
-        var accounts = new java.util.ArrayList<DemoAccount>();
+        var accounts = new ArrayList<DemoAccount>();
         for (StationMember member : members) {
+            if (member.accountId() == null) continue;
             accountRepository.findById(member.accountId()).ifPresent(account -> {
                 var roles = stationMemberRepository.findRoles(member.id());
                 var roleNames = roles.stream().map(r -> r.role().name()).toList();
-                accounts.add(new DemoAccount(account.email(), account.firstName(), account.lastName(), roleNames));
+                boolean complete = profileFieldService.isProfileComplete(member.id(), stationId, roleNames);
+                accounts.add(
+                        new DemoAccount(account.email(), account.firstName(), account.lastName(), roleNames, complete));
             });
         }
         ctx.json(accounts);
     }
-
-    public record DemoAccount(String email, String firstName, String lastName, java.util.List<String> roles) {}
 
     private void handleAccess(@NotNull Context ctx) {
         Set<RouteRole> routeRoles = ctx.routeRoles();
@@ -313,4 +313,7 @@ public class ApiServer {
             ctx.json(new ErrorResponseWrapper("Internal Server Error")).status(HttpStatus.INTERNAL_SERVER_ERROR);
         });
     }
+
+    public record DemoAccount(
+            String email, String firstName, String lastName, List<String> roles, boolean profileComplete) {}
 }

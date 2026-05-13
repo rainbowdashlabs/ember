@@ -21,14 +21,16 @@ import Alert from '@/components/feedback/Alert.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
-import type { Inventory, InventoryItem } from '@/api/types'
-import { inventory } from '@/api'
+import type { Inventory, InventoryItem, ProcurementEntry } from '@/api/types'
+import { InventoryTypes } from '@/api/types'
+import { inventory, procurement } from '@/api'
 
 const { t } = useI18n()
 const router = useRouter()
 
 const inventories = ref<Inventory[]>([])
 const itemsByInventory = ref<Map<number, InventoryItem[]>>(new Map())
+const openProcurement = ref<ProcurementEntry[]>([])
 const loading = ref(true)
 const error = ref('')
 
@@ -36,7 +38,7 @@ const error = ref('')
 const showCreateModal = ref(false)
 const createStep = ref<'basic' | 'sizes'>('basic')
 const createName = ref('')
-const createType = ref('internal')
+const createType = ref(InventoryTypes.INTERNAL)
 const createHasSizes = ref(false)
 const createSizes = ref<string[]>([])
 const newSizeLabel = ref('')
@@ -50,10 +52,15 @@ async function loadData() {
   loading.value = true
   error.value = ''
   try {
-    inventories.value = await inventory.listInventories()
+    const [inv, proc] = await Promise.all([
+      inventory.listInventories(),
+      procurement.listOpen(),
+    ])
+    inventories.value = inv
+    openProcurement.value = proc
     const map = new Map<number, InventoryItem[]>()
-    for (const inv of inventories.value) {
-      map.set(inv.id, await inventory.listItems(inv.id))
+    for (const i of inv) {
+      map.set(i.id, await inventory.listItems(i.id))
     }
     itemsByInventory.value = map
   } catch {
@@ -71,6 +78,10 @@ function lostCount(invId: number): number {
   return itemsByInventory.value.get(invId)?.filter(i => i.lostAt)?.length ?? 0
 }
 
+function procurementCount(invId: number): number {
+  return openProcurement.value.filter(p => p.inventoryId === invId).length
+}
+
 function viewDetail(inv: Inventory) {
   router.push({ name: 'inventory-detail', params: { id: inv.id } })
 }
@@ -78,7 +89,7 @@ function viewDetail(inv: Inventory) {
 function openCreate() {
   createStep.value = 'basic'
   createName.value = ''
-  createType.value = 'internal'
+  createType.value = InventoryTypes.INTERNAL
   createHasSizes.value = false
   createSizes.value = []
   newSizeLabel.value = ''
@@ -174,8 +185,8 @@ onMounted(loadData)
             <div class="flex items-center justify-between">
               <div>
                 <span class="font-medium">{{ inv.name }}</span>
-                <span class="ml-2 text-xs text-(--text-muted)">{{ t('inventory.manage.type.' + (inv.inventoryType ?? 'internal')) }}</span>
-                <span v-if="inv.hasSizes" class="ml-2 text-xs text-secondary">{{ t('inventory.manage.withSizes') }}</span>
+                <span class="ml-2 text-xs text-(--text-muted)">{{ t('inventory.manage.type.' + (inv.inventoryType ?? InventoryTypes.INTERNAL)) }}</span>
+                <span v-if="inv.hasSizes" class="ml-2 text-xs text-secondary-accent dark:text-secondary">{{ t('inventory.manage.withSizes') }}</span>
               </div>
               <div class="flex items-center gap-2" @click.stop>
                 <EditButton @click="editInventory(inv)" />
@@ -186,6 +197,9 @@ onMounted(loadData)
               {{ t('inventory.manage.itemCount', { count: itemCount(inv.id) }) }}
               <template v-if="lostCount(inv.id) > 0">
                 &middot; <span class="text-error">{{ t('inventory.manage.lostCount', { count: lostCount(inv.id) }) }}</span>
+              </template>
+              <template v-if="procurementCount(inv.id) > 0">
+                &middot; <span class="text-info-accent dark:text-info">{{ t('inventory.manage.procurementCount', { count: procurementCount(inv.id) }) }}</span>
               </template>
             </div>
           </NeutralContainer>
@@ -206,9 +220,9 @@ onMounted(loadData)
             <div class="space-y-1">
               <label class="block text-sm font-medium">{{ t('inventory.manage.typeLabel') }}</label>
               <SelectInput v-model="createType">
-                <option value="internal">{{ t('inventory.manage.type.internal') }}</option>
-                <option value="external">{{ t('inventory.manage.type.external') }}</option>
-                <option value="mixed">{{ t('inventory.manage.type.mixed') }}</option>
+                <option :value="InventoryTypes.INTERNAL">{{ t('inventory.manage.type.INTERNAL') }}</option>
+                <option :value="InventoryTypes.EXTERNAL">{{ t('inventory.manage.type.EXTERNAL') }}</option>
+                <option :value="InventoryTypes.MIXED">{{ t('inventory.manage.type.MIXED') }}</option>
               </SelectInput>
               <p class="text-xs text-(--text-muted)">{{ t('inventory.manage.typeHint') }}</p>
             </div>

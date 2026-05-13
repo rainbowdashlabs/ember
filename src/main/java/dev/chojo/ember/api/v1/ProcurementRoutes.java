@@ -93,6 +93,7 @@ public class ProcurementRoutes implements Routes {
     private void create(Context ctx) {
         UserSession session = UserSession.from(ctx);
         var request = ctx.bodyAsClass(CreateProcurementRequest.class);
+        inventoryRepository.findById(request.inventoryId()).orElseThrow(NotFoundResponse::new);
         var procurement = procurementService.create(
                 session.stationId(), request.inventoryId(), request.memberId(), request.sizeId(), request.notes());
         ctx.status(HttpStatus.CREATED).json(toResponse(procurement));

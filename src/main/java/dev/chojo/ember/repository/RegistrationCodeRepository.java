@@ -27,10 +27,10 @@ public class RegistrationCodeRepository {
 
     public Optional<RegistrationCode> findByStationAndCode(int stationId, String code) {
         return query("""
-                     SELECT id, station_id, code, max_uses, uses
-                     FROM registration_code
-                     WHERE station_id = :station_id
-                       AND code = :code;""")
+                SELECT id, station_id, code, max_uses, uses
+                FROM registration_code
+                WHERE station_id = :station_id
+                  AND code = :code;""")
                 .single(Call.of().bind("station_id", stationId).bind("code", code))
                 .map(RegistrationCode.map())
                 .first();

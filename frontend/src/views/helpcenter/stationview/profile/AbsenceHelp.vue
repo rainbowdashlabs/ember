@@ -1,0 +1,141 @@
+/*
+ *     SPDX-License-Identifier: AGPL-3.0-only
+ *
+ *     Copyright (C) RainbowDashLabs and Contributor
+ */
+<script lang="ts" setup>
+import {ref} from 'vue'
+import {useI18n} from 'vue-i18n'
+import HelpArticle from '@/components/helpcenter/HelpArticle.vue'
+import HelpSection from '@/components/helpcenter/HelpSection.vue'
+import HelpTip from '@/components/helpcenter/HelpTip.vue'
+import HelpRoleToggle from '@/components/helpcenter/HelpRoleToggle.vue'
+import type {HelpRole} from '@/components/helpcenter/HelpRoleToggle.vue'
+import NeutralContainer from '@/components/container/NeutralContainer.vue'
+import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import DeleteButton from '@/components/button/DeleteButton.vue'
+import DateInput from '@/components/input/datetime/DateInput.vue'
+import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
+import SuccessBadge from '@/components/badge/SuccessBadge.vue'
+import InfoBadge from '@/components/badge/InfoBadge.vue'
+import ErrorBadge from '@/components/badge/ErrorBadge.vue'
+
+const {t} = useI18n()
+
+const roles: HelpRole[] = [
+  {key: 'member', label: t('helpCenter.roles.member')},
+  {key: 'memberManager', label: t('helpCenter.roles.memberManager')},
+]
+const activeRole = ref('')
+</script>
+
+<template>
+  <HelpArticle :title="t('helpCenter.absences.title')" :subtitle="t('helpCenter.absences.subtitle')">
+    <HelpSection :title="t('helpCenter.absences.whatIs')">
+      <p>{{ t('helpCenter.absences.whatIsText') }}</p>
+    </HelpSection>
+
+    <HelpRoleToggle v-model="activeRole" :roles="roles"/>
+
+    <HelpSection :title="t('helpCenter.absences.howTo')">
+      <p>{{ t('helpCenter.absences.fromTo') }}</p>
+      <p>{{ t('helpCenter.absences.reason') }}</p>
+      <template v-if="activeRole === 'memberManager'">
+        <p>{{ t('helpCenter.absences.forOthers') }}</p>
+      </template>
+    </HelpSection>
+
+    <!-- Dummy: Add absence form -->
+    <NeutralContainer class="space-y-4">
+      <div class="grid gap-4 sm:grid-cols-3">
+        <div class="space-y-1">
+          <label class="block text-sm font-medium">{{ t('profile.absenceFrom') }}</label>
+          <DateInput model-value="2026-06-01"/>
+        </div>
+        <div class="space-y-1">
+          <label class="block text-sm font-medium">{{ t('profile.absenceUntil') }}</label>
+          <DateInput model-value="2026-06-14"/>
+        </div>
+        <div class="space-y-1">
+          <label class="block text-sm font-medium">{{ t('profile.absenceReason') }}</label>
+          <TextAreaInput model-value="Sommerurlaub" :placeholder="t('profile.absenceReasonPlaceholder')"/>
+        </div>
+      </div>
+
+      <!-- Dummy: Member selection for managers -->
+      <template v-if="activeRole === 'memberManager'">
+        <div class="space-y-2">
+          <label class="block text-sm font-medium">{{ t('profile.absenceFor') }}</label>
+          <div class="flex flex-wrap gap-2">
+            <button type="button"
+                    class="rounded-lg px-3 py-1.5 text-sm font-medium border transition-all border-primary bg-primary/10 text-primary ring-1 ring-primary/30">
+              {{ t('profile.absenceMyself') }}
+            </button>
+            <button type="button"
+                    class="rounded-lg px-3 py-1.5 text-sm font-medium border transition-all border-primary bg-primary/10 text-primary ring-1 ring-primary/30">
+              Lena Mustermann
+            </button>
+            <button type="button"
+                    class="rounded-lg px-3 py-1.5 text-sm font-medium border transition-all border-bg-light-accent dark:border-bg-dark-accent text-(--text-muted) hover:border-primary">
+              Tim Mustermann
+            </button>
+          </div>
+        </div>
+      </template>
+
+      <div class="flex gap-3">
+        <PrimaryButton>{{ t('profile.absenceAdd') }}</PrimaryButton>
+        <SecondaryButton>{{ t('common.cancel') }}</SecondaryButton>
+      </div>
+    </NeutralContainer>
+
+    <HelpSection :title="t('helpCenter.absences.statusTitle')">
+      <p>{{ t('helpCenter.absences.statusActive') }}</p>
+      <p>{{ t('helpCenter.absences.statusUpcoming') }}</p>
+      <p>{{ t('helpCenter.absences.statusExpired') }}</p>
+    </HelpSection>
+
+    <!-- Dummy: Absence list -->
+    <div class="space-y-2">
+      <NeutralContainer>
+        <div class="flex items-center justify-between flex-wrap gap-2">
+          <div>
+            <span class="text-sm">01.06.2026 – 14.06.2026</span>
+            <span class="ml-3 text-sm text-(--text-muted)">Sommerurlaub</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <InfoBadge>{{ t('profile.absenceUpcoming') }}</InfoBadge>
+            <DeleteButton/>
+          </div>
+        </div>
+      </NeutralContainer>
+      <NeutralContainer>
+        <div class="flex items-center justify-between flex-wrap gap-2">
+          <div>
+            <span class="text-sm">10.05.2026 – 16.05.2026</span>
+            <span class="ml-3 text-sm text-(--text-muted)">Klassenfahrt</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <SuccessBadge>{{ t('profile.absenceActive') }}</SuccessBadge>
+            <DeleteButton/>
+          </div>
+        </div>
+      </NeutralContainer>
+      <NeutralContainer>
+        <div class="flex items-center justify-between flex-wrap gap-2">
+          <div>
+            <span class="text-sm">01.04.2026 – 05.04.2026</span>
+            <span class="ml-3 text-sm text-(--text-muted)">Krank</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <ErrorBadge>{{ t('profile.absenceExpired') }}</ErrorBadge>
+            <DeleteButton/>
+          </div>
+        </div>
+      </NeutralContainer>
+    </div>
+
+    <HelpTip>{{ t('helpCenter.absences.tip') }}</HelpTip>
+  </HelpArticle>
+</template>

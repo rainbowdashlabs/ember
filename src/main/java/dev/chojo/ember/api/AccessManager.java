@@ -83,18 +83,6 @@ public class AccessManager {
         return Optional.of(new UserSession(account, stationId, null, roles));
     }
 
-    private Set<Roles> resolveAccountRoles(int accountId) {
-        Set<Roles> roles = EnumSet.noneOf(Roles.class);
-        List<String> accountRoles = accountRepository.findAccountRoles(accountId);
-        for (String role : accountRoles) {
-            Roles mapped = Roles.fromDbName(role);
-            if (mapped != null) {
-                roles.add(mapped);
-            }
-        }
-        return roles;
-    }
-
     /**
      * Resolves the expanded roles for a station member by their member ID.
      */
@@ -105,5 +93,17 @@ public class AccessManager {
         List<Role> groupRoles = memberGroupRepository.findRolesForMemberViaGroups(memberId);
         groupRoles.stream().map(Role::role).forEach(roles::add);
         return Roles.expand(roles);
+    }
+
+    private Set<Roles> resolveAccountRoles(int accountId) {
+        Set<Roles> roles = EnumSet.noneOf(Roles.class);
+        List<String> accountRoles = accountRepository.findAccountRoles(accountId);
+        for (String role : accountRoles) {
+            Roles mapped = Roles.fromDbName(role);
+            if (mapped != null) {
+                roles.add(mapped);
+            }
+        }
+        return roles;
     }
 }

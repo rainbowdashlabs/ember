@@ -8,6 +8,7 @@ import {useI18n} from 'vue-i18n'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
+import {Roles} from '@/api/types'
 
 const {t} = useI18n()
 
@@ -28,9 +29,9 @@ const emit = defineEmits<{
 
     <div class="grid gap-3 sm:grid-cols-3">
       <NeutralContainer
-          :class="modelValue === 'MEMBER' ? 'border-primary ring-2 ring-primary/30 bg-primary/10 scale-105' : 'hover:border-primary hover:scale-[1.02]'"
+          :class="modelValue === Roles.MEMBER ? 'border-primary ring-2 ring-primary/30 bg-primary/10 scale-105' : 'hover:border-primary hover:scale-[1.02]'"
           class="cursor-pointer text-center py-6 transition-all"
-          @click="emit('update:modelValue', 'MEMBER')"
+          @click="emit('update:modelValue', Roles.MEMBER)"
       >
         <font-awesome-icon :icon="['fas', 'user']" class="text-2xl mb-2"/>
         <div class="font-medium">{{ t('membersCreate.roleMember') }}</div>
@@ -38,9 +39,9 @@ const emit = defineEmits<{
       </NeutralContainer>
 
       <NeutralContainer
-          :class="modelValue === 'MEMBER_MANAGER' ? 'border-primary ring-2 ring-primary/30 bg-primary/10 scale-105' : 'hover:border-primary hover:scale-[1.02]'"
+          :class="modelValue === Roles.MEMBER_MANAGER ? 'border-primary ring-2 ring-primary/30 bg-primary/10 scale-105' : 'hover:border-primary hover:scale-[1.02]'"
           class="cursor-pointer text-center py-6 transition-all"
-          @click="emit('update:modelValue', 'MEMBER_MANAGER')"
+          @click="emit('update:modelValue', Roles.MEMBER_MANAGER)"
       >
         <font-awesome-icon :icon="['fas', 'user-plus']" class="text-2xl mb-2"/>
         <div class="font-medium">{{ t('membersCreate.roleMemberManager') }}</div>
@@ -48,9 +49,9 @@ const emit = defineEmits<{
       </NeutralContainer>
 
       <NeutralContainer
-          :class="modelValue === 'TEAM' ? 'border-primary ring-2 ring-primary/30 bg-primary/10 scale-105' : 'hover:border-primary hover:scale-[1.02]'"
+          :class="modelValue === Roles.TEAM ? 'border-primary ring-2 ring-primary/30 bg-primary/10 scale-105' : 'hover:border-primary hover:scale-[1.02]'"
           class="cursor-pointer text-center py-6 transition-all"
-          @click="emit('update:modelValue', 'TEAM')"
+          @click="emit('update:modelValue', Roles.TEAM)"
       >
         <font-awesome-icon :icon="['fas', 'users']" class="text-2xl mb-2"/>
         <div class="font-medium">{{ t('membersCreate.roleTeam') }}</div>

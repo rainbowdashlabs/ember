@@ -6,6 +6,7 @@
 import {readonly, ref} from 'vue'
 import {session} from '@/api'
 import type {SessionInfo} from '@/api/types'
+import {Roles} from '@/api/types'
 
 const sessionInfo = ref<SessionInfo | null>(null)
 const loaded = ref(false)
@@ -30,39 +31,39 @@ export function useSession() {
     }
 
     function isAdmin(): boolean {
-        return hasRole('ADMIN')
+        return hasRole(Roles.ADMIN)
     }
 
     function isManager(): boolean {
-        return hasRole('MANAGER')
+        return hasRole(Roles.MANAGER)
     }
 
     function canManageMembers(): boolean {
-        return hasRole('MEMBER_MANAGEMENT')
+        return hasRole(Roles.MEMBER_MANAGEMENT)
     }
 
     function canManageInventory(): boolean {
-        return hasRole('INVENTORY_MANAGEMENT')
+        return hasRole(Roles.INVENTORY_MANAGEMENT)
     }
 
     function canManageAttendance(): boolean {
-        return hasRole('ATTENDENCE_MANAGEMENT')
+        return hasRole(Roles.ATTENDENCE_MANAGEMENT)
     }
 
     function canExportAttendance(): boolean {
-        return hasRole('ATTENDENCE_EXPORT_MANAGER')
+        return hasRole(Roles.ATTENDENCE_EXPORT_MANAGER)
     }
 
     function canManageEvents(): boolean {
-        return hasRole('EVENT_MANAGEMENT')
+        return hasRole(Roles.EVENT_MANAGEMENT)
     }
 
     function canManageNews(): boolean {
-        return hasRole('NEWS_MANAGEMENT')
+        return hasRole(Roles.NEWS_MANAGEMENT)
     }
 
     function isMemberManager(): boolean {
-        return hasRole('MEMBER_MANAGER')
+        return hasRole(Roles.MEMBER_MANAGER)
     }
 
     function fullName(): string {

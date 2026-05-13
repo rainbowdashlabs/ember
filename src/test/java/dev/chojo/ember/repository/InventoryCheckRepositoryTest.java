@@ -11,6 +11,7 @@ import dev.chojo.ember.entity.Inventory;
 import dev.chojo.ember.entity.InventoryCheck;
 import dev.chojo.ember.entity.InventoryCheckItem;
 import dev.chojo.ember.entity.InventoryItem;
+import dev.chojo.ember.entity.InventoryType;
 import dev.chojo.ember.entity.Station;
 import dev.chojo.ember.entity.StationMember;
 import org.junit.jupiter.api.AfterAll;
@@ -40,7 +41,7 @@ class InventoryCheckRepositoryTest extends RepositoryTestBase {
         account2 = accountRepo.create("check2@test.com", "Check", "Checker");
         member1 = stationMemberRepo.create(station.id(), account1.id());
         member2 = stationMemberRepo.create(station.id(), account2.id());
-        inventory = inventoryRepo.create(station.id(), "Check Inv", "equipment", false);
+        inventory = inventoryRepo.create(station.id(), "Check Inv", InventoryType.EXTERNAL, false);
         item = inventoryRepo.createItem(inventory.id(), "C-001", "Check Item", null, "{}");
         inventoryRepo.assignItem(item.id(), member1.id());
     }

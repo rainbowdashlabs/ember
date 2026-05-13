@@ -72,6 +72,11 @@ public enum Roles implements RouteRole {
      */
     ADMIN(MANAGER);
 
+    /**
+     * Roles that must not be removed from a member to prevent lockouts.
+     */
+    public static final Set<Roles> PROTECTED_ROLES = Set.of(MEMBER_MANAGEMENT, MANAGER);
+
     private final Roles[] children;
     private Set<Roles> allChildren;
 
@@ -81,6 +86,28 @@ public enum Roles implements RouteRole {
 
     Roles(Roles... children) {
         this.children = children;
+    }
+
+    /**
+     * Maps a database role name to the corresponding enum value.
+     */
+    public static Roles fromDbName(String dbName) {
+        try {
+            return valueOf(dbName);
+        } catch (IllegalArgumentException e) {
+            return null;
+        }
+    }
+
+    /**
+     * Expands a set of roles to include all transitively contained child roles.
+     */
+    public static Set<Roles> expand(Set<Roles> roles) {
+        Set<Roles> expanded = EnumSet.copyOf(roles);
+        for (Roles role : roles) {
+            expanded.addAll(role.allChildren());
+        }
+        return expanded;
     }
 
     public Roles[] getChildren() {
@@ -106,32 +133,5 @@ public enum Roles implements RouteRole {
      */
     public boolean includes(Roles role) {
         return allChildren().contains(role);
-    }
-
-    /**
-     * Maps a database role name to the corresponding enum value.
-     */
-    public static Roles fromDbName(String dbName) {
-        try {
-            return valueOf(dbName);
-        } catch (IllegalArgumentException e) {
-            return null;
-        }
-    }
-
-    /**
-     * Roles that must not be removed from a member to prevent lockouts.
-     */
-    public static final Set<Roles> PROTECTED_ROLES = Set.of(MEMBER_MANAGEMENT, MANAGER);
-
-    /**
-     * Expands a set of roles to include all transitively contained child roles.
-     */
-    public static Set<Roles> expand(Set<Roles> roles) {
-        Set<Roles> expanded = EnumSet.copyOf(roles);
-        for (Roles role : roles) {
-            expanded.addAll(role.allChildren());
-        }
-        return expanded;
     }
 }

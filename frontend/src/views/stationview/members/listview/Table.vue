@@ -8,7 +8,9 @@ import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import EditButton from '@/components/button/EditButton.vue'
 import IconButton from '@/components/button/IconButton.vue'
+import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import type {ProfileField, StationMember} from '@/api/types'
+import {Roles, hasTeamRole} from '@/api/types'
 
 const {t} = useI18n()
 
@@ -88,24 +90,25 @@ function getUniqueFieldValues(fieldId: number): string[] {
   return [...vals].sort()
 }
 
+function getScopesForRoles(roles: string[]): string[] {
+  const scopes: string[] = []
+  if (roles.includes(Roles.MEMBER)) scopes.push(Roles.MEMBER)
+  if (hasTeamRole(roles)) scopes.push(Roles.TEAM)
+  if (roles.includes(Roles.MEMBER_MANAGER)) scopes.push(Roles.MEMBER_MANAGER)
+  return scopes
+}
+
 function isFieldApplicable(memberId: number, field: ProfileField): boolean {
   const roles = props.memberRolesMap.get(memberId) ?? []
-  const scopes: string[] = []
-  if (roles.includes('MEMBER')) scopes.push('MEMBER')
-  if (roles.includes('TEAM') || roles.includes('MANAGER')) scopes.push('TEAM')
-  if (roles.includes('MEMBER_MANAGER')) scopes.push('MEMBER_MANAGER')
-  return scopes.includes(field.scope ?? 'MEMBER')
+  return getScopesForRoles(roles).includes(field.scope ?? Roles.MEMBER)
 }
 
 function getApplicableOverviewFields(memberId: number): ProfileField[] {
   const roles = props.memberRolesMap.get(memberId) ?? []
-  const scopes: string[] = []
-  if (roles.includes('MEMBER')) scopes.push('MEMBER')
-  if (roles.includes('TEAM') || roles.includes('MANAGER')) scopes.push('TEAM')
-  if (roles.includes('MEMBER_MANAGER')) scopes.push('MEMBER_MANAGER')
+  const scopes = getScopesForRoles(roles)
   return props.overviewFields.filter(f => {
     if (f.scope === 'GROUP') return false
-    return scopes.includes(f.scope ?? 'MEMBER')
+    return scopes.includes(f.scope ?? Roles.MEMBER)
   })
 }
 
@@ -119,16 +122,16 @@ function managerName(mgr: StationMember): string {
 }
 
 const primaryRoleLabels: Record<string, string> = {
-  TEAM: 'Team',
-  MEMBER_MANAGER: 'Mitgliedsmanager',
-  MEMBER: 'Mitglied',
+  [Roles.TEAM]: 'Team',
+  [Roles.MEMBER_MANAGER]: 'Mitgliedsmanager',
+  [Roles.MEMBER]: 'Mitglied',
 }
 
 function getPrimaryRole(memberId: number): string {
   const roles = props.memberRolesMap.get(memberId) ?? []
-  if (roles.includes('MANAGER') || roles.includes('TEAM')) return 'TEAM'
-  if (roles.includes('MEMBER_MANAGER')) return 'MEMBER_MANAGER'
-  if (roles.includes('MEMBER')) return 'MEMBER'
+  if (hasTeamRole(roles)) return Roles.TEAM
+  if (roles.includes(Roles.MEMBER_MANAGER)) return Roles.MEMBER_MANAGER
+  if (roles.includes(Roles.MEMBER)) return Roles.MEMBER
   return ''
 }
 
@@ -232,6 +235,7 @@ function onRowClick(member: StationMember) {
           </td>
           <td class="px-3 py-2.5">
             <span class="font-medium">{{ memberDisplayName(member) }}</span>
+            <ErrorBadge v-if="member.profileComplete === false" class="ml-1.5 text-[10px]">{{ t('membersList.incomplete') }}</ErrorBadge>
           </td>
           <td class="px-3 py-2.5">
             <span

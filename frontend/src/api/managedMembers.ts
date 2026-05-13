@@ -5,6 +5,7 @@
  */
 import client from './client'
 import type {ProfileField, ProfileFieldValue} from './types'
+import type {MyInventoryItem, MyRequirement} from './inventory'
 
 export interface ManagedMember {
     id: number
@@ -34,5 +35,15 @@ export async function setProfile(memberId: number, values: {
     value: string
 }[]): Promise<ProfileFieldValue[]> {
     const res = await client.put<ProfileFieldValue[]>(`/managed-members/${memberId}/profile`, {values})
+    return res.data
+}
+
+export async function getMemberInventory(memberId: number): Promise<MyInventoryItem[]> {
+    const res = await client.get<MyInventoryItem[]>(`/managed-members/${memberId}/inventory-items`)
+    return res.data
+}
+
+export async function getMemberRequirements(memberId: number): Promise<MyRequirement[]> {
+    const res = await client.get<MyRequirement[]>(`/managed-members/${memberId}/inventory-requirements`)
     return res.data
 }

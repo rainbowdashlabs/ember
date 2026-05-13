@@ -104,9 +104,9 @@ public class EmberModule extends AbstractModule {
     @Provides
     @Singleton
     File config() {
-        conf.main();
-        conf.save();
-        return conf.main();
+        var config = conf.main();
+        log.info(config.toString());
+        return config;
     }
 
     @Provides

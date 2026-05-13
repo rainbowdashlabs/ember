@@ -22,6 +22,7 @@ import jakarta.inject.Singleton;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -246,19 +247,6 @@ public class AttendanceService {
         return attendanceRepository.findEntries(sessionId);
     }
 
-    /**
-     * Checks if a member has declined the event linked to this session.
-     */
-    private boolean isDeclinedForSession(int sessionId, int memberId) {
-        var session = attendanceRepository.findSessionById(sessionId);
-        if (session.isEmpty() || session.get().eventId() == null) return false;
-
-        LocalDate today = LocalDate.now();
-        return eventRepository
-                .findDeclinedMemberIds(session.get().eventId(), today)
-                .contains(memberId);
-    }
-
     public boolean updateEntryStatus(int entryId, AttendanceEntry.AttendanceStatus status) {
         return attendanceRepository.updateEntryStatus(entryId, status);
     }
@@ -280,7 +268,7 @@ public class AttendanceService {
 
         var existingEntries = attendanceRepository.findEntries(sessionId);
         var existingMemberIds =
-                existingEntries.stream().map(AttendanceEntry::memberId).collect(java.util.stream.Collectors.toSet());
+                existingEntries.stream().map(AttendanceEntry::memberId).collect(Collectors.toSet());
 
         // Sync from event registrations
         if (session.get().eventId() != null) {
@@ -323,14 +311,12 @@ public class AttendanceService {
         var templateFieldsList = attendanceRepository.findTemplateFields(templateId);
         var sessionFieldValues = attendanceRepository.findSessionFields(sessionId);
         var fieldValueMap = sessionFieldValues.stream()
-                .collect(java.util.stream.Collectors.toMap(
-                        dev.chojo.ember.entity.AttendanceSessionField::fieldId,
-                        f -> f.value() != null ? f.value() : ""));
+                .collect(Collectors.toMap(AttendanceSessionField::fieldId, f -> f.value() != null ? f.value() : ""));
 
         // Refresh existing member IDs
         existingMemberIds = attendanceRepository.findEntries(sessionId).stream()
                 .map(AttendanceEntry::memberId)
-                .collect(java.util.stream.Collectors.toSet());
+                .collect(Collectors.toSet());
 
         for (var field : templateFieldsList) {
             if (!AttendanceFieldConfig.parse(field.config()).autoAttend()) continue;
@@ -361,26 +347,6 @@ public class AttendanceService {
         return attendanceRepository.findEntries(sessionId);
     }
 
-    private List<Integer> parseMemberIdsFromFieldValue(String value) {
-        var ids = new java.util.ArrayList<Integer>();
-        try {
-            // Try as JSON array: [1,2,3] or ["1","2"]
-            if (value.startsWith("[")) {
-                var cleaned = value.replaceAll("[\\[\\]\"\\s]", "");
-                for (String part : cleaned.split(",")) {
-                    if (!part.isBlank()) ids.add(Integer.parseInt(part.trim()));
-                }
-            } else {
-                // Try as single number or quoted number
-                var cleaned = value.replaceAll("\"", "").trim();
-                if (!cleaned.isBlank()) ids.add(Integer.parseInt(cleaned));
-            }
-        } catch (NumberFormatException e) {
-            // ignore unparseable
-        }
-        return ids;
-    }
-
     public boolean checkIn(int entryId, Instant time) {
         return attendanceRepository.checkIn(entryId, time);
     }
@@ -393,8 +359,6 @@ public class AttendanceService {
         return attendanceRepository.deleteEntry(id);
     }
 
-    // -- Absences --
-
     public MemberAbsence createAbsence(int memberId, LocalDate absentFrom, LocalDate absentUntil, String reason) {
         return attendanceRepository.createAbsence(memberId, absentFrom, absentUntil, reason);
     }
@@ -402,6 +366,8 @@ public class AttendanceService {
     public Optional<MemberAbsence> findAbsenceById(int id) {
         return attendanceRepository.findAbsenceById(id);
     }
+
+    // -- Absences --
 
     public List<MemberAbsence> findAbsencesByMember(int memberId) {
         return attendanceRepository.findAbsencesByMember(memberId);
@@ -417,6 +383,39 @@ public class AttendanceService {
 
     public boolean deleteAbsence(int id) {
         return attendanceRepository.deleteAbsence(id);
+    }
+
+    /**
+     * Checks if a member has declined the event linked to this session.
+     */
+    private boolean isDeclinedForSession(int sessionId, int memberId) {
+        var session = attendanceRepository.findSessionById(sessionId);
+        if (session.isEmpty() || session.get().eventId() == null) return false;
+
+        LocalDate today = LocalDate.now();
+        return eventRepository
+                .findDeclinedMemberIds(session.get().eventId(), today)
+                .contains(memberId);
+    }
+
+    private List<Integer> parseMemberIdsFromFieldValue(String value) {
+        var ids = new ArrayList<Integer>();
+        try {
+            // Try as JSON array: [1,2,3] or ["1","2"]
+            if (value.startsWith("[")) {
+                var cleaned = value.replaceAll("[\\[\\]\"\\s]", "");
+                for (String part : cleaned.split(",")) {
+                    if (!part.isBlank()) ids.add(Integer.parseInt(part.trim()));
+                }
+            } else {
+                // Try as single number or quoted number
+                var cleaned = value.replace("\"", "").trim();
+                if (!cleaned.isBlank()) ids.add(Integer.parseInt(cleaned));
+            }
+        } catch (NumberFormatException e) {
+            // ignore unparseable
+        }
+        return ids;
     }
 
     public record FieldValueEntry(int fieldId, String value) {}

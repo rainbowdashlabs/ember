@@ -18,6 +18,7 @@ import GroupsStep from './createview/GroupsStep.vue'
 import ManagerStep from './createview/ManagerStep.vue'
 import DoneStep from './createview/DoneStep.vue'
 import type {MemberGroup, ProfileField, StationMember} from '@/api/types'
+import {Roles} from '@/api/types'
 import {memberGroups, members, profileFields, stationMembers} from '@/api'
 import {useStations} from '@/composables/useStations'
 
@@ -26,7 +27,7 @@ const router = useRouter()
 const {currentStationId} = useStations()
 
 const step = ref<'role' | 'identity' | 'fields' | 'groups' | 'manager' | 'done'>('role')
-const selectedRole = ref<'MEMBER' | 'MEMBER_MANAGER' | 'TEAM'>('MEMBER')
+const selectedRole = ref<'MEMBER' | 'MEMBER_MANAGER' | 'TEAM'>(Roles.MEMBER)
 const firstName = ref('')
 const lastName = ref('')
 const email = ref('')
@@ -98,7 +99,7 @@ function setFieldValue(fieldId: number, val: string) {
 }
 
 function nextFromGroups() {
-  if (selectedRole.value === 'MEMBER') {
+  if (selectedRole.value === Roles.MEMBER) {
     step.value = 'manager'
   } else {
     createAccount()
@@ -184,7 +185,7 @@ async function createAccount() {
       await memberGroups.setGroupMembers(groupId, {memberIds})
     }
 
-    if (selectedRole.value === 'MEMBER' && selectedManagerIds.value.size > 0) {
+    if (selectedRole.value === Roles.MEMBER && selectedManagerIds.value.size > 0) {
       await stationMembers.setManagers(newMember.id, {managerIds: [...selectedManagerIds.value]})
     }
 
@@ -198,16 +199,16 @@ async function createAccount() {
 
 function getRoleNamesForType(type: string): string[] {
   const roles: string[] = []
-  if (canLogin.value) roles.push('LOGIN')
+  if (canLogin.value) roles.push(Roles.LOGIN)
   switch (type) {
-    case 'MEMBER':
-      roles.push('MEMBER');
+    case Roles.MEMBER:
+      roles.push(Roles.MEMBER);
       break
-    case 'MEMBER_MANAGER':
-      roles.push('MEMBER_MANAGER');
+    case Roles.MEMBER_MANAGER:
+      roles.push(Roles.MEMBER_MANAGER);
       break
-    case 'TEAM':
-      roles.push('TEAM');
+    case Roles.TEAM:
+      roles.push(Roles.TEAM);
       break
   }
   return roles
@@ -215,7 +216,7 @@ function getRoleNamesForType(type: string): string[] {
 
 function startOver() {
   step.value = 'role'
-  selectedRole.value = 'MEMBER'
+  selectedRole.value = Roles.MEMBER
   firstName.value = ''
   lastName.value = ''
   email.value = ''
@@ -272,7 +273,7 @@ onMounted(loadData)
             v-if="step === 'groups'"
             :groups="allGroups"
             :selected-ids="selectedGroupIds"
-            :submit-label="selectedRole === 'MEMBER' ? t('membersCreate.next') : t('membersCreate.create')"
+            :submit-label="selectedRole === Roles.MEMBER ? t('membersCreate.next') : t('membersCreate.create')"
             @back="step = 'fields'"
             @next="nextFromGroups"
             @toggle="toggleGroup"

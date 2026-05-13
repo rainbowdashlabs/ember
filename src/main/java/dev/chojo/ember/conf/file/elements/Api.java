@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.conf.file.elements;
 
+@SuppressWarnings({"FieldCanBeLocal", "FieldMayBeFinal"})
 public class Api {
     private String host = "0.0.0.0";
     private int port = 8080;
@@ -20,5 +21,10 @@ public class Api {
 
     public String baseUrl() {
         return baseUrl;
+    }
+
+    @Override
+    public String toString() {
+        return "Api{" + "host='" + host + '\'' + ", port=" + port + ", baseUrl='" + baseUrl + '\'' + '}';
     }
 }

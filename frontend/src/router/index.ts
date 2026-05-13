@@ -34,7 +34,10 @@ import AdminStationEditView from '@/views/adminview/AdminStationEditView.vue'
 import StationSelectView from '@/views/StationSelectView.vue'
 import HomeView from '@/views/HomeView.vue'
 import StyleView from '@/views/StyleView.vue'
+import HelpCenterStationView from '@/views/HelpCenterStationView.vue'
+import HelpCenterAdminView from '@/views/HelpCenterAdminView.vue'
 import {getItem} from '@/api/storage'
+import i18n from '@/i18n'
 
 const StatisticsView = () => import('@/views/dashboardview/StatisticsView.vue')
 
@@ -177,6 +180,11 @@ const router = createRouter({
                     component: () => import('@/views/stationview/members/TagsView.vue'),
                 },
                 {
+                    path: 'members/former',
+                    name: 'members-former',
+                    component: () => import('@/views/stationview/members/FormerView.vue'),
+                },
+                {
                     path: 'members/changes',
                     name: 'members-changes',
                     component: () => import('@/views/stationview/members/ChangesView.vue'),
@@ -235,6 +243,16 @@ const router = createRouter({
                     path: 'inventory/my',
                     name: 'inventory-my',
                     component: () => import('@/views/stationview/profile/InventoryView.vue'),
+                },
+                {
+                    path: 'inventory/members',
+                    name: 'inventory-members',
+                    component: () => import('@/views/stationview/inventory/MemberListView.vue'),
+                },
+                {
+                    path: 'inventory/member/:memberId',
+                    name: 'inventory-member',
+                    component: () => import('@/views/stationview/inventory/MemberInventoryView.vue'),
                 },
                 {
                     path: 'events',
@@ -344,6 +362,79 @@ const router = createRouter({
             ],
         },
         {
+            path: '/helpcenter/station',
+            component: HelpCenterStationView,
+            children: [
+                {path: '', redirect: {name: 'help-dashboard-overview'}},
+                // Dashboard
+                {path: 'dashboard/overview', name: 'help-dashboard-overview', component: () => import('@/views/helpcenter/dashboardview/OverviewHelp.vue')},
+                {path: 'dashboard/statistics', name: 'help-dashboard-statistics', component: () => import('@/views/helpcenter/dashboardview/StatisticsHelp.vue')},
+                // News
+                {path: 'news', name: 'help-news-list', component: () => import('@/views/helpcenter/stationview/news/ListHelp.vue')},
+                {path: 'news/create', name: 'help-news-create', component: () => import('@/views/helpcenter/stationview/news/EditHelp.vue')},
+                {path: 'news/:id/edit', name: 'help-news-edit', component: () => import('@/views/helpcenter/stationview/news/EditHelp.vue')},
+                // Profile
+                {path: 'profile', name: 'help-profile', component: () => import('@/views/helpcenter/stationview/profile/IndexHelp.vue')},
+                {path: 'profile/absences', name: 'help-profile-absences', component: () => import('@/views/helpcenter/stationview/profile/AbsenceHelp.vue')},
+                {path: 'profile/managed', name: 'help-profile-managed', component: () => import('@/views/helpcenter/stationview/profile/ManagedHelp.vue')},
+                {path: 'profile/inventory', name: 'help-profile-inventory', component: () => import('@/views/helpcenter/stationview/profile/InventoryHelp.vue')},
+                {path: 'profile/settings', name: 'help-profile-settings', component: () => import('@/views/helpcenter/stationview/profile/SettingsHelp.vue')},
+                // Station management
+                {path: 'manage', name: 'help-station-manage', component: () => import('@/views/helpcenter/stationview/manage/StationHelp.vue')},
+                {path: 'manage/attendance-config', name: 'help-station-attendance-config', component: () => import('@/views/helpcenter/stationview/manage/AttendanceConfigHelp.vue')},
+                {path: 'manage/attendance-config/edit/:id?', name: 'help-station-attendance-config-edit', component: () => import('@/views/helpcenter/stationview/manage/AttendanceConfigEditHelp.vue')},
+                {path: 'manage/members-config', name: 'help-station-members-config', component: () => import('@/views/helpcenter/stationview/manage/MembersConfigHelp.vue')},
+                // Members
+                {path: 'members/create', name: 'help-members-create', component: () => import('@/views/helpcenter/stationview/members/CreateHelp.vue')},
+                {path: 'members/list', name: 'help-members-list', component: () => import('@/views/helpcenter/stationview/members/ListHelp.vue')},
+                {path: 'members/import', name: 'help-members-import', component: () => import('@/views/helpcenter/stationview/members/ImportHelp.vue')},
+                {path: 'members/import-team', name: 'help-members-import-team', component: () => import('@/views/helpcenter/stationview/members/TeamImportHelp.vue')},
+                {path: 'members/detail/:id?', name: 'help-members-detail', component: () => import('@/views/helpcenter/stationview/members/DetailHelp.vue')},
+                {path: 'members/edit/:id?', name: 'help-members-edit', component: () => import('@/views/helpcenter/stationview/members/EditHelp.vue')},
+                {path: 'members/groups', name: 'help-members-groups', component: () => import('@/views/helpcenter/stationview/members/GroupsHelp.vue')},
+                {path: 'members/tags', name: 'help-members-tags', component: () => import('@/views/helpcenter/stationview/members/TagsHelp.vue')},
+                {path: 'members/changes', name: 'help-members-changes', component: () => import('@/views/helpcenter/stationview/members/ChangesHelp.vue')},
+                {path: 'members/former', name: 'help-members-former', component: () => import('@/views/helpcenter/stationview/members/FormerHelp.vue')},
+                // Inventory
+                {path: 'inventory/overview', name: 'help-inventory-overview', component: () => import('@/views/helpcenter/stationview/inventory/OverviewHelp.vue')},
+                {path: 'inventory/my', name: 'help-inventory-my', component: () => import('@/views/helpcenter/stationview/profile/InventoryHelp.vue')},
+                {path: 'inventory/exchanges', name: 'help-inventory-exchanges', component: () => import('@/views/helpcenter/stationview/inventory/ExchangeHelp.vue')},
+                {path: 'inventory/members', name: 'help-inventory-members', component: () => import('@/views/helpcenter/stationview/inventory/MemberListHelp.vue')},
+                {path: 'inventory/detail/:id?', name: 'help-inventory-detail', component: () => import('@/views/helpcenter/stationview/inventory/DetailHelp.vue')},
+                {path: 'inventory/edit/:id?', name: 'help-inventory-edit', component: () => import('@/views/helpcenter/stationview/inventory/EditHelp.vue')},
+                {path: 'inventory/member/:memberId?', name: 'help-inventory-member', component: () => import('@/views/helpcenter/stationview/inventory/MemberInventoryHelp.vue')},
+                {path: 'inventory/manage', name: 'help-inventory-manage', component: () => import('@/views/helpcenter/stationview/inventory/ManageHelp.vue')},
+                {path: 'inventory/requirements', name: 'help-inventory-requirements', component: () => import('@/views/helpcenter/stationview/inventory/RequirementsHelp.vue')},
+                {path: 'inventory/checks', name: 'help-inventory-checks', component: () => import('@/views/helpcenter/stationview/inventory/CheckOverviewHelp.vue')},
+                {path: 'inventory/checks/:memberId', name: 'help-inventory-check-member', component: () => import('@/views/helpcenter/stationview/inventory/CheckMemberHelp.vue')},
+                {path: 'inventory/checks/:memberId/result', name: 'help-inventory-check-result', component: () => import('@/views/helpcenter/stationview/inventory/CheckResultHelp.vue')},
+                {path: 'inventory/procurement', name: 'help-inventory-procurement', component: () => import('@/views/helpcenter/stationview/inventory/ProcurementHelp.vue')},
+                // Attendance
+                {path: 'attendance/new', name: 'help-attendance-new', component: () => import('@/views/helpcenter/stationview/attendance/NewHelp.vue')},
+                {path: 'attendance/past', name: 'help-attendance-past', component: () => import('@/views/helpcenter/stationview/attendance/PastHelp.vue')},
+                {path: 'attendance/session/:id?', name: 'help-attendance-session', component: () => import('@/views/helpcenter/stationview/attendance/SessionHelp.vue')},
+                {path: 'attendance/report', name: 'help-attendance-report', component: () => import('@/views/helpcenter/stationview/attendance/ReportHelp.vue')},
+                // Events
+                {path: 'events/upcoming', name: 'help-events-upcoming', component: () => import('@/views/helpcenter/stationview/events/UpcomingHelp.vue')},
+                {path: 'events/registrations', name: 'help-events-registrations', component: () => import('@/views/helpcenter/stationview/events/RegistrationsHelp.vue')},
+                {path: 'events', name: 'help-events', component: () => import('@/views/helpcenter/stationview/events/IndexHelp.vue')},
+                {path: 'events/new', name: 'help-event-new', component: () => import('@/views/helpcenter/stationview/events/EventEditHelp.vue')},
+                {path: 'events/:id/edit', name: 'help-event-edit', component: () => import('@/views/helpcenter/stationview/events/EventEditHelp.vue')},
+            ],
+        },
+        {
+            path: '/helpcenter/admin',
+            component: HelpCenterAdminView,
+            children: [
+                {path: '', redirect: {name: 'help-admin-overview'}},
+                {path: 'dashboard/overview', name: 'help-admin-overview', component: () => import('@/views/helpcenter/adminview/OverviewHelp.vue')},
+                {path: 'dashboard/statistics', name: 'help-admin-statistics', component: () => import('@/views/helpcenter/adminview/StatisticsHelp.vue')},
+                {path: 'stations', name: 'help-admin-stations', component: () => import('@/views/helpcenter/adminview/StationsHelp.vue')},
+                {path: 'stations/edit/:id?', name: 'help-admin-station-edit', component: () => import('@/views/helpcenter/adminview/StationEditHelp.vue')},
+                {path: 'stations/applications', name: 'help-admin-station-applications', component: () => import('@/views/helpcenter/adminview/ApplicationsHelp.vue')},
+            ],
+        },
+        {
             path: '/style',
             name: 'style',
             component: StyleView,
@@ -357,12 +448,24 @@ router.beforeEach((to) => {
         return true
     }
 
+    if (to.path.startsWith('/helpcenter')) {
+        return true
+    }
+
     const token = getItem('session_token')
     if (!token) {
-        return {name: 'login'}
+        return {name: 'login', query: {redirect: to.fullPath}}
     }
 
     return true
+})
+
+router.afterEach((to) => {
+    const t = i18n.global.t
+    const te = i18n.global.te
+    const key = `pages.${to.name as string}.title`
+    const title = te(key) ? t(key) : ''
+    document.title = title ? `Ember - ${title}` : 'Ember'
 })
 
 export default router

@@ -10,7 +10,11 @@ import dev.chojo.ember.api.MessageResponse;
 import dev.chojo.ember.api.Roles;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.entity.MailProviderType;
+import dev.chojo.ember.entity.StationMailConfig;
+import dev.chojo.ember.repository.StationMailConfigRepository;
 import dev.chojo.ember.repository.StationRepository.StationLogo;
+import dev.chojo.ember.service.EmailService;
 import dev.chojo.ember.service.StationService;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
@@ -27,6 +31,9 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
 import java.io.IOException;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.zone.ZoneRulesException;
 import java.util.Optional;
 import java.util.Set;
 
@@ -37,10 +44,17 @@ public class StationManageRoutes implements Routes {
             Set.of("image/png", "image/jpeg", "image/webp", "image/svg+xml");
 
     private final StationService stationService;
+    private final StationMailConfigRepository mailConfigRepository;
+    private final EmailService emailService;
 
     @Inject
-    public StationManageRoutes(StationService stationService) {
+    public StationManageRoutes(
+            StationService stationService,
+            StationMailConfigRepository mailConfigRepository,
+            EmailService emailService) {
         this.stationService = stationService;
+        this.mailConfigRepository = mailConfigRepository;
+        this.emailService = emailService;
     }
 
     @Override
@@ -51,6 +65,9 @@ public class StationManageRoutes implements Routes {
         routes.get(prefix + "/station/manage/logo", this::getLogo, Roles.LOGIN);
         routes.get(prefix + "/stations/{stationId}/logo", this::getLogoByStation);
         routes.delete(prefix + "/station/manage/logo", this::deleteLogo, Roles.MANAGER);
+        routes.get(prefix + "/station/manage/mail", this::getMailConfig, Roles.MANAGER);
+        routes.put(prefix + "/station/manage/mail", this::updateMailConfig, Roles.MANAGER);
+        routes.post(prefix + "/station/manage/mail/test", this::testMailConfig, Roles.MANAGER);
     }
 
     @OpenApi(
@@ -97,8 +114,8 @@ public class StationManageRoutes implements Routes {
         }
         if (request.timezone() != null && !request.timezone().isBlank()) {
             try {
-                java.time.ZoneId.of(request.timezone());
-            } catch (java.time.zone.ZoneRulesException e) {
+                ZoneId.of(request.timezone());
+            } catch (ZoneRulesException e) {
                 throw new BadRequestResponse("Invalid timezone: " + request.timezone());
             }
             stationService.updateTimezone(session.stationId(), request.timezone());
@@ -207,4 +224,139 @@ public class StationManageRoutes implements Routes {
     public record UpdateStationRequest(String name, String timezone, String locale) {}
 
     public record StationInfo(int id, String name, String timezone, String locale, boolean hasLogo) {}
+
+    // -- Mail config --
+
+    public record MailConfigResponse(
+            String provider,
+            String smtpHost,
+            int smtpPort,
+            boolean smtpSsl,
+            String smtpUser,
+            String senderAddress,
+            String senderName,
+            boolean hasApiKey,
+            String providerName,
+            String providerUrl,
+            int dailyLimit,
+            int monthlyLimit,
+            int sentToday,
+            int sentThisMonth) {}
+
+    public record MailConfigRequest(
+            String provider,
+            String smtpHost,
+            Integer smtpPort,
+            Boolean smtpSsl,
+            String smtpUser,
+            String smtpPassword,
+            String senderAddress,
+            String senderName,
+            String apiKey,
+            String providerName,
+            String providerUrl,
+            Integer dailyLimit,
+            Integer monthlyLimit) {}
+
+    public record MailTestResponse(boolean success, String error) {}
+
+    @OpenApi(
+            path = "/api/v1/station/manage/mail",
+            methods = HttpMethod.GET,
+            summary = "Get station mail configuration",
+            tags = {"Station Manage"},
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MailConfigResponse.class)))
+    private void getMailConfig(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        ctx.json(buildMailConfigResponse(session.stationId()));
+    }
+
+    private MailConfigResponse buildMailConfigResponse(int stationId) {
+        var config = mailConfigRepository.findByStation(stationId);
+        if (config.isPresent()) {
+            var c = config.get();
+            return new MailConfigResponse(
+                    c.provider().name(),
+                    c.smtpHost(),
+                    c.smtpPort(),
+                    c.smtpSsl(),
+                    c.smtpUser(),
+                    c.senderAddress(),
+                    c.senderName(),
+                    !c.apiKey().isBlank(),
+                    c.providerName(),
+                    c.providerUrl(),
+                    c.dailyLimit(),
+                    c.monthlyLimit(),
+                    mailConfigRepository.getDailyCount(stationId, LocalDate.now()),
+                    mailConfigRepository.getMonthlyCount(stationId, LocalDate.now()));
+        }
+        return new MailConfigResponse("NONE", "", 587, false, "", "", "", false, "", "", 100, 2000, 0, 0);
+    }
+
+    @OpenApi(
+            path = "/api/v1/station/manage/mail",
+            methods = HttpMethod.PUT,
+            summary = "Update station mail configuration",
+            tags = {"Station Manage"},
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = MailConfigRequest.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MailConfigResponse.class)))
+    private void updateMailConfig(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        var body = ctx.bodyAsClass(MailConfigRequest.class);
+
+        MailProviderType provider;
+        try {
+            provider = body.provider() != null ? MailProviderType.valueOf(body.provider()) : MailProviderType.NONE;
+        } catch (IllegalArgumentException e) {
+            throw new BadRequestResponse("Invalid provider: " + body.provider());
+        }
+
+        // Preserve existing password/apiKey if not provided (empty string = keep existing)
+        var existing = mailConfigRepository.findByStation(session.stationId()).orElse(null);
+        String smtpPassword = body.smtpPassword();
+        String apiKey = body.apiKey();
+        if (existing != null) {
+            if (smtpPassword == null || smtpPassword.isEmpty()) smtpPassword = existing.smtpPassword();
+            if (apiKey == null || apiKey.isEmpty()) apiKey = existing.apiKey();
+        }
+        if (smtpPassword == null) smtpPassword = "";
+        if (apiKey == null) apiKey = "";
+
+        var config = new StationMailConfig(
+                session.stationId(),
+                provider,
+                body.smtpHost() != null ? body.smtpHost() : "",
+                body.smtpPort() != null ? body.smtpPort() : 587,
+                body.smtpSsl() != null ? body.smtpSsl() : false,
+                body.smtpUser() != null ? body.smtpUser() : "",
+                smtpPassword,
+                body.senderAddress() != null ? body.senderAddress() : "",
+                body.senderName() != null ? body.senderName() : "",
+                apiKey,
+                body.providerName() != null ? body.providerName() : "",
+                body.providerUrl() != null ? body.providerUrl() : "",
+                body.dailyLimit() != null ? body.dailyLimit() : 100,
+                body.monthlyLimit() != null ? body.monthlyLimit() : 2000);
+
+        mailConfigRepository.upsert(config);
+        ctx.json(buildMailConfigResponse(session.stationId()));
+    }
+
+    @OpenApi(
+            path = "/api/v1/station/manage/mail/test",
+            methods = HttpMethod.POST,
+            summary = "Test station mail configuration",
+            tags = {"Station Manage"},
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MailTestResponse.class)))
+    private void testMailConfig(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        var provider = emailService.resolveStationProvider(session.stationId());
+        if (provider.isEmpty()) {
+            ctx.json(new MailTestResponse(false, "No mail provider configured"));
+            return;
+        }
+        String error = provider.get().testConnection();
+        ctx.json(new MailTestResponse(error == null, error));
+    }
 }

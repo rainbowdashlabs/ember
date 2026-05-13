@@ -14,10 +14,15 @@ import dev.chojo.ember.entity.ExchangeRequest;
 import dev.chojo.ember.entity.ExchangeStatus;
 import dev.chojo.ember.entity.Inventory;
 import dev.chojo.ember.entity.InventorySize;
+import dev.chojo.ember.entity.NotificationData;
+import dev.chojo.ember.entity.NotificationType;
+import dev.chojo.ember.entity.StationMember;
 import dev.chojo.ember.repository.AccountRepository;
 import dev.chojo.ember.repository.InventoryRepository;
 import dev.chojo.ember.repository.StationMemberRepository;
+import dev.chojo.ember.service.ExchangeExportService;
 import dev.chojo.ember.service.ExchangeService;
+import dev.chojo.ember.service.NotificationService;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
@@ -34,23 +39,27 @@ import jakarta.inject.Singleton;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 
 @Singleton
 public class ExchangeRoutes implements Routes {
     private final ExchangeService exchangeService;
+    private final ExchangeExportService exchangeExportService;
     private final AccountRepository accountRepository;
     private final StationMemberRepository stationMemberRepository;
     private final InventoryRepository inventoryRepository;
-    private final dev.chojo.ember.service.NotificationService notificationService;
+    private final NotificationService notificationService;
 
     @Inject
     public ExchangeRoutes(
             ExchangeService exchangeService,
+            ExchangeExportService exchangeExportService,
             AccountRepository accountRepository,
             StationMemberRepository stationMemberRepository,
             InventoryRepository inventoryRepository,
-            dev.chojo.ember.service.NotificationService notificationService) {
+            NotificationService notificationService) {
         this.exchangeService = exchangeService;
+        this.exchangeExportService = exchangeExportService;
         this.accountRepository = accountRepository;
         this.stationMemberRepository = stationMemberRepository;
         this.inventoryRepository = inventoryRepository;
@@ -65,6 +74,7 @@ public class ExchangeRoutes implements Routes {
         routes.post(prefix + "/exchanges", this::create, Roles.LOGIN);
         routes.put(prefix + "/exchanges/{id}/status", this::updateStatus, Roles.INVENTORY_MANAGEMENT);
         routes.delete(prefix + "/exchanges/{id}", this::delete, Roles.INVENTORY_MANAGEMENT);
+        routes.post(prefix + "/exchanges/export", this::exportPdf, Roles.INVENTORY_MANAGEMENT);
     }
 
     @OpenApi(
@@ -79,7 +89,21 @@ public class ExchangeRoutes implements Routes {
         if (session.hasRole(Roles.INVENTORY_MANAGEMENT)) {
             requests = exchangeService.findByStation(session.stationId());
         } else {
-            requests = exchangeService.findByMember(session.member().id());
+            var own = exchangeService.findByMember(session.member().id());
+            if (session.hasRole(Roles.MEMBER_MANAGER)) {
+                var managed =
+                        stationMemberRepository.findManaged(session.member().id());
+                var allIds = new java.util.HashSet<Integer>();
+                allIds.add(session.member().id());
+                managed.forEach(m -> allIds.add(m.id()));
+                var combined = new java.util.ArrayList<ExchangeRequest>();
+                for (var ex : exchangeService.findByStation(session.stationId())) {
+                    if (allIds.contains(ex.memberId())) combined.add(ex);
+                }
+                requests = combined;
+            } else {
+                requests = own;
+            }
         }
         ctx.json(requests.stream().map(this::toResponse).toList());
     }
@@ -127,12 +151,26 @@ public class ExchangeRoutes implements Routes {
         if (request.reason() == null || request.reason().isBlank()) {
             throw new BadRequestResponse("reason is required");
         }
+        int callerMemberId = session.member().id();
+        int targetMemberId = callerMemberId;
+        if (request.memberId() != null && request.memberId() != callerMemberId) {
+            // Verify caller manages the target member or has inventory management
+            if (!session.hasRole(Roles.INVENTORY_MANAGEMENT)) {
+                boolean manages = stationMemberRepository.findManagers(request.memberId()).stream()
+                        .anyMatch(m -> m.id() == callerMemberId);
+                if (!manages) {
+                    throw new io.javalin.http.ForbiddenResponse("You do not manage this member");
+                }
+            }
+            targetMemberId = request.memberId();
+        }
         var exchange = exchangeService.create(
                 session.stationId(),
-                session.member().id(),
+                targetMemberId,
                 request.itemId(),
                 request.inventoryId(),
-                request.sizeId(),
+                request.oldSizeId(),
+                request.newSizeId(),
                 request.reason());
         ctx.status(HttpStatus.CREATED).json(toResponse(exchange));
     }
@@ -162,12 +200,24 @@ public class ExchangeRoutes implements Routes {
         } catch (IllegalArgumentException e) {
             throw new BadRequestResponse("Invalid status: " + request.status());
         }
-        var exchange = exchangeService.updateStatus(id, status, session.member().id(), request.note());
-        notificationService.notify(
-                exchange.memberId(),
-                dev.chojo.ember.entity.NotificationType.EXCHANGE_STATUS_CHANGE,
-                exchange.id(),
-                "Tausch-Status geändert: " + status.name());
+        if (status == ExchangeStatus.EXCHANGED && request.exchangedItemId() == null) {
+            // For EXCHANGED status, exchangedItemId is optional but recommended
+        }
+        var exchange = exchangeService.updateStatus(
+                id, status, session.member().id(), request.note(), request.exchangedItemId());
+        var data = NotificationData.of(
+                "notification.exchangeStatusChange",
+                Map.of("status", status.name()),
+                new NotificationData.NotificationLink("inventory-exchanges"));
+        notificationService.notify(exchange.memberId(), NotificationType.EXCHANGE_STATUS_CHANGE, data);
+        var managerIds = stationMemberRepository.findManagers(exchange.memberId()).stream()
+                .map(StationMember::id)
+                .toList();
+        notificationService.notifyMembersIfAbsent(
+                managerIds,
+                NotificationType.EXCHANGE_STATUS_CHANGE,
+                data,
+                session.member().id());
         ctx.json(toResponse(exchange));
     }
 
@@ -190,6 +240,45 @@ public class ExchangeRoutes implements Routes {
         }
     }
 
+    @OpenApi(
+            path = "/api/v1/exchanges/export",
+            methods = HttpMethod.POST,
+            summary = "Export selected exchange requests as PDF",
+            tags = {"Exchange"},
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = ExportRequest.class)),
+            responses = @OpenApiResponse(status = "200"))
+    private void exportPdf(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        var request = ctx.bodyAsClass(ExportRequest.class);
+        var generatedBy = stationMemberRepository
+                .findById(session.member().id())
+                .flatMap(m -> accountRepository.findById(m.accountId()))
+                .map(a -> a.firstName() + " " + a.lastName())
+                .orElse("?");
+        var pdf = exchangeExportService.exportPdf(
+                session.stationId(),
+                request.exchangeIds() != null ? request.exchangeIds() : List.of(),
+                request.extraFieldIds() != null ? request.extraFieldIds() : List.of(),
+                generatedBy);
+        if (pdf.isEmpty()) {
+            throw new NotFoundResponse("No data to export");
+        }
+        ctx.contentType("application/pdf");
+        ctx.header("Content-Disposition", "attachment; filename=\"exchange-requests.pdf\"");
+        ctx.result(pdf.get());
+    }
+
+    public record ExportRequest(List<Integer> exchangeIds, List<Integer> extraFieldIds) {}
+
+    private String resolveSizeLabel(Integer sizeId, int inventoryId) {
+        if (sizeId == null) return null;
+        return inventoryRepository.findSizes(inventoryId).stream()
+                .filter(s -> s.id() == sizeId)
+                .map(InventorySize::label)
+                .findFirst()
+                .orElse(null);
+    }
+
     private ExchangeResponse toResponse(ExchangeRequest exchange) {
         String memberName = stationMemberRepository
                 .findById(exchange.memberId())
@@ -199,15 +288,7 @@ public class ExchangeRoutes implements Routes {
         Inventory inventory =
                 inventoryRepository.findById(exchange.inventoryId()).orElse(null);
         String inventoryName = inventory != null ? inventory.name() : "";
-        String inventoryType = inventory != null ? inventory.inventoryType() : "";
-        String sizeLabel = null;
-        if (exchange.sizeId() != null && inventory != null) {
-            sizeLabel = inventoryRepository.findSizes(exchange.inventoryId()).stream()
-                    .filter(s -> s.id() == exchange.sizeId())
-                    .map(InventorySize::label)
-                    .findFirst()
-                    .orElse(null);
-        }
+        String inventoryType = inventory != null ? inventory.inventoryType().name() : "";
         return new ExchangeResponse(
                 exchange.id(),
                 exchange.memberId(),
@@ -215,8 +296,10 @@ public class ExchangeRoutes implements Routes {
                 exchange.itemId(),
                 exchange.inventoryId(),
                 inventoryName,
-                exchange.sizeId(),
-                sizeLabel,
+                exchange.oldSizeId(),
+                resolveSizeLabel(exchange.oldSizeId(), exchange.inventoryId()),
+                exchange.newSizeId(),
+                resolveSizeLabel(exchange.newSizeId(), exchange.inventoryId()),
                 inventoryType,
                 exchange.status().name(),
                 exchange.reason(),
@@ -247,8 +330,10 @@ public class ExchangeRoutes implements Routes {
             Integer itemId,
             int inventoryId,
             String inventoryName,
-            Integer sizeId,
-            String sizeLabel,
+            Integer oldSizeId,
+            String oldSizeLabel,
+            Integer newSizeId,
+            String newSizeLabel,
             String inventoryType,
             String status,
             String reason,
@@ -264,7 +349,8 @@ public class ExchangeRoutes implements Routes {
             Instant changedAt,
             String note) {}
 
-    public record CreateExchangeRequest(Integer itemId, int inventoryId, Integer sizeId, String reason) {}
+    public record CreateExchangeRequest(
+            Integer memberId, Integer itemId, int inventoryId, Integer oldSizeId, Integer newSizeId, String reason) {}
 
-    public record UpdateStatusRequest(String status, String note) {}
+    public record UpdateStatusRequest(String status, String note, Integer exchangedItemId) {}
 }

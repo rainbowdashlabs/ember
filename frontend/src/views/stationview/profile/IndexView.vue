@@ -11,26 +11,26 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import ProfileFieldInput from '@/components/input/ProfileFieldInput.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
+import ErrorContainer from '@/components/container/ErrorContainer.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import PasswordInput from '@/components/input/text/PasswordInput.vue'
 import type { ProfileField } from '@/api/types'
+import { Roles, hasTeamRole } from '@/api/types'
 import { profileFields, auth, members } from '@/api'
 import { useSession } from '@/composables/useSession'
 
 function getUserScopes(roles: string[]): string[] {
   const scopes: string[] = []
-  if (roles.includes('MEMBER')) {
-    scopes.push('MEMBER')
+  if (roles.includes(Roles.MEMBER)) {
+    scopes.push(Roles.MEMBER)
   }
-  if (roles.includes('TEAM') || roles.includes('MANAGER') || roles.includes('ADMIN')
-      || roles.includes('ATTENDENCE_MANAGEMENT') || roles.includes('INVENTORY_MANAGEMENT')
-      || roles.includes('EVENT_MANAGEMENT') || roles.includes('MEMBER_MANAGEMENT')) {
-    scopes.push('TEAM')
+  if (hasTeamRole(roles)) {
+    scopes.push(Roles.TEAM)
   }
-  if (roles.includes('MEMBER_MANAGER')) {
-    scopes.push('MEMBER_MANAGER')
+  if (roles.includes(Roles.MEMBER_MANAGER)) {
+    scopes.push(Roles.MEMBER_MANAGER)
   }
   return scopes
 }
@@ -64,7 +64,16 @@ const userScopes = computed(() => getUserScopes([...(sessionInfo.value?.roles ??
 const editableFields = computed(() => {
   return fields.value.filter(f => {
     if (f.scope === 'GROUP') return false
-    return userScopes.value.includes(f.scope ?? 'MEMBER')
+    return userScopes.value.includes(f.scope ?? Roles.MEMBER)
+  })
+})
+
+const incompleteFields = computed(() => {
+  return editableFields.value.filter(f => {
+    const cfg = parseFieldConfig(f.config)
+    if (!cfg.required || cfg.readonly) return false
+    const val = getValue(f.id)
+    return !val || val === '""' || val === ''
   })
 })
 
@@ -242,6 +251,15 @@ onMounted(loadProfile)
             {{ savingPassword ? t('common.loading') : t('profile.changePassword') }}
           </PrimaryButton>
         </NeutralContainer>
+
+        <!-- Onboarding: incomplete fields -->
+        <ErrorContainer v-if="incompleteFields.length > 0" class="space-y-2">
+          <p class="font-semibold text-sm">{{ t('profile.incompleteTitle') }}</p>
+          <p class="text-xs">{{ t('profile.incompleteHint') }}</p>
+          <ul class="list-disc list-inside text-sm space-y-0.5">
+            <li v-for="f in incompleteFields" :key="f.id">{{ f.name }}</li>
+          </ul>
+        </ErrorContainer>
 
         <!-- Profile fields -->
         <NeutralContainer class="space-y-4">

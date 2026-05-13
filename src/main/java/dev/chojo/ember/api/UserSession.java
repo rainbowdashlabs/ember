@@ -14,6 +14,10 @@ import java.util.Set;
 
 public record UserSession(Account account, Integer stationId, StationMember member, Set<Roles> roles) {
 
+    public static UserSession from(Context ctx) {
+        return ctx.attribute(ApiServer.ATTR_SESSION);
+    }
+
     public int accountId() {
         return account.id();
     }
@@ -28,9 +32,5 @@ public record UserSession(Account account, Integer stationId, StationMember memb
 
     public boolean hasRole(Roles role) {
         return roles.contains(role);
-    }
-
-    public static UserSession from(Context ctx) {
-        return ctx.attribute(ApiServer.ATTR_SESSION);
     }
 }

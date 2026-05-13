@@ -11,6 +11,7 @@ import tools.jackson.databind.DeserializationFeature;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.json.JsonMapper;
 
+import java.time.LocalDate;
 import java.util.List;
 
 import static org.slf4j.LoggerFactory.getLogger;
@@ -48,7 +49,7 @@ public record AttendanceFieldConfig(
         if (defaultValue == null) return null;
         if (defaultValue instanceof String s) {
             if ("__TODAY__".equals(s)) {
-                return "\"" + java.time.LocalDate.now() + "\"";
+                return "\"" + LocalDate.now() + "\"";
             }
             return "\"" + s + "\"";
         }

@@ -43,9 +43,6 @@ final class RoleValidation {
                     .orElseThrow(() -> new BadRequestResponse("Unknown role ID: " + roleId));
 
             Roles mapped = role.role();
-            if (mapped == null) {
-                throw new BadRequestResponse("Unknown role: " + role.role());
-            }
 
             // Only check newly added roles - existing roles are fine
             if (!isCurrentRole(currentRoles, roleId) && !callerRoles.contains(mapped)) {

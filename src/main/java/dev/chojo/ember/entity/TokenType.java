@@ -11,11 +11,11 @@ public enum TokenType {
     RESET_PASSWORD,
     FORCE_PASSWORD_CHANGE;
 
-    public String value() {
-        return name().toLowerCase();
-    }
-
     public static TokenType fromValue(String value) {
         return valueOf(value.toUpperCase());
+    }
+
+    public String value() {
+        return name().toLowerCase();
     }
 }

@@ -10,11 +10,16 @@ import dev.chojo.ember.api.Roles;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.entity.News;
+import dev.chojo.ember.entity.NewsComment;
+import dev.chojo.ember.entity.NotificationData;
+import dev.chojo.ember.entity.NotificationType;
 import dev.chojo.ember.repository.AccountRepository;
 import dev.chojo.ember.repository.StationMemberRepository;
 import dev.chojo.ember.service.NewsService;
+import dev.chojo.ember.service.NotificationService;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
+import io.javalin.http.ForbiddenResponse;
 import io.javalin.http.HttpStatus;
 import io.javalin.http.NotFoundResponse;
 import io.javalin.openapi.HttpMethod;
@@ -27,21 +32,23 @@ import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
+import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 
 @Singleton
 public class NewsRoutes implements Routes {
     private final NewsService newsService;
     private final AccountRepository accountRepository;
     private final StationMemberRepository stationMemberRepository;
-    private final dev.chojo.ember.service.NotificationService notificationService;
+    private final NotificationService notificationService;
 
     @Inject
     public NewsRoutes(
             NewsService newsService,
             AccountRepository accountRepository,
             StationMemberRepository stationMemberRepository,
-            dev.chojo.ember.service.NotificationService notificationService) {
+            NotificationService notificationService) {
         this.newsService = newsService;
         this.accountRepository = accountRepository;
         this.stationMemberRepository = stationMemberRepository;
@@ -57,7 +64,8 @@ public class NewsRoutes implements Routes {
         routes.delete(prefix + "/news/{id}", this::delete, Roles.NEWS_MANAGEMENT);
         routes.get(prefix + "/news/{id}/comments", this::listComments, Roles.LOGIN);
         routes.post(prefix + "/news/{id}/comments", this::createComment, Roles.LOGIN);
-        routes.delete(prefix + "/news/comments/{commentId}", this::deleteComment, Roles.NEWS_MANAGEMENT);
+        routes.put(prefix + "/news/comments/{commentId}", this::updateComment, Roles.LOGIN);
+        routes.delete(prefix + "/news/comments/{commentId}", this::deleteComment, Roles.LOGIN);
     }
 
     @OpenApi(
@@ -127,9 +135,11 @@ public class NewsRoutes implements Routes {
                 request.groupIds() != null ? request.groupIds() : List.of());
         notificationService.notifyStation(
                 session.stationId(),
-                dev.chojo.ember.entity.NotificationType.NEW_NEWS,
-                news.id(),
-                "Neue Neuigkeit: " + request.title());
+                NotificationType.NEW_NEWS,
+                NotificationData.of(
+                        "notification.newNews",
+                        Map.of("title", request.title()),
+                        new NotificationData.NotificationLink("news-list")));
         ctx.status(HttpStatus.CREATED).json(toResponse(news, true));
     }
 
@@ -238,8 +248,35 @@ public class NewsRoutes implements Routes {
 
     @OpenApi(
             path = "/api/v1/news/comments/{commentId}",
+            methods = HttpMethod.PUT,
+            summary = "Update own comment",
+            tags = {"News"},
+            pathParams = @OpenApiParam(name = "commentId", type = Integer.class, required = true),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = CommentRequest.class)),
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = CommentResponse.class)),
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    private void updateComment(Context ctx) {
+        int commentId = ctx.pathParamAsClass("commentId", Integer.class).get();
+        UserSession session = UserSession.from(ctx);
+        var comment = newsService.findCommentById(commentId).orElseThrow(NotFoundResponse::new);
+        if (comment.authorId() != session.member().id()) {
+            throw new ForbiddenResponse("You can only edit your own comments");
+        }
+        var request = ctx.bodyAsClass(CommentRequest.class);
+        if (request.content() == null || request.content().isBlank()) {
+            throw new BadRequestResponse("content is required");
+        }
+        newsService.updateComment(commentId, request.content());
+        var updated = newsService.findCommentById(commentId).orElseThrow(NotFoundResponse::new);
+        ctx.json(toCommentResponse(updated));
+    }
+
+    @OpenApi(
+            path = "/api/v1/news/comments/{commentId}",
             methods = HttpMethod.DELETE,
-            summary = "Delete a comment",
+            summary = "Delete a comment (own or NEWS_MANAGEMENT)",
             tags = {"News"},
             pathParams = @OpenApiParam(name = "commentId", type = Integer.class, required = true),
             responses = {
@@ -248,6 +285,13 @@ public class NewsRoutes implements Routes {
             })
     private void deleteComment(Context ctx) {
         int commentId = ctx.pathParamAsClass("commentId", Integer.class).get();
+        UserSession session = UserSession.from(ctx);
+        var comment = newsService.findCommentById(commentId).orElseThrow(NotFoundResponse::new);
+        boolean isAuthor = comment.authorId() == session.member().id();
+        boolean canModerate = session.hasRole(Roles.NEWS_MANAGEMENT);
+        if (!isAuthor && !canModerate) {
+            throw new ForbiddenResponse("You can only delete your own comments");
+        }
         if (newsService.deleteComment(commentId)) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
@@ -255,7 +299,7 @@ public class NewsRoutes implements Routes {
         }
     }
 
-    private CommentResponse toCommentResponse(dev.chojo.ember.entity.NewsComment comment) {
+    private CommentResponse toCommentResponse(NewsComment comment) {
         String authorName = stationMemberRepository
                 .findById(comment.authorId())
                 .flatMap(m -> accountRepository.findById(m.accountId()))
@@ -281,19 +325,13 @@ public class NewsRoutes implements Routes {
             String contentHtml,
             int authorId,
             String authorName,
-            java.time.Instant publishedAt,
-            java.time.Instant createdAt,
+            Instant publishedAt,
+            Instant createdAt,
             List<Integer> groupIds,
             int commentCount) {}
 
     public record CommentRequest(Integer parentId, String content) {}
 
     public record CommentResponse(
-            int id,
-            int newsId,
-            Integer parentId,
-            int authorId,
-            String authorName,
-            String content,
-            java.time.Instant createdAt) {}
+            int id, int newsId, Integer parentId, int authorId, String authorName, String content, Instant createdAt) {}
 }

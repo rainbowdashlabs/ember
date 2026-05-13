@@ -31,6 +31,10 @@ public class StationApplicationRoutes implements Routes {
         this.applicationService = applicationService;
     }
 
+    private static boolean isBlank(String s) {
+        return s == null || s.isBlank();
+    }
+
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
         // Public endpoints (no auth required)
@@ -157,10 +161,6 @@ public class StationApplicationRoutes implements Routes {
         } catch (IllegalStateException e) {
             throw new BadRequestResponse(e.getMessage());
         }
-    }
-
-    private static boolean isBlank(String s) {
-        return s == null || s.isBlank();
     }
 
     public record ApplicationRequest(

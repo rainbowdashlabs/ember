@@ -21,7 +21,7 @@ import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import type { CheckResult, InventoryItem, MemberCheckState, RequiredInventoryItem } from '@/api/types'
-import { inventoryCheck } from '@/api'
+import { inventoryCheck, procurement } from '@/api'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -36,6 +36,7 @@ const submitting = ref(false)
 // Per-item check results and notes
 const itemResults = ref<Map<number, CheckResult>>(new Map())
 const itemNotes = ref<Map<number, string>>(new Map())
+const procurementCreated = ref<Set<number>>(new Set())
 
 // Per-slot assign selection (key: "inventoryId-slotIndex")
 const slotSelections = ref<Map<string, string>>(new Map())
@@ -212,6 +213,18 @@ async function createAndAssignToSlot(req: RequiredInventoryItem, slotIndex: numb
   }
 }
 
+async function createProcurementForItem(item: InventoryItem) {
+  try {
+    await procurement.createProcurement({
+      inventoryId: item.inventoryId,
+      memberId: memberId.value,
+      sizeId: item.sizeId ?? undefined,
+      notes: itemNotes.value.get(item.id) || undefined,
+    })
+    procurementCreated.value = new Set([...procurementCreated.value, item.id])
+  } catch { /* ignore */ }
+}
+
 async function submit() {
   if (!state.value || !allMarked.value) return
   submitting.value = true
@@ -369,6 +382,18 @@ onMounted(loadData)
                     >
                       <font-awesome-icon :icon="['fas', 'right-from-bracket']" />
                     </SecondaryButton>
+                    <SecondaryButton
+                      v-if="getResult(item.id) === 'LOST' && !procurementCreated.has(item.id)"
+                      class="text-xs px-3 py-1.5 sm:px-2 sm:py-1 flex-1 sm:flex-none"
+                      @click="createProcurementForItem(item)"
+                    >
+                      <font-awesome-icon :icon="['fas', 'folder-plus']" class="mr-1" />
+                      {{ t('inventory.check.createProcurement') }}
+                    </SecondaryButton>
+                    <span v-if="procurementCreated.has(item.id)" class="text-xs text-success">
+                      <font-awesome-icon :icon="['fas', 'check']" class="mr-1" />
+                      {{ t('inventory.check.procurementCreated') }}
+                    </span>
                   </div>
                 </div>
 

@@ -13,12 +13,16 @@ import ProfileFieldInput from '@/components/input/ProfileFieldInput.vue'
 
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ErrorButton from '@/components/button/ErrorButton.vue'
+import Modal from '@/components/feedback/Modal.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import type { ProfileField, StationMember, Role } from '@/api/types'
-import { profileFields, stationMembers, members } from '@/api'
+import { Roles, hasTeamRole } from '@/api/types'
+import { profileFields, stationMembers, members, inventory } from '@/api'
+import type { MyInventoryItem } from '@/api/inventory'
 import { useStations } from '@/composables/useStations'
 
 const { t } = useI18n()
@@ -48,32 +52,37 @@ function parseConfig(configStr: string | undefined): { options?: string[]; [key:
 
 // --- Role logic ---
 
+const ASSIGNABLE_ROLE_NAMES = [
+  Roles.MEMBER, Roles.TEAM, Roles.MEMBER_MANAGER, Roles.LOGIN,
+  Roles.ATTENDENCE_MANAGEMENT, Roles.INVENTORY_MANAGEMENT,
+  Roles.EVENT_MANAGEMENT, Roles.MEMBER_MANAGEMENT, Roles.MANAGER, Roles.NEWS_MANAGEMENT,
+] as const
+
 const assignableRoles = computed(() => {
-  return allRoles.value.filter(r => ['MEMBER', 'TEAM', 'MEMBER_MANAGER', 'LOGIN',
-    'ATTENDENCE_MANAGEMENT', 'INVENTORY_MANAGEMENT', 'EVENT_MANAGEMENT', 'MEMBER_MANAGEMENT', 'MANAGER', 'NEWS_MANAGEMENT'].includes(r.role))
+  return allRoles.value.filter(r => (ASSIGNABLE_ROLE_NAMES as readonly string[]).includes(r.role))
 })
 
 const roleHierarchy: Record<string, string[]> = {
-  MANAGER: ['TEAM', 'ATTENDENCE_MANAGEMENT', 'INVENTORY_MANAGEMENT', 'EVENT_MANAGEMENT', 'MEMBER_MANAGEMENT'],
-  TEAM: ['LOGIN'],
-  MEMBER_MANAGER: ['MEMBER', 'LOGIN'],
-  ATTENDENCE_MANAGEMENT: ['TEAM', 'LOGIN'],
-  INVENTORY_MANAGEMENT: ['TEAM', 'LOGIN'],
-  EVENT_MANAGEMENT: ['TEAM', 'LOGIN'],
-  MEMBER_MANAGEMENT: ['TEAM', 'LOGIN'],
-  NEWS_MANAGEMENT: ['TEAM', 'LOGIN'],
+  [Roles.MANAGER]: [Roles.TEAM, Roles.ATTENDENCE_MANAGEMENT, Roles.INVENTORY_MANAGEMENT, Roles.EVENT_MANAGEMENT, Roles.MEMBER_MANAGEMENT],
+  [Roles.TEAM]: [Roles.LOGIN],
+  [Roles.MEMBER_MANAGER]: [Roles.MEMBER, Roles.LOGIN],
+  [Roles.ATTENDENCE_MANAGEMENT]: [Roles.TEAM, Roles.LOGIN],
+  [Roles.INVENTORY_MANAGEMENT]: [Roles.TEAM, Roles.LOGIN],
+  [Roles.EVENT_MANAGEMENT]: [Roles.TEAM, Roles.LOGIN],
+  [Roles.MEMBER_MANAGEMENT]: [Roles.TEAM, Roles.LOGIN],
+  [Roles.NEWS_MANAGEMENT]: [Roles.TEAM, Roles.LOGIN],
 }
 
 const roleConflicts: Record<string, string[]> = {
-  MEMBER: ['TEAM', 'MEMBER_MANAGER', 'MANAGER', 'ATTENDENCE_MANAGEMENT', 'INVENTORY_MANAGEMENT', 'EVENT_MANAGEMENT', 'MEMBER_MANAGEMENT', 'NEWS_MANAGEMENT'],
-  TEAM: ['MEMBER'],
-  MEMBER_MANAGER: ['MEMBER'],
-  MANAGER: ['MEMBER'],
-  ATTENDENCE_MANAGEMENT: ['MEMBER'],
-  INVENTORY_MANAGEMENT: ['MEMBER'],
-  EVENT_MANAGEMENT: ['MEMBER'],
-  MEMBER_MANAGEMENT: ['MEMBER'],
-  NEWS_MANAGEMENT: ['MEMBER'],
+  [Roles.MEMBER]: [Roles.TEAM, Roles.MEMBER_MANAGER, Roles.MANAGER, Roles.ATTENDENCE_MANAGEMENT, Roles.INVENTORY_MANAGEMENT, Roles.EVENT_MANAGEMENT, Roles.MEMBER_MANAGEMENT, Roles.NEWS_MANAGEMENT],
+  [Roles.TEAM]: [Roles.MEMBER],
+  [Roles.MEMBER_MANAGER]: [Roles.MEMBER],
+  [Roles.MANAGER]: [Roles.MEMBER],
+  [Roles.ATTENDENCE_MANAGEMENT]: [Roles.MEMBER],
+  [Roles.INVENTORY_MANAGEMENT]: [Roles.MEMBER],
+  [Roles.EVENT_MANAGEMENT]: [Roles.MEMBER],
+  [Roles.MEMBER_MANAGEMENT]: [Roles.MEMBER],
+  [Roles.NEWS_MANAGEMENT]: [Roles.MEMBER],
 }
 
 function getAllChildren(roleName: string): string[] {
@@ -150,15 +159,13 @@ const applicableFields = computed(() => {
   // Scope resolution uses actual assigned roles only (not hierarchy children),
   // matching the backend logic in ManagedMemberRoutes.applicableScopes
   const scopes: string[] = []
-  if (roleNames.has('MEMBER')) scopes.push('MEMBER')
-  if (roleNames.has('TEAM') || roleNames.has('MANAGER') ||
-      roleNames.has('ATTENDENCE_MANAGEMENT') || roleNames.has('INVENTORY_MANAGEMENT') ||
-      roleNames.has('EVENT_MANAGEMENT') || roleNames.has('MEMBER_MANAGEMENT')) scopes.push('TEAM')
-  if (roleNames.has('MEMBER_MANAGER')) scopes.push('MEMBER_MANAGER')
+  if (roleNames.has(Roles.MEMBER)) scopes.push(Roles.MEMBER)
+  if (hasTeamRole([...roleNames])) scopes.push(Roles.TEAM)
+  if (roleNames.has(Roles.MEMBER_MANAGER)) scopes.push(Roles.MEMBER_MANAGER)
 
   return fields.value.filter(f => {
     if (f.scope === 'GROUP') return false
-    return scopes.includes(f.scope ?? 'MEMBER')
+    return scopes.includes(f.scope ?? Roles.MEMBER)
   })
 })
 
@@ -237,7 +244,46 @@ function goBack() {
   router.push({ name: 'members-list' })
 }
 
-onMounted(loadData)
+// -- Former member --
+const memberInventory = ref<MyInventoryItem[]>([])
+const showFormerModal = ref(false)
+const markingFormer = ref(false)
+const formerSuccess = ref(false)
+
+const formerBlockReasons = computed(() => {
+  const reasons: string[] = []
+  if (memberInventory.value.length > 0) {
+    reasons.push(t('memberDetail.formerBlockInventory', { count: memberInventory.value.length }))
+  }
+  const forbidden = [Roles.MEMBER_MANAGER, Roles.MANAGER, Roles.ADMIN]
+  const roleNames = allRoles.value.filter(r => editRoleIds.value.has(r.id)).map(r => r.role)
+  if (roleNames.some(r => forbidden.includes(r as any))) {
+    reasons.push(t('memberDetail.formerBlockRole'))
+  }
+  return reasons
+})
+const canMarkFormer = computed(() => formerBlockReasons.value.length === 0 && !!member.value)
+
+async function confirmMarkFormer() {
+  markingFormer.value = true
+  error.value = ''
+  try {
+    await stationMembers.markFormer(memberId.value)
+    formerSuccess.value = true
+    showFormerModal.value = false
+  } catch {
+    error.value = t('common.error')
+  } finally {
+    markingFormer.value = false
+  }
+}
+
+onMounted(async () => {
+  await loadData()
+  try {
+    memberInventory.value = await inventory.memberItems(memberId.value)
+  } catch { memberInventory.value = [] }
+})
 </script>
 
 <template>
@@ -327,10 +373,44 @@ onMounted(loadData)
         </NeutralContainer>
 
         <!-- Save -->
-        <PrimaryButton :disabled="saving" @click="save">
-          {{ saving ? t('common.loading') : t('memberEdit.save') }}
-        </PrimaryButton>
+        <div class="flex items-center justify-between">
+          <PrimaryButton :disabled="saving" @click="save">
+            {{ saving ? t('common.loading') : t('memberEdit.save') }}
+          </PrimaryButton>
+          <ErrorButton v-if="!formerSuccess" @click="showFormerModal = true">
+            <font-awesome-icon :icon="['fas', 'user-slash']" class="mr-1" />
+            {{ t('memberDetail.markFormer') }}
+          </ErrorButton>
+        </div>
+
+        <Alert v-if="formerSuccess" variant="success">{{ t('memberDetail.formerSuccess') }}</Alert>
       </template>
+
+      <!-- Former confirmation modal -->
+      <Modal v-model="showFormerModal">
+        <div class="space-y-4">
+          <SectionHeader>{{ t('memberDetail.markFormerTitle') }}</SectionHeader>
+          <template v-if="canMarkFormer">
+            <p class="text-sm">{{ t('memberDetail.markFormerConfirm', { name: member?.name || member?.email || '' }) }}</p>
+            <p class="text-xs text-(--text-muted)">{{ t('memberDetail.markFormerHint') }}</p>
+            <div class="flex justify-end gap-2">
+              <SecondaryButton @click="showFormerModal = false">{{ t('common.cancel') }}</SecondaryButton>
+              <ErrorButton :disabled="markingFormer" @click="confirmMarkFormer">
+                {{ markingFormer ? t('common.loading') : t('memberDetail.markFormer') }}
+              </ErrorButton>
+            </div>
+          </template>
+          <template v-else>
+            <p class="text-sm">{{ t('memberDetail.formerBlocked') }}</p>
+            <ul class="list-disc list-inside text-sm text-error space-y-1">
+              <li v-for="(reason, i) in formerBlockReasons" :key="i">{{ reason }}</li>
+            </ul>
+            <div class="flex justify-end">
+              <SecondaryButton @click="showFormerModal = false">{{ t('common.close') }}</SecondaryButton>
+            </div>
+          </template>
+        </div>
+      </Modal>
     </div>
   </ViewContent>
 </template>

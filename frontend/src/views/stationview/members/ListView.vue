@@ -15,6 +15,7 @@ import MemberFilterBar from './listview/FilterBar.vue'
 import MemberTable from './listview/Table.vue'
 import ExportModal from './listview/ExportModal.vue'
 import type { ProfileField, StationMember, MemberGroup } from '@/api/types'
+import { Roles, hasTeamRole } from '@/api/types'
 import { profileFields, stationMembers, memberGroups, savedFilters as savedFiltersApi } from '@/api'
 import { useStations } from '@/composables/useStations'
 
@@ -136,15 +137,15 @@ const extraColumnIds = ref<Set<number>>(new Set())
 
 const tabScopedFields = computed(() => {
   const scopeForTab: Record<string, string[]> = {
-    ALL: ['MEMBER', 'MEMBER_MANAGER', 'TEAM'],
-    MEMBER: ['MEMBER'],
-    MEMBER_MANAGER: ['MEMBER_MANAGER'],
-    TEAM: ['TEAM'],
+    ALL: [Roles.MEMBER, Roles.MEMBER_MANAGER, Roles.TEAM],
+    [Roles.MEMBER]: [Roles.MEMBER],
+    [Roles.MEMBER_MANAGER]: [Roles.MEMBER_MANAGER],
+    [Roles.TEAM]: [Roles.TEAM],
   }
   const scopes = scopeForTab[activeTab.value] ?? []
   return fields.value.filter(f => {
     if (f.scope === 'GROUP') return false
-    return scopes.includes(f.scope ?? 'MEMBER')
+    return scopes.includes(f.scope ?? Roles.MEMBER)
   })
 })
 
@@ -199,10 +200,9 @@ function getRawFieldValue(memberId: number, fieldId: number): string {
 
 function getMemberType(memberId: number): 'MEMBER' | 'MEMBER_MANAGER' | 'TEAM' | null {
   const roles = memberRolesMap.value.get(memberId) ?? []
-  if (roles.includes('MANAGER')) return 'TEAM'
-  if (roles.includes('TEAM')) return 'TEAM'
-  if (roles.includes('MEMBER_MANAGER')) return 'MEMBER_MANAGER'
-  if (roles.includes('MEMBER')) return 'MEMBER'
+  if (hasTeamRole(roles)) return Roles.TEAM
+  if (roles.includes(Roles.MEMBER_MANAGER)) return Roles.MEMBER_MANAGER
+  if (roles.includes(Roles.MEMBER)) return Roles.MEMBER
   return null
 }
 

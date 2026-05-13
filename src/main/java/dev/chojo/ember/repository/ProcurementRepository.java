@@ -21,9 +21,9 @@ public class ProcurementRepository {
 
     public Procurement create(int stationId, int inventoryId, int memberId, Integer sizeId, String notes) {
         return Query.query("""
-                        INSERT INTO equipment_procurement(station_id, inventory_id, member_id, size_id, notes)
-                        VALUES(:station_id, :inventory_id, :member_id, :size_id, :notes)
-                        RETURNING *;""")
+                            INSERT INTO equipment_procurement(station_id, inventory_id, member_id, size_id, notes)
+                            VALUES(:station_id, :inventory_id, :member_id, :size_id, :notes)
+                            RETURNING *;""")
                 .single(Call.of()
                         .bind("station_id", stationId)
                         .bind("inventory_id", inventoryId)

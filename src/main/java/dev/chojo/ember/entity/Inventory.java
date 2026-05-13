@@ -7,13 +7,13 @@ package dev.chojo.ember.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
 
-public record Inventory(int id, int stationId, String name, String inventoryType, boolean hasSizes) {
+public record Inventory(int id, int stationId, String name, InventoryType inventoryType, boolean hasSizes) {
     public static RowMapping<Inventory> map() {
         return row -> new Inventory(
                 row.getInt("id"),
                 row.getInt("station_id"),
                 row.getString("name"),
-                row.getString("inventory_type"),
+                row.getEnum("inventory_type", InventoryType.class),
                 row.getBoolean("has_sizes"));
     }
 }

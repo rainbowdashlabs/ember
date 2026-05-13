@@ -48,11 +48,8 @@ public class UserTagRoutes implements Routes {
         this.stationMemberRepository = stationMemberRepository;
     }
 
-    private MemberWithName toMemberWithName(StationMember m) {
-        Account account = accountRepository.findById(m.accountId()).orElse(null);
-        String name = account != null ? (account.firstName() + " " + account.lastName()).trim() : "";
-        String email = account != null ? account.email() : "";
-        return new MemberWithName(m.id(), m.stationId(), m.accountId(), name, email);
+    private static boolean isBlank(String s) {
+        return s == null || s.isBlank();
     }
 
     @Override
@@ -71,6 +68,13 @@ public class UserTagRoutes implements Routes {
     }
 
     // -- Tags --
+
+    private MemberWithName toMemberWithName(StationMember m) {
+        Account account = accountRepository.findById(m.accountId()).orElse(null);
+        String name = account != null ? (account.firstName() + " " + account.lastName()).trim() : "";
+        String email = account != null ? account.email() : "";
+        return new MemberWithName(m.id(), m.stationId(), m.accountId(), name, email);
+    }
 
     @OpenApi(
             path = "/api/v1/tags",
@@ -125,6 +129,8 @@ public class UserTagRoutes implements Routes {
         }
     }
 
+    // -- Tag Members --
+
     @OpenApi(
             path = "/api/v1/tags/{id}",
             methods = HttpMethod.DELETE,
@@ -143,8 +149,6 @@ public class UserTagRoutes implements Routes {
             throw new NotFoundResponse();
         }
     }
-
-    // -- Tag Members --
 
     @OpenApi(
             path = "/api/v1/tags/{id}/members",
@@ -178,6 +182,8 @@ public class UserTagRoutes implements Routes {
                 .toList());
     }
 
+    // -- Convert to Group --
+
     @OpenApi(
             path = "/api/v1/station-members/{memberId}/tags",
             methods = HttpMethod.GET,
@@ -189,8 +195,6 @@ public class UserTagRoutes implements Routes {
         int memberId = ctx.pathParamAsClass("memberId", Integer.class).get();
         ctx.json(tagService.findTagsForMember(memberId));
     }
-
-    // -- Convert to Group --
 
     @OpenApi(
             path = "/api/v1/tags/{id}/convert-to-group",
@@ -215,10 +219,6 @@ public class UserTagRoutes implements Routes {
                         () -> {
                             throw new NotFoundResponse();
                         });
-    }
-
-    private static boolean isBlank(String s) {
-        return s == null || s.isBlank();
     }
 
     // -- Request/Response records --

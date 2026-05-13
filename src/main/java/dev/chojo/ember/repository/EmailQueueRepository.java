@@ -15,27 +15,35 @@ import java.util.List;
 @Singleton
 public class EmailQueueRepository {
 
-    public record QueuedEmail(int id, String recipient, String subject, String body) {}
-
     public void enqueue(String recipient, String subject, String body) {
-        Query.query("INSERT INTO email_queue(recipient, subject, body) VALUES(:recipient, :subject, :body);")
+        enqueue(recipient, subject, body, null);
+    }
+
+    public void enqueue(String recipient, String subject, String body, Integer stationId) {
+        Query.query(
+                        "INSERT INTO email_queue(recipient, subject, body, station_id) VALUES(:recipient, :subject, :body, :station_id);")
                 .single(Call.of()
                         .bind("recipient", recipient)
                         .bind("subject", subject)
-                        .bind("body", body))
+                        .bind("body", body)
+                        .bind("station_id", stationId))
                 .insert();
     }
 
     public List<QueuedEmail> fetchPending(int limit) {
         return Query.query("""
-                        UPDATE email_queue SET status = 'SENDING'
-                        WHERE id IN (
-                            SELECT id FROM email_queue WHERE status = 'PENDING' ORDER BY created_at LIMIT :limit
-                        )
-                        RETURNING id, recipient, subject, body;""")
+                            UPDATE email_queue SET status = 'SENDING'
+                            WHERE id IN (
+                                SELECT id FROM email_queue WHERE status = 'PENDING' ORDER BY created_at LIMIT :limit
+                            )
+                            RETURNING id, recipient, subject, body, station_id;""")
                 .single(Call.of().bind("limit", limit))
                 .map(row -> new QueuedEmail(
-                        row.getInt("id"), row.getString("recipient"), row.getString("subject"), row.getString("body")))
+                        row.getInt("id"),
+                        row.getString("recipient"),
+                        row.getString("subject"),
+                        row.getString("body"),
+                        row.getObject("station_id", Integer.class)))
                 .all();
     }
 
@@ -75,8 +83,8 @@ public class EmailQueueRepository {
 
     public void incrementDailyCount(LocalDate day) {
         Query.query("""
-                        INSERT INTO email_daily_count(day, count) VALUES(:day, 1)
-                        ON CONFLICT (day) DO UPDATE SET count = email_daily_count.count + 1;""").single(Call.of().bind("day", day)).insert();
+                INSERT INTO email_daily_count(day, count) VALUES(:day, 1)
+                ON CONFLICT (day) DO UPDATE SET count = email_daily_count.count + 1;""").single(Call.of().bind("day", day)).insert();
     }
 
     public void cleanupOldEntries(int keepDays) {
@@ -88,4 +96,6 @@ public class EmailQueueRepository {
                 .single(Call.of().bind("cutoff", LocalDate.now().minusDays(keepDays)))
                 .delete();
     }
+
+    public record QueuedEmail(int id, String recipient, String subject, String body, Integer stationId) {}
 }

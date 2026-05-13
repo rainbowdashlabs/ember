@@ -9,6 +9,8 @@ import dev.chojo.ember.api.Roles;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.entity.Account;
+import dev.chojo.ember.entity.Inventory;
+import dev.chojo.ember.entity.InventorySize;
 import dev.chojo.ember.entity.ProfileField;
 import dev.chojo.ember.entity.ProfileFieldScope;
 import dev.chojo.ember.entity.ProfileFieldValue;
@@ -16,6 +18,8 @@ import dev.chojo.ember.entity.Role;
 import dev.chojo.ember.entity.StationMember;
 import dev.chojo.ember.repository.AccountRepository;
 import dev.chojo.ember.repository.StationMemberRepository;
+import dev.chojo.ember.service.InventoryCheckService;
+import dev.chojo.ember.service.InventoryService;
 import dev.chojo.ember.service.ProfileFieldService;
 import dev.chojo.ember.service.ProfileFieldService.FieldValueEntry;
 import dev.chojo.ember.service.StationMemberService;
@@ -33,11 +37,15 @@ import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
+import java.time.Instant;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Singleton
 public class ManagedMemberRoutes implements Routes {
-    private static final java.util.Set<Roles> TEAM_ROLES = java.util.Set.of(
+    private static final Set<Roles> TEAM_ROLES = Set.of(
             Roles.TEAM,
             Roles.MANAGER,
             Roles.ADMIN,
@@ -50,17 +58,23 @@ public class ManagedMemberRoutes implements Routes {
     private final StationMemberRepository stationMemberRepository;
     private final AccountRepository accountRepository;
     private final ProfileFieldService profileFieldService;
+    private final InventoryService inventoryService;
+    private final InventoryCheckService checkService;
 
     @Inject
     public ManagedMemberRoutes(
             StationMemberService memberService,
             StationMemberRepository stationMemberRepository,
             AccountRepository accountRepository,
-            ProfileFieldService profileFieldService) {
+            ProfileFieldService profileFieldService,
+            InventoryService inventoryService,
+            InventoryCheckService checkService) {
         this.memberService = memberService;
         this.stationMemberRepository = stationMemberRepository;
         this.accountRepository = accountRepository;
         this.profileFieldService = profileFieldService;
+        this.inventoryService = inventoryService;
+        this.checkService = checkService;
     }
 
     @Override
@@ -68,6 +82,12 @@ public class ManagedMemberRoutes implements Routes {
         routes.get(prefix + "/managed-members", this::listManaged, Roles.MEMBER_MANAGER);
         routes.get(prefix + "/managed-members/{memberId}/profile", this::getProfile, Roles.MEMBER_MANAGER);
         routes.put(prefix + "/managed-members/{memberId}/profile", this::setProfile, Roles.MEMBER_MANAGER);
+        routes.get(
+                prefix + "/managed-members/{memberId}/inventory-items", this::getMemberInventory, Roles.MEMBER_MANAGER);
+        routes.get(
+                prefix + "/managed-members/{memberId}/inventory-requirements",
+                this::getMemberRequirements,
+                Roles.MEMBER_MANAGER);
     }
 
     private void assertManages(UserSession session, int memberId) {
@@ -91,11 +111,11 @@ public class ManagedMemberRoutes implements Routes {
         ctx.json(result);
     }
 
-    private java.util.Set<ProfileFieldScope> applicableScopes(int memberId) {
+    private Set<ProfileFieldScope> applicableScopes(int memberId) {
         var roles = stationMemberRepository.findRoles(memberId).stream()
                 .map(Role::role)
                 .toList();
-        var scopes = new java.util.HashSet<ProfileFieldScope>();
+        var scopes = new HashSet<ProfileFieldScope>();
         if (roles.contains(Roles.MEMBER)) scopes.add(ProfileFieldScope.MEMBER);
         if (roles.contains(Roles.MEMBER_MANAGER)) scopes.add(ProfileFieldScope.MEMBER_MANAGER);
         if (roles.stream().anyMatch(TEAM_ROLES::contains)) scopes.add(ProfileFieldScope.TEAM);
@@ -127,7 +147,7 @@ public class ManagedMemberRoutes implements Routes {
         var member = stationMemberRepository.findById(memberId).orElseThrow(NotFoundResponse::new);
         var fields = applicableFields(member.stationId(), memberId);
         var values = profileFieldService.findValues(memberId);
-        var fieldIds = fields.stream().map(ProfileField::id).collect(java.util.stream.Collectors.toSet());
+        var fieldIds = fields.stream().map(ProfileField::id).collect(Collectors.toSet());
         var filteredValues =
                 values.stream().filter(v -> fieldIds.contains(v.fieldId())).toList();
         ctx.json(new MemberProfile(fields, filteredValues));
@@ -148,7 +168,7 @@ public class ManagedMemberRoutes implements Routes {
         var member = stationMemberRepository.findById(memberId).orElseThrow(NotFoundResponse::new);
         var allowedFieldIds = applicableFields(member.stationId(), memberId).stream()
                 .map(ProfileField::id)
-                .collect(java.util.stream.Collectors.toSet());
+                .collect(Collectors.toSet());
         var request = ctx.bodyAsClass(SetValuesRequest.class);
         var entries = request.values().stream()
                 .filter(e -> allowedFieldIds.contains(e.fieldId()))
@@ -164,6 +184,75 @@ public class ManagedMemberRoutes implements Routes {
         String email = account != null ? account.email() : "";
         return new ManagedMember(m.id(), m.stationId(), m.accountId(), name, email);
     }
+
+    @OpenApi(
+            path = "/api/v1/managed-members/{memberId}/inventory-items",
+            methods = HttpMethod.GET,
+            summary = "Get inventory items for a managed member",
+            tags = {"Managed Members"},
+            pathParams = @OpenApiParam(name = "memberId", type = Integer.class, required = true),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MemberInventoryItem[].class)))
+    private void getMemberInventory(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        int memberId = ctx.pathParamAsClass("memberId", Integer.class).get();
+        assertManages(session, memberId);
+        var items = inventoryService.findItemsByMember(memberId);
+        ctx.json(items.stream()
+                .map(item -> {
+                    String inventoryName = inventoryService
+                            .findById(item.inventoryId())
+                            .map(Inventory::name)
+                            .orElse("");
+                    String sizeName = null;
+                    if (item.sizeId() != null) {
+                        sizeName = inventoryService.findSizes(item.inventoryId()).stream()
+                                .filter(s -> s.id() == item.sizeId())
+                                .map(InventorySize::label)
+                                .findFirst()
+                                .orElse(null);
+                    }
+                    return new MemberInventoryItem(
+                            item.id(),
+                            item.inventoryId(),
+                            item.name(),
+                            item.internalId(),
+                            inventoryName,
+                            item.sizeId(),
+                            sizeName,
+                            item.lostAt());
+                })
+                .toList());
+    }
+
+    @OpenApi(
+            path = "/api/v1/managed-members/{memberId}/inventory-requirements",
+            methods = HttpMethod.GET,
+            summary = "Get inventory requirements for a managed member",
+            tags = {"Managed Members"},
+            pathParams = @OpenApiParam(name = "memberId", type = Integer.class, required = true),
+            responses = @OpenApiResponse(status = "200"))
+    private void getMemberRequirements(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        int memberId = ctx.pathParamAsClass("memberId", Integer.class).get();
+        assertManages(session, memberId);
+        var member = stationMemberRepository.findById(memberId).orElseThrow(NotFoundResponse::new);
+        var required = checkService.getRequiredItems(member.stationId(), memberId);
+        ctx.json(required.stream()
+                .map(r -> new MemberRequirement(r.inventoryId(), r.inventoryName(), r.requiredQuantity()))
+                .toList());
+    }
+
+    public record MemberInventoryItem(
+            int id,
+            int inventoryId,
+            String name,
+            String internalId,
+            String inventoryName,
+            Integer sizeId,
+            String sizeName,
+            Instant lostAt) {}
+
+    public record MemberRequirement(int inventoryId, String inventoryName, int requiredQuantity) {}
 
     public record ManagedMember(int id, int stationId, int accountId, String name, String email) {}
 

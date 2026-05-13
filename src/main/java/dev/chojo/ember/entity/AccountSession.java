@@ -20,10 +20,6 @@ public record AccountSession(
         String userAgent,
         Instant lastUsedAt) {
 
-    public boolean isExpired() {
-        return Instant.now().isAfter(expiresAt);
-    }
-
     public static RowMapping<AccountSession> map() {
         return row -> new AccountSession(
                 row.getInt("id"),
@@ -33,5 +29,9 @@ public record AccountSession(
                 row.get("created_at", INSTANT_TIMESTAMP),
                 row.getString("user_agent"),
                 row.get("last_used_at", INSTANT_TIMESTAMP));
+    }
+
+    public boolean isExpired() {
+        return Instant.now().isAfter(expiresAt);
     }
 }

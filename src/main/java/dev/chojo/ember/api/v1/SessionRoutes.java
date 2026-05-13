@@ -14,6 +14,7 @@ import dev.chojo.ember.entity.MemberGroup;
 import dev.chojo.ember.entity.StationMember;
 import dev.chojo.ember.service.AuthService;
 import dev.chojo.ember.service.MemberGroupService;
+import dev.chojo.ember.service.ProfileFieldService;
 import dev.chojo.ember.service.StationMemberService;
 import dev.chojo.ember.service.StationService;
 import io.javalin.http.Context;
@@ -34,17 +35,20 @@ public class SessionRoutes implements Routes {
     private final StationMemberService memberService;
     private final MemberGroupService groupService;
     private final AuthService authService;
+    private final ProfileFieldService profileFieldService;
 
     @Inject
     public SessionRoutes(
             StationService stationService,
             StationMemberService memberService,
             MemberGroupService groupService,
-            AuthService authService) {
+            AuthService authService,
+            ProfileFieldService profileFieldService) {
         this.stationService = stationService;
         this.memberService = memberService;
         this.groupService = groupService;
         this.authService = authService;
+        this.profileFieldService = profileFieldService;
     }
 
     @Override
@@ -78,6 +82,13 @@ public class SessionRoutes implements Routes {
                     session.member().accountId());
         }
 
+        var roleNames = session.roles().stream().map(Enum::name).sorted().toList();
+        boolean profileComplete = true;
+        if (session.member() != null && session.stationId() != null) {
+            profileComplete =
+                    profileFieldService.isProfileComplete(session.member().id(), session.stationId(), roleNames);
+        }
+
         ctx.json(new SessionInfo(
                 new AccountInfo(
                         session.account().id(),
@@ -86,9 +97,10 @@ public class SessionRoutes implements Routes {
                         session.account().lastName()),
                 session.stationId(),
                 memberInfo,
-                session.roles().stream().map(Enum::name).sorted().toList(),
+                roleNames,
                 managed,
-                groups));
+                groups,
+                profileComplete));
     }
 
     @OpenApi(
@@ -147,7 +159,8 @@ public class SessionRoutes implements Routes {
             MemberInfo member,
             List<String> roles,
             List<StationMember> managedMembers,
-            List<MemberGroup> groups) {}
+            List<MemberGroup> groups,
+            boolean profileComplete) {}
 
     public record AccountInfo(int id, String email, String firstName, String lastName) {}
 

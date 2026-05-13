@@ -47,14 +47,15 @@ public class StationApplicationService {
             String firstName, String lastName, String email, String stationName, String introduction) {
         String token = UUID.randomUUID().toString();
         var application = applicationRepository.create(firstName, lastName, email, stationName, introduction, token);
-        emailService.sendApplicationVerifyEmail(email, firstName, stationName, token, "de");
+        emailService.sendApplicationVerifyEmail(email, firstName, stationName, token, "de", null);
         return application;
     }
 
     public boolean verify(String token) {
         var application = applicationRepository.findByToken(token);
-        if (application.isEmpty()) return false;
-        return applicationRepository.verify(application.get().id());
+        return application
+                .filter(stationApplication -> applicationRepository.verify(stationApplication.id()))
+                .isPresent();
     }
 
     public List<StationApplication> findAll() {
@@ -125,7 +126,7 @@ public class StationApplicationService {
 
         // Send denial email
         emailService.sendApplicationDeniedEmail(
-                application.email(), application.firstName(), application.stationName(), reason, "de");
+                application.email(), application.firstName(), application.stationName(), reason, "de", null);
 
         return applicationRepository.findById(id).orElseThrow();
     }

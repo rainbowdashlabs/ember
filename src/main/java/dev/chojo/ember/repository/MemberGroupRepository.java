@@ -61,15 +61,15 @@ public class MemberGroupRepository {
 
     public List<StationMember> findMembers(int groupId) {
         return query("""
-                            SELECT
-                                sm.id,
-                                sm.station_id,
-                                sm.account_id
-                            FROM
-                                station_member sm
-                                    JOIN member_group_entry mge
-                                    ON sm.id = mge.member_id
-                            WHERE mge.group_id = :group_id;""")
+                SELECT
+                    sm.id,
+                    sm.station_id,
+                    sm.account_id
+                FROM
+                    station_member sm
+                        JOIN member_group_entry mge
+                        ON sm.id = mge.member_id
+                WHERE mge.group_id = :group_id;""")
                 .single(Call.of().bind("group_id", groupId))
                 .map(StationMember.map())
                 .all();
@@ -77,15 +77,15 @@ public class MemberGroupRepository {
 
     public List<MemberGroup> findGroupsForMember(int memberId) {
         return query("""
-                            SELECT
-                                mg.id,
-                                mg.station_id,
-                                mg.name
-                            FROM
-                                member_group mg
-                                    JOIN member_group_entry mge
-                                    ON mg.id = mge.group_id
-                            WHERE mge.member_id = :member_id;""")
+                SELECT
+                    mg.id,
+                    mg.station_id,
+                    mg.name
+                FROM
+                    member_group mg
+                        JOIN member_group_entry mge
+                        ON mg.id = mge.group_id
+                WHERE mge.member_id = :member_id;""")
                 .single(Call.of().bind("member_id", memberId))
                 .map(MemberGroup.map())
                 .all();
@@ -108,14 +108,14 @@ public class MemberGroupRepository {
 
     public List<Role> findGroupRoles(int groupId) {
         return query("""
-                            SELECT
-                                r.id,
-                                r.name
-                            FROM
-                                role r
-                                    JOIN member_group_role mgr
-                                    ON r.id = mgr.role_id
-                            WHERE mgr.group_id = :group_id;""")
+                SELECT
+                    r.id,
+                    r.name
+                FROM
+                    role r
+                        JOIN member_group_role mgr
+                        ON r.id = mgr.role_id
+                WHERE mgr.group_id = :group_id;""")
                 .single(Call.of().bind("group_id", groupId))
                 .map(Role.map())
                 .all();
@@ -136,14 +136,14 @@ public class MemberGroupRepository {
 
     public List<Role> findRolesForMemberViaGroups(int memberId) {
         return query("""
-                            SELECT DISTINCT
-                                r.id,
-                                r.name
-                            FROM
-                                role r
-                                    JOIN member_group_role mgr ON r.id = mgr.role_id
-                                    JOIN member_group_entry mge ON mgr.group_id = mge.group_id
-                            WHERE mge.member_id = :member_id;""")
+                SELECT DISTINCT
+                    r.id,
+                    r.name
+                FROM
+                    role r
+                        JOIN member_group_role mgr ON r.id = mgr.role_id
+                        JOIN member_group_entry mge ON mgr.group_id = mge.group_id
+                WHERE mge.member_id = :member_id;""")
                 .single(Call.of().bind("member_id", memberId))
                 .map(Role.map())
                 .all();

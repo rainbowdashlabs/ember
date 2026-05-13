@@ -80,6 +80,14 @@ public class NewsService {
         return newsRepository.findCommentsByNews(newsId);
     }
 
+    public Optional<NewsComment> findCommentById(int id) {
+        return newsRepository.findCommentById(id);
+    }
+
+    public boolean updateComment(int id, String content) {
+        return newsRepository.updateComment(id, content);
+    }
+
     public boolean deleteComment(int id) {
         return newsRepository.deleteComment(id);
     }

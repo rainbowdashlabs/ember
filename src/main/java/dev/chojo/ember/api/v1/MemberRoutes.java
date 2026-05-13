@@ -37,6 +37,10 @@ public class MemberRoutes implements Routes {
         this.accountRepository = accountRepository;
     }
 
+    private static boolean isBlank(String s) {
+        return s == null || s.isBlank();
+    }
+
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
         routes.post(prefix + "/members/invite", this::invite, Roles.MEMBER_MANAGEMENT);
@@ -121,10 +125,6 @@ public class MemberRoutes implements Routes {
         } else {
             throw new NotFoundResponse("Account not found");
         }
-    }
-
-    private static boolean isBlank(String s) {
-        return s == null || s.isBlank();
     }
 
     // -- Request/Response records --

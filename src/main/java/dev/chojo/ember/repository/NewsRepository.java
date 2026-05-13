@@ -22,9 +22,9 @@ public class NewsRepository {
 
     public News create(int stationId, String title, String contentMarkdown, String contentHtml, int authorId) {
         return Query.query("""
-                        INSERT INTO news(station_id, title, content_markdown, content_html, author_id, published_at)
-                        VALUES(:station_id, :title, :content_markdown, :content_html, :author_id, :published_at)
-                        RETURNING *;""")
+                            INSERT INTO news(station_id, title, content_markdown, content_html, author_id, published_at)
+                            VALUES(:station_id, :title, :content_markdown, :content_html, :author_id, :published_at)
+                            RETURNING *;""")
                 .single(Call.of()
                         .bind("station_id", stationId)
                         .bind("title", title)
@@ -57,17 +57,17 @@ public class NewsRepository {
 
     public List<News> findVisibleForMember(int stationId, int memberId, int offset, int limit) {
         return Query.query("""
-                        SELECT DISTINCT n.*
-                        FROM news n
-                        LEFT JOIN news_group_restriction ngr ON n.id = ngr.news_id
-                        WHERE n.station_id = :station_id
-                          AND n.published_at IS NOT NULL
-                          AND (
-                            NOT EXISTS (SELECT 1 FROM news_group_restriction r WHERE r.news_id = n.id)
-                            OR ngr.group_id IN (SELECT mge.group_id FROM member_group_entry mge WHERE mge.member_id = :member_id)
-                          )
-                        ORDER BY n.published_at DESC
-                        LIMIT :limit OFFSET :offset;""")
+                            SELECT DISTINCT n.*
+                            FROM news n
+                            LEFT JOIN news_group_restriction ngr ON n.id = ngr.news_id
+                            WHERE n.station_id = :station_id
+                              AND n.published_at IS NOT NULL
+                              AND (
+                                NOT exists (SELECT 1 FROM news_group_restriction r WHERE r.news_id = n.id)
+                                OR ngr.group_id IN (SELECT mge.group_id FROM member_group_entry mge WHERE mge.member_id = :member_id)
+                              )
+                            ORDER BY n.published_at DESC
+                            LIMIT :limit OFFSET :offset;""")
                 .single(Call.of()
                         .bind("station_id", stationId)
                         .bind("member_id", memberId)
@@ -79,8 +79,8 @@ public class NewsRepository {
 
     public boolean update(int id, String title, String contentMarkdown, String contentHtml) {
         return Query.query("""
-                        UPDATE news SET title = :title, content_markdown = :content_markdown, content_html = :content_html
-                        WHERE id = :id;""")
+                            UPDATE news SET title = :title, content_markdown = :content_markdown, content_html = :content_html
+                            WHERE id = :id;""")
                 .single(Call.of()
                         .bind("id", id)
                         .bind("title", title)
@@ -110,9 +110,9 @@ public class NewsRepository {
 
     public NewsComment createComment(int newsId, Integer parentId, int authorId, String content) {
         return Query.query("""
-                        INSERT INTO news_comment(news_id, parent_id, author_id, content)
-                        VALUES(:news_id, :parent_id, :author_id, :content)
-                        RETURNING *;""")
+                            INSERT INTO news_comment(news_id, parent_id, author_id, content)
+                            VALUES(:news_id, :parent_id, :author_id, :content)
+                            RETURNING *;""")
                 .single(Call.of()
                         .bind("news_id", newsId)
                         .bind("parent_id", parentId)
@@ -136,6 +136,20 @@ public class NewsRepository {
                 .map(row -> row.getInt("cnt"))
                 .first()
                 .orElse(0);
+    }
+
+    public Optional<NewsComment> findCommentById(int id) {
+        return Query.query("SELECT * FROM news_comment WHERE id = :id;")
+                .single(Call.of().bind("id", id))
+                .map(NewsComment.map())
+                .first();
+    }
+
+    public boolean updateComment(int id, String content) {
+        return Query.query("UPDATE news_comment SET content = :content WHERE id = :id;")
+                .single(Call.of().bind("id", id).bind("content", content))
+                .update()
+                .changed();
     }
 
     public boolean deleteComment(int id) {
@@ -177,15 +191,15 @@ public class NewsRepository {
 
     public int countUnacknowledged(int stationId, int memberId) {
         return Query.query("""
-                        SELECT COUNT(*) AS cnt FROM news n
-                        WHERE n.station_id = :station_id
-                          AND n.published_at IS NOT NULL
-                          AND NOT EXISTS (SELECT 1 FROM news_acknowledgement na WHERE na.news_id = n.id AND na.member_id = :member_id)
-                          AND (
-                            NOT EXISTS (SELECT 1 FROM news_group_restriction r WHERE r.news_id = n.id)
-                            OR EXISTS (SELECT 1 FROM news_group_restriction r JOIN member_group_entry mge ON r.group_id = mge.group_id
-                                       WHERE r.news_id = n.id AND mge.member_id = :member_id)
-                          );""")
+                            SELECT count(*) AS cnt FROM news n
+                            WHERE n.station_id = :station_id
+                              AND n.published_at IS NOT NULL
+                              AND NOT exists (SELECT 1 FROM news_acknowledgement na WHERE na.news_id = n.id AND na.member_id = :member_id)
+                              AND (
+                                NOT exists (SELECT 1 FROM news_group_restriction r WHERE r.news_id = n.id)
+                                OR exists (SELECT 1 FROM news_group_restriction r JOIN member_group_entry mge ON r.group_id = mge.group_id
+                                           WHERE r.news_id = n.id AND mge.member_id = :member_id)
+                              );""")
                 .single(Call.of().bind("station_id", stationId).bind("member_id", memberId))
                 .map(row -> row.getInt("cnt"))
                 .first()

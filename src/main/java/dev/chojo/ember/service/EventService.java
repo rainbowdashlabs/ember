@@ -18,7 +18,9 @@ import jakarta.inject.Singleton;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
@@ -184,8 +186,8 @@ public class EventService {
     /**
      * Checks if a member is eligible for an event based on their expanded roles and group memberships.
      *
-     * @param eventId       the event to check
-     * @param expandedRoles the member's roles (already expanded via Roles.expand)
+     * @param eventId        the event to check
+     * @param expandedRoles  the member's roles (already expanded via Roles.expand)
      * @param memberGroupIds the member's group IDs
      */
     public boolean isMemberEligible(int eventId, Set<Roles> expandedRoles, List<Integer> memberGroupIds) {
@@ -208,11 +210,11 @@ public class EventService {
         return false;
     }
 
-    public java.util.Map<Integer, List<Integer>> findAllRoleRestrictionsByStation(int stationId) {
+    public Map<Integer, List<Integer>> findAllRoleRestrictionsByStation(int stationId) {
         return eventRepository.findAllRoleRestrictionsByStation(stationId);
     }
 
-    public java.util.Map<Integer, List<Integer>> findAllGroupRestrictionsByStation(int stationId) {
+    public Map<Integer, List<Integer>> findAllGroupRestrictionsByStation(int stationId) {
         return eventRepository.findAllGroupRestrictionsByStation(stationId);
     }
 
@@ -229,12 +231,12 @@ public class EventService {
     /**
      * Resolves field defaults for an event into concrete values by replacing event property links.
      */
-    public java.util.Map<Integer, String> resolveFieldDefaults(int eventId) {
+    public Map<Integer, String> resolveFieldDefaults(int eventId) {
         var event = eventRepository.findById(eventId).orElse(null);
-        if (event == null) return java.util.Map.of();
+        if (event == null) return Map.of();
 
         var defaults = eventRepository.findFieldDefaults(eventId);
-        var result = new java.util.HashMap<Integer, String>();
+        var result = new HashMap<Integer, String>();
         for (var def : defaults) {
             String resolved =
                     switch (def.source()) {

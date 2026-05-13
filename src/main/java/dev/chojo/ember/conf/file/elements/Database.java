@@ -10,6 +10,7 @@ import dev.chojo.ocular.override.Env;
 import dev.chojo.ocular.override.Overwrite;
 import dev.chojo.ocular.override.OverwritePrefix;
 
+@SuppressWarnings({"FieldCanBeLocal", "FieldMayBeFinal"})
 @OverwritePrefix("DB")
 public class Database implements DatabaseConfig {
     @Overwrite(env = @Env)
@@ -64,5 +65,17 @@ public class Database implements DatabaseConfig {
 
     public int poolSize() {
         return poolSize;
+    }
+
+    @Override
+    public String toString() {
+        return "Database{" + "host='"
+                + host + '\'' + ", port='"
+                + port + '\'' + ", user='"
+                + user + '\'' + ", password='"
+                + "****" + '\'' + ", database='"
+                + database + '\'' + ", schema='"
+                + schema + '\'' + ", poolSize="
+                + poolSize + '}';
     }
 }

@@ -8,7 +8,9 @@ package dev.chojo.ember.service;
 import dev.chojo.ember.entity.ExchangeLog;
 import dev.chojo.ember.entity.ExchangeRequest;
 import dev.chojo.ember.entity.ExchangeStatus;
+import dev.chojo.ember.entity.InventoryType;
 import dev.chojo.ember.repository.ExchangeRepository;
+import dev.chojo.ember.repository.InventoryRepository;
 import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -19,15 +21,28 @@ import java.util.Optional;
 @Singleton
 public class ExchangeService {
     private final ExchangeRepository exchangeRepository;
+    private final InventoryRepository inventoryRepository;
+    private final InventoryService inventoryService;
 
     @Inject
-    public ExchangeService(ExchangeRepository exchangeRepository) {
+    public ExchangeService(
+            ExchangeRepository exchangeRepository,
+            InventoryRepository inventoryRepository,
+            InventoryService inventoryService) {
         this.exchangeRepository = exchangeRepository;
+        this.inventoryRepository = inventoryRepository;
+        this.inventoryService = inventoryService;
     }
 
     public ExchangeRequest create(
-            int stationId, int memberId, Integer itemId, int inventoryId, Integer sizeId, String reason) {
-        return exchangeRepository.create(stationId, memberId, itemId, inventoryId, sizeId, reason);
+            int stationId,
+            int memberId,
+            Integer itemId,
+            int inventoryId,
+            Integer oldSizeId,
+            Integer newSizeId,
+            String reason) {
+        return exchangeRepository.create(stationId, memberId, itemId, inventoryId, oldSizeId, newSizeId, reason);
     }
 
     public Optional<ExchangeRequest> findById(int id) {
@@ -43,12 +58,47 @@ public class ExchangeService {
     }
 
     public ExchangeRequest updateStatus(int id, ExchangeStatus newStatus, int changedBy, String note) {
+        return updateStatus(id, newStatus, changedBy, note, null);
+    }
+
+    public ExchangeRequest updateStatus(
+            int id, ExchangeStatus newStatus, int changedBy, String note, Integer exchangedItemId) {
         var request =
                 exchangeRepository.findById(id).orElseThrow(() -> new BadRequestResponse("Exchange request not found"));
         var oldStatus = request.status();
-        exchangeRepository.updateStatus(id, newStatus);
+
+        if (newStatus == ExchangeStatus.EXCHANGED) {
+            completeExchange(request, exchangedItemId);
+            exchangeRepository.updateStatusWithExchangedItem(id, newStatus, exchangedItemId);
+        } else {
+            exchangeRepository.updateStatus(id, newStatus);
+        }
+
         exchangeRepository.createLog(id, oldStatus, newStatus, changedBy, note);
         return exchangeRepository.findById(id).orElseThrow();
+    }
+
+    private void completeExchange(ExchangeRequest request, Integer exchangedItemId) {
+        var inventory = inventoryRepository.findById(request.inventoryId()).orElse(null);
+        if (inventory == null) return;
+
+        var type = inventory.inventoryType();
+
+        // Handle old item
+        if (request.itemId() != null) {
+            if (type == InventoryType.EXTERNAL) {
+                // External: delete old item
+                inventoryRepository.deleteItem(request.itemId());
+            } else {
+                // Internal/Mixed: unassign old item (returns to free pool, with history)
+                inventoryService.assignItem(request.itemId(), null, "");
+            }
+        }
+
+        // Handle new item assignment (with history tracking)
+        if (exchangedItemId != null) {
+            inventoryService.assignItem(exchangedItemId, request.memberId(), "");
+        }
     }
 
     public List<ExchangeLog> findLogs(int requestId) {

@@ -81,7 +81,7 @@ public class StationApplicationRepository {
 
     public boolean accept(int id) {
         return Query.query(
-                        "UPDATE station_application SET status = 'accepted', resolved_at = NOW() WHERE id = :id AND status = 'pending';")
+                        "UPDATE station_application SET status = 'accepted', resolved_at = now() WHERE id = :id AND status = 'pending';")
                 .single(Call.of().bind("id", id))
                 .update()
                 .changed();
@@ -89,7 +89,7 @@ public class StationApplicationRepository {
 
     public boolean deny(int id, String reason) {
         return Query.query(
-                        "UPDATE station_application SET status = 'denied', deny_reason = :reason, resolved_at = NOW() WHERE id = :id AND status = 'pending';")
+                        "UPDATE station_application SET status = 'denied', deny_reason = :reason, resolved_at = now() WHERE id = :id AND status = 'pending';")
                 .single(Call.of().bind("id", id).bind("reason", reason))
                 .update()
                 .changed();

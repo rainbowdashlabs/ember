@@ -1,0 +1,275 @@
+/*
+ *     SPDX-License-Identifier: AGPL-3.0-only
+ *
+ *     Copyright (C) RainbowDashLabs and Contributor
+ */
+package dev.chojo.ember.service;
+
+import dev.chojo.ember.conf.file.elements.Api;
+import dev.chojo.ember.entity.Inventory;
+import dev.chojo.ember.entity.InventoryItem;
+import dev.chojo.ember.repository.AccountRepository;
+import dev.chojo.ember.repository.InventoryRepository;
+import dev.chojo.ember.repository.ProfileFieldRepository;
+import dev.chojo.ember.repository.StationMemberRepository;
+import dev.chojo.ember.repository.StationRepository;
+import dev.chojo.ember.repository.StationRepository.StationLogo;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
+import org.slf4j.Logger;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+
+import static org.slf4j.LoggerFactory.getLogger;
+
+@Singleton
+public class InventoryExportService {
+    private static final Logger log = getLogger(InventoryExportService.class);
+    private static final ObjectMapper MAPPER = JsonMapper.builder().build();
+    private static final DateTimeFormatter DATE_TIME_FMT = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm");
+    private static final String TYPST_BIN = System.getenv().getOrDefault("TYPST_BIN", "typst");
+
+    private final InventoryRepository inventoryRepository;
+    private final StationMemberRepository stationMemberRepository;
+    private final AccountRepository accountRepository;
+    private final StationRepository stationRepository;
+    private final ProfileFieldRepository profileFieldRepository;
+    private final Api apiConfig;
+
+    @Inject
+    public InventoryExportService(
+            InventoryRepository inventoryRepository,
+            StationMemberRepository stationMemberRepository,
+            AccountRepository accountRepository,
+            StationRepository stationRepository,
+            ProfileFieldRepository profileFieldRepository,
+            Api apiConfig) {
+        this.inventoryRepository = inventoryRepository;
+        this.stationMemberRepository = stationMemberRepository;
+        this.accountRepository = accountRepository;
+        this.stationRepository = stationRepository;
+        this.profileFieldRepository = profileFieldRepository;
+        this.apiConfig = apiConfig;
+    }
+
+    public Optional<byte[]> exportPdf(
+            int stationId,
+            List<Integer> memberIds,
+            List<Integer> inventoryIds,
+            List<Integer> extraFieldIds,
+            String generatedBy,
+            boolean showName,
+            boolean showInternalId,
+            boolean showSize) {
+        var station = stationRepository.findById(stationId).orElse(null);
+        if (station == null) return Optional.empty();
+
+        // Load inventories
+        var allInventories = inventoryRepository.findByStation(stationId);
+        var selectedInventories = inventoryIds.isEmpty()
+                ? allInventories
+                : allInventories.stream()
+                        .filter(inv -> inventoryIds.contains(inv.id()))
+                        .toList();
+        if (selectedInventories.isEmpty()) return Optional.empty();
+
+        // Load all items for selected inventories
+        var itemsByInventory = new LinkedHashMap<Integer, List<InventoryItem>>();
+        for (var inv : selectedInventories) {
+            itemsByInventory.put(inv.id(), inventoryRepository.findItems(inv.id()));
+        }
+
+        // Build inventory column names
+        var inventoryColumns = selectedInventories.stream().map(Inventory::name).toList();
+
+        // Build size maps for each inventory
+        var inventorySizes = new LinkedHashMap<Integer, Map<Integer, String>>();
+        for (var inv : selectedInventories) {
+            var sizes = inventoryRepository.findSizes(inv.id());
+            var sizeMap = new LinkedHashMap<Integer, String>();
+            for (var s : sizes) sizeMap.put(s.id(), s.label());
+            inventorySizes.put(inv.id(), sizeMap);
+        }
+
+        String locale = resolveLocalePrefix(station);
+
+        // Resolve extra profile field names
+        var extraFieldNames = new ArrayList<String>();
+        for (int fieldId : extraFieldIds) {
+            profileFieldRepository.findById(fieldId).ifPresent(f -> extraFieldNames.add(f.name()));
+        }
+
+        // Build rows for each member
+        var rows = new ArrayList<Map<String, Object>>();
+        for (int memberId : memberIds) {
+            var member = stationMemberRepository.findById(memberId).orElse(null);
+            var account = member != null
+                    ? accountRepository.findById(member.accountId()).orElse(null)
+                    : null;
+            String firstName = account != null ? account.firstName() : "";
+            String lastName = account != null ? account.lastName() : "";
+            String name = (firstName + " " + lastName).trim();
+            if (name.isEmpty()) name = "#" + memberId;
+
+            // Extra field values
+            var extraFieldValues = new ArrayList<String>();
+            if (!extraFieldIds.isEmpty()) {
+                var values = profileFieldRepository.findValues(memberId);
+                for (int fieldId : extraFieldIds) {
+                    String val = values.stream()
+                            .filter(v -> v.fieldId() == fieldId)
+                            .map(v -> formatFieldValue(v.value()))
+                            .findFirst()
+                            .orElse("");
+                    extraFieldValues.add(val);
+                }
+            }
+
+            // Build items per inventory column (each item: {label, lost})
+            var itemColumns = new ArrayList<List<Map<String, Object>>>();
+            for (var inv : selectedInventories) {
+                var items = itemsByInventory.getOrDefault(inv.id(), List.of());
+                var memberItems = items.stream()
+                        .filter(item -> item.assignedTo() != null && item.assignedTo() == memberId)
+                        .toList();
+                var itemEntries = new ArrayList<Map<String, Object>>();
+                for (var item : memberItems) {
+                    var parts = new ArrayList<String>();
+                    if (showName && item.name() != null) parts.add(item.name());
+                    if (showInternalId
+                            && item.internalId() != null
+                            && !item.internalId().isEmpty()) {
+                        parts.add("(" + item.internalId() + ")");
+                    }
+                    if (showSize && item.sizeId() != null) {
+                        var sizeMap = inventorySizes.get(inv.id());
+                        if (sizeMap != null) {
+                            String sizeLabel = sizeMap.get(item.sizeId());
+                            if (sizeLabel != null) parts.add("[" + sizeLabel + "]");
+                        }
+                    }
+                    String desc = parts.isEmpty() ? (item.name() != null ? item.name() : "–") : String.join(" ", parts);
+                    itemEntries.add(Map.of("label", desc, "lost", item.lostAt() != null));
+                }
+                itemColumns.add(itemEntries);
+            }
+
+            var row = new LinkedHashMap<String, Object>();
+            row.put("name", name);
+            row.put("extraFieldValues", extraFieldValues);
+            row.put("items", itemColumns);
+            rows.add(row);
+        }
+
+        // Sort by name
+        rows.sort(Comparator.comparing(r -> (String) r.get("name")));
+
+        // Build data map
+        var zone = resolveTimezone(stationId);
+        var data = new LinkedHashMap<String, Object>();
+        data.put("stationName", station.name());
+        data.put("generatedBy", generatedBy);
+        data.put("generatedAt", DATE_TIME_FMT.format(Instant.now().atZone(zone)));
+        data.put("baseUrl", apiConfig.baseUrl());
+        data.put("hasLogo", false);
+        data.put("extraFields", extraFieldNames);
+        data.put("inventoryColumns", inventoryColumns);
+        data.put("rows", rows);
+
+        // Render
+        StationLogo logo = stationRepository.findLogo(stationId).orElse(null);
+        try {
+            return Optional.of(renderPdf(data, locale + "/inventory-members.typ", logo));
+        } catch (Exception e) {
+            log.error("Failed to export inventory members PDF", e);
+            return Optional.empty();
+        }
+    }
+
+    private String formatFieldValue(String rawValue) {
+        if (rawValue == null) return "";
+        String val = rawValue.trim();
+        if (val.startsWith("\"") && val.endsWith("\"")) {
+            val = val.substring(1, val.length() - 1);
+        }
+        return val;
+    }
+
+    private String resolveLocalePrefix(dev.chojo.ember.entity.Station station) {
+        if (station != null && station.locale() != null && station.locale().startsWith("de")) return "de";
+        return "en";
+    }
+
+    private ZoneId resolveTimezone(int stationId) {
+        var station = stationRepository.findById(stationId);
+        if (station.isPresent() && station.get().timezone() != null) {
+            try {
+                return ZoneId.of(station.get().timezone());
+            } catch (Exception ignored) {
+            }
+        }
+        return ZoneOffset.UTC;
+    }
+
+    private byte[] renderPdf(Map<String, Object> data, String templateName, StationLogo logo)
+            throws IOException, InterruptedException {
+        Path tempDir = Files.createTempDirectory("inventory-export");
+        try {
+            Path templateSource = Path.of("templates", "typst", templateName);
+            Path templateFile = tempDir.resolve(templateName);
+            Files.createDirectories(templateFile.getParent());
+            Path templateDir = templateFile.getParent();
+
+            if (logo != null) {
+                String ext =
+                        switch (logo.contentType()) {
+                            case "image/jpeg" -> "jpg";
+                            case "image/svg+xml" -> "svg";
+                            default -> "png";
+                        };
+                Files.write(templateDir.resolve("logo." + ext), logo.data());
+                data.put("hasLogo", true);
+                data.put("logoFile", "logo." + ext);
+            }
+
+            Files.writeString(templateDir.resolve("data.json"), MAPPER.writeValueAsString(data));
+            Files.copy(templateSource, templateFile);
+
+            Path outputFile = tempDir.resolve("inventory-members.pdf");
+
+            var process = new ProcessBuilder(TYPST_BIN, "compile", templateFile.toString(), outputFile.toString())
+                    .directory(tempDir.toFile())
+                    .redirectErrorStream(true)
+                    .start();
+            String output = new String(process.getInputStream().readAllBytes());
+            int exitCode = process.waitFor();
+            if (exitCode != 0) {
+                throw new IOException("Typst compile failed (exit " + exitCode + "): " + output);
+            }
+            return Files.readAllBytes(outputFile);
+        } finally {
+            try (var walk = Files.walk(tempDir)) {
+                walk.sorted(Comparator.reverseOrder()).forEach(p -> {
+                    try {
+                        Files.deleteIfExists(p);
+                    } catch (IOException ignored) {
+                    }
+                });
+            }
+        }
+    }
+}

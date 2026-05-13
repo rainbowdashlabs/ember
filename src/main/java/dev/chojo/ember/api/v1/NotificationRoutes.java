@@ -23,6 +23,7 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
 import java.time.Instant;
+import java.util.Map;
 
 @Singleton
 public class NotificationRoutes implements Routes {
@@ -78,7 +79,7 @@ public class NotificationRoutes implements Routes {
             responses = @OpenApiResponse(status = "200"))
     private void count(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        ctx.json(java.util.Map.of(
+        ctx.json(Map.of(
                 "count",
                 notificationService.countUnacknowledged(session.member().id())));
     }
@@ -111,9 +112,26 @@ public class NotificationRoutes implements Routes {
 
     private NotificationResponse toResponse(Notification n) {
         return new NotificationResponse(
-                n.id(), n.type().name(), n.referenceId(), n.message(), n.createdAt(), n.acknowledgedAt());
+                n.id(),
+                n.type().name(),
+                n.data().localeKey(),
+                n.data().params(),
+                n.data().link() != null
+                        ? new NotificationLinkResponse(
+                                n.data().link().route(), n.data().link().routeParams())
+                        : null,
+                n.createdAt(),
+                n.acknowledgedAt());
     }
 
+    public record NotificationLinkResponse(String route, Map<String, Object> routeParams) {}
+
     public record NotificationResponse(
-            int id, String type, Integer referenceId, String message, Instant createdAt, Instant acknowledgedAt) {}
+            int id,
+            String type,
+            String localeKey,
+            Map<String, String> params,
+            NotificationLinkResponse link,
+            Instant createdAt,
+            Instant acknowledgedAt) {}
 }

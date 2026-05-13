@@ -36,6 +36,10 @@ public class RegistrationCodeRoutes implements Routes {
         this.codeService = codeService;
     }
 
+    private static boolean isBlank(String s) {
+        return s == null || s.isBlank();
+    }
+
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
         routes.get(prefix + "/registration-codes", this::list, Roles.ADMIN);
@@ -148,10 +152,6 @@ public class RegistrationCodeRoutes implements Routes {
         var request = ctx.bodyAsClass(SetGroupsRequest.class);
         List<Integer> groupIds = request.groupIds() != null ? request.groupIds() : List.of();
         ctx.json(codeService.setGroups(codeId, groupIds));
-    }
-
-    private static boolean isBlank(String s) {
-        return s == null || s.isBlank();
     }
 
     // -- Request/Response records --

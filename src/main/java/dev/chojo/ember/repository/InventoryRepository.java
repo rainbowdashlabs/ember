@@ -13,10 +13,14 @@ import dev.chojo.ember.entity.InventoryItem;
 import dev.chojo.ember.entity.InventoryItemHistory;
 import dev.chojo.ember.entity.InventoryRequirement;
 import dev.chojo.ember.entity.InventorySize;
+import dev.chojo.ember.entity.InventoryType;
 import jakarta.inject.Singleton;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+
+import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIMESTAMP;
 
 @Singleton
 public class InventoryRepository {
@@ -38,7 +42,7 @@ public class InventoryRepository {
                 .all();
     }
 
-    public Inventory create(int stationId, String name, String inventoryType, boolean hasSizes) {
+    public Inventory create(int stationId, String name, InventoryType inventoryType, boolean hasSizes) {
         return Query.query(
                         "INSERT INTO inventory(station_id, name, inventory_type, has_sizes) VALUES(:station_id, :name, :inventory_type, :has_sizes) RETURNING id, station_id, name, inventory_type, has_sizes;")
                 .single(Call.of()
@@ -51,7 +55,7 @@ public class InventoryRepository {
                 .orElseThrow();
     }
 
-    public boolean update(int id, String name, String inventoryType, boolean hasSizes) {
+    public boolean update(int id, String name, InventoryType inventoryType, boolean hasSizes) {
         return Query.query(
                         "UPDATE inventory SET name = :name, inventory_type = :inventory_type, has_sizes = :has_sizes WHERE id = :id;")
                 .single(Call.of()
@@ -113,24 +117,21 @@ public class InventoryRepository {
     // -- Items --
 
     public Optional<InventoryItem> findItemById(int id) {
-        return Query.query(
-                        "SELECT id, inventory_id, internal_id, name, size_id, metadata, assigned_to, lost_at FROM inventory_item WHERE id = :id;")
+        return Query.query("SELECT * FROM inventory_item WHERE id = :id;")
                 .single(Call.of().bind("id", id))
                 .map(InventoryItem.map())
                 .first();
     }
 
     public List<InventoryItem> findItems(int inventoryId) {
-        return Query.query(
-                        "SELECT id, inventory_id, internal_id, name, size_id, metadata, assigned_to, lost_at FROM inventory_item WHERE inventory_id = :inventory_id;")
+        return Query.query("SELECT * FROM inventory_item WHERE inventory_id = :inventory_id;")
                 .single(Call.of().bind("inventory_id", inventoryId))
                 .map(InventoryItem.map())
                 .all();
     }
 
     public List<InventoryItem> findItemsByMember(int memberId) {
-        return Query.query(
-                        "SELECT id, inventory_id, internal_id, name, size_id, metadata, assigned_to, lost_at FROM inventory_item WHERE assigned_to = :member_id;")
+        return Query.query("SELECT * FROM inventory_item WHERE assigned_to = :member_id;")
                 .single(Call.of().bind("member_id", memberId))
                 .map(InventoryItem.map())
                 .all();
@@ -138,23 +139,29 @@ public class InventoryRepository {
 
     public List<InventoryItem> findUnassignedItems(int inventoryId) {
         return Query.query(
-                        "SELECT id, inventory_id, internal_id, name, size_id, metadata, assigned_to, lost_at FROM inventory_item WHERE inventory_id = :inventory_id AND assigned_to IS NULL AND lost_at IS NULL ORDER BY name;")
+                        "SELECT * FROM inventory_item WHERE inventory_id = :inventory_id AND assigned_to IS NULL AND lost_at IS NULL ORDER BY name;")
                 .single(Call.of().bind("inventory_id", inventoryId))
                 .map(InventoryItem.map())
                 .all();
     }
 
     public InventoryItem createItem(int inventoryId, String internalId, String name, Integer sizeId, String metadata) {
+        return createItem(inventoryId, internalId, name, sizeId, metadata, null);
+    }
+
+    public InventoryItem createItem(
+            int inventoryId, String internalId, String name, Integer sizeId, String metadata, String itemSource) {
         return Query.query("""
-                            INSERT INTO inventory_item(inventory_id, internal_id, name, size_id, metadata)
-                            VALUES (:inventory_id, :internal_id, :name, :size_id, :metadata::JSONB)
-                            RETURNING id, inventory_id, internal_id, name, size_id, metadata, assigned_to, lost_at;""")
+                            INSERT INTO inventory_item(inventory_id, internal_id, name, size_id, metadata, item_source)
+                            VALUES (:inventory_id, :internal_id, :name, :size_id, :metadata::JSONB, :item_source)
+                            RETURNING *;""")
                 .single(Call.of()
                         .bind("inventory_id", inventoryId)
                         .bind("internal_id", internalId)
                         .bind("name", name)
                         .bind("size_id", sizeId)
-                        .bind("metadata", metadata != null ? metadata : "{}"))
+                        .bind("metadata", metadata != null ? metadata : "{}")
+                        .bind("item_source", itemSource))
                 .map(InventoryItem.map())
                 .first()
                 .orElseThrow();
@@ -187,7 +194,7 @@ public class InventoryRepository {
     }
 
     public boolean markLost(int id) {
-        return Query.query("UPDATE inventory_item SET lost_at = NOW() WHERE id = :id;")
+        return Query.query("UPDATE inventory_item SET lost_at = now() WHERE id = :id;")
                 .single(Call.of().bind("id", id))
                 .update()
                 .changed();
@@ -229,9 +236,23 @@ public class InventoryRepository {
                 .orElseThrow();
     }
 
+    public void createHistoryWithDates(
+            int itemId, int memberId, String memberName, Instant givenOut, Instant returned) {
+        Query.query("""
+                        INSERT INTO inventory_item_history(item_id, member_id, member_name, given_out, returned)
+                        VALUES(:itemId, :memberId, :memberName, :givenOut, :returned);""")
+                .single(Call.of()
+                        .bind("itemId", itemId)
+                        .bind("memberId", memberId)
+                        .bind("memberName", memberName)
+                        .bind("givenOut", givenOut, INSTANT_TIMESTAMP)
+                        .bind("returned", returned, INSTANT_TIMESTAMP))
+                .insert();
+    }
+
     public boolean returnHistory(int itemId, int memberId) {
         return Query.query(
-                        "UPDATE inventory_item_history SET returned = NOW() WHERE item_id = :itemId AND member_id = :memberId AND returned IS NULL;")
+                        "UPDATE inventory_item_history SET returned = now() WHERE item_id = :itemId AND member_id = :memberId AND returned IS NULL;")
                 .single(Call.of().bind("itemId", itemId).bind("memberId", memberId))
                 .update()
                 .changed();

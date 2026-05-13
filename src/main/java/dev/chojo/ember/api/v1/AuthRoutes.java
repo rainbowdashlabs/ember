@@ -36,6 +36,10 @@ public class AuthRoutes implements Routes {
         this.authService = authService;
     }
 
+    private static boolean isBlank(String s) {
+        return s == null || s.isBlank();
+    }
+
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
         routes.post(prefix + "/auth/register", this::register);
@@ -265,10 +269,6 @@ public class AuthRoutes implements Routes {
             throw new BadRequestResponse("Current password is incorrect");
         }
         ctx.json(new MessageResponse("Password changed"));
-    }
-
-    private static boolean isBlank(String s) {
-        return s == null || s.isBlank();
     }
 
     // -- Request/Response records --

@@ -20,6 +20,7 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import type {AttendanceTemplate, AttendanceTemplateField, EventCategory, MemberGroup, Role} from '@/api/types'
+import {Roles} from '@/api/types'
 import type {EventFieldDefault} from '@/api/events'
 import {attendance, events, memberGroups, stationMembers} from '@/api'
 import {useSession} from '@/composables/useSession'
@@ -125,7 +126,7 @@ async function loadData() {
   }
 }
 
-const RESTRICTION_ROLES = ['MEMBER', 'MEMBER_MANAGER', 'TEAM']
+const RESTRICTION_ROLES = [Roles.MEMBER, Roles.MEMBER_MANAGER, Roles.TEAM] as readonly string[]
 
 const roleFriendlyNames: Record<string, string> = {
   MEMBER: 'Mitglied', MEMBER_MANAGER: 'Mitgliedsmanager', TEAM: 'Team',

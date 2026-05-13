@@ -21,6 +21,7 @@ const emit = defineEmits<{
   delete: [field: ProfileField]
   reorder: [fromIndex: number, toIndex: number]
   toggleConfig: [field: ProfileField, key: string, value: boolean]
+  toggleKeepOnArchive: [field: ProfileField, value: boolean]
 }>()
 
 const fieldTypeOptions = [
@@ -50,7 +51,7 @@ function parseConfig(configStr: string | undefined): Record<string, unknown> {
   <div>
     <!-- Header row -->
     <div
-        class="grid grid-cols-[2rem_1fr_6rem_2.5rem_2.5rem_2.5rem_2.5rem_5rem] gap-0 items-center border-b border-bg-light-accent dark:border-bg-dark-accent text-sm px-1 py-2">
+        class="grid grid-cols-[2rem_1fr_6rem_2.5rem_2.5rem_2.5rem_2.5rem_2.5rem_5rem] gap-0 items-center border-b border-bg-light-accent dark:border-bg-dark-accent text-sm px-1 py-2">
       <div></div>
       <div class="font-medium px-2">{{ t('membersConfig.colName') }}</div>
       <div class="font-medium px-2">{{ t('membersConfig.colType') }}</div>
@@ -66,6 +67,9 @@ function parseConfig(configStr: string | undefined): Record<string, unknown> {
       <div :title="t('membersConfig.fieldOverview')" class="text-center">
         <font-awesome-icon :icon="['fas', 'list']" class="h-3 w-3"/>
       </div>
+      <div :title="t('membersConfig.fieldKeepOnArchive')" class="text-center">
+        <font-awesome-icon :icon="['fas', 'user-slash']" class="h-3 w-3"/>
+      </div>
       <div></div>
     </div>
 
@@ -73,14 +77,15 @@ function parseConfig(configStr: string | undefined): Record<string, unknown> {
     <DragList :items="fields" :key-fn="(f) => f.id" @reorder="(from, to) => emit('reorder', from, to)">
       <template #default="{ item: field }">
         <div
-            class="grid grid-cols-[2rem_1fr_6rem_2.5rem_2.5rem_2.5rem_2.5rem_5rem] gap-0 items-center border-b border-bg-light-accent/50 dark:border-bg-dark-accent/50 text-sm px-1 py-2 cursor-grab active:cursor-grabbing">
+            class="grid grid-cols-[2rem_1fr_6rem_2.5rem_2.5rem_2.5rem_2.5rem_2.5rem_5rem] gap-0 items-center border-b border-bg-light-accent/50 dark:border-bg-dark-accent/50 text-sm px-1 py-2 cursor-grab active:cursor-grabbing">
           <div class="flex justify-center">
             <font-awesome-icon :icon="['fas', 'grip-vertical']" class="text-(--text-muted) h-3.5 w-3.5"/>
           </div>
           <div class="font-medium px-2 truncate">{{ field.name }}</div>
           <div class="text-(--text-muted) px-2 truncate text-xs">{{ fieldTypeLabel(field.fieldType ?? '') }}</div>
           <div class="flex justify-center">
-            <input :checked="!!parseConfig(field.config).required" class="h-4 w-4 rounded border-2 border-bg-light-accent dark:border-bg-dark-accent accent-primary cursor-pointer"
+            <input :checked="!!parseConfig(field.config).required" :disabled="!!parseConfig(field.config).readonly"
+                   class="h-4 w-4 rounded border-2 border-bg-light-accent dark:border-bg-dark-accent accent-primary cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                    type="checkbox"
                    @change="emit('toggleConfig', field, 'required', ($event.target as HTMLInputElement).checked)"
                    @click.stop/>
@@ -88,7 +93,7 @@ function parseConfig(configStr: string | undefined): Record<string, unknown> {
           <div class="flex justify-center">
             <input :checked="!!parseConfig(field.config).readonly" class="h-4 w-4 rounded border-2 border-bg-light-accent dark:border-bg-dark-accent accent-primary cursor-pointer"
                    type="checkbox"
-                   @change="emit('toggleConfig', field, 'readonly', ($event.target as HTMLInputElement).checked)"
+                   @change="(e) => { const v = (e.target as HTMLInputElement).checked; emit('toggleConfig', field, 'readonly', v); if (v) emit('toggleConfig', field, 'required', false) }"
                    @click.stop/>
           </div>
           <div class="flex justify-center">
@@ -101,6 +106,12 @@ function parseConfig(configStr: string | undefined): Record<string, unknown> {
             <input :checked="!!parseConfig(field.config).overview" class="h-4 w-4 rounded border-2 border-bg-light-accent dark:border-bg-dark-accent accent-primary cursor-pointer"
                    type="checkbox"
                    @change="emit('toggleConfig', field, 'overview', ($event.target as HTMLInputElement).checked)"
+                   @click.stop/>
+          </div>
+          <div class="flex justify-center">
+            <input :checked="!!field.keepOnArchive" class="h-4 w-4 rounded border-2 border-bg-light-accent dark:border-bg-dark-accent accent-primary cursor-pointer"
+                   type="checkbox"
+                   @change="emit('toggleKeepOnArchive', field, ($event.target as HTMLInputElement).checked)"
                    @click.stop/>
           </div>
           <div class="flex items-center justify-end gap-1">

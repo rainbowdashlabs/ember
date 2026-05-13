@@ -31,9 +31,7 @@ public class TestSQL {
     void verifyDeployment() throws IOException, SQLException {
         try (var container = createContainer("postgres", "postgres")) {
             HikariDataSource dataSource = DataSourceCreator.create(PostgreSql.get())
-                    .configure(conf -> {
-                        conf.port(container.getFirstMappedPort());
-                    })
+                    .configure(conf -> conf.port(container.getFirstMappedPort()))
                     .create()
                     .usingUsername("postgres")
                     .usingPassword("postgres")

@@ -4,24 +4,47 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {computed, onMounted, ref} from 'vue'
+import {computed, onMounted, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
-import NeutralContainer from '@/components/container/NeutralContainer.vue'
+import SelectInput from '@/components/input/select/SelectInput.vue'
+import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
+import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import Modal from '@/components/feedback/Modal.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
-import ErrorBadge from '@/components/badge/ErrorBadge.vue'
-import {inventory} from '@/api'
+import InventoryItemCard from '@/views/stationview/inventory/InventoryItemCard.vue'
+import {inventory, managedMembers, exchanges} from '@/api'
+import type {ExchangeRequestEntry, InventorySize} from '@/api/types'
 import type {MyInventoryItem, MyRequirement} from '@/api/inventory'
+import type {ManagedMember} from '@/api/managedMembers'
+import {useSession} from '@/composables/useSession'
 
 const {t} = useI18n()
+const {isMemberManager, sessionInfo} = useSession()
 
 const items = ref<MyInventoryItem[]>([])
 const requirements = ref<MyRequirement[]>([])
+const managed = ref<ManagedMember[]>([])
+const selectedMemberId = ref<string>('')
+const activeExchanges = ref<ExchangeRequestEntry[]>([])
 const loading = ref(true)
 const error = ref('')
+
+const currentMemberId = computed(() => sessionInfo.value?.member?.id ?? 0)
+
+const viewingMemberId = computed(() => {
+  if (!selectedMemberId.value || selectedMemberId.value === String(currentMemberId.value)) return null
+  return Number(selectedMemberId.value)
+})
+
+const viewingMemberName = computed(() => {
+  if (!viewingMemberId.value) return null
+  return managed.value.find(m => m.id === viewingMemberId.value)?.name ?? ''
+})
 
 interface InventoryGroup {
   inventoryId: number
@@ -31,7 +54,6 @@ interface InventoryGroup {
 }
 
 const grouped = computed((): InventoryGroup[] => {
-  // Build groups based on requirements order
   const groups: InventoryGroup[] = []
   const usedInventoryIds = new Set<number>()
 
@@ -46,7 +68,6 @@ const grouped = computed((): InventoryGroup[] => {
     usedInventoryIds.add(req.inventoryId)
   }
 
-  // Items not covered by any requirement (extra items)
   const extraItems = items.value.filter(i => !usedInventoryIds.has(i.inventoryId))
   if (extraItems.length > 0) {
     const extraByInv = new Map<number, MyInventoryItem[]>()
@@ -72,12 +93,26 @@ async function loadData() {
   loading.value = true
   error.value = ''
   try {
-    const [myItems, myReqs] = await Promise.all([
-      inventory.myItems(),
-      inventory.myRequirements(),
-    ])
-    items.value = myItems
-    requirements.value = myReqs
+    try {
+      const allExch = await exchanges.listExchanges()
+      activeExchanges.value = allExch.filter(e => e.status !== 'EXCHANGED')
+    } catch { activeExchanges.value = [] }
+    const mid = viewingMemberId.value
+    if (mid) {
+      const [memberItems, memberReqs] = await Promise.all([
+        managedMembers.getMemberInventory(mid),
+        managedMembers.getMemberRequirements(mid),
+      ])
+      items.value = memberItems
+      requirements.value = memberReqs
+    } else {
+      const [myItems, myReqs] = await Promise.all([
+        inventory.myItems(),
+        inventory.myRequirements(),
+      ])
+      items.value = myItems
+      requirements.value = myReqs
+    }
   } catch {
     error.value = t('common.error')
   } finally {
@@ -85,13 +120,76 @@ async function loadData() {
   }
 }
 
-onMounted(loadData)
+onMounted(async () => {
+  if (isMemberManager()) {
+    try {
+      managed.value = await managedMembers.listManaged()
+    } catch { /* ignore */ }
+  }
+  selectedMemberId.value = String(currentMemberId.value)
+  await loadData()
+})
+
+watch(selectedMemberId, () => loadData())
+
+function itemExchange(itemId: number): ExchangeRequestEntry | undefined {
+  return activeExchanges.value.find(e => e.itemId === itemId)
+}
+
+// Exchange request
+const showExchangeModal = ref(false)
+const exchangeItem = ref<MyInventoryItem | null>(null)
+const exchangeReason = ref('')
+const exchangeNewSizeId = ref<string>('')
+const exchangeSizes = ref<InventorySize[]>([])
+const exchangeSuccess = ref('')
+
+async function openExchange(item: MyInventoryItem) {
+  exchangeItem.value = item
+  exchangeReason.value = ''
+  exchangeNewSizeId.value = ''
+  exchangeSizes.value = []
+  exchangeSuccess.value = ''
+  showExchangeModal.value = true
+  try {
+    exchangeSizes.value = await inventory.listSizes(item.inventoryId)
+  } catch { /* ignore */ }
+}
+
+function closeExchange() {
+  showExchangeModal.value = false
+  exchangeItem.value = null
+}
+
+async function submitExchange() {
+  if (!exchangeItem.value || !exchangeReason.value.trim()) return
+  try {
+    await exchanges.createExchange({
+      memberId: viewingMemberId.value ?? undefined,
+      itemId: exchangeItem.value.id,
+      inventoryId: exchangeItem.value.inventoryId,
+      oldSizeId: exchangeItem.value.sizeId ?? undefined,
+      newSizeId: exchangeNewSizeId.value ? Number(exchangeNewSizeId.value) : undefined,
+      reason: exchangeReason.value.trim(),
+    })
+    exchangeSuccess.value = t('profile.exchangeCreated')
+    closeExchange()
+  } catch { /* ignore */ }
+}
 </script>
 
 <template>
   <ViewContent>
     <div class="space-y-6">
-      <SectionHeader>{{ t('profile.inventory') }}</SectionHeader>
+      <div class="flex items-center justify-between flex-wrap gap-3">
+        <SectionHeader>
+          {{ viewingMemberName ? `${t('profile.inventory')} — ${viewingMemberName}` : t('profile.inventory') }}
+        </SectionHeader>
+        <SelectInput v-if="managed.length > 0" v-model="selectedMemberId" class="w-48 text-sm">
+          <option :value="String(currentMemberId)">{{ t('profile.myInventorySelf') }}</option>
+          <option v-for="m in managed" :key="m.id" :value="String(m.id)">{{ m.name || m.email }}</option>
+        </SelectInput>
+      </div>
 
       <Spinner v-if="loading" size="lg"/>
       <Alert v-if="error" variant="error">{{ error }}</Alert>
@@ -118,24 +216,45 @@ onMounted(loadData)
             </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-              <NeutralContainer
+              <InventoryItemCard
                   v-for="item in group.items"
                   :key="item.id"
-                  :class="item.lostAt ? 'opacity-60 border-error' : ''"
-              >
-                <div class="font-medium text-sm">
-                  {{ item.name }}
-                  <span v-if="item.sizeName" class="font-normal text-(--text-muted)">[{{ item.sizeName }}]</span>
-                </div>
-                <div v-if="item.internalId" class="text-xs text-(--text-muted)">{{ item.internalId }}</div>
-                <ErrorBadge v-if="item.lostAt" class="mt-1">
-                  {{ t('profile.lostSince') }} {{ new Date(item.lostAt).toLocaleDateString('de-DE') }}
-                </ErrorBadge>
-              </NeutralContainer>
+                  :item="item"
+                  :exchange="itemExchange(item.id) ?? null"
+                  :show-exchange-button="true"
+                  @request-exchange="openExchange"
+              />
             </div>
           </div>
         </div>
       </template>
+
+      <Alert v-if="exchangeSuccess" variant="success" class="mt-4">{{ exchangeSuccess }}</Alert>
+
+      <!-- Exchange request modal -->
+      <Modal v-model="showExchangeModal">
+        <div class="space-y-3">
+          <SectionHeader>{{ t('profile.requestExchange') }}</SectionHeader>
+          <p class="text-sm" v-if="exchangeItem">
+            {{ exchangeItem.inventoryName }} — {{ exchangeItem.name }}
+            <span class="text-(--text-muted)">[{{ exchangeItem.sizeName ?? t('common.unisize') }}]</span>
+          </p>
+          <div v-if="exchangeSizes.length > 0" class="space-y-1">
+            <label class="block text-sm font-medium">{{ t('exchanges.newSize') }}</label>
+            <SelectInput v-model="exchangeNewSizeId">
+              <option value="" disabled>{{ t('exchanges.selectNewSize') }}</option>
+              <option v-for="size in exchangeSizes" :key="size.id" :value="String(size.id)">{{ size.label }}</option>
+            </SelectInput>
+          </div>
+          <TextAreaInput v-model="exchangeReason" :placeholder="t('profile.exchangeReasonPlaceholder')" :rows="3" />
+          <div class="flex justify-end gap-2">
+            <SecondaryButton @click="closeExchange">{{ t('common.cancel') }}</SecondaryButton>
+            <PrimaryButton :disabled="!exchangeReason.trim() || (exchangeSizes.length > 0 && !exchangeNewSizeId)" @click="submitExchange">
+              {{ t('profile.submitExchange') }}
+            </PrimaryButton>
+          </div>
+        </div>
+      </Modal>
     </div>
   </ViewContent>
 </template>

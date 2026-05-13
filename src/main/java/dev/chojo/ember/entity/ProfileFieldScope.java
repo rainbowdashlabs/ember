@@ -9,5 +9,5 @@ public enum ProfileFieldScope {
     MEMBER,
     MEMBER_MANAGER,
     TEAM,
-    GROUP;
+    GROUP
 }

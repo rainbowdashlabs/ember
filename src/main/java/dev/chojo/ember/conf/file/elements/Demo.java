@@ -8,15 +8,16 @@ package dev.chojo.ember.conf.file.elements;
 import dev.chojo.ocular.override.Env;
 import dev.chojo.ocular.override.Overwrite;
 
+@SuppressWarnings({"FieldCanBeLocal", "FieldMayBeFinal"})
 public class Demo {
-    @Overwrite(env = @Env)
-    private boolean enabled = false;
-
     @Overwrite(env = @Env)
     private boolean dev = false;
 
     @Overwrite(env = @Env)
     private int resetIntervalHours = 1;
+
+    @Overwrite(env = @Env)
+    private boolean enabled = false;
 
     public boolean enabled() {
         return enabled;
@@ -28,5 +29,10 @@ public class Demo {
 
     public int resetIntervalHours() {
         return resetIntervalHours;
+    }
+
+    @Override
+    public String toString() {
+        return "Demo{" + "dev=" + dev + ", resetIntervalHours=" + resetIntervalHours + ", enabled=" + enabled + '}';
     }
 }

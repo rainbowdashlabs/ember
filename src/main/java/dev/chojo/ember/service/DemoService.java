@@ -14,8 +14,11 @@ import dev.chojo.ember.auth.PasswordHasher;
 import dev.chojo.ember.conf.file.elements.Database;
 import dev.chojo.ember.conf.file.elements.Demo;
 import dev.chojo.ember.entity.AttendanceEntry;
+import dev.chojo.ember.entity.AttendanceTemplate;
 import dev.chojo.ember.entity.CheckResult;
 import dev.chojo.ember.entity.ExchangeStatus;
+import dev.chojo.ember.entity.InventoryItem;
+import dev.chojo.ember.entity.InventoryType;
 import dev.chojo.ember.entity.ProfileFieldScope;
 import dev.chojo.ember.entity.StationMember;
 import dev.chojo.ember.repository.AccountRepository;
@@ -39,8 +42,11 @@ import org.slf4j.LoggerFactory;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
+import java.time.format.TextStyle;
+import java.time.temporal.IsoFields;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Random;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -173,6 +179,13 @@ public class DemoService {
         var station = stationRepository.create("Jugendfeuerwehr Musterstadt");
         stationRepository.updateTimezone(station.id(), "Europe/Berlin");
         stationRepository.updateLocale(station.id(), "de-DE");
+        try {
+            var logoBytes =
+                    java.nio.file.Files.readAllBytes(java.nio.file.Path.of("templates", "graphics", "logo.png"));
+            stationRepository.updateLogo(station.id(), logoBytes, "image/png");
+        } catch (java.io.IOException e) {
+            log.warn("Demo: Could not load logo.png", e);
+        }
 
         var adminMember = stationMemberRepository.create(station.id(), admin.id());
         var managerRole = stationMemberRepository.findRoleByName(Roles.MANAGER).orElseThrow();
@@ -210,34 +223,67 @@ public class DemoService {
 
         // -- Profile fields: MEMBER_MANAGER scope (Eltern) --
         var fieldTelefon = profileFieldRepository.create(
-                station.id(), "Telefonnummer", "text", "{}", 0, ProfileFieldScope.MEMBER_MANAGER);
+                station.id(),
+                "Mobilnummer",
+                "text",
+                "{\"overview\":true,\"required\":true}",
+                0,
+                ProfileFieldScope.MEMBER_MANAGER);
+        var fieldFestnetz = profileFieldRepository.create(
+                station.id(), "Festnetz", "text", "{}", 1, ProfileFieldScope.MEMBER_MANAGER);
         var fieldNewsletter = profileFieldRepository.create(
                 station.id(),
                 "Newsletter per Mail",
                 "boolean",
                 "{\"defaultValue\":true}",
-                1,
+                2,
                 ProfileFieldScope.MEMBER_MANAGER);
 
         // -- Profile fields: MEMBER scope (kids) --
-        var fieldAllergien =
-                profileFieldRepository.create(station.id(), "Allergien", "text", "{}", 0, ProfileFieldScope.MEMBER);
+        var fieldPersonalnummer = profileFieldRepository.create(
+                station.id(),
+                "Personalnummer",
+                "text",
+                "{\"readonly\":true,\"overview\":true}",
+                0,
+                ProfileFieldScope.MEMBER);
+        var fieldGeschlecht = profileFieldRepository.create(
+                station.id(),
+                "Geschlecht",
+                "select",
+                "{\"readonly\":true,\"overview\":true,\"options\":[\"männlich\",\"weiblich\",\"divers\"]}",
+                1,
+                ProfileFieldScope.MEMBER);
+        var fieldGeburtstag = profileFieldRepository.create(
+                station.id(),
+                "Geburtstag",
+                "date",
+                "{\"required\":true,\"overview\":true}",
+                2,
+                ProfileFieldScope.MEMBER);
+        var fieldAllergien = profileFieldRepository.create(
+                station.id(),
+                "Allergien",
+                "text",
+                "{\"overview\":true,\"notifyOnChange\":true}",
+                3,
+                ProfileFieldScope.MEMBER);
         var fieldLeistungsspange = profileFieldRepository.create(
-                station.id(), "Leistungsspange", "boolean", "{}", 1, ProfileFieldScope.MEMBER);
+                station.id(), "Leistungsspange", "boolean", "{\"readonly\":true}", 4, ProfileFieldScope.MEMBER);
         var fieldLeistungsspangeDatum = profileFieldRepository.create(
-                station.id(), "Leistungsspange Datum", "date", "{}", 2, ProfileFieldScope.MEMBER);
+                station.id(), "Leistungsspange Datum", "date", "{\"readonly\":true}", 5, ProfileFieldScope.MEMBER);
         var fieldJF1 = profileFieldRepository.create(
-                station.id(), "Jugendflamme 1", "boolean", "{}", 3, ProfileFieldScope.MEMBER);
+                station.id(), "Jugendflamme 1", "boolean", "{\"readonly\":true}", 6, ProfileFieldScope.MEMBER);
         var fieldJF1Datum = profileFieldRepository.create(
-                station.id(), "Jugendflamme 1 Datum", "date", "{}", 4, ProfileFieldScope.MEMBER);
+                station.id(), "Jugendflamme 1 Datum", "date", "{\"readonly\":true}", 7, ProfileFieldScope.MEMBER);
         var fieldJF2 = profileFieldRepository.create(
-                station.id(), "Jugendflamme 2", "boolean", "{}", 5, ProfileFieldScope.MEMBER);
+                station.id(), "Jugendflamme 2", "boolean", "{\"readonly\":true}", 8, ProfileFieldScope.MEMBER);
         var fieldJF2Datum = profileFieldRepository.create(
-                station.id(), "Jugendflamme 2 Datum", "date", "{}", 6, ProfileFieldScope.MEMBER);
+                station.id(), "Jugendflamme 2 Datum", "date", "{\"readonly\":true}", 9, ProfileFieldScope.MEMBER);
         var fieldJF3 = profileFieldRepository.create(
-                station.id(), "Jugendflamme 3", "boolean", "{}", 7, ProfileFieldScope.MEMBER);
+                station.id(), "Jugendflamme 3", "boolean", "{\"readonly\":true}", 10, ProfileFieldScope.MEMBER);
         var fieldJF3Datum = profileFieldRepository.create(
-                station.id(), "Jugendflamme 3 Datum", "date", "{}", 8, ProfileFieldScope.MEMBER);
+                station.id(), "Jugendflamme 3 Datum", "date", "{\"readonly\":true}", 11, ProfileFieldScope.MEMBER);
 
         // -- Users --
         // Betreuer (team role, in Betreuer group)
@@ -249,59 +295,53 @@ public class DemoService {
                 new DemoUser("Lisa", "Weber"),
                 new DemoUser("Michael", "Wagner"));
 
-        // Eltern (member_manager role, in Eltern group)
-        var eltern = List.of(
-                new DemoUser("Hans", "Berger"),
-                new DemoUser("Petra", "Frank"),
-                new DemoUser("Klaus", "Friedrich"),
-                new DemoUser("Monika", "Roth"),
-                new DemoUser("Jürgen", "Beck"),
-                new DemoUser("Ursula", "Lorenz"),
-                new DemoUser("Werner", "Baumann"),
-                new DemoUser("Ingrid", "Franke"),
-                new DemoUser("Helmut", "Albrecht"),
-                new DemoUser("Gerda", "Simon"));
+        // Families: parent + kids sharing the same last name
+        record Family(
+                String parentFirstName,
+                String lastName,
+                List<String> anfaengerKids,
+                List<String> fortgeschrittenKids) {}
+        var families = List.of(
+                new Family("Hans", "Berger", List.of("Tim", "Lena"), List.of("Mia")),
+                new Family("Petra", "Frank", List.of("Lukas"), List.of("Ben", "Laura")),
+                new Family("Klaus", "Schulze", List.of("Sophie", "Felix"), List.of()),
+                new Family("Monika", "Lehmann", List.of("Emma"), List.of("Markus")),
+                new Family("Jürgen", "König", List.of("Jonas", "Marie"), List.of("Nina")),
+                new Family("Ursula", "Huber", List.of("Niklas"), List.of("Christian", "Sandra")),
+                new Family("Werner", "Kaiser", List.of("Lea", "Paul"), List.of()),
+                new Family("Ingrid", "Peters", List.of("Hannah"), List.of("Tobias", "Katharina")),
+                new Family("Helmut", "Lang", List.of("Leon"), List.of("Andreas")),
+                new Family("Gerda", "Scholz", List.of(), List.of("Melanie", "Patrick")));
 
-        // Anfänger kids (member role, in Anfänger group)
-        var anfaenger = List.of(
-                new DemoUser("Tim", "Schulze"),
-                new DemoUser("Lena", "Maier"),
-                new DemoUser("Lukas", "Köhler"),
-                new DemoUser("Sophie", "Lehmann"),
-                new DemoUser("Felix", "König"),
-                new DemoUser("Emma", "Huber"),
-                new DemoUser("Jonas", "Kaiser"),
-                new DemoUser("Marie", "Fuchs"),
-                new DemoUser("Niklas", "Peters"),
-                new DemoUser("Lea", "Lang"),
-                new DemoUser("Paul", "Scholz"),
-                new DemoUser("Hannah", "Möller"),
-                new DemoUser("Leon", "Weiß"));
-
-        // Fortgeschritten kids (member role, in Fortgeschritten group)
-        var fortgeschritten = List.of(
-                new DemoUser("Mia", "Jung"),
-                new DemoUser("Ben", "Hahn"),
-                new DemoUser("Laura", "Koch"),
-                new DemoUser("Markus", "Bauer"),
-                new DemoUser("Nina", "Richter"),
-                new DemoUser("Christian", "Wolf"),
-                new DemoUser("Sandra", "Schröder"),
-                new DemoUser("Tobias", "Neumann"),
-                new DemoUser("Katharina", "Schwarz"),
-                new DemoUser("Andreas", "Zimmermann"),
-                new DemoUser("Melanie", "Braun"),
-                new DemoUser("Patrick", "Krüger"));
+        // Build user lists from families
+        var eltern = new ArrayList<DemoUser>();
+        var anfaenger = new ArrayList<DemoUser>();
+        var fortgeschritten = new ArrayList<DemoUser>();
+        // Track which kids belong to which parent index for manager assignment
+        var familyKidIndices = new ArrayList<List<Integer>>(); // per family: indices into allKids
+        int kidCounter = 0;
+        for (var family : families) {
+            eltern.add(new DemoUser(family.parentFirstName(), family.lastName()));
+            var kidIndices = new ArrayList<Integer>();
+            for (var kidName : family.anfaengerKids()) {
+                anfaenger.add(new DemoUser(kidName, family.lastName()));
+                kidIndices.add(kidCounter++);
+            }
+            for (var kidName : family.fortgeschrittenKids()) {
+                fortgeschritten.add(new DemoUser(kidName, family.lastName()));
+                kidIndices.add(kidCounter++);
+            }
+            familyKidIndices.add(kidIndices);
+        }
 
         var betreuerMembers = new ArrayList<StationMember>();
         var elternMembers = new ArrayList<StationMember>();
         var anfaengerMembers = new ArrayList<StationMember>();
         var fortgeschrittenMembers = new ArrayList<StationMember>();
 
-        // Create Betreuer
+        // Create Betreuer (TEAM — not MEMBER)
         for (var u : betreuer) {
-            var m = createUser(u.firstName(), u.lastName(), hash, station.id(), loginRole.id(), memberRole.id());
-            stationMemberRepository.addRole(m.id(), teamRole.id());
+            var m = createUser(u.firstName(), u.lastName(), hash, station.id(), loginRole.id(), teamRole.id());
             stationMemberRepository.addRole(m.id(), attendanceMgmt.id());
             stationMemberRepository.addRole(m.id(), eventMgmt.id());
             stationMemberRepository.addRole(m.id(), memberMgmt.id());
@@ -324,24 +364,59 @@ public class DemoService {
                     jsonStr(LocalDate.now().plusYears(rng.nextInt(5) + 1).toString()));
         }
 
-        // Create Eltern
+        // Create Eltern (member managers)
+        boolean firstEltern = true;
         for (var u : eltern) {
             var m = createUser(u.firstName(), u.lastName(), hash, station.id(), loginRole.id(), memberRole.id());
             stationMemberRepository.addRole(m.id(), memberManagerRole.id());
             memberGroupRepository.addMember(groupEltern.id(), m.id());
             elternMembers.add(m);
 
-            // Profile data
+            // Profile data — skip Mobilnummer for first member manager (incomplete profile)
+            if (!firstEltern) {
+                profileFieldRepository.setValue(
+                        m.id(), fieldTelefon.id(), jsonStr("0151 " + (10000000 + rng.nextInt(90000000))));
+            }
+            firstEltern = false;
             profileFieldRepository.setValue(
-                    m.id(), fieldTelefon.id(), jsonStr("0151 " + (10000000 + rng.nextInt(90000000))));
+                    m.id(), fieldFestnetz.id(), jsonStr("0208 " + (1000000 + rng.nextInt(9000000))));
             profileFieldRepository.setValue(m.id(), fieldNewsletter.id(), Boolean.toString(rng.nextBoolean()));
+            // Geburtstag (required MEMBER field — Eltern also have MEMBER role)
+            profileFieldRepository.setValue(
+                    m.id(),
+                    fieldGeburtstag.id(),
+                    jsonStr(LocalDate.now()
+                            .minusYears(30 + rng.nextInt(20))
+                            .minusDays(rng.nextInt(365))
+                            .toString()));
         }
 
         // Create Anfänger
+        int personalNr = 100000 + rng.nextInt(900000);
+        boolean firstAnfaenger = true;
         for (var u : anfaenger) {
             var m = createUser(u.firstName(), u.lastName(), hash, station.id(), loginRole.id(), memberRole.id());
             memberGroupRepository.addMember(groupAnfaenger.id(), m.id());
             anfaengerMembers.add(m);
+
+            // Personalnummer
+            profileFieldRepository.setValue(m.id(), fieldPersonalnummer.id(), jsonStr(String.valueOf(personalNr++)));
+
+            // Geburtstag — skip first Anfänger (incomplete profile)
+            if (!firstAnfaenger) {
+                profileFieldRepository.setValue(
+                        m.id(),
+                        fieldGeburtstag.id(),
+                        jsonStr(LocalDate.now()
+                                .minusYears(10 + rng.nextInt(6))
+                                .minusDays(rng.nextInt(365))
+                                .toString()));
+            }
+            firstAnfaenger = false;
+
+            // Geschlecht
+            profileFieldRepository.setValue(
+                    m.id(), fieldGeschlecht.id(), jsonStr(rng.nextBoolean() ? "männlich" : "weiblich"));
 
             // Some have Jugendflamme 1
             if (rng.nextInt(3) == 0) {
@@ -361,6 +436,22 @@ public class DemoService {
             var m = createUser(u.firstName(), u.lastName(), hash, station.id(), loginRole.id(), memberRole.id());
             memberGroupRepository.addMember(groupFortgeschritten.id(), m.id());
             fortgeschrittenMembers.add(m);
+
+            // Personalnummer
+            profileFieldRepository.setValue(m.id(), fieldPersonalnummer.id(), jsonStr(String.valueOf(personalNr++)));
+
+            // Geburtstag
+            profileFieldRepository.setValue(
+                    m.id(),
+                    fieldGeburtstag.id(),
+                    jsonStr(LocalDate.now()
+                            .minusYears(12 + rng.nextInt(6))
+                            .minusDays(rng.nextInt(365))
+                            .toString()));
+
+            // Geschlecht
+            profileFieldRepository.setValue(
+                    m.id(), fieldGeschlecht.id(), jsonStr(rng.nextBoolean() ? "männlich" : "weiblich"));
 
             // Most have JF1, some JF2, few JF3
             profileFieldRepository.setValue(m.id(), fieldJF1.id(), "true");
@@ -392,22 +483,17 @@ public class DemoService {
             }
         }
 
-        // -- Manager assignments: each Eltern manages 2-3 kids --
+        // -- Manager assignments: each Eltern manages their own kids (same last name) --
         var allKids = new ArrayList<>(anfaengerMembers);
         allKids.addAll(fortgeschrittenMembers);
-        int kidIdx = 0;
-        for (var elternMember : elternMembers) {
-            int count = 2 + rng.nextInt(2); // 2 or 3 kids
-            for (int i = 0; i < count && kidIdx < allKids.size(); i++, kidIdx++) {
-                stationMemberRepository.addManager(
-                        elternMember.id(), allKids.get(kidIdx).id());
+        for (int fi = 0; fi < families.size(); fi++) {
+            var elternMember = elternMembers.get(fi);
+            for (int kidIndex : familyKidIndices.get(fi)) {
+                if (kidIndex < allKids.size()) {
+                    stationMemberRepository.addManager(
+                            elternMember.id(), allKids.get(kidIndex).id());
+                }
             }
-        }
-        // Some Betreuer also manage remaining kids
-        for (int i = 0; kidIdx < allKids.size(); kidIdx++, i++) {
-            stationMemberRepository.addManager(
-                    betreuerMembers.get(i % betreuerMembers.size()).id(),
-                    allKids.get(kidIdx).id());
         }
 
         // -- Attendance templates --
@@ -488,7 +574,13 @@ public class DemoService {
                 betreuerMembers);
 
         // -- Inventory --
-        seedInventory(station.id(), memberRole.id(), rng, anfaengerMembers, fortgeschrittenMembers);
+        seedInventory(
+                station.id(),
+                rng,
+                anfaengerMembers,
+                fortgeschrittenMembers,
+                groupAnfaenger.id(),
+                groupFortgeschritten.id());
 
         // -- Inventory checks (done by Betreuer) --
         seedInventoryChecks(station.id(), rng, betreuerMembers, anfaengerMembers, fortgeschrittenMembers);
@@ -604,7 +696,7 @@ public class DemoService {
         var comment1 = newsRepository.createComment(
                 news1.id(), null, elternMembers.get(0).id(), "Super, endlich eine moderne Plattform!");
         newsRepository.createComment(
-                news1.id(), comment1.id(), betreuerMembers.get(0).id(), "Danke! Bei Fragen einfach melden.");
+                news1.id(), comment1.id(), betreuerMembers.getFirst().id(), "Danke! Bei Fragen einfach melden.");
         newsRepository.createComment(
                 news1.id(), null, elternMembers.get(1).id(), "Kann man hier auch Abwesenheiten eintragen?");
         newsRepository.createComment(
@@ -647,39 +739,54 @@ public class DemoService {
                     tagErsthelfer.id(), betreuerMembers.get(i).id());
         }
 
-        // -- Equipment Exchange Requests --
-        // A kid requesting a helmet exchange
-        var helmItems =
-                inventoryRepository.findItemsByMember(anfaengerMembers.get(0).id());
-        if (!helmItems.isEmpty()) {
-            var helmExchange = exchangeRepository.create(
-                    station.id(),
-                    anfaengerMembers.get(0).id(),
-                    helmItems.getFirst().id(),
-                    helmItems.getFirst().inventoryId(),
-                    null,
-                    "Helm ist zu klein geworden");
-            // Manager progresses it
-            exchangeRepository.updateStatus(helmExchange.id(), ExchangeStatus.RECEIVED);
-            exchangeRepository.createLog(
-                    helmExchange.id(),
-                    ExchangeStatus.ANNOUNCED,
-                    ExchangeStatus.RECEIVED,
-                    betreuerMembers.get(0).id(),
-                    "Neuer Helm bestellt");
+        // -- Equipment Exchange Requests (~80% of members) --
+        var allKidsForExchange = new ArrayList<>(anfaengerMembers);
+        allKidsForExchange.addAll(fortgeschrittenMembers);
+        var exchangeReasons = List.of(
+                "Zu klein geworden",
+                "Beschädigt",
+                "Verschlissen",
+                "Falsche Größe erhalten",
+                "Verloren und brauche Ersatz",
+                "Riss im Material",
+                "Reißverschluss defekt");
+        var exchangeStatuses = List.of(
+                ExchangeStatus.ANNOUNCED,
+                ExchangeStatus.ANNOUNCED,
+                ExchangeStatus.RECEIVED,
+                ExchangeStatus.ANNOUNCED,
+                ExchangeStatus.RECEIVED);
+        int exchangeCount = 0;
+        for (var kid : allKidsForExchange) {
+            if (rng.nextInt(5) == 0) continue; // ~80% get an exchange
+            var memberItems = inventoryRepository.findItemsByMember(kid.id());
+            if (memberItems.isEmpty()) continue;
+            var item = memberItems.get(rng.nextInt(memberItems.size()));
+            var reason = exchangeReasons.get(rng.nextInt(exchangeReasons.size()));
+            // Determine new size (sometimes same, sometimes different)
+            Integer newSizeId = item.sizeId();
+            if (item.sizeId() != null && rng.nextBoolean()) {
+                var sizes = inventoryRepository.findSizes(item.inventoryId());
+                if (!sizes.isEmpty()) {
+                    newSizeId = sizes.get(rng.nextInt(sizes.size())).id();
+                }
+            }
+            var exchange = exchangeRepository.create(
+                    station.id(), kid.id(), item.id(), item.inventoryId(), item.sizeId(), newSizeId, reason);
+            // Progress some exchanges
+            var targetStatus = exchangeStatuses.get(rng.nextInt(exchangeStatuses.size()));
+            if (targetStatus != ExchangeStatus.ANNOUNCED) {
+                exchangeRepository.updateStatus(exchange.id(), ExchangeStatus.RECEIVED);
+                exchangeRepository.createLog(
+                        exchange.id(),
+                        ExchangeStatus.ANNOUNCED,
+                        ExchangeStatus.RECEIVED,
+                        betreuerMembers.get(rng.nextInt(betreuerMembers.size())).id(),
+                        "In Bearbeitung");
+            }
+            exchangeCount++;
         }
-        // Another kid requesting blouson exchange
-        var blousonItems = inventoryRepository.findItemsByMember(
-                fortgeschrittenMembers.get(0).id());
-        if (blousonItems.size() > 1) {
-            exchangeRepository.create(
-                    station.id(),
-                    fortgeschrittenMembers.get(0).id(),
-                    blousonItems.get(1).id(),
-                    blousonItems.get(1).inventoryId(),
-                    null,
-                    "Blouson hat einen Riss");
-        }
+        log.info("Demo: Created {} exchange requests", exchangeCount);
 
         // -- Equipment Procurement --
         var inventories = inventoryRepository.findByStation(station.id());
@@ -696,6 +803,23 @@ public class DemoService {
                         anfaengerMembers.get(2).id(),
                         sizes.isEmpty() ? null : sizes.get(2 % sizes.size()).id(),
                         "Handschuhe verloren");
+            }
+        }
+
+        // Procurement for members missing Sporttasche
+        var sporttascheInv =
+                inventories.stream().filter(i -> "Sporttasche".equals(i.name())).findFirst();
+        if (sporttascheInv.isPresent()) {
+            var allKidsForProcurement = new ArrayList<>(anfaengerMembers);
+            allKidsForProcurement.addAll(fortgeschrittenMembers);
+            for (var kid : allKidsForProcurement) {
+                var items = inventoryRepository.findItemsByMember(kid.id());
+                boolean hasSporttasche = items.stream()
+                        .anyMatch(i -> i.inventoryId() == sporttascheInv.get().id());
+                if (!hasSporttasche) {
+                    procurementRepository.create(
+                            station.id(), sporttascheInv.get().id(), kid.id(), null, "Sporttasche fehlt");
+                }
             }
         }
 
@@ -717,9 +841,9 @@ public class DemoService {
 
     private void seedAttendanceSessions(
             Random rng,
-            dev.chojo.ember.entity.AttendanceTemplate templateAnfaenger,
-            dev.chojo.ember.entity.AttendanceTemplate templateFort,
-            dev.chojo.ember.entity.AttendanceTemplate templateGesamt,
+            AttendanceTemplate templateAnfaenger,
+            AttendanceTemplate templateFort,
+            AttendanceTemplate templateGesamt,
             List<StationMember> anfaenger,
             List<StationMember> fortgeschritten,
             List<StationMember> betreuer) {
@@ -732,7 +856,7 @@ public class DemoService {
         int sessionCount = 0;
 
         for (LocalDate date = startDate; date.isBefore(today); date = date.plusDays(1)) {
-            int weekOfYear = date.get(java.time.temporal.IsoFields.WEEK_OF_WEEK_BASED_YEAR);
+            int weekOfYear = date.get(IsoFields.WEEK_OF_WEEK_BASED_YEAR);
             if (weekOfYear >= 28 && weekOfYear <= 33) continue; // summer break
 
             int dow = date.getDayOfWeek().getValue();
@@ -788,8 +912,7 @@ public class DemoService {
                         end,
                         null,
                         "Gesamtübung "
-                                + date.getMonth()
-                                        .getDisplayName(java.time.format.TextStyle.FULL, java.util.Locale.GERMAN)
+                                + date.getMonth().getDisplayName(TextStyle.FULL, Locale.GERMAN)
                                 + " " + date.getYear());
                 for (var m : anfaenger) {
                     var status = rng.nextInt(10) < 7
@@ -827,9 +950,9 @@ public class DemoService {
 
         // Some Betreuer checked some kids
         int checkedCount = 0;
-        for (int i = 0; i < allKids.size(); i++) {
+        for (StationMember allKid : allKids) {
             if (rng.nextInt(3) != 0) continue; // ~1/3 of kids have been checked
-            var kid = allKids.get(i);
+            var kid = allKid;
             var checker = betreuer.get(rng.nextInt(betreuer.size()));
             var check = inventoryCheckRepository.createCheck(stationId, kid.id(), checker.id());
 
@@ -847,6 +970,9 @@ public class DemoService {
                 }
                 String note = result == CheckResult.LOST ? "Seit letzter Übung vermisst" : "";
                 inventoryCheckRepository.createCheckItem(check.id(), item.id(), item.inventoryId(), result, note);
+                if (result == CheckResult.LOST) {
+                    inventoryRepository.markLost(item.id());
+                }
             }
             checkedCount++;
         }
@@ -855,143 +981,232 @@ public class DemoService {
 
     private void seedInventory(
             int stationId,
-            int memberRoleId,
             Random rng,
             List<StationMember> anfaenger,
-            List<StationMember> fortgeschritten) {
+            List<StationMember> fortgeschritten,
+            int anfaengerGroupId,
+            int fortgeschrittenGroupId) {
         // Sizes reference from existing data
-        var helmSizes = List.of("XS", "S", "M", "L");
         var kleidungSizes = List.of("140", "146", "152", "158", "164", "170", "176", "182");
         var parkaSizes = List.of("XXXXS", "XXXS", "XXS", "XS", "S", "M", "L");
         var handschuhSizes = List.of("4", "5", "6", "7", "8", "9", "10");
         var stiefelSizes = List.of("34", "35", "36", "37", "38", "39", "40", "41", "42", "43");
+        var tshirtSizes = List.of("128", "140", "152", "164", "176");
 
         // Create inventories
-        var helm = inventoryRepository.create(stationId, "Helm", "external", true);
-        for (int i = 0; i < helmSizes.size(); i++) inventoryRepository.createSize(helm.id(), helmSizes.get(i), i, "");
+        var helm = inventoryRepository.create(stationId, "Helm", InventoryType.MIXED, false);
 
-        var blouson = inventoryRepository.create(stationId, "Blouson", "external", true);
+        var blouson = inventoryRepository.create(stationId, "Blouson", InventoryType.EXTERNAL, true);
         for (int i = 0; i < kleidungSizes.size(); i++)
             inventoryRepository.createSize(blouson.id(), kleidungSizes.get(i), i, "");
 
-        var parka = inventoryRepository.create(stationId, "Parka", "external", true);
+        var parka = inventoryRepository.create(stationId, "Parka", InventoryType.EXTERNAL, true);
         for (int i = 0; i < parkaSizes.size(); i++)
             inventoryRepository.createSize(parka.id(), parkaSizes.get(i), i, "");
 
-        var latzhose = inventoryRepository.create(stationId, "Latzhose", "external", true);
+        var latzhose = inventoryRepository.create(stationId, "Latzhose", InventoryType.EXTERNAL, true);
         for (int i = 0; i < kleidungSizes.size(); i++)
             inventoryRepository.createSize(latzhose.id(), kleidungSizes.get(i), i, "");
 
-        var handschuhe = inventoryRepository.create(stationId, "Handschuhe", "external", true);
+        var handschuhe = inventoryRepository.create(stationId, "Handschuhe", InventoryType.MIXED, true);
         for (int i = 0; i < handschuhSizes.size(); i++)
             inventoryRepository.createSize(handschuhe.id(), handschuhSizes.get(i), i, "");
 
-        var stiefel = inventoryRepository.create(stationId, "Stiefel", "internal", true);
+        var stiefel = inventoryRepository.create(stationId, "Stiefel", InventoryType.INTERNAL, true);
         for (int i = 0; i < stiefelSizes.size(); i++)
             inventoryRepository.createSize(stiefel.id(), stiefelSizes.get(i), i, "");
 
-        var sporttasche = inventoryRepository.create(stationId, "Sporttasche", "internal", false);
+        var sporttasche = inventoryRepository.create(stationId, "Sporttasche", InventoryType.INTERNAL, false);
 
-        // Requirements: every member needs 1 of each
-        inventoryRepository.createRequirement(helm.id(), memberRoleId, 0, 1);
-        inventoryRepository.createRequirement(blouson.id(), memberRoleId, 0, 1);
-        inventoryRepository.createRequirement(parka.id(), memberRoleId, 0, 1);
-        inventoryRepository.createRequirement(latzhose.id(), memberRoleId, 0, 1);
-        inventoryRepository.createRequirement(handschuhe.id(), memberRoleId, 0, 1);
-        inventoryRepository.createRequirement(stiefel.id(), memberRoleId, 0, 1);
-        inventoryRepository.createRequirement(sporttasche.id(), memberRoleId, 0, 1);
+        var tshirt = inventoryRepository.create(stationId, "T-Shirt", InventoryType.INTERNAL, true);
+        for (int i = 0; i < tshirtSizes.size(); i++)
+            inventoryRepository.createSize(tshirt.id(), tshirtSizes.get(i), i, "");
+
+        // Requirements: Anfänger and Fortgeschritten members each need 1 of each (2 T-shirts)
+        for (int groupId : List.of(anfaengerGroupId, fortgeschrittenGroupId)) {
+            inventoryRepository.createRequirement(helm.id(), 0, groupId, 1);
+            inventoryRepository.createRequirement(blouson.id(), 0, groupId, 1);
+            inventoryRepository.createRequirement(parka.id(), 0, groupId, 1);
+            inventoryRepository.createRequirement(latzhose.id(), 0, groupId, 1);
+            inventoryRepository.createRequirement(handschuhe.id(), 0, groupId, 1);
+            inventoryRepository.createRequirement(stiefel.id(), 0, groupId, 1);
+            inventoryRepository.createRequirement(sporttasche.id(), 0, groupId, 1);
+            inventoryRepository.createRequirement(tshirt.id(), 0, groupId, 2);
+        }
 
         // Create items and assign to members
         var allKids = new ArrayList<>(anfaenger);
         allKids.addAll(fortgeschritten);
 
         int itemCounter = 1;
-        for (var member : allKids) {
-            // Assign random sizes based on member index for determinism
-            int idx = allKids.indexOf(member);
-            var helmSizeList = inventoryRepository.findSizes(helm.id());
-            var blousonSizeList = inventoryRepository.findSizes(blouson.id());
-            var parkaSizeList = inventoryRepository.findSizes(parka.id());
-            var latzhoseSizeList = inventoryRepository.findSizes(latzhose.id());
-            var handschuheSizeList = inventoryRepository.findSizes(handschuhe.id());
-            var stiefelSizeList = inventoryRepository.findSizes(stiefel.id());
+        var blousonSizeList = inventoryRepository.findSizes(blouson.id());
+        var parkaSizeList = inventoryRepository.findSizes(parka.id());
+        var latzhoseSizeList = inventoryRepository.findSizes(latzhose.id());
+        var handschuheSizeList = inventoryRepository.findSizes(handschuhe.id());
+        var stiefelSizeList = inventoryRepository.findSizes(stiefel.id());
+        var tshirtSizeList = inventoryRepository.findSizes(tshirt.id());
 
-            // Helm
+        for (var member : allKids) {
+            int idx = allKids.indexOf(member);
+
+            // Helm (MIXED, no size) — station-provided = INTERNAL
             var helmItem = inventoryRepository.createItem(
-                    helm.id(),
-                    "H-" + String.format("%03d", itemCounter++),
-                    "Helm " + helmSizes.get(idx % helmSizes.size()),
-                    helmSizeList.get(idx % helmSizeList.size()).id(),
-                    null);
+                    helm.id(), "H-" + String.format("%03d", itemCounter++), "Helm", null, null, "INTERNAL");
             inventoryRepository.assignItem(helmItem.id(), member.id());
 
-            // Blouson
+            // Blouson (EXTERNAL)
             var blousonItem = inventoryRepository.createItem(
                     blouson.id(),
                     "BL-" + String.format("%03d", itemCounter++),
                     "Blouson " + kleidungSizes.get(idx % kleidungSizes.size()),
                     blousonSizeList.get(idx % blousonSizeList.size()).id(),
-                    null);
+                    null,
+                    "EXTERNAL");
             inventoryRepository.assignItem(blousonItem.id(), member.id());
 
-            // Parka
+            // Parka (EXTERNAL)
             var parkaItem = inventoryRepository.createItem(
                     parka.id(),
                     "PA-" + String.format("%03d", itemCounter++),
                     "Parka " + parkaSizes.get(idx % parkaSizes.size()),
                     parkaSizeList.get(idx % parkaSizeList.size()).id(),
-                    null);
+                    null,
+                    "EXTERNAL");
             inventoryRepository.assignItem(parkaItem.id(), member.id());
 
-            // Latzhose
+            // Latzhose (EXTERNAL)
             var latzItem = inventoryRepository.createItem(
                     latzhose.id(),
                     "LH-" + String.format("%03d", itemCounter++),
                     "Latzhose " + kleidungSizes.get(idx % kleidungSizes.size()),
                     latzhoseSizeList.get(idx % latzhoseSizeList.size()).id(),
-                    null);
+                    null,
+                    "EXTERNAL");
             inventoryRepository.assignItem(latzItem.id(), member.id());
 
-            // Handschuhe
+            // Handschuhe (MIXED) — station-provided = INTERNAL
             var handschuhItem = inventoryRepository.createItem(
                     handschuhe.id(),
                     "HS-" + String.format("%03d", itemCounter++),
                     "Handschuhe " + handschuhSizes.get(idx % handschuhSizes.size()),
                     handschuheSizeList.get(idx % handschuheSizeList.size()).id(),
-                    null);
+                    null,
+                    "INTERNAL");
             inventoryRepository.assignItem(handschuhItem.id(), member.id());
 
-            // Stiefel
+            // Stiefel (INTERNAL)
             var stiefelItem = inventoryRepository.createItem(
                     stiefel.id(),
                     "ST-" + String.format("%03d", itemCounter++),
                     "Stiefel " + stiefelSizes.get(idx % stiefelSizes.size()),
                     stiefelSizeList.get(idx % stiefelSizeList.size()).id(),
-                    null);
+                    null,
+                    "INTERNAL");
             inventoryRepository.assignItem(stiefelItem.id(), member.id());
 
-            // Sporttasche (no size)
-            var tasche = inventoryRepository.createItem(
-                    sporttasche.id(), "SP-" + String.format("%03d", itemCounter++), "Sporttasche", null, null);
-            inventoryRepository.assignItem(tasche.id(), member.id());
+            // T-Shirt (INTERNAL, 2 per member)
+            for (int t = 0; t < 2; t++) {
+                var tshirtItem = inventoryRepository.createItem(
+                        tshirt.id(),
+                        "TS-" + String.format("%03d", itemCounter++),
+                        "T-Shirt " + tshirtSizes.get(idx % tshirtSizes.size()),
+                        tshirtSizeList.get(idx % tshirtSizeList.size()).id(),
+                        null,
+                        "INTERNAL");
+                inventoryRepository.assignItem(tshirtItem.id(), member.id());
+            }
+
+            // Sporttasche (INTERNAL, ~70% get one, rest need procurement)
+            if (rng.nextInt(10) < 7) {
+                var tasche = inventoryRepository.createItem(
+                        sporttasche.id(),
+                        "SP-" + String.format("%03d", itemCounter++),
+                        "Sporttasche",
+                        null,
+                        null,
+                        "INTERNAL");
+                inventoryRepository.assignItem(tasche.id(), member.id());
+            }
         }
 
-        // Add some unassigned spare items
+        // Add some unassigned spare items (INTERNAL)
         for (int i = 0; i < 5; i++) {
-            var helmSizeList = inventoryRepository.findSizes(helm.id());
             inventoryRepository.createItem(
-                    helm.id(),
-                    "H-" + String.format("%03d", itemCounter++),
-                    "Helm Ersatz",
-                    helmSizeList.get(rng.nextInt(helmSizeList.size())).id(),
-                    null);
+                    helm.id(), "H-" + String.format("%03d", itemCounter++), "Helm Ersatz", null, null, "INTERNAL");
         }
         for (int i = 0; i < 3; i++) {
             inventoryRepository.createItem(
-                    sporttasche.id(), "SP-" + String.format("%03d", itemCounter++), "Sporttasche Ersatz", null, null);
+                    sporttasche.id(),
+                    "SP-" + String.format("%03d", itemCounter++),
+                    "Sporttasche Ersatz",
+                    null,
+                    null,
+                    "INTERNAL");
         }
 
-        log.info("Demo: Created {} inventory items across 7 inventories", itemCounter - 1);
+        // Add one personally owned Handschuh per size (MIXED → EXTERNAL = personally owned)
+        var handschuhSizeListOwned = inventoryRepository.findSizes(handschuhe.id());
+        for (var size : handschuhSizeListOwned) {
+            var kid = allKids.get(rng.nextInt(allKids.size()));
+            var ownedGlove = inventoryRepository.createItem(
+                    handschuhe.id(),
+                    "HS-" + String.format("%03d", itemCounter++),
+                    "Handschuhe (eigen) " + size.label(),
+                    size.id(),
+                    "{\"owned\":true}",
+                    "EXTERNAL");
+            inventoryRepository.assignItem(ownedGlove.id(), kid.id());
+        }
+
+        // Generate item assignment history for internal items
+        // For ~40% of items, create a history of 1-3 previous owners
+        var internalInventoryIds = List.of(helm.id(), stiefel.id(), sporttasche.id(), handschuhe.id());
+        var allInternalItems = new ArrayList<InventoryItem>();
+        for (int invId : internalInventoryIds) {
+            allInternalItems.addAll(inventoryRepository.findItems(invId));
+        }
+
+        int historyCount = 0;
+        for (var item : allInternalItems) {
+            if (item.assignedTo() == null) continue;
+            if (rng.nextInt(10) < 6) continue; // skip 60%
+
+            int prevOwnerCount = 1 + rng.nextInt(3);
+            Instant cursor = Instant.now().minus(java.time.Duration.ofDays(365 + rng.nextInt(730)));
+
+            for (int h = 0; h < prevOwnerCount; h++) {
+                var prevOwner = allKids.get(rng.nextInt(allKids.size()));
+                var prevAccount =
+                        accountRepository.findById(prevOwner.accountId()).orElse(null);
+                String prevName = prevAccount != null
+                        ? (prevAccount.firstName() + " " + prevAccount.lastName()).trim()
+                        : "#" + prevOwner.id();
+
+                Instant givenOut = cursor;
+                cursor = cursor.plus(java.time.Duration.ofDays(30 + rng.nextInt(180)));
+                Instant returned = cursor;
+                cursor = cursor.plus(java.time.Duration.ofDays(1 + rng.nextInt(14)));
+
+                inventoryRepository.createHistoryWithDates(item.id(), prevOwner.id(), prevName, givenOut, returned);
+                historyCount++;
+            }
+
+            // Current owner — given out after last return, no return date
+            var currentAccount = accountRepository
+                    .findById(allKids.stream()
+                            .filter(m -> m.id() == item.assignedTo())
+                            .findFirst()
+                            .map(m -> m.accountId())
+                            .orElse(0))
+                    .orElse(null);
+            String currentName = currentAccount != null
+                    ? (currentAccount.firstName() + " " + currentAccount.lastName()).trim()
+                    : "#" + item.assignedTo();
+            inventoryRepository.createHistoryWithDates(item.id(), item.assignedTo(), currentName, cursor, null);
+            historyCount++;
+        }
+
+        log.info("Demo: Created {} inventory items with {} history entries", itemCounter - 1, historyCount);
     }
 
     private String jsonStr(String value) {

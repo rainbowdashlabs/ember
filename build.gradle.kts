@@ -138,10 +138,6 @@ idea {
     project {
         settings {
             var shared = listOf(
-                "-Dbot.config=config.testing.yaml",
-                //"-Dlog4j2.configurationFile=docker/config/log4j2.testing.xml",
-                "-Dbot.db.host=localhost",
-                "-Dbot.api.url=http://localhost:5173",
                 "--sun-misc-unsafe-memory-access=allow",
                 "--enable-native-access=ALL-UNNAMED"
             )
@@ -154,21 +150,7 @@ idea {
                 register<org.jetbrains.gradle.ext.Gradle>("Run App - All SKUs") {
                     projectPath = project.path
                     taskNames = listOf("run")
-                    jvmArgs =
-                        (shared + "-Dbot.grantallsku=true" + "-Dcjda.premium.skipEntitledCheck=true").joinToString(" ")
-                }
-                register<org.jetbrains.gradle.ext.Application>("App-Testing") {
-                    mainClass = "dev.chojo.Bootstrapper"
-                    jvmArgs = shared.joinToString(" ")
-                    moduleName = "elpis.main"
-                    shortenCommandLine = ShortenCommandLine.MANIFEST
-                }
-                register<org.jetbrains.gradle.ext.Application>("App-Testing - All SKUs") {
-                    mainClass = "dev.chojo.Bootstrapper"
-                    jvmArgs =
-                        (shared + "-Dbot.grantallsku=true" + "-Dcjda.premium.skipEntitledCheck=true").joinToString(" ")
-                    moduleName = "elpis.main"
-                    shortenCommandLine = ShortenCommandLine.MANIFEST
+                    jvmArgs =                       shared.joinToString(" ")
                 }
             }
         }

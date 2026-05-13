@@ -15,6 +15,7 @@ import DateTimeInput from '@/components/input/datetime/DateTimeInput.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import type { StationEvent, EventCategory, AttendanceTemplate, AttendanceTemplateField, Role, MemberGroup } from '@/api/types'
+import { Roles, EventTypes } from '@/api/types'
 import type { EventFieldDefault } from '@/api/events'
 
 const { t } = useI18n()
@@ -39,7 +40,7 @@ const emit = defineEmits<{
 
 const eventName = ref('')
 const eventDescription = ref('')
-const eventType = ref('RECURRING')
+const eventType = ref<string>(EventTypes.RECURRING)
 const eventDayOfWeek = ref('1')
 const eventStartTime = ref('')
 const eventEndTime = ref('')
@@ -67,7 +68,7 @@ watch(() => props.modelValue, (open) => {
   if (ev) {
     eventName.value = ev.name ?? ''
     eventDescription.value = ev.description ?? ''
-    eventType.value = ev.eventType ?? 'RECURRING'
+    eventType.value = ev.eventType ?? EventTypes.RECURRING
     eventDayOfWeek.value = ev.dayOfWeek != null ? String(ev.dayOfWeek) : '1'
     eventStartTime.value = ev.startTime ? toLocalDateTime(ev.startTime) : ''
     eventEndTime.value = ev.endTime ? toLocalDateTime(ev.endTime) : ''
@@ -103,7 +104,7 @@ watch(() => props.modelValue, (open) => {
   }
 })
 
-const RESTRICTION_ROLES = ['MEMBER', 'MEMBER_MANAGER', 'TEAM']
+const RESTRICTION_ROLES = [Roles.MEMBER, Roles.MEMBER_MANAGER, Roles.TEAM] as readonly string[]
 
 const roleFriendlyNames: Record<string, string> = {
   MEMBER: 'Mitglied', MEMBER_MANAGER: 'Mitgliedsmanager', TEAM: 'Team',
@@ -165,7 +166,7 @@ function submit() {
     name: eventName.value,
     description: eventDescription.value || null,
     eventType: eventType.value,
-    dayOfWeek: eventType.value === 'RECURRING' ? Number(eventDayOfWeek.value) : null,
+    dayOfWeek: eventType.value === EventTypes.RECURRING ? Number(eventDayOfWeek.value) : null,
     startTime: eventStartTime.value ? new Date(eventStartTime.value).toISOString() : null,
     endTime: eventEndTime.value ? new Date(eventEndTime.value).toISOString() : null,
     templateId: eventTemplateId.value ? Number(eventTemplateId.value) : null,
@@ -202,12 +203,12 @@ function submit() {
       <div class="space-y-1">
         <label class="block text-sm font-medium">{{ t('events.type') }}</label>
         <SelectInput v-model="eventType">
-          <option value="RECURRING">{{ t('events.typeRecurring') }}</option>
-          <option value="ONE_TIME">{{ t('events.typeOneTime') }}</option>
+          <option :value="EventTypes.RECURRING">{{ t('events.typeRecurring') }}</option>
+          <option :value="EventTypes.ONE_TIME">{{ t('events.typeOneTime') }}</option>
         </SelectInput>
       </div>
 
-      <div v-if="eventType === 'RECURRING'" class="space-y-1">
+      <div v-if="eventType === EventTypes.RECURRING" class="space-y-1">
         <label class="block text-sm font-medium">{{ t('events.dayOfWeek') }}</label>
         <SelectInput v-model="eventDayOfWeek">
           <option value="1">Montag</option>

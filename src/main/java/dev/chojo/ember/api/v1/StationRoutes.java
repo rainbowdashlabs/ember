@@ -33,6 +33,10 @@ public class StationRoutes implements Routes {
         this.stationService = stationService;
     }
 
+    private static boolean isBlank(String s) {
+        return s == null || s.isBlank();
+    }
+
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
         routes.get(prefix + "/stations", this::list, Roles.ADMIN);
@@ -148,10 +152,6 @@ public class StationRoutes implements Routes {
                 ? new ManagerDetail(info.email(), info.firstName(), info.lastName(), info.accountReady())
                 : null;
         return new StationDetail(station.id(), station.name(), manager);
-    }
-
-    private static boolean isBlank(String s) {
-        return s == null || s.isBlank();
     }
 
     public record StationRequest(String name, String managerEmail) {}

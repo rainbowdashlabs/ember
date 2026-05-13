@@ -73,8 +73,9 @@ export interface EventRegistrationEntry {
     id: number
     eventId: number
     memberId: number
+    memberName: string
     eventDate: string
-    status: string
+    status: string  // RegistrationStatusName
     createdAt: string
 }
 

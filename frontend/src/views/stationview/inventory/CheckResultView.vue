@@ -111,7 +111,7 @@ onMounted(loadData)
               <div class="flex-1 min-w-0">
                 <div v-if="item.itemName" class="font-medium text-sm">
                   {{ item.itemName }}
-                  <span v-if="item.sizeName" class="font-normal text-(--text-muted)">[{{ item.sizeName }}]</span>
+                  <span class="font-normal text-(--text-muted)">[{{ item.sizeName ?? t('common.unisize') }}]</span>
                 </div>
                 <div class="text-xs text-(--text-muted)">
                   {{ item.inventoryName }}

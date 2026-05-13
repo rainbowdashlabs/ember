@@ -14,6 +14,8 @@ import dev.chojo.ember.entity.Role;
 import dev.chojo.ember.entity.StationMember;
 import dev.chojo.ember.repository.AccountRepository;
 import dev.chojo.ember.repository.StationMemberRepository;
+import dev.chojo.ember.service.FormerMemberService;
+import dev.chojo.ember.service.ProfileFieldService;
 import dev.chojo.ember.service.StationMemberService;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
@@ -22,6 +24,7 @@ import io.javalin.http.NotFoundResponse;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
 import io.javalin.openapi.OpenApiContent;
+import io.javalin.openapi.OpenApiName;
 import io.javalin.openapi.OpenApiParam;
 import io.javalin.openapi.OpenApiRequestBody;
 import io.javalin.openapi.OpenApiResponse;
@@ -36,21 +39,28 @@ public class StationMemberRoutes implements Routes {
     private final StationMemberService memberService;
     private final AccountRepository accountRepository;
     private final StationMemberRepository stationMemberRepository;
+    private final FormerMemberService formerMemberService;
+    private final ProfileFieldService profileFieldService;
 
     @Inject
     public StationMemberRoutes(
             StationMemberService memberService,
             AccountRepository accountRepository,
-            StationMemberRepository stationMemberRepository) {
+            StationMemberRepository stationMemberRepository,
+            FormerMemberService formerMemberService,
+            ProfileFieldService profileFieldService) {
         this.memberService = memberService;
         this.accountRepository = accountRepository;
         this.stationMemberRepository = stationMemberRepository;
+        this.formerMemberService = formerMemberService;
+        this.profileFieldService = profileFieldService;
     }
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
         routes.get(prefix + "/roles", this::listAllRoles, Roles.MEMBER_MANAGEMENT);
         routes.get(prefix + "/station-members", this::listByStation, Roles.MEMBER_MANAGEMENT);
+        routes.get(prefix + "/station-members/former", this::listFormer, Roles.MEMBER_MANAGEMENT);
         routes.get(prefix + "/station-members/{id}", this::get, Roles.MEMBER_MANAGEMENT);
         routes.post(prefix + "/station-members", this::create, Roles.MEMBER_MANAGEMENT);
         routes.delete(prefix + "/station-members/{id}", this::delete, Roles.MEMBER_MANAGEMENT);
@@ -61,6 +71,9 @@ public class StationMemberRoutes implements Routes {
         routes.get(prefix + "/station-members/{id}/managed", this::getManaged, Roles.MEMBER_MANAGEMENT);
         routes.get(prefix + "/station-members/{id}/managers", this::getManagers, Roles.MEMBER_MANAGEMENT);
         routes.put(prefix + "/station-members/{id}/managers", this::setManagers, Roles.MEMBER_MANAGEMENT);
+
+        routes.post(prefix + "/station-members/{id}/mark-former", this::markFormer, Roles.MEMBER_MANAGEMENT);
+        routes.post(prefix + "/station-members/{id}/reactivate", this::reactivate, Roles.MEMBER_MANAGEMENT);
     }
 
     @OpenApi(
@@ -76,19 +89,10 @@ public class StationMemberRoutes implements Routes {
 
     private void listByStation(Context ctx) {
         int stationId = ctx.queryParamAsClass("stationId", Integer.class).get();
-        List<MemberWithName> result = memberService.findByStation(stationId).stream()
-                .map(m -> {
-                    Account account = accountRepository.findById(m.accountId()).orElse(null);
-                    String name = account != null ? (account.firstName() + " " + account.lastName()).trim() : "";
-                    String email = account != null ? account.email() : "";
-                    return new MemberWithName(m.id(), m.stationId(), m.accountId(), name, email);
-                })
-                .toList();
-        ctx.json(result);
+        ctx.json(memberService.findByStation(stationId).stream()
+                .map(this::toMemberWithName)
+                .toList());
     }
-
-    @io.javalin.openapi.OpenApiName("StationMemberWithName")
-    public record MemberWithName(int id, int stationId, int accountId, String name, String email) {}
 
     @OpenApi(
             path = "/api/v1/station-members/{id}",
@@ -102,7 +106,7 @@ public class StationMemberRoutes implements Routes {
             })
     private void get(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
-        memberService.findById(id).ifPresentOrElse(member -> ctx.json(member), () -> {
+        memberService.findById(id).ifPresentOrElse(ctx::json, () -> {
             throw new NotFoundResponse();
         });
     }
@@ -202,11 +206,18 @@ public class StationMemberRoutes implements Routes {
                 .toList());
     }
 
-    private MemberWithName toMemberWithName(dev.chojo.ember.entity.StationMember m) {
+    private MemberWithName toMemberWithName(StationMember m) {
+        if (m.accountId() == null) {
+            return new MemberWithName(m.id(), m.stationId(), 0, m.displayName(), "", true);
+        }
         Account account = accountRepository.findById(m.accountId()).orElse(null);
         String name = account != null ? (account.firstName() + " " + account.lastName()).trim() : "";
         String email = account != null ? account.email() : "";
-        return new MemberWithName(m.id(), m.stationId(), m.accountId(), name, email);
+        var roles = stationMemberRepository.findRoles(m.id()).stream()
+                .map(r -> r.role().name())
+                .toList();
+        boolean complete = profileFieldService.isProfileComplete(m.id(), m.stationId(), roles);
+        return new MemberWithName(m.id(), m.stationId(), m.accountId(), name, email, complete);
     }
 
     @OpenApi(
@@ -226,9 +237,64 @@ public class StationMemberRoutes implements Routes {
         ctx.json(memberService.setManagers(managedId, managerIds));
     }
 
+    @OpenApiName("StationMemberWithName")
+    public record MemberWithName(
+            int id, int stationId, int accountId, String name, String email, boolean profileComplete) {}
+
     public record CreateMemberRequest(Integer stationId, Integer accountId) {}
 
     public record SetRolesRequest(List<Integer> roleIds) {}
 
     public record SetManagersRequest(List<Integer> managerIds) {}
+
+    public record FormerCheckResponse(boolean canMarkFormer, String reason) {}
+
+    @OpenApi(
+            path = "/api/v1/station-members/former",
+            methods = HttpMethod.GET,
+            summary = "List former members of the station",
+            tags = {"Station Members"},
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MemberWithName[].class)))
+    private void listFormer(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        ctx.json(stationMemberRepository.findFormerByStation(session.stationId()).stream()
+                .map(this::toMemberWithName)
+                .toList());
+    }
+
+    @OpenApi(
+            path = "/api/v1/station-members/{id}/mark-former",
+            methods = HttpMethod.POST,
+            summary = "Mark a member as former",
+            tags = {"Station Members"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class),
+            responses = {
+                @OpenApiResponse(status = "200"),
+                @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    private void markFormer(Context ctx) {
+        int memberId = ctx.pathParamAsClass("id", Integer.class).get();
+        String check = formerMemberService.canMarkFormer(memberId);
+        if (check != null) {
+            throw new BadRequestResponse(check);
+        }
+        formerMemberService.markFormer(memberId);
+        ctx.json(new FormerCheckResponse(true, null));
+    }
+
+    @OpenApi(
+            path = "/api/v1/station-members/{id}/reactivate",
+            methods = HttpMethod.POST,
+            summary = "Reactivate a former member",
+            tags = {"Station Members"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class),
+            responses = {
+                @OpenApiResponse(status = "200"),
+                @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    private void reactivate(Context ctx) {
+        int memberId = ctx.pathParamAsClass("id", Integer.class).get();
+        formerMemberService.reactivate(memberId);
+        ctx.json(new FormerCheckResponse(true, null));
+    }
 }

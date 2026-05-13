@@ -11,6 +11,7 @@ import dev.chojo.ember.conf.file.elements.Database;
 import dev.chojo.ember.conf.file.elements.Demo;
 import dev.chojo.ember.conf.file.elements.Mailing;
 
+@SuppressWarnings({"FieldMayBeFinal"})
 public class File {
 
     private Database database = new Database();
@@ -37,5 +38,15 @@ public class File {
 
     public Demo demo() {
         return demo;
+    }
+
+    @Override
+    public String toString() {
+        return "File{" + "database="
+                + database + ", api="
+                + api + ", mailing="
+                + mailing + ", auth="
+                + auth + ", demo="
+                + demo + '}';
     }
 }

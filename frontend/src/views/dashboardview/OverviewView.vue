@@ -4,30 +4,41 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import { useI18n } from 'vue-i18n'
+import { useRouter } from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
+import SuccessBadge from '@/components/badge/SuccessBadge.vue'
+import InfoBadge from '@/components/badge/InfoBadge.vue'
+import ErrorBadge from '@/components/badge/ErrorBadge.vue'
+import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
-import type { NotificationEntry } from '@/api/types'
-import { notifications } from '@/api'
+import type { NotificationEntry, ExchangeRequestEntry, StationEvent } from '@/api/types'
+import { RegistrationStatus } from '@/api/types'
+import { notifications, exchanges, events } from '@/api'
+import type { EventRegistrationEntry } from '@/api/events'
+import { useSession } from '@/composables/useSession'
+import ErrorContainer from '@/components/container/ErrorContainer.vue'
 
 const { t } = useI18n()
+const router = useRouter()
+const { isMemberManager, sessionInfo } = useSession()
 
-const items = ref<NotificationEntry[]>([])
-const loading = ref(true)
+const profileIncomplete = computed(() => sessionInfo.value?.profileComplete === false)
 
-const typeLabels: Record<string, string> = {
-  NEW_NEWS: 'Neuigkeit',
-  EVENT_REGISTRATION_STATUS: 'Anmeldung',
-  EXCHANGE_STATUS_CHANGE: 'Tausch',
-  EXCHANGE_NEW_REQUEST: 'Neue Tausch-Anfrage',
-  NEW_EVENT: 'Neuer Termin',
-  MEMBER_ADDED_TO_GROUP: 'Gruppenänderung',
-  PROFILE_FIELD_CHANGED: 'Profiländerung',
+function isOtherMember(memberId: number): boolean {
+  return isMemberManager() && memberId !== (sessionInfo.value?.member?.id ?? 0)
 }
+
+const notifs = ref<NotificationEntry[]>([])
+const exchangeList = ref<ExchangeRequestEntry[]>([])
+const registrations = ref<EventRegistrationEntry[]>([])
+const allEvents = ref<StationEvent[]>([])
+const loading = ref(true)
 
 const typeIcons: Record<string, string> = {
   NEW_NEWS: 'newspaper',
@@ -39,28 +50,63 @@ const typeIcons: Record<string, string> = {
   PROFILE_FIELD_CHANGED: 'user',
 }
 
+const openExchanges = computed(() => exchangeList.value.filter(e => e.status !== 'EXCHANGED'))
+const activeRegistrations = computed(() => registrations.value.filter(r => r.status !== RegistrationStatus.DECLINED))
+
+function eventName(eventId: number): string {
+  return allEvents.value.find(e => e.id === eventId)?.name ?? `#${eventId}`
+}
+
+function renderMessage(n: NotificationEntry): string {
+  return t(n.localeKey, n.params)
+}
+
+function navigateTo(n: NotificationEntry) {
+  if (n.link) {
+    router.push({ name: n.link.route, params: n.link.routeParams })
+  }
+}
+
 async function loadData() {
   loading.value = true
   try {
-    items.value = await notifications.listUnacknowledged()
+    const [n, ex, reg, ev] = await Promise.all([
+      notifications.listUnacknowledged(),
+      exchanges.listExchanges(),
+      events.listMyRegistrations(),
+      events.listEvents(),
+    ])
+    notifs.value = n
+    exchangeList.value = ex
+    registrations.value = reg
+    allEvents.value = ev
   } catch { /* ignore */ }
   loading.value = false
 }
 
 async function ack(id: number) {
   await notifications.acknowledge(id)
-  items.value = items.value.filter(n => n.id !== id)
+  notifs.value = notifs.value.filter(n => n.id !== id)
 }
 
 async function ackAll() {
   await notifications.acknowledgeAll()
-  items.value = []
+  notifs.value = []
 }
 
 function formatDate(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString('de-DE', {
     day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit',
   })
+}
+
+function statusBadgeComponent(status: string) {
+  switch (status) {
+    case 'ACCEPTED': case 'EXCHANGED': return SuccessBadge
+    case 'PENDING': case 'ANNOUNCED': case 'SHIPPED': return InfoBadge
+    case 'DENIED': case 'DECLINED': return ErrorBadge
+    default: return SecondaryBadge
+  }
 }
 
 onMounted(loadData)
@@ -72,37 +118,110 @@ onMounted(loadData)
       <Spinner v-if="loading" size="lg" />
 
       <template v-if="!loading">
-        <div v-if="items.length > 0" class="space-y-4">
+        <!-- Onboarding banner -->
+        <ErrorContainer v-if="profileIncomplete" class="flex items-center justify-between gap-4">
+          <div>
+            <p class="font-semibold text-sm">{{ t('dashboard.profileIncomplete') }}</p>
+            <p class="text-xs">{{ t('dashboard.profileIncompleteHint') }}</p>
+          </div>
+          <PrimaryButton class="shrink-0" @click="router.push({ name: 'profile' })">
+            {{ t('dashboard.completeProfile') }}
+          </PrimaryButton>
+        </ErrorContainer>
+
+        <!-- Tile layout for all panels -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+        <!-- Notifications panel -->
+        <NeutralContainer class="space-y-4">
           <div class="flex items-center justify-between">
-            <SectionHeader>{{ t('dashboard.notifications') }} ({{ items.length }})</SectionHeader>
-            <SecondaryButton class="text-sm" @click="ackAll">
+            <SectionHeader>
+              <font-awesome-icon :icon="['fas', 'bell']" class="mr-2" />
+              {{ t('dashboard.notifications') }}
+              <span v-if="notifs.length > 0"> ({{ notifs.length }})</span>
+            </SectionHeader>
+            <SecondaryButton v-if="notifs.length > 0" class="text-sm" @click="ackAll">
               <font-awesome-icon :icon="['fas', 'check-double']" class="mr-1" />
               {{ t('dashboard.acknowledgeAll') }}
             </SecondaryButton>
           </div>
 
-          <div class="space-y-2">
-            <NeutralContainer v-for="n in items" :key="n.id" class="flex items-start justify-between gap-3 py-2 px-3">
+          <div v-if="notifs.length === 0" class="text-center text-(--text-muted) py-4">
+            <font-awesome-icon :icon="['fas', 'check-double']" class="text-2xl text-success mb-2" />
+            <p>{{ t('dashboard.noNotifications') }}</p>
+          </div>
+
+          <div v-else class="space-y-2">
+            <NeutralContainer v-for="n in notifs" :key="n.id" class="flex items-start justify-between gap-3 py-2 px-3"
+              :class="{ 'cursor-pointer hover:bg-(--bg-accent)': n.link }" @click="navigateTo(n)">
               <div class="flex items-start gap-3">
                 <font-awesome-icon :icon="['fas', typeIcons[n.type] ?? 'bell']" class="text-primary mt-0.5 h-4 w-4 shrink-0" />
                 <div>
-                  <span class="text-xs font-semibold text-(--text-muted)">{{ typeLabels[n.type] ?? n.type }}</span>
-                  <p class="text-sm">{{ n.message }}</p>
+                  <span class="text-xs font-semibold text-(--text-muted)">{{ t(`notification.typeLabel.${n.type}`) }}</span>
+                  <p class="text-sm">{{ renderMessage(n) }}</p>
                   <p class="text-xs text-(--text-muted)">{{ formatDate(n.createdAt) }}</p>
                 </div>
               </div>
-              <button type="button" class="text-xs text-primary hover:underline shrink-0 mt-1" @click="ack(n.id)">
+              <button type="button" class="text-xs text-primary hover:underline shrink-0 mt-1" @click.stop="ack(n.id)">
                 <font-awesome-icon :icon="['fas', 'check']" class="mr-0.5" />
                 {{ t('dashboard.acknowledge') }}
               </button>
             </NeutralContainer>
           </div>
+        </NeutralContainer>
+
+          <!-- Exchange requests panel -->
+          <NeutralContainer class="space-y-3">
+            <SectionHeader>
+              <font-awesome-icon :icon="['fas', 'rotate']" class="mr-2" />
+              {{ t('dashboard.exchanges') }}
+            </SectionHeader>
+            <div v-if="openExchanges.length === 0" class="text-center text-(--text-muted) py-4">
+              {{ t('dashboard.noExchanges') }}
+            </div>
+            <div v-else class="space-y-2">
+              <NeutralContainer v-for="ex in openExchanges" :key="ex.id"
+                class="flex items-center justify-between gap-3 py-2 px-3 cursor-pointer hover:bg-(--bg-accent)"
+                @click="router.push({ name: 'inventory-exchanges' })">
+                <div>
+                  <p v-if="isOtherMember(ex.memberId)" class="text-xs font-semibold text-primary">{{ ex.memberName }}</p>
+                  <p class="text-sm font-medium">{{ ex.inventoryName }}</p>
+                  <p class="text-xs text-(--text-muted)">{{ ex.oldSizeLabel ?? t('common.unisize') }} → {{ ex.newSizeLabel ?? t('common.unisize') }}</p>
+                  <p class="text-xs text-(--text-muted)">{{ ex.reason }}</p>
+                </div>
+                <component :is="statusBadgeComponent(ex.status)">
+                  {{ t(`dashboard.exchangeStatus.${ex.status}`) }}
+                </component>
+              </NeutralContainer>
+            </div>
+          </NeutralContainer>
+
+          <!-- Event registrations panel -->
+          <NeutralContainer class="space-y-3">
+            <SectionHeader>
+              <font-awesome-icon :icon="['fas', 'calendar-days']" class="mr-2" />
+              {{ isMemberManager() ? t('dashboard.registrationsManaged') : t('dashboard.registrations') }}
+            </SectionHeader>
+            <div v-if="activeRegistrations.length === 0" class="text-center text-(--text-muted) py-4">
+              {{ t('dashboard.noRegistrations') }}
+            </div>
+            <div v-else class="space-y-2">
+              <NeutralContainer v-for="reg in activeRegistrations" :key="reg.id"
+                class="flex items-center justify-between gap-3 py-2 px-3 cursor-pointer hover:bg-(--bg-accent)"
+                @click="router.push({ name: 'events-upcoming' })">
+                <div>
+                  <p v-if="isOtherMember(reg.memberId)" class="text-xs font-semibold text-primary">{{ reg.memberName }}</p>
+                  <p class="text-sm font-medium">{{ eventName(reg.eventId) }}</p>
+                  <p class="text-xs text-(--text-muted)">{{ reg.eventDate }}</p>
+                </div>
+                <component :is="statusBadgeComponent(reg.status)">
+                  {{ t(`dashboard.registrationStatus.${reg.status}`) }}
+                </component>
+              </NeutralContainer>
+            </div>
+          </NeutralContainer>
         </div>
 
-        <div v-else class="text-center text-(--text-muted) py-12">
-          <font-awesome-icon :icon="['fas', 'check-double']" class="text-4xl text-success mb-3" />
-          <p>{{ t('dashboard.noNotifications') }}</p>
-        </div>
       </template>
     </div>
   </ViewContent>

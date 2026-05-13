@@ -16,7 +16,10 @@ import jakarta.inject.Singleton;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIMESTAMP;
@@ -231,9 +234,9 @@ public class EventRepository {
 
     public List<String> findRoleRestrictionNames(int eventId) {
         return Query.query("""
-                        SELECT r.name FROM event_role_restriction err
-                        JOIN role r ON r.id = err.role_id
-                        WHERE err.event_id = :event_id;""")
+                            SELECT r.name FROM event_role_restriction err
+                            JOIN role r ON r.id = err.role_id
+                            WHERE err.event_id = :event_id;""")
                 .single(Call.of().bind("event_id", eventId))
                 .map(row -> row.getString("name"))
                 .all();
@@ -271,33 +274,33 @@ public class EventRepository {
     /**
      * Find all event IDs in a station that have restrictions.
      */
-    public java.util.Map<Integer, List<Integer>> findAllRoleRestrictionsByStation(int stationId) {
-        var result = new java.util.HashMap<Integer, List<Integer>>();
+    public Map<Integer, List<Integer>> findAllRoleRestrictionsByStation(int stationId) {
+        var result = new HashMap<Integer, List<Integer>>();
         Query.query("""
-                        SELECT err.event_id, err.role_id
-                        FROM event_role_restriction err
-                        JOIN station_event se ON se.id = err.event_id
-                        WHERE se.station_id = :station_id;""")
+                     SELECT err.event_id, err.role_id
+                     FROM event_role_restriction err
+                     JOIN station_event se ON se.id = err.event_id
+                     WHERE se.station_id = :station_id;""")
                 .single(Call.of().bind("station_id", stationId))
                 .map(row -> new int[] {row.getInt("event_id"), row.getInt("role_id")})
                 .all()
-                .forEach(r -> result.computeIfAbsent(r[0], k -> new java.util.ArrayList<>())
-                        .add(r[1]));
+                .forEach(r ->
+                        result.computeIfAbsent(r[0], k -> new ArrayList<>()).add(r[1]));
         return result;
     }
 
-    public java.util.Map<Integer, List<Integer>> findAllGroupRestrictionsByStation(int stationId) {
-        var result = new java.util.HashMap<Integer, List<Integer>>();
+    public Map<Integer, List<Integer>> findAllGroupRestrictionsByStation(int stationId) {
+        var result = new HashMap<Integer, List<Integer>>();
         Query.query("""
-                        SELECT egr.event_id, egr.group_id
-                        FROM event_group_restriction egr
-                        JOIN station_event se ON se.id = egr.event_id
-                        WHERE se.station_id = :station_id;""")
+                     SELECT egr.event_id, egr.group_id
+                     FROM event_group_restriction egr
+                     JOIN station_event se ON se.id = egr.event_id
+                     WHERE se.station_id = :station_id;""")
                 .single(Call.of().bind("station_id", stationId))
                 .map(row -> new int[] {row.getInt("event_id"), row.getInt("group_id")})
                 .all()
-                .forEach(r -> result.computeIfAbsent(r[0], k -> new java.util.ArrayList<>())
-                        .add(r[1]));
+                .forEach(r ->
+                        result.computeIfAbsent(r[0], k -> new ArrayList<>()).add(r[1]));
         return result;
     }
 
@@ -382,12 +385,12 @@ public class EventRepository {
      */
     public List<RegistrationCount> findRegistrationCounts(int stationId) {
         return Query.query("""
-                        SELECT er.event_id, er.event_date, er.status, COUNT(*) AS count
-                        FROM event_registration er
-                        JOIN station_event se ON se.id = er.event_id
-                        WHERE se.station_id = :station_id
-                        GROUP BY er.event_id, er.event_date, er.status
-                        ORDER BY er.event_id, er.event_date;""")
+                            SELECT er.event_id, er.event_date, er.status, count(*) AS count
+                            FROM event_registration er
+                            JOIN station_event se ON se.id = er.event_id
+                            WHERE se.station_id = :station_id
+                            GROUP BY er.event_id, er.event_date, er.status
+                            ORDER BY er.event_id, er.event_date;""")
                 .single(Call.of().bind("station_id", stationId))
                 .map(row -> new RegistrationCount(
                         row.getInt("event_id"),
@@ -397,15 +400,13 @@ public class EventRepository {
                 .all();
     }
 
-    public record RegistrationCount(int eventId, LocalDate eventDate, String status, int count) {}
-
     /**
      * Find declined member IDs for a specific event and date.
      */
     public List<Integer> findDeclinedMemberIds(int eventId, LocalDate eventDate) {
         return Query.query("""
-                        SELECT member_id FROM event_registration
-                        WHERE event_id = :event_id AND event_date = :event_date AND status = 'DECLINED';""")
+                            SELECT member_id FROM event_registration
+                            WHERE event_id = :event_id AND event_date = :event_date AND status = 'DECLINED';""")
                 .single(Call.of().bind("event_id", eventId).bind("event_date", eventDate))
                 .map(row -> row.getInt("member_id"))
                 .all();
@@ -432,4 +433,6 @@ public class EventRepository {
                 .map(EventRegistration.map())
                 .first();
     }
+
+    public record RegistrationCount(int eventId, LocalDate eventDate, String status, int count) {}
 }

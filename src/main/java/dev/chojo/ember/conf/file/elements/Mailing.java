@@ -9,32 +9,28 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Properties;
 
+@SuppressWarnings({"FieldCanBeLocal", "FieldMayBeFinal"})
 public class Mailing {
+    private String provider = "SMTP";
     private MailSettings smtp = new MailSettings();
-    private MailSettings imap = new MailSettings();
     private String user = "";
     private String password = "";
+    private String apiKey = "";
     private String senderAddress = "";
     private String senderName = "Ember";
     private Map<String, String> properties = Collections.emptyMap();
     private int dailySendLimit = 200;
 
-    /**
-     * Get the SMTP settings.
-     *
-     * @return the SMTP settings
-     */
+    public String provider() {
+        return provider;
+    }
+
     public MailSettings smtp() {
         return smtp;
     }
 
-    /**
-     * Get the IMAP settings.
-     *
-     * @return the IMAP settings
-     */
-    public MailSettings imap() {
-        return imap;
+    public String apiKey() {
+        return apiKey;
     }
 
     /**
@@ -75,8 +71,19 @@ public class Mailing {
     public Properties properties() {
         Properties props = new Properties();
         props.putAll(smtp().properties("smtp"));
-        props.putAll(imap().properties("imap"));
         props.putAll(properties);
         return props;
+    }
+
+    @Override
+    public String toString() {
+        return "Mailing{" + "smtp="
+                + smtp + ", user="
+                + user + '\'' + ", password='"
+                + password + '\'' + ", senderAddress='"
+                + senderAddress + '\'' + ", senderName='"
+                + senderName + '\'' + ", properties="
+                + properties + ", dailySendLimit="
+                + dailySendLimit + '}';
     }
 }

@@ -23,11 +23,13 @@ import dev.chojo.ember.service.AttendanceReportService.ReportData;
 import dev.chojo.ember.service.AttendanceService;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
+import io.javalin.http.ForbiddenResponse;
 import io.javalin.http.HttpStatus;
 import io.javalin.http.NotFoundResponse;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
 import io.javalin.openapi.OpenApiContent;
+import io.javalin.openapi.OpenApiName;
 import io.javalin.openapi.OpenApiParam;
 import io.javalin.openapi.OpenApiRequestBody;
 import io.javalin.openapi.OpenApiResponse;
@@ -37,7 +39,10 @@ import jakarta.inject.Singleton;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 
 @Singleton
 public class AttendanceRoutes implements Routes {
@@ -54,6 +59,12 @@ public class AttendanceRoutes implements Routes {
         this.exportService = exportService;
         this.reportService = reportService;
     }
+
+    private static boolean isBlank(String s) {
+        return s == null || s.isBlank();
+    }
+
+    // -- Templates --
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
@@ -144,8 +155,6 @@ public class AttendanceRoutes implements Routes {
         routes.delete(prefix + "/profile/absences/{id}", this::deleteMyAbsence, Roles.USER);
     }
 
-    // -- Templates --
-
     @OpenApi(
             path = "/api/v1/attendance/templates",
             methods = HttpMethod.GET,
@@ -221,10 +230,12 @@ public class AttendanceRoutes implements Routes {
         if (isBlank(request.name())) {
             throw new BadRequestResponse("name is required");
         }
-        attendanceService.updateTemplate(id, request.name()).ifPresentOrElse(template -> ctx.json(template), () -> {
+        attendanceService.updateTemplate(id, request.name()).ifPresentOrElse(ctx::json, () -> {
             throw new NotFoundResponse();
         });
     }
+
+    // -- Template Groups --
 
     @OpenApi(
             path = "/api/v1/attendance/templates/{id}",
@@ -245,7 +256,7 @@ public class AttendanceRoutes implements Routes {
         }
     }
 
-    // -- Template Groups --
+    // -- Template Fields --
 
     @OpenApi(
             path = "/api/v1/attendance/templates/{templateId}/groups",
@@ -269,8 +280,6 @@ public class AttendanceRoutes implements Routes {
                 .toList();
         ctx.json(result);
     }
-
-    // -- Template Fields --
 
     @OpenApi(
             path = "/api/v1/attendance/templates/{templateId}/fields",
@@ -329,10 +338,12 @@ public class AttendanceRoutes implements Routes {
         attendanceService
                 .updateTemplateField(
                         templateId, fieldId, request.name(), request.fieldType(), request.config(), request.position())
-                .ifPresentOrElse(fields -> ctx.json(fields), () -> {
+                .ifPresentOrElse(ctx::json, () -> {
                     throw new NotFoundResponse();
                 });
     }
+
+    // -- Sessions --
 
     @OpenApi(
             path = "/api/v1/attendance/templates/{templateId}/fields/{fieldId}",
@@ -350,12 +361,10 @@ public class AttendanceRoutes implements Routes {
     private void deleteTemplateField(Context ctx) {
         int templateId = ctx.pathParamAsClass("templateId", Integer.class).get();
         int fieldId = ctx.pathParamAsClass("fieldId", Integer.class).get();
-        attendanceService.deleteTemplateField(templateId, fieldId).ifPresentOrElse(fields -> ctx.json(fields), () -> {
+        attendanceService.deleteTemplateField(templateId, fieldId).ifPresentOrElse(ctx::json, () -> {
             throw new NotFoundResponse();
         });
     }
-
-    // -- Sessions --
 
     @OpenApi(
             path = "/api/v1/attendance/templates/{templateId}/sessions",
@@ -431,10 +440,12 @@ public class AttendanceRoutes implements Routes {
         var request = ctx.bodyAsClass(SessionRequest.class);
         attendanceService
                 .updateSession(id, request.startTime(), request.endTime(), request.title())
-                .ifPresentOrElse(session -> ctx.json(session), () -> {
+                .ifPresentOrElse(ctx::json, () -> {
                     throw new NotFoundResponse();
                 });
     }
+
+    // -- Session Fields --
 
     @OpenApi(
             path = "/api/v1/attendance/sessions/{id}",
@@ -455,8 +466,6 @@ public class AttendanceRoutes implements Routes {
         }
     }
 
-    // -- Session Fields --
-
     @OpenApi(
             path = "/api/v1/attendance/sessions/{sessionId}/fields",
             methods = HttpMethod.GET,
@@ -469,6 +478,8 @@ public class AttendanceRoutes implements Routes {
         int sessionId = ctx.pathParamAsClass("sessionId", Integer.class).get();
         ctx.json(attendanceService.findSessionFields(sessionId));
     }
+
+    // -- Entries --
 
     @OpenApi(
             path = "/api/v1/attendance/sessions/{sessionId}/fields",
@@ -490,8 +501,6 @@ public class AttendanceRoutes implements Routes {
                 : List.of();
         ctx.json(attendanceService.setSessionFields(sessionId, entries));
     }
-
-    // -- Entries --
 
     @OpenApi(
             path = "/api/v1/attendance/sessions/{sessionId}/entries",
@@ -567,6 +576,8 @@ public class AttendanceRoutes implements Routes {
         }
     }
 
+    // -- Entry Status --
+
     @OpenApi(
             path = "/api/v1/attendance/entries/{id}",
             methods = HttpMethod.DELETE,
@@ -585,8 +596,6 @@ public class AttendanceRoutes implements Routes {
             throw new NotFoundResponse();
         }
     }
-
-    // -- Entry Status --
 
     @OpenApi(
             path = "/api/v1/attendance/entries/{id}/status",
@@ -647,6 +656,8 @@ public class AttendanceRoutes implements Routes {
         ctx.json(attendanceService.syncFromEvent(sessionId));
     }
 
+    // -- Report --
+
     @OpenApi(
             path = "/api/v1/attendance/sessions/{sessionId}/export",
             methods = HttpMethod.GET,
@@ -670,8 +681,6 @@ public class AttendanceRoutes implements Routes {
         ctx.header("Content-Disposition", "attachment; filename=\"attendance-" + sessionId + ".pdf\"");
         ctx.result(pdf.get());
     }
-
-    // -- Report --
 
     @OpenApi(
             path = "/api/v1/attendance/report/preview",
@@ -796,6 +805,8 @@ public class AttendanceRoutes implements Routes {
                         request.rounding()));
     }
 
+    // -- Absences --
+
     @OpenApi(
             path = "/api/v1/attendance/report/presets/{id}",
             methods = HttpMethod.DELETE,
@@ -814,8 +825,6 @@ public class AttendanceRoutes implements Routes {
             throw new NotFoundResponse();
         }
     }
-
-    // -- Absences --
 
     @OpenApi(
             path = "/api/v1/attendance/absences",
@@ -869,6 +878,8 @@ public class AttendanceRoutes implements Routes {
                 .json(attendanceService.createAbsence(request.memberId(), from, until, request.reason()));
     }
 
+    // -- Self-service absences --
+
     @OpenApi(
             path = "/api/v1/attendance/absences/{id}",
             methods = HttpMethod.DELETE,
@@ -888,8 +899,6 @@ public class AttendanceRoutes implements Routes {
         }
     }
 
-    // -- Self-service absences --
-
     @OpenApi(
             path = "/api/v1/profile/absences",
             methods = HttpMethod.GET,
@@ -899,10 +908,10 @@ public class AttendanceRoutes implements Routes {
     private void listMyAbsences(Context ctx) {
         UserSession session = UserSession.from(ctx);
         if (session.member() == null) {
-            ctx.json(java.util.Collections.emptyList());
+            ctx.json(Collections.emptyList());
             return;
         }
-        var absences = new java.util.ArrayList<>(
+        var absences = new ArrayList<>(
                 attendanceService.findAbsencesByMember(session.member().id()));
         // Include managed members' absences
         if (session.hasRole(Roles.MEMBER_MANAGER)) {
@@ -943,23 +952,23 @@ public class AttendanceRoutes implements Routes {
         }
 
         // Determine which members to create absences for
-        var memberIds = new java.util.ArrayList<Integer>();
+        var memberIds = new ArrayList<Integer>();
         if (req.memberIds() != null && !req.memberIds().isEmpty()) {
             var managed = session.hasRole(Roles.MEMBER_MANAGER)
                     ? attendanceService.findManagedMemberIds(session.member().id())
-                    : java.util.Set.<Integer>of();
+                    : Set.<Integer>of();
             for (int mid : req.memberIds()) {
                 if (mid == session.member().id() || managed.contains(mid)) {
                     memberIds.add(mid);
                 } else {
-                    throw new io.javalin.http.ForbiddenResponse("You do not manage member " + mid);
+                    throw new ForbiddenResponse("You do not manage member " + mid);
                 }
             }
         } else {
             memberIds.add(session.member().id());
         }
 
-        var created = new java.util.ArrayList<MemberAbsence>();
+        var created = new ArrayList<MemberAbsence>();
         for (int mid : memberIds) {
             created.add(attendanceService.createAbsence(mid, from, until, req.reason()));
         }
@@ -990,16 +999,12 @@ public class AttendanceRoutes implements Routes {
                 && session.hasRole(Roles.MEMBER_MANAGER)
                 && attendanceService.findManagedMemberIds(session.member().id()).contains(absMemberId);
         if (!isOwn && !manages) {
-            throw new io.javalin.http.ForbiddenResponse("Cannot delete this absence");
+            throw new ForbiddenResponse("Cannot delete this absence");
         }
         if (!attendanceService.deleteAbsence(id)) {
             throw new NotFoundResponse();
         }
         ctx.status(HttpStatus.NO_CONTENT);
-    }
-
-    private static boolean isBlank(String s) {
-        return s == null || s.isBlank();
     }
 
     // -- Request/Response records --
@@ -1024,7 +1029,7 @@ public class AttendanceRoutes implements Routes {
     public record SessionDetail(
             AttendanceSession session, List<AttendanceSessionField> fields, List<AttendanceEntry> entries) {}
 
-    @io.javalin.openapi.OpenApiName("AttendanceFieldValueEntry")
+    @OpenApiName("AttendanceFieldValueEntry")
     public record FieldValueEntry(int fieldId, String value) {}
 
     public record SetSessionFieldsRequest(List<FieldValueEntry> fields) {}
@@ -1041,7 +1046,7 @@ public class AttendanceRoutes implements Routes {
 
     public record AbsenceRequest(Integer memberId, String absentFrom, String absentUntil, String reason) {}
 
-    @io.javalin.openapi.OpenApiName("MyAbsenceRequest")
+    @OpenApiName("MyAbsenceRequest")
     public record MyAbsenceRequest(String absentFrom, String absentUntil, String reason, List<Integer> memberIds) {}
 
     public record CreatePresetRequest(String name, String roleName, Integer groupId, String period, String rounding) {}

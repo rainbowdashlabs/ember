@@ -24,6 +24,7 @@ export interface MyInventoryItem {
     name?: string
     internalId?: string
     inventoryName: string
+    sizeId?: number | null
     sizeName?: string | null
     lostAt?: string | null
 }
@@ -41,6 +42,11 @@ export async function myItems(): Promise<MyInventoryItem[]> {
 
 export async function myRequirements(): Promise<MyRequirement[]> {
     const res = await client.get<MyRequirement[]>('/my-inventory-requirements')
+    return res.data
+}
+
+export async function memberItems(memberId: number): Promise<MyInventoryItem[]> {
+    const res = await client.get<MyInventoryItem[]>(`/station-members/${memberId}/inventory-items`)
     return res.data
 }
 

@@ -7,6 +7,7 @@ package dev.chojo.ember.api.v1;
 
 import dev.chojo.ember.api.AccessManager;
 import dev.chojo.ember.api.ErrorResponseWrapper;
+import dev.chojo.ember.api.MessageResponse;
 import dev.chojo.ember.api.Roles;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
@@ -15,9 +16,15 @@ import dev.chojo.ember.entity.EventCategory;
 import dev.chojo.ember.entity.EventFieldDefault;
 import dev.chojo.ember.entity.EventRegistration;
 import dev.chojo.ember.entity.MemberGroup;
+import dev.chojo.ember.entity.NotificationData;
+import dev.chojo.ember.entity.NotificationType;
 import dev.chojo.ember.entity.StationEvent;
+import dev.chojo.ember.entity.StationMember;
+import dev.chojo.ember.repository.AccountRepository;
+import dev.chojo.ember.repository.StationMemberRepository;
 import dev.chojo.ember.service.EventService;
 import dev.chojo.ember.service.MemberGroupService;
+import dev.chojo.ember.service.NotificationService;
 import dev.chojo.ember.service.StationMemberService;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
@@ -27,6 +34,7 @@ import io.javalin.http.NotFoundResponse;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
 import io.javalin.openapi.OpenApiContent;
+import io.javalin.openapi.OpenApiName;
 import io.javalin.openapi.OpenApiParam;
 import io.javalin.openapi.OpenApiRequestBody;
 import io.javalin.openapi.OpenApiResponse;
@@ -36,7 +44,12 @@ import jakarta.inject.Singleton;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 @Singleton
@@ -45,30 +58,26 @@ public class EventRoutes implements Routes {
     private final StationMemberService stationMemberService;
     private final AccessManager accessManager;
     private final MemberGroupService memberGroupService;
+    private final NotificationService notificationService;
+    private final StationMemberRepository stationMemberRepository;
+    private final AccountRepository accountRepository;
 
     @Inject
     public EventRoutes(
             EventService eventService,
             StationMemberService stationMemberService,
             AccessManager accessManager,
-            MemberGroupService memberGroupService) {
+            MemberGroupService memberGroupService,
+            NotificationService notificationService,
+            StationMemberRepository stationMemberRepository,
+            AccountRepository accountRepository) {
         this.eventService = eventService;
         this.stationMemberService = stationMemberService;
         this.accessManager = accessManager;
         this.memberGroupService = memberGroupService;
-    }
-
-    private Set<Roles> resolveRolesForMember(UserSession session, int memberId) {
-        if (session.member() != null && session.member().id() == memberId) {
-            return session.roles();
-        }
-        return accessManager.resolveExpandedMemberRoles(memberId);
-    }
-
-    private List<Integer> resolveGroupIdsForMember(int memberId) {
-        return memberGroupService.findGroupsForMember(memberId).stream()
-                .map(MemberGroup::id)
-                .toList();
+        this.notificationService = notificationService;
+        this.stationMemberRepository = stationMemberRepository;
+        this.accountRepository = accountRepository;
     }
 
     @Override
@@ -110,6 +119,19 @@ public class EventRoutes implements Routes {
 
         routes.get(prefix + "/events/{id}/field-defaults", this::getFieldDefaults, Roles.USER);
         routes.put(prefix + "/events/{id}/field-defaults", this::setFieldDefaults, Roles.EVENT_MANAGEMENT);
+    }
+
+    private Set<Roles> resolveRolesForMember(UserSession session, int memberId) {
+        if (session.member() != null && session.member().id() == memberId) {
+            return session.roles();
+        }
+        return accessManager.resolveExpandedMemberRoles(memberId);
+    }
+
+    private List<Integer> resolveGroupIdsForMember(int memberId) {
+        return memberGroupService.findGroupsForMember(memberId).stream()
+                .map(MemberGroup::id)
+                .toList();
     }
 
     // -- Events --
@@ -337,19 +359,44 @@ public class EventRoutes implements Routes {
     private void listMyRegistrations(Context ctx) {
         UserSession session = UserSession.from(ctx);
         if (session.member() == null) {
-            ctx.json(java.util.Collections.emptyList());
+            ctx.json(Collections.emptyList());
             return;
         }
         // Include own + managed members' registrations
-        var registrations = new java.util.ArrayList<>(
+        var registrations = new ArrayList<>(
                 eventService.findRegistrationsByMember(session.member().id()));
         if (session.hasRole(Roles.MEMBER_MANAGER)) {
             for (var managed : stationMemberService.findManaged(session.member().id())) {
                 registrations.addAll(eventService.findRegistrationsByMember(managed.id()));
             }
         }
-        ctx.json(registrations);
+        ctx.json(registrations.stream()
+                .map(r -> {
+                    String memberName = stationMemberRepository
+                            .findById(r.memberId())
+                            .flatMap(m -> accountRepository.findById(m.accountId()))
+                            .map(a -> (a.firstName() + " " + a.lastName()).trim())
+                            .orElse("");
+                    return new RegistrationResponse(
+                            r.id(),
+                            r.eventId(),
+                            r.memberId(),
+                            memberName,
+                            r.eventDate(),
+                            r.status().name(),
+                            r.createdAt());
+                })
+                .toList());
     }
+
+    public record RegistrationResponse(
+            int id,
+            int eventId,
+            int memberId,
+            String memberName,
+            java.time.LocalDate eventDate,
+            String status,
+            java.time.Instant createdAt) {}
 
     @OpenApi(
             path = "/api/v1/events/registrations/pending",
@@ -495,14 +542,31 @@ public class EventRoutes implements Routes {
             })
     private void updateRegistrationStatus(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
+        UserSession session = UserSession.from(ctx);
         var req = ctx.bodyAsClass(StatusUpdateRequest.class);
         if (!"ACCEPTED".equals(req.status()) && !"DENIED".equals(req.status())) {
             throw new BadRequestResponse("status must be ACCEPTED or DENIED");
         }
+        var registration = eventService.findRegistrationById(id).orElseThrow(NotFoundResponse::new);
         if (!eventService.updateRegistrationStatus(id, req.status())) {
             throw new NotFoundResponse();
         }
-        ctx.json(new dev.chojo.ember.api.MessageResponse("Status updated"));
+        var event = eventService.findById(registration.eventId()).orElse(null);
+        String eventName = event != null ? event.name() : "?";
+        var data = NotificationData.of(
+                "notification.eventRegistrationStatus",
+                Map.of("eventName", eventName, "status", req.status()),
+                new NotificationData.NotificationLink("events-registrations"));
+        notificationService.notify(registration.memberId(), NotificationType.EVENT_REGISTRATION_STATUS, data);
+        var managerIds = stationMemberRepository.findManagers(registration.memberId()).stream()
+                .map(StationMember::id)
+                .toList();
+        notificationService.notifyMembersIfAbsent(
+                managerIds,
+                NotificationType.EVENT_REGISTRATION_STATUS,
+                data,
+                session.member().id());
+        ctx.json(new MessageResponse("Status updated"));
     }
 
     @OpenApi(
@@ -585,7 +649,7 @@ public class EventRoutes implements Routes {
         if (!eventService.updateCategory(id, req.name(), req.position())) {
             throw new NotFoundResponse();
         }
-        ctx.status(HttpStatus.OK).json(new dev.chojo.ember.api.MessageResponse("Updated"));
+        ctx.status(HttpStatus.OK).json(new MessageResponse("Updated"));
     }
 
     @OpenApi(
@@ -623,34 +687,34 @@ public class EventRoutes implements Routes {
     private void listEligibleMembers(Context ctx) {
         UserSession session = UserSession.from(ctx);
         if (session.member() == null) {
-            ctx.json(java.util.Collections.emptyMap());
+            ctx.json(Collections.emptyMap());
             return;
         }
 
         // Collect self + managed member IDs
-        var memberIds = new java.util.ArrayList<Integer>();
+        var memberIds = new ArrayList<Integer>();
         memberIds.add(session.member().id());
         if (session.hasRole(Roles.MEMBER_MANAGER)) {
             stationMemberService.findManaged(session.member().id()).forEach(m -> memberIds.add(m.id()));
         }
 
         // Pre-resolve roles and groups for each member
-        var memberRolesMap = new java.util.HashMap<Integer, Set<Roles>>();
-        var memberGroupsMap = new java.util.HashMap<Integer, List<Integer>>();
+        var memberRolesMap = new HashMap<Integer, Set<Roles>>();
+        var memberGroupsMap = new HashMap<Integer, List<Integer>>();
         for (int mid : memberIds) {
             memberRolesMap.put(mid, resolveRolesForMember(session, mid));
             memberGroupsMap.put(mid, resolveGroupIdsForMember(mid));
         }
 
         var allEvents = eventService.findByStation(session.stationId());
-        var result = new java.util.HashMap<Integer, java.util.List<Integer>>();
+        var result = new HashMap<Integer, List<Integer>>();
 
         for (var event : allEvents) {
             var roleRes = eventService.findRoleRestrictions(event.id());
             var groupRes = eventService.findGroupRestrictions(event.id());
             if (roleRes.isEmpty() && groupRes.isEmpty()) continue;
 
-            var eligible = new java.util.ArrayList<Integer>();
+            var eligible = new ArrayList<Integer>();
             for (int mid : memberIds) {
                 if (eventService.isMemberEligible(event.id(), memberRolesMap.get(mid), memberGroupsMap.get(mid))) {
                     eligible.add(mid);
@@ -715,7 +779,7 @@ public class EventRoutes implements Routes {
     private void setFieldDefaults(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
         var req = ctx.bodyAsClass(FieldDefaultEntry[].class);
-        var defaults = java.util.Arrays.stream(req)
+        var defaults = Arrays.stream(req)
                 .map(e -> new EventFieldDefault(id, e.fieldId(), e.source(), e.value()))
                 .toList();
         eventService.setFieldDefaults(id, defaults);
@@ -756,7 +820,7 @@ public class EventRoutes implements Routes {
 
     public record CategoryRequest(String name, int position) {}
 
-    @io.javalin.openapi.OpenApiName("EventRegisterRequest")
+    @OpenApiName("EventRegisterRequest")
     public record RegisterRequest(String eventDate, Integer memberId) {}
 
     public record StatusUpdateRequest(String status) {}
@@ -764,8 +828,7 @@ public class EventRoutes implements Routes {
     public record EventRestrictions(List<Integer> roleIds, List<Integer> groupIds) {}
 
     public record AllEventRestrictions(
-            java.util.Map<Integer, List<Integer>> roleRestrictions,
-            java.util.Map<Integer, List<Integer>> groupRestrictions) {}
+            Map<Integer, List<Integer>> roleRestrictions, Map<Integer, List<Integer>> groupRestrictions) {}
 
     public record FieldDefaultEntry(int fieldId, String source, String value) {}
 }

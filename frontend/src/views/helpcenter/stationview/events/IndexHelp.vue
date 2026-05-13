@@ -1,0 +1,114 @@
+/*
+ *     SPDX-License-Identifier: AGPL-3.0-only
+ *
+ *     Copyright (C) RainbowDashLabs and Contributor
+ */
+<script lang="ts" setup>
+import {useI18n} from 'vue-i18n'
+import HelpArticle from '@/components/helpcenter/HelpArticle.vue'
+import HelpSection from '@/components/helpcenter/HelpSection.vue'
+import HelpTip from '@/components/helpcenter/HelpTip.vue'
+import NeutralContainer from '@/components/container/NeutralContainer.vue'
+import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import EditButton from '@/components/button/EditButton.vue'
+import DeleteButton from '@/components/button/DeleteButton.vue'
+import SectionHeader from '@/components/typography/SectionHeader.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
+
+const {t} = useI18n()
+</script>
+
+<template>
+  <HelpArticle :title="t('helpCenter.eventsManage.title')" :subtitle="t('helpCenter.eventsManage.subtitle')">
+    <HelpSection :title="t('helpCenter.eventsManage.whatIs')">
+      <p>{{ t('helpCenter.eventsManage.whatIsText') }}</p>
+    </HelpSection>
+
+    <HelpSection :title="t('helpCenter.eventsManage.typesTitle')">
+      <p>{{ t('helpCenter.eventsManage.typeRecurring') }}</p>
+      <p>{{ t('helpCenter.eventsManage.typeOneTime') }}</p>
+    </HelpSection>
+
+    <HelpSection :title="t('helpCenter.eventsManage.createTitle')">
+      <p>{{ t('helpCenter.eventsManage.createName') }}</p>
+      <p>{{ t('helpCenter.eventsManage.createType') }}</p>
+      <p>{{ t('helpCenter.eventsManage.createTemplate') }}</p>
+      <p>{{ t('helpCenter.eventsManage.createRegistration') }}</p>
+      <p>{{ t('helpCenter.eventsManage.createRestrictions') }}</p>
+    </HelpSection>
+
+    <!-- Dummy: Event list by category -->
+    <SubHeader>Übung</SubHeader>
+    <div class="space-y-2">
+      <NeutralContainer class="flex items-center justify-between">
+        <div>
+          <span class="font-medium">Übungsabend</span>
+          <span class="ml-2 text-xs text-(--text-muted)">Dienstag, 18:00 – 20:00</span>
+          <span class="ml-2 text-xs text-primary">{{ t('events.typeRecurring') }}</span>
+        </div>
+        <div class="flex items-center gap-1">
+          <EditButton/>
+          <DeleteButton/>
+        </div>
+      </NeutralContainer>
+      <NeutralContainer class="flex items-center justify-between">
+        <div>
+          <span class="font-medium">Wettkampf Vorbereitung</span>
+          <span class="ml-2 text-xs text-(--text-muted)">25.05.2026, 14:00 – 17:00</span>
+          <span class="ml-2 text-xs text-primary">{{ t('events.typeOneTime') }}</span>
+        </div>
+        <div class="flex items-center gap-1">
+          <EditButton/>
+          <DeleteButton/>
+        </div>
+      </NeutralContainer>
+    </div>
+
+    <div class="flex justify-end">
+      <PrimaryButton>
+        <font-awesome-icon :icon="['fas', 'plus']" class="mr-1"/>
+        {{ t('events.addEvent') }}
+      </PrimaryButton>
+    </div>
+
+    <HelpSection :title="t('helpCenter.eventsManage.categoriesTitle')">
+      <p>{{ t('helpCenter.eventsManage.categoriesText') }}</p>
+    </HelpSection>
+
+    <HelpSection :title="t('helpCenter.eventsManage.breaksTitle')">
+      <p>{{ t('helpCenter.eventsManage.breaksText') }}</p>
+      <p>{{ t('helpCenter.eventsManage.breaksImport') }}</p>
+    </HelpSection>
+
+    <!-- Dummy: Breaks section -->
+    <SectionHeader>
+      <font-awesome-icon :icon="['fas', 'umbrella-beach']" class="mr-2"/>
+      {{ t('events.breaks') }}
+    </SectionHeader>
+    <div class="space-y-2">
+      <NeutralContainer class="flex items-center justify-between">
+        <div>
+          <span class="font-medium">Sommerferien</span>
+          <span class="ml-2 text-xs text-(--text-muted)">01.07.2026 – 15.08.2026</span>
+        </div>
+        <div class="flex items-center gap-1">
+          <EditButton/>
+          <DeleteButton/>
+        </div>
+      </NeutralContainer>
+    </div>
+    <div class="flex gap-2">
+      <PrimaryButton class="text-sm">
+        <font-awesome-icon :icon="['fas', 'plus']" class="mr-1"/>
+        {{ t('events.addBreak') }}
+      </PrimaryButton>
+      <SecondaryButton class="text-sm">
+        <font-awesome-icon :icon="['fas', 'download']" class="mr-1"/>
+        {{ t('events.importHolidays') }}
+      </SecondaryButton>
+    </div>
+
+    <HelpTip>{{ t('helpCenter.eventsManage.tip') }}</HelpTip>
+  </HelpArticle>
+</template>

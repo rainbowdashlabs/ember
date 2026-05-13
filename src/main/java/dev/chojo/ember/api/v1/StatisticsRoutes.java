@@ -19,6 +19,7 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 @Singleton
@@ -163,7 +164,7 @@ public class StatisticsRoutes implements Routes {
         return Query.query(sql).single().map(row -> row.getInt(1)).first().orElse(0);
     }
 
-    private java.util.List<Map<String, Object>> globalMapList(String sql) {
+    private List<Map<String, Object>> globalMapList(String sql) {
         return Query.query(sql)
                 .single()
                 .map(row -> {
@@ -177,7 +178,7 @@ public class StatisticsRoutes implements Routes {
                 .all();
     }
 
-    private java.util.List<Map<String, Object>> queryMapList(String sql, int stationId) {
+    private List<Map<String, Object>> queryMapList(String sql, int stationId) {
         return Query.query(sql)
                 .single(Call.of().bind("sid", stationId))
                 .map(row -> {

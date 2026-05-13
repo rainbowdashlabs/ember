@@ -10,7 +10,9 @@ import dev.chojo.ember.entity.Account;
 import dev.chojo.ember.entity.AttendanceEntry;
 import dev.chojo.ember.entity.AttendanceSession;
 import dev.chojo.ember.entity.AttendanceSessionField;
+import dev.chojo.ember.entity.AttendanceTemplate;
 import dev.chojo.ember.entity.AttendanceTemplateField;
+import dev.chojo.ember.entity.Station;
 import dev.chojo.ember.repository.AccountRepository;
 import dev.chojo.ember.repository.AttendanceRepository;
 import dev.chojo.ember.repository.AttendanceRepository.TemplateGroup;
@@ -32,12 +34,14 @@ import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import static org.slf4j.LoggerFactory.getLogger;
 
@@ -47,7 +51,7 @@ public class AttendanceExportService {
     private static final ObjectMapper MAPPER = JsonMapper.builder().build();
     private static final DateTimeFormatter TIME_FMT = DateTimeFormatter.ofPattern("HH:mm");
     private static final DateTimeFormatter DATE_TIME_FMT = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm");
-
+    private static final String TYPST_BIN = System.getenv().getOrDefault("TYPST_BIN", "typst");
     private final AttendanceRepository attendanceRepository;
     private final AccountRepository accountRepository;
     private final StationMemberRepository stationMemberRepository;
@@ -84,7 +88,7 @@ public class AttendanceExportService {
 
         // Resolve station from the template
         var template = attendanceRepository.findTemplateById(session.get().templateId());
-        int stationId = template.map(t -> t.stationId()).orElse(0);
+        int stationId = template.map(AttendanceTemplate::stationId).orElse(0);
         var station = stationRepository.findById(stationId).orElse(null);
         ZoneId zone = ZoneOffset.UTC;
         if (station != null && station.timezone() != null) {
@@ -221,7 +225,7 @@ public class AttendanceExportService {
     private String resolveMemberFieldValue(String rawValue) {
         var ids = parseMemberIds(rawValue);
         if (ids.isEmpty()) return "";
-        return ids.stream().map(this::resolveMemberName).collect(java.util.stream.Collectors.joining(", "));
+        return ids.stream().map(this::resolveMemberName).collect(Collectors.joining(", "));
     }
 
     private List<Integer> parseMemberIds(String value) {
@@ -235,7 +239,7 @@ public class AttendanceExportService {
                     if (!part.isBlank()) ids.add(Integer.parseInt(part.trim()));
                 }
             } else {
-                cleaned = cleaned.replaceAll("\"", "").trim();
+                cleaned = cleaned.replace("\"", "").trim();
                 if (!cleaned.isBlank()) ids.add(Integer.parseInt(cleaned));
             }
         } catch (NumberFormatException ignored) {
@@ -252,7 +256,7 @@ public class AttendanceExportService {
         return val;
     }
 
-    private String resolveLocalePrefix(dev.chojo.ember.entity.Station station) {
+    private String resolveLocalePrefix(Station station) {
         if (station != null && station.locale() != null && station.locale().startsWith("de")) return "de";
         return "en";
     }
@@ -266,8 +270,6 @@ public class AttendanceExportService {
         return DATE_TIME_FMT.format(instant.atZone(zone));
     }
 
-    private static final String TYPST_BIN = System.getenv().getOrDefault("TYPST_BIN", "typst");
-
     private byte[] renderPdf(Map<String, Object> data, String templateName, StationLogo logo)
             throws IOException, InterruptedException {
         Path tempDir = Files.createTempDirectory("attendance-export");
@@ -276,7 +278,6 @@ public class AttendanceExportService {
             if (logo != null) {
                 String ext =
                         switch (logo.contentType()) {
-                            case "image/png" -> "png";
                             case "image/jpeg" -> "jpg";
                             case "image/svg+xml" -> "svg";
                             default -> "png";
@@ -310,7 +311,7 @@ public class AttendanceExportService {
             return Files.readAllBytes(outputFile);
         } finally {
             try (var walk = Files.walk(tempDir)) {
-                walk.sorted(java.util.Comparator.reverseOrder()).forEach(p -> {
+                walk.sorted(Comparator.reverseOrder()).forEach(p -> {
                     try {
                         Files.deleteIfExists(p);
                     } catch (IOException ignored) {

@@ -40,6 +40,11 @@ export async function createComment(newsId: number, data: CommentRequest): Promi
     return res.data
 }
 
+export async function updateComment(commentId: number, data: CommentRequest): Promise<NewsComment> {
+    const res = await client.put<NewsComment>(`/news/comments/${commentId}`, data)
+    return res.data
+}
+
 export async function deleteComment(commentId: number): Promise<void> {
     await client.delete(`/news/comments/${commentId}`)
 }

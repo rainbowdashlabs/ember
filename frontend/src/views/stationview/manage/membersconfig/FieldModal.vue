@@ -16,6 +16,7 @@ import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import type {ProfileField} from '@/api/types'
+import {FieldTypes} from '@/api/types'
 
 const {t} = useI18n()
 
@@ -29,20 +30,20 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   'update:modelValue': [value: boolean]
-  save: [data: { name: string; fieldType: string; config: string; position: number; scope: string }]
+  save: [data: { name: string; fieldType: string; config: string; position: number; scope: string; keepOnArchive: boolean }]
 }>()
 
 const fieldTypeOptions = [
-  {value: 'text', label: 'Text'},
-  {value: 'number', label: 'Zahl'},
-  {value: 'date', label: 'Datum'},
-  {value: 'boolean', label: 'Ja/Nein'},
-  {value: 'enum', label: 'Auswahl'},
-  {value: 'age', label: 'Alter (berechnet)'},
+  {value: FieldTypes.TEXT, label: 'Text'},
+  {value: FieldTypes.NUMBER, label: 'Zahl'},
+  {value: FieldTypes.DATE, label: 'Datum'},
+  {value: FieldTypes.BOOLEAN, label: 'Ja/Nein'},
+  {value: FieldTypes.ENUM, label: 'Auswahl'},
+  {value: FieldTypes.AGE, label: 'Alter (berechnet)'},
 ]
 
 const fieldName = ref('')
-const fieldType = ref('text')
+const fieldType = ref<string>(FieldTypes.TEXT)
 const fieldRequired = ref(false)
 const fieldReadonly = ref(false)
 const fieldNotifyOnChange = ref(false)
@@ -56,6 +57,7 @@ const fieldDefaultBool = ref(false)
 const fieldDefaultToday = ref(false)
 const fieldDefaultNumber = ref<number>(0)
 const fieldPosition = ref(0)
+const fieldKeepOnArchive = ref(false)
 const saving = ref(false)
 
 function parseConfig(configStr: string | undefined): Record<string, unknown> {
@@ -82,19 +84,20 @@ watch(() => props.modelValue, (open) => {
     fieldAgeSource.value = (cfg.sourceField as string) ?? ''
     fieldAgeMode.value = (cfg.ageMode as string) ?? 'now'
     fieldHasDefault.value = cfg.defaultValue !== undefined
-    if (f.fieldType === 'boolean') {
+    if (f.fieldType === FieldTypes.BOOLEAN) {
       fieldDefaultBool.value = cfg.defaultValue === true
-    } else if (f.fieldType === 'date') {
+    } else if (f.fieldType === FieldTypes.DATE) {
       fieldDefaultToday.value = cfg.defaultValue === '__TODAY__'
-    } else if (f.fieldType === 'number') {
+    } else if (f.fieldType === FieldTypes.NUMBER) {
       fieldDefaultNumber.value = typeof cfg.defaultValue === 'number' ? cfg.defaultValue : 0
     } else {
       fieldDefaultValue.value = typeof cfg.defaultValue === 'string' ? cfg.defaultValue : ''
     }
     fieldPosition.value = f.position
+    fieldKeepOnArchive.value = f.keepOnArchive ?? false
   } else {
     fieldName.value = ''
-    fieldType.value = 'text'
+    fieldType.value = FieldTypes.TEXT
     fieldRequired.value = false
     fieldReadonly.value = false
     fieldNotifyOnChange.value = false
@@ -106,6 +109,7 @@ watch(() => props.modelValue, (open) => {
     fieldDefaultValue.value = ''
     fieldDefaultBool.value = false
     fieldDefaultToday.value = false
+    fieldKeepOnArchive.value = false
     fieldDefaultNumber.value = 0
     fieldPosition.value = 0
   }
@@ -117,19 +121,19 @@ function buildConfig(): string {
   if (fieldReadonly.value) cfg.readonly = true
   if (fieldNotifyOnChange.value) cfg.notifyOnChange = true
   if (fieldOverview.value) cfg.overview = true
-  if (fieldType.value === 'enum' && fieldEnumOptions.value.trim()) {
+  if (fieldType.value === FieldTypes.ENUM && fieldEnumOptions.value.trim()) {
     cfg.options = fieldEnumOptions.value.split('\n').map(o => o.trim()).filter(o => o.length > 0)
   }
-  if (fieldType.value === 'age') {
+  if (fieldType.value === FieldTypes.AGE) {
     if (fieldAgeSource.value) cfg.sourceField = fieldAgeSource.value
     cfg.ageMode = fieldAgeMode.value
   }
   if (fieldHasDefault.value) {
-    if (fieldType.value === 'boolean') {
+    if (fieldType.value === FieldTypes.BOOLEAN) {
       cfg.defaultValue = fieldDefaultBool.value
-    } else if (fieldType.value === 'date') {
+    } else if (fieldType.value === FieldTypes.DATE) {
       cfg.defaultValue = fieldDefaultToday.value ? '__TODAY__' : ''
-    } else if (fieldType.value === 'number') {
+    } else if (fieldType.value === FieldTypes.NUMBER) {
       cfg.defaultValue = fieldDefaultNumber.value
     } else {
       cfg.defaultValue = fieldDefaultValue.value.trim()
@@ -149,6 +153,7 @@ function submit() {
     config: buildConfig(),
     position: fieldPosition.value,
     scope: props.scope,
+    keepOnArchive: fieldKeepOnArchive.value,
   })
   saving.value = false
 }
@@ -228,14 +233,14 @@ function submit() {
       </div>
 
       <div class="flex items-center justify-between">
-        <label class="text-sm font-medium">{{ t('membersConfig.fieldRequired') }}</label>
-        <ToggleInput v-model="fieldRequired"/>
+        <label class="text-sm font-medium" :class="{ 'opacity-50': fieldReadonly }">{{ t('membersConfig.fieldRequired') }}</label>
+        <ToggleInput v-model="fieldRequired" :disabled="fieldReadonly"/>
       </div>
 
       <div class="space-y-1">
         <div class="flex items-center justify-between">
           <label class="text-sm font-medium">{{ t('membersConfig.fieldReadonly') }}</label>
-          <ToggleInput v-model="fieldReadonly"/>
+          <ToggleInput v-model="fieldReadonly" @update:model-value="(v: boolean) => { if (v) fieldRequired = false }"/>
         </div>
         <p class="text-xs text-(--text-muted)">{{ t('membersConfig.fieldReadonlyHint') }}</p>
       </div>
@@ -251,6 +256,14 @@ function submit() {
       <div class="flex items-center justify-between">
         <label class="text-sm font-medium">{{ t('membersConfig.fieldOverview') }}</label>
         <ToggleInput v-model="fieldOverview"/>
+      </div>
+
+      <div class="flex items-center justify-between">
+        <div>
+          <label class="text-sm font-medium">{{ t('membersConfig.fieldKeepOnArchive') }}</label>
+          <p class="text-xs text-(--text-muted)">{{ t('membersConfig.fieldKeepOnArchiveHint') }}</p>
+        </div>
+        <ToggleInput v-model="fieldKeepOnArchive"/>
       </div>
 
       <div class="space-y-1">

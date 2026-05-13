@@ -8,7 +8,14 @@ package dev.chojo.ember.entity;
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
 
 public record ProfileField(
-        int id, int stationId, String name, String fieldType, String config, int position, ProfileFieldScope scope) {
+        int id,
+        int stationId,
+        String name,
+        String fieldType,
+        String config,
+        int position,
+        ProfileFieldScope scope,
+        boolean keepOnArchive) {
     public static RowMapping<ProfileField> map() {
         return row -> new ProfileField(
                 row.getInt("id"),
@@ -17,6 +24,7 @@ public record ProfileField(
                 row.getString("field_type"),
                 row.getString("config"),
                 row.getInt("position"),
-                row.getEnum("scope", ProfileFieldScope.class));
+                row.getEnum("scope", ProfileFieldScope.class),
+                row.getBoolean("keep_on_archive"));
     }
 }

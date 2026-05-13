@@ -34,3 +34,8 @@ export async function updateStatus(id: number, data: UpdateStatusRequest): Promi
 export async function deleteExchange(id: number): Promise<void> {
     await client.delete(`/exchanges/${id}`)
 }
+
+export async function exportPdf(exchangeIds: number[], extraFieldIds: number[]): Promise<Blob> {
+    const res = await client.post('/exchanges/export', { exchangeIds, extraFieldIds }, { responseType: 'blob' })
+    return res.data as Blob
+}

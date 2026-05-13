@@ -4,19 +4,25 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useRouter } from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
-import type { InventoryItem, InventorySize, StationMember } from '@/api/types'
-import { inventory, stationMembers } from '@/api'
+import InfoBadge from '@/components/badge/InfoBadge.vue'
+import SuccessBadge from '@/components/badge/SuccessBadge.vue'
+import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
+import type { InventoryItem, InventorySize, StationMember, ExchangeRequestEntry, ProcurementEntry } from '@/api/types'
+import { inventory, stationMembers, exchanges, procurement } from '@/api'
 import { useStations } from '@/composables/useStations'
 
 const { t } = useI18n()
+const router = useRouter()
 const { activeStation } = useStations()
 
 interface LostItem {
@@ -27,8 +33,12 @@ interface LostItem {
 }
 
 const lostItems = ref<LostItem[]>([])
+const exchangeList = ref<ExchangeRequestEntry[]>([])
+const openProcurement = ref<ProcurementEntry[]>([])
 const loading = ref(true)
 const error = ref('')
+
+const openExchanges = computed(() => exchangeList.value.filter(e => e.status !== 'EXCHANGED'))
 
 async function loadData() {
   loading.value = true
@@ -37,10 +47,15 @@ async function loadData() {
     const stationId = activeStation.value?.stationId
     if (!stationId) return
 
-    const [inventories, members] = await Promise.all([
+    const [inventories, members, exch, proc] = await Promise.all([
       inventory.listInventories(),
       stationMembers.listMembers(stationId),
+      exchanges.listExchanges(),
+      procurement.listOpen(),
     ])
+
+    exchangeList.value = exch
+    openProcurement.value = proc
 
     const memberMap = new Map<number, StationMember>()
     for (const m of members) memberMap.set(m.id, m)
@@ -80,9 +95,17 @@ function formatDate(dateStr?: string | null): string {
   return new Date(dateStr).toLocaleDateString('de-DE')
 }
 
+function exchangeStatusBadge(status: string) {
+  switch (status) {
+    case 'EXCHANGED': return SuccessBadge
+    case 'ANNOUNCED': case 'SHIPPED': return InfoBadge
+    case 'RECEIVED': case 'ARRIVED': return SecondaryBadge
+    default: return SecondaryBadge
+  }
+}
+
 onMounted(loadData)
 
-// Reload when station becomes available (e.g. after fresh page load)
 watch(() => activeStation.value?.stationId, (newId, oldId) => {
   if (newId && !oldId) loadData()
 })
@@ -97,11 +120,72 @@ watch(() => activeStation.value?.stationId, (newId, oldId) => {
       <Alert v-if="error" variant="error">{{ error }}</Alert>
 
       <template v-if="!loading">
-        <div v-if="lostItems.length === 0" class="text-center text-(--text-muted) py-8">
-          {{ t('inventory.overview.noLost') }}
+        <!-- Open exchanges -->
+        <div v-if="openExchanges.length > 0" class="space-y-3">
+          <SubHeader>
+            <font-awesome-icon :icon="['fas', 'rotate']" class="mr-2" />
+            {{ t('inventory.overview.exchanges') }} ({{ openExchanges.length }})
+          </SubHeader>
+          <NeutralContainer class="overflow-x-auto">
+            <table class="w-full text-sm">
+              <thead>
+                <tr class="border-b border-bg-light-accent dark:border-bg-dark-accent text-left">
+                  <th class="px-3 py-2 font-medium">{{ t('inventory.overview.colItem') }}</th>
+                  <th class="px-3 py-2 font-medium">{{ t('inventory.overview.colOwner') }}</th>
+                  <th class="px-3 py-2 font-medium">{{ t('inventory.overview.colStatus') }}</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="ex in openExchanges" :key="ex.id"
+                    class="border-b border-bg-light-accent/50 dark:border-bg-dark-accent/50 cursor-pointer hover:bg-(--bg-accent)"
+                    @click="router.push({ name: 'inventory-exchanges' })">
+                  <td class="px-3 py-2.5">
+                    {{ ex.inventoryName }}
+                    <span class="text-(--text-muted)">[{{ ex.oldSizeLabel ?? t('common.unisize') }} → {{ ex.newSizeLabel ?? t('common.unisize') }}]</span>
+                  </td>
+                  <td class="px-3 py-2.5">{{ ex.memberName }}</td>
+                  <td class="px-3 py-2.5">
+                    <component :is="exchangeStatusBadge(ex.status)">{{ ex.status }}</component>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </NeutralContainer>
         </div>
 
-        <template v-else>
+        <!-- Open procurement -->
+        <div v-if="openProcurement.length > 0" class="space-y-3">
+          <SubHeader>
+            <font-awesome-icon :icon="['fas', 'folder-plus']" class="mr-2" />
+            {{ t('inventory.overview.procurement') }} ({{ openProcurement.length }})
+          </SubHeader>
+          <NeutralContainer class="overflow-x-auto">
+            <table class="w-full text-sm">
+              <thead>
+                <tr class="border-b border-bg-light-accent dark:border-bg-dark-accent text-left">
+                  <th class="px-3 py-2 font-medium">{{ t('inventory.overview.colItem') }}</th>
+                  <th class="px-3 py-2 font-medium">{{ t('inventory.overview.colOwner') }}</th>
+                  <th class="px-3 py-2 font-medium">{{ t('inventory.overview.colNotes') }}</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="p in openProcurement" :key="p.id"
+                    class="border-b border-bg-light-accent/50 dark:border-bg-dark-accent/50 cursor-pointer hover:bg-(--bg-accent)"
+                    @click="router.push({ name: 'inventory-procurement' })">
+                  <td class="px-3 py-2.5">
+                    {{ p.inventoryName }}
+                    <span class="text-(--text-muted)">[{{ p.sizeLabel || t('common.unisize') }}]</span>
+                  </td>
+                  <td class="px-3 py-2.5">{{ p.memberName }}</td>
+                  <td class="px-3 py-2.5 text-(--text-muted)">{{ p.notes || '-' }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </NeutralContainer>
+        </div>
+
+        <!-- Lost items -->
+        <div v-if="lostItems.length > 0" class="space-y-3">
           <SubHeader>{{ t('inventory.overview.lost') }}</SubHeader>
           <NeutralContainer class="overflow-x-auto">
             <table class="w-full text-sm">
@@ -117,7 +201,7 @@ watch(() => activeStation.value?.stationId, (newId, oldId) => {
                   <td class="px-3 py-2.5">
                     <div class="font-medium">
                       {{ a.item.name }}
-                      <span v-if="a.sizeName" class="font-normal text-(--text-muted)">[{{ a.sizeName }}]</span>
+                      <span class="font-normal text-(--text-muted)">[{{ a.sizeName || t('common.unisize') }}]</span>
                     </div>
                     <div v-if="a.item.internalId" class="text-xs text-(--text-muted)">{{ a.item.internalId }}</div>
                   </td>
@@ -129,7 +213,12 @@ watch(() => activeStation.value?.stationId, (newId, oldId) => {
               </tbody>
             </table>
           </NeutralContainer>
-        </template>
+        </div>
+
+        <div v-if="lostItems.length === 0 && openExchanges.length === 0 && openProcurement.length === 0"
+             class="text-center text-(--text-muted) py-8">
+          {{ t('inventory.overview.noLost') }}
+        </div>
       </template>
     </div>
   </ViewContent>

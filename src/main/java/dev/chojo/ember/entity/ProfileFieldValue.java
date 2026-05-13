@@ -5,8 +5,10 @@
  */
 package dev.chojo.ember.entity;
 
+import de.chojo.sadu.mapper.rowmapper.RowMapping;
+
 public record ProfileFieldValue(int memberId, int fieldId, String value) {
-    public static de.chojo.sadu.mapper.rowmapper.RowMapping<ProfileFieldValue> map() {
+    public static RowMapping<ProfileFieldValue> map() {
         return row -> new ProfileFieldValue(row.getInt("member_id"), row.getInt("field_id"), row.getString("value"));
     }
 }

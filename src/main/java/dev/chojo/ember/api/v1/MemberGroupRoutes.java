@@ -42,14 +42,9 @@ public class MemberGroupRoutes implements Routes {
         this.accountRepository = accountRepository;
     }
 
-    private MemberWithName toMemberWithName(StationMember m) {
-        Account account = accountRepository.findById(m.accountId()).orElse(null);
-        String name = account != null ? (account.firstName() + " " + account.lastName()).trim() : "";
-        String email = account != null ? account.email() : "";
-        return new MemberWithName(m.id(), m.stationId(), m.accountId(), name, email);
+    private static boolean isBlank(String s) {
+        return s == null || s.isBlank();
     }
-
-    public record MemberWithName(int id, int stationId, int accountId, String name, String email) {}
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
@@ -66,6 +61,13 @@ public class MemberGroupRoutes implements Routes {
         routes.put(prefix + "/groups/{id}/roles", this::setGroupRoles, Roles.MEMBER_MANAGEMENT);
 
         routes.get(prefix + "/station-members/{memberId}/groups", this::getMemberGroups, Roles.MEMBER_MANAGEMENT);
+    }
+
+    private MemberWithName toMemberWithName(StationMember m) {
+        Account account = accountRepository.findById(m.accountId()).orElse(null);
+        String name = account != null ? (account.firstName() + " " + account.lastName()).trim() : "";
+        String email = account != null ? account.email() : "";
+        return new MemberWithName(m.id(), m.stationId(), m.accountId(), name, email);
     }
 
     // -- Groups --
@@ -249,9 +251,7 @@ public class MemberGroupRoutes implements Routes {
         ctx.json(groupService.setGroupRoles(groupId, roleIds, session.roles()));
     }
 
-    private static boolean isBlank(String s) {
-        return s == null || s.isBlank();
-    }
+    public record MemberWithName(int id, int stationId, int accountId, String name, String email) {}
 
     // -- Request/Response records --
 

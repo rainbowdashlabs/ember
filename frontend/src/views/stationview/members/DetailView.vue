@@ -14,13 +14,21 @@ import EditButton from '@/components/button/EditButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
+import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
+import Modal from '@/components/feedback/Modal.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import ChangeHistory from './detailview/ChangeHistory.vue'
 import type { ProfileField, ProfileFieldChange, StationMember } from '@/api/types'
-import { profileFields, profileFieldChanges, stationMembers, members } from '@/api'
+import { Roles, hasTeamRole } from '@/api/types'
+import SubHeader from '@/components/typography/SubHeader.vue'
+import InventoryItemCard from '@/views/stationview/inventory/InventoryItemCard.vue'
+import ErrorButton from '@/components/button/ErrorButton.vue'
+import { profileFields, profileFieldChanges, stationMembers, members, inventory, exchanges } from '@/api'
+import type { MyInventoryItem } from '@/api/inventory'
+import type { ExchangeRequestEntry } from '@/api/types'
 import { useStations } from '@/composables/useStations'
 import { useSession } from '@/composables/useSession'
 
@@ -28,7 +36,7 @@ const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
 const { currentStationId } = useStations()
-const { sessionInfo, canManageMembers, isMemberManager } = useSession()
+const { sessionInfo, canManageMembers, isMemberManager, canManageInventory } = useSession()
 
 const memberId = computed(() => Number(route.params.id))
 const currentMemberId = computed(() => sessionInfo.value?.member?.id ?? 0)
@@ -43,6 +51,8 @@ const managerValues = ref<Map<number, Map<number, string>>>(new Map())
 const managerRoles = ref<Map<number, string[]>>(new Map())
 const allMembers = ref<StationMember[]>([])
 const changes = ref<ProfileFieldChange[]>([])
+const memberInventory = ref<MyInventoryItem[]>([])
+const memberExchanges = ref<ExchangeRequestEntry[]>([])
 const loading = ref(true)
 const error = ref('')
 
@@ -57,24 +67,23 @@ const newMgrLastName = ref('')
 const newMgrEmail = ref('')
 const creatingManager = ref(false)
 
-const TEAM_ROLES = ['TEAM', 'MANAGER', 'ADMIN', 'ATTENDENCE_MANAGEMENT', 'INVENTORY_MANAGEMENT',
-  'EVENT_MANAGEMENT', 'MEMBER_MANAGEMENT']
-
 const applicableFields = computed(() => {
   const scopes: string[] = []
-  if (memberRoles.value.includes('MEMBER')) scopes.push('MEMBER')
-  if (memberRoles.value.some(r => TEAM_ROLES.includes(r))) scopes.push('TEAM')
-  if (memberRoles.value.includes('MEMBER_MANAGER')) scopes.push('MEMBER_MANAGER')
+  if (memberRoles.value.includes(Roles.MEMBER)) scopes.push(Roles.MEMBER)
+  if (hasTeamRole(memberRoles.value)) scopes.push(Roles.TEAM)
+  if (memberRoles.value.includes(Roles.MEMBER_MANAGER)) scopes.push(Roles.MEMBER_MANAGER)
   return fields.value.filter(f => {
     if (f.scope === 'GROUP') return false
-    return scopes.includes(f.scope ?? 'MEMBER')
+    return scopes.includes(f.scope ?? Roles.MEMBER)
   })
 })
 
 const availableManagers = computed(() => {
   const managerIds = new Set(managers.value.map(m => m.id))
   managerIds.add(memberId.value)
-  return allMembers.value.filter(m => !managerIds.has(m.id))
+  return allMembers.value
+      .filter(m => !managerIds.has(m.id))
+      .sort((a, b) => memberDisplayName(a).localeCompare(memberDisplayName(b)))
 })
 
 function memberDisplayName(m: StationMember): string {
@@ -96,12 +105,12 @@ function getManagerFieldValue(mgrId: number, fieldId: number): string {
 function getManagerFields(mgrId: number): typeof fields.value {
   const roles = managerRoles.value.get(mgrId) ?? []
   const scopes: string[] = []
-  if (roles.includes('MEMBER')) scopes.push('MEMBER')
-  if (roles.some(r => TEAM_ROLES.includes(r))) scopes.push('TEAM')
-  if (roles.includes('MEMBER_MANAGER')) scopes.push('MEMBER_MANAGER')
+  if (roles.includes(Roles.MEMBER)) scopes.push(Roles.MEMBER)
+  if (hasTeamRole(roles)) scopes.push(Roles.TEAM)
+  if (roles.includes(Roles.MEMBER_MANAGER)) scopes.push(Roles.MEMBER_MANAGER)
   return fields.value.filter(f => {
     if (f.scope === 'GROUP') return false
-    return scopes.includes(f.scope ?? 'MEMBER')
+    return scopes.includes(f.scope ?? Roles.MEMBER)
   })
 }
 
@@ -135,6 +144,14 @@ async function loadData() {
         changes.value = await profileFieldChanges.getChanges(memberId.value)
       } catch { /* ignore if unauthorized */ }
     }
+    // Load inventory and exchanges
+    try {
+      memberInventory.value = await inventory.memberItems(memberId.value)
+    } catch { memberInventory.value = [] }
+    try {
+      const allExch = await exchanges.listExchanges()
+      memberExchanges.value = allExch.filter(e => e.memberId === memberId.value && e.status !== 'EXCHANGED')
+    } catch { memberExchanges.value = [] }
   } catch {
     error.value = t('common.error')
   } finally {
@@ -204,7 +221,8 @@ async function createNewManager() {
       await stationMembers.setManagers(memberId.value, { managerIds: [...currentIds, newMember.id] })
       // Assign member_manager role to new account
       const allRoles = await stationMembers.listAllRoles()
-      const mgrRoleIds = allRoles.filter(r => ['LOGIN', 'MEMBER_MANAGER'].includes(r.role)).map(r => r.id)
+      const mgrRoleNames: readonly string[] = [Roles.LOGIN, Roles.MEMBER_MANAGER]
+      const mgrRoleIds = allRoles.filter(r => mgrRoleNames.includes(r.role)).map(r => r.id)
       await stationMembers.setRoles(newMember.id, { roleIds: mgrRoleIds })
 
       managers.value = await stationMembers.getManagers(memberId.value)
@@ -226,6 +244,83 @@ async function loadChanges() {
   try {
     changes.value = await profileFieldChanges.getChanges(memberId.value)
   } catch { /* ignore */ }
+}
+
+function itemExchange(itemId: number): ExchangeRequestEntry | undefined {
+  return memberExchanges.value.find(e => e.itemId === itemId)
+}
+
+// Exchange modal
+const showExchangeModal = ref(false)
+const exchangeItem = ref<MyInventoryItem | null>(null)
+const exchangeNewSizeId = ref<string>('')
+const exchangeReason = ref('')
+const exchangeSizes = ref<import('@/api/types').InventorySize[]>([])
+const exchangeSaving = ref(false)
+const exchangeSuccess = ref(false)
+
+async function openExchangeModal(item: MyInventoryItem) {
+  exchangeItem.value = item
+  exchangeReason.value = ''
+  exchangeNewSizeId.value = ''
+  exchangeSizes.value = []
+  exchangeSuccess.value = false
+  showExchangeModal.value = true
+  try {
+    exchangeSizes.value = await inventory.listSizes(item.inventoryId)
+  } catch { /* ignore */ }
+}
+
+async function submitExchange() {
+  if (!exchangeItem.value || !exchangeReason.value.trim()) return
+  exchangeSaving.value = true
+  try {
+    await exchanges.createExchange({
+      memberId: memberId.value,
+      itemId: exchangeItem.value.id,
+      inventoryId: exchangeItem.value.inventoryId,
+      oldSizeId: exchangeItem.value.sizeId ?? undefined,
+      newSizeId: exchangeNewSizeId.value ? Number(exchangeNewSizeId.value) : undefined,
+      reason: exchangeReason.value.trim(),
+    })
+    exchangeSuccess.value = true
+  } catch {
+    error.value = t('common.error')
+  } finally {
+    exchangeSaving.value = false
+  }
+}
+
+// Former member
+const showFormerModal = ref(false)
+const markingFormer = ref(false)
+const formerSuccess = ref(false)
+
+const formerBlockReasons = computed(() => {
+  const reasons: string[] = []
+  if (memberInventory.value.length > 0) {
+    reasons.push(t('memberDetail.formerBlockInventory', { count: memberInventory.value.length }))
+  }
+  const forbidden = [Roles.MEMBER_MANAGER, Roles.MANAGER, Roles.ADMIN]
+  if (memberRoles.value.some(r => forbidden.includes(r as any))) {
+    reasons.push(t('memberDetail.formerBlockRole'))
+  }
+  return reasons
+})
+const canMarkFormer = computed(() => formerBlockReasons.value.length === 0 && !!member.value)
+
+async function confirmMarkFormer() {
+  markingFormer.value = true
+  error.value = ''
+  try {
+    await stationMembers.markFormer(memberId.value)
+    formerSuccess.value = true
+    showFormerModal.value = false
+  } catch {
+    error.value = t('common.error')
+  } finally {
+    markingFormer.value = false
+  }
 }
 
 function goBack() {
@@ -251,10 +346,16 @@ onMounted(loadData)
           <font-awesome-icon :icon="['fas', 'chevron-left']" class="mr-2" />
           {{ t('memberDetail.back') }}
         </SecondaryButton>
-        <PrimaryButton @click="goToEdit">
-          <font-awesome-icon :icon="['fas', 'pen']" class="mr-2" />
-          {{ t('memberDetail.edit') }}
-        </PrimaryButton>
+        <div class="flex items-center gap-2">
+          <ErrorButton v-if="canManageMembers() && !formerSuccess" @click="showFormerModal = true">
+            <font-awesome-icon :icon="['fas', 'user-slash']" class="mr-1" />
+            {{ t('memberDetail.markFormer') }}
+          </ErrorButton>
+          <PrimaryButton @click="goToEdit">
+            <font-awesome-icon :icon="['fas', 'pen']" class="mr-2" />
+            {{ t('memberDetail.edit') }}
+          </PrimaryButton>
+        </div>
       </div>
 
       <Spinner v-if="loading" size="lg" />
@@ -278,8 +379,8 @@ onMounted(loadData)
           </div>
         </NeutralContainer>
 
-        <!-- Managers -->
-        <NeutralContainer class="space-y-4">
+        <!-- Managers (only shown for MEMBER role, not for MEMBER_MANAGER) -->
+        <NeutralContainer v-if="memberRoles.includes(Roles.MEMBER) && !memberRoles.includes(Roles.MEMBER_MANAGER) && !hasTeamRole(memberRoles)" class="space-y-4">
           <div class="flex items-center justify-between">
             <h3 class="text-sm font-semibold">{{ t('memberDetail.managers') }}</h3>
             <div class="flex items-center gap-2">
@@ -348,6 +449,22 @@ onMounted(loadData)
           </div>
         </NeutralContainer>
 
+        <!-- Inventory -->
+        <NeutralContainer v-if="memberInventory.length > 0" class="space-y-3">
+          <SubHeader>{{ t('memberDetail.inventory') }}</SubHeader>
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+            <InventoryItemCard
+                v-for="item in memberInventory"
+                :key="item.id"
+                :item="item"
+                :exchange="itemExchange(item.id) ?? null"
+                :show-exchange-button="canManageInventory()"
+                :show-inventory-name="true"
+                @request-exchange="openExchangeModal"
+            />
+          </div>
+        </NeutralContainer>
+
         <!-- Change History -->
         <ChangeHistory
           v-if="showChangeHistory"
@@ -357,6 +474,70 @@ onMounted(loadData)
           @reload="loadChanges"
         />
       </template>
+
+      <Alert v-if="formerSuccess" variant="success">{{ t('memberDetail.formerSuccess') }}</Alert>
+
+      <!-- Former confirmation modal -->
+      <Modal v-model="showFormerModal">
+        <div class="space-y-4">
+          <SectionHeader>{{ t('memberDetail.markFormerTitle') }}</SectionHeader>
+          <template v-if="canMarkFormer">
+            <p class="text-sm">{{ t('memberDetail.markFormerConfirm', { name: member ? memberDisplayName(member) : '' }) }}</p>
+            <p class="text-xs text-(--text-muted)">{{ t('memberDetail.markFormerHint') }}</p>
+            <div class="flex justify-end gap-2">
+              <SecondaryButton @click="showFormerModal = false">{{ t('common.cancel') }}</SecondaryButton>
+              <ErrorButton :disabled="markingFormer" @click="confirmMarkFormer">
+                {{ markingFormer ? t('common.loading') : t('memberDetail.markFormer') }}
+              </ErrorButton>
+            </div>
+          </template>
+          <template v-else>
+            <p class="text-sm">{{ t('memberDetail.formerBlocked') }}</p>
+            <ul class="list-disc list-inside text-sm text-error space-y-1">
+              <li v-for="(reason, i) in formerBlockReasons" :key="i">{{ reason }}</li>
+            </ul>
+            <div class="flex justify-end">
+              <SecondaryButton @click="showFormerModal = false">{{ t('common.close') }}</SecondaryButton>
+            </div>
+          </template>
+        </div>
+      </Modal>
+
+      <!-- Exchange modal -->
+      <Modal v-model="showExchangeModal">
+        <div class="space-y-4">
+          <SectionHeader>{{ t('memberDetail.requestExchange') }}</SectionHeader>
+          <template v-if="exchangeSuccess">
+            <Alert variant="success">{{ t('profile.exchangeCreated') }}</Alert>
+            <div class="flex justify-end">
+              <SecondaryButton @click="showExchangeModal = false">{{ t('common.close') }}</SecondaryButton>
+            </div>
+          </template>
+          <template v-else>
+            <p v-if="exchangeItem" class="text-sm">
+              {{ exchangeItem.inventoryName }} — {{ exchangeItem.name }}
+              <span class="text-(--text-muted)">[{{ exchangeItem.sizeName ?? t('common.unisize') }}]</span>
+            </p>
+            <div v-if="exchangeSizes.length > 0" class="space-y-1">
+              <label class="block text-sm font-medium">{{ t('exchanges.newSize') }}</label>
+              <SelectInput v-model="exchangeNewSizeId">
+                <option value="" disabled>{{ t('exchanges.selectNewSize') }}</option>
+                <option v-for="size in exchangeSizes" :key="size.id" :value="String(size.id)">{{ size.label }}</option>
+              </SelectInput>
+            </div>
+            <div class="space-y-1">
+              <label class="block text-sm font-medium">{{ t('exchanges.reason') }}</label>
+              <TextAreaInput v-model="exchangeReason" :placeholder="t('exchanges.reasonPlaceholder')" :rows="3" />
+            </div>
+            <div class="flex justify-end gap-2">
+              <SecondaryButton @click="showExchangeModal = false">{{ t('common.cancel') }}</SecondaryButton>
+              <PrimaryButton :disabled="exchangeSaving || !exchangeReason.trim() || (exchangeSizes.length > 0 && !exchangeNewSizeId)" @click="submitExchange">
+                {{ exchangeSaving ? t('common.loading') : t('exchanges.submit') }}
+              </PrimaryButton>
+            </div>
+          </template>
+        </div>
+      </Modal>
     </div>
   </ViewContent>
 </template>

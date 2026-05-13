@@ -13,7 +13,9 @@ import dev.chojo.ember.entity.Inventory;
 import dev.chojo.ember.entity.InventoryItem;
 import dev.chojo.ember.entity.InventoryRequirement;
 import dev.chojo.ember.entity.InventorySize;
+import dev.chojo.ember.entity.InventoryType;
 import dev.chojo.ember.service.InventoryCheckService;
+import dev.chojo.ember.service.InventoryExportService;
 import dev.chojo.ember.service.InventoryService;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
@@ -36,24 +38,40 @@ import java.util.List;
 public class InventoryRoutes implements Routes {
     private final InventoryService inventoryService;
     private final InventoryCheckService checkService;
+    private final InventoryExportService inventoryExportService;
 
     @Inject
-    public InventoryRoutes(InventoryService inventoryService, InventoryCheckService checkService) {
+    public InventoryRoutes(
+            InventoryService inventoryService,
+            InventoryCheckService checkService,
+            InventoryExportService inventoryExportService) {
         this.inventoryService = inventoryService;
         this.checkService = checkService;
+        this.inventoryExportService = inventoryExportService;
     }
+
+    private static boolean isBlank(String s) {
+        return s == null || s.isBlank();
+    }
+
+    // -- Inventories --
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
         routes.get(prefix + "/my-inventory-items", this::myItems, Roles.USER);
         routes.get(prefix + "/my-inventory-requirements", this::myRequirements, Roles.USER);
+        routes.get(
+                prefix + "/station-members/{memberId}/inventory-items",
+                this::memberItems,
+                Roles.MEMBER_MANAGEMENT,
+                Roles.INVENTORY_MANAGEMENT);
         routes.get(prefix + "/inventories", this::list, Roles.INVENTORY_MANAGEMENT);
         routes.post(prefix + "/inventories", this::create, Roles.INVENTORY_MANAGEMENT);
         routes.get(prefix + "/inventories/{id}", this::get, Roles.INVENTORY_MANAGEMENT);
         routes.put(prefix + "/inventories/{id}", this::update, Roles.INVENTORY_MANAGEMENT);
         routes.delete(prefix + "/inventories/{id}", this::delete, Roles.INVENTORY_MANAGEMENT);
 
-        routes.get(prefix + "/inventories/{inventoryId}/sizes", this::listSizes, Roles.INVENTORY_MANAGEMENT);
+        routes.get(prefix + "/inventories/{inventoryId}/sizes", this::listSizes, Roles.LOGIN);
         routes.post(prefix + "/inventories/{inventoryId}/sizes", this::createSize, Roles.INVENTORY_MANAGEMENT);
         routes.put(prefix + "/inventories/{inventoryId}/sizes/{sizeId}", this::updateSize, Roles.INVENTORY_MANAGEMENT);
         routes.delete(
@@ -77,9 +95,9 @@ public class InventoryRoutes implements Routes {
                 this::updateRequirementPosition,
                 Roles.INVENTORY_MANAGEMENT);
         routes.delete(prefix + "/inventory-requirements/{id}", this::deleteRequirement, Roles.INVENTORY_MANAGEMENT);
-    }
 
-    // -- Inventories --
+        routes.post(prefix + "/inventories/members/export", this::exportMembers, Roles.INVENTORY_MANAGEMENT);
+    }
 
     @OpenApi(
             path = "/api/v1/inventories",
@@ -110,6 +128,7 @@ public class InventoryRoutes implements Routes {
                             item.name(),
                             item.internalId(),
                             inventoryName,
+                            item.sizeId(),
                             sizeName,
                             item.lostAt());
                 })
@@ -131,6 +150,43 @@ public class InventoryRoutes implements Routes {
                 .map(r -> new MyRequirement(r.inventoryId(), r.inventoryName(), r.requiredQuantity()))
                 .toList();
         ctx.json(result);
+    }
+
+    @OpenApi(
+            path = "/api/v1/station-members/{memberId}/inventory-items",
+            methods = HttpMethod.GET,
+            summary = "List inventory items for a specific member",
+            tags = {"Inventory"},
+            pathParams = @OpenApiParam(name = "memberId", type = Integer.class, required = true),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MyInventoryItem[].class)))
+    private void memberItems(Context ctx) {
+        int memberId = ctx.pathParamAsClass("memberId", Integer.class).get();
+        var items = inventoryService.findItemsByMember(memberId);
+        ctx.json(items.stream()
+                .map(item -> {
+                    String inventoryName = inventoryService
+                            .findById(item.inventoryId())
+                            .map(Inventory::name)
+                            .orElse("");
+                    String sizeName = null;
+                    if (item.sizeId() != null) {
+                        sizeName = inventoryService.findSizes(item.inventoryId()).stream()
+                                .filter(s -> s.id() == item.sizeId())
+                                .map(InventorySize::label)
+                                .findFirst()
+                                .orElse(null);
+                    }
+                    return new MyInventoryItem(
+                            item.id(),
+                            item.inventoryId(),
+                            item.name(),
+                            item.internalId(),
+                            inventoryName,
+                            item.sizeId(),
+                            sizeName,
+                            item.lostAt());
+                })
+                .toList());
     }
 
     @OpenApi(
@@ -162,7 +218,10 @@ public class InventoryRoutes implements Routes {
         }
         ctx.status(HttpStatus.CREATED)
                 .json(inventoryService.create(
-                        session.stationId(), request.name(), request.inventoryType(), request.hasSizes()));
+                        session.stationId(),
+                        request.name(),
+                        parseInventoryType(request.inventoryType()),
+                        request.hasSizes()));
     }
 
     @OpenApi(
@@ -186,7 +245,7 @@ public class InventoryRoutes implements Routes {
                                     inventory.id(),
                                     inventory.stationId(),
                                     inventory.name(),
-                                    inventory.inventoryType(),
+                                    inventory.inventoryType().name(),
                                     inventory.hasSizes(),
                                     sizes));
                         },
@@ -213,11 +272,13 @@ public class InventoryRoutes implements Routes {
             throw new BadRequestResponse("name is required");
         }
         inventoryService
-                .update(id, request.name(), request.inventoryType(), request.hasSizes())
+                .update(id, request.name(), parseInventoryType(request.inventoryType()), request.hasSizes())
                 .ifPresentOrElse(ctx::json, () -> {
                     throw new NotFoundResponse();
                 });
     }
+
+    // -- Sizes --
 
     @OpenApi(
             path = "/api/v1/inventories/{id}",
@@ -237,8 +298,6 @@ public class InventoryRoutes implements Routes {
             throw new NotFoundResponse();
         }
     }
-
-    // -- Sizes --
 
     @OpenApi(
             path = "/api/v1/inventories/{inventoryId}/sizes",
@@ -298,6 +357,8 @@ public class InventoryRoutes implements Routes {
                 });
     }
 
+    // -- Items --
+
     @OpenApi(
             path = "/api/v1/inventories/{inventoryId}/sizes/{sizeId}",
             methods = HttpMethod.DELETE,
@@ -318,8 +379,6 @@ public class InventoryRoutes implements Routes {
             throw new NotFoundResponse();
         });
     }
-
-    // -- Items --
 
     @OpenApi(
             path = "/api/v1/inventories/{inventoryId}/items",
@@ -347,9 +406,15 @@ public class InventoryRoutes implements Routes {
         if (isBlank(request.name())) {
             throw new BadRequestResponse("name is required");
         }
+        String source = request.itemSource() != null ? request.itemSource() : "INTERNAL";
         ctx.status(HttpStatus.CREATED)
                 .json(inventoryService.createItem(
-                        inventoryId, request.internalId(), request.name(), request.sizeId(), request.metadata()));
+                        inventoryId,
+                        request.internalId(),
+                        request.name(),
+                        request.sizeId(),
+                        request.metadata(),
+                        source));
     }
 
     @OpenApi(
@@ -472,10 +537,6 @@ public class InventoryRoutes implements Routes {
         }
     }
 
-    private static boolean isBlank(String s) {
-        return s == null || s.isBlank();
-    }
-
     // -- Requirements --
 
     @OpenApi(
@@ -578,12 +639,21 @@ public class InventoryRoutes implements Routes {
 
     // -- Request/Response records --
 
+    private InventoryType parseInventoryType(String type) {
+        try {
+            return InventoryType.valueOf(type);
+        } catch (IllegalArgumentException e) {
+            throw new BadRequestResponse("Invalid inventory type: " + type);
+        }
+    }
+
     public record MyInventoryItem(
             int id,
             int inventoryId,
             String name,
             String internalId,
             String inventoryName,
+            Integer sizeId,
             String sizeName,
             Instant lostAt) {}
 
@@ -596,7 +666,7 @@ public class InventoryRoutes implements Routes {
 
     public record SizeRequest(String label, int position, String note) {}
 
-    public record ItemRequest(String internalId, String name, Integer sizeId, String metadata) {}
+    public record ItemRequest(String internalId, String name, Integer sizeId, String metadata, String itemSource) {}
 
     public record AssignRequest(Integer memberId, String memberName) {}
 
@@ -605,4 +675,44 @@ public class InventoryRoutes implements Routes {
     public record UpdateRequirementRequest(int quantity) {}
 
     public record UpdatePositionRequest(int position) {}
+
+    public record MemberExportRequest(
+            List<Integer> memberIds,
+            List<Integer> inventoryIds,
+            List<Integer> extraFieldIds,
+            Boolean showName,
+            Boolean showInternalId,
+            Boolean showSize) {}
+
+    @OpenApi(
+            path = "/api/v1/inventories/members/export",
+            methods = HttpMethod.POST,
+            summary = "Export member inventory list as PDF",
+            tags = {"Inventory"},
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = MemberExportRequest.class)),
+            responses = {
+                @OpenApiResponse(status = "200"),
+                @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class)),
+            })
+    private void exportMembers(Context ctx) {
+        var session = UserSession.from(ctx);
+        var body = ctx.bodyAsClass(MemberExportRequest.class);
+        var account = session.account();
+        String generatedBy = (account.firstName() + " " + account.lastName()).trim();
+        var pdf = inventoryExportService.exportPdf(
+                session.stationId(),
+                body.memberIds(),
+                body.inventoryIds(),
+                body.extraFieldIds() != null ? body.extraFieldIds() : List.of(),
+                generatedBy,
+                body.showName() != null ? body.showName() : true,
+                body.showInternalId() != null ? body.showInternalId() : false,
+                body.showSize() != null ? body.showSize() : true);
+        if (pdf.isPresent()) {
+            ctx.contentType("application/pdf");
+            ctx.result(pdf.get());
+        } else {
+            throw new BadRequestResponse("Export failed");
+        }
+    }
 }

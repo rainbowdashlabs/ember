@@ -19,6 +19,7 @@ import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import type {MemberCheckSummary} from '@/api/types'
+import {Roles, hasTeamRole} from '@/api/types'
 import {inventoryCheck} from '@/api'
 import {useSession} from '@/composables/useSession'
 
@@ -33,20 +34,14 @@ const activeTab = ref<'team' | 'member'>('team')
 
 const currentMemberId = () => sessionInfo.value?.member?.id
 
-const teamRoles = ['TEAM', 'MANAGER', 'ADMIN', 'ATTENDENCE_MANAGEMENT', 'INVENTORY_MANAGEMENT', 'EVENT_MANAGEMENT', 'MEMBER_MANAGEMENT']
-
-function isTeamMember(roles: string[]): boolean {
-  return teamRoles.some(r => roles.includes(r))
-}
-
 const filteredMembers = computed(() => {
   return members.value.filter(m => {
     const roles = m.roles ?? []
-    if (roles.includes('MEMBER_MANAGER') && !roles.includes('MEMBER') && !isTeamMember(roles)) return false
+    if (roles.includes(Roles.MEMBER_MANAGER) && !roles.includes(Roles.MEMBER) && !hasTeamRole(roles)) return false
     if (activeTab.value === 'team') {
-      return isTeamMember(roles)
+      return hasTeamRole(roles)
     } else {
-      return roles.includes('member') && !isTeamMember(roles)
+      return roles.includes(Roles.MEMBER) && !hasTeamRole(roles)
     }
   })
 })

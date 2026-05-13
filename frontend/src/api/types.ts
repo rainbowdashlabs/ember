@@ -5,20 +5,37 @@
  */
 // -- Roles --
 
-export type RoleName =
-    | 'LOGIN'
-    | 'USER'
-    | 'MEMBER'
-    | 'MEMBER_MANAGER'
-    | 'TEAM'
-    | 'ATTENDENCE_MANAGEMENT'
-    | 'ATTENDENCE_EXPORT_MANAGER'
-    | 'INVENTORY_MANAGEMENT'
-    | 'EVENT_MANAGEMENT'
-    | 'MEMBER_MANAGEMENT'
-    | 'NEWS_MANAGEMENT'
-    | 'MANAGER'
-    | 'ADMIN'
+export const Roles = {
+    LOGIN: 'LOGIN',
+    USER: 'USER',
+    MEMBER: 'MEMBER',
+    MEMBER_MANAGER: 'MEMBER_MANAGER',
+    TEAM: 'TEAM',
+    ATTENDENCE_MANAGEMENT: 'ATTENDENCE_MANAGEMENT',
+    ATTENDENCE_EXPORT_MANAGER: 'ATTENDENCE_EXPORT_MANAGER',
+    INVENTORY_MANAGEMENT: 'INVENTORY_MANAGEMENT',
+    EVENT_MANAGEMENT: 'EVENT_MANAGEMENT',
+    MEMBER_MANAGEMENT: 'MEMBER_MANAGEMENT',
+    NEWS_MANAGEMENT: 'NEWS_MANAGEMENT',
+    MANAGER: 'MANAGER',
+    ADMIN: 'ADMIN',
+} as const
+
+export type RoleName = (typeof Roles)[keyof typeof Roles]
+
+export const TEAM_ROLES: readonly RoleName[] = [
+    Roles.TEAM, Roles.MANAGER, Roles.ADMIN,
+    Roles.ATTENDENCE_MANAGEMENT, Roles.INVENTORY_MANAGEMENT,
+    Roles.EVENT_MANAGEMENT, Roles.MEMBER_MANAGEMENT,
+] as const
+
+export function isTeamRole(role: string): boolean {
+    return (TEAM_ROLES as readonly string[]).includes(role)
+}
+
+export function hasTeamRole(roles: string[]): boolean {
+    return roles.some(r => isTeamRole(r))
+}
 
 // -- Common --
 
@@ -102,6 +119,7 @@ export interface SessionInfo {
     roles?: string[]
     managedMembers?: StationMember[]
     groups?: MemberGroup[]
+    profileComplete?: boolean
 }
 
 export interface ActiveSession {
@@ -237,6 +255,7 @@ export interface StationMember {
     accountId: number
     name?: string
     email?: string
+    profileComplete?: boolean
 }
 
 export interface CreateMemberRequest {
@@ -362,6 +381,39 @@ export interface SessionDetail {
 
 export type AttendanceStatus = 'UNCONFIRMED' | 'PRESENT' | 'ABSENT' | 'DECLINED'
 
+// -- Registration Status --
+
+export const RegistrationStatus = {
+    PENDING: 'PENDING',
+    ACCEPTED: 'ACCEPTED',
+    DENIED: 'DENIED',
+    DECLINED: 'DECLINED',
+} as const
+
+export type RegistrationStatusName = (typeof RegistrationStatus)[keyof typeof RegistrationStatus]
+
+// -- Event Type --
+
+export const EventTypes = {
+    ONE_TIME: 'ONE_TIME',
+    RECURRING: 'RECURRING',
+} as const
+
+export type EventTypeName = (typeof EventTypes)[keyof typeof EventTypes]
+
+// -- Profile Field Type --
+
+export const FieldTypes = {
+    TEXT: 'text',
+    NUMBER: 'number',
+    DATE: 'date',
+    BOOLEAN: 'boolean',
+    ENUM: 'enum',
+    AGE: 'age',
+} as const
+
+export type FieldTypeName = (typeof FieldTypes)[keyof typeof FieldTypes]
+
 export type EntrySource = 'EXPECTED' | 'EXTRA'
 
 export interface AttendanceEntry {
@@ -390,17 +442,25 @@ export interface TimestampResponse {
 
 // -- Inventory --
 
+export const InventoryTypes = {
+    INTERNAL: 'INTERNAL',
+    EXTERNAL: 'EXTERNAL',
+    MIXED: 'MIXED',
+} as const
+
+export type InventoryTypeName = (typeof InventoryTypes)[keyof typeof InventoryTypes]
+
 export interface Inventory {
     id: number
     stationId: number
     name?: string
-    inventoryType?: string
+    inventoryType?: InventoryTypeName
     hasSizes: boolean
 }
 
 export interface InventoryRequest {
     name?: string
-    inventoryType?: string
+    inventoryType?: InventoryTypeName
     hasSizes: boolean
 }
 
@@ -408,7 +468,7 @@ export interface InventoryDetail {
     id: number
     stationId: number
     name?: string
-    inventoryType?: string
+    inventoryType?: InventoryTypeName
     hasSizes: boolean
     sizes?: InventorySize[]
 }
@@ -436,6 +496,7 @@ export interface InventoryItem {
     metadata?: string
     assignedTo?: number | null
     lostAt?: string | null
+    itemSource?: string | null
 }
 
 export interface ItemRequest {
@@ -443,6 +504,7 @@ export interface ItemRequest {
     name?: string
     sizeId?: number
     metadata?: string
+    itemSource?: string
 }
 
 export interface AssignRequest {
@@ -570,6 +632,7 @@ export interface ProfileField {
     config?: string
     position: number
     scope?: string
+    keepOnArchive?: boolean
 }
 
 export interface ProfileFieldRequest {
@@ -578,6 +641,7 @@ export interface ProfileFieldRequest {
     config?: string
     position: number
     scope?: string
+    keepOnArchive?: boolean
 }
 
 export interface ProfileFieldValue {
@@ -725,12 +789,17 @@ export interface CommentRequest {
 
 export interface UserSettings {
     memberId: number
+    emailEnabled: boolean
     notifyNews: boolean
     notifyNewEvents: boolean
     notifyEventStatus: boolean
+    mailConfigured: boolean
+    mailProviderName: string
+    mailProviderUrl: string
 }
 
 export interface UserSettingsRequest {
+    emailEnabled: boolean
     notifyNews: boolean
     notifyNewEvents: boolean
     notifyEventStatus: boolean
@@ -747,8 +816,10 @@ export interface ExchangeRequestEntry {
     itemId?: number | null
     inventoryId: number
     inventoryName: string
-    sizeId?: number | null
-    sizeLabel: string
+    oldSizeId?: number | null
+    oldSizeLabel?: string | null
+    newSizeId?: number | null
+    newSizeLabel?: string | null
     inventoryType: string
     status: ExchangeStatus
     reason: string
@@ -767,15 +838,18 @@ export interface ExchangeLogEntry {
 }
 
 export interface CreateExchangeRequest {
+    memberId?: number | null
     itemId?: number | null
     inventoryId: number
-    sizeId?: number | null
+    oldSizeId?: number | null
+    newSizeId?: number | null
     reason: string
 }
 
 export interface UpdateStatusRequest {
     status: string
     note?: string
+    exchangedItemId?: number | null
 }
 
 // -- Equipment Procurement --
@@ -813,11 +887,17 @@ export interface UserTag {
 export type NotificationType = 'NEW_NEWS' | 'EVENT_REGISTRATION_STATUS' | 'EXCHANGE_STATUS_CHANGE'
     | 'EXCHANGE_NEW_REQUEST' | 'NEW_EVENT' | 'MEMBER_ADDED_TO_GROUP' | 'PROFILE_FIELD_CHANGED'
 
+export interface NotificationLink {
+    route: string
+    routeParams?: Record<string, string | number>
+}
+
 export interface NotificationEntry {
     id: number
     type: NotificationType
-    referenceId?: number | null
-    message: string
+    localeKey: string
+    params: Record<string, string>
+    link?: NotificationLink | null
     createdAt: string
     acknowledgedAt?: string | null
 }

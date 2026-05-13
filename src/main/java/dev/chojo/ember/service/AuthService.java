@@ -57,16 +57,6 @@ public class AuthService {
         this.authConfig = authConfig;
     }
 
-    public record RegistrationResult(boolean success, String message, Account account) {
-        public static RegistrationResult failure(String message) {
-            return new RegistrationResult(false, message, null);
-        }
-
-        public static RegistrationResult success(Account account) {
-            return new RegistrationResult(true, null, account);
-        }
-    }
-
     public RegistrationResult registerSelf(
             String email, String firstName, String lastName, String password, String registrationCode) {
         RegistrationCode code = null;
@@ -249,23 +239,6 @@ public class AuthService {
         return true;
     }
 
-    // -- Login / Session --
-
-    public record LoginResult(
-            boolean success, String message, String token, Instant expiresAt, boolean passwordChangeRequired) {
-        public static LoginResult failure(String message) {
-            return new LoginResult(false, message, null, null, false);
-        }
-
-        public static LoginResult success(String token, Instant expiresAt) {
-            return new LoginResult(true, null, token, expiresAt, false);
-        }
-
-        public static LoginResult passwordChangeRequired(String token, Instant expiresAt) {
-            return new LoginResult(true, null, token, expiresAt, true);
-        }
-    }
-
     public LoginResult login(String email, String password) {
         Optional<Account> accountOpt = accountRepository.findByEmail(email);
         if (accountOpt.isEmpty()) {
@@ -312,6 +285,8 @@ public class AuthService {
         return createSession(account.id(), null);
     }
 
+    // -- Login / Session --
+
     public LoginResult refreshSession(String token) {
         Optional<AccountSession> sessionOpt = accountRepository.findSession(token);
         if (sessionOpt.isEmpty()) {
@@ -340,13 +315,6 @@ public class AuthService {
         return accountRepository.deleteSessionsByAccount(accountId);
     }
 
-    private LoginResult createSession(int accountId, String userAgent) {
-        String token = generateToken();
-        Instant expiresAt = Instant.now().plus(authConfig.sessionMinutes(), ChronoUnit.MINUTES);
-        accountRepository.createSession(accountId, token, expiresAt, userAgent);
-        return LoginResult.success(token, expiresAt);
-    }
-
     public boolean changePassword(int accountId, String currentPassword, String newPassword) {
         var credOpt = accountRepository.findCredential(accountId);
         if (credOpt.isEmpty()) return false;
@@ -355,9 +323,41 @@ public class AuthService {
         return true;
     }
 
+    private LoginResult createSession(int accountId, String userAgent) {
+        String token = generateToken();
+        Instant expiresAt = Instant.now().plus(authConfig.sessionMinutes(), ChronoUnit.MINUTES);
+        accountRepository.createSession(accountId, token, expiresAt, userAgent);
+        return LoginResult.success(token, expiresAt);
+    }
+
     private String generateToken() {
         byte[] bytes = new byte[authConfig.tokenBytes()];
         RANDOM.nextBytes(bytes);
         return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
+    }
+
+    public record RegistrationResult(boolean success, String message, Account account) {
+        public static RegistrationResult failure(String message) {
+            return new RegistrationResult(false, message, null);
+        }
+
+        public static RegistrationResult success(Account account) {
+            return new RegistrationResult(true, null, account);
+        }
+    }
+
+    public record LoginResult(
+            boolean success, String message, String token, Instant expiresAt, boolean passwordChangeRequired) {
+        public static LoginResult failure(String message) {
+            return new LoginResult(false, message, null, null, false);
+        }
+
+        public static LoginResult success(String token, Instant expiresAt) {
+            return new LoginResult(true, null, token, expiresAt, false);
+        }
+
+        public static LoginResult passwordChangeRequired(String token, Instant expiresAt) {
+            return new LoginResult(true, null, token, expiresAt, true);
+        }
     }
 }

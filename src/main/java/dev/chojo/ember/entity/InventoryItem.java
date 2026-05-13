@@ -20,7 +20,8 @@ public record InventoryItem(
         Integer sizeId,
         String metadata,
         Integer assignedTo,
-        Instant lostAt) {
+        Instant lostAt,
+        String itemSource) {
     public static RowMapping<InventoryItem> map() {
         return row -> new InventoryItem(
                 row.getInt("id"),
@@ -30,7 +31,8 @@ public record InventoryItem(
                 row.getObject("size_id", Integer.class),
                 row.getString("metadata"),
                 row.getObject("assigned_to", Integer.class),
-                row.get("lost_at", INSTANT_TIMESTAMP));
+                row.get("lost_at", INSTANT_TIMESTAMP),
+                row.getString("item_source"));
     }
 
     public Optional<Integer> sizeIdOpt() {

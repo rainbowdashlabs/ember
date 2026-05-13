@@ -11,6 +11,7 @@ import dev.chojo.ember.entity.Inventory;
 import dev.chojo.ember.entity.InventoryItem;
 import dev.chojo.ember.entity.InventoryItemHistory;
 import dev.chojo.ember.entity.InventoryRequirement;
+import dev.chojo.ember.entity.InventoryType;
 import dev.chojo.ember.entity.MemberGroup;
 import dev.chojo.ember.entity.Role;
 import dev.chojo.ember.entity.Station;
@@ -49,7 +50,7 @@ class InventoryRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(1)
     void create() {
-        Inventory inv = inventoryRepo.create(station.id(), "Helmets", "equipment", true);
+        Inventory inv = inventoryRepo.create(station.id(), "Helmets", InventoryType.EXTERNAL, true);
         assertNotNull(inv);
         assertEquals("Helmets", inv.name());
         assertTrue(inv.hasSizes());
@@ -71,12 +72,12 @@ class InventoryRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(4)
     void update() {
-        assertTrue(inventoryRepo.update(inventoryId, "Jackets", "clothing", false));
+        assertTrue(inventoryRepo.update(inventoryId, "Jackets", InventoryType.INTERNAL, false));
         Inventory updated = inventoryRepo.findById(inventoryId).orElseThrow();
         assertEquals("Jackets", updated.name());
         assertFalse(updated.hasSizes());
         // restore
-        inventoryRepo.update(inventoryId, "Helmets", "equipment", true);
+        inventoryRepo.update(inventoryId, "Helmets", InventoryType.EXTERNAL, true);
     }
 
     // -- Sizes --

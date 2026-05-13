@@ -9,10 +9,6 @@ import de.chojo.sadu.mapper.rowmapper.RowMapping;
 
 public record RegistrationCode(int id, int stationId, String code, int maxUses, int uses) {
 
-    public boolean hasUsesLeft() {
-        return maxUses == -1 || uses < maxUses;
-    }
-
     public static RowMapping<RegistrationCode> map() {
         return row -> new RegistrationCode(
                 row.getInt("id"),
@@ -20,5 +16,9 @@ public record RegistrationCode(int id, int stationId, String code, int maxUses, 
                 row.getString("code"),
                 row.getInt("max_uses"),
                 row.getInt("uses"));
+    }
+
+    public boolean hasUsesLeft() {
+        return maxUses == -1 || uses < maxUses;
     }
 }

@@ -21,6 +21,7 @@ import io.javalin.http.NotFoundResponse;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
 import io.javalin.openapi.OpenApiContent;
+import io.javalin.openapi.OpenApiName;
 import io.javalin.openapi.OpenApiParam;
 import io.javalin.openapi.OpenApiRequestBody;
 import io.javalin.openapi.OpenApiResponse;
@@ -39,6 +40,12 @@ public class ProfileFieldRoutes implements Routes {
         this.profileFieldService = profileFieldService;
     }
 
+    private static boolean isBlank(String s) {
+        return s == null || s.isBlank();
+    }
+
+    // -- Field Definitions --
+
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
         // Field definitions (station config) — requires MEMBER_MANAGEMENT
@@ -52,8 +59,6 @@ public class ProfileFieldRoutes implements Routes {
         routes.get(prefix + "/station-members/{memberId}/profile", this::getValues, Roles.USER);
         routes.put(prefix + "/station-members/{memberId}/profile", this::setValues, Roles.USER);
     }
-
-    // -- Field Definitions --
 
     @OpenApi(
             path = "/api/v1/profile-fields",
@@ -81,6 +86,11 @@ public class ProfileFieldRoutes implements Routes {
         var request = ctx.bodyAsClass(ProfileFieldRequest.class);
         if (isBlank(request.name()) || isBlank(request.fieldType())) {
             throw new BadRequestResponse("name and fieldType are required");
+        }
+        try {
+            dev.chojo.ember.entity.ProfileFieldType.valueOf(request.fieldType().toUpperCase());
+        } catch (IllegalArgumentException e) {
+            throw new BadRequestResponse("Invalid field type: " + request.fieldType());
         }
         ctx.status(HttpStatus.CREATED)
                 .json(profileFieldService.create(
@@ -127,11 +137,19 @@ public class ProfileFieldRoutes implements Routes {
             throw new BadRequestResponse("name and fieldType are required");
         }
         profileFieldService
-                .update(id, request.name(), request.fieldType(), request.config(), request.position())
+                .update(
+                        id,
+                        request.name(),
+                        request.fieldType(),
+                        request.config(),
+                        request.position(),
+                        request.keepOnArchive() != null ? request.keepOnArchive() : false)
                 .ifPresentOrElse(ctx::json, () -> {
                     throw new NotFoundResponse();
                 });
     }
+
+    // -- Field Values --
 
     @OpenApi(
             path = "/api/v1/profile-fields/{id}",
@@ -151,8 +169,6 @@ public class ProfileFieldRoutes implements Routes {
             throw new NotFoundResponse();
         }
     }
-
-    // -- Field Values --
 
     @OpenApi(
             path = "/api/v1/station-members/{memberId}/profile",
@@ -188,11 +204,9 @@ public class ProfileFieldRoutes implements Routes {
                                 var field = profileFieldService
                                         .findById(v.fieldId())
                                         .orElse(null);
-                                if (field != null
-                                        && ProfileFieldConfig.parse(field.config())
-                                                .readonly()) {
-                                    return false;
-                                }
+                                return field == null
+                                        || !ProfileFieldConfig.parse(field.config())
+                                                .readonly();
                             }
                             return true;
                         })
@@ -203,16 +217,17 @@ public class ProfileFieldRoutes implements Routes {
                 memberId, entries, session.member().id()));
     }
 
-    private static boolean isBlank(String s) {
-        return s == null || s.isBlank();
-    }
-
     // -- Request records --
 
     public record ProfileFieldRequest(
-            String name, String fieldType, String config, int position, ProfileFieldScope scope) {}
+            String name,
+            String fieldType,
+            String config,
+            int position,
+            ProfileFieldScope scope,
+            Boolean keepOnArchive) {}
 
-    @io.javalin.openapi.OpenApiName("ProfileFieldValueEntry")
+    @OpenApiName("ProfileFieldValueEntry")
     public record FieldValueEntry(int fieldId, String value) {}
 
     public record SetValuesRequest(List<FieldValueEntry> values) {}

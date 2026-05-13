@@ -7,10 +7,6 @@ package dev.chojo.ember.auth;
 
 public record PasswordHash(String algorithm, String hash, String salt) {
 
-    public String encode() {
-        return "{%s:%s:%s}".formatted(algorithm, hash, salt);
-    }
-
     public static PasswordHash parse(String encoded) {
         if (!encoded.startsWith("{") || !encoded.endsWith("}")) {
             throw new IllegalArgumentException("Invalid hash format: must be {algo:hash:salt}");
@@ -21,5 +17,9 @@ public record PasswordHash(String algorithm, String hash, String salt) {
             throw new IllegalArgumentException("Invalid hash format: must have exactly 3 parts separated by ':'");
         }
         return new PasswordHash(parts[0], parts[1], parts[2]);
+    }
+
+    public String encode() {
+        return "{%s:%s:%s}".formatted(algorithm, hash, salt);
     }
 }

@@ -5,7 +5,7 @@
  */
 <script lang="ts" setup>
 import {computed, onMounted, ref} from 'vue'
-import {useRouter} from 'vue-router'
+import {useRoute, useRouter} from 'vue-router'
 import {useI18n} from 'vue-i18n'
 import TextInput from '@/components/input/text/TextInput.vue'
 import PasswordInput from '@/components/input/text/PasswordInput.vue'
@@ -14,6 +14,7 @@ import ErrorButton from '@/components/button/ErrorButton.vue'
 import SuccessButton from '@/components/button/SuccessButton.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
+import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import {auth, session} from '@/api'
@@ -22,8 +23,10 @@ import {StorageDeniedError} from '@/api/auth'
 import type {StorageConsent} from '@/api/storage'
 import {acceptStorage, denyStorage, getConsent, getItem} from '@/api/storage'
 import {useStations} from '@/composables/useStations'
+import {Roles} from '@/api/types'
 
 const {t} = useI18n()
+const route = useRoute()
 const router = useRouter()
 const {setActiveStation} = useStations()
 
@@ -32,6 +35,7 @@ interface DemoAccount {
   firstName: string
   lastName: string
   roles: string[]
+  profileComplete: boolean
 }
 
 const isDemo = ref(false)
@@ -66,10 +70,10 @@ const roleGroups = computed(() => {
     }
   }
 
-  addGroup('Admin', a => a.roles.includes('MANAGER') || a.roles.includes('ADMIN'))
-  addGroup('Team', a => a.roles.includes('TEAM'))
-  addGroup('Mitgliedsmanager', a => a.roles.includes('MEMBER_MANAGER'))
-  addGroup('Mitglieder', a => a.roles.includes('MEMBER') || a.roles.includes('LOGIN'))
+  addGroup('Admin', a => a.roles.includes(Roles.MANAGER) || a.roles.includes(Roles.ADMIN))
+  addGroup('Team', a => a.roles.includes(Roles.TEAM))
+  addGroup('Mitgliedsmanager', a => a.roles.includes(Roles.MEMBER_MANAGER))
+  addGroup('Mitglieder', a => a.roles.includes(Roles.MEMBER) || a.roles.includes(Roles.LOGIN))
   return groups
 })
 
@@ -99,14 +103,15 @@ onMounted(async () => {
 })
 
 async function resolveStationAndRedirect() {
+  const redirectPath = route.query.redirect as string | undefined
   const stations = await session.getStations()
   if (stations.length === 1) {
     setActiveStation(stations[0].stationId)
-    await router.push({name: 'dashboard-overview'})
+    await router.push(redirectPath || {name: 'dashboard-overview'})
   } else if (stations.length > 1) {
-    await router.push({name: 'station-select'})
+    await router.push({name: 'station-select', query: redirectPath ? {redirect: redirectPath} : undefined})
   } else {
-    await router.push({name: 'dashboard-overview'})
+    await router.push(redirectPath || {name: 'dashboard-overview'})
   }
 }
 
@@ -174,7 +179,7 @@ async function loginAsDemo(account: DemoAccount) {
 
 function topRoleLabel(account: DemoAccount): string {
   for (const role of account.roles) {
-    if (roleFriendlyNames[role] && role !== 'LOGIN') return roleFriendlyNames[role]
+    if (roleFriendlyNames[role] && role !== Roles.LOGIN) return roleFriendlyNames[role]
   }
   return 'Login'
 }
@@ -205,7 +210,10 @@ function topRoleLabel(account: DemoAccount): string {
                 class="cursor-pointer hover:border-primary transition-colors py-2 px-3"
                 @click="loginAsDemo(account)"
             >
-              <div class="font-medium text-sm">{{ account.firstName }} {{ account.lastName }}</div>
+              <div class="font-medium text-sm">
+                {{ account.firstName }} {{ account.lastName }}
+                <ErrorBadge v-if="!account.profileComplete" class="ml-1 text-[10px]">{{ t('login.incomplete') }}</ErrorBadge>
+              </div>
               <div class="text-xs text-(--text-muted)">{{ topRoleLabel(account) }}</div>
             </NeutralContainer>
           </div>
@@ -283,7 +291,10 @@ function topRoleLabel(account: DemoAccount): string {
                     class="cursor-pointer hover:border-primary transition-colors py-1.5 px-2.5"
                     @click="loginAsDemo(account)"
                 >
-                  <div class="font-medium text-xs">{{ account.firstName }} {{ account.lastName }}</div>
+                  <div class="font-medium text-xs">
+                    {{ account.firstName }} {{ account.lastName }}
+                    <ErrorBadge v-if="!account.profileComplete" class="ml-1 text-[9px]">{{ t('login.incomplete') }}</ErrorBadge>
+                  </div>
                   <div class="text-[10px] text-(--text-muted)">{{ topRoleLabel(account) }}</div>
                 </NeutralContainer>
               </div>

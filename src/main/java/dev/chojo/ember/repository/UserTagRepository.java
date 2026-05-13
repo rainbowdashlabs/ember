@@ -57,9 +57,9 @@ public class UserTagRepository {
 
     public List<StationMember> findMembers(int tagId) {
         return Query.query("""
-                        SELECT sm.id, sm.station_id, sm.account_id
-                        FROM station_member sm JOIN user_tag_entry ute ON sm.id = ute.member_id
-                        WHERE ute.tag_id = :tag_id;""")
+                            SELECT sm.id, sm.station_id, sm.account_id
+                            FROM station_member sm JOIN user_tag_entry ute ON sm.id = ute.member_id
+                            WHERE ute.tag_id = :tag_id;""")
                 .single(Call.of().bind("tag_id", tagId))
                 .map(StationMember.map())
                 .all();
@@ -67,9 +67,9 @@ public class UserTagRepository {
 
     public List<UserTag> findTagsForMember(int memberId) {
         return Query.query("""
-                        SELECT ut.* FROM user_tag ut
-                        JOIN user_tag_entry ute ON ut.id = ute.tag_id
-                        WHERE ute.member_id = :member_id;""")
+                            SELECT ut.* FROM user_tag ut
+                            JOIN user_tag_entry ute ON ut.id = ute.tag_id
+                            WHERE ute.member_id = :member_id;""")
                 .single(Call.of().bind("member_id", memberId))
                 .map(UserTag.map())
                 .all();

@@ -26,28 +26,6 @@ public class Bootstrapper {
     private static final String ADMIN_FIRST_NAME = "Admin";
     private static final String ADMIN_LAST_NAME = "Admin";
 
-    void main() {
-        var conf = new Conf();
-        var injector = Guice.createInjector(new EmberModule(conf));
-        // Eagerly initialize the query configuration so Query.query(...) works globally
-        injector.getInstance(QueryConfiguration.class);
-
-        // Demo mode: wipe and seed before starting
-        var demoService = injector.getInstance(DemoService.class);
-        if (demoService.isEnabled()) {
-            demoService.initialize();
-        } else {
-            createDefaultAdmin(
-                    injector.getInstance(AccountRepository.class),
-                    injector.getInstance(PasswordHasher.class),
-                    injector.getInstance(StationRepository.class),
-                    injector.getInstance(StationMemberRepository.class));
-        }
-
-        var apiServer = injector.getInstance(ApiServer.class);
-        apiServer.start();
-    }
-
     private static void createDefaultAdmin(
             AccountRepository accountRepository,
             PasswordHasher passwordHasher,
@@ -82,5 +60,27 @@ public class Bootstrapper {
         byte[] bytes = new byte[24];
         new SecureRandom().nextBytes(bytes);
         return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
+    }
+
+    void main() {
+        var conf = new Conf();
+        var injector = Guice.createInjector(new EmberModule(conf));
+        // Eagerly initialize the query configuration so Query.query(...) works globally
+        injector.getInstance(QueryConfiguration.class);
+
+        // Demo mode: wipe and seed before starting
+        var demoService = injector.getInstance(DemoService.class);
+        if (demoService.isEnabled()) {
+            demoService.initialize();
+        } else {
+            createDefaultAdmin(
+                    injector.getInstance(AccountRepository.class),
+                    injector.getInstance(PasswordHasher.class),
+                    injector.getInstance(StationRepository.class),
+                    injector.getInstance(StationMemberRepository.class));
+        }
+
+        var apiServer = injector.getInstance(ApiServer.class);
+        apiServer.start();
     }
 }

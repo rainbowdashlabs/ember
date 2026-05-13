@@ -24,7 +24,11 @@ public class UserSettingsService {
     }
 
     public UserSettings updateSettings(
-            int memberId, boolean notifyNews, boolean notifyNewEvents, boolean notifyEventStatus) {
-        return settingsRepository.update(memberId, notifyNews, notifyNewEvents, notifyEventStatus);
+            int memberId,
+            boolean emailEnabled,
+            boolean notifyNews,
+            boolean notifyNewEvents,
+            boolean notifyEventStatus) {
+        return settingsRepository.update(memberId, emailEnabled, notifyNews, notifyNewEvents, notifyEventStatus);
     }
 }

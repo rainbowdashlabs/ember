@@ -24,6 +24,7 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Base64;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -57,46 +58,6 @@ public class MemberImportService {
 
     // -- API records --
 
-    public record ColumnMapping(
-            String csvColumn,
-            String target,
-            int mergeOrder,
-            String mergeSeparator,
-            Map<String, String> valueMap,
-            String splitChar,
-            int splitIndex) {}
-    // target values: "skip", "firstName", "lastName", "email", "group",
-    //   "contact1Name", "contact1Phone", "contact1Email",
-    //   "contact2Name", "contact2Phone", "contact2Email",
-    //   "field:<fieldId>" (profile field by id)
-
-    public record ParseResult(List<String> headers, List<List<String>> rows) {}
-
-    public record MemberPreview(
-            String firstName,
-            String lastName,
-            String email,
-            String group,
-            Map<String, String> profileFields,
-            List<ContactPreview> contacts) {}
-
-    public record ContactPreview(String name, String firstName, String lastName, String phone, String email) {}
-
-    public record PreviewResult(List<MemberPreview> members, List<String> warnings) {}
-
-    public record ImportResult(
-            int membersCreated,
-            int managersCreated,
-            int managersLinked,
-            int groupsAssigned,
-            int profileFieldsSet,
-            List<String> warnings) {}
-
-    public record TeamImportResult(
-            int membersCreated, int groupsAssigned, int profileFieldsSet, List<String> warnings) {}
-
-    // -- Parse CSV headers --
-
     public ParseResult parseCsv(String csv, String separator) {
         String sep = separator != null && !separator.isBlank() ? separator : ";";
         var lines = csv.split("\n");
@@ -110,8 +71,10 @@ public class MemberImportService {
         }
         return new ParseResult(headers, rows);
     }
-
-    // -- Preview with mapping --
+    // target values: "skip", "firstName", "lastName", "email", "group",
+    //   "contact1Name", "contact1Phone", "contact1Email",
+    //   "contact2Name", "contact2Phone", "contact2Email",
+    //   "field:<fieldId>" (profile field by id)
 
     public PreviewResult preview(int stationId, String csv, String separator, List<ColumnMapping> mappings) {
         var parsed = parseCsv(csv, separator);
@@ -131,8 +94,6 @@ public class MemberImportService {
 
         return new PreviewResult(members, warnings);
     }
-
-    // -- Import with mapping --
 
     public ImportResult importMembers(int stationId, String csv, String separator, List<ColumnMapping> mappings) {
         var parsed = parseCsv(csv, separator);
@@ -243,8 +204,6 @@ public class MemberImportService {
                 membersCreated, managersCreated, managersLinked, groupsAssigned, profileFieldsSet, warnings);
     }
 
-    // -- Team Import --
-
     public TeamImportResult importTeamMembers(
             int stationId, String csv, String separator, List<ColumnMapping> mappings) {
         var parsed = parseCsv(csv, separator);
@@ -299,8 +258,6 @@ public class MemberImportService {
         return new TeamImportResult(membersCreated, groupsAssigned, profileFieldsSet, warnings);
     }
 
-    // -- Mapping logic --
-
     private MemberPreview applyMappings(
             Map<String, String> row, List<ColumnMapping> mappings, List<ProfileField> fields) {
         // Group mappings by target, sorted by mergeOrder for merging
@@ -310,7 +267,7 @@ public class MemberImportService {
             byTarget.computeIfAbsent(m.target(), k -> new ArrayList<>()).add(m);
         }
         // Sort each group by mergeOrder
-        byTarget.values().forEach(list -> list.sort((a, b) -> Integer.compare(a.mergeOrder(), b.mergeOrder())));
+        byTarget.values().forEach(list -> list.sort(Comparator.comparingInt(ColumnMapping::mergeOrder)));
 
         String firstName = "", lastName = "", email = "", group = "";
         var profileFieldValues = new LinkedHashMap<String, String>();
@@ -372,8 +329,6 @@ public class MemberImportService {
         return new MemberPreview(firstName, lastName, email, group, namedFields, contacts);
     }
 
-    // -- Helpers --
-
     private String buildMergedValue(Map<String, String> row, List<ColumnMapping> mappingsForTarget) {
         var parts = new ArrayList<String>();
         String separator = " ";
@@ -424,6 +379,8 @@ public class MemberImportService {
         return result;
     }
 
+    // -- Parse CSV headers --
+
     private Map<String, String> mapRow(List<String> headers, List<String> cols) {
         var map = new LinkedHashMap<String, String>();
         for (int i = 0; i < headers.size() && i < cols.size(); i++) {
@@ -438,6 +395,8 @@ public class MemberImportService {
         }
         return map;
     }
+
+    // -- Preview with mapping --
 
     private String maybeConvertDate(String value, String fieldType) {
         if (!"date".equals(fieldType)) return value;
@@ -454,6 +413,8 @@ public class MemberImportService {
         }
     }
 
+    // -- Import with mapping --
+
     private MemberGroup findOrCreateGroup(List<MemberGroup> groups, int stationId, String name) {
         for (var g : groups) {
             if (g.name().equalsIgnoreCase(name)) return g;
@@ -462,6 +423,8 @@ public class MemberImportService {
         groups.add(created);
         return created;
     }
+
+    // -- Team Import --
 
     private String generateEmail(String firstName, String lastName) {
         return (firstName + "." + lastName)
@@ -474,9 +437,47 @@ public class MemberImportService {
                 + "@import.local";
     }
 
+    // -- Mapping logic --
+
     private String generatePassword() {
         byte[] bytes = new byte[16];
         new SecureRandom().nextBytes(bytes);
         return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
     }
+
+    // -- Helpers --
+
+    public record ColumnMapping(
+            String csvColumn,
+            String target,
+            int mergeOrder,
+            String mergeSeparator,
+            Map<String, String> valueMap,
+            String splitChar,
+            int splitIndex) {}
+
+    public record ParseResult(List<String> headers, List<List<String>> rows) {}
+
+    public record MemberPreview(
+            String firstName,
+            String lastName,
+            String email,
+            String group,
+            Map<String, String> profileFields,
+            List<ContactPreview> contacts) {}
+
+    public record ContactPreview(String name, String firstName, String lastName, String phone, String email) {}
+
+    public record PreviewResult(List<MemberPreview> members, List<String> warnings) {}
+
+    public record ImportResult(
+            int membersCreated,
+            int managersCreated,
+            int managersLinked,
+            int groupsAssigned,
+            int profileFieldsSet,
+            List<String> warnings) {}
+
+    public record TeamImportResult(
+            int membersCreated, int groupsAssigned, int profileFieldsSet, List<String> warnings) {}
 }

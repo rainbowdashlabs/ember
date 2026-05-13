@@ -12,6 +12,7 @@ import i18n from './i18n'
 import {library} from '@fortawesome/fontawesome-svg-core'
 import {FontAwesomeIcon} from '@fortawesome/vue-fontawesome'
 import {
+    faArrowRight,
     faAsterisk,
     faBan,
     faBars,
@@ -38,6 +39,7 @@ import {
     faCopy,
     faDownload,
     faEye,
+    faFileExport,
     faFire,
     faFolderPlus,
     faGauge,
@@ -76,16 +78,19 @@ import {
     faTriangleExclamation,
     faUpload,
     faUser,
+    faUserCheck,
     faUserPlus,
+    faUserSlash,
     faUsers,
     faUsersGear,
     faXmark,
-    faXmarkCircle
+    faXmarkCircle,
+    faCircleQuestion
 } from '@fortawesome/free-solid-svg-icons'
 import {faGithub} from '@fortawesome/free-brands-svg-icons'
 import {initTokenRefresh} from '@/api/client'
 
-library.add(faSun, faMoon, faCheck, faXmark, faXmarkCircle, faSpinner, faCircleInfo, faCircleCheck, faTriangleExclamation, faDownload, faUpload, faTrash, faPen, faLock, faRightFromBracket, faBars, faGauge, faChevronDown, faChevronRight, faHouse, faChartLine, faShield, faBuilding, faGears, faUsers, faUserPlus, faList, faLayerGroup, faBoxesStacked, faBoxOpen, faClipboardUser, faCalendarPlus, faClockRotateLeft, faClipboardCheck, faUsersGear, faPlus, faChevronLeft, faChevronUp, faGripVertical, faCopy, faBell, faPhone, faMobileScreen, faIdCard, faHashtag, faFire, faMedal, faRainbow, faCalendarDays, faPenToSquare, faFolderPlus, faClipboardList, faUser, faSort, faSortUp, faSortDown, faAsterisk, faEye, faLink, faTableColumns, faBan, faComment, faCheckDouble, faMinus, faRotate, faScissors, faNewspaper, faGear, faPeopleGroup, faGithub)
+library.add(faSun, faMoon, faCheck, faXmark, faXmarkCircle, faSpinner, faCircleInfo, faCircleCheck, faTriangleExclamation, faDownload, faUpload, faTrash, faPen, faLock, faRightFromBracket, faBars, faGauge, faChevronDown, faChevronRight, faHouse, faChartLine, faShield, faBuilding, faGears, faUsers, faUserPlus, faList, faLayerGroup, faBoxesStacked, faBoxOpen, faClipboardUser, faCalendarPlus, faClockRotateLeft, faClipboardCheck, faUsersGear, faPlus, faChevronLeft, faChevronUp, faGripVertical, faCopy, faBell, faPhone, faMobileScreen, faIdCard, faHashtag, faFire, faMedal, faRainbow, faCalendarDays, faPenToSquare, faFolderPlus, faClipboardList, faUser, faSort, faSortUp, faSortDown, faAsterisk, faEye, faLink, faTableColumns, faBan, faComment, faCheckDouble, faMinus, faRotate, faScissors, faNewspaper, faGear, faPeopleGroup, faArrowRight, faFileExport, faGithub, faUserSlash, faUserCheck, faCircleQuestion)
 
 initTokenRefresh()
 

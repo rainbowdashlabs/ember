@@ -19,6 +19,7 @@ import Alert from '@/components/feedback/Alert.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import type {MemberGroup, Role, StationMember} from '@/api/types'
+import {Roles} from '@/api/types'
 import {memberGroups, stationMembers} from '@/api'
 import {useStations} from '@/composables/useStations'
 import {useSession} from '@/composables/useSession'
@@ -56,9 +57,12 @@ const roleFriendlyNames: Record<string, string> = {
 }
 
 const assignableRoles = computed(() => {
-  return allRoles.value.filter(r => ['MEMBER', 'TEAM', 'MEMBER_MANAGER', 'LOGIN',
-    'ATTENDENCE_MANAGEMENT', 'ATTENDENCE_EXPORT_MANAGER', 'INVENTORY_MANAGEMENT',
-    'EVENT_MANAGEMENT', 'MEMBER_MANAGEMENT', 'MANAGER', 'NEWS_MANAGEMENT'].includes(r.role))
+  const assignable = [
+    Roles.MEMBER, Roles.TEAM, Roles.MEMBER_MANAGER, Roles.LOGIN,
+    Roles.ATTENDENCE_MANAGEMENT, Roles.ATTENDENCE_EXPORT_MANAGER, Roles.INVENTORY_MANAGEMENT,
+    Roles.EVENT_MANAGEMENT, Roles.MEMBER_MANAGEMENT, Roles.MANAGER, Roles.NEWS_MANAGEMENT,
+  ] as readonly string[]
+  return allRoles.value.filter(r => assignable.includes(r.role))
 })
 
 const groupRoleIds = computed(() => new Set(groupRoles.value.map(r => r.id)))

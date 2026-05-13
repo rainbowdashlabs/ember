@@ -15,6 +15,7 @@ import Alert from '@/components/feedback/Alert.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import {events, stationMembers} from '@/api'
 import type {StationEvent, StationMember} from '@/api/types'
+import {RegistrationStatus} from '@/api/types'
 import {useStations} from '@/composables/useStations'
 
 const {t} = useI18n()
@@ -67,7 +68,7 @@ async function loadData() {
 async function accept(id: number) {
   error.value = ''
   try {
-    await events.updateRegistrationStatus(id, 'ACCEPTED')
+    await events.updateRegistrationStatus(id, RegistrationStatus.ACCEPTED)
     registrations.value = registrations.value.filter(r => r.id !== id)
   } catch {
     error.value = t('common.error')
@@ -77,7 +78,7 @@ async function accept(id: number) {
 async function deny(id: number) {
   error.value = ''
   try {
-    await events.updateRegistrationStatus(id, 'DENIED')
+    await events.updateRegistrationStatus(id, RegistrationStatus.DENIED)
     registrations.value = registrations.value.filter(r => r.id !== id)
   } catch {
     error.value = t('common.error')

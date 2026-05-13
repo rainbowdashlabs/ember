@@ -9,6 +9,8 @@ import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.entity.Account;
 import dev.chojo.ember.entity.AttendanceEntry;
 import dev.chojo.ember.entity.AttendanceReportPreset;
+import dev.chojo.ember.entity.MemberGroup;
+import dev.chojo.ember.entity.Station;
 import dev.chojo.ember.repository.AccountRepository;
 import dev.chojo.ember.repository.AttendanceRepository;
 import dev.chojo.ember.repository.MemberGroupRepository;
@@ -31,6 +33,7 @@ import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -74,31 +77,6 @@ public class AttendanceReportService {
 
     // -- Records for API responses --
 
-    public record ReportData(
-            String filterLabel,
-            List<MemberSummary> members,
-            List<SessionData> sessions,
-            List<MonthSummary> monthlySummaries) {}
-
-    public record MemberSummary(int memberId, String name, double totalHours, int sessionCount, int presentCount) {}
-
-    public record SessionData(
-            int sessionId,
-            String title,
-            String date,
-            String startTime,
-            String endTime,
-            int expectedCount,
-            int presentCount,
-            List<SessionMemberEntry> entries) {}
-
-    public record SessionMemberEntry(
-            int memberId, String name, String status, String checkIn, String checkOut, double hours) {}
-
-    public record MonthSummary(String month, List<MemberSummary> members, List<SessionData> sessions) {}
-
-    // -- Presets --
-
     public List<AttendanceReportPreset> findPresets(int stationId) {
         return attendanceRepository.findPresets(stationId);
     }
@@ -112,8 +90,6 @@ public class AttendanceReportService {
         return attendanceRepository.deletePreset(id);
     }
 
-    // -- Report Building --
-
     public ReportData buildReport(
             int stationId, String roleName, Integer groupId, Instant from, Instant to, String rounding) {
         ZoneId zone = resolveTimezone(stationId);
@@ -124,7 +100,7 @@ public class AttendanceReportService {
         if (groupId != null) {
             rawIds = attendanceRepository.findMemberIdsByGroup(groupId);
             var group = memberGroupRepository.findById(groupId);
-            filterLabel = group.map(g -> g.name()).orElse("Gruppe #" + groupId);
+            filterLabel = group.map(MemberGroup::name).orElse("Gruppe #" + groupId);
         } else if (roleName != null && !roleName.isBlank()) {
             rawIds = attendanceRepository.findMemberIdsByRole(stationId, roleName);
             filterLabel = roleName;
@@ -262,19 +238,6 @@ public class AttendanceReportService {
         return new ReportData(filterLabel, memberSummaries, sessionDataList, monthlySummaryList);
     }
 
-    private double computeHours(AttendanceEntry entry, Instant checkIn, Instant checkOut, String rounding) {
-        if (entry.status() != AttendanceEntry.AttendanceStatus.PRESENT || checkIn == null || checkOut == null) return 0;
-        double hours = Duration.between(checkIn, checkOut).toMinutes() / 60.0;
-        if (hours < 0) return 0;
-        return switch (rounding) {
-            case "ceil" -> Math.ceil(hours);
-            case "round" -> Math.round(hours * 2) / 2.0; // round to nearest 0.5
-            default -> Math.round(hours * 100) / 100.0; // exact, 2 decimal places
-        };
-    }
-
-    // -- PDF Export --
-
     public Optional<byte[]> exportReportPdf(
             int stationId,
             String roleName,
@@ -315,7 +278,7 @@ public class AttendanceReportService {
         var station = stationRepository.findById(stationId).orElse(null);
         data.put("stationName", station != null ? station.name() : "");
         data.put("generatedBy", generatedBy != null ? generatedBy : "");
-        data.put("generatedAt", DATE_FMT.format(java.time.Instant.now().atZone(zone)));
+        data.put("generatedAt", DATE_FMT.format(Instant.now().atZone(zone)));
         data.put("baseUrl", apiConfig.baseUrl());
         data.put("hasLogo", false);
 
@@ -329,6 +292,19 @@ public class AttendanceReportService {
             log.error("Failed to export attendance report PDF", e);
             return Optional.empty();
         }
+    }
+
+    // -- Presets --
+
+    private double computeHours(AttendanceEntry entry, Instant checkIn, Instant checkOut, String rounding) {
+        if (entry.status() != AttendanceEntry.AttendanceStatus.PRESENT || checkIn == null || checkOut == null) return 0;
+        double hours = Duration.between(checkIn, checkOut).toMinutes() / 60.0;
+        if (hours < 0) return 0;
+        return switch (rounding) {
+            case "ceil" -> Math.ceil(hours);
+            case "round" -> Math.round(hours * 2) / 2.0; // round to nearest 0.5
+            default -> Math.round(hours * 100) / 100.0; // exact, 2 decimal places
+        };
     }
 
     private Map<String, Object> sessionToMap(SessionData s) {
@@ -364,6 +340,8 @@ public class AttendanceReportService {
         return map;
     }
 
+    // -- Report Building --
+
     private String resolveMemberName(int memberId, Map<Integer, String> cache) {
         return cache.computeIfAbsent(memberId, id -> {
             var member = stationMemberRepository.findById(id);
@@ -376,10 +354,12 @@ public class AttendanceReportService {
         });
     }
 
-    private String resolveLocalePrefix(dev.chojo.ember.entity.Station station) {
+    private String resolveLocalePrefix(Station station) {
         if (station != null && station.locale() != null && station.locale().startsWith("de")) return "de";
         return "en";
     }
+
+    // -- PDF Export --
 
     private Locale resolveLocale(int stationId) {
         var station = stationRepository.findById(stationId);
@@ -415,7 +395,6 @@ public class AttendanceReportService {
             if (logo != null) {
                 String ext =
                         switch (logo.contentType()) {
-                            case "image/png" -> "png";
                             case "image/jpeg" -> "jpg";
                             case "image/svg+xml" -> "svg";
                             default -> "png";
@@ -441,7 +420,7 @@ public class AttendanceReportService {
             return Files.readAllBytes(outputFile);
         } finally {
             try (var walk = Files.walk(tempDir)) {
-                walk.sorted(java.util.Comparator.reverseOrder()).forEach(p -> {
+                walk.sorted(Comparator.reverseOrder()).forEach(p -> {
                     try {
                         Files.deleteIfExists(p);
                     } catch (IOException ignored) {
@@ -450,4 +429,27 @@ public class AttendanceReportService {
             }
         }
     }
+
+    public record ReportData(
+            String filterLabel,
+            List<MemberSummary> members,
+            List<SessionData> sessions,
+            List<MonthSummary> monthlySummaries) {}
+
+    public record MemberSummary(int memberId, String name, double totalHours, int sessionCount, int presentCount) {}
+
+    public record SessionData(
+            int sessionId,
+            String title,
+            String date,
+            String startTime,
+            String endTime,
+            int expectedCount,
+            int presentCount,
+            List<SessionMemberEntry> entries) {}
+
+    public record SessionMemberEntry(
+            int memberId, String name, String status, String checkIn, String checkOut, double hours) {}
+
+    public record MonthSummary(String month, List<MemberSummary> members, List<SessionData> sessions) {}
 }

@@ -129,7 +129,24 @@ public class StationService {
         return Optional.empty();
     }
 
-    public record ManagerInfo(String email, String firstName, String lastName, boolean accountReady) {}
+    public Optional<StationLogo> getLogo(int stationId) {
+        return logoCache.computeIfAbsent(stationId, stationRepository::findLogo);
+    }
+
+    public void setLogo(int stationId, byte[] data, String contentType) {
+        if (data.length > MAX_LOGO_SIZE) {
+            throw new IllegalArgumentException("Logo exceeds maximum size of 2 MB");
+        }
+        stationRepository.updateLogo(stationId, data, contentType);
+        logoCache.put(stationId, Optional.of(new StationLogo(data, contentType)));
+    }
+
+    // -- Logo --
+
+    public void deleteLogo(int stationId) {
+        stationRepository.deleteLogo(stationId);
+        logoCache.put(stationId, Optional.empty());
+    }
 
     private void assignManager(int stationId, String managerEmail) {
         Role managerRole = memberRepository
@@ -169,22 +186,5 @@ public class StationService {
         }
     }
 
-    // -- Logo --
-
-    public Optional<StationLogo> getLogo(int stationId) {
-        return logoCache.computeIfAbsent(stationId, id -> stationRepository.findLogo(id));
-    }
-
-    public void setLogo(int stationId, byte[] data, String contentType) {
-        if (data.length > MAX_LOGO_SIZE) {
-            throw new IllegalArgumentException("Logo exceeds maximum size of 2 MB");
-        }
-        stationRepository.updateLogo(stationId, data, contentType);
-        logoCache.put(stationId, Optional.of(new StationLogo(data, contentType)));
-    }
-
-    public void deleteLogo(int stationId) {
-        stationRepository.deleteLogo(stationId);
-        logoCache.put(stationId, Optional.empty());
-    }
+    public record ManagerInfo(String email, String firstName, String lastName, boolean accountReady) {}
 }

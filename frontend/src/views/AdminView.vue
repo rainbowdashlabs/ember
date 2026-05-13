@@ -15,6 +15,7 @@ import IconButton from '@/components/button/IconButton.vue'
 import {auth} from '@/api'
 import {getItem} from '@/api/storage'
 import {useSession} from '@/composables/useSession'
+import HelpCenterLink from '@/components/navigation/HelpCenterLink.vue'
 
 const {t, te} = useI18n()
 const route = useRoute()
@@ -76,6 +77,8 @@ async function handleLogout() {
     </template>
 
     <template #header>
+      <HelpCenterLink/>
+
       <router-link to="/station/dashboard/overview">
         <SecondaryButton>
           <font-awesome-icon :icon="['fas', 'building']" class="h-4 w-4"/>

@@ -230,7 +230,7 @@ public class InventoryCheckService {
             int assignedQty = assignedByInventory.getOrDefault(inventoryId, 0);
             Inventory inv = inventoryRepository.findById(inventoryId).orElse(null);
             String invName = inv != null ? inv.name() : "#" + inventoryId;
-            String invType = inv != null ? inv.inventoryType() : "internal";
+            String invType = inv != null ? inv.inventoryType().name() : "INTERNAL";
             boolean hasSizes = inv != null && inv.hasSizes();
             List<InventorySize> sizes = hasSizes ? inventoryRepository.findSizes(inventoryId) : List.of();
             result.add(new RequiredInventoryItem(

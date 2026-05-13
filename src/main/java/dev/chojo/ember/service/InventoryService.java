@@ -10,6 +10,7 @@ import dev.chojo.ember.entity.InventoryItem;
 import dev.chojo.ember.entity.InventoryItemHistory;
 import dev.chojo.ember.entity.InventoryRequirement;
 import dev.chojo.ember.entity.InventorySize;
+import dev.chojo.ember.entity.InventoryType;
 import dev.chojo.ember.repository.InventoryRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -40,11 +41,11 @@ public class InventoryService {
         return inventoryRepository.findSizes(inventoryId);
     }
 
-    public Inventory create(int stationId, String name, String inventoryType, boolean hasSizes) {
+    public Inventory create(int stationId, String name, InventoryType inventoryType, boolean hasSizes) {
         return inventoryRepository.create(stationId, name, inventoryType, hasSizes);
     }
 
-    public Optional<Inventory> update(int id, String name, String inventoryType, boolean hasSizes) {
+    public Optional<Inventory> update(int id, String name, InventoryType inventoryType, boolean hasSizes) {
         if (inventoryRepository.update(id, name, inventoryType, hasSizes)) {
             return inventoryRepository.findById(id);
         }
@@ -93,6 +94,11 @@ public class InventoryService {
 
     public InventoryItem createItem(int inventoryId, String internalId, String name, Integer sizeId, String metadata) {
         return inventoryRepository.createItem(inventoryId, internalId, name, sizeId, metadata);
+    }
+
+    public InventoryItem createItem(
+            int inventoryId, String internalId, String name, Integer sizeId, String metadata, String itemSource) {
+        return inventoryRepository.createItem(inventoryId, internalId, name, sizeId, metadata, itemSource);
     }
 
     public Optional<InventoryItem> updateItem(int id, String internalId, String name, Integer sizeId, String metadata) {

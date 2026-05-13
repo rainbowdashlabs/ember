@@ -341,6 +341,7 @@ watch(loaded, (isLoaded) => {
                         class="ml-2 text-xs text-(--text-muted)">
                     ({{ t('eventsUpcoming.deadline') }}: {{ formatDeadline(item.event.registrationDeadline) }})
                   </span>
+                  <p v-if="item.event.description" class="text-sm text-(--text-muted) mt-0.5">{{ item.event.description }}</p>
                 </div>
                 <!-- Registration counts -->
                 <div
@@ -419,8 +420,9 @@ watch(loaded, (isLoaded) => {
                       class="text-sm"
                       @click="handleRegister(item.event, item.date)"
                   >
+                    <font-awesome-icon :icon="['fas', 'check']" class="mr-1"/>
                     {{
-                      getSelectedMemberId(item.event.id, item.date) != null
+                      getSelectedMemberId(item.event.id, item.date) != null && getSelectedMemberId(item.event.id, item.date) !== currentMemberId
                           ? t('eventsUpcoming.registerFor', {name: getMemberName(getSelectedMemberId(item.event.id, item.date)!)})
                           : t('eventsUpcoming.register')
                     }}
@@ -429,12 +431,12 @@ watch(loaded, (isLoaded) => {
                   <!-- Decline button (always available) -->
                   <ErrorButton
                       :disabled="getSelectedMemberId(item.event.id, item.date) == null"
-                      class="text-xs"
+                      class="text-sm"
                       @click="handleDecline(item.event, item.date)"
                   >
                     <font-awesome-icon :icon="['fas', 'ban']" class="mr-1"/>
                     {{
-                      getSelectedMemberId(item.event.id, item.date) != null
+                      getSelectedMemberId(item.event.id, item.date) != null && getSelectedMemberId(item.event.id, item.date) !== currentMemberId
                           ? t('eventsUpcoming.declineFor', {name: getMemberName(getSelectedMemberId(item.event.id, item.date)!)})
                           : t('eventsUpcoming.decline')
                     }}

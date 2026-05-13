@@ -16,10 +16,12 @@ import java.util.Optional;
 @Singleton
 public class ProcurementService {
     private final ProcurementRepository procurementRepository;
+    private final InventoryService inventoryService;
 
     @Inject
-    public ProcurementService(ProcurementRepository procurementRepository) {
+    public ProcurementService(ProcurementRepository procurementRepository, InventoryService inventoryService) {
         this.procurementRepository = procurementRepository;
+        this.inventoryService = inventoryService;
     }
 
     public Procurement create(int stationId, int inventoryId, int memberId, Integer sizeId, String notes) {
@@ -39,6 +41,18 @@ public class ProcurementService {
     }
 
     public boolean fulfill(int id) {
+        var procurement = procurementRepository.findById(id);
+        if (procurement.isEmpty()) return false;
+        var proc = procurement.get();
+
+        // Create item and assign to member
+        var inv = inventoryService.findById(proc.inventoryId());
+        if (inv.isPresent()) {
+            var item = inventoryService.createItem(
+                    proc.inventoryId(), "", inv.get().name(), proc.sizeId(), "{}");
+            inventoryService.assignItem(item.id(), proc.memberId(), "");
+        }
+
         return procurementRepository.fulfill(id);
     }
 

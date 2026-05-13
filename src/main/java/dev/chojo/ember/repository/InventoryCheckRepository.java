@@ -14,6 +14,7 @@ import dev.chojo.ember.entity.InventoryCheckItem;
 import dev.chojo.ember.entity.InventoryCheckLock;
 import jakarta.inject.Singleton;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
@@ -89,9 +90,9 @@ public class InventoryCheckRepository {
         var items = findCheckItems(check.get().id());
         // Get checker name
         var names = Query.query("""
-                    SELECT a.first_name, a.last_name FROM station_member sm
-                        JOIN account a ON a.id = sm.account_id
-                    WHERE sm.id = :id;""")
+                                 SELECT a.first_name, a.last_name FROM station_member sm
+                                     JOIN account a ON a.id = sm.account_id
+                                 WHERE sm.id = :id;""")
                 .single(Call.of().bind("id", check.get().checkedBy()))
                 .map(row -> new String[] {row.getString("first_name"), row.getString("last_name")})
                 .first()
@@ -195,7 +196,7 @@ public class InventoryCheckRepository {
             int memberId,
             String firstName,
             String lastName,
-            java.time.Instant lastCheckedAt,
+            Instant lastCheckedAt,
             String checkerFirstName,
             String checkerLastName,
             boolean locked,

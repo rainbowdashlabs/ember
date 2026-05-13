@@ -22,37 +22,41 @@ public class StationMemberRepository {
     // -- Members --
 
     public Optional<StationMember> findById(int id) {
-        return Query.query("SELECT id, station_id, account_id FROM station_member WHERE id = :id;")
+        return Query.query("SELECT * FROM station_member WHERE id = :id;")
                 .single(Call.of().bind("id", id))
                 .map(StationMember.map())
                 .first();
     }
 
     public Optional<StationMember> findByStationAndAccount(int stationId, int accountId) {
-        return Query.query("""
-                            SELECT
-                                id,
-                                station_id,
-                                account_id
-                            FROM
-                                station_member
-                            WHERE station_id = :station_id
-                              AND account_id = :account_id;
-                            """)
+        return Query.query("SELECT * FROM station_member WHERE station_id = :station_id AND account_id = :account_id;")
                 .single(Call.of().bind("station_id", stationId).bind("account_id", accountId))
                 .map(StationMember.map())
                 .first();
     }
 
+    /**
+     * Find active (non-former) members of a station.
+     */
     public List<StationMember> findByStation(int stationId) {
-        return Query.query("SELECT id, station_id, account_id FROM station_member WHERE station_id = :station_id;")
+        return Query.query("SELECT * FROM station_member WHERE station_id = :station_id AND former = false;")
+                .single(Call.of().bind("station_id", stationId))
+                .map(StationMember.map())
+                .all();
+    }
+
+    /**
+     * Find former members of a station.
+     */
+    public List<StationMember> findFormerByStation(int stationId) {
+        return Query.query("SELECT * FROM station_member WHERE station_id = :station_id AND former = true;")
                 .single(Call.of().bind("station_id", stationId))
                 .map(StationMember.map())
                 .all();
     }
 
     public List<StationMember> findByAccount(int accountId) {
-        return Query.query("SELECT id, station_id, account_id FROM station_member WHERE account_id = :account_id;")
+        return Query.query("SELECT * FROM station_member WHERE account_id = :account_id;")
                 .single(Call.of().bind("account_id", accountId))
                 .map(StationMember.map())
                 .all();
@@ -60,7 +64,7 @@ public class StationMemberRepository {
 
     public StationMember create(int stationId, int accountId) {
         return Query.query(
-                        "INSERT INTO station_member(station_id, account_id) VALUES(:station_id, :account_id) RETURNING id, station_id, account_id;")
+                        "INSERT INTO station_member(station_id, account_id) VALUES(:station_id, :account_id) RETURNING *;")
                 .single(Call.of().bind("station_id", stationId).bind("account_id", accountId))
                 .map(StationMember.map())
                 .first()
@@ -72,6 +76,19 @@ public class StationMemberRepository {
                 .single(Call.of().bind("id", id))
                 .delete()
                 .changed();
+    }
+
+    public boolean setFormer(int id, boolean former) {
+        return Query.query("UPDATE station_member SET former = :former WHERE id = :id;")
+                .single(Call.of().bind("id", id).bind("former", former))
+                .update()
+                .changed();
+    }
+
+    public void setDisplayNameAndClearAccount(int id, String displayName) {
+        Query.query("UPDATE station_member SET display_name = :display_name, account_id = NULL WHERE id = :id;")
+                .single(Call.of().bind("id", id).bind("display_name", displayName))
+                .update();
     }
 
     // -- Roles --
@@ -90,6 +107,7 @@ public class StationMemberRepository {
                                 JOIN station_member_role smr ON sm.id = smr.member_id
                                 JOIN role r ON r.id = smr.role_id
                             WHERE sm.account_id = :account_id
+                              AND sm.former = false
                               AND r.name IN ('LOGIN', 'MANAGER')
                             LIMIT 1;""")
                 .single(Call.of().bind("account_id", accountId))
@@ -100,13 +118,8 @@ public class StationMemberRepository {
 
     public List<Role> findRoles(int memberId) {
         return Query.query("""
-                            SELECT
-                                r.id,
-                                r.name
-                            FROM
-                                role r
-                                    JOIN station_member_role smr
-                                    ON r.id = smr.role_id
+                            SELECT r.id, r.name
+                            FROM role r JOIN station_member_role smr ON r.id = smr.role_id
                             WHERE smr.member_id = :member_id;""")
                 .single(Call.of().bind("member_id", memberId))
                 .map(Role.map())
@@ -133,19 +146,19 @@ public class StationMemberRepository {
                 .changed();
     }
 
+    public void removeAllRoles(int memberId) {
+        Query.query("DELETE FROM station_member_role WHERE member_id = :member_id;")
+                .single(Call.of().bind("member_id", memberId))
+                .delete();
+    }
+
     // -- Manager Relations --
 
     public List<StationMember> findManaged(int managerId) {
         return Query.query("""
-                            SELECT
-                                sm.id,
-                                sm.station_id,
-                                sm.account_id
-                            FROM
-                                station_member sm
-                                    JOIN member_manager mm
-                                    ON sm.id = mm.managed_id
-                            WHERE mm.manager_id = :manager_id;""")
+                            SELECT sm.* FROM station_member sm
+                            JOIN member_manager mm ON sm.id = mm.managed_id
+                            WHERE mm.manager_id = :manager_id AND sm.former = false;""")
                 .single(Call.of().bind("manager_id", managerId))
                 .map(StationMember.map())
                 .all();
@@ -153,14 +166,8 @@ public class StationMemberRepository {
 
     public List<StationMember> findManagers(int managedId) {
         return Query.query("""
-                            SELECT
-                                sm.id,
-                                sm.station_id,
-                                sm.account_id
-                            FROM
-                                station_member sm
-                                    JOIN member_manager mm
-                                    ON sm.id = mm.manager_id
+                            SELECT sm.* FROM station_member sm
+                            JOIN member_manager mm ON sm.id = mm.manager_id
                             WHERE mm.managed_id = :managed_id;""")
                 .single(Call.of().bind("managed_id", managedId))
                 .map(StationMember.map())
@@ -178,5 +185,17 @@ public class StationMemberRepository {
                 .single(Call.of().bind("manager_id", managerId).bind("managed_id", managedId))
                 .delete()
                 .changed();
+    }
+
+    public void removeAllManagers(int managedId) {
+        Query.query("DELETE FROM member_manager WHERE managed_id = :managed_id;")
+                .single(Call.of().bind("managed_id", managedId))
+                .delete();
+    }
+
+    public void removeAllManaged(int managerId) {
+        Query.query("DELETE FROM member_manager WHERE manager_id = :manager_id;")
+                .single(Call.of().bind("manager_id", managerId))
+                .delete();
     }
 }

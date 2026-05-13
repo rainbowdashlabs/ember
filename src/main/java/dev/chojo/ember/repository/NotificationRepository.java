@@ -8,6 +8,7 @@ package dev.chojo.ember.repository;
 import de.chojo.sadu.queries.api.call.Call;
 import de.chojo.sadu.queries.api.query.Query;
 import dev.chojo.ember.entity.Notification;
+import dev.chojo.ember.entity.NotificationData;
 import dev.chojo.ember.entity.NotificationType;
 import jakarta.inject.Singleton;
 
@@ -19,19 +20,28 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
 @Singleton
 public class NotificationRepository {
 
-    public Notification create(int memberId, NotificationType type, Integer referenceId, String message) {
+    public Notification create(int memberId, NotificationType type, NotificationData data) {
         return Query.query("""
-                        INSERT INTO notification(member_id, type, reference_id, message)
-                        VALUES(:member_id, :type, :reference_id, :message)
-                        RETURNING *;""")
-                .single(Call.of()
-                        .bind("member_id", memberId)
-                        .bind("type", type)
-                        .bind("reference_id", referenceId)
-                        .bind("message", message))
+                            INSERT INTO notification(member_id, type, data)
+                            VALUES(:member_id, :type, :data::jsonb)
+                            RETURNING *;""")
+                .single(Call.of().bind("member_id", memberId).bind("type", type).bind("data", data.toJson()))
                 .map(Notification.map())
                 .first()
                 .orElseThrow();
+    }
+
+    public boolean exists(int memberId, NotificationType type, String dataJson) {
+        return Query.query("""
+                            SELECT 1 FROM notification
+                            WHERE member_id = :member_id
+                              AND type = :type
+                              AND data = :data::jsonb
+                              AND acknowledged_at IS NULL;""")
+                .single(Call.of().bind("member_id", memberId).bind("type", type).bind("data", dataJson))
+                .map(row -> true)
+                .first()
+                .orElse(false);
     }
 
     public List<Notification> findUnacknowledged(int memberId) {

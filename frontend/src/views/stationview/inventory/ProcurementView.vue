@@ -44,6 +44,7 @@ const createMemberId = ref<string>('')
 const createSizeId = ref<string>('')
 const createNotes = ref('')
 const createSaving = ref(false)
+const createSuccess = ref(false)
 const availableSizes = ref<InventorySize[]>([])
 
 async function loadData() {
@@ -82,6 +83,7 @@ function openCreateModal() {
   createMemberId.value = ''
   createSizeId.value = ''
   createNotes.value = ''
+  createSuccess.value = false
   availableSizes.value = []
   showCreateModal.value = true
 }
@@ -96,7 +98,7 @@ async function submitCreate() {
       sizeId: createSizeId.value ? Number(createSizeId.value) : undefined,
       notes: createNotes.value || undefined,
     })
-    showCreateModal.value = false
+    createSuccess.value = true
     entries.value = await procurement.listProcurement()
   } catch {
     error.value = t('common.error')
@@ -167,7 +169,7 @@ onMounted(loadData)
             <div class="space-y-1">
               <div class="flex items-center gap-2 flex-wrap">
                 <span class="font-medium">{{ entry.inventoryName }}</span>
-                <span v-if="entry.sizeLabel" class="text-sm text-(--text-muted)">({{ entry.sizeLabel }})</span>
+                <span class="text-sm text-(--text-muted)">({{ entry.sizeLabel || t('common.unisize') }})</span>
                 <SuccessBadge v-if="entry.fulfilledAt">{{ t('procurement.fulfilled') }}</SuccessBadge>
                 <ErrorBadge v-else>{{ t('procurement.open') }}</ErrorBadge>
               </div>
@@ -196,41 +198,49 @@ onMounted(loadData)
         <div class="space-y-4">
           <SectionHeader>{{ t('procurement.createTitle') }}</SectionHeader>
 
-          <div class="space-y-1">
-            <label class="block text-sm font-medium">{{ t('procurement.member') }}</label>
-            <SelectInput v-model="createMemberId">
-              <option value="" disabled>{{ t('procurement.selectMember') }}</option>
-              <option v-for="m in members" :key="m.id" :value="String(m.id)">{{ memberDisplayName(m) }}</option>
-            </SelectInput>
-          </div>
+          <template v-if="createSuccess">
+            <Alert variant="success">{{ t('inventory.check.procurementCreated') }}</Alert>
+            <div class="flex justify-end">
+              <SecondaryButton @click="showCreateModal = false">{{ t('common.close') }}</SecondaryButton>
+            </div>
+          </template>
+          <template v-else>
+            <div class="space-y-1">
+              <label class="block text-sm font-medium">{{ t('procurement.member') }}</label>
+              <SelectInput v-model="createMemberId">
+                <option value="" disabled>{{ t('procurement.selectMember') }}</option>
+                <option v-for="m in members" :key="m.id" :value="String(m.id)">{{ memberDisplayName(m) }}</option>
+              </SelectInput>
+            </div>
 
-          <div class="space-y-1">
-            <label class="block text-sm font-medium">{{ t('procurement.inventory') }}</label>
-            <SelectInput v-model="createInventoryId" @change="onInventorySelected">
-              <option value="" disabled>{{ t('procurement.selectInventory') }}</option>
-              <option v-for="inv in inventories" :key="inv.id" :value="String(inv.id)">{{ inv.name }}</option>
-            </SelectInput>
-          </div>
+            <div class="space-y-1">
+              <label class="block text-sm font-medium">{{ t('procurement.inventory') }}</label>
+              <SelectInput v-model="createInventoryId" @change="onInventorySelected">
+                <option value="" disabled>{{ t('procurement.selectInventory') }}</option>
+                <option v-for="inv in inventories" :key="inv.id" :value="String(inv.id)">{{ inv.name }}</option>
+              </SelectInput>
+            </div>
 
-          <div v-if="availableSizes.length > 0" class="space-y-1">
-            <label class="block text-sm font-medium">{{ t('procurement.size') }}</label>
-            <SelectInput v-model="createSizeId">
-              <option value="">{{ t('procurement.noSize') }}</option>
-              <option v-for="size in availableSizes" :key="size.id" :value="String(size.id)">{{ size.label }}</option>
-            </SelectInput>
-          </div>
+            <div v-if="availableSizes.length > 0" class="space-y-1">
+              <label class="block text-sm font-medium">{{ t('procurement.size') }}</label>
+              <SelectInput v-model="createSizeId">
+                <option value="">{{ t('procurement.noSize') }}</option>
+                <option v-for="size in availableSizes" :key="size.id" :value="String(size.id)">{{ size.label }}</option>
+              </SelectInput>
+            </div>
 
-          <div class="space-y-1">
-            <label class="block text-sm font-medium">{{ t('procurement.notes') }}</label>
-            <TextAreaInput v-model="createNotes" :placeholder="t('procurement.notesPlaceholder')" />
-          </div>
+            <div class="space-y-1">
+              <label class="block text-sm font-medium">{{ t('procurement.notes') }}</label>
+              <TextAreaInput v-model="createNotes" :placeholder="t('procurement.notesPlaceholder')" />
+            </div>
 
-          <div class="flex justify-end gap-3">
-            <SecondaryButton @click="showCreateModal = false">{{ t('common.cancel') }}</SecondaryButton>
-            <PrimaryButton :disabled="createSaving || !canCreate" @click="submitCreate">
-              {{ createSaving ? t('common.loading') : t('procurement.submit') }}
-            </PrimaryButton>
-          </div>
+            <div class="flex justify-end gap-3">
+              <SecondaryButton @click="showCreateModal = false">{{ t('common.cancel') }}</SecondaryButton>
+              <PrimaryButton :disabled="createSaving || !canCreate" @click="submitCreate">
+                {{ createSaving ? t('common.loading') : t('procurement.submit') }}
+              </PrimaryButton>
+            </div>
+          </template>
         </div>
       </Modal>
     </div>

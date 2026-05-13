@@ -9,6 +9,7 @@ import de.chojo.sadu.queries.api.call.Call;
 import de.chojo.sadu.queries.api.query.Query;
 import de.chojo.sadu.queries.api.results.writing.insertion.InsertionResult;
 import dev.chojo.ember.entity.AttendanceEntry;
+import dev.chojo.ember.entity.AttendanceReportPreset;
 import dev.chojo.ember.entity.AttendanceSession;
 import dev.chojo.ember.entity.AttendanceSessionField;
 import dev.chojo.ember.entity.AttendanceTemplate;
@@ -143,10 +144,6 @@ public class AttendanceRepository {
         }
     }
 
-    public record TemplateGroup(int groupId, int position) {}
-
-    // -- Sessions --
-
     public Optional<AttendanceSession> findSessionById(int id) {
         return Query.query(
                         "SELECT id, template_id, start_time, end_time, created_at, event_id, title FROM attendance_session WHERE id = :id;")
@@ -154,6 +151,8 @@ public class AttendanceRepository {
                 .map(AttendanceSession.map())
                 .first();
     }
+
+    // -- Sessions --
 
     public List<AttendanceSession> findSessionsByTemplate(int templateId) {
         return Query.query("""
@@ -168,17 +167,17 @@ public class AttendanceRepository {
 
     public List<SessionSummary> findSessionSummariesByStation(int stationId) {
         return Query.query("""
-                        SELECT s.id, s.template_id, s.start_time, s.end_time, s.created_at, s.event_id, s.title,
-                               COUNT(e.id) FILTER (WHERE e.status = 'PRESENT') AS present_count,
-                               COUNT(e.id) FILTER (WHERE e.status = 'ABSENT') AS absent_count,
-                               COUNT(e.id) FILTER (WHERE e.status = 'DECLINED') AS declined_count,
-                               COUNT(e.id) FILTER (WHERE e.status = 'UNCONFIRMED') AS unconfirmed_count
-                        FROM attendance_session s
-                        JOIN attendance_template t ON t.id = s.template_id
-                        LEFT JOIN attendance_entry e ON e.session_id = s.id
-                        WHERE t.station_id = :station_id
-                        GROUP BY s.id
-                        ORDER BY s.created_at DESC;""")
+                            SELECT s.id, s.template_id, s.start_time, s.end_time, s.created_at, s.event_id, s.title,
+                                   count(e.id) FILTER (WHERE e.status = 'PRESENT') AS present_count,
+                                   count(e.id) FILTER (WHERE e.status = 'ABSENT') AS absent_count,
+                                   count(e.id) FILTER (WHERE e.status = 'DECLINED') AS declined_count,
+                                   count(e.id) FILTER (WHERE e.status = 'UNCONFIRMED') AS unconfirmed_count
+                            FROM attendance_session s
+                            JOIN attendance_template t ON t.id = s.template_id
+                            LEFT JOIN attendance_entry e ON e.session_id = s.id
+                            WHERE t.station_id = :station_id
+                            GROUP BY s.id
+                            ORDER BY s.created_at DESC;""")
                 .single(Call.of().bind("station_id", stationId))
                 .map(row -> new SessionSummary(
                         row.getInt("id"),
@@ -194,19 +193,6 @@ public class AttendanceRepository {
                         row.getInt("unconfirmed_count")))
                 .all();
     }
-
-    public record SessionSummary(
-            int id,
-            int templateId,
-            Instant startTime,
-            Instant endTime,
-            Instant createdAt,
-            Integer eventId,
-            String title,
-            int presentCount,
-            int absentCount,
-            int declinedCount,
-            int unconfirmedCount) {}
 
     public Optional<AttendanceSession> findSessionByEventId(int eventId) {
         return Query.query(
@@ -250,8 +236,6 @@ public class AttendanceRepository {
                 .changed();
     }
 
-    // -- Session Fields --
-
     public List<AttendanceSessionField> findSessionFields(int sessionId) {
         return Query.query(
                         "SELECT session_id, field_id, value FROM attendance_session_field WHERE session_id = :session_id;")
@@ -276,6 +260,8 @@ public class AttendanceRepository {
                 .insert();
     }
 
+    // -- Session Fields --
+
     public boolean deleteSessionField(int sessionId, int fieldId) {
         return Query.query(
                         "DELETE FROM attendance_session_field WHERE session_id = :session_id AND field_id = :field_id;")
@@ -283,8 +269,6 @@ public class AttendanceRepository {
                 .delete()
                 .changed();
     }
-
-    // -- Entries --
 
     public List<AttendanceEntry> findEntries(int sessionId) {
         return Query.query(
@@ -312,6 +296,8 @@ public class AttendanceRepository {
                 .map(AttendanceEntry.map())
                 .first();
     }
+
+    // -- Entries --
 
     public List<AttendanceEntry> findEntriesByMember(int memberId) {
         return Query.query(
@@ -368,17 +354,15 @@ public class AttendanceRepository {
                 .changed();
     }
 
-    // -- Export Queries --
-
     public List<AttendanceSession> findSessionsByStationInRange(int stationId, Instant from, Instant to) {
         return Query.query("""
-                        SELECT s.id, s.template_id, s.start_time, s.end_time, s.created_at, s.event_id, s.title
-                        FROM attendance_session s
-                        JOIN attendance_template t ON t.id = s.template_id
-                        WHERE t.station_id = :station_id
-                          AND s.start_time >= :from_time
-                          AND s.start_time < :to_time
-                        ORDER BY s.start_time;""")
+                            SELECT s.id, s.template_id, s.start_time, s.end_time, s.created_at, s.event_id, s.title
+                            FROM attendance_session s
+                            JOIN attendance_template t ON t.id = s.template_id
+                            WHERE t.station_id = :station_id
+                              AND s.start_time >= :from_time
+                              AND s.start_time < :to_time
+                            ORDER BY s.start_time;""")
                 .single(Call.of()
                         .bind("station_id", stationId)
                         .bind("from_time", from, INSTANT_TIMESTAMP)
@@ -389,35 +373,35 @@ public class AttendanceRepository {
 
     public List<Integer> findMemberIdsByRole(int stationId, String roleName) {
         return Query.query("""
-                        SELECT sm.id
-                        FROM station_member sm
-                        JOIN station_member_role smr ON smr.member_id = sm.id
-                        JOIN role r ON r.id = smr.role_id
-                        WHERE sm.station_id = :station_id AND r.name = :role_name;""")
+                            SELECT sm.id
+                            FROM station_member sm
+                            JOIN station_member_role smr ON smr.member_id = sm.id
+                            JOIN role r ON r.id = smr.role_id
+                            WHERE sm.station_id = :station_id AND r.name = :role_name;""")
                 .single(Call.of().bind("station_id", stationId).bind("role_name", roleName))
                 .map(row -> row.getInt("id"))
                 .all();
     }
 
+    // -- Export Queries --
+
     public List<Integer> findMemberIdsByGroup(int groupId) {
         return Query.query("""
-                        SELECT member_id FROM member_group_entry WHERE group_id = :group_id;""")
+                            SELECT member_id FROM member_group_entry WHERE group_id = :group_id;""")
                 .single(Call.of().bind("group_id", groupId))
                 .map(row -> row.getInt("member_id"))
                 .all();
     }
 
-    // -- Report Presets --
-
-    public List<dev.chojo.ember.entity.AttendanceReportPreset> findPresets(int stationId) {
+    public List<AttendanceReportPreset> findPresets(int stationId) {
         return Query.query(
                         "SELECT id, station_id, name, role_name, group_id, period, rounding FROM attendance_report_preset WHERE station_id = :station_id ORDER BY name;")
                 .single(Call.of().bind("station_id", stationId))
-                .map(dev.chojo.ember.entity.AttendanceReportPreset.map())
+                .map(AttendanceReportPreset.map())
                 .all();
     }
 
-    public dev.chojo.ember.entity.AttendanceReportPreset createPreset(
+    public AttendanceReportPreset createPreset(
             int stationId, String name, String roleName, Integer groupId, String period, String rounding) {
         return Query.query(
                         "INSERT INTO attendance_report_preset(station_id, name, role_name, group_id, period, rounding) VALUES(:station_id, :name, :role_name, :group_id, :period, :rounding) RETURNING id, station_id, name, role_name, group_id, period, rounding;")
@@ -428,10 +412,12 @@ public class AttendanceRepository {
                         .bind("group_id", groupId)
                         .bind("period", period)
                         .bind("rounding", rounding))
-                .map(dev.chojo.ember.entity.AttendanceReportPreset.map())
+                .map(AttendanceReportPreset.map())
                 .first()
                 .orElseThrow();
     }
+
+    // -- Report Presets --
 
     public boolean deletePreset(int id) {
         return Query.query("DELETE FROM attendance_report_preset WHERE id = :id;")
@@ -439,8 +425,6 @@ public class AttendanceRepository {
                 .delete()
                 .changed();
     }
-
-    // -- Absences --
 
     public MemberAbsence createAbsence(int memberId, LocalDate absentFrom, LocalDate absentUntil, String reason) {
         return Query.query(
@@ -463,6 +447,8 @@ public class AttendanceRepository {
                 .first();
     }
 
+    // -- Absences --
+
     public List<MemberAbsence> findAbsencesByMember(int memberId) {
         return Query.query(
                         "SELECT id, member_id, absent_from, absent_until, reason, created_at FROM member_absence WHERE member_id = :member_id ORDER BY absent_until DESC;")
@@ -473,13 +459,13 @@ public class AttendanceRepository {
 
     public List<MemberAbsence> findActiveAbsencesByStation(int stationId) {
         return Query.query("""
-                        SELECT ma.id, ma.member_id, ma.absent_from, ma.absent_until, ma.reason, ma.created_at
-                        FROM member_absence ma
-                            JOIN station_member sm ON ma.member_id = sm.id
-                        WHERE sm.station_id = :station_id
-                          AND ma.absent_from <= CURRENT_DATE
-                          AND ma.absent_until >= CURRENT_DATE
-                        ORDER BY ma.absent_until;""")
+                            SELECT ma.id, ma.member_id, ma.absent_from, ma.absent_until, ma.reason, ma.created_at
+                            FROM member_absence ma
+                                JOIN station_member sm ON ma.member_id = sm.id
+                            WHERE sm.station_id = :station_id
+                              AND ma.absent_from <= current_date
+                              AND ma.absent_until >= current_date
+                            ORDER BY ma.absent_until;""")
                 .single(Call.of().bind("station_id", stationId))
                 .map(MemberAbsence.map())
                 .all();
@@ -506,5 +492,26 @@ public class AttendanceRepository {
                 .single()
                 .delete()
                 .changed();
+    }
+
+    public record TemplateGroup(int groupId, int position) {}
+
+    public record SessionSummary(
+            int id,
+            int templateId,
+            Instant startTime,
+            Instant endTime,
+            Instant createdAt,
+            Integer eventId,
+            String title,
+            int presentCount,
+            int absentCount,
+            int declinedCount,
+            int unconfirmedCount) {}
+
+    public void deleteAbsencesByMember(int memberId) {
+        Query.query("DELETE FROM member_absence WHERE member_id = :member_id;")
+                .single(Call.of().bind("member_id", memberId))
+                .delete();
     }
 }

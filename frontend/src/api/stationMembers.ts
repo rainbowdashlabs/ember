@@ -54,3 +54,16 @@ export async function setManagers(memberId: number, data: SetManagersRequest): P
     const res = await client.put<StationMember[]>(`/station-members/${memberId}/managers`, data)
     return res.data
 }
+
+export async function listFormerMembers(): Promise<StationMember[]> {
+    const res = await client.get<StationMember[]>('/station-members/former')
+    return res.data
+}
+
+export async function markFormer(memberId: number): Promise<void> {
+    await client.post(`/station-members/${memberId}/mark-former`)
+}
+
+export async function reactivateMember(memberId: number): Promise<void> {
+    await client.post(`/station-members/${memberId}/reactivate`)
+}
