@@ -62,9 +62,7 @@ public class MemberGroupRepository {
     public List<StationMember> findMembers(int groupId) {
         return query("""
                 SELECT
-                    sm.id,
-                    sm.station_id,
-                    sm.account_id
+                    sm.*
                 FROM
                     station_member sm
                         JOIN member_group_entry mge
