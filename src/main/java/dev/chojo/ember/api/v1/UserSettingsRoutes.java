@@ -8,6 +8,8 @@ package dev.chojo.ember.api.v1;
 import dev.chojo.ember.api.Roles;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.entity.NotificationSetting;
+import dev.chojo.ember.entity.NotificationType;
 import dev.chojo.ember.repository.StationMailConfigRepository;
 import dev.chojo.ember.service.UserSettingsService;
 import io.javalin.http.Context;
@@ -19,6 +21,9 @@ import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+
+import java.util.EnumMap;
+import java.util.Map;
 
 @Singleton
 public class UserSettingsRoutes implements Routes {
@@ -45,28 +50,10 @@ public class UserSettingsRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = SettingsResponse.class)))
     private void getSettings(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        var settings = settingsService.getSettings(session.member().id());
-        var mailConfig = mailConfigRepository.findByStation(session.stationId());
-
-        String mailProviderName = "";
-        String mailProviderUrl = "";
-        boolean mailConfigured = false;
-        if (mailConfig.isPresent() && mailConfig.get().isConfigured()) {
-            var mc = mailConfig.get();
-            mailProviderName = mc.providerName();
-            mailProviderUrl = mc.providerUrl();
-            mailConfigured = true;
-        }
-
-        ctx.json(new SettingsResponse(
-                settings.memberId(),
-                settings.emailEnabled(),
-                settings.notifyNews(),
-                settings.notifyNewEvents(),
-                settings.notifyEventStatus(),
-                mailConfigured,
-                mailProviderName,
-                mailProviderUrl));
+        int memberId = session.member().id();
+        var userSettings = settingsService.getSettings(memberId);
+        var notifSettings = settingsService.getNotificationSettings(memberId);
+        ctx.json(toResponse(userSettings.emailEnabled(), notifSettings, session.stationId()));
     }
 
     @OpenApi(
@@ -78,15 +65,29 @@ public class UserSettingsRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = SettingsResponse.class)))
     private void updateSettings(Context ctx) {
         UserSession session = UserSession.from(ctx);
+        int memberId = session.member().id();
         var request = ctx.bodyAsClass(SettingsRequest.class);
-        var settings = settingsService.updateSettings(
-                session.member().id(),
-                request.emailEnabled(),
-                request.notifyNews(),
-                request.notifyNewEvents(),
-                request.notifyEventStatus());
 
-        var mailConfig = mailConfigRepository.findByStation(session.stationId());
+        var updated = settingsService.updateEmailEnabled(memberId, request.emailEnabled());
+
+        // Build notification settings map from request
+        var notifMap = new EnumMap<NotificationType, NotificationSetting>(NotificationType.class);
+        if (request.notifications() != null) {
+            for (var entry : request.notifications().entrySet()) {
+                var type = NotificationType.valueOf(entry.getKey());
+                var toggle = entry.getValue();
+                notifMap.put(type, new NotificationSetting(memberId, type, toggle.app(), toggle.email()));
+            }
+        }
+        settingsService.updateNotificationSettings(memberId, notifMap);
+
+        var notifSettings = settingsService.getNotificationSettings(memberId);
+        ctx.json(toResponse(updated.emailEnabled(), notifSettings, session.stationId()));
+    }
+
+    private SettingsResponse toResponse(
+            boolean emailEnabled, Map<NotificationType, NotificationSetting> notifSettings, int stationId) {
+        var mailConfig = mailConfigRepository.findByStation(stationId);
         String mailProviderName = "";
         String mailProviderUrl = "";
         boolean mailConfigured = false;
@@ -97,26 +98,25 @@ public class UserSettingsRoutes implements Routes {
             mailConfigured = true;
         }
 
-        ctx.json(new SettingsResponse(
-                settings.memberId(),
-                settings.emailEnabled(),
-                settings.notifyNews(),
-                settings.notifyNewEvents(),
-                settings.notifyEventStatus(),
-                mailConfigured,
-                mailProviderName,
-                mailProviderUrl));
+        // Build response map with defaults for missing types
+        var responseMap = new java.util.LinkedHashMap<String, NotificationToggle>();
+        for (var type : NotificationType.values()) {
+            var setting = notifSettings.get(type);
+            boolean app = setting != null ? setting.appEnabled() : true;
+            boolean email = setting != null ? setting.emailEnabled() : false;
+            responseMap.put(type.name(), new NotificationToggle(app, email));
+        }
+
+        return new SettingsResponse(emailEnabled, responseMap, mailConfigured, mailProviderName, mailProviderUrl);
     }
 
-    public record SettingsRequest(
-            boolean emailEnabled, boolean notifyNews, boolean notifyNewEvents, boolean notifyEventStatus) {}
+    public record NotificationToggle(boolean app, boolean email) {}
+
+    public record SettingsRequest(boolean emailEnabled, Map<String, NotificationToggle> notifications) {}
 
     public record SettingsResponse(
-            int memberId,
             boolean emailEnabled,
-            boolean notifyNews,
-            boolean notifyNewEvents,
-            boolean notifyEventStatus,
+            Map<String, NotificationToggle> notifications,
             boolean mailConfigured,
             String mailProviderName,
             String mailProviderUrl) {}

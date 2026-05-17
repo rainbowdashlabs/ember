@@ -62,6 +62,10 @@ export function useSession() {
         return hasRole(Roles.NEWS_MANAGEMENT)
     }
 
+    function canManagePolls(): boolean {
+        return hasRole(Roles.POLL_MANAGEMENT)
+    }
+
     function isMemberManager(): boolean {
         return hasRole(Roles.MEMBER_MANAGER)
     }
@@ -86,6 +90,7 @@ export function useSession() {
         canExportAttendance,
         canManageEvents,
         canManageNews,
+        canManagePolls,
         isMemberManager,
         fullName,
     }

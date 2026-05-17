@@ -11,10 +11,13 @@ import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.entity.Account;
 import dev.chojo.ember.entity.MemberGroup;
+import dev.chojo.ember.entity.NotificationData;
+import dev.chojo.ember.entity.NotificationType;
 import dev.chojo.ember.entity.Role;
 import dev.chojo.ember.entity.StationMember;
 import dev.chojo.ember.repository.AccountRepository;
 import dev.chojo.ember.service.MemberGroupService;
+import dev.chojo.ember.service.NotificationService;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
@@ -29,17 +32,25 @@ import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 
 @Singleton
 public class MemberGroupRoutes implements Routes {
     private final MemberGroupService groupService;
     private final AccountRepository accountRepository;
+    private final NotificationService notificationService;
 
     @Inject
-    public MemberGroupRoutes(MemberGroupService groupService, AccountRepository accountRepository) {
+    public MemberGroupRoutes(
+            MemberGroupService groupService,
+            AccountRepository accountRepository,
+            NotificationService notificationService) {
         this.groupService = groupService;
         this.accountRepository = accountRepository;
+        this.notificationService = notificationService;
     }
 
     private static boolean isBlank(String s) {
@@ -59,6 +70,8 @@ public class MemberGroupRoutes implements Routes {
 
         routes.get(prefix + "/groups/{id}/roles", this::getGroupRoles, Roles.MEMBER_MANAGEMENT);
         routes.put(prefix + "/groups/{id}/roles", this::setGroupRoles, Roles.MEMBER_MANAGEMENT);
+
+        routes.post(prefix + "/groups/{id}/convert-to-tag", this::convertToTag, Roles.MEMBER_MANAGEMENT);
 
         routes.get(prefix + "/station-members/{memberId}/groups", this::getMemberGroups, Roles.MEMBER_MANAGEMENT);
     }
@@ -197,9 +210,30 @@ public class MemberGroupRoutes implements Routes {
         int groupId = ctx.pathParamAsClass("id", Integer.class).get();
         var request = ctx.bodyAsClass(SetMembersRequest.class);
         List<Integer> memberIds = request.memberIds() != null ? request.memberIds() : List.of();
-        ctx.json(groupService.setMembers(groupId, memberIds).stream()
-                .map(this::toMemberWithName)
+
+        // Determine which members are being added
+        var currentMemberIds = new HashSet<>(groupService.findMembers(groupId).stream()
+                .map(StationMember::id)
                 .toList());
+        var addedMemberIds = new ArrayList<Integer>();
+        for (int id : memberIds) {
+            if (!currentMemberIds.contains(id)) addedMemberIds.add(id);
+        }
+
+        var result = groupService.setMembers(groupId, memberIds);
+
+        // Notify newly added members
+        if (!addedMemberIds.isEmpty()) {
+            groupService.findById(groupId).ifPresent(group -> {
+                var data = NotificationData.of(
+                        "notification.memberAddedToGroup",
+                        Map.of("groupName", group.name()),
+                        new NotificationData.NotificationLink("dashboard-overview"));
+                notificationService.notifyMembers(addedMemberIds, NotificationType.MEMBER_ADDED_TO_GROUP, data);
+            });
+        }
+
+        ctx.json(result.stream().map(this::toMemberWithName).toList());
     }
 
     @OpenApi(
@@ -262,4 +296,28 @@ public class MemberGroupRoutes implements Routes {
     public record SetMembersRequest(List<Integer> memberIds) {}
 
     public record SetGroupRolesRequest(List<Integer> roleIds) {}
+
+    @OpenApi(
+            path = "/api/v1/groups/{id}/convert-to-tag",
+            methods = HttpMethod.POST,
+            summary = "Convert a group to a tag (keeps members, deletes the group)",
+            tags = {"Member Groups"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            responses = {
+                @OpenApiResponse(status = "204"),
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    private void convertToTag(Context ctx) {
+        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        groupService
+                .findById(id)
+                .ifPresentOrElse(
+                        group -> {
+                            groupService.convertToTag(id);
+                            ctx.status(HttpStatus.NO_CONTENT);
+                        },
+                        () -> {
+                            throw new NotFoundResponse();
+                        });
+    }
 }

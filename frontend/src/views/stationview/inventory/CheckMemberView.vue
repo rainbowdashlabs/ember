@@ -296,7 +296,7 @@ function itemLabel(item: InventoryItem, req: RequiredInventoryItem): string {
   const parts = [item.name]
   if (item.internalId) parts.push(`(${item.internalId})`)
   const size = sizeLabel(req, item.sizeId)
-  if (size) parts.push(`[${size}]`)
+  if (size) parts.push(size)
   return parts.join(' ')
 }
 

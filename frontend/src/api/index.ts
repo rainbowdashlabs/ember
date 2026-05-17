@@ -27,6 +27,7 @@ export * as exchanges from './exchanges'
 export * as procurement from './procurement'
 export * as userTags from './userTags'
 export * as notifications from './notifications'
+export * as forms from './forms'
 export * as storage from './storage'
 
 export {default as client} from './client'

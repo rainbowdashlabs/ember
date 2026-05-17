@@ -280,6 +280,31 @@ const router = createRouter({
                     component: () => import('@/views/stationview/events/EventEditView.vue'),
                 },
                 {
+                    path: 'forms',
+                    name: 'forms-list',
+                    component: () => import('@/views/stationview/forms/ListView.vue'),
+                },
+                {
+                    path: 'forms/create',
+                    name: 'forms-create',
+                    component: () => import('@/views/stationview/forms/BuilderView.vue'),
+                },
+                {
+                    path: 'forms/:id/edit',
+                    name: 'forms-edit',
+                    component: () => import('@/views/stationview/forms/BuilderView.vue'),
+                },
+                {
+                    path: 'forms/:id/fill',
+                    name: 'forms-fill',
+                    component: () => import('@/views/stationview/forms/FillView.vue'),
+                },
+                {
+                    path: 'forms/:id/analytics',
+                    name: 'forms-analytics',
+                    component: () => import('@/views/stationview/forms/AnalyticsView.vue'),
+                },
+                {
                     path: 'profile',
                     name: 'profile',
                     component: ProfileView,
@@ -420,6 +445,9 @@ const router = createRouter({
                 {path: 'events', name: 'help-events', component: () => import('@/views/helpcenter/stationview/events/IndexHelp.vue')},
                 {path: 'events/new', name: 'help-event-new', component: () => import('@/views/helpcenter/stationview/events/EventEditHelp.vue')},
                 {path: 'events/:id/edit', name: 'help-event-edit', component: () => import('@/views/helpcenter/stationview/events/EventEditHelp.vue')},
+                // Forms
+                {path: 'forms', name: 'help-forms-list', component: () => import('@/views/helpcenter/stationview/forms/ListHelp.vue')},
+                {path: 'forms/create', name: 'help-forms-create', component: () => import('@/views/helpcenter/stationview/forms/BuilderHelp.vue')},
             ],
         },
         {

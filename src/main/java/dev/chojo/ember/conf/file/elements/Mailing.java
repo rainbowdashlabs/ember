@@ -20,6 +20,7 @@ public class Mailing {
     private String senderName = "Ember";
     private Map<String, String> properties = Collections.emptyMap();
     private int dailySendLimit = 200;
+    private int notificationDigestIntervalMinutes = 60;
 
     public String provider() {
         return provider;
@@ -66,6 +67,10 @@ public class Mailing {
      */
     public int dailySendLimit() {
         return dailySendLimit;
+    }
+
+    public int notificationDigestIntervalMinutes() {
+        return notificationDigestIntervalMinutes;
     }
 
     public Properties properties() {

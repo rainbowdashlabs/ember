@@ -20,6 +20,7 @@ import dev.chojo.ember.api.v1.AttendanceRoutes;
 import dev.chojo.ember.api.v1.AuthRoutes;
 import dev.chojo.ember.api.v1.EventRoutes;
 import dev.chojo.ember.api.v1.ExchangeRoutes;
+import dev.chojo.ember.api.v1.FormRoutes;
 import dev.chojo.ember.api.v1.InventoryCheckRoutes;
 import dev.chojo.ember.api.v1.InventoryRoutes;
 import dev.chojo.ember.api.v1.ManagedMemberRoutes;
@@ -93,6 +94,7 @@ public class EmberModule extends AbstractModule {
         routesBinder.addBinding().to(ProcurementRoutes.class);
         routesBinder.addBinding().to(UserTagRoutes.class);
         routesBinder.addBinding().to(NotificationRoutes.class);
+        routesBinder.addBinding().to(FormRoutes.class);
     }
 
     @Provides

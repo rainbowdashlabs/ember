@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.service;
 
+import dev.chojo.ember.api.Roles;
 import dev.chojo.ember.entity.NotificationData;
 import dev.chojo.ember.entity.NotificationType;
 import dev.chojo.ember.entity.ProfileField;
@@ -212,11 +213,13 @@ public class ProfileFieldService {
                 Map.of("memberName", memberName, "fieldName", fieldList),
                 new NotificationData.NotificationLink("members-detail", Map.of("id", memberId)));
 
-        var managerIds = stationMemberRepository.findManagers(memberId).stream()
-                .map(StationMember::id)
-                .toList();
+        var memberMgmtIds =
+                stationMemberRepository.findMembersWithRole(member.stationId(), Roles.MEMBER_MANAGEMENT).stream()
+                        .map(StationMember::id)
+                        .toList();
 
-        notificationService.notifyMembersIfAbsent(managerIds, NotificationType.PROFILE_FIELD_CHANGED, data, changedBy);
+        notificationService.notifyMembersIfAbsent(
+                memberMgmtIds, NotificationType.PROFILE_FIELD_CHANGED, data, changedBy);
     }
 
     /**

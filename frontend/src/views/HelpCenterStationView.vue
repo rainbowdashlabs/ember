@@ -173,6 +173,18 @@ const pageSubtitle = computed(() => t('helpCenter.title'))
           {{ t('sidebar.manageEvents') }}
         </SidebarLink>
       </SidebarGroup>
+
+      <SidebarGroup :icon="['fas', 'square-poll-vertical']" :label="t('sidebar.forms')"
+                    prefix="/helpcenter/station/forms">
+        <SidebarLink :icon="['fas', 'list']" name="help-forms-list"
+                     to="/helpcenter/station/forms" @navigate="close">
+          {{ t('sidebar.formsList') }}
+        </SidebarLink>
+        <SidebarLink :icon="['fas', 'plus']" name="help-forms-create"
+                     to="/helpcenter/station/forms/create" @navigate="close">
+          {{ t('sidebar.formsCreate') }}
+        </SidebarLink>
+      </SidebarGroup>
     </template>
 
     <template #header>

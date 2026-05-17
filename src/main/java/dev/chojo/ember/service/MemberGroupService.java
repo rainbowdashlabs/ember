@@ -11,6 +11,7 @@ import dev.chojo.ember.entity.Role;
 import dev.chojo.ember.entity.StationMember;
 import dev.chojo.ember.repository.MemberGroupRepository;
 import dev.chojo.ember.repository.StationMemberRepository;
+import dev.chojo.ember.repository.UserTagRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
@@ -22,11 +23,16 @@ import java.util.Set;
 public class MemberGroupService {
     private final MemberGroupRepository groupRepository;
     private final StationMemberRepository memberRepository;
+    private final UserTagRepository tagRepository;
 
     @Inject
-    public MemberGroupService(MemberGroupRepository groupRepository, StationMemberRepository memberRepository) {
+    public MemberGroupService(
+            MemberGroupRepository groupRepository,
+            StationMemberRepository memberRepository,
+            UserTagRepository tagRepository) {
         this.groupRepository = groupRepository;
         this.memberRepository = memberRepository;
+        this.tagRepository = tagRepository;
     }
 
     public List<MemberGroup> findByStation(int stationId) {
@@ -105,5 +111,15 @@ public class MemberGroupService {
         }
 
         return groupRepository.findGroupRoles(groupId);
+    }
+
+    public void convertToTag(int groupId) {
+        var group = groupRepository.findById(groupId).orElseThrow();
+        var members = groupRepository.findMembers(groupId);
+        var tag = tagRepository.create(group.stationId(), group.name());
+        for (var member : members) {
+            tagRepository.addMember(tag.id(), member.id());
+        }
+        groupRepository.delete(groupId);
     }
 }

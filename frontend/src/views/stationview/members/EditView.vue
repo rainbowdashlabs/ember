@@ -19,9 +19,9 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
-import type { ProfileField, StationMember, Role } from '@/api/types'
+import type { ProfileField, StationMember, Role, MemberGroup, UserTag } from '@/api/types'
 import { Roles, hasTeamRole } from '@/api/types'
-import { profileFields, stationMembers, members, inventory } from '@/api'
+import { profileFields, stationMembers, members, inventory, memberGroups, userTags } from '@/api'
 import type { MyInventoryItem } from '@/api/inventory'
 import { useStations } from '@/composables/useStations'
 
@@ -40,6 +40,10 @@ const editRoleIds = ref<Set<number>>(new Set())
 const editFirstName = ref('')
 const editLastName = ref('')
 const editEmail = ref('')
+const allGroups = ref<MemberGroup[]>([])
+const allTags = ref<UserTag[]>([])
+const editGroupIds = ref<Set<number>>(new Set())
+const editTagIds = ref<Set<number>>(new Set())
 const loading = ref(true)
 const saving = ref(false)
 const error = ref('')
@@ -185,15 +189,23 @@ async function loadData() {
   loading.value = true
   error.value = ''
   try {
-    const [allFields, allMembers, roles, memberRoles, profileValues] = await Promise.all([
+    const [allFields, allMembers, roles, memberRoles, profileValues, groups, tags, mGroups, mTags] = await Promise.all([
       profileFields.listFields(),
       stationMembers.listMembers(currentStationId.value!),
       stationMembers.listAllRoles(),
       stationMembers.getRoles(memberId.value),
       profileFields.getValues(memberId.value),
+      memberGroups.listGroups(),
+      userTags.listTags(),
+      memberGroups.getMemberGroups(memberId.value),
+      userTags.getMemberTags(memberId.value),
     ])
     fields.value = allFields
     allRoles.value = roles
+    allGroups.value = groups
+    allTags.value = tags
+    editGroupIds.value = new Set(mGroups.map(g => g.id))
+    editTagIds.value = new Set(mTags.map(t => t.id))
     member.value = allMembers.find(m => m.id === memberId.value) ?? null
     editFirstName.value = member.value?.name?.split(' ')[0] ?? ''
     editLastName.value = member.value?.name?.split(' ').slice(1).join(' ') ?? ''
@@ -232,6 +244,32 @@ async function save() {
     await profileFields.setValues(memberId.value, { values: entries })
     // Update roles
     await stationMembers.setRoles(memberId.value, { roleIds: [...editRoleIds.value] })
+    // Update group memberships
+    for (const group of allGroups.value) {
+      const currentMembers = await memberGroups.getGroupMembers(group.id)
+      const isMember = currentMembers.some(m => m.id === memberId.value)
+      const shouldBeMember = editGroupIds.value.has(group.id)
+      if (isMember && !shouldBeMember) {
+        const newIds = currentMembers.filter(m => m.id !== memberId.value).map(m => m.id)
+        await memberGroups.setGroupMembers(group.id, { memberIds: newIds })
+      } else if (!isMember && shouldBeMember) {
+        const newIds = [...currentMembers.map(m => m.id), memberId.value]
+        await memberGroups.setGroupMembers(group.id, { memberIds: newIds })
+      }
+    }
+    // Update tag memberships
+    for (const tag of allTags.value) {
+      const currentMembers = await userTags.getTagMembers(tag.id)
+      const isMember = currentMembers.some(m => m.id === memberId.value)
+      const shouldBeMember = editTagIds.value.has(tag.id)
+      if (isMember && !shouldBeMember) {
+        const newIds = currentMembers.filter(m => m.id !== memberId.value).map(m => m.id)
+        await userTags.setTagMembers(tag.id, newIds)
+      } else if (!isMember && shouldBeMember) {
+        const newIds = [...currentMembers.map(m => m.id), memberId.value]
+        await userTags.setTagMembers(tag.id, newIds)
+      }
+    }
     success.value = t('memberEdit.saved')
   } catch {
     error.value = t('common.error')
@@ -341,6 +379,40 @@ onMounted(async () => {
               </div>
               <font-awesome-icon v-if="editRoleIds.has(role.id)" :icon="['fas', 'check']" class="text-primary" />
             </div>
+          </div>
+        </NeutralContainer>
+
+        <!-- Groups -->
+        <NeutralContainer class="space-y-3">
+          <h3 class="text-sm font-semibold">{{ t('memberEdit.groups') }}</h3>
+          <div class="flex flex-wrap gap-2">
+            <button
+              v-for="group in allGroups"
+              :key="group.id"
+              :class="editGroupIds.has(group.id) ? 'border-primary bg-primary/10 text-primary' : 'border-bg-light-accent dark:border-bg-dark-accent text-(--text-muted) hover:border-primary'"
+              class="px-2.5 py-1 text-xs rounded-full border transition-colors"
+              @click="editGroupIds.has(group.id) ? editGroupIds.delete(group.id) : editGroupIds.add(group.id)"
+            >
+              {{ group.name }}
+            </button>
+            <span v-if="allGroups.length === 0" class="text-xs text-(--text-muted)">{{ t('memberEdit.noGroups') }}</span>
+          </div>
+        </NeutralContainer>
+
+        <!-- Tags -->
+        <NeutralContainer class="space-y-3">
+          <h3 class="text-sm font-semibold">{{ t('memberEdit.tags') }}</h3>
+          <div class="flex flex-wrap gap-2">
+            <button
+              v-for="tag in allTags"
+              :key="tag.id"
+              :class="editTagIds.has(tag.id) ? 'border-primary bg-primary/10 text-primary' : 'border-bg-light-accent dark:border-bg-dark-accent text-(--text-muted) hover:border-primary'"
+              class="px-2.5 py-1 text-xs rounded-full border transition-colors"
+              @click="editTagIds.has(tag.id) ? editTagIds.delete(tag.id) : editTagIds.add(tag.id)"
+            >
+              {{ tag.name }}
+            </button>
+            <span v-if="allTags.length === 0" class="text-xs text-(--text-muted)">{{ t('memberEdit.noTags') }}</span>
           </div>
         </NeutralContainer>
 

@@ -9,9 +9,11 @@ import dev.chojo.ember.api.MessageResponse;
 import dev.chojo.ember.api.Roles;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.entity.Account;
 import dev.chojo.ember.entity.AccountSession;
 import dev.chojo.ember.entity.MemberGroup;
 import dev.chojo.ember.entity.StationMember;
+import dev.chojo.ember.repository.AccountRepository;
 import dev.chojo.ember.service.AuthService;
 import dev.chojo.ember.service.MemberGroupService;
 import dev.chojo.ember.service.ProfileFieldService;
@@ -36,6 +38,7 @@ public class SessionRoutes implements Routes {
     private final MemberGroupService groupService;
     private final AuthService authService;
     private final ProfileFieldService profileFieldService;
+    private final AccountRepository accountRepository;
 
     @Inject
     public SessionRoutes(
@@ -43,11 +46,13 @@ public class SessionRoutes implements Routes {
             StationMemberService memberService,
             MemberGroupService groupService,
             AuthService authService,
-            ProfileFieldService profileFieldService) {
+            ProfileFieldService profileFieldService,
+            AccountRepository accountRepository) {
         this.stationService = stationService;
         this.memberService = memberService;
         this.groupService = groupService;
         this.authService = authService;
+        this.accountRepository = accountRepository;
         this.profileFieldService = profileFieldService;
     }
 
@@ -89,6 +94,20 @@ public class SessionRoutes implements Routes {
                     profileFieldService.isProfileComplete(session.member().id(), session.stationId(), roleNames);
         }
 
+        var managedInfos = managed.stream()
+                .map(m -> {
+                    Account account = m.accountId() != null
+                            ? accountRepository.findById(m.accountId()).orElse(null)
+                            : null;
+                    String name = account != null
+                            ? (account.firstName() + " " + account.lastName()).trim()
+                            : (m.displayName() != null ? m.displayName() : "");
+                    String email = account != null ? account.email() : "";
+                    return new ManagedMemberInfo(
+                            m.id(), m.stationId(), m.accountId() != null ? m.accountId() : 0, name, email);
+                })
+                .toList();
+
         ctx.json(new SessionInfo(
                 new AccountInfo(
                         session.account().id(),
@@ -98,7 +117,7 @@ public class SessionRoutes implements Routes {
                 session.stationId(),
                 memberInfo,
                 roleNames,
-                managed,
+                managedInfos,
                 groups,
                 profileComplete));
     }
@@ -158,9 +177,11 @@ public class SessionRoutes implements Routes {
             Integer stationId,
             MemberInfo member,
             List<String> roles,
-            List<StationMember> managedMembers,
+            List<ManagedMemberInfo> managedMembers,
             List<MemberGroup> groups,
             boolean profileComplete) {}
+
+    public record ManagedMemberInfo(int id, int stationId, int accountId, String name, String email) {}
 
     public record AccountInfo(int id, String email, String firstName, String lastName) {}
 

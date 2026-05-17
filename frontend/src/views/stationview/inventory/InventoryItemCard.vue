@@ -36,7 +36,7 @@ const emit = defineEmits<{
       <div>
         <div class="font-medium text-sm">
           {{ props.item.name }}
-          <span class="font-normal text-(--text-muted)">[{{ props.item.sizeName ?? t('common.unisize') }}]</span>
+          <span class="font-normal text-(--text-muted)">{{ props.item.sizeName ?? t('common.unisize') }}</span>
         </div>
         <div v-if="props.showInventoryName" class="text-xs text-(--text-muted)">{{ props.item.inventoryName }}</div>
         <div v-if="props.item.internalId" class="text-xs text-(--text-muted)">{{ props.item.internalId }}</div>

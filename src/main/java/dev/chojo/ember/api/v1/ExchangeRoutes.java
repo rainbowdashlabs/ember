@@ -38,8 +38,8 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
 import java.time.Instant;
+import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 @Singleton
 public class ExchangeRoutes implements Routes {
@@ -172,6 +172,33 @@ public class ExchangeRoutes implements Routes {
                 request.oldSizeId(),
                 request.newSizeId(),
                 request.reason());
+
+        // Notify managers about the new exchange request
+        String memberName = session.account().fullName().trim();
+        String inventoryName = inventoryRepository
+                .findById(exchange.inventoryId())
+                .map(Inventory::name)
+                .orElse("?");
+        var exchangeParams = new HashMap<String, String>();
+        exchangeParams.put("memberName", memberName);
+        exchangeParams.put("inventoryName", inventoryName);
+        if (request.reason() != null && !request.reason().isBlank()) {
+            exchangeParams.put("reason", request.reason());
+        }
+        var exchangeData = NotificationData.of(
+                "notification.exchangeNewRequest",
+                exchangeParams,
+                new NotificationData.NotificationLink("inventory-exchanges"));
+        var inventoryMgmtIds =
+                stationMemberRepository.findMembersWithRole(session.stationId(), Roles.INVENTORY_MANAGEMENT).stream()
+                        .map(StationMember::id)
+                        .toList();
+        notificationService.notifyMembersIfAbsent(
+                inventoryMgmtIds,
+                NotificationType.EXCHANGE_NEW_REQUEST,
+                exchangeData,
+                session.member().id());
+
         ctx.status(HttpStatus.CREATED).json(toResponse(exchange));
     }
 
@@ -205,16 +232,27 @@ public class ExchangeRoutes implements Routes {
         }
         var exchange = exchangeService.updateStatus(
                 id, status, session.member().id(), request.note(), request.exchangedItemId());
+        String inventoryName = inventoryRepository
+                .findById(exchange.inventoryId())
+                .map(Inventory::name)
+                .orElse("?");
+        var params = new HashMap<String, String>();
+        params.put("status", status.name());
+        params.put("inventoryName", inventoryName);
+        if (exchange.reason() != null && !exchange.reason().isBlank()) {
+            params.put("reason", exchange.reason());
+        }
         var data = NotificationData.of(
                 "notification.exchangeStatusChange",
-                Map.of("status", status.name()),
+                params,
                 new NotificationData.NotificationLink("inventory-exchanges"));
         notificationService.notify(exchange.memberId(), NotificationType.EXCHANGE_STATUS_CHANGE, data);
-        var managerIds = stationMemberRepository.findManagers(exchange.memberId()).stream()
-                .map(StationMember::id)
-                .toList();
+        var invMgmtIds =
+                stationMemberRepository.findMembersWithRole(session.stationId(), Roles.INVENTORY_MANAGEMENT).stream()
+                        .map(StationMember::id)
+                        .toList();
         notificationService.notifyMembersIfAbsent(
-                managerIds,
+                invMgmtIds,
                 NotificationType.EXCHANGE_STATUS_CHANGE,
                 data,
                 session.member().id());

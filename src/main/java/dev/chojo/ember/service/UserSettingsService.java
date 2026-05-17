@@ -5,30 +5,41 @@
  */
 package dev.chojo.ember.service;
 
+import dev.chojo.ember.entity.NotificationSetting;
+import dev.chojo.ember.entity.NotificationType;
 import dev.chojo.ember.entity.UserSettings;
+import dev.chojo.ember.repository.NotificationSettingsRepository;
 import dev.chojo.ember.repository.UserSettingsRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
+import java.util.Map;
+
 @Singleton
 public class UserSettingsService {
     private final UserSettingsRepository settingsRepository;
+    private final NotificationSettingsRepository notificationSettingsRepository;
 
     @Inject
-    public UserSettingsService(UserSettingsRepository settingsRepository) {
+    public UserSettingsService(
+            UserSettingsRepository settingsRepository, NotificationSettingsRepository notificationSettingsRepository) {
         this.settingsRepository = settingsRepository;
+        this.notificationSettingsRepository = notificationSettingsRepository;
     }
 
     public UserSettings getSettings(int memberId) {
         return settingsRepository.findOrCreate(memberId);
     }
 
-    public UserSettings updateSettings(
-            int memberId,
-            boolean emailEnabled,
-            boolean notifyNews,
-            boolean notifyNewEvents,
-            boolean notifyEventStatus) {
-        return settingsRepository.update(memberId, emailEnabled, notifyNews, notifyNewEvents, notifyEventStatus);
+    public UserSettings updateEmailEnabled(int memberId, boolean emailEnabled) {
+        return settingsRepository.updateEmailEnabled(memberId, emailEnabled);
+    }
+
+    public Map<NotificationType, NotificationSetting> getNotificationSettings(int memberId) {
+        return notificationSettingsRepository.findByMemberAsMap(memberId);
+    }
+
+    public void updateNotificationSettings(int memberId, Map<NotificationType, NotificationSetting> settings) {
+        notificationSettingsRepository.upsertAll(memberId, settings);
     }
 }

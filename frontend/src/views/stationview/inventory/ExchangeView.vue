@@ -649,7 +649,7 @@ onMounted(loadData)
                   <option value="" disabled>{{ t('exchanges.selectItem') }}</option>
                   <option v-for="item in createMemberItems" :key="item.id" :value="String(item.id)">
                     {{ item.inventoryName }} — {{ item.name }}
-                    {{ item.sizeName ? `[${item.sizeName}]` : '' }}
+                    {{ item.sizeName ?? '' }}
                     {{ item.internalId ? `(${item.internalId})` : '' }}
                   </option>
                 </SelectInput>
@@ -667,7 +667,7 @@ onMounted(loadData)
           <template v-if="createStep === 3 && needsSizeStep">
             <p class="text-sm" v-if="selectedCreateItem">
               {{ selectedCreateItem.inventoryName }} — {{ selectedCreateItem.name }}
-              <span class="text-(--text-muted)">[{{ selectedCreateItem.sizeName ?? t('common.unisize') }}]</span>
+              <span class="text-(--text-muted)">{{ selectedCreateItem.sizeName ?? t('common.unisize') }}</span>
             </p>
             <div class="space-y-1">
               <label class="block text-sm font-medium">{{ t('exchanges.newSize') }}</label>
@@ -688,7 +688,7 @@ onMounted(loadData)
           <template v-if="isReasonStep">
             <p class="text-sm" v-if="selectedCreateItem">
               {{ selectedCreateItem.inventoryName }} — {{ selectedCreateItem.name }}
-              <span class="text-(--text-muted)">[{{ selectedCreateItem.sizeName ?? t('common.unisize') }}]</span>
+              <span class="text-(--text-muted)">{{ selectedCreateItem.sizeName ?? t('common.unisize') }}</span>
               <template v-if="createNewSizeId">
                 → <span class="font-medium">{{ createItemSizes.find(s => s.id === Number(createNewSizeId))?.label }}</span>
               </template>

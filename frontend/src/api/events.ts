@@ -10,8 +10,12 @@ import type {
     CategoryRequest,
     EventBreak,
     EventCategory,
+    EventField,
+    EventFieldRequest,
+    EventFieldValue,
     EventRequest,
     EventRestrictions,
+    SetEventFieldValuesRequest,
     StationEvent
 } from './types'
 
@@ -193,4 +197,40 @@ export async function updateBreak(id: number, data: BreakRequest): Promise<Event
 
 export async function deleteBreak(id: number): Promise<void> {
     await client.delete(`/events/breaks/${id}`)
+}
+
+// -- Event Fields --
+
+export async function listEventFields(): Promise<EventField[]> {
+    const res = await client.get<EventField[]>('/events/fields')
+    return res.data
+}
+
+export async function getEventField(fieldId: number): Promise<EventField> {
+    const res = await client.get<EventField>(`/events/fields/${fieldId}`)
+    return res.data
+}
+
+export async function createEventField(data: EventFieldRequest): Promise<EventField> {
+    const res = await client.post<EventField>('/events/fields', data)
+    return res.data
+}
+
+export async function updateEventField(fieldId: number, data: EventFieldRequest): Promise<EventField> {
+    const res = await client.put<EventField>(`/events/fields/${fieldId}`, data)
+    return res.data
+}
+
+export async function deleteEventField(fieldId: number): Promise<void> {
+    await client.delete(`/events/fields/${fieldId}`)
+}
+
+export async function getEventFieldValues(eventId: number): Promise<EventFieldValue[]> {
+    const res = await client.get<EventFieldValue[]>(`/events/${eventId}/fields`)
+    return res.data
+}
+
+export async function setEventFieldValues(eventId: number, data: SetEventFieldValuesRequest): Promise<EventFieldValue[]> {
+    const res = await client.put<EventFieldValue[]>(`/events/${eventId}/fields`, data)
+    return res.data
 }

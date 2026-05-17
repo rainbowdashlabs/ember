@@ -58,7 +58,7 @@ public class StationMemberRoutes implements Routes {
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        routes.get(prefix + "/roles", this::listAllRoles, Roles.MEMBER_MANAGEMENT);
+        routes.get(prefix + "/roles", this::listAllRoles, Roles.LOGIN);
         routes.get(prefix + "/station-members", this::listByStation, Roles.MEMBER_MANAGEMENT);
         routes.get(prefix + "/station-members/former", this::listFormer, Roles.MEMBER_MANAGEMENT);
         routes.get(prefix + "/station-members/{id}", this::get, Roles.MEMBER_MANAGEMENT);

@@ -202,7 +202,7 @@ watch(memberId, loadData)
           <template v-else>
             <p v-if="exchangeItem" class="text-sm">
               {{ exchangeItem.inventoryName }} — {{ exchangeItem.name }}
-              <span class="text-(--text-muted)">[{{ exchangeItem.sizeName ?? t('common.unisize') }}]</span>
+              <span class="text-(--text-muted)">{{ exchangeItem.sizeName ?? t('common.unisize') }}</span>
             </p>
             <div v-if="exchangeSizes.length > 0" class="space-y-1">
               <label class="block text-sm font-medium">{{ t('exchanges.newSize') }}</label>

@@ -420,7 +420,7 @@ onMounted(loadData)
               <div>
                 <div class="text-sm font-medium">
                   {{ item.name }}
-                  <span v-if="sizeName(item.sizeId)" class="font-normal text-(--text-muted)">[{{ sizeName(item.sizeId) }}]</span>
+                  <span v-if="sizeName(item.sizeId)" class="font-normal text-(--text-muted)">{{ sizeName(item.sizeId) }}</span>
                 </div>
                 <div v-if="item.internalId" class="text-xs text-(--text-muted)">{{ item.internalId }}</div>
               </div>
@@ -456,7 +456,7 @@ onMounted(loadData)
                   <td class="px-3 py-2.5">
                     <div class="font-medium">
                       {{ item.name }}
-                      <span v-if="sizeName(item.sizeId)" class="font-normal text-(--text-muted)">[{{ sizeName(item.sizeId) }}]</span>
+                      <span v-if="sizeName(item.sizeId)" class="font-normal text-(--text-muted)">{{ sizeName(item.sizeId) }}</span>
                     </div>
                     <div v-if="item.internalId" class="text-xs text-(--text-muted)">{{ item.internalId }}</div>
                   </td>

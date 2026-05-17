@@ -133,12 +133,16 @@ public class NewsRoutes implements Routes {
                 request.contentHtml() != null ? request.contentHtml() : "",
                 session.member().id(),
                 request.groupIds() != null ? request.groupIds() : List.of());
+        String authorName = session.account().fullName().trim();
+        String preview = request.contentMarkdown().length() > 100
+                ? request.contentMarkdown().substring(0, 100) + "..."
+                : request.contentMarkdown();
         notificationService.notifyStation(
                 session.stationId(),
                 NotificationType.NEW_NEWS,
                 NotificationData.of(
                         "notification.newNews",
-                        Map.of("title", request.title()),
+                        Map.of("title", request.title(), "author", authorName, "preview", preview),
                         new NotificationData.NotificationLink("news-list")));
         ctx.status(HttpStatus.CREATED).json(toResponse(news, true));
     }
@@ -243,6 +247,42 @@ public class NewsRoutes implements Routes {
         }
         var comment = newsService.createComment(
                 newsId, request.parentId(), session.member().id(), request.content());
+
+        // Notify news author and parent comment author about the new comment
+        var news = newsService.findById(newsId).orElse(null);
+        if (news != null) {
+            String commenterName = session.account().fullName().trim();
+            String preview =
+                    request.content().length() > 100 ? request.content().substring(0, 100) + "..." : request.content();
+            var data = NotificationData.of(
+                    "notification.newsComment",
+                    Map.of("newsTitle", news.title(), "author", commenterName, "preview", preview),
+                    new NotificationData.NotificationLink("news-list"));
+
+            // Notify the news author (unless they wrote the comment)
+            if (news.authorId() != session.member().id()) {
+                notificationService.notifyIfAbsent(news.authorId(), NotificationType.NEWS_COMMENT, data);
+            }
+            // Notify the parent comment author (if this is a reply)
+            if (request.parentId() != null) {
+                newsService.findCommentById(request.parentId()).ifPresent(parent -> {
+                    if (parent.authorId() != session.member().id() && parent.authorId() != news.authorId()) {
+                        notificationService.notifyIfAbsent(parent.authorId(), NotificationType.NEWS_COMMENT, data);
+                    }
+                });
+            }
+            // Notify all NEWS_MANAGEMENT members
+            var newsMgmtIds =
+                    stationMemberRepository.findMembersWithRole(session.stationId(), Roles.NEWS_MANAGEMENT).stream()
+                            .map(m -> m.id())
+                            .toList();
+            notificationService.notifyMembersIfAbsent(
+                    newsMgmtIds,
+                    NotificationType.NEWS_COMMENT,
+                    data,
+                    session.member().id());
+        }
+
         ctx.status(HttpStatus.CREATED).json(toCommentResponse(comment));
     }
 

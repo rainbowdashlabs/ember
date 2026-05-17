@@ -8,6 +8,7 @@ import {computed, onMounted, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import IconButton from '@/components/button/IconButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
@@ -76,6 +77,10 @@ const groupSaving = ref(false)
 // Delete modal
 const showDeleteModal = ref(false)
 const deleteTarget = ref<MemberGroup | null>(null)
+
+// Convert to tag modal
+const showConvertModal = ref(false)
+const convertTarget = ref<MemberGroup | null>(null)
 
 const availableMembers = computed(() => {
   const memberIds = new Set(groupMembers.value.map(m => m.id))
@@ -179,6 +184,27 @@ async function confirmDelete() {
   }
 }
 
+function requestConvertToTag(group: MemberGroup) {
+  convertTarget.value = group
+  showConvertModal.value = true
+}
+
+async function confirmConvertToTag() {
+  if (!convertTarget.value) return
+  try {
+    await memberGroups.convertToTag(convertTarget.value.id)
+    showConvertModal.value = false
+    if (selectedGroup.value?.id === convertTarget.value.id) {
+      selectedGroup.value = null
+      groupMembers.value = []
+    }
+    convertTarget.value = null
+    groups.value = await memberGroups.listGroups()
+  } catch {
+    error.value = t('common.error')
+  }
+}
+
 async function addMemberToGroup(member: StationMember) {
   if (!selectedGroup.value) return
   const newIds = [...groupMembers.value.map(m => m.id), member.id]
@@ -247,6 +273,7 @@ onMounted(loadData)
             >
               <span class="font-medium">{{ group.name }}</span>
               <div class="flex items-center gap-2">
+                <IconButton :icon="['fas', 'hashtag']" :label="t('memberGroups.convertToTag')" class="text-(--text-muted) hover:text-primary" @click.stop="requestConvertToTag(group)"/>
                 <EditButton @click.stop="openEditGroup(group)"/>
                 <DeleteButton @click.stop="requestDelete(group)"/>
               </div>
@@ -363,6 +390,16 @@ onMounted(loadData)
           <div class="flex justify-end gap-3">
             <SecondaryButton @click="showDeleteModal = false">{{ t('memberGroups.cancel') }}</SecondaryButton>
             <ErrorButton @click="confirmDelete">{{ t('memberGroups.delete') }}</ErrorButton>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal v-model="showConvertModal">
+        <div class="space-y-4">
+          <p>{{ t('memberGroups.convertToTagConfirm', {name: convertTarget?.name}) }}</p>
+          <div class="flex justify-end gap-3">
+            <SecondaryButton @click="showConvertModal = false">{{ t('common.cancel') }}</SecondaryButton>
+            <PrimaryButton @click="confirmConvertToTag">{{ t('memberGroups.convertToTag') }}</PrimaryButton>
           </div>
         </div>
       </Modal>

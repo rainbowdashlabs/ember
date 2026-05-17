@@ -152,6 +152,31 @@ public class StationMemberRepository {
                 .delete();
     }
 
+    /**
+     * Find all active members of a station who have the given role (directly or via group).
+     */
+    public List<StationMember> findMembersWithRole(int stationId, Roles role) {
+        return Query.query("""
+                            SELECT DISTINCT sm.* FROM station_member sm
+                            WHERE sm.station_id = :station_id AND sm.former = false
+                              AND (
+                                EXISTS (
+                                    SELECT 1 FROM station_member_role smr
+                                    JOIN role r ON r.id = smr.role_id
+                                    WHERE smr.member_id = sm.id AND r.name = :role_name
+                                )
+                                OR EXISTS (
+                                    SELECT 1 FROM member_group_entry mge
+                                    JOIN member_group_role mgr ON mgr.group_id = mge.group_id
+                                    JOIN role r ON r.id = mgr.role_id
+                                    WHERE mge.member_id = sm.id AND r.name = :role_name
+                                )
+                              );""")
+                .single(Call.of().bind("station_id", stationId).bind("role_name", role))
+                .map(StationMember.map())
+                .all();
+    }
+
     // -- Manager Relations --
 
     public List<StationMember> findManaged(int managerId) {

@@ -142,7 +142,7 @@ watch(() => activeStation.value?.stationId, (newId, oldId) => {
                     @click="router.push({ name: 'inventory-exchanges' })">
                   <td class="px-3 py-2.5">
                     {{ ex.inventoryName }}
-                    <span class="text-(--text-muted)">[{{ ex.oldSizeLabel ?? t('common.unisize') }} → {{ ex.newSizeLabel ?? t('common.unisize') }}]</span>
+                    <span class="text-(--text-muted)">{{ ex.oldSizeLabel ?? t('common.unisize') }} → {{ ex.newSizeLabel ?? t('common.unisize') }}</span>
                   </td>
                   <td class="px-3 py-2.5">{{ ex.memberName }}</td>
                   <td class="px-3 py-2.5">
@@ -175,7 +175,7 @@ watch(() => activeStation.value?.stationId, (newId, oldId) => {
                     @click="router.push({ name: 'inventory-procurement' })">
                   <td class="px-3 py-2.5">
                     {{ p.inventoryName }}
-                    <span class="text-(--text-muted)">[{{ p.sizeLabel || t('common.unisize') }}]</span>
+                    <span class="text-(--text-muted)">{{ p.sizeLabel || t('common.unisize') }}</span>
                   </td>
                   <td class="px-3 py-2.5">{{ p.memberName }}</td>
                   <td class="px-3 py-2.5 text-(--text-muted)">{{ p.notes || '-' }}</td>
@@ -202,7 +202,7 @@ watch(() => activeStation.value?.stationId, (newId, oldId) => {
                   <td class="px-3 py-2.5">
                     <div class="font-medium">
                       {{ a.item.name }}
-                      <span class="font-normal text-(--text-muted)">[{{ a.sizeName || t('common.unisize') }}]</span>
+                      <span class="font-normal text-(--text-muted)">{{ a.sizeName || t('common.unisize') }}</span>
                     </div>
                     <div v-if="a.item.internalId" class="text-xs text-(--text-muted)">{{ a.item.internalId }}</div>
                   </td>

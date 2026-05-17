@@ -93,4 +93,21 @@ public class NotificationRepository {
                 .single()
                 .delete();
     }
+
+    public List<Notification> findUnemailed() {
+        return Query.query("""
+                            SELECT * FROM notification
+                            WHERE emailed_at IS NULL
+                            ORDER BY member_id, created_at;""").single().map(Notification.map()).all();
+    }
+
+    public void markEmailed(List<Integer> ids) {
+        if (ids.isEmpty()) return;
+        var now = Instant.now();
+        for (int id : ids) {
+            Query.query("UPDATE notification SET emailed_at = :now WHERE id = :id;")
+                    .single(Call.of().bind("now", now, INSTANT_TIMESTAMP).bind("id", id))
+                    .update();
+        }
+    }
 }

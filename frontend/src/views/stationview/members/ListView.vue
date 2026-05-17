@@ -14,9 +14,9 @@ import TabBar from '@/components/navigation/TabBar.vue'
 import MemberFilterBar from './listview/FilterBar.vue'
 import MemberTable from './listview/Table.vue'
 import ExportModal from './listview/ExportModal.vue'
-import type { ProfileField, StationMember, MemberGroup } from '@/api/types'
+import type { ProfileField, StationMember, MemberGroup, UserTag } from '@/api/types'
 import { Roles, hasTeamRole } from '@/api/types'
-import { profileFields, stationMembers, memberGroups, savedFilters as savedFiltersApi } from '@/api'
+import { profileFields, stationMembers, memberGroups, savedFilters as savedFiltersApi, userTags } from '@/api'
 import { useStations } from '@/composables/useStations'
 
 const { t } = useI18n()
@@ -26,19 +26,46 @@ const { currentStationId } = useStations()
 const members = ref<StationMember[]>([])
 const fields = ref<ProfileField[]>([])
 const allGroups = ref<MemberGroup[]>([])
+const allTags = ref<UserTag[]>([])
 const memberValues = ref<Map<number, Map<number, string>>>(new Map())
 const memberRolesMap = ref<Map<number, string[]>>(new Map())
 const memberGroupsMap = ref<Map<number, string[]>>(new Map())
+const memberTagsMap = ref<Map<number, string[]>>(new Map())
 const memberManagers = ref<Map<number, StationMember[]>>(new Map())
 const loading = ref(true)
 const error = ref('')
 const expandedId = ref<number | null>(null)
 const activeTab = ref('ALL')
-const filterText = ref('')
-const columnFilters = ref<Map<'name' | 'groups' | number, string>>(new Map())
-const columnMultiFilters = ref<Map<'groups' | number, Set<string>>>(new Map())
-const sortColumn = ref<'name' | number>('name')
-const sortAsc = ref(true)
+
+type FilterKey = 'name' | 'groups' | 'tags' | number
+interface TabFilterState {
+  filterText: string
+  columnMultiFilters: Map<FilterKey, Set<string>>
+  columnEmptyFilters: Set<FilterKey>
+  sortColumn: 'name' | number
+  sortAsc: boolean
+}
+
+function emptyTabState(): TabFilterState {
+  return { filterText: '', columnMultiFilters: new Map(), columnEmptyFilters: new Set(), sortColumn: 'name', sortAsc: true }
+}
+
+const tabStates = ref<Record<string, TabFilterState>>({
+  ALL: emptyTabState(),
+  MEMBER: emptyTabState(),
+  MEMBER_MANAGER: emptyTabState(),
+  TEAM: emptyTabState(),
+})
+
+const currentTabState = computed(() => tabStates.value[activeTab.value] ?? emptyTabState())
+const filterText = computed({
+  get: () => currentTabState.value.filterText,
+  set: (v: string) => { tabStates.value[activeTab.value].filterText = v },
+})
+const columnMultiFilters = computed(() => currentTabState.value.columnMultiFilters)
+const columnEmptyFilters = computed(() => currentTabState.value.columnEmptyFilters)
+const sortColumn = computed(() => currentTabState.value.sortColumn)
+const sortAsc = computed(() => currentTabState.value.sortAsc)
 
 // Export mode
 const exportMode = ref(false)
@@ -61,6 +88,7 @@ interface SavedFilterPreset {
   tab: string
   textFilters: Record<string, string>
   multiFilters: Record<string, string[]>
+  emptyFilters?: string[]
 }
 
 const savedFilters = ref<SavedFilterPreset[]>([])
@@ -77,10 +105,10 @@ async function loadSavedFilters() {
 
 async function saveCurrentFilter(name: string) {
   const textFilters: Record<string, string> = {}
-  for (const [k, v] of columnFilters.value) { textFilters[String(k)] = v }
   const multiFilters: Record<string, string[]> = {}
   for (const [k, v] of columnMultiFilters.value) { multiFilters[String(k)] = [...v] }
-  const filterData = JSON.stringify({ tab: activeTab.value, textFilters, multiFilters })
+  const emptyFilters: string[] = [...columnEmptyFilters.value].map(String)
+  const filterData = JSON.stringify({ tab: activeTab.value, textFilters, multiFilters, emptyFilters })
   try {
     await savedFiltersApi.createFilter({ tableType: TABLE_TYPE, name, filterData })
     await loadSavedFilters()
@@ -89,16 +117,18 @@ async function saveCurrentFilter(name: string) {
 
 function applyFilter(preset: SavedFilterPreset) {
   activeTab.value = preset.tab
-  const textMap = new Map<'name' | 'groups' | number, string>()
-  for (const [k, v] of Object.entries(preset.textFilters)) {
-    textMap.set(k === 'name' || k === 'groups' ? k : Number(k), v)
-  }
-  columnFilters.value = textMap
-  const multiMap = new Map<'groups' | number, Set<string>>()
+  const state = tabStates.value[preset.tab]
+  const multiMap = new Map<FilterKey, Set<string>>()
   for (const [k, v] of Object.entries(preset.multiFilters)) {
-    multiMap.set(k === 'groups' ? k : Number(k), new Set(v))
+    const key: FilterKey = (k === 'name' || k === 'groups' || k === 'tags') ? k : Number(k)
+    multiMap.set(key, new Set(v))
   }
-  columnMultiFilters.value = multiMap
+  state.columnMultiFilters = multiMap
+  const emptySet = new Set<FilterKey>()
+  for (const k of (preset.emptyFilters ?? [])) {
+    emptySet.add((k === 'name' || k === 'groups' || k === 'tags') ? k : Number(k))
+  }
+  state.columnEmptyFilters = emptySet
 }
 
 async function deleteFilter(index: number) {
@@ -111,9 +141,10 @@ async function deleteFilter(index: number) {
 }
 
 function clearFilters() {
-  columnFilters.value = new Map()
-  columnMultiFilters.value = new Map()
-  filterText.value = ''
+  const state = tabStates.value[activeTab.value]
+  state.columnMultiFilters = new Map()
+  state.columnEmptyFilters = new Set()
+  state.filterText = ''
 }
 
 function parseConfig(configStr: string | undefined): Record<string, unknown> {
@@ -210,6 +241,18 @@ function getMemberGroups(memberId: number): string[] {
   return memberGroupsMap.value.get(memberId) ?? []
 }
 
+function getMemberTags(memberId: number): string[] {
+  return memberTagsMap.value.get(memberId) ?? []
+}
+
+function getColumnValues(m: StationMember, key: 'name' | 'groups' | 'tags' | number): string[] {
+  if (key === 'name') return [memberDisplayName(m)]
+  if (key === 'groups') return getMemberGroups(m.id)
+  if (key === 'tags') return getMemberTags(m.id)
+  const v = getFieldValue(m.id, key)
+  return v ? [v] : []
+}
+
 const filteredMembers = computed(() => {
   let list = activeTab.value === 'ALL' ? members.value : members.value.filter(m => getMemberType(m.id) === activeTab.value)
   const q = filterText.value.toLowerCase().trim()
@@ -223,22 +266,22 @@ const filteredMembers = computed(() => {
       return false
     })
   }
-  for (const [column, filter] of columnFilters.value) {
-    const f = filter.toLowerCase().trim()
-    if (!f) continue
-    list = list.filter(m => {
-      if (column === 'name') return memberDisplayName(m).toLowerCase().includes(f)
-      if (column === 'groups') return getMemberGroups(m.id).some(g => g.toLowerCase().includes(f))
-      return getFieldValue(m.id, column as number).toLowerCase().includes(f)
-    })
-  }
   for (const [key, selectedValues] of columnMultiFilters.value) {
     if (selectedValues.size === 0) continue
-    if (key === 'groups') {
-      list = list.filter(m => getMemberGroups(m.id).some(g => selectedValues.has(g)))
-    } else {
-      list = list.filter(m => selectedValues.has(getFieldValue(m.id, key as number)))
-    }
+    const includeEmpty = columnEmptyFilters.value.has(key)
+    list = list.filter(m => {
+      const values = getColumnValues(m, key)
+      if (values.length === 0 || values.every(v => !v)) return includeEmpty
+      return values.some(v => selectedValues.has(v))
+    })
+  }
+  // Apply empty-only filters (where no multi-select values are chosen)
+  for (const key of columnEmptyFilters.value) {
+    if (columnMultiFilters.value.has(key) && (columnMultiFilters.value.get(key)?.size ?? 0) > 0) continue
+    list = list.filter(m => {
+      const values = getColumnValues(m, key)
+      return values.length === 0 || values.every(v => !v)
+    })
   }
   return [...list].sort((a, b) => {
     let valA: string, valB: string
@@ -255,22 +298,19 @@ const filteredMembers = computed(() => {
 })
 
 function toggleSort(column: 'name' | number) {
-  if (sortColumn.value === column) { sortAsc.value = !sortAsc.value }
-  else { sortColumn.value = column; sortAsc.value = true }
+  const state = tabStates.value[activeTab.value]
+  if (state.sortColumn === column) { state.sortAsc = !state.sortAsc }
+  else { state.sortColumn = column; state.sortAsc = true }
 }
 
-function setColumnFilter(column: 'name' | number, value: string) {
-  const newMap = new Map(columnFilters.value)
-  if (value.trim()) { newMap.set(column, value) } else { newMap.delete(column) }
-  columnFilters.value = newMap
-}
-
-function toggleMultiFilter(key: 'groups' | number, value: string) {
-  const current = new Set<string>(columnMultiFilters.value.get(key) ?? [])
-  if (current.has(value)) { current.delete(value) } else { current.add(value) }
-  const newMap = new Map(columnMultiFilters.value)
-  if (current.size > 0) { newMap.set(key, current) } else { newMap.delete(key) }
-  columnMultiFilters.value = newMap
+function applyColumnFilter(key: 'name' | 'groups' | 'tags' | number, selected: Set<string>, includeEmpty: boolean) {
+  const state = tabStates.value[activeTab.value]
+  const newMap = new Map(state.columnMultiFilters)
+  if (selected.size > 0) { newMap.set(key, selected) } else { newMap.delete(key) }
+  state.columnMultiFilters = newMap
+  const newEmpty = new Set(state.columnEmptyFilters)
+  if (includeEmpty) { newEmpty.add(key) } else { newEmpty.delete(key) }
+  state.columnEmptyFilters = newEmpty
 }
 
 function navigateToDetail(member: StationMember, event: Event) {
@@ -377,28 +417,33 @@ async function loadData() {
   loading.value = true
   error.value = ''
   try {
-    const [allFields, allMembers, groups] = await Promise.all([
+    const [allFields, allMembers, groups, tags] = await Promise.all([
       profileFields.listFields(),
       stationMembers.listMembers(currentStationId.value!),
       memberGroups.listGroups(),
+      userTags.listTags(),
     ])
     fields.value = allFields
     members.value = allMembers
     allGroups.value = groups
+    allTags.value = tags
 
     const valMap = new Map<number, Map<number, string>>()
     const rolesMap = new Map<number, string[]>()
     const groupsMap = new Map<number, string[]>()
+    const tagsMap = new Map<number, string[]>()
     for (const m of allMembers) {
       try {
-        const [vals, roles] = await Promise.all([
+        const [vals, roles, mTags] = await Promise.all([
           profileFields.getValues(m.id),
           stationMembers.getRoles(m.id),
+          userTags.getMemberTags(m.id),
         ])
         const fieldMap = new Map<number, string>()
         for (const v of vals) { fieldMap.set(v.fieldId, v.value ?? '') }
         valMap.set(m.id, fieldMap)
         rolesMap.set(m.id, roles.map(r => r.role))
+        tagsMap.set(m.id, mTags.map(tag => tag.name))
       } catch { /* skip */ }
     }
     for (const group of groups) {
@@ -414,6 +459,7 @@ async function loadData() {
     memberValues.value = valMap
     memberRolesMap.value = rolesMap
     memberGroupsMap.value = groupsMap
+    memberTagsMap.value = tagsMap
   } catch {
     error.value = t('common.error')
   } finally {
@@ -469,9 +515,10 @@ onMounted(() => {
           :expanded-id="expandedId"
           :sort-column="sortColumn"
           :sort-asc="sortAsc"
-          :column-filters="columnFilters"
           :column-multi-filters="columnMultiFilters"
+          :column-empty-filters="columnEmptyFilters"
           :member-groups-map="memberGroupsMap"
+          :member-tags-map="memberTagsMap"
           :member-roles-map="memberRolesMap"
           :member-managers="memberManagers"
           :all-members="members"
@@ -480,8 +527,7 @@ onMounted(() => {
           :export-mode="exportMode"
           :selected-ids="selectedIds"
           @toggle-sort="toggleSort"
-          @set-column-filter="setColumnFilter"
-          @toggle-multi-filter="toggleMultiFilter"
+          @apply-column-filter="applyColumnFilter"
           @toggle-expand="toggleExpand"
           @navigate-detail="navigateToDetail"
           @navigate-edit="navigateToEdit"

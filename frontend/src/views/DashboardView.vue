@@ -37,6 +37,7 @@ const {
   canManageAttendance,
   canExportAttendance,
   canManageEvents,
+  canManagePolls,
   isMemberManager,
   fullName,
   clear
@@ -243,6 +244,16 @@ async function handleLogout() {
         <SidebarLink v-if="canManageEvents()" :icon="['fas', 'gears']" name="events" to="/station/events"
                      @navigate="close">
           {{ t('sidebar.manageEvents') }}
+        </SidebarLink>
+      </SidebarGroup>
+
+      <SidebarGroup :icon="['fas', 'square-poll-vertical']" :label="t('sidebar.forms')" prefix="/station/forms">
+        <SidebarLink :icon="['fas', 'list']" name="forms-list" to="/station/forms" @navigate="close">
+          {{ t('sidebar.formsList') }}
+        </SidebarLink>
+        <SidebarLink v-if="canManagePolls()" :icon="['fas', 'plus']" name="forms-create" to="/station/forms/create"
+                     @navigate="close">
+          {{ t('sidebar.formsCreate') }}
         </SidebarLink>
       </SidebarGroup>
 

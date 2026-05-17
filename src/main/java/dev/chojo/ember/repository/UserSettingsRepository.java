@@ -33,27 +33,12 @@ public class UserSettingsRepository {
                 .first();
     }
 
-    public UserSettings update(
-            int memberId,
-            boolean emailEnabled,
-            boolean notifyNews,
-            boolean notifyNewEvents,
-            boolean notifyEventStatus) {
+    public UserSettings updateEmailEnabled(int memberId, boolean emailEnabled) {
         return Query.query("""
-                            INSERT INTO user_settings(member_id, email_enabled, notify_news, notify_new_events, notify_event_status)
-                            VALUES(:member_id, :email_enabled, :notify_news, :notify_new_events, :notify_event_status)
-                            ON CONFLICT (member_id) DO UPDATE
-                                SET email_enabled = :email_enabled,
-                                    notify_news = :notify_news,
-                                    notify_new_events = :notify_new_events,
-                                    notify_event_status = :notify_event_status
+                            INSERT INTO user_settings(member_id, email_enabled) VALUES(:member_id, :email_enabled)
+                            ON CONFLICT (member_id) DO UPDATE SET email_enabled = :email_enabled
                             RETURNING *;""")
-                .single(Call.of()
-                        .bind("member_id", memberId)
-                        .bind("email_enabled", emailEnabled)
-                        .bind("notify_news", notifyNews)
-                        .bind("notify_new_events", notifyNewEvents)
-                        .bind("notify_event_status", notifyEventStatus))
+                .single(Call.of().bind("member_id", memberId).bind("email_enabled", emailEnabled))
                 .map(UserSettings.map())
                 .first()
                 .orElseThrow();

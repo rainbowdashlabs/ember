@@ -17,6 +17,7 @@ export const Roles = {
     EVENT_MANAGEMENT: 'EVENT_MANAGEMENT',
     MEMBER_MANAGEMENT: 'MEMBER_MANAGEMENT',
     NEWS_MANAGEMENT: 'NEWS_MANAGEMENT',
+    POLL_MANAGEMENT: 'POLL_MANAGEMENT',
     MANAGER: 'MANAGER',
     ADMIN: 'ADMIN',
 } as const
@@ -27,6 +28,7 @@ export const TEAM_ROLES: readonly RoleName[] = [
     Roles.TEAM, Roles.MANAGER, Roles.ADMIN,
     Roles.ATTENDENCE_MANAGEMENT, Roles.INVENTORY_MANAGEMENT,
     Roles.EVENT_MANAGEMENT, Roles.MEMBER_MANAGEMENT,
+    Roles.POLL_MANAGEMENT,
 ] as const
 
 export function isTeamRole(role: string): boolean {
@@ -204,6 +206,144 @@ export interface BreakRequest {
     name?: string
     startDate?: string
     endDate?: string
+}
+
+// -- Event Fields --
+
+export interface EventField {
+    id: number
+    stationId: number
+    name?: string
+    fieldType?: string
+    config?: string
+    position: number
+}
+
+export interface EventFieldRequest {
+    name?: string
+    fieldType?: string
+    config?: string
+    position: number
+}
+
+export interface EventFieldValue {
+    eventId: number
+    fieldId: number
+    value?: string
+}
+
+export interface SetEventFieldValuesRequest {
+    values: { fieldId: number; value?: string }[]
+}
+
+// -- Forms --
+
+export type FormStatus = 'DRAFT' | 'OPEN' | 'CLOSED'
+export type QuestionType = 'CHOICE' | 'TEXT' | 'RATING' | 'DATE' | 'RANKING' | 'LIKERT'
+export type MultiLimitType = 'NONE' | 'EQUAL_TO' | 'AT_MOST' | 'AT_LEAST'
+export type RatingIcon = 'STAR' | 'NUMBER' | 'HEART' | 'THUMB_UP'
+
+export interface Form {
+    id: number
+    stationId: number
+    title: string
+    description: string
+    status: FormStatus
+    shuffleQuestions: boolean
+    allowEdit: boolean
+    startAt?: string | null
+    endAt?: string | null
+    closedAt?: string | null
+    createdBy: number
+    createdAt: string
+    updatedAt: string
+}
+
+export interface FormListEntry {
+    id: number
+    stationId: number
+    title: string
+    description: string
+    status: string
+    startAt?: string | null
+    endAt?: string | null
+    responseCount: number
+    hasResponded: boolean
+}
+
+export interface FormQuestion {
+    id: number
+    formId: number
+    position: number
+    questionType: QuestionType
+    title: string
+    description: string
+    required: boolean
+    shuffle: boolean
+    config: string
+}
+
+export interface FormResponse {
+    id: number
+    formId: number
+    memberId: number
+    submittedBy: number
+    submittedAt: string
+    updatedAt: string
+}
+
+export interface FormAnswer {
+    id: number
+    responseId: number
+    questionId: number
+    value: string
+}
+
+export interface FormRequest {
+    title: string
+    description?: string
+    shuffleQuestions?: boolean
+    allowEdit?: boolean
+    startAt?: string | null
+    endAt?: string | null
+}
+
+export interface FormQuestionRequest {
+    questionType: string
+    title: string
+    description?: string
+    required?: boolean
+    shuffle?: boolean
+    config?: string
+}
+
+export interface FormRestrictions {
+    roleIds: number[]
+    groupIds: number[]
+    tagIds: number[]
+}
+
+export interface FormSubmitRequest {
+    answers: Record<number, string>
+}
+
+export interface FormResponseDetail {
+    response: FormResponse | null
+    answers: FormAnswer[]
+}
+
+export interface FormAnalytics {
+    formId: number
+    totalResponses: number
+    questions: FormQuestionAnalytics[]
+}
+
+export interface FormQuestionAnalytics {
+    questionId: number
+    questionType: string
+    title: string
+    config: string
+    values: string[]
 }
 
 // -- Station Manage --
@@ -787,12 +927,14 @@ export interface CommentRequest {
 
 // -- User Settings --
 
+export interface NotificationToggle {
+    app: boolean
+    email: boolean
+}
+
 export interface UserSettings {
-    memberId: number
     emailEnabled: boolean
-    notifyNews: boolean
-    notifyNewEvents: boolean
-    notifyEventStatus: boolean
+    notifications: Record<string, NotificationToggle>
     mailConfigured: boolean
     mailProviderName: string
     mailProviderUrl: string
@@ -800,9 +942,7 @@ export interface UserSettings {
 
 export interface UserSettingsRequest {
     emailEnabled: boolean
-    notifyNews: boolean
-    notifyNewEvents: boolean
-    notifyEventStatus: boolean
+    notifications: Record<string, NotificationToggle>
 }
 
 // -- Equipment Exchange --
@@ -892,8 +1032,9 @@ export interface UserTag {
 
 // -- Notifications --
 
-export type NotificationType = 'NEW_NEWS' | 'EVENT_REGISTRATION_STATUS' | 'EXCHANGE_STATUS_CHANGE'
+export type NotificationType = 'NEW_NEWS' | 'NEWS_COMMENT' | 'EVENT_REGISTRATION_STATUS' | 'EXCHANGE_STATUS_CHANGE'
     | 'EXCHANGE_NEW_REQUEST' | 'NEW_EVENT' | 'MEMBER_ADDED_TO_GROUP' | 'PROFILE_FIELD_CHANGED'
+    | 'PROCUREMENT_REQUESTED' | 'PROCUREMENT_FULFILLED'
 
 export interface NotificationLink {
     route: string

@@ -57,6 +57,10 @@ public enum Roles implements RouteRole {
      */
     NEWS_MANAGEMENT(TEAM),
     /**
+     * Create and manage polls/forms
+     */
+    POLL_MANAGEMENT(TEAM),
+    /**
      * Manage everything. Includes all other management roles
      */
     MANAGER(
@@ -66,7 +70,8 @@ public enum Roles implements RouteRole {
             INVENTORY_MANAGEMENT,
             EVENT_MANAGEMENT,
             MEMBER_MANAGEMENT,
-            NEWS_MANAGEMENT),
+            NEWS_MANAGEMENT,
+            POLL_MANAGEMENT),
     /**
      * Manange the software itself.
      */

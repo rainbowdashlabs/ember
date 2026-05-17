@@ -62,3 +62,7 @@ export async function getMemberGroups(memberId: number): Promise<MemberGroup[]> 
     const res = await client.get<MemberGroup[]>(`/station-members/${memberId}/groups`)
     return res.data
 }
+
+export async function convertToTag(groupId: number): Promise<void> {
+    await client.post(`/groups/${groupId}/convert-to-tag`)
+}

@@ -9,8 +9,10 @@ import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.conf.file.elements.Demo;
 import dev.chojo.ember.entity.StationMember;
 import dev.chojo.ember.repository.AccountRepository;
+import dev.chojo.ember.repository.MemberGroupRepository;
 import dev.chojo.ember.repository.StationMemberRepository;
 import dev.chojo.ember.repository.StationRepository;
+import dev.chojo.ember.repository.UserTagRepository;
 import dev.chojo.ember.service.ProfileFieldService;
 import io.javalin.Javalin;
 import io.javalin.config.RoutesConfig;
@@ -65,6 +67,8 @@ public class ApiServer {
     private final StationMemberRepository stationMemberRepository;
     private final StationRepository stationRepository;
     private final ProfileFieldService profileFieldService;
+    private final MemberGroupRepository memberGroupRepository;
+    private final UserTagRepository userTagRepository;
 
     @Inject
     public ApiServer(
@@ -75,7 +79,9 @@ public class ApiServer {
             AccountRepository accountRepository,
             StationMemberRepository stationMemberRepository,
             StationRepository stationRepository,
-            ProfileFieldService profileFieldService) {
+            ProfileFieldService profileFieldService,
+            MemberGroupRepository memberGroupRepository,
+            UserTagRepository userTagRepository) {
         this.routes = routes;
         this.apiConfig = apiConfig;
         this.demoConfig = demoConfig;
@@ -84,6 +90,8 @@ public class ApiServer {
         this.stationMemberRepository = stationMemberRepository;
         this.stationRepository = stationRepository;
         this.profileFieldService = profileFieldService;
+        this.memberGroupRepository = memberGroupRepository;
+        this.userTagRepository = userTagRepository;
     }
 
     public void start() {
@@ -204,9 +212,21 @@ public class ApiServer {
             accountRepository.findById(member.accountId()).ifPresent(account -> {
                 var roles = stationMemberRepository.findRoles(member.id());
                 var roleNames = roles.stream().map(r -> r.role().name()).toList();
+                var groupNames = memberGroupRepository.findGroupsForMember(member.id()).stream()
+                        .map(g -> g.name())
+                        .toList();
+                var tagNames = userTagRepository.findTagsForMember(member.id()).stream()
+                        .map(t -> t.name())
+                        .toList();
                 boolean complete = profileFieldService.isProfileComplete(member.id(), stationId, roleNames);
-                accounts.add(
-                        new DemoAccount(account.email(), account.firstName(), account.lastName(), roleNames, complete));
+                accounts.add(new DemoAccount(
+                        account.email(),
+                        account.firstName(),
+                        account.lastName(),
+                        roleNames,
+                        groupNames,
+                        tagNames,
+                        complete));
             });
         }
         ctx.json(accounts);
@@ -315,5 +335,11 @@ public class ApiServer {
     }
 
     public record DemoAccount(
-            String email, String firstName, String lastName, List<String> roles, boolean profileComplete) {}
+            String email,
+            String firstName,
+            String lastName,
+            List<String> roles,
+            List<String> groups,
+            List<String> tags,
+            boolean profileComplete) {}
 }

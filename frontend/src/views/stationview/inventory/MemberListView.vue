@@ -141,9 +141,22 @@ function formatItemLabel(item: InventoryItem): string {
   if (showInternalId.value && item.internalId) parts.push(`(${item.internalId})`)
   if (showSize.value && item.sizeId) {
     const label = sizeMap.value.get(item.sizeId)
-    if (label) parts.push(`[${label}]`)
+    if (label) parts.push(label)
   }
   return parts.join(' ') || item.name || '–'
+}
+
+function itemNamePart(item: InventoryItem): string {
+  const parts: string[] = []
+  if (showName.value && item.name) parts.push(item.name)
+  if (showInternalId.value && item.internalId) parts.push(`(${item.internalId})`)
+  return parts.join(' ')
+}
+
+function itemSizeLabel(item: InventoryItem): string {
+  if (!showSize.value) return ''
+  if (!item.sizeId) return t('common.unisize')
+  return sizeMap.value.get(item.sizeId) ?? t('common.unisize')
 }
 
 function toggleInventory(invId: number) {
@@ -443,9 +456,15 @@ onMounted(loadData)
                 <td class="px-3 py-2.5 font-medium text-primary">{{ memberDisplayName(member) }}</td>
                 <td v-for="inv in displayedInventories" :key="inv.id" class="px-3 py-2.5">
                   <template v-if="memberInventoryCount(member.id, inv.id) > 0">
-                    <span v-for="(item, idx) in memberInventoryItems(member.id, inv.id)" :key="item.id">
-                      <span :class="item.lostAt ? 'text-error' : ''" class="text-xs">{{ formatItemLabel(item) }}<template v-if="item.lostAt"> ({{ t('inventoryMembers.lost') }})</template></span><template v-if="idx < memberInventoryItems(member.id, inv.id).length - 1">, </template>
-                    </span>
+                    <div class="flex flex-wrap gap-1">
+                      <span v-for="item in memberInventoryItems(member.id, inv.id)" :key="item.id"
+                            :class="item.lostAt ? 'text-error' : ''"
+                            class="inline-flex items-center gap-1 text-xs">
+                        <template v-if="itemNamePart(item)">{{ itemNamePart(item) }}</template>
+                        <span v-if="itemSizeLabel(item)" :class="item.lostAt ? 'bg-error/15 text-error' : 'bg-secondary/15 text-secondary-accent'" class="rounded-full px-1.5 py-0 text-[10px]">{{ itemSizeLabel(item) }}</span>
+                        <span v-if="item.lostAt" class="text-[10px]">({{ t('inventoryMembers.lost') }})</span>
+                      </span>
+                    </div>
                   </template>
                   <span v-else class="text-(--text-muted)">—</span>
                 </td>

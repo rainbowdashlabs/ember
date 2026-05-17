@@ -35,6 +35,8 @@ interface DemoAccount {
   firstName: string
   lastName: string
   roles: string[]
+  groups: string[]
+  tags: string[]
   profileComplete: boolean
 }
 
@@ -215,6 +217,14 @@ function topRoleLabel(account: DemoAccount): string {
                 <ErrorBadge v-if="!account.profileComplete" class="ml-1 text-[10px]">{{ t('login.incomplete') }}</ErrorBadge>
               </div>
               <div class="text-xs text-(--text-muted)">{{ topRoleLabel(account) }}</div>
+              <div v-if="account.groups.length > 0" class="flex flex-wrap gap-1 mt-1">
+                <span v-for="g in account.groups" :key="g"
+                      class="inline-block rounded-full px-1.5 py-0 text-[10px] bg-secondary/15 text-secondary-accent">{{ g }}</span>
+              </div>
+              <div v-if="account.tags.length > 0" class="flex flex-wrap gap-1 mt-0.5">
+                <span v-for="tag in account.tags" :key="tag"
+                      class="inline-block rounded-full px-1.5 py-0 text-[10px] bg-primary/15 text-primary">{{ tag }}</span>
+              </div>
             </NeutralContainer>
           </div>
         </div>
@@ -296,6 +306,14 @@ function topRoleLabel(account: DemoAccount): string {
                     <ErrorBadge v-if="!account.profileComplete" class="ml-1 text-[9px]">{{ t('login.incomplete') }}</ErrorBadge>
                   </div>
                   <div class="text-[10px] text-(--text-muted)">{{ topRoleLabel(account) }}</div>
+                  <div v-if="account.groups.length > 0" class="flex flex-wrap gap-0.5 mt-0.5">
+                    <span v-for="g in account.groups" :key="g"
+                          class="inline-block rounded-full px-1 text-[9px] bg-secondary/15 text-secondary-accent">{{ g }}</span>
+                  </div>
+                  <div v-if="account.tags.length > 0" class="flex flex-wrap gap-0.5 mt-0.5">
+                    <span v-for="tag in account.tags" :key="tag"
+                          class="inline-block rounded-full px-1 text-[9px] bg-primary/15 text-primary">{{ tag }}</span>
+                  </div>
                 </NeutralContainer>
               </div>
             </div>

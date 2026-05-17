@@ -19,17 +19,22 @@ import dev.chojo.ember.entity.CheckResult;
 import dev.chojo.ember.entity.ExchangeStatus;
 import dev.chojo.ember.entity.InventoryItem;
 import dev.chojo.ember.entity.InventoryType;
+import dev.chojo.ember.entity.NotificationData;
+import dev.chojo.ember.entity.NotificationType;
 import dev.chojo.ember.entity.ProfileFieldScope;
 import dev.chojo.ember.entity.StationMember;
 import dev.chojo.ember.repository.AccountRepository;
 import dev.chojo.ember.repository.AttendanceRepository;
 import dev.chojo.ember.repository.EventRepository;
 import dev.chojo.ember.repository.ExchangeRepository;
+import dev.chojo.ember.repository.FormRepository;
 import dev.chojo.ember.repository.InventoryCheckRepository;
 import dev.chojo.ember.repository.InventoryRepository;
 import dev.chojo.ember.repository.MemberGroupRepository;
 import dev.chojo.ember.repository.NewsRepository;
+import dev.chojo.ember.repository.NotificationRepository;
 import dev.chojo.ember.repository.ProcurementRepository;
+import dev.chojo.ember.repository.ProfileFieldChangeRepository;
 import dev.chojo.ember.repository.ProfileFieldRepository;
 import dev.chojo.ember.repository.StationMemberRepository;
 import dev.chojo.ember.repository.StationRepository;
@@ -72,9 +77,12 @@ public class DemoService {
     private final InventoryCheckRepository inventoryCheckRepository;
     private final ProfileFieldRepository profileFieldRepository;
     private final NewsRepository newsRepository;
+    private final NotificationRepository notificationRepository;
     private final ExchangeRepository exchangeRepository;
     private final ProcurementRepository procurementRepository;
     private final UserTagRepository userTagRepository;
+    private final FormRepository formRepository;
+    private final ProfileFieldChangeRepository profileFieldChangeRepository;
     private final PasswordHasher passwordHasher;
     private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
 
@@ -93,9 +101,12 @@ public class DemoService {
             InventoryCheckRepository inventoryCheckRepository,
             ProfileFieldRepository profileFieldRepository,
             NewsRepository newsRepository,
+            NotificationRepository notificationRepository,
             ExchangeRepository exchangeRepository,
             ProcurementRepository procurementRepository,
             UserTagRepository userTagRepository,
+            FormRepository formRepository,
+            ProfileFieldChangeRepository profileFieldChangeRepository,
             PasswordHasher passwordHasher) {
         this.demoConfig = demoConfig;
         this.databaseConfig = databaseConfig;
@@ -110,9 +121,12 @@ public class DemoService {
         this.inventoryCheckRepository = inventoryCheckRepository;
         this.profileFieldRepository = profileFieldRepository;
         this.newsRepository = newsRepository;
+        this.notificationRepository = notificationRepository;
         this.exchangeRepository = exchangeRepository;
         this.procurementRepository = procurementRepository;
         this.userTagRepository = userTagRepository;
+        this.formRepository = formRepository;
+        this.profileFieldChangeRepository = profileFieldChangeRepository;
         this.passwordHasher = passwordHasher;
     }
 
@@ -318,18 +332,22 @@ public class DemoService {
         var anfaenger = new ArrayList<DemoUser>();
         var fortgeschritten = new ArrayList<DemoUser>();
         // Track which kids belong to which parent index for manager assignment
+        // Indices are into allKids = anfaengerMembers ++ fortgeschrittenMembers
         var familyKidIndices = new ArrayList<List<Integer>>(); // per family: indices into allKids
-        int kidCounter = 0;
+        int anfaengerCounter = 0;
+        int fortgeschrittenCounter = 0;
+        int totalAnfaenger =
+                families.stream().mapToInt(f -> f.anfaengerKids().size()).sum();
         for (var family : families) {
             eltern.add(new DemoUser(family.parentFirstName(), family.lastName()));
             var kidIndices = new ArrayList<Integer>();
             for (var kidName : family.anfaengerKids()) {
                 anfaenger.add(new DemoUser(kidName, family.lastName()));
-                kidIndices.add(kidCounter++);
+                kidIndices.add(anfaengerCounter++);
             }
             for (var kidName : family.fortgeschrittenKids()) {
                 fortgeschritten.add(new DemoUser(kidName, family.lastName()));
-                kidIndices.add(kidCounter++);
+                kidIndices.add(totalAnfaenger + fortgeschrittenCounter++);
             }
             familyKidIndices.add(kidIndices);
         }
@@ -481,6 +499,46 @@ public class DemoService {
             if (rng.nextBoolean()) {
                 profileFieldRepository.setValue(m.id(), fieldAllergien.id(), jsonStr(randomAllergy(rng)));
             }
+        }
+
+        // -- Former members --
+        var formerMember1 = createUser("Max", "Altmann", hash, station.id(), loginRole.id(), memberRole.id());
+        memberGroupRepository.addMember(groupAnfaenger.id(), formerMember1.id());
+        stationMemberRepository.setFormer(formerMember1.id(), true);
+
+        var formerMember2 = createUser("Lisa", "Wegner", hash, station.id(), loginRole.id(), memberRole.id());
+        memberGroupRepository.addMember(groupFortgeschritten.id(), formerMember2.id());
+        stationMemberRepository.setFormer(formerMember2.id(), true);
+
+        var formerMember3 = createUser("Tom", "Richter", hash, station.id(), loginRole.id(), memberRole.id());
+        stationMemberRepository.addRole(formerMember3.id(), teamRole.id());
+        stationMemberRepository.setFormer(formerMember3.id(), true);
+
+        // -- Profile field changes (unacknowledged) --
+        if (anfaengerMembers.size() >= 3) {
+            // Simulate phone number changes
+            profileFieldChangeRepository.create(
+                    fieldTelefon.id(),
+                    anfaengerMembers.get(0).id(),
+                    "\"0151 12345678\"",
+                    "\"0171 98765432\"",
+                    anfaengerMembers.get(0).id(),
+                    true);
+            profileFieldChangeRepository.create(
+                    fieldTelefon.id(),
+                    anfaengerMembers.get(1).id(),
+                    "\"0152 11223344\"",
+                    "\"0163 55667788\"",
+                    anfaengerMembers.get(1).id(),
+                    true);
+            // Simulate allergy field change
+            profileFieldChangeRepository.create(
+                    fieldAllergien.id(),
+                    anfaengerMembers.get(2).id(),
+                    "\"Keine\"",
+                    "\"Nussallergie\"",
+                    anfaengerMembers.get(2).id(),
+                    true);
         }
 
         // -- Manager assignments: each Eltern manages their own kids (same last name) --
@@ -823,9 +881,460 @@ public class DemoService {
             }
         }
 
+        // -- Forms --
+        seedForms(
+                station.id(),
+                adminMember,
+                anfaengerMembers,
+                fortgeschrittenMembers,
+                memberRole.id(),
+                memberManagerRole.id(),
+                groupAnfaenger.id(),
+                tagWettkampf.id(),
+                rng);
+
+        // -- Notifications (demo data so users see them on the dashboard) --
+        seedNotifications(
+                station.id(), adminMember, betreuerMembers, elternMembers, anfaengerMembers, fortgeschrittenMembers);
+
         int totalUsers = 1 + betreuer.size() + eltern.size() + anfaenger.size() + fortgeschritten.size();
         log.info("Demo: Created {} user accounts (password: '{}')", totalUsers, PASSWORD);
         log.info("Demo: Admin login: admin@ember.local / {}", PASSWORD);
+    }
+
+    private void seedForms(
+            int stationId,
+            StationMember admin,
+            List<StationMember> anfaenger,
+            List<StationMember> fortgeschritten,
+            int memberRoleId,
+            int memberManagerRoleId,
+            int anfaengerGroupId,
+            int wettkampfTagId,
+            Random rng) {
+        // Form 1: Satisfaction survey (OPEN, with responses)
+        var survey = formRepository.create(
+                stationId,
+                "Zufriedenheitsumfrage",
+                "Wie gefällt dir unsere Jugendfeuerwehr?",
+                false,
+                true,
+                null,
+                null,
+                admin.id());
+        formRepository.updateStatus(survey.id(), "OPEN");
+        formRepository.createQuestion(
+                survey.id(),
+                0,
+                "RATING",
+                "Wie zufrieden bist du insgesamt?",
+                "1 = sehr unzufrieden, 5 = sehr zufrieden",
+                true,
+                false,
+                "{\"scale\":5,\"icon\":\"STAR\"}");
+        formRepository.createQuestion(
+                survey.id(),
+                1,
+                "CHOICE",
+                "Was gefällt dir am besten?",
+                "",
+                false,
+                true,
+                "{\"multiSelect\":true,\"dropdown\":false,\"allowOther\":true,\"options\":[\"Übungen\",\"Gemeinschaft\",\"Ausflüge\",\"Wettbewerbe\"],\"multiLimitType\":\"NONE\"}");
+        formRepository.createQuestion(
+                survey.id(), 2, "TEXT", "Hast du Verbesserungsvorschläge?", "", false, false, "{\"longAnswer\":true}");
+
+        // Add some responses
+        var surveyQuestions = formRepository.findQuestions(survey.id());
+        var respondents = new ArrayList<StationMember>();
+        respondents.addAll(anfaenger.subList(0, Math.min(5, anfaenger.size())));
+        respondents.addAll(fortgeschritten.subList(0, Math.min(4, fortgeschritten.size())));
+        String[] suggestions = {"Mehr Ausflüge!", "Öfter draußen üben", "Alles super!", "", "Neue Geräte wären toll"};
+        for (int i = 0; i < respondents.size(); i++) {
+            var member = respondents.get(i);
+            var response = formRepository.createResponse(survey.id(), member.id(), member.id());
+            int rating = 3 + rng.nextInt(3);
+            formRepository.upsertAnswer(response.id(), surveyQuestions.get(0).id(), "{\"rating\":" + rating + "}");
+            int[] selected = rng.nextInt(2) == 0 ? new int[] {0, 2} : new int[] {1, 3};
+            formRepository.upsertAnswer(
+                    response.id(),
+                    surveyQuestions.get(1).id(),
+                    "{\"selected\":[" + selected[0] + "," + selected[1] + "],\"other\":\"\"}");
+            formRepository.upsertAnswer(
+                    response.id(),
+                    surveyQuestions.get(2).id(),
+                    "{\"text\":\"" + suggestions[i % suggestions.length] + "\"}");
+        }
+
+        // Add remaining types to survey: DATE, RANKING, LIKERT
+        formRepository.createQuestion(
+                survey.id(), 3, "DATE", "Wann bist du der Jugendfeuerwehr beigetreten?", "", false, false, "{}");
+        formRepository.createQuestion(
+                survey.id(),
+                4,
+                "RANKING",
+                "Ordne die Aktivitäten nach Beliebtheit",
+                "",
+                false,
+                true,
+                "{\"options\":[\"Übungen\",\"Wettbewerbe\",\"Ausflüge\",\"Theorie\"]}");
+        formRepository.createQuestion(
+                survey.id(),
+                5,
+                "LIKERT",
+                "Wie bewertest du die folgenden Bereiche?",
+                "",
+                false,
+                false,
+                "{\"statements\":[\"Ausrüstung\",\"Betreuung\",\"Abwechslung\"],\"scaleMin\":1,\"scaleMax\":5,\"scaleLabels\":[]}");
+
+        // Re-fetch questions after adding more
+        surveyQuestions = formRepository.findQuestions(survey.id());
+        // Add responses for the new question types
+        for (int i = 0; i < respondents.size(); i++) {
+            var member = respondents.get(i);
+            var existingResponse =
+                    formRepository.findResponse(survey.id(), member.id()).orElseThrow();
+            formRepository.upsertAnswer(
+                    existingResponse.id(),
+                    surveyQuestions.get(3).id(),
+                    "{\"date\":\"202" + (2 + rng.nextInt(4)) + "-0" + (1 + rng.nextInt(9)) + "-15\"}");
+            int[] rankOrder = {rng.nextInt(4), (1 + rng.nextInt(3)) % 4, (2 + rng.nextInt(2)) % 4, 3 - rng.nextInt(2)};
+            formRepository.upsertAnswer(
+                    existingResponse.id(),
+                    surveyQuestions.get(4).id(),
+                    "{\"order\":[" + rankOrder[0] + "," + rankOrder[1] + "," + rankOrder[2] + "," + rankOrder[3]
+                            + "]}");
+            formRepository.upsertAnswer(
+                    existingResponse.id(),
+                    surveyQuestions.get(5).id(),
+                    "{\"ratings\":{\"0\":" + (3 + rng.nextInt(3)) + ",\"1\":" + (3 + rng.nextInt(3)) + ",\"2\":"
+                            + (2 + rng.nextInt(4)) + "}}");
+        }
+
+        // Form 2: CLOSED comprehensive form with ALL types + responses
+        var feedback = formRepository.create(
+                stationId,
+                "Feedback Übungsabend",
+                "Rückmeldung zum letzten Übungsabend",
+                false,
+                true,
+                null,
+                null,
+                admin.id());
+        formRepository.updateStatus(feedback.id(), "OPEN");
+        formRepository.createQuestion(
+                feedback.id(),
+                0,
+                "CHOICE",
+                "Würdest du wieder teilnehmen?",
+                "",
+                true,
+                false,
+                "{\"multiSelect\":false,\"dropdown\":false,\"allowOther\":false,\"options\":[\"Ja\",\"Vielleicht\",\"Nein\"],\"multiLimitType\":\"NONE\"}");
+        formRepository.createQuestion(
+                feedback.id(), 1, "TEXT", "Was hat dir besonders gefallen?", "", false, false, "{\"longAnswer\":true}");
+        formRepository.createQuestion(
+                feedback.id(),
+                2,
+                "RATING",
+                "Gesamtbewertung",
+                "1 = schlecht, 10 = super",
+                true,
+                false,
+                "{\"scale\":10,\"icon\":\"HEART\"}");
+        formRepository.createQuestion(
+                feedback.id(), 3, "DATE", "An welchem Datum warst du dabei?", "", false, false, "{}");
+        formRepository.createQuestion(
+                feedback.id(),
+                4,
+                "RANKING",
+                "Was war am wichtigsten?",
+                "",
+                false,
+                true,
+                "{\"options\":[\"Teamwork\",\"Technik\",\"Fitness\",\"Spaß\"]}");
+        formRepository.createQuestion(
+                feedback.id(),
+                5,
+                "LIKERT",
+                "Bewerte die folgenden Aspekte",
+                "",
+                true,
+                false,
+                "{\"statements\":[\"Organisation\",\"Lerninhalte\",\"Spaßfaktor\",\"Zeitdauer\"],\"scaleMin\":1,\"scaleMax\":5,\"scaleLabels\":[]}");
+
+        var feedbackQuestions = formRepository.findQuestions(feedback.id());
+        String[] feedbackTexts = {
+            "Tolle Übung!", "Mehr davon!", "War ok", "Super organisiert", "Könnte besser sein", "Hat Spaß gemacht"
+        };
+        for (int i = 0; i < Math.min(8, anfaenger.size()); i++) {
+            var member = anfaenger.get(i);
+            var response = formRepository.createResponse(feedback.id(), member.id(), member.id());
+            int choiceIdx = rng.nextInt(3);
+            formRepository.upsertAnswer(
+                    response.id(), feedbackQuestions.get(0).id(), "{\"selected\":[" + choiceIdx + "],\"other\":\"\"}");
+            formRepository.upsertAnswer(
+                    response.id(),
+                    feedbackQuestions.get(1).id(),
+                    "{\"text\":\"" + feedbackTexts[i % feedbackTexts.length] + "\"}");
+            formRepository.upsertAnswer(
+                    response.id(), feedbackQuestions.get(2).id(), "{\"rating\":" + (5 + rng.nextInt(6)) + "}");
+            formRepository.upsertAnswer(response.id(), feedbackQuestions.get(3).id(), "{\"date\":\"2026-05-10\"}");
+            int[] order = {rng.nextInt(4), (1 + rng.nextInt(3)) % 4, 2, 3};
+            formRepository.upsertAnswer(
+                    response.id(),
+                    feedbackQuestions.get(4).id(),
+                    "{\"order\":[" + order[0] + "," + order[1] + "," + order[2] + "," + order[3] + "]}");
+            formRepository.upsertAnswer(
+                    response.id(),
+                    feedbackQuestions.get(5).id(),
+                    "{\"ratings\":{\"0\":" + (3 + rng.nextInt(3)) + ",\"1\":" + (2 + rng.nextInt(4)) + ",\"2\":"
+                            + (4 + rng.nextInt(2)) + ",\"3\":" + (2 + rng.nextInt(3)) + "}}");
+        }
+        formRepository.updateStatus(feedback.id(), "CLOSED");
+
+        // Form 3: Member-only form (restricted to MEMBER role)
+        var memberOnly = formRepository.create(
+                stationId,
+                "Persönliche Einschätzung",
+                "Nur für Mitglieder — Verwalter können dieses Formular für ihre verwalteten Mitglieder ausfüllen.",
+                false,
+                true,
+                null,
+                null,
+                admin.id());
+        formRepository.updateStatus(memberOnly.id(), "OPEN");
+        formRepository.createQuestion(
+                memberOnly.id(),
+                0,
+                "RATING",
+                "Wie wohl fühlst du dich in der Gruppe?",
+                "1 = gar nicht, 5 = sehr wohl",
+                true,
+                false,
+                "{\"scale\":5,\"icon\":\"STAR\"}");
+        formRepository.createQuestion(
+                memberOnly.id(),
+                1,
+                "TEXT",
+                "Was wünschst du dir für die nächsten Monate?",
+                "",
+                false,
+                false,
+                "{\"longAnswer\":true}");
+        formRepository.createQuestion(
+                memberOnly.id(),
+                2,
+                "CHOICE",
+                "Möchtest du an einem Wettbewerb teilnehmen?",
+                "",
+                true,
+                false,
+                "{\"multiSelect\":false,\"dropdown\":false,\"allowOther\":false,\"options\":[\"Ja, unbedingt!\",\"Vielleicht\",\"Nein, lieber nicht\"],\"multiLimitType\":\"NONE\"}");
+        formRepository.setRoleRestrictions(memberOnly.id(), List.of(memberRoleId));
+
+        // Form 4: For MEMBER + MEMBER_MANAGER (both can fill for themselves)
+        var bothRoles = formRepository.create(
+                stationId,
+                "Terminplanung Herbstfest",
+                "Für Mitglieder und Verwalter — bitte gebt eure Verfügbarkeit an.",
+                false,
+                true,
+                null,
+                null,
+                admin.id());
+        formRepository.updateStatus(bothRoles.id(), "OPEN");
+        formRepository.createQuestion(
+                bothRoles.id(), 0, "DATE", "An welchem Wochenende passt es dir am besten?", "", true, false, "{}");
+        formRepository.createQuestion(
+                bothRoles.id(),
+                1,
+                "CHOICE",
+                "Kannst du beim Aufbau helfen?",
+                "",
+                false,
+                false,
+                "{\"multiSelect\":false,\"dropdown\":false,\"allowOther\":false,\"options\":[\"Ja\",\"Nein\",\"Vielleicht\"],\"multiLimitType\":\"NONE\"}");
+        formRepository.setRoleRestrictions(bothRoles.id(), List.of(memberRoleId, memberManagerRoleId));
+
+        // Form 5: Restricted to Wettkampfgruppe tag only
+        var wettkampfForm = formRepository.create(
+                stationId,
+                "Wettkampf-Vorbereitung",
+                "Nur für Mitglieder der Wettkampfgruppe.",
+                false,
+                true,
+                null,
+                null,
+                admin.id());
+        formRepository.updateStatus(wettkampfForm.id(), "OPEN");
+        formRepository.createQuestion(
+                wettkampfForm.id(),
+                0,
+                "RATING",
+                "Wie fit fühlst du dich für den Wettkampf?",
+                "1 = gar nicht, 5 = top vorbereitet",
+                true,
+                false,
+                "{\"scale\":5,\"icon\":\"STAR\"}");
+        formRepository.createQuestion(
+                wettkampfForm.id(),
+                1,
+                "CHOICE",
+                "Welche Disziplin möchtest du übernehmen?",
+                "",
+                true,
+                false,
+                "{\"multiSelect\":true,\"dropdown\":false,\"allowOther\":true,\"options\":[\"Löschangriff\",\"Staffellauf\",\"Knotenkunde\",\"Erste Hilfe\"],\"multiLimitType\":\"AT_MOST\",\"multiLimit\":2}");
+        formRepository.setTagRestrictions(wettkampfForm.id(), List.of(wettkampfTagId));
+
+        // Form 6: Restricted to Anfänger group only
+        var anfaengerForm = formRepository.create(
+                stationId,
+                "Anfänger-Feedback",
+                "Nur für die Anfänger-Gruppe — wie läuft es bei euch?",
+                false,
+                true,
+                null,
+                null,
+                admin.id());
+        formRepository.updateStatus(anfaengerForm.id(), "OPEN");
+        formRepository.createQuestion(
+                anfaengerForm.id(),
+                0,
+                "LIKERT",
+                "Bewerte deine bisherige Erfahrung",
+                "",
+                true,
+                false,
+                "{\"statements\":[\"Ich verstehe die Übungen\",\"Ich fühle mich willkommen\",\"Ich lerne viel Neues\"],\"scaleMin\":1,\"scaleMax\":5,\"scaleLabels\":[]}");
+        formRepository.createQuestion(
+                anfaengerForm.id(),
+                1,
+                "TEXT",
+                "Was können wir für dich verbessern?",
+                "",
+                false,
+                false,
+                "{\"longAnswer\":true}");
+        formRepository.setGroupRestrictions(anfaengerForm.id(), List.of(anfaengerGroupId));
+
+        log.info(
+                "Demo: Created 6 forms (open all types, closed all types, member-only, member+manager, tag-restricted, group-restricted)");
+    }
+
+    private void seedNotifications(
+            int stationId,
+            StationMember admin,
+            List<StationMember> betreuer,
+            List<StationMember> eltern,
+            List<StationMember> anfaenger,
+            List<StationMember> fortgeschritten) {
+        // News notification for all members
+        for (var m : betreuer) {
+            notificationRepository.create(
+                    m.id(),
+                    NotificationType.NEW_NEWS,
+                    NotificationData.of(
+                            "notification.newNews",
+                            java.util.Map.of(
+                                    "title", "Neue Ausrüstung eingetroffen",
+                                    "author", "Anna Schmidt",
+                                    "preview", "Die bestellten Helme und Handschuhe sind eingetroffen..."),
+                            new NotificationData.NotificationLink("news-list")));
+        }
+
+        // Comment notifications for Betreuer (news author gets comment notification)
+        notificationRepository.create(
+                betreuer.get(1).id(),
+                NotificationType.NEWS_COMMENT,
+                NotificationData.of(
+                        "notification.newsComment",
+                        java.util.Map.of(
+                                "newsTitle",
+                                "Neue Ausrüstung eingetroffen",
+                                "author",
+                                "Klaus Schulze",
+                                "preview",
+                                "Werden die alten Helme eingesammelt?"),
+                        new NotificationData.NotificationLink("news-list")));
+
+        // Exchange request notification for Betreuer (INVENTORY_MANAGEMENT)
+        for (var m : betreuer) {
+            notificationRepository.create(
+                    m.id(),
+                    NotificationType.EXCHANGE_NEW_REQUEST,
+                    NotificationData.of(
+                            "notification.exchangeNewRequest",
+                            java.util.Map.of(
+                                    "memberName",
+                                    "Tim Berger",
+                                    "inventoryName",
+                                    "Blouson",
+                                    "reason",
+                                    "Zu klein geworden"),
+                            new NotificationData.NotificationLink("inventory-exchanges")));
+        }
+
+        // Event registration status for some kids
+        for (int i = 0; i < 3 && i < fortgeschritten.size(); i++) {
+            notificationRepository.create(
+                    fortgeschritten.get(i).id(),
+                    NotificationType.EVENT_REGISTRATION_STATUS,
+                    NotificationData.of(
+                            "notification.eventRegistrationStatus",
+                            java.util.Map.of("eventName", "Tag der offenen Tür", "status", "ACCEPTED"),
+                            new NotificationData.NotificationLink("events-registrations")));
+        }
+
+        // New event notification for some members
+        for (int i = 0; i < 5 && i < anfaenger.size(); i++) {
+            notificationRepository.create(
+                    anfaenger.get(i).id(),
+                    NotificationType.NEW_EVENT,
+                    NotificationData.of(
+                            "notification.newEvent",
+                            java.util.Map.of(
+                                    "title",
+                                    "Stadtfest Musterstadt",
+                                    "eventDescription",
+                                    "Stand der Jugendfeuerwehr beim Stadtfest"),
+                            new NotificationData.NotificationLink("events-upcoming")));
+        }
+
+        // Group membership notification for some Eltern
+        for (int i = 0; i < 3 && i < eltern.size(); i++) {
+            notificationRepository.create(
+                    eltern.get(i).id(),
+                    NotificationType.MEMBER_ADDED_TO_GROUP,
+                    NotificationData.of(
+                            "notification.memberAddedToGroup",
+                            java.util.Map.of("groupName", "Eltern"),
+                            new NotificationData.NotificationLink("dashboard-overview")));
+        }
+
+        // Procurement notification for a kid
+        notificationRepository.create(
+                anfaenger.get(2).id(),
+                NotificationType.PROCUREMENT_REQUESTED,
+                NotificationData.of(
+                        "notification.procurementRequested",
+                        java.util.Map.of("inventoryName", "Handschuhe"),
+                        new NotificationData.NotificationLink("dashboard-overview")));
+
+        // Profile change notification for Betreuer
+        notificationRepository.create(
+                betreuer.get(0).id(),
+                NotificationType.PROFILE_FIELD_CHANGED,
+                NotificationData.of(
+                        "notification.profileFieldChanged",
+                        java.util.Map.of("memberName", "Lukas Frank", "fieldName", "Allergien"),
+                        new NotificationData.NotificationLink(
+                                "members-detail",
+                                java.util.Map.of("id", anfaenger.get(0).id()))));
+
+        log.info("Demo: Created sample notifications for dashboard");
     }
 
     private StationMember createUser(
@@ -862,6 +1371,7 @@ public class DemoService {
             int dow = date.getDayOfWeek().getValue();
 
             if (dow == 1) { // Monday: Anfänger
+                log.info("Demo: Creating attendance session for week {}", weekOfYear);
                 Instant start = date.atTime(17, 30).toInstant(ZoneOffset.UTC);
                 Instant end = date.atTime(19, 0).toInstant(ZoneOffset.UTC);
                 var sess = attendanceRepository.createSession(
@@ -883,6 +1393,7 @@ public class DemoService {
             }
 
             if (dow == 3) { // Wednesday: Fortgeschritten
+                log.info("Demo: Creating attendance session for week {}", weekOfYear);
                 Instant start = date.atTime(18, 0).toInstant(ZoneOffset.UTC);
                 Instant end = date.atTime(19, 30).toInstant(ZoneOffset.UTC);
                 var sess = attendanceRepository.createSession(
@@ -904,6 +1415,7 @@ public class DemoService {
             }
 
             if (dow == 6 && date.getDayOfMonth() <= 7) { // 1st Saturday: Gesamtübung
+                log.info("Demo: Creating attendance session for week {}", weekOfYear);
                 Instant start = date.atTime(10, 0).toInstant(ZoneOffset.UTC);
                 Instant end = date.atTime(13, 0).toInstant(ZoneOffset.UTC);
                 var sess = attendanceRepository.createSession(
@@ -1058,7 +1570,7 @@ public class DemoService {
             var blousonItem = inventoryRepository.createItem(
                     blouson.id(),
                     "BL-" + String.format("%03d", itemCounter++),
-                    "Blouson " + kleidungSizes.get(idx % kleidungSizes.size()),
+                    "Blouson",
                     blousonSizeList.get(idx % blousonSizeList.size()).id(),
                     null,
                     "EXTERNAL");
@@ -1068,7 +1580,7 @@ public class DemoService {
             var parkaItem = inventoryRepository.createItem(
                     parka.id(),
                     "PA-" + String.format("%03d", itemCounter++),
-                    "Parka " + parkaSizes.get(idx % parkaSizes.size()),
+                    "Parka",
                     parkaSizeList.get(idx % parkaSizeList.size()).id(),
                     null,
                     "EXTERNAL");
@@ -1078,7 +1590,7 @@ public class DemoService {
             var latzItem = inventoryRepository.createItem(
                     latzhose.id(),
                     "LH-" + String.format("%03d", itemCounter++),
-                    "Latzhose " + kleidungSizes.get(idx % kleidungSizes.size()),
+                    "Latzhose",
                     latzhoseSizeList.get(idx % latzhoseSizeList.size()).id(),
                     null,
                     "EXTERNAL");
@@ -1088,7 +1600,7 @@ public class DemoService {
             var handschuhItem = inventoryRepository.createItem(
                     handschuhe.id(),
                     "HS-" + String.format("%03d", itemCounter++),
-                    "Handschuhe " + handschuhSizes.get(idx % handschuhSizes.size()),
+                    "Handschuhe",
                     handschuheSizeList.get(idx % handschuheSizeList.size()).id(),
                     null,
                     "INTERNAL");
@@ -1098,7 +1610,7 @@ public class DemoService {
             var stiefelItem = inventoryRepository.createItem(
                     stiefel.id(),
                     "ST-" + String.format("%03d", itemCounter++),
-                    "Stiefel " + stiefelSizes.get(idx % stiefelSizes.size()),
+                    "Stiefel",
                     stiefelSizeList.get(idx % stiefelSizeList.size()).id(),
                     null,
                     "INTERNAL");
@@ -1109,7 +1621,7 @@ public class DemoService {
                 var tshirtItem = inventoryRepository.createItem(
                         tshirt.id(),
                         "TS-" + String.format("%03d", itemCounter++),
-                        "T-Shirt " + tshirtSizes.get(idx % tshirtSizes.size()),
+                        "T-Shirt",
                         tshirtSizeList.get(idx % tshirtSizeList.size()).id(),
                         null,
                         "INTERNAL");
