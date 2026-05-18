@@ -61,7 +61,14 @@ function eventName(eventId: number): string {
 }
 
 function renderMessage(n: NotificationEntry): string {
-  return t(n.localeKey, n.params)
+  const params = { ...n.params }
+  if (n.type === 'EVENT_REGISTRATION_STATUS' && params.status) {
+    params.status = t(`dashboard.registrationStatus.${params.status}`)
+  }
+  if (n.type === 'EXCHANGE_STATUS_CHANGE' && params.status) {
+    params.status = t(`dashboard.exchangeStatus.${params.status}`)
+  }
+  return t(n.localeKey, params)
 }
 
 function renderDetail(n: NotificationEntry): string | null {

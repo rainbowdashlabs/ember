@@ -211,5 +211,39 @@ public class ProfileFieldChangeRepository {
                 .all();
     }
 
+    public List<ProfileFieldChange> findByStation(int stationId, int limit, int offset) {
+        return Query.query("""
+                            SELECT c.id, c.field_id, c.member_id, c.old_value, c.new_value,
+                                   c.changed_by, c.changed_at, c.requires_acknowledgement,
+                                   coalesce(a.first_name || ' ' || a.last_name, '') AS changed_by_name,
+                                   pf.name AS field_name
+                            FROM profile_field_change c
+                            JOIN station_member sm ON sm.id = c.member_id
+                            JOIN station_member sm2 ON sm2.id = c.changed_by
+                            JOIN account a ON a.id = sm2.account_id
+                            JOIN profile_field pf ON pf.id = c.field_id
+                            WHERE sm.station_id = :station_id
+                            ORDER BY c.changed_at DESC
+                            LIMIT :limit OFFSET :offset;""")
+                .single(Call.of()
+                        .bind("station_id", stationId)
+                        .bind("limit", limit)
+                        .bind("offset", offset))
+                .map(ProfileFieldChange.map())
+                .all();
+    }
+
+    public int countByStation(int stationId) {
+        return Query.query("""
+                            SELECT count(*) AS cnt
+                            FROM profile_field_change c
+                            JOIN station_member sm ON sm.id = c.member_id
+                            WHERE sm.station_id = :station_id;""")
+                .single(Call.of().bind("station_id", stationId))
+                .map(row -> row.getInt("cnt"))
+                .first()
+                .orElse(0);
+    }
+
     public record MemberChangeSummary(int memberId, String memberName, int pendingCount, Instant latestChange) {}
 }

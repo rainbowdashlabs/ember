@@ -29,6 +29,7 @@ import dev.chojo.ember.entity.StationEvent;
 import dev.chojo.ember.entity.StationMember;
 import dev.chojo.ember.repository.AccountRepository;
 import dev.chojo.ember.repository.AttendanceRepository;
+import dev.chojo.ember.repository.EventFieldRepository;
 import dev.chojo.ember.repository.EventRepository;
 import dev.chojo.ember.repository.ExchangeRepository;
 import dev.chojo.ember.repository.FormRepository;
@@ -89,6 +90,7 @@ public class DemoService {
     private final UserTagRepository userTagRepository;
     private final FormRepository formRepository;
     private final ProfileFieldChangeRepository profileFieldChangeRepository;
+    private final EventFieldRepository eventFieldRepository;
     private final PasswordHasher passwordHasher;
     private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
 
@@ -113,6 +115,7 @@ public class DemoService {
             UserTagRepository userTagRepository,
             FormRepository formRepository,
             ProfileFieldChangeRepository profileFieldChangeRepository,
+            EventFieldRepository eventFieldRepository,
             PasswordHasher passwordHasher) {
         this.demoConfig = demoConfig;
         this.databaseConfig = databaseConfig;
@@ -133,6 +136,7 @@ public class DemoService {
         this.userTagRepository = userTagRepository;
         this.formRepository = formRepository;
         this.profileFieldChangeRepository = profileFieldChangeRepository;
+        this.eventFieldRepository = eventFieldRepository;
         this.passwordHasher = passwordHasher;
     }
 
@@ -547,6 +551,61 @@ public class DemoService {
                     true);
         }
 
+        // -- Past profile field changes (acknowledged) --
+        if (anfaengerMembers.size() >= 5 && betreuerMembers.size() >= 1) {
+            int bId = betreuerMembers.get(0).id();
+            // Phone number changes
+            var c1 = profileFieldChangeRepository.create(
+                    fieldTelefon.id(),
+                    anfaengerMembers.get(3).id(),
+                    "\"0155 33344455\"",
+                    "\"0177 11122233\"",
+                    anfaengerMembers.get(3).id(),
+                    true);
+            profileFieldChangeRepository.acknowledge(c1.id(), bId, null);
+            var c2 = profileFieldChangeRepository.create(
+                    fieldTelefon.id(),
+                    anfaengerMembers.get(4).id(),
+                    "\"0160 99988877\"",
+                    "\"0172 44455566\"",
+                    anfaengerMembers.get(4).id(),
+                    true);
+            profileFieldChangeRepository.acknowledge(c2.id(), bId, "Nummer geprüft");
+            // Allergy changes
+            var c3 = profileFieldChangeRepository.create(
+                    fieldAllergien.id(),
+                    anfaengerMembers.get(3).id(),
+                    "\"Keine\"",
+                    "\"Laktoseintoleranz\"",
+                    betreuerMembers.get(0).id(),
+                    true);
+            profileFieldChangeRepository.acknowledge(c3.id(), bId, null);
+            var c4 = profileFieldChangeRepository.create(
+                    fieldAllergien.id(),
+                    anfaengerMembers.get(4).id(),
+                    "\"Heuschnupfen\"",
+                    "\"Heuschnupfen, Hausstaub\"",
+                    anfaengerMembers.get(4).id(),
+                    true);
+            profileFieldChangeRepository.acknowledge(c4.id(), bId, "Mit Eltern abgestimmt");
+            // Birthday correction
+            var c5 = profileFieldChangeRepository.create(
+                    fieldGeburtstag.id(),
+                    anfaengerMembers.get(3).id(),
+                    "\"2014-05-10\"",
+                    "\"2014-05-11\"",
+                    betreuerMembers.get(0).id(),
+                    false);
+            // Non-acknowledged changes that don't require ack
+            profileFieldChangeRepository.create(
+                    fieldTelefon.id(),
+                    fortgeschrittenMembers.get(0).id(),
+                    "\"0151 77766655\"",
+                    "\"0176 88899900\"",
+                    fortgeschrittenMembers.get(0).id(),
+                    false);
+        }
+
         // -- Manager assignments: each Eltern manages their own kids (same last name) --
         var allKids = new ArrayList<>(anfaengerMembers);
         allKids.addAll(fortgeschrittenMembers);
@@ -587,7 +646,7 @@ public class DemoService {
         Instant satStart = LocalDate.now().atTime(10, 0).toInstant(ZoneOffset.UTC);
         Instant satEnd = LocalDate.now().atTime(13, 0).toInstant(ZoneOffset.UTC);
 
-        eventRepository.create(
+        var evAnfaenger = eventRepository.create(
                 station.id(),
                 "Übung Anfänger",
                 "Grundausbildung für Anfänger",
@@ -600,7 +659,7 @@ public class DemoService {
                 null,
                 false,
                 null);
-        eventRepository.create(
+        var evFort = eventRepository.create(
                 station.id(),
                 "Übung Fortgeschritten",
                 "Training für Fortgeschrittene",
@@ -613,7 +672,7 @@ public class DemoService {
                 null,
                 false,
                 null);
-        eventRepository.create(
+        var evGesamt = eventRepository.create(
                 station.id(),
                 "Gesamtübung",
                 "Gemeinsame Übung aller Gruppen",
@@ -633,6 +692,9 @@ public class DemoService {
                 templateAnfaenger,
                 templateFort,
                 templateGesamt,
+                evAnfaenger,
+                evFort,
+                evGesamt,
                 anfaengerMembers,
                 fortgeschrittenMembers,
                 betreuerMembers);
@@ -657,6 +719,38 @@ public class DemoService {
         // Update existing recurring events with category
         // (events were created above without categories, but we can't easily update — create new ones with categories
         // instead)
+
+        // One-time event for today (ensures there's always an event today)
+        Instant todayEventStart = LocalDate.now().atTime(16, 0).toInstant(ZoneOffset.UTC);
+        Instant todayEventEnd = LocalDate.now().atTime(18, 0).toInstant(ZoneOffset.UTC);
+        var templateTheorie = attendanceRepository.createTemplate(station.id(), "Theorieabend");
+        attendanceRepository.setTemplateGroups(
+                templateTheorie.id(),
+                List.of(
+                        new AttendanceRepository.TemplateGroup(groupAnfaenger.id(), 0),
+                        new AttendanceRepository.TemplateGroup(groupFortgeschritten.id(), 1)));
+        var theorieabend = eventRepository.create(
+                station.id(),
+                "Theorieabend",
+                "Theoretische Grundlagen und Fahrzeugkunde",
+                StationEvent.EventType.ONE_TIME,
+                null,
+                todayEventStart,
+                todayEventEnd,
+                templateTheorie.id(),
+                true,
+                null,
+                false,
+                catUebung.id());
+        LocalDate todayDate = LocalDate.now();
+        for (int i = 0; i < 5 && i < anfaengerMembers.size(); i++) {
+            eventRepository.createRegistration(
+                    theorieabend.id(),
+                    anfaengerMembers.get(i).id(),
+                    todayDate,
+                    EventRegistration.RegistrationStatus.DECLINED,
+                    null);
+        }
 
         // -- Registration-required events --
         Instant nextMonth =
@@ -757,6 +851,44 @@ public class DemoService {
                     EventRegistration.RegistrationStatus.PENDING,
                     null);
         }
+
+        // Declined registrations for Stadtfest
+        for (int i = 5; i < 8 && i < anfaengerMembers.size(); i++) {
+            eventRepository.createRegistration(
+                    stadtfest.id(),
+                    anfaengerMembers.get(i).id(),
+                    stadtfestDate,
+                    EventRegistration.RegistrationStatus.DECLINED,
+                    null);
+        }
+        // Declined registrations for Kreiswettbewerb
+        for (int i = 6; i < 9 && i < fortgeschrittenMembers.size(); i++) {
+            eventRepository.createRegistration(
+                    kreisWettbewerb.id(),
+                    fortgeschrittenMembers.get(i).id(),
+                    kwDate,
+                    EventRegistration.RegistrationStatus.DECLINED,
+                    null);
+        }
+        // Denied registration for Tag der offenen Tür
+        if (anfaengerMembers.size() > 9) {
+            eventRepository.createRegistration(
+                    tagDerOffenenTuer.id(),
+                    anfaengerMembers.get(9).id(),
+                    tagDate,
+                    EventRegistration.RegistrationStatus.DENIED,
+                    null);
+        }
+
+        // -- Event Fields --
+        // Per-event fields
+        eventFieldRepository.create(tagDerOffenenTuer.id(), "Ort", "Feuerwehrhaus Musterstadt", 0);
+        eventFieldRepository.create(tagDerOffenenTuer.id(), "Treffpunkt", "Haupteingang", 1);
+        eventFieldRepository.create(tagDerOffenenTuer.id(), "Hinweis", "Dienstkleidung tragen", 2);
+        eventFieldRepository.create(stadtfest.id(), "Ort", "Marktplatz Musterstadt", 0);
+        eventFieldRepository.create(stadtfest.id(), "Treffpunkt", "Stand der Jugendfeuerwehr", 1);
+        eventFieldRepository.create(kreisWettbewerb.id(), "Ort", "Sportplatz Nachbarstadt", 0);
+        eventFieldRepository.create(kreisWettbewerb.id(), "Hinweis", "Wettkampfkleidung und Ausrüstung mitbringen", 1);
 
         // -- News --
         var news1 = newsRepository.create(
@@ -914,6 +1046,20 @@ public class DemoService {
                 groupAnfaenger.id(),
                 tagWettkampf.id(),
                 rng);
+
+        // -- Demo sessions (fake past sessions to show in settings) --
+        var demoUserAgents = List.of(
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/125.0.0.0 Safari/537.36",
+                "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 Safari/605.1.15",
+                "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Chrome/125.0.0.0 Mobile Safari/537.36",
+                "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148",
+                "Mozilla/5.0 (X11; Linux x86_64; rv:150.0) Gecko/20100101 Firefox/150.0");
+        var sessionExpiry = Instant.now().plus(java.time.Duration.ofHours(24));
+        for (int i = 0; i < demoUserAgents.size(); i++) {
+            var accountId = admin.id();
+            var token = java.util.UUID.randomUUID().toString();
+            accountRepository.createSession(accountId, token, sessionExpiry, demoUserAgents.get(i));
+        }
 
         // -- Notifications (demo data so users see them on the dashboard) --
         seedNotifications(
@@ -1408,6 +1554,9 @@ public class DemoService {
             AttendanceTemplate templateAnfaenger,
             AttendanceTemplate templateFort,
             AttendanceTemplate templateGesamt,
+            StationEvent evAnfaenger,
+            StationEvent evFort,
+            StationEvent evGesamt,
             List<StationMember> anfaenger,
             List<StationMember> fortgeschritten,
             List<StationMember> betreuer) {
@@ -1419,30 +1568,34 @@ public class DemoService {
         LocalDate startDate = today.minusMonths(14).withDayOfMonth(1);
         int sessionCount = 0;
 
-        for (LocalDate date = startDate; date.isBefore(today); date = date.plusDays(1)) {
+        for (LocalDate date = startDate; !date.isAfter(today); date = date.plusDays(1)) {
             int weekOfYear = date.get(IsoFields.WEEK_OF_WEEK_BASED_YEAR);
             if (weekOfYear >= 28 && weekOfYear <= 33) continue; // summer break
 
             int dow = date.getDayOfWeek().getValue();
+            boolean isToday = date.equals(today);
 
             if (dow == 1) { // Monday: Anfänger
                 log.info("Demo: Creating attendance session for week {}", weekOfYear);
                 Instant start = date.atTime(17, 30).toInstant(ZoneOffset.UTC);
                 Instant end = date.atTime(19, 0).toInstant(ZoneOffset.UTC);
                 var sess = attendanceRepository.createSession(
-                        templateAnfaenger.id(), start, end, null, "Übung Anfänger KW" + weekOfYear);
-                for (var m : anfaenger) {
-                    var status = rng.nextInt(10) < 8
-                            ? AttendanceEntry.AttendanceStatus.PRESENT
-                            : AttendanceEntry.AttendanceStatus.ABSENT;
-                    attendanceRepository.createEntry(sess.id(), m.id(), status, AttendanceEntry.EntrySource.EXPECTED);
-                }
-                for (var m : teamForAnfaenger) {
-                    attendanceRepository.createEntry(
-                            sess.id(),
-                            m.id(),
-                            AttendanceEntry.AttendanceStatus.PRESENT,
-                            AttendanceEntry.EntrySource.EXTRA);
+                        templateAnfaenger.id(), start, end, evAnfaenger.id(), "Übung Anfänger KW" + weekOfYear);
+                if (!isToday) {
+                    for (var m : anfaenger) {
+                        var status = rng.nextInt(10) < 8
+                                ? AttendanceEntry.AttendanceStatus.PRESENT
+                                : AttendanceEntry.AttendanceStatus.ABSENT;
+                        attendanceRepository.createEntry(
+                                sess.id(), m.id(), status, AttendanceEntry.EntrySource.EXPECTED);
+                    }
+                    for (var m : teamForAnfaenger) {
+                        attendanceRepository.createEntry(
+                                sess.id(),
+                                m.id(),
+                                AttendanceEntry.AttendanceStatus.PRESENT,
+                                AttendanceEntry.EntrySource.EXTRA);
+                    }
                 }
                 sessionCount++;
             }
@@ -1452,19 +1605,22 @@ public class DemoService {
                 Instant start = date.atTime(18, 0).toInstant(ZoneOffset.UTC);
                 Instant end = date.atTime(19, 30).toInstant(ZoneOffset.UTC);
                 var sess = attendanceRepository.createSession(
-                        templateFort.id(), start, end, null, "Übung Fortgeschritten KW" + weekOfYear);
-                for (var m : fortgeschritten) {
-                    var status = rng.nextInt(10) < 7
-                            ? AttendanceEntry.AttendanceStatus.PRESENT
-                            : AttendanceEntry.AttendanceStatus.ABSENT;
-                    attendanceRepository.createEntry(sess.id(), m.id(), status, AttendanceEntry.EntrySource.EXPECTED);
-                }
-                for (var m : teamForFort) {
-                    attendanceRepository.createEntry(
-                            sess.id(),
-                            m.id(),
-                            AttendanceEntry.AttendanceStatus.PRESENT,
-                            AttendanceEntry.EntrySource.EXTRA);
+                        templateFort.id(), start, end, evFort.id(), "Übung Fortgeschritten KW" + weekOfYear);
+                if (!isToday) {
+                    for (var m : fortgeschritten) {
+                        var status = rng.nextInt(10) < 7
+                                ? AttendanceEntry.AttendanceStatus.PRESENT
+                                : AttendanceEntry.AttendanceStatus.ABSENT;
+                        attendanceRepository.createEntry(
+                                sess.id(), m.id(), status, AttendanceEntry.EntrySource.EXPECTED);
+                    }
+                    for (var m : teamForFort) {
+                        attendanceRepository.createEntry(
+                                sess.id(),
+                                m.id(),
+                                AttendanceEntry.AttendanceStatus.PRESENT,
+                                AttendanceEntry.EntrySource.EXTRA);
+                    }
                 }
                 sessionCount++;
             }
@@ -1477,28 +1633,32 @@ public class DemoService {
                         templateGesamt.id(),
                         start,
                         end,
-                        null,
+                        evGesamt.id(),
                         "Gesamtübung "
                                 + date.getMonth().getDisplayName(TextStyle.FULL, Locale.GERMAN)
                                 + " " + date.getYear());
-                for (var m : anfaenger) {
-                    var status = rng.nextInt(10) < 7
-                            ? AttendanceEntry.AttendanceStatus.PRESENT
-                            : AttendanceEntry.AttendanceStatus.ABSENT;
-                    attendanceRepository.createEntry(sess.id(), m.id(), status, AttendanceEntry.EntrySource.EXPECTED);
-                }
-                for (var m : fortgeschritten) {
-                    var status = rng.nextInt(10) < 7
-                            ? AttendanceEntry.AttendanceStatus.PRESENT
-                            : AttendanceEntry.AttendanceStatus.ABSENT;
-                    attendanceRepository.createEntry(sess.id(), m.id(), status, AttendanceEntry.EntrySource.EXPECTED);
-                }
-                for (var m : teamForGesamt) {
-                    attendanceRepository.createEntry(
-                            sess.id(),
-                            m.id(),
-                            AttendanceEntry.AttendanceStatus.PRESENT,
-                            AttendanceEntry.EntrySource.EXTRA);
+                if (!isToday) {
+                    for (var m : anfaenger) {
+                        var status = rng.nextInt(10) < 7
+                                ? AttendanceEntry.AttendanceStatus.PRESENT
+                                : AttendanceEntry.AttendanceStatus.ABSENT;
+                        attendanceRepository.createEntry(
+                                sess.id(), m.id(), status, AttendanceEntry.EntrySource.EXPECTED);
+                    }
+                    for (var m : fortgeschritten) {
+                        var status = rng.nextInt(10) < 7
+                                ? AttendanceEntry.AttendanceStatus.PRESENT
+                                : AttendanceEntry.AttendanceStatus.ABSENT;
+                        attendanceRepository.createEntry(
+                                sess.id(), m.id(), status, AttendanceEntry.EntrySource.EXPECTED);
+                    }
+                    for (var m : teamForGesamt) {
+                        attendanceRepository.createEntry(
+                                sess.id(),
+                                m.id(),
+                                AttendanceEntry.AttendanceStatus.PRESENT,
+                                AttendanceEntry.EntrySource.EXTRA);
+                    }
                 }
                 sessionCount++;
             }

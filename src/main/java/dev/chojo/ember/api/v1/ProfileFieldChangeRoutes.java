@@ -34,6 +34,7 @@ public class ProfileFieldChangeRoutes implements Routes {
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
+        routes.get(prefix + "/profile-changes/all", this::getAllChanges, Roles.MEMBER_MANAGEMENT, Roles.MEMBER_MANAGER);
         routes.get(
                 prefix + "/profile-changes/pending",
                 this::getPendingSummary,
@@ -54,6 +55,24 @@ public class ProfileFieldChangeRoutes implements Routes {
                 this::acknowledgeAll,
                 Roles.MEMBER_MANAGEMENT,
                 Roles.MEMBER_MANAGER);
+    }
+
+    @OpenApi(
+            path = "/api/v1/profile-changes/all",
+            methods = HttpMethod.GET,
+            summary = "Get all profile field changes for the station with pagination",
+            tags = {"Profile Field Changes"},
+            queryParams = {
+                @OpenApiParam(name = "offset", type = Integer.class),
+                @OpenApiParam(name = "limit", type = Integer.class)
+            },
+            responses = @OpenApiResponse(status = "200"))
+    private void getAllChanges(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        int offset = ctx.queryParamAsClass("offset", Integer.class).getOrDefault(0);
+        int limit = ctx.queryParamAsClass("limit", Integer.class).getOrDefault(20);
+        var result = profileFieldService.findChangesByStation(session.stationId(), limit, offset);
+        ctx.json(new PagedChangesResponse(result.changes(), result.total(), offset, limit));
     }
 
     @OpenApi(
@@ -117,4 +136,7 @@ public class ProfileFieldChangeRoutes implements Routes {
     }
 
     public record AcknowledgeRequest(String comment) {}
+
+    public record PagedChangesResponse(
+            java.util.List<dev.chojo.ember.entity.ProfileFieldChange> changes, int total, int offset, int limit) {}
 }

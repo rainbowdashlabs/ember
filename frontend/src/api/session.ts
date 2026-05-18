@@ -21,6 +21,10 @@ export async function getActiveSessions(): Promise<ActiveSession[]> {
     return res.data
 }
 
+export async function invalidateSession(id: number): Promise<void> {
+    await client.delete(`/session/active/${id}`)
+}
+
 export async function invalidateAllSessions(): Promise<MessageResponse> {
     const res = await client.post<MessageResponse>('/session/invalidate-all')
     return res.data

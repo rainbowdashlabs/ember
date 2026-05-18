@@ -10,6 +10,7 @@ import {useRoute, useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import DeleteButton from '@/components/button/DeleteButton.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
@@ -41,6 +42,7 @@ const allTemplateFields = ref<AttendanceTemplateField[]>([])
 const eventRoleIds = ref<number[]>([])
 const eventGroupIds = ref<number[]>([])
 const eventFieldDefaults = ref<EventFieldDefault[]>([])
+const eventCustomFields = ref<{ name: string; value: string }[]>([])
 
 const loading = ref(true)
 const saving = ref(false)
@@ -88,11 +90,14 @@ async function loadData() {
     allTemplateFields.value = fieldResults.flat()
 
     if (isEdit.value) {
-      const [ev, restrictions, defaults] = await Promise.all([
+      const [ev, restrictions, defaults, fields] = await Promise.all([
         events.getEvent(eventId.value!),
         events.getRestrictions(eventId.value!),
         events.getFieldDefaults(eventId.value!),
+        events.getEventFields(eventId.value!),
       ])
+
+      eventCustomFields.value = fields.map(f => ({name: f.name ?? '', value: f.value ?? ''}))
 
       eventName.value = ev.name ?? ''
       eventDescription.value = ev.description ?? ''
@@ -182,6 +187,14 @@ function setFieldDefaultValue(fieldId: number, value: string) {
   fieldDefaults.value = m
 }
 
+function addCustomField() {
+  eventCustomFields.value.push({name: '', value: ''})
+}
+
+function removeCustomField(index: number) {
+  eventCustomFields.value.splice(index, 1)
+}
+
 async function submit() {
   saving.value = true
   error.value = ''
@@ -219,6 +232,9 @@ async function submit() {
     if (fieldDefaultEntries.length > 0 || isEdit.value) {
       await events.setFieldDefaults(savedEventId, fieldDefaultEntries)
     }
+
+    const customFields = eventCustomFields.value.filter(f => f.name.trim())
+    await events.setEventFields(savedEventId, {fields: customFields})
 
     router.push({name: 'events'})
   } catch {
@@ -308,6 +324,28 @@ watch(loaded, (isLoaded) => {
               <option value="">{{ t('events.noCategory') }}</option>
               <option v-for="cat in categories" :key="cat.id" :value="String(cat.id)">{{ cat.name }}</option>
             </SelectInput>
+          </div>
+        </NeutralContainer>
+
+        <NeutralContainer class="space-y-4">
+          <div class="flex items-center justify-between">
+            <SubHeader>{{ t('events.eventFields') }}</SubHeader>
+            <SecondaryButton class="text-xs" @click="addCustomField">
+              <font-awesome-icon :icon="['fas', 'plus']" class="mr-1"/>
+              {{ t('events.addField') }}
+            </SecondaryButton>
+          </div>
+          <p class="text-xs text-(--text-muted)">{{ t('events.eventFieldsHint') }}</p>
+          <div v-if="eventCustomFields.length === 0" class="text-sm text-(--text-muted) py-2">
+            {{ t('events.noFields') }}
+          </div>
+          <div v-for="(field, index) in eventCustomFields" :key="index"
+               class="flex items-start gap-2">
+            <div class="flex-1 grid gap-2 sm:grid-cols-2">
+              <TextInput v-model="field.name" :placeholder="t('events.fieldNamePlaceholder')"/>
+              <TextInput v-model="field.value" :placeholder="t('events.fieldValuePlaceholder')"/>
+            </div>
+            <DeleteButton class="mt-1" @click="removeCustomField(index)"/>
           </div>
         </NeutralContainer>
 

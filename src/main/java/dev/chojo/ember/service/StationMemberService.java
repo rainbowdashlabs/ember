@@ -29,6 +29,10 @@ public class StationMemberService {
         return memberRepository.findByStation(stationId);
     }
 
+    public List<StationMember> findByStation(int stationId, boolean includeFormer) {
+        return memberRepository.findByStation(stationId, includeFormer);
+    }
+
     public Optional<StationMember> findById(int id) {
         return memberRepository.findById(id);
     }

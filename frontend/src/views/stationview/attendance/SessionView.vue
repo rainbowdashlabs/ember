@@ -92,11 +92,14 @@ const memberSections = computed((): MemberSection[] => {
   const sections: MemberSection[] = []
   const assignedMemberIds = new Set<number>()
 
+  const sortByName = (a: StationMember, b: StationMember) =>
+      (a.name ?? '').localeCompare(b.name ?? '', 'de')
+
   // Template-defined groups in order
   for (const tg of templateGroups.value) {
     const group = groups.value.find(g => g.id === tg.groupId)
     if (!group) continue
-    const members = groupMembers.value.get(tg.groupId) ?? []
+    const members = [...(groupMembers.value.get(tg.groupId) ?? [])].sort(sortByName)
     if (members.length > 0) {
       sections.push({group, members})
       members.forEach(m => assignedMemberIds.add(m.id))
@@ -108,6 +111,7 @@ const memberSections = computed((): MemberSection[] => {
       .filter(e => !assignedMemberIds.has(e.memberId))
       .map(e => allMembers.value.find(m => m.id === e.memberId))
       .filter((m): m is StationMember => m != null)
+      .sort(sortByName)
 
   if (ungroupedMembers.length > 0) {
     sections.push({group: null, members: ungroupedMembers})
@@ -214,7 +218,7 @@ async function loadData() {
   try {
     const [detail, members, allGroups] = await Promise.all([
       attendance.getSession(sessionId.value),
-      stationMembers.listMembers(currentStationId.value!),
+      stationMembers.listMembers(currentStationId.value!, true),
       memberGroups.listGroups(),
     ])
     session.value = detail.session ?? null

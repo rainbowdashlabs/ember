@@ -27,7 +27,7 @@ import {useSession} from '@/composables/useSession'
 
 const {t} = useI18n()
 const router = useRouter()
-const {sessionInfo, loaded, isMemberManager, canManageAttendance} = useSession()
+const {sessionInfo, loaded, isMemberManager, canManageAttendance, canManageEvents} = useSession()
 
 const allEvents = ref<StationEvent[]>([])
 const todayEvents = ref<StationEvent[]>([])
@@ -88,10 +88,9 @@ const upcomingEvents = computed((): UpcomingEvent[] => {
     }
   }
 
-  // Next occurrence of each recurring event (including today)
-  const seenRecurring = new Set<number>()
-  for (let offset = 0; offset <= 365; offset++) {
-    if (allEvents.value.filter(e => e.eventType === EventTypes.RECURRING && isEventRelevant(e.id)).every(e => seenRecurring.has(e.id))) break
+  // Recurring events for the next 4 weeks (including today)
+  const maxDays = 28
+  for (let offset = 0; offset <= maxDays; offset++) {
     const date = new Date(today)
     date.setDate(date.getDate() + offset)
     const dateStr = date.toISOString().slice(0, 10)
@@ -100,11 +99,10 @@ const upcomingEvents = computed((): UpcomingEvent[] => {
     if (inBreak) continue
 
     for (const ev of allEvents.value) {
-      if (ev.eventType !== EventTypes.RECURRING || seenRecurring.has(ev.id)) continue
+      if (ev.eventType !== EventTypes.RECURRING) continue
       if (!isEventRelevant(ev.id)) continue
       if (ev.dayOfWeek === dow) {
         upcoming.push({event: ev, date: dateStr, dayLabel: dayNames[dow]})
-        seenRecurring.add(ev.id)
       }
     }
   }
@@ -307,7 +305,8 @@ watch(loaded, (isLoaded) => {
           <div class="grid gap-3 sm:grid-cols-2">
             <PrimaryContainer v-for="ev in filteredTodayEvents" :key="ev.id" class="space-y-2">
               <div class="flex items-center justify-between">
-                <span class="font-semibold">{{ ev.name }}</span>
+                <button v-if="canManageEvents()" class="font-semibold text-primary hover:underline cursor-pointer" @click="router.push({ name: 'event-detail', params: { id: ev.id } })">{{ ev.name }}</button>
+                <span v-else class="font-semibold">{{ ev.name }}</span>
                 <span class="text-sm">{{ formatTime(ev.startTime) }} – {{ formatTime(ev.endTime) }}</span>
               </div>
               <p v-if="ev.description" class="text-sm text-(--text-muted)">{{ ev.description }}</p>
@@ -333,7 +332,8 @@ watch(loaded, (isLoaded) => {
             <NeutralContainer v-for="item in upcomingEvents" :key="`${item.event.id}-${item.date}`" class="space-y-2">
               <div class="flex items-center justify-between flex-wrap gap-2">
                 <div>
-                  <span class="font-medium">{{ item.event.name }}</span>
+                  <button v-if="canManageEvents()" class="font-medium text-primary hover:underline cursor-pointer" @click="router.push({ name: 'event-detail', params: { id: item.event.id } })">{{ item.event.name }}</button>
+                  <span v-else class="font-medium">{{ item.event.name }}</span>
                   <span class="ml-2 text-sm text-(--text-muted)">{{ item.dayLabel }}, {{ item.date }}</span>
                   <span class="ml-2 text-xs text-(--text-muted)">{{
                       formatTime(item.event.startTime)

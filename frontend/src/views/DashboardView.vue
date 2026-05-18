@@ -22,6 +22,8 @@ import {useSession} from '@/composables/useSession'
 import {useStations} from '@/composables/useStations'
 import {usePendingChanges} from '@/composables/usePendingChanges'
 import HelpCenterLink from '@/components/navigation/HelpCenterLink.vue'
+import OnboardingTour from '@/components/onboarding/OnboardingTour.vue'
+import {useOnboardingTour} from '@/composables/useOnboardingTour'
 
 const {t, te} = useI18n()
 const route = useRoute()
@@ -55,6 +57,8 @@ async function refreshNotificationCount() {
   } catch { /* ignore */ }
 }
 
+const {checkFirstLogin} = useOnboardingTour()
+
 async function refreshPendingRegistrationCount() {
   try {
     const pending = await events.listPendingRegistrations()
@@ -77,6 +81,7 @@ watch(loaded, (isLoaded) => {
   if (isLoaded && (canManageMembers() || isMemberManager())) refreshPendingChanges()
   if (isLoaded) refreshNotificationCount()
   if (isLoaded && canManageEvents()) refreshPendingRegistrationCount()
+  if (isLoaded) checkFirstLogin()
 }, {immediate: true})
 
 const pageTitle = computed(() => {
@@ -287,5 +292,6 @@ async function handleLogout() {
       {{ t('demo.banner') }}
     </Alert>
     <RouterView/>
+    <OnboardingTour/>
   </SidebarLayout>
 </template>

@@ -130,6 +130,7 @@ export interface ActiveSession {
     createdAt?: string
     lastUsedAt?: string
     expiresAt?: string
+    isCurrent?: boolean
 }
 
 export interface StationMembership {
@@ -212,28 +213,14 @@ export interface BreakRequest {
 
 export interface EventField {
     id: number
-    stationId: number
-    name?: string
-    fieldType?: string
-    config?: string
-    position: number
-}
-
-export interface EventFieldRequest {
-    name?: string
-    fieldType?: string
-    config?: string
-    position: number
-}
-
-export interface EventFieldValue {
     eventId: number
-    fieldId: number
+    name?: string
     value?: string
+    position: number
 }
 
-export interface SetEventFieldValuesRequest {
-    values: { fieldId: number; value?: string }[]
+export interface SetEventFieldsRequest {
+    fields: { name: string; value?: string }[]
 }
 
 // -- Forms --
@@ -846,6 +833,7 @@ export interface ProfileFieldChange {
     changedByName?: string
     fieldName?: string
     acknowledgements: ProfileFieldChangeAcknowledgement[]
+    memberName?: string | null
 }
 
 export interface MemberChangeSummary {

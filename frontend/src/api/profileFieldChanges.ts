@@ -11,6 +11,18 @@ import type {
     ProfileFieldChangeAcknowledgement,
 } from './types'
 
+export interface PagedChangesResponse {
+    changes: ProfileFieldChange[]
+    total: number
+    offset: number
+    limit: number
+}
+
+export async function getAllChanges(offset = 0, limit = 20): Promise<PagedChangesResponse> {
+    const res = await client.get<PagedChangesResponse>('/profile-changes/all', { params: { offset, limit } })
+    return res.data
+}
+
 export async function getPendingSummary(): Promise<MemberChangeSummary[]> {
     const res = await client.get<MemberChangeSummary[]>('/profile-changes/pending')
     return res.data

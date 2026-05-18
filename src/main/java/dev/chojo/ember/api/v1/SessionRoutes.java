@@ -23,6 +23,7 @@ import io.javalin.http.Context;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
 import io.javalin.openapi.OpenApiContent;
+import io.javalin.openapi.OpenApiParam;
 import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
@@ -61,6 +62,7 @@ public class SessionRoutes implements Routes {
         routes.get(prefix + "/session", this::getSessionInfo, Roles.LOGIN);
         routes.get(prefix + "/session/stations", this::getStations, Roles.LOGIN);
         routes.get(prefix + "/session/active", this::getActiveSessions, Roles.LOGIN);
+        routes.delete(prefix + "/session/active/{id}", this::invalidateSession, Roles.LOGIN);
         routes.post(prefix + "/session/invalidate-all", this::invalidateAll, Roles.LOGIN);
     }
 
@@ -150,11 +152,33 @@ public class SessionRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ActiveSession[].class)))
     private void getActiveSessions(Context ctx) {
         UserSession session = UserSession.from(ctx);
+        String authHeader = ctx.header("Authorization");
+        String currentToken = authHeader != null && authHeader.startsWith("Bearer ") ? authHeader.substring(7) : "";
         List<AccountSession> sessions = authService.findSessionsByAccount(session.accountId());
         List<ActiveSession> result = sessions.stream()
-                .map(s -> new ActiveSession(s.id(), s.userAgent(), s.createdAt(), s.lastUsedAt(), s.expiresAt()))
+                .map(s -> new ActiveSession(
+                        s.id(),
+                        s.userAgent(),
+                        s.createdAt(),
+                        s.lastUsedAt(),
+                        s.expiresAt(),
+                        s.token().equals(currentToken)))
                 .toList();
         ctx.json(result);
+    }
+
+    @OpenApi(
+            path = "/api/v1/session/active/{id}",
+            methods = HttpMethod.DELETE,
+            summary = "Invalidate a specific session",
+            tags = {"Session"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            responses = @OpenApiResponse(status = "204"))
+    private void invalidateSession(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        accountRepository.deleteSessionById(id, session.accountId());
+        ctx.status(io.javalin.http.HttpStatus.NO_CONTENT);
     }
 
     @OpenApi(
@@ -189,5 +213,6 @@ public class SessionRoutes implements Routes {
 
     public record StationMembership(int memberId, int stationId, String stationName) {}
 
-    public record ActiveSession(int id, String userAgent, Instant createdAt, Instant lastUsedAt, Instant expiresAt) {}
+    public record ActiveSession(
+            int id, String userAgent, Instant createdAt, Instant lastUsedAt, Instant expiresAt, boolean isCurrent) {}
 }

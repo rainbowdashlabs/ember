@@ -304,6 +304,13 @@ public class AccountRepository {
                 .changed();
     }
 
+    public boolean deleteSessionById(int id, int accountId) {
+        return query("DELETE FROM account_session WHERE id = :id AND account_id = :account_id;")
+                .single(Call.of().bind("id", id).bind("account_id", accountId))
+                .delete()
+                .changed();
+    }
+
     public boolean deleteSessionsByAccount(int accountId) {
         return query("DELETE FROM account_session WHERE account_id = :account_id;")
                 .single(Call.of().bind("account_id", accountId))

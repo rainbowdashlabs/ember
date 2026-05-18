@@ -23,7 +23,8 @@ public record ProfileFieldChange(
         boolean requiresAcknowledgement,
         String changedByName,
         String fieldName,
-        List<ProfileFieldChangeAcknowledgement> acknowledgements) {
+        List<ProfileFieldChangeAcknowledgement> acknowledgements,
+        String memberName) {
     public static RowMapping<ProfileFieldChange> map() {
         return row -> new ProfileFieldChange(
                 row.getInt("id"),
@@ -36,6 +37,7 @@ public record ProfileFieldChange(
                 row.getBoolean("requires_acknowledgement"),
                 row.getString("changed_by_name"),
                 row.getString("field_name"),
-                List.of());
+                List.of(),
+                null);
     }
 }

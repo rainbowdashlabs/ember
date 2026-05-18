@@ -5,6 +5,7 @@
  */
 <script lang="ts" setup>
 import {useI18n} from 'vue-i18n'
+import {useRouter} from 'vue-router'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import EditButton from '@/components/button/EditButton.vue'
@@ -16,6 +17,7 @@ import type {AttendanceTemplate, EventCategory, StationEvent} from '@/api/types'
 import {EventTypes} from '@/api/types'
 
 const {t} = useI18n()
+const router = useRouter()
 
 interface CategoryGroup {
   category: EventCategory | null
@@ -91,13 +93,14 @@ function formatDate(iso?: string): string {
       </div>
       <h3 v-else class="text-sm font-semibold uppercase text-(--text-muted) pt-2">{{ t('events.uncategorized') }}</h3>
 
-      <NeutralContainer v-for="ev in group.events" :key="ev.id" class="flex items-center justify-between">
+      <NeutralContainer v-for="ev in group.events" :key="ev.id" class="flex items-center justify-between cursor-pointer hover:bg-(--bg-accent) transition-colors"
+                        @click="router.push({ name: 'event-detail', params: { id: ev.id } })">
         <div class="flex items-center gap-2 flex-wrap">
           <SecondaryBadge v-if="ev.eventType === EventTypes.RECURRING">
             <font-awesome-icon :icon="['fas', 'rotate']" class="mr-1 h-3 w-3"/>
             {{ t('events.typeRecurring') }}
           </SecondaryBadge>
-          <span class="font-medium">{{ ev.name }}</span>
+          <span class="font-medium text-primary">{{ ev.name }}</span>
           <span v-if="ev.eventType === EventTypes.RECURRING" class="text-sm text-(--text-muted)">{{
               dayName(ev.dayOfWeek)
             }}, {{ formatTime(ev.startTime) }} – {{ formatTime(ev.endTime) }}</span>
@@ -107,8 +110,8 @@ function formatDate(iso?: string): string {
           <span v-if="ev.templateId" class="text-xs text-primary">{{ templateName(ev.templateId, templates) }}</span>
         </div>
         <div class="flex items-center gap-2">
-          <EditButton @click="emit('editEvent', ev)"/>
-          <DeleteButton @click="emit('deleteEvent', ev)"/>
+          <EditButton @click.stop="emit('editEvent', ev)"/>
+          <DeleteButton @click.stop="emit('deleteEvent', ev)"/>
         </div>
       </NeutralContainer>
     </div>

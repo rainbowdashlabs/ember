@@ -11,11 +11,9 @@ import type {
     EventBreak,
     EventCategory,
     EventField,
-    EventFieldRequest,
-    EventFieldValue,
     EventRequest,
     EventRestrictions,
-    SetEventFieldValuesRequest,
+    SetEventFieldsRequest,
     StationEvent
 } from './types'
 
@@ -91,6 +89,25 @@ export async function listMyRegistrations(): Promise<EventRegistrationEntry[]> {
 
 export async function listPendingRegistrations(): Promise<EventRegistrationEntry[]> {
     const res = await client.get<EventRegistrationEntry[]>('/events/registrations/pending')
+    return res.data
+}
+
+export async function listEventRegistrations(eventId: number, date?: string): Promise<EventRegistrationEntry[]> {
+    const params = date ? { date } : undefined
+    const res = await client.get<EventRegistrationEntry[]>(`/events/${eventId}/registrations`, { params })
+    return res.data
+}
+
+export interface AbsentMember {
+    memberId: number
+    memberName: string
+    absentFrom: string
+    absentUntil: string
+    reason?: string | null
+}
+
+export async function listAbsencesForDate(eventId: number, date: string): Promise<AbsentMember[]> {
+    const res = await client.get<AbsentMember[]>(`/events/${eventId}/absences`, { params: { date } })
     return res.data
 }
 
@@ -200,38 +217,14 @@ export async function deleteBreak(id: number): Promise<void> {
     await client.delete(`/events/breaks/${id}`)
 }
 
-// -- Event Fields --
+// -- Event Fields (per-event) --
 
-export async function listEventFields(): Promise<EventField[]> {
-    const res = await client.get<EventField[]>('/events/fields')
+export async function getEventFields(eventId: number): Promise<EventField[]> {
+    const res = await client.get<EventField[]>(`/events/${eventId}/fields`)
     return res.data
 }
 
-export async function getEventField(fieldId: number): Promise<EventField> {
-    const res = await client.get<EventField>(`/events/fields/${fieldId}`)
-    return res.data
-}
-
-export async function createEventField(data: EventFieldRequest): Promise<EventField> {
-    const res = await client.post<EventField>('/events/fields', data)
-    return res.data
-}
-
-export async function updateEventField(fieldId: number, data: EventFieldRequest): Promise<EventField> {
-    const res = await client.put<EventField>(`/events/fields/${fieldId}`, data)
-    return res.data
-}
-
-export async function deleteEventField(fieldId: number): Promise<void> {
-    await client.delete(`/events/fields/${fieldId}`)
-}
-
-export async function getEventFieldValues(eventId: number): Promise<EventFieldValue[]> {
-    const res = await client.get<EventFieldValue[]>(`/events/${eventId}/fields`)
-    return res.data
-}
-
-export async function setEventFieldValues(eventId: number, data: SetEventFieldValuesRequest): Promise<EventFieldValue[]> {
-    const res = await client.put<EventFieldValue[]>(`/events/${eventId}/fields`, data)
+export async function setEventFields(eventId: number, data: SetEventFieldsRequest): Promise<EventField[]> {
+    const res = await client.put<EventField[]>(`/events/${eventId}/fields`, data)
     return res.data
 }

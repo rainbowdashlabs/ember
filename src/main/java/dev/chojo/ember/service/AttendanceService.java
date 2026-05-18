@@ -378,6 +378,10 @@ public class AttendanceService {
         return attendanceRepository.findActiveAbsencesByStation(stationId);
     }
 
+    public List<MemberAbsence> findAbsencesByStationOnDate(int stationId, LocalDate date) {
+        return attendanceRepository.findAbsencesByStationOnDate(stationId, date);
+    }
+
     public boolean isAbsent(int memberId) {
         return attendanceRepository.isAbsent(memberId);
     }

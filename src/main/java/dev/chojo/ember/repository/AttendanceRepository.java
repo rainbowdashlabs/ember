@@ -271,8 +271,13 @@ public class AttendanceRepository {
     }
 
     public List<AttendanceEntry> findEntries(int sessionId) {
-        return Query.query(
-                        "SELECT id, session_id, member_id, status, check_in, check_out, source FROM attendance_entry WHERE session_id = :session_id;")
+        return Query.query("""
+                            SELECT e.id, e.session_id, e.member_id, e.status, e.check_in, e.check_out, e.source
+                            FROM attendance_entry e
+                            JOIN station_member sm ON sm.id = e.member_id
+                            JOIN account a ON a.id = sm.account_id
+                            WHERE e.session_id = :session_id
+                            ORDER BY a.first_name, a.last_name;""")
                 .single(Call.of().bind("session_id", sessionId))
                 .map(AttendanceEntry.map())
                 .all();
@@ -469,6 +474,20 @@ public class AttendanceRepository {
                               AND ma.absent_until >= current_date
                             ORDER BY ma.absent_until;""")
                 .single(Call.of().bind("station_id", stationId))
+                .map(MemberAbsence.map())
+                .all();
+    }
+
+    public List<MemberAbsence> findAbsencesByStationOnDate(int stationId, LocalDate date) {
+        return Query.query("""
+                            SELECT ma.id, ma.member_id, ma.absent_from, ma.absent_until, ma.reason, ma.created_at, ma.created_by
+                            FROM member_absence ma
+                                JOIN station_member sm ON ma.member_id = sm.id
+                            WHERE sm.station_id = :station_id
+                              AND ma.absent_from <= :date
+                              AND ma.absent_until >= :date
+                            ORDER BY ma.absent_until;""")
+                .single(Call.of().bind("station_id", stationId).bind("date", date))
                 .map(MemberAbsence.map())
                 .all();
     }

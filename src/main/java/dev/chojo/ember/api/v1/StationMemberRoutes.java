@@ -89,7 +89,8 @@ public class StationMemberRoutes implements Routes {
 
     private void listByStation(Context ctx) {
         int stationId = ctx.queryParamAsClass("stationId", Integer.class).get();
-        ctx.json(memberService.findByStation(stationId).stream()
+        boolean includeFormer = "true".equals(ctx.queryParam("includeFormer"));
+        ctx.json(memberService.findByStation(stationId, includeFormer).stream()
                 .map(this::toMemberWithName)
                 .toList());
     }

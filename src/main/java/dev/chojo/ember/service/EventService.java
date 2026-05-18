@@ -264,6 +264,10 @@ public class EventService {
         return eventRepository.findRegistrations(eventId, eventDate);
     }
 
+    public List<EventRegistration> findAllRegistrations(int eventId) {
+        return eventRepository.findAllRegistrations(eventId);
+    }
+
     public List<EventRegistration> findRegistrationsByMember(int memberId) {
         return eventRepository.findRegistrationsByMember(memberId);
     }

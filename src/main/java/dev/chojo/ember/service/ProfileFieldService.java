@@ -181,8 +181,49 @@ public class ProfileFieldService {
                         c.requiresAcknowledgement(),
                         c.changedByName(),
                         c.fieldName(),
-                        acksByChange.getOrDefault(c.id(), List.of())))
+                        acksByChange.getOrDefault(c.id(), List.of()),
+                        null))
                 .toList();
+    }
+
+    public record PagedChanges(List<ProfileFieldChange> changes, int total) {}
+
+    public PagedChanges findChangesByStation(int stationId, int limit, int offset) {
+        var changes = changeRepository.findByStation(stationId, limit, offset);
+        int total = changeRepository.countByStation(stationId);
+        if (changes.isEmpty()) return new PagedChanges(changes, total);
+
+        var allAcks = new ArrayList<ProfileFieldChangeAcknowledgement>();
+        for (var change : changes) {
+            allAcks.addAll(changeRepository.findAcknowledgements(change.id()));
+        }
+        Map<Integer, List<ProfileFieldChangeAcknowledgement>> acksByChange =
+                allAcks.stream().collect(Collectors.groupingBy(ProfileFieldChangeAcknowledgement::changeId));
+
+        // Resolve member names
+        var enriched = changes.stream()
+                .map(c -> {
+                    String memberName = stationMemberRepository
+                            .findById(c.memberId())
+                            .flatMap(m -> accountRepository.findById(m.accountId()))
+                            .map(a -> (a.firstName() + " " + a.lastName()).trim())
+                            .orElse("");
+                    return new ProfileFieldChange(
+                            c.id(),
+                            c.fieldId(),
+                            c.memberId(),
+                            c.oldValue(),
+                            c.newValue(),
+                            c.changedBy(),
+                            c.changedAt(),
+                            c.requiresAcknowledgement(),
+                            c.changedByName(),
+                            c.fieldName(),
+                            acksByChange.getOrDefault(c.id(), List.of()),
+                            memberName);
+                })
+                .toList();
+        return new PagedChanges(enriched, total);
     }
 
     // -- Change History --

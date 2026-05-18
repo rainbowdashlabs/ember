@@ -340,6 +340,14 @@ public class EventRepository {
                 .all();
     }
 
+    public List<EventRegistration> findAllRegistrations(int eventId) {
+        return Query.query(
+                        "SELECT id, event_id, member_id, event_date, status, created_at, created_by FROM event_registration WHERE event_id = :event_id ORDER BY event_date DESC, status, created_at;")
+                .single(Call.of().bind("event_id", eventId))
+                .map(EventRegistration.map())
+                .all();
+    }
+
     public List<EventRegistration> findPendingRegistrationsByStation(int stationId) {
         return Query.query("""
                             SELECT er.id, er.event_id, er.member_id, er.event_date, er.status, er.created_at, er.created_by

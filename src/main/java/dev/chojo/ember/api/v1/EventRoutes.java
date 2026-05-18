@@ -15,7 +15,6 @@ import dev.chojo.ember.entity.EventBreak;
 import dev.chojo.ember.entity.EventCategory;
 import dev.chojo.ember.entity.EventField;
 import dev.chojo.ember.entity.EventFieldDefault;
-import dev.chojo.ember.entity.EventFieldValue;
 import dev.chojo.ember.entity.EventRegistration;
 import dev.chojo.ember.entity.MemberGroup;
 import dev.chojo.ember.entity.NotificationData;
@@ -23,7 +22,9 @@ import dev.chojo.ember.entity.NotificationType;
 import dev.chojo.ember.entity.StationEvent;
 import dev.chojo.ember.entity.StationMember;
 import dev.chojo.ember.repository.AccountRepository;
+import dev.chojo.ember.repository.EventFieldRepository;
 import dev.chojo.ember.repository.StationMemberRepository;
+import dev.chojo.ember.service.AttendanceService;
 import dev.chojo.ember.service.EventFieldService;
 import dev.chojo.ember.service.EventService;
 import dev.chojo.ember.service.MemberGroupService;
@@ -65,6 +66,7 @@ public class EventRoutes implements Routes {
     private final NotificationService notificationService;
     private final StationMemberRepository stationMemberRepository;
     private final AccountRepository accountRepository;
+    private final AttendanceService attendanceService;
 
     @Inject
     public EventRoutes(
@@ -75,7 +77,8 @@ public class EventRoutes implements Routes {
             MemberGroupService memberGroupService,
             NotificationService notificationService,
             StationMemberRepository stationMemberRepository,
-            AccountRepository accountRepository) {
+            AccountRepository accountRepository,
+            AttendanceService attendanceService) {
         this.eventService = eventService;
         this.eventFieldService = eventFieldService;
         this.stationMemberService = stationMemberService;
@@ -84,6 +87,7 @@ public class EventRoutes implements Routes {
         this.notificationService = notificationService;
         this.stationMemberRepository = stationMemberRepository;
         this.accountRepository = accountRepository;
+        this.attendanceService = attendanceService;
     }
 
     @Override
@@ -126,14 +130,10 @@ public class EventRoutes implements Routes {
         routes.get(prefix + "/events/{id}/field-defaults", this::getFieldDefaults, Roles.USER);
         routes.put(prefix + "/events/{id}/field-defaults", this::setFieldDefaults, Roles.EVENT_MANAGEMENT);
 
-        routes.get(prefix + "/events/fields", this::listFields, Roles.USER);
-        routes.post(prefix + "/events/fields", this::createField, Roles.EVENT_MANAGEMENT);
-        routes.get(prefix + "/events/fields/{fieldId}", this::getField, Roles.USER);
-        routes.put(prefix + "/events/fields/{fieldId}", this::updateField, Roles.EVENT_MANAGEMENT);
-        routes.delete(prefix + "/events/fields/{fieldId}", this::deleteField, Roles.EVENT_MANAGEMENT);
+        routes.get(prefix + "/events/{id}/fields", this::getFields, Roles.USER);
+        routes.put(prefix + "/events/{id}/fields", this::setFields, Roles.EVENT_MANAGEMENT);
 
-        routes.get(prefix + "/events/{id}/fields", this::getFieldValues, Roles.USER);
-        routes.put(prefix + "/events/{id}/fields", this::setFieldValues, Roles.EVENT_MANAGEMENT);
+        routes.get(prefix + "/events/{id}/absences", this::listAbsencesForDate, Roles.EVENT_MANAGEMENT);
     }
 
     private Set<Roles> resolveRolesForMember(UserSession session, int memberId) {
@@ -463,8 +463,28 @@ public class EventRoutes implements Routes {
     private void listRegistrations(Context ctx) {
         int eventId = ctx.pathParamAsClass("eventId", Integer.class).get();
         String dateStr = ctx.queryParam("date");
-        LocalDate date = dateStr != null ? LocalDate.parse(dateStr) : LocalDate.now();
-        ctx.json(eventService.findRegistrations(eventId, date));
+        var regs = dateStr != null
+                ? eventService.findRegistrations(eventId, LocalDate.parse(dateStr))
+                : eventService.findAllRegistrations(eventId);
+        ctx.json(regs.stream()
+                .map(r -> {
+                    String memberName = stationMemberRepository
+                            .findById(r.memberId())
+                            .flatMap(m -> accountRepository.findById(m.accountId()))
+                            .map(a -> (a.firstName() + " " + a.lastName()).trim())
+                            .orElse("");
+                    String createdByName = resolveCreatedByName(r.createdBy());
+                    return new RegistrationResponse(
+                            r.id(),
+                            r.eventId(),
+                            r.memberId(),
+                            memberName,
+                            r.eventDate(),
+                            r.status().name(),
+                            r.createdAt(),
+                            createdByName);
+                })
+                .toList());
     }
 
     @OpenApi(
@@ -887,138 +907,71 @@ public class EventRoutes implements Routes {
 
     public record FieldDefaultEntry(int fieldId, String source, String value) {}
 
-    // -- Event Fields --
+    // -- Event Fields (per-event) --
 
     @OpenApi(
-            path = "/api/v1/events/fields",
+            path = "/api/v1/events/{id}/fields",
             methods = HttpMethod.GET,
-            summary = "List event field definitions",
+            summary = "Get fields for an event",
             tags = {"Events"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = EventField[].class)))
-    private void listFields(Context ctx) {
-        UserSession session = UserSession.from(ctx);
-        ctx.json(eventFieldService.findByStation(session.stationId()));
-    }
-
-    @OpenApi(
-            path = "/api/v1/events/fields",
-            methods = HttpMethod.POST,
-            summary = "Create an event field",
-            tags = {"Events"},
-            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = EventFieldRequest.class)),
-            responses = {
-                @OpenApiResponse(status = "201", content = @OpenApiContent(from = EventField.class)),
-                @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
-            })
-    private void createField(Context ctx) {
-        UserSession session = UserSession.from(ctx);
-        var req = ctx.bodyAsClass(EventFieldRequest.class);
-        if (req.name() == null || req.name().isBlank()) throw new BadRequestResponse("name is required");
-        if (req.fieldType() == null || req.fieldType().isBlank()) throw new BadRequestResponse("fieldType is required");
-        ctx.status(HttpStatus.CREATED)
-                .json(eventFieldService.create(
-                        session.stationId(),
-                        req.name(),
-                        req.fieldType(),
-                        req.config() != null ? req.config() : "{}",
-                        req.position()));
-    }
-
-    @OpenApi(
-            path = "/api/v1/events/fields/{fieldId}",
-            methods = HttpMethod.GET,
-            summary = "Get an event field",
-            tags = {"Events"},
-            pathParams = @OpenApiParam(name = "fieldId", type = Integer.class, required = true),
-            responses = {
-                @OpenApiResponse(status = "200", content = @OpenApiContent(from = EventField.class)),
-                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
-            })
-    private void getField(Context ctx) {
-        int fieldId = ctx.pathParamAsClass("fieldId", Integer.class).get();
-        eventFieldService.findById(fieldId).ifPresentOrElse(ctx::json, () -> {
-            throw new NotFoundResponse();
-        });
-    }
-
-    @OpenApi(
-            path = "/api/v1/events/fields/{fieldId}",
-            methods = HttpMethod.PUT,
-            summary = "Update an event field",
-            tags = {"Events"},
-            pathParams = @OpenApiParam(name = "fieldId", type = Integer.class, required = true),
-            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = EventFieldRequest.class)),
-            responses = {
-                @OpenApiResponse(status = "200", content = @OpenApiContent(from = EventField.class)),
-                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
-            })
-    private void updateField(Context ctx) {
-        int fieldId = ctx.pathParamAsClass("fieldId", Integer.class).get();
-        var req = ctx.bodyAsClass(EventFieldRequest.class);
-        if (!eventFieldService.update(
-                fieldId, req.name(), req.fieldType(), req.config() != null ? req.config() : "{}", req.position())) {
-            throw new NotFoundResponse();
-        }
-        eventFieldService.findById(fieldId).ifPresentOrElse(ctx::json, () -> {
-            throw new NotFoundResponse();
-        });
-    }
-
-    @OpenApi(
-            path = "/api/v1/events/fields/{fieldId}",
-            methods = HttpMethod.DELETE,
-            summary = "Delete an event field",
-            tags = {"Events"},
-            pathParams = @OpenApiParam(name = "fieldId", type = Integer.class, required = true),
-            responses = {
-                @OpenApiResponse(status = "204"),
-                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
-            })
-    private void deleteField(Context ctx) {
-        int fieldId = ctx.pathParamAsClass("fieldId", Integer.class).get();
-        if (eventFieldService.delete(fieldId)) {
-            ctx.status(HttpStatus.NO_CONTENT);
-        } else {
-            throw new NotFoundResponse();
-        }
-    }
-
-    @OpenApi(
-            path = "/api/v1/events/{id}/fields",
-            methods = HttpMethod.GET,
-            summary = "Get event field values",
-            tags = {"Events"},
-            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
-            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = EventFieldValue[].class)))
-    private void getFieldValues(Context ctx) {
+    private void getFields(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
-        ctx.json(eventFieldService.findValues(id));
+        ctx.json(eventFieldService.findByEvent(id));
     }
 
     @OpenApi(
             path = "/api/v1/events/{id}/fields",
             methods = HttpMethod.PUT,
-            summary = "Set event field values",
+            summary = "Replace all fields for an event",
             tags = {"Events"},
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
-            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = SetEventFieldValuesRequest.class)),
-            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = EventFieldValue[].class)))
-    private void setFieldValues(Context ctx) {
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = SetEventFieldsRequest.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = EventField[].class)))
+    private void setFields(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
-        var req = ctx.bodyAsClass(SetEventFieldValuesRequest.class);
-        eventFieldService.setValues(
+        var req = ctx.bodyAsClass(SetEventFieldsRequest.class);
+        eventFieldService.replaceFields(
                 id,
-                req.values().stream()
-                        .map(e -> new EventFieldService.FieldValueEntry(e.fieldId(), e.value()))
+                req.fields().stream()
+                        .map(e -> new EventFieldRepository.FieldEntry(e.name(), e.value() != null ? e.value() : ""))
                         .toList());
-        ctx.json(eventFieldService.findValues(id));
+        ctx.json(eventFieldService.findByEvent(id));
     }
 
-    public record EventFieldRequest(String name, String fieldType, String config, int position) {}
+    @OpenApi(
+            path = "/api/v1/events/{id}/absences",
+            methods = HttpMethod.GET,
+            summary = "List absent members for a given date",
+            tags = {"Events"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            queryParams = @OpenApiParam(name = "date", type = String.class),
+            responses = @OpenApiResponse(status = "200"))
+    private void listAbsencesForDate(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        String dateStr = ctx.queryParam("date");
+        LocalDate date = dateStr != null ? LocalDate.parse(dateStr) : LocalDate.now();
+        var absences = attendanceService.findAbsencesByStationOnDate(session.stationId(), date);
+        ctx.json(absences.stream()
+                .map(a -> {
+                    String memberName = stationMemberRepository
+                            .findById(a.memberId())
+                            .flatMap(m -> accountRepository.findById(m.accountId()))
+                            .map(acc -> (acc.firstName() + " " + acc.lastName()).trim())
+                            .orElse("");
+                    return new AbsentMemberResponse(
+                            a.memberId(), memberName, a.absentFrom(), a.absentUntil(), a.reason());
+                })
+                .toList());
+    }
 
-    @OpenApiName("SetEventFieldValuesRequest")
-    public record SetEventFieldValuesRequest(List<EventFieldValueEntry> values) {}
+    public record AbsentMemberResponse(
+            int memberId, String memberName, LocalDate absentFrom, LocalDate absentUntil, String reason) {}
 
-    @OpenApiName("EventFieldValueEntry")
-    public record EventFieldValueEntry(int fieldId, String value) {}
+    @OpenApiName("SetEventFieldsRequest")
+    public record SetEventFieldsRequest(List<EventFieldEntry> fields) {}
+
+    @OpenApiName("EventFieldEntry")
+    public record EventFieldEntry(String name, String value) {}
 }

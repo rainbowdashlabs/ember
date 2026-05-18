@@ -39,8 +39,13 @@ public class StationMemberRepository {
      * Find active (non-former) members of a station.
      */
     public List<StationMember> findByStation(int stationId) {
-        return Query.query("SELECT * FROM station_member WHERE station_id = :station_id AND former = false;")
-                .single(Call.of().bind("station_id", stationId))
+        return findByStation(stationId, false);
+    }
+
+    public List<StationMember> findByStation(int stationId, boolean includeFormer) {
+        return Query.query(
+                        "SELECT * FROM station_member WHERE station_id = :station_id AND (former = false OR :include_former);")
+                .single(Call.of().bind("station_id", stationId).bind("include_former", includeFormer))
                 .map(StationMember.map())
                 .all();
     }

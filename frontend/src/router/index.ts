@@ -270,6 +270,11 @@ const router = createRouter({
                     component: EventsRegistrationsView,
                 },
                 {
+                    path: 'events/:id',
+                    name: 'event-detail',
+                    component: () => import('@/views/stationview/events/EventDetailView.vue'),
+                },
+                {
                     path: 'events/new',
                     name: 'event-new',
                     component: () => import('@/views/stationview/events/EventEditView.vue'),
