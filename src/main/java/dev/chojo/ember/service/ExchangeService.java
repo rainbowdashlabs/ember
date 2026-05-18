@@ -41,8 +41,10 @@ public class ExchangeService {
             int inventoryId,
             Integer oldSizeId,
             Integer newSizeId,
-            String reason) {
-        return exchangeRepository.create(stationId, memberId, itemId, inventoryId, oldSizeId, newSizeId, reason);
+            String reason,
+            Integer createdBy) {
+        return exchangeRepository.create(
+                stationId, memberId, itemId, inventoryId, oldSizeId, newSizeId, reason, createdBy);
     }
 
     public Optional<ExchangeRequest> findById(int id) {

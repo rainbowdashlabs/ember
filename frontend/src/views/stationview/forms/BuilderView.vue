@@ -22,7 +22,7 @@ import SelectInput from '@/components/input/select/SelectInput.vue'
 import NumberInput from '@/components/input/number/NumberInput.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import type { FormQuestionRequest, QuestionType, Role, MemberGroup, UserTag } from '@/api/types'
-import { Roles } from '@/api/types'
+import { Roles, QuestionTypes } from '@/api/types'
 import { forms, stationMembers, memberGroups, userTags } from '@/api'
 
 const { t } = useI18n()
@@ -92,7 +92,7 @@ interface QuestionDraft {
 const questions = ref<QuestionDraft[]>([])
 let nextTempId = 1
 
-const questionTypes: QuestionType[] = ['CHOICE', 'TEXT', 'RATING', 'DATE', 'RANKING', 'LIKERT']
+const questionTypes: QuestionType[] = [QuestionTypes.CHOICE, QuestionTypes.TEXT, QuestionTypes.RATING, QuestionTypes.DATE, QuestionTypes.RANKING, QuestionTypes.LIKERT]
 
 function addQuestion(type: QuestionType) {
   const defaultConfig = getDefaultConfig(type)
@@ -109,12 +109,12 @@ function addQuestion(type: QuestionType) {
 
 function getDefaultConfig(type: QuestionType): Record<string, unknown> {
   switch (type) {
-    case 'CHOICE': return { multiSelect: false, dropdown: false, allowOther: false, options: [''], multiLimitType: 'NONE', multiLimit: null }
-    case 'TEXT': return { longAnswer: false }
-    case 'RATING': return { scale: 5, icon: 'STAR' }
-    case 'DATE': return {}
-    case 'RANKING': return { options: [''] }
-    case 'LIKERT': return { statements: [''], scaleMin: 1, scaleMax: 5, scaleLabels: [] }
+    case QuestionTypes.CHOICE: return { multiSelect: false, dropdown: false, allowOther: false, options: [''], multiLimitType: 'NONE', multiLimit: null }
+    case QuestionTypes.TEXT: return { longAnswer: false }
+    case QuestionTypes.RATING: return { scale: 5, icon: 'STAR' }
+    case QuestionTypes.DATE: return {}
+    case QuestionTypes.RANKING: return { options: [''] }
+    case QuestionTypes.LIKERT: return { statements: [''], scaleMin: 1, scaleMax: 5, scaleLabels: [] }
   }
 }
 
@@ -397,7 +397,7 @@ onMounted(loadForm)
                   <ToggleInput v-model="q.required" />
                   {{ t('forms.questionRequired') }}
                 </label>
-                <label v-if="q.questionType === 'CHOICE' || q.questionType === 'RANKING' || q.questionType === 'LIKERT'"
+                <label v-if="q.questionType === QuestionTypes.CHOICE || q.questionType === QuestionTypes.RANKING || q.questionType === QuestionTypes.LIKERT"
                        class="flex items-center gap-2 text-sm">
                   <ToggleInput v-model="q.shuffle" />
                   {{ t('forms.questionShuffle') }}
@@ -405,7 +405,7 @@ onMounted(loadForm)
               </div>
 
               <!-- CHOICE -->
-              <template v-if="q.questionType === 'CHOICE'">
+              <template v-if="q.questionType === QuestionTypes.CHOICE">
                 <div class="flex gap-4 flex-wrap">
                   <label class="flex items-center gap-2 text-sm">
                     <ToggleInput :model-value="!!q.config.multiSelect" @update:model-value="setMultiSelect(q, $event)" />
@@ -442,7 +442,7 @@ onMounted(loadForm)
               </template>
 
               <!-- TEXT -->
-              <template v-if="q.questionType === 'TEXT'">
+              <template v-if="q.questionType === QuestionTypes.TEXT">
                 <label class="flex items-center gap-2 text-sm">
                   <ToggleInput v-model="(q.config.longAnswer as boolean)" />
                   {{ t('forms.text.longAnswer') }}
@@ -450,7 +450,7 @@ onMounted(loadForm)
               </template>
 
               <!-- RATING -->
-              <template v-if="q.questionType === 'RATING'">
+              <template v-if="q.questionType === QuestionTypes.RATING">
                 <div class="flex gap-4 items-center">
                   <label class="text-sm">{{ t('forms.rating.scale') }}</label>
                   <NumberInput v-model="(q.config.scale as number)" class="w-20" />
@@ -464,7 +464,7 @@ onMounted(loadForm)
               </template>
 
               <!-- RANKING -->
-              <template v-if="q.questionType === 'RANKING'">
+              <template v-if="q.questionType === QuestionTypes.RANKING">
                 <div class="space-y-1">
                   <label class="text-xs text-(--text-muted)">{{ t('forms.ranking.options') }}</label>
                   <div v-for="(opt, oi) in (q.config.options as string[])" :key="oi" class="flex gap-2 items-center">
@@ -478,7 +478,7 @@ onMounted(loadForm)
               </template>
 
               <!-- LIKERT -->
-              <template v-if="q.questionType === 'LIKERT'">
+              <template v-if="q.questionType === QuestionTypes.LIKERT">
                 <div class="flex gap-4 items-center">
                   <label class="text-sm">{{ t('forms.likert.scaleMin') }}</label>
                   <NumberInput v-model="(q.config.scaleMin as number)" class="w-20" />

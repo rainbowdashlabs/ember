@@ -87,7 +87,7 @@ class EventRepositoryTest extends RepositoryTestBase {
                 station.id(),
                 "Fire Drill",
                 "Annual drill",
-                "ONE_TIME",
+                StationEvent.EventType.ONE_TIME,
                 null,
                 start,
                 end,
@@ -133,7 +133,7 @@ class EventRepositoryTest extends RepositoryTestBase {
                 eventId,
                 "Updated Drill",
                 "Updated desc",
-                "ONE_TIME",
+                StationEvent.EventType.ONE_TIME,
                 null,
                 start,
                 end,
@@ -158,7 +158,7 @@ class EventRepositoryTest extends RepositoryTestBase {
                 station.id(),
                 "Weekly Meeting",
                 "Team sync",
-                "RECURRING",
+                StationEvent.EventType.RECURRING,
                 1,
                 start,
                 end,
@@ -267,7 +267,7 @@ class EventRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(35)
     void updateRegistrationStatus() {
-        assertTrue(eventRepo.updateRegistrationStatus(registrationId, "ACCEPTED"));
+        assertTrue(eventRepo.updateRegistrationStatus(registrationId, EventRegistration.RegistrationStatus.ACCEPTED));
         var reg = eventRepo.findRegistrationById(registrationId).orElseThrow();
         assertEquals(EventRegistration.RegistrationStatus.ACCEPTED, reg.status());
         // No longer pending

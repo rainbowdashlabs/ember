@@ -12,6 +12,7 @@ export interface MemberAbsence {
     absentUntil?: string
     reason?: string
     createdAt?: string
+    createdByName?: string | null
 }
 
 export async function listMyAbsences(): Promise<MemberAbsence[]> {

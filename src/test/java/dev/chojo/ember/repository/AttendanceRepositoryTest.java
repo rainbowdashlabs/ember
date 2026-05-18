@@ -267,7 +267,7 @@ class AttendanceRepositoryTest extends RepositoryTestBase {
     @Order(50)
     void createAbsence() {
         MemberAbsence absence = attendanceRepo.createAbsence(
-                member.id(), LocalDate.now(), LocalDate.now().plusDays(7), "Vacation");
+                member.id(), LocalDate.now(), LocalDate.now().plusDays(7), "Vacation", null);
         assertNotNull(absence);
         assertEquals(member.id(), absence.memberId());
         assertEquals("Vacation", absence.reason());
@@ -311,7 +311,7 @@ class AttendanceRepositoryTest extends RepositoryTestBase {
     @Order(56)
     void deleteExpiredAbsences() {
         attendanceRepo.createAbsence(
-                member.id(), LocalDate.now().minusDays(2), LocalDate.now().minusDays(1), "Past");
+                member.id(), LocalDate.now().minusDays(2), LocalDate.now().minusDays(1), "Past", null);
         assertTrue(attendanceRepo.deleteExpiredAbsences());
         assertFalse(attendanceRepo.isAbsent(member.id()));
     }

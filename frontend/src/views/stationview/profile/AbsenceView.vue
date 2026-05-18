@@ -236,6 +236,7 @@ watch(loaded, (isLoaded) => {
                     formatDate(absence.absentUntil)
                   }}</span>
                 <span v-if="absence.reason" class="ml-3 text-sm text-(--text-muted)">{{ absence.reason }}</span>
+                <span v-if="absence.createdByName" class="ml-3 text-xs text-(--text-muted) italic">{{ t('common.createdBy', { name: absence.createdByName }) }}</span>
               </div>
               <div class="flex items-center gap-2">
                 <SuccessBadge v-if="isAbsenceActive(absence)">{{ t('profile.absenceActive') }}</SuccessBadge>

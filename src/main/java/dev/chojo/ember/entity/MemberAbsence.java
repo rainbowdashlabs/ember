@@ -13,7 +13,13 @@ import java.time.LocalDate;
 import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIMESTAMP;
 
 public record MemberAbsence(
-        int id, int memberId, LocalDate absentFrom, LocalDate absentUntil, String reason, Instant createdAt) {
+        int id,
+        int memberId,
+        LocalDate absentFrom,
+        LocalDate absentUntil,
+        String reason,
+        Instant createdAt,
+        Integer createdBy) {
     public static RowMapping<MemberAbsence> map() {
         return row -> new MemberAbsence(
                 row.getInt("id"),
@@ -21,7 +27,8 @@ public record MemberAbsence(
                 row.getObject("absent_from", LocalDate.class),
                 row.getObject("absent_until", LocalDate.class),
                 row.getString("reason"),
-                row.get("created_at", INSTANT_TIMESTAMP));
+                row.get("created_at", INSTANT_TIMESTAMP),
+                row.getObject("created_by", Integer.class));
     }
 
     public boolean isActive() {

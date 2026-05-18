@@ -401,7 +401,7 @@ onMounted(loadData)
             :sizes="detail.sizes"
             :members="memberMap"
             :show-actions="true"
-            :inventory-type="detail.inventoryType ?? 'INTERNAL'"
+            :inventory-type="detail.inventoryType ?? InventoryTypes.INTERNAL"
             @assign="onAssign"
             @unassign="onUnassign"
             @edit="onEditItem"

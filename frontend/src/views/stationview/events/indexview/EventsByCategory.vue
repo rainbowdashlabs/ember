@@ -13,6 +13,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import type {AttendanceTemplate, EventCategory, StationEvent} from '@/api/types'
+import {EventTypes} from '@/api/types'
 
 const {t} = useI18n()
 
@@ -92,12 +93,12 @@ function formatDate(iso?: string): string {
 
       <NeutralContainer v-for="ev in group.events" :key="ev.id" class="flex items-center justify-between">
         <div class="flex items-center gap-2 flex-wrap">
-          <SecondaryBadge v-if="ev.eventType === 'RECURRING'">
+          <SecondaryBadge v-if="ev.eventType === EventTypes.RECURRING">
             <font-awesome-icon :icon="['fas', 'rotate']" class="mr-1 h-3 w-3"/>
             {{ t('events.typeRecurring') }}
           </SecondaryBadge>
           <span class="font-medium">{{ ev.name }}</span>
-          <span v-if="ev.eventType === 'RECURRING'" class="text-sm text-(--text-muted)">{{
+          <span v-if="ev.eventType === EventTypes.RECURRING" class="text-sm text-(--text-muted)">{{
               dayName(ev.dayOfWeek)
             }}, {{ formatTime(ev.startTime) }} – {{ formatTime(ev.endTime) }}</span>
           <span v-else class="text-sm text-(--text-muted)">{{ formatDate(ev.startTime) }}, {{

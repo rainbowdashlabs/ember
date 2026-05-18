@@ -113,9 +113,9 @@ function formatDate(dateStr: string): string {
 
 function statusBadgeComponent(status: string) {
   switch (status) {
-    case 'ACCEPTED': case ExchangeStatus.EXCHANGED: return SuccessBadge
-    case 'PENDING': case ExchangeStatus.ANNOUNCED: case ExchangeStatus.SHIPPED: return InfoBadge
-    case 'DENIED': case 'DECLINED': return ErrorBadge
+    case RegistrationStatus.ACCEPTED: case ExchangeStatus.EXCHANGED: return SuccessBadge
+    case RegistrationStatus.PENDING: case ExchangeStatus.ANNOUNCED: case ExchangeStatus.SHIPPED: return InfoBadge
+    case RegistrationStatus.DENIED: case RegistrationStatus.DECLINED: return ErrorBadge
     default: return SecondaryBadge
   }
 }

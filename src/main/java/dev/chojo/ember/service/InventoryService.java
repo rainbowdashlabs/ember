@@ -97,7 +97,12 @@ public class InventoryService {
     }
 
     public InventoryItem createItem(
-            int inventoryId, String internalId, String name, Integer sizeId, String metadata, String itemSource) {
+            int inventoryId,
+            String internalId,
+            String name,
+            Integer sizeId,
+            String metadata,
+            InventoryItem.ItemSource itemSource) {
         return inventoryRepository.createItem(inventoryId, internalId, name, sizeId, metadata, itemSource);
     }
 

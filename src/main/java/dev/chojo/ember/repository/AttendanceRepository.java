@@ -426,14 +426,16 @@ public class AttendanceRepository {
                 .changed();
     }
 
-    public MemberAbsence createAbsence(int memberId, LocalDate absentFrom, LocalDate absentUntil, String reason) {
+    public MemberAbsence createAbsence(
+            int memberId, LocalDate absentFrom, LocalDate absentUntil, String reason, Integer createdBy) {
         return Query.query(
-                        "INSERT INTO member_absence(member_id, absent_from, absent_until, reason) VALUES(:member_id, :absent_from, :absent_until, :reason) RETURNING id, member_id, absent_from, absent_until, reason, created_at;")
+                        "INSERT INTO member_absence(member_id, absent_from, absent_until, reason, created_by) VALUES(:member_id, :absent_from, :absent_until, :reason, :created_by) RETURNING id, member_id, absent_from, absent_until, reason, created_at, created_by;")
                 .single(Call.of()
                         .bind("member_id", memberId)
                         .bind("absent_from", absentFrom)
                         .bind("absent_until", absentUntil)
-                        .bind("reason", reason))
+                        .bind("reason", reason)
+                        .bind("created_by", createdBy))
                 .map(MemberAbsence.map())
                 .first()
                 .orElseThrow();
@@ -441,7 +443,7 @@ public class AttendanceRepository {
 
     public Optional<MemberAbsence> findAbsenceById(int id) {
         return Query.query(
-                        "SELECT id, member_id, absent_from, absent_until, reason, created_at FROM member_absence WHERE id = :id;")
+                        "SELECT id, member_id, absent_from, absent_until, reason, created_at, created_by FROM member_absence WHERE id = :id;")
                 .single(Call.of().bind("id", id))
                 .map(MemberAbsence.map())
                 .first();
@@ -451,7 +453,7 @@ public class AttendanceRepository {
 
     public List<MemberAbsence> findAbsencesByMember(int memberId) {
         return Query.query(
-                        "SELECT id, member_id, absent_from, absent_until, reason, created_at FROM member_absence WHERE member_id = :member_id ORDER BY absent_until DESC;")
+                        "SELECT id, member_id, absent_from, absent_until, reason, created_at, created_by FROM member_absence WHERE member_id = :member_id ORDER BY absent_until DESC;")
                 .single(Call.of().bind("member_id", memberId))
                 .map(MemberAbsence.map())
                 .all();
@@ -459,7 +461,7 @@ public class AttendanceRepository {
 
     public List<MemberAbsence> findActiveAbsencesByStation(int stationId) {
         return Query.query("""
-                            SELECT ma.id, ma.member_id, ma.absent_from, ma.absent_until, ma.reason, ma.created_at
+                            SELECT ma.id, ma.member_id, ma.absent_from, ma.absent_until, ma.reason, ma.created_at, ma.created_by
                             FROM member_absence ma
                                 JOIN station_member sm ON ma.member_id = sm.id
                             WHERE sm.station_id = :station_id

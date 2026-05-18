@@ -14,6 +14,7 @@ import DeleteButton from '@/components/button/DeleteButton.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import PrimaryBadge from '@/components/badge/PrimaryBadge.vue'
 import type { InventoryItem, InventorySize, StationMember } from '@/api/types'
+import { InventoryTypes, ItemSource } from '@/api/types'
 
 const { t } = useI18n()
 const router = useRouter()
@@ -27,10 +28,10 @@ const props = withDefaults(defineProps<{
   inventoryType?: string
 }>(), {
   showActions: false,
-  inventoryType: 'INTERNAL',
+  inventoryType: InventoryTypes.INTERNAL,
 })
 
-const isMixed = computed(() => props.inventoryType === 'MIXED')
+const isMixed = computed(() => props.inventoryType === InventoryTypes.MIXED)
 
 const emit = defineEmits<{
   assign: [item: InventoryItem]
@@ -86,8 +87,8 @@ function formatDate(iso: string | null | undefined): string {
           <td class="px-3 py-2.5 text-(--text-muted)">{{ item.internalId || '–' }}</td>
           <td v-if="hasSizes" class="px-3 py-2.5 text-(--text-muted)">{{ getSizeLabel(item.sizeId) }}</td>
           <td v-if="isMixed" class="px-3 py-2.5">
-            <PrimaryBadge v-if="item.itemSource === 'INTERNAL'">{{ t('inventory.edit.sourceInternal') }}</PrimaryBadge>
-            <SecondaryBadge v-else-if="item.itemSource === 'EXTERNAL'">{{ t('inventory.edit.sourceExternal') }}</SecondaryBadge>
+            <PrimaryBadge v-if="item.itemSource === ItemSource.INTERNAL">{{ t('inventory.edit.sourceInternal') }}</PrimaryBadge>
+            <SecondaryBadge v-else-if="item.itemSource === ItemSource.EXTERNAL">{{ t('inventory.edit.sourceExternal') }}</SecondaryBadge>
             <span v-else class="text-(--text-muted)">–</span>
           </td>
           <td class="px-3 py-2.5">

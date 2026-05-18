@@ -20,7 +20,7 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import type {AttendanceTemplate, AttendanceTemplateField, EventCategory, MemberGroup, Role} from '@/api/types'
-import {Roles} from '@/api/types'
+import {Roles, EventTypes} from '@/api/types'
 import type {EventFieldDefault} from '@/api/events'
 import {attendance, events, memberGroups, stationMembers} from '@/api'
 import {useSession} from '@/composables/useSession'
@@ -49,7 +49,7 @@ const error = ref('')
 // Form state
 const eventName = ref('')
 const eventDescription = ref('')
-const eventType = ref('RECURRING')
+const eventType = ref<string>(EventTypes.RECURRING)
 const eventDayOfWeek = ref('1')
 const eventStartTime = ref('')
 const eventEndTime = ref('')
@@ -96,7 +96,7 @@ async function loadData() {
 
       eventName.value = ev.name ?? ''
       eventDescription.value = ev.description ?? ''
-      eventType.value = ev.eventType ?? 'RECURRING'
+      eventType.value = ev.eventType ?? EventTypes.RECURRING
       eventDayOfWeek.value = ev.dayOfWeek != null ? String(ev.dayOfWeek) : '1'
       eventStartTime.value = ev.startTime ? toLocalDateTime(ev.startTime) : ''
       eventEndTime.value = ev.endTime ? toLocalDateTime(ev.endTime) : ''
@@ -194,7 +194,7 @@ async function submit() {
       name: eventName.value,
       description: eventDescription.value || undefined,
       eventType: eventType.value,
-      dayOfWeek: eventType.value === 'RECURRING' ? Number(eventDayOfWeek.value) : null,
+      dayOfWeek: eventType.value === EventTypes.RECURRING ? Number(eventDayOfWeek.value) : null,
       startTime: eventStartTime.value ? new Date(eventStartTime.value).toISOString() : undefined,
       endTime: eventEndTime.value ? new Date(eventEndTime.value).toISOString() : undefined,
       templateId: eventTemplateId.value ? Number(eventTemplateId.value) : undefined,
@@ -273,12 +273,12 @@ watch(loaded, (isLoaded) => {
           <div class="space-y-1">
             <label class="block text-sm font-medium">{{ t('events.type') }}</label>
             <SelectInput v-model="eventType">
-              <option value="RECURRING">{{ t('events.typeRecurring') }}</option>
-              <option value="ONE_TIME">{{ t('events.typeOneTime') }}</option>
+              <option :value="EventTypes.RECURRING">{{ t('events.typeRecurring') }}</option>
+              <option :value="EventTypes.ONE_TIME">{{ t('events.typeOneTime') }}</option>
             </SelectInput>
           </div>
 
-          <div v-if="eventType === 'RECURRING'" class="space-y-1">
+          <div v-if="eventType === EventTypes.RECURRING" class="space-y-1">
             <label class="block text-sm font-medium">{{ t('events.dayOfWeek') }}</label>
             <SelectInput v-model="eventDayOfWeek">
               <option value="1">Montag</option>

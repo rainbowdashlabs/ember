@@ -15,6 +15,8 @@ import dev.chojo.ember.entity.FormQuestion;
 import dev.chojo.ember.entity.FormResponse;
 import dev.chojo.ember.entity.NotificationData;
 import dev.chojo.ember.entity.NotificationType;
+import dev.chojo.ember.repository.AccountRepository;
+import dev.chojo.ember.repository.StationMemberRepository;
 import dev.chojo.ember.service.FormService;
 import dev.chojo.ember.service.NotificationService;
 import dev.chojo.ember.service.StationMemberService;
@@ -43,15 +45,21 @@ public class FormRoutes implements Routes {
     private final FormService formService;
     private final NotificationService notificationService;
     private final StationMemberService stationMemberService;
+    private final StationMemberRepository stationMemberRepository;
+    private final AccountRepository accountRepository;
 
     @Inject
     public FormRoutes(
             FormService formService,
             NotificationService notificationService,
-            StationMemberService stationMemberService) {
+            StationMemberService stationMemberService,
+            StationMemberRepository stationMemberRepository,
+            AccountRepository accountRepository) {
         this.formService = formService;
         this.notificationService = notificationService;
         this.stationMemberService = stationMemberService;
+        this.stationMemberRepository = stationMemberRepository;
+        this.accountRepository = accountRepository;
     }
 
     @Override
@@ -309,7 +317,7 @@ public class FormRoutes implements Routes {
                 id,
                 java.util.Arrays.stream(questions)
                         .map(q -> new FormService.QuestionEntry(
-                                q.questionType(),
+                                FormQuestion.QuestionType.valueOf(q.questionType()),
                                 q.title(),
                                 q.description() != null ? q.description() : "",
                                 q.required() != null && q.required(),
@@ -370,7 +378,7 @@ public class FormRoutes implements Routes {
             return;
         }
         var answers = formService.findAnswers(response.get().id());
-        ctx.json(new ResponseDetail(response.get(), answers));
+        ctx.json(new ResponseDetail(toResponseEntry(response.get()), answers));
     }
 
     @OpenApi(
@@ -545,9 +553,25 @@ public class FormRoutes implements Routes {
             tags = {"Forms"},
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = FormResponse[].class)))
+    private String resolveMemberName(int memberId) {
+        return stationMemberRepository
+                .findById(memberId)
+                .flatMap(m -> accountRepository.findById(m.accountId()))
+                .map(a -> (a.firstName() + " " + a.lastName()).trim())
+                .orElse(null);
+    }
+
+    private FormResponseEntry toResponseEntry(FormResponse r) {
+        String submittedByName = r.submittedBy() != r.memberId() ? resolveMemberName(r.submittedBy()) : null;
+        return new FormResponseEntry(
+                r.id(), r.formId(), r.memberId(), r.submittedBy(), submittedByName, r.submittedAt(), r.updatedAt());
+    }
+
     private void listResponses(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
-        ctx.json(formService.findResponses(id));
+        ctx.json(formService.findResponses(id).stream()
+                .map(this::toResponseEntry)
+                .toList());
     }
 
     @OpenApi(
@@ -568,7 +592,7 @@ public class FormRoutes implements Routes {
                 ctx.pathParamAsClass("id", Integer.class).get());
         var response =
                 responses.stream().filter(r -> r.id() == responseId).findFirst().orElseThrow(NotFoundResponse::new);
-        ctx.json(new ResponseDetail(response, answers));
+        ctx.json(new ResponseDetail(toResponseEntry(response), answers));
     }
 
     // -- Records --
@@ -589,7 +613,16 @@ public class FormRoutes implements Routes {
     @OpenApiName("FormSubmitRequest")
     public record SubmitRequest(Map<Integer, String> answers) {}
 
-    public record ResponseDetail(FormResponse response, List<FormAnswer> answers) {}
+    public record FormResponseEntry(
+            int id,
+            int formId,
+            int memberId,
+            int submittedBy,
+            String submittedByName,
+            Instant submittedAt,
+            Instant updatedAt) {}
+
+    public record ResponseDetail(FormResponseEntry response, List<FormAnswer> answers) {}
 
     public record FormListEntry(
             int id,

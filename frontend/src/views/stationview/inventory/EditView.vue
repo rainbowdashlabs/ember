@@ -27,7 +27,7 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import PrimaryBadge from '@/components/badge/PrimaryBadge.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import type {InventoryDetail, InventoryItem, InventoryItemHistory, InventorySize, StationMember} from '@/api/types'
-import {InventoryTypes} from '@/api/types'
+import {InventoryTypes, ItemSource} from '@/api/types'
 import {inventory, stationMembers} from '@/api'
 import {useStations} from '@/composables/useStations'
 
@@ -324,7 +324,7 @@ async function submitQuickAssign() {
       name: detail.value?.name ?? '',
       sizeId,
       metadata: '{}',
-      itemSource: 'EXTERNAL',
+      itemSource: ItemSource.EXTERNAL,
     })
     await inventory.assignItem(item.id, {memberId, memberName})
     showQuickAssignModal.value = false
@@ -499,8 +499,8 @@ onMounted(loadData)
                   }}
                 </td>
                 <td v-if="detail.inventoryType === InventoryTypes.MIXED" class="px-3 py-2.5">
-                  <PrimaryBadge v-if="item.itemSource === 'INTERNAL'">{{ t('inventory.edit.sourceInternal') }}</PrimaryBadge>
-                  <SecondaryBadge v-else-if="item.itemSource === 'EXTERNAL'">{{ t('inventory.edit.sourceExternal') }}</SecondaryBadge>
+                  <PrimaryBadge v-if="item.itemSource === ItemSource.INTERNAL">{{ t('inventory.edit.sourceInternal') }}</PrimaryBadge>
+                  <SecondaryBadge v-else-if="item.itemSource === ItemSource.EXTERNAL">{{ t('inventory.edit.sourceExternal') }}</SecondaryBadge>
                   <span v-else class="text-(--text-muted)">–</span>
                 </td>
                 <td class="px-3 py-2.5">

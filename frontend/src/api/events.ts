@@ -81,6 +81,7 @@ export interface EventRegistrationEntry {
     eventDate: string
     status: string  // RegistrationStatusName
     createdAt: string
+    createdByName?: string | null
 }
 
 export async function listMyRegistrations(): Promise<EventRegistrationEntry[]> {

@@ -119,11 +119,11 @@ public class FormService {
     }
 
     public boolean publish(int id) {
-        return repository.updateStatus(id, "OPEN");
+        return repository.updateStatus(id, Form.FormStatus.OPEN);
     }
 
     public boolean close(int id) {
-        return repository.updateStatus(id, "CLOSED");
+        return repository.updateStatus(id, Form.FormStatus.CLOSED);
     }
 
     public boolean isAcceptingResponses(Form form) {
@@ -142,7 +142,7 @@ public class FormService {
     public FormQuestion createQuestion(
             int formId,
             int position,
-            String questionType,
+            FormQuestion.QuestionType questionType,
             String title,
             String description,
             boolean required,
@@ -226,5 +226,10 @@ public class FormService {
     }
 
     public record QuestionEntry(
-            String questionType, String title, String description, boolean required, boolean shuffle, String config) {}
+            FormQuestion.QuestionType questionType,
+            String title,
+            String description,
+            boolean required,
+            boolean shuffle,
+            String config) {}
 }

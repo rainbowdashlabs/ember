@@ -150,7 +150,12 @@ public class InventoryRepository {
     }
 
     public InventoryItem createItem(
-            int inventoryId, String internalId, String name, Integer sizeId, String metadata, String itemSource) {
+            int inventoryId,
+            String internalId,
+            String name,
+            Integer sizeId,
+            String metadata,
+            InventoryItem.ItemSource itemSource) {
         return Query.query("""
                             INSERT INTO inventory_item(inventory_id, internal_id, name, size_id, metadata, item_source)
                             VALUES (:inventory_id, :internal_id, :name, :size_id, :metadata::JSONB, :item_source)
@@ -161,7 +166,7 @@ public class InventoryRepository {
                         .bind("name", name)
                         .bind("size_id", sizeId)
                         .bind("metadata", metadata != null ? metadata : "{}")
-                        .bind("item_source", itemSource))
+                        .bind("item_source", itemSource != null ? itemSource.name() : null))
                 .map(InventoryItem.map())
                 .first()
                 .orElseThrow();

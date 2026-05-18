@@ -20,6 +20,7 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import type {EventBreak, StationEvent, StationMember} from '@/api/types'
+import {EventTypes, RegistrationStatus} from '@/api/types'
 import {events, managedMembers as managedMembersApi} from '@/api'
 import type {EventRegistrationEntry, RegistrationCount} from '@/api/events'
 import {useSession} from '@/composables/useSession'
@@ -77,7 +78,7 @@ const upcomingEvents = computed((): UpcomingEvent[] => {
   // All future one-time events
   for (const ev of allEvents.value) {
     if (!isEventRelevant(ev.id)) continue
-    if (ev.eventType === 'ONE_TIME' && ev.startTime) {
+    if (ev.eventType === EventTypes.ONE_TIME && ev.startTime) {
       const eventDateStr = new Date(ev.startTime).toISOString().slice(0, 10)
       if (eventDateStr >= todayStr) {
         const d = new Date(ev.startTime)
@@ -90,7 +91,7 @@ const upcomingEvents = computed((): UpcomingEvent[] => {
   // Next occurrence of each recurring event (including today)
   const seenRecurring = new Set<number>()
   for (let offset = 0; offset <= 365; offset++) {
-    if (allEvents.value.filter(e => e.eventType === 'RECURRING' && isEventRelevant(e.id)).every(e => seenRecurring.has(e.id))) break
+    if (allEvents.value.filter(e => e.eventType === EventTypes.RECURRING && isEventRelevant(e.id)).every(e => seenRecurring.has(e.id))) break
     const date = new Date(today)
     date.setDate(date.getDate() + offset)
     const dateStr = date.toISOString().slice(0, 10)
@@ -99,7 +100,7 @@ const upcomingEvents = computed((): UpcomingEvent[] => {
     if (inBreak) continue
 
     for (const ev of allEvents.value) {
-      if (ev.eventType !== 'RECURRING' || seenRecurring.has(ev.id)) continue
+      if (ev.eventType !== EventTypes.RECURRING || seenRecurring.has(ev.id)) continue
       if (!isEventRelevant(ev.id)) continue
       if (ev.dayOfWeek === dow) {
         upcoming.push({event: ev, date: dateStr, dayLabel: dayNames[dow]})
@@ -141,9 +142,9 @@ function getRegistrationSummary(eventId: number, date: string): {
 } {
   const counts = registrationCounts.value.filter(c => c.eventId === eventId && c.eventDate === date)
   return {
-    accepted: counts.find(c => c.status === 'ACCEPTED')?.count ?? 0,
-    pending: counts.find(c => c.status === 'PENDING')?.count ?? 0,
-    declined: counts.find(c => c.status === 'DECLINED')?.count ?? 0,
+    accepted: counts.find(c => c.status === RegistrationStatus.ACCEPTED)?.count ?? 0,
+    pending: counts.find(c => c.status === RegistrationStatus.PENDING)?.count ?? 0,
+    declined: counts.find(c => c.status === RegistrationStatus.DECLINED)?.count ?? 0,
   }
 }
 
@@ -373,23 +374,26 @@ watch(loaded, (isLoaded) => {
                           class="cursor-pointer"
                           @click="withdrawRegistration(getRegistration(item.event.id, item.date, m.id)!.id)"
                       >
-                        <SuccessBadge v-if="getRegistration(item.event.id, item.date, m.id)!.status === 'ACCEPTED'">
+                        <SuccessBadge v-if="getRegistration(item.event.id, item.date, m.id)!.status === RegistrationStatus.ACCEPTED">
                           {{ t('eventsUpcoming.statusAccepted') }}
                           <font-awesome-icon :icon="['fas', 'xmark']" class="ml-1 h-3 w-3"/>
                         </SuccessBadge>
-                        <InfoBadge v-else-if="getRegistration(item.event.id, item.date, m.id)!.status === 'PENDING'">
+                        <InfoBadge v-else-if="getRegistration(item.event.id, item.date, m.id)!.status === RegistrationStatus.PENDING">
                           {{ t('eventsUpcoming.statusPending') }}
                           <font-awesome-icon :icon="['fas', 'xmark']" class="ml-1 h-3 w-3"/>
                         </InfoBadge>
-                        <ErrorBadge v-else-if="getRegistration(item.event.id, item.date, m.id)!.status === 'DENIED'">
+                        <ErrorBadge v-else-if="getRegistration(item.event.id, item.date, m.id)!.status === RegistrationStatus.DENIED">
                           {{ t('eventsUpcoming.statusDenied') }}
                           <font-awesome-icon :icon="['fas', 'xmark']" class="ml-1 h-3 w-3"/>
                         </ErrorBadge>
-                        <ErrorBadge v-else-if="getRegistration(item.event.id, item.date, m.id)!.status === 'DECLINED'">
+                        <ErrorBadge v-else-if="getRegistration(item.event.id, item.date, m.id)!.status === RegistrationStatus.DECLINED">
                           {{ t('eventsUpcoming.statusDeclined') }}
                           <font-awesome-icon :icon="['fas', 'xmark']" class="ml-1 h-3 w-3"/>
                         </ErrorBadge>
                       </button>
+                      <span v-if="getRegistration(item.event.id, item.date, m.id)?.createdByName" class="text-xs text-(--text-muted) italic">
+                        {{ t('common.createdBy', { name: getRegistration(item.event.id, item.date, m.id)!.createdByName }) }}
+                      </span>
                     </div>
                   </template>
                 </template>

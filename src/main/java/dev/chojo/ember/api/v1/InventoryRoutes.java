@@ -406,7 +406,10 @@ public class InventoryRoutes implements Routes {
         if (isBlank(request.name())) {
             throw new BadRequestResponse("name is required");
         }
-        String source = request.itemSource() != null ? request.itemSource() : "INTERNAL";
+        InventoryItem.ItemSource source = InventoryItem.ItemSource.INTERNAL;
+        if (request.itemSource() != null) {
+            source = InventoryItem.ItemSource.valueOf(request.itemSource());
+        }
         ctx.status(HttpStatus.CREATED)
                 .json(inventoryService.createItem(
                         inventoryId,

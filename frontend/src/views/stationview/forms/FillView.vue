@@ -20,6 +20,7 @@ import DateInput from '@/components/input/datetime/DateInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import IconButton from '@/components/button/IconButton.vue'
 import type { Form, FormQuestion } from '@/api/types'
+import { QuestionTypes } from '@/api/types'
 import { forms } from '@/api'
 import type { EligibleMembers } from '@/api/forms'
 import { useSession } from '@/composables/useSession'
@@ -83,16 +84,16 @@ function parseConfig(config: string): Record<string, unknown> {
 
 function initAnswerDefaults() {
   for (const q of questions.value) {
-    if (q.questionType === 'CHOICE') answers.value[q.id] = { selected: [], other: '' }
-    else if (q.questionType === 'TEXT') answers.value[q.id] = { text: '' }
-    else if (q.questionType === 'RATING') answers.value[q.id] = { rating: 0 }
-    else if (q.questionType === 'DATE') answers.value[q.id] = { date: '' }
-    else if (q.questionType === 'RANKING') {
+    if (q.questionType === QuestionTypes.CHOICE) answers.value[q.id] = { selected: [], other: '' }
+    else if (q.questionType === QuestionTypes.TEXT) answers.value[q.id] = { text: '' }
+    else if (q.questionType === QuestionTypes.RATING) answers.value[q.id] = { rating: 0 }
+    else if (q.questionType === QuestionTypes.DATE) answers.value[q.id] = { date: '' }
+    else if (q.questionType === QuestionTypes.RANKING) {
       const cfg = parseConfig(q.config)
       const opts = (cfg.options as string[]) || []
       answers.value[q.id] = { order: opts.map((_: string, i: number) => i) }
     }
-    else if (q.questionType === 'LIKERT') answers.value[q.id] = { ratings: {} }
+    else if (q.questionType === QuestionTypes.LIKERT) answers.value[q.id] = { ratings: {} }
   }
 }
 
@@ -284,7 +285,7 @@ watch(loaded, (isLoaded) => {
               </div>
 
               <!-- CHOICE -->
-              <template v-if="q.questionType === 'CHOICE'">
+              <template v-if="q.questionType === QuestionTypes.CHOICE">
                 <div class="space-y-1">
                   <template v-if="parseConfig(q.config).dropdown">
                     <SelectInput
@@ -313,14 +314,14 @@ watch(loaded, (isLoaded) => {
               </template>
 
               <!-- TEXT -->
-              <template v-if="q.questionType === 'TEXT'">
+              <template v-if="q.questionType === QuestionTypes.TEXT">
                 <TextAreaInput v-if="parseConfig(q.config).longAnswer"
                                v-model="(answers[q.id] as { text: string }).text" />
                 <TextInput v-else v-model="(answers[q.id] as { text: string }).text" />
               </template>
 
               <!-- RATING -->
-              <template v-if="q.questionType === 'RATING'">
+              <template v-if="q.questionType === QuestionTypes.RATING">
                 <div class="flex gap-1">
                   <button v-for="n in (parseConfig(q.config).scale as number || 5)" :key="n"
                           :class="n <= ((answers[q.id] as { rating: number })?.rating ?? 0) ? 'text-primary' : 'text-(--text-muted)'"
@@ -333,12 +334,12 @@ watch(loaded, (isLoaded) => {
               </template>
 
               <!-- DATE -->
-              <template v-if="q.questionType === 'DATE'">
+              <template v-if="q.questionType === QuestionTypes.DATE">
                 <DateInput v-model="(answers[q.id] as { date: string }).date" />
               </template>
 
               <!-- RANKING -->
-              <template v-if="q.questionType === 'RANKING'">
+              <template v-if="q.questionType === QuestionTypes.RANKING">
                 <div class="space-y-1">
                   <div v-for="(optIdx, rank) in ((answers[q.id] as { order: number[] })?.order ?? [])" :key="rank"
                        class="flex items-center gap-2 px-3 py-2 rounded border border-bg-light-accent dark:border-bg-dark-accent">
@@ -351,7 +352,7 @@ watch(loaded, (isLoaded) => {
               </template>
 
               <!-- LIKERT -->
-              <template v-if="q.questionType === 'LIKERT'">
+              <template v-if="q.questionType === QuestionTypes.LIKERT">
                 <div class="overflow-x-auto">
                   <table class="w-full text-sm">
                     <thead>

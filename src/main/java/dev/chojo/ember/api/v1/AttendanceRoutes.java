@@ -16,7 +16,9 @@ import dev.chojo.ember.entity.AttendanceSessionField;
 import dev.chojo.ember.entity.AttendanceTemplate;
 import dev.chojo.ember.entity.AttendanceTemplateField;
 import dev.chojo.ember.entity.MemberAbsence;
+import dev.chojo.ember.repository.AccountRepository;
 import dev.chojo.ember.repository.AttendanceRepository.TemplateGroup;
+import dev.chojo.ember.repository.StationMemberRepository;
 import dev.chojo.ember.service.AttendanceExportService;
 import dev.chojo.ember.service.AttendanceReportService;
 import dev.chojo.ember.service.AttendanceReportService.ReportData;
@@ -49,19 +51,45 @@ public class AttendanceRoutes implements Routes {
     private final AttendanceService attendanceService;
     private final AttendanceExportService exportService;
     private final AttendanceReportService reportService;
+    private final StationMemberRepository stationMemberRepository;
+    private final AccountRepository accountRepository;
 
     @Inject
     public AttendanceRoutes(
             AttendanceService attendanceService,
             AttendanceExportService exportService,
-            AttendanceReportService reportService) {
+            AttendanceReportService reportService,
+            StationMemberRepository stationMemberRepository,
+            AccountRepository accountRepository) {
         this.attendanceService = attendanceService;
         this.exportService = exportService;
         this.reportService = reportService;
+        this.stationMemberRepository = stationMemberRepository;
+        this.accountRepository = accountRepository;
     }
 
     private static boolean isBlank(String s) {
         return s == null || s.isBlank();
+    }
+
+    private String resolveCreatedByName(Integer createdBy) {
+        if (createdBy == null) return null;
+        return stationMemberRepository
+                .findById(createdBy)
+                .flatMap(m -> accountRepository.findById(m.accountId()))
+                .map(a -> (a.firstName() + " " + a.lastName()).trim())
+                .orElse(null);
+    }
+
+    private AbsenceResponse toAbsenceResponse(MemberAbsence a) {
+        return new AbsenceResponse(
+                a.id(),
+                a.memberId(),
+                a.absentFrom(),
+                a.absentUntil(),
+                a.reason(),
+                a.createdAt(),
+                resolveCreatedByName(a.createdBy()));
     }
 
     // -- Templates --
@@ -875,7 +903,7 @@ public class AttendanceRoutes implements Routes {
             throw new BadRequestResponse("absentUntil must not be before absentFrom");
         }
         ctx.status(HttpStatus.CREATED)
-                .json(attendanceService.createAbsence(request.memberId(), from, until, request.reason()));
+                .json(attendanceService.createAbsence(request.memberId(), from, until, request.reason(), null));
     }
 
     // -- Self-service absences --
@@ -920,7 +948,7 @@ public class AttendanceRoutes implements Routes {
                 absences.addAll(attendanceService.findAbsencesByMember(mid));
             }
         }
-        ctx.json(absences);
+        ctx.json(absences.stream().map(this::toAbsenceResponse).toList());
     }
 
     @OpenApi(
@@ -968,9 +996,10 @@ public class AttendanceRoutes implements Routes {
             memberIds.add(session.member().id());
         }
 
-        var created = new ArrayList<MemberAbsence>();
+        var created = new ArrayList<AbsenceResponse>();
         for (int mid : memberIds) {
-            created.add(attendanceService.createAbsence(mid, from, until, req.reason()));
+            Integer createdBy = mid != session.member().id() ? session.member().id() : null;
+            created.add(toAbsenceResponse(attendanceService.createAbsence(mid, from, until, req.reason(), createdBy)));
         }
         ctx.status(HttpStatus.CREATED).json(created);
     }
@@ -1050,4 +1079,13 @@ public class AttendanceRoutes implements Routes {
     public record MyAbsenceRequest(String absentFrom, String absentUntil, String reason, List<Integer> memberIds) {}
 
     public record CreatePresetRequest(String name, String roleName, Integer groupId, String period, String rounding) {}
+
+    public record AbsenceResponse(
+            int id,
+            int memberId,
+            LocalDate absentFrom,
+            LocalDate absentUntil,
+            String reason,
+            Instant createdAt,
+            String createdByName) {}
 }

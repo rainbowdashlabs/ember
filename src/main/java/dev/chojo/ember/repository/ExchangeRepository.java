@@ -28,10 +28,11 @@ public class ExchangeRepository {
             int inventoryId,
             Integer oldSizeId,
             Integer newSizeId,
-            String reason) {
+            String reason,
+            Integer createdBy) {
         return Query.query("""
-                            INSERT INTO equipment_exchange_request(station_id, member_id, item_id, inventory_id, old_size_id, new_size_id, reason)
-                            VALUES(:station_id, :member_id, :item_id, :inventory_id, :old_size_id, :new_size_id, :reason)
+                            INSERT INTO equipment_exchange_request(station_id, member_id, item_id, inventory_id, old_size_id, new_size_id, reason, created_by)
+                            VALUES(:station_id, :member_id, :item_id, :inventory_id, :old_size_id, :new_size_id, :reason, :created_by)
                             RETURNING *;""")
                 .single(Call.of()
                         .bind("station_id", stationId)
@@ -40,7 +41,8 @@ public class ExchangeRepository {
                         .bind("inventory_id", inventoryId)
                         .bind("old_size_id", oldSizeId)
                         .bind("new_size_id", newSizeId)
-                        .bind("reason", reason != null ? reason : ""))
+                        .bind("reason", reason != null ? reason : "")
+                        .bind("created_by", createdBy))
                 .map(ExchangeRequest.map())
                 .first()
                 .orElseThrow();

@@ -18,6 +18,7 @@ import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
+import { FormStatus } from '@/api/types'
 import type { Form, FormListEntry } from '@/api/types'
 import { forms } from '@/api'
 import { useSession } from '@/composables/useSession'
@@ -65,8 +66,8 @@ async function loadData() {
 }
 
 function statusLabel(status: string) {
-  if (status === 'OPEN') return t('forms.statusOpen')
-  if (status === 'CLOSED') return t('forms.statusClosed')
+  if (status === FormStatus.OPEN) return t('forms.statusOpen')
+  if (status === FormStatus.CLOSED) return t('forms.statusClosed')
   return t('forms.statusDraft')
 }
 
@@ -127,24 +128,24 @@ watch(loaded, (isLoaded) => {
                 <div class="space-y-1">
                   <div class="flex items-center gap-2">
                     <span class="font-medium">{{ form.title }}</span>
-                    <SuccessBadge v-if="form.status === 'OPEN'">{{ statusLabel(form.status) }}</SuccessBadge>
-                    <ErrorBadge v-else-if="form.status === 'CLOSED'">{{ statusLabel(form.status) }}</ErrorBadge>
+                    <SuccessBadge v-if="form.status === FormStatus.OPEN">{{ statusLabel(form.status) }}</SuccessBadge>
+                    <ErrorBadge v-else-if="form.status === FormStatus.CLOSED">{{ statusLabel(form.status) }}</ErrorBadge>
                     <InfoBadge v-else>{{ statusLabel(form.status) }}</InfoBadge>
                   </div>
                   <p v-if="form.description" class="text-xs text-(--text-muted)">{{ form.description }}</p>
                 </div>
                 <div class="flex items-center gap-2">
-                  <SecondaryButton v-if="form.status === 'DRAFT'" class="text-xs" @click="publishForm(form)">
+                  <SecondaryButton v-if="form.status === FormStatus.DRAFT" class="text-xs" @click="publishForm(form)">
                     {{ t('forms.publish') }}
                   </SecondaryButton>
-                  <SecondaryButton v-if="form.status === 'OPEN'" class="text-xs" @click="closeForm(form)">
+                  <SecondaryButton v-if="form.status === FormStatus.OPEN" class="text-xs" @click="closeForm(form)">
                     {{ t('forms.close') }}
                   </SecondaryButton>
-                  <SecondaryButton v-if="form.status !== 'CLOSED'" class="text-xs"
+                  <SecondaryButton v-if="form.status !== FormStatus.CLOSED" class="text-xs"
                                    @click="router.push({ name: 'forms-edit', params: { id: form.id } })">
                     {{ t('forms.edit') }}
                   </SecondaryButton>
-                  <SecondaryButton v-if="form.status !== 'DRAFT'" class="text-xs"
+                  <SecondaryButton v-if="form.status !== FormStatus.DRAFT" class="text-xs"
                                    @click="router.push({ name: 'forms-analytics', params: { id: form.id } })">
                     {{ t('forms.viewAnalytics') }}
                   </SecondaryButton>

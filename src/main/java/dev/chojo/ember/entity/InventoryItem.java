@@ -21,7 +21,7 @@ public record InventoryItem(
         String metadata,
         Integer assignedTo,
         Instant lostAt,
-        String itemSource) {
+        ItemSource itemSource) {
     public static RowMapping<InventoryItem> map() {
         return row -> new InventoryItem(
                 row.getInt("id"),
@@ -32,7 +32,7 @@ public record InventoryItem(
                 row.getString("metadata"),
                 row.getObject("assigned_to", Integer.class),
                 row.get("lost_at", INSTANT_TIMESTAMP),
-                row.getString("item_source"));
+                row.getEnum("item_source", ItemSource.class));
     }
 
     public Optional<Integer> sizeIdOpt() {
@@ -41,5 +41,10 @@ public record InventoryItem(
 
     public Optional<Integer> assignedToOpt() {
         return Optional.ofNullable(assignedTo);
+    }
+
+    public enum ItemSource {
+        INTERNAL,
+        EXTERNAL
     }
 }

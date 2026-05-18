@@ -2283,5 +2283,7 @@ export default {
         close: 'Schließen',
         back: 'Zurück',
         unisize: 'Einheitsgröße',
+        createdBy: 'Erstellt von {name}',
+        submittedBy: 'Eingereicht von {name}',
     },
 }

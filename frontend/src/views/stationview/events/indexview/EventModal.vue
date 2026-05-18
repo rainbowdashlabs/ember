@@ -88,7 +88,7 @@ watch(() => props.modelValue, (open) => {
   } else {
     eventName.value = ''
     eventDescription.value = ''
-    eventType.value = 'RECURRING'
+    eventType.value = EventTypes.RECURRING
     eventDayOfWeek.value = '1'
     eventStartTime.value = ''
     eventEndTime.value = ''

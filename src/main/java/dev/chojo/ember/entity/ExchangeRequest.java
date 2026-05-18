@@ -23,7 +23,8 @@ public record ExchangeRequest(
         ExchangeStatus status,
         String reason,
         Instant createdAt,
-        Instant updatedAt) {
+        Instant updatedAt,
+        Integer createdBy) {
     public static RowMapping<ExchangeRequest> map() {
         return row -> new ExchangeRequest(
                 row.getInt("id"),
@@ -37,6 +38,7 @@ public record ExchangeRequest(
                 row.getEnum("status", ExchangeStatus.class),
                 row.getString("reason"),
                 row.get("created_at", INSTANT_TIMESTAMP),
-                row.get("updated_at", INSTANT_TIMESTAMP));
+                row.get("updated_at", INSTANT_TIMESTAMP),
+                row.getObject("created_by", Integer.class));
     }
 }

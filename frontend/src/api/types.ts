@@ -238,8 +238,24 @@ export interface SetEventFieldValuesRequest {
 
 // -- Forms --
 
-export type FormStatus = 'DRAFT' | 'OPEN' | 'CLOSED'
-export type QuestionType = 'CHOICE' | 'TEXT' | 'RATING' | 'DATE' | 'RANKING' | 'LIKERT'
+export const FormStatus = {
+    DRAFT: 'DRAFT',
+    OPEN: 'OPEN',
+    CLOSED: 'CLOSED',
+} as const
+
+export type FormStatusName = (typeof FormStatus)[keyof typeof FormStatus]
+
+export const QuestionTypes = {
+    CHOICE: 'CHOICE',
+    TEXT: 'TEXT',
+    RATING: 'RATING',
+    DATE: 'DATE',
+    RANKING: 'RANKING',
+    LIKERT: 'LIKERT',
+} as const
+
+export type QuestionType = (typeof QuestionTypes)[keyof typeof QuestionTypes]
 export type MultiLimitType = 'NONE' | 'EQUAL_TO' | 'AT_MOST' | 'AT_LEAST'
 export type RatingIcon = 'STAR' | 'NUMBER' | 'HEART' | 'THUMB_UP'
 
@@ -248,7 +264,7 @@ export interface Form {
     stationId: number
     title: string
     description: string
-    status: FormStatus
+    status: FormStatusName
     shuffleQuestions: boolean
     allowEdit: boolean
     startAt?: string | null
@@ -288,6 +304,7 @@ export interface FormResponse {
     formId: number
     memberId: number
     submittedBy: number
+    submittedByName?: string | null
     submittedAt: string
     updatedAt: string
 }
@@ -589,6 +606,13 @@ export const InventoryTypes = {
 } as const
 
 export type InventoryTypeName = (typeof InventoryTypes)[keyof typeof InventoryTypes]
+
+export const ItemSource = {
+    INTERNAL: 'INTERNAL',
+    EXTERNAL: 'EXTERNAL',
+} as const
+
+export type ItemSourceName = (typeof ItemSource)[keyof typeof ItemSource]
 
 export interface Inventory {
     id: number
@@ -973,6 +997,7 @@ export interface ExchangeRequestEntry {
     reason: string
     createdAt: string
     updatedAt: string
+    createdByName?: string | null
 }
 
 export interface ExchangeLogEntry {

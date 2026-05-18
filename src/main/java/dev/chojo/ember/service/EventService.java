@@ -47,7 +47,7 @@ public class EventService {
             int stationId,
             String name,
             String description,
-            String eventType,
+            StationEvent.EventType eventType,
             Integer dayOfWeek,
             Instant startTime,
             Instant endTime,
@@ -75,7 +75,7 @@ public class EventService {
             int id,
             String name,
             String description,
-            String eventType,
+            StationEvent.EventType eventType,
             Integer dayOfWeek,
             Instant startTime,
             Instant endTime,
@@ -268,10 +268,12 @@ public class EventService {
         return eventRepository.findRegistrationsByMember(memberId);
     }
 
-    public EventRegistration register(int eventId, int memberId, LocalDate eventDate, boolean autoAccept) {
-        var registration = eventRepository.createRegistration(eventId, memberId, eventDate);
+    public EventRegistration register(
+            int eventId, int memberId, LocalDate eventDate, boolean autoAccept, Integer createdBy) {
+        var registration = eventRepository.createRegistration(
+                eventId, memberId, eventDate, EventRegistration.RegistrationStatus.PENDING, createdBy);
         if (autoAccept) {
-            eventRepository.updateRegistrationStatus(registration.id(), "ACCEPTED");
+            eventRepository.updateRegistrationStatus(registration.id(), EventRegistration.RegistrationStatus.ACCEPTED);
             return eventRepository.findRegistrationById(registration.id()).orElse(registration);
         }
         return registration;
@@ -281,7 +283,7 @@ public class EventService {
         return eventRepository.findRegistrationById(id);
     }
 
-    public boolean updateRegistrationStatus(int id, String status) {
+    public boolean updateRegistrationStatus(int id, EventRegistration.RegistrationStatus status) {
         return eventRepository.updateRegistrationStatus(id, status);
     }
 
@@ -289,8 +291,9 @@ public class EventService {
         return eventRepository.deleteRegistration(id);
     }
 
-    public EventRegistration decline(int eventId, int memberId, LocalDate eventDate) {
-        return eventRepository.createRegistration(eventId, memberId, eventDate, "DECLINED");
+    public EventRegistration decline(int eventId, int memberId, LocalDate eventDate, Integer createdBy) {
+        return eventRepository.createRegistration(
+                eventId, memberId, eventDate, EventRegistration.RegistrationStatus.DECLINED, createdBy);
     }
 
     public List<EventRepository.RegistrationCount> findRegistrationCounts(int stationId) {

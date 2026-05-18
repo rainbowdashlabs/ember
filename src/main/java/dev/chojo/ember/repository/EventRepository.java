@@ -51,7 +51,7 @@ public class EventRepository {
             int stationId,
             String name,
             String description,
-            String eventType,
+            StationEvent.EventType eventType,
             Integer dayOfWeek,
             Instant startTime,
             Instant endTime,
@@ -68,7 +68,7 @@ public class EventRepository {
                         .bind("station_id", stationId)
                         .bind("name", name)
                         .bind("description", description)
-                        .bind("event_type", eventType)
+                        .bind("event_type", eventType.name())
                         .bind("day_of_week", dayOfWeek)
                         .bind("start_time", startTime, INSTANT_TIMESTAMP)
                         .bind("end_time", endTime, INSTANT_TIMESTAMP)
@@ -86,7 +86,7 @@ public class EventRepository {
             int id,
             String name,
             String description,
-            String eventType,
+            StationEvent.EventType eventType,
             Integer dayOfWeek,
             Instant startTime,
             Instant endTime,
@@ -106,7 +106,7 @@ public class EventRepository {
                 .single(Call.of()
                         .bind("name", name)
                         .bind("description", description)
-                        .bind("event_type", eventType)
+                        .bind("event_type", eventType.name())
                         .bind("day_of_week", dayOfWeek)
                         .bind("start_time", startTime, INSTANT_TIMESTAMP)
                         .bind("end_time", endTime, INSTANT_TIMESTAMP)
@@ -334,7 +334,7 @@ public class EventRepository {
 
     public List<EventRegistration> findRegistrations(int eventId, LocalDate eventDate) {
         return Query.query(
-                        "SELECT id, event_id, member_id, event_date, status, created_at FROM event_registration WHERE event_id = :event_id AND event_date = :event_date ORDER BY created_at;")
+                        "SELECT id, event_id, member_id, event_date, status, created_at, created_by FROM event_registration WHERE event_id = :event_id AND event_date = :event_date ORDER BY created_at;")
                 .single(Call.of().bind("event_id", eventId).bind("event_date", eventDate))
                 .map(EventRegistration.map())
                 .all();
@@ -342,7 +342,7 @@ public class EventRepository {
 
     public List<EventRegistration> findPendingRegistrationsByStation(int stationId) {
         return Query.query("""
-                            SELECT er.id, er.event_id, er.member_id, er.event_date, er.status, er.created_at
+                            SELECT er.id, er.event_id, er.member_id, er.event_date, er.status, er.created_at, er.created_by
                             FROM event_registration er
                                 JOIN station_event se ON er.event_id = se.id
                             WHERE se.station_id = :station_id AND er.status = 'PENDING'
@@ -354,27 +354,33 @@ public class EventRepository {
 
     public List<EventRegistration> findRegistrationsByMember(int memberId) {
         return Query.query(
-                        "SELECT id, event_id, member_id, event_date, status, created_at FROM event_registration WHERE member_id = :member_id ORDER BY event_date;")
+                        "SELECT id, event_id, member_id, event_date, status, created_at, created_by FROM event_registration WHERE member_id = :member_id ORDER BY event_date;")
                 .single(Call.of().bind("member_id", memberId))
                 .map(EventRegistration.map())
                 .all();
     }
 
     public EventRegistration createRegistration(int eventId, int memberId, LocalDate eventDate) {
-        return createRegistration(eventId, memberId, eventDate, "PENDING");
+        return createRegistration(eventId, memberId, eventDate, EventRegistration.RegistrationStatus.PENDING, null);
     }
 
-    public EventRegistration createRegistration(int eventId, int memberId, LocalDate eventDate, String status) {
+    public EventRegistration createRegistration(
+            int eventId,
+            int memberId,
+            LocalDate eventDate,
+            EventRegistration.RegistrationStatus status,
+            Integer createdBy) {
         return Query.query("""
-                            INSERT INTO event_registration(event_id, member_id, event_date, status)
-                            VALUES (:event_id, :member_id, :event_date, :status)
-                            ON CONFLICT (event_id, member_id, event_date) DO UPDATE SET status = :status, created_at = now()
-                            RETURNING id, event_id, member_id, event_date, status, created_at;""")
+                            INSERT INTO event_registration(event_id, member_id, event_date, status, created_by)
+                            VALUES (:event_id, :member_id, :event_date, :status, :created_by)
+                            ON CONFLICT (event_id, member_id, event_date) DO UPDATE SET status = :status, created_at = now(), created_by = :created_by
+                            RETURNING id, event_id, member_id, event_date, status, created_at, created_by;""")
                 .single(Call.of()
                         .bind("event_id", eventId)
                         .bind("member_id", memberId)
                         .bind("event_date", eventDate)
-                        .bind("status", status))
+                        .bind("status", status.name())
+                        .bind("created_by", createdBy))
                 .map(EventRegistration.map())
                 .first()
                 .orElseThrow();
@@ -412,9 +418,9 @@ public class EventRepository {
                 .all();
     }
 
-    public boolean updateRegistrationStatus(int id, String status) {
+    public boolean updateRegistrationStatus(int id, EventRegistration.RegistrationStatus status) {
         return Query.query("UPDATE event_registration SET status = :status WHERE id = :id;")
-                .single(Call.of().bind("status", status).bind("id", id))
+                .single(Call.of().bind("status", status.name()).bind("id", id))
                 .update()
                 .changed();
     }
@@ -428,7 +434,7 @@ public class EventRepository {
 
     public Optional<EventRegistration> findRegistrationById(int id) {
         return Query.query(
-                        "SELECT id, event_id, member_id, event_date, status, created_at FROM event_registration WHERE id = :id;")
+                        "SELECT id, event_id, member_id, event_date, status, created_at, created_by FROM event_registration WHERE id = :id;")
                 .single(Call.of().bind("id", id))
                 .map(EventRegistration.map())
                 .first();

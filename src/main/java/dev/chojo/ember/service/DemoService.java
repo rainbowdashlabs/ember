@@ -16,12 +16,16 @@ import dev.chojo.ember.conf.file.elements.Demo;
 import dev.chojo.ember.entity.AttendanceEntry;
 import dev.chojo.ember.entity.AttendanceTemplate;
 import dev.chojo.ember.entity.CheckResult;
+import dev.chojo.ember.entity.EventRegistration;
 import dev.chojo.ember.entity.ExchangeStatus;
+import dev.chojo.ember.entity.Form;
+import dev.chojo.ember.entity.FormQuestion;
 import dev.chojo.ember.entity.InventoryItem;
 import dev.chojo.ember.entity.InventoryType;
 import dev.chojo.ember.entity.NotificationData;
 import dev.chojo.ember.entity.NotificationType;
 import dev.chojo.ember.entity.ProfileFieldScope;
+import dev.chojo.ember.entity.StationEvent;
 import dev.chojo.ember.entity.StationMember;
 import dev.chojo.ember.repository.AccountRepository;
 import dev.chojo.ember.repository.AttendanceRepository;
@@ -44,6 +48,7 @@ import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
@@ -52,6 +57,7 @@ import java.time.temporal.IsoFields;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -585,7 +591,7 @@ public class DemoService {
                 station.id(),
                 "Übung Anfänger",
                 "Grundausbildung für Anfänger",
-                "RECURRING",
+                StationEvent.EventType.RECURRING,
                 1,
                 monStart,
                 monEnd,
@@ -598,7 +604,7 @@ public class DemoService {
                 station.id(),
                 "Übung Fortgeschritten",
                 "Training für Fortgeschrittene",
-                "RECURRING",
+                StationEvent.EventType.RECURRING,
                 3,
                 wedStart,
                 wedEnd,
@@ -611,7 +617,7 @@ public class DemoService {
                 station.id(),
                 "Gesamtübung",
                 "Gemeinsame Übung aller Gruppen",
-                "RECURRING",
+                StationEvent.EventType.RECURRING,
                 6,
                 satStart,
                 satEnd,
@@ -664,7 +670,7 @@ public class DemoService {
                 station.id(),
                 "Tag der offenen Tür",
                 "Öffentlichkeitsarbeit: Vorführungen und Mitmach-Aktionen",
-                "ONE_TIME",
+                StationEvent.EventType.ONE_TIME,
                 null,
                 nextMonth,
                 nextMonthEnd,
@@ -683,7 +689,7 @@ public class DemoService {
                 station.id(),
                 "Stadtfest Musterstadt",
                 "Stand der Jugendfeuerwehr beim Stadtfest",
-                "ONE_TIME",
+                StationEvent.EventType.ONE_TIME,
                 null,
                 oeffentlichkeit,
                 oeffentlichkeitEnd,
@@ -704,7 +710,7 @@ public class DemoService {
                 station.id(),
                 "Kreiswettbewerb",
                 "Jährlicher Kreiswettbewerb der Jugendfeuerwehren",
-                "ONE_TIME",
+                StationEvent.EventType.ONE_TIME,
                 null,
                 wettbewerb,
                 wettbewerbEnd,
@@ -719,21 +725,37 @@ public class DemoService {
         LocalDate stadtfestDate = LocalDate.now().plusWeeks(3);
         for (int i = 0; i < 8 && i < fortgeschrittenMembers.size(); i++) {
             eventRepository.createRegistration(
-                    tagDerOffenenTuer.id(), fortgeschrittenMembers.get(i).id(), tagDate, "ACCEPTED");
+                    tagDerOffenenTuer.id(),
+                    fortgeschrittenMembers.get(i).id(),
+                    tagDate,
+                    EventRegistration.RegistrationStatus.ACCEPTED,
+                    null);
         }
         for (int i = 0; i < 5 && i < anfaengerMembers.size(); i++) {
             eventRepository.createRegistration(
-                    stadtfest.id(), anfaengerMembers.get(i).id(), stadtfestDate, "ACCEPTED");
+                    stadtfest.id(),
+                    anfaengerMembers.get(i).id(),
+                    stadtfestDate,
+                    EventRegistration.RegistrationStatus.ACCEPTED,
+                    null);
         }
         for (int i = 0; i < 3 && i < fortgeschrittenMembers.size(); i++) {
             eventRepository.createRegistration(
-                    stadtfest.id(), fortgeschrittenMembers.get(i).id(), stadtfestDate, "ACCEPTED");
+                    stadtfest.id(),
+                    fortgeschrittenMembers.get(i).id(),
+                    stadtfestDate,
+                    EventRegistration.RegistrationStatus.ACCEPTED,
+                    null);
         }
         // Some pending registrations for Kreiswettbewerb
         LocalDate kwDate = LocalDate.now().plusMonths(2).withDayOfMonth(20);
         for (int i = 0; i < 6 && i < fortgeschrittenMembers.size(); i++) {
             eventRepository.createRegistration(
-                    kreisWettbewerb.id(), fortgeschrittenMembers.get(i).id(), kwDate, "PENDING");
+                    kreisWettbewerb.id(),
+                    fortgeschrittenMembers.get(i).id(),
+                    kwDate,
+                    EventRegistration.RegistrationStatus.PENDING,
+                    null);
         }
 
         // -- News --
@@ -830,7 +852,7 @@ public class DemoService {
                 }
             }
             var exchange = exchangeRepository.create(
-                    station.id(), kid.id(), item.id(), item.inventoryId(), item.sizeId(), newSizeId, reason);
+                    station.id(), kid.id(), item.id(), item.inventoryId(), item.sizeId(), newSizeId, reason, null);
             // Progress some exchanges
             var targetStatus = exchangeStatuses.get(rng.nextInt(exchangeStatuses.size()));
             if (targetStatus != ExchangeStatus.ANNOUNCED) {
@@ -922,11 +944,11 @@ public class DemoService {
                 null,
                 null,
                 admin.id());
-        formRepository.updateStatus(survey.id(), "OPEN");
+        formRepository.updateStatus(survey.id(), Form.FormStatus.OPEN);
         formRepository.createQuestion(
                 survey.id(),
                 0,
-                "RATING",
+                FormQuestion.QuestionType.RATING,
                 "Wie zufrieden bist du insgesamt?",
                 "1 = sehr unzufrieden, 5 = sehr zufrieden",
                 true,
@@ -935,14 +957,21 @@ public class DemoService {
         formRepository.createQuestion(
                 survey.id(),
                 1,
-                "CHOICE",
+                FormQuestion.QuestionType.CHOICE,
                 "Was gefällt dir am besten?",
                 "",
                 false,
                 true,
                 "{\"multiSelect\":true,\"dropdown\":false,\"allowOther\":true,\"options\":[\"Übungen\",\"Gemeinschaft\",\"Ausflüge\",\"Wettbewerbe\"],\"multiLimitType\":\"NONE\"}");
         formRepository.createQuestion(
-                survey.id(), 2, "TEXT", "Hast du Verbesserungsvorschläge?", "", false, false, "{\"longAnswer\":true}");
+                survey.id(),
+                2,
+                FormQuestion.QuestionType.TEXT,
+                "Hast du Verbesserungsvorschläge?",
+                "",
+                false,
+                false,
+                "{\"longAnswer\":true}");
 
         // Add some responses
         var surveyQuestions = formRepository.findQuestions(survey.id());
@@ -968,11 +997,18 @@ public class DemoService {
 
         // Add remaining types to survey: DATE, RANKING, LIKERT
         formRepository.createQuestion(
-                survey.id(), 3, "DATE", "Wann bist du der Jugendfeuerwehr beigetreten?", "", false, false, "{}");
+                survey.id(),
+                3,
+                FormQuestion.QuestionType.DATE,
+                "Wann bist du der Jugendfeuerwehr beigetreten?",
+                "",
+                false,
+                false,
+                "{}");
         formRepository.createQuestion(
                 survey.id(),
                 4,
-                "RANKING",
+                FormQuestion.QuestionType.RANKING,
                 "Ordne die Aktivitäten nach Beliebtheit",
                 "",
                 false,
@@ -981,7 +1017,7 @@ public class DemoService {
         formRepository.createQuestion(
                 survey.id(),
                 5,
-                "LIKERT",
+                FormQuestion.QuestionType.LIKERT,
                 "Wie bewertest du die folgenden Bereiche?",
                 "",
                 false,
@@ -991,8 +1027,7 @@ public class DemoService {
         // Re-fetch questions after adding more
         surveyQuestions = formRepository.findQuestions(survey.id());
         // Add responses for the new question types
-        for (int i = 0; i < respondents.size(); i++) {
-            var member = respondents.get(i);
+        for (StationMember member : respondents) {
             var existingResponse =
                     formRepository.findResponse(survey.id(), member.id()).orElseThrow();
             formRepository.upsertAnswer(
@@ -1022,33 +1057,47 @@ public class DemoService {
                 null,
                 null,
                 admin.id());
-        formRepository.updateStatus(feedback.id(), "OPEN");
+        formRepository.updateStatus(feedback.id(), Form.FormStatus.OPEN);
         formRepository.createQuestion(
                 feedback.id(),
                 0,
-                "CHOICE",
+                FormQuestion.QuestionType.CHOICE,
                 "Würdest du wieder teilnehmen?",
                 "",
                 true,
                 false,
                 "{\"multiSelect\":false,\"dropdown\":false,\"allowOther\":false,\"options\":[\"Ja\",\"Vielleicht\",\"Nein\"],\"multiLimitType\":\"NONE\"}");
         formRepository.createQuestion(
-                feedback.id(), 1, "TEXT", "Was hat dir besonders gefallen?", "", false, false, "{\"longAnswer\":true}");
+                feedback.id(),
+                1,
+                FormQuestion.QuestionType.TEXT,
+                "Was hat dir besonders gefallen?",
+                "",
+                false,
+                false,
+                "{\"longAnswer\":true}");
         formRepository.createQuestion(
                 feedback.id(),
                 2,
-                "RATING",
+                FormQuestion.QuestionType.RATING,
                 "Gesamtbewertung",
                 "1 = schlecht, 10 = super",
                 true,
                 false,
                 "{\"scale\":10,\"icon\":\"HEART\"}");
         formRepository.createQuestion(
-                feedback.id(), 3, "DATE", "An welchem Datum warst du dabei?", "", false, false, "{}");
+                feedback.id(),
+                3,
+                FormQuestion.QuestionType.DATE,
+                "An welchem Datum warst du dabei?",
+                "",
+                false,
+                false,
+                "{}");
         formRepository.createQuestion(
                 feedback.id(),
                 4,
-                "RANKING",
+                FormQuestion.QuestionType.RANKING,
                 "Was war am wichtigsten?",
                 "",
                 false,
@@ -1057,7 +1106,7 @@ public class DemoService {
         formRepository.createQuestion(
                 feedback.id(),
                 5,
-                "LIKERT",
+                FormQuestion.QuestionType.LIKERT,
                 "Bewerte die folgenden Aspekte",
                 "",
                 true,
@@ -1092,7 +1141,7 @@ public class DemoService {
                     "{\"ratings\":{\"0\":" + (3 + rng.nextInt(3)) + ",\"1\":" + (2 + rng.nextInt(4)) + ",\"2\":"
                             + (4 + rng.nextInt(2)) + ",\"3\":" + (2 + rng.nextInt(3)) + "}}");
         }
-        formRepository.updateStatus(feedback.id(), "CLOSED");
+        formRepository.updateStatus(feedback.id(), Form.FormStatus.CLOSED);
 
         // Form 3: Member-only form (restricted to MEMBER role)
         var memberOnly = formRepository.create(
@@ -1104,11 +1153,11 @@ public class DemoService {
                 null,
                 null,
                 admin.id());
-        formRepository.updateStatus(memberOnly.id(), "OPEN");
+        formRepository.updateStatus(memberOnly.id(), Form.FormStatus.OPEN);
         formRepository.createQuestion(
                 memberOnly.id(),
                 0,
-                "RATING",
+                FormQuestion.QuestionType.RATING,
                 "Wie wohl fühlst du dich in der Gruppe?",
                 "1 = gar nicht, 5 = sehr wohl",
                 true,
@@ -1117,7 +1166,7 @@ public class DemoService {
         formRepository.createQuestion(
                 memberOnly.id(),
                 1,
-                "TEXT",
+                FormQuestion.QuestionType.TEXT,
                 "Was wünschst du dir für die nächsten Monate?",
                 "",
                 false,
@@ -1126,7 +1175,7 @@ public class DemoService {
         formRepository.createQuestion(
                 memberOnly.id(),
                 2,
-                "CHOICE",
+                FormQuestion.QuestionType.CHOICE,
                 "Möchtest du an einem Wettbewerb teilnehmen?",
                 "",
                 true,
@@ -1144,13 +1193,20 @@ public class DemoService {
                 null,
                 null,
                 admin.id());
-        formRepository.updateStatus(bothRoles.id(), "OPEN");
+        formRepository.updateStatus(bothRoles.id(), Form.FormStatus.OPEN);
         formRepository.createQuestion(
-                bothRoles.id(), 0, "DATE", "An welchem Wochenende passt es dir am besten?", "", true, false, "{}");
+                bothRoles.id(),
+                0,
+                FormQuestion.QuestionType.DATE,
+                "An welchem Wochenende passt es dir am besten?",
+                "",
+                true,
+                false,
+                "{}");
         formRepository.createQuestion(
                 bothRoles.id(),
                 1,
-                "CHOICE",
+                FormQuestion.QuestionType.CHOICE,
                 "Kannst du beim Aufbau helfen?",
                 "",
                 false,
@@ -1168,11 +1224,11 @@ public class DemoService {
                 null,
                 null,
                 admin.id());
-        formRepository.updateStatus(wettkampfForm.id(), "OPEN");
+        formRepository.updateStatus(wettkampfForm.id(), Form.FormStatus.OPEN);
         formRepository.createQuestion(
                 wettkampfForm.id(),
                 0,
-                "RATING",
+                FormQuestion.QuestionType.RATING,
                 "Wie fit fühlst du dich für den Wettkampf?",
                 "1 = gar nicht, 5 = top vorbereitet",
                 true,
@@ -1181,7 +1237,7 @@ public class DemoService {
         formRepository.createQuestion(
                 wettkampfForm.id(),
                 1,
-                "CHOICE",
+                FormQuestion.QuestionType.CHOICE,
                 "Welche Disziplin möchtest du übernehmen?",
                 "",
                 true,
@@ -1199,11 +1255,11 @@ public class DemoService {
                 null,
                 null,
                 admin.id());
-        formRepository.updateStatus(anfaengerForm.id(), "OPEN");
+        formRepository.updateStatus(anfaengerForm.id(), Form.FormStatus.OPEN);
         formRepository.createQuestion(
                 anfaengerForm.id(),
                 0,
-                "LIKERT",
+                FormQuestion.QuestionType.LIKERT,
                 "Bewerte deine bisherige Erfahrung",
                 "",
                 true,
@@ -1212,7 +1268,7 @@ public class DemoService {
         formRepository.createQuestion(
                 anfaengerForm.id(),
                 1,
-                "TEXT",
+                FormQuestion.QuestionType.TEXT,
                 "Was können wir für dich verbessern?",
                 "",
                 false,
@@ -1238,7 +1294,7 @@ public class DemoService {
                     NotificationType.NEW_NEWS,
                     NotificationData.of(
                             "notification.newNews",
-                            java.util.Map.of(
+                            Map.of(
                                     "title", "Neue Ausrüstung eingetroffen",
                                     "author", "Anna Schmidt",
                                     "preview", "Die bestellten Helme und Handschuhe sind eingetroffen..."),
@@ -1251,7 +1307,7 @@ public class DemoService {
                 NotificationType.NEWS_COMMENT,
                 NotificationData.of(
                         "notification.newsComment",
-                        java.util.Map.of(
+                        Map.of(
                                 "newsTitle",
                                 "Neue Ausrüstung eingetroffen",
                                 "author",
@@ -1267,7 +1323,7 @@ public class DemoService {
                     NotificationType.EXCHANGE_NEW_REQUEST,
                     NotificationData.of(
                             "notification.exchangeNewRequest",
-                            java.util.Map.of(
+                            Map.of(
                                     "memberName",
                                     "Tim Berger",
                                     "inventoryName",
@@ -1284,7 +1340,7 @@ public class DemoService {
                     NotificationType.EVENT_REGISTRATION_STATUS,
                     NotificationData.of(
                             "notification.eventRegistrationStatus",
-                            java.util.Map.of("eventName", "Tag der offenen Tür", "status", "ACCEPTED"),
+                            Map.of("eventName", "Tag der offenen Tür", "status", "ACCEPTED"),
                             new NotificationData.NotificationLink("events-registrations")));
         }
 
@@ -1295,7 +1351,7 @@ public class DemoService {
                     NotificationType.NEW_EVENT,
                     NotificationData.of(
                             "notification.newEvent",
-                            java.util.Map.of(
+                            Map.of(
                                     "title",
                                     "Stadtfest Musterstadt",
                                     "eventDescription",
@@ -1310,7 +1366,7 @@ public class DemoService {
                     NotificationType.MEMBER_ADDED_TO_GROUP,
                     NotificationData.of(
                             "notification.memberAddedToGroup",
-                            java.util.Map.of("groupName", "Eltern"),
+                            Map.of("groupName", "Eltern"),
                             new NotificationData.NotificationLink("dashboard-overview")));
         }
 
@@ -1320,19 +1376,18 @@ public class DemoService {
                 NotificationType.PROCUREMENT_REQUESTED,
                 NotificationData.of(
                         "notification.procurementRequested",
-                        java.util.Map.of("inventoryName", "Handschuhe"),
+                        Map.of("inventoryName", "Handschuhe"),
                         new NotificationData.NotificationLink("dashboard-overview")));
 
         // Profile change notification for Betreuer
         notificationRepository.create(
-                betreuer.get(0).id(),
+                betreuer.getFirst().id(),
                 NotificationType.PROFILE_FIELD_CHANGED,
                 NotificationData.of(
                         "notification.profileFieldChanged",
-                        java.util.Map.of("memberName", "Lukas Frank", "fieldName", "Allergien"),
+                        Map.of("memberName", "Lukas Frank", "fieldName", "Allergien"),
                         new NotificationData.NotificationLink(
-                                "members-detail",
-                                java.util.Map.of("id", anfaenger.get(0).id()))));
+                                "members-detail", Map.of("id", anfaenger.get(0).id()))));
 
         log.info("Demo: Created sample notifications for dashboard");
     }
@@ -1563,7 +1618,12 @@ public class DemoService {
 
             // Helm (MIXED, no size) — station-provided = INTERNAL
             var helmItem = inventoryRepository.createItem(
-                    helm.id(), "H-" + String.format("%03d", itemCounter++), "Helm", null, null, "INTERNAL");
+                    helm.id(),
+                    "H-" + String.format("%03d", itemCounter++),
+                    "Helm",
+                    null,
+                    null,
+                    InventoryItem.ItemSource.INTERNAL);
             inventoryRepository.assignItem(helmItem.id(), member.id());
 
             // Blouson (EXTERNAL)
@@ -1573,7 +1633,7 @@ public class DemoService {
                     "Blouson",
                     blousonSizeList.get(idx % blousonSizeList.size()).id(),
                     null,
-                    "EXTERNAL");
+                    InventoryItem.ItemSource.EXTERNAL);
             inventoryRepository.assignItem(blousonItem.id(), member.id());
 
             // Parka (EXTERNAL)
@@ -1583,7 +1643,7 @@ public class DemoService {
                     "Parka",
                     parkaSizeList.get(idx % parkaSizeList.size()).id(),
                     null,
-                    "EXTERNAL");
+                    InventoryItem.ItemSource.EXTERNAL);
             inventoryRepository.assignItem(parkaItem.id(), member.id());
 
             // Latzhose (EXTERNAL)
@@ -1593,7 +1653,7 @@ public class DemoService {
                     "Latzhose",
                     latzhoseSizeList.get(idx % latzhoseSizeList.size()).id(),
                     null,
-                    "EXTERNAL");
+                    InventoryItem.ItemSource.EXTERNAL);
             inventoryRepository.assignItem(latzItem.id(), member.id());
 
             // Handschuhe (MIXED) — station-provided = INTERNAL
@@ -1603,7 +1663,7 @@ public class DemoService {
                     "Handschuhe",
                     handschuheSizeList.get(idx % handschuheSizeList.size()).id(),
                     null,
-                    "INTERNAL");
+                    InventoryItem.ItemSource.INTERNAL);
             inventoryRepository.assignItem(handschuhItem.id(), member.id());
 
             // Stiefel (INTERNAL)
@@ -1613,7 +1673,7 @@ public class DemoService {
                     "Stiefel",
                     stiefelSizeList.get(idx % stiefelSizeList.size()).id(),
                     null,
-                    "INTERNAL");
+                    InventoryItem.ItemSource.INTERNAL);
             inventoryRepository.assignItem(stiefelItem.id(), member.id());
 
             // T-Shirt (INTERNAL, 2 per member)
@@ -1624,7 +1684,7 @@ public class DemoService {
                         "T-Shirt",
                         tshirtSizeList.get(idx % tshirtSizeList.size()).id(),
                         null,
-                        "INTERNAL");
+                        InventoryItem.ItemSource.INTERNAL);
                 inventoryRepository.assignItem(tshirtItem.id(), member.id());
             }
 
@@ -1636,7 +1696,7 @@ public class DemoService {
                         "Sporttasche",
                         null,
                         null,
-                        "INTERNAL");
+                        InventoryItem.ItemSource.INTERNAL);
                 inventoryRepository.assignItem(tasche.id(), member.id());
             }
         }
@@ -1644,7 +1704,12 @@ public class DemoService {
         // Add some unassigned spare items (INTERNAL)
         for (int i = 0; i < 5; i++) {
             inventoryRepository.createItem(
-                    helm.id(), "H-" + String.format("%03d", itemCounter++), "Helm Ersatz", null, null, "INTERNAL");
+                    helm.id(),
+                    "H-" + String.format("%03d", itemCounter++),
+                    "Helm Ersatz",
+                    null,
+                    null,
+                    InventoryItem.ItemSource.INTERNAL);
         }
         for (int i = 0; i < 3; i++) {
             inventoryRepository.createItem(
@@ -1653,7 +1718,7 @@ public class DemoService {
                     "Sporttasche Ersatz",
                     null,
                     null,
-                    "INTERNAL");
+                    InventoryItem.ItemSource.INTERNAL);
         }
 
         // Add one personally owned Handschuh per size (MIXED → EXTERNAL = personally owned)
@@ -1666,7 +1731,7 @@ public class DemoService {
                     "Handschuhe (eigen) " + size.label(),
                     size.id(),
                     "{\"owned\":true}",
-                    "EXTERNAL");
+                    InventoryItem.ItemSource.EXTERNAL);
             inventoryRepository.assignItem(ownedGlove.id(), kid.id());
         }
 
@@ -1684,7 +1749,7 @@ public class DemoService {
             if (rng.nextInt(10) < 6) continue; // skip 60%
 
             int prevOwnerCount = 1 + rng.nextInt(3);
-            Instant cursor = Instant.now().minus(java.time.Duration.ofDays(365 + rng.nextInt(730)));
+            Instant cursor = Instant.now().minus(Duration.ofDays(365 + rng.nextInt(730)));
 
             for (int h = 0; h < prevOwnerCount; h++) {
                 var prevOwner = allKids.get(rng.nextInt(allKids.size()));
@@ -1695,9 +1760,9 @@ public class DemoService {
                         : "#" + prevOwner.id();
 
                 Instant givenOut = cursor;
-                cursor = cursor.plus(java.time.Duration.ofDays(30 + rng.nextInt(180)));
+                cursor = cursor.plus(Duration.ofDays(30 + rng.nextInt(180)));
                 Instant returned = cursor;
-                cursor = cursor.plus(java.time.Duration.ofDays(1 + rng.nextInt(14)));
+                cursor = cursor.plus(Duration.ofDays(1 + rng.nextInt(14)));
 
                 inventoryRepository.createHistoryWithDates(item.id(), prevOwner.id(), prevName, givenOut, returned);
                 historyCount++;
@@ -1708,7 +1773,7 @@ public class DemoService {
                     .findById(allKids.stream()
                             .filter(m -> m.id() == item.assignedTo())
                             .findFirst()
-                            .map(m -> m.accountId())
+                            .map(StationMember::accountId)
                             .orElse(0))
                     .orElse(null);
             String currentName = currentAccount != null

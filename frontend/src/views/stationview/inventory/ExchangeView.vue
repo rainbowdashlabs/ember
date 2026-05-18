@@ -528,7 +528,10 @@ onMounted(loadData)
                   <SuccessBadge v-else-if="req.status === ExchangeStatus.EXCHANGED">{{ statusLabel(req.status) }}</SuccessBadge>
                 </td>
                 <td class="px-3 py-2.5 text-(--text-muted) max-w-48 truncate">{{ req.reason }}</td>
-                <td class="px-3 py-2.5 text-(--text-muted)">{{ formatDate(req.createdAt) }}</td>
+                <td class="px-3 py-2.5 text-(--text-muted)">
+                  {{ formatDate(req.createdAt) }}
+                  <span v-if="req.createdByName" class="block text-xs italic">{{ t('common.createdBy', { name: req.createdByName }) }}</span>
+                </td>
                 <td class="px-3 py-2.5 text-right">
                   <div class="flex items-center justify-end gap-1">
                     <SecondaryButton class="text-xs" @click="openLog(req.id)">

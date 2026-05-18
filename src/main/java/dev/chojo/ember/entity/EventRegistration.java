@@ -13,7 +13,13 @@ import java.time.LocalDate;
 import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIMESTAMP;
 
 public record EventRegistration(
-        int id, int eventId, int memberId, LocalDate eventDate, RegistrationStatus status, Instant createdAt) {
+        int id,
+        int eventId,
+        int memberId,
+        LocalDate eventDate,
+        RegistrationStatus status,
+        Instant createdAt,
+        Integer createdBy) {
 
     public static RowMapping<EventRegistration> map() {
         return row -> new EventRegistration(
@@ -22,7 +28,8 @@ public record EventRegistration(
                 row.getInt("member_id"),
                 row.getObject("event_date", LocalDate.class),
                 RegistrationStatus.valueOf(row.getString("status")),
-                row.get("created_at", INSTANT_TIMESTAMP));
+                row.get("created_at", INSTANT_TIMESTAMP),
+                row.getObject("created_by", Integer.class));
     }
 
     public enum RegistrationStatus {

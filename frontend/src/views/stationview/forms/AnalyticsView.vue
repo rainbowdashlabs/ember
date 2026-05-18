@@ -22,6 +22,7 @@ import IconButton from '@/components/button/IconButton.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import TabBar from '@/components/navigation/TabBar.vue'
 import type { Form, FormAnalytics, FormQuestionAnalytics, FormResponse, FormAnswer, ProfileField } from '@/api/types'
+import { QuestionTypes } from '@/api/types'
 import { forms, profileFields, stationMembers } from '@/api'
 import { useStations } from '@/composables/useStations'
 
@@ -90,10 +91,10 @@ function formatAnswerDisplay(questionType: string, config: string, value: string
   const parsed = parseValue(value)
   const cfg = parseConfig(config)
 
-  if (questionType === 'TEXT') return (parsed as { text?: string }).text || '–'
-  if (questionType === 'DATE') return (parsed as { date?: string }).date || '–'
-  if (questionType === 'RATING') return String((parsed as { rating?: number }).rating ?? '–')
-  if (questionType === 'CHOICE') {
+  if (questionType === QuestionTypes.TEXT) return (parsed as { text?: string }).text || '–'
+  if (questionType === QuestionTypes.DATE) return (parsed as { date?: string }).date || '–'
+  if (questionType === QuestionTypes.RATING) return String((parsed as { rating?: number }).rating ?? '–')
+  if (questionType === QuestionTypes.CHOICE) {
     const selected = (parsed as { selected?: number[]; other?: string }).selected ?? []
     const options = (cfg.options as string[]) || []
     const labels = selected.map(i => options[i] ?? `#${i}`)
@@ -101,12 +102,12 @@ function formatAnswerDisplay(questionType: string, config: string, value: string
     if (other) labels.push(`Sonstige: ${other}`)
     return labels.join(', ') || '–'
   }
-  if (questionType === 'RANKING') {
+  if (questionType === QuestionTypes.RANKING) {
     const order = (parsed as { order?: number[] }).order ?? []
     const options = (cfg.options as string[]) || []
     return order.map((idx, rank) => `${rank + 1}. ${options[idx] ?? ''}`).join(', ')
   }
-  if (questionType === 'LIKERT') {
+  if (questionType === QuestionTypes.LIKERT) {
     const ratings = (parsed as { ratings?: Record<string, number> }).ratings ?? {}
     const statements = (cfg.statements as string[]) || []
     return Object.entries(ratings)
@@ -364,15 +365,15 @@ onMounted(loadData)
               <div class="space-y-3">
                 <h3 class="font-medium">{{ q.title }}</h3>
                 <p class="text-xs text-(--text-muted)">{{ q.values.length }} {{ t('forms.responses') }}</p>
-                <VChart v-if="q.questionType === 'CHOICE'" :option="buildChoiceChart(q)" autoresize style="height: 250px" />
-                <VChart v-if="q.questionType === 'RATING'" :option="buildRatingChart(q)" autoresize style="height: 200px" />
-                <VChart v-if="q.questionType === 'RANKING'" :option="buildRankingChart(q)" autoresize style="height: 250px" />
-                <VChart v-if="q.questionType === 'LIKERT'" :option="buildLikertChart(q)" autoresize style="height: 250px" />
-                <div v-if="q.questionType === 'TEXT'" class="space-y-1 max-h-60 overflow-y-auto">
+                <VChart v-if="q.questionType === QuestionTypes.CHOICE" :option="buildChoiceChart(q)" autoresize style="height: 250px" />
+                <VChart v-if="q.questionType === QuestionTypes.RATING" :option="buildRatingChart(q)" autoresize style="height: 200px" />
+                <VChart v-if="q.questionType === QuestionTypes.RANKING" :option="buildRankingChart(q)" autoresize style="height: 250px" />
+                <VChart v-if="q.questionType === QuestionTypes.LIKERT" :option="buildLikertChart(q)" autoresize style="height: 250px" />
+                <div v-if="q.questionType === QuestionTypes.TEXT" class="space-y-1 max-h-60 overflow-y-auto">
                   <div v-for="(text, i) in getTextResponses(q)" :key="i"
                        class="text-sm px-3 py-2 rounded border border-bg-light-accent/50 dark:border-bg-dark-accent/50">{{ text }}</div>
                 </div>
-                <div v-if="q.questionType === 'DATE'" class="space-y-1">
+                <div v-if="q.questionType === QuestionTypes.DATE" class="space-y-1">
                   <div v-for="(v, i) in q.values" :key="i" class="text-sm text-(--text-muted)">
                     {{ (parseValue(v) as { date?: string }).date || '–' }}
                   </div>
@@ -399,6 +400,7 @@ onMounted(loadData)
               <div class="space-y-1 mb-4">
                 <p class="font-medium">{{ currentMemberName }}</p>
                 <p class="text-xs text-(--text-muted)">{{ new Date(currentResponse.submittedAt).toLocaleString('de-DE') }}</p>
+                <p v-if="currentResponse.submittedByName" class="text-xs text-(--text-muted) italic">{{ t('common.submittedBy', { name: currentResponse.submittedByName }) }}</p>
               </div>
 
               <Spinner v-if="loadingResponse" size="sm" />

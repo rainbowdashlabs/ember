@@ -164,6 +164,7 @@ public class ExchangeRoutes implements Routes {
             }
             targetMemberId = request.memberId();
         }
+        Integer createdBy = targetMemberId != callerMemberId ? callerMemberId : null;
         var exchange = exchangeService.create(
                 session.stationId(),
                 targetMemberId,
@@ -171,7 +172,8 @@ public class ExchangeRoutes implements Routes {
                 request.inventoryId(),
                 request.oldSizeId(),
                 request.newSizeId(),
-                request.reason());
+                request.reason(),
+                createdBy);
 
         // Notify managers about the new exchange request
         String memberName = session.account().fullName().trim();
@@ -317,6 +319,15 @@ public class ExchangeRoutes implements Routes {
                 .orElse(null);
     }
 
+    private String resolveCreatedByName(Integer createdBy) {
+        if (createdBy == null) return null;
+        return stationMemberRepository
+                .findById(createdBy)
+                .flatMap(m -> accountRepository.findById(m.accountId()))
+                .map(a -> (a.firstName() + " " + a.lastName()).trim())
+                .orElse(null);
+    }
+
     private ExchangeResponse toResponse(ExchangeRequest exchange) {
         String memberName = stationMemberRepository
                 .findById(exchange.memberId())
@@ -342,7 +353,8 @@ public class ExchangeRoutes implements Routes {
                 exchange.status().name(),
                 exchange.reason(),
                 exchange.createdAt(),
-                exchange.updatedAt());
+                exchange.updatedAt(),
+                resolveCreatedByName(exchange.createdBy()));
     }
 
     private LogResponse toLogResponse(ExchangeLog log) {
@@ -376,7 +388,8 @@ public class ExchangeRoutes implements Routes {
             String status,
             String reason,
             Instant createdAt,
-            Instant updatedAt) {}
+            Instant updatedAt,
+            String createdByName) {}
 
     public record LogResponse(
             int id,

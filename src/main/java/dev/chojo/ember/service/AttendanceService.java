@@ -359,8 +359,9 @@ public class AttendanceService {
         return attendanceRepository.deleteEntry(id);
     }
 
-    public MemberAbsence createAbsence(int memberId, LocalDate absentFrom, LocalDate absentUntil, String reason) {
-        return attendanceRepository.createAbsence(memberId, absentFrom, absentUntil, reason);
+    public MemberAbsence createAbsence(
+            int memberId, LocalDate absentFrom, LocalDate absentUntil, String reason, Integer createdBy) {
+        return attendanceRepository.createAbsence(memberId, absentFrom, absentUntil, reason, createdBy);
     }
 
     public Optional<MemberAbsence> findAbsenceById(int id) {

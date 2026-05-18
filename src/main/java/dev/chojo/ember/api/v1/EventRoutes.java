@@ -149,6 +149,15 @@ public class EventRoutes implements Routes {
                 .toList();
     }
 
+    private String resolveCreatedByName(Integer createdBy) {
+        if (createdBy == null) return null;
+        return stationMemberRepository
+                .findById(createdBy)
+                .flatMap(m -> accountRepository.findById(m.accountId()))
+                .map(a -> (a.firstName() + " " + a.lastName()).trim())
+                .orElse(null);
+    }
+
     // -- Events --
 
     @OpenApi(
@@ -187,11 +196,12 @@ public class EventRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         var req = ctx.bodyAsClass(EventRequest.class);
         validate(req);
+        var eventType = StationEvent.EventType.valueOf(req.eventType());
         var event = eventService.create(
                 session.stationId(),
                 req.name(),
                 req.description(),
-                req.eventType(),
+                eventType,
                 req.dayOfWeek(),
                 req.startTime(),
                 req.endTime(),
@@ -251,12 +261,13 @@ public class EventRoutes implements Routes {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
         var req = ctx.bodyAsClass(EventRequest.class);
         validate(req);
+        var eventType = StationEvent.EventType.valueOf(req.eventType());
         eventService
                 .update(
                         id,
                         req.name(),
                         req.description(),
-                        req.eventType(),
+                        eventType,
                         req.dayOfWeek(),
                         req.startTime(),
                         req.endTime(),
@@ -407,6 +418,7 @@ public class EventRoutes implements Routes {
                             .flatMap(m -> accountRepository.findById(m.accountId()))
                             .map(a -> (a.firstName() + " " + a.lastName()).trim())
                             .orElse("");
+                    String createdByName = resolveCreatedByName(r.createdBy());
                     return new RegistrationResponse(
                             r.id(),
                             r.eventId(),
@@ -414,7 +426,8 @@ public class EventRoutes implements Routes {
                             memberName,
                             r.eventDate(),
                             r.status().name(),
-                            r.createdAt());
+                            r.createdAt(),
+                            createdByName);
                 })
                 .toList());
     }
@@ -426,7 +439,8 @@ public class EventRoutes implements Routes {
             String memberName,
             java.time.LocalDate eventDate,
             String status,
-            java.time.Instant createdAt) {}
+            java.time.Instant createdAt,
+            String createdByName) {}
 
     @OpenApi(
             path = "/api/v1/events/registrations/pending",
@@ -507,7 +521,8 @@ public class EventRoutes implements Routes {
         }
 
         boolean autoAccept = !event.requiresConfirmation();
-        ctx.status(HttpStatus.CREATED).json(eventService.register(eventId, memberId, date, autoAccept));
+        Integer createdBy = memberId != session.member().id() ? session.member().id() : null;
+        ctx.status(HttpStatus.CREATED).json(eventService.register(eventId, memberId, date, autoAccept, createdBy));
     }
 
     @OpenApi(
@@ -545,7 +560,8 @@ public class EventRoutes implements Routes {
             memberId = session.member().id();
         }
 
-        ctx.status(HttpStatus.CREATED).json(eventService.decline(eventId, memberId, date));
+        Integer createdBy = memberId != session.member().id() ? session.member().id() : null;
+        ctx.status(HttpStatus.CREATED).json(eventService.decline(eventId, memberId, date, createdBy));
     }
 
     @OpenApi(
@@ -574,11 +590,13 @@ public class EventRoutes implements Routes {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
         UserSession session = UserSession.from(ctx);
         var req = ctx.bodyAsClass(StatusUpdateRequest.class);
-        if (!"ACCEPTED".equals(req.status()) && !"DENIED".equals(req.status())) {
+        var status = EventRegistration.RegistrationStatus.valueOf(req.status());
+        if (status != EventRegistration.RegistrationStatus.ACCEPTED
+                && status != EventRegistration.RegistrationStatus.DENIED) {
             throw new BadRequestResponse("status must be ACCEPTED or DENIED");
         }
         var registration = eventService.findRegistrationById(id).orElseThrow(NotFoundResponse::new);
-        if (!eventService.updateRegistrationStatus(id, req.status())) {
+        if (!eventService.updateRegistrationStatus(id, status)) {
             throw new NotFoundResponse();
         }
         var event = eventService.findById(registration.eventId()).orElse(null);

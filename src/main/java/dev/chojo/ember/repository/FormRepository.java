@@ -100,10 +100,10 @@ public class FormRepository {
                 .changed();
     }
 
-    public boolean updateStatus(int id, String status) {
+    public boolean updateStatus(int id, Form.FormStatus status) {
         return Query.query(
                         "UPDATE form SET status = :status, closed_at = CASE WHEN :status = 'CLOSED' THEN now() ELSE closed_at END, updated_at = now() WHERE id = :id;")
-                .single(Call.of().bind("id", id).bind("status", status))
+                .single(Call.of().bind("id", id).bind("status", status.name()))
                 .update()
                 .changed();
     }
@@ -120,7 +120,7 @@ public class FormRepository {
     public FormQuestion createQuestion(
             int formId,
             int position,
-            String questionType,
+            FormQuestion.QuestionType questionType,
             String title,
             String description,
             boolean required,
@@ -133,7 +133,7 @@ public class FormRepository {
                 .single(Call.of()
                         .bind("form_id", formId)
                         .bind("position", position)
-                        .bind("question_type", questionType)
+                        .bind("question_type", questionType.name())
                         .bind("title", title)
                         .bind("description", description)
                         .bind("required", required)
