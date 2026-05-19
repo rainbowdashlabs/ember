@@ -21,7 +21,7 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import type {AttendanceTemplate, AttendanceTemplateField, EventCategory, MemberGroup, Role} from '@/api/types'
-import {Roles, EventTypes} from '@/api/types'
+import {Roles, EventTypes, needsDayOfWeek} from '@/api/types'
 import type {EventFieldDefault} from '@/api/events'
 import {attendance, events, memberGroups, stationMembers} from '@/api'
 import {useSession} from '@/composables/useSession'
@@ -207,7 +207,7 @@ async function submit() {
       name: eventName.value,
       description: eventDescription.value || undefined,
       eventType: eventType.value,
-      dayOfWeek: eventType.value === EventTypes.RECURRING ? Number(eventDayOfWeek.value) : null,
+      dayOfWeek: needsDayOfWeek(eventType.value) ? Number(eventDayOfWeek.value) : null,
       startTime: eventStartTime.value ? new Date(eventStartTime.value).toISOString() : undefined,
       endTime: eventEndTime.value ? new Date(eventEndTime.value).toISOString() : undefined,
       templateId: eventTemplateId.value ? Number(eventTemplateId.value) : undefined,
@@ -290,11 +290,14 @@ watch(loaded, (isLoaded) => {
             <label class="block text-sm font-medium">{{ t('events.type') }}</label>
             <SelectInput v-model="eventType">
               <option :value="EventTypes.RECURRING">{{ t('events.typeRecurring') }}</option>
+              <option :value="EventTypes.MONTHLY_FIRST">{{ t('events.typeMonthlyFirst') }}</option>
+              <option :value="EventTypes.QUARTERLY">{{ t('events.typeQuarterly') }}</option>
+              <option :value="EventTypes.YEARLY">{{ t('events.typeYearly') }}</option>
               <option :value="EventTypes.ONE_TIME">{{ t('events.typeOneTime') }}</option>
             </SelectInput>
           </div>
 
-          <div v-if="eventType === EventTypes.RECURRING" class="space-y-1">
+          <div v-if="needsDayOfWeek(eventType)" class="space-y-1">
             <label class="block text-sm font-medium">{{ t('events.dayOfWeek') }}</label>
             <SelectInput v-model="eventDayOfWeek">
               <option value="1">Montag</option>

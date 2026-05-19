@@ -23,6 +23,18 @@ public class EventFieldRepository {
                 .all();
     }
 
+    public List<String> findDistinctFieldNames(int stationId) {
+        return Query.query("""
+                        SELECT DISTINCT ef.name
+                        FROM event_field ef
+                        JOIN station_event se ON se.id = ef.event_id
+                        WHERE se.station_id = :station_id
+                        ORDER BY ef.name;""")
+                .single(Call.of().bind("station_id", stationId))
+                .map(row -> row.getString("name"))
+                .all();
+    }
+
     public EventField create(int eventId, String name, String value, int position) {
         return Query.query("""
                         INSERT INTO event_field(event_id, name, value, position)

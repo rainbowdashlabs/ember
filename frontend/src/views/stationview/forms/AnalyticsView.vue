@@ -25,6 +25,7 @@ import type { Form, FormAnalytics, FormQuestionAnalytics, FormResponse, FormAnsw
 import { QuestionTypes } from '@/api/types'
 import { forms, profileFields, stationMembers } from '@/api'
 import { useStations } from '@/composables/useStations'
+import MemberName from '@/components/avatar/MemberName.vue'
 
 use([CanvasRenderer, BarChart, PieChart, TitleComponent, TooltipComponent, LegendComponent, GridComponent])
 
@@ -40,6 +41,7 @@ const form = ref<Form | null>(null)
 const analytics = ref<FormAnalytics | null>(null)
 const responses = ref<FormResponse[]>([])
 const memberNames = ref<Map<number, string>>(new Map())
+const memberAccountIds = ref<Map<number, number>>(new Map())
 const activeTab = ref('charts')
 
 const tabs = computed(() => [
@@ -310,10 +312,13 @@ async function loadData() {
 
     // Build member name map
     const names = new Map<number, string>()
+    const accountIds = new Map<number, number>()
     for (const m of members) {
       names.set(m.id, m.name && m.name.trim() ? m.name : m.email ?? `#${m.id}`)
+      if (m.accountId) accountIds.set(m.id, m.accountId)
     }
     memberNames.value = names
+    memberAccountIds.value = accountIds
 
     // Load first response answers if available
     if (r.length > 0) {
@@ -398,7 +403,7 @@ onMounted(loadData)
 
             <NeutralContainer v-if="currentResponse">
               <div class="space-y-1 mb-4">
-                <p class="font-medium">{{ currentMemberName }}</p>
+                <p class="font-medium"><MemberName :name="currentMemberName" :account-id="currentResponse?.memberId ? memberAccountIds.get(currentResponse.memberId) : undefined"/></p>
                 <p class="text-xs text-(--text-muted)">{{ new Date(currentResponse.submittedAt).toLocaleString('de-DE') }}</p>
                 <p v-if="currentResponse.submittedByName" class="text-xs text-(--text-muted) italic">{{ t('common.submittedBy', { name: currentResponse.submittedByName }) }}</p>
               </div>

@@ -22,10 +22,11 @@ import PrimaryBadge from '@/components/badge/PrimaryBadge.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import type {AttendanceTemplate, EventCategory, EventField, StationEvent} from '@/api/types'
-import {EventTypes, RegistrationStatus} from '@/api/types'
+import {EventTypes, RegistrationStatus, isRecurringEvent} from '@/api/types'
 import type {AbsentMember, EventRegistrationEntry} from '@/api/events'
 import {attendance, events} from '@/api'
 import {useSession} from '@/composables/useSession'
+import MemberName from '@/components/avatar/MemberName.vue'
 
 const {t} = useI18n()
 const route = useRoute()
@@ -87,6 +88,7 @@ function nextOccurrence(dayOfWeek: number): string {
 
 const nextOccurrenceDate = computed(() => {
   if (!event.value || event.value.eventType !== EventTypes.RECURRING || !event.value.dayOfWeek) return null
+  // Only show next occurrence for weekly recurring
   return nextOccurrence(event.value.dayOfWeek)
 })
 
@@ -150,7 +152,7 @@ async function loadData() {
     templates.value = tmpls
     fields.value = flds
     await loadRegistrations()
-    if (ev.eventType === EventTypes.RECURRING && ev.dayOfWeek) {
+    if (isRecurringEvent(ev.eventType) && ev.dayOfWeek) {
       await loadAbsences()
     }
   } catch {
@@ -210,7 +212,7 @@ onMounted(loadData)
         <div class="flex items-center justify-between flex-wrap gap-3">
           <div class="flex items-center gap-3">
             <SectionHeader>{{ event.name }}</SectionHeader>
-            <SecondaryBadge v-if="event.eventType === EventTypes.RECURRING">
+            <SecondaryBadge v-if="isRecurringEvent(event.eventType)">
               <font-awesome-icon :icon="['fas', 'rotate']" class="mr-1 h-3 w-3"/>
               {{ t('events.typeRecurring') }}
             </SecondaryBadge>
@@ -241,7 +243,7 @@ onMounted(loadData)
               <span class="text-xs font-medium text-(--text-muted) uppercase">{{ t('events.category') }}</span>
               <p class="text-sm">{{ categoryName(event.categoryId) }}</p>
             </div>
-            <div v-if="event.eventType === EventTypes.RECURRING">
+            <div v-if="isRecurringEvent(event.eventType)">
               <span class="text-xs font-medium text-(--text-muted) uppercase">{{ t('events.dayOfWeek') }}</span>
               <p class="text-sm">{{ event.dayOfWeek ? dayNames[event.dayOfWeek] : '–' }}</p>
             </div>
@@ -261,7 +263,7 @@ onMounted(loadData)
         </NeutralContainer>
 
         <!-- Next Occurrence (recurring events) -->
-        <NeutralContainer v-if="event.eventType === EventTypes.RECURRING && nextOccurrenceDate" class="space-y-3">
+        <NeutralContainer v-if="isRecurringEvent(event.eventType) && nextOccurrenceDate" class="space-y-3">
           <SubHeader>{{ t('eventDetail.nextOccurrence') }}</SubHeader>
           <p class="text-sm font-medium">{{ formatDateLong(nextOccurrenceDate) }}</p>
 
@@ -327,7 +329,7 @@ onMounted(loadData)
             <h4 class="text-xs font-semibold uppercase text-(--text-muted) pt-1">{{ statusLabel(group.status) }}</h4>
             <NeutralContainer v-for="reg in group.entries" :key="reg.id" class="flex items-center justify-between">
               <div>
-                <span class="font-medium text-sm">{{ reg.memberName }}</span>
+                <MemberName :name="reg.memberName"/>
                 <span v-if="reg.eventDate" class="ml-2 text-xs text-(--text-muted)">{{ formatDate(reg.eventDate) }}</span>
                 <span v-if="reg.createdByName" class="ml-2 text-xs text-(--text-muted) italic">
                   {{ t('common.createdBy', { name: reg.createdByName }) }}

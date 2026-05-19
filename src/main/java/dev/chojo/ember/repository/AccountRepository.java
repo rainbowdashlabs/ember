@@ -324,4 +324,32 @@ public class AccountRepository {
                 .delete()
                 .changed();
     }
+
+    // -- Avatar --
+
+    public Optional<Avatar> findAvatar(int accountId) {
+        return query("SELECT avatar, avatar_content_type FROM account WHERE id = :id AND avatar IS NOT NULL;")
+                .single(Call.of().bind("id", accountId))
+                .map(row -> new Avatar(row.getBytes("avatar"), row.getString("avatar_content_type")))
+                .first();
+    }
+
+    public boolean updateAvatar(int accountId, byte[] data, String contentType) {
+        return query("UPDATE account SET avatar = :avatar, avatar_content_type = :content_type WHERE id = :id;")
+                .single(Call.of()
+                        .bind("avatar", data)
+                        .bind("content_type", contentType)
+                        .bind("id", accountId))
+                .update()
+                .changed();
+    }
+
+    public boolean deleteAvatar(int accountId) {
+        return query("UPDATE account SET avatar = NULL, avatar_content_type = NULL WHERE id = :id;")
+                .single(Call.of().bind("id", accountId))
+                .update()
+                .changed();
+    }
+
+    public record Avatar(byte[] data, String contentType) {}
 }

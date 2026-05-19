@@ -217,6 +217,23 @@ export async function deleteBreak(id: number): Promise<void> {
     await client.delete(`/events/breaks/${id}`)
 }
 
+export async function listFieldNames(): Promise<string[]> {
+    const res = await client.get<string[]>('/events/field-names')
+    return res.data
+}
+
+// -- Export --
+
+export async function exportEventList(data: {
+    categoryIds?: number[]
+    columns?: { type: string; key?: string; fieldName?: string; label: string }[]
+    from: string
+    to: string
+}): Promise<Blob> {
+    const res = await client.post('/events/export', data, {responseType: 'blob'})
+    return res.data as Blob
+}
+
 // -- Event Fields (per-event) --
 
 export async function getEventFields(eventId: number): Promise<EventField[]> {

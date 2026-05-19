@@ -109,6 +109,8 @@ public class EventService {
     public List<StationEvent> findTodayEvents(int stationId) {
         LocalDate today = LocalDate.now(ZoneOffset.UTC);
         int dayOfWeek = today.getDayOfWeek().getValue();
+        int dayOfMonth = today.getDayOfMonth();
+        int monthValue = today.getMonthValue();
         boolean inBreak = eventRepository.isDateInBreak(stationId, today);
 
         return eventRepository.findByStation(stationId).stream()
@@ -118,9 +120,18 @@ public class EventService {
                         LocalDate eventDateUtc =
                                 e.startTime().atZone(ZoneOffset.UTC).toLocalDate();
                         return today.equals(eventDateUtc);
-                    } else {
-                        return !inBreak && e.dayOfWeek() != null && e.dayOfWeek() == dayOfWeek;
                     }
+                    if (inBreak || e.dayOfWeek() == null) return false;
+                    return switch (e.eventType()) {
+                        case RECURRING -> e.dayOfWeek() == dayOfWeek;
+                        case MONTHLY_FIRST -> e.dayOfWeek() == dayOfWeek && dayOfMonth <= 7;
+                        case QUARTERLY -> e.dayOfWeek() == dayOfWeek && dayOfMonth <= 7 && (monthValue - 1) % 3 == 0;
+                        case YEARLY ->
+                            e.startTime() != null
+                                    && e.startTime().atZone(ZoneOffset.UTC).getMonthValue() == monthValue
+                                    && e.startTime().atZone(ZoneOffset.UTC).getDayOfMonth() == dayOfMonth;
+                        default -> false;
+                    };
                 })
                 .toList();
     }

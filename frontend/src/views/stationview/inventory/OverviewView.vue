@@ -21,6 +21,7 @@ import type { InventoryItem, InventorySize, StationMember, ExchangeRequestEntry,
 import { ExchangeStatus } from '@/api/types'
 import { inventory, stationMembers, exchanges, procurement } from '@/api'
 import { useStations } from '@/composables/useStations'
+import MemberName from '@/components/avatar/MemberName.vue'
 
 const { t } = useI18n()
 const router = useRouter()
@@ -144,7 +145,7 @@ watch(() => activeStation.value?.stationId, (newId, oldId) => {
                     {{ ex.inventoryName }}
                     <span class="text-(--text-muted)">{{ ex.oldSizeLabel ?? t('common.unisize') }} → {{ ex.newSizeLabel ?? t('common.unisize') }}</span>
                   </td>
-                  <td class="px-3 py-2.5">{{ ex.memberName }}</td>
+                  <td class="px-3 py-2.5"><MemberName :name="ex.memberName"/></td>
                   <td class="px-3 py-2.5">
                     <component :is="exchangeStatusBadge(ex.status)">{{ t(`exchanges.status.${ex.status}`) }}</component>
                   </td>
@@ -177,7 +178,7 @@ watch(() => activeStation.value?.stationId, (newId, oldId) => {
                     {{ p.inventoryName }}
                     <span class="text-(--text-muted)">{{ p.sizeLabel || t('common.unisize') }}</span>
                   </td>
-                  <td class="px-3 py-2.5">{{ p.memberName }}</td>
+                  <td class="px-3 py-2.5"><MemberName :name="p.memberName"/></td>
                   <td class="px-3 py-2.5 text-(--text-muted)">{{ p.notes || '-' }}</td>
                 </tr>
               </tbody>
@@ -206,7 +207,7 @@ watch(() => activeStation.value?.stationId, (newId, oldId) => {
                     </div>
                     <div v-if="a.item.internalId" class="text-xs text-(--text-muted)">{{ a.item.internalId }}</div>
                   </td>
-                  <td class="px-3 py-2.5">{{ a.ownerName }}</td>
+                  <td class="px-3 py-2.5"><MemberName :name="a.ownerName"/></td>
                   <td class="px-3 py-2.5">
                     <ErrorBadge>{{ formatDate(a.item.lostAt) }}</ErrorBadge>
                   </td>

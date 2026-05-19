@@ -6,6 +6,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import MemberName from '@/components/avatar/MemberName.vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
@@ -203,7 +204,7 @@ onMounted(loadData)
                 class="flex items-center justify-between gap-3 py-2 px-3 cursor-pointer hover:bg-(--bg-accent)"
                 @click="router.push({ name: 'inventory-exchanges' })">
                 <div>
-                  <p v-if="isOtherMember(ex.memberId)" class="text-xs font-semibold text-primary">{{ ex.memberName }}</p>
+                  <MemberName v-if="isOtherMember(ex.memberId)" :name="ex.memberName" class="text-xs font-semibold text-primary"/>
                   <p class="text-sm font-medium">{{ ex.inventoryName }}</p>
                   <p class="text-xs text-(--text-muted)">{{ ex.oldSizeLabel ?? t('common.unisize') }} → {{ ex.newSizeLabel ?? t('common.unisize') }}</p>
                   <p class="text-xs text-(--text-muted)">{{ ex.reason }}</p>
@@ -229,7 +230,7 @@ onMounted(loadData)
                 class="flex items-center justify-between gap-3 py-2 px-3 cursor-pointer hover:bg-(--bg-accent)"
                 @click="router.push({ name: 'events-upcoming' })">
                 <div>
-                  <p v-if="isOtherMember(reg.memberId)" class="text-xs font-semibold text-primary">{{ reg.memberName }}</p>
+                  <MemberName v-if="isOtherMember(reg.memberId)" :name="reg.memberName" class="text-xs font-semibold text-primary"/>
                   <p class="text-sm font-medium">{{ eventName(reg.eventId) }}</p>
                   <p class="text-xs text-(--text-muted)">{{ reg.eventDate }}</p>
                 </div>

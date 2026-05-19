@@ -14,7 +14,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import type {AttendanceTemplate, EventCategory, StationEvent} from '@/api/types'
-import {EventTypes} from '@/api/types'
+import {EventTypes, isRecurringEvent} from '@/api/types'
 
 const {t} = useI18n()
 const router = useRouter()
@@ -57,6 +57,14 @@ function formatTime(iso?: string): string {
   return `${pad(d.getHours())}:${pad(d.getMinutes())}`
 }
 
+function eventTypeLabel(eventType?: string): string {
+  if (eventType === EventTypes.RECURRING) return t('events.typeRecurring')
+  if (eventType === EventTypes.MONTHLY_FIRST) return t('events.typeMonthlyFirst')
+  if (eventType === EventTypes.QUARTERLY) return t('events.typeQuarterly')
+  if (eventType === EventTypes.YEARLY) return t('events.typeYearly')
+  return t('events.typeOneTime')
+}
+
 function formatDate(iso?: string): string {
   if (!iso) return ''
   return new Date(iso).toLocaleDateString('de-DE', {day: '2-digit', month: '2-digit', year: 'numeric'})
@@ -96,12 +104,12 @@ function formatDate(iso?: string): string {
       <NeutralContainer v-for="ev in group.events" :key="ev.id" class="flex items-center justify-between cursor-pointer hover:bg-(--bg-accent) transition-colors"
                         @click="router.push({ name: 'event-detail', params: { id: ev.id } })">
         <div class="flex items-center gap-2 flex-wrap">
-          <SecondaryBadge v-if="ev.eventType === EventTypes.RECURRING">
+          <SecondaryBadge v-if="isRecurringEvent(ev.eventType)">
             <font-awesome-icon :icon="['fas', 'rotate']" class="mr-1 h-3 w-3"/>
-            {{ t('events.typeRecurring') }}
+            {{ eventTypeLabel(ev.eventType) }}
           </SecondaryBadge>
           <span class="font-medium text-primary">{{ ev.name }}</span>
-          <span v-if="ev.eventType === EventTypes.RECURRING" class="text-sm text-(--text-muted)">{{
+          <span v-if="isRecurringEvent(ev.eventType)" class="text-sm text-(--text-muted)">{{
               dayName(ev.dayOfWeek)
             }}, {{ formatTime(ev.startTime) }} – {{ formatTime(ev.endTime) }}</span>
           <span v-else class="text-sm text-(--text-muted)">{{ formatDate(ev.startTime) }}, {{

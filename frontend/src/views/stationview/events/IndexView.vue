@@ -8,9 +8,18 @@ import {computed, onMounted, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
+import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import IconButton from '@/components/button/IconButton.vue'
+import DeleteButton from '@/components/button/DeleteButton.vue'
+import NeutralContainer from '@/components/container/NeutralContainer.vue'
+import SectionHeader from '@/components/typography/SectionHeader.vue'
+import Modal from '@/components/feedback/Modal.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
+import SelectInput from '@/components/input/select/SelectInput.vue'
+import TextInput from '@/components/input/text/TextInput.vue'
 import TodayEvents from './indexview/TodayEvents.vue'
 import EventsByCategory from './indexview/EventsByCategory.vue'
 import BreaksList from './indexview/BreaksList.vue'
@@ -213,6 +222,133 @@ function goToAttendance(ev: StationEvent) {
   }
 }
 
+// -- Export --
+const showExportModal = ref(false)
+const exporting = ref(false)
+const exportMode = ref('year')
+const exportYear = ref(String(new Date().getFullYear()))
+const exportMonth = ref(String(new Date().getMonth() + 1))
+const exportCategoryIds = ref<Set<number>>(new Set())
+const availableFieldNames = ref<string[]>([])
+
+interface ExportColumn {
+  key: string
+  label: string
+  isExtra?: boolean
+}
+
+const builtinColumns: ExportColumn[] = [
+  {key: 'name', label: t('events.exportColName')},
+  {key: 'type', label: t('events.exportColType')},
+  {key: 'day', label: t('events.exportColDay')},
+  {key: 'date', label: t('events.exportColDate')},
+  {key: 'time', label: t('events.exportColTime')},
+  {key: 'description', label: t('events.exportColDescription')},
+]
+
+const selectedColumns = ref<ExportColumn[]>([
+  {key: 'name', label: t('events.exportColName')},
+  {key: 'day', label: t('events.exportColDay')},
+  {key: 'date', label: t('events.exportColDate')},
+  {key: 'time', label: t('events.exportColTime')},
+])
+
+const availableColumns = computed(() =>
+    builtinColumns.filter(c => !selectedColumns.value.some(s => s.key === c.key))
+)
+
+function addColumn(col: ExportColumn) {
+  selectedColumns.value = [...selectedColumns.value, col]
+}
+
+function removeColumn(index: number) {
+  selectedColumns.value = selectedColumns.value.filter((_, i) => i !== index)
+}
+
+function moveColumnUp(index: number) {
+  if (index <= 0) return
+  const cols = [...selectedColumns.value]
+  const tmp = cols[index - 1]
+  cols[index - 1] = cols[index]
+  cols[index] = tmp
+  selectedColumns.value = cols
+}
+
+function moveColumnDown(index: number) {
+  if (index >= selectedColumns.value.length - 1) return
+  const cols = [...selectedColumns.value]
+  const tmp = cols[index + 1]
+  cols[index + 1] = cols[index]
+  cols[index] = tmp
+  selectedColumns.value = cols
+}
+
+function addFieldColumn(name: string) {
+  if (selectedColumns.value.some(c => c.isExtra && c.label === name)) return
+  selectedColumns.value = [...selectedColumns.value, {key: `extra:${name}`, label: name, isExtra: true}]
+}
+
+const availableExtraFields = computed(() =>
+    availableFieldNames.value.filter(name => !selectedColumns.value.some(c => c.isExtra && c.label === name))
+)
+
+function toggleExportCategory(catId: number) {
+  const s = new Set(exportCategoryIds.value)
+  if (s.has(catId)) s.delete(catId); else s.add(catId)
+  exportCategoryIds.value = s
+}
+
+async function openExport() {
+  exportCategoryIds.value = new Set(categories.value.map(c => c.id))
+  try {
+    availableFieldNames.value = await events.listFieldNames()
+  } catch { /* ignore */ }
+  showExportModal.value = true
+}
+
+async function doExport() {
+  exporting.value = true
+  error.value = ''
+  try {
+    const year = parseInt(exportYear.value)
+    const month = parseInt(exportMonth.value)
+    let from: string
+    let to: string
+    if (exportMode.value === 'year') {
+      from = `${year}-01-01`
+      to = `${year}-12-31`
+    } else {
+      const m = String(month).padStart(2, '0')
+      from = `${year}-${m}-01`
+      const lastDay = new Date(year, month, 0).getDate()
+      to = `${year}-${m}-${String(lastDay).padStart(2, '0')}`
+    }
+    const columns = selectedColumns.value.map(c => ({
+      type: c.isExtra ? 'field' : 'builtin',
+      key: c.isExtra ? undefined : c.key,
+      fieldName: c.isExtra ? c.label : undefined,
+      label: c.label,
+    }))
+    const blob = await events.exportEventList({
+      categoryIds: [...exportCategoryIds.value],
+      columns,
+      from,
+      to,
+    })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'events.pdf'
+    a.click()
+    URL.revokeObjectURL(url)
+    showExportModal.value = false
+  } catch {
+    error.value = t('common.error')
+  } finally {
+    exporting.value = false
+  }
+}
+
 onMounted(loadData)
 </script>
 
@@ -244,7 +380,130 @@ onMounted(loadData)
             @edit="openEditBreak"
             @import-holidays="showHolidayModal = true"
         />
+        <!-- Export Button -->
+        <NeutralContainer class="flex items-center justify-between">
+          <SectionHeader>{{ t('events.export') }}</SectionHeader>
+          <PrimaryButton @click="openExport">
+            <font-awesome-icon :icon="['fas', 'file-export']" class="mr-1"/>
+            {{ t('events.exportPdf') }}
+          </PrimaryButton>
+        </NeutralContainer>
       </template>
+
+      <!-- Export Modal -->
+      <Modal v-model="showExportModal">
+        <div class="space-y-5 p-4 max-h-[80vh] overflow-y-auto">
+          <h3 class="text-lg font-semibold">{{ t('events.exportPdf') }}</h3>
+
+          <!-- Time range -->
+          <div class="space-y-2">
+            <label class="block text-sm font-medium">{{ t('events.exportPeriod') }}</label>
+            <div class="flex items-center gap-3 flex-wrap">
+              <SelectInput v-model="exportMode" class="w-32">
+                <option value="year">{{ t('events.exportYear') }}</option>
+                <option value="month">{{ t('events.exportMonth') }}</option>
+              </SelectInput>
+              <TextInput v-model="exportYear" class="w-24"/>
+              <SelectInput v-if="exportMode === 'month'" v-model="exportMonth" class="w-32">
+                <option v-for="m in 12" :key="m" :value="String(m)">{{ new Date(2000, m - 1).toLocaleDateString('de-DE', { month: 'long' }) }}</option>
+              </SelectInput>
+            </div>
+          </div>
+
+          <!-- Categories -->
+          <div class="space-y-2">
+            <label class="block text-sm font-medium">{{ t('events.exportCategories') }}</label>
+            <div class="flex flex-wrap gap-2">
+              <button
+                  v-for="cat in categories"
+                  :key="cat.id"
+                  :class="exportCategoryIds.has(cat.id)
+                  ? 'border-primary bg-primary/10 text-primary ring-1 ring-primary/30'
+                  : 'border-bg-light-accent dark:border-bg-dark-accent text-(--text-muted) hover:border-primary'"
+                  class="rounded-lg px-3 py-1.5 text-xs font-medium border transition-all"
+                  type="button"
+                  @click="toggleExportCategory(cat.id)"
+              >
+                {{ cat.name }}
+              </button>
+            </div>
+          </div>
+
+          <!-- Columns (ordered) -->
+          <div class="space-y-3">
+            <label class="block text-sm font-medium">{{ t('events.exportColumns') }}</label>
+
+            <!-- Selected columns in order -->
+            <div v-if="selectedColumns.length === 0" class="text-sm text-(--text-muted) py-2 text-center">
+              {{ t('events.exportNoColumns') }}
+            </div>
+            <div class="space-y-1">
+              <div
+                  v-for="(col, index) in selectedColumns"
+                  :key="col.key"
+                  class="flex items-center gap-2 rounded-lg px-3 py-2 bg-bg-light-accent/30 dark:bg-bg-dark-accent/30"
+              >
+                <span class="text-(--text-muted) text-xs w-5 text-center">{{ index + 1 }}</span>
+                <span class="flex-1 text-sm font-medium">{{ col.label }}</span>
+                <IconButton
+                    :icon="['fas', 'chevron-up']"
+                    label="Move up"
+                    :disabled="index === 0"
+                    class="text-(--text-muted) hover:text-(--text) h-6 w-6"
+                    @click="moveColumnUp(index)"
+                />
+                <IconButton
+                    :icon="['fas', 'chevron-down']"
+                    label="Move down"
+                    :disabled="index === selectedColumns.length - 1"
+                    class="text-(--text-muted) hover:text-(--text) h-6 w-6"
+                    @click="moveColumnDown(index)"
+                />
+                <DeleteButton @click="removeColumn(index)"/>
+              </div>
+            </div>
+
+            <!-- Add builtin columns -->
+            <div v-if="availableColumns.length > 0" class="flex flex-wrap gap-2">
+              <button
+                  v-for="col in availableColumns"
+                  :key="col.key"
+                  class="rounded-lg px-3 py-1.5 text-xs font-medium border border-dashed border-bg-light-accent dark:border-bg-dark-accent text-(--text-muted) hover:border-primary hover:text-primary transition-all"
+                  type="button"
+                  @click="addColumn(col)"
+              >
+                <font-awesome-icon :icon="['fas', 'plus']" class="mr-1 h-3 w-3"/>
+                {{ col.label }}
+              </button>
+            </div>
+
+            <!-- Add event field columns -->
+            <div v-if="availableExtraFields.length > 0" class="space-y-1">
+              <span class="text-xs text-(--text-muted)">{{ t('events.exportExtraFields') }}</span>
+              <div class="flex flex-wrap gap-2">
+                <button
+                    v-for="name in availableExtraFields"
+                    :key="name"
+                    class="rounded-lg px-3 py-1.5 text-xs font-medium border border-dashed border-secondary/50 text-secondary hover:border-secondary hover:bg-secondary/10 transition-all"
+                    type="button"
+                    @click="addFieldColumn(name)"
+                >
+                  <font-awesome-icon :icon="['fas', 'plus']" class="mr-1 h-3 w-3"/>
+                  {{ name }}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex justify-end gap-2 pt-2">
+            <SecondaryButton @click="showExportModal = false">{{ t('common.cancel') }}</SecondaryButton>
+            <PrimaryButton :disabled="exporting || selectedColumns.length === 0" @click="doExport">
+              <font-awesome-icon :icon="['fas', 'file-export']" class="mr-1"/>
+              {{ exporting ? t('common.loading') : t('events.exportPdf') }}
+            </PrimaryButton>
+          </div>
+        </div>
+      </Modal>
 
       <BreakModal
           v-model="showBreakModal"

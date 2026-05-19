@@ -37,6 +37,7 @@ import { InventoryTypes, ExchangeStatus } from '@/api/types'
 import { exchanges, inventory, procurement, stationMembers, profileFields, managedMembers } from '@/api'
 import { useSession } from '@/composables/useSession'
 import { useStations } from '@/composables/useStations'
+import MemberName from '@/components/avatar/MemberName.vue'
 
 const { t } = useI18n()
 const router = useRouter()
@@ -515,8 +516,8 @@ onMounted(loadData)
                       v-if="canManageInventory()"
                       class="text-primary hover:underline cursor-pointer"
                       @click="router.push({ name: 'inventory-member', params: { memberId: req.memberId } })"
-                  >{{ req.memberName }}</button>
-                  <span v-else>{{ req.memberName }}</span>
+                  ><MemberName :name="req.memberName"/></button>
+                  <MemberName v-else :name="req.memberName"/>
                 </td>
                 <td class="px-3 py-2.5 font-medium">{{ req.inventoryName }}</td>
                 <td class="px-3 py-2.5">{{ req.oldSizeLabel ?? t('common.unisize') }}</td>

@@ -638,6 +638,11 @@ public class DemoService {
                         new AttendanceRepository.TemplateGroup(groupAnfaenger.id(), 0),
                         new AttendanceRepository.TemplateGroup(groupFortgeschritten.id(), 1)));
 
+        // -- Event categories --
+        var catUebung = eventRepository.createCategory(station.id(), "Übungen", 0);
+        var catVeranstaltung = eventRepository.createCategory(station.id(), "Veranstaltungen", 1);
+        var catWettbewerb = eventRepository.createCategory(station.id(), "Wettbewerbe", 2);
+
         // -- Events --
         Instant monStart = LocalDate.now().atTime(17, 30).toInstant(ZoneOffset.UTC);
         Instant monEnd = LocalDate.now().atTime(19, 0).toInstant(ZoneOffset.UTC);
@@ -658,7 +663,7 @@ public class DemoService {
                 false,
                 null,
                 false,
-                null);
+                catUebung.id());
         var evFort = eventRepository.create(
                 station.id(),
                 "Übung Fortgeschritten",
@@ -671,7 +676,7 @@ public class DemoService {
                 false,
                 null,
                 false,
-                null);
+                catUebung.id());
         var evGesamt = eventRepository.create(
                 station.id(),
                 "Gesamtübung",
@@ -684,9 +689,58 @@ public class DemoService {
                 false,
                 null,
                 false,
-                null);
+                catUebung.id());
+
+        // Monthly: first Saturday = Elternabend
+        eventRepository.create(
+                station.id(),
+                "Elternabend",
+                "Monatliches Treffen mit den Eltern",
+                StationEvent.EventType.MONTHLY_FIRST,
+                6,
+                satStart,
+                satEnd,
+                null,
+                false,
+                null,
+                false,
+                catVeranstaltung.id());
+
+        // Quarterly: first Saturday = Dienstbesprechung
+        eventRepository.create(
+                station.id(),
+                "Dienstbesprechung",
+                "Vierteljährliche Besprechung aller Betreuer",
+                StationEvent.EventType.QUARTERLY,
+                6,
+                satStart,
+                satEnd,
+                null,
+                false,
+                null,
+                false,
+                catVeranstaltung.id());
 
         // -- Past attendance sessions (full year + current year so far) --
+        // Yearly: Jahreshauptversammlung on Sep 20
+        Instant jhvStart =
+                LocalDate.now().withMonth(9).withDayOfMonth(20).atTime(18, 0).toInstant(ZoneOffset.UTC);
+        Instant jhvEnd =
+                LocalDate.now().withMonth(9).withDayOfMonth(20).atTime(21, 0).toInstant(ZoneOffset.UTC);
+        eventRepository.create(
+                station.id(),
+                "Jahreshauptversammlung",
+                "Jährliche Versammlung mit Berichten und Wahlen",
+                StationEvent.EventType.YEARLY,
+                null,
+                jhvStart,
+                jhvEnd,
+                null,
+                true,
+                null,
+                false,
+                catVeranstaltung.id());
+
         seedAttendanceSessions(
                 rng,
                 templateAnfaenger,
@@ -710,15 +764,6 @@ public class DemoService {
 
         // -- Inventory checks (done by Betreuer) --
         seedInventoryChecks(station.id(), rng, betreuerMembers, anfaengerMembers, fortgeschrittenMembers);
-
-        // -- Event categories --
-        var catUebung = eventRepository.createCategory(station.id(), "Übungen", 0);
-        var catVeranstaltung = eventRepository.createCategory(station.id(), "Veranstaltungen", 1);
-        var catWettbewerb = eventRepository.createCategory(station.id(), "Wettbewerbe", 2);
-
-        // Update existing recurring events with category
-        // (events were created above without categories, but we can't easily update — create new ones with categories
-        // instead)
 
         // One-time event for today (ensures there's always an event today)
         Instant todayEventStart = LocalDate.now().atTime(16, 0).toInstant(ZoneOffset.UTC);
@@ -889,6 +934,15 @@ public class DemoService {
         eventFieldRepository.create(stadtfest.id(), "Treffpunkt", "Stand der Jugendfeuerwehr", 1);
         eventFieldRepository.create(kreisWettbewerb.id(), "Ort", "Sportplatz Nachbarstadt", 0);
         eventFieldRepository.create(kreisWettbewerb.id(), "Hinweis", "Wettkampfkleidung und Ausrüstung mitbringen", 1);
+        // Recurring event fields
+        eventFieldRepository.create(evAnfaenger.id(), "Ort", "Feuerwehrhaus Musterstadt", 0);
+        eventFieldRepository.create(evAnfaenger.id(), "Hinweis", "Sportkleidung mitbringen", 1);
+        eventFieldRepository.create(evFort.id(), "Ort", "Feuerwehrhaus Musterstadt", 0);
+        eventFieldRepository.create(evFort.id(), "Hinweis", "Schutzausrüstung wird gestellt", 1);
+        eventFieldRepository.create(evGesamt.id(), "Ort", "Feuerwehrhaus Musterstadt", 0);
+        eventFieldRepository.create(evGesamt.id(), "Treffpunkt", "Fahrzeughalle", 1);
+        eventFieldRepository.create(theorieabend.id(), "Ort", "Schulungsraum Feuerwehrhaus", 0);
+        eventFieldRepository.create(theorieabend.id(), "Hinweis", "Schreibzeug mitbringen", 1);
 
         // -- News --
         var news1 = newsRepository.create(

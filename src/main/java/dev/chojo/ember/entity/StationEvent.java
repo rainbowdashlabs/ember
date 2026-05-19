@@ -45,6 +45,13 @@ public record StationEvent(
 
     public enum EventType {
         ONE_TIME,
-        RECURRING
+        RECURRING,
+        MONTHLY_FIRST,
+        QUARTERLY,
+        YEARLY
+    }
+
+    public boolean isRecurring() {
+        return eventType != EventType.ONE_TIME;
     }
 }

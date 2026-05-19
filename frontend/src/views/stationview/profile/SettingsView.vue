@@ -20,9 +20,11 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import {session as sessionApi, userSettings} from '@/api'
+import DownloadButton from '@/components/button/DownloadButton.vue'
+import {session as sessionApi, userSettings, managedMembers as managedMembersApi} from '@/api'
 import type {ActiveSession, UserSettings, NotificationToggle} from '@/api/types'
 import {useOnboardingTour} from '@/composables/useOnboardingTour'
+import {useSession} from '@/composables/useSession'
 
 const {t} = useI18n()
 const router = useRouter()
@@ -32,13 +34,73 @@ function restartTour() {
   startTour()
 }
 
+function downloadBlob(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
+async function exportOwnData() {
+  exportingGdpr.value = true
+  error.value = ''
+  try {
+    const blob = await sessionApi.gdprExport()
+    downloadBlob(blob, 'gdpr-export.json')
+  } catch {
+    error.value = t('common.error')
+  } finally {
+    exportingGdpr.value = false
+  }
+}
+
+async function exportManagedMemberData(memberId: number) {
+  exportingMemberId.value = memberId
+  error.value = ''
+  try {
+    const blob = await sessionApi.gdprExportManagedMember(memberId)
+    downloadBlob(blob, `gdpr-export-member-${memberId}.json`)
+  } catch {
+    error.value = t('common.error')
+  } finally {
+    exportingMemberId.value = null
+  }
+}
+
+async function confirmDeleteAccount() {
+  deletingAccount.value = true
+  try {
+    await sessionApi.deleteAccount()
+    localStorage.removeItem('session_token')
+    localStorage.removeItem('session_expires_at')
+    router.push({name: 'login'})
+  } catch {
+    error.value = t('common.error')
+    deletingAccount.value = false
+  }
+}
+
+const {isMemberManager} = useSession()
+
+interface ManagedMemberInfo {
+  id: number
+  name: string
+}
+
 const settings = ref<UserSettings | null>(null)
 const sessions = ref<ActiveSession[]>([])
+const managedMembers = ref<ManagedMemberInfo[]>([])
+const exportingGdpr = ref(false)
+const exportingMemberId = ref<number | null>(null)
 const loading = ref(true)
 const saving = ref(false)
 const error = ref('')
 const saved = ref(false)
 const showInvalidateAllModal = ref(false)
+const showDeleteAccountModal = ref(false)
+const deletingAccount = ref(false)
 
 interface NotifyRow {
   type: string
@@ -158,6 +220,12 @@ async function loadData() {
     ])
     settings.value = s
     sessions.value = sess
+    if (isMemberManager()) {
+      try {
+        const managed = await managedMembersApi.listManaged()
+        managedMembers.value = managed.map(m => ({id: m.id, name: m.name}))
+      } catch { /* ignore */ }
+    }
   } catch {
     error.value = t('common.error')
   } finally {
@@ -339,6 +407,38 @@ onMounted(loadData)
             </div>
           </div>
         </NeutralContainer>
+        <!-- GDPR Data Export -->
+        <NeutralContainer class="space-y-4">
+          <SubHeader>{{ t('userSettings.gdprTitle') }}</SubHeader>
+          <p class="text-sm text-(--text-muted)">{{ t('userSettings.gdprHint') }}</p>
+
+          <DownloadButton :disabled="exportingGdpr" @click="exportOwnData">
+            {{ exportingGdpr ? t('common.loading') : t('userSettings.gdprExport') }}
+          </DownloadButton>
+
+          <template v-if="managedMembers.length > 0">
+            <p class="text-sm font-medium pt-2">{{ t('userSettings.gdprManaged') }}</p>
+            <div class="space-y-2">
+              <div v-for="m in managedMembers" :key="m.id" class="flex items-center justify-between">
+                <span class="text-sm">{{ m.name }}</span>
+                <DownloadButton :disabled="exportingMemberId === m.id" class="text-xs" @click="exportManagedMemberData(m.id)">
+                  {{ exportingMemberId === m.id ? t('common.loading') : t('userSettings.gdprExport') }}
+                </DownloadButton>
+              </div>
+            </div>
+          </template>
+        </NeutralContainer>
+
+        <!-- Delete Account -->
+        <ErrorContainer class="space-y-3">
+          <SubHeader>{{ t('userSettings.deleteTitle') }}</SubHeader>
+          <p class="text-sm">{{ t('userSettings.deleteWarning') }}</p>
+          <ErrorButton @click="showDeleteAccountModal = true">
+            <font-awesome-icon :icon="['fas', 'trash']" class="mr-1"/>
+            {{ t('userSettings.deleteAccount') }}
+          </ErrorButton>
+        </ErrorContainer>
+
         <!-- Restart Tour -->
         <NeutralContainer class="space-y-2">
           <SubHeader>{{ t('tour.restartButton') }}</SubHeader>
@@ -360,6 +460,21 @@ onMounted(loadData)
           <div class="flex justify-end gap-2">
             <SecondaryButton @click="showInvalidateAllModal = false">{{ t('common.cancel') }}</SecondaryButton>
             <ErrorButton @click="invalidateAll">{{ t('userSettings.invalidateAll') }}</ErrorButton>
+          </div>
+        </div>
+      </Modal>
+      <!-- Delete Account Modal -->
+      <Modal v-model="showDeleteAccountModal">
+        <div class="space-y-4 p-4">
+          <h3 class="text-lg font-semibold">{{ t('userSettings.deleteTitle') }}</h3>
+          <ErrorContainer>
+            <p class="text-sm">{{ t('userSettings.deleteConfirmWarning') }}</p>
+          </ErrorContainer>
+          <div class="flex justify-end gap-2">
+            <SecondaryButton @click="showDeleteAccountModal = false">{{ t('common.cancel') }}</SecondaryButton>
+            <ErrorButton :disabled="deletingAccount" @click="confirmDeleteAccount">
+              {{ deletingAccount ? t('common.loading') : t('userSettings.deleteAccount') }}
+            </ErrorButton>
           </div>
         </div>
       </Modal>

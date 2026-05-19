@@ -25,6 +25,7 @@ import dev.chojo.ember.repository.AccountRepository;
 import dev.chojo.ember.repository.EventFieldRepository;
 import dev.chojo.ember.repository.StationMemberRepository;
 import dev.chojo.ember.service.AttendanceService;
+import dev.chojo.ember.service.EventExportService;
 import dev.chojo.ember.service.EventFieldService;
 import dev.chojo.ember.service.EventService;
 import dev.chojo.ember.service.MemberGroupService;
@@ -67,6 +68,7 @@ public class EventRoutes implements Routes {
     private final StationMemberRepository stationMemberRepository;
     private final AccountRepository accountRepository;
     private final AttendanceService attendanceService;
+    private final EventExportService eventExportService;
 
     @Inject
     public EventRoutes(
@@ -78,7 +80,8 @@ public class EventRoutes implements Routes {
             NotificationService notificationService,
             StationMemberRepository stationMemberRepository,
             AccountRepository accountRepository,
-            AttendanceService attendanceService) {
+            AttendanceService attendanceService,
+            EventExportService eventExportService) {
         this.eventService = eventService;
         this.eventFieldService = eventFieldService;
         this.stationMemberService = stationMemberService;
@@ -88,6 +91,7 @@ public class EventRoutes implements Routes {
         this.stationMemberRepository = stationMemberRepository;
         this.accountRepository = accountRepository;
         this.attendanceService = attendanceService;
+        this.eventExportService = eventExportService;
     }
 
     @Override
@@ -95,6 +99,9 @@ public class EventRoutes implements Routes {
         routes.get(prefix + "/events", this::list, Roles.USER);
         routes.get(prefix + "/events/today", this::listToday, Roles.USER);
         routes.post(prefix + "/events", this::create, Roles.EVENT_MANAGEMENT);
+
+        routes.post(prefix + "/events/export", this::exportPdf, Roles.EVENT_MANAGEMENT);
+        routes.get(prefix + "/events/field-names", this::listFieldNames, Roles.EVENT_MANAGEMENT);
 
         routes.get(prefix + "/events/categories", this::listCategories, Roles.USER);
         routes.post(prefix + "/events/categories", this::createCategory, Roles.EVENT_MANAGEMENT);
@@ -968,6 +975,54 @@ public class EventRoutes implements Routes {
 
     public record AbsentMemberResponse(
             int memberId, String memberName, LocalDate absentFrom, LocalDate absentUntil, String reason) {}
+
+    @OpenApi(
+            path = "/api/v1/events/field-names",
+            methods = HttpMethod.GET,
+            summary = "List distinct event field names used across all events",
+            tags = {"Events"},
+            responses = @OpenApiResponse(status = "200"))
+    private void listFieldNames(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        ctx.json(eventFieldService.findDistinctFieldNames(session.stationId()));
+    }
+
+    @OpenApi(
+            path = "/api/v1/events/export",
+            methods = HttpMethod.POST,
+            summary = "Export event list as PDF",
+            tags = {"Events"},
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = EventExportRequest.class)),
+            responses = @OpenApiResponse(status = "200"))
+    private void exportPdf(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        var req = ctx.bodyAsClass(EventExportRequest.class);
+        String generatedBy = session.account().fullName();
+        var columns = req.columns() != null
+                ? req.columns().stream()
+                        .map(c -> new EventExportService.ExportColumn(
+                                c.type() != null ? c.type() : "builtin", c.key(), c.fieldName(), c.label()))
+                        .toList()
+                : List.<EventExportService.ExportColumn>of();
+        var pdf = eventExportService.exportPdf(
+                session.stationId(),
+                req.categoryIds() != null ? req.categoryIds() : List.of(),
+                columns,
+                LocalDate.parse(req.from()),
+                LocalDate.parse(req.to()),
+                generatedBy);
+        if (pdf.isEmpty()) {
+            throw new io.javalin.http.InternalServerErrorResponse("PDF generation failed");
+        }
+        ctx.contentType("application/pdf");
+        ctx.header("Content-Disposition", "attachment; filename=\"events.pdf\"");
+        ctx.result(pdf.get());
+    }
+
+    public record EventExportRequest(
+            List<Integer> categoryIds, List<ExportColumnRequest> columns, String from, String to) {}
+
+    public record ExportColumnRequest(String type, String key, String fieldName, String label) {}
 
     @OpenApiName("SetEventFieldsRequest")
     public record SetEventFieldsRequest(List<EventFieldEntry> fields) {}

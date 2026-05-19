@@ -18,6 +18,7 @@ import dev.chojo.ember.entity.Role;
 import dev.chojo.ember.entity.StationMember;
 import dev.chojo.ember.repository.AccountRepository;
 import dev.chojo.ember.repository.StationMemberRepository;
+import dev.chojo.ember.service.GdprExportService;
 import dev.chojo.ember.service.InventoryCheckService;
 import dev.chojo.ember.service.InventoryService;
 import dev.chojo.ember.service.ProfileFieldService;
@@ -60,6 +61,7 @@ public class ManagedMemberRoutes implements Routes {
     private final ProfileFieldService profileFieldService;
     private final InventoryService inventoryService;
     private final InventoryCheckService checkService;
+    private final GdprExportService gdprExportService;
 
     @Inject
     public ManagedMemberRoutes(
@@ -68,13 +70,15 @@ public class ManagedMemberRoutes implements Routes {
             AccountRepository accountRepository,
             ProfileFieldService profileFieldService,
             InventoryService inventoryService,
-            InventoryCheckService checkService) {
+            InventoryCheckService checkService,
+            GdprExportService gdprExportService) {
         this.memberService = memberService;
         this.stationMemberRepository = stationMemberRepository;
         this.accountRepository = accountRepository;
         this.profileFieldService = profileFieldService;
         this.inventoryService = inventoryService;
         this.checkService = checkService;
+        this.gdprExportService = gdprExportService;
     }
 
     @Override
@@ -88,6 +92,7 @@ public class ManagedMemberRoutes implements Routes {
                 prefix + "/managed-members/{memberId}/inventory-requirements",
                 this::getMemberRequirements,
                 Roles.MEMBER_MANAGER);
+        routes.get(prefix + "/managed-members/{memberId}/gdpr-export", this::gdprExport, Roles.MEMBER_MANAGER);
     }
 
     private void assertManages(UserSession session, int memberId) {
@@ -262,4 +267,21 @@ public class ManagedMemberRoutes implements Routes {
     public record SetValuesRequest(List<ValueEntry> values) {}
 
     public record ValueEntry(int fieldId, String value) {}
+
+    @OpenApi(
+            path = "/api/v1/managed-members/{memberId}/gdpr-export",
+            methods = HttpMethod.GET,
+            summary = "Export all personal data for a managed member (GDPR/DSGVO)",
+            tags = {"Managed Members"},
+            pathParams = @OpenApiParam(name = "memberId", type = Integer.class, required = true),
+            responses = @OpenApiResponse(status = "200"))
+    private void gdprExport(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        int memberId = ctx.pathParamAsClass("memberId", Integer.class).get();
+        assertManages(session, memberId);
+        var data = gdprExportService.exportMemberData(memberId);
+        ctx.contentType("application/json");
+        ctx.header("Content-Disposition", "attachment; filename=\"gdpr-export-member-" + memberId + ".json\"");
+        ctx.json(data);
+    }
 }

@@ -29,3 +29,33 @@ export async function invalidateAllSessions(): Promise<MessageResponse> {
     const res = await client.post<MessageResponse>('/session/invalidate-all')
     return res.data
 }
+
+export async function uploadAvatar(file: File): Promise<void> {
+    const formData = new FormData()
+    formData.append('avatar', file)
+    await client.post('/session/avatar', formData, {
+        headers: {'Content-Type': 'multipart/form-data'},
+    })
+}
+
+export async function deleteAvatar(): Promise<void> {
+    await client.delete('/session/avatar')
+}
+
+export function avatarUrl(accountId: number): string {
+    return `${client.defaults.baseURL}/accounts/${accountId}/avatar`
+}
+
+export async function deleteAccount(): Promise<void> {
+    await client.delete('/session/account')
+}
+
+export async function gdprExport(): Promise<Blob> {
+    const res = await client.get('/session/gdpr-export', {responseType: 'blob'})
+    return res.data as Blob
+}
+
+export async function gdprExportManagedMember(memberId: number): Promise<Blob> {
+    const res = await client.get(`/managed-members/${memberId}/gdpr-export`, {responseType: 'blob'})
+    return res.data as Blob
+}

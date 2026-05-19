@@ -22,6 +22,7 @@ import type {MemberChangeSummary, ProfileFieldChange} from '@/api/types'
 import {profileFieldChanges} from '@/api'
 import {useSession} from '@/composables/useSession'
 import {usePendingChanges} from '@/composables/usePendingChanges'
+import MemberName from '@/components/avatar/MemberName.vue'
 
 const {t} = useI18n()
 const router = useRouter()
@@ -240,9 +241,8 @@ onMounted(loadPending)
                       :icon="['fas', expandedMemberId === summary.memberId ? 'chevron-down' : 'chevron-right']"
                       class="h-3 w-3 text-(--text-muted)"
                   />
-                  <font-awesome-icon :icon="['fas', 'user']" class="h-4 w-4 text-(--text-muted)"/>
                   <div>
-                    <span class="font-semibold text-sm">{{ summary.memberName }}</span>
+                    <span class="font-semibold text-sm"><MemberName :name="summary.memberName ?? ''"/></span>
                     <p class="text-xs text-(--text-muted)">
                       {{ t('memberChanges.lastChange') }}: {{ formatDate(summary.latestChange) }}
                     </p>
@@ -361,7 +361,7 @@ onMounted(loadPending)
             >
               <div class="flex items-center justify-between flex-wrap gap-2">
                 <div class="flex items-center gap-2 flex-wrap">
-                  <span v-if="change.memberName" class="font-semibold text-sm text-primary">{{ change.memberName }}</span>
+                  <span v-if="change.memberName" class="font-semibold text-sm text-primary"><MemberName :name="change.memberName!"/></span>
                   <span class="font-medium text-sm">{{ change.fieldName }}</span>
                   <span class="text-xs text-(--text-muted)">{{ formatDate(change.changedAt) }}</span>
                   <span class="text-xs text-(--text-muted)">

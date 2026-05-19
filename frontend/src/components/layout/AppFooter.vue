@@ -23,7 +23,7 @@ const {t} = useI18n()
       </div>
 
       <div class="flex flex-col items-center gap-1 text-sm text-[var(--text-muted)] text-center">
-        <AppLink :icon="['fab', 'github']" external href="https://github.com/rainbowdashlabs">GitHub</AppLink>
+        <AppLink :icon="['fab', 'github']" external href="https://github.com/rainbowdashlabs/ember">GitHub</AppLink>
         <span>{{ t('footer.copyright') }}</span>
         <span>{{ t('footer.madeWith') }}</span>
         <span>{{ t('footer.license') }}</span>

@@ -10,6 +10,8 @@ public class Api {
     private String host = "0.0.0.0";
     private int port = 8080;
     private String baseUrl = "http://localhost:5173";
+    private String demoUrl = "";
+    private int maxAvatarSizeBytes = 2 * 1024 * 1024;
 
     public String host() {
         return host;
@@ -23,8 +25,17 @@ public class Api {
         return baseUrl;
     }
 
+    public String demoUrl() {
+        return demoUrl;
+    }
+
+    public int maxAvatarSizeBytes() {
+        return maxAvatarSizeBytes;
+    }
+
     @Override
     public String toString() {
-        return "Api{" + "host='" + host + '\'' + ", port=" + port + ", baseUrl='" + baseUrl + '\'' + '}';
+        return "Api{" + "host='" + host + '\'' + ", port=" + port + ", baseUrl='" + baseUrl + '\'' + ", demoUrl='"
+                + demoUrl + '\'' + '}';
     }
 }

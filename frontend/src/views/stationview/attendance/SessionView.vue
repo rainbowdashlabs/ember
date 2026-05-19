@@ -40,6 +40,7 @@ import type {
 import {attendance, memberGroups, stationMembers} from '@/api'
 import {useSession} from '@/composables/useSession'
 import {useStations} from '@/composables/useStations'
+import MemberName from '@/components/avatar/MemberName.vue'
 
 const {t} = useI18n()
 const route = useRoute()
@@ -544,7 +545,7 @@ watch(loaded, (isLoaded) => {
         <NeutralContainer v-if="checkMode && currentCheckEntry" class="space-y-4">
           <SectionHeader>{{ t('attendanceSession.checkMode') }}</SectionHeader>
           <div class="text-center space-y-4 py-4">
-            <p class="text-2xl font-bold">{{ getMemberName(currentCheckEntry.memberId) }}</p>
+            <p class="text-2xl font-bold"><MemberName :name="getMemberName(currentCheckEntry.memberId)" :account-id="allMembers.find(m => m.id === currentCheckEntry!.memberId)?.accountId" size="md"/></p>
             <p class="text-sm text-(--text-muted)">{{ checkIndex + 1 }} / {{ uncheckedEntries.length }}</p>
             <div class="flex justify-center gap-4">
               <SuccessButton class="text-lg px-6 py-3" @click="checkSetStatus('PRESENT')">
@@ -668,7 +669,7 @@ watch(loaded, (isLoaded) => {
                         v-else
                         :icon="['fas', 'asterisk']" class="h-4 w-4 text-(--text-muted) shrink-0"
                     />
-                    <span class="font-medium text-sm truncate">{{ member.name ?? member.email }}</span>
+                    <MemberName :name="getMemberName(member.id)" :account-id="member.accountId" class="font-medium text-sm truncate"/>
                   </div>
                   <div v-if="getEntry(member.id)" class="flex items-center gap-2 flex-wrap">
                     <!-- Time inputs for PRESENT -->

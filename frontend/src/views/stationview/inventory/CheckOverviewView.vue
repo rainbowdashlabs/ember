@@ -22,6 +22,7 @@ import type {MemberCheckSummary} from '@/api/types'
 import {Roles, hasTeamRole} from '@/api/types'
 import {inventoryCheck} from '@/api'
 import {useSession} from '@/composables/useSession'
+import MemberName from '@/components/avatar/MemberName.vue'
 
 const {t} = useI18n()
 const router = useRouter()
@@ -145,7 +146,7 @@ onMounted(loadData)
                 :key="member.memberId"
                 class="border-b border-bg-light-accent/50 dark:border-bg-dark-accent/50"
             >
-              <td class="px-3 py-2.5 font-medium">{{ memberName(member) }}</td>
+              <td class="px-3 py-2.5 font-medium"><MemberName :name="memberName(member)"/></td>
               <td class="px-3 py-2.5 text-(--text-muted)">{{ formatDate(member.lastCheckedAt) }}</td>
               <td class="px-3 py-2.5 text-(--text-muted)">{{ checkerName(member) }}</td>
               <td class="px-3 py-2.5">
@@ -189,7 +190,7 @@ onMounted(loadData)
               class="space-y-2"
           >
             <div class="flex items-center justify-between gap-2">
-              <div class="font-medium truncate">{{ memberName(member) }}</div>
+              <div class="font-medium truncate"><MemberName :name="memberName(member)"/></div>
               <div>
                 <ErrorBadge v-if="isLockedByOther(member)">
                   {{ t('inventory.check.locked') }}: {{ lockerName(member) }}

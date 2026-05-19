@@ -26,6 +26,7 @@ import type { InventoryDetail, InventoryItem, InventoryItemHistory, InventorySiz
 import { InventoryTypes } from '@/api/types'
 import { inventory, stationMembers, procurement } from '@/api'
 import { useStations } from '@/composables/useStations'
+import MemberName from '@/components/avatar/MemberName.vue'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -377,7 +378,7 @@ onMounted(loadData)
               </thead>
               <tbody>
                 <tr v-for="p in openProcurement" :key="p.id" class="border-b border-bg-light-accent/50 dark:border-bg-dark-accent/50">
-                  <td class="px-3 py-2.5">{{ p.memberName }}</td>
+                  <td class="px-3 py-2.5"><MemberName :name="p.memberName"/></td>
                   <td class="px-3 py-2.5">{{ p.sizeLabel || t('common.unisize') }}</td>
                   <td class="px-3 py-2.5 text-(--text-muted)">{{ p.notes || '-' }}</td>
                   <td class="px-3 py-2.5 text-right">
@@ -460,7 +461,7 @@ onMounted(loadData)
                     </div>
                     <div v-if="item.internalId" class="text-xs text-(--text-muted)">{{ item.internalId }}</div>
                   </td>
-                  <td class="px-3 py-2.5">{{ ownerName(item.assignedTo) }}</td>
+                  <td class="px-3 py-2.5"><MemberName :name="ownerName(item.assignedTo)"/></td>
                   <td class="px-3 py-2.5">
                     <ErrorBadge>{{ formatDate(item.lostAt) }}</ErrorBadge>
                   </td>
@@ -553,7 +554,7 @@ onMounted(loadData)
           <div v-if="!historyLoading && historyEntries.length > 0" class="space-y-2 max-h-80 overflow-y-auto">
             <div v-for="entry in historyEntries" :key="entry.id"
                  class="flex items-center justify-between rounded-lg px-3 py-2 border border-bg-light-accent dark:border-bg-dark-accent">
-              <span class="text-sm font-medium">{{ entry.memberName || ownerName(entry.memberId) }}</span>
+              <span class="text-sm font-medium"><MemberName :name="entry.memberName || ownerName(entry.memberId)"/></span>
               <div class="text-xs text-(--text-muted) text-right">
                 <div>{{ t('inventory.edit.givenOut') }}: {{ formatDate(entry.givenOut) }}</div>
                 <div v-if="entry.returned">{{ t('inventory.edit.returned') }}: {{ formatDate(entry.returned) }}</div>

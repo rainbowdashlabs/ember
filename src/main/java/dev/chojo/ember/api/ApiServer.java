@@ -160,6 +160,11 @@ public class ApiServer {
 
             setupExceptionHandlers(config.routes);
 
+            // Public endpoints
+            config.routes.get(
+                    API_PREFIX + "/public/config",
+                    ctx -> ctx.json(Map.of("demoUrl", apiConfig.demoUrl() != null ? apiConfig.demoUrl() : "")));
+
             // Public demo endpoints
             config.routes.get(
                     API_PREFIX + "/demo/status",

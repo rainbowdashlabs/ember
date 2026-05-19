@@ -15,6 +15,7 @@ import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import PrimaryBadge from '@/components/badge/PrimaryBadge.vue'
 import type { InventoryItem, InventorySize, StationMember } from '@/api/types'
 import { InventoryTypes, ItemSource } from '@/api/types'
+import MemberName from '@/components/avatar/MemberName.vue'
 
 const { t } = useI18n()
 const router = useRouter()
@@ -92,7 +93,7 @@ function formatDate(iso: string | null | undefined): string {
             <span v-else class="text-(--text-muted)">–</span>
           </td>
           <td class="px-3 py-2.5">
-            <button v-if="item.assignedTo" class="text-primary font-medium hover:underline cursor-pointer" @click.stop="router.push({ name: 'inventory-member', params: { memberId: item.assignedTo } })">{{ getMemberName(item.assignedTo) }}</button>
+            <button v-if="item.assignedTo" class="text-primary font-medium hover:underline cursor-pointer" @click.stop="router.push({ name: 'inventory-member', params: { memberId: item.assignedTo } })"><MemberName :name="getMemberName(item.assignedTo)" :account-id="members?.get(item.assignedTo)?.accountId"/></button>
             <span v-else class="text-(--text-muted)">–</span>
           </td>
           <td v-if="showActions" class="px-3 py-2.5 text-right">

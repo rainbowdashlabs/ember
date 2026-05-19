@@ -20,7 +20,7 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import type {EventBreak, StationEvent, StationMember} from '@/api/types'
-import {EventTypes, RegistrationStatus} from '@/api/types'
+import {EventTypes, RegistrationStatus, isRecurringEvent} from '@/api/types'
 import {events, managedMembers as managedMembersApi} from '@/api'
 import type {EventRegistrationEntry, RegistrationCount} from '@/api/events'
 import {useSession} from '@/composables/useSession'
@@ -95,14 +95,34 @@ const upcomingEvents = computed((): UpcomingEvent[] => {
     date.setDate(date.getDate() + offset)
     const dateStr = date.toISOString().slice(0, 10)
     const dow = date.getDay() === 0 ? 7 : date.getDay()
+    const dayOfMonth = date.getDate()
+    const month = date.getMonth()
     const inBreak = breaks.value.some(b => b.startDate && b.endDate && dateStr >= b.startDate && dateStr <= b.endDate)
     if (inBreak) continue
 
     for (const ev of allEvents.value) {
-      if (ev.eventType !== EventTypes.RECURRING) continue
+      if (!isRecurringEvent(ev.eventType)) continue
       if (!isEventRelevant(ev.id)) continue
-      if (ev.dayOfWeek === dow) {
+      if (!ev.dayOfWeek || ev.dayOfWeek !== dow) continue
+
+      if (ev.eventType === EventTypes.RECURRING) {
         upcoming.push({event: ev, date: dateStr, dayLabel: dayNames[dow]})
+      } else if (ev.eventType === EventTypes.MONTHLY_FIRST) {
+        if (dayOfMonth <= 7) {
+          upcoming.push({event: ev, date: dateStr, dayLabel: dayNames[dow]})
+        }
+      } else if (ev.eventType === EventTypes.QUARTERLY) {
+        if (dayOfMonth <= 7 && (month % 3 === 0)) {
+          upcoming.push({event: ev, date: dateStr, dayLabel: dayNames[dow]})
+        }
+      } else if (ev.eventType === EventTypes.YEARLY) {
+        // Yearly events use startTime as the reference date
+        if (ev.startTime) {
+          const refDate = new Date(ev.startTime)
+          if (refDate.getUTCMonth() === month && refDate.getUTCDate() === dayOfMonth) {
+            upcoming.push({event: ev, date: dateStr, dayLabel: dayNames[dow]})
+          }
+        }
       }
     }
   }

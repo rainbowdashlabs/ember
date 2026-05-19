@@ -28,6 +28,13 @@ public class StationMemberRepository {
                 .first();
     }
 
+    public List<StationMember> findAllByAccountId(int accountId) {
+        return Query.query("SELECT * FROM station_member WHERE account_id = :account_id;")
+                .single(Call.of().bind("account_id", accountId))
+                .map(StationMember.map())
+                .all();
+    }
+
     public Optional<StationMember> findByStationAndAccount(int stationId, int accountId) {
         return Query.query("SELECT * FROM station_member WHERE station_id = :station_id AND account_id = :account_id;")
                 .single(Call.of().bind("station_id", stationId).bind("account_id", accountId))

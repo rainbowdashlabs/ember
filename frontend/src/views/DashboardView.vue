@@ -23,12 +23,14 @@ import {useStations} from '@/composables/useStations'
 import {usePendingChanges} from '@/composables/usePendingChanges'
 import HelpCenterLink from '@/components/navigation/HelpCenterLink.vue'
 import OnboardingTour from '@/components/onboarding/OnboardingTour.vue'
+import UserAvatar from '@/components/avatar/UserAvatar.vue'
 import {useOnboardingTour} from '@/composables/useOnboardingTour'
 
 const {t, te} = useI18n()
 const route = useRoute()
 const router = useRouter()
 const {
+  sessionInfo,
   loaded,
   load,
   isAdmin,
@@ -274,6 +276,7 @@ async function handleLogout() {
         </SecondaryButton>
       </router-link>
 
+      <UserAvatar :account-id="sessionInfo?.account?.id" :name="fullName()" size="sm" class="hidden sm:flex"/>
       <span class="text-sm text-[var(--text-muted)] hidden sm:inline">{{ fullName() }}</span>
 
       <IconButton

@@ -541,9 +541,20 @@ export type RegistrationStatusName = (typeof RegistrationStatus)[keyof typeof Re
 export const EventTypes = {
     ONE_TIME: 'ONE_TIME',
     RECURRING: 'RECURRING',
+    MONTHLY_FIRST: 'MONTHLY_FIRST',
+    QUARTERLY: 'QUARTERLY',
+    YEARLY: 'YEARLY',
 } as const
 
 export type EventTypeName = (typeof EventTypes)[keyof typeof EventTypes]
+
+export function isRecurringEvent(eventType?: string): boolean {
+    return eventType != null && eventType !== EventTypes.ONE_TIME
+}
+
+export function needsDayOfWeek(eventType?: string): boolean {
+    return eventType === EventTypes.RECURRING || eventType === EventTypes.MONTHLY_FIRST || eventType === EventTypes.QUARTERLY
+}
 
 // -- Profile Field Type --
 

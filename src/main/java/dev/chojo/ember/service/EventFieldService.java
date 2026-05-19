@@ -21,6 +21,10 @@ public class EventFieldService {
         this.repository = repository;
     }
 
+    public List<String> findDistinctFieldNames(int stationId) {
+        return repository.findDistinctFieldNames(stationId);
+    }
+
     public List<EventField> findByEvent(int eventId) {
         return repository.findByEvent(eventId);
     }

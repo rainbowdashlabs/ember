@@ -16,9 +16,12 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import PasswordInput from '@/components/input/text/PasswordInput.vue'
+import UserAvatar from '@/components/avatar/UserAvatar.vue'
+import FileUploadButton from '@/components/button/FileUploadButton.vue'
+import DeleteButton from '@/components/button/DeleteButton.vue'
 import type { ProfileField } from '@/api/types'
 import { Roles, hasTeamRole } from '@/api/types'
-import { profileFields, auth, members } from '@/api'
+import { profileFields, auth, members, session as sessionApi } from '@/api'
 import { useSession } from '@/composables/useSession'
 
 function getUserScopes(roles: string[]): string[] {
@@ -44,6 +47,38 @@ const loading = ref(true)
 const saving = ref(false)
 const error = ref('')
 const success = ref('')
+
+// Avatar
+const avatarKey = ref(0)
+const uploadingAvatar = ref(false)
+
+async function handleAvatarUpload(file: File) {
+  if (file.size > 2 * 1024 * 1024) {
+    error.value = t('profile.avatarTooLarge')
+    return
+  }
+  uploadingAvatar.value = true
+  error.value = ''
+  try {
+    await sessionApi.uploadAvatar(file)
+    avatarKey.value++
+    success.value = t('profile.avatarUpdated')
+  } catch {
+    error.value = t('common.error')
+  } finally {
+    uploadingAvatar.value = false
+  }
+}
+
+async function removeAvatar() {
+  error.value = ''
+  try {
+    await sessionApi.deleteAvatar()
+    avatarKey.value++
+  } catch {
+    error.value = t('common.error')
+  }
+}
 
 // Account details
 const editFirstName = ref('')
@@ -208,6 +243,26 @@ onMounted(loadProfile)
       <Alert v-if="success" variant="success">{{ success }}</Alert>
 
       <template v-if="!loading && memberId">
+        <!-- Avatar -->
+        <NeutralContainer class="space-y-4">
+          <SectionHeader>{{ t('profile.avatar') }}</SectionHeader>
+          <div class="flex items-center gap-4">
+            <UserAvatar
+                :key="avatarKey"
+                :account-id="sessionInfo?.account?.id"
+                :name="(editFirstName + ' ' + editLastName).trim()"
+                size="lg"
+            />
+            <div class="flex items-center gap-2">
+              <FileUploadButton accept="image/png,image/jpeg,image/webp" :disabled="uploadingAvatar" @select="handleAvatarUpload">
+                {{ uploadingAvatar ? t('common.loading') : t('profile.uploadAvatar') }}
+              </FileUploadButton>
+              <DeleteButton @click="removeAvatar"/>
+            </div>
+          </div>
+          <p class="text-xs text-(--text-muted)">{{ t('profile.avatarHint') }}</p>
+        </NeutralContainer>
+
         <!-- Account details -->
         <NeutralContainer class="space-y-4">
           <SectionHeader>{{ t('profile.accountTitle') }}</SectionHeader>

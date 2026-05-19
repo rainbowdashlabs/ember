@@ -7,6 +7,7 @@
 import {computed, onMounted, ref} from 'vue'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import MemberName from '@/components/avatar/MemberName.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
@@ -246,7 +247,7 @@ onMounted(loadData)
                 <div v-for="member in tagMembers" :key="member.id"
                      class="flex items-center justify-between rounded-lg px-3 py-2 bg-bg-light-accent dark:bg-bg-dark-accent">
                   <div>
-                    <span class="text-sm font-medium">{{ memberDisplayName(member) }}</span>
+                    <MemberName :name="memberDisplayName(member)" :account-id="member.accountId" class="text-sm font-medium"/>
                     <span v-if="member.name && member.email" class="ml-2 text-xs text-(--text-muted)">{{
                         member.email
                       }}</span>
@@ -272,7 +273,7 @@ onMounted(loadData)
                     @click="addMemberToTag(member)"
                 >
                   <div>
-                    <span class="text-sm font-medium">{{ memberDisplayName(member) }}</span>
+                    <MemberName :name="memberDisplayName(member)" :account-id="member.accountId" class="text-sm font-medium"/>
                     <span v-if="member.name && member.email" class="ml-2 text-xs text-(--text-muted)">{{
                         member.email
                       }}</span>

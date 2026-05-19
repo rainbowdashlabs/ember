@@ -22,6 +22,7 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import type { CheckResult, InventoryItem, MemberCheckState, RequiredInventoryItem } from '@/api/types'
 import { inventoryCheck, procurement } from '@/api'
+import MemberName from '@/components/avatar/MemberName.vue'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -313,7 +314,7 @@ onMounted(loadData)
         <!-- Header -->
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
           <div>
-            <SectionHeader>{{ state.memberName }}</SectionHeader>
+            <SectionHeader><MemberName :name="state.memberName" size="md"/></SectionHeader>
             <p class="text-sm text-(--text-muted)">{{ t('inventory.check.title') }}</p>
           </div>
           <div class="flex gap-2">

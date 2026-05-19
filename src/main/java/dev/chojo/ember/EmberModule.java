@@ -108,6 +108,7 @@ public class EmberModule extends AbstractModule {
     File config() {
         var config = conf.main();
         log.info(config.toString());
+        conf.save();
         return config;
     }
 

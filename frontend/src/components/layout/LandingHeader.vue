@@ -12,10 +12,11 @@ import IconButton from '@/components/button/IconButton.vue'
 import {auth} from '@/api'
 import {getItem} from '@/api/storage'
 import {useSession} from '@/composables/useSession'
+import UserAvatar from '@/components/avatar/UserAvatar.vue'
 
 const {t} = useI18n()
 const router = useRouter()
-const {loaded, load, fullName, clear} = useSession()
+const {loaded, load, fullName, clear, sessionInfo} = useSession()
 
 onMounted(() => {
   const token = getItem('session_token')
@@ -51,6 +52,7 @@ async function handleLogout() {
           {{ t('header.stationPanel') }}
         </PrimaryButton>
       </router-link>
+      <UserAvatar :account-id="sessionInfo?.account?.id" :name="fullName()" size="sm" class="hidden sm:flex"/>
       <span class="text-sm text-(--text-muted) hidden sm:inline">{{ fullName() }}</span>
       <IconButton
           :icon="['fas', 'right-from-bracket']"

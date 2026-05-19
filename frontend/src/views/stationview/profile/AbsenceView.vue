@@ -22,6 +22,7 @@ import type {StationMember} from '@/api/types'
 import {absences, managedMembers as managedMembersApi} from '@/api'
 import type {MemberAbsence} from '@/api/absences'
 import {useSession} from '@/composables/useSession'
+import MemberName from '@/components/avatar/MemberName.vue'
 
 const {t} = useI18n()
 const {sessionInfo, loaded, isMemberManager} = useSession()
@@ -63,6 +64,11 @@ function getMemberName(memberId: number): string {
   if (memberId === currentMemberId.value) return t('profile.absenceMyself')
   const m = managedMembers.value.find(mm => mm.id === memberId)
   return m?.name ?? m?.email ?? `#${memberId}`
+}
+
+function getMemberAccountId(memberId: number): number | undefined {
+  if (memberId === currentMemberId.value) return sessionInfo.value?.member?.accountId
+  return managedMembers.value.find(mm => mm.id === memberId)?.accountId
 }
 
 function toggleMember(memberId: number) {
@@ -231,7 +237,7 @@ watch(loaded, (isLoaded) => {
             <div class="flex items-center justify-between flex-wrap gap-2">
               <div>
                 <span v-if="managedMembers.length > 0"
-                      class="text-sm font-semibold mr-2">{{ getMemberName(absence.memberId) }}</span>
+                      class="text-sm font-semibold mr-2"><MemberName :name="getMemberName(absence.memberId)" :account-id="getMemberAccountId(absence.memberId)"/></span>
                 <span class="text-sm">{{ formatDate(absence.absentFrom) }} – {{
                     formatDate(absence.absentUntil)
                   }}</span>

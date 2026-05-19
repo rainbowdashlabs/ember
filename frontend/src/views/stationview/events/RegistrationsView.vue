@@ -17,6 +17,7 @@ import {events, stationMembers} from '@/api'
 import type {StationEvent, StationMember} from '@/api/types'
 import {RegistrationStatus} from '@/api/types'
 import {useStations} from '@/composables/useStations'
+import MemberName from '@/components/avatar/MemberName.vue'
 
 const {t} = useI18n()
 const {currentStationId} = useStations()
@@ -44,6 +45,10 @@ function memberName(memberId: number): string {
   const m = allMembers.value.find(m => m.id === memberId)
   if (!m) return `#${memberId}`
   return m.name && m.name.trim() ? m.name : m.email ?? `#${memberId}`
+}
+
+function memberAccountId(memberId: number): number | undefined {
+  return allMembers.value.find(m => m.id === memberId)?.accountId
 }
 
 async function loadData() {
@@ -104,7 +109,7 @@ onMounted(loadData)
         <div class="space-y-3">
           <NeutralContainer v-for="reg in registrations" :key="reg.id" class="flex items-center justify-between">
             <div>
-              <span class="font-medium">{{ memberName(reg.memberId) }}</span>
+              <MemberName :name="memberName(reg.memberId)" :account-id="memberAccountId(reg.memberId)"/>
               <span class="ml-2 text-sm text-(--text-muted)">{{ eventName(reg.eventId) }}</span>
               <span class="ml-2 text-xs text-(--text-muted)">{{ reg.eventDate }}</span>
             </div>
