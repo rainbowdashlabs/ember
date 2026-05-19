@@ -37,6 +37,7 @@ import StyleView from '@/views/StyleView.vue'
 import HelpCenterStationView from '@/views/HelpCenterStationView.vue'
 import HelpCenterAdminView from '@/views/HelpCenterAdminView.vue'
 import {getItem} from '@/api/storage'
+import {useConsentGuard} from '@/composables/useConsentGuard'
 import i18n from '@/i18n'
 
 const StatisticsView = () => import('@/views/dashboardview/StatisticsView.vue')
@@ -75,6 +76,26 @@ const router = createRouter({
             path: '/apply/verify',
             name: 'apply-verify',
             component: () => import('@/views/ApplyVerifyView.vue'),
+        },
+        {
+            path: '/privacy',
+            name: 'privacy',
+            component: () => import('@/views/PrivacyPolicyView.vue'),
+        },
+        {
+            path: '/terms',
+            name: 'terms',
+            component: () => import('@/views/TermsOfServiceView.vue'),
+        },
+        {
+            path: '/reconsent',
+            name: 'reconsent',
+            component: () => import('@/views/ReconsentView.vue'),
+        },
+        {
+            path: '/imprint',
+            name: 'imprint',
+            component: () => import('@/views/ImprintView.vue'),
         },
         {
             path: '/station-select',
@@ -310,6 +331,11 @@ const router = createRouter({
                     component: () => import('@/views/stationview/forms/AnalyticsView.vue'),
                 },
                 {
+                    path: 'lost-and-found',
+                    name: 'lost-and-found',
+                    component: () => import('@/views/stationview/lostandfound/ListView.vue'),
+                },
+                {
                     path: 'profile',
                     name: 'profile',
                     component: ProfileView,
@@ -476,7 +502,7 @@ const router = createRouter({
 })
 
 router.beforeEach((to) => {
-    const publicRoutes = ['home', 'login', 'forgot-password', 'set-password', 'reset-password', 'apply', 'apply-verify', 'style']
+    const publicRoutes = ['home', 'login', 'forgot-password', 'set-password', 'reset-password', 'apply', 'apply-verify', 'style', 'privacy', 'terms', 'imprint']
     if (publicRoutes.includes(to.name as string)) {
         return true
     }
@@ -488,6 +514,12 @@ router.beforeEach((to) => {
     const token = getItem('session_token')
     if (!token) {
         return {name: 'login', query: {redirect: to.fullPath}}
+    }
+
+    // Block navigation if re-consent is needed (except to the reconsent page itself)
+    const {needsReconsent} = useConsentGuard()
+    if (needsReconsent.value && to.name !== 'reconsent') {
+        return {name: 'reconsent'}
     }
 
     return true

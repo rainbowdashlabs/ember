@@ -10,7 +10,7 @@ import AppFooter from '@/components/layout/AppFooter.vue'
 import LandingHeader from '@/components/layout/LandingHeader.vue'
 
 const route = useRoute()
-const publicRoutes = ['home', 'login', 'forgot-password', 'set-password', 'reset-password', 'apply', 'apply-verify', 'style', 'station-select']
+const publicRoutes = ['home', 'login', 'forgot-password', 'set-password', 'reset-password', 'apply', 'apply-verify', 'style', 'station-select', 'privacy', 'terms', 'imprint', 'reconsent']
 const isPublic = computed(() => publicRoutes.includes(route.name as string))
 </script>
 

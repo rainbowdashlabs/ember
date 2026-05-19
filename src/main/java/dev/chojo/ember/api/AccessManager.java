@@ -5,13 +5,13 @@
  */
 package dev.chojo.ember.api;
 
-import dev.chojo.ember.entity.Account;
-import dev.chojo.ember.entity.AccountSession;
-import dev.chojo.ember.entity.Role;
-import dev.chojo.ember.entity.StationMember;
-import dev.chojo.ember.repository.AccountRepository;
-import dev.chojo.ember.repository.MemberGroupRepository;
-import dev.chojo.ember.repository.StationMemberRepository;
+import dev.chojo.ember.feature.account.entity.Account;
+import dev.chojo.ember.feature.account.entity.AccountSession;
+import dev.chojo.ember.feature.members.entity.Role;
+import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.account.repository.AccountRepository;
+import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
+import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 

@@ -17,8 +17,9 @@ const {t} = useI18n()
       <div class="flex flex-col items-center md:items-start gap-2">
         <ThemeToggle/>
         <div class="flex flex-col items-center md:items-start gap-1 text-sm">
-          <AppLink href="/privacy">{{ t('footer.privacy') }}</AppLink>
-          <AppLink href="/terms">{{ t('footer.terms') }}</AppLink>
+          <router-link class="text-[var(--link)] hover:underline" to="/privacy">{{ t('footer.privacy') }}</router-link>
+          <router-link class="text-[var(--link)] hover:underline" to="/terms">{{ t('footer.terms') }}</router-link>
+          <router-link class="text-[var(--link)] hover:underline" to="/imprint">{{ t('footer.imprint') }}</router-link>
         </div>
       </div>
 

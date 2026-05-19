@@ -38,7 +38,7 @@ const currentMemberId = () => sessionInfo.value?.member?.id
 const filteredMembers = computed(() => {
   return members.value.filter(m => {
     const roles = m.roles ?? []
-    if (roles.includes(Roles.MEMBER_MANAGER) && !roles.includes(Roles.MEMBER) && !hasTeamRole(roles)) return false
+    if (roles.includes(Roles.GUARDIAN) && !roles.includes(Roles.MEMBER) && !hasTeamRole(roles)) return false
     if (activeTab.value === 'team') {
       return hasTeamRole(roles)
     } else {

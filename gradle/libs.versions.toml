@@ -5,6 +5,7 @@ jackson = "3.1.2"
 junit = "6.0.3"
 javalin = "7.2.0"
 testcontainers = "2.0.5"
+commonmark = "0.28.0"
 
 [plugins]
 spotless = { id = "com.diffplug.spotless", version = "8.4.0" }
@@ -65,6 +66,12 @@ jspecify = { group = "org.jspecify", name = "jspecify", version = "1.0.0" }
 # mailing
 angus = { group = "org.eclipse.angus", name = "angus-mail", version = "2.0.5" }
 
+# Markdown
+commonmark = { group = "org.commonmark", name = "commonmark", version.ref = "commonmark" }
+commonmark-ext-gfm-tables = { group = "org.commonmark", name = "commonmark-ext-gfm-tables", version.ref = "commonmark" }
+commonmark-ext-heading-anchor = { group = "org.commonmark", name = "commonmark-ext-heading-anchor", version.ref = "commonmark" }
+commonmark-ext-autolink = { group = "org.commonmark", name = "commonmark-ext-autolink", version.ref = "commonmark" }
+
 [bundles]
 logback = [
     "logback-core",
@@ -98,4 +105,10 @@ testcontainers = [
     "testcontainers-core",
     "testcontainers-junit",
     "testcontainers-postgres"
+]
+commonmark = [
+    "commonmark",
+    "commonmark-ext-gfm-tables",
+    "commonmark-ext-heading-anchor",
+    "commonmark-ext-autolink"
 ]

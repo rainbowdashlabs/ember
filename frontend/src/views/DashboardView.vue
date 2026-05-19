@@ -17,7 +17,7 @@ import {auth, notifications, events} from '@/api'
 import client from '@/api/client'
 import Alert from '@/components/feedback/Alert.vue'
 import {getItem} from '@/api/storage'
-import {Roles} from '@/api/types'
+import {Roles, StationModules} from '@/api/types'
 import {useSession} from '@/composables/useSession'
 import {useStations} from '@/composables/useStations'
 import {usePendingChanges} from '@/composables/usePendingChanges'
@@ -42,7 +42,8 @@ const {
   canExportAttendance,
   canManageEvents,
   canManagePolls,
-  isMemberManager,
+  isGuardian,
+  isModuleEnabled,
   fullName,
   clear
 } = useSession()
@@ -80,7 +81,7 @@ onMounted(async () => {
 })
 
 watch(loaded, (isLoaded) => {
-  if (isLoaded && (canManageMembers() || isMemberManager())) refreshPendingChanges()
+  if (isLoaded && (canManageMembers() || isGuardian())) refreshPendingChanges()
   if (isLoaded) refreshNotificationCount()
   if (isLoaded && canManageEvents()) refreshPendingRegistrationCount()
   if (isLoaded) checkFirstLogin()
@@ -125,7 +126,7 @@ async function handleLogout() {
         </SidebarLink>
       </SidebarGroup>
 
-      <SidebarGroup :icon="['fas', 'newspaper']" :label="t('sidebar.news')" prefix="/station/news">
+      <SidebarGroup v-if="isModuleEnabled(StationModules.NEWS)" :icon="['fas', 'newspaper']" :label="t('sidebar.news')" prefix="/station/news">
         <SidebarLink :icon="['fas', 'newspaper']" name="news-list" to="/station/news" @navigate="close">
           {{ t('sidebar.newsList') }}
         </SidebarLink>
@@ -139,7 +140,7 @@ async function handleLogout() {
                      @navigate="close">
           {{ t('sidebar.absences') }}
         </SidebarLink>
-        <SidebarLink v-if="isMemberManager()" :icon="['fas', 'users']" name="profile-managed"
+        <SidebarLink v-if="isGuardian()" :icon="['fas', 'users']" name="profile-managed"
                      to="/station/profile/managed" @navigate="close">
           {{ t('sidebar.managedProfiles') }}
         </SidebarLink>
@@ -188,7 +189,7 @@ async function handleLogout() {
         </SidebarLink>
       </SidebarGroup>
 
-      <SidebarGroup :icon="['fas', 'boxes-stacked']" :label="t('sidebar.inventory')" prefix="/station/inventory">
+      <SidebarGroup v-if="isModuleEnabled(StationModules.INVENTORY)" :icon="['fas', 'boxes-stacked']" :label="t('sidebar.inventory')" prefix="/station/inventory">
         <SidebarLink v-if="canManageInventory()" :icon="['fas', 'house']" name="inventory-overview" to="/station/inventory/overview"
                      @navigate="close">
           {{ t('sidebar.overview') }}
@@ -223,7 +224,7 @@ async function handleLogout() {
         </SidebarLink>
       </SidebarGroup>
 
-      <SidebarGroup v-if="canManageAttendance()" :icon="['fas', 'clipboard-user']" :label="t('sidebar.attendance')"
+      <SidebarGroup v-if="canManageAttendance() && isModuleEnabled(StationModules.ATTENDANCE)" :icon="['fas', 'clipboard-user']" :label="t('sidebar.attendance')"
                     prefix="/station/attendance">
         <SidebarLink :icon="['fas', 'calendar-plus']" name="attendance-new" to="/station/attendance/new"
                      @navigate="close">
@@ -239,7 +240,7 @@ async function handleLogout() {
         </SidebarLink>
       </SidebarGroup>
 
-      <SidebarGroup :badge="pendingRegistrationCount" :icon="['fas', 'calendar-days']" :label="t('sidebar.events')" prefix="/station/events">
+      <SidebarGroup v-if="isModuleEnabled(StationModules.EVENTS)" :badge="pendingRegistrationCount" :icon="['fas', 'calendar-days']" :label="t('sidebar.events')" prefix="/station/events">
         <SidebarLink :icon="['fas', 'calendar-plus']" name="events-upcoming" to="/station/events/upcoming"
                      @navigate="close">
           {{ t('sidebar.upcomingEvents') }}
@@ -254,13 +255,19 @@ async function handleLogout() {
         </SidebarLink>
       </SidebarGroup>
 
-      <SidebarGroup :icon="['fas', 'square-poll-vertical']" :label="t('sidebar.forms')" prefix="/station/forms">
+      <SidebarGroup v-if="isModuleEnabled(StationModules.FORMS)" :icon="['fas', 'square-poll-vertical']" :label="t('sidebar.forms')" prefix="/station/forms">
         <SidebarLink :icon="['fas', 'list']" name="forms-list" to="/station/forms" @navigate="close">
           {{ t('sidebar.formsList') }}
         </SidebarLink>
         <SidebarLink v-if="canManagePolls()" :icon="['fas', 'plus']" name="forms-create" to="/station/forms/create"
                      @navigate="close">
           {{ t('sidebar.formsCreate') }}
+        </SidebarLink>
+      </SidebarGroup>
+
+      <SidebarGroup v-if="isModuleEnabled(StationModules.LOST_AND_FOUND)" :icon="['fas', 'box-open']" :label="t('sidebar.lostAndFound')" prefix="/station/lost-and-found">
+        <SidebarLink :icon="['fas', 'box-open']" name="lost-and-found" to="/station/lost-and-found" @navigate="close">
+          {{ t('sidebar.lostAndFoundList') }}
         </SidebarLink>
       </SidebarGroup>
 

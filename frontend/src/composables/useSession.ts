@@ -66,8 +66,16 @@ export function useSession() {
         return hasRole(Roles.POLL_MANAGEMENT)
     }
 
-    function isMemberManager(): boolean {
-        return hasRole(Roles.MEMBER_MANAGER)
+    function isGuardian(): boolean {
+        return hasRole(Roles.GUARDIAN)
+    }
+
+    function canManageLostAndFound(): boolean {
+        return hasRole(Roles.LOST_AND_FOUND_MANAGEMENT)
+    }
+
+    function isModuleEnabled(module: string): boolean {
+        return !(sessionInfo.value?.disabledModules?.includes(module) ?? false)
     }
 
     function fullName(): string {
@@ -91,7 +99,9 @@ export function useSession() {
         canManageEvents,
         canManageNews,
         canManagePolls,
-        isMemberManager,
+        isGuardian,
+        canManageLostAndFound,
+        isModuleEnabled,
         fullName,
     }
 }

@@ -5,12 +5,12 @@
  */
 package dev.chojo.ember.service;
 
-import dev.chojo.ember.entity.Account;
-import dev.chojo.ember.entity.AttendanceEntry;
-import dev.chojo.ember.entity.EventRegistration;
-import dev.chojo.ember.entity.ProfileFieldScope;
-import dev.chojo.ember.entity.StationEvent;
-import dev.chojo.ember.entity.StationMember;
+import dev.chojo.ember.feature.account.entity.Account;
+import dev.chojo.ember.feature.attendance.entity.AttendanceEntry;
+import dev.chojo.ember.feature.events.entity.EventRegistration;
+import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
+import dev.chojo.ember.feature.events.entity.StationEvent;
+import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
@@ -51,7 +51,11 @@ class GdprExportServiceTest extends RepositoryTestBase {
 
         // Create session
         accountRepo.createSession(
-                account.id(), "test-token-gdpr", Instant.now().plus(1, ChronoUnit.HOURS), "Mozilla/5.0 Test Agent");
+                account.id(),
+                "test-token-gdpr",
+                Instant.now().plus(1, ChronoUnit.HOURS),
+                "Mozilla/5.0 Test Agent",
+                null);
 
         // Create profile field + value
         var field = profileFieldRepo.create(stationId, "Telefon", "TEXT", "{}", 0, ProfileFieldScope.MEMBER);

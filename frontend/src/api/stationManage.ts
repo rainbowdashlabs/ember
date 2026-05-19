@@ -88,3 +88,19 @@ export async function testMailConfig(): Promise<MailTestResponse> {
     const res = await client.post<MailTestResponse>('/station/manage/mail/test')
     return res.data
 }
+
+// -- Modules --
+
+export interface ModulesResponse {
+    disabledModules: string[]
+}
+
+export async function getDisabledModules(): Promise<ModulesResponse> {
+    const res = await client.get<ModulesResponse>('/station/manage/modules')
+    return res.data
+}
+
+export async function setDisabledModules(disabledModules: string[]): Promise<ModulesResponse> {
+    const res = await client.put<ModulesResponse>('/station/manage/modules', {disabledModules})
+    return res.data
+}

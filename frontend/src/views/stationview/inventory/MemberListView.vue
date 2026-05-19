@@ -58,7 +58,7 @@ const exporting = ref(false)
 // Role translations
 const roleLabels: Record<string, string> = {
   MEMBER: 'Mitglied',
-  MEMBER_MANAGER: 'Betreuer',
+  GUARDIAN: 'Erziehungsberechtigter',
   TEAM: 'Team',
 }
 
@@ -80,7 +80,7 @@ const memberItemMap = computed(() => {
 })
 
 // Only show these roles in the filter dropdown
-const allowedFilterRoles: readonly string[] = [Roles.MEMBER, Roles.MEMBER_MANAGER, Roles.TEAM]
+const allowedFilterRoles: readonly string[] = [Roles.MEMBER, Roles.GUARDIAN, Roles.TEAM]
 
 const filterableRoles = computed(() => {
   const roleNames = new Set<string>()

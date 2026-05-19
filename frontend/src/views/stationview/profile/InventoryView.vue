@@ -25,7 +25,7 @@ import type {ManagedMember} from '@/api/managedMembers'
 import {useSession} from '@/composables/useSession'
 
 const {t} = useI18n()
-const {isMemberManager, sessionInfo} = useSession()
+const {isGuardian, sessionInfo} = useSession()
 
 const items = ref<MyInventoryItem[]>([])
 const requirements = ref<MyRequirement[]>([])
@@ -122,7 +122,7 @@ async function loadData() {
 }
 
 onMounted(async () => {
-  if (isMemberManager()) {
+  if (isGuardian()) {
     try {
       managed.value = await managedMembers.listManaged()
     } catch { /* ignore */ }

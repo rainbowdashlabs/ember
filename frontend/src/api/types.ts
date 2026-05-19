@@ -9,7 +9,7 @@ export const Roles = {
     LOGIN: 'LOGIN',
     USER: 'USER',
     MEMBER: 'MEMBER',
-    MEMBER_MANAGER: 'MEMBER_MANAGER',
+    GUARDIAN: 'GUARDIAN',
     TEAM: 'TEAM',
     ATTENDENCE_MANAGEMENT: 'ATTENDENCE_MANAGEMENT',
     ATTENDENCE_EXPORT_MANAGER: 'ATTENDENCE_EXPORT_MANAGER',
@@ -18,6 +18,7 @@ export const Roles = {
     MEMBER_MANAGEMENT: 'MEMBER_MANAGEMENT',
     NEWS_MANAGEMENT: 'NEWS_MANAGEMENT',
     POLL_MANAGEMENT: 'POLL_MANAGEMENT',
+    LOST_AND_FOUND_MANAGEMENT: 'LOST_AND_FOUND_MANAGEMENT',
     MANAGER: 'MANAGER',
     ADMIN: 'ADMIN',
 } as const
@@ -122,7 +123,19 @@ export interface SessionInfo {
     managedMembers?: StationMember[]
     groups?: MemberGroup[]
     profileComplete?: boolean
+    disabledModules?: string[]
 }
+
+export const StationModules = {
+    INVENTORY: 'INVENTORY',
+    NEWS: 'NEWS',
+    EVENTS: 'EVENTS',
+    ATTENDANCE: 'ATTENDANCE',
+    FORMS: 'FORMS',
+    LOST_AND_FOUND: 'LOST_AND_FOUND',
+} as const
+
+export type StationModuleName = (typeof StationModules)[keyof typeof StationModules]
 
 export interface ActiveSession {
     id: number
@@ -131,6 +144,48 @@ export interface ActiveSession {
     lastUsedAt?: string
     expiresAt?: string
     isCurrent?: boolean
+    location?: string
+}
+
+export interface DocumentResponse {
+    html: string
+    version: string
+}
+
+export interface LegalVersionsResponse {
+    privacyVersion: string
+    tosVersion: string
+    consentVersion: string
+}
+
+export interface ConsentStatusResponse {
+    consented: boolean
+    current: boolean
+    consentVersion?: string
+    privacyVersion?: string
+    tosVersion?: string
+    consentedAt?: string
+    currentPrivacyVersion: string
+    currentTosVersion: string
+    currentConsentVersion: string
+}
+
+export interface RecordConsentRequest {
+    consentVersion: string
+    privacyVersion?: string
+    tosVersion?: string
+}
+
+export interface ConsentChangesResponse {
+    privacyChanged: boolean
+    tosChanged: boolean
+    privacyDiff?: string
+    tosDiff?: string
+    privacyHtml?: string
+    tosHtml?: string
+    currentPrivacyVersion: string
+    currentTosVersion: string
+    currentConsentVersion: string
 }
 
 export interface StationMembership {
@@ -1058,7 +1113,7 @@ export interface UserTag {
 
 export type NotificationType = 'NEW_NEWS' | 'NEWS_COMMENT' | 'EVENT_REGISTRATION_STATUS' | 'EXCHANGE_STATUS_CHANGE'
     | 'EXCHANGE_NEW_REQUEST' | 'NEW_EVENT' | 'MEMBER_ADDED_TO_GROUP' | 'PROFILE_FIELD_CHANGED'
-    | 'PROCUREMENT_REQUESTED' | 'PROCUREMENT_FULFILLED'
+    | 'PROCUREMENT_REQUESTED' | 'PROCUREMENT_FULFILLED' | 'LOST_AND_FOUND_NEW' | 'LOST_AND_FOUND_CLAIMED'
 
 export interface NotificationLink {
     route: string
@@ -1073,4 +1128,28 @@ export interface NotificationEntry {
     link?: NotificationLink | null
     createdAt: string
     acknowledgedAt?: string | null
+}
+
+// -- Lost and Found --
+
+export interface LostAndFoundItem {
+    id: number
+    stationId: number
+    description?: string
+    foundAt?: string
+    hasImage: boolean
+    claimedBy?: number | null
+    claimedByName?: string | null
+    claimedAt?: string | null
+    createdBy: number
+    createdAt: string
+}
+
+export interface CreateLostAndFoundRequest {
+    description?: string
+    foundAt?: string
+}
+
+export interface ClaimLostAndFoundRequest {
+    memberId?: number | null
 }

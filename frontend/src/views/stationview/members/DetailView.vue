@@ -36,11 +36,11 @@ const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
 const { currentStationId } = useStations()
-const { sessionInfo, canManageMembers, isMemberManager, canManageInventory } = useSession()
+const { sessionInfo, canManageMembers, isGuardian, canManageInventory } = useSession()
 
 const memberId = computed(() => Number(route.params.id))
 const currentMemberId = computed(() => sessionInfo.value?.member?.id ?? 0)
-const showChangeHistory = computed(() => canManageMembers() || isMemberManager())
+const showChangeHistory = computed(() => canManageMembers() || isGuardian())
 
 const member = ref<StationMember | null>(null)
 const fields = ref<ProfileField[]>([])
@@ -71,7 +71,7 @@ const applicableFields = computed(() => {
   const scopes: string[] = []
   if (memberRoles.value.includes(Roles.MEMBER)) scopes.push(Roles.MEMBER)
   if (hasTeamRole(memberRoles.value)) scopes.push(Roles.TEAM)
-  if (memberRoles.value.includes(Roles.MEMBER_MANAGER)) scopes.push(Roles.MEMBER_MANAGER)
+  if (memberRoles.value.includes(Roles.GUARDIAN)) scopes.push(Roles.GUARDIAN)
   return fields.value.filter(f => {
     if (f.scope === 'GROUP') return false
     return scopes.includes(f.scope ?? Roles.MEMBER)
@@ -107,7 +107,7 @@ function getManagerFields(mgrId: number): typeof fields.value {
   const scopes: string[] = []
   if (roles.includes(Roles.MEMBER)) scopes.push(Roles.MEMBER)
   if (hasTeamRole(roles)) scopes.push(Roles.TEAM)
-  if (roles.includes(Roles.MEMBER_MANAGER)) scopes.push(Roles.MEMBER_MANAGER)
+  if (roles.includes(Roles.GUARDIAN)) scopes.push(Roles.GUARDIAN)
   return fields.value.filter(f => {
     if (f.scope === 'GROUP') return false
     return scopes.includes(f.scope ?? Roles.MEMBER)
@@ -221,7 +221,7 @@ async function createNewManager() {
       await stationMembers.setManagers(memberId.value, { managerIds: [...currentIds, newMember.id] })
       // Assign member_manager role to new account
       const allRoles = await stationMembers.listAllRoles()
-      const mgrRoleNames: readonly string[] = [Roles.LOGIN, Roles.MEMBER_MANAGER]
+      const mgrRoleNames: readonly string[] = [Roles.LOGIN, Roles.GUARDIAN]
       const mgrRoleIds = allRoles.filter(r => mgrRoleNames.includes(r.role)).map(r => r.id)
       await stationMembers.setRoles(newMember.id, { roleIds: mgrRoleIds })
 
@@ -301,7 +301,7 @@ const formerBlockReasons = computed(() => {
   if (memberInventory.value.length > 0) {
     reasons.push(t('memberDetail.formerBlockInventory', { count: memberInventory.value.length }))
   }
-  const forbidden = [Roles.MEMBER_MANAGER, Roles.MANAGER, Roles.ADMIN]
+  const forbidden = [Roles.GUARDIAN, Roles.MANAGER, Roles.ADMIN]
   if (memberRoles.value.some(r => forbidden.includes(r as any))) {
     reasons.push(t('memberDetail.formerBlockRole'))
   }
@@ -379,8 +379,8 @@ onMounted(loadData)
           </div>
         </NeutralContainer>
 
-        <!-- Managers (only shown for MEMBER role, not for MEMBER_MANAGER) -->
-        <NeutralContainer v-if="memberRoles.includes(Roles.MEMBER) && !memberRoles.includes(Roles.MEMBER_MANAGER) && !hasTeamRole(memberRoles)" class="space-y-4">
+        <!-- Managers (only shown for MEMBER role, not for GUARDIAN) -->
+        <NeutralContainer v-if="memberRoles.includes(Roles.MEMBER) && !memberRoles.includes(Roles.GUARDIAN) && !hasTeamRole(memberRoles)" class="space-y-4">
           <div class="flex items-center justify-between">
             <h3 class="text-sm font-semibold">{{ t('memberDetail.managers') }}</h3>
             <div class="flex items-center gap-2">

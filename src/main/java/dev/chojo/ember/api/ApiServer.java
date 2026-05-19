@@ -7,13 +7,13 @@ package dev.chojo.ember.api;
 
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.conf.file.elements.Demo;
-import dev.chojo.ember.entity.StationMember;
-import dev.chojo.ember.repository.AccountRepository;
-import dev.chojo.ember.repository.MemberGroupRepository;
-import dev.chojo.ember.repository.StationMemberRepository;
-import dev.chojo.ember.repository.StationRepository;
-import dev.chojo.ember.repository.UserTagRepository;
-import dev.chojo.ember.service.ProfileFieldService;
+import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.account.repository.AccountRepository;
+import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
+import dev.chojo.ember.feature.members.repository.StationMemberRepository;
+import dev.chojo.ember.feature.station.repository.StationRepository;
+import dev.chojo.ember.feature.members.repository.UserTagRepository;
+import dev.chojo.ember.feature.members.service.ProfileFieldService;
 import io.javalin.Javalin;
 import io.javalin.config.RoutesConfig;
 import io.javalin.http.BadRequestResponse;
@@ -152,6 +152,9 @@ public class ApiServer {
                                 : "Bytes");
             });
 
+            // Cache-control headers
+            config.routes.after(this::applyCacheHeaders);
+
             if (demoConfig.enabled()) {
                 config.routes.before(this::handleDemoGuard);
             }
@@ -276,9 +279,10 @@ public class ApiServer {
         UserSession session = sessionOpt.get();
         ctx.attribute(ATTR_SESSION, session);
 
-        // Record user agent and update last-used timestamp
+        // Record user agent, location, and update last-used timestamp
         String userAgent = ctx.userAgent();
-        accountRepository.touchSession(token, userAgent);
+        String location = ctx.header("CF-IPCountry");
+        accountRepository.touchSession(token, userAgent, location);
 
         // If route only requires LOGIN, authenticated is enough
         if (routeRoles.size() == 1 && routeRoles.contains(Roles.LOGIN)) {
@@ -337,6 +341,51 @@ public class ApiServer {
             log.error("Unhandled exception on route {}", ctx.path(), err);
             ctx.json(new ErrorResponseWrapper("Internal Server Error")).status(HttpStatus.INTERNAL_SERVER_ERROR);
         });
+    }
+
+    private void applyCacheHeaders(@NotNull Context ctx) {
+        if (ctx.method() != HandlerType.GET) return;
+
+        String path = ctx.path();
+
+        // Binary resources (images, avatars, logos) — private short cache
+        if (path.contains("/avatar") || path.contains("/logo") || path.contains("/image")) {
+            ctx.header("Cache-Control", "private, max-age=300");
+            return;
+        }
+
+        // Public legal documents — cache with version-based ETag
+        if (path.startsWith(API_PREFIX + "/public/")) {
+            ctx.header("Cache-Control", "public, max-age=3600");
+            addETag(ctx);
+            return;
+        }
+
+        // Demo status — rarely changes
+        if (path.startsWith(API_PREFIX + "/demo/")) {
+            ctx.header("Cache-Control", "public, max-age=60");
+            return;
+        }
+
+        // All other API GET responses — private, use ETag for conditional requests
+        if (path.startsWith(API_PREFIX + "/")) {
+            ctx.header("Cache-Control", "private, no-cache");
+            addETag(ctx);
+        }
+    }
+
+    private void addETag(@NotNull Context ctx) {
+        String body = ctx.result();
+        if (body == null || body.isEmpty()) return;
+
+        String etag = "\"" + Integer.toHexString(body.hashCode()) + "\"";
+        ctx.header("ETag", etag);
+
+        String ifNoneMatch = ctx.header("If-None-Match");
+        if (etag.equals(ifNoneMatch)) {
+            ctx.status(HttpStatus.NOT_MODIFIED);
+            ctx.result("");
+        }
     }
 
     public record DemoAccount(

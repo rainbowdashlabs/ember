@@ -10,10 +10,11 @@ import de.chojo.sadu.queries.api.configuration.QueryConfiguration;
 import dev.chojo.ember.api.ApiServer;
 import dev.chojo.ember.auth.PasswordHasher;
 import dev.chojo.ember.conf.Conf;
-import dev.chojo.ember.repository.AccountRepository;
-import dev.chojo.ember.repository.StationMemberRepository;
-import dev.chojo.ember.repository.StationRepository;
-import dev.chojo.ember.service.DemoService;
+import dev.chojo.ember.feature.account.repository.AccountRepository;
+import dev.chojo.ember.feature.members.repository.StationMemberRepository;
+import dev.chojo.ember.feature.station.repository.StationRepository;
+import dev.chojo.ember.feature.legal.service.ConsentService;
+import dev.chojo.ember.feature.system.service.DemoService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -79,6 +80,9 @@ public class Bootstrapper {
                     injector.getInstance(StationRepository.class),
                     injector.getInstance(StationMemberRepository.class));
         }
+
+        // Initialize legal document versioning (detect changes, archive old versions)
+        injector.getInstance(ConsentService.class).initialize();
 
         var apiServer = injector.getInstance(ApiServer.class);
         apiServer.start();

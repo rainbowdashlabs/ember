@@ -20,7 +20,7 @@ const activeTab = ref('ALL')
 const tabs = [
   {key: 'ALL', label: t('membersList.tabAll')},
   {key: 'MEMBER', label: t('membersList.tabMember')},
-  {key: 'MEMBER_MANAGER', label: t('membersList.tabMemberManager')},
+  {key: 'GUARDIAN', label: t('membersList.tabMemberManager')},
   {key: 'TEAM', label: t('membersList.tabTeam')},
 ]
 </script>

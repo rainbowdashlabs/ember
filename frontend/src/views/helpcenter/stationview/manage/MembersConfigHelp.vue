@@ -22,7 +22,7 @@ const {t} = useI18n()
 const activeTab = ref('MEMBER')
 const tabs = [
   {key: 'MEMBER', label: t('membersConfig.tabMember')},
-  {key: 'MEMBER_MANAGER', label: t('membersConfig.tabManager')},
+  {key: 'GUARDIAN', label: t('membersConfig.tabManager')},
   {key: 'TEAM', label: t('membersConfig.tabTeam')},
   {key: 'GROUP', label: t('membersConfig.tabGroup')},
 ]

@@ -36,21 +36,29 @@ const initials = computed(() => {
   return parts[0][0]?.toUpperCase() ?? '?'
 })
 
-function loadAvatar() {
-  if (!props.accountId) {
-    hasAvatar.value = false
-    return
+function revokeOld() {
+  if (imgSrc.value && imgSrc.value.startsWith('blob:')) {
+    URL.revokeObjectURL(imgSrc.value)
   }
-  const url = `${client.defaults.baseURL}/accounts/${props.accountId}/avatar`
-  const img = new Image()
-  img.onload = () => {
-    imgSrc.value = url
-    hasAvatar.value = true
-  }
-  img.onerror = () => {
-    hasAvatar.value = false
-  }
-  img.src = url
+}
+
+async function loadAvatar() {
+  revokeOld()
+  hasAvatar.value = false
+  imgSrc.value = ''
+
+  if (!props.accountId) return
+
+  try {
+    const res = await client.get(`/accounts/${props.accountId}/avatar`, {
+      responseType: 'blob',
+      validateStatus: (status) => status === 200 || status === 404,
+    })
+    if (res.status === 200 && res.data) {
+      imgSrc.value = URL.createObjectURL(res.data)
+      hasAvatar.value = true
+    }
+  } catch { /* no avatar */ }
 }
 
 watch(() => props.accountId, loadAvatar, {immediate: true})

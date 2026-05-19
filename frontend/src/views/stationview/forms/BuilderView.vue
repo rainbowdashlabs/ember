@@ -50,10 +50,10 @@ const selectedRoleIds = ref<Set<number>>(new Set())
 const selectedGroupIds = ref<Set<number>>(new Set())
 const selectedTagIds = ref<Set<number>>(new Set())
 
-const RESTRICTION_ROLES = [Roles.MEMBER, Roles.MEMBER_MANAGER, Roles.TEAM] as readonly string[]
+const RESTRICTION_ROLES = [Roles.MEMBER, Roles.GUARDIAN, Roles.TEAM] as readonly string[]
 const roleFriendlyNames: Record<string, string> = {
   [Roles.MEMBER]: 'Mitglied',
-  [Roles.MEMBER_MANAGER]: 'Mitgliedsmanager',
+  [Roles.GUARDIAN]: 'Erziehungsberechtigter',
   [Roles.TEAM]: 'Team',
 }
 const restrictionRoles = computed(() =>

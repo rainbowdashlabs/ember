@@ -13,11 +13,11 @@ import {Roles} from '@/api/types'
 const {t} = useI18n()
 
 defineProps<{
-  modelValue: 'MEMBER' | 'MEMBER_MANAGER' | 'TEAM'
+  modelValue: 'MEMBER' | 'GUARDIAN' | 'TEAM'
 }>()
 
 const emit = defineEmits<{
-  'update:modelValue': [value: 'MEMBER' | 'MEMBER_MANAGER' | 'TEAM']
+  'update:modelValue': [value: 'MEMBER' | 'GUARDIAN' | 'TEAM']
   next: []
 }>()
 </script>
@@ -39,9 +39,9 @@ const emit = defineEmits<{
       </NeutralContainer>
 
       <NeutralContainer
-          :class="modelValue === Roles.MEMBER_MANAGER ? 'border-primary ring-2 ring-primary/30 bg-primary/10 scale-105' : 'hover:border-primary hover:scale-[1.02]'"
+          :class="modelValue === Roles.GUARDIAN ? 'border-primary ring-2 ring-primary/30 bg-primary/10 scale-105' : 'hover:border-primary hover:scale-[1.02]'"
           class="cursor-pointer text-center py-6 transition-all"
-          @click="emit('update:modelValue', Roles.MEMBER_MANAGER)"
+          @click="emit('update:modelValue', Roles.GUARDIAN)"
       >
         <font-awesome-icon :icon="['fas', 'user-plus']" class="text-2xl mb-2"/>
         <div class="font-medium">{{ t('membersCreate.roleMemberManager') }}</div>

@@ -41,7 +41,7 @@ import MemberName from '@/components/avatar/MemberName.vue'
 
 const { t } = useI18n()
 const router = useRouter()
-const { canManageInventory, isMemberManager, sessionInfo } = useSession()
+const { canManageInventory, isGuardian, sessionInfo } = useSession()
 const { activeStation } = useStations()
 
 import type { ManagedMember } from '@/api/managedMembers'
@@ -59,7 +59,7 @@ const selectedExportFields = ref<Set<number>>(new Set())
 const allFields = ref<ProfileField[]>([])
 const exporting = ref(false)
 
-const showMemberColumn = computed(() => canManageInventory() || isMemberManager())
+const showMemberColumn = computed(() => canManageInventory() || isGuardian())
 
 const membersWithItemsList = computed(() =>
   members.value.filter(m => membersWithItems.value.has(m.id))
@@ -136,7 +136,7 @@ async function loadData() {
       exchanges.listExchanges(),
       canManageInventory() ? inventory.listInventories() : Promise.resolve([]),
       stationId && canManageInventory() ? stationMembers.listMembers(stationId) : Promise.resolve([]),
-      isMemberManager() ? managedMembers.listManaged() : Promise.resolve([]),
+      isGuardian() ? managedMembers.listManaged() : Promise.resolve([]),
     ])
     requests.value = r
     inventories.value = inv
@@ -181,7 +181,7 @@ function openCreateModal() {
   createItemSizes.value = []
   showCreateModal.value = true
   // For non-managers, skip member selection and load own items
-  if (!canManageInventory() && !(isMemberManager() && managed.value.length > 0)) {
+  if (!canManageInventory() && !(isGuardian() && managed.value.length > 0)) {
     createMemberId.value = String(sessionInfo.value?.member?.id ?? '')
     createStep.value = 2
     loadCreateMemberItems()
@@ -625,7 +625,7 @@ onMounted(loadData)
                   {{ m.name || m.email || `#${m.id}` }}
                 </option>
               </SelectInput>
-              <SelectInput v-else-if="isMemberManager() && managed.length > 0" v-model="createMemberId">
+              <SelectInput v-else-if="isGuardian() && managed.length > 0" v-model="createMemberId">
                 <option v-if="membersWithItems.has(sessionInfo?.member?.id ?? 0)" :value="String(sessionInfo?.member?.id ?? '')">{{ t('profile.myInventorySelf') }}</option>
                 <option v-for="m in managedWithItemsList" :key="m.id" :value="String(m.id)">
                   {{ m.name || m.email }}

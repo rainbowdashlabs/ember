@@ -27,7 +27,7 @@ const router = useRouter()
 const {currentStationId} = useStations()
 
 const step = ref<'role' | 'identity' | 'fields' | 'groups' | 'manager' | 'done'>('role')
-const selectedRole = ref<'MEMBER' | 'MEMBER_MANAGER' | 'TEAM'>(Roles.MEMBER)
+const selectedRole = ref<'MEMBER' | 'GUARDIAN' | 'TEAM'>(Roles.MEMBER)
 const firstName = ref('')
 const lastName = ref('')
 const email = ref('')
@@ -204,8 +204,8 @@ function getRoleNamesForType(type: string): string[] {
     case Roles.MEMBER:
       roles.push(Roles.MEMBER);
       break
-    case Roles.MEMBER_MANAGER:
-      roles.push(Roles.MEMBER_MANAGER);
+    case Roles.GUARDIAN:
+      roles.push(Roles.GUARDIAN);
       break
     case Roles.TEAM:
       roles.push(Roles.TEAM);

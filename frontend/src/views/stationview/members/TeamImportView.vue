@@ -60,7 +60,7 @@ const targetOptions = computed(() => {
   ]
   const scopeLabels: Record<string, string> = {
     MEMBER: t('memberImport.scopeMember'),
-    MEMBER_MANAGER: t('memberImport.scopeMemberManager'),
+    GUARDIAN: t('memberImport.scopeMemberManager'),
     TEAM: t('memberImport.scopeTeam'),
     GROUP: t('memberImport.scopeGroup'),
   }
@@ -74,7 +74,7 @@ const targetOptions = computed(() => {
 const fieldScopeGroups = computed(() => {
   const scopeLabels: Record<string, string> = {
     MEMBER: t('memberImport.scopeMember'),
-    MEMBER_MANAGER: t('memberImport.scopeMemberManager'),
+    GUARDIAN: t('memberImport.scopeMemberManager'),
     TEAM: t('memberImport.scopeTeam'),
     GROUP: t('memberImport.scopeGroup'),
   }

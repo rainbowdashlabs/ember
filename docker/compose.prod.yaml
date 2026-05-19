@@ -27,6 +27,7 @@ services:
       DB_SCHEMA: ember_schema
     volumes:
       - ./config:/app/config
+      - ./data:/app/data
     depends_on:
       postgres:
         condition: service_healthy

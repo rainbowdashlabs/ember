@@ -53,7 +53,7 @@ function emptyTabState(): TabFilterState {
 const tabStates = ref<Record<string, TabFilterState>>({
   ALL: emptyTabState(),
   MEMBER: emptyTabState(),
-  MEMBER_MANAGER: emptyTabState(),
+  GUARDIAN: emptyTabState(),
   TEAM: emptyTabState(),
 })
 
@@ -75,7 +75,7 @@ const showExportModal = ref(false)
 const tabs = computed(() => [
   { key: 'ALL', label: t('membersList.tabAll') },
   { key: 'MEMBER', label: t('membersList.tabMember') },
-  { key: 'MEMBER_MANAGER', label: t('membersList.tabMemberManager') },
+  { key: 'GUARDIAN', label: t('membersList.tabMemberManager') },
   { key: 'TEAM', label: t('membersList.tabTeam') },
 ])
 
@@ -168,9 +168,9 @@ const extraColumnIds = ref<Set<number>>(new Set())
 
 const tabScopedFields = computed(() => {
   const scopeForTab: Record<string, string[]> = {
-    ALL: [Roles.MEMBER, Roles.MEMBER_MANAGER, Roles.TEAM],
+    ALL: [Roles.MEMBER, Roles.GUARDIAN, Roles.TEAM],
     [Roles.MEMBER]: [Roles.MEMBER],
-    [Roles.MEMBER_MANAGER]: [Roles.MEMBER_MANAGER],
+    [Roles.GUARDIAN]: [Roles.GUARDIAN],
     [Roles.TEAM]: [Roles.TEAM],
   }
   const scopes = scopeForTab[activeTab.value] ?? []
@@ -229,10 +229,10 @@ function getRawFieldValue(memberId: number, fieldId: number): string {
   try { return JSON.parse(raw) } catch { return raw }
 }
 
-function getMemberType(memberId: number): 'MEMBER' | 'MEMBER_MANAGER' | 'TEAM' | null {
+function getMemberType(memberId: number): 'MEMBER' | 'GUARDIAN' | 'TEAM' | null {
   const roles = memberRolesMap.value.get(memberId) ?? []
   if (hasTeamRole(roles)) return Roles.TEAM
-  if (roles.includes(Roles.MEMBER_MANAGER)) return Roles.MEMBER_MANAGER
+  if (roles.includes(Roles.GUARDIAN)) return Roles.GUARDIAN
   if (roles.includes(Roles.MEMBER)) return Roles.MEMBER
   return null
 }

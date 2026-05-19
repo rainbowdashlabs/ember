@@ -26,7 +26,7 @@ public enum Roles implements RouteRole {
     /**
      * Manage data of other members that are assigned to this member
      */
-    MEMBER_MANAGER(USER, LOGIN),
+    GUARDIAN(USER, LOGIN),
     /**
      * Team member with elevated access (e.g. team leads, instructors)
      */
@@ -61,6 +61,10 @@ public enum Roles implements RouteRole {
      */
     POLL_MANAGEMENT(TEAM),
     /**
+     * Manage lost and found items
+     */
+    LOST_AND_FOUND_MANAGEMENT(TEAM),
+    /**
      * Manage everything. Includes all other management roles
      */
     MANAGER(
@@ -71,7 +75,8 @@ public enum Roles implements RouteRole {
             EVENT_MANAGEMENT,
             MEMBER_MANAGEMENT,
             NEWS_MANAGEMENT,
-            POLL_MANAGEMENT),
+            POLL_MANAGEMENT,
+            LOST_AND_FOUND_MANAGEMENT),
     /**
      * Manange the software itself.
      */

@@ -17,12 +17,15 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
+import Modal from '@/components/feedback/Modal.vue'
+import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import {auth, session} from '@/api'
 import client from '@/api/client'
 import {StorageDeniedError} from '@/api/auth'
 import type {StorageConsent} from '@/api/storage'
-import {acceptStorage, denyStorage, getConsent, getItem} from '@/api/storage'
+import {acceptStorage, denyStorage, getConsent, getStoredLegalVersions, getItem} from '@/api/storage'
 import {useStations} from '@/composables/useStations'
+import {useConsentGuard} from '@/composables/useConsentGuard'
 import {Roles} from '@/api/types'
 
 const {t} = useI18n()
@@ -54,7 +57,7 @@ const roleFriendlyNames: Record<string, string> = {
   ATTENDENCE_MANAGEMENT: 'Anwesenheit',
   EVENT_MANAGEMENT: 'Termine',
   INVENTORY_MANAGEMENT: 'Inventar',
-  MEMBER_MANAGER: 'Mitgliedsmanager',
+  GUARDIAN: 'Erziehungsberechtigter',
   MEMBER: 'Mitglied',
   LOGIN: 'Login',
   NEWS_MANAGEMENT: 'Neuigkeiten',
@@ -74,7 +77,7 @@ const roleGroups = computed(() => {
 
   addGroup('Admin', a => a.roles.includes(Roles.MANAGER) || a.roles.includes(Roles.ADMIN))
   addGroup('Team', a => a.roles.includes(Roles.TEAM))
-  addGroup('Mitgliedsmanager', a => a.roles.includes(Roles.MEMBER_MANAGER))
+  addGroup('Erziehungsberechtigter', a => a.roles.includes(Roles.GUARDIAN))
   addGroup('Mitglieder', a => a.roles.includes(Roles.MEMBER) || a.roles.includes(Roles.LOGIN))
   return groups
 })
@@ -85,6 +88,9 @@ onMounted(async () => {
     router.push({name: 'dashboard-overview'})
     return
   }
+
+  // Load consent text in parallel with demo status
+  loadConsentText()
 
   try {
     const res = await client.get<{ demo: boolean; dev: boolean }>('/demo/status')
@@ -122,9 +128,73 @@ const password = ref('')
 const error = ref('')
 const loading = ref(false)
 const consent = ref<StorageConsent | null>(getConsent())
+const consentHtml = ref('')
+const consentVersion = ref('')
+const privacyVersion = ref('')
+const tosVersion = ref('')
+const consentLoading = ref(false)
+const showPrivacyPolicy = ref(false)
+const privacyPolicyHtml = ref('')
+const privacyPolicyLoading = ref(false)
+const showTos = ref(false)
+const tosHtml = ref('')
+const tosLoading = ref(false)
+
+async function loadConsentText() {
+  consentLoading.value = true
+  try {
+    const [consentData, versions] = await Promise.all([
+      session.getConsentText(),
+      session.getLegalVersions(),
+    ])
+    consentHtml.value = consentData.html
+    consentVersion.value = versions.consentVersion
+    privacyVersion.value = versions.privacyVersion
+    tosVersion.value = versions.tosVersion
+
+    // If consent was already accepted but any version changed, re-prompt
+    const stored = getStoredLegalVersions()
+    if (consent.value === 'accepted' && stored.consent) {
+      if (stored.consent !== versions.consentVersion
+          || stored.privacy !== versions.privacyVersion
+          || stored.tos !== versions.tosVersion) {
+        consent.value = null
+      }
+    }
+  } catch { /* use fallback */ }
+  consentLoading.value = false
+}
+
+async function loadPrivacyPolicy() {
+  if (privacyPolicyHtml.value) {
+    showPrivacyPolicy.value = true
+    return
+  }
+  privacyPolicyLoading.value = true
+  showPrivacyPolicy.value = true
+  try {
+    const data = await session.getPrivacyPolicy()
+    privacyPolicyHtml.value = data.html
+  } catch { /* ignore */ }
+  privacyPolicyLoading.value = false
+}
+
+async function loadTos() {
+  if (tosHtml.value) {
+    showTos.value = true
+    return
+  }
+  tosLoading.value = true
+  showTos.value = true
+  try {
+    const data = await session.getTermsOfService()
+    tosHtml.value = data.html
+  } catch { /* ignore */ }
+  tosLoading.value = false
+}
 
 function handleAccept() {
-  acceptStorage()
+  acceptStorage({consent: consentVersion.value, privacy: privacyVersion.value, tos: tosVersion.value})
   consent.value = 'accepted'
 }
 
@@ -149,9 +219,13 @@ async function handleLogin() {
         name: 'set-password',
         query: {token: result.passwordChangeToken},
       })
-    } else {
-      await resolveStationAndRedirect()
+      return
     }
+
+    // Check consent status after successful login
+    await checkAndRecordConsent()
+
+    await resolveStationAndRedirect()
   } catch (e) {
     if (e instanceof StorageDeniedError) {
       error.value = t('login.storageDenied')
@@ -164,6 +238,37 @@ async function handleLogin() {
   } finally {
     loading.value = false
   }
+}
+
+async function checkAndRecordConsent() {
+  try {
+    const status = await session.getConsentStatus()
+
+    if (!status.consented) {
+      // First login or no consent record — auto-create from the consent the user just accepted
+      await session.recordConsent({
+        consentVersion: consentVersion.value || status.currentConsentVersion,
+        privacyVersion: privacyVersion.value || status.currentPrivacyVersion,
+        tosVersion: tosVersion.value || status.currentTosVersion,
+      })
+      acceptStorage({
+        consent: status.currentConsentVersion,
+        privacy: status.currentPrivacyVersion,
+        tos: status.currentTosVersion,
+      })
+    } else if (!status.current) {
+      // Consent exists but documents changed — redirect to re-consent
+      const {setNeedsReconsent} = useConsentGuard()
+      setNeedsReconsent(true)
+    } else {
+      // Consent is current — update local storage versions
+      acceptStorage({
+        consent: status.currentConsentVersion,
+        privacy: status.currentPrivacyVersion,
+        tos: status.currentTosVersion,
+      })
+    }
+  } catch { /* best effort — don't block login if consent check fails */ }
 }
 
 async function loginAsDemo(account: DemoAccount) {
@@ -190,16 +295,20 @@ function topRoleLabel(account: DemoAccount): string {
 <template>
   <div class="flex min-h-screen items-center justify-center px-4">
     <div :class="isDemo || isDev ? 'max-w-2xl' : 'max-w-sm'" class="w-full space-y-6">
-      <div class="text-center">
+      <div v-if="!isDemo" class="text-center">
         <font-awesome-icon :icon="['fas', 'lock']" class="text-4xl text-primary mb-3"/>
         <h1 class="text-2xl font-bold">{{ t('login.title') }}</h1>
       </div>
 
       <Spinner v-if="demoLoading" size="lg"/>
 
-      <!-- Demo mode: user picker only -->
+      <!-- Demo mode: user picker only, no login form -->
       <template v-if="isDemo && !demoLoading">
-        <Alert variant="info">{{ t('demo.loginHint') }}</Alert>
+        <div class="text-center">
+          <font-awesome-icon :icon="['fas', 'fire']" class="text-4xl text-primary mb-3"/>
+          <h1 class="text-2xl font-bold">{{ t('demo.title') }}</h1>
+          <p class="text-sm text-(--text-muted) mt-1">{{ t('demo.loginHint') }}</p>
+        </div>
         <Alert v-if="error" variant="error">{{ error }}</Alert>
 
         <div v-for="group in roleGroups" :key="group.label" class="space-y-2">
@@ -233,8 +342,21 @@ function topRoleLabel(account: DemoAccount): string {
       <!-- Normal / dev mode: login form -->
       <template v-if="!isDemo && !demoLoading">
         <NeutralContainer v-if="consent === null" class="space-y-4">
-          <h2 class="font-semibold">{{ t('storageConsent.title') }}</h2>
-          <p class="text-sm text-[var(--text-muted)]">{{ t('storageConsent.description') }}</p>
+          <h2 class="font-semibold text-lg">{{ t('storageConsent.title') }}</h2>
+
+          <Spinner v-if="consentLoading" size="sm"/>
+          <div v-else-if="consentHtml" class="legal-content max-h-64 overflow-y-auto text-sm border border-(--border) rounded-lg p-3" v-html="consentHtml"/>
+          <p v-else class="text-sm text-(--text-muted)">{{ t('storageConsent.description') }}</p>
+
+          <div class="flex gap-4">
+            <button class="text-xs text-primary hover:underline cursor-pointer" @click="loadPrivacyPolicy">
+              {{ t('storageConsent.privacyPolicy') }}
+            </button>
+            <button class="text-xs text-primary hover:underline cursor-pointer" @click="loadTos">
+              {{ t('storageConsent.tos') }}
+            </button>
+          </div>
+
           <div class="flex gap-3">
             <SuccessButton class="flex-1" @click="handleAccept">
               {{ t('storageConsent.accept') }}
@@ -248,6 +370,30 @@ function topRoleLabel(account: DemoAccount): string {
         <Alert v-if="consent === 'denied'" variant="error">
           {{ t('login.storageDenied') }}
         </Alert>
+
+        <!-- Privacy Policy Modal -->
+        <Modal v-model="showPrivacyPolicy">
+          <div class="space-y-4 p-4">
+            <h3 class="text-lg font-semibold">{{ t('storageConsent.privacyPolicyTitle') }}</h3>
+            <Spinner v-if="privacyPolicyLoading" size="sm"/>
+            <div v-else-if="privacyPolicyHtml" class="legal-content max-h-[70vh] overflow-y-auto" v-html="privacyPolicyHtml"/>
+            <div class="flex justify-end">
+              <SecondaryButton @click="showPrivacyPolicy = false">{{ t('common.close') }}</SecondaryButton>
+            </div>
+          </div>
+        </Modal>
+
+        <!-- Terms of Service Modal -->
+        <Modal v-model="showTos">
+          <div class="space-y-4 p-4">
+            <h3 class="text-lg font-semibold">{{ t('storageConsent.tosTitle') }}</h3>
+            <Spinner v-if="tosLoading" size="sm"/>
+            <div v-else-if="tosHtml" class="legal-content max-h-[70vh] overflow-y-auto" v-html="tosHtml"/>
+            <div class="flex justify-end">
+              <SecondaryButton @click="showTos = false">{{ t('common.close') }}</SecondaryButton>
+            </div>
+          </div>
+        </Modal>
 
         <form v-if="consent === 'accepted'" class="space-y-4" @submit.prevent="handleLogin">
           <Alert v-if="error" variant="error">{{ error }}</Alert>

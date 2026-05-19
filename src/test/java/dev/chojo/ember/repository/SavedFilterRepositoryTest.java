@@ -5,8 +5,8 @@
  */
 package dev.chojo.ember.repository;
 
-import dev.chojo.ember.entity.Account;
-import dev.chojo.ember.entity.SavedFilter;
+import dev.chojo.ember.feature.account.entity.Account;
+import dev.chojo.ember.feature.members.entity.SavedFilter;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.MethodOrderer;

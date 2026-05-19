@@ -5,7 +5,7 @@
  */
 package dev.chojo.ember.repository;
 
-import dev.chojo.ember.entity.Station;
+import dev.chojo.ember.feature.station.entity.Station;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;

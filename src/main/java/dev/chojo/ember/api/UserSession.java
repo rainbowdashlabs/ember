@@ -5,8 +5,8 @@
  */
 package dev.chojo.ember.api;
 
-import dev.chojo.ember.entity.Account;
-import dev.chojo.ember.entity.StationMember;
+import dev.chojo.ember.feature.account.entity.Account;
+import dev.chojo.ember.feature.members.entity.StationMember;
 import io.javalin.http.Context;
 
 import java.util.Optional;

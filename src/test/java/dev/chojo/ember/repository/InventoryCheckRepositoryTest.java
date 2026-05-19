@@ -5,15 +5,15 @@
  */
 package dev.chojo.ember.repository;
 
-import dev.chojo.ember.entity.Account;
-import dev.chojo.ember.entity.CheckResult;
-import dev.chojo.ember.entity.Inventory;
-import dev.chojo.ember.entity.InventoryCheck;
-import dev.chojo.ember.entity.InventoryCheckItem;
-import dev.chojo.ember.entity.InventoryItem;
-import dev.chojo.ember.entity.InventoryType;
-import dev.chojo.ember.entity.Station;
-import dev.chojo.ember.entity.StationMember;
+import dev.chojo.ember.feature.station.entity.Station;
+import dev.chojo.ember.feature.account.entity.Account;
+import dev.chojo.ember.feature.inventory.entity.CheckResult;
+import dev.chojo.ember.feature.inventory.entity.Inventory;
+import dev.chojo.ember.feature.inventory.entity.InventoryCheck;
+import dev.chojo.ember.feature.inventory.entity.InventoryCheckItem;
+import dev.chojo.ember.feature.inventory.entity.InventoryItem;
+import dev.chojo.ember.feature.inventory.entity.InventoryType;
+import dev.chojo.ember.feature.members.entity.StationMember;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.MethodOrderer;

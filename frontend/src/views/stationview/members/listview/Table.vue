@@ -115,7 +115,7 @@ function getScopesForRoles(roles: string[]): string[] {
   const scopes: string[] = []
   if (roles.includes(Roles.MEMBER)) scopes.push(Roles.MEMBER)
   if (hasTeamRole(roles)) scopes.push(Roles.TEAM)
-  if (roles.includes(Roles.MEMBER_MANAGER)) scopes.push(Roles.MEMBER_MANAGER)
+  if (roles.includes(Roles.GUARDIAN)) scopes.push(Roles.GUARDIAN)
   return scopes
 }
 
@@ -144,14 +144,14 @@ function managerName(mgr: StationMember): string {
 
 const primaryRoleLabels: Record<string, string> = {
   [Roles.TEAM]: 'Team',
-  [Roles.MEMBER_MANAGER]: 'Mitgliedsmanager',
+  [Roles.GUARDIAN]: 'Erziehungsberechtigter',
   [Roles.MEMBER]: 'Mitglied',
 }
 
 function getPrimaryRole(memberId: number): string {
   const roles = props.memberRolesMap.get(memberId) ?? []
   if (hasTeamRole(roles)) return Roles.TEAM
-  if (roles.includes(Roles.MEMBER_MANAGER)) return Roles.MEMBER_MANAGER
+  if (roles.includes(Roles.GUARDIAN)) return Roles.GUARDIAN
   if (roles.includes(Roles.MEMBER)) return Roles.MEMBER
   return ''
 }
@@ -271,7 +271,7 @@ function onRowClick(member: StationMember) {
                 class="inline-block rounded-full px-2 py-0.5 text-[10px] font-medium"
                 :class="{
                   'bg-primary/10 text-primary': getPrimaryRole(member.id) === 'TEAM',
-                  'bg-info/10 text-info-accent': getPrimaryRole(member.id) === 'MEMBER_MANAGER',
+                  'bg-info/10 text-info-accent': getPrimaryRole(member.id) === 'GUARDIAN',
                   'bg-bg-light-accent dark:bg-bg-dark-accent text-(--text-muted)': getPrimaryRole(member.id) === 'MEMBER',
                 }"
             >{{ primaryRoleLabels[getPrimaryRole(member.id)] }}</span>

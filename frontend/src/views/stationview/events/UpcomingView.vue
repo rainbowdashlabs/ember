@@ -27,7 +27,7 @@ import {useSession} from '@/composables/useSession'
 
 const {t} = useI18n()
 const router = useRouter()
-const {sessionInfo, loaded, isMemberManager, canManageAttendance, canManageEvents} = useSession()
+const {sessionInfo, loaded, isGuardian, canManageAttendance, canManageEvents} = useSession()
 
 const allEvents = ref<StationEvent[]>([])
 const todayEvents = ref<StationEvent[]>([])
@@ -206,7 +206,7 @@ async function loadData() {
     eligibleMembers.value = elig
     registrationCounts.value = counts
 
-    if (isMemberManager()) {
+    if (isGuardian()) {
       const managed = await managedMembersApi.listManaged()
       managedMembers.value = managed.map(m => ({
         id: m.id,

@@ -57,7 +57,7 @@ function parseConfig(configStr: string | undefined): { options?: string[]; [key:
 // --- Role logic ---
 
 const ASSIGNABLE_ROLE_NAMES = [
-  Roles.MEMBER, Roles.TEAM, Roles.MEMBER_MANAGER, Roles.LOGIN,
+  Roles.MEMBER, Roles.TEAM, Roles.GUARDIAN, Roles.LOGIN,
   Roles.ATTENDENCE_MANAGEMENT, Roles.INVENTORY_MANAGEMENT,
   Roles.EVENT_MANAGEMENT, Roles.MEMBER_MANAGEMENT, Roles.MANAGER, Roles.NEWS_MANAGEMENT,
 ] as const
@@ -69,7 +69,7 @@ const assignableRoles = computed(() => {
 const roleHierarchy: Record<string, string[]> = {
   [Roles.MANAGER]: [Roles.TEAM, Roles.ATTENDENCE_MANAGEMENT, Roles.INVENTORY_MANAGEMENT, Roles.EVENT_MANAGEMENT, Roles.MEMBER_MANAGEMENT],
   [Roles.TEAM]: [Roles.LOGIN],
-  [Roles.MEMBER_MANAGER]: [Roles.MEMBER, Roles.LOGIN],
+  [Roles.GUARDIAN]: [Roles.MEMBER, Roles.LOGIN],
   [Roles.ATTENDENCE_MANAGEMENT]: [Roles.TEAM, Roles.LOGIN],
   [Roles.INVENTORY_MANAGEMENT]: [Roles.TEAM, Roles.LOGIN],
   [Roles.EVENT_MANAGEMENT]: [Roles.TEAM, Roles.LOGIN],
@@ -78,9 +78,9 @@ const roleHierarchy: Record<string, string[]> = {
 }
 
 const roleConflicts: Record<string, string[]> = {
-  [Roles.MEMBER]: [Roles.TEAM, Roles.MEMBER_MANAGER, Roles.MANAGER, Roles.ATTENDENCE_MANAGEMENT, Roles.INVENTORY_MANAGEMENT, Roles.EVENT_MANAGEMENT, Roles.MEMBER_MANAGEMENT, Roles.NEWS_MANAGEMENT],
+  [Roles.MEMBER]: [Roles.TEAM, Roles.GUARDIAN, Roles.MANAGER, Roles.ATTENDENCE_MANAGEMENT, Roles.INVENTORY_MANAGEMENT, Roles.EVENT_MANAGEMENT, Roles.MEMBER_MANAGEMENT, Roles.NEWS_MANAGEMENT],
   [Roles.TEAM]: [Roles.MEMBER],
-  [Roles.MEMBER_MANAGER]: [Roles.MEMBER],
+  [Roles.GUARDIAN]: [Roles.MEMBER],
   [Roles.MANAGER]: [Roles.MEMBER],
   [Roles.ATTENDENCE_MANAGEMENT]: [Roles.MEMBER],
   [Roles.INVENTORY_MANAGEMENT]: [Roles.MEMBER],
@@ -137,7 +137,7 @@ const roleFriendlyNames: Record<string, string> = {
   LOGIN: 'Login',
   MEMBER: 'Mitglied',
   TEAM: 'Team',
-  MEMBER_MANAGER: 'Mitgliedsmanager',
+  GUARDIAN: 'Erziehungsberechtigter',
   ATTENDENCE_MANAGEMENT: 'Anwesenheitsverwaltung',
   INVENTORY_MANAGEMENT: 'Inventarverwaltung',
   EVENT_MANAGEMENT: 'Terminverwaltung',
@@ -165,7 +165,7 @@ const applicableFields = computed(() => {
   const scopes: string[] = []
   if (roleNames.has(Roles.MEMBER)) scopes.push(Roles.MEMBER)
   if (hasTeamRole([...roleNames])) scopes.push(Roles.TEAM)
-  if (roleNames.has(Roles.MEMBER_MANAGER)) scopes.push(Roles.MEMBER_MANAGER)
+  if (roleNames.has(Roles.GUARDIAN)) scopes.push(Roles.GUARDIAN)
 
   return fields.value.filter(f => {
     if (f.scope === 'GROUP') return false
@@ -293,7 +293,7 @@ const formerBlockReasons = computed(() => {
   if (memberInventory.value.length > 0) {
     reasons.push(t('memberDetail.formerBlockInventory', { count: memberInventory.value.length }))
   }
-  const forbidden = [Roles.MEMBER_MANAGER, Roles.MANAGER, Roles.ADMIN]
+  const forbidden = [Roles.GUARDIAN, Roles.MANAGER, Roles.ADMIN]
   const roleNames = allRoles.value.filter(r => editRoleIds.value.has(r.id)).map(r => r.role)
   if (roleNames.some(r => forbidden.includes(r as any))) {
     reasons.push(t('memberDetail.formerBlockRole'))

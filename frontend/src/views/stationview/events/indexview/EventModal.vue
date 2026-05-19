@@ -104,10 +104,10 @@ watch(() => props.modelValue, (open) => {
   }
 })
 
-const RESTRICTION_ROLES = [Roles.MEMBER, Roles.MEMBER_MANAGER, Roles.TEAM] as readonly string[]
+const RESTRICTION_ROLES = [Roles.MEMBER, Roles.GUARDIAN, Roles.TEAM] as readonly string[]
 
 const roleFriendlyNames: Record<string, string> = {
-  MEMBER: 'Mitglied', MEMBER_MANAGER: 'Mitgliedsmanager', TEAM: 'Team',
+  MEMBER: 'Mitglied', GUARDIAN: 'Erziehungsberechtigter', TEAM: 'Team',
 }
 
 const restrictionRoles = computed(() =>

@@ -44,7 +44,7 @@ const roleFriendlyNames: Record<string, string> = {
   LOGIN: 'Login',
   MEMBER: 'Mitglied',
   TEAM: 'Team',
-  MEMBER_MANAGER: 'Mitgliedsmanager',
+  GUARDIAN: 'Erziehungsberechtigter',
   ATTENDENCE_MANAGEMENT: 'Anwesenheitsverwaltung',
   INVENTORY_MANAGEMENT: 'Inventarverwaltung',
   EVENT_MANAGEMENT: 'Terminverwaltung',

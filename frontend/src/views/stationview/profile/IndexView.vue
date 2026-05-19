@@ -32,8 +32,8 @@ function getUserScopes(roles: string[]): string[] {
   if (hasTeamRole(roles)) {
     scopes.push(Roles.TEAM)
   }
-  if (roles.includes(Roles.MEMBER_MANAGER)) {
-    scopes.push(Roles.MEMBER_MANAGER)
+  if (roles.includes(Roles.GUARDIAN)) {
+    scopes.push(Roles.GUARDIAN)
   }
   return scopes
 }

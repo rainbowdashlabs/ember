@@ -29,7 +29,7 @@ const ALL_STEPS: TourStep[] = [
     {id: 'events', icon: ['fas', 'calendar-days'], route: 'events-upcoming'},
     {id: 'inventory', icon: ['fas', 'boxes-stacked'], route: 'inventory-my'},
     {id: 'forms', icon: ['fas', 'square-poll-vertical'], route: 'forms-list'},
-    {id: 'managedProfiles', icon: ['fas', 'users'], route: 'profile-managed', roles: [Roles.MEMBER_MANAGER]},
+    {id: 'managedProfiles', icon: ['fas', 'users'], route: 'profile-managed', roles: [Roles.GUARDIAN]},
     {id: 'members', icon: ['fas', 'users'], route: 'members-list', roles: [Roles.MEMBER_MANAGEMENT]},
     {id: 'attendance', icon: ['fas', 'clipboard-user'], route: 'attendance-new', roles: [Roles.ATTENDENCE_MANAGEMENT]},
     {id: 'eventManagement', icon: ['fas', 'calendar-days'], route: 'events', roles: [Roles.EVENT_MANAGEMENT]},

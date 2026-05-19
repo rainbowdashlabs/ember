@@ -33,6 +33,7 @@ services:
       DEMO_DEV: "true"
     volumes:
       - ./config:/app/config
+      - ./data:/app/data
     depends_on:
       postgres:
         condition: service_healthy

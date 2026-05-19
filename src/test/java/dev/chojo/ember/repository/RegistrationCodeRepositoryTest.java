@@ -5,9 +5,9 @@
  */
 package dev.chojo.ember.repository;
 
-import dev.chojo.ember.entity.MemberGroup;
-import dev.chojo.ember.entity.RegistrationCode;
-import dev.chojo.ember.entity.Station;
+import dev.chojo.ember.feature.members.entity.MemberGroup;
+import dev.chojo.ember.feature.members.entity.RegistrationCode;
+import dev.chojo.ember.feature.station.entity.Station;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.MethodOrderer;

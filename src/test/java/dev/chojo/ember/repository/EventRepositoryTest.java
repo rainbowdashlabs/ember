@@ -5,13 +5,13 @@
  */
 package dev.chojo.ember.repository;
 
-import dev.chojo.ember.entity.Account;
-import dev.chojo.ember.entity.EventBreak;
-import dev.chojo.ember.entity.EventCategory;
-import dev.chojo.ember.entity.EventRegistration;
-import dev.chojo.ember.entity.Station;
-import dev.chojo.ember.entity.StationEvent;
-import dev.chojo.ember.entity.StationMember;
+import dev.chojo.ember.feature.station.entity.Station;
+import dev.chojo.ember.feature.account.entity.Account;
+import dev.chojo.ember.feature.events.entity.EventBreak;
+import dev.chojo.ember.feature.events.entity.EventCategory;
+import dev.chojo.ember.feature.events.entity.EventRegistration;
+import dev.chojo.ember.feature.events.entity.StationEvent;
+import dev.chojo.ember.feature.members.entity.StationMember;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.MethodOrderer;

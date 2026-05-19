@@ -5,12 +5,12 @@
  */
 package dev.chojo.ember.repository;
 
-import dev.chojo.ember.entity.Account;
-import dev.chojo.ember.entity.AccountCredential;
-import dev.chojo.ember.entity.AccountExternalAuth;
-import dev.chojo.ember.entity.AccountSession;
-import dev.chojo.ember.entity.AccountToken;
-import dev.chojo.ember.entity.TokenType;
+import dev.chojo.ember.feature.account.entity.Account;
+import dev.chojo.ember.feature.account.entity.AccountCredential;
+import dev.chojo.ember.feature.account.entity.AccountExternalAuth;
+import dev.chojo.ember.feature.account.entity.AccountSession;
+import dev.chojo.ember.feature.account.entity.AccountToken;
+import dev.chojo.ember.feature.account.entity.TokenType;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
@@ -225,7 +225,7 @@ class AccountRepositoryTest extends RepositoryTestBase {
     @Order(50)
     void createAndFindSession() {
         Instant expires = Instant.now().plus(30, ChronoUnit.MINUTES);
-        accountRepo.createSession(accountId, "session-tok", expires, "TestAgent/1.0");
+        accountRepo.createSession(accountId, "session-tok", expires, "TestAgent/1.0", null);
         AccountSession session = accountRepo.findSession("session-tok").orElseThrow();
         assertEquals(accountId, session.accountId());
         assertEquals("TestAgent/1.0", session.userAgent());
@@ -242,7 +242,7 @@ class AccountRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(52)
     void touchSession() {
-        assertTrue(accountRepo.touchSession("session-tok", "UpdatedAgent/2.0"));
+        assertTrue(accountRepo.touchSession("session-tok", "UpdatedAgent/2.0", null));
         AccountSession session = accountRepo.findSession("session-tok").orElseThrow();
         assertEquals("UpdatedAgent/2.0", session.userAgent());
     }
@@ -268,8 +268,8 @@ class AccountRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(55)
     void deleteSessionsByAccount() {
-        accountRepo.createSession(accountId, "s1", Instant.now().plus(1, ChronoUnit.HOURS), null);
-        accountRepo.createSession(accountId, "s2", Instant.now().plus(1, ChronoUnit.HOURS), null);
+        accountRepo.createSession(accountId, "s1", Instant.now().plus(1, ChronoUnit.HOURS), null, null);
+        accountRepo.createSession(accountId, "s2", Instant.now().plus(1, ChronoUnit.HOURS), null, null);
         assertTrue(accountRepo.deleteSessionsByAccount(accountId));
         assertTrue(accountRepo.findSessionsByAccount(accountId).isEmpty());
     }
@@ -277,7 +277,7 @@ class AccountRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(56)
     void deleteExpiredSessions() {
-        accountRepo.createSession(accountId, "expired-s", Instant.now().minus(1, ChronoUnit.HOURS), null);
+        accountRepo.createSession(accountId, "expired-s", Instant.now().minus(1, ChronoUnit.HOURS), null, null);
         assertTrue(accountRepo.deleteExpiredSessions());
         assertTrue(accountRepo.findSession("expired-s").isEmpty());
     }

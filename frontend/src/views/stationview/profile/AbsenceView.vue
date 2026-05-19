@@ -25,7 +25,7 @@ import {useSession} from '@/composables/useSession'
 import MemberName from '@/components/avatar/MemberName.vue'
 
 const {t} = useI18n()
-const {sessionInfo, loaded, isMemberManager} = useSession()
+const {sessionInfo, loaded, isGuardian} = useSession()
 
 const myAbsences = ref<MemberAbsence[]>([])
 const managedMembers = ref<StationMember[]>([])
@@ -82,7 +82,7 @@ async function loadData() {
   error.value = ''
   try {
     myAbsences.value = await absences.listMyAbsences()
-    if (isMemberManager()) {
+    if (isGuardian()) {
       const managed = await managedMembersApi.listManaged()
       managedMembers.value = managed.map(m => ({
         id: m.id,

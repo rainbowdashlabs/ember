@@ -22,17 +22,18 @@ import type { NotificationEntry, ExchangeRequestEntry, StationEvent } from '@/ap
 import { RegistrationStatus, ExchangeStatus } from '@/api/types'
 import { notifications, exchanges, events } from '@/api'
 import type { EventRegistrationEntry } from '@/api/events'
+import { StationModules } from '@/api/types'
 import { useSession } from '@/composables/useSession'
 import ErrorContainer from '@/components/container/ErrorContainer.vue'
 
 const { t } = useI18n()
 const router = useRouter()
-const { isMemberManager, sessionInfo } = useSession()
+const { isGuardian, isModuleEnabled, sessionInfo } = useSession()
 
 const profileIncomplete = computed(() => sessionInfo.value?.profileComplete === false)
 
 function isOtherMember(memberId: number): boolean {
-  return isMemberManager() && memberId !== (sessionInfo.value?.member?.id ?? 0)
+  return isGuardian() && memberId !== (sessionInfo.value?.member?.id ?? 0)
 }
 
 const notifs = ref<NotificationEntry[]>([])
@@ -52,6 +53,8 @@ const typeIcons: Record<string, string> = {
   PROFILE_FIELD_CHANGED: 'user',
   PROCUREMENT_REQUESTED: 'box-open',
   PROCUREMENT_FULFILLED: 'box-open',
+  LOST_AND_FOUND_NEW: 'box-open',
+  LOST_AND_FOUND_CLAIMED: 'box-open',
 }
 
 const openExchanges = computed(() => exchangeList.value.filter(e => e.status !== ExchangeStatus.EXCHANGED))
@@ -191,7 +194,7 @@ onMounted(loadData)
         </NeutralContainer>
 
           <!-- Exchange requests panel -->
-          <NeutralContainer class="space-y-3">
+          <NeutralContainer v-if="isModuleEnabled(StationModules.INVENTORY)" class="space-y-3">
             <SectionHeader>
               <font-awesome-icon :icon="['fas', 'rotate']" class="mr-2" />
               {{ t('dashboard.exchanges') }}
@@ -217,10 +220,10 @@ onMounted(loadData)
           </NeutralContainer>
 
           <!-- Event registrations panel -->
-          <NeutralContainer class="space-y-3">
+          <NeutralContainer v-if="isModuleEnabled(StationModules.EVENTS)" class="space-y-3">
             <SectionHeader>
               <font-awesome-icon :icon="['fas', 'calendar-days']" class="mr-2" />
-              {{ isMemberManager() ? t('dashboard.registrationsManaged') : t('dashboard.registrations') }}
+              {{ isGuardian() ? t('dashboard.registrationsManaged') : t('dashboard.registrations') }}
             </SectionHeader>
             <div v-if="activeRegistrations.length === 0" class="text-center text-(--text-muted) py-4">
               {{ t('dashboard.noRegistrations') }}

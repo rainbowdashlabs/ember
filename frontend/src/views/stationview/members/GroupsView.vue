@@ -48,7 +48,7 @@ const roleFriendlyNames: Record<string, string> = {
   LOGIN: 'Login',
   MEMBER: 'Mitglied',
   TEAM: 'Team',
-  MEMBER_MANAGER: 'Mitgliedsmanager',
+  GUARDIAN: 'Erziehungsberechtigter',
   ATTENDENCE_MANAGEMENT: 'Anwesenheitsverwaltung',
   ATTENDENCE_EXPORT_MANAGER: 'Anwesenheitsexport',
   INVENTORY_MANAGEMENT: 'Inventarverwaltung',
@@ -60,7 +60,7 @@ const roleFriendlyNames: Record<string, string> = {
 
 const assignableRoles = computed(() => {
   const assignable = [
-    Roles.MEMBER, Roles.TEAM, Roles.MEMBER_MANAGER, Roles.LOGIN,
+    Roles.MEMBER, Roles.TEAM, Roles.GUARDIAN, Roles.LOGIN,
     Roles.ATTENDENCE_MANAGEMENT, Roles.ATTENDENCE_EXPORT_MANAGER, Roles.INVENTORY_MANAGEMENT,
     Roles.EVENT_MANAGEMENT, Roles.MEMBER_MANAGEMENT, Roles.MANAGER, Roles.NEWS_MANAGEMENT,
   ] as readonly string[]

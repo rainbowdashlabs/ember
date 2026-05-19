@@ -24,7 +24,7 @@ const {t} = useI18n()
 
 const roles: HelpRole[] = [
   {key: 'member', label: t('helpCenter.roles.member')},
-  {key: 'member-manager', label: t('helpCenter.roles.memberManager')},
+  {key: 'guardian', label: t('helpCenter.roles.memberManager')},
   {key: 'manager', label: t('helpCenter.roles.manager')},
 ]
 const activeRole = ref('')
@@ -131,7 +131,7 @@ const activeRole = ref('')
       </HelpSection>
     </template>
 
-    <template v-if="activeRole === 'member-manager'">
+    <template v-if="activeRole === 'guardian'">
       <HelpSection :title="t('helpCenter.inventoryExchanges.asMemberManager')">
         <p>{{ t('helpCenter.inventoryExchanges.asMemberManagerText') }}</p>
       </HelpSection>

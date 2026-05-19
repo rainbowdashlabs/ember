@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
-import type {ActiveSession, MessageResponse, SessionInfo, StationMembership} from './types'
+import type {ActiveSession, ConsentChangesResponse, ConsentStatusResponse, DocumentResponse, LegalVersionsResponse, MessageResponse, RecordConsentRequest, SessionInfo, StationMembership} from './types'
 
 export async function getSessionInfo(): Promise<SessionInfo> {
     const res = await client.get<SessionInfo>('/session')
@@ -48,6 +48,45 @@ export function avatarUrl(accountId: number): string {
 
 export async function deleteAccount(): Promise<void> {
     await client.delete('/session/account')
+}
+
+export async function getConsentText(lang?: string): Promise<DocumentResponse> {
+    const res = await client.get<DocumentResponse>('/public/consent', {params: lang ? {lang} : undefined})
+    return res.data
+}
+
+export async function getPrivacyPolicy(lang?: string): Promise<DocumentResponse> {
+    const res = await client.get<DocumentResponse>('/public/privacy-policy', {params: lang ? {lang} : undefined})
+    return res.data
+}
+
+export async function getTermsOfService(lang?: string): Promise<DocumentResponse> {
+    const res = await client.get<DocumentResponse>('/public/tos', {params: lang ? {lang} : undefined})
+    return res.data
+}
+
+export async function getImprint(lang?: string): Promise<DocumentResponse> {
+    const res = await client.get<DocumentResponse>('/public/imprint', {params: lang ? {lang} : undefined})
+    return res.data
+}
+
+export async function getLegalVersions(): Promise<LegalVersionsResponse> {
+    const res = await client.get<LegalVersionsResponse>('/public/legal-versions')
+    return res.data
+}
+
+export async function recordConsent(request: RecordConsentRequest): Promise<void> {
+    await client.post('/session/consent', request)
+}
+
+export async function getConsentStatus(): Promise<ConsentStatusResponse> {
+    const res = await client.get<ConsentStatusResponse>('/session/consent')
+    return res.data
+}
+
+export async function getConsentChanges(): Promise<ConsentChangesResponse> {
+    const res = await client.get<ConsentChangesResponse>('/session/consent/changes')
+    return res.data
 }
 
 export async function gdprExport(): Promise<Blob> {

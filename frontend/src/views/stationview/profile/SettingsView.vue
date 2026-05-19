@@ -82,7 +82,7 @@ async function confirmDeleteAccount() {
   }
 }
 
-const {isMemberManager} = useSession()
+const {isGuardian} = useSession()
 
 interface ManagedMemberInfo {
   id: number
@@ -220,7 +220,7 @@ async function loadData() {
     ])
     settings.value = s
     sessions.value = sess
-    if (isMemberManager()) {
+    if (isGuardian()) {
       try {
         const managed = await managedMembersApi.listManaged()
         managedMembers.value = managed.map(m => ({id: m.id, name: m.name}))
@@ -333,6 +333,12 @@ onMounted(loadData)
                   <p class="text-xs text-(--text-muted)">
                     {{ t('userSettings.lastActive') }}: {{ timeAgo(sess.lastUsedAt) }}
                     <span class="ml-2">{{ t('userSettings.created') }}: {{ formatDate(sess.createdAt) }}</span>
+                    <span v-if="sess.location" class="ml-2">
+                      <font-awesome-icon :icon="['fas', 'location-dot']" class="mr-0.5"/>{{ sess.location }}
+                    </span>
+                    <span v-else class="ml-2">
+                      <font-awesome-icon :icon="['fas', 'location-dot']" class="mr-0.5"/>{{ t('userSettings.unknownLocation') }}
+                    </span>
                   </p>
                 </div>
               </div>

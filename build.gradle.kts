@@ -46,6 +46,7 @@ dependencies {
     implementation(libs.jspecify)
 
     implementation(libs.angus)
+    implementation(libs.bundles.commonmark)
 
     testRuntimeOnly(libs.junit.platform)
     testImplementation(libs.sadu.testing)

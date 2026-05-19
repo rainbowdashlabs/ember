@@ -71,3 +71,118 @@ a:not(:has(button)) {
 a:not(:has(button)):hover {
     text-decoration: underline;
 }
+
+/* Styled markdown content for legal documents */
+.legal-content {
+    color: var(--text);
+    line-height: 1.75;
+    font-size: 0.9375rem;
+}
+
+.legal-content h1 {
+    font-size: 1.75rem;
+    font-weight: 700;
+    margin-top: 0;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid var(--bg-accent);
+}
+
+.legal-content h2 {
+    font-size: 1.3rem;
+    font-weight: 600;
+    margin-top: 2rem;
+    margin-bottom: 0.75rem;
+    color: var(--text);
+}
+
+.legal-content h3 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-top: 1.5rem;
+    margin-bottom: 0.5rem;
+    color: var(--text);
+}
+
+.legal-content p {
+    margin-top: 0.75rem;
+    margin-bottom: 0.75rem;
+}
+
+.legal-content ul,
+.legal-content ol {
+    margin-top: 0.5rem;
+    margin-bottom: 0.75rem;
+    padding-left: 1.5rem;
+}
+
+.legal-content ul {
+    list-style-type: disc;
+}
+
+.legal-content ol {
+    list-style-type: decimal;
+}
+
+.legal-content li {
+    margin-top: 0.25rem;
+    margin-bottom: 0.25rem;
+}
+
+.legal-content li > ul,
+.legal-content li > ol {
+    margin-top: 0.25rem;
+    margin-bottom: 0.25rem;
+}
+
+.legal-content strong {
+    font-weight: 600;
+}
+
+.legal-content a {
+    color: var(--link);
+    text-decoration: underline;
+}
+
+.legal-content blockquote {
+    border-left: 3px solid var(--bg-accent);
+    padding-left: 1rem;
+    margin: 1rem 0;
+    color: var(--text-muted);
+    font-style: italic;
+}
+
+.legal-content table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1rem 0;
+}
+
+.legal-content th,
+.legal-content td {
+    border: 1px solid var(--bg-accent);
+    padding: 0.5rem 0.75rem;
+    text-align: left;
+}
+
+.legal-content th {
+    font-weight: 600;
+    background: var(--bg-accent);
+}
+
+.legal-content hr {
+    border: none;
+    border-top: 1px solid var(--bg-accent);
+    margin: 2rem 0;
+}
+
+.legal-content code {
+    font-size: 0.875em;
+    background: var(--bg-accent);
+    padding: 0.125rem 0.375rem;
+    border-radius: 0.25rem;
+}
+
+.legal-content em {
+    color: var(--text-muted);
+}

@@ -32,8 +32,8 @@ function pickRole() {
       activeRole.value = 'manager'
     } else if (userRoles.includes(Roles.TEAM) && props.roles.some(r => r.key === 'team')) {
       activeRole.value = 'team'
-    } else if (userRoles.includes(Roles.MEMBER_MANAGER) && props.roles.some(r => r.key === 'member-manager')) {
-      activeRole.value = 'member-manager'
+    } else if (userRoles.includes(Roles.GUARDIAN) && props.roles.some(r => r.key === 'guardian')) {
+      activeRole.value = 'guardian'
     } else if (props.roles.length > 0) {
       activeRole.value = props.roles[0].key
     }

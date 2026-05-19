@@ -32,14 +32,14 @@ const selectedGroupId = ref('')
 
 const tabs = computed(() => [
   {key: 'MEMBER', label: t('membersConfig.tabMember')},
-  {key: 'MEMBER_MANAGER', label: t('membersConfig.tabManager')},
+  {key: 'GUARDIAN', label: t('membersConfig.tabManager')},
   {key: 'TEAM', label: t('membersConfig.tabTeam')},
   {key: 'GROUP', label: t('membersConfig.tabGroup')},
 ])
 
 const currentFields = computed(() => {
   if (activeTab.value === 'MEMBER') return allFields.value.filter(f => f.scope === 'MEMBER')
-  if (activeTab.value === 'MEMBER_MANAGER') return allFields.value.filter(f => f.scope === 'MEMBER_MANAGER')
+  if (activeTab.value === 'GUARDIAN') return allFields.value.filter(f => f.scope === 'GUARDIAN')
   if (activeTab.value === 'TEAM') return allFields.value.filter(f => f.scope === 'TEAM')
   if (!selectedGroupId.value) return []
   return allFields.value.filter(f => {
@@ -319,7 +319,7 @@ onMounted(loadFields)
 
           <p class="text-sm text-(--text-muted)">
             <template v-if="activeTab === 'MEMBER'">{{ t('membersConfig.memberHint') }}</template>
-            <template v-else-if="activeTab === 'MEMBER_MANAGER'">{{ t('membersConfig.managerHint') }}</template>
+            <template v-else-if="activeTab === 'GUARDIAN'">{{ t('membersConfig.managerHint') }}</template>
             <template v-else-if="activeTab === 'TEAM'">{{ t('membersConfig.teamHint') }}</template>
             <template v-else>{{ t('membersConfig.groupHint') }}</template>
           </p>

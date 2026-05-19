@@ -12,6 +12,10 @@ public class Api {
     private String baseUrl = "http://localhost:5173";
     private String demoUrl = "";
     private int maxAvatarSizeBytes = 2 * 1024 * 1024;
+    private String privacyPolicyDir = "data/privacy";
+    private String consentDir = "data/consent";
+    private String tosDir = "data/tos";
+    private String imprintDir = "data/imprint";
 
     public String host() {
         return host;
@@ -31,6 +35,22 @@ public class Api {
 
     public int maxAvatarSizeBytes() {
         return maxAvatarSizeBytes;
+    }
+
+    public String privacyPolicyDir() {
+        return privacyPolicyDir;
+    }
+
+    public String consentDir() {
+        return consentDir;
+    }
+
+    public String tosDir() {
+        return tosDir;
+    }
+
+    public String imprintDir() {
+        return imprintDir;
     }
 
     @Override
