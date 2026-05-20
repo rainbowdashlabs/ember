@@ -8,6 +8,8 @@ package dev.chojo.ember.feature.legal.service;
 import de.chojo.sadu.queries.api.call.Call;
 import de.chojo.sadu.queries.api.query.Query;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
+import dev.chojo.ember.feature.media.service.ImageCategory;
+import dev.chojo.ember.feature.media.service.ImageService;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -26,11 +28,16 @@ public class GdprDeletionService {
     private static final String ANONYMOUS = "Gelöscht";
     private final AccountRepository accountRepository;
     private final StationMemberRepository stationMemberRepository;
+    private final ImageService imageService;
 
     @Inject
-    public GdprDeletionService(AccountRepository accountRepository, StationMemberRepository stationMemberRepository) {
+    public GdprDeletionService(
+            AccountRepository accountRepository,
+            StationMemberRepository stationMemberRepository,
+            ImageService imageService) {
         this.accountRepository = accountRepository;
         this.stationMemberRepository = stationMemberRepository;
+        this.imageService = imageService;
     }
 
     /**
@@ -123,6 +130,9 @@ public class GdprDeletionService {
         Query.query("DELETE FROM profile_field_change WHERE member_id = :id;")
                 .single(Call.of().bind("id", memberId))
                 .delete();
+
+        // Delete avatar from disk
+        imageService.delete(ImageCategory.AVATARS, String.valueOf(memberId));
 
         // Mark as former and disconnect from account
         Query.query("UPDATE station_member SET former = TRUE, account_id = NULL WHERE id = :id;")

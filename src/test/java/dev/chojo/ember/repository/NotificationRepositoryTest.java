@@ -8,6 +8,7 @@ package dev.chojo.ember.repository;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
+import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
 import dev.chojo.ember.feature.station.entity.Station;
 import org.junit.jupiter.api.AfterAll;
@@ -18,7 +19,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 
 import java.util.List;
-import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -45,7 +45,7 @@ class NotificationRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(1)
     void create() {
-        var data = NotificationData.of("test.key", Map.of("name", "Test"));
+        var data = NotificationData.of(new NotificationParams.NewNews("Test", null, null));
         var notif = notificationRepo.create(member.id(), NotificationType.NEW_NEWS, data);
         assertNotNull(notif);
         assertEquals(member.id(), notif.memberId());
@@ -56,14 +56,14 @@ class NotificationRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(2)
     void exists() {
-        var data = NotificationData.of("test.key", Map.of("name", "Test"));
+        var data = NotificationData.of(new NotificationParams.NewNews("Test", null, null));
         assertTrue(notificationRepo.exists(member.id(), NotificationType.NEW_NEWS, data.toJson()));
     }
 
     @Test
     @Order(3)
     void existsFalse() {
-        var data = NotificationData.of("other.key", Map.of());
+        var data = NotificationData.of(new NotificationParams.NewNews(null, null, null));
         assertFalse(notificationRepo.exists(member.id(), NotificationType.NEW_NEWS, data.toJson()));
     }
 
@@ -119,7 +119,7 @@ class NotificationRepositoryTest extends RepositoryTestBase {
     @Order(12)
     void acknowledgeAll() {
         // Create another notification to test bulk acknowledge
-        var data = NotificationData.of("bulk.key", Map.of());
+        var data = NotificationData.of(new NotificationParams.NewEvent(null, null));
         notificationRepo.create(member.id(), NotificationType.NEW_EVENT, data);
         assertEquals(1, notificationRepo.countUnacknowledged(member.id()));
         int count = notificationRepo.acknowledgeAll(member.id());

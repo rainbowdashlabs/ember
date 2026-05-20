@@ -16,7 +16,9 @@ import de.chojo.sadu.mapper.rowmapper.RowMapping;
  * @param externalId the user's identifier at the external provider
  */
 public record AccountExternalAuth(int id, int accountId, String provider, String externalId) {
-    /** Creates a row mapping for database result set conversion. */
+    /**
+     * Creates a row mapping for database result set conversion.
+     */
     public static RowMapping<AccountExternalAuth> map() {
         return row -> new AccountExternalAuth(
                 row.getInt("id"), row.getInt("account_id"), row.getString("provider"), row.getString("external_id"));

@@ -12,7 +12,9 @@ import jakarta.inject.Singleton;
 
 import java.util.List;
 
-/** Repository for persisting and retrieving user-saved table filters. */
+/**
+ * Repository for persisting and retrieving user-saved table filters.
+ */
 @Singleton
 public class SavedFilterRepository {
 

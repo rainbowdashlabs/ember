@@ -654,6 +654,38 @@ public class InventoryRoutes implements Routes {
         }
     }
 
+    @OpenApi(
+            path = "/api/v1/inventories/members/export",
+            methods = HttpMethod.POST,
+            summary = "Export member inventory list as PDF",
+            tags = {"Inventory"},
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = MemberExportRequest.class)),
+            responses = {
+                @OpenApiResponse(status = "200"),
+                @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class)),
+            })
+    private void exportMembers(Context ctx) {
+        var session = UserSession.from(ctx);
+        var body = ctx.bodyAsClass(MemberExportRequest.class);
+        var account = session.account();
+        String generatedBy = (account.firstName() + " " + account.lastName()).trim();
+        var pdf = inventoryExportService.exportPdf(
+                session.stationId(),
+                body.memberIds(),
+                body.inventoryIds(),
+                body.extraFieldIds() != null ? body.extraFieldIds() : List.of(),
+                generatedBy,
+                body.showName() != null ? body.showName() : true,
+                body.showInternalId() != null ? body.showInternalId() : false,
+                body.showSize() != null ? body.showSize() : true);
+        if (pdf.isPresent()) {
+            ctx.contentType("application/pdf");
+            ctx.result(pdf.get());
+        } else {
+            throw new BadRequestResponse("Export failed");
+        }
+    }
+
     public record MyInventoryItem(
             int id,
             int inventoryId,
@@ -690,36 +722,4 @@ public class InventoryRoutes implements Routes {
             Boolean showName,
             Boolean showInternalId,
             Boolean showSize) {}
-
-    @OpenApi(
-            path = "/api/v1/inventories/members/export",
-            methods = HttpMethod.POST,
-            summary = "Export member inventory list as PDF",
-            tags = {"Inventory"},
-            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = MemberExportRequest.class)),
-            responses = {
-                @OpenApiResponse(status = "200"),
-                @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class)),
-            })
-    private void exportMembers(Context ctx) {
-        var session = UserSession.from(ctx);
-        var body = ctx.bodyAsClass(MemberExportRequest.class);
-        var account = session.account();
-        String generatedBy = (account.firstName() + " " + account.lastName()).trim();
-        var pdf = inventoryExportService.exportPdf(
-                session.stationId(),
-                body.memberIds(),
-                body.inventoryIds(),
-                body.extraFieldIds() != null ? body.extraFieldIds() : List.of(),
-                generatedBy,
-                body.showName() != null ? body.showName() : true,
-                body.showInternalId() != null ? body.showInternalId() : false,
-                body.showSize() != null ? body.showSize() : true);
-        if (pdf.isPresent()) {
-            ctx.contentType("application/pdf");
-            ctx.result(pdf.get());
-        } else {
-            throw new BadRequestResponse("Export failed");
-        }
-    }
 }

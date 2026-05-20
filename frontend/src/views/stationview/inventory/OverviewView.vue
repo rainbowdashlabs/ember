@@ -17,6 +17,7 @@ import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
+import SizeBadge from '@/components/badge/SizeBadge.vue'
 import type { InventoryItem, InventorySize, StationMember, ExchangeRequestEntry, ProcurementEntry } from '@/api/types'
 import { ExchangeStatus } from '@/api/types'
 import { inventory, stationMembers, exchanges, procurement } from '@/api'
@@ -143,7 +144,7 @@ watch(() => activeStation.value?.stationId, (newId, oldId) => {
                     @click="router.push({ name: 'inventory-exchanges' })">
                   <td class="px-3 py-2.5">
                     {{ ex.inventoryName }}
-                    <span class="text-(--text-muted)">{{ ex.oldSizeLabel ?? t('common.unisize') }} → {{ ex.newSizeLabel ?? t('common.unisize') }}</span>
+                    <SizeBadge>{{ ex.oldSizeLabel ?? t('common.unisize') }} → {{ ex.newSizeLabel ?? t('common.unisize') }}</SizeBadge>
                   </td>
                   <td class="px-3 py-2.5"><MemberName :name="ex.memberName"/></td>
                   <td class="px-3 py-2.5">
@@ -176,7 +177,7 @@ watch(() => activeStation.value?.stationId, (newId, oldId) => {
                     @click="router.push({ name: 'inventory-procurement' })">
                   <td class="px-3 py-2.5">
                     {{ p.inventoryName }}
-                    <span class="text-(--text-muted)">{{ p.sizeLabel || t('common.unisize') }}</span>
+                    <SizeBadge>{{ p.sizeLabel || t('common.unisize') }}</SizeBadge>
                   </td>
                   <td class="px-3 py-2.5"><MemberName :name="p.memberName"/></td>
                   <td class="px-3 py-2.5 text-(--text-muted)">{{ p.notes || '-' }}</td>
@@ -203,7 +204,7 @@ watch(() => activeStation.value?.stationId, (newId, oldId) => {
                   <td class="px-3 py-2.5">
                     <div class="font-medium">
                       {{ a.item.name }}
-                      <span class="font-normal text-(--text-muted)">{{ a.sizeName || t('common.unisize') }}</span>
+                      <SizeBadge lost>{{ a.sizeName || t('common.unisize') }}</SizeBadge>
                     </div>
                     <div v-if="a.item.internalId" class="text-xs text-(--text-muted)">{{ a.item.internalId }}</div>
                   </td>

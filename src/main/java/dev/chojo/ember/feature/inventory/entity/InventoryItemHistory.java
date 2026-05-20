@@ -23,7 +23,9 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
  */
 public record InventoryItemHistory(
         int id, int itemId, Integer memberId, String memberName, Instant givenOut, Instant returned) {
-    /** Creates a row mapping for database result set conversion. */
+    /**
+     * Creates a row mapping for database result set conversion.
+     */
     public static RowMapping<InventoryItemHistory> map() {
         return row -> new InventoryItemHistory(
                 row.getInt("id"),

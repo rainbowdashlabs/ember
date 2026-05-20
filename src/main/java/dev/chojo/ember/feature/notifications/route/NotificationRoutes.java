@@ -118,8 +118,8 @@ public class NotificationRoutes implements Routes {
         return new NotificationResponse(
                 n.id(),
                 n.type().name(),
-                n.data().localeKey(),
-                n.data().params(),
+                n.type().localeKey(),
+                n.data().paramsAsMap(),
                 n.data().link() != null
                         ? new NotificationLinkResponse(
                                 n.data().link().route(), n.data().link().routeParams())

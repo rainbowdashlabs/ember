@@ -56,8 +56,10 @@ export async function cancelCheck(memberId: number): Promise<void> {
     await client.post(`/inventory-checks/${memberId}/cancel`)
 }
 
-export async function getNextMember(currentMemberId?: number): Promise<number | null> {
-    const params = currentMemberId ? {currentMemberId} : {}
+export async function getNextMember(currentMemberId?: number, teamOnly?: boolean): Promise<number | null> {
+    const params: Record<string, unknown> = {}
+    if (currentMemberId) params.currentMemberId = currentMemberId
+    if (teamOnly !== undefined) params.teamOnly = teamOnly
     const res = await client.get<NextMemberResponse>('/inventory-checks/next', {params})
     return res.data.memberId
 }

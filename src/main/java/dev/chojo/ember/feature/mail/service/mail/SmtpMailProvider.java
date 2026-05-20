@@ -89,6 +89,10 @@ public class SmtpMailProvider implements MailProvider {
         }
     }
 
+    public String senderName() {
+        return senderName;
+    }
+
     private Session createSession() {
         Properties props = new Properties();
         props.put("mail.smtp.host", host);
@@ -105,9 +109,5 @@ public class SmtpMailProvider implements MailProvider {
                 return new PasswordAuthentication(user, password);
             }
         });
-    }
-
-    public String senderName() {
-        return senderName;
     }
 }

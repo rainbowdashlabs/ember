@@ -8,6 +8,7 @@ package dev.chojo.ember.api;
 import io.javalin.security.RouteRole;
 
 import java.util.EnumSet;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -91,6 +92,43 @@ public enum Roles implements RouteRole {
      * Roles that must not be removed from a member to prevent lockouts.
      */
     public static final Set<Roles> PROTECTED_ROLES = Set.of(MEMBER_MANAGEMENT, MANAGER);
+
+    /**
+     * Role pairs that are mutually exclusive and cannot be assigned to the same member.
+     */
+    public static final Map<Roles, Set<Roles>> CONFLICTING_ROLES = Map.of(
+            MEMBER,
+            Set.of(
+                    GUARDIAN,
+                    TEAM,
+                    MANAGER,
+                    ADMIN,
+                    ATTENDENCE_MANAGEMENT,
+                    ATTENDENCE_EXPORT_MANAGER,
+                    INVENTORY_MANAGEMENT,
+                    EVENT_MANAGEMENT,
+                    MEMBER_MANAGEMENT,
+                    NEWS_MANAGEMENT,
+                    POLL_MANAGEMENT,
+                    LOST_AND_FOUND_MANAGEMENT),
+            GUARDIAN,
+            Set.of(MEMBER));
+
+    /**
+     * Management roles that require elevated privileges and cannot be granted by guardians.
+     */
+    public static final Set<Roles> MANAGEMENT_ROLES = Set.of(
+            TEAM,
+            ATTENDENCE_MANAGEMENT,
+            ATTENDENCE_EXPORT_MANAGER,
+            INVENTORY_MANAGEMENT,
+            EVENT_MANAGEMENT,
+            MEMBER_MANAGEMENT,
+            NEWS_MANAGEMENT,
+            POLL_MANAGEMENT,
+            LOST_AND_FOUND_MANAGEMENT,
+            MANAGER,
+            ADMIN);
 
     private final Roles[] children;
     private Set<Roles> allChildren;

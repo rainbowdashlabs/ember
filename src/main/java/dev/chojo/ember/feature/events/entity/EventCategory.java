@@ -16,7 +16,9 @@ import de.chojo.sadu.mapper.rowmapper.RowMapping;
  * @param position  the display order position
  */
 public record EventCategory(int id, int stationId, String name, int position) {
-    /** Creates a row mapping for database result set conversion. */
+    /**
+     * Creates a row mapping for database result set conversion.
+     */
     public static RowMapping<EventCategory> map() {
         return row -> new EventCategory(
                 row.getInt("id"), row.getInt("station_id"), row.getString("name"), row.getInt("position"));

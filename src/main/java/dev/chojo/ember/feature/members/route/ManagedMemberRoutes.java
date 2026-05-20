@@ -24,6 +24,7 @@ import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.ProfileFieldService;
 import dev.chojo.ember.feature.members.service.ProfileFieldService.FieldValueEntry;
 import dev.chojo.ember.feature.members.service.StationMemberService;
+import dev.chojo.ember.feature.members.util.RoleValidation;
 import io.javalin.http.Context;
 import io.javalin.http.ForbiddenResponse;
 import io.javalin.http.NotFoundResponse;
@@ -95,6 +96,8 @@ public class ManagedMemberRoutes implements Routes {
                 prefix + "/managed-members/{memberId}/inventory-requirements",
                 this::getMemberRequirements,
                 Roles.GUARDIAN);
+        routes.get(prefix + "/managed-members/{memberId}/roles", this::getRoles, Roles.GUARDIAN);
+        routes.put(prefix + "/managed-members/{memberId}/roles", this::setRoles, Roles.GUARDIAN);
         routes.get(prefix + "/managed-members/{memberId}/gdpr-export", this::gdprExport, Roles.GUARDIAN);
     }
 
@@ -186,6 +189,56 @@ public class ManagedMemberRoutes implements Routes {
                 memberId, entries, session.member().id()));
     }
 
+    @OpenApi(
+            path = "/api/v1/managed-members/{memberId}/roles",
+            methods = HttpMethod.GET,
+            summary = "Get roles for a managed member",
+            tags = {"Managed Members"},
+            pathParams = @OpenApiParam(name = "memberId", type = Integer.class, required = true),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = Role[].class)))
+    private void getRoles(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        int memberId = ctx.pathParamAsClass("memberId", Integer.class).get();
+        assertManages(session, memberId);
+        ctx.json(stationMemberRepository.findRoles(memberId));
+    }
+
+    @OpenApi(
+            path = "/api/v1/managed-members/{memberId}/roles",
+            methods = HttpMethod.PUT,
+            summary = "Set roles for a managed member (non-management roles only)",
+            tags = {"Managed Members"},
+            pathParams = @OpenApiParam(name = "memberId", type = Integer.class, required = true),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = SetRolesRequest.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = Role[].class)))
+    private void setRoles(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        int memberId = ctx.pathParamAsClass("memberId", Integer.class).get();
+        assertManages(session, memberId);
+
+        var request = ctx.bodyAsClass(SetRolesRequest.class);
+        List<Integer> desiredRoleIds = request.roleIds() != null ? request.roleIds() : List.of();
+
+        List<Role> allRoles = stationMemberRepository.findAllRoles();
+        List<Role> currentRoles = stationMemberRepository.findRoles(memberId);
+
+        RoleValidation.validateGuardianRoleChanges(currentRoles, desiredRoleIds, allRoles);
+
+        var currentRoleIds = currentRoles.stream().map(Role::id).toList();
+        for (int roleId : currentRoleIds) {
+            if (!desiredRoleIds.contains(roleId)) {
+                stationMemberRepository.removeRole(memberId, roleId);
+            }
+        }
+        for (int roleId : desiredRoleIds) {
+            if (!currentRoleIds.contains(roleId)) {
+                stationMemberRepository.addRole(memberId, roleId);
+            }
+        }
+
+        ctx.json(stationMemberRepository.findRoles(memberId));
+    }
+
     private ManagedMember toMemberWithName(StationMember m) {
         Account account = accountRepository.findById(m.accountId()).orElse(null);
         String name = account != null ? account.fullName() : "";
@@ -250,6 +303,26 @@ public class ManagedMemberRoutes implements Routes {
                 .toList());
     }
 
+    @OpenApi(
+            path = "/api/v1/managed-members/{memberId}/gdpr-export",
+            methods = HttpMethod.GET,
+            summary = "Export all personal data for a managed member (GDPR/DSGVO)",
+            tags = {"Managed Members"},
+            pathParams = @OpenApiParam(name = "memberId", type = Integer.class, required = true),
+            responses = @OpenApiResponse(status = "200"))
+    private void gdprExport(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        int memberId = ctx.pathParamAsClass("memberId", Integer.class).get();
+        assertManages(session, memberId);
+        var data = gdprExportService.exportMemberData(memberId);
+        ctx.contentType("application/json");
+        ctx.header("Content-Disposition", "attachment; filename=\"gdpr-export-member-" + memberId + ".json\"");
+        ctx.json(data);
+    }
+
+    @OpenApiName("ManagedMemberSetRolesRequest")
+    public record SetRolesRequest(List<Integer> roleIds) {}
+
     public record MemberInventoryItem(
             int id,
             int inventoryId,
@@ -270,21 +343,4 @@ public class ManagedMemberRoutes implements Routes {
     public record SetValuesRequest(List<ValueEntry> values) {}
 
     public record ValueEntry(int fieldId, String value) {}
-
-    @OpenApi(
-            path = "/api/v1/managed-members/{memberId}/gdpr-export",
-            methods = HttpMethod.GET,
-            summary = "Export all personal data for a managed member (GDPR/DSGVO)",
-            tags = {"Managed Members"},
-            pathParams = @OpenApiParam(name = "memberId", type = Integer.class, required = true),
-            responses = @OpenApiResponse(status = "200"))
-    private void gdprExport(Context ctx) {
-        UserSession session = UserSession.from(ctx);
-        int memberId = ctx.pathParamAsClass("memberId", Integer.class).get();
-        assertManages(session, memberId);
-        var data = gdprExportService.exportMemberData(memberId);
-        ctx.contentType("application/json");
-        ctx.header("Content-Disposition", "attachment; filename=\"gdpr-export-member-" + memberId + ".json\"");
-        ctx.json(data);
-    }
 }

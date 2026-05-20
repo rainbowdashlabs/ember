@@ -19,7 +19,9 @@ import de.chojo.sadu.mapper.rowmapper.RowMapping;
  */
 public record InventoryCheckItem(
         int id, int checkId, Integer itemId, Integer inventoryId, CheckResult result, String note) {
-    /** Creates a row mapping for database result set conversion. */
+    /**
+     * Creates a row mapping for database result set conversion.
+     */
     public static RowMapping<InventoryCheckItem> map() {
         return row -> new InventoryCheckItem(
                 row.getInt("id"),

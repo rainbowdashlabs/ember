@@ -76,37 +76,6 @@ public class AttendanceRoutes implements Routes {
         return s == null || s.isBlank();
     }
 
-    /**
-     * Resolves the display name of the member who created an absence record.
-     *
-     * @param createdBy the member ID of the creator, or {@code null}
-     * @return the full name of the creator, or {@code null} if not resolvable
-     */
-    private String resolveCreatedByName(Integer createdBy) {
-        if (createdBy == null) return null;
-        return stationMemberRepository
-                .findById(createdBy)
-                .flatMap(m -> accountRepository.findById(m.accountId()))
-                .map(a -> (a.firstName() + " " + a.lastName()).trim())
-                .orElse(null);
-    }
-
-    /**
-     * Converts a {@link MemberAbsence} entity to an {@link AbsenceResponse} with resolved creator name.
-     */
-    private AbsenceResponse toAbsenceResponse(MemberAbsence a) {
-        return new AbsenceResponse(
-                a.id(),
-                a.memberId(),
-                a.absentFrom(),
-                a.absentUntil(),
-                a.reason(),
-                a.createdAt(),
-                resolveCreatedByName(a.createdBy()));
-    }
-
-    // -- Templates --
-
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
         routes.get(prefix + "/attendance/templates", this::listTemplates, Roles.ATTENDENCE_MANAGEMENT);
@@ -194,6 +163,37 @@ public class AttendanceRoutes implements Routes {
         routes.get(prefix + "/profile/absences", this::listMyAbsences, Roles.USER);
         routes.post(prefix + "/profile/absences", this::createMyAbsence, Roles.USER);
         routes.delete(prefix + "/profile/absences/{id}", this::deleteMyAbsence, Roles.USER);
+    }
+
+    /**
+     * Resolves the display name of the member who created an absence record.
+     *
+     * @param createdBy the member ID of the creator, or {@code null}
+     * @return the full name of the creator, or {@code null} if not resolvable
+     */
+    private String resolveCreatedByName(Integer createdBy) {
+        if (createdBy == null) return null;
+        return stationMemberRepository
+                .findById(createdBy)
+                .flatMap(m -> accountRepository.findById(m.accountId()))
+                .map(a -> (a.firstName() + " " + a.lastName()).trim())
+                .orElse(null);
+    }
+
+    // -- Templates --
+
+    /**
+     * Converts a {@link MemberAbsence} entity to an {@link AbsenceResponse} with resolved creator name.
+     */
+    private AbsenceResponse toAbsenceResponse(MemberAbsence a) {
+        return new AbsenceResponse(
+                a.id(),
+                a.memberId(),
+                a.absentFrom(),
+                a.absentUntil(),
+                a.reason(),
+                a.createdAt(),
+                resolveCreatedByName(a.createdBy()));
     }
 
     @OpenApi(
@@ -1051,10 +1051,14 @@ public class AttendanceRoutes implements Routes {
 
     // -- Request/Response records --
 
-    /** Request body for creating or updating an attendance template. */
+    /**
+     * Request body for creating or updating an attendance template.
+     */
     public record TemplateRequest(String name) {}
 
-    /** Detailed template response including fields and group associations. */
+    /**
+     * Detailed template response including fields and group associations.
+     */
     public record TemplateDetail(
             int id,
             int stationId,
@@ -1062,55 +1066,87 @@ public class AttendanceRoutes implements Routes {
             List<AttendanceTemplateField> fields,
             List<TemplateGroupEntry> groups) {}
 
-    /** A group association entry with position for ordering. */
+    /**
+     * A group association entry with position for ordering.
+     */
     public record TemplateGroupEntry(int groupId, int position) {}
 
-    /** Request body for replacing all group associations of a template. */
+    /**
+     * Request body for replacing all group associations of a template.
+     */
     public record SetTemplateGroupsRequest(List<TemplateGroupEntry> groups) {}
 
-    /** Request body for creating or updating a template field. */
+    /**
+     * Request body for creating or updating a template field.
+     */
     public record TemplateFieldRequest(String name, String fieldType, String config, int position) {}
 
-    /** Request body for creating or updating an attendance session. */
+    /**
+     * Request body for creating or updating an attendance session.
+     */
     public record SessionRequest(Instant startTime, Instant endTime, Integer eventId, String title) {}
 
-    /** Detailed session response including fields and attendance entries. */
+    /**
+     * Detailed session response including fields and attendance entries.
+     */
     public record SessionDetail(
             AttendanceSession session, List<AttendanceSessionField> fields, List<AttendanceEntry> entries) {}
 
-    /** A field ID and its JSONB value for batch session field updates. */
+    /**
+     * A field ID and its JSONB value for batch session field updates.
+     */
     @OpenApiName("AttendanceFieldValueEntry")
     public record FieldValueEntry(int fieldId, String value) {}
 
-    /** Request body for batch-upserting session field values. */
+    /**
+     * Request body for batch-upserting session field values.
+     */
     public record SetSessionFieldsRequest(List<FieldValueEntry> fields) {}
 
-    /** Request body for creating an attendance entry. */
+    /**
+     * Request body for creating an attendance entry.
+     */
     public record CreateEntryRequest(Integer memberId, AttendanceEntry.EntrySource source) {}
 
-    /** Request body for check-in or check-out with an optional timestamp. */
+    /**
+     * Request body for check-in or check-out with an optional timestamp.
+     */
     public record TimestampRequest(Instant time) {}
 
-    /** Response confirming a check-in or check-out timestamp was recorded. */
+    /**
+     * Response confirming a check-in or check-out timestamp was recorded.
+     */
     public record TimestampResponse(int entryId, Instant time) {}
 
-    /** Request body for updating an attendance entry's status. */
+    /**
+     * Request body for updating an attendance entry's status.
+     */
     public record StatusRequest(String status) {}
 
-    /** Response confirming an attendance entry's status was updated. */
+    /**
+     * Response confirming an attendance entry's status was updated.
+     */
     public record StatusResponse(int entryId, String status) {}
 
-    /** Request body for creating an absence by a manager. */
+    /**
+     * Request body for creating an absence by a manager.
+     */
     public record AbsenceRequest(Integer memberId, String absentFrom, String absentUntil, String reason) {}
 
-    /** Request body for self-service absence creation, optionally targeting managed members. */
+    /**
+     * Request body for self-service absence creation, optionally targeting managed members.
+     */
     @OpenApiName("MyAbsenceRequest")
     public record MyAbsenceRequest(String absentFrom, String absentUntil, String reason, List<Integer> memberIds) {}
 
-    /** Request body for creating a report preset. */
+    /**
+     * Request body for creating a report preset.
+     */
     public record CreatePresetRequest(String name, String roleName, Integer groupId, String period, String rounding) {}
 
-    /** Absence response enriched with the creator's display name. */
+    /**
+     * Absence response enriched with the creator's display name.
+     */
     public record AbsenceResponse(
             int id,
             int memberId,

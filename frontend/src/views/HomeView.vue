@@ -44,15 +44,15 @@ onMounted(async () => {
 })
 
 const features = [
-  {icon: ['fas', 'clipboard-user'], key: 'attendance'},
-  {icon: ['fas', 'calendar-days'], key: 'events'},
-  {icon: ['fas', 'boxes-stacked'], key: 'inventory'},
-  {icon: ['fas', 'users'], key: 'members'},
-  {icon: ['fas', 'square-poll-vertical'], key: 'forms'},
-  {icon: ['fas', 'newspaper'], key: 'news'},
-  {icon: ['fas', 'box-open'], key: 'lostAndFound'},
-  {icon: ['fas', 'bell'], key: 'notifications'},
-  {icon: ['fas', 'circle-question'], key: 'helpCenter'},
+  {icon: ['fas', 'clipboard-user'], key: 'attendance', help: '/helpcenter/station/attendance/new'},
+  {icon: ['fas', 'calendar-days'], key: 'events', help: '/helpcenter/station/events'},
+  {icon: ['fas', 'boxes-stacked'], key: 'inventory', help: '/helpcenter/station/inventory/overview'},
+  {icon: ['fas', 'users'], key: 'members', help: '/helpcenter/station/members/list'},
+  {icon: ['fas', 'square-poll-vertical'], key: 'forms', help: '/helpcenter/station/forms'},
+  {icon: ['fas', 'newspaper'], key: 'news', help: '/helpcenter/station/news'},
+  {icon: ['fas', 'box-open'], key: 'lostAndFound', help: '/helpcenter/station/inventory/overview'},
+  {icon: ['fas', 'bell'], key: 'notifications', help: '/helpcenter/station/profile/settings'},
+  {icon: ['fas', 'circle-question'], key: 'helpCenter', help: '/helpcenter/station/basics'},
 ]
 
 const highlights = [
@@ -98,6 +98,12 @@ const highlights = [
               {{ t('landing.demo') }}
             </InfoButton>
           </a>
+          <router-link to="/helpcenter/station/basics">
+            <SecondaryButton class="text-base px-6 py-3">
+              <font-awesome-icon :icon="['fas', 'circle-question']" class="mr-2"/>
+              {{ t('landing.helpCenter') }}
+            </SecondaryButton>
+          </router-link>
         </div>
       </div>
     </section>
@@ -111,9 +117,10 @@ const highlights = [
         {{ t('landing.featuresSubtitle') }}
       </p>
       <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        <div
+        <router-link
             v-for="feature in features"
             :key="feature.key"
+            :to="feature.help"
             class="rounded-xl border border-(--border) bg-(--bg) p-6 transition-all hover:border-primary/40 hover:shadow-lg"
         >
           <div class="flex items-center justify-center h-12 w-12 rounded-lg bg-primary/10 mb-4">
@@ -121,7 +128,7 @@ const highlights = [
           </div>
           <h3 class="font-bold text-lg mb-2">{{ t(`landing.feature.${feature.key}.title`) }}</h3>
           <p class="text-sm text-(--text-muted) leading-relaxed">{{ t(`landing.feature.${feature.key}.desc`) }}</p>
-        </div>
+        </router-link>
       </div>
     </section>
 

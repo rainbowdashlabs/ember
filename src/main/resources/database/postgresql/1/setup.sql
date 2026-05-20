@@ -90,8 +90,6 @@ CREATE TABLE ember_schema.station_member
     account_id   INTEGER REFERENCES ember_schema.account (id) ON DELETE CASCADE,
     display_name        TEXT    NOT NULL DEFAULT '',
     former              BOOLEAN NOT NULL DEFAULT FALSE,
-    avatar              BYTEA,
-    avatar_content_type TEXT,
     UNIQUE (station_id, account_id)
 );
 
@@ -879,8 +877,6 @@ CREATE TABLE ember_schema.lost_and_found_item
     station_id         INTEGER   NOT NULL REFERENCES ember_schema.station (id) ON DELETE CASCADE,
     description        TEXT,
     found_at           DATE      NOT NULL DEFAULT CURRENT_DATE,
-    image              BYTEA,
-    image_content_type TEXT,
     claimed_by         INTEGER   REFERENCES ember_schema.station_member (id) ON DELETE SET NULL,
     claimed_at         TIMESTAMP,
     created_by         INTEGER   NOT NULL REFERENCES ember_schema.station_member (id),

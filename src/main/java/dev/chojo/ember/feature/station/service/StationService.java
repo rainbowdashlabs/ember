@@ -14,6 +14,7 @@ import dev.chojo.ember.feature.members.entity.Role;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.station.entity.Station;
+import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.station.repository.StationRepository.StationLogo;
 import jakarta.inject.Inject;
@@ -245,6 +246,63 @@ public class StationService {
     }
 
     /**
+     * Transfers station ownership to another member who already has the MANAGER role.
+     * Only the current owner can call this.
+     */
+    public boolean transferOwnership(int stationId, int currentMemberId, int newOwnerMemberId) {
+        var station = stationRepository.findById(stationId).orElse(null);
+        if (station == null) return false;
+        if (station.ownerMemberId() == null || station.ownerMemberId() != currentMemberId) return false;
+
+        // Verify the target has the MANAGER role
+        Role managerRole = memberRepository.findRoleByName(Roles.MANAGER).orElse(null);
+        if (managerRole == null) return false;
+        var targetRoles = memberRepository.findRoles(newOwnerMemberId);
+        if (targetRoles.stream().noneMatch(r -> r.id() == managerRole.id())) return false;
+
+        stationRepository.setOwner(stationId, newOwnerMemberId);
+        return true;
+    }
+
+    /**
+     * Checks whether a member is the owner of a station.
+     *
+     * @param stationId the station ID
+     * @param memberId  the member ID
+     * @return {@code true} if the member is the station owner
+     */
+    public boolean isOwner(int stationId, int memberId) {
+        var station = stationRepository.findById(stationId).orElse(null);
+        return station != null && station.ownerMemberId() != null && station.ownerMemberId() == memberId;
+    }
+
+    /**
+     * Retrieves the set of disabled module names for a station.
+     *
+     * @param stationId the station ID
+     * @return the set of disabled module names
+     */
+    public Set<StationModule> findDisabledModules(int stationId) {
+        return stationRepository.findDisabledModules(stationId);
+    }
+
+    // -- Modules --
+
+    /**
+     * Replaces all disabled modules for a station with the given set.
+     */
+    public void setDisabledModules(int stationId, Set<StationModule> modules) {
+        stationRepository.setDisabledModules(stationId, modules);
+    }
+
+    /**
+     * Checks whether a module is enabled for a station.
+     */
+    public boolean isModuleEnabled(int stationId, StationModule module) {
+        return !stationRepository.findDisabledModules(stationId).contains(module);
+    }
+
+    /**
      * Assigns the MANAGER role to the given email and sets them as station owner if no owner exists yet.
      */
     private void assignManager(int stationId, String managerEmail) {
@@ -281,70 +339,6 @@ public class StationService {
         if (station != null && station.ownerMemberId() == null) {
             stationRepository.setOwner(stationId, member.id());
         }
-    }
-
-    /**
-     * Transfers station ownership to another member who already has the MANAGER role.
-     * Only the current owner can call this.
-     */
-    public boolean transferOwnership(int stationId, int currentMemberId, int newOwnerMemberId) {
-        var station = stationRepository.findById(stationId).orElse(null);
-        if (station == null) return false;
-        if (station.ownerMemberId() == null || station.ownerMemberId() != currentMemberId) return false;
-
-        // Verify the target has the MANAGER role
-        Role managerRole = memberRepository.findRoleByName(Roles.MANAGER).orElse(null);
-        if (managerRole == null) return false;
-        var targetRoles = memberRepository.findRoles(newOwnerMemberId);
-        if (targetRoles.stream().noneMatch(r -> r.id() == managerRole.id())) return false;
-
-        stationRepository.setOwner(stationId, newOwnerMemberId);
-        return true;
-    }
-
-    /**
-     * Checks whether a member is the owner of a station.
-     *
-     * @param stationId the station ID
-     * @param memberId  the member ID
-     * @return {@code true} if the member is the station owner
-     */
-    public boolean isOwner(int stationId, int memberId) {
-        var station = stationRepository.findById(stationId).orElse(null);
-        return station != null && station.ownerMemberId() != null && station.ownerMemberId() == memberId;
-    }
-
-    // -- Modules --
-
-    /**
-     * Retrieves the set of disabled module names for a station.
-     *
-     * @param stationId the station ID
-     * @return the set of disabled module names
-     */
-    public Set<String> findDisabledModules(int stationId) {
-        return stationRepository.findDisabledModules(stationId);
-    }
-
-    /**
-     * Replaces all disabled modules for a station with the given set.
-     *
-     * @param stationId the station ID
-     * @param modules   the set of module names to disable
-     */
-    public void setDisabledModules(int stationId, Set<String> modules) {
-        stationRepository.setDisabledModules(stationId, modules);
-    }
-
-    /**
-     * Checks whether a module is enabled for a station.
-     *
-     * @param stationId the station ID
-     * @param module    the module name
-     * @return {@code true} if the module is enabled
-     */
-    public boolean isModuleEnabled(int stationId, String module) {
-        return !stationRepository.findDisabledModules(stationId).contains(module);
     }
 
     /**

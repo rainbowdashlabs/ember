@@ -48,6 +48,9 @@ public final class RoleValidation {
             }
         }
 
+        // Check for conflicting roles
+        validateNoConflicts(desiredRoleIds, allRoles);
+
         // Check caller has all roles they are trying to grant
         for (int roleId : desiredRoleIds) {
             Role role = allRoles.stream()
@@ -60,6 +63,54 @@ public final class RoleValidation {
             // Only check newly added roles - existing roles are fine
             if (!isCurrentRole(currentRoles, roleId) && !callerRoles.contains(mapped)) {
                 throw new ForbiddenResponse("Cannot grant role you do not have: " + mapped.name());
+            }
+        }
+    }
+
+    /**
+     * Validates role changes for guardians who can only grant non-management roles.
+     */
+    public static void validateGuardianRoleChanges(
+            List<Role> currentRoles, List<Integer> desiredRoleIds, List<Role> allRoles) {
+        // Guardians cannot remove any existing roles
+        for (Role current : currentRoles) {
+            if (!desiredRoleIds.contains(current.id())) {
+                throw new ForbiddenResponse("Guardians cannot remove roles");
+            }
+        }
+
+        // Check for conflicting roles
+        validateNoConflicts(desiredRoleIds, allRoles);
+
+        // Guardians can only grant non-management roles
+        for (int roleId : desiredRoleIds) {
+            if (isCurrentRole(currentRoles, roleId)) continue;
+            Role role = allRoles.stream()
+                    .filter(r -> r.id() == roleId)
+                    .findFirst()
+                    .orElseThrow(() -> new BadRequestResponse("Unknown role ID: " + roleId));
+            Roles mapped = role.role();
+            if (mapped != null && Roles.MANAGEMENT_ROLES.contains(mapped)) {
+                throw new ForbiddenResponse("Guardians cannot grant management role: " + mapped.name());
+            }
+        }
+    }
+
+    private static void validateNoConflicts(List<Integer> desiredRoleIds, List<Role> allRoles) {
+        var desiredRoles = desiredRoleIds.stream()
+                .map(id ->
+                        allRoles.stream().filter(r -> r.id() == id).findFirst().orElse(null))
+                .filter(r -> r != null)
+                .map(Role::role)
+                .filter(r -> r != null)
+                .toList();
+        for (var role : desiredRoles) {
+            var conflicts = Roles.CONFLICTING_ROLES.getOrDefault(role, Set.of());
+            for (var other : desiredRoles) {
+                if (conflicts.contains(other)) {
+                    throw new BadRequestResponse("Conflicting roles: " + role.name() + " and " + other.name()
+                            + " cannot be assigned together");
+                }
             }
         }
     }

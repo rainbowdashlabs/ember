@@ -251,18 +251,6 @@ public class StationMemberRoutes implements Routes {
         ctx.json(memberService.setManagers(managedId, managerIds));
     }
 
-    @OpenApiName("StationMemberWithName")
-    public record MemberWithName(
-            int id, int stationId, int accountId, String name, String email, boolean profileComplete) {}
-
-    public record CreateMemberRequest(Integer stationId, Integer accountId) {}
-
-    public record SetRolesRequest(List<Integer> roleIds) {}
-
-    public record SetManagersRequest(List<Integer> managerIds) {}
-
-    public record FormerCheckResponse(boolean canMarkFormer, String reason) {}
-
     @OpenApi(
             path = "/api/v1/station-members/former",
             methods = HttpMethod.GET,
@@ -311,4 +299,16 @@ public class StationMemberRoutes implements Routes {
         formerMemberService.reactivate(memberId);
         ctx.json(new FormerCheckResponse(true, null));
     }
+
+    @OpenApiName("StationMemberWithName")
+    public record MemberWithName(
+            int id, int stationId, int accountId, String name, String email, boolean profileComplete) {}
+
+    public record CreateMemberRequest(Integer stationId, Integer accountId) {}
+
+    public record SetRolesRequest(List<Integer> roleIds) {}
+
+    public record SetManagersRequest(List<Integer> managerIds) {}
+
+    public record FormerCheckResponse(boolean canMarkFormer, String reason) {}
 }

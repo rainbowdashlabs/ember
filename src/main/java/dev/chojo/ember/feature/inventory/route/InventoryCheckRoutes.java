@@ -224,7 +224,8 @@ public class InventoryCheckRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         int currentMemberId =
                 ctx.queryParamAsClass("currentMemberId", Integer.class).getOrDefault(0);
-        var next = checkService.nextMember(session.stationId(), currentMemberId);
+        boolean teamOnly = ctx.queryParamAsClass("teamOnly", Boolean.class).getOrDefault(false);
+        var next = checkService.nextMember(session.stationId(), currentMemberId, teamOnly);
         ctx.json(new NextMemberResponse(next.orElse(null)));
     }
 

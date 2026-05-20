@@ -24,7 +24,9 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
  */
 public record AttendanceSession(
         int id, int templateId, Instant startTime, Instant endTime, Instant createdAt, Integer eventId, String title) {
-    /** Creates a row mapping for database result set conversion. */
+    /**
+     * Creates a row mapping for database result set conversion.
+     */
     public static RowMapping<AttendanceSession> map() {
         return row -> new AttendanceSession(
                 row.getInt("id"),

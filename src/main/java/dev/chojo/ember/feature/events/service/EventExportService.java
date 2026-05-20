@@ -70,8 +70,6 @@ public class EventExportService {
         this.apiConfig = apiConfig;
     }
 
-    public record ExportColumn(String type, String key, String fieldName, String label) {}
-
     public Optional<byte[]> exportPdf(
             int stationId,
             List<Integer> categoryIds,
@@ -147,8 +145,6 @@ public class EventExportService {
             return Optional.empty();
         }
     }
-
-    private record ExpandedEvent(StationEvent event, LocalDate date) {}
 
     private List<ExpandedEvent> expandEvents(
             List<StationEvent> events, LocalDate from, LocalDate to, List<EventBreak> breaks, ZoneId zone) {
@@ -317,4 +313,8 @@ public class EventExportService {
             }
         }
     }
+
+    public record ExportColumn(String type, String key, String fieldName, String label) {}
+
+    private record ExpandedEvent(StationEvent event, LocalDate date) {}
 }

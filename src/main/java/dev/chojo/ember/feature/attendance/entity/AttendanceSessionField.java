@@ -15,7 +15,9 @@ import de.chojo.sadu.mapper.rowmapper.RowMapping;
  * @param value     the JSONB value stored for this field
  */
 public record AttendanceSessionField(int sessionId, int fieldId, String value) {
-    /** Creates a row mapping for database result set conversion. */
+    /**
+     * Creates a row mapping for database result set conversion.
+     */
     public static RowMapping<AttendanceSessionField> map() {
         return row ->
                 new AttendanceSessionField(row.getInt("session_id"), row.getInt("field_id"), row.getString("value"));

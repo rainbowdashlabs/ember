@@ -29,8 +29,9 @@ export async function uploadImage(id: number, file: File): Promise<void> {
     })
 }
 
-export function imageUrl(id: number): string {
-    return `${client.defaults.baseURL}/lost-and-found/${id}/image`
+export function imageUrl(id: number, size?: number): string {
+    const base = `${client.defaults.baseURL}/lost-and-found/${id}/image`
+    return size ? `${base}?size=${size}` : base
 }
 
 export async function claimItem(id: number, request?: ClaimLostAndFoundRequest): Promise<MessageResponse> {

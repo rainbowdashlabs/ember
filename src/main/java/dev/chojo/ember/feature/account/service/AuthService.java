@@ -429,23 +429,6 @@ public class AuthService {
     }
 
     /**
-     * Creates a new session for the given account and returns a successful login result.
-     *
-     * @param accountId the account identifier
-     * @param userAgent the client's user agent string
-     * @param location  the client's location
-     * @return a successful login result with the session token
-     */
-    private LoginResult createSession(int accountId, String userAgent, String location) {
-        String token = generateToken();
-        Instant expiresAt = Instant.now().plus(authConfig.sessionMinutes(), ChronoUnit.MINUTES);
-        accountRepository.createSession(accountId, token, expiresAt, userAgent, location);
-        return LoginResult.success(token, expiresAt);
-    }
-
-    // -- Email change --
-
-    /**
      * Initiates an email change by sending a confirmation email to the new address.
      * The new email is stored as token metadata and applied upon confirmation.
      *
@@ -466,6 +449,8 @@ public class AuthService {
         emailService.sendEmailChangeConfirmation(newEmail, name, token);
     }
 
+    // -- Email change --
+
     /**
      * Confirms an email change using the provided token. Updates the account's email to the new address
      * stored in the token's metadata.
@@ -484,8 +469,6 @@ public class AuthService {
         accountRepository.deleteToken(token);
         return true;
     }
-
-    // -- Station deletion --
 
     /**
      * Initiates a station deletion by sending a confirmation email to the account owner.
@@ -509,6 +492,8 @@ public class AuthService {
         }
     }
 
+    // -- Station deletion --
+
     /**
      * Confirms a station deletion using the provided token. Returns the station ID to be deleted.
      *
@@ -524,6 +509,21 @@ public class AuthService {
         if (stationIdStr == null) return Optional.empty();
         accountRepository.deleteToken(token);
         return Optional.of(Integer.parseInt(stationIdStr));
+    }
+
+    /**
+     * Creates a new session for the given account and returns a successful login result.
+     *
+     * @param accountId the account identifier
+     * @param userAgent the client's user agent string
+     * @param location  the client's location
+     * @return a successful login result with the session token
+     */
+    private LoginResult createSession(int accountId, String userAgent, String location) {
+        String token = generateToken();
+        Instant expiresAt = Instant.now().plus(authConfig.sessionMinutes(), ChronoUnit.MINUTES);
+        accountRepository.createSession(accountId, token, expiresAt, userAgent, location);
+        return LoginResult.success(token, expiresAt);
     }
 
     /**
@@ -545,12 +545,16 @@ public class AuthService {
      * @param account the created account on success, {@code null} on failure
      */
     public record RegistrationResult(boolean success, String message, Account account) {
-        /** Creates a failed registration result with an error message. */
+        /**
+         * Creates a failed registration result with an error message.
+         */
         public static RegistrationResult failure(String message) {
             return new RegistrationResult(false, message, null);
         }
 
-        /** Creates a successful registration result with the created account. */
+        /**
+         * Creates a successful registration result with the created account.
+         */
         public static RegistrationResult success(Account account) {
             return new RegistrationResult(true, null, account);
         }
@@ -567,17 +571,23 @@ public class AuthService {
      */
     public record LoginResult(
             boolean success, String message, String token, Instant expiresAt, boolean passwordChangeRequired) {
-        /** Creates a failed login result with an error message. */
+        /**
+         * Creates a failed login result with an error message.
+         */
         public static LoginResult failure(String message) {
             return new LoginResult(false, message, null, null, false);
         }
 
-        /** Creates a successful login result with a session token. */
+        /**
+         * Creates a successful login result with a session token.
+         */
         public static LoginResult success(String token, Instant expiresAt) {
             return new LoginResult(true, null, token, expiresAt, false);
         }
 
-        /** Creates a login result indicating a forced password change is required. */
+        /**
+         * Creates a login result indicating a forced password change is required.
+         */
         public static LoginResult passwordChangeRequired(String token, Instant expiresAt) {
             return new LoginResult(true, null, token, expiresAt, true);
         }

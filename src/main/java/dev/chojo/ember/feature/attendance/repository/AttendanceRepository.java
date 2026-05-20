@@ -789,7 +789,7 @@ public class AttendanceRepository {
      */
     public boolean isAbsent(int memberId) {
         return Query.query(
-                        "SELECT 1 FROM member_absence WHERE member_id = :member_id AND absent_from <= CURRENT_DATE AND absent_until >= CURRENT_DATE LIMIT 1;")
+                        "SELECT 1 FROM member_absence WHERE member_id = :member_id AND absent_from <= current_date AND absent_until >= current_date LIMIT 1;")
                 .single(Call.of().bind("member_id", memberId))
                 .map(row -> true)
                 .first()
@@ -815,10 +815,21 @@ public class AttendanceRepository {
      * @return {@code true} if any absences were deleted
      */
     public boolean deleteExpiredAbsences() {
-        return Query.query("DELETE FROM member_absence WHERE absent_until < CURRENT_DATE;")
+        return Query.query("DELETE FROM member_absence WHERE absent_until < current_date;")
                 .single()
                 .delete()
                 .changed();
+    }
+
+    /**
+     * Deletes all absence records for a specific member.
+     *
+     * @param memberId the member ID
+     */
+    public void deleteAbsencesByMember(int memberId) {
+        Query.query("DELETE FROM member_absence WHERE member_id = :member_id;")
+                .single(Call.of().bind("member_id", memberId))
+                .delete();
     }
 
     /**
@@ -856,15 +867,4 @@ public class AttendanceRepository {
             int absentCount,
             int declinedCount,
             int unconfirmedCount) {}
-
-    /**
-     * Deletes all absence records for a specific member.
-     *
-     * @param memberId the member ID
-     */
-    public void deleteAbsencesByMember(int memberId) {
-        Query.query("DELETE FROM member_absence WHERE member_id = :member_id;")
-                .single(Call.of().bind("member_id", memberId))
-                .delete();
-    }
 }

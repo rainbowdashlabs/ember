@@ -16,13 +16,17 @@ import jakarta.inject.Singleton;
 import java.util.List;
 import java.util.Optional;
 
-/** Repository for station members, their roles, manager relations, and avatars. */
+/**
+ * Repository for station members, their roles, manager relations, and avatars.
+ */
 @Singleton
 public class StationMemberRepository {
 
     // -- Members --
 
-    /** Finds a station member by its identifier. */
+    /**
+     * Finds a station member by its identifier.
+     */
     public Optional<StationMember> findById(int id) {
         return Query.query("SELECT * FROM station_member WHERE id = :id;")
                 .single(Call.of().bind("id", id))
@@ -30,7 +34,9 @@ public class StationMemberRepository {
                 .first();
     }
 
-    /** Finds all station memberships for an account across all stations. */
+    /**
+     * Finds all station memberships for an account across all stations.
+     */
     public List<StationMember> findAllByAccountId(int accountId) {
         return Query.query("SELECT * FROM station_member WHERE account_id = :account_id;")
                 .single(Call.of().bind("account_id", accountId))
@@ -38,7 +44,9 @@ public class StationMemberRepository {
                 .all();
     }
 
-    /** Finds a member by their station and account combination. */
+    /**
+     * Finds a member by their station and account combination.
+     */
     public Optional<StationMember> findByStationAndAccount(int stationId, int accountId) {
         return Query.query("SELECT * FROM station_member WHERE station_id = :station_id AND account_id = :account_id;")
                 .single(Call.of().bind("station_id", stationId).bind("account_id", accountId))
@@ -56,13 +64,13 @@ public class StationMemberRepository {
     /**
      * Finds members of a station, optionally including former members.
      *
-     * @param stationId      the station identifier
-     * @param includeFormer  whether to include former members
+     * @param stationId     the station identifier
+     * @param includeFormer whether to include former members
      * @return the list of matching members
      */
     public List<StationMember> findByStation(int stationId, boolean includeFormer) {
         return Query.query(
-                        "SELECT * FROM station_member WHERE station_id = :station_id AND (former = false OR :include_former);")
+                        "SELECT * FROM station_member WHERE station_id = :station_id AND (former = FALSE OR :include_former);")
                 .single(Call.of().bind("station_id", stationId).bind("include_former", includeFormer))
                 .map(StationMember.map())
                 .all();
@@ -72,22 +80,26 @@ public class StationMemberRepository {
      * Find former members of a station.
      */
     public List<StationMember> findFormerByStation(int stationId) {
-        return Query.query("SELECT * FROM station_member WHERE station_id = :station_id AND former = true;")
+        return Query.query("SELECT * FROM station_member WHERE station_id = :station_id AND former = TRUE;")
                 .single(Call.of().bind("station_id", stationId))
                 .map(StationMember.map())
                 .all();
     }
 
-    /** Finds active members of a station that have a specific role. */
+    /**
+     * Finds active members of a station that have a specific role.
+     */
     public List<StationMember> findByStationAndRole(int stationId, String roleName) {
         return Query.query(
-                        "SELECT sm.* FROM station_member sm JOIN station_member_role smr ON smr.member_id = sm.id JOIN role r ON r.id = smr.role_id WHERE sm.station_id = :station_id AND r.name = :role AND sm.former = false;")
+                        "SELECT sm.* FROM station_member sm JOIN station_member_role smr ON smr.member_id = sm.id JOIN role r ON r.id = smr.role_id WHERE sm.station_id = :station_id AND r.name = :role AND sm.former = FALSE;")
                 .single(Call.of().bind("station_id", stationId).bind("role", roleName))
                 .map(StationMember.map())
                 .all();
     }
 
-    /** Finds all station memberships for an account. */
+    /**
+     * Finds all station memberships for an account.
+     */
     public List<StationMember> findByAccount(int accountId) {
         return Query.query("SELECT * FROM station_member WHERE account_id = :account_id;")
                 .single(Call.of().bind("account_id", accountId))
@@ -140,7 +152,7 @@ public class StationMemberRepository {
                                 JOIN station_member_role smr ON sm.id = smr.member_id
                                 JOIN role r ON r.id = smr.role_id
                             WHERE sm.account_id = :account_id
-                              AND sm.former = false
+                              AND sm.former = FALSE
                               AND r.name IN ('LOGIN', 'MANAGER')
                             LIMIT 1;""")
                 .single(Call.of().bind("account_id", accountId))
@@ -167,7 +179,8 @@ public class StationMemberRepository {
     }
 
     public InsertionResult addRole(int memberId, int roleId) {
-        return Query.query("INSERT INTO station_member_role(member_id, role_id) VALUES(:member_id, :role_id);")
+        return Query.query(
+                        "INSERT INTO station_member_role(member_id, role_id) VALUES(:member_id, :role_id) ON CONFLICT DO NOTHING;")
                 .single(Call.of().bind("member_id", memberId).bind("role_id", roleId))
                 .insert();
     }
@@ -191,14 +204,14 @@ public class StationMemberRepository {
     public List<StationMember> findMembersWithRole(int stationId, Roles role) {
         return Query.query("""
                             SELECT DISTINCT sm.* FROM station_member sm
-                            WHERE sm.station_id = :station_id AND sm.former = false
+                            WHERE sm.station_id = :station_id AND sm.former = FALSE
                               AND (
-                                EXISTS (
+                                exists (
                                     SELECT 1 FROM station_member_role smr
                                     JOIN role r ON r.id = smr.role_id
                                     WHERE smr.member_id = sm.id AND r.name = :role_name
                                 )
-                                OR EXISTS (
+                                OR exists (
                                     SELECT 1 FROM member_group_entry mge
                                     JOIN member_group_role mgr ON mgr.group_id = mge.group_id
                                     JOIN role r ON r.id = mgr.role_id
@@ -216,7 +229,7 @@ public class StationMemberRepository {
         return Query.query("""
                             SELECT sm.* FROM station_member sm
                             JOIN member_manager mm ON sm.id = mm.managed_id
-                            WHERE mm.manager_id = :manager_id AND sm.former = false;""")
+                            WHERE mm.manager_id = :manager_id AND sm.former = FALSE;""")
                 .single(Call.of().bind("manager_id", managerId))
                 .map(StationMember.map())
                 .all();
@@ -256,34 +269,4 @@ public class StationMemberRepository {
                 .single(Call.of().bind("manager_id", managerId))
                 .delete();
     }
-
-    // -- Avatar --
-
-    public Optional<MemberAvatar> findAvatar(int memberId) {
-        return Query.query(
-                        "SELECT avatar, avatar_content_type FROM station_member WHERE id = :id AND avatar IS NOT NULL;")
-                .single(Call.of().bind("id", memberId))
-                .map(row -> new MemberAvatar(row.getBytes("avatar"), row.getString("avatar_content_type")))
-                .first();
-    }
-
-    public boolean updateAvatar(int memberId, byte[] data, String contentType) {
-        return Query.query(
-                        "UPDATE station_member SET avatar = :avatar, avatar_content_type = :content_type WHERE id = :id;")
-                .single(Call.of()
-                        .bind("avatar", data)
-                        .bind("content_type", contentType)
-                        .bind("id", memberId))
-                .update()
-                .changed();
-    }
-
-    public boolean deleteAvatar(int memberId) {
-        return Query.query("UPDATE station_member SET avatar = NULL, avatar_content_type = NULL WHERE id = :id;")
-                .single(Call.of().bind("id", memberId))
-                .update()
-                .changed();
-    }
-
-    public record MemberAvatar(byte[] data, String contentType) {}
 }

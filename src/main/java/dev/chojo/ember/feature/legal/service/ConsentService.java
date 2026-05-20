@@ -77,7 +77,9 @@ public class ConsentService {
         return documentService.getDocument(privacyPolicyDir, locale);
     }
 
-    /** Retrieves the privacy policy rendered in the default locale. */
+    /**
+     * Retrieves the privacy policy rendered in the default locale.
+     */
     public LegalDocumentService.RenderedDocument getPrivacyPolicy() {
         return documentService.getDocument(privacyPolicyDir);
     }
@@ -92,7 +94,9 @@ public class ConsentService {
         return documentService.getDocument(tosDir, locale);
     }
 
-    /** Retrieves the terms of service rendered in the default locale. */
+    /**
+     * Retrieves the terms of service rendered in the default locale.
+     */
     public LegalDocumentService.RenderedDocument getTermsOfService() {
         return documentService.getDocument(tosDir);
     }
@@ -107,7 +111,9 @@ public class ConsentService {
         return documentService.getDocument(imprintDir, locale);
     }
 
-    /** Retrieves the imprint (Impressum) rendered in the default locale. */
+    /**
+     * Retrieves the imprint (Impressum) rendered in the default locale.
+     */
     public LegalDocumentService.RenderedDocument getImprint() {
         return documentService.getDocument(imprintDir);
     }
@@ -122,7 +128,9 @@ public class ConsentService {
         return documentService.getDocument(consentDir, locale);
     }
 
-    /** Retrieves the GDPR consent text rendered in the default locale. */
+    /**
+     * Retrieves the GDPR consent text rendered in the default locale.
+     */
     public LegalDocumentService.RenderedDocument getConsentText() {
         return documentService.getDocument(consentDir);
     }

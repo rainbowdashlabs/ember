@@ -22,7 +22,9 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
  * @param updatedAt   timestamp of the last update
  */
 public record FormResponse(int id, int formId, int memberId, int submittedBy, Instant submittedAt, Instant updatedAt) {
-    /** Creates a row mapping for database result set conversion. */
+    /**
+     * Creates a row mapping for database result set conversion.
+     */
     public static RowMapping<FormResponse> map() {
         return row -> new FormResponse(
                 row.getInt("id"),

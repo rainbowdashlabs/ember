@@ -15,7 +15,9 @@ import de.chojo.sadu.mapper.rowmapper.RowMapping;
  * @param forcePasswordChange whether the user must change their password on next login
  */
 public record AccountCredential(int accountId, String passwordHash, boolean forcePasswordChange) {
-    /** Creates a row mapping for database result set conversion. */
+    /**
+     * Creates a row mapping for database result set conversion.
+     */
     public static RowMapping<AccountCredential> map() {
         return row -> new AccountCredential(
                 row.getInt("account_id"), row.getString("password_hash"), row.getBoolean("force_password_change"));

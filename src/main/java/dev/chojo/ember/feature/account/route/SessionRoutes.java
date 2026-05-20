@@ -16,12 +16,14 @@ import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.legal.service.GdprDeletionService;
 import dev.chojo.ember.feature.legal.service.GdprExportService;
+import dev.chojo.ember.feature.media.service.ImageCategory;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.MemberGroupService;
 import dev.chojo.ember.feature.members.service.ProfileFieldService;
 import dev.chojo.ember.feature.members.service.StationMemberService;
+import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.feature.station.service.StationService;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
@@ -47,6 +49,7 @@ import java.util.Set;
  */
 @Singleton
 public class SessionRoutes implements Routes {
+    private static final Set<String> ALLOWED_AVATAR_TYPES = Set.of("image/png", "image/jpeg", "image/webp");
     private final StationService stationService;
     private final StationMemberService memberService;
     private final MemberGroupService groupService;
@@ -57,6 +60,7 @@ public class SessionRoutes implements Routes {
     private final GdprExportService gdprExportService;
     private final GdprDeletionService gdprDeletionService;
     private final Api apiConfig;
+    private final dev.chojo.ember.feature.media.service.ImageService imageService;
 
     @Inject
     public SessionRoutes(
@@ -69,7 +73,8 @@ public class SessionRoutes implements Routes {
             StationMemberRepository stationMemberRepository,
             GdprExportService gdprExportService,
             GdprDeletionService gdprDeletionService,
-            Api apiConfig) {
+            Api apiConfig,
+            dev.chojo.ember.feature.media.service.ImageService imageService) {
         this.stationService = stationService;
         this.memberService = memberService;
         this.groupService = groupService;
@@ -80,6 +85,7 @@ public class SessionRoutes implements Routes {
         this.gdprExportService = gdprExportService;
         this.gdprDeletionService = gdprDeletionService;
         this.apiConfig = apiConfig;
+        this.imageService = imageService;
     }
 
     @Override
@@ -143,7 +149,7 @@ public class SessionRoutes implements Routes {
 
         var disabledModules = session.stationId() != null
                 ? stationService.findDisabledModules(session.stationId())
-                : Set.<String>of();
+                : Set.<StationModule>of();
 
         ctx.json(new SessionInfo(
                 new AccountInfo(
@@ -218,6 +224,8 @@ public class SessionRoutes implements Routes {
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
+    // -- Response records --
+
     @OpenApi(
             path = "/api/v1/session/invalidate-all",
             methods = HttpMethod.POST,
@@ -231,7 +239,117 @@ public class SessionRoutes implements Routes {
         ctx.json(new MessageResponse("All sessions invalidated"));
     }
 
-    // -- Response records --
+    @OpenApi(
+            path = "/api/v1/session/account",
+            methods = HttpMethod.DELETE,
+            summary = "Delete account and anonymize all data (GDPR/DSGVO)",
+            tags = {"Session"},
+            responses = @OpenApiResponse(status = "204"))
+    private void deleteAccount(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        // Block deletion if the account is a station manager
+        var memberships = stationMemberRepository.findAllByAccountId(session.accountId());
+        for (var member : memberships) {
+            var roles = stationMemberRepository.findRoles(member.id());
+            boolean isManager = roles.stream().anyMatch(r -> r.role() == Roles.MANAGER);
+            if (isManager) {
+                throw new BadRequestResponse(
+                        "Cannot delete account while you are a station manager. Transfer or delete the station first.");
+            }
+        }
+        gdprDeletionService.deleteAccount(session.accountId());
+        ctx.status(HttpStatus.NO_CONTENT);
+    }
+
+    /**
+     * Retrieves the avatar for the current session's member. Returns 404 if no membership or no avatar.
+     */
+    private void getAvatar(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        if (session.member() == null) {
+            ctx.status(HttpStatus.NOT_FOUND);
+            return;
+        }
+        serveAvatar(ctx, session.member().id());
+    }
+
+    /**
+     * Retrieves the avatar for a specific member by their ID path parameter.
+     */
+    private void getAvatarByMember(Context ctx) {
+        int memberId = ctx.pathParamAsClass("memberId", Integer.class).get();
+        serveAvatar(ctx, memberId);
+    }
+
+    /**
+     * Serves a member's avatar from disk with appropriate content type and cache headers.
+     */
+    private void serveAvatar(Context ctx, int memberId) {
+        int size = ctx.queryParamAsClass("size", Integer.class).getOrDefault(0);
+        imageService
+                .read(ImageCategory.AVATARS, String.valueOf(memberId), size)
+                .ifPresentOrElse(
+                        img -> {
+                            ctx.contentType(img.contentType());
+                            ctx.header("Cache-Control", "private, max-age=300");
+                            ctx.result(img.data());
+                        },
+                        () -> ctx.status(HttpStatus.NOT_FOUND));
+    }
+
+    private void uploadAvatar(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        if (session.member() == null) {
+            throw new BadRequestResponse("No station membership");
+        }
+        var file = ctx.uploadedFile("avatar");
+        if (file == null) {
+            throw new BadRequestResponse("No file uploaded");
+        }
+        if (!ALLOWED_AVATAR_TYPES.contains(file.contentType())) {
+            throw new BadRequestResponse("Invalid file type. Allowed: PNG, JPEG, WebP");
+        }
+        try {
+            byte[] data = file.content().readAllBytes();
+            imageService.store(
+                    ImageCategory.AVATARS,
+                    String.valueOf(session.member().id()),
+                    data,
+                    file.contentType(),
+                    apiConfig.maxImageSizeBytes());
+            ctx.json(new MessageResponse("Avatar updated"));
+        } catch (IllegalArgumentException e) {
+            throw new BadRequestResponse(e.getMessage());
+        } catch (IOException e) {
+            throw new InternalServerErrorResponse("Failed to process image");
+        }
+    }
+
+    private void deleteAvatar(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        if (session.member() == null) {
+            throw new BadRequestResponse("No station membership");
+        }
+        imageService.delete(
+                ImageCategory.AVATARS, String.valueOf(session.member().id()));
+        ctx.status(HttpStatus.NO_CONTENT);
+    }
+
+    // -- Avatar --
+
+    @OpenApi(
+            path = "/api/v1/session/gdpr-export",
+            methods = HttpMethod.GET,
+            summary = "Export all personal data (GDPR/DSGVO)",
+            tags = {"Session"},
+            responses = @OpenApiResponse(status = "200"))
+    private void gdprExport(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        var data = gdprExportService.exportAccountData(session.accountId());
+        ctx.contentType("application/json");
+        ctx.header("Content-Disposition", "attachment; filename=\"gdpr-export.json\"");
+        ctx.json(data);
+    }
 
     /**
      * Aggregated session information returned to the authenticated user.
@@ -243,7 +361,7 @@ public class SessionRoutes implements Routes {
      * @param managedMembers  list of members managed by this account
      * @param groups          groups the current member belongs to
      * @param profileComplete whether all required profile fields are filled
-     * @param disabledModules set of module names disabled for the current station
+     * @param disabledModules set of modules disabled for the current station
      */
     public record SessionInfo(
             AccountInfo account,
@@ -253,7 +371,7 @@ public class SessionRoutes implements Routes {
             List<ManagedMemberInfo> managedMembers,
             List<MemberGroup> groups,
             boolean profileComplete,
-            Set<String> disabledModules) {}
+            Set<StationModule> disabledModules) {}
 
     /**
      * Summary of a member managed by the current account.
@@ -313,106 +431,4 @@ public class SessionRoutes implements Routes {
             Instant expiresAt,
             boolean isCurrent,
             String location) {}
-
-    @OpenApi(
-            path = "/api/v1/session/account",
-            methods = HttpMethod.DELETE,
-            summary = "Delete account and anonymize all data (GDPR/DSGVO)",
-            tags = {"Session"},
-            responses = @OpenApiResponse(status = "204"))
-    private void deleteAccount(Context ctx) {
-        UserSession session = UserSession.from(ctx);
-        // Block deletion if the account is a station manager
-        var memberships = stationMemberRepository.findAllByAccountId(session.accountId());
-        for (var member : memberships) {
-            var roles = stationMemberRepository.findRoles(member.id());
-            boolean isManager = roles.stream().anyMatch(r -> r.role() == Roles.MANAGER);
-            if (isManager) {
-                throw new BadRequestResponse(
-                        "Cannot delete account while you are a station manager. Transfer or delete the station first.");
-            }
-        }
-        gdprDeletionService.deleteAccount(session.accountId());
-        ctx.status(HttpStatus.NO_CONTENT);
-    }
-
-    // -- Avatar --
-
-    private static final Set<String> ALLOWED_AVATAR_TYPES = Set.of("image/png", "image/jpeg", "image/webp");
-
-    /** Retrieves the avatar for the current session's member. Returns 404 if no membership or no avatar. */
-    private void getAvatar(Context ctx) {
-        UserSession session = UserSession.from(ctx);
-        if (session.member() == null) {
-            ctx.status(HttpStatus.NOT_FOUND);
-            return;
-        }
-        serveAvatar(ctx, session.member().id());
-    }
-
-    /** Retrieves the avatar for a specific member by their ID path parameter. */
-    private void getAvatarByMember(Context ctx) {
-        int memberId = ctx.pathParamAsClass("memberId", Integer.class).get();
-        serveAvatar(ctx, memberId);
-    }
-
-    /** Serves a member's avatar binary data with appropriate content type and cache headers. */
-    private void serveAvatar(Context ctx, int memberId) {
-        stationMemberRepository
-                .findAvatar(memberId)
-                .ifPresentOrElse(
-                        avatar -> {
-                            ctx.contentType(avatar.contentType());
-                            ctx.header("Cache-Control", "private, max-age=300");
-                            ctx.result(avatar.data());
-                        },
-                        () -> ctx.status(HttpStatus.NOT_FOUND));
-    }
-
-    private void uploadAvatar(Context ctx) {
-        UserSession session = UserSession.from(ctx);
-        if (session.member() == null) {
-            throw new BadRequestResponse("No station membership");
-        }
-        var file = ctx.uploadedFile("avatar");
-        if (file == null) {
-            throw new BadRequestResponse("No file uploaded");
-        }
-        if (!ALLOWED_AVATAR_TYPES.contains(file.contentType())) {
-            throw new BadRequestResponse("Invalid file type. Allowed: PNG, JPEG, WebP");
-        }
-        try {
-            byte[] data = file.content().readAllBytes();
-            if (data.length > apiConfig.maxAvatarSizeBytes()) {
-                throw new BadRequestResponse("File too large");
-            }
-            stationMemberRepository.updateAvatar(session.member().id(), data, file.contentType());
-            ctx.json(new MessageResponse("Avatar updated"));
-        } catch (IOException e) {
-            throw new InternalServerErrorResponse("Failed to read file");
-        }
-    }
-
-    private void deleteAvatar(Context ctx) {
-        UserSession session = UserSession.from(ctx);
-        if (session.member() == null) {
-            throw new BadRequestResponse("No station membership");
-        }
-        stationMemberRepository.deleteAvatar(session.member().id());
-        ctx.status(HttpStatus.NO_CONTENT);
-    }
-
-    @OpenApi(
-            path = "/api/v1/session/gdpr-export",
-            methods = HttpMethod.GET,
-            summary = "Export all personal data (GDPR/DSGVO)",
-            tags = {"Session"},
-            responses = @OpenApiResponse(status = "200"))
-    private void gdprExport(Context ctx) {
-        UserSession session = UserSession.from(ctx);
-        var data = gdprExportService.exportAccountData(session.accountId());
-        ctx.contentType("application/json");
-        ctx.header("Content-Disposition", "attachment; filename=\"gdpr-export.json\"");
-        ctx.json(data);
-    }
 }

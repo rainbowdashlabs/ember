@@ -65,18 +65,18 @@ public class EventRepository {
     /**
      * Creates a new station event.
      *
-     * @param stationId             the station this event belongs to
-     * @param name                  the event name
-     * @param description           the event description
-     * @param eventType             the recurrence type
-     * @param dayOfWeek             the ISO day of week for recurring events, or null
-     * @param startTime             the start time
-     * @param endTime               the end time
-     * @param templateId            the optional attendance template ID
-     * @param requiresRegistration  whether registration is required
-     * @param registrationDeadline  the registration deadline, or null
-     * @param requiresConfirmation  whether registrations require manager confirmation
-     * @param categoryId            the optional category ID
+     * @param stationId            the station this event belongs to
+     * @param name                 the event name
+     * @param description          the event description
+     * @param eventType            the recurrence type
+     * @param dayOfWeek            the ISO day of week for recurring events, or null
+     * @param startTime            the start time
+     * @param endTime              the end time
+     * @param templateId           the optional attendance template ID
+     * @param requiresRegistration whether registration is required
+     * @param registrationDeadline the registration deadline, or null
+     * @param requiresConfirmation whether registrations require manager confirmation
+     * @param categoryId           the optional category ID
      * @return the created event
      */
     public StationEvent create(
@@ -117,18 +117,18 @@ public class EventRepository {
     /**
      * Updates an existing station event.
      *
-     * @param id                    the event ID
-     * @param name                  the new event name
-     * @param description           the new description
-     * @param eventType             the new recurrence type
-     * @param dayOfWeek             the new day of week, or null
-     * @param startTime             the new start time
-     * @param endTime               the new end time
-     * @param templateId            the new template ID, or null
-     * @param requiresRegistration  whether registration is required
-     * @param registrationDeadline  the new registration deadline, or null
-     * @param requiresConfirmation  whether registrations require confirmation
-     * @param categoryId            the new category ID, or null
+     * @param id                   the event ID
+     * @param name                 the new event name
+     * @param description          the new description
+     * @param eventType            the new recurrence type
+     * @param dayOfWeek            the new day of week, or null
+     * @param startTime            the new start time
+     * @param endTime              the new end time
+     * @param templateId           the new template ID, or null
+     * @param requiresRegistration whether registration is required
+     * @param registrationDeadline the new registration deadline, or null
+     * @param requiresConfirmation whether registrations require confirmation
+     * @param categoryId           the new category ID, or null
      * @return true if a row was updated
      */
     public boolean update(

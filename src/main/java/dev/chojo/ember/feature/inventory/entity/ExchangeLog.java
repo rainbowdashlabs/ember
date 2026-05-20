@@ -30,7 +30,9 @@ public record ExchangeLog(
         int changedBy,
         Instant changedAt,
         String note) {
-    /** Creates a row mapping for database result set conversion. */
+    /**
+     * Creates a row mapping for database result set conversion.
+     */
     public static RowMapping<ExchangeLog> map() {
         return row -> new ExchangeLog(
                 row.getInt("id"),

@@ -20,7 +20,9 @@ import de.chojo.sadu.mapper.rowmapper.RowMapping;
  */
 public record AttendanceReportPreset(
         int id, int stationId, String name, String roleName, Integer groupId, String period, String rounding) {
-    /** Creates a row mapping for database result set conversion. */
+    /**
+     * Creates a row mapping for database result set conversion.
+     */
     public static RowMapping<AttendanceReportPreset> map() {
         return row -> new AttendanceReportPreset(
                 row.getInt("id"),

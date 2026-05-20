@@ -33,7 +33,9 @@ public record AccountSession(
         Instant lastUsedAt,
         String location) {
 
-    /** Creates a row mapping for database result set conversion. */
+    /**
+     * Creates a row mapping for database result set conversion.
+     */
     public static RowMapping<AccountSession> map() {
         return row -> new AccountSession(
                 row.getInt("id"),

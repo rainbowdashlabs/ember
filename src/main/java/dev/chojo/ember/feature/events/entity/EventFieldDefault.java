@@ -17,7 +17,9 @@ import de.chojo.sadu.mapper.rowmapper.RowMapping;
  * @param value   the static value when source is "VALUE", otherwise unused
  */
 public record EventFieldDefault(int eventId, int fieldId, String source, String value) {
-    /** Creates a row mapping for database result set conversion. */
+    /**
+     * Creates a row mapping for database result set conversion.
+     */
     public static RowMapping<EventFieldDefault> map() {
         return row -> new EventFieldDefault(
                 row.getInt("event_id"), row.getInt("field_id"), row.getString("source"), row.getString("value"));

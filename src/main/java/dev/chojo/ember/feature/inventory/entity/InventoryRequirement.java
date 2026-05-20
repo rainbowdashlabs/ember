@@ -18,7 +18,9 @@ import de.chojo.sadu.mapper.rowmapper.RowMapping;
  * @param position    the sort position for display ordering
  */
 public record InventoryRequirement(int id, int inventoryId, int roleId, int groupId, int quantity, int position) {
-    /** Creates a row mapping for database result set conversion. */
+    /**
+     * Creates a row mapping for database result set conversion.
+     */
     public static RowMapping<InventoryRequirement> map() {
         return row -> new InventoryRequirement(
                 row.getInt("id"),

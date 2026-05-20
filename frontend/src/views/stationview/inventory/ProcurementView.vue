@@ -13,6 +13,7 @@ import DeleteButton from '@/components/button/DeleteButton.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
+import SizeBadge from '@/components/badge/SizeBadge.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import Modal from '@/components/feedback/Modal.vue'
@@ -170,7 +171,7 @@ onMounted(loadData)
             <div class="space-y-1">
               <div class="flex items-center gap-2 flex-wrap">
                 <span class="font-medium">{{ entry.inventoryName }}</span>
-                <span class="text-sm text-(--text-muted)">({{ entry.sizeLabel || t('common.unisize') }})</span>
+                <SizeBadge>{{ entry.sizeLabel || t('common.unisize') }}</SizeBadge>
                 <SuccessBadge v-if="entry.fulfilledAt">{{ t('procurement.fulfilled') }}</SuccessBadge>
                 <ErrorBadge v-else>{{ t('procurement.open') }}</ErrorBadge>
               </div>

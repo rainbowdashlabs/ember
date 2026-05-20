@@ -29,6 +29,7 @@ import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.MemberGroupService;
 import dev.chojo.ember.feature.members.service.StationMemberService;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
+import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
 import dev.chojo.ember.feature.notifications.service.NotificationService;
 import io.javalin.http.BadRequestResponse;
@@ -234,9 +235,8 @@ public class EventRoutes implements Routes {
                 session.stationId(),
                 NotificationType.NEW_EVENT,
                 NotificationData.of(
-                        "notification.newEvent",
-                        Map.of("title", req.name(), "eventDescription", eventDescription),
-                        new NotificationData.NotificationLink("events-upcoming")));
+                        new NotificationParams.NewEvent(req.name(), eventDescription),
+                        new NotificationData.NotificationLink("event-detail", Map.of("id", event.id()))));
 
         ctx.status(HttpStatus.CREATED).json(event);
     }
@@ -315,7 +315,7 @@ public class EventRoutes implements Routes {
             // Remove notifications for this event
             notificationService.deleteByTypeContaining(
                     NotificationType.NEW_EVENT,
-                    NotificationData.of("notification.newEvent", Map.of("title", event.name()))
+                    NotificationData.of(new NotificationParams.NewEvent(event.name(), null))
                             .toJson());
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
@@ -449,16 +449,6 @@ public class EventRoutes implements Routes {
                 })
                 .toList());
     }
-
-    public record RegistrationResponse(
-            int id,
-            int eventId,
-            int memberId,
-            String memberName,
-            LocalDate eventDate,
-            String status,
-            Instant createdAt,
-            String createdByName) {}
 
     @OpenApi(
             path = "/api/v1/events/registrations/pending",
@@ -646,9 +636,8 @@ public class EventRoutes implements Routes {
                     : event.description();
         }
         var data = NotificationData.of(
-                "notification.eventRegistrationStatus",
-                Map.of("eventName", eventName, "status", req.status(), "eventDescription", eventDescription),
-                new NotificationData.NotificationLink("events-registrations"));
+                new NotificationParams.EventRegistrationStatus(eventName, req.status(), eventDescription),
+                new NotificationData.NotificationLink("event-detail", Map.of("id", registration.eventId())));
         notificationService.notify(registration.memberId(), NotificationType.EVENT_REGISTRATION_STATUS, data);
         var eventMgmtIds =
                 stationMemberRepository.findMembersWithRole(session.stationId(), Roles.EVENT_MANAGEMENT).stream()
@@ -694,8 +683,6 @@ public class EventRoutes implements Routes {
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
-    // -- Categories --
-
     @OpenApi(
             path = "/api/v1/events/categories",
             methods = HttpMethod.GET,
@@ -706,6 +693,8 @@ public class EventRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         ctx.json(eventService.findCategoriesByStation(session.stationId()));
     }
+
+    // -- Categories --
 
     @OpenApi(
             path = "/api/v1/events/categories",
@@ -764,8 +753,6 @@ public class EventRoutes implements Routes {
         }
     }
 
-    // -- Eligible Members --
-
     /**
      * For each event, returns which member IDs (from self + managed) are eligible.
      * If an event has no restrictions, all members are eligible and the event is omitted from the result
@@ -818,7 +805,7 @@ public class EventRoutes implements Routes {
         ctx.json(result);
     }
 
-    // -- Restrictions --
+    // -- Eligible Members --
 
     @OpenApi(
             path = "/api/v1/events/{id}/restrictions",
@@ -831,6 +818,8 @@ public class EventRoutes implements Routes {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
         ctx.json(new EventRestrictions(eventService.findRoleRestrictions(id), eventService.findGroupRestrictions(id)));
     }
+
+    // -- Restrictions --
 
     @OpenApi(
             path = "/api/v1/events/{id}/restrictions",
@@ -847,8 +836,6 @@ public class EventRoutes implements Routes {
         ctx.json(req);
     }
 
-    // -- Field Defaults --
-
     @OpenApi(
             path = "/api/v1/events/{id}/field-defaults",
             methods = HttpMethod.GET,
@@ -860,6 +847,8 @@ public class EventRoutes implements Routes {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
         ctx.json(eventService.findFieldDefaults(id));
     }
+
+    // -- Field Defaults --
 
     @OpenApi(
             path = "/api/v1/events/{id}/field-defaults",
@@ -892,41 +881,6 @@ public class EventRoutes implements Routes {
                 eventService.findAllGroupRestrictionsByStation(session.stationId())));
     }
 
-    // -- Records --
-
-    public record EventRequest(
-            String name,
-            String description,
-            String eventType,
-            Integer dayOfWeek,
-            Instant startTime,
-            Instant endTime,
-            Integer templateId,
-            Boolean requiresRegistration,
-            Instant registrationDeadline,
-            Boolean requiresConfirmation,
-            Integer categoryId,
-            List<Integer> restrictedRoleIds,
-            List<Integer> restrictedGroupIds) {}
-
-    public record BreakRequest(String name, String startDate, String endDate) {}
-
-    public record CategoryRequest(String name, int position) {}
-
-    @OpenApiName("EventRegisterRequest")
-    public record RegisterRequest(String eventDate, Integer memberId) {}
-
-    public record StatusUpdateRequest(String status) {}
-
-    public record EventRestrictions(List<Integer> roleIds, List<Integer> groupIds) {}
-
-    public record AllEventRestrictions(
-            Map<Integer, List<Integer>> roleRestrictions, Map<Integer, List<Integer>> groupRestrictions) {}
-
-    public record FieldDefaultEntry(int fieldId, String source, String value) {}
-
-    // -- Event Fields (per-event) --
-
     @OpenApi(
             path = "/api/v1/events/{id}/fields",
             methods = HttpMethod.GET,
@@ -938,6 +892,8 @@ public class EventRoutes implements Routes {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
         ctx.json(eventFieldService.findByEvent(id));
     }
+
+    // -- Records --
 
     @OpenApi(
             path = "/api/v1/events/{id}/fields",
@@ -984,9 +940,6 @@ public class EventRoutes implements Routes {
                 .toList());
     }
 
-    public record AbsentMemberResponse(
-            int memberId, String memberName, LocalDate absentFrom, LocalDate absentUntil, String reason) {}
-
     @OpenApi(
             path = "/api/v1/events/field-names",
             methods = HttpMethod.GET,
@@ -1029,6 +982,52 @@ public class EventRoutes implements Routes {
         ctx.header("Content-Disposition", "attachment; filename=\"events.pdf\"");
         ctx.result(pdf.get());
     }
+
+    public record RegistrationResponse(
+            int id,
+            int eventId,
+            int memberId,
+            String memberName,
+            LocalDate eventDate,
+            String status,
+            Instant createdAt,
+            String createdByName) {}
+
+    public record EventRequest(
+            String name,
+            String description,
+            String eventType,
+            Integer dayOfWeek,
+            Instant startTime,
+            Instant endTime,
+            Integer templateId,
+            Boolean requiresRegistration,
+            Instant registrationDeadline,
+            Boolean requiresConfirmation,
+            Integer categoryId,
+            List<Integer> restrictedRoleIds,
+            List<Integer> restrictedGroupIds) {}
+
+    public record BreakRequest(String name, String startDate, String endDate) {}
+
+    public record CategoryRequest(String name, int position) {}
+
+    // -- Event Fields (per-event) --
+
+    @OpenApiName("EventRegisterRequest")
+    public record RegisterRequest(String eventDate, Integer memberId) {}
+
+    public record StatusUpdateRequest(String status) {}
+
+    public record EventRestrictions(List<Integer> roleIds, List<Integer> groupIds) {}
+
+    public record AllEventRestrictions(
+            Map<Integer, List<Integer>> roleRestrictions, Map<Integer, List<Integer>> groupRestrictions) {}
+
+    public record FieldDefaultEntry(int fieldId, String source, String value) {}
+
+    public record AbsentMemberResponse(
+            int memberId, String memberName, LocalDate absentFrom, LocalDate absentUntil, String reason) {}
 
     public record EventExportRequest(
             List<Integer> categoryIds, List<ExportColumnRequest> columns, String from, String to) {}

@@ -16,6 +16,7 @@ import dev.chojo.ember.feature.members.entity.Role;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.service.MemberGroupService;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
+import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
 import dev.chojo.ember.feature.notifications.service.NotificationService;
 import io.javalin.http.BadRequestResponse;
@@ -35,7 +36,6 @@ import jakarta.inject.Singleton;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 
 /**
  * Routes for member group management including CRUD operations on groups,
@@ -230,8 +230,7 @@ public class MemberGroupRoutes implements Routes {
         if (!addedMemberIds.isEmpty()) {
             groupService.findById(groupId).ifPresent(group -> {
                 var data = NotificationData.of(
-                        "notification.memberAddedToGroup",
-                        Map.of("groupName", group.name()),
+                        new NotificationParams.MemberAddedToGroup(group.name()),
                         new NotificationData.NotificationLink("dashboard-overview"));
                 notificationService.notifyMembers(addedMemberIds, NotificationType.MEMBER_ADDED_TO_GROUP, data);
             });
@@ -289,18 +288,6 @@ public class MemberGroupRoutes implements Routes {
         ctx.json(groupService.setGroupRoles(groupId, roleIds, session.roles()));
     }
 
-    public record MemberWithName(int id, int stationId, int accountId, String name, String email) {}
-
-    // -- Request/Response records --
-
-    public record GroupRequest(String name) {}
-
-    public record GroupDetail(int id, int stationId, String name, List<StationMember> members) {}
-
-    public record SetMembersRequest(List<Integer> memberIds) {}
-
-    public record SetGroupRolesRequest(List<Integer> roleIds) {}
-
     @OpenApi(
             path = "/api/v1/groups/{id}/convert-to-tag",
             methods = HttpMethod.POST,
@@ -324,4 +311,16 @@ public class MemberGroupRoutes implements Routes {
                             throw new NotFoundResponse();
                         });
     }
+
+    // -- Request/Response records --
+
+    public record MemberWithName(int id, int stationId, int accountId, String name, String email) {}
+
+    public record GroupRequest(String name) {}
+
+    public record GroupDetail(int id, int stationId, String name, List<StationMember> members) {}
+
+    public record SetMembersRequest(List<Integer> memberIds) {}
+
+    public record SetGroupRolesRequest(List<Integer> roleIds) {}
 }

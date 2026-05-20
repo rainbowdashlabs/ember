@@ -41,6 +41,7 @@ import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.repository.UserTagRepository;
 import dev.chojo.ember.feature.news.repository.NewsRepository;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
+import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
 import dev.chojo.ember.feature.notifications.repository.NotificationRepository;
 import dev.chojo.ember.feature.station.repository.StationRepository;
@@ -400,11 +401,11 @@ public class DemoService {
                     jsonStr(LocalDate.now().plusYears(rng.nextInt(5) + 1).toString()));
         }
 
-        // Create Eltern (member managers)
+        // Create Eltern (member managers — GUARDIAN role, not MEMBER)
         boolean firstEltern = true;
         for (var u : eltern) {
-            var m = createUser(u.firstName(), u.lastName(), hash, station.id(), loginRole.id(), memberRole.id());
-            stationMemberRepository.addRole(m.id(), memberManagerRole.id());
+            var m = createGuardian(
+                    u.firstName(), u.lastName(), hash, station.id(), loginRole.id(), memberManagerRole.id());
             memberGroupRepository.addMember(groupEltern.id(), m.id());
             elternMembers.add(m);
 
@@ -417,14 +418,6 @@ public class DemoService {
             profileFieldRepository.setValue(
                     m.id(), fieldFestnetz.id(), jsonStr("0208 " + (1000000 + rng.nextInt(9000000))));
             profileFieldRepository.setValue(m.id(), fieldNewsletter.id(), Boolean.toString(rng.nextBoolean()));
-            // Geburtstag (required MEMBER field — Eltern also have MEMBER role)
-            profileFieldRepository.setValue(
-                    m.id(),
-                    fieldGeburtstag.id(),
-                    jsonStr(LocalDate.now()
-                            .minusYears(30 + rng.nextInt(20))
-                            .minusDays(rng.nextInt(365))
-                            .toString()));
         }
 
         // Create Anfänger
@@ -1125,7 +1118,14 @@ public class DemoService {
 
         // -- Notifications (demo data so users see them on the dashboard) --
         seedNotifications(
-                station.id(), adminMember, betreuerMembers, elternMembers, anfaengerMembers, fortgeschrittenMembers);
+                station.id(),
+                adminMember,
+                betreuerMembers,
+                elternMembers,
+                anfaengerMembers,
+                fortgeschrittenMembers,
+                tagDerOffenenTuer.id(),
+                stadtfest.id());
 
         int totalUsers = 1 + betreuer.size() + eltern.size() + anfaenger.size() + fortgeschritten.size();
         log.info("Demo: Created {} user accounts (password: '{}')", totalUsers, PASSWORD);
@@ -1494,18 +1494,19 @@ public class DemoService {
             List<StationMember> betreuer,
             List<StationMember> eltern,
             List<StationMember> anfaenger,
-            List<StationMember> fortgeschritten) {
+            List<StationMember> fortgeschritten,
+            int tagDerOffenenTuerEventId,
+            int stadtfestEventId) {
         // News notification for all members
         for (var m : betreuer) {
             notificationRepository.create(
                     m.id(),
                     NotificationType.NEW_NEWS,
                     NotificationData.of(
-                            "notification.newNews",
-                            Map.of(
-                                    "title", "Neue Ausrüstung eingetroffen",
-                                    "author", "Anna Schmidt",
-                                    "preview", "Die bestellten Helme und Handschuhe sind eingetroffen..."),
+                            new NotificationParams.NewNews(
+                                    "Neue Ausrüstung eingetroffen",
+                                    "Anna Schmidt",
+                                    "Die bestellten Helme und Handschuhe sind eingetroffen..."),
                             new NotificationData.NotificationLink("news-list")));
         }
 
@@ -1514,13 +1515,9 @@ public class DemoService {
                 betreuer.get(1).id(),
                 NotificationType.NEWS_COMMENT,
                 NotificationData.of(
-                        "notification.newsComment",
-                        Map.of(
-                                "newsTitle",
+                        new NotificationParams.NewsComment(
                                 "Neue Ausrüstung eingetroffen",
-                                "author",
                                 "Klaus Schulze",
-                                "preview",
                                 "Werden die alten Helme eingesammelt?"),
                         new NotificationData.NotificationLink("news-list")));
 
@@ -1530,14 +1527,7 @@ public class DemoService {
                     m.id(),
                     NotificationType.EXCHANGE_NEW_REQUEST,
                     NotificationData.of(
-                            "notification.exchangeNewRequest",
-                            Map.of(
-                                    "memberName",
-                                    "Tim Berger",
-                                    "inventoryName",
-                                    "Blouson",
-                                    "reason",
-                                    "Zu klein geworden"),
+                            new NotificationParams.ExchangeNewRequest("Tim Berger", "Blouson", "Zu klein geworden"),
                             new NotificationData.NotificationLink("inventory-exchanges")));
         }
 
@@ -1547,9 +1537,9 @@ public class DemoService {
                     fortgeschritten.get(i).id(),
                     NotificationType.EVENT_REGISTRATION_STATUS,
                     NotificationData.of(
-                            "notification.eventRegistrationStatus",
-                            Map.of("eventName", "Tag der offenen Tür", "status", "ACCEPTED"),
-                            new NotificationData.NotificationLink("events-registrations")));
+                            new NotificationParams.EventRegistrationStatus("Tag der offenen Tür", "ACCEPTED", null),
+                            new NotificationData.NotificationLink(
+                                    "event-detail", Map.of("id", tagDerOffenenTuerEventId))));
         }
 
         // New event notification for some members
@@ -1558,13 +1548,9 @@ public class DemoService {
                     anfaenger.get(i).id(),
                     NotificationType.NEW_EVENT,
                     NotificationData.of(
-                            "notification.newEvent",
-                            Map.of(
-                                    "title",
-                                    "Stadtfest Musterstadt",
-                                    "eventDescription",
-                                    "Stand der Jugendfeuerwehr beim Stadtfest"),
-                            new NotificationData.NotificationLink("events-upcoming")));
+                            new NotificationParams.NewEvent(
+                                    "Stadtfest Musterstadt", "Stand der Jugendfeuerwehr beim Stadtfest"),
+                            new NotificationData.NotificationLink("event-detail", Map.of("id", stadtfestEventId))));
         }
 
         // Group membership notification for some Eltern
@@ -1573,8 +1559,7 @@ public class DemoService {
                     eltern.get(i).id(),
                     NotificationType.MEMBER_ADDED_TO_GROUP,
                     NotificationData.of(
-                            "notification.memberAddedToGroup",
-                            Map.of("groupName", "Eltern"),
+                            new NotificationParams.MemberAddedToGroup("Eltern"),
                             new NotificationData.NotificationLink("dashboard-overview")));
         }
 
@@ -1583,8 +1568,7 @@ public class DemoService {
                 anfaenger.get(2).id(),
                 NotificationType.PROCUREMENT_REQUESTED,
                 NotificationData.of(
-                        "notification.procurementRequested",
-                        Map.of("inventoryName", "Handschuhe"),
+                        new NotificationParams.ProcurementRequested("Handschuhe"),
                         new NotificationData.NotificationLink("dashboard-overview")));
 
         // Profile change notification for Betreuer
@@ -1592,8 +1576,7 @@ public class DemoService {
                 betreuer.getFirst().id(),
                 NotificationType.PROFILE_FIELD_CHANGED,
                 NotificationData.of(
-                        "notification.profileFieldChanged",
-                        Map.of("memberName", "Lukas Frank", "fieldName", "Allergien"),
+                        new NotificationParams.ProfileFieldChanged("Lukas Frank", "Allergien"),
                         new NotificationData.NotificationLink(
                                 "members-detail", Map.of("id", anfaenger.get(0).id()))));
 
@@ -1608,6 +1591,17 @@ public class DemoService {
         var member = stationMemberRepository.create(stationId, account.id());
         stationMemberRepository.addRole(member.id(), loginRoleId);
         stationMemberRepository.addRole(member.id(), memberRoleId);
+        return member;
+    }
+
+    private StationMember createGuardian(
+            String firstName, String lastName, String hash, int stationId, int loginRoleId, int guardianRoleId) {
+        String email = firstName.toLowerCase() + "@" + lastName.toLowerCase() + ".local";
+        var account = accountRepository.create(email, firstName, lastName, true);
+        accountRepository.createCredential(account.id(), hash);
+        var member = stationMemberRepository.create(stationId, account.id());
+        stationMemberRepository.addRole(member.id(), loginRoleId);
+        stationMemberRepository.addRole(member.id(), guardianRoleId);
         return member;
     }
 

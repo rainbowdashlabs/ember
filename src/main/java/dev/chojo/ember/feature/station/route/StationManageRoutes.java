@@ -14,6 +14,7 @@ import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.mail.service.EmailService;
 import dev.chojo.ember.feature.station.entity.MailProviderType;
 import dev.chojo.ember.feature.station.entity.StationMailConfig;
+import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.feature.station.repository.StationMailConfigRepository;
 import dev.chojo.ember.feature.station.repository.StationRepository.StationLogo;
 import dev.chojo.ember.feature.station.service.StationImportService;
@@ -243,82 +244,6 @@ public class StationManageRoutes implements Routes {
         ctx.json(new MessageResponse("Logo deleted"));
     }
 
-    /**
-     * Request body for updating station settings.
-     *
-     * @param name     the station name
-     * @param timezone the IANA timezone identifier
-     * @param locale   the locale string (e.g., "de-DE")
-     */
-    public record UpdateStationRequest(String name, String timezone, String locale) {}
-
-    /**
-     * Response containing station management information.
-     *
-     * @param id            the station ID
-     * @param name          the station name
-     * @param timezone      the station timezone
-     * @param locale        the station locale
-     * @param hasLogo       whether the station has a logo uploaded
-     * @param ownerMemberId the member ID of the owner, or {@code null}
-     * @param isOwner       whether the current user is the station owner
-     */
-    public record StationInfo(
-            int id,
-            String name,
-            String timezone,
-            String locale,
-            boolean hasLogo,
-            Integer ownerMemberId,
-            boolean isOwner) {}
-
-    // -- Mail config --
-
-    /**
-     * Response containing the station's mail configuration and current usage statistics.
-     */
-    public record MailConfigResponse(
-            String provider,
-            String smtpHost,
-            int smtpPort,
-            boolean smtpSsl,
-            String smtpUser,
-            String senderAddress,
-            String senderName,
-            boolean hasApiKey,
-            String providerName,
-            String providerUrl,
-            int dailyLimit,
-            int monthlyLimit,
-            int sentToday,
-            int sentThisMonth) {}
-
-    /**
-     * Request body for updating the station's mail configuration.
-     */
-    public record MailConfigRequest(
-            String provider,
-            String smtpHost,
-            Integer smtpPort,
-            Boolean smtpSsl,
-            String smtpUser,
-            String smtpPassword,
-            String senderAddress,
-            String senderName,
-            String apiKey,
-            String providerName,
-            String providerUrl,
-            Integer dailyLimit,
-            Integer monthlyLimit) {}
-
-    /**
-     * Response from a mail configuration test.
-     *
-     * @param success whether the test connection succeeded
-     * @param error   the error message if the test failed, or {@code null}
-     */
-    public record MailTestResponse(boolean success, String error) {}
-
     @OpenApi(
             path = "/api/v1/station/manage/mail",
             methods = HttpMethod.GET,
@@ -352,6 +277,8 @@ public class StationManageRoutes implements Routes {
         }
         return new MailConfigResponse("NONE", "", 587, false, "", "", "", false, "", "", 100, 2000, 0, 0);
     }
+
+    // -- Mail config --
 
     @OpenApi(
             path = "/api/v1/station/manage/mail",
@@ -419,8 +346,6 @@ public class StationManageRoutes implements Routes {
         ctx.json(new MailTestResponse(error == null, error));
     }
 
-    // -- Module settings --
-
     @OpenApi(
             path = "/api/v1/station/manage/modules",
             methods = HttpMethod.GET,
@@ -445,15 +370,6 @@ public class StationManageRoutes implements Routes {
         stationService.setDisabledModules(session.stationId(), body.disabledModules());
         ctx.json(new ModulesResponse(stationService.findDisabledModules(session.stationId())));
     }
-
-    /**
-     * Response and request body for the set of disabled modules.
-     *
-     * @param disabledModules the names of disabled modules
-     */
-    public record ModulesResponse(Set<String> disabledModules) {}
-
-    // -- Station deletion --
 
     @OpenApi(
             path = "/api/v1/station/manage/request-delete",
@@ -492,15 +408,6 @@ public class StationManageRoutes implements Routes {
         ctx.json(new MessageResponse("Ownership transferred"));
     }
 
-    /**
-     * Request body for transferring station ownership.
-     *
-     * @param newOwnerMemberId the member ID of the new owner
-     */
-    public record TransferOwnershipRequest(int newOwnerMemberId) {}
-
-    // -- Station import into existing station --
-
     @OpenApi(
             path = "/api/v1/station/manage/import",
             methods = HttpMethod.POST,
@@ -526,6 +433,8 @@ public class StationManageRoutes implements Routes {
         ctx.status(HttpStatus.CREATED).json(new MessageResponse("Import started"));
     }
 
+    // -- Module settings --
+
     @OpenApi(
             path = "/api/v1/station/manage/import/progress",
             methods = HttpMethod.GET,
@@ -547,6 +456,118 @@ public class StationManageRoutes implements Routes {
                 progress.currentTable(),
                 progress.error()));
     }
+
+    @OpenApi(
+            path = "/api/v1/public/confirm-station-delete",
+            methods = HttpMethod.GET,
+            summary = "Confirm and execute station deletion",
+            tags = {"Station Manage"},
+            queryParams = @OpenApiParam(name = "token", required = true),
+            responses = {@OpenApiResponse(status = "200"), @OpenApiResponse(status = "400")})
+    private void confirmDelete(Context ctx) {
+        String token = ctx.queryParam("token");
+        if (token == null || token.isBlank()) {
+            throw new BadRequestResponse("token is required");
+        }
+        var stationIdOpt = authService.confirmStationDeletion(token);
+        if (stationIdOpt.isEmpty()) {
+            throw new BadRequestResponse("Invalid or expired token");
+        }
+        stationService.delete(stationIdOpt.get());
+        ctx.json(new MessageResponse("Station deleted"));
+    }
+
+    /**
+     * Request body for updating station settings.
+     *
+     * @param name     the station name
+     * @param timezone the IANA timezone identifier
+     * @param locale   the locale string (e.g., "de-DE")
+     */
+    public record UpdateStationRequest(String name, String timezone, String locale) {}
+
+    // -- Station deletion --
+
+    /**
+     * Response containing station management information.
+     *
+     * @param id            the station ID
+     * @param name          the station name
+     * @param timezone      the station timezone
+     * @param locale        the station locale
+     * @param hasLogo       whether the station has a logo uploaded
+     * @param ownerMemberId the member ID of the owner, or {@code null}
+     * @param isOwner       whether the current user is the station owner
+     */
+    public record StationInfo(
+            int id,
+            String name,
+            String timezone,
+            String locale,
+            boolean hasLogo,
+            Integer ownerMemberId,
+            boolean isOwner) {}
+
+    /**
+     * Response containing the station's mail configuration and current usage statistics.
+     */
+    public record MailConfigResponse(
+            String provider,
+            String smtpHost,
+            int smtpPort,
+            boolean smtpSsl,
+            String smtpUser,
+            String senderAddress,
+            String senderName,
+            boolean hasApiKey,
+            String providerName,
+            String providerUrl,
+            int dailyLimit,
+            int monthlyLimit,
+            int sentToday,
+            int sentThisMonth) {}
+
+    /**
+     * Request body for updating the station's mail configuration.
+     */
+    public record MailConfigRequest(
+            String provider,
+            String smtpHost,
+            Integer smtpPort,
+            Boolean smtpSsl,
+            String smtpUser,
+            String smtpPassword,
+            String senderAddress,
+            String senderName,
+            String apiKey,
+            String providerName,
+            String providerUrl,
+            Integer dailyLimit,
+            Integer monthlyLimit) {}
+
+    // -- Station import into existing station --
+
+    /**
+     * Response from a mail configuration test.
+     *
+     * @param success whether the test connection succeeded
+     * @param error   the error message if the test failed, or {@code null}
+     */
+    public record MailTestResponse(boolean success, String error) {}
+
+    /**
+     * Response and request body for the set of disabled modules.
+     *
+     * @param disabledModules the names of disabled modules
+     */
+    public record ModulesResponse(Set<StationModule> disabledModules) {}
+
+    /**
+     * Request body for transferring station ownership.
+     *
+     * @param newOwnerMemberId the member ID of the new owner
+     */
+    public record TransferOwnershipRequest(int newOwnerMemberId) {}
 
     /**
      * Request body for importing data from a remote Ember instance.
@@ -575,24 +596,4 @@ public class StationManageRoutes implements Routes {
             int completedTables,
             String currentTable,
             String error) {}
-
-    @OpenApi(
-            path = "/api/v1/public/confirm-station-delete",
-            methods = HttpMethod.GET,
-            summary = "Confirm and execute station deletion",
-            tags = {"Station Manage"},
-            queryParams = @OpenApiParam(name = "token", required = true),
-            responses = {@OpenApiResponse(status = "200"), @OpenApiResponse(status = "400")})
-    private void confirmDelete(Context ctx) {
-        String token = ctx.queryParam("token");
-        if (token == null || token.isBlank()) {
-            throw new BadRequestResponse("token is required");
-        }
-        var stationIdOpt = authService.confirmStationDeletion(token);
-        if (stationIdOpt.isEmpty()) {
-            throw new BadRequestResponse("Invalid or expired token");
-        }
-        stationService.delete(stationIdOpt.get());
-        ctx.json(new MessageResponse("Station deleted"));
-    }
 }

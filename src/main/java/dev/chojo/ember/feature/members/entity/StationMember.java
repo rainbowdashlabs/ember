@@ -17,7 +17,9 @@ import de.chojo.sadu.mapper.rowmapper.RowMapping;
  * @param displayName the cached display name, used for former members after account decoupling
  */
 public record StationMember(int id, int stationId, Integer accountId, boolean former, String displayName) {
-    /** Creates a row mapping for database result set conversion. */
+    /**
+     * Creates a row mapping for database result set conversion.
+     */
     public static RowMapping<StationMember> map() {
         return row -> new StationMember(
                 row.getInt("id"),

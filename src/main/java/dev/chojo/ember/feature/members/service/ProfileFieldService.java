@@ -18,6 +18,7 @@ import dev.chojo.ember.feature.members.repository.ProfileFieldChangeRepository;
 import dev.chojo.ember.feature.members.repository.ProfileFieldRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
+import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
 import dev.chojo.ember.feature.notifications.service.NotificationService;
 import jakarta.inject.Inject;
@@ -191,8 +192,6 @@ public class ProfileFieldService {
                 .toList();
     }
 
-    public record PagedChanges(List<ProfileFieldChange> changes, int total) {}
-
     public PagedChanges findChangesByStation(int stationId, int limit, int offset) {
         var changes = changeRepository.findByStation(stationId, limit, offset);
         int total = changeRepository.countByStation(stationId);
@@ -231,11 +230,11 @@ public class ProfileFieldService {
         return new PagedChanges(enriched, total);
     }
 
-    // -- Change History --
-
     public ProfileFieldChangeAcknowledgement acknowledge(int changeId, int acknowledgedBy, String comment) {
         return changeRepository.acknowledge(changeId, acknowledgedBy, comment);
     }
+
+    // -- Change History --
 
     public List<ProfileFieldChangeAcknowledgement> acknowledgeAll(int memberId, int acknowledgedBy, String comment) {
         var unacknowledgedIds = changeRepository.findUnacknowledgedChangeIds(memberId, acknowledgedBy);
@@ -255,8 +254,7 @@ public class ProfileFieldService {
         String fieldList = String.join(", ", fieldNames);
 
         var data = NotificationData.of(
-                "notification.profileFieldChanged",
-                Map.of("memberName", memberName, "fieldName", fieldList),
+                new NotificationParams.ProfileFieldChanged(memberName, fieldList),
                 new NotificationData.NotificationLink("members-detail", Map.of("id", memberId)));
 
         var memberMgmtIds =
@@ -289,6 +287,8 @@ public class ProfileFieldService {
             changeRepository.create(fieldId, memberId, oldValue, newValue, changedBy, requiresAcknowledgement);
         }
     }
+
+    public record PagedChanges(List<ProfileFieldChange> changes, int total) {}
 
     public record FieldValueEntry(int fieldId, String value) {}
 }

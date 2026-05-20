@@ -40,11 +40,11 @@ public class EventFieldRepository {
      */
     public List<String> findDistinctFieldNames(int stationId) {
         return Query.query("""
-                        SELECT DISTINCT ef.name
-                        FROM event_field ef
-                        JOIN station_event se ON se.id = ef.event_id
-                        WHERE se.station_id = :station_id
-                        ORDER BY ef.name;""")
+                            SELECT DISTINCT ef.name
+                            FROM event_field ef
+                            JOIN station_event se ON se.id = ef.event_id
+                            WHERE se.station_id = :station_id
+                            ORDER BY ef.name;""")
                 .single(Call.of().bind("station_id", stationId))
                 .map(row -> row.getString("name"))
                 .all();
@@ -61,9 +61,9 @@ public class EventFieldRepository {
      */
     public EventField create(int eventId, String name, String value, int position) {
         return Query.query("""
-                        INSERT INTO event_field(event_id, name, value, position)
-                        VALUES (:event_id, :name, :value, :position)
-                        RETURNING id, event_id, name, value, position;""")
+                            INSERT INTO event_field(event_id, name, value, position)
+                            VALUES (:event_id, :name, :value, :position)
+                            RETURNING id, event_id, name, value, position;""")
                 .single(Call.of()
                         .bind("event_id", eventId)
                         .bind("name", name)
@@ -85,9 +85,9 @@ public class EventFieldRepository {
      */
     public boolean update(int id, String name, String value, int position) {
         return Query.query("""
-                        UPDATE event_field
-                        SET name = :name, value = :value, position = :position
-                        WHERE id = :id;""")
+                            UPDATE event_field
+                            SET name = :name, value = :value, position = :position
+                            WHERE id = :id;""")
                 .single(Call.of()
                         .bind("id", id)
                         .bind("name", name)

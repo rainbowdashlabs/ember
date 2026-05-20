@@ -47,6 +47,7 @@ dependencies {
 
     implementation(libs.angus)
     implementation(libs.bundles.commonmark)
+    implementation(libs.thumbnailator)
 
     testRuntimeOnly(libs.junit.platform)
     testImplementation(libs.sadu.testing)
@@ -111,6 +112,23 @@ tasks {
         }
         testLogging {
             events("passed", "skipped", "failed")
+        }
+        mustRunAfter(test)
+    }
+
+    named("check") {
+        dependsOn("testDatabase")
+    }
+
+    register<JacocoReport>("jacocoFullReport") {
+        group = "verification"
+        description = "Merged coverage report from unit + database tests"
+        executionData(file("build/jacoco/test.exec"), file("build/jacoco/testDatabase.exec"))
+        sourceSets(sourceSets.main.get())
+        reports {
+            xml.required.set(true)
+            csv.required.set(true)
+            html.required.set(true)
         }
     }
 

@@ -32,7 +32,9 @@ public record EventRegistration(
         Instant createdAt,
         Integer createdBy) {
 
-    /** Creates a row mapping for database result set conversion. */
+    /**
+     * Creates a row mapping for database result set conversion.
+     */
     public static RowMapping<EventRegistration> map() {
         return row -> new EventRegistration(
                 row.getInt("id"),
@@ -44,7 +46,9 @@ public record EventRegistration(
                 row.getObject("created_by", Integer.class));
     }
 
-    /** The possible states of an event registration. */
+    /**
+     * The possible states of an event registration.
+     */
     public enum RegistrationStatus {
         PENDING,
         ACCEPTED,

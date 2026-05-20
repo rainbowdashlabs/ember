@@ -24,7 +24,7 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
 public class LostAndFoundRepository {
 
     private static final String ITEM_COLUMNS =
-            "id, station_id, description, found_at, image, claimed_by, claimed_at, created_by, created_at";
+            "id, station_id, description, found_at, claimed_by, claimed_at, created_by, created_at";
 
     /**
      * Finds all lost and found items for a station, ordered by creation date descending.
@@ -108,39 +108,6 @@ public class LostAndFoundRepository {
     }
 
     /**
-     * Updates the image attached to a lost and found item.
-     *
-     * @param id          the item ID
-     * @param image       the image bytes
-     * @param contentType the MIME type of the image
-     * @return true if the item was updated
-     */
-    public boolean updateImage(int id, byte[] image, String contentType) {
-        return Query.query(
-                        "UPDATE lost_and_found_item SET image = :image, image_content_type = :content_type WHERE id = :id;")
-                .single(Call.of()
-                        .bind("image", image)
-                        .bind("content_type", contentType)
-                        .bind("id", id))
-                .update()
-                .changed();
-    }
-
-    /**
-     * Retrieves the image data for a lost and found item.
-     *
-     * @param id the item ID
-     * @return the image data and content type, or empty if no image is attached
-     */
-    public Optional<ImageData> findImage(int id) {
-        return Query.query(
-                        "SELECT image, image_content_type FROM lost_and_found_item WHERE id = :id AND image IS NOT NULL;")
-                .single(Call.of().bind("id", id))
-                .map(row -> new ImageData(row.getBytes("image"), row.getString("image_content_type")))
-                .first();
-    }
-
-    /**
      * Marks an unclaimed item as claimed by a member.
      *
      * @param id        the item ID
@@ -170,12 +137,4 @@ public class LostAndFoundRepository {
                 .delete()
                 .changed();
     }
-
-    /**
-     * Container for image binary data and its MIME content type.
-     *
-     * @param data        the raw image bytes
-     * @param contentType the MIME type (e.g. "image/png")
-     */
-    public record ImageData(byte[] data, String contentType) {}
 }

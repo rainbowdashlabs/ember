@@ -66,6 +66,9 @@ jspecify = { group = "org.jspecify", name = "jspecify", version = "1.0.0" }
 # mailing
 angus = { group = "org.eclipse.angus", name = "angus-mail", version = "2.0.5" }
 
+# Image processing
+thumbnailator = { group = "net.coobird", name = "thumbnailator", version = "0.4.20" }
+
 # Markdown
 commonmark = { group = "org.commonmark", name = "commonmark", version.ref = "commonmark" }
 commonmark-ext-gfm-tables = { group = "org.commonmark", name = "commonmark-ext-gfm-tables", version.ref = "commonmark" }

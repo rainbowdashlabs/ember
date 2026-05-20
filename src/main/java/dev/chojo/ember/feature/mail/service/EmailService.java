@@ -80,70 +80,6 @@ public class EmailService {
 
     // -- Provider resolution --
 
-    private MailProvider createGlobalProvider() {
-        if (mailing.senderAddress().isBlank()) {
-            return null;
-        }
-        MailProviderType type;
-        try {
-            type = MailProviderType.valueOf(mailing.provider());
-        } catch (IllegalArgumentException e) {
-            type = MailProviderType.SMTP;
-        }
-        return switch (type) {
-            case SMTP ->
-                new SmtpMailProvider(
-                        mailing.smtp().host(),
-                        mailing.smtp().port(),
-                        mailing.smtp().ssl(),
-                        mailing.user(),
-                        mailing.password(),
-                        mailing.senderAddress(),
-                        mailing.senderName());
-            case RAPIDMAIL ->
-                new SmtpMailProvider(
-                        "smtp.rapidmail.de",
-                        587,
-                        false,
-                        mailing.user(),
-                        mailing.apiKey(),
-                        mailing.senderAddress(),
-                        mailing.senderName());
-            case TWILIO ->
-                new SmtpMailProvider(
-                        "smtp.sendgrid.net",
-                        587,
-                        false,
-                        "apikey",
-                        mailing.apiKey(),
-                        mailing.senderAddress(),
-                        mailing.senderName());
-            case SWEEGO ->
-                new SmtpMailProvider(
-                        "smtp.sweego.io",
-                        587,
-                        false,
-                        mailing.user(),
-                        mailing.apiKey(),
-                        mailing.senderAddress(),
-                        mailing.senderName());
-            case BREVO ->
-                new SmtpMailProvider(
-                        "smtp-relay.brevo.com",
-                        587,
-                        false,
-                        mailing.user(),
-                        mailing.apiKey(),
-                        mailing.senderAddress(),
-                        mailing.senderName());
-            case NONE -> null;
-        };
-    }
-
-    /**
-     * Resolve the station-specific mail provider. Does NOT fall back to global —
-     * the global provider is for system emails only.
-     */
     /**
      * Resolves the station-specific mail provider based on the station's mail configuration.
      * Does not fall back to the global provider; returns empty if no station config exists.
@@ -209,13 +145,10 @@ public class EmailService {
         return Optional.empty();
     }
 
-    private String resolveProviderSenderName(Integer stationId) {
-        var provider = resolveStationProvider(stationId);
-        if (provider.isPresent() && provider.get() instanceof SmtpMailProvider smtp) {
-            return smtp.senderName();
-        }
-        return mailing.senderName();
-    }
+    /**
+     * Resolve the station-specific mail provider. Does NOT fall back to global —
+     * the global provider is for system emails only.
+     */
 
     /**
      * Returns the configured base URL for the application, used in email links.
@@ -225,8 +158,6 @@ public class EmailService {
     public String getBaseUrl() {
         return api.baseUrl();
     }
-
-    // -- Station email (queued, with per-station limits checked on send) --
 
     /**
      * Queue a station notification email. Limit checks happen at send time.
@@ -252,7 +183,7 @@ public class EmailService {
                 && mailConfigRepository.getMonthlyCount(stationId, today) < c.monthlyLimit();
     }
 
-    // -- Public send methods (system, via global provider queue) --
+    // -- Station email (queued, with per-station limits checked on send) --
 
     /**
      * Sends an email verification link to a user.
@@ -274,6 +205,8 @@ public class EmailService {
         vars.put("url", url);
         enqueueGlobal(email, "Set up your password", loadTemplate("set-password.html", "en", vars));
     }
+
+    // -- Public send methods (system, via global provider queue) --
 
     public void sendPasswordResetEmail(String email, String name, String token) {
         String url = api.baseUrl() + "/reset-password?token=" + token;
@@ -345,8 +278,6 @@ public class EmailService {
                 loadTemplate("application-received.html", locale, vars));
     }
 
-    // -- Station notification email builder --
-
     /**
      * Build and queue a station notification email.
      */
@@ -377,21 +308,99 @@ public class EmailService {
         queueStationEmail(stationId, recipientEmail, subject, body);
     }
 
-    // -- Status --
-
     public int queueSize() {
         return queueRepository.pendingCount();
     }
+
+    // -- Station notification email builder --
 
     public int sentTodayCount() {
         return queueRepository.getDailyCount(LocalDate.now());
     }
 
+    // -- Status --
+
     public int remainingToday() {
         return Math.max(0, mailing.dailySendLimit() - sentTodayCount());
     }
 
+    public String loadTemplate(String name, String locale, Map<String, String> variables) {
+        String template = readTemplate(name, locale);
+        for (var entry : variables.entrySet()) {
+            template = template.replace("{{" + entry.getKey() + "}}", entry.getValue());
+        }
+        return template;
+    }
+
+    private MailProvider createGlobalProvider() {
+        if (mailing.senderAddress().isBlank()) {
+            return null;
+        }
+        MailProviderType type;
+        try {
+            type = MailProviderType.valueOf(mailing.provider());
+        } catch (IllegalArgumentException e) {
+            type = MailProviderType.SMTP;
+        }
+        return switch (type) {
+            case SMTP ->
+                new SmtpMailProvider(
+                        mailing.smtp().host(),
+                        mailing.smtp().port(),
+                        mailing.smtp().ssl(),
+                        mailing.user(),
+                        mailing.password(),
+                        mailing.senderAddress(),
+                        mailing.senderName());
+            case RAPIDMAIL ->
+                new SmtpMailProvider(
+                        "smtp.rapidmail.de",
+                        587,
+                        false,
+                        mailing.user(),
+                        mailing.apiKey(),
+                        mailing.senderAddress(),
+                        mailing.senderName());
+            case TWILIO ->
+                new SmtpMailProvider(
+                        "smtp.sendgrid.net",
+                        587,
+                        false,
+                        "apikey",
+                        mailing.apiKey(),
+                        mailing.senderAddress(),
+                        mailing.senderName());
+            case SWEEGO ->
+                new SmtpMailProvider(
+                        "smtp.sweego.io",
+                        587,
+                        false,
+                        mailing.user(),
+                        mailing.apiKey(),
+                        mailing.senderAddress(),
+                        mailing.senderName());
+            case BREVO ->
+                new SmtpMailProvider(
+                        "smtp-relay.brevo.com",
+                        587,
+                        false,
+                        mailing.user(),
+                        mailing.apiKey(),
+                        mailing.senderAddress(),
+                        mailing.senderName());
+            case NONE -> null;
+        };
+    }
+
     // -- Queue --
+
+    private String resolveProviderSenderName(Integer stationId) {
+        var provider = resolveStationProvider(stationId);
+        if (provider.isPresent() && provider.get() instanceof SmtpMailProvider smtp) {
+            return smtp.senderName();
+        }
+        return mailing.senderName();
+    }
 
     private void enqueueGlobal(String to, String subject, String htmlBody) {
         if (demoConfig.enabled()) {
@@ -405,6 +414,8 @@ public class EmailService {
         queueRepository.enqueue(to, subject, htmlBody, null);
         log.debug("Email queued to={} subject={}", to, subject);
     }
+
+    // -- Template & helpers --
 
     private void processQueue() {
         try {
@@ -458,8 +469,6 @@ public class EmailService {
         }
     }
 
-    // -- Template & helpers --
-
     private Map<String, String> baseVars(String name, Integer stationId) {
         var vars = new HashMap<String, String>();
         vars.put("name", name);
@@ -486,14 +495,6 @@ public class EmailService {
                         : "Application for " + stationName + " received";
             default -> template;
         };
-    }
-
-    public String loadTemplate(String name, String locale, Map<String, String> variables) {
-        String template = readTemplate(name, locale);
-        for (var entry : variables.entrySet()) {
-            template = template.replace("{{" + entry.getKey() + "}}", entry.getValue());
-        }
-        return template;
     }
 
     private String readTemplate(String name, String locale) {

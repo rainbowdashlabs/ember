@@ -41,7 +41,9 @@ public record ProfileFieldChange(
         String fieldName,
         List<ProfileFieldChangeAcknowledgement> acknowledgements,
         String memberName) {
-    /** Creates a row mapping for database result set conversion. */
+    /**
+     * Creates a row mapping for database result set conversion.
+     */
     public static RowMapping<ProfileFieldChange> map() {
         return row -> new ProfileFieldChange(
                 row.getInt("id"),

@@ -23,7 +23,9 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
  */
 public record ProfileFieldChangeAcknowledgement(
         int id, int changeId, int acknowledgedBy, Instant acknowledgedAt, String comment, String acknowledgedByName) {
-    /** Creates a row mapping for database result set conversion. */
+    /**
+     * Creates a row mapping for database result set conversion.
+     */
     public static RowMapping<ProfileFieldChangeAcknowledgement> map() {
         return row -> new ProfileFieldChangeAcknowledgement(
                 row.getInt("id"),

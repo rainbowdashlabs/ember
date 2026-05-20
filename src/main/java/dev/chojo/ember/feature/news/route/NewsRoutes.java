@@ -15,6 +15,7 @@ import dev.chojo.ember.feature.news.entity.News;
 import dev.chojo.ember.feature.news.entity.NewsComment;
 import dev.chojo.ember.feature.news.service.NewsService;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
+import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
 import dev.chojo.ember.feature.notifications.service.NotificationService;
 import io.javalin.http.BadRequestResponse;
@@ -34,7 +35,6 @@ import jakarta.inject.Singleton;
 
 import java.time.Instant;
 import java.util.List;
-import java.util.Map;
 
 /**
  * HTTP route definitions for the news feature.
@@ -146,8 +146,7 @@ public class NewsRoutes implements Routes {
                 session.stationId(),
                 NotificationType.NEW_NEWS,
                 NotificationData.of(
-                        "notification.newNews",
-                        Map.of("title", request.title(), "author", authorName, "preview", preview),
+                        new NotificationParams.NewNews(request.title(), authorName, preview),
                         new NotificationData.NotificationLink("news-list")));
         ctx.status(HttpStatus.CREATED).json(toResponse(news, true));
     }
@@ -196,11 +195,11 @@ public class NewsRoutes implements Routes {
             // Remove notifications for this news article and its comments
             notificationService.deleteByTypeContaining(
                     NotificationType.NEW_NEWS,
-                    NotificationData.of("notification.newNews", Map.of("title", news.title()))
+                    NotificationData.of(new NotificationParams.NewNews(news.title(), null, null))
                             .toJson());
             notificationService.deleteByTypeContaining(
                     NotificationType.NEWS_COMMENT,
-                    NotificationData.of("notification.newsComment", Map.of("newsTitle", news.title()))
+                    NotificationData.of(new NotificationParams.NewsComment(news.title(), null, null))
                             .toJson());
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
@@ -279,8 +278,7 @@ public class NewsRoutes implements Routes {
             String preview =
                     request.content().length() > 100 ? request.content().substring(0, 100) + "..." : request.content();
             var data = NotificationData.of(
-                    "notification.newsComment",
-                    Map.of("newsTitle", news.title(), "author", commenterName, "preview", preview),
+                    new NotificationParams.NewsComment(news.title(), commenterName, preview),
                     new NotificationData.NotificationLink("news-list"));
 
             // Notify the news author (unless they wrote the comment)
@@ -362,7 +360,7 @@ public class NewsRoutes implements Routes {
                     comment.content().length() > 100 ? comment.content().substring(0, 100) + "..." : comment.content();
             notificationService.deleteByTypeContaining(
                     NotificationType.NEWS_COMMENT,
-                    NotificationData.of("notification.newsComment", Map.of("preview", preview))
+                    NotificationData.of(new NotificationParams.NewsComment(null, null, preview))
                             .toJson());
             ctx.status(HttpStatus.NO_CONTENT);
         } else {

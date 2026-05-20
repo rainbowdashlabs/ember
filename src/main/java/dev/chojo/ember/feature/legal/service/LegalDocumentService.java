@@ -258,6 +258,22 @@ public class LegalDocumentService {
         return String.join("\n", reversed);
     }
 
+    /**
+     * Computes a truncated SHA-256 hash (first 16 hex characters) of the given content.
+     *
+     * @param content the text to hash
+     * @return a 16-character hex string identifying the content version
+     */
+    String hash(String content) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] hash = digest.digest(content.getBytes(StandardCharsets.UTF_8));
+            return HexFormat.of().formatHex(hash).substring(0, 16);
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     private int[][] buildLcsTable(List<String> a, List<String> b) {
         int m = a.size();
         int n = b.size();
@@ -347,22 +363,6 @@ public class LegalDocumentService {
             Files.writeString(versionFile, hash + "\n", StandardCharsets.UTF_8);
         } catch (IOException e) {
             log.error("Failed to write version file: {}", versionFile, e);
-        }
-    }
-
-    /**
-     * Computes a truncated SHA-256 hash (first 16 hex characters) of the given content.
-     *
-     * @param content the text to hash
-     * @return a 16-character hex string identifying the content version
-     */
-    String hash(String content) {
-        try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            byte[] hash = digest.digest(content.getBytes(StandardCharsets.UTF_8));
-            return HexFormat.of().formatHex(hash).substring(0, 16);
-        } catch (NoSuchAlgorithmException e) {
-            throw new RuntimeException(e);
         }
     }
 

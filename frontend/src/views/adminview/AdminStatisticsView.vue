@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {computed, onMounted, ref} from 'vue'
+import {computed, onMounted, onUnmounted, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {use} from 'echarts/core'
 import {CanvasRenderer} from 'echarts/renderers'
@@ -22,6 +22,24 @@ import client from '@/api/client'
 use([CanvasRenderer, BarChart, PieChart, TitleComponent, TooltipComponent, GridComponent])
 
 const {t} = useI18n()
+
+const isDark = ref(document.documentElement.classList.contains('dark'))
+let observer: MutationObserver | null = null
+
+onMounted(() => {
+  observer = new MutationObserver(() => {
+    isDark.value = document.documentElement.classList.contains('dark')
+  })
+  observer.observe(document.documentElement, {attributes: true, attributeFilter: ['class']})
+  loadStats()
+})
+
+onUnmounted(() => {
+  observer?.disconnect()
+})
+
+const textColor = computed(() => isDark.value ? '#e0e0e0' : '#333333')
+const mutedColor = computed(() => isDark.value ? '#9ca3af' : '#666666')
 
 interface AdminStats {
   emailPending: number
@@ -72,11 +90,11 @@ const emailByDayOption = computed(() => {
   if (!stats.value || !stats.value.emailByDay.length) return {}
   const days = [...stats.value.emailByDay].reverse()
   return {
-    title: {text: t('adminStats.emailHistory'), left: 'center', textStyle: {fontSize: 14}},
+    title: {text: t('adminStats.emailHistory'), left: 'center', textStyle: {fontSize: 14, color: textColor.value}},
     tooltip: {trigger: 'axis'},
     grid: {left: 50, right: 20, top: 40, bottom: 20},
-    xAxis: {type: 'category', data: days.map(d => d.day), axisLabel: {rotate: 45, fontSize: 10}},
-    yAxis: {type: 'value', minInterval: 1},
+    xAxis: {type: 'category', data: days.map(d => d.day), axisLabel: {rotate: 45, fontSize: 10, color: mutedColor.value}, axisLine: {lineStyle: {color: mutedColor.value}}},
+    yAxis: {type: 'value', minInterval: 1, axisLabel: {color: mutedColor.value}, axisLine: {lineStyle: {color: mutedColor.value}}, splitLine: {lineStyle: {color: isDark.value ? '#333' : '#e0e0e0'}}},
     series: [{type: 'bar', data: days.map(d => d.count), color: '#FF6421'}],
   }
 })
@@ -84,10 +102,11 @@ const emailByDayOption = computed(() => {
 const emailStatusOption = computed(() => {
   if (!stats.value || !stats.value.emailByStatus.length) return {}
   return {
-    title: {text: t('adminStats.emailStatus'), left: 'center', textStyle: {fontSize: 14}},
+    title: {text: t('adminStats.emailStatus'), left: 'center', textStyle: {fontSize: 14, color: textColor.value}},
     tooltip: {trigger: 'item', formatter: '{b}: {c} ({d}%)'},
     series: [{
       type: 'pie', radius: ['40%', '70%'],
+      label: {color: mutedColor.value},
       data: stats.value.emailByStatus.map(e => ({
         name: statusLabels[e.status] ?? e.status, value: e.cnt,
         itemStyle: {color: statusColors[e.status] ?? '#CFCFCF'},
@@ -95,8 +114,6 @@ const emailStatusOption = computed(() => {
     }],
   }
 })
-
-onMounted(loadStats)
 </script>
 
 <template>

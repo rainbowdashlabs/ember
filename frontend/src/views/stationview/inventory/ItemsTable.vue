@@ -11,6 +11,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import IconButton from '@/components/button/IconButton.vue'
 import EditButton from '@/components/button/EditButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
+import SizeBadge from '@/components/badge/SizeBadge.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import PrimaryBadge from '@/components/badge/PrimaryBadge.vue'
 import type { InventoryItem, InventorySize, StationMember } from '@/api/types'
@@ -86,7 +87,7 @@ function formatDate(iso: string | null | undefined): string {
             </span>
           </td>
           <td class="px-3 py-2.5 text-(--text-muted)">{{ item.internalId || '–' }}</td>
-          <td v-if="hasSizes" class="px-3 py-2.5 text-(--text-muted)">{{ getSizeLabel(item.sizeId) }}</td>
+          <td v-if="hasSizes" class="px-3 py-2.5"><SizeBadge :lost="!!item.lostAt">{{ getSizeLabel(item.sizeId) }}</SizeBadge></td>
           <td v-if="isMixed" class="px-3 py-2.5">
             <PrimaryBadge v-if="item.itemSource === ItemSource.INTERNAL">{{ t('inventory.edit.sourceInternal') }}</PrimaryBadge>
             <SecondaryBadge v-else-if="item.itemSource === ItemSource.EXTERNAL">{{ t('inventory.edit.sourceExternal') }}</SecondaryBadge>

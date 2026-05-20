@@ -13,6 +13,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
+import SizeBadge from '@/components/badge/SizeBadge.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
@@ -379,7 +380,7 @@ onMounted(loadData)
               <tbody>
                 <tr v-for="p in openProcurement" :key="p.id" class="border-b border-bg-light-accent/50 dark:border-bg-dark-accent/50">
                   <td class="px-3 py-2.5"><MemberName :name="p.memberName"/></td>
-                  <td class="px-3 py-2.5">{{ p.sizeLabel || t('common.unisize') }}</td>
+                  <td class="px-3 py-2.5"><SizeBadge>{{ p.sizeLabel || t('common.unisize') }}</SizeBadge></td>
                   <td class="px-3 py-2.5 text-(--text-muted)">{{ p.notes || '-' }}</td>
                   <td class="px-3 py-2.5 text-right">
                     <PrimaryButton class="text-xs" @click="fulfillProcurement(p.id)">
@@ -421,7 +422,7 @@ onMounted(loadData)
               <div>
                 <div class="text-sm font-medium">
                   {{ item.name }}
-                  <span v-if="sizeName(item.sizeId)" class="font-normal text-(--text-muted)">{{ sizeName(item.sizeId) }}</span>
+                  <SizeBadge v-if="sizeName(item.sizeId)">{{ sizeName(item.sizeId) }}</SizeBadge>
                 </div>
                 <div v-if="item.internalId" class="text-xs text-(--text-muted)">{{ item.internalId }}</div>
               </div>
@@ -457,7 +458,7 @@ onMounted(loadData)
                   <td class="px-3 py-2.5">
                     <div class="font-medium">
                       {{ item.name }}
-                      <span v-if="sizeName(item.sizeId)" class="font-normal text-(--text-muted)">{{ sizeName(item.sizeId) }}</span>
+                      <SizeBadge v-if="sizeName(item.sizeId)" lost>{{ sizeName(item.sizeId) }}</SizeBadge>
                     </div>
                     <div v-if="item.internalId" class="text-xs text-(--text-muted)">{{ item.internalId }}</div>
                   </td>

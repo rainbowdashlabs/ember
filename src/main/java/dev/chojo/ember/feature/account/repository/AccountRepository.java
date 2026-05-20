@@ -31,6 +31,8 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
 public class AccountRepository {
 
     private static final String ACCOUNT_COLUMNS = "id, email, first_name, last_name, email_verified";
+    private static final String CONSENT_COLUMNS =
+            "id, account_id, consent_version, privacy_version, tos_version, ip_address, country, user_agent, consented_at";
 
     /**
      * Finds an account by its unique identifier.
@@ -91,6 +93,8 @@ public class AccountRepository {
                 .orElseThrow();
     }
 
+    // -- Account Roles --
+
     /**
      * Creates a new account with an explicit email verification status.
      *
@@ -113,8 +117,6 @@ public class AccountRepository {
                 .first()
                 .orElseThrow();
     }
-
-    // -- Account Roles --
 
     /**
      * Retrieves all global roles assigned to an account.
@@ -231,6 +233,8 @@ public class AccountRepository {
                 UPDATE account SET email_verified = TRUE WHERE id = :id;""").single(Call.of().bind("id", id)).update().changed();
     }
 
+    // -- Credentials --
+
     /**
      * Deletes an account by its identifier.
      *
@@ -241,8 +245,6 @@ public class AccountRepository {
         return query("""
                 DELETE FROM account WHERE id = :id;""").single(Call.of().bind("id", id)).delete().changed();
     }
-
-    // -- Credentials --
 
     /**
      * Finds the password credential for an account.
@@ -301,6 +303,8 @@ public class AccountRepository {
                 .changed();
     }
 
+    // -- External Auth --
+
     /**
      * Deletes the password credential for an account.
      *
@@ -313,8 +317,6 @@ public class AccountRepository {
                 .delete()
                 .changed();
     }
-
-    // -- External Auth --
 
     /**
      * Retrieves all external authentication links for an account.
@@ -362,6 +364,8 @@ public class AccountRepository {
                 .insert();
     }
 
+    // -- Tokens --
+
     /**
      * Deletes an external authentication record by its identifier.
      *
@@ -374,8 +378,6 @@ public class AccountRepository {
                 .delete()
                 .changed();
     }
-
-    // -- Tokens --
 
     /**
      * Finds a token by its token string.
@@ -452,6 +454,8 @@ public class AccountRepository {
                 .changed();
     }
 
+    // -- Sessions --
+
     /**
      * Deletes all tokens of a specific type for an account, typically before creating a replacement.
      *
@@ -465,8 +469,6 @@ public class AccountRepository {
                 .delete()
                 .changed();
     }
-
-    // -- Sessions --
 
     /**
      * Finds a session by its bearer token.
@@ -597,6 +599,8 @@ public class AccountRepository {
                 .changed();
     }
 
+    // -- GDPR Consent --
+
     /**
      * Deletes all expired sessions from the database.
      *
@@ -608,11 +612,6 @@ public class AccountRepository {
                 .delete()
                 .changed();
     }
-
-    // -- GDPR Consent --
-
-    private static final String CONSENT_COLUMNS =
-            "id, account_id, consent_version, privacy_version, tos_version, ip_address, country, user_agent, consented_at";
 
     /**
      * Records a GDPR consent entry for an account with version information and client metadata.

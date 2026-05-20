@@ -10,7 +10,7 @@ import {useRoute} from 'vue-router'
 import SidebarLayout from '@/components/layout/SidebarLayout.vue'
 import SidebarGroup from '@/components/navigation/SidebarGroup.vue'
 import SidebarLink from '@/components/navigation/SidebarLink.vue'
-import SidebarSubGroup from '@/components/navigation/SidebarSubGroup.vue'
+import SidebarExpandableLink from '@/components/navigation/SidebarExpandableLink.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 
 const {t, te} = useI18n()
@@ -30,11 +30,8 @@ const pageSubtitle = computed(() => t('helpCenter.title'))
 <template>
   <SidebarLayout :subtitle="pageSubtitle" :title="pageTitle" :station-name="t('helpCenter.title')">
     <template #sidebar="{ close }">
-      <SidebarGroup :icon="['fas', 'book']" :label="t('helpCenter.basics.sidebar')" prefix="/helpcenter/station/basics">
-        <SidebarLink :icon="['fas', 'house']" name="help-welcome"
-                     to="/helpcenter/station/basics" @navigate="close">
-          {{ t('helpCenter.basics.sidebarWelcome') }}
-        </SidebarLink>
+      <SidebarGroup :icon="['fas', 'book']" :label="t('helpCenter.basics.sidebar')" prefix="/helpcenter/station/basics"
+                    to="/helpcenter/station/basics" name="help-welcome" @navigate="close">
         <SidebarLink :icon="['fas', 'circle-info']" name="help-basics-overview"
                      to="/helpcenter/station/basics/overview" @navigate="close">
           {{ t('helpCenter.basics.sidebarOverview') }}
@@ -53,7 +50,8 @@ const pageSubtitle = computed(() => t('helpCenter.title'))
         </SidebarLink>
       </SidebarGroup>
 
-      <SidebarGroup :icon="['fas', 'gauge']" :label="t('sidebar.dashboard')" prefix="/helpcenter/station/dashboard">
+      <SidebarGroup :icon="['fas', 'gauge']" :label="t('sidebar.dashboard')" prefix="/helpcenter/station/dashboard"
+                    to="/helpcenter/station/dashboard" name="help-dashboard-module-overview" @navigate="close">
         <SidebarLink :icon="['fas', 'house']" name="help-dashboard-overview"
                      to="/helpcenter/station/dashboard/overview" @navigate="close">
           {{ t('sidebar.overview') }}
@@ -64,19 +62,19 @@ const pageSubtitle = computed(() => t('helpCenter.title'))
         </SidebarLink>
       </SidebarGroup>
 
-      <SidebarGroup :icon="['fas', 'newspaper']" :label="t('sidebar.news')" prefix="/helpcenter/station/news">
-        <SidebarLink :icon="['fas', 'newspaper']" name="help-news-list" to="/helpcenter/station/news" @navigate="close">
+      <SidebarGroup :icon="['fas', 'newspaper']" :label="t('sidebar.news')" prefix="/helpcenter/station/news"
+                    to="/helpcenter/station/news" name="help-news-overview" @navigate="close">
+        <SidebarLink :icon="['fas', 'newspaper']" name="help-news-list" to="/helpcenter/station/news/list" @navigate="close">
           {{ t('sidebar.newsList') }}
         </SidebarLink>
-        <SidebarSubGroup :label="t('sidebar.newsEdit')" prefix="/helpcenter/station/news/create">
-          <SidebarLink :icon="['fas', 'pen']" name="help-news-create" to="/helpcenter/station/news/create" @navigate="close">
-            {{ t('sidebar.newsEdit') }}
-          </SidebarLink>
-        </SidebarSubGroup>
+        <SidebarLink :icon="['fas', 'pen']" name="help-news-create" to="/helpcenter/station/news/create" @navigate="close">
+          {{ t('sidebar.newsEdit') }}
+        </SidebarLink>
       </SidebarGroup>
 
-      <SidebarGroup :icon="['fas', 'user']" :label="t('sidebar.profile')" prefix="/helpcenter/station/profile">
-        <SidebarLink :icon="['fas', 'user']" name="help-profile" to="/helpcenter/station/profile" @navigate="close">
+      <SidebarGroup :icon="['fas', 'user']" :label="t('sidebar.profile')" prefix="/helpcenter/station/profile"
+                    to="/helpcenter/station/profile" name="help-profile-overview" @navigate="close">
+        <SidebarLink :icon="['fas', 'user']" name="help-profile" to="/helpcenter/station/profile/index" @navigate="close">
           {{ t('sidebar.myProfile') }}
         </SidebarLink>
         <SidebarLink :icon="['fas', 'calendar-days']" name="help-profile-absences"
@@ -97,56 +95,52 @@ const pageSubtitle = computed(() => t('helpCenter.title'))
         </SidebarLink>
       </SidebarGroup>
 
-      <SidebarGroup :icon="['fas', 'gears']" :label="t('sidebar.station')" prefix="/helpcenter/station/manage">
-        <SidebarLink :icon="['fas', 'gears']" name="help-station-manage" to="/helpcenter/station/manage"
+      <SidebarGroup :icon="['fas', 'gears']" :label="t('sidebar.station')" prefix="/helpcenter/station/manage"
+                    to="/helpcenter/station/manage" name="help-manage-overview" @navigate="close">
+        <SidebarLink :icon="['fas', 'gears']" name="help-station-manage" to="/helpcenter/station/manage/station"
                      @navigate="close">
           {{ t('sidebar.manage') }}
         </SidebarLink>
-        <SidebarLink :icon="['fas', 'clipboard-check']" name="help-station-attendance-config"
-                     to="/helpcenter/station/manage/attendance-config" @navigate="close">
-          {{ t('sidebar.attendanceConfig') }}
-        </SidebarLink>
-        <SidebarSubGroup :label="t('sidebar.attendanceConfigEdit')" prefix="/helpcenter/station/manage/attendance-config/edit">
+        <SidebarExpandableLink :icon="['fas', 'clipboard-check']" name="help-station-attendance-config"
+                               to="/helpcenter/station/manage/attendance-config" @navigate="close">
+          <template #label>{{ t('sidebar.attendanceConfig') }}</template>
           <SidebarLink :icon="['fas', 'pen']" name="help-station-attendance-config-edit"
                        to="/helpcenter/station/manage/attendance-config/edit" @navigate="close">
             {{ t('sidebar.attendanceConfigEdit') }}
           </SidebarLink>
-        </SidebarSubGroup>
+        </SidebarExpandableLink>
         <SidebarLink :icon="['fas', 'users-gear']" name="help-station-members-config"
                      to="/helpcenter/station/manage/members-config" @navigate="close">
           {{ t('sidebar.membersConfig') }}
         </SidebarLink>
       </SidebarGroup>
 
-      <SidebarGroup :icon="['fas', 'users']" :label="t('sidebar.members')" prefix="/helpcenter/station/members">
+      <SidebarGroup :icon="['fas', 'users']" :label="t('sidebar.members')" prefix="/helpcenter/station/members"
+                    to="/helpcenter/station/members" name="help-members-overview" @navigate="close">
         <SidebarLink :icon="['fas', 'user-plus']" name="help-members-create"
                      to="/helpcenter/station/members/create" @navigate="close">
           {{ t('sidebar.create') }}
         </SidebarLink>
-        <SidebarSubGroup :label="t('sidebar.import')" prefix="/helpcenter/station/members/import">
-          <SidebarLink :icon="['fas', 'upload']" name="help-members-import"
-                       to="/helpcenter/station/members/import" @navigate="close">
-            {{ t('sidebar.membersImport') }}
-          </SidebarLink>
+        <SidebarExpandableLink :icon="['fas', 'upload']" name="help-members-import"
+                               to="/helpcenter/station/members/import" @navigate="close">
+          <template #label>{{ t('sidebar.membersImport') }}</template>
           <SidebarLink :icon="['fas', 'users']" name="help-members-import-team"
                        to="/helpcenter/station/members/import-team" @navigate="close">
             {{ t('sidebar.membersImportTeam') }}
           </SidebarLink>
-        </SidebarSubGroup>
+        </SidebarExpandableLink>
         <SidebarLink :icon="['fas', 'list']" name="help-members-list" to="/helpcenter/station/members/list"
                      @navigate="close">
           {{ t('sidebar.list') }}
         </SidebarLink>
-        <SidebarSubGroup :label="t('sidebar.detail')" prefix="/helpcenter/station/members/detail">
-          <SidebarLink :icon="['fas', 'eye']" name="help-members-detail"
-                       to="/helpcenter/station/members/detail" @navigate="close">
-            {{ t('sidebar.detail') }}
-          </SidebarLink>
+        <SidebarExpandableLink :icon="['fas', 'eye']" name="help-members-detail"
+                               to="/helpcenter/station/members/detail" @navigate="close">
+          <template #label>{{ t('sidebar.detail') }}</template>
           <SidebarLink :icon="['fas', 'pen']" name="help-members-edit"
                        to="/helpcenter/station/members/edit" @navigate="close">
             {{ t('sidebar.edit') }}
           </SidebarLink>
-        </SidebarSubGroup>
+        </SidebarExpandableLink>
         <SidebarLink :icon="['fas', 'layer-group']" name="help-members-groups"
                      to="/helpcenter/station/members/groups" @navigate="close">
           {{ t('sidebar.groups') }}
@@ -166,7 +160,8 @@ const pageSubtitle = computed(() => t('helpCenter.title'))
       </SidebarGroup>
 
       <SidebarGroup :icon="['fas', 'boxes-stacked']" :label="t('sidebar.inventory')"
-                    prefix="/helpcenter/station/inventory">
+                    prefix="/helpcenter/station/inventory"
+                    to="/helpcenter/station/inventory" name="help-inventory-module-overview" @navigate="close">
         <SidebarLink :icon="['fas', 'house']" name="help-inventory-overview"
                      to="/helpcenter/station/inventory/overview" @navigate="close">
           {{ t('sidebar.overview') }}
@@ -179,21 +174,17 @@ const pageSubtitle = computed(() => t('helpCenter.title'))
                      to="/helpcenter/station/inventory/exchanges" @navigate="close">
           {{ t('sidebar.inventoryExchanges') }}
         </SidebarLink>
-        <SidebarLink :icon="['fas', 'users']" name="help-inventory-members"
-                     to="/helpcenter/station/inventory/members" @navigate="close">
-          {{ t('sidebar.inventoryMembers') }}
-        </SidebarLink>
-        <SidebarSubGroup :label="t('sidebar.inventoryMemberDetail')" prefix="/helpcenter/station/inventory/member">
+        <SidebarExpandableLink :icon="['fas', 'users']" name="help-inventory-members"
+                               to="/helpcenter/station/inventory/members" prefix="/helpcenter/station/inventory/member" @navigate="close">
+          <template #label>{{ t('sidebar.inventoryMembers') }}</template>
           <SidebarLink :icon="['fas', 'user']" name="help-inventory-member"
                        to="/helpcenter/station/inventory/member" @navigate="close">
             {{ t('sidebar.inventoryMemberDetail') }}
           </SidebarLink>
-        </SidebarSubGroup>
-        <SidebarLink :icon="['fas', 'box-open']" name="help-inventory-manage"
-                     to="/helpcenter/station/inventory/manage" @navigate="close">
-          {{ t('sidebar.inventoryManage') }}
-        </SidebarLink>
-        <SidebarSubGroup :label="t('sidebar.inventoryDetail')" prefix="/helpcenter/station/inventory/detail">
+        </SidebarExpandableLink>
+        <SidebarExpandableLink :icon="['fas', 'box-open']" name="help-inventory-manage"
+                               to="/helpcenter/station/inventory/manage" @navigate="close">
+          <template #label>{{ t('sidebar.inventoryManage') }}</template>
           <SidebarLink :icon="['fas', 'eye']" name="help-inventory-detail"
                        to="/helpcenter/station/inventory/detail" @navigate="close">
             {{ t('sidebar.inventoryDetail') }}
@@ -202,16 +193,14 @@ const pageSubtitle = computed(() => t('helpCenter.title'))
                        to="/helpcenter/station/inventory/edit" @navigate="close">
             {{ t('sidebar.inventoryEdit') }}
           </SidebarLink>
-        </SidebarSubGroup>
+        </SidebarExpandableLink>
         <SidebarLink :icon="['fas', 'clipboard-list']" name="help-inventory-requirements"
                      to="/helpcenter/station/inventory/requirements" @navigate="close">
           {{ t('sidebar.inventoryRequirements') }}
         </SidebarLink>
-        <SidebarLink :icon="['fas', 'clipboard-check']" name="help-inventory-checks"
-                     to="/helpcenter/station/inventory/checks" @navigate="close">
-          {{ t('sidebar.inventoryCheck') }}
-        </SidebarLink>
-        <SidebarSubGroup :label="t('sidebar.inventoryCheckMember')" prefix="/helpcenter/station/inventory/checks/0">
+        <SidebarExpandableLink :icon="['fas', 'clipboard-check']" name="help-inventory-checks"
+                               to="/helpcenter/station/inventory/checks" @navigate="close">
+          <template #label>{{ t('sidebar.inventoryCheck') }}</template>
           <SidebarLink :icon="['fas', 'user-check']" name="help-inventory-check-member"
                        to="/helpcenter/station/inventory/checks/0" @navigate="close">
             {{ t('sidebar.inventoryCheckMember') }}
@@ -220,7 +209,7 @@ const pageSubtitle = computed(() => t('helpCenter.title'))
                        to="/helpcenter/station/inventory/checks/0/result" @navigate="close">
             {{ t('sidebar.inventoryCheckResult') }}
           </SidebarLink>
-        </SidebarSubGroup>
+        </SidebarExpandableLink>
         <SidebarLink :icon="['fas', 'folder-plus']" name="help-inventory-procurement"
                      to="/helpcenter/station/inventory/procurement" @navigate="close">
           {{ t('sidebar.inventoryProcurement') }}
@@ -228,17 +217,16 @@ const pageSubtitle = computed(() => t('helpCenter.title'))
       </SidebarGroup>
 
       <SidebarGroup :icon="['fas', 'clipboard-user']" :label="t('sidebar.attendance')"
-                    prefix="/helpcenter/station/attendance">
+                    prefix="/helpcenter/station/attendance"
+                    to="/helpcenter/station/attendance" name="help-attendance-overview" @navigate="close">
         <SidebarLink :icon="['fas', 'calendar-plus']" name="help-attendance-new"
                      to="/helpcenter/station/attendance/new" @navigate="close">
           {{ t('sidebar.newAttendance') }}
         </SidebarLink>
-        <SidebarSubGroup :label="t('sidebar.attendanceSession')" prefix="/helpcenter/station/attendance/session">
-          <SidebarLink :icon="['fas', 'clipboard-user']" name="help-attendance-session"
-                       to="/helpcenter/station/attendance/session" @navigate="close">
-            {{ t('sidebar.attendanceSession') }}
-          </SidebarLink>
-        </SidebarSubGroup>
+        <SidebarLink :icon="['fas', 'clipboard-user']" name="help-attendance-session"
+                     to="/helpcenter/station/attendance/session" @navigate="close">
+          {{ t('sidebar.attendanceSession') }}
+        </SidebarLink>
         <SidebarLink :icon="['fas', 'clock-rotate-left']" name="help-attendance-past"
                      to="/helpcenter/station/attendance/past" @navigate="close">
           {{ t('sidebar.pastAttendance') }}
@@ -250,7 +238,8 @@ const pageSubtitle = computed(() => t('helpCenter.title'))
       </SidebarGroup>
 
       <SidebarGroup :icon="['fas', 'calendar-days']" :label="t('sidebar.events')"
-                    prefix="/helpcenter/station/events">
+                    prefix="/helpcenter/station/events"
+                    to="/helpcenter/station/events/overview" name="help-events-overview" @navigate="close">
         <SidebarLink :icon="['fas', 'calendar-plus']" name="help-events-upcoming"
                      to="/helpcenter/station/events/upcoming" @navigate="close">
           {{ t('sidebar.upcomingEvents') }}
@@ -263,24 +252,39 @@ const pageSubtitle = computed(() => t('helpCenter.title'))
                      to="/helpcenter/station/events" @navigate="close">
           {{ t('sidebar.manageEvents') }}
         </SidebarLink>
-        <SidebarSubGroup :label="t('sidebar.eventEdit')" prefix="/helpcenter/station/events/new">
-          <SidebarLink :icon="['fas', 'pen']" name="help-event-new"
-                       to="/helpcenter/station/events/new" @navigate="close">
-            {{ t('sidebar.eventEdit') }}
-          </SidebarLink>
-        </SidebarSubGroup>
+        <SidebarLink :icon="['fas', 'pen']" name="help-event-new"
+                     to="/helpcenter/station/events/new" @navigate="close">
+          {{ t('sidebar.eventEdit') }}
+        </SidebarLink>
+        <SidebarLink :icon="['fas', 'eye']" name="help-event-detail"
+                     to="/helpcenter/station/events/detail" @navigate="close">
+          {{ t('sidebar.eventDetail') }}
+        </SidebarLink>
       </SidebarGroup>
 
       <SidebarGroup :icon="['fas', 'square-poll-vertical']" :label="t('sidebar.forms')"
-                    prefix="/helpcenter/station/forms">
+                    prefix="/helpcenter/station/forms"
+                    to="/helpcenter/station/forms" name="help-forms-overview" @navigate="close">
         <SidebarLink :icon="['fas', 'list']" name="help-forms-list"
-                     to="/helpcenter/station/forms" @navigate="close">
+                     to="/helpcenter/station/forms/list" @navigate="close">
           {{ t('sidebar.formsList') }}
         </SidebarLink>
         <SidebarLink :icon="['fas', 'plus']" name="help-forms-create"
                      to="/helpcenter/station/forms/create" @navigate="close">
           {{ t('sidebar.formsCreate') }}
         </SidebarLink>
+        <SidebarLink :icon="['fas', 'pen-to-square']" name="help-forms-fill"
+                     to="/helpcenter/station/forms/fill" @navigate="close">
+          {{ t('sidebar.formsFill') }}
+        </SidebarLink>
+        <SidebarLink :icon="['fas', 'chart-bar']" name="help-forms-analytics"
+                     to="/helpcenter/station/forms/analytics" @navigate="close">
+          {{ t('sidebar.formsAnalytics') }}
+        </SidebarLink>
+      </SidebarGroup>
+
+      <SidebarGroup :icon="['fas', 'box-open']" :label="t('sidebar.lostAndFound')" prefix="/helpcenter/station/lost-and-found"
+                    to="/helpcenter/station/lost-and-found" name="help-lost-and-found" @navigate="close">
       </SidebarGroup>
     </template>
 

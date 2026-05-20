@@ -15,7 +15,9 @@ import de.chojo.sadu.mapper.rowmapper.RowMapping;
  * @param name      display name of the template
  */
 public record AttendanceTemplate(int id, int stationId, String name) {
-    /** Creates a row mapping for database result set conversion. */
+    /**
+     * Creates a row mapping for database result set conversion.
+     */
     public static RowMapping<AttendanceTemplate> map() {
         return row -> new AttendanceTemplate(row.getInt("id"), row.getInt("station_id"), row.getString("name"));
     }

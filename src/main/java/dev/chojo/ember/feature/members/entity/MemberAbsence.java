@@ -31,7 +31,9 @@ public record MemberAbsence(
         String reason,
         Instant createdAt,
         Integer createdBy) {
-    /** Creates a row mapping for database result set conversion. */
+    /**
+     * Creates a row mapping for database result set conversion.
+     */
     public static RowMapping<MemberAbsence> map() {
         return row -> new MemberAbsence(
                 row.getInt("id"),

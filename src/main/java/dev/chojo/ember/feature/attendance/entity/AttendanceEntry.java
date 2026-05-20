@@ -31,7 +31,9 @@ public record AttendanceEntry(
         Instant checkIn,
         Instant checkOut,
         EntrySource source) {
-    /** Creates a row mapping for database result set conversion. */
+    /**
+     * Creates a row mapping for database result set conversion.
+     */
     public static RowMapping<AttendanceEntry> map() {
         return row -> new AttendanceEntry(
                 row.getInt("id"),
@@ -51,7 +53,9 @@ public record AttendanceEntry(
         return Optional.ofNullable(checkOut);
     }
 
-    /** The attendance status of a member in a session. */
+    /**
+     * The attendance status of a member in a session.
+     */
     public enum AttendanceStatus {
         UNCONFIRMED,
         PRESENT,
@@ -59,7 +63,9 @@ public record AttendanceEntry(
         DECLINED
     }
 
-    /** Indicates how an attendance entry was created. */
+    /**
+     * Indicates how an attendance entry was created.
+     */
     public enum EntrySource {
         EXPECTED,
         EXTRA

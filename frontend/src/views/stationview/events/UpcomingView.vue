@@ -27,7 +27,7 @@ import {useSession} from '@/composables/useSession'
 
 const {t} = useI18n()
 const router = useRouter()
-const {sessionInfo, loaded, isGuardian, canManageAttendance, canManageEvents} = useSession()
+const {sessionInfo, loaded, isGuardian, canManageAttendance} = useSession()
 
 const allEvents = ref<StationEvent[]>([])
 const todayEvents = ref<StationEvent[]>([])
@@ -325,8 +325,7 @@ watch(loaded, (isLoaded) => {
           <div class="grid gap-3 sm:grid-cols-2">
             <PrimaryContainer v-for="ev in filteredTodayEvents" :key="ev.id" class="space-y-2">
               <div class="flex items-center justify-between">
-                <button v-if="canManageEvents()" class="font-semibold text-primary hover:underline cursor-pointer" @click="router.push({ name: 'event-detail', params: { id: ev.id } })">{{ ev.name }}</button>
-                <span v-else class="font-semibold">{{ ev.name }}</span>
+                <button class="font-semibold text-primary hover:underline cursor-pointer" @click="router.push({ name: 'event-detail', params: { id: ev.id } })">{{ ev.name }}</button>
                 <span class="text-sm">{{ formatTime(ev.startTime) }} – {{ formatTime(ev.endTime) }}</span>
               </div>
               <p v-if="ev.description" class="text-sm text-(--text-muted)">{{ ev.description }}</p>
@@ -352,8 +351,7 @@ watch(loaded, (isLoaded) => {
             <NeutralContainer v-for="item in upcomingEvents" :key="`${item.event.id}-${item.date}`" class="space-y-2">
               <div class="flex items-center justify-between flex-wrap gap-2">
                 <div>
-                  <button v-if="canManageEvents()" class="font-medium text-primary hover:underline cursor-pointer" @click="router.push({ name: 'event-detail', params: { id: item.event.id } })">{{ item.event.name }}</button>
-                  <span v-else class="font-medium">{{ item.event.name }}</span>
+                  <button class="font-medium text-primary hover:underline cursor-pointer" @click="router.push({ name: 'event-detail', params: { id: item.event.id } })">{{ item.event.name }}</button>
                   <span class="ml-2 text-sm text-(--text-muted)">{{ item.dayLabel }}, {{ item.date }}</span>
                   <span class="ml-2 text-xs text-(--text-muted)">{{
                       formatTime(item.event.startTime)

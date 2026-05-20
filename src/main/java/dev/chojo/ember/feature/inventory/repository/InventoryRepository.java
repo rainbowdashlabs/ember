@@ -416,8 +416,8 @@ public class InventoryRepository {
     public void createHistoryWithDates(
             int itemId, int memberId, String memberName, Instant givenOut, Instant returned) {
         Query.query("""
-                        INSERT INTO inventory_item_history(item_id, member_id, member_name, given_out, returned)
-                        VALUES(:itemId, :memberId, :memberName, :givenOut, :returned);""")
+                     INSERT INTO inventory_item_history(item_id, member_id, member_name, given_out, returned)
+                     VALUES(:itemId, :memberId, :memberName, :givenOut, :returned);""")
                 .single(Call.of()
                         .bind("itemId", itemId)
                         .bind("memberId", memberId)

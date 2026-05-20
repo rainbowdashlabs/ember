@@ -10,6 +10,7 @@ import dev.chojo.ember.feature.form.entity.FormQuestion;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
 import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
 import dev.chojo.ember.feature.members.entity.Role;
+import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.feature.station.service.StationExportService;
 import dev.chojo.ember.feature.station.service.StationImportService;
 import dev.chojo.ember.repository.RepositoryTestBase;
@@ -64,7 +65,8 @@ class StationTransferTest extends RepositoryTestBase {
         sourceStationId = station.id();
         stationRepo.updateTimezone(sourceStationId, "Europe/Berlin");
         stationRepo.updateLocale(sourceStationId, "de-DE");
-        stationRepo.disableModule(sourceStationId, "LOST_AND_FOUND");
+        stationRepo.setDisabledModules(
+                sourceStationId, java.util.Set.of(dev.chojo.ember.feature.station.entity.StationModule.LOST_AND_FOUND));
 
         // --- Accounts & Members ---
         // Manager with full account
@@ -298,7 +300,7 @@ class StationTransferTest extends RepositoryTestBase {
         assertEquals(5, ((List<?>) exportedData.get("inventoryItems")).size());
         assertEquals(1, ((List<?>) exportedData.get("forms")).size());
         assertEquals(3, ((List<?>) exportedData.get("formQuestions")).size());
-        assertTrue(((List<String>) exportedData.get("disabledModules")).contains("LOST_AND_FOUND"));
+        assertTrue(((List<?>) exportedData.get("disabledModules")).contains("LOST_AND_FOUND"));
     }
 
     @SuppressWarnings("unchecked")
@@ -375,7 +377,7 @@ class StationTransferTest extends RepositoryTestBase {
         assertEquals(2, importedInventories.size());
 
         // Disabled modules
-        assertTrue(stationRepo.findDisabledModules(result.stationId()).contains("LOST_AND_FOUND"));
+        assertTrue(stationRepo.findDisabledModules(result.stationId()).contains(StationModule.LOST_AND_FOUND));
 
         // Owner — should be set to the imported manager member
         var importedStation = stationRepo.findById(result.stationId()).orElseThrow();

@@ -18,6 +18,7 @@ import dev.chojo.ember.feature.form.service.FormService;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.StationMemberService;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
+import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
 import dev.chojo.ember.feature.notifications.service.NotificationService;
 import io.javalin.http.BadRequestResponse;
@@ -69,7 +70,9 @@ public class FormRoutes implements Routes {
         this.accountRepository = accountRepository;
     }
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
         // Management
@@ -270,8 +273,7 @@ public class FormRoutes implements Routes {
                 session.stationId(),
                 NotificationType.NEW_FORM,
                 NotificationData.of(
-                        "notification.newForm",
-                        Map.of("title", form.title()),
+                        new NotificationParams.NewForm(form.title()),
                         new NotificationData.NotificationLink("forms-fill", Map.of("id", String.valueOf(id)))));
 
         formService.findById(id).ifPresentOrElse(item -> ctx.json(item), () -> {
@@ -535,8 +537,7 @@ public class FormRoutes implements Routes {
         notificationService.deleteByTypeContaining(
                 NotificationType.NEW_FORM,
                 NotificationData.of(
-                                "notification.newForm",
-                                Map.of(),
+                                new NotificationParams.NewForm(null),
                                 new NotificationData.NotificationLink(
                                         "forms-fill", Map.of("id", String.valueOf(formId))))
                         .toJson());

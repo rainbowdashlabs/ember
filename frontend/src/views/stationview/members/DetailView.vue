@@ -22,9 +22,12 @@ import Alert from '@/components/feedback/Alert.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import ChangeHistory from './detailview/ChangeHistory.vue'
 import type { ProfileField, ProfileFieldChange, StationMember } from '@/api/types'
-import { Roles, hasTeamRole, ExchangeStatus } from '@/api/types'
+import { Roles, hasTeamRole, ExchangeStatus, StationModules } from '@/api/types'
+import type { Inventory, InventoryItem } from '@/api/types'
 import SubHeader from '@/components/typography/SubHeader.vue'
+import FieldValueDisplay from '@/components/display/FieldValueDisplay.vue'
 import InventoryItemCard from '@/views/stationview/inventory/InventoryItemCard.vue'
+import SizeBadge from '@/components/badge/SizeBadge.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import { profileFields, profileFieldChanges, stationMembers, members, inventory, exchanges } from '@/api'
 import type { MyInventoryItem } from '@/api/inventory'
@@ -36,7 +39,9 @@ const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
 const { currentStationId } = useStations()
-const { sessionInfo, canManageMembers, isGuardian, canManageInventory } = useSession()
+const { sessionInfo, canManageMembers, isGuardian, canManageInventory, isModuleEnabled } = useSession()
+const inventoryEnabled = computed(() => isModuleEnabled(StationModules.INVENTORY))
+const showInventoryManagement = computed(() => inventoryEnabled.value && canManageInventory())
 
 const memberId = computed(() => Number(route.params.id))
 const currentMemberId = computed(() => sessionInfo.value?.member?.id ?? 0)
@@ -90,12 +95,12 @@ function memberDisplayName(m: StationMember): string {
   return m.name && m.name.trim() ? m.name : m.email ?? `#${m.id}`
 }
 
-function getFieldValue(fieldId: number): string {
+function getFieldValue(fieldId: number): unknown {
   const raw = values.value.get(fieldId) ?? ''
   try { return JSON.parse(raw) } catch { return raw }
 }
 
-function getManagerFieldValue(mgrId: number, fieldId: number): string {
+function getManagerFieldValue(mgrId: number, fieldId: number): unknown {
   const vals = managerValues.value.get(mgrId)
   if (!vals) return ''
   const raw = vals.get(fieldId) ?? ''
@@ -291,6 +296,93 @@ async function submitExchange() {
   }
 }
 
+// Assign inventory item
+const showAssignModal = ref(false)
+const inventories = ref<Inventory[]>([])
+const assignInventoryId = ref('')
+const assignItems = ref<InventoryItem[]>([])
+const assignItemId = ref('')
+const assignLoading = ref(false)
+
+async function openAssignModal() {
+  showAssignModal.value = true
+  assignInventoryId.value = ''
+  assignItems.value = []
+  assignItemId.value = ''
+  try {
+    inventories.value = await inventory.listInventories()
+  } catch { /* ignore */ }
+}
+
+async function onAssignInventoryChange(invId: string | undefined) {
+  assignInventoryId.value = invId ?? ''
+  assignItemId.value = ''
+  if (!invId) { assignItems.value = []; return }
+  try {
+    const items = await inventory.listItems(Number(invId))
+    assignItems.value = items.filter(i => !i.assignedTo)
+  } catch { assignItems.value = [] }
+}
+
+async function confirmAssign() {
+  if (!assignItemId.value) return
+  assignLoading.value = true
+  error.value = ''
+  try {
+    await inventory.assignItem(Number(assignItemId.value), { memberId: memberId.value })
+    memberInventory.value = await inventory.memberItems(memberId.value)
+    showAssignModal.value = false
+  } catch {
+    error.value = t('common.error')
+  } finally {
+    assignLoading.value = false
+  }
+}
+
+// Unassign inventory item
+async function unassignItem(item: MyInventoryItem) {
+  error.value = ''
+  try {
+    await inventory.assignItem(item.id, { memberId: null })
+    memberInventory.value = await inventory.memberItems(memberId.value)
+  } catch {
+    error.value = t('common.error')
+  }
+}
+
+// Reassign inventory item to another member
+const showReassignModal = ref(false)
+const reassignItem = ref<MyInventoryItem | null>(null)
+const reassignTargetId = ref('')
+const reassignLoading = ref(false)
+
+function openReassignModal(item: MyInventoryItem) {
+  reassignItem.value = item
+  reassignTargetId.value = ''
+  showReassignModal.value = true
+}
+
+async function confirmReassign() {
+  if (!reassignItem.value || !reassignTargetId.value) return
+  reassignLoading.value = true
+  error.value = ''
+  try {
+    await inventory.assignItem(reassignItem.value.id, { memberId: Number(reassignTargetId.value) })
+    memberInventory.value = await inventory.memberItems(memberId.value)
+    showReassignModal.value = false
+  } catch {
+    error.value = t('common.error')
+  } finally {
+    reassignLoading.value = false
+  }
+}
+
+const reassignTargets = computed(() => {
+  return allMembers.value
+      .filter(m => m.id !== memberId.value)
+      .sort((a, b) => memberDisplayName(a).localeCompare(memberDisplayName(b)))
+})
+
 // Former member
 const showFormerModal = ref(false)
 const markingFormer = ref(false)
@@ -371,7 +463,10 @@ onMounted(loadData)
             <font-awesome-icon :icon="['fas', 'user-slash']" class="mr-1" />
             {{ t('memberDetail.markFormer') }}
           </ErrorButton>
-          <DeleteButton v-if="canManageMembers() && !deleteSuccess && !formerSuccess" @click="showDeleteModal = true" />
+          <ErrorButton v-if="canManageMembers() && !deleteSuccess && !formerSuccess" @click="showDeleteModal = true">
+            <font-awesome-icon :icon="['fas', 'trash']" class="mr-1" />
+            {{ t('memberDetail.deleteData') }}
+          </ErrorButton>
           <PrimaryButton @click="goToEdit">
             <font-awesome-icon :icon="['fas', 'pen']" class="mr-2" />
             {{ t('memberDetail.edit') }}
@@ -395,7 +490,7 @@ onMounted(loadData)
           <div class="grid gap-2 sm:grid-cols-2">
             <div v-for="field in applicableFields" :key="field.id" class="text-sm">
               <span class="text-(--text-muted)">{{ field.name }}:</span>
-              <span class="ml-1 font-medium">{{ getFieldValue(field.id) || '–' }}</span>
+              <span class="ml-1 font-medium"><FieldValueDisplay :value="getFieldValue(field.id)" :field-type="field.fieldType"/></span>
             </div>
           </div>
         </NeutralContainer>
@@ -435,7 +530,7 @@ onMounted(loadData)
               <div v-if="getManagerFields(mgr.id).length > 0" class="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
                 <div v-for="field in getManagerFields(mgr.id)" :key="field.id" class="text-sm">
                   <span class="text-(--text-muted)">{{ field.name }}:</span>
-                  <span class="ml-1 font-medium">{{ getManagerFieldValue(mgr.id, field.id) || '–' }}</span>
+                  <span class="ml-1 font-medium"><FieldValueDisplay :value="getManagerFieldValue(mgr.id, field.id)" :field-type="field.fieldType"/></span>
                 </div>
               </div>
             </div>
@@ -471,17 +566,30 @@ onMounted(loadData)
         </NeutralContainer>
 
         <!-- Inventory -->
-        <NeutralContainer v-if="memberInventory.length > 0" class="space-y-3">
-          <SubHeader>{{ t('memberDetail.inventory') }}</SubHeader>
-          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+        <NeutralContainer v-if="inventoryEnabled && (memberInventory.length > 0 || showInventoryManagement)" class="space-y-3">
+          <div class="flex items-center justify-between">
+            <SubHeader>{{ t('memberDetail.inventory') }}</SubHeader>
+            <PrimaryButton v-if="showInventoryManagement" class="text-sm" @click="openAssignModal">
+              <font-awesome-icon :icon="['fas', 'plus']" class="mr-1"/>
+              {{ t('memberDetail.assignItem') }}
+            </PrimaryButton>
+          </div>
+          <div v-if="memberInventory.length === 0" class="text-sm text-(--text-muted)">
+            {{ t('memberDetail.noInventory') }}
+          </div>
+          <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
             <InventoryItemCard
                 v-for="item in memberInventory"
                 :key="item.id"
                 :item="item"
                 :exchange="itemExchange(item.id) ?? null"
                 :show-exchange-button="canManageInventory()"
+                :show-unassign-button="showInventoryManagement"
+                :show-reassign-button="showInventoryManagement"
                 :show-inventory-name="true"
                 @request-exchange="openExchangeModal"
+                @unassign="unassignItem"
+                @reassign="openReassignModal"
             />
           </div>
         </NeutralContainer>
@@ -554,6 +662,60 @@ onMounted(loadData)
         </div>
       </Modal>
 
+      <!-- Assign item modal -->
+      <Modal v-model="showAssignModal">
+        <div class="space-y-4">
+          <SectionHeader>{{ t('memberDetail.assignItem') }}</SectionHeader>
+          <div class="space-y-1">
+            <label class="block text-sm font-medium">{{ t('memberDetail.selectInventory') }}</label>
+            <SelectInput :model-value="assignInventoryId" @update:model-value="onAssignInventoryChange">
+              <option value="" disabled>{{ t('memberDetail.selectInventoryPlaceholder') }}</option>
+              <option v-for="inv in inventories" :key="inv.id" :value="String(inv.id)">{{ inv.name }}</option>
+            </SelectInput>
+          </div>
+          <div v-if="assignInventoryId" class="space-y-1">
+            <label class="block text-sm font-medium">{{ t('memberDetail.selectItem') }}</label>
+            <SelectInput v-model="assignItemId">
+              <option value="" disabled>{{ t('memberDetail.selectItemPlaceholder') }}</option>
+              <option v-for="item in assignItems" :key="item.id" :value="String(item.id)">
+                {{ item.name ?? item.internalId ?? `#${item.id}` }}
+              </option>
+            </SelectInput>
+            <p v-if="assignItems.length === 0" class="text-xs text-(--text-muted)">{{ t('memberDetail.noAvailableItems') }}</p>
+          </div>
+          <div class="flex justify-end gap-2">
+            <SecondaryButton @click="showAssignModal = false">{{ t('common.cancel') }}</SecondaryButton>
+            <PrimaryButton :disabled="assignLoading || !assignItemId" @click="confirmAssign">
+              {{ assignLoading ? t('common.loading') : t('memberDetail.assignItem') }}
+            </PrimaryButton>
+          </div>
+        </div>
+      </Modal>
+
+      <!-- Reassign item modal -->
+      <Modal v-model="showReassignModal">
+        <div class="space-y-4">
+          <SectionHeader>{{ t('memberDetail.reassignItem') }}</SectionHeader>
+          <p v-if="reassignItem" class="text-sm">
+            {{ reassignItem.inventoryName }} — {{ reassignItem.name }}
+            <SizeBadge>{{ reassignItem.sizeName ?? t('common.unisize') }}</SizeBadge>
+          </p>
+          <div class="space-y-1">
+            <label class="block text-sm font-medium">{{ t('memberDetail.selectTargetMember') }}</label>
+            <SelectInput v-model="reassignTargetId">
+              <option value="" disabled>{{ t('memberDetail.selectTargetPlaceholder') }}</option>
+              <option v-for="m in reassignTargets" :key="m.id" :value="String(m.id)">{{ memberDisplayName(m) }}</option>
+            </SelectInput>
+          </div>
+          <div class="flex justify-end gap-2">
+            <SecondaryButton @click="showReassignModal = false">{{ t('common.cancel') }}</SecondaryButton>
+            <PrimaryButton :disabled="reassignLoading || !reassignTargetId" @click="confirmReassign">
+              {{ reassignLoading ? t('common.loading') : t('memberDetail.reassignItem') }}
+            </PrimaryButton>
+          </div>
+        </div>
+      </Modal>
+
       <!-- Exchange modal -->
       <Modal v-model="showExchangeModal">
         <div class="space-y-4">
@@ -567,7 +729,7 @@ onMounted(loadData)
           <template v-else>
             <p v-if="exchangeItem" class="text-sm">
               {{ exchangeItem.inventoryName }} — {{ exchangeItem.name }}
-              <span class="text-(--text-muted)">[{{ exchangeItem.sizeName ?? t('common.unisize') }}]</span>
+              <SizeBadge>{{ exchangeItem.sizeName ?? t('common.unisize') }}</SizeBadge>
             </p>
             <div v-if="exchangeSizes.length > 0" class="space-y-1">
               <label class="block text-sm font-medium">{{ t('exchanges.newSize') }}</label>

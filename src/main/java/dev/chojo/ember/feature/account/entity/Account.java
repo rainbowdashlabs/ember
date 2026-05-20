@@ -17,7 +17,9 @@ import de.chojo.sadu.mapper.rowmapper.RowMapping;
  * @param emailVerified whether the email address has been verified
  */
 public record Account(int id, String email, String firstName, String lastName, boolean emailVerified) {
-    /** Creates a row mapping for database result set conversion. */
+    /**
+     * Creates a row mapping for database result set conversion.
+     */
     public static RowMapping<Account> map() {
         return row -> new Account(
                 row.getInt("id"),

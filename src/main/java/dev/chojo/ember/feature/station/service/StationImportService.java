@@ -10,6 +10,7 @@ import de.chojo.sadu.queries.api.query.Query;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.station.entity.Station;
+import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -36,19 +37,6 @@ import java.util.concurrent.Executors;
 @Singleton
 public class StationImportService {
     private static final Logger log = LoggerFactory.getLogger(StationImportService.class);
-
-    private final StationRepository stationRepository;
-    private final StationMemberRepository stationMemberRepository;
-    private final AccountRepository accountRepository;
-
-    private final ConcurrentHashMap<Integer, ImportProgress> activeImports = new ConcurrentHashMap<>();
-
-    private final ExecutorService importExecutor = Executors.newSingleThreadExecutor(r -> {
-        var t = new Thread(r, "station-import");
-        t.setDaemon(true);
-        return t;
-    });
-
     /**
      * Tables processed during import, in dependency order.
      * "station" is handled synchronously before the async phase.
@@ -74,6 +62,17 @@ public class StationImportService {
             "forms",
             "formQuestions");
 
+    private static final int PAGE_SIZE = 500;
+    private final StationRepository stationRepository;
+    private final StationMemberRepository stationMemberRepository;
+    private final AccountRepository accountRepository;
+    private final ConcurrentHashMap<Integer, ImportProgress> activeImports = new ConcurrentHashMap<>();
+    private final ExecutorService importExecutor = Executors.newSingleThreadExecutor(r -> {
+        var t = new Thread(r, "station-import");
+        t.setDaemon(true);
+        return t;
+    });
+
     @Inject
     public StationImportService(
             StationRepository stationRepository,
@@ -82,6 +81,31 @@ public class StationImportService {
         this.stationRepository = stationRepository;
         this.stationMemberRepository = stationMemberRepository;
         this.accountRepository = accountRepository;
+    }
+
+    private static String str(Map<String, Object> map, String key, String defaultValue) {
+        Object val = map.get(key);
+        return val != null ? val.toString() : defaultValue;
+    }
+
+    private static int intVal(Map<String, Object> map, String key) {
+        Object val = map.get(key);
+        if (val instanceof Number n) return n.intValue();
+        if (val instanceof String s) {
+            try {
+                return Integer.parseInt(s);
+            } catch (NumberFormatException e) {
+                return 0;
+            }
+        }
+        return 0;
+    }
+
+    private static boolean boolVal(Map<String, Object> map, String key) {
+        Object val = map.get(key);
+        if (val instanceof Boolean b) return b;
+        if (val instanceof String s) return Boolean.parseBoolean(s);
+        return false;
     }
 
     /**
@@ -168,7 +192,49 @@ public class StationImportService {
         return new ImportResult(stationId, stationName, 0);
     }
 
-    private static final int PAGE_SIZE = 500;
+    /**
+     * Returns the current progress for an active or recently completed import, or null if not found.
+     */
+    public ImportProgress getProgress(int stationId) {
+        return activeImports.get(stationId);
+    }
+
+    /**
+     * Synchronous full import. Used by tests and the legacy code path.
+     */
+    @SuppressWarnings("unchecked")
+    public ImportResult importStation(Map<String, Object> data) {
+        var idMap = new IdRemapper();
+        int totalEntities = 0;
+
+        // 1. Create station
+        var stationData = (Map<String, Object>) data.get("station");
+        String stationName = str(stationData, "name", "Imported Station");
+        var station = stationRepository.create(stationName);
+        int stationId = station.id();
+
+        if (stationData.containsKey("timezone")) {
+            stationRepository.updateTimezone(stationId, str(stationData, "timezone", "Europe/Berlin"));
+        }
+        if (stationData.containsKey("locale")) {
+            stationRepository.updateLocale(stationId, str(stationData, "locale", "de-DE"));
+        }
+        totalEntities++;
+
+        for (String table : IMPORT_TABLES) {
+            totalEntities += importSingleTable(stationId, table, data, idMap);
+        }
+
+        log.info("Imported station '{}' (id={}) with {} entities", stationName, stationId, totalEntities);
+        return new ImportResult(stationId, stationName, totalEntities);
+    }
+
+    /**
+     * Exposed for testing: import a single table into an existing station.
+     */
+    public int importSingleTableForTest(int stationId, String tableName, Map<String, Object> data, IdRemapper idMap) {
+        return importSingleTable(stationId, tableName, data, idMap);
+    }
 
     private void runRemoteImport(
             int stationId,
@@ -241,56 +307,14 @@ public class StationImportService {
         }
     }
 
-    /**
-     * Returns the current progress for an active or recently completed import, or null if not found.
-     */
-    public ImportProgress getProgress(int stationId) {
-        return activeImports.get(stationId);
-    }
-
-    /**
-     * Synchronous full import. Used by tests and the legacy code path.
-     */
-    @SuppressWarnings("unchecked")
-    public ImportResult importStation(Map<String, Object> data) {
-        var idMap = new IdRemapper();
-        int totalEntities = 0;
-
-        // 1. Create station
-        var stationData = (Map<String, Object>) data.get("station");
-        String stationName = str(stationData, "name", "Imported Station");
-        var station = stationRepository.create(stationName);
-        int stationId = station.id();
-
-        if (stationData.containsKey("timezone")) {
-            stationRepository.updateTimezone(stationId, str(stationData, "timezone", "Europe/Berlin"));
-        }
-        if (stationData.containsKey("locale")) {
-            stationRepository.updateLocale(stationId, str(stationData, "locale", "de-DE"));
-        }
-        totalEntities++;
-
-        for (String table : IMPORT_TABLES) {
-            totalEntities += importSingleTable(stationId, table, data, idMap);
-        }
-
-        log.info("Imported station '{}' (id={}) with {} entities", stationName, stationId, totalEntities);
-        return new ImportResult(stationId, stationName, totalEntities);
-    }
-
-    /**
-     * Exposed for testing: import a single table into an existing station.
-     */
-    public int importSingleTableForTest(int stationId, String tableName, Map<String, Object> data, IdRemapper idMap) {
-        return importSingleTable(stationId, tableName, data, idMap);
-    }
-
     @SuppressWarnings("unchecked")
     private int importSingleTable(int stationId, String tableName, Map<String, Object> data, IdRemapper idMap) {
         return switch (tableName) {
             case "disabledModules" -> {
-                var modules = (List<String>) data.getOrDefault("disabledModules", List.of());
-                for (String module : modules) stationRepository.disableModule(stationId, module);
+                var moduleNames = (List<String>) data.getOrDefault("disabledModules", List.of());
+                var modules =
+                        moduleNames.stream().map(StationModule::valueOf).collect(java.util.stream.Collectors.toSet());
+                stationRepository.setDisabledModules(stationId, modules);
                 yield modules.size();
             }
             case "members" -> importMembers(stationId, data, idMap);
@@ -324,31 +348,6 @@ public class StationImportService {
                 .map(row -> row.getInt("id"))
                 .first()
                 .orElseThrow();
-    }
-
-    private static String str(Map<String, Object> map, String key, String defaultValue) {
-        Object val = map.get(key);
-        return val != null ? val.toString() : defaultValue;
-    }
-
-    private static int intVal(Map<String, Object> map, String key) {
-        Object val = map.get(key);
-        if (val instanceof Number n) return n.intValue();
-        if (val instanceof String s) {
-            try {
-                return Integer.parseInt(s);
-            } catch (NumberFormatException e) {
-                return 0;
-            }
-        }
-        return 0;
-    }
-
-    private static boolean boolVal(Map<String, Object> map, String key) {
-        Object val = map.get(key);
-        if (val instanceof Boolean b) return b;
-        if (val instanceof String s) return Boolean.parseBoolean(s);
-        return false;
     }
 
     // -- Per-table import methods --
@@ -541,7 +540,7 @@ public class StationImportService {
             int fieldId = idMap.get("profileField", intVal(pfv, "field_id"));
             if (memberId > 0 && fieldId > 0) {
                 Query.query(
-                                "INSERT INTO profile_field_value(member_id, field_id, value) VALUES(:member_id, :field_id, :value::jsonb) ON CONFLICT DO NOTHING;")
+                                "INSERT INTO profile_field_value(member_id, field_id, value) VALUES(:member_id, :field_id, :value::JSONB) ON CONFLICT DO NOTHING;")
                         .single(Call.of()
                                 .bind("member_id", memberId)
                                 .bind("field_id", fieldId)
@@ -685,7 +684,7 @@ public class StationImportService {
                     item.get("assigned_to") != null ? idMap.get("member", intVal(item, "assigned_to")) : null;
             if (inventoryId > 0) {
                 Query.query(
-                                "INSERT INTO inventory_item(inventory_id, internal_id, name, size_id, metadata, assigned_to, item_source) VALUES(:inv, :iid, :name, :sid, :meta::jsonb, :at, :src);")
+                                "INSERT INTO inventory_item(inventory_id, internal_id, name, size_id, metadata, assigned_to, item_source) VALUES(:inv, :iid, :name, :sid, :meta::JSONB, :at, :src);")
                         .single(Call.of()
                                 .bind("inv", inventoryId)
                                 .bind("iid", str(item, "internal_id", null))
@@ -733,7 +732,7 @@ public class StationImportService {
             int formId = idMap.get("form", intVal(q, "form_id"));
             if (formId > 0) {
                 Query.query(
-                                "INSERT INTO form_question(form_id, position, question_type, title, description, required, shuffle, config) VALUES(:fid, :pos, :qt, :title, :desc, :req, :shuf, :cfg::jsonb);")
+                                "INSERT INTO form_question(form_id, position, question_type, title, description, required, shuffle, config) VALUES(:fid, :pos, :qt, :title, :desc, :req, :shuf, :cfg::JSONB);")
                         .single(Call.of()
                                 .bind("fid", formId)
                                 .bind("pos", intVal(q, "position"))
@@ -752,7 +751,9 @@ public class StationImportService {
 
     // -- Inner classes --
 
-    /** Maps old entity IDs from the source station to new IDs in the target station during import. */
+    /**
+     * Maps old entity IDs from the source station to new IDs in the target station during import.
+     */
     public static class IdRemapper {
         final Map<String, Map<Integer, Integer>> maps = new HashMap<>();
 
@@ -765,7 +766,9 @@ public class StationImportService {
         }
     }
 
-    /** Tracks the progress of an asynchronous station import, using volatile fields for thread safety. */
+    /**
+     * Tracks the progress of an asynchronous station import, using volatile fields for thread safety.
+     */
     public static class ImportProgress {
         private final int stationId;
         private final String stationName;
@@ -781,25 +784,6 @@ public class StationImportService {
             this.stationId = stationId;
             this.stationName = stationName;
             this.totalTables = totalTables;
-        }
-
-        void startTable(int index, String table) {
-            this.currentTableIndex = index;
-            this.currentTable = table;
-        }
-
-        void completeTable() {
-            this.completedTables++;
-        }
-
-        void complete() {
-            this.status = "COMPLETED";
-            this.currentTable = null;
-        }
-
-        void fail(String error) {
-            this.status = "FAILED";
-            this.error = error;
         }
 
         public int stationId() {
@@ -829,8 +813,29 @@ public class StationImportService {
         public String error() {
             return error;
         }
+
+        void startTable(int index, String table) {
+            this.currentTableIndex = index;
+            this.currentTable = table;
+        }
+
+        void completeTable() {
+            this.completedTables++;
+        }
+
+        void complete() {
+            this.status = "COMPLETED";
+            this.currentTable = null;
+        }
+
+        void fail(String error) {
+            this.status = "FAILED";
+            this.error = error;
+        }
     }
 
-    /** Result of a station import containing the new station ID, name, and total imported entities. */
+    /**
+     * Result of a station import containing the new station ID, name, and total imported entities.
+     */
     public record ImportResult(int stationId, String stationName, int totalEntities) {}
 }

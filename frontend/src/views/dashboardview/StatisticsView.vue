@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {computed, onMounted, ref, watch} from 'vue'
+import {computed, onMounted, onUnmounted, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {use} from 'echarts/core'
 import {CanvasRenderer} from 'echarts/renderers'
@@ -23,6 +23,24 @@ use([CanvasRenderer, BarChart, PieChart, LineChart, TitleComponent, TooltipCompo
 
 const {t} = useI18n()
 const {loaded} = useSession()
+
+const isDark = ref(document.documentElement.classList.contains('dark'))
+let observer: MutationObserver | null = null
+
+onMounted(() => {
+  observer = new MutationObserver(() => {
+    isDark.value = document.documentElement.classList.contains('dark')
+  })
+  observer.observe(document.documentElement, {attributes: true, attributeFilter: ['class']})
+  if (loaded.value) loadStats()
+})
+
+onUnmounted(() => {
+  observer?.disconnect()
+})
+
+const textColor = computed(() => isDark.value ? '#e0e0e0' : '#333333')
+const mutedColor = computed(() => isDark.value ? '#9ca3af' : '#666666')
 
 interface StatsData {
   memberCount: number
@@ -54,12 +72,14 @@ const groupPieOption = computed(() => {
   if (!stats.value) return {}
   const entries = Object.entries(stats.value.groupCounts)
   return {
-    title: {text: t('statistics.groupDistribution'), left: 'center', textStyle: {fontSize: 14}},
+    title: {text: t('statistics.groupDistribution'), left: 'center', textStyle: {fontSize: 14, color: textColor.value}},
     tooltip: {trigger: 'item', formatter: '{b}: {c} ({d}%)'},
+    legend: {bottom: 0, textStyle: {color: mutedColor.value}},
     series: [{
       type: 'pie',
       radius: ['40%', '70%'],
       data: entries.map(([name, value]) => ({name, value})),
+      label: {color: mutedColor.value},
       emphasis: {itemStyle: {shadowBlur: 10, shadowOffsetX: 0, shadowColor: 'rgba(0,0,0,0.2)'}},
     }],
     color: ['#FF6421', '#73CEFF', '#00C507', '#ffdd1b', '#3694FF', '#C71100'],
@@ -70,12 +90,12 @@ const attendanceBarOption = computed(() => {
   if (!stats.value || stats.value.attendanceByMonth.length === 0) return {}
   const months = stats.value.attendanceByMonth.map(a => a.month)
   return {
-    title: {text: t('statistics.attendanceOverTime'), left: 'center', textStyle: {fontSize: 14}},
+    title: {text: t('statistics.attendanceOverTime'), left: 'center', textStyle: {fontSize: 14, color: textColor.value}},
     tooltip: {trigger: 'axis'},
-    legend: {bottom: 0},
+    legend: {bottom: 0, textStyle: {color: mutedColor.value}},
     grid: {left: 50, right: 20, top: 40, bottom: 40},
-    xAxis: {type: 'category', data: months},
-    yAxis: {type: 'value'},
+    xAxis: {type: 'category', data: months, axisLabel: {color: mutedColor.value}, axisLine: {lineStyle: {color: mutedColor.value}}},
+    yAxis: {type: 'value', axisLabel: {color: mutedColor.value}, axisLine: {lineStyle: {color: mutedColor.value}}, splitLine: {lineStyle: {color: isDark.value ? '#333' : '#e0e0e0'}}},
     series: [
       {
         name: t('statistics.present'),
@@ -106,11 +126,11 @@ const sessionsLineOption = computed(() => {
   if (!stats.value || stats.value.attendanceByMonth.length === 0) return {}
   const months = stats.value.attendanceByMonth.map(a => a.month)
   return {
-    title: {text: t('statistics.sessionsPerMonth'), left: 'center', textStyle: {fontSize: 14}},
+    title: {text: t('statistics.sessionsPerMonth'), left: 'center', textStyle: {fontSize: 14, color: textColor.value}},
     tooltip: {trigger: 'axis'},
     grid: {left: 50, right: 20, top: 40, bottom: 20},
-    xAxis: {type: 'category', data: months},
-    yAxis: {type: 'value', minInterval: 1},
+    xAxis: {type: 'category', data: months, axisLabel: {color: mutedColor.value}, axisLine: {lineStyle: {color: mutedColor.value}}},
+    yAxis: {type: 'value', minInterval: 1, axisLabel: {color: mutedColor.value}, axisLine: {lineStyle: {color: mutedColor.value}}, splitLine: {lineStyle: {color: isDark.value ? '#333' : '#e0e0e0'}}},
     series: [{
       type: 'line',
       data: stats.value.attendanceByMonth.map(a => a.sessions),
@@ -124,12 +144,12 @@ const sessionsLineOption = computed(() => {
 const inventoryBarOption = computed(() => {
   if (!stats.value || stats.value.inventoryStatus.length === 0) return {}
   return {
-    title: {text: t('statistics.inventoryStatus'), left: 'center', textStyle: {fontSize: 14}},
+    title: {text: t('statistics.inventoryStatus'), left: 'center', textStyle: {fontSize: 14, color: textColor.value}},
     tooltip: {trigger: 'axis'},
-    legend: {bottom: 0},
+    legend: {bottom: 0, textStyle: {color: mutedColor.value}},
     grid: {left: 100, right: 20, top: 40, bottom: 40},
-    yAxis: {type: 'category', data: stats.value.inventoryStatus.map(i => i.name)},
-    xAxis: {type: 'value'},
+    yAxis: {type: 'category', data: stats.value.inventoryStatus.map(i => i.name), axisLabel: {color: mutedColor.value}, axisLine: {lineStyle: {color: mutedColor.value}}},
+    xAxis: {type: 'value', axisLabel: {color: mutedColor.value}, axisLine: {lineStyle: {color: mutedColor.value}}, splitLine: {lineStyle: {color: isDark.value ? '#333' : '#e0e0e0'}}},
     series: [
       {
         name: t('statistics.assigned'),
@@ -159,12 +179,12 @@ const inventoryBarOption = computed(() => {
 const registrationBarOption = computed(() => {
   if (!stats.value || stats.value.eventRegistrations.length === 0) return {}
   return {
-    title: {text: t('statistics.eventRegistrations'), left: 'center', textStyle: {fontSize: 14}},
+    title: {text: t('statistics.eventRegistrations'), left: 'center', textStyle: {fontSize: 14, color: textColor.value}},
     tooltip: {trigger: 'axis'},
-    legend: {bottom: 0},
+    legend: {bottom: 0, textStyle: {color: mutedColor.value}},
     grid: {left: 150, right: 20, top: 40, bottom: 40},
-    yAxis: {type: 'category', data: stats.value.eventRegistrations.map(e => e.name)},
-    xAxis: {type: 'value', minInterval: 1},
+    yAxis: {type: 'category', data: stats.value.eventRegistrations.map(e => e.name), axisLabel: {color: mutedColor.value}, axisLine: {lineStyle: {color: mutedColor.value}}},
+    xAxis: {type: 'value', minInterval: 1, axisLabel: {color: mutedColor.value}, axisLine: {lineStyle: {color: mutedColor.value}}, splitLine: {lineStyle: {color: isDark.value ? '#333' : '#e0e0e0'}}},
     series: [
       {
         name: t('statistics.accepted'),
@@ -189,10 +209,6 @@ const registrationBarOption = computed(() => {
       },
     ],
   }
-})
-
-onMounted(() => {
-  if (loaded.value) loadStats()
 })
 
 watch(loaded, (isLoaded) => {

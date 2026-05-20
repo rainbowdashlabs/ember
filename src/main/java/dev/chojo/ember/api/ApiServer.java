@@ -38,6 +38,8 @@ import org.slf4j.LoggerFactory;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.json.JsonMapper;
 
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.text.SimpleDateFormat;
@@ -174,7 +176,11 @@ public class ApiServer {
             // Public endpoints
             config.routes.get(
                     API_PREFIX + "/public/config",
-                    ctx -> ctx.json(Map.of("demoUrl", apiConfig.demoUrl() != null ? apiConfig.demoUrl() : "")));
+                    ctx -> ctx.json(Map.of(
+                            "demoUrl",
+                            apiConfig.demoUrl() != null ? apiConfig.demoUrl() : "",
+                            "version",
+                            loadAppVersion())));
 
             // Public demo endpoints
             config.routes.get(
@@ -418,6 +424,17 @@ public class ApiServer {
             ctx.status(HttpStatus.NOT_MODIFIED);
             ctx.result("");
         }
+    }
+
+    private String loadAppVersion() {
+        try (InputStream is = getClass().getClassLoader().getResourceAsStream("version")) {
+            if (is != null) {
+                return new String(is.readAllBytes(), StandardCharsets.UTF_8).strip();
+            }
+        } catch (Exception e) {
+            log.warn("Failed to read version resource", e);
+        }
+        return "unknown";
     }
 
     /**

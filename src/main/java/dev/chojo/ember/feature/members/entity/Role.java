@@ -15,7 +15,9 @@ import dev.chojo.ember.api.Roles;
  * @param role the application role enum value
  */
 public record Role(int id, Roles role) {
-    /** Creates a row mapping for database result set conversion. */
+    /**
+     * Creates a row mapping for database result set conversion.
+     */
     public static RowMapping<Role> map() {
         return row -> new Role(row.getInt("id"), row.getEnum("name", Roles.class));
     }

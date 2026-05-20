@@ -38,8 +38,8 @@ public class Jackson3Mapper implements JsonMapper {
     /**
      * Creates a mapper using the given Jackson {@link ObjectMapper}.
      *
-     * @param mapper             the Jackson object mapper to use
-     * @param useVirtualThreads  whether to use virtual threads for piped stream execution
+     * @param mapper            the Jackson object mapper to use
+     * @param useVirtualThreads whether to use virtual threads for piped stream execution
      */
     public Jackson3Mapper(ObjectMapper mapper, boolean useVirtualThreads) {
         this.mapper = mapper;

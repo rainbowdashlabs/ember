@@ -14,7 +14,9 @@ import de.chojo.sadu.mapper.rowmapper.RowMapping;
  * @param emailEnabled whether email notifications are enabled for this member
  */
 public record UserSettings(int memberId, boolean emailEnabled) {
-    /** Creates a row mapping for database result set conversion. */
+    /**
+     * Creates a row mapping for database result set conversion.
+     */
     public static RowMapping<UserSettings> map() {
         return row -> new UserSettings(row.getInt("member_id"), row.getBoolean("email_enabled"));
     }

@@ -15,6 +15,7 @@ import Alert from '@/components/feedback/Alert.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import type { CheckDetail } from '@/api/types'
 import { inventoryCheck } from '@/api'
+import SizeBadge from '@/components/badge/SizeBadge.vue'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -111,7 +112,7 @@ onMounted(loadData)
               <div class="flex-1 min-w-0">
                 <div v-if="item.itemName" class="font-medium text-sm">
                   {{ item.itemName }}
-                  <span class="font-normal text-(--text-muted)">{{ item.sizeName ?? t('common.unisize') }}</span>
+                  <SizeBadge>{{ item.sizeName ?? t('common.unisize') }}</SizeBadge>
                 </div>
                 <div class="text-xs text-(--text-muted)">
                   {{ item.inventoryName }}

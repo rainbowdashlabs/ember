@@ -18,7 +18,9 @@ import de.chojo.sadu.mapper.rowmapper.RowMapping;
  */
 public record NotificationSetting(
         int memberId, NotificationType notificationType, boolean appEnabled, boolean emailEnabled) {
-    /** Creates a row mapping for database result set conversion. */
+    /**
+     * Creates a row mapping for database result set conversion.
+     */
     public static RowMapping<NotificationSetting> map() {
         return row -> new NotificationSetting(
                 row.getInt("member_id"),

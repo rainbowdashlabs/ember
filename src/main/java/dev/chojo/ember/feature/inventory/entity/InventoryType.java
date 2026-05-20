@@ -9,10 +9,16 @@ package dev.chojo.ember.feature.inventory.entity;
  * Defines the ownership model for items in an inventory.
  */
 public enum InventoryType {
-    /** All items are owned by the organization. */
+    /**
+     * All items are owned by the organization.
+     */
     INTERNAL,
-    /** All items are owned by individual members. */
+    /**
+     * All items are owned by individual members.
+     */
     EXTERNAL,
-    /** Items may be owned by the organization or individual members. */
+    /**
+     * Items may be owned by the organization or individual members.
+     */
     MIXED
 }

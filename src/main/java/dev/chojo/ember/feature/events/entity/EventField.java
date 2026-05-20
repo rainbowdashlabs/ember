@@ -17,7 +17,9 @@ import de.chojo.sadu.mapper.rowmapper.RowMapping;
  * @param position the display order position
  */
 public record EventField(int id, int eventId, String name, String value, int position) {
-    /** Creates a row mapping for database result set conversion. */
+    /**
+     * Creates a row mapping for database result set conversion.
+     */
     public static RowMapping<EventField> map() {
         return row -> new EventField(
                 row.getInt("id"),

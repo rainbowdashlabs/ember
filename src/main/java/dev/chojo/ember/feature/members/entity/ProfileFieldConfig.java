@@ -18,15 +18,15 @@ import static org.slf4j.LoggerFactory.getLogger;
 /**
  * Configuration options for a profile field, parsed from JSON.
  *
- * @param required        whether the field must be filled
- * @param readonly        whether the field is read-only for non-managers
- * @param notifyOnChange  whether changes to this field require manager acknowledgement
- * @param overview        whether the field is shown in the member overview table
- * @param options         the list of allowed values for ENUM fields
- * @param defaultValue    the default value for new members
- * @param computed        whether this field is computed from another field
- * @param sourceField     the source field name for computed fields
- * @param ageMode         the age calculation mode (e.g. for AGE-type fields)
+ * @param required       whether the field must be filled
+ * @param readonly       whether the field is read-only for non-managers
+ * @param notifyOnChange whether changes to this field require manager acknowledgement
+ * @param overview       whether the field is shown in the member overview table
+ * @param options        the list of allowed values for ENUM fields
+ * @param defaultValue   the default value for new members
+ * @param computed       whether this field is computed from another field
+ * @param sourceField    the source field name for computed fields
+ * @param ageMode        the age calculation mode (e.g. for AGE-type fields)
  */
 public record ProfileFieldConfig(
         boolean required,

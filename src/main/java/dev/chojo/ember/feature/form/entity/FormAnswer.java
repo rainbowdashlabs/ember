@@ -16,7 +16,9 @@ import de.chojo.sadu.mapper.rowmapper.RowMapping;
  * @param value      the answer value stored as a JSON string
  */
 public record FormAnswer(int id, int responseId, int questionId, String value) {
-    /** Creates a row mapping for database result set conversion. */
+    /**
+     * Creates a row mapping for database result set conversion.
+     */
     public static RowMapping<FormAnswer> map() {
         return row -> new FormAnswer(
                 row.getInt("id"), row.getInt("response_id"), row.getInt("question_id"), row.getString("value"));

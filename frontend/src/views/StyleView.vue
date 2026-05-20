@@ -46,6 +46,7 @@ import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
+import SizeBadge from '@/components/badge/SizeBadge.vue'
 
 import ProgressBar from '@/components/feedback/ProgressBar.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
@@ -244,6 +245,8 @@ const modalOpen = ref(false)
         <SuccessBadge>Success</SuccessBadge>
         <ErrorBadge>Error</ErrorBadge>
         <InfoBadge>Info</InfoBadge>
+        <SizeBadge>M</SizeBadge>
+        <SizeBadge lost>M (lost)</SizeBadge>
       </div>
     </section>
 

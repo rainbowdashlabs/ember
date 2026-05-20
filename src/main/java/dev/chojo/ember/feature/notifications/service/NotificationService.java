@@ -12,6 +12,7 @@ import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.repository.UserSettingsRepository;
 import dev.chojo.ember.feature.notifications.entity.Notification;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
+import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
 import dev.chojo.ember.feature.notifications.repository.NotificationRepository;
 import dev.chojo.ember.feature.notifications.repository.NotificationSettingsRepository;
@@ -40,17 +41,7 @@ import java.util.concurrent.TimeUnit;
 @Singleton
 public class NotificationService {
     private static final Logger log = LoggerFactory.getLogger(NotificationService.class);
-
-    private final NotificationRepository notificationRepository;
-    private final StationMemberRepository stationMemberRepository;
-    private final UserSettingsRepository userSettingsRepository;
-    private final NotificationSettingsRepository notificationSettingsRepository;
-    private final AccountRepository accountRepository;
-    private final StationRepository stationRepository;
-    private final EmailService emailService;
-
     private static final Localizer LOCALIZER = new Localizer();
-
     private static final Map<String, String> ROUTE_PATHS = Map.of(
             "news-list", "/station/news",
             "events-registrations", "/station/events/registrations",
@@ -60,7 +51,13 @@ public class NotificationService {
             "members-detail", "/station/members/detail/{id}",
             "dashboard-overview", "/station/dashboard/overview",
             "lost-and-found", "/station/lost-and-found");
-
+    private final NotificationRepository notificationRepository;
+    private final StationMemberRepository stationMemberRepository;
+    private final UserSettingsRepository userSettingsRepository;
+    private final NotificationSettingsRepository notificationSettingsRepository;
+    private final AccountRepository accountRepository;
+    private final StationRepository stationRepository;
+    private final EmailService emailService;
     private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
         var t = new Thread(r, "notification-digest");
         t.setDaemon(true);
@@ -215,10 +212,6 @@ public class NotificationService {
         }
     }
 
-    private boolean isAppEnabled(int memberId, NotificationType type) {
-        return notificationSettingsRepository.isAppEnabled(memberId, type);
-    }
-
     /**
      * Retrieves all unacknowledged notifications for a member.
      *
@@ -286,6 +279,10 @@ public class NotificationService {
      */
     public void cleanupOld() {
         notificationRepository.deleteOldAcknowledged();
+    }
+
+    private boolean isAppEnabled(int memberId, NotificationType type) {
+        return notificationSettingsRepository.isAppEnabled(memberId, type);
     }
 
     // -- Digest processing --
@@ -376,7 +373,7 @@ public class NotificationService {
         for (var n : eligible) {
             var labels = LOCALIZER.get("notifications", locale, "category");
             String category = labels.getOrDefault(n.type().name(), n.type().name());
-            String message = resolveMessage(locale, n.data());
+            String message = resolveMessage(locale, n);
             String itemUrl = resolveNotificationUrl(baseUrl, n.data());
 
             itemsHtml.append("<li class=\"notification-item\">");
@@ -424,13 +421,13 @@ public class NotificationService {
         return true;
     }
 
-    private String resolveMessage(String locale, NotificationData data) {
+    private String resolveMessage(String locale, Notification n) {
         var templates = LOCALIZER.get("notifications", locale, "message");
-        String template = templates.get(data.localeKey());
+        String localeKey = n.type().localeKey();
+        String template = templates.get(localeKey);
+        var params = n.data().paramsAsMap();
         if (template == null) {
-            // Fallback: concatenate param values
-            var params = data.params();
-            if (params == null || params.isEmpty()) return data.localeKey();
+            if (params.isEmpty()) return localeKey;
             var sb = new StringBuilder();
             for (var entry : params.entrySet()) {
                 if (!sb.isEmpty()) sb.append(" — ");
@@ -438,13 +435,8 @@ public class NotificationService {
             }
             return sb.toString();
         }
-
-        // Interpolate {key} placeholders with params
-        var params = data.params();
-        if (params != null) {
-            for (var entry : params.entrySet()) {
-                template = template.replace("{" + entry.getKey() + "}", entry.getValue());
-            }
+        for (var entry : params.entrySet()) {
+            template = template.replace("{" + entry.getKey() + "}", entry.getValue());
         }
         return template;
     }
@@ -453,9 +445,14 @@ public class NotificationService {
         var params = n.data().params();
         if (params == null) return null;
         return switch (n.type()) {
-            case NEW_NEWS, NEWS_COMMENT -> params.get("preview");
-            case EXCHANGE_STATUS_CHANGE, EXCHANGE_NEW_REQUEST -> params.get("reason");
-            case EVENT_REGISTRATION_STATUS, NEW_EVENT -> params.get("eventDescription");
+            case NEW_NEWS -> params instanceof NotificationParams.NewNews p ? p.preview() : null;
+            case NEWS_COMMENT -> params instanceof NotificationParams.NewsComment p ? p.preview() : null;
+            case EXCHANGE_STATUS_CHANGE ->
+                params instanceof NotificationParams.ExchangeStatusChange p ? p.reason() : null;
+            case EXCHANGE_NEW_REQUEST -> params instanceof NotificationParams.ExchangeNewRequest p ? p.reason() : null;
+            case EVENT_REGISTRATION_STATUS ->
+                params instanceof NotificationParams.EventRegistrationStatus p ? p.eventDescription() : null;
+            case NEW_EVENT -> params instanceof NotificationParams.NewEvent p ? p.eventDescription() : null;
             default -> null;
         };
     }

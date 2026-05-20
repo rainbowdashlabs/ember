@@ -21,7 +21,9 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
  * @param checkedAt when the check was completed
  */
 public record InventoryCheck(int id, int stationId, int memberId, int checkedBy, Instant checkedAt) {
-    /** Creates a row mapping for database result set conversion. */
+    /**
+     * Creates a row mapping for database result set conversion.
+     */
     public static RowMapping<InventoryCheck> map() {
         return row -> new InventoryCheck(
                 row.getInt("id"),

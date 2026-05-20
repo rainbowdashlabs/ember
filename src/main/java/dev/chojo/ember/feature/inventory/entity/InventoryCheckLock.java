@@ -21,7 +21,9 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
  * @param lockedAt  when the lock was acquired
  */
 public record InventoryCheckLock(int id, int stationId, int memberId, int lockedBy, Instant lockedAt) {
-    /** Creates a row mapping for database result set conversion. */
+    /**
+     * Creates a row mapping for database result set conversion.
+     */
     public static RowMapping<InventoryCheckLock> map() {
         return row -> new InventoryCheckLock(
                 row.getInt("id"),

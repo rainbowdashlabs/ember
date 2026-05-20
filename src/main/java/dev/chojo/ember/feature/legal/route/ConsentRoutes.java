@@ -271,15 +271,15 @@ public class ConsentRoutes implements Routes {
      * Response describing a user's current consent status, including whether consent has been given
      * and whether it matches the latest document versions.
      *
-     * @param consented              whether the user has ever consented
-     * @param current                whether the user's consent matches all current document versions
-     * @param consentVersion         the consent text version the user accepted (null if never consented)
-     * @param privacyVersion         the privacy policy version the user accepted
-     * @param tosVersion             the terms of service version the user accepted
-     * @param consentedAt            the timestamp when consent was last given
-     * @param currentPrivacyVersion  the current privacy policy version hash
-     * @param currentTosVersion      the current terms of service version hash
-     * @param currentConsentVersion  the current consent text version hash
+     * @param consented             whether the user has ever consented
+     * @param current               whether the user's consent matches all current document versions
+     * @param consentVersion        the consent text version the user accepted (null if never consented)
+     * @param privacyVersion        the privacy policy version the user accepted
+     * @param tosVersion            the terms of service version the user accepted
+     * @param consentedAt           the timestamp when consent was last given
+     * @param currentPrivacyVersion the current privacy policy version hash
+     * @param currentTosVersion     the current terms of service version hash
+     * @param currentConsentVersion the current consent text version hash
      */
     public record ConsentStatusResponse(
             boolean consented,

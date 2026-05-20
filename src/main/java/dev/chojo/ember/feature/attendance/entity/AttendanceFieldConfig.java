@@ -19,10 +19,10 @@ import static org.slf4j.LoggerFactory.getLogger;
 /**
  * Configuration for an attendance template field, parsed from JSONB storage.
  *
- * @param required    whether the field must be filled in
- * @param groupId     optional member group restriction for this field
- * @param autoAttend  whether members referenced in this field are automatically marked as present
- * @param options     selectable options for choice-type fields
+ * @param required     whether the field must be filled in
+ * @param groupId      optional member group restriction for this field
+ * @param autoAttend   whether members referenced in this field are automatically marked as present
+ * @param options      selectable options for choice-type fields
  * @param defaultValue default value to pre-populate when creating a session
  */
 public record AttendanceFieldConfig(

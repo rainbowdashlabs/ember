@@ -37,7 +37,9 @@ import java.util.Optional;
  */
 @Singleton
 public class InventoryCheckService {
-    /** Maximum duration in minutes before a check lock expires automatically. */
+    /**
+     * Maximum duration in minutes before a check lock expires automatically.
+     */
     private static final int LOCK_TIMEOUT_MINUTES = 30;
 
     private final InventoryCheckRepository checkRepository;
@@ -242,8 +244,8 @@ public class InventoryCheckService {
      * @param currentMemberId the current member to exclude
      * @return the next member ID, or empty if none available
      */
-    public Optional<Integer> nextMember(int stationId, int currentMemberId) {
-        return checkRepository.nextUncheckedMember(stationId, currentMemberId);
+    public Optional<Integer> nextMember(int stationId, int currentMemberId, boolean teamOnly) {
+        return checkRepository.nextUncheckedMember(stationId, currentMemberId, teamOnly);
     }
 
     /**

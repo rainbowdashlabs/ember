@@ -4,11 +4,21 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
+import {onMounted, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import ThemeToggle from '@/components/theme/ThemeToggle.vue'
 import AppLink from '@/components/navigation/AppLink.vue'
+import client from '@/api/client'
 
 const {t} = useI18n()
+const version = ref('')
+
+onMounted(async () => {
+  try {
+    const res = await client.get<{ version?: string }>('/public/config')
+    version.value = res.data.version ?? ''
+  } catch { /* ignore */ }
+})
 </script>
 
 <template>
@@ -28,6 +38,7 @@ const {t} = useI18n()
         <span>{{ t('footer.copyright') }}</span>
         <span>{{ t('footer.madeWith') }}</span>
         <span>{{ t('footer.license') }}</span>
+        <span v-if="version" class="text-xs">Ember {{ version }}</span>
       </div>
 
       <div class="hidden md:flex md:flex-col md:items-end">

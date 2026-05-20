@@ -11,6 +11,8 @@ const props = defineProps<{
   icon?: string[]
   label: string
   prefix: string
+  to?: string
+  name?: string
   badge?: number
   groupKey?: string
   openGroup?: string | null
@@ -18,6 +20,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (e: 'update:openGroup', key: string | null): void
+  (e: 'navigate'): void
 }>()
 
 const route = useRoute()
@@ -51,28 +54,38 @@ function toggle() {
     localExpanded.value = !localExpanded.value
   }
 }
+
 </script>
 
 <template>
   <div>
-    <button
-        :class="isActive
-        ? 'text-primary'
-        : 'text-[var(--text-muted)] hover:bg-primary/5 hover:text-[var(--text)]'"
-        class="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors duration-150"
-        @click="toggle"
-    >
-      <font-awesome-icon v-if="icon" :icon="icon" class="w-4"/>
-      <span class="flex-1 text-left">{{ label }}</span>
-      <span v-if="badge && badge > 0"
-            class="inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full text-xs font-bold bg-error text-white">{{
-          badge
-        }}</span>
-      <font-awesome-icon
-          :icon="['fas', expanded ? 'chevron-down' : 'chevron-right']"
-          class="h-3 w-3"
-      />
-    </button>
+    <div class="flex items-center">
+      <component
+          :is="to ? 'router-link' : 'button'"
+          :to="to"
+          :class="isActive
+          ? '!text-primary'
+          : '!text-[var(--text)] hover:bg-primary/5'"
+          class="flex flex-1 items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium no-underline transition-colors duration-150"
+          @click="to ? emit('navigate') : toggle()"
+      >
+        <font-awesome-icon v-if="icon" :icon="icon" class="w-4"/>
+        <span class="flex-1 text-left">{{ label }}</span>
+        <span v-if="badge && badge > 0"
+              class="inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full text-xs font-bold bg-error text-white">{{
+            badge
+          }}</span>
+      </component>
+      <button
+          class="flex items-center justify-center w-8 h-8 rounded-lg text-[var(--text)] transition-colors duration-150"
+          @click="toggle"
+      >
+        <font-awesome-icon
+            :icon="['fas', expanded ? 'chevron-down' : 'chevron-right']"
+            class="h-3 w-3"
+        />
+      </button>
+    </div>
 
     <div v-if="expanded" class="ml-4 flex flex-col gap-1 mt-1">
       <slot/>

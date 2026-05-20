@@ -41,6 +41,11 @@ class InventoryCheckRepositoryTest extends RepositoryTestBase {
         account2 = accountRepo.create("check2@test.com", "Check", "Checker");
         member1 = stationMemberRepo.create(station.id(), account1.id());
         member2 = stationMemberRepo.create(station.id(), account2.id());
+        // Assign MEMBER role so nextUncheckedMember role filter works
+        stationMemberRepo.findRoleByName(dev.chojo.ember.api.Roles.MEMBER).ifPresent(r -> {
+            stationMemberRepo.addRole(member1.id(), r.id());
+            stationMemberRepo.addRole(member2.id(), r.id());
+        });
         inventory = inventoryRepo.create(station.id(), "Check Inv", InventoryType.EXTERNAL, false);
         item = inventoryRepo.createItem(inventory.id(), "C-001", "Check Item", null, "{}");
         inventoryRepo.assignItem(item.id(), member1.id());
@@ -162,7 +167,7 @@ class InventoryCheckRepositoryTest extends RepositoryTestBase {
     @Order(30)
     void nextUncheckedMember() {
         // member1 was checked, member2 was not, so member2 should be next
-        var next = inventoryCheckRepo.nextUncheckedMember(station.id(), member1.id());
+        var next = inventoryCheckRepo.nextUncheckedMember(station.id(), member1.id(), false);
         assertTrue(next.isPresent());
         assertEquals(member2.id(), next.get());
     }
@@ -171,7 +176,7 @@ class InventoryCheckRepositoryTest extends RepositoryTestBase {
     @Order(31)
     void nextUncheckedMemberSkipsLocked() {
         inventoryCheckRepo.acquireLock(station.id(), member2.id(), member1.id());
-        var next = inventoryCheckRepo.nextUncheckedMember(station.id(), member1.id());
+        var next = inventoryCheckRepo.nextUncheckedMember(station.id(), member1.id(), false);
         assertTrue(next.isEmpty());
         inventoryCheckRepo.releaseLock(member2.id());
     }

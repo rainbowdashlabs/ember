@@ -31,9 +31,10 @@ import MemberName from '@/components/avatar/MemberName.vue'
 const {t} = useI18n()
 const route = useRoute()
 const router = useRouter()
-const {canManageEvents} = useSession()
+const {canManageEvents, sessionInfo} = useSession()
 
 const eventId = computed(() => Number(route.params.id))
+const currentMemberId = computed(() => sessionInfo.value?.member?.id ?? 0)
 
 const event = ref<StationEvent | null>(null)
 const categories = ref<EventCategory[]>([])
@@ -141,16 +142,17 @@ async function loadData() {
   loading.value = true
   error.value = ''
   try {
-    const [ev, cats, tmpls, flds] = await Promise.all([
+    const [ev, cats, flds] = await Promise.all([
       events.getEvent(eventId.value),
       events.listCategories(),
-      attendance.listTemplates(),
       events.getEventFields(eventId.value),
     ])
     event.value = ev
     categories.value = cats
-    templates.value = tmpls
     fields.value = flds
+    if (canManageEvents()) {
+      templates.value = await attendance.listTemplates()
+    }
     await loadRegistrations()
     if (isRecurringEvent(ev.eventType) && ev.dayOfWeek) {
       await loadAbsences()
@@ -198,6 +200,52 @@ async function denyRegistration(id: number) {
   }
 }
 
+// Self-registration for members
+const myRegistration = computed(() => {
+  return registrations.value.find(r => r.memberId === currentMemberId.value)
+})
+
+const registering = ref(false)
+
+async function registerSelf() {
+  if (!event.value) return
+  registering.value = true
+  try {
+    await events.registerForEvent(event.value.id, {memberId: currentMemberId.value})
+    await loadRegistrations()
+  } catch {
+    error.value = t('common.error')
+  } finally {
+    registering.value = false
+  }
+}
+
+async function declineSelf() {
+  if (!event.value) return
+  registering.value = true
+  try {
+    await events.declineEvent(event.value.id, {memberId: currentMemberId.value})
+    await loadRegistrations()
+  } catch {
+    error.value = t('common.error')
+  } finally {
+    registering.value = false
+  }
+}
+
+async function withdrawSelf() {
+  if (!myRegistration.value) return
+  registering.value = true
+  try {
+    await events.withdrawRegistration(myRegistration.value.id)
+    await loadRegistrations()
+  } catch {
+    error.value = t('common.error')
+  } finally {
+    registering.value = false
+  }
+}
+
 onMounted(loadData)
 </script>
 
@@ -219,7 +267,7 @@ onMounted(loadData)
             <SecondaryBadge v-else>{{ t('events.typeOneTime') }}</SecondaryBadge>
           </div>
           <div class="flex items-center gap-2">
-            <SecondaryButton @click="router.push({ name: 'events' })">
+            <SecondaryButton @click="router.push({ name: canManageEvents() ? 'events' : 'events-upcoming' })">
               <font-awesome-icon :icon="['fas', 'arrow-left']" class="mr-1"/>
               {{ t('common.back') }}
             </SecondaryButton>
@@ -255,7 +303,7 @@ onMounted(loadData)
               <span class="text-xs font-medium text-(--text-muted) uppercase">{{ t('events.startTime') }} – {{ t('events.endTime') }}</span>
               <p class="text-sm">{{ formatTime(event.startTime) }} – {{ formatTime(event.endTime) }}</p>
             </div>
-            <div>
+            <div v-if="canManageEvents()">
               <span class="text-xs font-medium text-(--text-muted) uppercase">{{ t('events.template') }}</span>
               <p class="text-sm">{{ templateName(event.templateId) }}</p>
             </div>
@@ -301,6 +349,30 @@ onMounted(loadData)
             <span v-if="event.registrationDeadline" class="text-(--text-muted)">
               {{ t('events.registrationDeadline') }}: {{ formatDatetime(event.registrationDeadline) }}
             </span>
+          </div>
+        </NeutralContainer>
+
+        <!-- Self-registration for members -->
+        <NeutralContainer v-if="event.requiresRegistration && !canManageEvents()" class="space-y-3">
+          <SubHeader>{{ t('eventDetail.myRegistration') }}</SubHeader>
+          <div v-if="myRegistration" class="flex items-center gap-3">
+            <component :is="myRegistration.status === RegistrationStatus.ACCEPTED ? SuccessBadge : myRegistration.status === RegistrationStatus.PENDING ? InfoBadge : ErrorBadge">
+              {{ statusLabel(myRegistration.status) }}
+            </component>
+            <SecondaryButton v-if="myRegistration.status !== RegistrationStatus.DECLINED" class="text-sm" :disabled="registering" @click="withdrawSelf">
+              <font-awesome-icon :icon="['fas', 'xmark']" class="mr-1"/>
+              {{ t('eventsUpcoming.withdraw') }}
+            </SecondaryButton>
+          </div>
+          <div v-else class="flex gap-2">
+            <PrimaryButton :disabled="registering" @click="registerSelf">
+              <font-awesome-icon :icon="['fas', 'check']" class="mr-1"/>
+              {{ t('eventsUpcoming.register') }}
+            </PrimaryButton>
+            <ErrorButton :disabled="registering" @click="declineSelf">
+              <font-awesome-icon :icon="['fas', 'xmark']" class="mr-1"/>
+              {{ t('eventsUpcoming.decline') }}
+            </ErrorButton>
           </div>
         </NeutralContainer>
 

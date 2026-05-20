@@ -5,7 +5,9 @@
  */
 package dev.chojo.ember.feature.members.entity;
 
-/** Defines which roles can see and interact with a profile field. */
+/**
+ * Defines which roles can see and interact with a profile field.
+ */
 public enum ProfileFieldScope {
     MEMBER,
     GUARDIAN,

@@ -208,13 +208,13 @@ function getMemberLastName(m: StationMember): string {
   return name.split(' ').slice(1).join(' ') ?? ''
 }
 
-function getFieldValue(memberId: number, fieldId: number): string {
+function getFieldValue(memberId: number, fieldId: number): unknown {
   const field = fields.value.find(f => f.id === fieldId)
   if (field?.fieldType === 'age') {
     const cfg = parseConfig(field.config)
     const sourceField = fields.value.find(f => f.name === cfg.sourceField)
     if (sourceField) {
-      const dateVal = getRawFieldValue(memberId, sourceField.id)
+      const dateVal = String(getRawFieldValue(memberId, sourceField.id))
       return computeAge(dateVal, (cfg.ageMode as string) ?? 'now')
     }
     return ''
@@ -222,7 +222,13 @@ function getFieldValue(memberId: number, fieldId: number): string {
   return getRawFieldValue(memberId, fieldId)
 }
 
-function getRawFieldValue(memberId: number, fieldId: number): string {
+function getFieldValueAsString(memberId: number, fieldId: number): string {
+  const val = getFieldValue(memberId, fieldId)
+  if (val == null) return ''
+  return String(val)
+}
+
+function getRawFieldValue(memberId: number, fieldId: number): unknown {
   const vals = memberValues.value.get(memberId)
   if (!vals) return ''
   const raw = vals.get(fieldId) ?? ''
@@ -249,7 +255,7 @@ function getColumnValues(m: StationMember, key: 'name' | 'groups' | 'tags' | num
   if (key === 'name') return [memberDisplayName(m)]
   if (key === 'groups') return getMemberGroups(m.id)
   if (key === 'tags') return getMemberTags(m.id)
-  const v = getFieldValue(m.id, key)
+  const v = getFieldValueAsString(m.id, key)
   return v ? [v] : []
 }
 
@@ -261,7 +267,7 @@ const filteredMembers = computed(() => {
       if (memberDisplayName(m).toLowerCase().includes(q)) return true
       if ((m.email ?? '').toLowerCase().includes(q)) return true
       for (const f of overviewFields.value) {
-        if (getFieldValue(m.id, f.id).toLowerCase().includes(q)) return true
+        if (getFieldValueAsString(m.id, f.id).toLowerCase().includes(q)) return true
       }
       return false
     })
@@ -289,8 +295,8 @@ const filteredMembers = computed(() => {
       valA = memberDisplayName(a).toLowerCase()
       valB = memberDisplayName(b).toLowerCase()
     } else {
-      valA = getFieldValue(a.id, sortColumn.value).toLowerCase()
-      valB = getFieldValue(b.id, sortColumn.value).toLowerCase()
+      valA = getFieldValueAsString(a.id, sortColumn.value).toLowerCase()
+      valB = getFieldValueAsString(b.id, sortColumn.value).toLowerCase()
     }
     const cmp = valA.localeCompare(valB)
     return sortAsc.value ? cmp : -cmp
@@ -360,7 +366,7 @@ function performExport(columns: string[], format: 'csv' | 'values') {
     if (col === 'groups') return getMemberGroups(m.id).join(', ')
     if (col.startsWith('field:')) {
       const fieldId = Number(col.slice(6))
-      return getFieldValue(m.id, fieldId)
+      return getFieldValueAsString(m.id, fieldId)
     }
     return ''
   }

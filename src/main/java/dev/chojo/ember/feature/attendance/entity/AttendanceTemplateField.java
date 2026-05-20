@@ -19,7 +19,9 @@ import de.chojo.sadu.mapper.rowmapper.RowMapping;
  */
 public record AttendanceTemplateField(
         int id, int templateId, String name, String fieldType, String config, int position) {
-    /** Creates a row mapping for database result set conversion. */
+    /**
+     * Creates a row mapping for database result set conversion.
+     */
     public static RowMapping<AttendanceTemplateField> map() {
         return row -> new AttendanceTemplateField(
                 row.getInt("id"),

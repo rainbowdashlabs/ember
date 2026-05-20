@@ -16,6 +16,7 @@ import DeleteButton from '@/components/button/DeleteButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
+import IconButton from '@/components/button/IconButton.vue'
 
 const {t} = useI18n()
 </script>
@@ -36,6 +37,10 @@ const {t} = useI18n()
         <ErrorButton>
           <font-awesome-icon :icon="['fas', 'user-slash']" class="mr-1"/>
           {{ t('memberDetail.markFormer') }}
+        </ErrorButton>
+        <ErrorButton>
+          <font-awesome-icon :icon="['fas', 'trash']" class="mr-1"/>
+          {{ t('memberDetail.deleteData') }}
         </ErrorButton>
         <PrimaryButton>
           <font-awesome-icon :icon="['fas', 'pen']" class="mr-2"/>
@@ -115,19 +120,49 @@ const {t} = useI18n()
 
     <HelpSection :title="t('helpCenter.membersDetail.inventoryTitle')">
       <p>{{ t('helpCenter.membersDetail.inventoryText') }}</p>
+      <p>{{ t('helpCenter.membersDetail.inventoryAssign') }}</p>
+      <p>{{ t('helpCenter.membersDetail.inventoryUnassign') }}</p>
+      <p>{{ t('helpCenter.membersDetail.inventoryReassign') }}</p>
+      <p>{{ t('helpCenter.membersDetail.inventoryExchange') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Inventory items -->
+    <!-- Dummy: Inventory items with management actions -->
     <NeutralContainer class="space-y-3">
-      <SubHeader>{{ t('memberDetail.inventory') }}</SubHeader>
+      <div class="flex items-center justify-between">
+        <SubHeader>{{ t('memberDetail.inventory') }}</SubHeader>
+        <PrimaryButton class="text-sm" disabled>
+          <font-awesome-icon :icon="['fas', 'plus']" class="mr-1"/>
+          {{ t('memberDetail.assignItem') }}
+        </PrimaryButton>
+      </div>
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
         <NeutralContainer>
-          <p class="text-sm font-medium">Helm</p>
-          <p class="text-xs text-(--text-muted)">Größe M — #H-042</p>
+          <div class="flex items-start justify-between gap-2">
+            <div>
+              <div class="font-medium text-sm">Helm <span class="font-normal text-(--text-muted)">M</span></div>
+              <div class="text-xs text-(--text-muted)">Helme</div>
+              <div class="text-xs text-(--text-muted)">#H-042</div>
+            </div>
+            <div class="flex items-center gap-1">
+              <IconButton :icon="['fas', 'rotate']" label="Tausch" disabled/>
+              <IconButton :icon="['fas', 'arrow-right-arrow-left']" label="Umzuweisen" disabled/>
+              <IconButton :icon="['fas', 'xmark']" label="Aufheben" disabled/>
+            </div>
+          </div>
         </NeutralContainer>
         <NeutralContainer>
-          <p class="text-sm font-medium">Jacke</p>
-          <p class="text-xs text-(--text-muted)">Größe L — #J-018</p>
+          <div class="flex items-start justify-between gap-2">
+            <div>
+              <div class="font-medium text-sm">Jacke <span class="font-normal text-(--text-muted)">L</span></div>
+              <div class="text-xs text-(--text-muted)">Jacken</div>
+              <div class="text-xs text-(--text-muted)">#J-018</div>
+            </div>
+            <div class="flex items-center gap-1">
+              <IconButton :icon="['fas', 'rotate']" label="Tausch" disabled/>
+              <IconButton :icon="['fas', 'arrow-right-arrow-left']" label="Umzuweisen" disabled/>
+              <IconButton :icon="['fas', 'xmark']" label="Aufheben" disabled/>
+            </div>
+          </div>
         </NeutralContainer>
       </div>
     </NeutralContainer>

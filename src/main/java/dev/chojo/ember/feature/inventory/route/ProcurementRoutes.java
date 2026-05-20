@@ -17,6 +17,7 @@ import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
 import dev.chojo.ember.feature.inventory.service.ProcurementService;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
+import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
 import dev.chojo.ember.feature.notifications.service.NotificationService;
 import io.javalin.http.Context;
@@ -33,7 +34,6 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
 import java.time.Instant;
-import java.util.Map;
 
 /**
  * Routes for procurement request management including creating, fulfilling,
@@ -116,8 +116,7 @@ public class ProcurementRoutes implements Routes {
                 request.memberId(),
                 NotificationType.PROCUREMENT_REQUESTED,
                 NotificationData.of(
-                        "notification.procurementRequested",
-                        Map.of("inventoryName", inventoryName),
+                        new NotificationParams.ProcurementRequested(inventoryName),
                         new NotificationData.NotificationLink("dashboard-overview")));
 
         ctx.status(HttpStatus.CREATED).json(toResponse(procurement));
@@ -145,8 +144,7 @@ public class ProcurementRoutes implements Routes {
                     procurement.memberId(),
                     NotificationType.PROCUREMENT_FULFILLED,
                     NotificationData.of(
-                            "notification.procurementFulfilled",
-                            Map.of("inventoryName", inventoryName),
+                            new NotificationParams.ProcurementFulfilled(inventoryName),
                             new NotificationData.NotificationLink("dashboard-overview")));
             ctx.status(HttpStatus.NO_CONTENT);
         } else {

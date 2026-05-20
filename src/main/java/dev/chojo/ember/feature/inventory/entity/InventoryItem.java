@@ -15,7 +15,7 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
 /**
  * Represents an individual item within an inventory that can be assigned to members.
  *
- * @param id         the unique item identifier
+ * @param id          the unique item identifier
  * @param inventoryId the inventory this item belongs to
  * @param internalId  an internal identifier for the item (e.g. serial number)
  * @param name        the display name of the item
@@ -35,7 +35,9 @@ public record InventoryItem(
         Integer assignedTo,
         Instant lostAt,
         ItemSource itemSource) {
-    /** Creates a row mapping for database result set conversion. */
+    /**
+     * Creates a row mapping for database result set conversion.
+     */
     public static RowMapping<InventoryItem> map() {
         return row -> new InventoryItem(
                 row.getInt("id"),
@@ -67,11 +69,17 @@ public record InventoryItem(
         return Optional.ofNullable(assignedTo);
     }
 
-    /** Indicates the origin of an inventory item. */
+    /**
+     * Indicates the origin of an inventory item.
+     */
     public enum ItemSource {
-        /** The item is owned by the organization. */
+        /**
+         * The item is owned by the organization.
+         */
         INTERNAL,
-        /** The item is owned by the member. */
+        /**
+         * The item is owned by the member.
+         */
         EXTERNAL
     }
 }

@@ -40,19 +40,19 @@ public class StationMailConfigRepository {
      */
     public StationMailConfig upsert(StationMailConfig config) {
         return Query.query("""
-                        INSERT INTO station_mail_config(station_id, provider, smtp_host, smtp_port, smtp_ssl,
-                            smtp_user, smtp_password, sender_address, sender_name, api_key,
-                            provider_name, provider_url, daily_limit, monthly_limit, updated_at)
-                        VALUES(:station_id, :provider, :smtp_host, :smtp_port, :smtp_ssl,
-                            :smtp_user, :smtp_password, :sender_address, :sender_name, :api_key,
-                            :provider_name, :provider_url, :daily_limit, :monthly_limit, now())
-                        ON CONFLICT (station_id) DO UPDATE SET
-                            provider = :provider, smtp_host = :smtp_host, smtp_port = :smtp_port, smtp_ssl = :smtp_ssl,
-                            smtp_user = :smtp_user, smtp_password = :smtp_password, sender_address = :sender_address,
-                            sender_name = :sender_name, api_key = :api_key,
-                            provider_name = :provider_name, provider_url = :provider_url,
-                            daily_limit = :daily_limit, monthly_limit = :monthly_limit, updated_at = now()
-                        RETURNING *;""")
+                            INSERT INTO station_mail_config(station_id, provider, smtp_host, smtp_port, smtp_ssl,
+                                smtp_user, smtp_password, sender_address, sender_name, api_key,
+                                provider_name, provider_url, daily_limit, monthly_limit, updated_at)
+                            VALUES(:station_id, :provider, :smtp_host, :smtp_port, :smtp_ssl,
+                                :smtp_user, :smtp_password, :sender_address, :sender_name, :api_key,
+                                :provider_name, :provider_url, :daily_limit, :monthly_limit, now())
+                            ON CONFLICT (station_id) DO UPDATE SET
+                                provider = :provider, smtp_host = :smtp_host, smtp_port = :smtp_port, smtp_ssl = :smtp_ssl,
+                                smtp_user = :smtp_user, smtp_password = :smtp_password, sender_address = :sender_address,
+                                sender_name = :sender_name, api_key = :api_key,
+                                provider_name = :provider_name, provider_url = :provider_url,
+                                daily_limit = :daily_limit, monthly_limit = :monthly_limit, updated_at = now()
+                            RETURNING *;""")
                 .single(Call.of()
                         .bind("station_id", config.stationId())
                         .bind("provider", config.provider())
@@ -112,7 +112,7 @@ public class StationMailConfigRepository {
         LocalDate firstDay = month.withDayOfMonth(1);
         LocalDate lastDay = month.withDayOfMonth(month.lengthOfMonth());
         return Query.query(
-                        "SELECT COALESCE(SUM(count), 0) FROM station_email_count WHERE station_id = :station_id AND day >= :first AND day <= :last;")
+                        "SELECT coalesce(sum(count), 0) FROM station_email_count WHERE station_id = :station_id AND day >= :first AND day <= :last;")
                 .single(Call.of()
                         .bind("station_id", stationId)
                         .bind("first", firstDay)
@@ -130,8 +130,8 @@ public class StationMailConfigRepository {
      */
     public void incrementDailyCount(int stationId, LocalDate day) {
         Query.query("""
-                        INSERT INTO station_email_count(station_id, day, count) VALUES(:station_id, :day, 1)
-                        ON CONFLICT (station_id, day) DO UPDATE SET count = station_email_count.count + 1;""")
+                     INSERT INTO station_email_count(station_id, day, count) VALUES(:station_id, :day, 1)
+                     ON CONFLICT (station_id, day) DO UPDATE SET count = station_email_count.count + 1;""")
                 .single(Call.of().bind("station_id", stationId).bind("day", day))
                 .insert();
     }

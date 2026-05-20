@@ -32,18 +32,28 @@ const members = ref<MemberCheckSummary[]>([])
 const loading = ref(true)
 const error = ref('')
 const activeTab = ref<'team' | 'member'>('team')
+const sortBy = ref<'name' | 'lastChecked'>('name')
 
 const currentMemberId = () => sessionInfo.value?.member?.id
 
 const filteredMembers = computed(() => {
   return members.value.filter(m => {
     const roles = m.roles ?? []
-    if (roles.includes(Roles.GUARDIAN) && !roles.includes(Roles.MEMBER) && !hasTeamRole(roles)) return false
+    if (roles.includes(Roles.GUARDIAN)) return false
     if (activeTab.value === 'team') {
       return hasTeamRole(roles)
     } else {
       return roles.includes(Roles.MEMBER) && !hasTeamRole(roles)
     }
+  }).sort((a, b) => {
+    if (sortBy.value === 'lastChecked') {
+      if (!a.lastCheckedAt && b.lastCheckedAt) return -1
+      if (a.lastCheckedAt && !b.lastCheckedAt) return 1
+      if (a.lastCheckedAt && b.lastCheckedAt) {
+        return new Date(a.lastCheckedAt).getTime() - new Date(b.lastCheckedAt).getTime()
+      }
+    }
+    return memberName(a).localeCompare(memberName(b), 'de')
   })
 })
 
@@ -87,7 +97,7 @@ function isLockedByOther(member: MemberCheckSummary): boolean {
 }
 
 function startCheck(memberId: number) {
-  router.push({name: 'inventory-check-member', params: {memberId}})
+  router.push({name: 'inventory-check-member', params: {memberId}, query: {teamOnly: activeTab.value === 'team' ? 'true' : 'false'}})
 }
 
 function viewLastCheck(member: MemberCheckSummary) {
@@ -106,21 +116,27 @@ onMounted(loadData)
       <Alert v-if="error" variant="error">{{ error }}</Alert>
 
       <template v-if="!loading && !error">
-        <!-- Tabs -->
-        <div class="flex gap-2 border-b border-bg-light-accent dark:border-bg-dark-accent">
-          <button
-              :class="activeTab === 'team' ? 'border-b-2 border-primary text-primary' : 'text-(--text-muted) hover:text-(--text)'"
-              class="px-4 py-2 text-sm font-medium transition-colors"
-              @click="activeTab = 'team'"
-          >
-            {{ t('inventory.check.tabTeam') }}
-          </button>
-          <button
-              :class="activeTab === 'member' ? 'border-b-2 border-primary text-primary' : 'text-(--text-muted) hover:text-(--text)'"
-              class="px-4 py-2 text-sm font-medium transition-colors"
-              @click="activeTab = 'member'"
-          >
-            {{ t('inventory.check.tabMember') }}
+        <!-- Tabs and sort -->
+        <div class="flex items-center justify-between gap-4">
+          <div class="flex gap-2 border-b border-bg-light-accent dark:border-bg-dark-accent">
+            <button
+                :class="activeTab === 'team' ? 'border-b-2 border-primary text-primary' : 'text-(--text-muted) hover:text-(--text)'"
+                class="px-4 py-2 text-sm font-medium transition-colors"
+                @click="activeTab = 'team'"
+            >
+              {{ t('inventory.check.tabTeam') }}
+            </button>
+            <button
+                :class="activeTab === 'member' ? 'border-b-2 border-primary text-primary' : 'text-(--text-muted) hover:text-(--text)'"
+                class="px-4 py-2 text-sm font-medium transition-colors"
+                @click="activeTab = 'member'"
+            >
+              {{ t('inventory.check.tabMember') }}
+            </button>
+          </div>
+          <button class="text-xs text-(--text-muted) hover:text-primary flex items-center gap-1" @click="sortBy = sortBy === 'name' ? 'lastChecked' : 'name'">
+            <font-awesome-icon :icon="['fas', 'sort']" class="h-3 w-3"/>
+            {{ sortBy === 'name' ? t('inventory.check.sortByLastChecked') : t('inventory.check.sortByName') }}
           </button>
         </div>
 

@@ -244,7 +244,7 @@ public class InventoryCheckRepository {
      * @param maxMinutes the maximum lock age in minutes before automatic release
      */
     public void releaseExpiredLocks(int maxMinutes) {
-        Query.query("DELETE FROM inventory_check_lock WHERE locked_at < NOW() - INTERVAL '1 minute' * :minutes;")
+        Query.query("DELETE FROM inventory_check_lock WHERE locked_at < now() - INTERVAL '1 minute' * :minutes;")
                 .single(Call.of().bind("minutes", maxMinutes))
                 .delete();
     }
@@ -258,18 +258,23 @@ public class InventoryCheckRepository {
      * @param excludeMemberId the member ID to exclude (typically the current one)
      * @return the member ID, or empty if all members are locked or checked
      */
-    public Optional<Integer> nextUncheckedMember(int stationId, int excludeMemberId) {
-        return Query.query("""
-                            SELECT sm.id FROM station_member sm
-                                LEFT JOIN inventory_check_lock l ON l.member_id = sm.id
-                                LEFT JOIN LATERAL (
-                                    SELECT checked_at FROM inventory_check WHERE member_id = sm.id ORDER BY checked_at DESC LIMIT 1
-                                ) lc ON TRUE
-                            WHERE sm.station_id = :station_id
-                              AND l.id IS NULL
-                              AND sm.id != :exclude
-                            ORDER BY lc.checked_at ASC NULLS FIRST
-                            LIMIT 1;""")
+    public Optional<Integer> nextUncheckedMember(int stationId, int excludeMemberId, boolean teamOnly) {
+        String roleFilter = teamOnly
+                ? "AND sm.id IN (SELECT member_id FROM station_member_role smr JOIN role r ON smr.role_id = r.id WHERE r.name IN ('TEAM','MANAGER','ADMIN','ATTENDENCE_MANAGEMENT','ATTENDENCE_EXPORT_MANAGER','INVENTORY_MANAGEMENT','EVENT_MANAGEMENT','MEMBER_MANAGEMENT','NEWS_MANAGEMENT','POLL_MANAGEMENT','LOST_AND_FOUND_MANAGEMENT'))"
+                : "AND sm.id IN (SELECT member_id FROM station_member_role smr JOIN role r ON smr.role_id = r.id WHERE r.name = 'MEMBER') AND sm.id NOT IN (SELECT member_id FROM station_member_role smr JOIN role r ON smr.role_id = r.id WHERE r.name IN ('TEAM','MANAGER','ADMIN','ATTENDENCE_MANAGEMENT','ATTENDENCE_EXPORT_MANAGER','INVENTORY_MANAGEMENT','EVENT_MANAGEMENT','MEMBER_MANAGEMENT','NEWS_MANAGEMENT','POLL_MANAGEMENT','LOST_AND_FOUND_MANAGEMENT'))";
+        return Query.query("SELECT sm.id FROM station_member sm"
+                        + " LEFT JOIN inventory_check_lock l ON l.member_id = sm.id"
+                        + " LEFT JOIN LATERAL ("
+                        + "     SELECT checked_at FROM inventory_check WHERE member_id = sm.id ORDER BY checked_at DESC LIMIT 1"
+                        + " ) lc ON TRUE"
+                        + " WHERE sm.station_id = :station_id"
+                        + " AND l.id IS NULL"
+                        + " AND sm.id != :exclude"
+                        + " AND sm.former = FALSE"
+                        + " AND (lc.checked_at IS NULL OR lc.checked_at < CURRENT_DATE)"
+                        + " " + roleFilter
+                        + " ORDER BY lc.checked_at ASC NULLS FIRST"
+                        + " LIMIT 1;")
                 .single(Call.of().bind("station_id", stationId).bind("exclude", excludeMemberId))
                 .map(row -> row.getInt("id"))
                 .first();

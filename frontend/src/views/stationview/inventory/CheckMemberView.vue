@@ -13,6 +13,7 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SuccessButton from '@/components/button/SuccessButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import InfoButton from '@/components/button/InfoButton.vue'
+import SizeBadge from '@/components/badge/SizeBadge.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
@@ -29,6 +30,7 @@ const route = useRoute()
 const router = useRouter()
 
 const memberId = computed(() => Number(route.params.memberId))
+const teamOnly = computed(() => route.query.teamOnly === 'true')
 const state = ref<MemberCheckState | null>(null)
 const loading = ref(true)
 const error = ref('')
@@ -38,6 +40,10 @@ const submitting = ref(false)
 const itemResults = ref<Map<number, CheckResult>>(new Map())
 const itemNotes = ref<Map<number, string>>(new Map())
 const procurementCreated = ref<Set<number>>(new Set())
+
+// Check mode (rapid one-by-one like attendance)
+const checkMode = ref(false)
+const checkIndex = ref(0)
 
 // Per-slot assign selection (key: "inventoryId-slotIndex")
 const slotSelections = ref<Map<string, string>>(new Map())
@@ -105,6 +111,108 @@ const allMarked = computed(() => {
   })
   return assignedMarked && emptyMarked
 })
+
+// Items that still need checking in rapid mode
+type CheckEntry =
+  | { type: 'item'; item: InventoryItem; req: RequiredInventoryItem }
+  | { type: 'slot'; req: RequiredInventoryItem; slotIndex: number }
+
+const uncheckedEntries = computed((): CheckEntry[] => {
+  if (!state.value) return []
+  const entries: CheckEntry[] = []
+  for (const req of state.value.required) {
+    for (const item of assignedForInventory(req.inventoryId)) {
+      if (!itemResults.value.has(item.id)) {
+        entries.push({ type: 'item', item, req })
+      }
+    }
+    const empty = emptySlotCount(req)
+    for (let i = 1; i <= empty; i++) {
+      if (!slotsNotInPossession.value.has(`${req.inventoryId}-${i}`)) {
+        entries.push({ type: 'slot', req, slotIndex: i })
+      }
+    }
+  }
+  return entries
+})
+
+const currentCheckEntry = computed((): CheckEntry | null => {
+  if (!checkMode.value || checkIndex.value >= uncheckedEntries.value.length) return null
+  return uncheckedEntries.value[checkIndex.value]
+})
+
+// Selection for assigning in rapid mode
+const rapidAssignSelection = ref('')
+const rapidCreateSizeId = ref('')
+
+function startCheckMode() {
+  checkIndex.value = 0
+  rapidAssignSelection.value = ''
+  rapidCreateSizeId.value = ''
+  checkMode.value = true
+}
+
+function checkModeSetResult(result: CheckResult) {
+  const entry = currentCheckEntry.value
+  if (!entry || entry.type !== 'item') return
+  itemResults.value.set(entry.item.id, result)
+  itemResults.value = new Map(itemResults.value)
+  rapidAssignSelection.value = ''
+  rapidCreateSizeId.value = ''
+  if (checkIndex.value >= uncheckedEntries.value.length) {
+    checkMode.value = false
+  }
+}
+
+function checkModeMarkNotInPossession() {
+  const entry = currentCheckEntry.value
+  if (!entry || entry.type !== 'slot') return
+  toggleNotInPossession(entry.req.inventoryId, entry.slotIndex)
+  rapidAssignSelection.value = ''
+  rapidCreateSizeId.value = ''
+  if (checkIndex.value >= uncheckedEntries.value.length) {
+    checkMode.value = false
+  }
+}
+
+async function checkModeAssign() {
+  const entry = currentCheckEntry.value
+  if (!entry || entry.type !== 'slot' || !rapidAssignSelection.value) return
+  error.value = ''
+  try {
+    state.value = await inventoryCheck.assignItem(memberId.value, Number(rapidAssignSelection.value))
+    rapidAssignSelection.value = ''
+    rapidCreateSizeId.value = ''
+  } catch {
+    error.value = t('common.error')
+  }
+}
+
+async function checkModeCreateAndAssign() {
+  const entry = currentCheckEntry.value
+  if (!entry || entry.type !== 'slot') return
+  error.value = ''
+  try {
+    state.value = await inventoryCheck.createAndAssign(
+      memberId.value,
+      entry.req.inventoryId,
+      rapidCreateSizeId.value ? Number(rapidCreateSizeId.value) : null,
+    )
+    rapidAssignSelection.value = ''
+    rapidCreateSizeId.value = ''
+  } catch {
+    error.value = t('common.error')
+  }
+}
+
+function skipCheckItem() {
+  checkIndex.value++
+  rapidAssignSelection.value = ''
+  rapidCreateSizeId.value = ''
+  if (checkIndex.value >= uncheckedEntries.value.length) {
+    checkMode.value = false
+  }
+}
 
 function markAllConfirmed() {
   if (!state.value) return
@@ -248,7 +356,7 @@ async function submit() {
     const completedMemberId = memberId.value
     await inventoryCheck.completeCheck(completedMemberId, { items })
 
-    const nextId = await inventoryCheck.getNextMember(completedMemberId)
+    const nextId = await inventoryCheck.getNextMember(completedMemberId, teamOnly.value)
     if (nextId) {
       // Reset state before navigating
       state.value = null
@@ -256,7 +364,7 @@ async function submit() {
       itemNotes.value = new Map()
       slotSelections.value = new Map()
       slotsNotInPossession.value = new Set()
-      await router.replace({ name: 'inventory-check-member', params: { memberId: nextId } })
+      await router.replace({ name: 'inventory-check-member', params: { memberId: nextId }, query: { teamOnly: teamOnly.value ? 'true' : 'false' } })
       await loadData()
     } else {
       await router.push({ name: 'inventory-checks' })
@@ -318,7 +426,11 @@ onMounted(loadData)
             <p class="text-sm text-(--text-muted)">{{ t('inventory.check.title') }}</p>
           </div>
           <div class="flex gap-2">
-            <SecondaryButton v-if="state.assigned.length > 0" class="text-sm" @click="markAllConfirmed">
+            <PrimaryButton v-if="uncheckedEntries.length > 0 && !checkMode" class="text-sm" @click="startCheckMode">
+              <font-awesome-icon :icon="['fas', 'list-check']" class="mr-1" />
+              {{ t('inventory.check.rapidCheck') }}
+            </PrimaryButton>
+            <SecondaryButton v-if="state.assigned.length > 0 && !checkMode" class="text-sm" @click="markAllConfirmed">
               {{ t('inventory.check.markAll') }}
             </SecondaryButton>
             <SecondaryButton @click="cancel">{{ t('inventory.check.cancel') }}</SecondaryButton>
@@ -332,8 +444,91 @@ onMounted(loadData)
           </div>
         </NeutralContainer>
 
+        <!-- Rapid check mode: assigned item -->
+        <NeutralContainer v-if="checkMode && currentCheckEntry?.type === 'item'" class="space-y-4">
+          <div class="text-center space-y-2">
+            <p class="text-xs text-(--text-muted)">{{ t('inventory.check.rapidProgress', { current: uncheckedEntries.length }) }}</p>
+            <SubHeader>{{ currentCheckEntry.req.inventoryName }}</SubHeader>
+            <p class="text-2xl font-bold">{{ currentCheckEntry.item.name }}</p>
+            <div class="flex items-center justify-center gap-2">
+              <SizeBadge v-if="sizeLabel(currentCheckEntry.req, currentCheckEntry.item.sizeId)">{{ sizeLabel(currentCheckEntry.req, currentCheckEntry.item.sizeId) }}</SizeBadge>
+              <span v-if="currentCheckEntry.item.internalId" class="text-sm text-(--text-muted)">{{ currentCheckEntry.item.internalId }}</span>
+            </div>
+          </div>
+          <div class="flex justify-center gap-4">
+            <SuccessButton class="px-8 py-3 text-lg" @click="checkModeSetResult('CONFIRMED')">
+              <font-awesome-icon :icon="['fas', 'check']" class="mr-2" />
+              {{ t('inventory.check.confirmed') }}
+            </SuccessButton>
+            <ErrorButton class="px-8 py-3 text-lg" @click="checkModeSetResult('LOST')">
+              <font-awesome-icon :icon="['fas', 'xmark']" class="mr-2" />
+              {{ t('inventory.check.lost') }}
+            </ErrorButton>
+          </div>
+          <div class="flex justify-center">
+            <SecondaryButton class="text-sm" @click="skipCheckItem">
+              {{ t('inventory.check.skip') }}
+            </SecondaryButton>
+          </div>
+        </NeutralContainer>
+
+        <!-- Rapid check mode: empty slot (missing item) -->
+        <NeutralContainer v-if="checkMode && currentCheckEntry?.type === 'slot'" class="space-y-4">
+          <div class="text-center space-y-2">
+            <p class="text-xs text-(--text-muted)">{{ t('inventory.check.rapidProgress', { current: uncheckedEntries.length }) }}</p>
+            <SubHeader>{{ currentCheckEntry.req.inventoryName }}</SubHeader>
+            <p class="text-lg font-medium text-(--text-muted)">{{ t('inventory.check.missingItem') }}</p>
+            <p class="text-sm text-(--text-muted)">
+              {{ currentCheckEntry.req.assignedQuantity }} / {{ currentCheckEntry.req.requiredQuantity }}
+            </p>
+          </div>
+
+          <!-- Assign from existing unassigned -->
+          <div v-if="availableForInventory(currentCheckEntry.req.inventoryId).length > 0" class="flex flex-col sm:flex-row gap-2 max-w-md mx-auto">
+            <SelectInput v-model="rapidAssignSelection" class="flex-1">
+              <option value="" disabled>{{ t('inventory.check.selectItem') }}</option>
+              <option v-for="avail in availableForInventory(currentCheckEntry.req.inventoryId)" :key="avail.id" :value="String(avail.id)">
+                {{ itemLabel(avail, currentCheckEntry.req) }}
+              </option>
+            </SelectInput>
+            <PrimaryButton class="text-sm" :disabled="!rapidAssignSelection" @click="checkModeAssign">
+              {{ t('inventory.check.assign') }}
+            </PrimaryButton>
+          </div>
+
+          <!-- Create new item -->
+          <div class="flex flex-col sm:flex-row gap-2 max-w-md mx-auto">
+            <SelectInput v-if="currentCheckEntry.req.hasSizes && currentCheckEntry.req.sizes.length > 0" v-model="rapidCreateSizeId" class="flex-1">
+              <option value="" disabled>{{ t('inventory.check.selectSize') }}</option>
+              <option v-for="size in currentCheckEntry.req.sizes" :key="size.id" :value="String(size.id)">{{ size.label }}</option>
+            </SelectInput>
+            <SecondaryButton class="text-sm" :disabled="currentCheckEntry.req.hasSizes && currentCheckEntry.req.sizes.length > 0 && !rapidCreateSizeId" @click="checkModeCreateAndAssign">
+              <font-awesome-icon :icon="['fas', 'plus']" class="mr-1" />
+              {{ t('inventory.check.create') }}
+            </SecondaryButton>
+          </div>
+
+          <div class="flex justify-center gap-4">
+            <InfoButton class="px-6 py-2" @click="checkModeMarkNotInPossession">
+              <font-awesome-icon :icon="['fas', 'ban']" class="mr-2" />
+              {{ t('inventory.check.notInPossession') }}
+            </InfoButton>
+          </div>
+          <div class="flex justify-center">
+            <SecondaryButton class="text-sm" @click="skipCheckItem">
+              {{ t('inventory.check.skip') }}
+            </SecondaryButton>
+          </div>
+        </NeutralContainer>
+
+        <!-- Rapid check mode: done -->
+        <NeutralContainer v-if="checkMode && !currentCheckEntry" class="text-center py-4 space-y-2">
+          <p class="text-lg font-medium">{{ t('inventory.check.rapidDone') }}</p>
+          <SecondaryButton @click="checkMode = false">{{ t('inventory.check.backToList') }}</SecondaryButton>
+        </NeutralContainer>
+
         <!-- Inventory sections -->
-        <div class="space-y-6">
+        <div v-if="!checkMode" class="space-y-6">
           <NeutralContainer v-for="req in state.required" :key="req.inventoryId" class="space-y-3">
             <div class="flex items-center justify-between gap-2">
               <SubHeader>{{ req.inventoryName }}</SubHeader>
@@ -358,7 +553,7 @@ onMounted(loadData)
                   <div class="flex-1 min-w-0">
                     <div class="font-medium text-sm truncate">
                       {{ item.name }}
-                      <span v-if="sizeLabel(req, item.sizeId)" class="font-normal text-(--text-muted)">[{{ sizeLabel(req, item.sizeId) }}]</span>
+                      <SizeBadge v-if="sizeLabel(req, item.sizeId)">{{ sizeLabel(req, item.sizeId) }}</SizeBadge>
                     </div>
                     <div v-if="item.internalId" class="text-xs text-(--text-muted)">{{ item.internalId }}</div>
                   </div>

@@ -79,9 +79,9 @@ public class FormRepository {
             Instant endAt,
             int createdBy) {
         return Query.query("""
-                        INSERT INTO form(station_id, title, description, shuffle_questions, allow_edit, start_at, end_at, created_by)
-                        VALUES (:station_id, :title, :description, :shuffle_questions, :allow_edit, :start_at, :end_at, :created_by)
-                        RETURNING *;""")
+                            INSERT INTO form(station_id, title, description, shuffle_questions, allow_edit, start_at, end_at, created_by)
+                            VALUES (:station_id, :title, :description, :shuffle_questions, :allow_edit, :start_at, :end_at, :created_by)
+                            RETURNING *;""")
                 .single(Call.of()
                         .bind("station_id", stationId)
                         .bind("title", title)
@@ -117,11 +117,11 @@ public class FormRepository {
             Instant startAt,
             Instant endAt) {
         return Query.query("""
-                        UPDATE form
-                        SET title = :title, description = :description,
-                            shuffle_questions = :shuffle_questions, allow_edit = :allow_edit,
-                            start_at = :start_at, end_at = :end_at, updated_at = now()
-                        WHERE id = :id;""")
+                            UPDATE form
+                            SET title = :title, description = :description,
+                                shuffle_questions = :shuffle_questions, allow_edit = :allow_edit,
+                                start_at = :start_at, end_at = :end_at, updated_at = now()
+                            WHERE id = :id;""")
                 .single(Call.of()
                         .bind("id", id)
                         .bind("title", title)
@@ -200,9 +200,9 @@ public class FormRepository {
             boolean shuffle,
             String config) {
         return Query.query("""
-                        INSERT INTO form_question(form_id, position, question_type, title, description, required, shuffle, config)
-                        VALUES (:form_id, :position, :question_type, :title, :description, :required, :shuffle, :config::JSONB)
-                        RETURNING *;""")
+                            INSERT INTO form_question(form_id, position, question_type, title, description, required, shuffle, config)
+                            VALUES (:form_id, :position, :question_type, :title, :description, :required, :shuffle, :config::JSONB)
+                            RETURNING *;""")
                 .single(Call.of()
                         .bind("form_id", formId)
                         .bind("position", position)
@@ -232,10 +232,10 @@ public class FormRepository {
     public boolean updateQuestion(
             int id, String title, String description, boolean required, boolean shuffle, String config, int position) {
         return Query.query("""
-                        UPDATE form_question
-                        SET title = :title, description = :description, required = :required,
-                            shuffle = :shuffle, config = :config::JSONB, position = :position
-                        WHERE id = :id;""")
+                            UPDATE form_question
+                            SET title = :title, description = :description, required = :required,
+                                shuffle = :shuffle, config = :config::JSONB, position = :position
+                            WHERE id = :id;""")
                 .single(Call.of()
                         .bind("id", id)
                         .bind("title", title)
@@ -311,10 +311,10 @@ public class FormRepository {
      */
     public FormResponse createResponse(int formId, int memberId, int submittedBy) {
         return Query.query("""
-                        INSERT INTO form_response(form_id, member_id, submitted_by)
-                        VALUES (:form_id, :member_id, :submitted_by)
-                        ON CONFLICT (form_id, member_id) DO UPDATE SET submitted_by = :submitted_by, updated_at = now()
-                        RETURNING *;""")
+                            INSERT INTO form_response(form_id, member_id, submitted_by)
+                            VALUES (:form_id, :member_id, :submitted_by)
+                            ON CONFLICT (form_id, member_id) DO UPDATE SET submitted_by = :submitted_by, updated_at = now()
+                            RETURNING *;""")
                 .single(Call.of()
                         .bind("form_id", formId)
                         .bind("member_id", memberId)
@@ -403,9 +403,9 @@ public class FormRepository {
      */
     public void upsertAnswer(int responseId, int questionId, String value) {
         Query.query("""
-                        INSERT INTO form_answer(response_id, question_id, value)
-                        VALUES (:response_id, :question_id, :value::JSONB)
-                        ON CONFLICT (response_id, question_id) DO UPDATE SET value = :value::JSONB;""")
+                     INSERT INTO form_answer(response_id, question_id, value)
+                     VALUES (:response_id, :question_id, :value::JSONB)
+                     ON CONFLICT (response_id, question_id) DO UPDATE SET value = :value::JSONB;""")
                 .single(Call.of()
                         .bind("response_id", responseId)
                         .bind("question_id", questionId)
@@ -514,10 +514,10 @@ public class FormRepository {
     public Map<Integer, List<Integer>> findAllRoleRestrictionsByStation(int stationId) {
         var result = new HashMap<Integer, List<Integer>>();
         Query.query("""
-                        SELECT frr.form_id, frr.role_id
-                        FROM form_role_restriction frr
-                        JOIN form f ON f.id = frr.form_id
-                        WHERE f.station_id = :station_id;""")
+                     SELECT frr.form_id, frr.role_id
+                     FROM form_role_restriction frr
+                     JOIN form f ON f.id = frr.form_id
+                     WHERE f.station_id = :station_id;""")
                 .single(Call.of().bind("station_id", stationId))
                 .map(row -> new int[] {row.getInt("form_id"), row.getInt("role_id")})
                 .all()
@@ -535,10 +535,10 @@ public class FormRepository {
     public Map<Integer, List<Integer>> findAllGroupRestrictionsByStation(int stationId) {
         var result = new HashMap<Integer, List<Integer>>();
         Query.query("""
-                        SELECT fgr.form_id, fgr.group_id
-                        FROM form_group_restriction fgr
-                        JOIN form f ON f.id = fgr.form_id
-                        WHERE f.station_id = :station_id;""")
+                     SELECT fgr.form_id, fgr.group_id
+                     FROM form_group_restriction fgr
+                     JOIN form f ON f.id = fgr.form_id
+                     WHERE f.station_id = :station_id;""")
                 .single(Call.of().bind("station_id", stationId))
                 .map(row -> new int[] {row.getInt("form_id"), row.getInt("group_id")})
                 .all()
@@ -556,10 +556,10 @@ public class FormRepository {
     public Map<Integer, List<Integer>> findAllTagRestrictionsByStation(int stationId) {
         var result = new HashMap<Integer, List<Integer>>();
         Query.query("""
-                        SELECT ftr.form_id, ftr.tag_id
-                        FROM form_tag_restriction ftr
-                        JOIN form f ON f.id = ftr.form_id
-                        WHERE f.station_id = :station_id;""")
+                     SELECT ftr.form_id, ftr.tag_id
+                     FROM form_tag_restriction ftr
+                     JOIN form f ON f.id = ftr.form_id
+                     WHERE f.station_id = :station_id;""")
                 .single(Call.of().bind("station_id", stationId))
                 .map(row -> new int[] {row.getInt("form_id"), row.getInt("tag_id")})
                 .all()

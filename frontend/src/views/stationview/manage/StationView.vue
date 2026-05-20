@@ -491,7 +491,12 @@ onMounted(async () => {
 
       <!-- Mail settings -->
       <NeutralContainer v-if="!loading" class="space-y-4">
-        <SectionHeader>{{ t('stationManage.mailTitle') }}</SectionHeader>
+        <div class="flex items-center gap-2">
+          <SectionHeader>{{ t('stationManage.mailTitle') }}</SectionHeader>
+          <router-link :to="{name: 'help-station-mail-config'}" target="_blank" class="text-[var(--text-muted)] hover:text-primary transition-colors">
+            <font-awesome-icon :icon="['fas', 'circle-question']" class="w-4 h-4"/>
+          </router-link>
+        </div>
         <p class="text-sm text-(--text-muted)">{{ t('stationManage.mailHint') }}</p>
 
         <div class="space-y-1">

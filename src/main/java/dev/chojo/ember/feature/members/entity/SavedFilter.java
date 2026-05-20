@@ -18,7 +18,9 @@ import de.chojo.sadu.mapper.rowmapper.RowMapping;
  * @param position   the display order position
  */
 public record SavedFilter(int id, int accountId, String tableType, String name, String filterData, int position) {
-    /** Creates a row mapping for database result set conversion. */
+    /**
+     * Creates a row mapping for database result set conversion.
+     */
     public static RowMapping<SavedFilter> map() {
         return row -> new SavedFilter(
                 row.getInt("id"),

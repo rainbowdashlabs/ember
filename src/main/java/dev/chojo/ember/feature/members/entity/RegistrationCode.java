@@ -18,7 +18,9 @@ import de.chojo.sadu.mapper.rowmapper.RowMapping;
  */
 public record RegistrationCode(int id, int stationId, String code, int maxUses, int uses) {
 
-    /** Creates a row mapping for database result set conversion. */
+    /**
+     * Creates a row mapping for database result set conversion.
+     */
     public static RowMapping<RegistrationCode> map() {
         return row -> new RegistrationCode(
                 row.getInt("id"),

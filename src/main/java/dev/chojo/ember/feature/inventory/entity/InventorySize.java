@@ -17,7 +17,9 @@ import de.chojo.sadu.mapper.rowmapper.RowMapping;
  * @param note        an optional note about this size
  */
 public record InventorySize(int id, int inventoryId, String label, int position, String note) {
-    /** Creates a row mapping for database result set conversion. */
+    /**
+     * Creates a row mapping for database result set conversion.
+     */
     public static RowMapping<InventorySize> map() {
         return row -> new InventorySize(
                 row.getInt("id"),

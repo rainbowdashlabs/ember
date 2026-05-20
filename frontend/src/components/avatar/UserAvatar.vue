@@ -50,7 +50,7 @@ async function loadAvatar() {
   if (!props.memberId) return
 
   try {
-    const res = await client.get(`/members/${props.memberId}/avatar`, {
+    const res = await client.get(`/members/${props.memberId}/avatar?size=128`, {
       responseType: 'blob',
       validateStatus: (status) => status === 200 || status === 404,
     })

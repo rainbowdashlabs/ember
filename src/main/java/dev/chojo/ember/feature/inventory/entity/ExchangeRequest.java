@@ -42,7 +42,9 @@ public record ExchangeRequest(
         Instant createdAt,
         Instant updatedAt,
         Integer createdBy) {
-    /** Creates a row mapping for database result set conversion. */
+    /**
+     * Creates a row mapping for database result set conversion.
+     */
     public static RowMapping<ExchangeRequest> map() {
         return row -> new ExchangeRequest(
                 row.getInt("id"),

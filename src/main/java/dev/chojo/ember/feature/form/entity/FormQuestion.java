@@ -31,7 +31,9 @@ public record FormQuestion(
         boolean shuffle,
         String config) {
 
-    /** Creates a row mapping for database result set conversion. */
+    /**
+     * Creates a row mapping for database result set conversion.
+     */
     public static RowMapping<FormQuestion> map() {
         return row -> new FormQuestion(
                 row.getInt("id"),
@@ -45,7 +47,9 @@ public record FormQuestion(
                 row.getString("config"));
     }
 
-    /** Supported question types for form questions. */
+    /**
+     * Supported question types for form questions.
+     */
     public enum QuestionType {
         CHOICE,
         TEXT,

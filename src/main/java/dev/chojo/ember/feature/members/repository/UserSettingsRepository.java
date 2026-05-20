@@ -12,7 +12,9 @@ import jakarta.inject.Singleton;
 
 import java.util.Optional;
 
-/** Repository for user notification and communication settings. */
+/**
+ * Repository for user notification and communication settings.
+ */
 @Singleton
 public class UserSettingsRepository {
 
@@ -33,7 +35,9 @@ public class UserSettingsRepository {
                 .orElseGet(() -> findByMemberId(memberId).orElseThrow());
     }
 
-    /** Finds settings for a member, returning empty if none exist. */
+    /**
+     * Finds settings for a member, returning empty if none exist.
+     */
     public Optional<UserSettings> findByMemberId(int memberId) {
         return Query.query("SELECT * FROM user_settings WHERE member_id = :member_id;")
                 .single(Call.of().bind("member_id", memberId))

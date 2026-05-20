@@ -21,6 +21,7 @@ import dev.chojo.ember.feature.inventory.service.ExchangeService;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
+import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
 import dev.chojo.ember.feature.notifications.service.NotificationService;
 import io.javalin.http.BadRequestResponse;
@@ -40,7 +41,6 @@ import jakarta.inject.Singleton;
 
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 
@@ -188,15 +188,9 @@ public class ExchangeRoutes implements Routes {
                 .findById(exchange.inventoryId())
                 .map(Inventory::name)
                 .orElse("?");
-        var exchangeParams = new HashMap<String, String>();
-        exchangeParams.put("memberName", memberName);
-        exchangeParams.put("inventoryName", inventoryName);
-        if (request.reason() != null && !request.reason().isBlank()) {
-            exchangeParams.put("reason", request.reason());
-        }
+        String reason = request.reason() != null && !request.reason().isBlank() ? request.reason() : null;
         var exchangeData = NotificationData.of(
-                "notification.exchangeNewRequest",
-                exchangeParams,
+                new NotificationParams.ExchangeNewRequest(memberName, inventoryName, reason),
                 new NotificationData.NotificationLink("inventory-exchanges"));
         var inventoryMgmtIds =
                 stationMemberRepository.findMembersWithRole(session.stationId(), Roles.INVENTORY_MANAGEMENT).stream()
@@ -245,15 +239,9 @@ public class ExchangeRoutes implements Routes {
                 .findById(exchange.inventoryId())
                 .map(Inventory::name)
                 .orElse("?");
-        var params = new HashMap<String, String>();
-        params.put("status", status.name());
-        params.put("inventoryName", inventoryName);
-        if (exchange.reason() != null && !exchange.reason().isBlank()) {
-            params.put("reason", exchange.reason());
-        }
+        String reason = exchange.reason() != null && !exchange.reason().isBlank() ? exchange.reason() : null;
         var data = NotificationData.of(
-                "notification.exchangeStatusChange",
-                params,
+                new NotificationParams.ExchangeStatusChange(status.name(), inventoryName, reason),
                 new NotificationData.NotificationLink("inventory-exchanges"));
         notificationService.notify(exchange.memberId(), NotificationType.EXCHANGE_STATUS_CHANGE, data);
         var invMgmtIds =
@@ -314,8 +302,6 @@ public class ExchangeRoutes implements Routes {
         ctx.header("Content-Disposition", "attachment; filename=\"exchange-requests.pdf\"");
         ctx.result(pdf.get());
     }
-
-    public record ExportRequest(List<Integer> exchangeIds, List<Integer> extraFieldIds) {}
 
     private String resolveSizeLabel(Integer sizeId, int inventoryId) {
         if (sizeId == null) return null;
@@ -379,6 +365,8 @@ public class ExchangeRoutes implements Routes {
                 log.changedAt(),
                 log.note());
     }
+
+    public record ExportRequest(List<Integer> exchangeIds, List<Integer> extraFieldIds) {}
 
     public record ExchangeResponse(
             int id,

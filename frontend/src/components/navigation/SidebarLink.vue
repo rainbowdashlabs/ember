@@ -23,10 +23,10 @@ defineEmits<{
 <template>
   <router-link
       :class="route.name === name
-      ? 'bg-primary/15 text-primary'
-      : 'text-[var(--text-muted)] hover:bg-primary/5 hover:text-[var(--text)]'"
+      ? 'bg-primary/15 !text-primary'
+      : '!text-[var(--text)] hover:bg-primary/5'"
       :to="to"
-      class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors duration-150"
+      class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium no-underline transition-colors duration-150"
       @click="$emit('navigate')"
   >
     <font-awesome-icon v-if="icon" :icon="icon" class="w-4"/>

@@ -137,6 +137,26 @@ public class ExchangeService {
     }
 
     /**
+     * Finds the status change logs for an exchange request.
+     *
+     * @param requestId the exchange request ID
+     * @return list of log entries
+     */
+    public List<ExchangeLog> findLogs(int requestId) {
+        return exchangeRepository.findLogs(requestId);
+    }
+
+    /**
+     * Deletes an exchange request.
+     *
+     * @param id the exchange request ID
+     * @return {@code true} if the request was deleted
+     */
+    public boolean delete(int id) {
+        return exchangeRepository.delete(id);
+    }
+
+    /**
      * Completes an exchange by handling old item disposal (delete for external, unassign for internal)
      * and assigning the replacement item to the member.
      *
@@ -164,25 +184,5 @@ public class ExchangeService {
         if (exchangedItemId != null) {
             inventoryService.assignItem(exchangedItemId, request.memberId(), "");
         }
-    }
-
-    /**
-     * Finds the status change logs for an exchange request.
-     *
-     * @param requestId the exchange request ID
-     * @return list of log entries
-     */
-    public List<ExchangeLog> findLogs(int requestId) {
-        return exchangeRepository.findLogs(requestId);
-    }
-
-    /**
-     * Deletes an exchange request.
-     *
-     * @param id the exchange request ID
-     * @return {@code true} if the request was deleted
-     */
-    public boolean delete(int id) {
-        return exchangeRepository.delete(id);
     }
 }

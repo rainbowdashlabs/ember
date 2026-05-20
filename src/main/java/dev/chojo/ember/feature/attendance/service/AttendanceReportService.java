@@ -81,18 +81,24 @@ public class AttendanceReportService {
 
     // -- Records for API responses --
 
-    /** Retrieves all report presets for a station. */
+    /**
+     * Retrieves all report presets for a station.
+     */
     public List<AttendanceReportPreset> findPresets(int stationId) {
         return attendanceRepository.findPresets(stationId);
     }
 
-    /** Creates a new report preset with the given filter configuration. */
+    /**
+     * Creates a new report preset with the given filter configuration.
+     */
     public AttendanceReportPreset createPreset(
             int stationId, String name, String roleName, Integer groupId, String period, String rounding) {
         return attendanceRepository.createPreset(stationId, name, roleName, groupId, period, rounding);
     }
 
-    /** Deletes a report preset by its identifier. */
+    /**
+     * Deletes a report preset by its identifier.
+     */
     public boolean deletePreset(int id) {
         return attendanceRepository.deletePreset(id);
     }
@@ -447,17 +453,23 @@ public class AttendanceReportService {
         }
     }
 
-    /** Aggregated attendance report with filter label, members, sessions, and monthly breakdowns. */
+    /**
+     * Aggregated attendance report with filter label, members, sessions, and monthly breakdowns.
+     */
     public record ReportData(
             String filterLabel,
             List<MemberSummary> members,
             List<SessionData> sessions,
             List<MonthSummary> monthlySummaries) {}
 
-    /** Summary of a member's attendance across all sessions in the report period. */
+    /**
+     * Summary of a member's attendance across all sessions in the report period.
+     */
     public record MemberSummary(int memberId, String name, double totalHours, int sessionCount, int presentCount) {}
 
-    /** Data for a single attendance session including per-member entries. */
+    /**
+     * Data for a single attendance session including per-member entries.
+     */
     public record SessionData(
             int sessionId,
             String title,
@@ -468,10 +480,14 @@ public class AttendanceReportService {
             int presentCount,
             List<SessionMemberEntry> entries) {}
 
-    /** A member's attendance entry within a specific session. */
+    /**
+     * A member's attendance entry within a specific session.
+     */
     public record SessionMemberEntry(
             int memberId, String name, String status, String checkIn, String checkOut, double hours) {}
 
-    /** Monthly breakdown with per-member summaries and session details. */
+    /**
+     * Monthly breakdown with per-member summaries and session details.
+     */
     public record MonthSummary(String month, List<MemberSummary> members, List<SessionData> sessions) {}
 }

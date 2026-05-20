@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.station.repository;
 import de.chojo.sadu.queries.api.call.Call;
 import de.chojo.sadu.queries.api.query.Query;
 import dev.chojo.ember.feature.station.entity.Station;
+import dev.chojo.ember.feature.station.entity.StationModule;
 import jakarta.inject.Singleton;
 
 import java.util.List;
@@ -175,69 +176,40 @@ public class StationRepository {
     }
 
     /**
+     * Retrieves the set of disabled module names for a station.
+     *
+     * @param stationId the station ID
+     * @return an immutable set of disabled module names
+     */
+    public Set<StationModule> findDisabledModules(int stationId) {
+        return Set.copyOf(Query.query("SELECT module FROM station_disabled_module WHERE station_id = :station_id;")
+                .single(Call.of().bind("station_id", stationId))
+                .map(row -> row.getEnum("module", StationModule.class))
+                .all());
+    }
+
+    // -- Module settings --
+
+    /**
+     * Replaces all disabled modules for a station with the given set.
+     */
+    public void setDisabledModules(int stationId, Set<StationModule> modules) {
+        Query.query("DELETE FROM station_disabled_module WHERE station_id = :station_id;")
+                .single(Call.of().bind("station_id", stationId))
+                .delete();
+        for (StationModule module : modules) {
+            Query.query(
+                            "INSERT INTO station_disabled_module(station_id, module) VALUES(:station_id, :module) ON CONFLICT DO NOTHING;")
+                    .single(Call.of().bind("station_id", stationId).bind("module", module))
+                    .insert();
+        }
+    }
+
+    /**
      * Holds the binary data and content type of a station logo.
      *
      * @param data        the raw image bytes
      * @param contentType the MIME content type
      */
     public record StationLogo(byte[] data, String contentType) {}
-
-    // -- Module settings --
-
-    /**
-     * Retrieves the set of disabled module names for a station.
-     *
-     * @param stationId the station ID
-     * @return an immutable set of disabled module names
-     */
-    public Set<String> findDisabledModules(int stationId) {
-        return Set.copyOf(Query.query("SELECT module FROM station_disabled_module WHERE station_id = :station_id;")
-                .single(Call.of().bind("station_id", stationId))
-                .map(row -> row.getString("module"))
-                .all());
-    }
-
-    /**
-     * Disables a module for a station.
-     *
-     * @param stationId the station ID
-     * @param module    the module name to disable
-     * @return {@code true} if the module was newly disabled
-     */
-    public boolean disableModule(int stationId, String module) {
-        return Query.query(
-                        "INSERT INTO station_disabled_module(station_id, module) VALUES(:station_id, :module) ON CONFLICT DO NOTHING;")
-                .single(Call.of().bind("station_id", stationId).bind("module", module))
-                .insert()
-                .changed();
-    }
-
-    /**
-     * Enables a previously disabled module for a station.
-     *
-     * @param stationId the station ID
-     * @param module    the module name to enable
-     * @return {@code true} if the module was previously disabled and is now enabled
-     */
-    public boolean enableModule(int stationId, String module) {
-        return Query.query("DELETE FROM station_disabled_module WHERE station_id = :station_id AND module = :module;")
-                .single(Call.of().bind("station_id", stationId).bind("module", module))
-                .delete()
-                .changed();
-    }
-
-    /**
-     * Replaces all disabled modules for a station with the given set.
-     *
-     * @param stationId the station ID
-     * @param modules   the set of module names to disable
-     */
-    public void setDisabledModules(int stationId, Set<String> modules) {
-        Query.query("DELETE FROM station_disabled_module WHERE station_id = :station_id;")
-                .single(Call.of().bind("station_id", stationId))
-                .delete();
-        for (String module : modules) {
-            disableModule(stationId, module);
-        }
-    }
 }

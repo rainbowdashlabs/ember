@@ -12,6 +12,7 @@ import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.lostandfound.entity.LostAndFoundItem;
 import dev.chojo.ember.feature.lostandfound.service.LostAndFoundService;
+import dev.chojo.ember.feature.media.service.ImageCategory;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.StationMemberService;
 import io.javalin.http.BadRequestResponse;
@@ -47,17 +48,23 @@ public class LostAndFoundRoutes implements Routes {
     private final StationMemberService memberService;
     private final StationMemberRepository stationMemberRepository;
     private final AccountRepository accountRepository;
+    private final dev.chojo.ember.feature.media.service.ImageService imageService;
+    private final dev.chojo.ember.conf.file.elements.Api apiConfig;
 
     @Inject
     public LostAndFoundRoutes(
             LostAndFoundService lostAndFoundService,
             StationMemberService memberService,
             StationMemberRepository stationMemberRepository,
-            AccountRepository accountRepository) {
+            AccountRepository accountRepository,
+            dev.chojo.ember.feature.media.service.ImageService imageService,
+            dev.chojo.ember.conf.file.elements.Api apiConfig) {
         this.lostAndFoundService = lostAndFoundService;
         this.memberService = memberService;
         this.stationMemberRepository = stationMemberRepository;
         this.accountRepository = accountRepository;
+        this.imageService = imageService;
+        this.apiConfig = apiConfig;
     }
 
     @Override
@@ -135,13 +142,18 @@ public class LostAndFoundRoutes implements Routes {
             responses = @OpenApiResponse(status = "200"))
     private void getImage(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
-        var image = lostAndFoundService.findImage(id);
-        if (image.isEmpty()) {
-            throw new NotFoundResponse("No image");
-        }
-        ctx.contentType(image.get().contentType());
-        ctx.header("Cache-Control", "public, max-age=3600");
-        ctx.result(image.get().data());
+        int size = ctx.queryParamAsClass("size", Integer.class).getOrDefault(0);
+        imageService
+                .read(ImageCategory.LOST_AND_FOUND, String.valueOf(id), size)
+                .ifPresentOrElse(
+                        img -> {
+                            ctx.contentType(img.contentType());
+                            ctx.header("Cache-Control", "public, max-age=3600");
+                            ctx.result(img.data());
+                        },
+                        () -> {
+                            throw new NotFoundResponse("No image");
+                        });
     }
 
     @OpenApi(
@@ -162,10 +174,17 @@ public class LostAndFoundRoutes implements Routes {
         }
         try {
             byte[] data = file.content().readAllBytes();
-            lostAndFoundService.uploadImage(id, data, file.contentType());
+            imageService.store(
+                    ImageCategory.LOST_AND_FOUND,
+                    String.valueOf(id),
+                    data,
+                    file.contentType(),
+                    apiConfig.maxImageSizeBytes());
             ctx.json(new MessageResponse("Image uploaded"));
+        } catch (IllegalArgumentException e) {
+            throw new BadRequestResponse(e.getMessage());
         } catch (IOException e) {
-            throw new InternalServerErrorResponse("Failed to read file");
+            throw new InternalServerErrorResponse("Failed to process image");
         }
     }
 
@@ -228,6 +247,7 @@ public class LostAndFoundRoutes implements Routes {
     private void delete(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
         lostAndFoundService.delete(id);
+        imageService.delete(ImageCategory.LOST_AND_FOUND, String.valueOf(id));
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
@@ -248,12 +268,13 @@ public class LostAndFoundRoutes implements Routes {
 
     private LostAndFoundItemResponse toResponse(LostAndFoundItem item) {
         String claimedByName = item.claimedBy() != null ? resolveMemberName(item.claimedBy()) : null;
+        boolean hasImage = imageService.exists(ImageCategory.LOST_AND_FOUND, String.valueOf(item.id()));
         return new LostAndFoundItemResponse(
                 item.id(),
                 item.stationId(),
                 item.description(),
                 item.foundAt() != null ? item.foundAt().toString() : null,
-                item.hasImage(),
+                hasImage,
                 item.claimedBy(),
                 claimedByName,
                 item.claimedAt(),

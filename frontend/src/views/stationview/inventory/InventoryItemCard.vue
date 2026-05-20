@@ -8,6 +8,7 @@ import { useI18n } from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import IconButton from '@/components/button/IconButton.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
+import SizeBadge from '@/components/badge/SizeBadge.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import type { ExchangeRequestEntry } from '@/api/types'
 import type { MyInventoryItem } from '@/api/inventory'
@@ -18,15 +19,21 @@ const props = withDefaults(defineProps<{
   item: MyInventoryItem
   exchange?: ExchangeRequestEntry | null
   showExchangeButton?: boolean
+  showUnassignButton?: boolean
+  showReassignButton?: boolean
   showInventoryName?: boolean
 }>(), {
   exchange: null,
   showExchangeButton: false,
+  showUnassignButton: false,
+  showReassignButton: false,
   showInventoryName: false,
 })
 
 const emit = defineEmits<{
   requestExchange: [item: MyInventoryItem]
+  unassign: [item: MyInventoryItem]
+  reassign: [item: MyInventoryItem]
 }>()
 </script>
 
@@ -36,7 +43,7 @@ const emit = defineEmits<{
       <div>
         <div class="font-medium text-sm">
           {{ props.item.name }}
-          <span class="font-normal text-(--text-muted)">{{ props.item.sizeName ?? t('common.unisize') }}</span>
+          <SizeBadge :lost="!!props.item.lostAt">{{ props.item.sizeName ?? t('common.unisize') }}</SizeBadge>
         </div>
         <div v-if="props.showInventoryName" class="text-xs text-(--text-muted)">{{ props.item.inventoryName }}</div>
         <div v-if="props.item.internalId" class="text-xs text-(--text-muted)">{{ props.item.internalId }}</div>
@@ -47,13 +54,29 @@ const emit = defineEmits<{
           {{ t('exchanges.status.' + props.exchange.status) }}
         </InfoBadge>
       </div>
-      <IconButton
-          v-if="props.showExchangeButton && !props.exchange"
-          :icon="['fas', 'rotate']"
-          :label="t('profile.requestExchange')"
-          class="text-(--text-muted) hover:text-primary"
-          @click="emit('requestExchange', props.item)"
-      />
+      <div class="flex items-center gap-1">
+        <IconButton
+            v-if="props.showExchangeButton && !props.exchange"
+            :icon="['fas', 'rotate']"
+            :label="t('profile.requestExchange')"
+            class="text-(--text-muted) hover:text-primary"
+            @click="emit('requestExchange', props.item)"
+        />
+        <IconButton
+            v-if="props.showReassignButton"
+            :icon="['fas', 'arrow-right-arrow-left']"
+            :label="t('memberDetail.reassignItem')"
+            class="text-(--text-muted) hover:text-primary"
+            @click="emit('reassign', props.item)"
+        />
+        <IconButton
+            v-if="props.showUnassignButton"
+            :icon="['fas', 'xmark']"
+            :label="t('memberDetail.unassignItem')"
+            class="text-(--text-muted) hover:text-error"
+            @click="emit('unassign', props.item)"
+        />
+      </div>
     </div>
   </NeutralContainer>
 </template>

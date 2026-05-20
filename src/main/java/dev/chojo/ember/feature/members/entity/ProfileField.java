@@ -28,7 +28,9 @@ public record ProfileField(
         int position,
         ProfileFieldScope scope,
         boolean keepOnArchive) {
-    /** Creates a row mapping for database result set conversion. */
+    /**
+     * Creates a row mapping for database result set conversion.
+     */
     public static RowMapping<ProfileField> map() {
         return row -> new ProfileField(
                 row.getInt("id"),

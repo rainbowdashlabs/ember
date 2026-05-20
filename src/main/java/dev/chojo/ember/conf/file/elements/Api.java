@@ -14,7 +14,7 @@ public class Api {
     private int port = 8080;
     private String baseUrl = "http://localhost:5173";
     private String demoUrl = "";
-    private int maxAvatarSizeBytes = 2 * 1024 * 1024;
+    private int maxImageSizeBytes = 5 * 1024 * 1024;
     private String privacyPolicyDir = "data/privacy";
     private String consentDir = "data/consent";
     private String tosDir = "data/tos";
@@ -36,8 +36,8 @@ public class Api {
         return demoUrl;
     }
 
-    public int maxAvatarSizeBytes() {
-        return maxAvatarSizeBytes;
+    public int maxImageSizeBytes() {
+        return maxImageSizeBytes;
     }
 
     public String privacyPolicyDir() {

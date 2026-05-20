@@ -23,14 +23,19 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
  */
 public record Notification(
         int id, int memberId, NotificationType type, NotificationData data, Instant createdAt, Instant acknowledgedAt) {
-    /** Creates a row mapping for database result set conversion. */
+    /**
+     * Creates a row mapping for database result set conversion.
+     */
     public static RowMapping<Notification> map() {
-        return row -> new Notification(
-                row.getInt("id"),
-                row.getInt("member_id"),
-                row.getEnum("type", NotificationType.class),
-                NotificationData.fromJson(row.getString("data")),
-                row.get("created_at", INSTANT_TIMESTAMP),
-                row.get("acknowledged_at", INSTANT_TIMESTAMP));
+        return row -> {
+            var type = row.getEnum("type", NotificationType.class);
+            return new Notification(
+                    row.getInt("id"),
+                    row.getInt("member_id"),
+                    type,
+                    NotificationData.fromJson(row.getString("data"), type),
+                    row.get("created_at", INSTANT_TIMESTAMP),
+                    row.get("acknowledged_at", INSTANT_TIMESTAMP));
+        };
     }
 }

@@ -17,7 +17,9 @@ import de.chojo.sadu.mapper.rowmapper.RowMapping;
  * @param hasSizes      whether this inventory supports size variants
  */
 public record Inventory(int id, int stationId, String name, InventoryType inventoryType, boolean hasSizes) {
-    /** Creates a row mapping for database result set conversion. */
+    /**
+     * Creates a row mapping for database result set conversion.
+     */
     public static RowMapping<Inventory> map() {
         return row -> new Inventory(
                 row.getInt("id"),

@@ -13,6 +13,7 @@ import UserAvatar from '@/components/avatar/UserAvatar.vue'
 import ColumnFilterModal from './ColumnFilterModal.vue'
 import type {ProfileField, StationMember} from '@/api/types'
 import {Roles, hasTeamRole} from '@/api/types'
+import FieldValueDisplay from '@/components/display/FieldValueDisplay.vue'
 
 const {t} = useI18n()
 
@@ -30,7 +31,7 @@ const props = defineProps<{
   memberManagers: Map<number, StationMember[]>
   allMembers: StationMember[]
   overviewFields: ProfileField[]
-  getFieldValue: (memberId: number, fieldId: number) => string
+  getFieldValue: (memberId: number, fieldId: number) => unknown
   exportMode?: boolean
   selectedIds?: Set<number>
 }>()
@@ -90,7 +91,7 @@ function getUniqueValuesForColumn(key: 'name' | 'groups' | 'tags' | number): str
       for (const tag of getMemberTags(m.id)) vals.add(tag)
     } else {
       const v = props.getFieldValue(m.id, key)
-      if (v) vals.add(v)
+      if (v != null && v !== '') vals.add(String(v))
     }
   }
   return [...vals].sort()
@@ -295,9 +296,8 @@ function onRowClick(member: StationMember) {
               :class="isFieldApplicable(member.id, field) ? 'text-(--text-muted)' : 'bg-bg-light-accent/40 dark:bg-bg-dark-accent/40'"
               class="px-3 py-2.5"
           >
-            <template v-if="isFieldApplicable(member.id, field)">{{
-                getFieldValue(member.id, field.id) || '–'
-              }}
+            <template v-if="isFieldApplicable(member.id, field)">
+              <FieldValueDisplay :value="getFieldValue(member.id, field.id)" :field-type="field.fieldType"/>
             </template>
           </td>
         </tr>
@@ -307,7 +307,7 @@ function onRowClick(member: StationMember) {
               <div class="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
                 <div v-for="field in getApplicableOverviewFields(member.id)" :key="field.id" class="text-sm">
                   <span class="text-(--text-muted)">{{ field.name }}:</span>
-                  <span class="ml-1 font-medium">{{ getFieldValue(member.id, field.id) || '–' }}</span>
+                  <span class="ml-1 font-medium"><FieldValueDisplay :value="getFieldValue(member.id, field.id)" :field-type="field.fieldType"/></span>
                 </div>
               </div>
               <div v-if="getManagers(member.id).length > 0">
@@ -325,7 +325,7 @@ function onRowClick(member: StationMember) {
                     <div class="grid gap-x-4 gap-y-1 sm:grid-cols-2 lg:grid-cols-3 pl-5">
                       <div v-for="field in getApplicableOverviewFields(mgr.id)" :key="field.id" class="text-xs">
                         <span class="text-(--text-muted)">{{ field.name }}:</span>
-                        <span class="ml-1">{{ getFieldValue(mgr.id, field.id) || '–' }}</span>
+                        <span class="ml-1"><FieldValueDisplay :value="getFieldValue(mgr.id, field.id)" :field-type="field.fieldType"/></span>
                       </div>
                     </div>
                   </div>

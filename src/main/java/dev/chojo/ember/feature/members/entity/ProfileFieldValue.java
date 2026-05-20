@@ -15,7 +15,9 @@ import de.chojo.sadu.mapper.rowmapper.RowMapping;
  * @param value    the field value stored as JSON
  */
 public record ProfileFieldValue(int memberId, int fieldId, String value) {
-    /** Creates a row mapping for database result set conversion. */
+    /**
+     * Creates a row mapping for database result set conversion.
+     */
     public static RowMapping<ProfileFieldValue> map() {
         return row -> new ProfileFieldValue(row.getInt("member_id"), row.getInt("field_id"), row.getString("value"));
     }

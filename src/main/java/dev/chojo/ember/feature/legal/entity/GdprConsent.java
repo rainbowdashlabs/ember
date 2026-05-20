@@ -35,7 +35,9 @@ public record GdprConsent(
         String userAgent,
         Instant consentedAt) {
 
-    /** Creates a row mapping for database result set conversion. */
+    /**
+     * Creates a row mapping for database result set conversion.
+     */
     public static RowMapping<GdprConsent> map() {
         return row -> new GdprConsent(
                 row.getInt("id"),

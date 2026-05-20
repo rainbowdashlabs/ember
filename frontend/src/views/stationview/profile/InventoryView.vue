@@ -17,6 +17,7 @@ import Alert from '@/components/feedback/Alert.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import InventoryItemCard from '@/views/stationview/inventory/InventoryItemCard.vue'
+import SizeBadge from '@/components/badge/SizeBadge.vue'
 import {inventory, managedMembers, exchanges} from '@/api'
 import type {ExchangeRequestEntry, InventorySize} from '@/api/types'
 import {ExchangeStatus} from '@/api/types'
@@ -238,7 +239,7 @@ async function submitExchange() {
           <SectionHeader>{{ t('profile.requestExchange') }}</SectionHeader>
           <p class="text-sm" v-if="exchangeItem">
             {{ exchangeItem.inventoryName }} — {{ exchangeItem.name }}
-            <span class="text-(--text-muted)">[{{ exchangeItem.sizeName ?? t('common.unisize') }}]</span>
+            <SizeBadge>{{ exchangeItem.sizeName ?? t('common.unisize') }}</SizeBadge>
           </p>
           <div v-if="exchangeSizes.length > 0" class="space-y-1">
             <label class="block text-sm font-medium">{{ t('exchanges.newSize') }}</label>

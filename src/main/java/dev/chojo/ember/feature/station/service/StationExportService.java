@@ -17,7 +17,6 @@ import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
 import java.util.Base64;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -30,18 +29,43 @@ import java.util.Optional;
  */
 @Singleton
 public class StationExportService {
-    private static final SecureRandom RANDOM = new SecureRandom();
+    /**
+     * Ordered list of table names for chunked export/import.
+     * Tables must be in dependency order — earlier tables are imported first.
+     */
+    public static final List<String> TABLE_ORDER = List.of(
+            "station",
+            "disabledModules",
+            "members",
+            "memberRoles",
+            "groups",
+            "groupMembers",
+            "tags",
+            "tagMembers",
+            "managerRelations",
+            "profileFields",
+            "profileFieldValues",
+            "eventCategories",
+            "attendanceTemplates",
+            "attendanceTemplateFields",
+            "events",
+            "inventories",
+            "inventorySizes",
+            "inventoryItems",
+            "forms",
+            "formQuestions");
 
+    private static final SecureRandom RANDOM = new SecureRandom();
     private final StationRepository stationRepository;
     private final String appVersion;
+
+    // -- Transfer tokens --
 
     @Inject
     public StationExportService(StationRepository stationRepository) {
         this.stationRepository = stationRepository;
         this.appVersion = loadAppVersion();
     }
-
-    // -- Transfer tokens --
 
     public String createTransferToken(int stationId) {
         byte[] bytes = new byte[32];
@@ -71,6 +95,8 @@ public class StationExportService {
                 .first();
     }
 
+    // -- Version --
+
     public Optional<Integer> validateAndConsumeToken(String token) {
         var result = Query.query(
                         "SELECT station_id FROM transfer_token WHERE token = :token AND used = FALSE AND expires_at > now();")
@@ -87,37 +113,9 @@ public class StationExportService {
         return result;
     }
 
-    // -- Version --
-
     public String getAppVersion() {
         return appVersion;
     }
-
-    /**
-     * Ordered list of table names for chunked export/import.
-     * Tables must be in dependency order — earlier tables are imported first.
-     */
-    public static final List<String> TABLE_ORDER = List.of(
-            "station",
-            "disabledModules",
-            "members",
-            "memberRoles",
-            "groups",
-            "groupMembers",
-            "tags",
-            "tagMembers",
-            "managerRelations",
-            "profileFields",
-            "profileFieldValues",
-            "eventCategories",
-            "attendanceTemplates",
-            "attendanceTemplateFields",
-            "events",
-            "inventories",
-            "inventorySizes",
-            "inventoryItems",
-            "forms",
-            "formQuestions");
 
     /**
      * Exports a single table's data for chunked transfer with pagination.
@@ -143,7 +141,11 @@ public class StationExportService {
                     data.put("station", s);
                 });
             case "disabledModules" ->
-                data.put("disabledModules", new ArrayList<>(stationRepository.findDisabledModules(stationId)));
+                data.put(
+                        "disabledModules",
+                        stationRepository.findDisabledModules(stationId).stream()
+                                .map(Enum::name)
+                                .toList());
             case "members" ->
                 data.put(
                         "members",

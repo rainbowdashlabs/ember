@@ -19,7 +19,9 @@ import java.time.LocalDate;
  * @param endDate   the last day of the break (inclusive)
  */
 public record EventBreak(int id, int stationId, String name, LocalDate startDate, LocalDate endDate) {
-    /** Creates a row mapping for database result set conversion. */
+    /**
+     * Creates a row mapping for database result set conversion.
+     */
     public static RowMapping<EventBreak> map() {
         return row -> new EventBreak(
                 row.getInt("id"),

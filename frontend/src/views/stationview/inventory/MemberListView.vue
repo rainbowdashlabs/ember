@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {computed, onMounted, ref} from 'vue'
+import {computed, onMounted, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
@@ -22,6 +22,8 @@ import type {Inventory, InventoryItem, MemberGroup, ProfileField, Role, StationM
 import {Roles} from '@/api/types'
 import {useStations} from '@/composables/useStations'
 import client from '@/api/client'
+import {getItem, setItem} from '@/api/storage'
+import SizeBadge from '@/components/badge/SizeBadge.vue'
 
 const {t} = useI18n()
 const router = useRouter()
@@ -44,10 +46,10 @@ const filterRole = ref<string>('')
 const showEmpty = ref(false)
 const visibleInventoryIds = ref<Set<number>>(new Set())
 
-// Display options
-const showName = ref(true)
-const showInternalId = ref(false)
-const showSize = ref(true)
+// Display options (restored from localStorage)
+const showName = ref(getItem('inv-members-show-name') !== 'false')
+const showInternalId = ref(getItem('inv-members-show-internal-id') === 'true')
+const showSize = ref(getItem('inv-members-show-size') !== 'false')
 
 // Export
 const exportMode = ref(false)
@@ -190,8 +192,19 @@ async function loadData() {
     groups.value = grps
     allRoles.value = roles
 
-    // Show all inventories by default
-    visibleInventoryIds.value = new Set(invs.map(i => i.id))
+    // Restore visible inventories from localStorage or show all by default
+    const storedIds = getItem('inv-members-visible-ids')
+    if (storedIds) {
+      try {
+        const parsed = JSON.parse(storedIds) as number[]
+        const validIds = new Set(invs.map(i => i.id))
+        visibleInventoryIds.value = new Set(parsed.filter(id => validIds.has(id)))
+      } catch {
+        visibleInventoryIds.value = new Set(invs.map(i => i.id))
+      }
+    } else {
+      visibleInventoryIds.value = new Set(invs.map(i => i.id))
+    }
 
     // Load all items and sizes for all inventories in parallel
     const [itemArrays, sizeArrays] = await Promise.all([
@@ -228,6 +241,12 @@ async function loadData() {
     loading.value = false
   }
 }
+
+// Persist display settings to localStorage
+watch(visibleInventoryIds, ids => setItem('inv-members-visible-ids', JSON.stringify([...ids])))
+watch(showName, v => setItem('inv-members-show-name', String(v)))
+watch(showInternalId, v => setItem('inv-members-show-internal-id', String(v)))
+watch(showSize, v => setItem('inv-members-show-size', String(v)))
 
 // Export functions
 async function enterExportMode() {
@@ -467,7 +486,7 @@ onMounted(loadData)
                             :class="item.lostAt ? 'text-error' : ''"
                             class="inline-flex items-center gap-1 text-xs">
                         <template v-if="itemNamePart(item)">{{ itemNamePart(item) }}</template>
-                        <span v-if="itemSizeLabel(item)" :class="item.lostAt ? 'bg-error/15 text-error' : 'bg-secondary/15 text-secondary-accent'" class="rounded-full px-1.5 py-0 text-[10px]">{{ itemSizeLabel(item) }}</span>
+                        <SizeBadge v-if="itemSizeLabel(item)" :lost="!!item.lostAt">{{ itemSizeLabel(item) }}</SizeBadge>
                         <span v-if="item.lostAt" class="text-[10px]">({{ t('inventoryMembers.lost') }})</span>
                       </span>
                     </div>

@@ -14,19 +14,19 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
 /**
  * Represents an event belonging to a station, which can be one-time or recurring on various schedules.
  *
- * @param id                    the unique identifier of the event
- * @param stationId             the station this event belongs to
- * @param name                  the display name of the event
- * @param description           an optional description
- * @param eventType             the recurrence type of the event
- * @param dayOfWeek             the ISO day of week (1=Monday..7=Sunday) for recurring events, or null for one-time
- * @param startTime             the start time of the event
- * @param endTime               the end time of the event
- * @param templateId            an optional attendance template ID linked to this event
- * @param requiresRegistration  whether members must register before attending
- * @param registrationDeadline  the deadline for registration, or null if no deadline
- * @param requiresConfirmation  whether registrations must be confirmed by a manager
- * @param categoryId            the optional category this event is assigned to
+ * @param id                   the unique identifier of the event
+ * @param stationId            the station this event belongs to
+ * @param name                 the display name of the event
+ * @param description          an optional description
+ * @param eventType            the recurrence type of the event
+ * @param dayOfWeek            the ISO day of week (1=Monday..7=Sunday) for recurring events, or null for one-time
+ * @param startTime            the start time of the event
+ * @param endTime              the end time of the event
+ * @param templateId           an optional attendance template ID linked to this event
+ * @param requiresRegistration whether members must register before attending
+ * @param registrationDeadline the deadline for registration, or null if no deadline
+ * @param requiresConfirmation whether registrations must be confirmed by a manager
+ * @param categoryId           the optional category this event is assigned to
  */
 public record StationEvent(
         int id,
@@ -43,7 +43,9 @@ public record StationEvent(
         boolean requiresConfirmation,
         Integer categoryId) {
 
-    /** Creates a row mapping for database result set conversion. */
+    /**
+     * Creates a row mapping for database result set conversion.
+     */
     public static RowMapping<StationEvent> map() {
         return row -> new StationEvent(
                 row.getInt("id"),
@@ -61,15 +63,6 @@ public record StationEvent(
                 row.getObject("category_id", Integer.class));
     }
 
-    /** The recurrence schedule types for events. */
-    public enum EventType {
-        ONE_TIME,
-        RECURRING,
-        MONTHLY_FIRST,
-        QUARTERLY,
-        YEARLY
-    }
-
     /**
      * Returns whether this event recurs on a schedule.
      *
@@ -77,5 +70,16 @@ public record StationEvent(
      */
     public boolean isRecurring() {
         return eventType != EventType.ONE_TIME;
+    }
+
+    /**
+     * The recurrence schedule types for events.
+     */
+    public enum EventType {
+        ONE_TIME,
+        RECURRING,
+        MONTHLY_FIRST,
+        QUARTERLY,
+        YEARLY
     }
 }

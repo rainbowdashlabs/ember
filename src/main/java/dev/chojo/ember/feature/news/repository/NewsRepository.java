@@ -210,7 +210,7 @@ public class NewsRepository {
      * @return comment count
      */
     public int countComments(int newsId) {
-        return Query.query("SELECT COUNT(*) AS cnt FROM news_comment WHERE news_id = :news_id;")
+        return Query.query("SELECT count(*) AS cnt FROM news_comment WHERE news_id = :news_id;")
                 .single(Call.of().bind("news_id", newsId))
                 .map(row -> row.getInt("cnt"))
                 .first()

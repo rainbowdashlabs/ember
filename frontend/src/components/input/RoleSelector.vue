@@ -13,6 +13,7 @@ import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 const props = defineProps<{
   allRoles: Role[]
   modelValue: Set<number>
+  allowedRoles?: string[]
 }>()
 
 const emit = defineEmits<{
@@ -87,8 +88,12 @@ const roleFriendlyNames: Record<string, string> = {
   MANAGER: 'Manager',
 }
 
+const visibleRoleNames = computed(() => {
+  return props.allowedRoles ?? ASSIGNABLE_ROLE_NAMES as readonly string[]
+})
+
 const assignableRoles = computed(() => {
-  return props.allRoles.filter(r => (ASSIGNABLE_ROLE_NAMES as readonly string[]).includes(r.role))
+  return props.allRoles.filter(r => visibleRoleNames.value.includes(r.role))
 })
 
 function getAllChildren(roleName: string): string[] {

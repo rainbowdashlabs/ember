@@ -31,7 +31,9 @@ public record AccountToken(
         Instant expiresAt,
         Instant createdAt) {
 
-    /** Creates a row mapping for database result set conversion. */
+    /**
+     * Creates a row mapping for database result set conversion.
+     */
     public static RowMapping<AccountToken> map() {
         return row -> new AccountToken(
                 row.getInt("id"),

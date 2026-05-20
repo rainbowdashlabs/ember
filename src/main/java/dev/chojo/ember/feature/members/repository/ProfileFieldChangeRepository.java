@@ -17,7 +17,9 @@ import java.util.Optional;
 
 import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIMESTAMP;
 
-/** Repository for profile field change tracking, including acknowledgements and summaries. */
+/**
+ * Repository for profile field change tracking, including acknowledgements and summaries.
+ */
 @Singleton
 public class ProfileFieldChangeRepository {
 

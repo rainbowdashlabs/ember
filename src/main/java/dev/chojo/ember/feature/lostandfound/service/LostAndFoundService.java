@@ -7,9 +7,9 @@ package dev.chojo.ember.feature.lostandfound.service;
 
 import dev.chojo.ember.feature.lostandfound.entity.LostAndFoundItem;
 import dev.chojo.ember.feature.lostandfound.repository.LostAndFoundRepository;
-import dev.chojo.ember.feature.lostandfound.repository.LostAndFoundRepository.ImageData;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
 import dev.chojo.ember.feature.notifications.entity.NotificationData.NotificationLink;
+import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
 import dev.chojo.ember.feature.notifications.service.NotificationService;
 import jakarta.inject.Inject;
@@ -17,7 +17,6 @@ import jakarta.inject.Singleton;
 
 import java.time.LocalDate;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -26,8 +25,6 @@ import java.util.Optional;
  */
 @Singleton
 public class LostAndFoundService {
-    private static final long MAX_IMAGE_SIZE = 5 * 1024 * 1024;
-
     private final LostAndFoundRepository repository;
     private final NotificationService notificationService;
 
@@ -93,37 +90,10 @@ public class LostAndFoundService {
                 stationId,
                 NotificationType.LOST_AND_FOUND_NEW,
                 NotificationData.of(
-                        "notification.lostAndFoundNew",
-                        Map.of("description", description != null ? description : ""),
+                        new NotificationParams.LostAndFoundNew(description != null ? description : ""),
                         new NotificationLink("lost-and-found")),
                 createdBy);
         return item;
-    }
-
-    /**
-     * Uploads an image for a lost and found item, enforcing a maximum size of 5 MB.
-     *
-     * @param id          the item ID
-     * @param image       the image bytes
-     * @param contentType the MIME type of the image
-     * @return true if the image was successfully stored
-     * @throws IllegalArgumentException if the image exceeds the maximum size
-     */
-    public boolean uploadImage(int id, byte[] image, String contentType) {
-        if (image.length > MAX_IMAGE_SIZE) {
-            throw new IllegalArgumentException("Image exceeds maximum size of 5 MB");
-        }
-        return repository.updateImage(id, image, contentType);
-    }
-
-    /**
-     * Retrieves the image data for a lost and found item.
-     *
-     * @param id the item ID
-     * @return the image data and content type, or empty if no image is attached
-     */
-    public Optional<ImageData> findImage(int id) {
-        return repository.findImage(id);
     }
 
     /**
@@ -146,14 +116,13 @@ public class LostAndFoundService {
                     "LOST_AND_FOUND_MANAGEMENT",
                     NotificationType.LOST_AND_FOUND_CLAIMED,
                     NotificationData.of(
-                            "notification.lostAndFoundClaimed",
-                            Map.of("name", claimerName, "description", desc),
+                            new NotificationParams.LostAndFoundClaimed(claimerName, desc),
                             new NotificationLink("lost-and-found")),
                     claimedBy);
             // Remove "new lost item" notifications for this item
             notificationService.deleteByTypeContaining(
                     NotificationType.LOST_AND_FOUND_NEW,
-                    NotificationData.of("notification.lostAndFoundNew", Map.of("description", desc))
+                    NotificationData.of(new NotificationParams.LostAndFoundNew(desc))
                             .toJson());
         }
         return success;

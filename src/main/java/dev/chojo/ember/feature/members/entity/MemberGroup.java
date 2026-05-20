@@ -15,7 +15,9 @@ import de.chojo.sadu.mapper.rowmapper.RowMapping;
  * @param name      the group display name
  */
 public record MemberGroup(int id, int stationId, String name) {
-    /** Creates a row mapping for database result set conversion. */
+    /**
+     * Creates a row mapping for database result set conversion.
+     */
     public static RowMapping<MemberGroup> map() {
         return row -> new MemberGroup(row.getInt("id"), row.getInt("station_id"), row.getString("name"));
     }

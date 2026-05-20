@@ -486,7 +486,9 @@ public class MemberImportService {
 
     // -- Helpers --
 
-    /** Maps a CSV column to a target field with optional value transformation, merging, and splitting. */
+    /**
+     * Maps a CSV column to a target field with optional value transformation, merging, and splitting.
+     */
     public record ColumnMapping(
             String csvColumn,
             String target,
@@ -496,10 +498,14 @@ public class MemberImportService {
             String splitChar,
             int splitIndex) {}
 
-    /** Result of parsing CSV content into headers and data rows. */
+    /**
+     * Result of parsing CSV content into headers and data rows.
+     */
     public record ParseResult(List<String> headers, List<List<String>> rows) {}
 
-    /** Preview of a single member to be imported, including mapped profile fields and contacts. */
+    /**
+     * Preview of a single member to be imported, including mapped profile fields and contacts.
+     */
     public record MemberPreview(
             String firstName,
             String lastName,
@@ -508,13 +514,19 @@ public class MemberImportService {
             Map<String, String> profileFields,
             List<ContactPreview> contacts) {}
 
-    /** Preview of a guardian/contact extracted from the CSV row. */
+    /**
+     * Preview of a guardian/contact extracted from the CSV row.
+     */
     public record ContactPreview(String name, String firstName, String lastName, String phone, String email) {}
 
-    /** Result of a member import preview with member entries and any warnings. */
+    /**
+     * Result of a member import preview with member entries and any warnings.
+     */
     public record PreviewResult(List<MemberPreview> members, List<String> warnings) {}
 
-    /** Result of a member import operation with counts and warnings. */
+    /**
+     * Result of a member import operation with counts and warnings.
+     */
     public record ImportResult(
             int membersCreated,
             int managersCreated,
@@ -523,7 +535,9 @@ public class MemberImportService {
             int profileFieldsSet,
             List<String> warnings) {}
 
-    /** Result of a team member import operation with counts and warnings. */
+    /**
+     * Result of a team member import operation with counts and warnings.
+     */
     public record TeamImportResult(
             int membersCreated, int groupsAssigned, int profileFieldsSet, List<String> warnings) {}
 }

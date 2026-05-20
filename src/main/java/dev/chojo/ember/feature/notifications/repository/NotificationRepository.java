@@ -34,7 +34,7 @@ public class NotificationRepository {
     public Notification create(int memberId, NotificationType type, NotificationData data) {
         return Query.query("""
                             INSERT INTO notification(member_id, type, data)
-                            VALUES(:member_id, :type, :data::jsonb)
+                            VALUES(:member_id, :type, :data::JSONB)
                             RETURNING *;""")
                 .single(Call.of().bind("member_id", memberId).bind("type", type).bind("data", data.toJson()))
                 .map(Notification.map())
@@ -55,7 +55,7 @@ public class NotificationRepository {
                             SELECT 1 FROM notification
                             WHERE member_id = :member_id
                               AND type = :type
-                              AND data = :data::jsonb
+                              AND data = :data::JSONB
                               AND acknowledged_at IS NULL;""")
                 .single(Call.of().bind("member_id", memberId).bind("type", type).bind("data", dataJson))
                 .map(row -> true)
@@ -98,7 +98,7 @@ public class NotificationRepository {
      */
     public int countUnacknowledged(int memberId) {
         return Query.query(
-                        "SELECT COUNT(*) AS cnt FROM notification WHERE member_id = :member_id AND acknowledged_at IS NULL;")
+                        "SELECT count(*) AS cnt FROM notification WHERE member_id = :member_id AND acknowledged_at IS NULL;")
                 .single(Call.of().bind("member_id", memberId))
                 .map(row -> row.getInt("cnt"))
                 .first()
@@ -149,7 +149,7 @@ public class NotificationRepository {
         return Query.query("""
                             DELETE FROM notification
                             WHERE type = :type
-                              AND data @> :partial::jsonb
+                              AND data @> :partial::JSONB
                               AND acknowledged_at IS NULL;""")
                 .single(Call.of().bind("type", type).bind("partial", partialDataJson))
                 .delete()
@@ -173,9 +173,9 @@ public class NotificationRepository {
      */
     public List<Notification> findUnemailed() {
         return Query.query("""
-                            SELECT * FROM notification
-                            WHERE emailed_at IS NULL
-                            ORDER BY member_id, created_at;""").single().map(Notification.map()).all();
+                SELECT * FROM notification
+                WHERE emailed_at IS NULL
+                ORDER BY member_id, created_at;""").single().map(Notification.map()).all();
     }
 
     /**

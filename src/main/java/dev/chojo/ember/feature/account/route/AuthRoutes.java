@@ -298,26 +298,40 @@ public class AuthRoutes implements Routes {
 
     // -- Request/Response records --
 
-    /** Request body for self-registration with optional station registration code. */
+    /**
+     * Request body for self-registration with optional station registration code.
+     */
     public record RegisterRequest(
             String email, String firstName, String lastName, String password, String registrationCode) {}
 
-    /** Request body for login with email and password. */
+    /**
+     * Request body for login with email and password.
+     */
     public record LoginRequest(String email, String password) {}
 
-    /** Request body containing a one-time token for verification, password set, refresh, or logout. */
+    /**
+     * Request body containing a one-time token for verification, password set, refresh, or logout.
+     */
     public record TokenRequest(String token) {}
 
-    /** Request body for changing a password while authenticated. */
+    /**
+     * Request body for changing a password while authenticated.
+     */
     public record ChangePasswordRequest(String currentPassword, String newPassword) {}
 
-    /** Request body containing only an email address (used for password reset and resend verification). */
+    /**
+     * Request body containing only an email address (used for password reset and resend verification).
+     */
     public record EmailRequest(String email) {}
 
-    /** Request body for setting a password using an invite or reset token. */
+    /**
+     * Request body for setting a password using an invite or reset token.
+     */
     public record SetPasswordRequest(String token, String password) {}
 
-    /** Response body returned after successful registration. */
+    /**
+     * Response body returned after successful registration.
+     */
     public record RegisterResponse(int id, String email, String firstName, String lastName, boolean emailVerified) {}
 
     /**
@@ -331,6 +345,8 @@ public class AuthRoutes implements Routes {
             String passwordChangeToken,
             Instant passwordChangeTokenExpiresAt) {}
 
-    /** Response body for a refreshed session with the new token and expiration. */
+    /**
+     * Response body for a refreshed session with the new token and expiration.
+     */
     public record SessionResponse(String token, Instant expiresAt) {}
 }

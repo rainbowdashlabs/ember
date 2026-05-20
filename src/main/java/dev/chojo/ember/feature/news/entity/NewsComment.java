@@ -22,7 +22,9 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
  * @param createdAt timestamp when the comment was created
  */
 public record NewsComment(int id, int newsId, Integer parentId, int authorId, String content, Instant createdAt) {
-    /** Creates a row mapping for database result set conversion. */
+    /**
+     * Creates a row mapping for database result set conversion.
+     */
     public static RowMapping<NewsComment> map() {
         return row -> new NewsComment(
                 row.getInt("id"),

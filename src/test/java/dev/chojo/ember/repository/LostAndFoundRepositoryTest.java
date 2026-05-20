@@ -15,7 +15,6 @@ import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 
-import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -77,29 +76,6 @@ class LostAndFoundRepositoryTest extends RepositoryTestBase {
                 lostAndFoundRepo
                         .findUnclaimedOrClaimedBy(station.id(), member.id())
                         .size());
-    }
-
-    @Test
-    @Order(10)
-    void updateImage() {
-        byte[] img = "fake-image-data".getBytes(StandardCharsets.UTF_8);
-        assertTrue(lostAndFoundRepo.updateImage(itemId, img, "image/jpeg"));
-    }
-
-    @Test
-    @Order(11)
-    void findImage() {
-        var img = lostAndFoundRepo.findImage(itemId);
-        assertTrue(img.isPresent());
-        assertEquals("image/jpeg", img.get().contentType());
-    }
-
-    @Test
-    @Order(12)
-    void findImageNotSet() {
-        var item2 = lostAndFoundRepo.create(station.id(), "Blue hat", LocalDate.of(2026, 6, 2), member.id());
-        assertTrue(lostAndFoundRepo.findImage(item2.id()).isEmpty());
-        lostAndFoundRepo.delete(item2.id());
     }
 
     @Test
