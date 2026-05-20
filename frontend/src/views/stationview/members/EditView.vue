@@ -10,6 +10,7 @@ import { useRoute, useRouter } from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import ProfileFieldInput from '@/components/input/ProfileFieldInput.vue'
+import RoleSelector from '@/components/input/RoleSelector.vue'
 
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
@@ -54,96 +55,26 @@ function parseConfig(configStr: string | undefined): { options?: string[]; [key:
   try { return JSON.parse(configStr) } catch { return {} }
 }
 
-// --- Role logic ---
-
-const ASSIGNABLE_ROLE_NAMES = [
-  Roles.MEMBER, Roles.TEAM, Roles.GUARDIAN, Roles.LOGIN,
-  Roles.ATTENDENCE_MANAGEMENT, Roles.INVENTORY_MANAGEMENT,
-  Roles.EVENT_MANAGEMENT, Roles.MEMBER_MANAGEMENT, Roles.MANAGER, Roles.NEWS_MANAGEMENT,
-] as const
-
-const assignableRoles = computed(() => {
-  return allRoles.value.filter(r => (ASSIGNABLE_ROLE_NAMES as readonly string[]).includes(r.role))
-})
-
-const roleHierarchy: Record<string, string[]> = {
-  [Roles.MANAGER]: [Roles.TEAM, Roles.ATTENDENCE_MANAGEMENT, Roles.INVENTORY_MANAGEMENT, Roles.EVENT_MANAGEMENT, Roles.MEMBER_MANAGEMENT],
-  [Roles.TEAM]: [Roles.LOGIN],
-  [Roles.GUARDIAN]: [Roles.MEMBER, Roles.LOGIN],
-  [Roles.ATTENDENCE_MANAGEMENT]: [Roles.TEAM, Roles.LOGIN],
-  [Roles.INVENTORY_MANAGEMENT]: [Roles.TEAM, Roles.LOGIN],
-  [Roles.EVENT_MANAGEMENT]: [Roles.TEAM, Roles.LOGIN],
-  [Roles.MEMBER_MANAGEMENT]: [Roles.TEAM, Roles.LOGIN],
-  [Roles.NEWS_MANAGEMENT]: [Roles.TEAM, Roles.LOGIN],
-}
-
-const roleConflicts: Record<string, string[]> = {
-  [Roles.MEMBER]: [Roles.TEAM, Roles.GUARDIAN, Roles.MANAGER, Roles.ATTENDENCE_MANAGEMENT, Roles.INVENTORY_MANAGEMENT, Roles.EVENT_MANAGEMENT, Roles.MEMBER_MANAGEMENT, Roles.NEWS_MANAGEMENT],
-  [Roles.TEAM]: [Roles.MEMBER],
-  [Roles.GUARDIAN]: [Roles.MEMBER],
-  [Roles.MANAGER]: [Roles.MEMBER],
-  [Roles.ATTENDENCE_MANAGEMENT]: [Roles.MEMBER],
-  [Roles.INVENTORY_MANAGEMENT]: [Roles.MEMBER],
-  [Roles.EVENT_MANAGEMENT]: [Roles.MEMBER],
-  [Roles.MEMBER_MANAGEMENT]: [Roles.MEMBER],
-  [Roles.NEWS_MANAGEMENT]: [Roles.MEMBER],
-}
+// --- Role logic (uses RoleSelector component) ---
 
 function getAllChildren(roleName: string): string[] {
-  const direct = roleHierarchy[roleName] ?? []
+  const hierarchy: Record<string, string[]> = {
+    [Roles.MANAGER]: [Roles.TEAM, Roles.ATTENDENCE_MANAGEMENT, Roles.INVENTORY_MANAGEMENT, Roles.EVENT_MANAGEMENT, Roles.MEMBER_MANAGEMENT, Roles.NEWS_MANAGEMENT, Roles.POLL_MANAGEMENT, Roles.LOST_AND_FOUND_MANAGEMENT],
+    [Roles.TEAM]: [Roles.LOGIN, Roles.USER],
+    [Roles.GUARDIAN]: [Roles.USER, Roles.LOGIN],
+    [Roles.MEMBER]: [Roles.USER],
+    [Roles.ATTENDENCE_MANAGEMENT]: [Roles.TEAM],
+    [Roles.INVENTORY_MANAGEMENT]: [Roles.TEAM],
+    [Roles.EVENT_MANAGEMENT]: [Roles.TEAM],
+    [Roles.MEMBER_MANAGEMENT]: [Roles.TEAM],
+    [Roles.NEWS_MANAGEMENT]: [Roles.TEAM],
+    [Roles.POLL_MANAGEMENT]: [Roles.TEAM],
+    [Roles.LOST_AND_FOUND_MANAGEMENT]: [Roles.TEAM],
+  }
+  const direct = hierarchy[roleName] ?? []
   const all: string[] = [...direct]
-  for (const child of direct) { all.push(...getAllChildren(child)) }
+  for (const child of direct) all.push(...getAllChildren(child))
   return [...new Set(all)]
-}
-
-function isRoleIncluded(roleName: string): boolean {
-  for (const selectedId of editRoleIds.value) {
-    const selected = allRoles.value.find(r => r.id === selectedId)
-    if (!selected) continue
-    if (getAllChildren(selected.role).includes(roleName)) return true
-  }
-  return false
-}
-
-function isRoleConflicting(roleName: string): boolean {
-  for (const selectedId of editRoleIds.value) {
-    const selected = allRoles.value.find(r => r.id === selectedId)
-    if (!selected) continue
-    if ((roleConflicts[selected.role] ?? []).includes(roleName)) return true
-  }
-  return false
-}
-
-function isRoleDisabled(role: Role): boolean {
-  if (isRoleIncluded(role.role)) return true
-  if (isRoleConflicting(role.role)) return true
-  return false
-}
-
-function roleStatusHint(role: Role): string {
-  if (isRoleIncluded(role.role)) return t('memberEdit.roleIncluded')
-  if (isRoleConflicting(role.role)) return t('memberEdit.roleConflicting')
-  return ''
-}
-
-function toggleRole(role: Role) {
-  if (isRoleDisabled(role)) return
-  const newSet = new Set(editRoleIds.value)
-  if (newSet.has(role.id)) { newSet.delete(role.id) } else { newSet.add(role.id) }
-  editRoleIds.value = newSet
-}
-
-const roleFriendlyNames: Record<string, string> = {
-  LOGIN: 'Login',
-  MEMBER: 'Mitglied',
-  TEAM: 'Team',
-  GUARDIAN: 'Erziehungsberechtigter',
-  ATTENDENCE_MANAGEMENT: 'Anwesenheitsverwaltung',
-  INVENTORY_MANAGEMENT: 'Inventarverwaltung',
-  EVENT_MANAGEMENT: 'Terminverwaltung',
-  MEMBER_MANAGEMENT: 'Mitgliederverwaltung',
-  MANAGER: 'Manager',
-  NEWS_MANAGEMENT: 'Neuigkeiten',
 }
 
 // --- Applicable fields based on roles ---
@@ -361,25 +292,7 @@ onMounted(async () => {
         <!-- Roles -->
         <NeutralContainer class="space-y-3">
           <h3 class="text-sm font-semibold">{{ t('memberEdit.roles') }}</h3>
-          <div class="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-            <div
-              v-for="role in assignableRoles"
-              :key="role.id"
-              class="flex items-center justify-between rounded-lg px-3 py-2.5 border cursor-pointer transition-all"
-              :class="{
-                'border-primary bg-primary/10 ring-2 ring-primary/30': editRoleIds.has(role.id),
-                'opacity-40 cursor-not-allowed': isRoleDisabled(role) && !editRoleIds.has(role.id),
-                'border-bg-light-accent dark:border-bg-dark-accent hover:border-primary': !editRoleIds.has(role.id) && !isRoleDisabled(role),
-              }"
-              @click="toggleRole(role)"
-            >
-              <div>
-                <span class="text-sm font-medium">{{ roleFriendlyNames[role.role] ?? role.role }}</span>
-                <p v-if="roleStatusHint(role)" class="text-xs text-(--text-muted)">{{ roleStatusHint(role) }}</p>
-              </div>
-              <font-awesome-icon v-if="editRoleIds.has(role.id)" :icon="['fas', 'check']" class="text-primary" />
-            </div>
-          </div>
+          <RoleSelector v-model="editRoleIds" :all-roles="allRoles" />
         </NeutralContainer>
 
         <!-- Groups -->

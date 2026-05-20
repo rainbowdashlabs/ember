@@ -1,0 +1,32 @@
+{
+  "category": {
+    "NEW_NEWS": "News",
+    "NEWS_COMMENT": "Comment",
+    "EVENT_REGISTRATION_STATUS": "Registration",
+    "EXCHANGE_STATUS_CHANGE": "Exchange",
+    "EXCHANGE_NEW_REQUEST": "New Exchange Request",
+    "NEW_EVENT": "New Event",
+    "MEMBER_ADDED_TO_GROUP": "Group Change",
+    "PROFILE_FIELD_CHANGED": "Profile Change",
+    "PROCUREMENT_REQUESTED": "Procurement",
+    "PROCUREMENT_FULFILLED": "Procurement Fulfilled",
+    "NEW_FORM": "New Form",
+    "LOST_AND_FOUND_NEW": "Lost and Found",
+    "LOST_AND_FOUND_CLAIMED": "Item Claimed"
+  },
+  "message": {
+    "notification.newNews": "{title} — by {author}",
+    "notification.newsComment": "{author} commented on \"{newsTitle}\"",
+    "notification.exchangeStatusChange": "{inventoryName}: Status changed to {status}",
+    "notification.exchangeNewRequest": "{memberName}: Exchange request for {inventoryName}",
+    "notification.newEvent": "New event: {title}",
+    "notification.eventRegistrationStatus": "{eventName}: {status}",
+    "notification.memberAddedToGroup": "You were added to group {groupName}",
+    "notification.profileFieldChanged": "{memberName} changed the field {fieldName}",
+    "notification.procurementRequested": "Procurement requested: {inventoryName}",
+    "notification.procurementFulfilled": "Procurement fulfilled: {inventoryName}",
+    "notification.newForm": "New form: {title}",
+    "notification.lostAndFoundNew": "New lost item: {description}",
+    "notification.lostAndFoundClaimed": "{name} claimed \"{description}\""
+  }
+}

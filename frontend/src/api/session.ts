@@ -42,10 +42,6 @@ export async function deleteAvatar(): Promise<void> {
     await client.delete('/session/avatar')
 }
 
-export function avatarUrl(accountId: number): string {
-    return `${client.defaults.baseURL}/accounts/${accountId}/avatar`
-}
-
 export async function deleteAccount(): Promise<void> {
     await client.delete('/session/account')
 }

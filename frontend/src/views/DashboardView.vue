@@ -53,6 +53,14 @@ const {pendingChangesCount, refresh: refreshPendingChanges} = usePendingChanges(
 const isDemo = ref(false)
 const notificationCount = ref(0)
 const pendingRegistrationCount = ref(0)
+const openGroup = ref<string | null>(null)
+const isDesktop = ref(window.matchMedia('(min-width: 1024px)').matches)
+
+onMounted(() => {
+  const mq = window.matchMedia('(min-width: 1024px)')
+  const handler = (e: MediaQueryListEvent) => { isDesktop.value = e.matches }
+  mq.addEventListener('change', handler)
+})
 
 async function refreshNotificationCount() {
   try {
@@ -115,7 +123,7 @@ async function handleLogout() {
   <SidebarLayout :station-logo-url="activeLogoUrl" :station-name="activeStation?.stationName" :subtitle="pageSubtitle"
                  :title="pageTitle">
     <template #sidebar="{ close }">
-      <SidebarGroup :badge="notificationCount" :icon="['fas', 'gauge']" :label="t('sidebar.dashboard')" prefix="/station/dashboard">
+      <SidebarGroup :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => openGroup = v" :badge="notificationCount" :icon="['fas', 'gauge']" :label="t('sidebar.dashboard')" prefix="/station/dashboard">
         <SidebarLink :badge="notificationCount" :icon="['fas', 'house']" name="dashboard-overview" to="/station/dashboard/overview"
                      @navigate="close">
           {{ t('sidebar.overview') }}
@@ -126,13 +134,13 @@ async function handleLogout() {
         </SidebarLink>
       </SidebarGroup>
 
-      <SidebarGroup v-if="isModuleEnabled(StationModules.NEWS)" :icon="['fas', 'newspaper']" :label="t('sidebar.news')" prefix="/station/news">
+      <SidebarGroup :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => openGroup = v" v-if="isModuleEnabled(StationModules.NEWS)" :icon="['fas', 'newspaper']" :label="t('sidebar.news')" prefix="/station/news">
         <SidebarLink :icon="['fas', 'newspaper']" name="news-list" to="/station/news" @navigate="close">
           {{ t('sidebar.newsList') }}
         </SidebarLink>
       </SidebarGroup>
 
-      <SidebarGroup :icon="['fas', 'user']" :label="t('sidebar.profile')" prefix="/station/profile">
+      <SidebarGroup :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => openGroup = v" :icon="['fas', 'user']" :label="t('sidebar.profile')" prefix="/station/profile">
         <SidebarLink :icon="['fas', 'user']" name="profile" to="/station/profile" @navigate="close">
           {{ t('sidebar.myProfile') }}
         </SidebarLink>
@@ -149,7 +157,7 @@ async function handleLogout() {
         </SidebarLink>
       </SidebarGroup>
 
-      <SidebarGroup v-if="isManager()" :icon="['fas', 'gears']" :label="t('sidebar.station')" prefix="/station/manage">
+      <SidebarGroup :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => openGroup = v" v-if="isManager()" :icon="['fas', 'gears']" :label="t('sidebar.station')" prefix="/station/manage">
         <SidebarLink :icon="['fas', 'gears']" name="station-manage" to="/station/manage" @navigate="close">
           {{ t('sidebar.manage') }}
         </SidebarLink>
@@ -163,7 +171,7 @@ async function handleLogout() {
         </SidebarLink>
       </SidebarGroup>
 
-      <SidebarGroup v-if="canManageMembers()" :badge="pendingChangesCount" :icon="['fas', 'users']"
+      <SidebarGroup :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => openGroup = v" v-if="canManageMembers()" :badge="pendingChangesCount" :icon="['fas', 'users']"
                     :label="t('sidebar.members')" prefix="/station/members">
         <SidebarLink :icon="['fas', 'user-plus']" name="members-create" to="/station/members/create" @navigate="close">
           {{ t('sidebar.create') }}
@@ -189,7 +197,7 @@ async function handleLogout() {
         </SidebarLink>
       </SidebarGroup>
 
-      <SidebarGroup v-if="isModuleEnabled(StationModules.INVENTORY)" :icon="['fas', 'boxes-stacked']" :label="t('sidebar.inventory')" prefix="/station/inventory">
+      <SidebarGroup :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => openGroup = v" v-if="isModuleEnabled(StationModules.INVENTORY)" :icon="['fas', 'boxes-stacked']" :label="t('sidebar.inventory')" prefix="/station/inventory">
         <SidebarLink v-if="canManageInventory()" :icon="['fas', 'house']" name="inventory-overview" to="/station/inventory/overview"
                      @navigate="close">
           {{ t('sidebar.overview') }}
@@ -224,7 +232,7 @@ async function handleLogout() {
         </SidebarLink>
       </SidebarGroup>
 
-      <SidebarGroup v-if="canManageAttendance() && isModuleEnabled(StationModules.ATTENDANCE)" :icon="['fas', 'clipboard-user']" :label="t('sidebar.attendance')"
+      <SidebarGroup :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => openGroup = v" v-if="canManageAttendance() && isModuleEnabled(StationModules.ATTENDANCE)" :icon="['fas', 'clipboard-user']" :label="t('sidebar.attendance')"
                     prefix="/station/attendance">
         <SidebarLink :icon="['fas', 'calendar-plus']" name="attendance-new" to="/station/attendance/new"
                      @navigate="close">
@@ -240,7 +248,7 @@ async function handleLogout() {
         </SidebarLink>
       </SidebarGroup>
 
-      <SidebarGroup v-if="isModuleEnabled(StationModules.EVENTS)" :badge="pendingRegistrationCount" :icon="['fas', 'calendar-days']" :label="t('sidebar.events')" prefix="/station/events">
+      <SidebarGroup :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => openGroup = v" v-if="isModuleEnabled(StationModules.EVENTS)" :badge="pendingRegistrationCount" :icon="['fas', 'calendar-days']" :label="t('sidebar.events')" prefix="/station/events">
         <SidebarLink :icon="['fas', 'calendar-plus']" name="events-upcoming" to="/station/events/upcoming"
                      @navigate="close">
           {{ t('sidebar.upcomingEvents') }}
@@ -255,7 +263,7 @@ async function handleLogout() {
         </SidebarLink>
       </SidebarGroup>
 
-      <SidebarGroup v-if="isModuleEnabled(StationModules.FORMS)" :icon="['fas', 'square-poll-vertical']" :label="t('sidebar.forms')" prefix="/station/forms">
+      <SidebarGroup :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => openGroup = v" v-if="isModuleEnabled(StationModules.FORMS)" :icon="['fas', 'square-poll-vertical']" :label="t('sidebar.forms')" prefix="/station/forms">
         <SidebarLink :icon="['fas', 'list']" name="forms-list" to="/station/forms" @navigate="close">
           {{ t('sidebar.formsList') }}
         </SidebarLink>
@@ -265,7 +273,7 @@ async function handleLogout() {
         </SidebarLink>
       </SidebarGroup>
 
-      <SidebarGroup v-if="isModuleEnabled(StationModules.LOST_AND_FOUND)" :icon="['fas', 'box-open']" :label="t('sidebar.lostAndFound')" prefix="/station/lost-and-found">
+      <SidebarGroup :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => openGroup = v" v-if="isModuleEnabled(StationModules.LOST_AND_FOUND)" :icon="['fas', 'box-open']" :label="t('sidebar.lostAndFound')" prefix="/station/lost-and-found">
         <SidebarLink :icon="['fas', 'box-open']" name="lost-and-found" to="/station/lost-and-found" @navigate="close">
           {{ t('sidebar.lostAndFoundList') }}
         </SidebarLink>
@@ -283,7 +291,7 @@ async function handleLogout() {
         </SecondaryButton>
       </router-link>
 
-      <UserAvatar :account-id="sessionInfo?.account?.id" :name="fullName()" size="sm" class="hidden sm:flex"/>
+      <UserAvatar :member-id="sessionInfo?.member?.id" :name="fullName()" size="sm" class="hidden sm:flex"/>
       <span class="text-sm text-[var(--text-muted)] hidden sm:inline">{{ fullName() }}</span>
 
       <IconButton

@@ -6,8 +6,8 @@
 package dev.chojo.ember.feature.legal.service;
 
 import dev.chojo.ember.conf.file.elements.Api;
-import dev.chojo.ember.feature.legal.entity.GdprConsent;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
+import dev.chojo.ember.feature.legal.entity.GdprConsent;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;

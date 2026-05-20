@@ -69,7 +69,7 @@ public class StationMemberRepository {
 
     public List<StationMember> findByStationAndRole(int stationId, String roleName) {
         return Query.query(
-                        "SELECT sm.* FROM station_member sm JOIN station_member_role smr ON smr.member_id = sm.id JOIN role r ON r.id = smr.role_id WHERE sm.station_id = :station_id AND LOWER(r.name) = LOWER(:role) AND sm.former = false;")
+                        "SELECT sm.* FROM station_member sm JOIN station_member_role smr ON smr.member_id = sm.id JOIN role r ON r.id = smr.role_id WHERE sm.station_id = :station_id AND r.name = :role AND sm.former = false;")
                 .single(Call.of().bind("station_id", stationId).bind("role", roleName))
                 .map(StationMember.map())
                 .all();
@@ -243,4 +243,34 @@ public class StationMemberRepository {
                 .single(Call.of().bind("manager_id", managerId))
                 .delete();
     }
+
+    // -- Avatar --
+
+    public Optional<MemberAvatar> findAvatar(int memberId) {
+        return Query.query(
+                        "SELECT avatar, avatar_content_type FROM station_member WHERE id = :id AND avatar IS NOT NULL;")
+                .single(Call.of().bind("id", memberId))
+                .map(row -> new MemberAvatar(row.getBytes("avatar"), row.getString("avatar_content_type")))
+                .first();
+    }
+
+    public boolean updateAvatar(int memberId, byte[] data, String contentType) {
+        return Query.query(
+                        "UPDATE station_member SET avatar = :avatar, avatar_content_type = :content_type WHERE id = :id;")
+                .single(Call.of()
+                        .bind("avatar", data)
+                        .bind("content_type", contentType)
+                        .bind("id", memberId))
+                .update()
+                .changed();
+    }
+
+    public boolean deleteAvatar(int memberId) {
+        return Query.query("UPDATE station_member SET avatar = NULL, avatar_content_type = NULL WHERE id = :id;")
+                .single(Call.of().bind("id", memberId))
+                .update()
+                .changed();
+    }
+
+    public record MemberAvatar(byte[] data, String contentType) {}
 }

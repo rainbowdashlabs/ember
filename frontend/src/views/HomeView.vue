@@ -19,6 +19,28 @@ onMounted(async () => {
     const res = await client.get<{ demoUrl?: string }>('/public/config')
     demoUrl.value = res.data.demoUrl ?? ''
   } catch { /* ignore */ }
+
+  // Inject JSON-LD structured data
+  const script = document.createElement('script')
+  script.type = 'application/ld+json'
+  script.textContent = JSON.stringify({
+    '@context': 'https://schema.org',
+    '@type': 'SoftwareApplication',
+    name: 'Ember',
+    applicationCategory: 'BusinessApplication',
+    operatingSystem: 'Web',
+    description: t('landing.heroSubtitle'),
+    offers: {
+      '@type': 'Offer',
+      price: '0',
+      priceCurrency: 'EUR',
+    },
+    author: {
+      '@type': 'Organization',
+      name: 'RainbowDashLabs',
+    },
+  })
+  document.head.appendChild(script)
 })
 
 const features = [
@@ -28,28 +50,30 @@ const features = [
   {icon: ['fas', 'users'], key: 'members'},
   {icon: ['fas', 'square-poll-vertical'], key: 'forms'},
   {icon: ['fas', 'newspaper'], key: 'news'},
+  {icon: ['fas', 'box-open'], key: 'lostAndFound'},
+  {icon: ['fas', 'bell'], key: 'notifications'},
+  {icon: ['fas', 'circle-question'], key: 'helpCenter'},
 ]
 
 const highlights = [
   {icon: ['fas', 'mobile-screen'], key: 'responsive'},
   {icon: ['fas', 'moon'], key: 'darkMode'},
   {icon: ['fas', 'lock'], key: 'secure'},
-  {icon: ['fas', 'circle-question'], key: 'helpCenter'},
   {icon: ['fas', 'users-gear'], key: 'roles'},
   {icon: ['fas', 'file-export'], key: 'export'},
   {icon: ['fas', 'shield'], key: 'gdpr'},
+  {icon: ['fas', 'arrow-right-arrow-left'], key: 'transfer'},
+  {icon: ['fas', 'puzzle-piece'], key: 'modules'},
 ]
 </script>
 
 <template>
-  <div>
+  <div itemscope itemtype="https://schema.org/WebPage">
     <!-- Hero Section -->
-    <section class="relative overflow-hidden">
-      <div class="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-secondary/10"/>
+    <section aria-label="Einleitung" class="relative overflow-hidden">
+      <div class="absolute inset-0 bg-gradient-to-b from-primary/10 via-secondary/5 to-transparent"/>
       <div class="relative mx-auto max-w-5xl px-6 py-20 sm:py-28 text-center">
-        <div class="inline-flex items-center justify-center h-20 w-20 rounded-2xl bg-primary/15 mb-6">
-          <font-awesome-icon :icon="['fas', 'fire']" class="h-10 w-10 text-primary"/>
-        </div>
+        <img src="/logo.png" alt="Ember" class="h-20 w-20 rounded-2xl mb-6 mx-auto" />
         <h1 class="text-4xl sm:text-5xl font-extrabold tracking-tight mb-4">
           {{ t('landing.heroTitle') }}
         </h1>
@@ -79,7 +103,7 @@ const highlights = [
     </section>
 
     <!-- Features Grid -->
-    <section class="mx-auto max-w-5xl px-6 py-16">
+    <section aria-label="Funktionen" class="mx-auto max-w-5xl px-6 py-16">
       <h2 class="text-2xl sm:text-3xl font-bold text-center mb-3">
         {{ t('landing.featuresTitle') }}
       </h2>
@@ -102,7 +126,7 @@ const highlights = [
     </section>
 
     <!-- Highlights / Why Ember -->
-    <section class="bg-(--bg-accent) py-16">
+    <section aria-label="Vorteile" class="bg-(--bg-accent) py-16">
       <div class="mx-auto max-w-5xl px-6">
         <h2 class="text-2xl sm:text-3xl font-bold text-center mb-3">
           {{ t('landing.highlightsTitle') }}
@@ -127,9 +151,9 @@ const highlights = [
     </section>
 
     <!-- Target Audience -->
-    <section class="mx-auto max-w-5xl px-6 py-16">
+    <section aria-label="Zielgruppe" class="mx-auto max-w-5xl px-6 py-16">
       <div class="rounded-2xl border border-(--border) bg-(--bg) p-8 sm:p-12 text-center">
-        <font-awesome-icon :icon="['fas', 'fire']" class="h-8 w-8 text-primary mb-4"/>
+        <img src="/logo.png" alt="Ember" class="h-12 w-12 rounded-xl mx-auto mb-4" />
         <h2 class="text-2xl font-bold mb-3">{{ t('landing.audienceTitle') }}</h2>
         <p class="text-(--text-muted) max-w-2xl mx-auto mb-6 leading-relaxed">
           {{ t('landing.audienceText') }}
@@ -144,7 +168,7 @@ const highlights = [
     </section>
 
     <!-- CTA Section -->
-    <section class="bg-primary/5 py-16">
+    <section aria-label="Jetzt starten" class="bg-primary/5 py-16">
       <div class="mx-auto max-w-3xl px-6 text-center">
         <h2 class="text-2xl sm:text-3xl font-bold mb-3">{{ t('landing.ctaTitle') }}</h2>
         <p class="text-(--text-muted) mb-8 max-w-xl mx-auto">

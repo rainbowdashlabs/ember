@@ -6,16 +6,17 @@
 package dev.chojo.ember.feature.notifications.service;
 
 import dev.chojo.ember.conf.file.elements.Mailing;
+import dev.chojo.ember.feature.account.repository.AccountRepository;
+import dev.chojo.ember.feature.mail.service.EmailService;
+import dev.chojo.ember.feature.members.repository.StationMemberRepository;
+import dev.chojo.ember.feature.members.repository.UserSettingsRepository;
 import dev.chojo.ember.feature.notifications.entity.Notification;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
-import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.notifications.repository.NotificationRepository;
 import dev.chojo.ember.feature.notifications.repository.NotificationSettingsRepository;
-import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.station.repository.StationRepository;
-import dev.chojo.ember.feature.members.repository.UserSettingsRepository;
-import dev.chojo.ember.feature.mail.service.EmailService;
+import dev.chojo.ember.i18n.Localizer;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -43,65 +44,7 @@ public class NotificationService {
     private final StationRepository stationRepository;
     private final EmailService emailService;
 
-    private static final Map<String, Map<String, String>> CATEGORY_LABELS = Map.of(
-            "de",
-            Map.ofEntries(
-                    Map.entry("NEW_NEWS", "Neuigkeit"),
-                    Map.entry("NEWS_COMMENT", "Kommentar"),
-                    Map.entry("EVENT_REGISTRATION_STATUS", "Anmeldung"),
-                    Map.entry("EXCHANGE_STATUS_CHANGE", "Tausch"),
-                    Map.entry("EXCHANGE_NEW_REQUEST", "Neue Tausch-Anfrage"),
-                    Map.entry("NEW_EVENT", "Neuer Termin"),
-                    Map.entry("MEMBER_ADDED_TO_GROUP", "Gruppenänderung"),
-                    Map.entry("PROFILE_FIELD_CHANGED", "Profiländerung"),
-                    Map.entry("PROCUREMENT_REQUESTED", "Beschaffung"),
-                    Map.entry("PROCUREMENT_FULFILLED", "Beschaffung abgeschlossen"),
-                    Map.entry("LOST_AND_FOUND_NEW", "Fundbüro"),
-                    Map.entry("LOST_AND_FOUND_CLAIMED", "Fundsache beansprucht")),
-            "en",
-            Map.ofEntries(
-                    Map.entry("NEW_NEWS", "News"),
-                    Map.entry("NEWS_COMMENT", "Comment"),
-                    Map.entry("EVENT_REGISTRATION_STATUS", "Registration"),
-                    Map.entry("EXCHANGE_STATUS_CHANGE", "Exchange"),
-                    Map.entry("EXCHANGE_NEW_REQUEST", "New Exchange Request"),
-                    Map.entry("NEW_EVENT", "New Event"),
-                    Map.entry("MEMBER_ADDED_TO_GROUP", "Group Change"),
-                    Map.entry("PROFILE_FIELD_CHANGED", "Profile Change"),
-                    Map.entry("PROCUREMENT_REQUESTED", "Procurement"),
-                    Map.entry("PROCUREMENT_FULFILLED", "Procurement Fulfilled"),
-                    Map.entry("LOST_AND_FOUND_NEW", "Lost and Found"),
-                    Map.entry("LOST_AND_FOUND_CLAIMED", "Item Claimed")));
-
-    private static final Map<String, Map<String, String>> MESSAGE_TEMPLATES = Map.of(
-            "de",
-            Map.ofEntries(
-                    Map.entry("notification.newNews", "{title} — von {author}"),
-                    Map.entry("notification.newsComment", "{author} hat \"{newsTitle}\" kommentiert"),
-                    Map.entry("notification.exchangeStatusChange", "{inventoryName}: Status geändert auf {status}"),
-                    Map.entry("notification.exchangeNewRequest", "{memberName}: Tausch-Anfrage für {inventoryName}"),
-                    Map.entry("notification.newEvent", "Neuer Termin: {title}"),
-                    Map.entry("notification.eventRegistrationStatus", "{eventName}: {status}"),
-                    Map.entry("notification.memberAddedToGroup", "Du wurdest zur Gruppe {groupName} hinzugefügt"),
-                    Map.entry("notification.profileFieldChanged", "{memberName} hat das Feld {fieldName} geändert"),
-                    Map.entry("notification.procurementRequested", "Beschaffung angefragt: {inventoryName}"),
-                    Map.entry("notification.procurementFulfilled", "Beschaffung abgeschlossen: {inventoryName}"),
-                    Map.entry("notification.lostAndFoundNew", "Neuer Fundgegenstand: {description}"),
-                    Map.entry("notification.lostAndFoundClaimed", "{name} hat \"{description}\" beansprucht")),
-            "en",
-            Map.ofEntries(
-                    Map.entry("notification.newNews", "{title} — by {author}"),
-                    Map.entry("notification.newsComment", "{author} commented on \"{newsTitle}\""),
-                    Map.entry("notification.exchangeStatusChange", "{inventoryName}: Status changed to {status}"),
-                    Map.entry("notification.exchangeNewRequest", "{memberName}: Exchange request for {inventoryName}"),
-                    Map.entry("notification.newEvent", "New event: {title}"),
-                    Map.entry("notification.eventRegistrationStatus", "{eventName}: {status}"),
-                    Map.entry("notification.memberAddedToGroup", "You were added to group {groupName}"),
-                    Map.entry("notification.profileFieldChanged", "{memberName} changed the field {fieldName}"),
-                    Map.entry("notification.procurementRequested", "Procurement requested: {inventoryName}"),
-                    Map.entry("notification.procurementFulfilled", "Procurement fulfilled: {inventoryName}"),
-                    Map.entry("notification.lostAndFoundNew", "New lost item: {description}"),
-                    Map.entry("notification.lostAndFoundClaimed", "{name} claimed \"{description}\"")));
+    private static final Localizer LOCALIZER = new Localizer();
 
     private static final Map<String, String> ROUTE_PATHS = Map.of(
             "news-list", "/station/news",
@@ -228,6 +171,10 @@ public class NotificationService {
         return notificationRepository.acknowledgeAll(memberId);
     }
 
+    public int deleteByTypeContaining(NotificationType type, String partialDataJson) {
+        return notificationRepository.deleteByTypeContaining(type, partialDataJson);
+    }
+
     public void cleanupOld() {
         notificationRepository.deleteOldAcknowledged();
     }
@@ -318,7 +265,7 @@ public class NotificationService {
         String baseUrl = emailService.getBaseUrl();
         var itemsHtml = new StringBuilder();
         for (var n : eligible) {
-            var labels = CATEGORY_LABELS.getOrDefault(locale, CATEGORY_LABELS.get("en"));
+            var labels = LOCALIZER.get("notifications", locale, "category");
             String category = labels.getOrDefault(n.type().name(), n.type().name());
             String message = resolveMessage(locale, n.data());
             String itemUrl = resolveNotificationUrl(baseUrl, n.data());
@@ -369,7 +316,7 @@ public class NotificationService {
     }
 
     private String resolveMessage(String locale, NotificationData data) {
-        var templates = MESSAGE_TEMPLATES.getOrDefault(locale, MESSAGE_TEMPLATES.get("en"));
+        var templates = LOCALIZER.get("notifications", locale, "message");
         String template = templates.get(data.localeKey());
         if (template == null) {
             // Fallback: concatenate param values
@@ -397,8 +344,7 @@ public class NotificationService {
         var params = n.data().params();
         if (params == null) return null;
         return switch (n.type()) {
-            case NEW_NEWS -> params.get("preview");
-            case NEWS_COMMENT -> params.get("preview");
+            case NEW_NEWS, NEWS_COMMENT -> params.get("preview");
             case EXCHANGE_STATUS_CHANGE, EXCHANGE_NEW_REQUEST -> params.get("reason");
             case EVENT_REGISTRATION_STATUS, NEW_EVENT -> params.get("eventDescription");
             default -> null;

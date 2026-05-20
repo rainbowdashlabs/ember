@@ -11,13 +11,13 @@ import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.entity.AccountCredential;
 import dev.chojo.ember.feature.account.entity.AccountSession;
 import dev.chojo.ember.feature.account.entity.AccountToken;
-import dev.chojo.ember.feature.members.entity.RegistrationCode;
 import dev.chojo.ember.feature.account.entity.TokenType;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
+import dev.chojo.ember.feature.mail.service.EmailService;
+import dev.chojo.ember.feature.members.entity.RegistrationCode;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.RegistrationCodeRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
-import dev.chojo.ember.feature.mail.service.EmailService;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
@@ -329,6 +329,62 @@ public class AuthService {
         Instant expiresAt = Instant.now().plus(authConfig.sessionMinutes(), ChronoUnit.MINUTES);
         accountRepository.createSession(accountId, token, expiresAt, userAgent, location);
         return LoginResult.success(token, expiresAt);
+    }
+
+    // -- Email change --
+
+    public void requestEmailChange(int accountId, String newEmail) {
+        accountRepository.deleteTokensByAccountAndType(accountId, TokenType.EMAIL_CHANGE);
+        String token = generateToken();
+        accountRepository.createToken(
+                accountId,
+                token,
+                TokenType.EMAIL_CHANGE,
+                newEmail,
+                Instant.now().plus(authConfig.verifyTokenHours(), ChronoUnit.HOURS));
+        var account = accountRepository.findById(accountId).orElse(null);
+        String name = account != null ? account.firstName() : "";
+        emailService.sendEmailChangeConfirmation(newEmail, name, token);
+    }
+
+    public boolean confirmEmailChange(String token) {
+        Optional<AccountToken> tokenOpt = accountRepository.findToken(token);
+        if (tokenOpt.isEmpty()) return false;
+        AccountToken accountToken = tokenOpt.get();
+        if (accountToken.isExpired() || accountToken.tokenType() != TokenType.EMAIL_CHANGE) return false;
+        String newEmail = accountToken.metadata();
+        if (newEmail == null || newEmail.isBlank()) return false;
+        accountRepository.updateEmail(accountToken.accountId(), newEmail);
+        accountRepository.deleteToken(token);
+        return true;
+    }
+
+    // -- Station deletion --
+
+    public void requestStationDeletion(int accountId, int stationId) {
+        accountRepository.deleteTokensByAccountAndType(accountId, TokenType.STATION_DELETE);
+        String token = generateToken();
+        accountRepository.createToken(
+                accountId,
+                token,
+                TokenType.STATION_DELETE,
+                String.valueOf(stationId),
+                Instant.now().plus(1, ChronoUnit.HOURS));
+        var account = accountRepository.findById(accountId).orElse(null);
+        if (account != null) {
+            emailService.sendStationDeletionConfirmation(account.email(), account.firstName(), token);
+        }
+    }
+
+    public Optional<Integer> confirmStationDeletion(String token) {
+        Optional<AccountToken> tokenOpt = accountRepository.findToken(token);
+        if (tokenOpt.isEmpty()) return Optional.empty();
+        AccountToken accountToken = tokenOpt.get();
+        if (accountToken.isExpired() || accountToken.tokenType() != TokenType.STATION_DELETE) return Optional.empty();
+        String stationIdStr = accountToken.metadata();
+        if (stationIdStr == null) return Optional.empty();
+        accountRepository.deleteToken(token);
+        return Optional.of(Integer.parseInt(stationIdStr));
     }
 
     private String generateToken() {

@@ -21,8 +21,13 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import NumberInput from '@/components/input/number/NumberInput.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import SuccessButton from '@/components/button/SuccessButton.vue'
-import {stationManage} from '@/api'
+import {stationManage, stationMembers} from '@/api'
+import {transfer} from '@/api'
 import client from '@/api/client'
+import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ErrorButton from '@/components/button/ErrorButton.vue'
+import ErrorContainer from '@/components/container/ErrorContainer.vue'
+import Modal from '@/components/feedback/Modal.vue'
 
 const {t} = useI18n()
 
@@ -47,6 +52,7 @@ const name = ref('')
 const timezone = ref('Europe/Berlin')
 const locale = ref('de-DE')
 const hasLogo = ref(false)
+const isOwner = ref(false)
 const loading = ref(true)
 const saving = ref(false)
 const uploading = ref(false)
@@ -63,6 +69,7 @@ async function loadStation() {
     timezone.value = info.timezone ?? 'Europe/Berlin'
     locale.value = info.locale ?? 'de-DE'
     hasLogo.value = info.hasLogo
+    isOwner.value = info.isOwner
     if (info.hasLogo) {
       await loadLogoBlob()
     }
@@ -288,9 +295,138 @@ async function toggleModule(key: string) {
   modulesSaving.value = false
 }
 
+// -- Station import --
+const importSourceUrl = ref('')
+const importTokenInput = ref('')
+const importingStation = ref(false)
+const showImportConfirm = ref(false)
+const importProgress = ref<stationManage.StationImportProgress | null>(null)
+let importPollTimer: ReturnType<typeof setInterval> | null = null
+
+function requestStationImport() {
+  if (!importSourceUrl.value || !importTokenInput.value) return
+  showImportConfirm.value = true
+}
+
+async function startStationImport() {
+  showImportConfirm.value = false
+  importingStation.value = true
+  importProgress.value = null
+  error.value = ''
+  success.value = ''
+  try {
+    await stationManage.importStation(importSourceUrl.value, importTokenInput.value)
+    pollStationImport()
+  } catch {
+    error.value = t('common.error')
+    importingStation.value = false
+  }
+}
+
+function pollStationImport() {
+  importPollTimer = setInterval(async () => {
+    try {
+      const progress = await stationManage.getImportProgress()
+      importProgress.value = progress
+      if (progress.status === 'COMPLETED' || progress.status === 'FAILED') {
+        if (importPollTimer) clearInterval(importPollTimer)
+        importPollTimer = null
+        importingStation.value = false
+      }
+    } catch {
+      if (importPollTimer) clearInterval(importPollTimer)
+      importPollTimer = null
+      importingStation.value = false
+    }
+  }, 1000)
+}
+
+// -- Transfer --
+const creatingToken = ref(false)
+const transferToken = ref('')
+
+async function createToken() {
+  creatingToken.value = true
+  error.value = ''
+  success.value = ''
+  transferToken.value = ''
+  try {
+    const result = await transfer.createTransferToken()
+    transferToken.value = result.token
+  } catch {
+    error.value = t('common.error')
+  } finally {
+    creatingToken.value = false
+  }
+}
+
+async function copyToken() {
+  await navigator.clipboard.writeText(transferToken.value)
+  success.value = t('stationManage.transferTokenCopied')
+}
+
+// -- Owner handover --
+const managerMembers = ref<{id: number, name: string}[]>([])
+const newOwnerId = ref('')
+const transferringOwnership = ref(false)
+
+async function loadManagers() {
+  try {
+    const info = await stationManage.getStationInfo()
+    const members = await stationMembers.listMembers(info.id)
+    const allRolesList = await stationMembers.listAllRoles()
+    const managerRoleId = allRolesList.find(r => r.role === 'MANAGER')?.id
+    if (!managerRoleId) return
+    const result: {id: number, name: string}[] = []
+    for (const m of members) {
+      if (info.ownerMemberId && m.id === info.ownerMemberId) continue
+      const roles = await stationMembers.getRoles(m.id)
+      if (roles.some(r => r.id === managerRoleId)) {
+        result.push({id: m.id, name: m.name || m.email || `#${m.id}`})
+      }
+    }
+    managerMembers.value = result
+  } catch { /* ignore */ }
+}
+
+async function transferOwnershipAction() {
+  const id = Number(newOwnerId.value)
+  if (!id) return
+  transferringOwnership.value = true
+  error.value = ''
+  success.value = ''
+  try {
+    await stationManage.transferOwnership(id)
+    success.value = t('stationManage.ownerHandoverSuccess')
+    isOwner.value = false
+  } catch {
+    error.value = t('common.error')
+  } finally {
+    transferringOwnership.value = false
+  }
+}
+
+// -- Station deletion --
+const requestingDelete = ref(false)
+
+async function requestDelete() {
+  requestingDelete.value = true
+  error.value = ''
+  success.value = ''
+  try {
+    await stationManage.requestStationDeletion()
+    success.value = t('stationManage.deleteRequested')
+  } catch {
+    error.value = t('common.error')
+  } finally {
+    requestingDelete.value = false
+  }
+}
+
 onMounted(async () => {
   await loadStation()
   await Promise.all([loadMailConfig(), loadModules()])
+  if (isOwner.value) await loadManagers()
 })
 </script>
 
@@ -520,6 +656,97 @@ onMounted(async () => {
           </div>
         </div>
       </NeutralContainer>
+
+      <!-- Station import -->
+      <NeutralContainer v-if="!loading" class="space-y-4">
+        <SectionHeader>{{ t('stationManage.importTitle') }}</SectionHeader>
+        <p class="text-sm text-(--text-muted)">{{ t('stationManage.importHint') }}</p>
+        <div class="grid gap-4 sm:grid-cols-2">
+          <div class="space-y-1">
+            <label class="block text-sm font-medium">{{ t('stationManage.importSourceUrl') }}</label>
+            <TextInput v-model="importSourceUrl" :placeholder="t('stationManage.importSourceUrlPlaceholder')" />
+          </div>
+          <div class="space-y-1">
+            <label class="block text-sm font-medium">{{ t('stationManage.importToken') }}</label>
+            <TextInput v-model="importTokenInput" :placeholder="t('stationManage.importTokenPlaceholder')" />
+          </div>
+        </div>
+        <PrimaryButton :disabled="importingStation || !importSourceUrl || !importTokenInput" @click="requestStationImport">
+          {{ importingStation ? t('stationManage.importStarting') : t('stationManage.importStart') }}
+        </PrimaryButton>
+
+        <!-- Import progress -->
+        <div v-if="importProgress" class="space-y-2">
+          <div class="flex items-center justify-between text-sm">
+            <span>{{ importProgress.completedTables }} / {{ importProgress.totalTables }}</span>
+          </div>
+          <div class="w-full bg-bg-light-accent dark:bg-bg-dark-accent rounded-full h-2">
+            <div
+                class="h-2 rounded-full transition-all duration-300"
+                :class="importProgress.status === 'FAILED' ? 'bg-error' : 'bg-primary'"
+                :style="{ width: `${(importProgress.completedTables / importProgress.totalTables) * 100}%` }"
+            />
+          </div>
+          <Alert v-if="importProgress.status === 'COMPLETED'" variant="success">{{ t('stationManage.importCompleted') }}</Alert>
+          <Alert v-if="importProgress.status === 'FAILED'" variant="error">{{ t('stationManage.importFailed', { error: importProgress.error ?? '' }) }}</Alert>
+          <p v-if="importProgress.status === 'IN_PROGRESS' && importProgress.currentTable" class="text-xs text-(--text-muted)">
+            {{ t('stationManage.importProgress', { table: importProgress.currentTable, completed: importProgress.completedTables, total: importProgress.totalTables }) }}
+          </p>
+        </div>
+      </NeutralContainer>
+
+      <!-- Transfer (owner only) -->
+      <NeutralContainer v-if="!loading && isOwner" class="space-y-4">
+        <SectionHeader>{{ t('stationManage.transferTitle') }}</SectionHeader>
+        <p class="text-sm text-(--text-muted)">{{ t('stationManage.transferHint') }}</p>
+        <PrimaryButton :disabled="creatingToken" @click="createToken">
+          {{ creatingToken ? t('stationManage.transferCreating') : t('stationManage.transferCreate') }}
+        </PrimaryButton>
+        <div v-if="transferToken" class="space-y-2">
+          <label class="block text-sm font-medium">{{ t('stationManage.transferTokenLabel') }}</label>
+          <div class="flex items-center gap-2">
+            <code class="flex-1 rounded bg-bg-light-accent dark:bg-bg-dark-accent px-3 py-2 text-sm break-all select-all">{{ transferToken }}</code>
+            <SecondaryButton @click="copyToken">
+              <font-awesome-icon :icon="['fas', 'copy']" />
+            </SecondaryButton>
+          </div>
+        </div>
+      </NeutralContainer>
+      <!-- Owner handover (owner only) -->
+      <NeutralContainer v-if="!loading && isOwner" class="space-y-4">
+        <SectionHeader>{{ t('stationManage.ownerHandoverTitle') }}</SectionHeader>
+        <p class="text-sm text-(--text-muted)">{{ t('stationManage.ownerHandoverHint') }}</p>
+        <div v-if="managerMembers.length > 0" class="space-y-3">
+          <SelectInput v-model="newOwnerId">
+            <option value="">{{ t('stationManage.ownerHandoverSelect') }}</option>
+            <option v-for="m in managerMembers" :key="m.id" :value="m.id">{{ m.name }}</option>
+          </SelectInput>
+          <PrimaryButton :disabled="transferringOwnership || !newOwnerId" @click="transferOwnershipAction">
+            {{ transferringOwnership ? t('common.loading') : t('stationManage.ownerHandoverSubmit') }}
+          </PrimaryButton>
+        </div>
+        <p v-else class="text-sm text-(--text-muted)">{{ t('stationManage.ownerHandoverNone') }}</p>
+      </NeutralContainer>
+
+      <!-- Station deletion (owner only) -->
+      <ErrorContainer v-if="!loading && isOwner" class="space-y-4">
+        <SectionHeader>{{ t('stationManage.deleteTitle') }}</SectionHeader>
+        <p class="text-sm text-(--text-muted)">{{ t('stationManage.deleteHint') }}</p>
+        <ErrorButton :disabled="requestingDelete" @click="requestDelete">
+          {{ requestingDelete ? t('stationManage.deleteRequesting') : t('stationManage.deleteRequest') }}
+        </ErrorButton>
+      </ErrorContainer>
+      <!-- Import confirmation modal -->
+      <Modal v-model="showImportConfirm">
+        <div class="space-y-4">
+          <SectionHeader>{{ t('stationManage.importConfirmTitle') }}</SectionHeader>
+          <p class="text-sm">{{ t('stationManage.importConfirmText') }}</p>
+          <div class="flex justify-end gap-3">
+            <SecondaryButton @click="showImportConfirm = false">{{ t('common.cancel') }}</SecondaryButton>
+            <ErrorButton @click="startStationImport">{{ t('stationManage.importConfirmAction') }}</ErrorButton>
+          </div>
+        </div>
+      </Modal>
     </div>
   </ViewContent>
 </template>

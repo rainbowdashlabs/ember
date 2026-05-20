@@ -1,0 +1,150 @@
+/*
+ *     SPDX-License-Identifier: AGPL-3.0-only
+ *
+ *     Copyright (C) RainbowDashLabs and Contributor
+ */
+package dev.chojo.ember.repository;
+
+import dev.chojo.ember.feature.account.entity.Account;
+import dev.chojo.ember.feature.events.entity.EventCategory;
+import dev.chojo.ember.feature.events.entity.EventField;
+import dev.chojo.ember.feature.events.entity.StationEvent;
+import dev.chojo.ember.feature.events.repository.EventFieldRepository;
+import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.station.entity.Station;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.Order;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestMethodOrder;
+
+import java.time.Instant;
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.*;
+
+@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
+class EventFieldRepositoryTest extends RepositoryTestBase {
+    private static Station station;
+    private static Account account;
+    private static StationMember member;
+    private static int eventId;
+    private static int categoryId;
+    private static int fieldId;
+
+    @BeforeAll
+    static void setup() {
+        station = stationRepo.create("EventField Station");
+        account = accountRepo.create("eventfield@test.com", "EF", "User");
+        member = stationMemberRepo.create(station.id(), account.id());
+        EventCategory cat = eventRepo.createCategory(station.id(), "EF Cat", 1);
+        categoryId = cat.id();
+        StationEvent event = eventRepo.create(
+                station.id(),
+                "EF Event",
+                "desc",
+                StationEvent.EventType.ONE_TIME,
+                null,
+                Instant.parse("2026-06-15T09:00:00Z"),
+                Instant.parse("2026-06-15T12:00:00Z"),
+                null,
+                false,
+                null,
+                false,
+                categoryId);
+        eventId = event.id();
+    }
+
+    @AfterAll
+    static void cleanup() {
+        eventRepo.delete(eventId);
+        eventRepo.deleteCategory(categoryId);
+        stationRepo.delete(station.id());
+        accountRepo.delete(account.id());
+    }
+
+    @Test
+    @Order(1)
+    void create() {
+        EventField field = eventFieldRepo.create(eventId, "Location", "Berlin", 0);
+        assertNotNull(field);
+        assertEquals("Location", field.name());
+        assertEquals("Berlin", field.value());
+        assertEquals(0, field.position());
+        fieldId = field.id();
+    }
+
+    @Test
+    @Order(2)
+    void findByEvent() {
+        var fields = eventFieldRepo.findByEvent(eventId);
+        assertEquals(1, fields.size());
+        assertEquals("Location", fields.getFirst().name());
+    }
+
+    @Test
+    @Order(3)
+    void findByEventEmpty() {
+        assertTrue(eventFieldRepo.findByEvent(99999).isEmpty());
+    }
+
+    @Test
+    @Order(4)
+    void findDistinctFieldNames() {
+        var names = eventFieldRepo.findDistinctFieldNames(station.id());
+        assertEquals(1, names.size());
+        assertEquals("Location", names.getFirst());
+    }
+
+    @Test
+    @Order(5)
+    void update() {
+        assertTrue(eventFieldRepo.update(fieldId, "Venue", "Munich", 1));
+        var fields = eventFieldRepo.findByEvent(eventId);
+        assertEquals("Venue", fields.getFirst().name());
+        assertEquals("Munich", fields.getFirst().value());
+        assertEquals(1, fields.getFirst().position());
+    }
+
+    @Test
+    @Order(6)
+    void updateNonExistent() {
+        assertFalse(eventFieldRepo.update(99999, "Nope", "Nope", 0));
+    }
+
+    @Test
+    @Order(10)
+    void replaceFields() {
+        eventFieldRepo.replaceFields(
+                eventId,
+                List.of(
+                        new EventFieldRepository.FieldEntry("Key1", "Val1"),
+                        new EventFieldRepository.FieldEntry("Key2", "Val2")));
+        var fields = eventFieldRepo.findByEvent(eventId);
+        assertEquals(2, fields.size());
+        assertEquals("Key1", fields.get(0).name());
+        assertEquals("Key2", fields.get(1).name());
+    }
+
+    @Test
+    @Order(11)
+    void deleteByEvent() {
+        eventFieldRepo.deleteByEvent(eventId);
+        assertTrue(eventFieldRepo.findByEvent(eventId).isEmpty());
+    }
+
+    @Test
+    @Order(12)
+    void deleteSingle() {
+        EventField field = eventFieldRepo.create(eventId, "Temp", "Val", 0);
+        assertTrue(eventFieldRepo.delete(field.id()));
+        assertTrue(eventFieldRepo.findByEvent(eventId).isEmpty());
+    }
+
+    @Test
+    @Order(13)
+    void deleteNonExistent() {
+        assertFalse(eventFieldRepo.delete(99999));
+    }
+}

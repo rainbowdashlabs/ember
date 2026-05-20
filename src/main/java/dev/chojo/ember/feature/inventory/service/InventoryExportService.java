@@ -6,12 +6,13 @@
 package dev.chojo.ember.feature.inventory.service;
 
 import dev.chojo.ember.conf.file.elements.Api;
+import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
 import dev.chojo.ember.feature.inventory.entity.InventoryItem;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
-import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.members.repository.ProfileFieldRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
+import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.station.repository.StationRepository.StationLogo;
 import jakarta.inject.Inject;
@@ -209,7 +210,7 @@ public class InventoryExportService {
         return val;
     }
 
-    private String resolveLocalePrefix(dev.chojo.ember.feature.station.entity.Station station) {
+    private String resolveLocalePrefix(Station station) {
         if (station != null && station.locale() != null && station.locale().startsWith("de")) return "de";
         return "en";
     }

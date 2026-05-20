@@ -10,6 +10,7 @@ import dev.chojo.ember.feature.members.entity.Role;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.util.RoleValidation;
+import dev.chojo.ember.feature.station.repository.StationRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
@@ -20,10 +21,12 @@ import java.util.Set;
 @Singleton
 public class StationMemberService {
     private final StationMemberRepository memberRepository;
+    private final StationRepository stationRepository;
 
     @Inject
-    public StationMemberService(StationMemberRepository memberRepository) {
+    public StationMemberService(StationMemberRepository memberRepository, StationRepository stationRepository) {
         this.memberRepository = memberRepository;
+        this.stationRepository = stationRepository;
     }
 
     public List<StationMember> findByStation(int stationId) {
@@ -61,7 +64,13 @@ public class StationMemberService {
         List<Role> currentRoles = memberRepository.findRoles(memberId);
         var currentRoleIds = currentRoles.stream().map(Role::id).toList();
 
-        RoleValidation.validateRoleChanges(currentRoles, desiredRoleIds, allRoles, callerRoles);
+        var member = memberRepository.findById(memberId).orElse(null);
+        boolean isOwner = false;
+        if (member != null) {
+            var station = stationRepository.findById(member.stationId()).orElse(null);
+            isOwner = station != null && station.ownerMemberId() != null && station.ownerMemberId() == memberId;
+        }
+        RoleValidation.validateRoleChanges(currentRoles, desiredRoleIds, allRoles, callerRoles, isOwner);
 
         for (int roleId : currentRoleIds) {
             if (!desiredRoleIds.contains(roleId)) {

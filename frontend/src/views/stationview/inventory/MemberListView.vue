@@ -16,6 +16,7 @@ import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
+import UserAvatar from '@/components/avatar/UserAvatar.vue'
 import {inventory, stationMembers, memberGroups, profileFields} from '@/api'
 import type {Inventory, InventoryItem, MemberGroup, ProfileField, Role, StationMember} from '@/api/types'
 import {Roles} from '@/api/types'
@@ -453,7 +454,12 @@ onMounted(loadData)
                 <td v-if="exportMode" class="px-1 py-2.5 w-8" @click.stop>
                   <input type="checkbox" :checked="selectedForExport.has(member.id)" @change="toggleExportSelection(member.id)" />
                 </td>
-                <td class="px-3 py-2.5 font-medium text-primary">{{ memberDisplayName(member) }}</td>
+                <td class="px-3 py-2.5 font-medium text-primary">
+                  <div class="flex items-center gap-2">
+                    <UserAvatar :member-id="member.id" :name="memberDisplayName(member)" size="sm"/>
+                    {{ memberDisplayName(member) }}
+                  </div>
+                </td>
                 <td v-for="inv in displayedInventories" :key="inv.id" class="px-3 py-2.5">
                   <template v-if="memberInventoryCount(member.id, inv.id) > 0">
                     <div class="flex flex-wrap gap-1">

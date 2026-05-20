@@ -14,6 +14,7 @@ import dev.chojo.ember.feature.form.entity.FormResponse;
 import jakarta.inject.Singleton;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -324,8 +325,8 @@ public class FormRepository {
                 .single(Call.of().bind("station_id", stationId))
                 .map(row -> new int[] {row.getInt("form_id"), row.getInt("role_id")})
                 .all()
-                .forEach(pair -> result.computeIfAbsent(pair[0], k -> new java.util.ArrayList<>())
-                        .add(pair[1]));
+                .forEach(pair ->
+                        result.computeIfAbsent(pair[0], k -> new ArrayList<>()).add(pair[1]));
         return result;
     }
 
@@ -339,8 +340,8 @@ public class FormRepository {
                 .single(Call.of().bind("station_id", stationId))
                 .map(row -> new int[] {row.getInt("form_id"), row.getInt("group_id")})
                 .all()
-                .forEach(pair -> result.computeIfAbsent(pair[0], k -> new java.util.ArrayList<>())
-                        .add(pair[1]));
+                .forEach(pair ->
+                        result.computeIfAbsent(pair[0], k -> new ArrayList<>()).add(pair[1]));
         return result;
     }
 
@@ -354,8 +355,8 @@ public class FormRepository {
                 .single(Call.of().bind("station_id", stationId))
                 .map(row -> new int[] {row.getInt("form_id"), row.getInt("tag_id")})
                 .all()
-                .forEach(pair -> result.computeIfAbsent(pair[0], k -> new java.util.ArrayList<>())
-                        .add(pair[1]));
+                .forEach(pair ->
+                        result.computeIfAbsent(pair[0], k -> new ArrayList<>()).add(pair[1]));
         return result;
     }
 }

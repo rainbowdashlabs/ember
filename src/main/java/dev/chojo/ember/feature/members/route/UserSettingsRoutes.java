@@ -8,10 +8,10 @@ package dev.chojo.ember.feature.members.route;
 import dev.chojo.ember.api.Roles;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.feature.members.service.UserSettingsService;
 import dev.chojo.ember.feature.notifications.entity.NotificationSetting;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
 import dev.chojo.ember.feature.station.repository.StationMailConfigRepository;
-import dev.chojo.ember.feature.members.service.UserSettingsService;
 import io.javalin.http.Context;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
@@ -23,6 +23,7 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
 import java.util.EnumMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 @Singleton
@@ -99,11 +100,11 @@ public class UserSettingsRoutes implements Routes {
         }
 
         // Build response map with defaults for missing types
-        var responseMap = new java.util.LinkedHashMap<String, NotificationToggle>();
+        var responseMap = new LinkedHashMap<String, NotificationToggle>();
         for (var type : NotificationType.values()) {
             var setting = notifSettings.get(type);
-            boolean app = setting != null ? setting.appEnabled() : true;
-            boolean email = setting != null ? setting.emailEnabled() : false;
+            boolean app = setting == null || setting.appEnabled();
+            boolean email = setting != null && setting.emailEnabled();
             responseMap.put(type.name(), new NotificationToggle(app, email));
         }
 

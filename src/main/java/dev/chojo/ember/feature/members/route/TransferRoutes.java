@@ -5,38 +5,52 @@
  */
 package dev.chojo.ember.feature.members.route;
 
-import dev.chojo.ember.api.MessageResponse;
 import dev.chojo.ember.api.Roles;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.feature.station.service.StationExportService;
+import dev.chojo.ember.feature.station.service.StationImportService;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
-import io.javalin.http.UnauthorizedResponse;
+import io.javalin.http.ForbiddenResponse;
+import io.javalin.http.HttpStatus;
+import io.javalin.http.NotFoundResponse;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
 import io.javalin.openapi.OpenApiContent;
+import io.javalin.openapi.OpenApiName;
+import io.javalin.openapi.OpenApiParam;
 import io.javalin.openapi.OpenApiRequestBody;
 import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
+import java.util.List;
+
 @Singleton
 public class TransferRoutes implements Routes {
     private final StationExportService exportService;
+    private final StationImportService importService;
 
     @Inject
-    public TransferRoutes(StationExportService exportService) {
+    public TransferRoutes(StationExportService exportService, StationImportService importService) {
         this.exportService = exportService;
+        this.importService = importService;
     }
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
         routes.get(prefix + "/public/version", this::getVersion);
         routes.post(prefix + "/station/transfer/create-token", this::createToken, Roles.MANAGER);
-        routes.get(prefix + "/station/transfer/export", this::export, Roles.MANAGER);
-        routes.post(prefix + "/transfer/import", this::importStation);
+
+        // Token-authenticated export (public, for remote import)
+        routes.get(prefix + "/public/transfer/{token}/tables", this::tokenListTables);
+        routes.get(prefix + "/public/transfer/{token}/{table}", this::tokenExportTable);
+
+        // Import (async, fetches from remote)
+        routes.post(prefix + "/admin/transfer/import", this::startImport, Roles.ADMIN);
+        routes.get(prefix + "/admin/transfer/import/{stationId}/progress", this::importProgress, Roles.ADMIN);
     }
 
     @OpenApi(
@@ -53,8 +67,6 @@ public class TransferRoutes implements Routes {
             path = "/api/v1/station/transfer/create-token",
             methods = HttpMethod.POST,
             summary = "Create a one-time transfer token for station export",
-            description =
-                    "Generates a token valid for 24 hours that can be used to import this station's data into another instance.",
             tags = {"Transfer"},
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = TokenResponse.class)))
     private void createToken(Context ctx) {
@@ -63,65 +75,121 @@ public class TransferRoutes implements Routes {
         ctx.json(new TokenResponse(token, exportService.getAppVersion()));
     }
 
+    // -- Token-authenticated export --
+
     @OpenApi(
-            path = "/api/v1/station/transfer/export",
+            path = "/api/v1/public/transfer/{token}/tables",
             methods = HttpMethod.GET,
-            summary = "Export station data",
-            description =
-                    "Exports all station data as JSON. Excludes GDPR data, account credentials, and session tokens.",
+            summary = "List export tables using a transfer token",
             tags = {"Transfer"},
-            responses = @OpenApiResponse(status = "200"))
-    private void export(Context ctx) {
-        UserSession session = UserSession.from(ctx);
-        var data = exportService.exportStation(session.stationId());
-        ctx.contentType("application/json");
-        ctx.header("Content-Disposition", "attachment; filename=\"station-export.json\"");
-        ctx.json(data);
+            pathParams = @OpenApiParam(name = "token", required = true),
+            responses = {@OpenApiResponse(status = "200"), @OpenApiResponse(status = "403")})
+    private void tokenListTables(Context ctx) {
+        String token = ctx.pathParam("token");
+        exportService.validateToken(token).orElseThrow(() -> new ForbiddenResponse("Invalid or expired token"));
+        ctx.json(new TablesResponse(StationExportService.TABLE_ORDER));
     }
 
     @OpenApi(
-            path = "/api/v1/transfer/import",
-            methods = HttpMethod.POST,
-            summary = "Import station data from another instance using a transfer token",
-            description =
-                    "Fetches station data from the source instance using the provided token and host URL. Both instances must be on the same version.",
+            path = "/api/v1/public/transfer/{token}/{table}",
+            methods = HttpMethod.GET,
+            summary = "Export a single table page using a transfer token",
+            description = "Supports pagination via offset and limit query parameters. Default limit is 500.",
             tags = {"Transfer"},
-            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = TransferImportRequest.class)),
+            pathParams = {@OpenApiParam(name = "token", required = true), @OpenApiParam(name = "table", required = true)
+            },
+            queryParams = {
+                @OpenApiParam(name = "offset", type = Integer.class),
+                @OpenApiParam(name = "limit", type = Integer.class)
+            },
             responses = {
-                @OpenApiResponse(status = "200", content = @OpenApiContent(from = MessageResponse.class)),
+                @OpenApiResponse(status = "200"),
+                @OpenApiResponse(status = "403"),
                 @OpenApiResponse(status = "400")
             })
-    private void importStation(Context ctx) {
-        var request = ctx.bodyAsClass(TransferImportRequest.class);
-        if (request.token() == null || request.token().isBlank()) {
-            throw new BadRequestResponse("token is required");
+    private void tokenExportTable(Context ctx) {
+        String token = ctx.pathParam("token");
+        int stationId =
+                exportService.validateToken(token).orElseThrow(() -> new ForbiddenResponse("Invalid or expired token"));
+        String table = ctx.pathParam("table");
+        if (!StationExportService.TABLE_ORDER.contains(table)) {
+            throw new BadRequestResponse("Unknown table: " + table);
         }
-        if (request.sourceUrl() == null || request.sourceUrl().isBlank()) {
+        int offset = ctx.queryParamAsClass("offset", Integer.class).getOrDefault(0);
+        int limit = ctx.queryParamAsClass("limit", Integer.class).getOrDefault(500);
+        ctx.json(exportService.exportTable(stationId, table, offset, limit));
+    }
+
+    // -- Import --
+
+    @OpenApi(
+            path = "/api/v1/admin/transfer/import",
+            methods = HttpMethod.POST,
+            summary = "Start a station import from a remote instance",
+            description =
+                    "Provide the source instance URL and a transfer token. The backend fetches tables one by one and imports them. Poll the progress endpoint to track status.",
+            tags = {"Transfer"},
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = ImportRequest.class)),
+            responses = {
+                @OpenApiResponse(status = "201", content = @OpenApiContent(from = ImportStartResponse.class)),
+                @OpenApiResponse(status = "400")
+            })
+    private void startImport(Context ctx) {
+        var req = ctx.bodyAsClass(ImportRequest.class);
+        if (req.sourceUrl() == null || req.sourceUrl().isBlank()) {
             throw new BadRequestResponse("sourceUrl is required");
         }
-
-        // Validate token and get station ID
-        var stationId = exportService.validateAndConsumeToken(request.token());
-        if (stationId.isEmpty()) {
-            throw new UnauthorizedResponse("Invalid, expired, or already used transfer token");
+        if (req.token() == null || req.token().isBlank()) {
+            throw new BadRequestResponse("token is required");
         }
+        String sourceUrl = req.sourceUrl().replaceAll("/+$", "");
+        var result = importService.startRemoteImport(sourceUrl, req.token());
+        ctx.status(HttpStatus.CREATED).json(new ImportStartResponse(result.stationId(), result.stationName()));
+    }
 
-        // Version check
-        String localVersion = exportService.getAppVersion();
-        if (request.sourceVersion() != null && !localVersion.equals(request.sourceVersion())) {
-            throw new BadRequestResponse("Version mismatch. Local: " + localVersion + ", Source: "
-                    + request.sourceVersion() + ". Both instances must be on the same version.");
+    @OpenApi(
+            path = "/api/v1/admin/transfer/import/{stationId}/progress",
+            methods = HttpMethod.GET,
+            summary = "Get the progress of a running import",
+            tags = {"Transfer"},
+            pathParams = @OpenApiParam(name = "stationId", type = Integer.class, required = true),
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = ImportProgressResponse.class)),
+                @OpenApiResponse(status = "404")
+            })
+    private void importProgress(Context ctx) {
+        int stationId = ctx.pathParamAsClass("stationId", Integer.class).get();
+        var progress = importService.getProgress(stationId);
+        if (progress == null) {
+            throw new NotFoundResponse("No active import for station " + stationId);
         }
-
-        // The actual import would fetch data from sourceUrl and recreate it.
-        // For now, return the exported data directly since the token was local.
-        var data = exportService.exportStation(stationId.get());
-        ctx.json(data);
+        ctx.json(new ImportProgressResponse(
+                progress.stationId(),
+                progress.stationName(),
+                progress.status(),
+                progress.totalTables(),
+                progress.completedTables(),
+                progress.currentTable(),
+                progress.error()));
     }
 
     public record VersionResponse(String version) {}
 
     public record TokenResponse(String token, String version) {}
 
-    public record TransferImportRequest(String token, String sourceUrl, String sourceVersion) {}
+    public record TablesResponse(List<String> tables) {}
+
+    @OpenApiName("TransferImportRequest")
+    public record ImportRequest(String sourceUrl, String token) {}
+
+    public record ImportStartResponse(int stationId, String stationName) {}
+
+    public record ImportProgressResponse(
+            int stationId,
+            String stationName,
+            String status,
+            int totalTables,
+            int completedTables,
+            String currentTable,
+            String error) {}
 }

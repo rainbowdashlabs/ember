@@ -8,7 +8,7 @@ import {computed, ref, watch} from 'vue'
 import client from '@/api/client'
 
 const props = withDefaults(defineProps<{
-  accountId?: number | null
+  memberId?: number | null
   size?: 'sm' | 'md' | 'lg'
   name?: string
 }>(), {
@@ -47,10 +47,10 @@ async function loadAvatar() {
   hasAvatar.value = false
   imgSrc.value = ''
 
-  if (!props.accountId) return
+  if (!props.memberId) return
 
   try {
-    const res = await client.get(`/accounts/${props.accountId}/avatar`, {
+    const res = await client.get(`/members/${props.memberId}/avatar`, {
       responseType: 'blob',
       validateStatus: (status) => status === 200 || status === 404,
     })
@@ -61,7 +61,7 @@ async function loadAvatar() {
   } catch { /* no avatar */ }
 }
 
-watch(() => props.accountId, loadAvatar, {immediate: true})
+watch(() => props.memberId, loadAvatar, {immediate: true})
 </script>
 
 <template>

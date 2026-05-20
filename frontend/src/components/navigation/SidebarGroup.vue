@@ -12,18 +12,44 @@ const props = defineProps<{
   label: string
   prefix: string
   badge?: number
+  groupKey?: string
+  openGroup?: string | null
+}>()
+
+const emit = defineEmits<{
+  (e: 'update:openGroup', key: string | null): void
 }>()
 
 const route = useRoute()
 const isActive = computed(() => (route.path + '/').startsWith(props.prefix + '/') || route.path === props.prefix)
-const expanded = ref(isActive.value)
+
+const localExpanded = ref(isActive.value)
+const key = computed(() => props.groupKey ?? props.prefix)
+const accordionMode = computed(() => props.openGroup !== undefined)
+
+const expanded = computed(() => {
+  if (accordionMode.value) {
+    return props.openGroup === key.value
+  }
+  return localExpanded.value
+})
 
 watch(isActive, (active) => {
-  if (active) expanded.value = true
+  if (active) {
+    if (accordionMode.value) {
+      emit('update:openGroup', key.value)
+    } else {
+      localExpanded.value = true
+    }
+  }
 })
 
 function toggle() {
-  expanded.value = !expanded.value
+  if (accordionMode.value) {
+    emit('update:openGroup', expanded.value ? null : key.value)
+  } else {
+    localExpanded.value = !localExpanded.value
+  }
 }
 </script>
 

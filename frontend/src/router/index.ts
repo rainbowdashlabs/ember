@@ -528,9 +528,13 @@ router.beforeEach((to) => {
 router.afterEach((to) => {
     const t = i18n.global.t
     const te = i18n.global.te
+    if (to.name === 'home') {
+        document.title = 'Ember — Digitale Verwaltung für Jugendfeuerwehren'
+        return
+    }
     const key = `pages.${to.name as string}.title`
     const title = te(key) ? t(key) : ''
-    document.title = title ? `Ember - ${title}` : 'Ember'
+    document.title = title ? `${title} — Ember` : 'Ember'
 })
 
 export default router

@@ -47,10 +47,6 @@ function memberName(memberId: number): string {
   return m.name && m.name.trim() ? m.name : m.email ?? `#${memberId}`
 }
 
-function memberAccountId(memberId: number): number | undefined {
-  return allMembers.value.find(m => m.id === memberId)?.accountId
-}
-
 async function loadData() {
   loading.value = true
   error.value = ''
@@ -109,7 +105,7 @@ onMounted(loadData)
         <div class="space-y-3">
           <NeutralContainer v-for="reg in registrations" :key="reg.id" class="flex items-center justify-between">
             <div>
-              <MemberName :name="memberName(reg.memberId)" :account-id="memberAccountId(reg.memberId)"/>
+              <MemberName :name="memberName(reg.memberId)" :member-id="reg.memberId"/>
               <span class="ml-2 text-sm text-(--text-muted)">{{ eventName(reg.eventId) }}</span>
               <span class="ml-2 text-xs text-(--text-muted)">{{ reg.eventDate }}</span>
             </div>

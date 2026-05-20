@@ -13,7 +13,6 @@ import io.javalin.http.ForbiddenResponse;
 import java.util.List;
 import java.util.Set;
 
-// TODO: Reimplement
 public final class RoleValidation {
     private RoleValidation() {}
 
@@ -23,15 +22,24 @@ public final class RoleValidation {
      * Enforces:
      * <ul>
      *     <li>Protected roles (MEMBER_MANAGEMENT, MANAGER) cannot be removed</li>
+     *     <li>Station owner's MANAGER role can never be removed</li>
      *     <li>Caller can only grant roles they themselves have</li>
      * </ul>
      */
     public static void validateRoleChanges(
-            List<Role> currentRoles, List<Integer> desiredRoleIds, List<Role> allRoles, Set<Roles> callerRoles) {
+            List<Role> currentRoles,
+            List<Integer> desiredRoleIds,
+            List<Role> allRoles,
+            Set<Roles> callerRoles,
+            boolean isStationOwner) {
         // Check protected roles are not being removed
         for (Role current : currentRoles) {
             Roles mapped = current.role();
-            if (mapped != null && Roles.PROTECTED_ROLES.contains(mapped) && !desiredRoleIds.contains(current.id())) {
+            if (mapped == null || desiredRoleIds.contains(current.id())) continue;
+            if (mapped == Roles.MANAGER && isStationOwner) {
+                throw new ForbiddenResponse("Cannot remove MANAGER role from the station owner");
+            }
+            if (Roles.PROTECTED_ROLES.contains(mapped)) {
                 throw new ForbiddenResponse("Cannot remove protected role: " + mapped.name());
             }
         }

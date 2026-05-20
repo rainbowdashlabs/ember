@@ -12,7 +12,13 @@ import java.time.Instant;
 import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIMESTAMP;
 
 public record AccountToken(
-        int id, int accountId, String token, TokenType tokenType, Instant expiresAt, Instant createdAt) {
+        int id,
+        int accountId,
+        String token,
+        TokenType tokenType,
+        String metadata,
+        Instant expiresAt,
+        Instant createdAt) {
 
     public static RowMapping<AccountToken> map() {
         return row -> new AccountToken(
@@ -20,6 +26,7 @@ public record AccountToken(
                 row.getInt("account_id"),
                 row.getString("token"),
                 row.getEnum("token_type", TokenType.class),
+                row.getString("metadata"),
                 row.get("expires_at", INSTANT_TIMESTAMP),
                 row.get("created_at", INSTANT_TIMESTAMP));
     }

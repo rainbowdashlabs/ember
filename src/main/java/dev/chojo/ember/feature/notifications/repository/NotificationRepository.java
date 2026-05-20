@@ -87,6 +87,17 @@ public class NotificationRepository {
                 .rows();
     }
 
+    public int deleteByTypeContaining(NotificationType type, String partialDataJson) {
+        return Query.query("""
+                            DELETE FROM notification
+                            WHERE type = :type
+                              AND data @> :partial::jsonb
+                              AND acknowledged_at IS NULL;""")
+                .single(Call.of().bind("type", type).bind("partial", partialDataJson))
+                .delete()
+                .rows();
+    }
+
     public void deleteOldAcknowledged() {
         Query.query(
                         "DELETE FROM notification WHERE acknowledged_at IS NOT NULL AND acknowledged_at < now() - INTERVAL '30 days';")

@@ -5,12 +5,12 @@
  */
 package dev.chojo.ember.feature.lostandfound.service;
 
-import dev.chojo.ember.feature.notifications.entity.NotificationData;
-import dev.chojo.ember.feature.notifications.entity.NotificationData.NotificationLink;
-import dev.chojo.ember.feature.notifications.entity.NotificationType;
 import dev.chojo.ember.feature.lostandfound.entity.LostAndFoundItem;
 import dev.chojo.ember.feature.lostandfound.repository.LostAndFoundRepository;
 import dev.chojo.ember.feature.lostandfound.repository.LostAndFoundRepository.ImageData;
+import dev.chojo.ember.feature.notifications.entity.NotificationData;
+import dev.chojo.ember.feature.notifications.entity.NotificationData.NotificationLink;
+import dev.chojo.ember.feature.notifications.entity.NotificationType;
 import dev.chojo.ember.feature.notifications.service.NotificationService;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -74,10 +74,10 @@ public class LostAndFoundService {
     }
 
     public boolean claim(int id, int claimedBy, int stationId, String claimerName) {
+        var item = repository.findById(id).orElse(null);
         boolean success = repository.claim(id, claimedBy);
-        if (success) {
-            var item = repository.findById(id).orElse(null);
-            String desc = item != null && item.description() != null ? item.description() : "";
+        if (success && item != null) {
+            String desc = item.description() != null ? item.description() : "";
             notificationService.notifyMembersWithRole(
                     stationId,
                     "LOST_AND_FOUND_MANAGEMENT",
@@ -87,6 +87,11 @@ public class LostAndFoundService {
                             Map.of("name", claimerName, "description", desc),
                             new NotificationLink("lost-and-found")),
                     claimedBy);
+            // Remove "new lost item" notifications for this item
+            notificationService.deleteByTypeContaining(
+                    NotificationType.LOST_AND_FOUND_NEW,
+                    NotificationData.of("notification.lostAndFoundNew", Map.of("description", desc))
+                            .toJson());
         }
         return success;
     }

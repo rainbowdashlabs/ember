@@ -7,9 +7,13 @@ package dev.chojo.ember.feature.station.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
 
-public record Station(int id, String name, String timezone, String locale) {
+public record Station(int id, String name, String timezone, String locale, Integer ownerMemberId) {
     public static RowMapping<Station> map() {
         return row -> new Station(
-                row.getInt("id"), row.getString("name"), row.getString("timezone"), row.getString("locale"));
+                row.getInt("id"),
+                row.getString("name"),
+                row.getString("timezone"),
+                row.getString("locale"),
+                row.getObject("owner_member_id") != null ? row.getInt("owner_member_id") : null);
     }
 }

@@ -9,13 +9,13 @@ import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.Roles;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
-import dev.chojo.ember.feature.news.entity.News;
-import dev.chojo.ember.feature.news.entity.NewsComment;
-import dev.chojo.ember.feature.notifications.entity.NotificationData;
-import dev.chojo.ember.feature.notifications.entity.NotificationType;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
+import dev.chojo.ember.feature.news.entity.News;
+import dev.chojo.ember.feature.news.entity.NewsComment;
 import dev.chojo.ember.feature.news.service.NewsService;
+import dev.chojo.ember.feature.notifications.entity.NotificationData;
+import dev.chojo.ember.feature.notifications.entity.NotificationType;
 import dev.chojo.ember.feature.notifications.service.NotificationService;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
@@ -186,7 +186,17 @@ public class NewsRoutes implements Routes {
             })
     private void delete(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
+        var news = newsService.findById(id).orElseThrow(NotFoundResponse::new);
         if (newsService.delete(id)) {
+            // Remove notifications for this news article and its comments
+            notificationService.deleteByTypeContaining(
+                    NotificationType.NEW_NEWS,
+                    NotificationData.of("notification.newNews", Map.of("title", news.title()))
+                            .toJson());
+            notificationService.deleteByTypeContaining(
+                    NotificationType.NEWS_COMMENT,
+                    NotificationData.of("notification.newsComment", Map.of("newsTitle", news.title()))
+                            .toJson());
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
             throw new NotFoundResponse();
@@ -194,8 +204,9 @@ public class NewsRoutes implements Routes {
     }
 
     private NewsResponse toResponse(News news, boolean includeRestrictions) {
-        String authorName = stationMemberRepository
-                .findById(news.authorId())
+        var memberOpt = stationMemberRepository.findById(news.authorId());
+        Integer authorAccountId = memberOpt.map(m -> m.accountId()).orElse(null);
+        String authorName = memberOpt
                 .flatMap(m -> accountRepository.findById(m.accountId()))
                 .map(a -> (a.firstName() + " " + a.lastName()).trim())
                 .orElse("");
@@ -208,6 +219,7 @@ public class NewsRoutes implements Routes {
                 news.contentMarkdown(),
                 news.contentHtml(),
                 news.authorId(),
+                authorAccountId,
                 authorName,
                 news.publishedAt(),
                 news.createdAt(),
@@ -333,6 +345,13 @@ public class NewsRoutes implements Routes {
             throw new ForbiddenResponse("You can only delete your own comments");
         }
         if (newsService.deleteComment(commentId)) {
+            // Remove notifications about this comment
+            String preview =
+                    comment.content().length() > 100 ? comment.content().substring(0, 100) + "..." : comment.content();
+            notificationService.deleteByTypeContaining(
+                    NotificationType.NEWS_COMMENT,
+                    NotificationData.of("notification.newsComment", Map.of("preview", preview))
+                            .toJson());
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
             throw new NotFoundResponse();
@@ -340,8 +359,9 @@ public class NewsRoutes implements Routes {
     }
 
     private CommentResponse toCommentResponse(NewsComment comment) {
-        String authorName = stationMemberRepository
-                .findById(comment.authorId())
+        var memberOpt = stationMemberRepository.findById(comment.authorId());
+        Integer authorAccountId = memberOpt.map(m -> m.accountId()).orElse(null);
+        String authorName = memberOpt
                 .flatMap(m -> accountRepository.findById(m.accountId()))
                 .map(a -> (a.firstName() + " " + a.lastName()).trim())
                 .orElse("");
@@ -350,6 +370,7 @@ public class NewsRoutes implements Routes {
                 comment.newsId(),
                 comment.parentId(),
                 comment.authorId(),
+                authorAccountId,
                 authorName,
                 comment.content(),
                 comment.createdAt());
@@ -364,6 +385,7 @@ public class NewsRoutes implements Routes {
             String contentMarkdown,
             String contentHtml,
             int authorId,
+            Integer authorAccountId,
             String authorName,
             Instant publishedAt,
             Instant createdAt,
@@ -373,5 +395,12 @@ public class NewsRoutes implements Routes {
     public record CommentRequest(Integer parentId, String content) {}
 
     public record CommentResponse(
-            int id, int newsId, Integer parentId, int authorId, String authorName, String content, Instant createdAt) {}
+            int id,
+            int newsId,
+            Integer parentId,
+            int authorId,
+            Integer authorAccountId,
+            String authorName,
+            String content,
+            Instant createdAt) {}
 }

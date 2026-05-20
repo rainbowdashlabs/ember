@@ -51,6 +51,7 @@ public class AuthRoutes implements Routes {
         routes.post(prefix + "/auth/refresh", this::refresh);
         routes.post(prefix + "/auth/logout", this::logout);
         routes.post(prefix + "/auth/change-password", this::changePassword, Roles.LOGIN);
+        routes.post(prefix + "/auth/confirm-email-change", this::confirmEmailChange);
     }
 
     @OpenApi(
@@ -270,6 +271,25 @@ public class AuthRoutes implements Routes {
             throw new BadRequestResponse("Current password is incorrect");
         }
         ctx.json(new MessageResponse("Password changed"));
+    }
+
+    @OpenApi(
+            path = "/api/v1/auth/confirm-email-change",
+            methods = HttpMethod.POST,
+            summary = "Confirm an email change",
+            tags = {"Auth"},
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = TokenRequest.class)),
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = MessageResponse.class)),
+                @OpenApiResponse(status = "400")
+            })
+    private void confirmEmailChange(Context ctx) {
+        var request = ctx.bodyAsClass(TokenRequest.class);
+        if (isBlank(request.token())) throw new BadRequestResponse("token is required");
+        if (!authService.confirmEmailChange(request.token())) {
+            throw new BadRequestResponse("Invalid or expired token");
+        }
+        ctx.json(new MessageResponse("Email address updated"));
     }
 
     // -- Request/Response records --

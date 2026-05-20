@@ -19,6 +19,10 @@ import Alert from '@/components/feedback/Alert.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import type {Station} from '@/api/types'
 import {stations} from '@/api'
+import {transfer} from '@/api'
+import type {ImportProgress} from '@/api/transfer'
+import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import TextInput from '@/components/input/text/TextInput.vue'
 
 const {t} = useI18n()
 const router = useRouter()
@@ -67,6 +71,51 @@ async function confirmDelete() {
   }
 }
 
+// -- Import --
+const importSourceUrl = ref('')
+const importToken = ref('')
+const importProgress = ref<ImportProgress | null>(null)
+const importing = ref(false)
+const showImportModal = ref(false)
+let pollTimer: ReturnType<typeof setInterval> | null = null
+
+async function handleStartImport() {
+  if (!importSourceUrl.value || !importToken.value) return
+  importing.value = true
+  importProgress.value = null
+  showImportModal.value = false
+  error.value = ''
+  try {
+    const result = await transfer.startImport(importSourceUrl.value, importToken.value)
+    await pollProgress(result.stationId)
+  } catch {
+    error.value = t('common.error')
+    importing.value = false
+  }
+}
+
+async function pollProgress(stationId: number) {
+  pollTimer = setInterval(async () => {
+    try {
+      const progress = await transfer.getImportProgress(stationId)
+      importProgress.value = progress
+      if (progress.status === 'COMPLETED' || progress.status === 'FAILED') {
+        if (pollTimer) clearInterval(pollTimer)
+        pollTimer = null
+        importing.value = false
+        if (progress.status === 'COMPLETED') {
+          await loadStations()
+        }
+      }
+    } catch {
+      if (pollTimer) clearInterval(pollTimer)
+      pollTimer = null
+      importing.value = false
+      error.value = t('common.error')
+    }
+  }, 1000)
+}
+
 onMounted(loadStations)
 </script>
 
@@ -87,6 +136,15 @@ onMounted(loadStations)
           <span class="font-medium">{{ t('adminStations.create') }}</span>
         </PrimaryContainer>
 
+        <!-- Import station tile -->
+        <NeutralContainer
+            class="flex flex-col items-center justify-center gap-3 cursor-pointer py-6 hover:opacity-80 transition-opacity"
+            @click="showImportModal = true"
+        >
+          <font-awesome-icon :icon="['fas', 'upload']" class="text-2xl text-(--text-muted)"/>
+          <span class="font-medium">{{ t('adminStations.importStation') }}</span>
+        </NeutralContainer>
+
         <!-- Station tiles -->
         <NeutralContainer v-for="station in stationList" :key="station.id"
                           class="flex items-center justify-between py-6">
@@ -97,6 +155,55 @@ onMounted(loadStations)
           </div>
         </NeutralContainer>
       </div>
+
+      <!-- Import progress -->
+      <NeutralContainer v-if="importProgress" class="space-y-3">
+        <div class="flex items-center justify-between">
+          <span class="text-sm font-medium">
+            {{ importProgress.stationName }}
+          </span>
+          <span class="text-sm text-(--text-muted)">
+            {{ importProgress.completedTables }} / {{ importProgress.totalTables }}
+          </span>
+        </div>
+        <div class="w-full bg-bg-light-accent dark:bg-bg-dark-accent rounded-full h-2.5">
+          <div
+              class="h-2.5 rounded-full transition-all duration-300"
+              :class="importProgress.status === 'FAILED' ? 'bg-error' : 'bg-primary'"
+              :style="{ width: `${(importProgress.completedTables / importProgress.totalTables) * 100}%` }"
+          />
+        </div>
+        <Alert v-if="importProgress.status === 'COMPLETED'" variant="success">
+          {{ t('adminStations.importCompleted') }}
+        </Alert>
+        <Alert v-if="importProgress.status === 'FAILED'" variant="error">
+          {{ t('adminStations.importFailed', { error: importProgress.error ?? '' }) }}
+        </Alert>
+        <p v-if="importProgress.status === 'IN_PROGRESS' && importProgress.currentTable" class="text-xs text-(--text-muted)">
+          {{ t('adminStations.importProgress', { table: importProgress.currentTable, completed: importProgress.completedTables, total: importProgress.totalTables }) }}
+        </p>
+      </NeutralContainer>
+
+      <!-- Import modal -->
+      <Modal v-model="showImportModal">
+        <div class="space-y-4">
+          <p class="text-sm text-(--text-muted)">{{ t('adminStations.importHint') }}</p>
+          <div class="space-y-1">
+            <label class="block text-sm font-medium">{{ t('adminStations.importSourceUrl') }}</label>
+            <TextInput v-model="importSourceUrl" :placeholder="t('adminStations.importSourceUrlPlaceholder')"/>
+          </div>
+          <div class="space-y-1">
+            <label class="block text-sm font-medium">{{ t('adminStations.importToken') }}</label>
+            <TextInput v-model="importToken" :placeholder="t('adminStations.importTokenPlaceholder')"/>
+          </div>
+          <div class="flex justify-end gap-3">
+            <SecondaryButton @click="showImportModal = false">{{ t('adminStations.cancel') }}</SecondaryButton>
+            <PrimaryButton :disabled="importing || !importSourceUrl || !importToken" @click="handleStartImport">
+              {{ importing ? t('adminStations.importStarting') : t('adminStations.importStart') }}
+            </PrimaryButton>
+          </div>
+        </div>
+      </Modal>
 
       <!-- Delete modal -->
       <Modal v-model="showDeleteModal">

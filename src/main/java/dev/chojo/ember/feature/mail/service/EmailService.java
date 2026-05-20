@@ -8,11 +8,11 @@ package dev.chojo.ember.feature.mail.service;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.conf.file.elements.Demo;
 import dev.chojo.ember.conf.file.elements.Mailing;
-import dev.chojo.ember.feature.station.entity.MailProviderType;
 import dev.chojo.ember.feature.mail.repository.EmailQueueRepository;
-import dev.chojo.ember.feature.station.repository.StationMailConfigRepository;
 import dev.chojo.ember.feature.mail.service.mail.MailProvider;
 import dev.chojo.ember.feature.mail.service.mail.SmtpMailProvider;
+import dev.chojo.ember.feature.station.entity.MailProviderType;
+import dev.chojo.ember.feature.station.repository.StationMailConfigRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -255,6 +255,21 @@ public class EmailService {
         var vars = baseVars(name, null);
         vars.put("url", url);
         enqueueGlobal(email, "Reset your password", loadTemplate("reset-password.html", "en", vars));
+    }
+
+    public void sendEmailChangeConfirmation(String newEmail, String name, String token) {
+        String url = api.baseUrl() + "/confirm-email-change?token=" + token;
+        var vars = baseVars(name, null);
+        vars.put("url", url);
+        vars.put("newEmail", newEmail);
+        enqueueGlobal(newEmail, "Confirm your new email address", loadTemplate("email-change.html", "en", vars));
+    }
+
+    public void sendStationDeletionConfirmation(String email, String name, String token) {
+        String url = api.baseUrl() + "/api/v1/public/confirm-station-delete?token=" + token;
+        var vars = baseVars(name, null);
+        vars.put("url", url);
+        enqueueGlobal(email, "Confirm station deletion", loadTemplate("station-delete.html", "en", vars));
     }
 
     public void sendApplicationVerifyEmail(

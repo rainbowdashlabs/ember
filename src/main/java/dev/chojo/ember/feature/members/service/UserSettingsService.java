@@ -5,11 +5,11 @@
  */
 package dev.chojo.ember.feature.members.service;
 
+import dev.chojo.ember.feature.members.entity.UserSettings;
+import dev.chojo.ember.feature.members.repository.UserSettingsRepository;
 import dev.chojo.ember.feature.notifications.entity.NotificationSetting;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
-import dev.chojo.ember.feature.members.entity.UserSettings;
 import dev.chojo.ember.feature.notifications.repository.NotificationSettingsRepository;
-import dev.chojo.ember.feature.members.repository.UserSettingsRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 

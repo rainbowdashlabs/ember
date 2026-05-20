@@ -152,11 +152,11 @@ onMounted(loadData)
         </ErrorContainer>
 
         <!-- Tile layout for all panels -->
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-6">
 
         <!-- Notifications panel -->
-        <NeutralContainer class="space-y-4">
-          <div class="flex items-center justify-between">
+        <NeutralContainer class="flex flex-col max-h-[66vh]">
+          <div class="flex items-center justify-between mb-4 shrink-0">
             <SectionHeader>
               <font-awesome-icon :icon="['fas', 'bell']" class="mr-2" />
               {{ t('dashboard.notifications') }}
@@ -168,12 +168,13 @@ onMounted(loadData)
             </SecondaryButton>
           </div>
 
+          <div class="overflow-y-auto flex-1 space-y-2">
           <div v-if="notifs.length === 0" class="text-center text-(--text-muted) py-4">
             <font-awesome-icon :icon="['fas', 'check-double']" class="text-2xl text-success mb-2" />
             <p>{{ t('dashboard.noNotifications') }}</p>
           </div>
 
-          <div v-else class="space-y-2">
+          <template v-else>
             <NeutralContainer v-for="n in notifs" :key="n.id" class="flex items-start justify-between gap-3 py-2 px-3"
               :class="{ 'cursor-pointer hover:bg-(--bg-accent)': n.link }" @click="navigateTo(n)">
               <div class="flex items-start gap-3">
@@ -190,19 +191,21 @@ onMounted(loadData)
                 {{ t('dashboard.acknowledge') }}
               </button>
             </NeutralContainer>
+          </template>
           </div>
         </NeutralContainer>
 
           <!-- Exchange requests panel -->
-          <NeutralContainer v-if="isModuleEnabled(StationModules.INVENTORY)" class="space-y-3">
-            <SectionHeader>
+          <NeutralContainer v-if="isModuleEnabled(StationModules.INVENTORY)" class="flex flex-col max-h-[66vh]">
+            <SectionHeader class="mb-3 shrink-0">
               <font-awesome-icon :icon="['fas', 'rotate']" class="mr-2" />
               {{ t('dashboard.exchanges') }}
             </SectionHeader>
+            <div class="overflow-y-auto flex-1 space-y-2">
             <div v-if="openExchanges.length === 0" class="text-center text-(--text-muted) py-4">
               {{ t('dashboard.noExchanges') }}
             </div>
-            <div v-else class="space-y-2">
+            <template v-else>
               <NeutralContainer v-for="ex in openExchanges" :key="ex.id"
                 class="flex items-center justify-between gap-3 py-2 px-3 cursor-pointer hover:bg-(--bg-accent)"
                 @click="router.push({ name: 'inventory-exchanges' })">
@@ -216,19 +219,21 @@ onMounted(loadData)
                   {{ t(`dashboard.exchangeStatus.${ex.status}`) }}
                 </component>
               </NeutralContainer>
+            </template>
             </div>
           </NeutralContainer>
 
           <!-- Event registrations panel -->
-          <NeutralContainer v-if="isModuleEnabled(StationModules.EVENTS)" class="space-y-3">
-            <SectionHeader>
+          <NeutralContainer v-if="isModuleEnabled(StationModules.EVENTS)" class="flex flex-col max-h-[66vh]">
+            <SectionHeader class="mb-3 shrink-0">
               <font-awesome-icon :icon="['fas', 'calendar-days']" class="mr-2" />
               {{ isGuardian() ? t('dashboard.registrationsManaged') : t('dashboard.registrations') }}
             </SectionHeader>
+            <div class="overflow-y-auto flex-1 space-y-2">
             <div v-if="activeRegistrations.length === 0" class="text-center text-(--text-muted) py-4">
               {{ t('dashboard.noRegistrations') }}
             </div>
-            <div v-else class="space-y-2">
+            <template v-else>
               <NeutralContainer v-for="reg in activeRegistrations" :key="reg.id"
                 class="flex items-center justify-between gap-3 py-2 px-3 cursor-pointer hover:bg-(--bg-accent)"
                 @click="router.push({ name: 'events-upcoming' })">
@@ -241,6 +246,7 @@ onMounted(loadData)
                   {{ t(`dashboard.registrationStatus.${reg.status}`) }}
                 </component>
               </NeutralContainer>
+            </template>
             </div>
           </NeutralContainer>
         </div>

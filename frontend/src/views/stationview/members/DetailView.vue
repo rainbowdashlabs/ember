@@ -296,6 +296,26 @@ const showFormerModal = ref(false)
 const markingFormer = ref(false)
 const formerSuccess = ref(false)
 
+const showDeleteModal = ref(false)
+const showDeleteConfirm = ref(false)
+const deletingMember = ref(false)
+const deleteSuccess = ref(false)
+
+async function confirmDeleteMember() {
+  deletingMember.value = true
+  error.value = ''
+  try {
+    await stationMembers.deleteMember(memberId.value)
+    deleteSuccess.value = true
+    showDeleteConfirm.value = false
+    showDeleteModal.value = false
+  } catch {
+    error.value = t('common.error')
+  } finally {
+    deletingMember.value = false
+  }
+}
+
 const formerBlockReasons = computed(() => {
   const reasons: string[] = []
   if (memberInventory.value.length > 0) {
@@ -347,10 +367,11 @@ onMounted(loadData)
           {{ t('memberDetail.back') }}
         </SecondaryButton>
         <div class="flex items-center gap-2">
-          <ErrorButton v-if="canManageMembers() && !formerSuccess" @click="showFormerModal = true">
+          <ErrorButton v-if="canManageMembers() && !formerSuccess && !deleteSuccess" @click="showFormerModal = true">
             <font-awesome-icon :icon="['fas', 'user-slash']" class="mr-1" />
             {{ t('memberDetail.markFormer') }}
           </ErrorButton>
+          <DeleteButton v-if="canManageMembers() && !deleteSuccess && !formerSuccess" @click="showDeleteModal = true" />
           <PrimaryButton @click="goToEdit">
             <font-awesome-icon :icon="['fas', 'pen']" class="mr-2" />
             {{ t('memberDetail.edit') }}
@@ -476,6 +497,7 @@ onMounted(loadData)
       </template>
 
       <Alert v-if="formerSuccess" variant="success">{{ t('memberDetail.formerSuccess') }}</Alert>
+      <Alert v-if="deleteSuccess" variant="success">{{ t('memberDetail.deleteSuccess') }}</Alert>
 
       <!-- Former confirmation modal -->
       <Modal v-model="showFormerModal">
@@ -500,6 +522,35 @@ onMounted(loadData)
               <SecondaryButton @click="showFormerModal = false">{{ t('common.close') }}</SecondaryButton>
             </div>
           </template>
+        </div>
+      </Modal>
+
+      <!-- Delete member modal (first step) -->
+      <Modal v-model="showDeleteModal">
+        <div class="space-y-4">
+          <SectionHeader>{{ t('memberDetail.deleteTitle') }}</SectionHeader>
+          <p class="text-sm">{{ t('memberDetail.deleteText', { name: member ? memberDisplayName(member) : '' }) }}</p>
+          <p class="text-xs text-(--text-muted)">{{ t('memberDetail.deleteHint') }}</p>
+          <div class="flex justify-end gap-2">
+            <SecondaryButton @click="showDeleteModal = false">{{ t('common.cancel') }}</SecondaryButton>
+            <ErrorButton @click="showDeleteModal = false; showDeleteConfirm = true">
+              {{ t('memberDetail.deleteConfirmAction') }}
+            </ErrorButton>
+          </div>
+        </div>
+      </Modal>
+
+      <!-- Delete member modal (second confirmation) -->
+      <Modal v-model="showDeleteConfirm">
+        <div class="space-y-4">
+          <SectionHeader>{{ t('memberDetail.deleteConfirmTitle') }}</SectionHeader>
+          <p class="text-sm font-semibold text-error">{{ t('memberDetail.deleteConfirmText') }}</p>
+          <div class="flex justify-end gap-2">
+            <SecondaryButton @click="showDeleteConfirm = false">{{ t('common.cancel') }}</SecondaryButton>
+            <ErrorButton :disabled="deletingMember" @click="confirmDeleteMember">
+              {{ deletingMember ? t('common.loading') : t('memberDetail.deleteConfirmFinal') }}
+            </ErrorButton>
+          </div>
         </div>
       </Modal>
 

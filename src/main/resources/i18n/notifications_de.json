@@ -1,0 +1,32 @@
+{
+  "category": {
+    "NEW_NEWS": "Neuigkeit",
+    "NEWS_COMMENT": "Kommentar",
+    "EVENT_REGISTRATION_STATUS": "Anmeldung",
+    "EXCHANGE_STATUS_CHANGE": "Tausch",
+    "EXCHANGE_NEW_REQUEST": "Neue Tausch-Anfrage",
+    "NEW_EVENT": "Neuer Termin",
+    "MEMBER_ADDED_TO_GROUP": "Gruppenänderung",
+    "PROFILE_FIELD_CHANGED": "Profiländerung",
+    "PROCUREMENT_REQUESTED": "Beschaffung",
+    "PROCUREMENT_FULFILLED": "Beschaffung abgeschlossen",
+    "NEW_FORM": "Neues Formular",
+    "LOST_AND_FOUND_NEW": "Fundbüro",
+    "LOST_AND_FOUND_CLAIMED": "Fundsache beansprucht"
+  },
+  "message": {
+    "notification.newNews": "{title} — von {author}",
+    "notification.newsComment": "{author} hat \"{newsTitle}\" kommentiert",
+    "notification.exchangeStatusChange": "{inventoryName}: Status geändert auf {status}",
+    "notification.exchangeNewRequest": "{memberName}: Tausch-Anfrage für {inventoryName}",
+    "notification.newEvent": "Neuer Termin: {title}",
+    "notification.eventRegistrationStatus": "{eventName}: {status}",
+    "notification.memberAddedToGroup": "Du wurdest zur Gruppe {groupName} hinzugefügt",
+    "notification.profileFieldChanged": "{memberName} hat das Feld {fieldName} geändert",
+    "notification.procurementRequested": "Beschaffung angefragt: {inventoryName}",
+    "notification.procurementFulfilled": "Beschaffung abgeschlossen: {inventoryName}",
+    "notification.newForm": "Neues Formular: {title}",
+    "notification.lostAndFoundNew": "Neuer Fundgegenstand: {description}",
+    "notification.lostAndFoundClaimed": "{name} hat \"{description}\" beansprucht"
+  }
+}

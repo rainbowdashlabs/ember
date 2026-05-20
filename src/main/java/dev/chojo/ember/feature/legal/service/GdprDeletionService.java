@@ -43,7 +43,7 @@ public class GdprDeletionService {
         log.info("GDPR: Account {} deleted and {} memberships anonymized", accountId, members.size());
     }
 
-    private void anonymizeMember(int memberId) {
+    public void anonymizeMember(int memberId) {
         // Delete profile field values
         Query.query("DELETE FROM profile_field_value WHERE member_id = :id;")
                 .single(Call.of().bind("id", memberId))

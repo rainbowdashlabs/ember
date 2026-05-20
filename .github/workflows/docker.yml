@@ -43,3 +43,18 @@ jobs:
         run: |
           docker image tag ghcr.io/rainbowdashlabs/ember:${{ github.sha }} ghcr.io/rainbowdashlabs/ember:latest
           docker push ghcr.io/rainbowdashlabs/ember:latest
+      - name: Tag & Push version images
+        if: github.event_name == 'release'
+        run: |
+          VERSION="${{ github.ref_name }}"
+          VERSION="${VERSION#v}"
+          MAJOR="${VERSION%%.*}"
+          MINOR="${VERSION#*.}"
+          MINOR="${MINOR%%.*}"
+          IMAGE="ghcr.io/rainbowdashlabs/ember"
+          docker image tag "$IMAGE:${{ github.sha }}" "$IMAGE:$MAJOR"
+          docker image tag "$IMAGE:${{ github.sha }}" "$IMAGE:$MAJOR.$MINOR"
+          docker image tag "$IMAGE:${{ github.sha }}" "$IMAGE:$VERSION"
+          docker push "$IMAGE:$MAJOR"
+          docker push "$IMAGE:$MAJOR.$MINOR"
+          docker push "$IMAGE:$VERSION"

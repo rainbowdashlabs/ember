@@ -1,0 +1,161 @@
+/*
+ *     SPDX-License-Identifier: AGPL-3.0-only
+ *
+ *     Copyright (C) RainbowDashLabs and Contributor
+ */
+package dev.chojo.ember.repository;
+
+import dev.chojo.ember.feature.account.entity.Account;
+import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.station.entity.Station;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.Order;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestMethodOrder;
+
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.*;
+
+@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
+class NewsRepositoryTest extends RepositoryTestBase {
+    private static Station station;
+    private static Account account;
+    private static StationMember member;
+    private static int newsId;
+    private static int commentId;
+
+    @BeforeAll
+    static void setup() {
+        station = stationRepo.create("News Station");
+        account = accountRepo.create("news@test.com", "News", "User");
+        member = stationMemberRepo.create(station.id(), account.id());
+    }
+
+    @AfterAll
+    static void cleanup() {
+        stationRepo.delete(station.id());
+        accountRepo.delete(account.id());
+    }
+
+    @Test
+    @Order(1)
+    void create() {
+        var news = newsRepo.create(station.id(), "First News", "# Hello", "<h1>Hello</h1>", member.id());
+        assertNotNull(news);
+        assertEquals("First News", news.title());
+        newsId = news.id();
+    }
+
+    @Test
+    @Order(2)
+    void findById() {
+        assertTrue(newsRepo.findById(newsId).isPresent());
+        assertTrue(newsRepo.findById(99999).isEmpty());
+    }
+
+    @Test
+    @Order(3)
+    void findByStation() {
+        var list = newsRepo.findByStation(station.id(), 0, 10);
+        assertEquals(1, list.size());
+    }
+
+    @Test
+    @Order(4)
+    void update() {
+        assertTrue(newsRepo.update(newsId, "Updated News", "# Updated", "<h1>Updated</h1>"));
+        assertEquals("Updated News", newsRepo.findById(newsId).orElseThrow().title());
+    }
+
+    @Test
+    @Order(5)
+    void findVisibleForMember() {
+        // No group restrictions, should be visible
+        var visible = newsRepo.findVisibleForMember(station.id(), member.id(), 0, 10);
+        assertEquals(1, visible.size());
+    }
+
+    // -- Group Restrictions --
+
+    @Test
+    @Order(10)
+    void setAndFindGroupRestrictions() {
+        var group = memberGroupRepo.create(station.id(), "News Group");
+        newsRepo.setGroupRestrictions(newsId, List.of(group.id()));
+        var restrictions = newsRepo.findGroupRestrictions(newsId);
+        assertEquals(1, restrictions.size());
+        // Clear
+        newsRepo.setGroupRestrictions(newsId, List.of());
+        assertTrue(newsRepo.findGroupRestrictions(newsId).isEmpty());
+        memberGroupRepo.delete(group.id());
+    }
+
+    // -- Comments --
+
+    @Test
+    @Order(20)
+    void createComment() {
+        var comment = newsRepo.createComment(newsId, null, member.id(), "Great news!");
+        assertNotNull(comment);
+        assertEquals("Great news!", comment.content());
+        commentId = comment.id();
+    }
+
+    @Test
+    @Order(21)
+    void findCommentsByNews() {
+        assertEquals(1, newsRepo.findCommentsByNews(newsId).size());
+    }
+
+    @Test
+    @Order(22)
+    void countComments() {
+        assertEquals(1, newsRepo.countComments(newsId));
+    }
+
+    @Test
+    @Order(23)
+    void findCommentById() {
+        assertTrue(newsRepo.findCommentById(commentId).isPresent());
+        assertTrue(newsRepo.findCommentById(99999).isEmpty());
+    }
+
+    @Test
+    @Order(24)
+    void updateComment() {
+        assertTrue(newsRepo.updateComment(commentId, "Updated comment"));
+        assertEquals(
+                "Updated comment",
+                newsRepo.findCommentById(commentId).orElseThrow().content());
+    }
+
+    @Test
+    @Order(25)
+    void createReply() {
+        var reply = newsRepo.createComment(newsId, commentId, member.id(), "Reply to comment");
+        assertNotNull(reply);
+        assertEquals(commentId, reply.parentId());
+        assertEquals(2, newsRepo.countComments(newsId));
+        newsRepo.deleteComment(reply.id());
+    }
+
+    @Test
+    @Order(26)
+    void deleteComment() {
+        assertTrue(newsRepo.deleteComment(commentId));
+        assertEquals(0, newsRepo.countComments(newsId));
+    }
+
+    // Note: acknowledge, isAcknowledged, countUnacknowledged are not tested here
+    // because the news_acknowledgement table has not been created in the schema yet.
+
+    @Test
+    @Order(99)
+    void delete() {
+        assertTrue(newsRepo.delete(newsId));
+        assertTrue(newsRepo.findById(newsId).isEmpty());
+    }
+}

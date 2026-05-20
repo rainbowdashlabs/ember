@@ -6,16 +6,16 @@
 package dev.chojo.ember.feature.station.service;
 
 import dev.chojo.ember.api.Roles;
-import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.entity.AccountCredential;
+import dev.chojo.ember.feature.account.repository.AccountRepository;
+import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.members.entity.Role;
 import dev.chojo.ember.feature.members.entity.StationMember;
-import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
+import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.station.repository.StationRepository.StationLogo;
-import dev.chojo.ember.feature.account.service.AuthService;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
@@ -150,18 +150,13 @@ public class StationService {
         logoCache.put(stationId, Optional.empty());
     }
 
+    /**
+     * Assigns the MANAGER role to the given email and sets them as station owner if no owner exists yet.
+     */
     private void assignManager(int stationId, String managerEmail) {
         Role managerRole = memberRepository
                 .findRoleByName(Roles.MANAGER)
                 .orElseThrow(() -> new IllegalStateException("manager role not found"));
-
-        // Remove manager role from any current manager
-        for (StationMember member : memberRepository.findByStation(stationId)) {
-            List<Role> roles = memberRepository.findRoles(member.id());
-            if (roles.stream().anyMatch(r -> r.id() == managerRole.id())) {
-                memberRepository.removeRole(member.id(), managerRole.id());
-            }
-        }
 
         // Find or invite account
         Optional<Account> accountOpt = accountRepository.findByEmail(managerEmail);
@@ -186,6 +181,36 @@ public class StationService {
         if (currentRoles.stream().noneMatch(r -> r.id() == managerRole.id())) {
             memberRepository.addRole(member.id(), managerRole.id());
         }
+
+        // Set as owner if no owner exists yet
+        var station = stationRepository.findById(stationId).orElse(null);
+        if (station != null && station.ownerMemberId() == null) {
+            stationRepository.setOwner(stationId, member.id());
+        }
+    }
+
+    /**
+     * Transfers station ownership to another member who already has the MANAGER role.
+     * Only the current owner can call this.
+     */
+    public boolean transferOwnership(int stationId, int currentMemberId, int newOwnerMemberId) {
+        var station = stationRepository.findById(stationId).orElse(null);
+        if (station == null) return false;
+        if (station.ownerMemberId() == null || station.ownerMemberId() != currentMemberId) return false;
+
+        // Verify the target has the MANAGER role
+        Role managerRole = memberRepository.findRoleByName(Roles.MANAGER).orElse(null);
+        if (managerRole == null) return false;
+        var targetRoles = memberRepository.findRoles(newOwnerMemberId);
+        if (targetRoles.stream().noneMatch(r -> r.id() == managerRole.id())) return false;
+
+        stationRepository.setOwner(stationId, newOwnerMemberId);
+        return true;
+    }
+
+    public boolean isOwner(int stationId, int memberId) {
+        var station = stationRepository.findById(stationId).orElse(null);
+        return station != null && station.ownerMemberId() != null && station.ownerMemberId() == memberId;
     }
 
     // -- Modules --

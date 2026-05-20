@@ -8,6 +8,7 @@ package dev.chojo.ember.service;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.station.service.StationExportService;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
@@ -18,7 +19,11 @@ import org.junit.jupiter.api.TestMethodOrder;
 import java.util.List;
 import java.util.Map;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @Tag("database")
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
@@ -32,51 +37,48 @@ class StationExportServiceTest extends RepositoryTestBase {
     void setup() {
         exportService = new StationExportService(stationRepo);
 
-        // Create station with a member
         var station = stationRepo.create("Export Test Station");
         stationId = station.id();
 
         Account account = accountRepo.create("export-test@example.com", "Max", "Mustermann", true);
         member = stationMemberRepo.create(stationId, account.id());
 
-        // Create a group and add member
         var group = memberGroupRepo.create(stationId, "Anfänger");
         memberGroupRepo.addMember(group.id(), member.id());
 
-        // Create a profile field
         profileFieldRepo.create(stationId, "Telefon", "TEXT", "{}", 0, ProfileFieldScope.MEMBER);
     }
 
     @Test
     @Order(2)
-    void exportContainsStationInfo() {
-        var data = exportService.exportStation(stationId);
+    @SuppressWarnings("unchecked")
+    void exportTableContainsStationInfo() {
+        var data = exportService.exportTable(stationId, "station", 0, 500);
 
-        assertEquals("Ember Station Export", data.get("exportType"));
+        assertEquals("station", data.get("table"));
         assertNotNull(data.get("appVersion"));
-        assertNotNull(data.get("exportedAt"));
 
-        @SuppressWarnings("unchecked")
         var station = (Map<String, Object>) data.get("station");
         assertEquals("Export Test Station", station.get("name"));
     }
 
     @Test
     @Order(3)
-    void exportContainsMembers() {
-        var data = exportService.exportStation(stationId);
+    @SuppressWarnings("unchecked")
+    void exportTableContainsMembers() {
+        var data = exportService.exportTable(stationId, "members", 0, 500);
 
-        @SuppressWarnings("unchecked")
         var members = (List<Map<String, Object>>) data.get("members");
         assertFalse(members.isEmpty());
+        assertNull(members.getFirst().get("account_id"));
     }
 
     @Test
     @Order(4)
-    void exportContainsGroups() {
-        var data = exportService.exportStation(stationId);
+    @SuppressWarnings("unchecked")
+    void exportTableContainsGroups() {
+        var data = exportService.exportTable(stationId, "groups", 0, 500);
 
-        @SuppressWarnings("unchecked")
         var groups = (List<Map<String, Object>>) data.get("groups");
         assertFalse(groups.isEmpty());
         assertEquals("Anfänger", groups.getFirst().get("name"));
@@ -84,10 +86,10 @@ class StationExportServiceTest extends RepositoryTestBase {
 
     @Test
     @Order(5)
-    void exportContainsProfileFields() {
-        var data = exportService.exportStation(stationId);
+    @SuppressWarnings("unchecked")
+    void exportTableContainsProfileFields() {
+        var data = exportService.exportTable(stationId, "profileFields", 0, 500);
 
-        @SuppressWarnings("unchecked")
         var fields = (List<Map<String, Object>>) data.get("profileFields");
         assertFalse(fields.isEmpty());
         assertEquals("Telefon", fields.getFirst().get("name"));
@@ -95,19 +97,17 @@ class StationExportServiceTest extends RepositoryTestBase {
 
     @Test
     @Order(6)
-    void exportExcludesAccountData() {
-        var data = exportService.exportStation(stationId);
+    @SuppressWarnings("unchecked")
+    void paginationWorks() {
+        // Export with limit 1 should return exactly 1 member
+        var page1 = exportService.exportTable(stationId, "members", 0, 1);
+        var members1 = (List<Map<String, Object>>) page1.get("members");
+        assertEquals(1, members1.size());
 
-        // Members should not contain account_id
-        @SuppressWarnings("unchecked")
-        var members = (List<Map<String, Object>>) data.get("members");
-        assertFalse(members.isEmpty());
-        assertNull(members.getFirst().get("account_id"));
-
-        // No sessions, credentials, or GDPR data
-        assertNull(data.get("sessions"));
-        assertNull(data.get("credentials"));
-        assertNull(data.get("gdprConsent"));
+        // Page 2 with offset 1 should be empty (only 1 member)
+        var page2 = exportService.exportTable(stationId, "members", 1, 1);
+        var members2 = (List<Map<String, Object>>) page2.get("members");
+        assertTrue(members2.isEmpty());
     }
 
     @Test
@@ -116,18 +116,34 @@ class StationExportServiceTest extends RepositoryTestBase {
         String token = exportService.createTransferToken(stationId);
         assertNotNull(token);
 
-        // Validate and consume
         var result = exportService.validateAndConsumeToken(token);
         assertTrue(result.isPresent());
         assertEquals(stationId, result.get());
 
-        // Token is now consumed — second use should fail
         var secondUse = exportService.validateAndConsumeToken(token);
         assertTrue(secondUse.isEmpty());
     }
 
     @Test
     @Order(8)
+    void validateTokenWithoutConsuming() {
+        String token = exportService.createTransferToken(stationId);
+        assertNotNull(token);
+
+        // Validate without consuming — should work repeatedly
+        var first = exportService.validateToken(token);
+        assertTrue(first.isPresent());
+        var second = exportService.validateToken(token);
+        assertTrue(second.isPresent());
+
+        // Now consume
+        exportService.validateAndConsumeToken(token);
+        var afterConsume = exportService.validateToken(token);
+        assertTrue(afterConsume.isEmpty());
+    }
+
+    @Test
+    @Order(9)
     void invalidTokenFails() {
         var result = exportService.validateAndConsumeToken("invalid-token-123");
         assertTrue(result.isEmpty());

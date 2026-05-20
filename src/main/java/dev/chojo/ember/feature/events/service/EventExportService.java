@@ -6,11 +6,11 @@
 package dev.chojo.ember.feature.events.service;
 
 import dev.chojo.ember.conf.file.elements.Api;
-import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.events.entity.EventBreak;
-import dev.chojo.ember.feature.events.repository.EventRepository;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventFieldRepository;
+import dev.chojo.ember.feature.events.repository.EventRepository;
+import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.station.repository.StationRepository.StationLogo;
 import jakarta.inject.Inject;
@@ -186,11 +186,11 @@ public class EventExportService {
                             event.startTime() != null
                                     && d.getMonthValue()
                                             == event.startTime()
-                                                    .atZone(java.time.ZoneOffset.UTC)
+                                                    .atZone(ZoneOffset.UTC)
                                                     .getMonthValue()
                                     && d.getDayOfMonth()
                                             == event.startTime()
-                                                    .atZone(java.time.ZoneOffset.UTC)
+                                                    .atZone(ZoneOffset.UTC)
                                                     .getDayOfMonth();
                         default -> false;
                     };

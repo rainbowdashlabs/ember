@@ -61,10 +61,24 @@ public class MemberRoutes implements Routes {
     private void updateAccount(Context ctx) {
         int accountId = ctx.pathParamAsClass("accountId", Integer.class).get();
         var request = ctx.bodyAsClass(UpdateAccountRequest.class);
-        if (!accountRepository.update(accountId, request.email(), request.firstName(), request.lastName())) {
+        var existing = accountRepository.findById(accountId).orElseThrow(NotFoundResponse::new);
+
+        // If email changed, send confirmation to the new address instead of applying immediately
+        boolean emailChanged = request.email() != null
+                && !request.email().isBlank()
+                && !request.email().equalsIgnoreCase(existing.email());
+
+        // Update name fields immediately
+        if (!accountRepository.update(accountId, existing.email(), request.firstName(), request.lastName())) {
             throw new NotFoundResponse();
         }
-        ctx.json(new MessageResponse("Account updated"));
+
+        if (emailChanged) {
+            authService.requestEmailChange(accountId, request.email());
+            ctx.json(new MessageResponse("Name updated. A confirmation email has been sent to the new address."));
+        } else {
+            ctx.json(new MessageResponse("Account updated"));
+        }
     }
 
     @OpenApi(

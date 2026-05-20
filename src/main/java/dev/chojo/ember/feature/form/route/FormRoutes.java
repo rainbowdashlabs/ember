@@ -9,17 +9,17 @@ import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.Roles;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.form.entity.Form;
 import dev.chojo.ember.feature.form.entity.FormAnswer;
 import dev.chojo.ember.feature.form.entity.FormQuestion;
 import dev.chojo.ember.feature.form.entity.FormResponse;
+import dev.chojo.ember.feature.form.service.FormService;
+import dev.chojo.ember.feature.members.repository.StationMemberRepository;
+import dev.chojo.ember.feature.members.service.StationMemberService;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
-import dev.chojo.ember.feature.account.repository.AccountRepository;
-import dev.chojo.ember.feature.members.repository.StationMemberRepository;
-import dev.chojo.ember.feature.form.service.FormService;
 import dev.chojo.ember.feature.notifications.service.NotificationService;
-import dev.chojo.ember.feature.members.service.StationMemberService;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.ForbiddenResponse;
@@ -37,6 +37,8 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
 import java.time.Instant;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -118,7 +120,7 @@ public class FormRoutes implements Routes {
     private void listAvailable(Context ctx) {
         UserSession session = UserSession.from(ctx);
         if (session.member() == null) {
-            ctx.json(java.util.Collections.emptyList());
+            ctx.json(Collections.emptyList());
             return;
         }
         int memberId = session.member().id();
@@ -234,6 +236,7 @@ public class FormRoutes implements Routes {
     private void delete(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
         if (formService.delete(id)) {
+            deleteFormNotifications(id);
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
             throw new NotFoundResponse();
@@ -283,6 +286,7 @@ public class FormRoutes implements Routes {
     private void close(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
         if (!formService.close(id)) throw new NotFoundResponse();
+        deleteFormNotifications(id);
         formService.findById(id).ifPresentOrElse(item -> ctx.json(item), () -> {
             throw new NotFoundResponse();
         });
@@ -315,7 +319,7 @@ public class FormRoutes implements Routes {
         var questions = ctx.bodyAsClass(QuestionRequest[].class);
         formService.replaceQuestions(
                 id,
-                java.util.Arrays.stream(questions)
+                Arrays.stream(questions)
                         .map(q -> new FormService.QuestionEntry(
                                 FormQuestion.QuestionType.valueOf(q.questionType()),
                                 q.title(),
@@ -514,6 +518,17 @@ public class FormRoutes implements Routes {
         var req = ctx.bodyAsClass(SubmitRequest.class);
         var response = formService.submitResponse(id, memberId, session.member().id(), req.answers());
         ctx.json(response);
+    }
+
+    private void deleteFormNotifications(int formId) {
+        notificationService.deleteByTypeContaining(
+                NotificationType.NEW_FORM,
+                NotificationData.of(
+                                "notification.newForm",
+                                Map.of(),
+                                new NotificationData.NotificationLink(
+                                        "forms-fill", Map.of("id", String.valueOf(formId))))
+                        .toJson());
     }
 
     private void verifyManages(UserSession session, int memberId) {

@@ -247,7 +247,7 @@ onMounted(loadData)
                 <div v-for="member in tagMembers" :key="member.id"
                      class="flex items-center justify-between rounded-lg px-3 py-2 bg-bg-light-accent dark:bg-bg-dark-accent">
                   <div>
-                    <MemberName :name="memberDisplayName(member)" :account-id="member.accountId" class="text-sm font-medium"/>
+                    <MemberName :name="memberDisplayName(member)" :member-id="member.id" class="text-sm font-medium"/>
                     <span v-if="member.name && member.email" class="ml-2 text-xs text-(--text-muted)">{{
                         member.email
                       }}</span>
@@ -273,7 +273,7 @@ onMounted(loadData)
                     @click="addMemberToTag(member)"
                 >
                   <div>
-                    <MemberName :name="memberDisplayName(member)" :account-id="member.accountId" class="text-sm font-medium"/>
+                    <MemberName :name="memberDisplayName(member)" :member-id="member.id" class="text-sm font-medium"/>
                     <span v-if="member.name && member.email" class="ml-2 text-xs text-(--text-muted)">{{
                         member.email
                       }}</span>

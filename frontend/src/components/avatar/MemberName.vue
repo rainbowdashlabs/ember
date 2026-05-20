@@ -8,7 +8,7 @@ import UserAvatar from './UserAvatar.vue'
 
 withDefaults(defineProps<{
   name: string
-  accountId?: number | null
+  memberId?: number | null
   size?: 'sm' | 'md' | 'lg'
 }>(), {
   size: 'sm',
@@ -17,7 +17,7 @@ withDefaults(defineProps<{
 
 <template>
   <span class="inline-flex items-center gap-1.5">
-    <UserAvatar :account-id="accountId" :name="name" :size="size"/>
+    <UserAvatar :member-id="memberId" :name="name" :size="size"/>
     <span><slot>{{ name }}</slot></span>
   </span>
 </template>

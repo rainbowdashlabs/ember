@@ -9,9 +9,9 @@ import dev.chojo.ember.api.Roles;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
 import dev.chojo.ember.feature.members.entity.Role;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.repository.UserTagRepository;
-import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.util.RoleValidation;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -98,7 +98,7 @@ public class MemberGroupService {
         List<Role> currentRoles = groupRepository.findGroupRoles(groupId);
         var currentRoleIds = currentRoles.stream().map(Role::id).toList();
 
-        RoleValidation.validateRoleChanges(currentRoles, desiredRoleIds, allRoles, callerRoles);
+        RoleValidation.validateRoleChanges(currentRoles, desiredRoleIds, allRoles, callerRoles, false);
 
         for (int roleId : currentRoleIds) {
             if (!desiredRoleIds.contains(roleId)) {

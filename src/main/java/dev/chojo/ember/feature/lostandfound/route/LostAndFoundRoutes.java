@@ -9,14 +9,15 @@ import dev.chojo.ember.api.MessageResponse;
 import dev.chojo.ember.api.Roles;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.lostandfound.entity.LostAndFoundItem;
 import dev.chojo.ember.feature.lostandfound.service.LostAndFoundService;
-import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.StationMemberService;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
+import io.javalin.http.InternalServerErrorResponse;
 import io.javalin.http.NotFoundResponse;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
@@ -159,7 +160,7 @@ public class LostAndFoundRoutes implements Routes {
             lostAndFoundService.uploadImage(id, data, file.contentType());
             ctx.json(new MessageResponse("Image uploaded"));
         } catch (IOException e) {
-            throw new io.javalin.http.InternalServerErrorResponse("Failed to read file");
+            throw new InternalServerErrorResponse("Failed to read file");
         }
     }
 

@@ -17,26 +17,26 @@ import java.util.Set;
 @Singleton
 public class StationRepository {
 
-    private static final String STATION_COLUMNS = "id, name, timezone, locale";
+    private static final String STATION_COLUMNS = "id, name, timezone, locale, owner_member_id";
 
     public Optional<Station> findById(int id) {
         return Query.query("SELECT " + STATION_COLUMNS + " FROM station WHERE id = :id;")
                 .single(Call.of().bind("id", id))
-                .map(dev.chojo.ember.feature.station.entity.Station.map())
+                .map(Station.map())
                 .first();
     }
 
     public List<Station> findAll() {
         return Query.query("SELECT " + STATION_COLUMNS + " FROM station;")
                 .single()
-                .map(dev.chojo.ember.feature.station.entity.Station.map())
+                .map(Station.map())
                 .all();
     }
 
     public Station create(String name) {
         return Query.query("INSERT INTO station(name) VALUES(:name) RETURNING " + STATION_COLUMNS + ";")
                 .single(Call.of().bind("name", name))
-                .map(dev.chojo.ember.feature.station.entity.Station.map())
+                .map(Station.map())
                 .first()
                 .orElseThrow();
     }
@@ -58,6 +58,13 @@ public class StationRepository {
     public boolean updateLocale(int id, String locale) {
         return Query.query("UPDATE station SET locale = :locale WHERE id = :id;")
                 .single(Call.of().bind("locale", locale).bind("id", id))
+                .update()
+                .changed();
+    }
+
+    public boolean setOwner(int stationId, Integer ownerMemberId) {
+        return Query.query("UPDATE station SET owner_member_id = :owner WHERE id = :id;")
+                .single(Call.of().bind("owner", ownerMemberId).bind("id", stationId))
                 .update()
                 .changed();
     }

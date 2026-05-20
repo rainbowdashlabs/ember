@@ -9,7 +9,9 @@ public enum TokenType {
     VERIFY_EMAIL,
     SET_PASSWORD,
     RESET_PASSWORD,
-    FORCE_PASSWORD_CHANGE;
+    FORCE_PASSWORD_CHANGE,
+    EMAIL_CHANGE,
+    STATION_DELETE;
 
     public static TokenType fromValue(String value) {
         return valueOf(value.toUpperCase());

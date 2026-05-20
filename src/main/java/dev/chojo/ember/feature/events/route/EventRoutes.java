@@ -11,10 +11,8 @@ import dev.chojo.ember.api.MessageResponse;
 import dev.chojo.ember.api.Roles;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
-import dev.chojo.ember.feature.members.entity.MemberGroup;
-import dev.chojo.ember.feature.notifications.entity.NotificationData;
-import dev.chojo.ember.feature.notifications.entity.NotificationType;
-import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.account.repository.AccountRepository;
+import dev.chojo.ember.feature.attendance.service.AttendanceService;
 import dev.chojo.ember.feature.events.entity.EventBreak;
 import dev.chojo.ember.feature.events.entity.EventCategory;
 import dev.chojo.ember.feature.events.entity.EventField;
@@ -25,16 +23,19 @@ import dev.chojo.ember.feature.events.repository.EventFieldRepository;
 import dev.chojo.ember.feature.events.service.EventExportService;
 import dev.chojo.ember.feature.events.service.EventFieldService;
 import dev.chojo.ember.feature.events.service.EventService;
-import dev.chojo.ember.feature.account.repository.AccountRepository;
+import dev.chojo.ember.feature.members.entity.MemberGroup;
+import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
-import dev.chojo.ember.feature.attendance.service.AttendanceService;
 import dev.chojo.ember.feature.members.service.MemberGroupService;
-import dev.chojo.ember.feature.notifications.service.NotificationService;
 import dev.chojo.ember.feature.members.service.StationMemberService;
+import dev.chojo.ember.feature.notifications.entity.NotificationData;
+import dev.chojo.ember.feature.notifications.entity.NotificationType;
+import dev.chojo.ember.feature.notifications.service.NotificationService;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.ForbiddenResponse;
 import io.javalin.http.HttpStatus;
+import io.javalin.http.InternalServerErrorResponse;
 import io.javalin.http.NotFoundResponse;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
@@ -305,7 +306,13 @@ public class EventRoutes implements Routes {
             })
     private void delete(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
+        var event = eventService.findById(id).orElseThrow(NotFoundResponse::new);
         if (eventService.delete(id)) {
+            // Remove notifications for this event
+            notificationService.deleteByTypeContaining(
+                    NotificationType.NEW_EVENT,
+                    NotificationData.of("notification.newEvent", Map.of("title", event.name()))
+                            .toJson());
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
             throw new NotFoundResponse();
@@ -444,9 +451,9 @@ public class EventRoutes implements Routes {
             int eventId,
             int memberId,
             String memberName,
-            java.time.LocalDate eventDate,
+            LocalDate eventDate,
             String status,
-            java.time.Instant createdAt,
+            Instant createdAt,
             String createdByName) {}
 
     @OpenApi(
@@ -1012,7 +1019,7 @@ public class EventRoutes implements Routes {
                 LocalDate.parse(req.to()),
                 generatedBy);
         if (pdf.isEmpty()) {
-            throw new io.javalin.http.InternalServerErrorResponse("PDF generation failed");
+            throw new InternalServerErrorResponse("PDF generation failed");
         }
         ctx.contentType("application/pdf");
         ctx.header("Content-Disposition", "attachment; filename=\"events.pdf\"");

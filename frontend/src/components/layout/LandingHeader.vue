@@ -42,7 +42,8 @@ async function handleLogout() {
 <template>
   <header
       class="flex h-14 items-center justify-between border-b border-bg-light-accent dark:border-bg-dark-accent px-4">
-    <router-link class="text-lg font-bold text-primary no-underline hover:no-underline" to="/">
+    <router-link class="flex items-center gap-2 text-lg font-bold text-primary no-underline hover:no-underline" to="/">
+      <img src="/logo.png" alt="Ember" class="h-7 w-7 rounded" />
       Ember
     </router-link>
 
@@ -52,7 +53,7 @@ async function handleLogout() {
           {{ t('header.stationPanel') }}
         </PrimaryButton>
       </router-link>
-      <UserAvatar :account-id="sessionInfo?.account?.id" :name="fullName()" size="sm" class="hidden sm:flex"/>
+      <UserAvatar :member-id="sessionInfo?.member?.id" :name="fullName()" size="sm" class="hidden sm:flex"/>
       <span class="text-sm text-(--text-muted) hidden sm:inline">{{ fullName() }}</span>
       <IconButton
           :icon="['fas', 'right-from-bracket']"

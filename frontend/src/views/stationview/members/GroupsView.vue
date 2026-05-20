@@ -20,8 +20,8 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
+import RoleSelector from '@/components/input/RoleSelector.vue'
 import type {MemberGroup, Role, StationMember} from '@/api/types'
-import {Roles} from '@/api/types'
 import {memberGroups, stationMembers} from '@/api'
 import {useStations} from '@/composables/useStations'
 import {useSession} from '@/composables/useSession'
@@ -44,30 +44,10 @@ const groupLoading = ref(false)
 
 const canEditRoles = computed(() => canManageMembers() || isManager())
 
-const roleFriendlyNames: Record<string, string> = {
-  LOGIN: 'Login',
-  MEMBER: 'Mitglied',
-  TEAM: 'Team',
-  GUARDIAN: 'Erziehungsberechtigter',
-  ATTENDENCE_MANAGEMENT: 'Anwesenheitsverwaltung',
-  ATTENDENCE_EXPORT_MANAGER: 'Anwesenheitsexport',
-  INVENTORY_MANAGEMENT: 'Inventarverwaltung',
-  EVENT_MANAGEMENT: 'Terminverwaltung',
-  MEMBER_MANAGEMENT: 'Mitgliederverwaltung',
-  MANAGER: 'Manager',
-  NEWS_MANAGEMENT: 'Neuigkeiten',
-}
-
-const assignableRoles = computed(() => {
-  const assignable = [
-    Roles.MEMBER, Roles.TEAM, Roles.GUARDIAN, Roles.LOGIN,
-    Roles.ATTENDENCE_MANAGEMENT, Roles.ATTENDENCE_EXPORT_MANAGER, Roles.INVENTORY_MANAGEMENT,
-    Roles.EVENT_MANAGEMENT, Roles.MEMBER_MANAGEMENT, Roles.MANAGER, Roles.NEWS_MANAGEMENT,
-  ] as readonly string[]
-  return allRoles.value.filter(r => assignable.includes(r.role))
+const groupRoleIds = computed({
+  get: () => new Set(groupRoles.value.map(r => r.id)),
+  set: (newIds: Set<number>) => syncGroupRoles(newIds),
 })
-
-const groupRoleIds = computed(() => new Set(groupRoles.value.map(r => r.id)))
 
 // Create/Edit modal
 const showGroupModal = ref(false)
@@ -83,9 +63,15 @@ const deleteTarget = ref<MemberGroup | null>(null)
 const showConvertModal = ref(false)
 const convertTarget = ref<MemberGroup | null>(null)
 
+const sortedGroupMembers = computed(() =>
+    [...groupMembers.value].sort((a, b) => memberDisplayName(a).localeCompare(memberDisplayName(b)))
+)
+
 const availableMembers = computed(() => {
   const memberIds = new Set(groupMembers.value.map(m => m.id))
-  return allMembers.value.filter(m => !memberIds.has(m.id))
+  return allMembers.value
+      .filter(m => !memberIds.has(m.id))
+      .sort((a, b) => memberDisplayName(a).localeCompare(memberDisplayName(b)))
 })
 
 function memberDisplayName(member: StationMember): string {
@@ -226,14 +212,10 @@ async function removeMemberFromGroup(member: StationMember) {
   }
 }
 
-async function toggleGroupRole(role: Role) {
+async function syncGroupRoles(newIds: Set<number>) {
   if (!selectedGroup.value) return
-  const currentIds = groupRoles.value.map(r => r.id)
-  const newIds = currentIds.includes(role.id)
-      ? currentIds.filter(id => id !== role.id)
-      : [...currentIds, role.id]
   try {
-    groupRoles.value = await memberGroups.setGroupRoles(selectedGroup.value.id, {roleIds: newIds})
+    groupRoles.value = await memberGroups.setGroupRoles(selectedGroup.value.id, {roleIds: [...newIds]})
   } catch (e: unknown) {
     const msg = (e as { response?: { data?: { message?: string } } })?.response?.data?.message
     error.value = msg || t('common.error')
@@ -292,20 +274,7 @@ onMounted(loadData)
             <!-- Group roles -->
             <div v-if="canEditRoles" class="space-y-2">
               <label class="block text-sm font-medium text-(--text-muted)">{{ t('memberGroups.roles') }}</label>
-              <div class="flex flex-wrap gap-2">
-                <button
-                    v-for="role in assignableRoles"
-                    :key="role.id"
-                    :class="groupRoleIds.has(role.id)
-                    ? 'border-primary bg-primary/10 text-primary ring-1 ring-primary/30'
-                    : 'border-bg-light-accent dark:border-bg-dark-accent text-(--text-muted) hover:border-primary'"
-                    class="rounded-lg px-3 py-1.5 text-xs font-medium border transition-all"
-                    type="button"
-                    @click="toggleGroupRole(role)"
-                >
-                  {{ roleFriendlyNames[role.role] ?? role.role }}
-                </button>
-              </div>
+              <RoleSelector v-model="groupRoleIds" :all-roles="allRoles" />
               <p v-if="groupRoles.length === 0" class="text-xs text-(--text-muted)">{{ t('memberGroups.noRoles') }}</p>
             </div>
 
@@ -318,10 +287,10 @@ onMounted(loadData)
                 {{ t('memberGroups.noMembers') }}
               </div>
               <div class="space-y-1">
-                <div v-for="member in groupMembers" :key="member.id"
+                <div v-for="member in sortedGroupMembers" :key="member.id"
                      class="flex items-center justify-between rounded-lg px-3 py-2 bg-bg-light-accent dark:bg-bg-dark-accent">
                   <div>
-                    <MemberName :name="memberDisplayName(member)" :account-id="member.accountId" class="text-sm font-medium"/>
+                    <MemberName :name="memberDisplayName(member)" :member-id="member.id" class="text-sm font-medium"/>
                     <span v-if="member.name && member.email" class="ml-2 text-xs text-(--text-muted)">{{
                         member.email
                       }}</span>
@@ -347,7 +316,7 @@ onMounted(loadData)
                     @click="addMemberToGroup(member)"
                 >
                   <div>
-                    <MemberName :name="memberDisplayName(member)" :account-id="member.accountId" class="text-sm font-medium"/>
+                    <MemberName :name="memberDisplayName(member)" :member-id="member.id" class="text-sm font-medium"/>
                     <span v-if="member.name && member.email" class="ml-2 text-xs text-(--text-muted)">{{
                         member.email
                       }}</span>

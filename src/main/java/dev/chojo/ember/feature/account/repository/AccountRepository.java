@@ -12,8 +12,8 @@ import dev.chojo.ember.feature.account.entity.AccountCredential;
 import dev.chojo.ember.feature.account.entity.AccountExternalAuth;
 import dev.chojo.ember.feature.account.entity.AccountSession;
 import dev.chojo.ember.feature.account.entity.AccountToken;
-import dev.chojo.ember.feature.legal.entity.GdprConsent;
 import dev.chojo.ember.feature.account.entity.TokenType;
+import dev.chojo.ember.feature.legal.entity.GdprConsent;
 import jakarta.inject.Singleton;
 
 import java.time.Instant;
@@ -31,21 +31,21 @@ public class AccountRepository {
     public Optional<Account> findById(int id) {
         return query("SELECT " + ACCOUNT_COLUMNS + " FROM account WHERE id = :id;")
                 .single(Call.of().bind("id", id))
-                .map(dev.chojo.ember.feature.account.entity.Account.map())
+                .map(Account.map())
                 .first();
     }
 
     public Optional<Account> findByEmail(String email) {
         return query("SELECT " + ACCOUNT_COLUMNS + " FROM account WHERE email = :email;")
                 .single(Call.of().bind("email", email))
-                .map(dev.chojo.ember.feature.account.entity.Account.map())
+                .map(Account.map())
                 .first();
     }
 
     public List<Account> findAll() {
         return query("SELECT " + ACCOUNT_COLUMNS + " FROM account;")
                 .single()
-                .map(dev.chojo.ember.feature.account.entity.Account.map())
+                .map(Account.map())
                 .all();
     }
 
@@ -57,7 +57,7 @@ public class AccountRepository {
                         .bind("email", email)
                         .bind("first_name", firstName)
                         .bind("last_name", lastName))
-                .map(dev.chojo.ember.feature.account.entity.Account.map())
+                .map(Account.map())
                 .first()
                 .orElseThrow();
     }
@@ -71,7 +71,7 @@ public class AccountRepository {
                         .bind("first_name", firstName)
                         .bind("last_name", lastName)
                         .bind("verified", emailVerified))
-                .map(dev.chojo.ember.feature.account.entity.Account.map())
+                .map(Account.map())
                 .first()
                 .orElseThrow();
     }
@@ -122,6 +122,13 @@ public class AccountRepository {
                         .bind("first_name", firstName)
                         .bind("last_name", lastName)
                         .bind("id", id))
+                .update()
+                .changed();
+    }
+
+    public boolean updateEmail(int id, String email) {
+        return query("UPDATE account SET email = :email WHERE id = :id;")
+                .single(Call.of().bind("email", email).bind("id", id))
                 .update()
                 .changed();
     }
@@ -213,19 +220,25 @@ public class AccountRepository {
 
     public Optional<AccountToken> findToken(String token) {
         return query(
-                        "SELECT id, account_id, token, token_type, expires_at, created_at FROM account_token WHERE token = :token;")
+                        "SELECT id, account_id, token, token_type, metadata, expires_at, created_at FROM account_token WHERE token = :token;")
                 .single(Call.of().bind("token", token))
                 .map(AccountToken.map())
                 .first();
     }
 
     public InsertionResult createToken(int accountId, String token, TokenType tokenType, Instant expiresAt) {
+        return createToken(accountId, token, tokenType, null, expiresAt);
+    }
+
+    public InsertionResult createToken(
+            int accountId, String token, TokenType tokenType, String metadata, Instant expiresAt) {
         return query(
-                        "INSERT INTO account_token(account_id, token, token_type, expires_at) VALUES(:account_id, :token, :type, :expires_at);")
+                        "INSERT INTO account_token(account_id, token, token_type, metadata, expires_at) VALUES(:account_id, :token, :type, :metadata, :expires_at);")
                 .single(Call.of()
                         .bind("account_id", accountId)
                         .bind("token", token)
                         .bind("type", tokenType)
+                        .bind("metadata", metadata)
                         .bind("expires_at", expiresAt, INSTANT_TIMESTAMP))
                 .insert();
     }
@@ -331,34 +344,6 @@ public class AccountRepository {
                 .delete()
                 .changed();
     }
-
-    // -- Avatar --
-
-    public Optional<Avatar> findAvatar(int accountId) {
-        return query("SELECT avatar, avatar_content_type FROM account WHERE id = :id AND avatar IS NOT NULL;")
-                .single(Call.of().bind("id", accountId))
-                .map(row -> new Avatar(row.getBytes("avatar"), row.getString("avatar_content_type")))
-                .first();
-    }
-
-    public boolean updateAvatar(int accountId, byte[] data, String contentType) {
-        return query("UPDATE account SET avatar = :avatar, avatar_content_type = :content_type WHERE id = :id;")
-                .single(Call.of()
-                        .bind("avatar", data)
-                        .bind("content_type", contentType)
-                        .bind("id", accountId))
-                .update()
-                .changed();
-    }
-
-    public boolean deleteAvatar(int accountId) {
-        return query("UPDATE account SET avatar = NULL, avatar_content_type = NULL WHERE id = :id;")
-                .single(Call.of().bind("id", accountId))
-                .update()
-                .changed();
-    }
-
-    public record Avatar(byte[] data, String contentType) {}
 
     // -- GDPR Consent --
 

@@ -11,6 +11,7 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import EditButton from '@/components/button/EditButton.vue'
+import UserAvatar from '@/components/avatar/UserAvatar.vue'
 import type { NewsComment } from '@/api/types'
 
 const { t } = useI18n()
@@ -69,9 +70,12 @@ function submitEdit() {
   <div :class="depth > 0 ? 'ml-4 sm:ml-6 border-l-2 border-bg-light-accent dark:border-bg-dark-accent pl-3 sm:pl-4' : ''">
     <div class="py-2">
       <div class="flex items-start justify-between gap-2">
-        <div>
-          <span class="text-sm font-medium">{{ comment.authorName }}</span>
-          <span class="text-xs text-(--text-muted) ml-2">{{ formatDate(comment.createdAt) }}</span>
+        <div class="flex items-center gap-2">
+          <UserAvatar :member-id="comment.authorId" :name="comment.authorName" size="sm"/>
+          <div>
+            <span class="text-sm font-medium">{{ comment.authorName }}</span>
+            <span class="text-xs text-(--text-muted) ml-2">{{ formatDate(comment.createdAt) }}</span>
+          </div>
         </div>
         <div class="flex items-center gap-1 shrink-0">
           <button

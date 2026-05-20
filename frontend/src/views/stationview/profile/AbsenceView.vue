@@ -66,11 +66,6 @@ function getMemberName(memberId: number): string {
   return m?.name ?? m?.email ?? `#${memberId}`
 }
 
-function getMemberAccountId(memberId: number): number | undefined {
-  if (memberId === currentMemberId.value) return sessionInfo.value?.member?.accountId
-  return managedMembers.value.find(mm => mm.id === memberId)?.accountId
-}
-
 function toggleMember(memberId: number) {
   const s = new Set(selectedMemberIds.value)
   if (s.has(memberId)) s.delete(memberId); else s.add(memberId)
@@ -237,7 +232,7 @@ watch(loaded, (isLoaded) => {
             <div class="flex items-center justify-between flex-wrap gap-2">
               <div>
                 <span v-if="managedMembers.length > 0"
-                      class="text-sm font-semibold mr-2"><MemberName :name="getMemberName(absence.memberId)" :account-id="getMemberAccountId(absence.memberId)"/></span>
+                      class="text-sm font-semibold mr-2"><MemberName :name="getMemberName(absence.memberId)" :member-id="absence.memberId"/></span>
                 <span class="text-sm">{{ formatDate(absence.absentFrom) }} – {{
                     formatDate(absence.absentUntil)
                   }}</span>

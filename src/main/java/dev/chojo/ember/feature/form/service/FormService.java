@@ -9,13 +9,13 @@ import dev.chojo.ember.feature.form.entity.Form;
 import dev.chojo.ember.feature.form.entity.FormAnswer;
 import dev.chojo.ember.feature.form.entity.FormQuestion;
 import dev.chojo.ember.feature.form.entity.FormResponse;
+import dev.chojo.ember.feature.form.repository.FormRepository;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
 import dev.chojo.ember.feature.members.entity.Role;
 import dev.chojo.ember.feature.members.entity.UserTag;
 import dev.chojo.ember.feature.members.service.MemberGroupService;
 import dev.chojo.ember.feature.members.service.StationMemberService;
 import dev.chojo.ember.feature.members.service.UserTagService;
-import dev.chojo.ember.feature.form.repository.FormRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
@@ -78,7 +78,7 @@ public class FormService {
             var memberTagIds = tagService.findTagsForMember(memberId).stream()
                     .map(UserTag::id)
                     .toList();
-            if (memberTagIds.stream().anyMatch(tagRestrictions::contains)) return true;
+            return memberTagIds.stream().anyMatch(tagRestrictions::contains);
         }
 
         return false;

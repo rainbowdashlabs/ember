@@ -104,3 +104,35 @@ export async function setDisabledModules(disabledModules: string[]): Promise<Mod
     const res = await client.put<ModulesResponse>('/station/manage/modules', {disabledModules})
     return res.data
 }
+
+// -- Station deletion --
+
+export async function requestStationDeletion(): Promise<{message: string}> {
+    const res = await client.post<{message: string}>('/station/manage/request-delete')
+    return res.data
+}
+
+export async function importStation(sourceUrl: string, token: string): Promise<{message: string}> {
+    const res = await client.post<{message: string}>('/station/manage/import', {sourceUrl, token})
+    return res.data
+}
+
+export interface StationImportProgress {
+    stationId: number
+    stationName: string
+    status: 'IN_PROGRESS' | 'COMPLETED' | 'FAILED'
+    totalTables: number
+    completedTables: number
+    currentTable: string | null
+    error: string | null
+}
+
+export async function getImportProgress(): Promise<StationImportProgress> {
+    const res = await client.get<StationImportProgress>('/station/manage/import/progress')
+    return res.data
+}
+
+export async function transferOwnership(newOwnerMemberId: number): Promise<{message: string}> {
+    const res = await client.post<{message: string}>('/station/manage/transfer-ownership', {newOwnerMemberId})
+    return res.data
+}

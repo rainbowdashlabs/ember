@@ -12,6 +12,7 @@ import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.feature.members.entity.ProfileField;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
 import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
+import dev.chojo.ember.feature.members.entity.ProfileFieldType;
 import dev.chojo.ember.feature.members.entity.ProfileFieldValue;
 import dev.chojo.ember.feature.members.service.ProfileFieldService;
 import io.javalin.http.BadRequestResponse;
@@ -88,7 +89,7 @@ public class ProfileFieldRoutes implements Routes {
             throw new BadRequestResponse("name and fieldType are required");
         }
         try {
-            dev.chojo.ember.feature.members.entity.ProfileFieldType.valueOf(request.fieldType().toUpperCase());
+            ProfileFieldType.valueOf(request.fieldType().toUpperCase());
         } catch (IllegalArgumentException e) {
             throw new BadRequestResponse("Invalid field type: " + request.fieldType());
         }

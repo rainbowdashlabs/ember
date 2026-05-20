@@ -93,7 +93,7 @@ function formatDate(iso: string | null | undefined): string {
             <span v-else class="text-(--text-muted)">–</span>
           </td>
           <td class="px-3 py-2.5">
-            <button v-if="item.assignedTo" class="text-primary font-medium hover:underline cursor-pointer" @click.stop="router.push({ name: 'inventory-member', params: { memberId: item.assignedTo } })"><MemberName :name="getMemberName(item.assignedTo)" :account-id="members?.get(item.assignedTo)?.accountId"/></button>
+            <button v-if="item.assignedTo" class="text-primary font-medium hover:underline cursor-pointer" @click.stop="router.push({ name: 'inventory-member', params: { memberId: item.assignedTo } })"><MemberName :name="getMemberName(item.assignedTo)" :member-id="item.assignedTo"/></button>
             <span v-else class="text-(--text-muted)">–</span>
           </td>
           <td v-if="showActions" class="px-3 py-2.5 text-right">

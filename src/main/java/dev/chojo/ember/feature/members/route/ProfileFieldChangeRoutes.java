@@ -23,6 +23,8 @@ import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
+import java.util.List;
+
 @Singleton
 public class ProfileFieldChangeRoutes implements Routes {
     private final ProfileFieldService profileFieldService;
@@ -134,6 +136,5 @@ public class ProfileFieldChangeRoutes implements Routes {
 
     public record AcknowledgeRequest(String comment) {}
 
-    public record PagedChangesResponse(
-            java.util.List<dev.chojo.ember.feature.members.entity.ProfileFieldChange> changes, int total, int offset, int limit) {}
+    public record PagedChangesResponse(List<ProfileFieldChange> changes, int total, int offset, int limit) {}
 }

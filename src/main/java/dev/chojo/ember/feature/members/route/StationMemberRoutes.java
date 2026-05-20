@@ -10,13 +10,14 @@ import dev.chojo.ember.api.Roles;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.feature.account.entity.Account;
+import dev.chojo.ember.feature.account.repository.AccountRepository;
+import dev.chojo.ember.feature.legal.service.GdprDeletionService;
 import dev.chojo.ember.feature.members.entity.Role;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.FormerMemberService;
 import dev.chojo.ember.feature.members.service.ProfileFieldService;
 import dev.chojo.ember.feature.members.service.StationMemberService;
-import dev.chojo.ember.feature.account.repository.AccountRepository;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
@@ -41,6 +42,7 @@ public class StationMemberRoutes implements Routes {
     private final StationMemberRepository stationMemberRepository;
     private final FormerMemberService formerMemberService;
     private final ProfileFieldService profileFieldService;
+    private final GdprDeletionService gdprDeletionService;
 
     @Inject
     public StationMemberRoutes(
@@ -48,12 +50,14 @@ public class StationMemberRoutes implements Routes {
             AccountRepository accountRepository,
             StationMemberRepository stationMemberRepository,
             FormerMemberService formerMemberService,
-            ProfileFieldService profileFieldService) {
+            ProfileFieldService profileFieldService,
+            GdprDeletionService gdprDeletionService) {
         this.memberService = memberService;
         this.accountRepository = accountRepository;
         this.stationMemberRepository = stationMemberRepository;
         this.formerMemberService = formerMemberService;
         this.profileFieldService = profileFieldService;
+        this.gdprDeletionService = gdprDeletionService;
     }
 
     @Override
@@ -142,11 +146,16 @@ public class StationMemberRoutes implements Routes {
             })
     private void delete(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
-        if (memberService.delete(id)) {
-            ctx.status(HttpStatus.NO_CONTENT);
-        } else {
-            throw new NotFoundResponse();
-        }
+        var member = stationMemberRepository.findById(id).orElseThrow(NotFoundResponse::new);
+        // Check that the member is not a station owner
+        var station = member.stationId() > 0
+                ? stationMemberRepository.findByStation(member.stationId()).stream()
+                        .filter(m -> m.id() == id)
+                        .findFirst()
+                        .orElse(null)
+                : null;
+        gdprDeletionService.anonymizeMember(id);
+        ctx.status(HttpStatus.NO_CONTENT);
     }
 
     @OpenApi(

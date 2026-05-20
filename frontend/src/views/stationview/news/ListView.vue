@@ -22,6 +22,7 @@ import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import CommentThread from './CommentThread.vue'
 import type { NewsComment, NewsEntry } from '@/api/types'
 import { news } from '@/api'
+import UserAvatar from '@/components/avatar/UserAvatar.vue'
 import { useSession } from '@/composables/useSession'
 
 const { t } = useI18n()
@@ -206,11 +207,14 @@ onUnmounted(() => {
         <NeutralContainer v-for="entry in entries" :key="entry.id" class="space-y-3">
           <!-- Header -->
           <div class="flex items-start justify-between gap-3">
-            <div>
-              <h3 class="font-semibold text-lg">{{ entry.title }}</h3>
-              <p class="text-xs text-(--text-muted)">
-                {{ entry.authorName }} &middot; {{ formatDate(entry.publishedAt) }}
-              </p>
+            <div class="flex items-center gap-2">
+              <UserAvatar :member-id="entry.authorId" :name="entry.authorName" size="md"/>
+              <div>
+                <h3 class="font-semibold text-lg">{{ entry.title }}</h3>
+                <p class="text-xs text-(--text-muted)">
+                  {{ entry.authorName }} &middot; {{ formatDate(entry.publishedAt) }}
+                </p>
+              </div>
             </div>
             <div v-if="canManageNews()" class="flex items-center gap-1 shrink-0">
               <EditButton @click="router.push({ name: 'news-edit', params: { id: entry.id } })" />

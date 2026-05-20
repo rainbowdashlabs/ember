@@ -10,14 +10,18 @@ import dev.chojo.ember.api.MessageResponse;
 import dev.chojo.ember.api.Roles;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.feature.account.service.AuthService;
+import dev.chojo.ember.feature.mail.service.EmailService;
 import dev.chojo.ember.feature.station.entity.MailProviderType;
 import dev.chojo.ember.feature.station.entity.StationMailConfig;
 import dev.chojo.ember.feature.station.repository.StationMailConfigRepository;
 import dev.chojo.ember.feature.station.repository.StationRepository.StationLogo;
-import dev.chojo.ember.feature.mail.service.EmailService;
+import dev.chojo.ember.feature.station.service.StationImportService;
 import dev.chojo.ember.feature.station.service.StationService;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
+import io.javalin.http.ForbiddenResponse;
+import io.javalin.http.HttpStatus;
 import io.javalin.http.NotFoundResponse;
 import io.javalin.http.UploadedFile;
 import io.javalin.openapi.HttpMethod;
@@ -46,15 +50,21 @@ public class StationManageRoutes implements Routes {
     private final StationService stationService;
     private final StationMailConfigRepository mailConfigRepository;
     private final EmailService emailService;
+    private final AuthService authService;
+    private final StationImportService importService;
 
     @Inject
     public StationManageRoutes(
             StationService stationService,
             StationMailConfigRepository mailConfigRepository,
-            EmailService emailService) {
+            EmailService emailService,
+            AuthService authService,
+            StationImportService importService) {
         this.stationService = stationService;
         this.mailConfigRepository = mailConfigRepository;
         this.emailService = emailService;
+        this.authService = authService;
+        this.importService = importService;
     }
 
     @Override
@@ -70,6 +80,11 @@ public class StationManageRoutes implements Routes {
         routes.post(prefix + "/station/manage/mail/test", this::testMailConfig, Roles.MANAGER);
         routes.get(prefix + "/station/manage/modules", this::getDisabledModules, Roles.MANAGER);
         routes.put(prefix + "/station/manage/modules", this::setDisabledModules, Roles.MANAGER);
+        routes.post(prefix + "/station/manage/import", this::importInto, Roles.MANAGER);
+        routes.get(prefix + "/station/manage/import/progress", this::importProgress, Roles.MANAGER);
+        routes.post(prefix + "/station/manage/request-delete", this::requestDelete, Roles.MANAGER);
+        routes.post(prefix + "/station/manage/transfer-ownership", this::transferOwnership, Roles.MANAGER);
+        routes.get(prefix + "/public/confirm-station-delete", this::confirmDelete);
     }
 
     @OpenApi(
@@ -85,16 +100,24 @@ public class StationManageRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         stationService
                 .findById(session.stationId())
-                .ifPresentOrElse(
-                        station -> {
-                            boolean hasLogo =
-                                    stationService.getLogo(station.id()).isPresent();
-                            ctx.json(new StationInfo(
-                                    station.id(), station.name(), station.timezone(), station.locale(), hasLogo));
-                        },
-                        () -> {
-                            throw new NotFoundResponse();
-                        });
+                .ifPresentOrElse(station -> ctx.json(buildStationInfo(station, session)), () -> {
+                    throw new NotFoundResponse();
+                });
+    }
+
+    private StationInfo buildStationInfo(dev.chojo.ember.feature.station.entity.Station station, UserSession session) {
+        boolean hasLogo = stationService.getLogo(station.id()).isPresent();
+        boolean isOwner = session.member() != null
+                && station.ownerMemberId() != null
+                && station.ownerMemberId() == session.member().id();
+        return new StationInfo(
+                station.id(),
+                station.name(),
+                station.timezone(),
+                station.locale(),
+                hasLogo,
+                station.ownerMemberId(),
+                isOwner);
     }
 
     @OpenApi(
@@ -127,16 +150,9 @@ public class StationManageRoutes implements Routes {
         }
         stationService
                 .update(session.stationId(), request.name())
-                .ifPresentOrElse(
-                        station -> {
-                            boolean hasLogo =
-                                    stationService.getLogo(station.id()).isPresent();
-                            ctx.json(new StationInfo(
-                                    station.id(), station.name(), station.timezone(), station.locale(), hasLogo));
-                        },
-                        () -> {
-                            throw new NotFoundResponse();
-                        });
+                .ifPresentOrElse(station -> ctx.json(buildStationInfo(station, session)), () -> {
+                    throw new NotFoundResponse();
+                });
     }
 
     @OpenApi(
@@ -225,7 +241,14 @@ public class StationManageRoutes implements Routes {
 
     public record UpdateStationRequest(String name, String timezone, String locale) {}
 
-    public record StationInfo(int id, String name, String timezone, String locale, boolean hasLogo) {}
+    public record StationInfo(
+            int id,
+            String name,
+            String timezone,
+            String locale,
+            boolean hasLogo,
+            Integer ownerMemberId,
+            boolean isOwner) {}
 
     // -- Mail config --
 
@@ -390,4 +413,125 @@ public class StationManageRoutes implements Routes {
     }
 
     public record ModulesResponse(Set<String> disabledModules) {}
+
+    // -- Station deletion --
+
+    @OpenApi(
+            path = "/api/v1/station/manage/request-delete",
+            methods = HttpMethod.POST,
+            summary = "Request station deletion (sends confirmation email)",
+            tags = {"Station Manage"},
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MessageResponse.class)))
+    private void requestDelete(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        authService.requestStationDeletion(session.accountId(), session.stationId());
+        ctx.json(new MessageResponse("Confirmation email sent. Check your inbox."));
+    }
+
+    @OpenApi(
+            path = "/api/v1/station/manage/transfer-ownership",
+            methods = HttpMethod.POST,
+            summary = "Transfer station ownership to another manager",
+            tags = {"Station Manage"},
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = TransferOwnershipRequest.class)),
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = MessageResponse.class)),
+                @OpenApiResponse(status = "400"),
+                @OpenApiResponse(status = "403")
+            })
+    private void transferOwnership(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        if (session.member() == null) throw new BadRequestResponse("Not a station member");
+        if (!stationService.isOwner(session.stationId(), session.member().id())) {
+            throw new ForbiddenResponse("Only the station owner can transfer ownership");
+        }
+        var req = ctx.bodyAsClass(TransferOwnershipRequest.class);
+        if (!stationService.transferOwnership(
+                session.stationId(), session.member().id(), req.newOwnerMemberId())) {
+            throw new BadRequestResponse("Target member must have the MANAGER role");
+        }
+        ctx.json(new MessageResponse("Ownership transferred"));
+    }
+
+    public record TransferOwnershipRequest(int newOwnerMemberId) {}
+
+    // -- Station import into existing station --
+
+    @OpenApi(
+            path = "/api/v1/station/manage/import",
+            methods = HttpMethod.POST,
+            summary = "Import data from a remote instance into this station",
+            description =
+                    "Imports members, groups, roles, etc. from a remote station into the current station. Accounts are linked by email when possible.",
+            tags = {"Station Manage"},
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = StationImportRequest.class)),
+            responses = {
+                @OpenApiResponse(status = "201", content = @OpenApiContent(from = MessageResponse.class)),
+                @OpenApiResponse(status = "400")
+            })
+    private void importInto(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        var req = ctx.bodyAsClass(StationImportRequest.class);
+        if (req.sourceUrl() == null || req.sourceUrl().isBlank()) {
+            throw new BadRequestResponse("sourceUrl is required");
+        }
+        if (req.token() == null || req.token().isBlank()) {
+            throw new BadRequestResponse("token is required");
+        }
+        importService.startRemoteImportInto(session.stationId(), req.sourceUrl().replaceAll("/+$", ""), req.token());
+        ctx.status(HttpStatus.CREATED).json(new MessageResponse("Import started"));
+    }
+
+    @OpenApi(
+            path = "/api/v1/station/manage/import/progress",
+            methods = HttpMethod.GET,
+            summary = "Get import progress for the current station",
+            tags = {"Station Manage"},
+            responses = {@OpenApiResponse(status = "200"), @OpenApiResponse(status = "404")})
+    private void importProgress(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        var progress = importService.getProgress(session.stationId());
+        if (progress == null) {
+            throw new NotFoundResponse("No active import");
+        }
+        ctx.json(new ImportProgressResponse(
+                progress.stationId(),
+                progress.stationName(),
+                progress.status(),
+                progress.totalTables(),
+                progress.completedTables(),
+                progress.currentTable(),
+                progress.error()));
+    }
+
+    public record StationImportRequest(String sourceUrl, String token) {}
+
+    public record ImportProgressResponse(
+            int stationId,
+            String stationName,
+            String status,
+            int totalTables,
+            int completedTables,
+            String currentTable,
+            String error) {}
+
+    @OpenApi(
+            path = "/api/v1/public/confirm-station-delete",
+            methods = HttpMethod.GET,
+            summary = "Confirm and execute station deletion",
+            tags = {"Station Manage"},
+            queryParams = @OpenApiParam(name = "token", required = true),
+            responses = {@OpenApiResponse(status = "200"), @OpenApiResponse(status = "400")})
+    private void confirmDelete(Context ctx) {
+        String token = ctx.queryParam("token");
+        if (token == null || token.isBlank()) {
+            throw new BadRequestResponse("token is required");
+        }
+        var stationIdOpt = authService.confirmStationDeletion(token);
+        if (stationIdOpt.isEmpty()) {
+            throw new BadRequestResponse("Invalid or expired token");
+        }
+        stationService.delete(stationIdOpt.get());
+        ctx.json(new MessageResponse("Station deleted"));
+    }
 }

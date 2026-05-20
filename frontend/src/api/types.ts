@@ -413,6 +413,8 @@ export interface StationManageInfo {
     timezone?: string
     locale?: string
     hasLogo: boolean
+    ownerMemberId?: number | null
+    isOwner: boolean
 }
 
 export interface UpdateStationNameRequest {
@@ -974,6 +976,7 @@ export interface NewsEntry {
     contentMarkdown: string
     contentHtml: string
     authorId: number
+    authorAccountId?: number | null
     authorName: string
     publishedAt?: string
     createdAt?: string
@@ -993,6 +996,7 @@ export interface NewsComment {
     newsId: number
     parentId: number | null
     authorId: number
+    authorAccountId?: number | null
     authorName: string
     content: string
     createdAt: string

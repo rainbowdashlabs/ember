@@ -13,42 +13,45 @@ import dev.chojo.ember.api.Roles;
 import dev.chojo.ember.auth.PasswordHasher;
 import dev.chojo.ember.conf.file.elements.Database;
 import dev.chojo.ember.conf.file.elements.Demo;
+import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.attendance.entity.AttendanceEntry;
 import dev.chojo.ember.feature.attendance.entity.AttendanceTemplate;
-import dev.chojo.ember.feature.inventory.entity.CheckResult;
-import dev.chojo.ember.feature.events.entity.EventRegistration;
-import dev.chojo.ember.feature.inventory.entity.ExchangeStatus;
-import dev.chojo.ember.feature.form.entity.Form;
-import dev.chojo.ember.feature.form.entity.FormQuestion;
-import dev.chojo.ember.feature.inventory.entity.InventoryItem;
-import dev.chojo.ember.feature.inventory.entity.InventoryType;
-import dev.chojo.ember.feature.notifications.entity.NotificationData;
-import dev.chojo.ember.feature.notifications.entity.NotificationType;
-import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
-import dev.chojo.ember.feature.events.entity.StationEvent;
-import dev.chojo.ember.feature.members.entity.StationMember;
-import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.attendance.repository.AttendanceRepository;
+import dev.chojo.ember.feature.events.entity.EventRegistration;
+import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventFieldRepository;
 import dev.chojo.ember.feature.events.repository.EventRepository;
-import dev.chojo.ember.feature.inventory.repository.ExchangeRepository;
+import dev.chojo.ember.feature.form.entity.Form;
+import dev.chojo.ember.feature.form.entity.FormQuestion;
 import dev.chojo.ember.feature.form.repository.FormRepository;
+import dev.chojo.ember.feature.inventory.entity.CheckResult;
+import dev.chojo.ember.feature.inventory.entity.ExchangeStatus;
+import dev.chojo.ember.feature.inventory.entity.InventoryItem;
+import dev.chojo.ember.feature.inventory.entity.InventoryType;
+import dev.chojo.ember.feature.inventory.repository.ExchangeRepository;
 import dev.chojo.ember.feature.inventory.repository.InventoryCheckRepository;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
-import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
-import dev.chojo.ember.feature.news.repository.NewsRepository;
-import dev.chojo.ember.feature.notifications.repository.NotificationRepository;
 import dev.chojo.ember.feature.inventory.repository.ProcurementRepository;
+import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
+import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.ProfileFieldChangeRepository;
 import dev.chojo.ember.feature.members.repository.ProfileFieldRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
-import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.members.repository.UserTagRepository;
+import dev.chojo.ember.feature.news.repository.NewsRepository;
+import dev.chojo.ember.feature.notifications.entity.NotificationData;
+import dev.chojo.ember.feature.notifications.entity.NotificationType;
+import dev.chojo.ember.feature.notifications.repository.NotificationRepository;
+import dev.chojo.ember.feature.station.repository.StationRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -60,6 +63,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Random;
+import java.util.UUID;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -204,10 +208,9 @@ public class DemoService {
         stationRepository.updateTimezone(station.id(), "Europe/Berlin");
         stationRepository.updateLocale(station.id(), "de-DE");
         try {
-            var logoBytes =
-                    java.nio.file.Files.readAllBytes(java.nio.file.Path.of("templates", "graphics", "logo.png"));
+            var logoBytes = Files.readAllBytes(Path.of("templates", "graphics", "logo.png"));
             stationRepository.updateLogo(station.id(), logoBytes, "image/png");
-        } catch (java.io.IOException e) {
+        } catch (IOException e) {
             log.warn("Demo: Could not load logo.png", e);
         }
 
@@ -228,6 +231,7 @@ public class DemoService {
 
         stationMemberRepository.addRole(adminMember.id(), managerRole.id());
         stationMemberRepository.addRole(adminMember.id(), loginRole.id());
+        stationRepository.setOwner(station.id(), adminMember.id());
 
         // -- Groups --
         var groupBetreuer = memberGroupRepository.create(station.id(), "Betreuer");
@@ -552,7 +556,7 @@ public class DemoService {
         }
 
         // -- Past profile field changes (acknowledged) --
-        if (anfaengerMembers.size() >= 5 && betreuerMembers.size() >= 1) {
+        if (anfaengerMembers.size() >= 5 && !betreuerMembers.isEmpty()) {
             int bId = betreuerMembers.get(0).id();
             // Phone number changes
             var c1 = profileFieldChangeRepository.create(
@@ -1108,10 +1112,10 @@ public class DemoService {
                 "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Chrome/125.0.0.0 Mobile Safari/537.36",
                 "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148",
                 "Mozilla/5.0 (X11; Linux x86_64; rv:150.0) Gecko/20100101 Firefox/150.0");
-        var sessionExpiry = Instant.now().plus(java.time.Duration.ofHours(24));
+        var sessionExpiry = Instant.now().plus(Duration.ofHours(24));
         for (int i = 0; i < demoUserAgents.size(); i++) {
             var accountId = admin.id();
-            var token = java.util.UUID.randomUUID().toString();
+            var token = UUID.randomUUID().toString();
             accountRepository.createSession(accountId, token, sessionExpiry, demoUserAgents.get(i), null);
         }
 
