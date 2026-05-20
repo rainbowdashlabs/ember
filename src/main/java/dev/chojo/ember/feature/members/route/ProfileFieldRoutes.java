@@ -32,6 +32,10 @@ import jakarta.inject.Singleton;
 
 import java.util.List;
 
+/**
+ * Routes for profile field definition management including CRUD operations,
+ * field ordering, member value retrieval, and profile completeness checks.
+ */
 @Singleton
 public class ProfileFieldRoutes implements Routes {
     private final ProfileFieldService profileFieldService;

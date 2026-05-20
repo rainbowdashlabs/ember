@@ -28,6 +28,10 @@ import jakarta.inject.Singleton;
 
 import java.util.List;
 
+/**
+ * Routes for station data transfer including token-authenticated public export endpoints
+ * for paginated table data and admin import/progress endpoints.
+ */
 @Singleton
 public class TransferRoutes implements Routes {
     private final StationExportService exportService;

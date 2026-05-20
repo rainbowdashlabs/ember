@@ -20,6 +20,10 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Set;
 
+/**
+ * Service for managing former members including converting active members to former status,
+ * tracking departure reasons, and cleaning up associated data (inventory, attendance, roles).
+ */
 @Singleton
 public class FormerMemberService {
     private static final Logger log = LoggerFactory.getLogger(FormerMemberService.class);

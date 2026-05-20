@@ -35,6 +35,10 @@ import jakarta.inject.Singleton;
 import java.time.Instant;
 import java.util.Map;
 
+/**
+ * Routes for procurement request management including creating, fulfilling,
+ * and cancelling procurement requests for inventory items.
+ */
 @Singleton
 public class ProcurementRoutes implements Routes {
     private final ProcurementService procurementService;

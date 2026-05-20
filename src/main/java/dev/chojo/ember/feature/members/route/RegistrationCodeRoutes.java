@@ -27,6 +27,10 @@ import jakarta.inject.Singleton;
 
 import java.util.List;
 
+/**
+ * Routes for managing registration codes that allow self-registration with automatic
+ * group assignment and usage limits.
+ */
 @Singleton
 public class RegistrationCodeRoutes implements Routes {
     private final RegistrationCodeService codeService;

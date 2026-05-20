@@ -31,6 +31,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
 
+/**
+ * Service for importing members from CSV data with configurable column mappings.
+ * Supports creating accounts with invitation emails and assigning groups.
+ */
 @Singleton
 public class MemberImportService {
     private static final Logger log = LoggerFactory.getLogger(MemberImportService.class);
@@ -58,6 +62,13 @@ public class MemberImportService {
 
     // -- API records --
 
+    /**
+     * Parses a CSV string into headers and rows using the specified separator.
+     *
+     * @param csv       the CSV content
+     * @param separator the column separator (defaults to ";")
+     * @return the parsed headers and data rows
+     */
     public ParseResult parseCsv(String csv, String separator) {
         String sep = separator != null && !separator.isBlank() ? separator : ";";
         var lines = csv.split("\n");
@@ -76,6 +87,15 @@ public class MemberImportService {
     //   "contact2Name", "contact2Phone", "contact2Email",
     //   "field:<fieldId>" (profile field by id)
 
+    /**
+     * Generates a preview of what the import would create without persisting anything.
+     *
+     * @param stationId the target station
+     * @param csv       the CSV content
+     * @param separator the column separator
+     * @param mappings  the column-to-field mappings
+     * @return the preview with member entries and warnings
+     */
     public PreviewResult preview(int stationId, String csv, String separator, List<ColumnMapping> mappings) {
         var parsed = parseCsv(csv, separator);
         var profileFields = profileFieldRepository.findByStation(stationId);
@@ -95,6 +115,16 @@ public class MemberImportService {
         return new PreviewResult(members, warnings);
     }
 
+    /**
+     * Imports members from CSV data, creating accounts, assigning roles and groups,
+     * setting profile fields, and linking guardian/manager contacts.
+     *
+     * @param stationId the target station
+     * @param csv       the CSV content
+     * @param separator the column separator
+     * @param mappings  the column-to-field mappings
+     * @return the import result with counts and warnings
+     */
     public ImportResult importMembers(int stationId, String csv, String separator, List<ColumnMapping> mappings) {
         var parsed = parseCsv(csv, separator);
         var profileFields = profileFieldRepository.findByStation(stationId);
@@ -204,6 +234,15 @@ public class MemberImportService {
                 membersCreated, managersCreated, managersLinked, groupsAssigned, profileFieldsSet, warnings);
     }
 
+    /**
+     * Imports team members (adults) from CSV data with TEAM role instead of MEMBER role.
+     *
+     * @param stationId the target station
+     * @param csv       the CSV content
+     * @param separator the column separator
+     * @param mappings  the column-to-field mappings
+     * @return the team import result with counts and warnings
+     */
     public TeamImportResult importTeamMembers(
             int stationId, String csv, String separator, List<ColumnMapping> mappings) {
         var parsed = parseCsv(csv, separator);
@@ -447,6 +486,7 @@ public class MemberImportService {
 
     // -- Helpers --
 
+    /** Maps a CSV column to a target field with optional value transformation, merging, and splitting. */
     public record ColumnMapping(
             String csvColumn,
             String target,
@@ -456,8 +496,10 @@ public class MemberImportService {
             String splitChar,
             int splitIndex) {}
 
+    /** Result of parsing CSV content into headers and data rows. */
     public record ParseResult(List<String> headers, List<List<String>> rows) {}
 
+    /** Preview of a single member to be imported, including mapped profile fields and contacts. */
     public record MemberPreview(
             String firstName,
             String lastName,
@@ -466,10 +508,13 @@ public class MemberImportService {
             Map<String, String> profileFields,
             List<ContactPreview> contacts) {}
 
+    /** Preview of a guardian/contact extracted from the CSV row. */
     public record ContactPreview(String name, String firstName, String lastName, String phone, String email) {}
 
+    /** Result of a member import preview with member entries and any warnings. */
     public record PreviewResult(List<MemberPreview> members, List<String> warnings) {}
 
+    /** Result of a member import operation with counts and warnings. */
     public record ImportResult(
             int membersCreated,
             int managersCreated,
@@ -478,6 +523,7 @@ public class MemberImportService {
             int profileFieldsSet,
             List<String> warnings) {}
 
+    /** Result of a team member import operation with counts and warnings. */
     public record TeamImportResult(
             int membersCreated, int groupsAssigned, int profileFieldsSet, List<String> warnings) {}
 }

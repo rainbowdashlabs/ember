@@ -58,6 +58,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+/**
+ * Routes for event management including CRUD operations on events, categories, breaks,
+ * registrations, event fields, restrictions, PDF export, and notification handling.
+ */
 @Singleton
 public class EventRoutes implements Routes {
     private final EventService eventService;

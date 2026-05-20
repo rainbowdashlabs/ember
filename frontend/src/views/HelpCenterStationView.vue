@@ -30,6 +30,29 @@ const pageSubtitle = computed(() => t('helpCenter.title'))
 <template>
   <SidebarLayout :subtitle="pageSubtitle" :title="pageTitle" :station-name="t('helpCenter.title')">
     <template #sidebar="{ close }">
+      <SidebarGroup :icon="['fas', 'book']" :label="t('helpCenter.basics.sidebar')" prefix="/helpcenter/station/basics">
+        <SidebarLink :icon="['fas', 'house']" name="help-welcome"
+                     to="/helpcenter/station/basics" @navigate="close">
+          {{ t('helpCenter.basics.sidebarWelcome') }}
+        </SidebarLink>
+        <SidebarLink :icon="['fas', 'circle-info']" name="help-basics-overview"
+                     to="/helpcenter/station/basics/overview" @navigate="close">
+          {{ t('helpCenter.basics.sidebarOverview') }}
+        </SidebarLink>
+        <SidebarLink :icon="['fas', 'shield']" name="help-basics-roles"
+                     to="/helpcenter/station/basics/roles" @navigate="close">
+          {{ t('helpCenter.basics.sidebarRoles') }}
+        </SidebarLink>
+        <SidebarLink :icon="['fas', 'puzzle-piece']" name="help-basics-modules"
+                     to="/helpcenter/station/basics/modules" @navigate="close">
+          {{ t('helpCenter.basics.sidebarModules') }}
+        </SidebarLink>
+        <SidebarLink :icon="['fas', 'server']" name="help-basics-hosting"
+                     to="/helpcenter/station/basics/hosting" @navigate="close">
+          {{ t('helpCenter.basics.sidebarHosting') }}
+        </SidebarLink>
+      </SidebarGroup>
+
       <SidebarGroup :icon="['fas', 'gauge']" :label="t('sidebar.dashboard')" prefix="/helpcenter/station/dashboard">
         <SidebarLink :icon="['fas', 'house']" name="help-dashboard-overview"
                      to="/helpcenter/station/dashboard/overview" @navigate="close">

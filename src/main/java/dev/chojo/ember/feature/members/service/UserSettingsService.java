@@ -15,6 +15,10 @@ import jakarta.inject.Singleton;
 
 import java.util.Map;
 
+/**
+ * Service for managing per-member user settings including notification preferences
+ * and email notification toggles.
+ */
 @Singleton
 public class UserSettingsService {
     private final UserSettingsRepository settingsRepository;

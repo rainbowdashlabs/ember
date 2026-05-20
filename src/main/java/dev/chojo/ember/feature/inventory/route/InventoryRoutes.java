@@ -34,6 +34,10 @@ import jakarta.inject.Singleton;
 import java.time.Instant;
 import java.util.List;
 
+/**
+ * Routes for inventory management including CRUD operations on inventories, sizes, items,
+ * requirements, member item assignments, and PDF export.
+ */
 @Singleton
 public class InventoryRoutes implements Routes {
     private final InventoryService inventoryService;

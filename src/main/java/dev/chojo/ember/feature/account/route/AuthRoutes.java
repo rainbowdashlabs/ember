@@ -27,6 +27,10 @@ import jakarta.inject.Singleton;
 
 import java.time.Instant;
 
+/**
+ * Routes for authentication operations including registration, login, email verification,
+ * password management, and email change confirmation.
+ */
 @Singleton
 public class AuthRoutes implements Routes {
     private final AuthService authService;
@@ -294,21 +298,32 @@ public class AuthRoutes implements Routes {
 
     // -- Request/Response records --
 
+    /** Request body for self-registration with optional station registration code. */
     public record RegisterRequest(
             String email, String firstName, String lastName, String password, String registrationCode) {}
 
+    /** Request body for login with email and password. */
     public record LoginRequest(String email, String password) {}
 
+    /** Request body containing a one-time token for verification, password set, refresh, or logout. */
     public record TokenRequest(String token) {}
 
+    /** Request body for changing a password while authenticated. */
     public record ChangePasswordRequest(String currentPassword, String newPassword) {}
 
+    /** Request body containing only an email address (used for password reset and resend verification). */
     public record EmailRequest(String email) {}
 
+    /** Request body for setting a password using an invite or reset token. */
     public record SetPasswordRequest(String token, String password) {}
 
+    /** Response body returned after successful registration. */
     public record RegisterResponse(int id, String email, String firstName, String lastName, boolean emailVerified) {}
 
+    /**
+     * Response body for login. Contains either a session token or a password change token,
+     * depending on whether a forced password change is required.
+     */
     public record LoginResponse(
             String token,
             Instant expiresAt,
@@ -316,5 +331,6 @@ public class AuthRoutes implements Routes {
             String passwordChangeToken,
             Instant passwordChangeTokenExpiresAt) {}
 
+    /** Response body for a refreshed session with the new token and expiration. */
     public record SessionResponse(String token, Instant expiresAt) {}
 }

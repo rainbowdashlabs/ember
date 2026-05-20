@@ -421,7 +421,13 @@ const router = createRouter({
             path: '/helpcenter/station',
             component: HelpCenterStationView,
             children: [
-                {path: '', redirect: {name: 'help-dashboard-overview'}},
+                {path: '', redirect: {name: 'help-welcome'}},
+                // Basics
+                {path: 'basics', name: 'help-welcome', component: () => import('@/views/helpcenter/basics/WelcomeHelp.vue')},
+                {path: 'basics/overview', name: 'help-basics-overview', component: () => import('@/views/helpcenter/basics/OverviewHelp.vue')},
+                {path: 'basics/roles', name: 'help-basics-roles', component: () => import('@/views/helpcenter/basics/RolesHelp.vue')},
+                {path: 'basics/modules', name: 'help-basics-modules', component: () => import('@/views/helpcenter/basics/ModulesHelp.vue')},
+                {path: 'basics/hosting', name: 'help-basics-hosting', component: () => import('@/views/helpcenter/basics/HostingHelp.vue')},
                 // Dashboard
                 {path: 'dashboard/overview', name: 'help-dashboard-overview', component: () => import('@/views/helpcenter/dashboardview/OverviewHelp.vue')},
                 {path: 'dashboard/statistics', name: 'help-dashboard-statistics', component: () => import('@/views/helpcenter/dashboardview/StatisticsHelp.vue')},

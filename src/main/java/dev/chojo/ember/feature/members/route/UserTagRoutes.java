@@ -32,6 +32,10 @@ import jakarta.inject.Singleton;
 
 import java.util.List;
 
+/**
+ * Routes for managing user tags including CRUD operations on tag definitions
+ * and assigning/removing tags to/from members.
+ */
 @Singleton
 public class UserTagRoutes implements Routes {
     private final UserTagService tagService;

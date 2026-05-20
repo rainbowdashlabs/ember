@@ -37,6 +37,10 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Routes for member group management including CRUD operations on groups,
+ * group membership, and group role assignments.
+ */
 @Singleton
 public class MemberGroupRoutes implements Routes {
     private final MemberGroupService groupService;

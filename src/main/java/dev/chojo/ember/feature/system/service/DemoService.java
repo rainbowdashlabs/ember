@@ -70,6 +70,10 @@ import java.util.concurrent.TimeUnit;
 
 import javax.sql.DataSource;
 
+/**
+ * Service for managing the demo environment including database reset, demo data seeding
+ * with sample members, groups, attendance, events, inventory, forms, and notifications.
+ */
 @Singleton
 public class DemoService {
     private static final Logger log = LoggerFactory.getLogger(DemoService.class);

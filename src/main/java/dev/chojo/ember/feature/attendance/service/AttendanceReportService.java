@@ -43,6 +43,10 @@ import java.util.Set;
 
 import static org.slf4j.LoggerFactory.getLogger;
 
+/**
+ * Service for building attendance reports, managing report presets, and exporting reports as PDF.
+ * Supports filtering by date range, groups, and members, with monthly aggregation.
+ */
 @Singleton
 public class AttendanceReportService {
     private static final Logger log = getLogger(AttendanceReportService.class);
@@ -77,19 +81,26 @@ public class AttendanceReportService {
 
     // -- Records for API responses --
 
+    /** Retrieves all report presets for a station. */
     public List<AttendanceReportPreset> findPresets(int stationId) {
         return attendanceRepository.findPresets(stationId);
     }
 
+    /** Creates a new report preset with the given filter configuration. */
     public AttendanceReportPreset createPreset(
             int stationId, String name, String roleName, Integer groupId, String period, String rounding) {
         return attendanceRepository.createPreset(stationId, name, roleName, groupId, period, rounding);
     }
 
+    /** Deletes a report preset by its identifier. */
     public boolean deletePreset(int id) {
         return attendanceRepository.deletePreset(id);
     }
 
+    /**
+     * Builds an attendance report with member summaries, session data, and monthly breakdowns.
+     * Filters members by role or group and aggregates hours within the given time range.
+     */
     public ReportData buildReport(
             int stationId, String roleName, Integer groupId, Instant from, Instant to, String rounding) {
         ZoneId zone = resolveTimezone(stationId);
@@ -238,6 +249,12 @@ public class AttendanceReportService {
         return new ReportData(filterLabel, memberSummaries, sessionDataList, monthlySummaryList);
     }
 
+    /**
+     * Exports an attendance report as a PDF using Typst templates.
+     * Includes station logo, member hours, session details, and monthly summaries.
+     *
+     * @return the PDF bytes, or empty if generation fails
+     */
     public Optional<byte[]> exportReportPdf(
             int stationId,
             String roleName,
@@ -430,14 +447,17 @@ public class AttendanceReportService {
         }
     }
 
+    /** Aggregated attendance report with filter label, members, sessions, and monthly breakdowns. */
     public record ReportData(
             String filterLabel,
             List<MemberSummary> members,
             List<SessionData> sessions,
             List<MonthSummary> monthlySummaries) {}
 
+    /** Summary of a member's attendance across all sessions in the report period. */
     public record MemberSummary(int memberId, String name, double totalHours, int sessionCount, int presentCount) {}
 
+    /** Data for a single attendance session including per-member entries. */
     public record SessionData(
             int sessionId,
             String title,
@@ -448,8 +468,10 @@ public class AttendanceReportService {
             int presentCount,
             List<SessionMemberEntry> entries) {}
 
+    /** A member's attendance entry within a specific session. */
     public record SessionMemberEntry(
             int memberId, String name, String status, String checkIn, String checkOut, double hours) {}
 
+    /** Monthly breakdown with per-member summaries and session details. */
     public record MonthSummary(String month, List<MemberSummary> members, List<SessionData> sessions) {}
 }

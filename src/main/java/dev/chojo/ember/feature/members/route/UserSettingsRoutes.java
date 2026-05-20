@@ -26,6 +26,10 @@ import java.util.EnumMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+/**
+ * Routes for user-specific settings including notification preferences
+ * and email notification configuration.
+ */
 @Singleton
 public class UserSettingsRoutes implements Routes {
     private final UserSettingsService settingsService;

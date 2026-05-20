@@ -28,6 +28,10 @@ import jakarta.inject.Singleton;
 
 import java.util.List;
 
+/**
+ * Routes for inventory check operations including starting, locking, recording item checks,
+ * and completing inventory checks with result summaries.
+ */
 @Singleton
 public class InventoryCheckRoutes implements Routes {
     private final InventoryCheckService checkService;

@@ -18,6 +18,10 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
+/**
+ * Service for station member operations including membership queries, role management
+ * with ownership protection, and member-account relationships.
+ */
 @Singleton
 public class StationMemberService {
     private final StationMemberRepository memberRepository;

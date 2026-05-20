@@ -38,6 +38,10 @@ import java.util.Set;
 
 import static org.slf4j.LoggerFactory.getLogger;
 
+/**
+ * Service for exporting event data as PDF using Typst templates.
+ * Supports configurable columns, calendar views, and registration lists.
+ */
 @Singleton
 public class EventExportService {
     private static final Logger log = getLogger(EventExportService.class);

@@ -35,6 +35,10 @@ import jakarta.inject.Singleton;
 
 import java.util.List;
 
+/**
+ * Routes for station member management including listing, creating, deleting members,
+ * role assignment, display name management, and GDPR anonymization on deletion.
+ */
 @Singleton
 public class StationMemberRoutes implements Routes {
     private final StationMemberService memberService;

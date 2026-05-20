@@ -26,6 +26,9 @@ import jakarta.inject.Singleton;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 
+/**
+ * Routes for importing members from CSV files with configurable column mappings.
+ */
 @Singleton
 public class MemberImportRoutes implements Routes {
     private static final int MAX_CSV_BYTES = 2 * 1024 * 1024; // 2 MB

@@ -28,6 +28,10 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+/**
+ * Service for attendance management including templates, sessions, entries, check-in/out,
+ * absences, and event synchronization.
+ */
 @Singleton
 public class AttendanceService {
     private final AttendanceRepository attendanceRepository;

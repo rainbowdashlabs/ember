@@ -13,6 +13,10 @@ import io.javalin.http.ForbiddenResponse;
 import java.util.List;
 import java.util.Set;
 
+/**
+ * Utility class for validating role assignment changes, enforcing protected role rules
+ * and caller authorization checks.
+ */
 public final class RoleValidation {
     private RoleValidation() {}
 

@@ -752,6 +752,7 @@ public class StationImportService {
 
     // -- Inner classes --
 
+    /** Maps old entity IDs from the source station to new IDs in the target station during import. */
     public static class IdRemapper {
         final Map<String, Map<Integer, Integer>> maps = new HashMap<>();
 
@@ -764,6 +765,7 @@ public class StationImportService {
         }
     }
 
+    /** Tracks the progress of an asynchronous station import, using volatile fields for thread safety. */
     public static class ImportProgress {
         private final int stationId;
         private final String stationName;
@@ -829,5 +831,6 @@ public class StationImportService {
         }
     }
 
+    /** Result of a station import containing the new station ID, name, and total imported entities. */
     public record ImportResult(int stationId, String stationName, int totalEntities) {}
 }

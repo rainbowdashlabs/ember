@@ -15,6 +15,10 @@ import jakarta.inject.Singleton;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * Service for managing user tags including CRUD on tag definitions
+ * and member-tag assignments within a station.
+ */
 @Singleton
 public class UserTagService {
     private final UserTagRepository tagRepository;

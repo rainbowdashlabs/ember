@@ -25,6 +25,10 @@ import jakarta.inject.Singleton;
 import java.time.Instant;
 import java.util.Map;
 
+/**
+ * Routes for notification management including listing, acknowledging,
+ * and bulk-acknowledging notifications for the current user.
+ */
 @Singleton
 public class NotificationRoutes implements Routes {
     private final NotificationService notificationService;

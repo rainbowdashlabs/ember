@@ -32,6 +32,10 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+/**
+ * Service for profile field management including field definitions, member values,
+ * change tracking with manager attribution, and profile completeness validation.
+ */
 @Singleton
 public class ProfileFieldService {
     private static final Duration MERGE_WINDOW = Duration.ofMinutes(5);

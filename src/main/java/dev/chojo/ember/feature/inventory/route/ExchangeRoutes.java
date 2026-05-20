@@ -44,6 +44,10 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 
+/**
+ * Routes for inventory exchange requests including creating, reviewing, shipping, completing,
+ * and cancelling exchanges, plus PDF export of exchange logs.
+ */
 @Singleton
 public class ExchangeRoutes implements Routes {
     private final ExchangeService exchangeService;

@@ -98,6 +98,7 @@ export default {
         audienceTag4: 'Pfadfinder',
         ctaTitle: 'Bereit loszulegen?',
         ctaText: 'Melde deine Wache kostenlos an und starte noch heute. Die Einrichtung dauert nur wenige Minuten.',
+        helpCenter: 'Hilfe-Center',
     },
     login: {
         title: 'Anmelden',
@@ -393,6 +394,296 @@ export default {
             memberManager: 'Erziehungsberechtigter',
             team: 'Team',
             manager: 'Verwalter',
+        },
+        welcome: {
+            title: 'Willkommen im Hilfe-Center',
+            subtitle: 'Hier findest du Anleitungen und Erklärungen zu allen Funktionen von Ember.',
+            whatIs: 'Was ist das Hilfe-Center?',
+            whatIsText: 'Das Hilfe-Center erklärt dir, wie Ember funktioniert. Egal ob du gerade erst angefangen hast oder schon länger dabei bist — hier findest du Antworten.',
+            whatIsText2: 'Jede Seite im Hilfe-Center erklärt einen Bereich von Ember. Du siehst Beispiele, wie die Seiten aussehen, und bekommst Tipps zur Bedienung.',
+            howToUse: 'Wie benutze ich das Hilfe-Center?',
+            howToUseText: 'Links in der Seitenleiste findest du alle Themen. Klicke einfach auf ein Thema, um mehr darüber zu erfahren.',
+            howToUseText2: 'Auf vielen Hilfe-Seiten kannst du zwischen verschiedenen Rollen wechseln (z.B. Mitglied, Team, Verwalter), um zu sehen, was für dich relevant ist.',
+            basicsTitle: 'Grundlagen',
+            basicsText: 'Bevor du dich durch die einzelnen Bereiche klickst, schau dir am besten die Grundlagen an:',
+            section: {
+                overview: {
+                    title: 'Was ist Ember?',
+                    desc: 'Überblick über das Produkt und seine Funktionen',
+                },
+                roles: {
+                    title: 'Rollen & Berechtigungen',
+                    desc: 'Wer darf was? Das Berechtigungssystem erklärt',
+                },
+                modules: {
+                    title: 'Module & Navigation',
+                    desc: 'Welche Bereiche gibt es und wie schaltet man sie an/aus',
+                },
+                hosting: {
+                    title: 'Selbst betreiben',
+                    desc: 'Technische Infos zum Hosten einer eigenen Instanz',
+                },
+            },
+            otherPages: 'Weitere Hilfe-Seiten',
+            otherPagesText: 'Neben den Grundlagen gibt es detaillierte Hilfe-Seiten zu jedem Bereich der Anwendung:',
+            goToStation: 'Wachen-Hilfe',
+            goToAdmin: 'Admin-Hilfe',
+            tip: 'Du kannst das Hilfe-Center jederzeit über das Fragezeichen-Symbol in der oberen Leiste erreichen.',
+        },
+        basics: {
+            sidebar: 'Grundlagen',
+            sidebarWelcome: 'Willkommen',
+            sidebarOverview: 'Was ist Ember?',
+            sidebarRoles: 'Rollen & Berechtigungen',
+            sidebarModules: 'Module & Navigation',
+            sidebarHosting: 'Selbst betreiben',
+            overview: {
+                title: 'Was ist Ember?',
+                subtitle: 'Ein Überblick über das Produkt, seine Ziele und Funktionen.',
+                whatIs: 'Wofür ist Ember da?',
+                whatIsText: 'Ember ist eine Web-Anwendung zur Verwaltung von Jugendfeuerwehren und ähnlichen Jugendgruppen. Es hilft dir, Mitglieder, Anwesenheit, Ausrüstung, Termine und vieles mehr digital zu organisieren.',
+                whatIsText2: 'Statt Papierlisten, Excel-Tabellen und verstreuter Kommunikation bietet Ember alles an einem Ort — zugänglich über den Browser auf Handy, Tablet oder Computer.',
+                whoFor: 'Für wen ist Ember?',
+                whoForText: 'Ember wurde hauptsächlich für Jugendfeuerwehren entwickelt, eignet sich aber für alle Gruppen, die:',
+                whoFor1: 'Mitglieder und deren Daten verwalten müssen',
+                whoFor2: 'Regelmäßige Übungstermine haben und Anwesenheit erfassen wollen',
+                whoFor3: 'Ausrüstung an Mitglieder ausgeben und verfolgen',
+                whoFor4: 'Termine, Neuigkeiten und Umfragen organisieren',
+                features: 'Was kann Ember alles?',
+                featuresText: 'Ember besteht aus verschiedenen Modulen, die du einzeln aktivieren oder deaktivieren kannst:',
+                feature: {
+                    members: {
+                        title: 'Mitgliederverwaltung',
+                        desc: 'Mitglieder anlegen, Gruppen zuweisen, Profile pflegen, Erziehungsberechtigte verknüpfen.',
+                    },
+                    attendance: {
+                        title: 'Anwesenheit',
+                        desc: 'Übungstermine erstellen, An- und Abmeldung erfassen, Berichte und PDF-Export.',
+                    },
+                    inventory: {
+                        title: 'Inventar',
+                        desc: 'Ausrüstung verwalten, Größen zuweisen, Tausch-Anfragen, Inventurprüfungen.',
+                    },
+                    events: {
+                        title: 'Veranstaltungen',
+                        desc: 'Termine planen, Anmeldungen verwalten, Einschränkungen nach Gruppe oder Rolle.',
+                    },
+                    news: {
+                        title: 'Neuigkeiten',
+                        desc: 'Ankündigungen veröffentlichen, Kommentare, Sichtbarkeit nach Gruppen.',
+                    },
+                    forms: {
+                        title: 'Umfragen',
+                        desc: 'Umfragen erstellen mit verschiedenen Fragetypen, Ergebnisse auswerten.',
+                    },
+                    lostAndFound: {
+                        title: 'Fundsachen',
+                        desc: 'Verlorene und gefundene Gegenstände melden und zuordnen.',
+                    },
+                },
+                concepts: 'Wichtige Begriffe',
+                conceptsText: 'Damit du die Hilfe-Seiten besser verstehst, hier die wichtigsten Begriffe:',
+                conceptStation: 'Wache (Station)',
+                conceptStationText: 'Eine Wache ist deine Jugendfeuerwehr oder Gruppe. Jede Wache hat eigene Mitglieder, Einstellungen und Daten.',
+                conceptAccount: 'Konto (Account)',
+                conceptAccountText: 'Dein persönliches Benutzerkonto mit E-Mail und Passwort. Ein Konto kann Mitglied in mehreren Wachen sein.',
+                conceptMember: 'Mitglied (Member)',
+                conceptMemberText: 'Deine Mitgliedschaft in einer bestimmten Wache. Hier werden deine Rollen, Gruppen und Profildaten gespeichert.',
+                conceptGroup: 'Gruppe (Group)',
+                conceptGroupText: 'Eine Einteilung innerhalb der Wache, z.B. nach Alter oder Erfahrung. Gruppen können eigene Rollen haben.',
+                privacy: 'Datenschutz',
+                privacyText: 'Ember nimmt Datenschutz ernst:',
+                privacy1: 'Alle Daten bleiben auf dem Server, den du oder dein Betreiber kontrolliert.',
+                privacy2: 'Jedes Mitglied kann seine Daten als JSON exportieren (DSGVO-Export).',
+                privacy3: 'Beim Löschen eines Mitglieds werden persönliche Daten anonymisiert.',
+                tip: 'Ember ist Open Source (AGPL-3.0). Du kannst den Quellcode einsehen und eigene Anpassungen vornehmen.',
+            },
+            roles: {
+                title: 'Rollen & Berechtigungen',
+                subtitle: 'Wie das Berechtigungssystem von Ember funktioniert.',
+                whatAre: 'Was sind Rollen?',
+                whatAreText: 'Rollen bestimmen, was ein Mitglied in Ember sehen und tun darf. Jedes Mitglied bekommt eine oder mehrere Rollen zugewiesen.',
+                whatAreText2: 'Manche Funktionen sind nur für bestimmte Rollen sichtbar. Zum Beispiel kann nur ein Verwalter neue Mitglieder einladen.',
+                overview: 'Die Rollen im Überblick',
+                role: {
+                    member: {
+                        name: 'Mitglied',
+                        desc: 'Die Standardrolle für alle Mitglieder. Kann das eigene Profil bearbeiten, Anwesenheit sehen und sich zu Terminen anmelden.',
+                        example: 'Beispiel: Ein Jugendlicher in der Jugendfeuerwehr.',
+                    },
+                    guardian: {
+                        name: 'Erziehungsberechtigter',
+                        desc: 'Kann das Profil und die Daten von zugewiesenen Mitgliedern einsehen und bearbeiten. Sieht auch deren Anmeldungen und Ausrüstung.',
+                        example: 'Beispiel: Ein Elternteil, das die Daten seines Kindes verwaltet.',
+                    },
+                    team: {
+                        name: 'Team',
+                        desc: 'Erweiterte Rechte für Betreuer und Ausbilder. Kann Anwesenheit erfassen, Mitgliederlisten einsehen und Statistiken sehen.',
+                        example: 'Beispiel: Ein Betreuer oder Jugendwart-Assistent.',
+                    },
+                    manager: {
+                        name: 'Verwalter',
+                        desc: 'Voller Zugriff auf alle Verwaltungsfunktionen der Wache. Kann Mitglieder einladen, Rollen vergeben, Module konfigurieren und Daten exportieren.',
+                        example: 'Beispiel: Der Jugendwart oder ein Stellvertreter.',
+                    },
+                    admin: {
+                        name: 'Administrator',
+                        desc: 'Systemweite Verwaltung. Kann neue Wachen erstellen, alle Wachen verwalten und die gesamte Instanz konfigurieren.',
+                        example: 'Beispiel: Die Person, die den Server betreibt.',
+                    },
+                },
+                hierarchy: 'Die Rollen-Hierarchie',
+                hierarchyText: 'Rollen sind hierarchisch aufgebaut. Höhere Rollen beinhalten automatisch die Rechte der darunterliegenden Rollen:',
+                hierarchyText2: 'Das bedeutet: Ein Verwalter kann alles, was ein Teammitglied kann, und ein Teammitglied alles, was ein normales Mitglied kann.',
+                management: 'Spezielle Verwaltungsrollen',
+                managementText: 'Zwischen Team und Verwalter gibt es spezielle Rollen, die einzelne Verwaltungsbereiche freischalten. So kannst du Verantwortung aufteilen, ohne jemandem vollen Zugriff zu geben:',
+                mgmt: {
+                    attendanceManagement: {
+                        name: 'Anwesenheitsverwaltung',
+                        desc: 'Kann Anwesenheitstermine erstellen und bearbeiten.',
+                    },
+                    inventoryManagement: {
+                        name: 'Inventarverwaltung',
+                        desc: 'Kann Ausrüstung anlegen, zuweisen und verwalten.',
+                    },
+                    eventManagement: {
+                        name: 'Terminverwaltung',
+                        desc: 'Kann Veranstaltungen erstellen und Anmeldungen verwalten.',
+                    },
+                    memberManagement: {
+                        name: 'Mitgliederverwaltung',
+                        desc: 'Kann Mitglieder einladen, bearbeiten und Rollen zuweisen.',
+                    },
+                    newsManagement: {
+                        name: 'Nachrichtenverwaltung',
+                        desc: 'Kann Neuigkeiten erstellen, bearbeiten und löschen.',
+                    },
+                    pollManagement: {
+                        name: 'Umfragenverwaltung',
+                        desc: 'Kann Umfragen erstellen und Ergebnisse einsehen.',
+                    },
+                    lostAndFoundManagement: {
+                        name: 'Fundsachenverwaltung',
+                        desc: 'Kann Fundsachen verwalten und zuordnen.',
+                    },
+                    attendanceExport: {
+                        name: 'Anwesenheits-Export',
+                        desc: 'Kann Anwesenheitsberichte als PDF exportieren.',
+                    },
+                },
+                groups: 'Gruppen und Rollen',
+                groupsText: 'Gruppen können eigene Rollen zugewiesen bekommen. Alle Mitglieder einer Gruppe erben diese Rollen automatisch.',
+                groupsText2: 'Beispiel: Die Gruppe „Ausbilder" bekommt die Rolle „Anwesenheitsverwaltung". Jeder, der in dieser Gruppe ist, kann dann Anwesenheit erfassen.',
+                owner: 'Wachen-Eigentümer',
+                ownerText: 'Ein Verwalter kann als Eigentümer der Wache festgelegt werden. Der Eigentümer hat besondere Rechte:',
+                owner1: 'Die Verwalter-Rolle kann dem Eigentümer nicht entzogen werden.',
+                owner2: 'Nur der Eigentümer kann die Wache löschen.',
+                owner3: 'Der Eigentümer kann die Eigentümerschaft an einen anderen Verwalter übertragen.',
+                tip: 'Tipp: Vergib nur so viele Rechte, wie nötig. Nutze die speziellen Verwaltungsrollen, um Aufgaben zu verteilen, ohne vollen Zugriff zu geben.',
+            },
+            modules: {
+                title: 'Module & Navigation',
+                subtitle: 'Wie Ember aufgebaut ist und wie du dich zurechtfindest.',
+                whatAre: 'Was sind Module?',
+                whatAreText: 'Ember ist in Module aufgeteilt. Jedes Modul deckt einen bestimmten Bereich ab — zum Beispiel Anwesenheit, Inventar oder Termine.',
+                whatAreText2: 'Verwalter können Module ein- und ausschalten. Wenn ein Modul deaktiviert ist, erscheint es nicht in der Seitenleiste und ist für niemanden sichtbar.',
+                available: 'Verfügbare Module',
+                module: {
+                    attendance: {name: 'Anwesenheit', desc: 'Übungstermine erfassen, An-/Abmeldung, Berichte'},
+                    events: {name: 'Veranstaltungen', desc: 'Termine planen, Anmeldungen verwalten'},
+                    inventory: {name: 'Inventar', desc: 'Ausrüstung verwalten, Tausch, Inventur'},
+                    news: {name: 'Neuigkeiten', desc: 'Ankündigungen und Kommentare'},
+                    forms: {name: 'Umfragen', desc: 'Umfragen erstellen und auswerten'},
+                },
+                active: 'Aktiv',
+                toggle: 'Module ein-/ausschalten',
+                toggleText: 'Als Verwalter findest du die Modul-Einstellungen unter Wache verwalten. Dort kannst du einzelne Module per Schalter aktivieren oder deaktivieren:',
+                toggleText2: 'Deaktivierte Module sind komplett ausgeblendet. Keine Daten gehen verloren — wenn du ein Modul wieder aktivierst, sind alle Daten noch da.',
+                navigation: 'Navigation in Ember',
+                navigationText: 'Ember hat eine Seitenleiste links mit allen verfügbaren Bereichen. So findest du dich zurecht:',
+                nav1: 'Dashboard — Deine persönliche Startseite mit Benachrichtigungen und Übersicht.',
+                nav2: 'Die einzelnen Module (Mitglieder, Inventar, Anwesenheit etc.) — je nach aktivierten Modulen.',
+                nav3: 'Profil — Dein persönliches Profil, Einstellungen und Abwesenheiten.',
+                nav4: 'Wache verwalten — Einstellungen der Wache (nur für Verwalter).',
+                notifications: 'Benachrichtigungen',
+                notificationsText: 'Ember informiert dich über wichtige Änderungen per Benachrichtigung im Dashboard. Die Zahl neben dem Glockensymbol zeigt, wie viele ungelesene Benachrichtigungen du hast.',
+                notificationsText2: 'Du kannst in deinen Einstellungen festlegen, welche Benachrichtigungen du auch per E-Mail erhalten möchtest.',
+                tip: 'Du brauchst nicht alle Module gleichzeitig. Fang mit dem an, was ihr am meisten braucht, und aktiviere weitere Module nach und nach.',
+            },
+            hosting: {
+                title: 'Ember selbst betreiben',
+                subtitle: 'Technische Anleitung zum Hosting einer eigenen Ember-Instanz.',
+                whatNeeded: 'Was wird benötigt?',
+                whatNeededText: 'Um Ember selbst zu betreiben, brauchst du:',
+                req: {
+                    server: {
+                        name: 'Server mit Docker',
+                        desc: 'Ein Linux-Server (VPS oder dediziert) mit Docker und Docker Compose. Mindestens 1 GB RAM empfohlen.',
+                    },
+                    database: {
+                        name: 'PostgreSQL-Datenbank',
+                        desc: 'Ember speichert alle Daten in PostgreSQL. Version 14 oder neuer.',
+                    },
+                    mail: {
+                        name: 'E-Mail-Server (SMTP)',
+                        desc: 'Für Einladungen, Passwort-Reset und Benachrichtigungen. Jeder SMTP-Anbieter funktioniert.',
+                    },
+                    domain: {
+                        name: 'Domain mit HTTPS',
+                        desc: 'Eine eigene Domain mit SSL-Zertifikat (z.B. über Let\'s Encrypt). Pflicht für sicheren Betrieb.',
+                    },
+                },
+                docker: 'Installation mit Docker',
+                dockerText: 'Der einfachste Weg ist Docker Compose. Erstelle eine docker-compose.yml:',
+                dockerCompose: `services:
+  ember:
+    image: ghcr.io/rainbowdashlabs/ember:latest
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./config:/app/config
+      - ./data:/app/data
+    depends_on:
+      - postgres
+
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: ember
+      POSTGRES_USER: ember
+      POSTGRES_PASSWORD: sicher-aendern
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:`,
+                dockerText2: 'Starte alles mit docker compose up -d. Beim ersten Start wird automatisch eine Konfigurationsdatei unter config/ erstellt und ein Admin-Konto mit zufälligem Passwort generiert (in der Konsole sichtbar).',
+                config: 'Konfiguration',
+                configText: 'Die Konfiguration liegt in config/config.yml. Die wichtigsten Einstellungen:',
+                configDb: 'Datenbank',
+                configDbText: 'Host, Port, Datenbankname, Benutzername und Passwort für PostgreSQL.',
+                configMail: 'E-Mail',
+                configMailText: 'SMTP-Host, Port, Benutzername, Passwort und Absenderadresse. Jede Wache kann zusätzlich einen eigenen Mail-Server konfigurieren.',
+                configUrl: 'Base URL',
+                configUrlText: 'Die öffentliche URL deiner Instanz (z.B. https://ember.deine-feuerwehr.de). Wird für Links in E-Mails verwendet.',
+                configAuth: 'Authentifizierung',
+                configAuthText: 'Sitzungsdauer, Token-Gültigkeit und andere Sicherheitseinstellungen.',
+                reverseProxy: 'Reverse Proxy',
+                reverseProxyText: 'Ember läuft standardmäßig auf Port 8080. Für den Produktivbetrieb solltest du einen Reverse Proxy davor schalten:',
+                proxy1: 'Nginx, Caddy oder Traefik als Reverse Proxy verwenden.',
+                proxy2: 'HTTPS mit SSL-Zertifikat (z.B. Let\'s Encrypt) einrichten.',
+                proxy3: 'WebSocket-Verbindungen durchleiten (für Echtzeit-Updates).',
+                security: 'Sicherheitshinweise',
+                securityText: 'Ember verarbeitet personenbezogene Daten von Minderjährigen. Stelle sicher, dass dein Server aktuell und sicher konfiguriert ist. Verwende starke Passwörter, halte das System aktuell und erstelle regelmäßige Backups.',
+                updates: 'Updates',
+                updatesText: 'Ember wird als Docker-Image bereitgestellt. Zum Aktualisieren:',
+                updatesText2: 'Ziehe das neueste Image mit docker compose pull und starte neu mit docker compose up -d. Datenbank-Migrationen laufen automatisch beim Start.',
+                backups: 'Backups',
+                backupsText: 'Sichere regelmäßig:',
+                backup1: 'Die PostgreSQL-Datenbank (z.B. mit pg_dump).',
+                backup2: 'Den config/ und data/ Ordner (Konfiguration, Vorlagen, Avatare).',
+                tip: 'Teste Updates zuerst in einer Testumgebung, bevor du sie auf dem Produktivserver einspielst.',
+            },
         },
         dashboard: {
             title: 'Dashboard — Übersicht',

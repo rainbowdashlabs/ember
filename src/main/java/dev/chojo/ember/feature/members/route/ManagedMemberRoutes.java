@@ -44,6 +44,10 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+/**
+ * Routes for guardians/managers to view and manage members they are responsible for,
+ * including profile fields, inventory items, and GDPR data export.
+ */
 @Singleton
 public class ManagedMemberRoutes implements Routes {
     private static final Set<Roles> TEAM_ROLES = Set.of(

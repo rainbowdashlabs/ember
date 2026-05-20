@@ -25,6 +25,10 @@ import jakarta.inject.Singleton;
 
 import java.util.List;
 
+/**
+ * Routes for tracking and acknowledging profile field changes made by managers,
+ * including change history and per-member summaries.
+ */
 @Singleton
 public class ProfileFieldChangeRoutes implements Routes {
     private final ProfileFieldService profileFieldService;

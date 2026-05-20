@@ -20,6 +20,10 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
+/**
+ * Service for member group operations including CRUD, membership management,
+ * group role assignments, and group-based queries.
+ */
 @Singleton
 public class MemberGroupService {
     private final MemberGroupRepository groupRepository;

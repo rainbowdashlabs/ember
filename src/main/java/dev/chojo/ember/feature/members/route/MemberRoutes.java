@@ -26,6 +26,10 @@ import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
+/**
+ * Routes for member account management including inviting new members,
+ * updating account details, and email change confirmation.
+ */
 @Singleton
 public class MemberRoutes implements Routes {
     private final AuthService authService;

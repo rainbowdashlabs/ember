@@ -187,6 +187,12 @@ const highlights = [
               {{ t('landing.demo') }}
             </SecondaryButton>
           </a>
+          <router-link to="/helpcenter/station/basics">
+            <SecondaryButton class="text-base px-6 py-3">
+              <font-awesome-icon :icon="['fas', 'circle-question']" class="mr-2"/>
+              {{ t('landing.helpCenter') }}
+            </SecondaryButton>
+          </router-link>
         </div>
       </div>
     </section>

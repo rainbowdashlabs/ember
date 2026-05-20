@@ -24,6 +24,9 @@ import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
+/**
+ * Routes for saving and managing member list filter presets per user.
+ */
 @Singleton
 public class SavedFilterRoutes implements Routes {
     private final SavedFilterRepository repository;

@@ -13,6 +13,10 @@ import jakarta.inject.Singleton;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * Service for managing station registration codes that allow self-registration
+ * with automatic group assignment and configurable usage limits.
+ */
 @Singleton
 public class RegistrationCodeService {
     private final RegistrationCodeRepository codeRepository;
