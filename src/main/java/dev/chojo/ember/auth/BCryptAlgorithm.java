@@ -10,6 +10,9 @@ import at.favre.lib.crypto.bcrypt.BCrypt;
 import java.security.SecureRandom;
 import java.util.Base64;
 
+/**
+ * BCrypt-based password hashing algorithm with a cost factor of 12.
+ */
 public class BCryptAlgorithm implements HashAlgorithm {
     private static final int COST = 12;
     private static final SecureRandom RANDOM = new SecureRandom();

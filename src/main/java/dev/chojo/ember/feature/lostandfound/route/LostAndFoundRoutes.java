@@ -34,6 +34,11 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.Set;
 
+/**
+ * HTTP routes for managing lost and found items. Provides endpoints for listing, creating,
+ * claiming, uploading images, marking as provided, and deleting items. Regular users see
+ * only unclaimed items and their own claims; managers see all items.
+ */
 @Singleton
 public class LostAndFoundRoutes implements Routes {
     private static final Set<String> ALLOWED_IMAGE_TYPES = Set.of("image/png", "image/jpeg", "image/webp");
@@ -256,6 +261,20 @@ public class LostAndFoundRoutes implements Routes {
                 item.createdAt());
     }
 
+    /**
+     * API response representing a lost and found item with resolved claimer name.
+     *
+     * @param id            the item ID
+     * @param stationId     the station ID
+     * @param description   the item description
+     * @param foundAt       the date the item was found (ISO format)
+     * @param hasImage      whether an image is attached
+     * @param claimedBy     the claiming member ID (null if unclaimed)
+     * @param claimedByName the display name of the claimer (null if unclaimed)
+     * @param claimedAt     the claim timestamp (null if unclaimed)
+     * @param createdBy     the reporting member ID
+     * @param createdAt     the creation timestamp
+     */
     public record LostAndFoundItemResponse(
             int id,
             int stationId,
@@ -268,7 +287,18 @@ public class LostAndFoundRoutes implements Routes {
             int createdBy,
             Instant createdAt) {}
 
+    /**
+     * Request body for creating a new lost and found item.
+     *
+     * @param description a description of the found item
+     * @param foundAt     the date the item was found (ISO format, defaults to today if null)
+     */
     public record CreateItemRequest(String description, String foundAt) {}
 
+    /**
+     * Request body for claiming a lost and found item.
+     *
+     * @param memberId the member ID to claim on behalf of (null to claim for the current user)
+     */
     public record ClaimRequest(Integer memberId) {}
 }

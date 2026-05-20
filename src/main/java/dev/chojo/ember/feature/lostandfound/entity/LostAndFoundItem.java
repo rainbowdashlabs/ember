@@ -12,6 +12,19 @@ import java.time.LocalDate;
 
 import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIMESTAMP;
 
+/**
+ * Represents a lost and found item registered at a station.
+ *
+ * @param id          the unique item identifier
+ * @param stationId   the station where the item was found
+ * @param description a textual description of the item
+ * @param foundAt     the date the item was found
+ * @param hasImage    whether an image is attached to this item
+ * @param claimedBy   the member ID who claimed the item (null if unclaimed)
+ * @param claimedAt   the timestamp when the item was claimed (null if unclaimed)
+ * @param createdBy   the member ID who reported the item
+ * @param createdAt   the timestamp when the item was registered
+ */
 public record LostAndFoundItem(
         int id,
         int stationId,
@@ -23,6 +36,7 @@ public record LostAndFoundItem(
         int createdBy,
         Instant createdAt) {
 
+    /** Creates a row mapping for database result set conversion. */
     public static RowMapping<LostAndFoundItem> map() {
         return row -> new LostAndFoundItem(
                 row.getInt("id"),

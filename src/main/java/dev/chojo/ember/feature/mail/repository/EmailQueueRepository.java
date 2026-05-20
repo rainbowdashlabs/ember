@@ -12,13 +12,32 @@ import jakarta.inject.Singleton;
 import java.time.LocalDate;
 import java.util.List;
 
+/**
+ * Repository for the email queue, managing enqueuing, fetching, status updates, rate limiting,
+ * and cleanup of outbound emails.
+ */
 @Singleton
 public class EmailQueueRepository {
 
+    /**
+     * Enqueues an email without a station association (global/system email).
+     *
+     * @param recipient the recipient email address
+     * @param subject   the email subject
+     * @param body      the HTML email body
+     */
     public void enqueue(String recipient, String subject, String body) {
         enqueue(recipient, subject, body, null);
     }
 
+    /**
+     * Enqueues an email, optionally associated with a station for per-station rate limiting.
+     *
+     * @param recipient the recipient email address
+     * @param subject   the email subject
+     * @param body      the HTML email body
+     * @param stationId the station ID (null for system emails)
+     */
     public void enqueue(String recipient, String subject, String body, Integer stationId) {
         Query.query(
                         "INSERT INTO email_queue(recipient, subject, body, station_id) VALUES(:recipient, :subject, :body, :station_id);")
@@ -30,6 +49,12 @@ public class EmailQueueRepository {
                 .insert();
     }
 
+    /**
+     * Atomically fetches pending emails and marks them as SENDING to prevent double-processing.
+     *
+     * @param limit the maximum number of emails to fetch
+     * @return the list of emails now in SENDING state
+     */
     public List<QueuedEmail> fetchPending(int limit) {
         return Query.query("""
                             UPDATE email_queue SET status = 'SENDING'
@@ -47,24 +72,44 @@ public class EmailQueueRepository {
                 .all();
     }
 
+    /**
+     * Marks an email as successfully sent.
+     *
+     * @param id the queued email ID
+     */
     public void markSent(int id) {
         Query.query("UPDATE email_queue SET status = 'SENT' WHERE id = :id;")
                 .single(Call.of().bind("id", id))
                 .update();
     }
 
+    /**
+     * Marks an email as failed to send.
+     *
+     * @param id the queued email ID
+     */
     public void markFailed(int id) {
         Query.query("UPDATE email_queue SET status = 'FAILED' WHERE id = :id;")
                 .single(Call.of().bind("id", id))
                 .update();
     }
 
+    /**
+     * Requeues a failed email for another send attempt.
+     *
+     * @param id the queued email ID
+     */
     public void requeue(int id) {
         Query.query("UPDATE email_queue SET status = 'PENDING' WHERE id = :id;")
                 .single(Call.of().bind("id", id))
                 .update();
     }
 
+    /**
+     * Returns the number of emails currently pending in the queue.
+     *
+     * @return the pending email count
+     */
     public int pendingCount() {
         return Query.query("SELECT count(*) FROM email_queue WHERE status = 'PENDING';")
                 .single()
@@ -73,6 +118,12 @@ public class EmailQueueRepository {
                 .orElse(0);
     }
 
+    /**
+     * Gets the number of global emails sent on a given day.
+     *
+     * @param day the date to query
+     * @return the count of emails sent on that day
+     */
     public int getDailyCount(LocalDate day) {
         return Query.query("SELECT count FROM email_daily_count WHERE day = :day;")
                 .single(Call.of().bind("day", day))
@@ -81,12 +132,22 @@ public class EmailQueueRepository {
                 .orElse(0);
     }
 
+    /**
+     * Increments the daily send count for the given day, using upsert to handle first-of-day inserts.
+     *
+     * @param day the date to increment
+     */
     public void incrementDailyCount(LocalDate day) {
         Query.query("""
                 INSERT INTO email_daily_count(day, count) VALUES(:day, 1)
                 ON CONFLICT (day) DO UPDATE SET count = email_daily_count.count + 1;""").single(Call.of().bind("day", day)).insert();
     }
 
+    /**
+     * Removes sent and failed email entries and daily count records older than the specified retention period.
+     *
+     * @param keepDays the number of days to retain entries
+     */
     public void cleanupOldEntries(int keepDays) {
         Query.query(
                         "DELETE FROM email_queue WHERE status IN ('SENT', 'FAILED') AND created_at < now() - make_interval(days => :days);")
@@ -97,5 +158,14 @@ public class EmailQueueRepository {
                 .delete();
     }
 
+    /**
+     * Represents an email fetched from the queue for sending.
+     *
+     * @param id        the queue entry ID
+     * @param recipient the recipient email address
+     * @param subject   the email subject
+     * @param body      the HTML email body
+     * @param stationId the associated station ID (null for system emails)
+     */
     public record QueuedEmail(int id, String recipient, String subject, String body, Integer stationId) {}
 }

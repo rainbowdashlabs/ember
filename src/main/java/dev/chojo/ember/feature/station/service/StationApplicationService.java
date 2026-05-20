@@ -22,6 +22,10 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+/**
+ * Service for managing station applications, handling the full lifecycle from submission
+ * through email verification to admin acceptance or denial.
+ */
 @Singleton
 public class StationApplicationService {
     private final StationApplicationRepository applicationRepository;
@@ -44,6 +48,16 @@ public class StationApplicationService {
         this.emailService = emailService;
     }
 
+    /**
+     * Submits a new station application and sends a verification email to the applicant.
+     *
+     * @param firstName    the applicant's first name
+     * @param lastName     the applicant's last name
+     * @param email        the applicant's email address
+     * @param stationName  the desired station name
+     * @param introduction optional introduction text
+     * @return the created application
+     */
     public StationApplication submit(
             String firstName, String lastName, String email, String stationName, String introduction) {
         String token = UUID.randomUUID().toString();
@@ -52,6 +66,12 @@ public class StationApplicationService {
         return application;
     }
 
+    /**
+     * Verifies an application using the email verification token.
+     *
+     * @param token the verification token
+     * @return {@code true} if the application was successfully verified
+     */
     public boolean verify(String token) {
         var application = applicationRepository.findByToken(token);
         return application
@@ -59,14 +79,30 @@ public class StationApplicationService {
                 .isPresent();
     }
 
+    /**
+     * Retrieves all applications.
+     *
+     * @return a list of all applications
+     */
     public List<StationApplication> findAll() {
         return applicationRepository.findAll();
     }
 
+    /**
+     * Retrieves all pending applications.
+     *
+     * @return a list of pending applications
+     */
     public List<StationApplication> findPending() {
         return applicationRepository.findByStatus("pending");
     }
 
+    /**
+     * Finds an application by its ID.
+     *
+     * @param id the application ID
+     * @return the application, or empty if not found
+     */
     public Optional<StationApplication> findById(int id) {
         return applicationRepository.findById(id);
     }

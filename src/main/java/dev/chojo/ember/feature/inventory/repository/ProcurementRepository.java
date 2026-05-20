@@ -16,9 +16,22 @@ import java.util.Optional;
 
 import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIMESTAMP;
 
+/**
+ * Repository for managing equipment procurement requests.
+ */
 @Singleton
 public class ProcurementRepository {
 
+    /**
+     * Creates a new procurement request.
+     *
+     * @param stationId   the station ID
+     * @param inventoryId the inventory the equipment is from
+     * @param memberId    the member the equipment is being procured for
+     * @param sizeId      the requested size, or {@code null} if not applicable
+     * @param notes       additional notes
+     * @return the created procurement
+     */
     public Procurement create(int stationId, int inventoryId, int memberId, Integer sizeId, String notes) {
         return Query.query("""
                             INSERT INTO equipment_procurement(station_id, inventory_id, member_id, size_id, notes)
@@ -35,6 +48,12 @@ public class ProcurementRepository {
                 .orElseThrow();
     }
 
+    /**
+     * Finds a procurement request by its ID.
+     *
+     * @param id the procurement ID
+     * @return the procurement, or empty if not found
+     */
     public Optional<Procurement> findById(int id) {
         return Query.query("SELECT * FROM equipment_procurement WHERE id = :id;")
                 .single(Call.of().bind("id", id))
@@ -42,6 +61,12 @@ public class ProcurementRepository {
                 .first();
     }
 
+    /**
+     * Finds all procurement requests for a station, ordered by most recent first.
+     *
+     * @param stationId the station ID
+     * @return list of procurements
+     */
     public List<Procurement> findByStation(int stationId) {
         return Query.query(
                         "SELECT * FROM equipment_procurement WHERE station_id = :station_id ORDER BY requested_at DESC;")
@@ -50,6 +75,12 @@ public class ProcurementRepository {
                 .all();
     }
 
+    /**
+     * Finds open (unfulfilled) procurement requests for a station, ordered by oldest first.
+     *
+     * @param stationId the station ID
+     * @return list of open procurements
+     */
     public List<Procurement> findOpen(int stationId) {
         return Query.query(
                         "SELECT * FROM equipment_procurement WHERE station_id = :station_id AND fulfilled_at IS NULL ORDER BY requested_at ASC;")
@@ -58,6 +89,12 @@ public class ProcurementRepository {
                 .all();
     }
 
+    /**
+     * Marks a procurement request as fulfilled by setting the fulfilled timestamp.
+     *
+     * @param id the procurement ID
+     * @return {@code true} if the procurement was updated
+     */
     public boolean fulfill(int id) {
         return Query.query("UPDATE equipment_procurement SET fulfilled_at = :fulfilled_at WHERE id = :id;")
                 .single(Call.of().bind("id", id).bind("fulfilled_at", Instant.now(), INSTANT_TIMESTAMP))
@@ -65,6 +102,12 @@ public class ProcurementRepository {
                 .changed();
     }
 
+    /**
+     * Deletes a procurement request by its ID.
+     *
+     * @param id the procurement ID
+     * @return {@code true} if the procurement was deleted
+     */
     public boolean delete(int id) {
         return Query.query("DELETE FROM equipment_procurement WHERE id = :id;")
                 .single(Call.of().bind("id", id))

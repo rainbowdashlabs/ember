@@ -5,6 +5,9 @@
  */
 package dev.chojo.ember.feature.station.entity;
 
+/**
+ * Available feature modules that can be individually enabled or disabled per station.
+ */
 public enum StationModule {
     INVENTORY,
     NEWS,

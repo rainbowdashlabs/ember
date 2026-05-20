@@ -12,6 +12,22 @@ import java.util.List;
 
 import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIMESTAMP;
 
+/**
+ * Represents a recorded change to a profile field value.
+ *
+ * @param id                      the change record identifier
+ * @param fieldId                 the profile field that was changed
+ * @param memberId                the member whose field was changed
+ * @param oldValue                the previous JSON value
+ * @param newValue                the new JSON value
+ * @param changedBy               the member who made the change
+ * @param changedAt               the timestamp of the change
+ * @param requiresAcknowledgement whether this change needs to be acknowledged by a manager
+ * @param changedByName           the display name of the person who made the change
+ * @param fieldName               the name of the changed profile field
+ * @param acknowledgements        the list of acknowledgements for this change
+ * @param memberName              the display name of the member whose field was changed
+ */
 public record ProfileFieldChange(
         int id,
         int fieldId,
@@ -25,6 +41,7 @@ public record ProfileFieldChange(
         String fieldName,
         List<ProfileFieldChangeAcknowledgement> acknowledgements,
         String memberName) {
+    /** Creates a row mapping for database result set conversion. */
     public static RowMapping<ProfileFieldChange> map() {
         return row -> new ProfileFieldChange(
                 row.getInt("id"),

@@ -24,6 +24,9 @@ import java.util.Optional;
 
 import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIMESTAMP;
 
+/**
+ * Repository for managing station events, event breaks, categories, restrictions, field defaults, and registrations.
+ */
 @Singleton
 public class EventRepository {
 
@@ -32,6 +35,12 @@ public class EventRepository {
 
     // -- Events --
 
+    /**
+     * Retrieves all events for a station, ordered by event type and name.
+     *
+     * @param stationId the station ID
+     * @return the list of station events
+     */
     public List<StationEvent> findByStation(int stationId) {
         return Query.query("SELECT " + EVENT_COLUMNS
                         + " FROM station_event WHERE station_id = :station_id ORDER BY event_type, name;")
@@ -40,6 +49,12 @@ public class EventRepository {
                 .all();
     }
 
+    /**
+     * Finds a station event by its ID.
+     *
+     * @param id the event ID
+     * @return the event, if found
+     */
     public Optional<StationEvent> findById(int id) {
         return Query.query("SELECT " + EVENT_COLUMNS + " FROM station_event WHERE id = :id;")
                 .single(Call.of().bind("id", id))
@@ -47,6 +62,23 @@ public class EventRepository {
                 .first();
     }
 
+    /**
+     * Creates a new station event.
+     *
+     * @param stationId             the station this event belongs to
+     * @param name                  the event name
+     * @param description           the event description
+     * @param eventType             the recurrence type
+     * @param dayOfWeek             the ISO day of week for recurring events, or null
+     * @param startTime             the start time
+     * @param endTime               the end time
+     * @param templateId            the optional attendance template ID
+     * @param requiresRegistration  whether registration is required
+     * @param registrationDeadline  the registration deadline, or null
+     * @param requiresConfirmation  whether registrations require manager confirmation
+     * @param categoryId            the optional category ID
+     * @return the created event
+     */
     public StationEvent create(
             int stationId,
             String name,
@@ -82,6 +114,23 @@ public class EventRepository {
                 .orElseThrow();
     }
 
+    /**
+     * Updates an existing station event.
+     *
+     * @param id                    the event ID
+     * @param name                  the new event name
+     * @param description           the new description
+     * @param eventType             the new recurrence type
+     * @param dayOfWeek             the new day of week, or null
+     * @param startTime             the new start time
+     * @param endTime               the new end time
+     * @param templateId            the new template ID, or null
+     * @param requiresRegistration  whether registration is required
+     * @param registrationDeadline  the new registration deadline, or null
+     * @param requiresConfirmation  whether registrations require confirmation
+     * @param categoryId            the new category ID, or null
+     * @return true if a row was updated
+     */
     public boolean update(
             int id,
             String name,
@@ -120,6 +169,12 @@ public class EventRepository {
                 .changed();
     }
 
+    /**
+     * Deletes a station event by ID.
+     *
+     * @param id the event ID
+     * @return true if a row was deleted
+     */
     public boolean delete(int id) {
         return Query.query("DELETE FROM station_event WHERE id = :id;")
                 .single(Call.of().bind("id", id))
@@ -129,6 +184,12 @@ public class EventRepository {
 
     // -- Breaks --
 
+    /**
+     * Retrieves all event breaks for a station, ordered by start date.
+     *
+     * @param stationId the station ID
+     * @return the list of event breaks
+     */
     public List<EventBreak> findBreaksByStation(int stationId) {
         return Query.query(
                         "SELECT id, station_id, name, start_date, end_date FROM station_event_break WHERE station_id = :station_id ORDER BY start_date;")
@@ -137,6 +198,12 @@ public class EventRepository {
                 .all();
     }
 
+    /**
+     * Finds an event break by its ID.
+     *
+     * @param id the break ID
+     * @return the break, if found
+     */
     public Optional<EventBreak> findBreakById(int id) {
         return Query.query("SELECT id, station_id, name, start_date, end_date FROM station_event_break WHERE id = :id;")
                 .single(Call.of().bind("id", id))
@@ -144,6 +211,15 @@ public class EventRepository {
                 .first();
     }
 
+    /**
+     * Creates a new event break.
+     *
+     * @param stationId the station ID
+     * @param name      the break name
+     * @param startDate the first day of the break
+     * @param endDate   the last day of the break
+     * @return the created break
+     */
     public EventBreak createBreak(int stationId, String name, LocalDate startDate, LocalDate endDate) {
         return Query.query("""
                             INSERT INTO station_event_break(station_id, name, start_date, end_date)
@@ -159,6 +235,15 @@ public class EventRepository {
                 .orElseThrow();
     }
 
+    /**
+     * Updates an existing event break.
+     *
+     * @param id        the break ID
+     * @param name      the new break name
+     * @param startDate the new start date
+     * @param endDate   the new end date
+     * @return true if a row was updated
+     */
     public boolean updateBreak(int id, String name, LocalDate startDate, LocalDate endDate) {
         return Query.query(
                         "UPDATE station_event_break SET name = :name, start_date = :start_date, end_date = :end_date WHERE id = :id;")
@@ -171,6 +256,12 @@ public class EventRepository {
                 .changed();
     }
 
+    /**
+     * Deletes an event break by ID.
+     *
+     * @param id the break ID
+     * @return true if a row was deleted
+     */
     public boolean deleteBreak(int id) {
         return Query.query("DELETE FROM station_event_break WHERE id = :id;")
                 .single(Call.of().bind("id", id))
@@ -180,6 +271,12 @@ public class EventRepository {
 
     // -- Categories --
 
+    /**
+     * Retrieves all event categories for a station, ordered by position.
+     *
+     * @param stationId the station ID
+     * @return the list of event categories
+     */
     public List<EventCategory> findCategoriesByStation(int stationId) {
         return Query.query(
                         "SELECT id, station_id, name, position FROM event_category WHERE station_id = :station_id ORDER BY position;")
@@ -188,6 +285,14 @@ public class EventRepository {
                 .all();
     }
 
+    /**
+     * Creates a new event category.
+     *
+     * @param stationId the station ID
+     * @param name      the category name
+     * @param position  the display order position
+     * @return the created category
+     */
     public EventCategory createCategory(int stationId, String name, int position) {
         return Query.query(
                         "INSERT INTO event_category(station_id, name, position) VALUES(:station_id, :name, :position) RETURNING id, station_id, name, position;")
@@ -200,6 +305,14 @@ public class EventRepository {
                 .orElseThrow();
     }
 
+    /**
+     * Updates an existing event category.
+     *
+     * @param id       the category ID
+     * @param name     the new category name
+     * @param position the new display order position
+     * @return true if a row was updated
+     */
     public boolean updateCategory(int id, String name, int position) {
         return Query.query("UPDATE event_category SET name = :name, position = :position WHERE id = :id;")
                 .single(Call.of().bind("name", name).bind("position", position).bind("id", id))
@@ -207,6 +320,12 @@ public class EventRepository {
                 .changed();
     }
 
+    /**
+     * Deletes an event category by ID.
+     *
+     * @param id the category ID
+     * @return true if a row was deleted
+     */
     public boolean deleteCategory(int id) {
         return Query.query("DELETE FROM event_category WHERE id = :id;")
                 .single(Call.of().bind("id", id))
@@ -214,6 +333,13 @@ public class EventRepository {
                 .changed();
     }
 
+    /**
+     * Checks whether a given date falls within any break period for the station.
+     *
+     * @param stationId the station ID
+     * @param date      the date to check
+     * @return true if the date is within a break
+     */
     public boolean isDateInBreak(int stationId, LocalDate date) {
         return Query.query(
                         "SELECT 1 FROM station_event_break WHERE station_id = :station_id AND start_date <= :date AND end_date >= :date LIMIT 1;")
@@ -225,6 +351,12 @@ public class EventRepository {
 
     // -- Restrictions --
 
+    /**
+     * Retrieves the role IDs restricting access to an event.
+     *
+     * @param eventId the event ID
+     * @return the list of role IDs
+     */
     public List<Integer> findRoleRestrictions(int eventId) {
         return Query.query("SELECT role_id FROM event_role_restriction WHERE event_id = :event_id;")
                 .single(Call.of().bind("event_id", eventId))
@@ -232,6 +364,12 @@ public class EventRepository {
                 .all();
     }
 
+    /**
+     * Retrieves the role names restricting access to an event.
+     *
+     * @param eventId the event ID
+     * @return the list of role names
+     */
     public List<String> findRoleRestrictionNames(int eventId) {
         return Query.query("""
                             SELECT r.name FROM event_role_restriction err
@@ -242,6 +380,12 @@ public class EventRepository {
                 .all();
     }
 
+    /**
+     * Retrieves the group IDs restricting access to an event.
+     *
+     * @param eventId the event ID
+     * @return the list of group IDs
+     */
     public List<Integer> findGroupRestrictions(int eventId) {
         return Query.query("SELECT group_id FROM event_group_restriction WHERE event_id = :event_id;")
                 .single(Call.of().bind("event_id", eventId))
@@ -249,6 +393,12 @@ public class EventRepository {
                 .all();
     }
 
+    /**
+     * Replaces all role restrictions for an event by deleting existing ones and inserting the given role IDs.
+     *
+     * @param eventId the event ID
+     * @param roleIds the new role IDs to restrict access to
+     */
     public void setRoleRestrictions(int eventId, List<Integer> roleIds) {
         Query.query("DELETE FROM event_role_restriction WHERE event_id = :event_id;")
                 .single(Call.of().bind("event_id", eventId))
@@ -260,6 +410,12 @@ public class EventRepository {
         }
     }
 
+    /**
+     * Replaces all group restrictions for an event by deleting existing ones and inserting the given group IDs.
+     *
+     * @param eventId  the event ID
+     * @param groupIds the new group IDs to restrict access to
+     */
     public void setGroupRestrictions(int eventId, List<Integer> groupIds) {
         Query.query("DELETE FROM event_group_restriction WHERE event_id = :event_id;")
                 .single(Call.of().bind("event_id", eventId))
@@ -272,7 +428,10 @@ public class EventRepository {
     }
 
     /**
-     * Find all event IDs in a station that have restrictions.
+     * Finds all role restrictions for events in a station, grouped by event ID.
+     *
+     * @param stationId the station ID
+     * @return a map of event ID to list of restricted role IDs
      */
     public Map<Integer, List<Integer>> findAllRoleRestrictionsByStation(int stationId) {
         var result = new HashMap<Integer, List<Integer>>();
@@ -289,6 +448,12 @@ public class EventRepository {
         return result;
     }
 
+    /**
+     * Finds all group restrictions for events in a station, grouped by event ID.
+     *
+     * @param stationId the station ID
+     * @return a map of event ID to list of restricted group IDs
+     */
     public Map<Integer, List<Integer>> findAllGroupRestrictionsByStation(int stationId) {
         var result = new HashMap<Integer, List<Integer>>();
         Query.query("""
@@ -306,6 +471,12 @@ public class EventRepository {
 
     // -- Field Defaults --
 
+    /**
+     * Retrieves all field default configurations for an event.
+     *
+     * @param eventId the event ID
+     * @return the list of field defaults
+     */
     public List<EventFieldDefault> findFieldDefaults(int eventId) {
         return Query.query(
                         "SELECT event_id, field_id, source, value FROM event_field_default WHERE event_id = :event_id;")
@@ -314,6 +485,12 @@ public class EventRepository {
                 .all();
     }
 
+    /**
+     * Replaces all field defaults for an event by deleting existing ones and inserting the given defaults.
+     *
+     * @param eventId  the event ID
+     * @param defaults the new field default configurations
+     */
     public void setFieldDefaults(int eventId, List<EventFieldDefault> defaults) {
         Query.query("DELETE FROM event_field_default WHERE event_id = :event_id;")
                 .single(Call.of().bind("event_id", eventId))
@@ -332,6 +509,13 @@ public class EventRepository {
 
     // -- Registrations --
 
+    /**
+     * Retrieves all registrations for an event on a specific date, ordered by creation time.
+     *
+     * @param eventId   the event ID
+     * @param eventDate the specific occurrence date
+     * @return the list of registrations
+     */
     public List<EventRegistration> findRegistrations(int eventId, LocalDate eventDate) {
         return Query.query(
                         "SELECT id, event_id, member_id, event_date, status, created_at, created_by FROM event_registration WHERE event_id = :event_id AND event_date = :event_date ORDER BY created_at;")
@@ -340,6 +524,12 @@ public class EventRepository {
                 .all();
     }
 
+    /**
+     * Retrieves all registrations for an event across all dates, ordered by date descending, then status and creation time.
+     *
+     * @param eventId the event ID
+     * @return the list of registrations
+     */
     public List<EventRegistration> findAllRegistrations(int eventId) {
         return Query.query(
                         "SELECT id, event_id, member_id, event_date, status, created_at, created_by FROM event_registration WHERE event_id = :event_id ORDER BY event_date DESC, status, created_at;")
@@ -348,6 +538,12 @@ public class EventRepository {
                 .all();
     }
 
+    /**
+     * Retrieves all pending registrations for events in a station.
+     *
+     * @param stationId the station ID
+     * @return the list of pending registrations
+     */
     public List<EventRegistration> findPendingRegistrationsByStation(int stationId) {
         return Query.query("""
                             SELECT er.id, er.event_id, er.member_id, er.event_date, er.status, er.created_at, er.created_by
@@ -360,6 +556,12 @@ public class EventRepository {
                 .all();
     }
 
+    /**
+     * Retrieves all registrations for a specific member, ordered by event date.
+     *
+     * @param memberId the member ID
+     * @return the list of registrations
+     */
     public List<EventRegistration> findRegistrationsByMember(int memberId) {
         return Query.query(
                         "SELECT id, event_id, member_id, event_date, status, created_at, created_by FROM event_registration WHERE member_id = :member_id ORDER BY event_date;")
@@ -368,10 +570,29 @@ public class EventRepository {
                 .all();
     }
 
+    /**
+     * Creates a registration with PENDING status and no creator.
+     *
+     * @param eventId   the event ID
+     * @param memberId  the member ID
+     * @param eventDate the event occurrence date
+     * @return the created registration
+     */
     public EventRegistration createRegistration(int eventId, int memberId, LocalDate eventDate) {
         return createRegistration(eventId, memberId, eventDate, EventRegistration.RegistrationStatus.PENDING, null);
     }
 
+    /**
+     * Creates or upserts a registration with the specified status. On conflict (same event, member, and date),
+     * the existing registration is updated with the new status and creator.
+     *
+     * @param eventId   the event ID
+     * @param memberId  the member ID
+     * @param eventDate the event occurrence date
+     * @param status    the registration status
+     * @param createdBy the member ID of the creator, or null if self-registered
+     * @return the created or updated registration
+     */
     public EventRegistration createRegistration(
             int eventId,
             int memberId,
@@ -426,6 +647,13 @@ public class EventRepository {
                 .all();
     }
 
+    /**
+     * Updates the status of a registration.
+     *
+     * @param id     the registration ID
+     * @param status the new status
+     * @return true if a row was updated
+     */
     public boolean updateRegistrationStatus(int id, EventRegistration.RegistrationStatus status) {
         return Query.query("UPDATE event_registration SET status = :status WHERE id = :id;")
                 .single(Call.of().bind("status", status.name()).bind("id", id))
@@ -433,6 +661,12 @@ public class EventRepository {
                 .changed();
     }
 
+    /**
+     * Deletes a registration by ID.
+     *
+     * @param id the registration ID
+     * @return true if a row was deleted
+     */
     public boolean deleteRegistration(int id) {
         return Query.query("DELETE FROM event_registration WHERE id = :id;")
                 .single(Call.of().bind("id", id))
@@ -440,6 +674,12 @@ public class EventRepository {
                 .changed();
     }
 
+    /**
+     * Finds a registration by its ID.
+     *
+     * @param id the registration ID
+     * @return the registration, if found
+     */
     public Optional<EventRegistration> findRegistrationById(int id) {
         return Query.query(
                         "SELECT id, event_id, member_id, event_date, status, created_at, created_by FROM event_registration WHERE id = :id;")
@@ -448,5 +688,13 @@ public class EventRepository {
                 .first();
     }
 
+    /**
+     * Aggregated registration count for an event on a specific date with a given status.
+     *
+     * @param eventId   the event ID
+     * @param eventDate the event occurrence date
+     * @param status    the registration status name
+     * @param count     the number of registrations
+     */
     public record RegistrationCount(int eventId, LocalDate eventDate, String status, int count) {}
 }

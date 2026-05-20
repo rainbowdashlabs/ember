@@ -13,9 +13,23 @@ import jakarta.inject.Singleton;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * Repository for station application CRUD and lifecycle operations.
+ */
 @Singleton
 public class StationApplicationRepository {
 
+    /**
+     * Creates a new station application.
+     *
+     * @param firstName         the applicant's first name
+     * @param lastName          the applicant's last name
+     * @param email             the applicant's email address
+     * @param stationName       the desired station name
+     * @param introduction      an optional introduction text
+     * @param verificationToken the email verification token
+     * @return the created application
+     */
     public StationApplication create(
             String firstName,
             String lastName,
@@ -39,6 +53,12 @@ public class StationApplicationRepository {
                 .orElseThrow();
     }
 
+    /**
+     * Finds an application by its ID.
+     *
+     * @param id the application ID
+     * @return the application, or empty if not found
+     */
     public Optional<StationApplication> findById(int id) {
         return Query.query(
                         "SELECT id, first_name, last_name, email, station_name, introduction, verification_token, status, deny_reason, created_at, resolved_at FROM station_application WHERE id = :id;")
@@ -47,6 +67,12 @@ public class StationApplicationRepository {
                 .first();
     }
 
+    /**
+     * Finds all applications with the given status, ordered by creation date.
+     *
+     * @param status the status to filter by (e.g., "pending", "accepted", "denied")
+     * @return a list of matching applications
+     */
     public List<StationApplication> findByStatus(String status) {
         return Query.query(
                         "SELECT id, first_name, last_name, email, station_name, introduction, verification_token, status, deny_reason, created_at, resolved_at FROM station_application WHERE status = :status ORDER BY created_at;")
@@ -55,6 +81,11 @@ public class StationApplicationRepository {
                 .all();
     }
 
+    /**
+     * Retrieves all applications, ordered by creation date descending.
+     *
+     * @return a list of all applications
+     */
     public List<StationApplication> findAll() {
         return Query.query(
                         "SELECT id, first_name, last_name, email, station_name, introduction, verification_token, status, deny_reason, created_at, resolved_at FROM station_application ORDER BY created_at DESC;")
@@ -63,6 +94,12 @@ public class StationApplicationRepository {
                 .all();
     }
 
+    /**
+     * Finds an application by its verification token.
+     *
+     * @param token the verification token
+     * @return the application, or empty if not found
+     */
     public Optional<StationApplication> findByToken(String token) {
         return Query.query(
                         "SELECT id, first_name, last_name, email, station_name, introduction, verification_token, status, deny_reason, created_at, resolved_at FROM station_application WHERE verification_token = :token;")
@@ -71,6 +108,12 @@ public class StationApplicationRepository {
                 .first();
     }
 
+    /**
+     * Verifies an unverified application, transitioning it to "pending" status.
+     *
+     * @param id the application ID
+     * @return {@code true} if the application was successfully verified
+     */
     public boolean verify(int id) {
         return Query.query(
                         "UPDATE station_application SET status = 'pending', verification_token = NULL WHERE id = :id AND status = 'unverified';")
@@ -79,6 +122,12 @@ public class StationApplicationRepository {
                 .changed();
     }
 
+    /**
+     * Accepts a pending application.
+     *
+     * @param id the application ID
+     * @return {@code true} if the application was successfully accepted
+     */
     public boolean accept(int id) {
         return Query.query(
                         "UPDATE station_application SET status = 'accepted', resolved_at = now() WHERE id = :id AND status = 'pending';")
@@ -87,6 +136,13 @@ public class StationApplicationRepository {
                 .changed();
     }
 
+    /**
+     * Denies a pending application with a reason.
+     *
+     * @param id     the application ID
+     * @param reason the reason for denial
+     * @return {@code true} if the application was successfully denied
+     */
     public boolean deny(int id, String reason) {
         return Query.query(
                         "UPDATE station_application SET status = 'denied', deny_reason = :reason, resolved_at = now() WHERE id = :id AND status = 'pending';")

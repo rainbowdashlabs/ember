@@ -5,6 +5,10 @@
  */
 package dev.chojo.ember.feature.notifications.entity;
 
+/**
+ * Enumerates the categories of notifications that can be sent to members.
+ * Each type can be individually toggled in a member's notification settings.
+ */
 public enum NotificationType {
     NEW_NEWS,
     NEWS_COMMENT,

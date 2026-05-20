@@ -17,6 +17,7 @@ import java.util.Optional;
 
 import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIMESTAMP;
 
+/** Repository for profile field change tracking, including acknowledgements and summaries. */
 @Singleton
 public class ProfileFieldChangeRepository {
 
@@ -211,6 +212,14 @@ public class ProfileFieldChangeRepository {
                 .all();
     }
 
+    /**
+     * Finds all profile field changes for a station with pagination.
+     *
+     * @param stationId the station identifier
+     * @param limit     the maximum number of results
+     * @param offset    the number of results to skip
+     * @return the paginated list of changes ordered by most recent first
+     */
     public List<ProfileFieldChange> findByStation(int stationId, int limit, int offset) {
         return Query.query("""
                             SELECT c.id, c.field_id, c.member_id, c.old_value, c.new_value,
@@ -233,6 +242,12 @@ public class ProfileFieldChangeRepository {
                 .all();
     }
 
+    /**
+     * Counts the total number of profile field changes for a station.
+     *
+     * @param stationId the station identifier
+     * @return the total change count
+     */
     public int countByStation(int stationId) {
         return Query.query("""
                             SELECT count(*) AS cnt
@@ -245,5 +260,13 @@ public class ProfileFieldChangeRepository {
                 .orElse(0);
     }
 
+    /**
+     * Summary of unacknowledged changes for a single member.
+     *
+     * @param memberId     the member identifier
+     * @param memberName   the member's display name
+     * @param pendingCount the number of unacknowledged changes
+     * @param latestChange the timestamp of the most recent change
+     */
     public record MemberChangeSummary(int memberId, String memberName, int pendingCount, Instant latestChange) {}
 }

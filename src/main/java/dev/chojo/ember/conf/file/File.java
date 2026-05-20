@@ -11,6 +11,10 @@ import dev.chojo.ember.conf.file.elements.Database;
 import dev.chojo.ember.conf.file.elements.Demo;
 import dev.chojo.ember.conf.file.elements.Mailing;
 
+/**
+ * Root configuration file containing all application settings.
+ * Deserialized from {@code config/config.yaml}.
+ */
 @SuppressWarnings({"FieldMayBeFinal"})
 public class File {
 

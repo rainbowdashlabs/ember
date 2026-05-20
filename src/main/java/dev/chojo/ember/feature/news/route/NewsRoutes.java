@@ -36,6 +36,11 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * HTTP route definitions for the news feature.
+ * Provides endpoints for CRUD operations on news articles and comments,
+ * with role-based access control and notification dispatch.
+ */
 @Singleton
 public class NewsRoutes implements Routes {
     private final NewsService newsService;
@@ -203,6 +208,13 @@ public class NewsRoutes implements Routes {
         }
     }
 
+    /**
+     * Converts a {@link News} entity to an API response, resolving the author name and comment count.
+     *
+     * @param news                the news entity
+     * @param includeRestrictions whether to include group restriction IDs in the response
+     * @return the news response DTO
+     */
     private NewsResponse toResponse(News news, boolean includeRestrictions) {
         var memberOpt = stationMemberRepository.findById(news.authorId());
         Integer authorAccountId = memberOpt.map(m -> m.accountId()).orElse(null);
@@ -358,6 +370,12 @@ public class NewsRoutes implements Routes {
         }
     }
 
+    /**
+     * Converts a {@link NewsComment} entity to an API response, resolving the author name.
+     *
+     * @param comment the comment entity
+     * @return the comment response DTO
+     */
     private CommentResponse toCommentResponse(NewsComment comment) {
         var memberOpt = stationMemberRepository.findById(comment.authorId());
         Integer authorAccountId = memberOpt.map(m -> m.accountId()).orElse(null);
@@ -376,8 +394,32 @@ public class NewsRoutes implements Routes {
                 comment.createdAt());
     }
 
+    /**
+     * Request body for creating or updating a news article.
+     *
+     * @param title           article title
+     * @param contentMarkdown article body in Markdown
+     * @param contentHtml     article body as HTML
+     * @param groupIds        group IDs to restrict visibility to
+     */
     public record NewsRequest(String title, String contentMarkdown, String contentHtml, List<Integer> groupIds) {}
 
+    /**
+     * API response representing a news article with resolved author information.
+     *
+     * @param id              unique article ID
+     * @param stationId       the station this article belongs to
+     * @param title           article title
+     * @param contentMarkdown article body in Markdown
+     * @param contentHtml     article body as HTML
+     * @param authorId        member ID of the author
+     * @param authorAccountId account ID of the author, or {@code null} if unresolved
+     * @param authorName      display name of the author
+     * @param publishedAt     publication timestamp
+     * @param createdAt       creation timestamp
+     * @param groupIds        group restriction IDs (empty if unrestricted or excluded)
+     * @param commentCount    total number of comments on this article
+     */
     public record NewsResponse(
             int id,
             int stationId,
@@ -392,8 +434,26 @@ public class NewsRoutes implements Routes {
             List<Integer> groupIds,
             int commentCount) {}
 
+    /**
+     * Request body for creating or updating a comment.
+     *
+     * @param parentId parent comment ID for replies, or {@code null} for top-level comments
+     * @param content  comment text
+     */
     public record CommentRequest(Integer parentId, String content) {}
 
+    /**
+     * API response representing a comment with resolved author information.
+     *
+     * @param id              unique comment ID
+     * @param newsId          the news article this comment belongs to
+     * @param parentId        parent comment ID, or {@code null} for top-level comments
+     * @param authorId        member ID of the comment author
+     * @param authorAccountId account ID of the author, or {@code null} if unresolved
+     * @param authorName      display name of the author
+     * @param content         comment text
+     * @param createdAt       creation timestamp
+     */
     public record CommentResponse(
             int id,
             int newsId,

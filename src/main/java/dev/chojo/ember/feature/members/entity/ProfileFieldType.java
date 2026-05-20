@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.members.entity;
 
+/** Supported data types for custom profile fields. */
 public enum ProfileFieldType {
     TEXT,
     NUMBER,

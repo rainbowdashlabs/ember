@@ -51,6 +51,11 @@ import java.util.stream.Collectors;
 import static io.javalin.http.ContentType.JSON;
 import static java.util.Objects.requireNonNullElse;
 
+/**
+ * Configures and starts the Javalin HTTP server.
+ * Sets up CORS, OpenAPI/Swagger, authentication/authorization, exception handling,
+ * cache-control headers, demo mode guards, and registers all feature route groups.
+ */
 @Singleton
 public class ApiServer {
     public static final String ATTR_SESSION = "session";
@@ -94,6 +99,9 @@ public class ApiServer {
         this.userTagRepository = userTagRepository;
     }
 
+    /**
+     * Creates the Javalin application, registers all middleware, routes, and plugins, then starts the server.
+     */
     public void start() {
         var app = Javalin.create(config -> {
             config.http.defaultContentType = "application/json";
@@ -185,6 +193,10 @@ public class ApiServer {
         log.info("API server started on {}:{}", apiConfig.host(), apiConfig.port());
     }
 
+    /**
+     * Before-handler that blocks destructive operations in demo mode,
+     * such as password changes, station creation/deletion, and role modifications.
+     */
     private void handleDemoGuard(@NotNull Context ctx) {
         String path = ctx.path();
         var method = ctx.method();
@@ -206,6 +218,9 @@ public class ApiServer {
         }
     }
 
+    /**
+     * Serves the list of demo accounts with their roles, groups, and tags for the demo login page.
+     */
     private void handleDemoAccounts(@NotNull Context ctx) {
         var allStations = stationRepository.findAll();
         if (allStations.isEmpty()) {
@@ -240,6 +255,11 @@ public class ApiServer {
         ctx.json(accounts);
     }
 
+    /**
+     * Before-matched handler that enforces authentication and role-based authorization.
+     * Resolves the session from the Authorization header, stores it as a context attribute,
+     * and checks that the user has at least one of the required route roles.
+     */
     private void handleAccess(@NotNull Context ctx) {
         Set<RouteRole> routeRoles = ctx.routeRoles();
 
@@ -304,6 +324,9 @@ public class ApiServer {
         throw new ForbiddenResponse("Insufficient permissions. Required: " + routeRoles + ", Current: " + userRoles);
     }
 
+    /**
+     * Creates the Jackson 3 JSON mapper configured with ISO date formatting.
+     */
     private Jackson3Mapper jacksonMapper() {
         ObjectMapper mapper = JsonMapper.builder()
                 .defaultDateFormat(new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSX"))
@@ -324,6 +347,9 @@ public class ApiServer {
         config.withDocumentationPath("/docs").withUiPath("/swagger-ui");
     }
 
+    /**
+     * Registers exception handlers that convert exceptions into standardized JSON error responses.
+     */
     private void setupExceptionHandlers(RoutesConfig routes) {
         routes.exception(ApiException.class, (err, ctx) -> ctx.json(
                         new ErrorResponseWrapper(err.getClass().getSimpleName(), err.getMessage()))
@@ -343,6 +369,9 @@ public class ApiServer {
         });
     }
 
+    /**
+     * After-handler that sets appropriate Cache-Control and ETag headers based on the request path.
+     */
     private void applyCacheHeaders(@NotNull Context ctx) {
         if (ctx.method() != HandlerType.GET) return;
 
@@ -374,6 +403,9 @@ public class ApiServer {
         }
     }
 
+    /**
+     * Computes an ETag from the response body hash and handles conditional 304 Not Modified responses.
+     */
     private void addETag(@NotNull Context ctx) {
         String body = ctx.result();
         if (body == null || body.isEmpty()) return;
@@ -388,6 +420,17 @@ public class ApiServer {
         }
     }
 
+    /**
+     * Representation of a demo account returned by the demo accounts endpoint.
+     *
+     * @param email           the account email
+     * @param firstName       the first name
+     * @param lastName        the last name
+     * @param roles           the role names assigned to this member
+     * @param groups          the group names the member belongs to
+     * @param tags            the tag names assigned to this member
+     * @param profileComplete whether the member's profile is fully filled in
+     */
     public record DemoAccount(
             String email,
             String firstName,

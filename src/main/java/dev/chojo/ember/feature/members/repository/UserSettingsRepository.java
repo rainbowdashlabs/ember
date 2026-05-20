@@ -12,9 +12,16 @@ import jakarta.inject.Singleton;
 
 import java.util.Optional;
 
+/** Repository for user notification and communication settings. */
 @Singleton
 public class UserSettingsRepository {
 
+    /**
+     * Finds existing settings for a member or creates default settings if none exist.
+     *
+     * @param memberId the station member identifier
+     * @return the member's settings
+     */
     public UserSettings findOrCreate(int memberId) {
         return Query.query("""
                             INSERT INTO user_settings(member_id) VALUES(:member_id)
@@ -26,6 +33,7 @@ public class UserSettingsRepository {
                 .orElseGet(() -> findByMemberId(memberId).orElseThrow());
     }
 
+    /** Finds settings for a member, returning empty if none exist. */
     public Optional<UserSettings> findByMemberId(int memberId) {
         return Query.query("SELECT * FROM user_settings WHERE member_id = :member_id;")
                 .single(Call.of().bind("member_id", memberId))
@@ -33,6 +41,13 @@ public class UserSettingsRepository {
                 .first();
     }
 
+    /**
+     * Updates the email notification preference for a member, creating settings if needed.
+     *
+     * @param memberId     the station member identifier
+     * @param emailEnabled whether email notifications should be enabled
+     * @return the updated settings
+     */
     public UserSettings updateEmailEnabled(int memberId, boolean emailEnabled) {
         return Query.query("""
                             INSERT INTO user_settings(member_id, email_enabled) VALUES(:member_id, :email_enabled)

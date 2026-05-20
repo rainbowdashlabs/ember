@@ -7,8 +7,18 @@ package dev.chojo.ember.feature.notifications.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
 
+/**
+ * Represents a member's preference for a specific notification type,
+ * controlling whether in-app and email notifications are enabled.
+ *
+ * @param memberId         the member this setting belongs to
+ * @param notificationType the notification category
+ * @param appEnabled       whether in-app notifications are enabled
+ * @param emailEnabled     whether email digest notifications are enabled
+ */
 public record NotificationSetting(
         int memberId, NotificationType notificationType, boolean appEnabled, boolean emailEnabled) {
+    /** Creates a row mapping for database result set conversion. */
     public static RowMapping<NotificationSetting> map() {
         return row -> new NotificationSetting(
                 row.getInt("member_id"),

@@ -11,8 +11,19 @@ import java.time.Instant;
 
 import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIMESTAMP;
 
+/**
+ * Represents a manager's acknowledgement of a profile field change.
+ *
+ * @param id                 the acknowledgement identifier
+ * @param changeId           the profile field change being acknowledged
+ * @param acknowledgedBy     the member who acknowledged the change
+ * @param acknowledgedAt     the timestamp of the acknowledgement
+ * @param comment            an optional comment provided during acknowledgement
+ * @param acknowledgedByName the display name of the acknowledging member
+ */
 public record ProfileFieldChangeAcknowledgement(
         int id, int changeId, int acknowledgedBy, Instant acknowledgedAt, String comment, String acknowledgedByName) {
+    /** Creates a row mapping for database result set conversion. */
     public static RowMapping<ProfileFieldChangeAcknowledgement> map() {
         return row -> new ProfileFieldChangeAcknowledgement(
                 row.getInt("id"),

@@ -61,10 +61,20 @@ import java.sql.SQLException;
 
 import javax.sql.DataSource;
 
+/**
+ * Guice module that wires the entire Ember application.
+ * Binds all route groups via multibinding, provides configuration objects,
+ * sets up the database connection pool, runs SQL migrations, and configures SADU's query system.
+ */
 public class EmberModule extends AbstractModule {
     private static final Logger log = LoggerFactory.getLogger(EmberModule.class);
     private final Conf conf;
 
+    /**
+     * Creates the module with the given application configuration.
+     *
+     * @param conf the loaded application configuration
+     */
     public EmberModule(Conf conf) {
         this.conf = conf;
     }

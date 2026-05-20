@@ -18,14 +18,29 @@ import java.lang.reflect.Type;
 import java.util.Objects;
 import java.util.stream.Stream;
 
+/**
+ * Javalin {@link JsonMapper} implementation backed by Jackson 3.
+ * Handles serialization and deserialization of JSON for all API request and response bodies.
+ */
 public class Jackson3Mapper implements JsonMapper {
     private final ObjectMapper mapper;
     private final PipedStreamExecutor executor;
 
+    /**
+     * Creates a mapper using the given Jackson {@link ObjectMapper} with blocking threads.
+     *
+     * @param mapper the Jackson object mapper to use
+     */
     public Jackson3Mapper(ObjectMapper mapper) {
         this(mapper, false);
     }
 
+    /**
+     * Creates a mapper using the given Jackson {@link ObjectMapper}.
+     *
+     * @param mapper             the Jackson object mapper to use
+     * @param useVirtualThreads  whether to use virtual threads for piped stream execution
+     */
     public Jackson3Mapper(ObjectMapper mapper, boolean useVirtualThreads) {
         this.mapper = mapper;
         this.executor = new PipedStreamExecutor(useVirtualThreads);

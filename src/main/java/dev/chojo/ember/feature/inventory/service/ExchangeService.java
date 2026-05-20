@@ -18,6 +18,10 @@ import jakarta.inject.Singleton;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * Service for managing equipment exchange requests.
+ * Handles the full exchange lifecycle including item reassignment when exchanges are completed.
+ */
 @Singleton
 public class ExchangeService {
     private final ExchangeRepository exchangeRepository;
@@ -34,6 +38,19 @@ public class ExchangeService {
         this.inventoryService = inventoryService;
     }
 
+    /**
+     * Creates a new exchange request.
+     *
+     * @param stationId   the station ID
+     * @param memberId    the member requesting the exchange
+     * @param itemId      the current item, or {@code null}
+     * @param inventoryId the inventory ID
+     * @param oldSizeId   the current size, or {@code null}
+     * @param newSizeId   the desired size, or {@code null}
+     * @param reason      the reason for the exchange
+     * @param createdBy   who created the request on behalf of the member, or {@code null}
+     * @return the created exchange request
+     */
     public ExchangeRequest create(
             int stationId,
             int memberId,
@@ -47,22 +64,61 @@ public class ExchangeService {
                 stationId, memberId, itemId, inventoryId, oldSizeId, newSizeId, reason, createdBy);
     }
 
+    /**
+     * Finds an exchange request by its ID.
+     *
+     * @param id the exchange request ID
+     * @return the exchange request, or empty if not found
+     */
     public Optional<ExchangeRequest> findById(int id) {
         return exchangeRepository.findById(id);
     }
 
+    /**
+     * Finds all exchange requests for a station.
+     *
+     * @param stationId the station ID
+     * @return list of exchange requests
+     */
     public List<ExchangeRequest> findByStation(int stationId) {
         return exchangeRepository.findByStation(stationId);
     }
 
+    /**
+     * Finds all exchange requests for a specific member.
+     *
+     * @param memberId the member ID
+     * @return list of exchange requests
+     */
     public List<ExchangeRequest> findByMember(int memberId) {
         return exchangeRepository.findByMember(memberId);
     }
 
+    /**
+     * Updates the status of an exchange request without specifying a replacement item.
+     *
+     * @param id        the exchange request ID
+     * @param newStatus the new status
+     * @param changedBy the member making the change
+     * @param note      an optional note
+     * @return the updated exchange request
+     */
     public ExchangeRequest updateStatus(int id, ExchangeStatus newStatus, int changedBy, String note) {
         return updateStatus(id, newStatus, changedBy, note, null);
     }
 
+    /**
+     * Updates the status of an exchange request. When transitioning to {@link ExchangeStatus#EXCHANGED},
+     * completes the exchange by handling old and new item assignments.
+     *
+     * @param id              the exchange request ID
+     * @param newStatus       the new status
+     * @param changedBy       the member making the change
+     * @param note            an optional note
+     * @param exchangedItemId the replacement item ID, or {@code null}
+     * @return the updated exchange request
+     * @throws BadRequestResponse if the exchange request is not found
+     */
     public ExchangeRequest updateStatus(
             int id, ExchangeStatus newStatus, int changedBy, String note, Integer exchangedItemId) {
         var request =
@@ -80,6 +136,13 @@ public class ExchangeService {
         return exchangeRepository.findById(id).orElseThrow();
     }
 
+    /**
+     * Completes an exchange by handling old item disposal (delete for external, unassign for internal)
+     * and assigning the replacement item to the member.
+     *
+     * @param request         the exchange request being completed
+     * @param exchangedItemId the replacement item ID, or {@code null}
+     */
     private void completeExchange(ExchangeRequest request, Integer exchangedItemId) {
         var inventory = inventoryRepository.findById(request.inventoryId()).orElse(null);
         if (inventory == null) return;
@@ -103,10 +166,22 @@ public class ExchangeService {
         }
     }
 
+    /**
+     * Finds the status change logs for an exchange request.
+     *
+     * @param requestId the exchange request ID
+     * @return list of log entries
+     */
     public List<ExchangeLog> findLogs(int requestId) {
         return exchangeRepository.findLogs(requestId);
     }
 
+    /**
+     * Deletes an exchange request.
+     *
+     * @param id the exchange request ID
+     * @return {@code true} if the request was deleted
+     */
     public boolean delete(int id) {
         return exchangeRepository.delete(id);
     }

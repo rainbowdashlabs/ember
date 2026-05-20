@@ -5,6 +5,9 @@
  */
 package dev.chojo.ember.conf.file.elements;
 
+/**
+ * API server configuration including host, port, base URL, and paths to legal document directories.
+ */
 @SuppressWarnings({"FieldCanBeLocal", "FieldMayBeFinal"})
 public class Api {
     private String host = "0.0.0.0";

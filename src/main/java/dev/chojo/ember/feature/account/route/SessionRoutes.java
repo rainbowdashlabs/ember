@@ -41,6 +41,10 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Set;
 
+/**
+ * Routes for session management including session info, active session listing, session invalidation,
+ * avatar management, GDPR data export, and account deletion.
+ */
 @Singleton
 public class SessionRoutes implements Routes {
     private final StationService stationService;
@@ -229,6 +233,18 @@ public class SessionRoutes implements Routes {
 
     // -- Response records --
 
+    /**
+     * Aggregated session information returned to the authenticated user.
+     *
+     * @param account         the account details
+     * @param stationId       the currently selected station, or {@code null} if none
+     * @param member          the station membership info, or {@code null} if not a member
+     * @param roles           sorted list of role names for the current station
+     * @param managedMembers  list of members managed by this account
+     * @param groups          groups the current member belongs to
+     * @param profileComplete whether all required profile fields are filled
+     * @param disabledModules set of module names disabled for the current station
+     */
     public record SessionInfo(
             AccountInfo account,
             Integer stationId,
@@ -239,14 +255,56 @@ public class SessionRoutes implements Routes {
             boolean profileComplete,
             Set<String> disabledModules) {}
 
+    /**
+     * Summary of a member managed by the current account.
+     *
+     * @param id        the member identifier
+     * @param stationId the station identifier
+     * @param accountId the member's account identifier, or 0 if none
+     * @param name      the member's display name
+     * @param email     the member's email, or empty string if unavailable
+     */
     public record ManagedMemberInfo(int id, int stationId, int accountId, String name, String email) {}
 
+    /**
+     * Account information included in the session response.
+     *
+     * @param id        the account identifier
+     * @param email     the email address
+     * @param firstName the first name
+     * @param lastName  the last name
+     */
     public record AccountInfo(int id, String email, String firstName, String lastName) {}
 
+    /**
+     * Minimal member information for the current session.
+     *
+     * @param id        the member identifier
+     * @param stationId the station identifier
+     * @param accountId the account identifier
+     */
     public record MemberInfo(int id, int stationId, int accountId) {}
 
+    /**
+     * A station membership entry listing which stations the user belongs to.
+     *
+     * @param memberId    the member identifier
+     * @param stationId   the station identifier
+     * @param stationName the station name
+     */
     public record StationMembership(int memberId, int stationId, String stationName) {}
 
+    /**
+     * Represents an active session as returned to the user.
+     *
+     * @param id         the session identifier
+     * @param userAgent  the client's user agent string
+     * @param createdAt  when the session was created
+     * @param lastUsedAt when the session was last used
+     * @param expiresAt  when the session expires
+     * @param isCurrent  whether this is the session making the current request
+     * @param location   the client's location
+     */
     public record ActiveSession(
             int id,
             String userAgent,
@@ -282,6 +340,7 @@ public class SessionRoutes implements Routes {
 
     private static final Set<String> ALLOWED_AVATAR_TYPES = Set.of("image/png", "image/jpeg", "image/webp");
 
+    /** Retrieves the avatar for the current session's member. Returns 404 if no membership or no avatar. */
     private void getAvatar(Context ctx) {
         UserSession session = UserSession.from(ctx);
         if (session.member() == null) {
@@ -291,11 +350,13 @@ public class SessionRoutes implements Routes {
         serveAvatar(ctx, session.member().id());
     }
 
+    /** Retrieves the avatar for a specific member by their ID path parameter. */
     private void getAvatarByMember(Context ctx) {
         int memberId = ctx.pathParamAsClass("memberId", Integer.class).get();
         serveAvatar(ctx, memberId);
     }
 
+    /** Serves a member's avatar binary data with appropriate content type and cache headers. */
     private void serveAvatar(Context ctx, int memberId) {
         stationMemberRepository
                 .findAvatar(memberId)

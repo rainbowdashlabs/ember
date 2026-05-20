@@ -13,9 +13,18 @@ import jakarta.inject.Singleton;
 import java.time.LocalDate;
 import java.util.Optional;
 
+/**
+ * Repository for station mail configuration and per-station email send count tracking.
+ */
 @Singleton
 public class StationMailConfigRepository {
 
+    /**
+     * Finds the mail configuration for a station.
+     *
+     * @param stationId the station ID
+     * @return the mail configuration, or empty if none exists
+     */
     public Optional<StationMailConfig> findByStation(int stationId) {
         return Query.query("SELECT * FROM station_mail_config WHERE station_id = :station_id;")
                 .single(Call.of().bind("station_id", stationId))
@@ -23,6 +32,12 @@ public class StationMailConfigRepository {
                 .first();
     }
 
+    /**
+     * Inserts or updates the mail configuration for a station.
+     *
+     * @param config the mail configuration to upsert
+     * @return the persisted mail configuration
+     */
     public StationMailConfig upsert(StationMailConfig config) {
         return Query.query("""
                         INSERT INTO station_mail_config(station_id, provider, smtp_host, smtp_port, smtp_ssl,
@@ -58,6 +73,11 @@ public class StationMailConfigRepository {
                 .orElseThrow();
     }
 
+    /**
+     * Deletes the mail configuration for a station.
+     *
+     * @param stationId the station ID
+     */
     public void delete(int stationId) {
         Query.query("DELETE FROM station_mail_config WHERE station_id = :station_id;")
                 .single(Call.of().bind("station_id", stationId))
@@ -66,6 +86,13 @@ public class StationMailConfigRepository {
 
     // -- Per-station send counts --
 
+    /**
+     * Gets the number of emails sent by a station on a specific day.
+     *
+     * @param stationId the station ID
+     * @param day       the day to query
+     * @return the number of emails sent, or 0 if no record exists
+     */
     public int getDailyCount(int stationId, LocalDate day) {
         return Query.query("SELECT count FROM station_email_count WHERE station_id = :station_id AND day = :day;")
                 .single(Call.of().bind("station_id", stationId).bind("day", day))
@@ -74,6 +101,13 @@ public class StationMailConfigRepository {
                 .orElse(0);
     }
 
+    /**
+     * Gets the total number of emails sent by a station during the month of the given date.
+     *
+     * @param stationId the station ID
+     * @param month     any date within the target month
+     * @return the total number of emails sent that month
+     */
     public int getMonthlyCount(int stationId, LocalDate month) {
         LocalDate firstDay = month.withDayOfMonth(1);
         LocalDate lastDay = month.withDayOfMonth(month.lengthOfMonth());
@@ -88,6 +122,12 @@ public class StationMailConfigRepository {
                 .orElse(0);
     }
 
+    /**
+     * Increments the email send count for a station on a specific day by one.
+     *
+     * @param stationId the station ID
+     * @param day       the day to increment
+     */
     public void incrementDailyCount(int stationId, LocalDate day) {
         Query.query("""
                         INSERT INTO station_email_count(station_id, day, count) VALUES(:station_id, :day, 1)
@@ -96,6 +136,11 @@ public class StationMailConfigRepository {
                 .insert();
     }
 
+    /**
+     * Deletes email send count records older than the specified number of days.
+     *
+     * @param keepDays the number of days of history to retain
+     */
     public void cleanupOldCounts(int keepDays) {
         Query.query("DELETE FROM station_email_count WHERE day < :cutoff;")
                 .single(Call.of().bind("cutoff", LocalDate.now().minusDays(keepDays)))

@@ -17,9 +17,11 @@ import java.util.Optional;
 
 import static de.chojo.sadu.queries.api.query.Query.query;
 
+/** Repository for managing member groups, their memberships, and associated roles. */
 @Singleton
 public class MemberGroupRepository {
 
+    /** Finds a member group by its identifier. */
     public Optional<MemberGroup> findById(int id) {
         return query("SELECT id, station_id, name FROM member_group WHERE id = :id;")
                 .single(Call.of().bind("id", id))
@@ -27,6 +29,7 @@ public class MemberGroupRepository {
                 .first();
     }
 
+    /** Finds all member groups for a station. */
     public List<MemberGroup> findByStation(int stationId) {
         return query("SELECT id, station_id, name FROM member_group WHERE station_id = :station_id;")
                 .single(Call.of().bind("station_id", stationId))
@@ -34,6 +37,7 @@ public class MemberGroupRepository {
                 .all();
     }
 
+    /** Creates a new member group for a station. */
     public MemberGroup create(int stationId, String name) {
         return query(
                         "INSERT INTO member_group(station_id, name) VALUES(:station_id, :name) RETURNING id, station_id, name;")
@@ -43,6 +47,7 @@ public class MemberGroupRepository {
                 .orElseThrow();
     }
 
+    /** Updates a member group's name. */
     public boolean update(int id, String name) {
         return query("UPDATE member_group SET name = :name WHERE id = :id;")
                 .single(Call.of().bind("name", name).bind("id", id))
@@ -50,6 +55,7 @@ public class MemberGroupRepository {
                 .changed();
     }
 
+    /** Deletes a member group by its identifier. */
     public boolean delete(int id) {
         return query("DELETE FROM member_group WHERE id = :id;")
                 .single(Call.of().bind("id", id))
@@ -59,6 +65,7 @@ public class MemberGroupRepository {
 
     // -- Group Entries --
 
+    /** Finds all members belonging to a group. */
     public List<StationMember> findMembers(int groupId) {
         return query("""
                 SELECT
@@ -73,6 +80,7 @@ public class MemberGroupRepository {
                 .all();
     }
 
+    /** Finds all groups that a member belongs to. */
     public List<MemberGroup> findGroupsForMember(int memberId) {
         return query("""
                 SELECT
@@ -89,12 +97,14 @@ public class MemberGroupRepository {
                 .all();
     }
 
+    /** Adds a member to a group. */
     public InsertionResult addMember(int groupId, int memberId) {
         return query("INSERT INTO member_group_entry(group_id, member_id) VALUES(:group_id, :member_id);")
                 .single(Call.of().bind("group_id", groupId).bind("member_id", memberId))
                 .insert();
     }
 
+    /** Removes a member from a group. */
     public boolean removeMember(int groupId, int memberId) {
         return query("DELETE FROM member_group_entry WHERE group_id = :group_id AND member_id = :member_id;")
                 .single(Call.of().bind("group_id", groupId).bind("member_id", memberId))
@@ -104,6 +114,7 @@ public class MemberGroupRepository {
 
     // -- Group Roles --
 
+    /** Finds all roles assigned to a group. */
     public List<Role> findGroupRoles(int groupId) {
         return query("""
                 SELECT
@@ -119,12 +130,14 @@ public class MemberGroupRepository {
                 .all();
     }
 
+    /** Assigns a role to a group. */
     public InsertionResult addGroupRole(int groupId, int roleId) {
         return query("INSERT INTO member_group_role(group_id, role_id) VALUES(:group_id, :role_id);")
                 .single(Call.of().bind("group_id", groupId).bind("role_id", roleId))
                 .insert();
     }
 
+    /** Removes a role from a group. */
     public boolean removeGroupRole(int groupId, int roleId) {
         return query("DELETE FROM member_group_role WHERE group_id = :group_id AND role_id = :role_id;")
                 .single(Call.of().bind("group_id", groupId).bind("role_id", roleId))
@@ -132,6 +145,7 @@ public class MemberGroupRepository {
                 .changed();
     }
 
+    /** Finds all distinct roles a member has through their group memberships. */
     public List<Role> findRolesForMemberViaGroups(int memberId) {
         return query("""
                 SELECT DISTINCT

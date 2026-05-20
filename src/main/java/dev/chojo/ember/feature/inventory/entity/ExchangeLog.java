@@ -11,6 +11,17 @@ import java.time.Instant;
 
 import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIMESTAMP;
 
+/**
+ * Represents a status change log entry for an equipment exchange request.
+ *
+ * @param id        the unique log entry identifier
+ * @param requestId the exchange request this log entry belongs to
+ * @param oldStatus the status before the change
+ * @param newStatus the status after the change
+ * @param changedBy the member who made the status change
+ * @param changedAt when the status change occurred
+ * @param note      an optional note explaining the change
+ */
 public record ExchangeLog(
         int id,
         int requestId,
@@ -19,6 +30,7 @@ public record ExchangeLog(
         int changedBy,
         Instant changedAt,
         String note) {
+    /** Creates a row mapping for database result set conversion. */
     public static RowMapping<ExchangeLog> map() {
         return row -> new ExchangeLog(
                 row.getInt("id"),

@@ -11,6 +11,18 @@ import java.time.Instant;
 
 import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIMESTAMP;
 
+/**
+ * Represents an equipment procurement request for a member.
+ *
+ * @param id           the unique procurement identifier
+ * @param stationId    the station this procurement belongs to
+ * @param inventoryId  the inventory the procurement is for
+ * @param memberId     the member the equipment is being procured for
+ * @param sizeId       the requested size, or {@code null} if not applicable
+ * @param notes        additional notes for the procurement
+ * @param requestedAt  when the procurement was requested
+ * @param fulfilledAt  when the procurement was fulfilled, or {@code null} if still open
+ */
 public record Procurement(
         int id,
         int stationId,
@@ -20,6 +32,7 @@ public record Procurement(
         String notes,
         Instant requestedAt,
         Instant fulfilledAt) {
+    /** Creates a row mapping for database result set conversion. */
     public static RowMapping<Procurement> map() {
         return row -> new Procurement(
                 row.getInt("id"),

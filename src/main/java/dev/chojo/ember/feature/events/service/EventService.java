@@ -24,6 +24,10 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
+/**
+ * Service providing business logic for station events, including CRUD operations for events, breaks, categories,
+ * restrictions, field defaults, and registrations.
+ */
 @Singleton
 public class EventService {
     private final EventRepository eventRepository;
@@ -35,14 +39,43 @@ public class EventService {
 
     // -- Events --
 
+    /**
+     * Retrieves all events for a station.
+     *
+     * @param stationId the station ID
+     * @return the list of station events
+     */
     public List<StationEvent> findByStation(int stationId) {
         return eventRepository.findByStation(stationId);
     }
 
+    /**
+     * Finds a station event by its ID.
+     *
+     * @param id the event ID
+     * @return the event, if found
+     */
     public Optional<StationEvent> findById(int id) {
         return eventRepository.findById(id);
     }
 
+    /**
+     * Creates a new station event.
+     *
+     * @param stationId             the station this event belongs to
+     * @param name                  the event name
+     * @param description           the event description
+     * @param eventType             the recurrence type
+     * @param dayOfWeek             the ISO day of week for recurring events, or null
+     * @param startTime             the start time
+     * @param endTime               the end time
+     * @param templateId            the optional attendance template ID
+     * @param requiresRegistration  whether registration is required
+     * @param registrationDeadline  the registration deadline, or null
+     * @param requiresConfirmation  whether registrations require manager confirmation
+     * @param categoryId            the optional category ID
+     * @return the created event
+     */
     public StationEvent create(
             int stationId,
             String name,
@@ -71,6 +104,23 @@ public class EventService {
                 categoryId);
     }
 
+    /**
+     * Updates a station event and returns the refreshed entity if the update was successful.
+     *
+     * @param id                    the event ID
+     * @param name                  the new event name
+     * @param description           the new description
+     * @param eventType             the new recurrence type
+     * @param dayOfWeek             the new day of week, or null
+     * @param startTime             the new start time
+     * @param endTime               the new end time
+     * @param templateId            the new template ID, or null
+     * @param requiresRegistration  whether registration is required
+     * @param registrationDeadline  the new registration deadline, or null
+     * @param requiresConfirmation  whether registrations require confirmation
+     * @param categoryId            the new category ID, or null
+     * @return the updated event, or empty if not found
+     */
     public Optional<StationEvent> update(
             int id,
             String name,
@@ -102,10 +152,23 @@ public class EventService {
         return Optional.empty();
     }
 
+    /**
+     * Deletes a station event by ID.
+     *
+     * @param id the event ID
+     * @return true if the event was deleted
+     */
     public boolean delete(int id) {
         return eventRepository.delete(id);
     }
 
+    /**
+     * Finds all events that occur today for a station, taking into account recurrence rules and break periods.
+     * One-time events match by their start date; recurring events match by day of week and recurrence pattern.
+     *
+     * @param stationId the station ID
+     * @return the list of today's events
+     */
     public List<StationEvent> findTodayEvents(int stationId) {
         LocalDate today = LocalDate.now(ZoneOffset.UTC);
         int dayOfWeek = today.getDayOfWeek().getValue();
@@ -138,36 +201,94 @@ public class EventService {
 
     // -- Categories --
 
+    /**
+     * Retrieves all event categories for a station.
+     *
+     * @param stationId the station ID
+     * @return the list of categories
+     */
     public List<EventCategory> findCategoriesByStation(int stationId) {
         return eventRepository.findCategoriesByStation(stationId);
     }
 
+    /**
+     * Creates a new event category.
+     *
+     * @param stationId the station ID
+     * @param name      the category name
+     * @param position  the display order position
+     * @return the created category
+     */
     public EventCategory createCategory(int stationId, String name, int position) {
         return eventRepository.createCategory(stationId, name, position);
     }
 
+    /**
+     * Updates an event category.
+     *
+     * @param id       the category ID
+     * @param name     the new name
+     * @param position the new position
+     * @return true if the category was updated
+     */
     public boolean updateCategory(int id, String name, int position) {
         return eventRepository.updateCategory(id, name, position);
     }
 
+    /**
+     * Deletes an event category by ID.
+     *
+     * @param id the category ID
+     * @return true if the category was deleted
+     */
     public boolean deleteCategory(int id) {
         return eventRepository.deleteCategory(id);
     }
 
     // -- Breaks --
 
+    /**
+     * Retrieves all event breaks for a station.
+     *
+     * @param stationId the station ID
+     * @return the list of breaks
+     */
     public List<EventBreak> findBreaksByStation(int stationId) {
         return eventRepository.findBreaksByStation(stationId);
     }
 
+    /**
+     * Finds an event break by its ID.
+     *
+     * @param id the break ID
+     * @return the break, if found
+     */
     public Optional<EventBreak> findBreakById(int id) {
         return eventRepository.findBreakById(id);
     }
 
+    /**
+     * Creates a new event break.
+     *
+     * @param stationId the station ID
+     * @param name      the break name
+     * @param startDate the first day of the break
+     * @param endDate   the last day of the break
+     * @return the created break
+     */
     public EventBreak createBreak(int stationId, String name, LocalDate startDate, LocalDate endDate) {
         return eventRepository.createBreak(stationId, name, startDate, endDate);
     }
 
+    /**
+     * Updates an event break and returns the refreshed entity if the update was successful.
+     *
+     * @param id        the break ID
+     * @param name      the new break name
+     * @param startDate the new start date
+     * @param endDate   the new end date
+     * @return the updated break, or empty if not found
+     */
     public Optional<EventBreak> updateBreak(int id, String name, LocalDate startDate, LocalDate endDate) {
         if (eventRepository.updateBreak(id, name, startDate, endDate)) {
             return eventRepository.findBreakById(id);
@@ -175,20 +296,45 @@ public class EventService {
         return Optional.empty();
     }
 
+    /**
+     * Deletes an event break by ID.
+     *
+     * @param id the break ID
+     * @return true if the break was deleted
+     */
     public boolean deleteBreak(int id) {
         return eventRepository.deleteBreak(id);
     }
 
     // -- Restrictions --
 
+    /**
+     * Retrieves the role IDs restricting access to an event.
+     *
+     * @param eventId the event ID
+     * @return the list of role IDs
+     */
     public List<Integer> findRoleRestrictions(int eventId) {
         return eventRepository.findRoleRestrictions(eventId);
     }
 
+    /**
+     * Retrieves the group IDs restricting access to an event.
+     *
+     * @param eventId the event ID
+     * @return the list of group IDs
+     */
     public List<Integer> findGroupRestrictions(int eventId) {
         return eventRepository.findGroupRestrictions(eventId);
     }
 
+    /**
+     * Sets both role and group restrictions for an event, replacing any existing restrictions.
+     *
+     * @param eventId  the event ID
+     * @param roleIds  the role IDs to restrict to, or null for no role restrictions
+     * @param groupIds the group IDs to restrict to, or null for no group restrictions
+     */
     public void setRestrictions(int eventId, List<Integer> roleIds, List<Integer> groupIds) {
         eventRepository.setRoleRestrictions(eventId, roleIds != null ? roleIds : List.of());
         eventRepository.setGroupRestrictions(eventId, groupIds != null ? groupIds : List.of());
@@ -221,20 +367,44 @@ public class EventService {
         return false;
     }
 
+    /**
+     * Finds all role restrictions for events in a station, grouped by event ID.
+     *
+     * @param stationId the station ID
+     * @return a map of event ID to list of restricted role IDs
+     */
     public Map<Integer, List<Integer>> findAllRoleRestrictionsByStation(int stationId) {
         return eventRepository.findAllRoleRestrictionsByStation(stationId);
     }
 
+    /**
+     * Finds all group restrictions for events in a station, grouped by event ID.
+     *
+     * @param stationId the station ID
+     * @return a map of event ID to list of restricted group IDs
+     */
     public Map<Integer, List<Integer>> findAllGroupRestrictionsByStation(int stationId) {
         return eventRepository.findAllGroupRestrictionsByStation(stationId);
     }
 
     // -- Field Defaults --
 
+    /**
+     * Retrieves all field default configurations for an event.
+     *
+     * @param eventId the event ID
+     * @return the list of field defaults
+     */
     public List<EventFieldDefault> findFieldDefaults(int eventId) {
         return eventRepository.findFieldDefaults(eventId);
     }
 
+    /**
+     * Replaces all field defaults for an event.
+     *
+     * @param eventId  the event ID
+     * @param defaults the new field default configurations
+     */
     public void setFieldDefaults(int eventId, List<EventFieldDefault> defaults) {
         eventRepository.setFieldDefaults(eventId, defaults);
     }
@@ -267,22 +437,57 @@ public class EventService {
 
     // -- Registrations --
 
+    /**
+     * Retrieves all pending registrations for events in a station.
+     *
+     * @param stationId the station ID
+     * @return the list of pending registrations
+     */
     public List<EventRegistration> findPendingRegistrationsByStation(int stationId) {
         return eventRepository.findPendingRegistrationsByStation(stationId);
     }
 
+    /**
+     * Retrieves all registrations for an event on a specific date.
+     *
+     * @param eventId   the event ID
+     * @param eventDate the event occurrence date
+     * @return the list of registrations
+     */
     public List<EventRegistration> findRegistrations(int eventId, LocalDate eventDate) {
         return eventRepository.findRegistrations(eventId, eventDate);
     }
 
+    /**
+     * Retrieves all registrations for an event across all dates.
+     *
+     * @param eventId the event ID
+     * @return the list of registrations
+     */
     public List<EventRegistration> findAllRegistrations(int eventId) {
         return eventRepository.findAllRegistrations(eventId);
     }
 
+    /**
+     * Retrieves all registrations for a specific member.
+     *
+     * @param memberId the member ID
+     * @return the list of registrations
+     */
     public List<EventRegistration> findRegistrationsByMember(int memberId) {
         return eventRepository.findRegistrationsByMember(memberId);
     }
 
+    /**
+     * Registers a member for an event. If {@code autoAccept} is true, the registration is immediately accepted.
+     *
+     * @param eventId    the event ID
+     * @param memberId   the member ID
+     * @param eventDate  the event occurrence date
+     * @param autoAccept whether to automatically accept the registration
+     * @param createdBy  the member ID of the creator, or null if self-registered
+     * @return the created registration
+     */
     public EventRegistration register(
             int eventId, int memberId, LocalDate eventDate, boolean autoAccept, Integer createdBy) {
         var registration = eventRepository.createRegistration(
@@ -294,6 +499,12 @@ public class EventService {
         return registration;
     }
 
+    /**
+     * Finds a registration by its ID.
+     *
+     * @param id the registration ID
+     * @return the registration, if found
+     */
     public Optional<EventRegistration> findRegistrationById(int id) {
         return eventRepository.findRegistrationById(id);
     }

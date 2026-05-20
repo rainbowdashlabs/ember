@@ -15,9 +15,18 @@ import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Repository for managing per-member notification preferences (app and email toggles per notification type).
+ */
 @Singleton
 public class NotificationSettingsRepository {
 
+    /**
+     * Retrieves all notification settings for a member.
+     *
+     * @param memberId the member ID
+     * @return list of notification settings
+     */
     public List<NotificationSetting> findByMember(int memberId) {
         return Query.query("SELECT * FROM user_notification_settings WHERE member_id = :member_id;")
                 .single(Call.of().bind("member_id", memberId))
@@ -25,6 +34,12 @@ public class NotificationSettingsRepository {
                 .all();
     }
 
+    /**
+     * Retrieves all notification settings for a member as a map keyed by notification type.
+     *
+     * @param memberId the member ID
+     * @return map of notification type to setting
+     */
     public Map<NotificationType, NotificationSetting> findByMemberAsMap(int memberId) {
         var list = findByMember(memberId);
         var map = new EnumMap<NotificationType, NotificationSetting>(NotificationType.class);
@@ -34,6 +49,15 @@ public class NotificationSettingsRepository {
         return map;
     }
 
+    /**
+     * Inserts or updates a notification setting for a member and type.
+     *
+     * @param memberId     the member ID
+     * @param type         the notification type
+     * @param appEnabled   whether in-app notifications are enabled
+     * @param emailEnabled whether email notifications are enabled
+     * @return the persisted setting
+     */
     public NotificationSetting upsert(int memberId, NotificationType type, boolean appEnabled, boolean emailEnabled) {
         return Query.query("""
                             INSERT INTO user_notification_settings(member_id, notification_type, app_enabled, email_enabled)
@@ -52,6 +76,12 @@ public class NotificationSettingsRepository {
                 .orElseThrow();
     }
 
+    /**
+     * Bulk inserts or updates all notification settings for a member.
+     *
+     * @param memberId the member ID
+     * @param settings map of notification type to setting
+     */
     public void upsertAll(int memberId, Map<NotificationType, NotificationSetting> settings) {
         for (var entry : settings.entrySet()) {
             var s = entry.getValue();
@@ -59,6 +89,14 @@ public class NotificationSettingsRepository {
         }
     }
 
+    /**
+     * Checks whether in-app notifications are enabled for a member and type.
+     * Defaults to {@code true} if no setting exists.
+     *
+     * @param memberId the member ID
+     * @param type     the notification type
+     * @return {@code true} if app notifications are enabled
+     */
     public boolean isAppEnabled(int memberId, NotificationType type) {
         return Query.query("""
                             SELECT app_enabled FROM user_notification_settings
@@ -69,6 +107,14 @@ public class NotificationSettingsRepository {
                 .orElse(true); // default: app notifications enabled
     }
 
+    /**
+     * Checks whether email digest notifications are enabled for a member and type.
+     * Defaults to {@code false} if no setting exists.
+     *
+     * @param memberId the member ID
+     * @param type     the notification type
+     * @return {@code true} if email notifications are enabled
+     */
     public boolean isEmailEnabled(int memberId, NotificationType type) {
         return Query.query("""
                             SELECT email_enabled FROM user_notification_settings

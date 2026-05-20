@@ -16,11 +16,13 @@ import jakarta.inject.Singleton;
 import java.util.List;
 import java.util.Optional;
 
+/** Repository for station members, their roles, manager relations, and avatars. */
 @Singleton
 public class StationMemberRepository {
 
     // -- Members --
 
+    /** Finds a station member by its identifier. */
     public Optional<StationMember> findById(int id) {
         return Query.query("SELECT * FROM station_member WHERE id = :id;")
                 .single(Call.of().bind("id", id))
@@ -28,6 +30,7 @@ public class StationMemberRepository {
                 .first();
     }
 
+    /** Finds all station memberships for an account across all stations. */
     public List<StationMember> findAllByAccountId(int accountId) {
         return Query.query("SELECT * FROM station_member WHERE account_id = :account_id;")
                 .single(Call.of().bind("account_id", accountId))
@@ -35,6 +38,7 @@ public class StationMemberRepository {
                 .all();
     }
 
+    /** Finds a member by their station and account combination. */
     public Optional<StationMember> findByStationAndAccount(int stationId, int accountId) {
         return Query.query("SELECT * FROM station_member WHERE station_id = :station_id AND account_id = :account_id;")
                 .single(Call.of().bind("station_id", stationId).bind("account_id", accountId))
@@ -49,6 +53,13 @@ public class StationMemberRepository {
         return findByStation(stationId, false);
     }
 
+    /**
+     * Finds members of a station, optionally including former members.
+     *
+     * @param stationId      the station identifier
+     * @param includeFormer  whether to include former members
+     * @return the list of matching members
+     */
     public List<StationMember> findByStation(int stationId, boolean includeFormer) {
         return Query.query(
                         "SELECT * FROM station_member WHERE station_id = :station_id AND (former = false OR :include_former);")
@@ -67,6 +78,7 @@ public class StationMemberRepository {
                 .all();
     }
 
+    /** Finds active members of a station that have a specific role. */
     public List<StationMember> findByStationAndRole(int stationId, String roleName) {
         return Query.query(
                         "SELECT sm.* FROM station_member sm JOIN station_member_role smr ON smr.member_id = sm.id JOIN role r ON r.id = smr.role_id WHERE sm.station_id = :station_id AND r.name = :role AND sm.former = false;")
@@ -75,6 +87,7 @@ public class StationMemberRepository {
                 .all();
     }
 
+    /** Finds all station memberships for an account. */
     public List<StationMember> findByAccount(int accountId) {
         return Query.query("SELECT * FROM station_member WHERE account_id = :account_id;")
                 .single(Call.of().bind("account_id", accountId))

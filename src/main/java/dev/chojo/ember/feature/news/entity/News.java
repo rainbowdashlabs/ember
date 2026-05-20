@@ -11,6 +11,18 @@ import java.time.Instant;
 
 import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIMESTAMP;
 
+/**
+ * Represents a news article published within a station.
+ *
+ * @param id               unique identifier of the news entry
+ * @param stationId        the station this news belongs to
+ * @param title            headline of the news article
+ * @param contentMarkdown  article body in Markdown format
+ * @param contentHtml      article body rendered as HTML
+ * @param authorId         member ID of the author
+ * @param publishedAt      timestamp when the article was published, or {@code null} if unpublished
+ * @param createdAt        timestamp when the article was created
+ */
 public record News(
         int id,
         int stationId,
@@ -20,6 +32,7 @@ public record News(
         int authorId,
         Instant publishedAt,
         Instant createdAt) {
+    /** Creates a row mapping for database result set conversion. */
     public static RowMapping<News> map() {
         return row -> new News(
                 row.getInt("id"),

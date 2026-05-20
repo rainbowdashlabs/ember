@@ -32,6 +32,11 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+/**
+ * Service for creating, querying, and managing notifications.
+ * Handles notification dispatch to individual members, stations, and role-based groups,
+ * respecting per-member notification preferences. Also runs a scheduled email digest.
+ */
 @Singleton
 public class NotificationService {
     private static final Logger log = LoggerFactory.getLogger(NotificationService.class);
@@ -89,11 +94,26 @@ public class NotificationService {
         }
     }
 
+    /**
+     * Creates a notification for a single member, if app notifications are enabled for that type.
+     *
+     * @param memberId the target member ID
+     * @param type     the notification category
+     * @param data     localized message data
+     * @return the created notification, or {@code null} if app notifications are disabled
+     */
     public Notification notify(int memberId, NotificationType type, NotificationData data) {
         if (!isAppEnabled(memberId, type)) return null;
         return notificationRepository.create(memberId, type, data);
     }
 
+    /**
+     * Creates a notification for a member only if no identical unacknowledged notification already exists.
+     *
+     * @param memberId the target member ID
+     * @param type     the notification category
+     * @param data     localized message data
+     */
     public void notifyIfAbsent(int memberId, NotificationType type, NotificationData data) {
         if (!isAppEnabled(memberId, type)) return;
         if (!notificationRepository.exists(memberId, type, data.toJson())) {
@@ -101,10 +121,25 @@ public class NotificationService {
         }
     }
 
+    /**
+     * Sends a notification to all members of a station.
+     *
+     * @param stationId the station ID
+     * @param type      the notification category
+     * @param data      localized message data
+     */
     public void notifyStation(int stationId, NotificationType type, NotificationData data) {
         notifyStation(stationId, type, data, -1);
     }
 
+    /**
+     * Sends a notification to all members of a station, excluding a specific member.
+     *
+     * @param stationId       the station ID
+     * @param type            the notification category
+     * @param data            localized message data
+     * @param excludeMemberId member ID to exclude (e.g. the action initiator)
+     */
     public void notifyStation(int stationId, NotificationType type, NotificationData data, int excludeMemberId) {
         var members = stationMemberRepository.findByStation(stationId);
         for (var member : members) {
@@ -114,10 +149,27 @@ public class NotificationService {
         }
     }
 
+    /**
+     * Sends a notification to all members with a specific role in a station.
+     *
+     * @param stationId the station ID
+     * @param roleName  the role name to filter by
+     * @param type      the notification category
+     * @param data      localized message data
+     */
     public void notifyMembersWithRole(int stationId, String roleName, NotificationType type, NotificationData data) {
         notifyMembersWithRole(stationId, roleName, type, data, -1);
     }
 
+    /**
+     * Sends a notification to all members with a specific role in a station, excluding a specific member.
+     *
+     * @param stationId       the station ID
+     * @param roleName        the role name to filter by
+     * @param type            the notification category
+     * @param data            localized message data
+     * @param excludeMemberId member ID to exclude
+     */
     public void notifyMembersWithRole(
             int stationId, String roleName, NotificationType type, NotificationData data, int excludeMemberId) {
         var members = stationMemberRepository.findByStationAndRole(stationId, roleName);
@@ -128,6 +180,13 @@ public class NotificationService {
         }
     }
 
+    /**
+     * Sends a notification to a collection of members.
+     *
+     * @param memberIds the member IDs to notify
+     * @param type      the notification category
+     * @param data      localized message data
+     */
     public void notifyMembers(Collection<Integer> memberIds, NotificationType type, NotificationData data) {
         for (int memberId : memberIds) {
             if (!isAppEnabled(memberId, type)) continue;
@@ -135,6 +194,15 @@ public class NotificationService {
         }
     }
 
+    /**
+     * Sends a notification to members only if no identical unacknowledged notification exists,
+     * excluding a specific member.
+     *
+     * @param memberIds       the member IDs to notify
+     * @param type            the notification category
+     * @param data            localized message data
+     * @param excludeMemberId member ID to exclude
+     */
     public void notifyMembersIfAbsent(
             Collection<Integer> memberIds, NotificationType type, NotificationData data, int excludeMemberId) {
         String dataJson = data.toJson();
@@ -151,30 +219,71 @@ public class NotificationService {
         return notificationSettingsRepository.isAppEnabled(memberId, type);
     }
 
+    /**
+     * Retrieves all unacknowledged notifications for a member.
+     *
+     * @param memberId the member ID
+     * @return list of unacknowledged notifications
+     */
     public List<Notification> findUnacknowledged(int memberId) {
         return notificationRepository.findUnacknowledged(memberId);
     }
 
+    /**
+     * Retrieves the most recent notifications for a member (up to 50).
+     *
+     * @param memberId the member ID
+     * @return list of notifications
+     */
     public List<Notification> findAll(int memberId) {
         return notificationRepository.findAll(memberId);
     }
 
+    /**
+     * Counts unacknowledged notifications for a member.
+     *
+     * @param memberId the member ID
+     * @return count of unacknowledged notifications
+     */
     public int countUnacknowledged(int memberId) {
         return notificationRepository.countUnacknowledged(memberId);
     }
 
+    /**
+     * Acknowledges a single notification.
+     *
+     * @param id       the notification ID
+     * @param memberId the member ID
+     * @return {@code true} if the notification was acknowledged
+     */
     public boolean acknowledge(int id, int memberId) {
         return notificationRepository.acknowledge(id, memberId);
     }
 
+    /**
+     * Acknowledges all unacknowledged notifications for a member.
+     *
+     * @param memberId the member ID
+     * @return the number of notifications acknowledged
+     */
     public int acknowledgeAll(int memberId) {
         return notificationRepository.acknowledgeAll(memberId);
     }
 
+    /**
+     * Deletes unacknowledged notifications matching a type and partial data JSON fragment.
+     *
+     * @param type            the notification type
+     * @param partialDataJson JSON fragment for containment matching
+     * @return the number of notifications deleted
+     */
     public int deleteByTypeContaining(NotificationType type, String partialDataJson) {
         return notificationRepository.deleteByTypeContaining(type, partialDataJson);
     }
 
+    /**
+     * Removes acknowledged notifications older than 30 days.
+     */
     public void cleanupOld() {
         notificationRepository.deleteOldAcknowledged();
     }

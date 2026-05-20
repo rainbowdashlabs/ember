@@ -28,6 +28,10 @@ import java.util.Base64;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * Service handling authentication, registration, session management, password operations,
+ * email changes, and station deletion confirmations.
+ */
 @Singleton
 public class AuthService {
     private static final SecureRandom RANDOM = new SecureRandom();
@@ -58,6 +62,17 @@ public class AuthService {
         this.authConfig = authConfig;
     }
 
+    /**
+     * Registers a new account via self-registration. Optionally validates a registration code to create
+     * a station membership and assign groups. Sends a verification email upon success.
+     *
+     * @param email            the email address
+     * @param firstName        the first name
+     * @param lastName         the last name
+     * @param password         the plaintext password
+     * @param registrationCode optional station registration code
+     * @return the registration result indicating success or failure with a message
+     */
     public RegistrationResult registerSelf(
             String email, String firstName, String lastName, String password, String registrationCode) {
         RegistrationCode code = null;
@@ -109,6 +124,16 @@ public class AuthService {
         return RegistrationResult.success(accountRepository.findById(accountId).orElseThrow());
     }
 
+    /**
+     * Creates an account for an invited user. The email is pre-verified, and a password setup token
+     * is sent via email. A station membership is created automatically.
+     *
+     * @param email     the email address
+     * @param firstName the first name
+     * @param lastName  the last name
+     * @param stationId the station to create a membership for
+     * @return the registration result indicating success or failure
+     */
     public RegistrationResult createInvitedAccount(String email, String firstName, String lastName, int stationId) {
         if (accountRepository.findByEmail(email).isPresent()) {
             return RegistrationResult.failure("Email already in use");
@@ -131,6 +156,12 @@ public class AuthService {
         return RegistrationResult.success(accountRepository.findById(accountId).orElseThrow());
     }
 
+    /**
+     * Verifies an email address using the provided token. The token is consumed on success or deleted if expired.
+     *
+     * @param token the verification token
+     * @return {@code true} if the email was successfully verified
+     */
     public boolean verifyEmail(String token) {
         Optional<AccountToken> tokenOpt = accountRepository.findToken(token);
         if (tokenOpt.isEmpty()) {
@@ -148,6 +179,14 @@ public class AuthService {
         return true;
     }
 
+    /**
+     * Sets a password using a token. Accepts SET_PASSWORD, RESET_PASSWORD, and FORCE_PASSWORD_CHANGE tokens.
+     * Creates credentials if none exist, otherwise updates the existing password hash.
+     *
+     * @param token    the password setup or reset token
+     * @param password the new plaintext password
+     * @return {@code true} if the password was successfully set
+     */
     public boolean setPassword(String token, String password) {
         Optional<AccountToken> tokenOpt = accountRepository.findToken(token);
         if (tokenOpt.isEmpty()) {
@@ -180,6 +219,12 @@ public class AuthService {
         return true;
     }
 
+    /**
+     * Initiates a password reset by sending a reset email. Silently does nothing if the email is not found,
+     * to prevent email enumeration.
+     *
+     * @param email the email address to send the reset link to
+     */
     public void requestPasswordReset(String email) {
         Optional<Account> accountOpt = accountRepository.findByEmail(email);
         if (accountOpt.isEmpty()) {
@@ -197,6 +242,13 @@ public class AuthService {
         emailService.sendPasswordResetEmail(account.email(), account.firstName(), token);
     }
 
+    /**
+     * Resets a password as an administrator. Optionally sets a force-password-change flag and sends a reset email.
+     *
+     * @param accountId   the account identifier
+     * @param forceChange if {@code true}, the user will be required to change their password on next login
+     * @return {@code true} if the account was found and the reset email was sent
+     */
     public boolean adminResetPassword(int accountId, boolean forceChange) {
         Optional<Account> accountOpt = accountRepository.findById(accountId);
         if (accountOpt.isEmpty()) {
@@ -222,6 +274,13 @@ public class AuthService {
         return true;
     }
 
+    /**
+     * Resends the verification email for an unverified account. Does nothing if the email is not found
+     * or already verified.
+     *
+     * @param email the email address
+     * @return {@code true} if the verification email was sent
+     */
     public boolean resendVerification(String email) {
         Optional<Account> accountOpt = accountRepository.findByEmail(email);
         if (accountOpt.isEmpty() || accountOpt.get().emailVerified()) {
@@ -240,6 +299,17 @@ public class AuthService {
         return true;
     }
 
+    /**
+     * Authenticates a user with email and password. Validates email verification, credentials, and login
+     * authorization. If a forced password change is required, returns a password change token instead of
+     * a session. Rehashes the password if the hashing algorithm has changed.
+     *
+     * @param email     the email address
+     * @param password  the plaintext password
+     * @param userAgent the client's user agent string
+     * @param location  the client's location (e.g. country code)
+     * @return the login result containing a session token or password change token, or a failure message
+     */
     public LoginResult login(String email, String password, String userAgent, String location) {
         Optional<Account> accountOpt = accountRepository.findByEmail(email);
         if (accountOpt.isEmpty()) {
@@ -288,6 +358,14 @@ public class AuthService {
 
     // -- Login / Session --
 
+    /**
+     * Refreshes a session by invalidating the old token and creating a new session.
+     *
+     * @param token     the current session token
+     * @param userAgent the client's user agent string
+     * @param location  the client's location
+     * @return a new login result with a fresh token, or failure if the session is invalid or expired
+     */
     public LoginResult refreshSession(String token, String userAgent, String location) {
         Optional<AccountSession> sessionOpt = accountRepository.findSession(token);
         if (sessionOpt.isEmpty()) {
@@ -304,18 +382,44 @@ public class AuthService {
         return createSession(session.accountId(), userAgent, location);
     }
 
+    /**
+     * Logs out by invalidating the session token.
+     *
+     * @param token the session token to invalidate
+     * @return {@code true} if the session was found and deleted
+     */
     public boolean logout(String token) {
         return accountRepository.deleteSession(token);
     }
 
+    /**
+     * Retrieves all active sessions for an account.
+     *
+     * @param accountId the account identifier
+     * @return list of active sessions
+     */
     public List<AccountSession> findSessionsByAccount(int accountId) {
         return accountRepository.findSessionsByAccount(accountId);
     }
 
+    /**
+     * Invalidates all sessions for an account, forcing re-authentication on all devices.
+     *
+     * @param accountId the account identifier
+     * @return {@code true} if any sessions were invalidated
+     */
     public boolean invalidateAllSessions(int accountId) {
         return accountRepository.deleteSessionsByAccount(accountId);
     }
 
+    /**
+     * Changes a user's password after verifying the current password.
+     *
+     * @param accountId       the account identifier
+     * @param currentPassword the current plaintext password for verification
+     * @param newPassword     the new plaintext password
+     * @return {@code true} if the password was changed successfully
+     */
     public boolean changePassword(int accountId, String currentPassword, String newPassword) {
         var credOpt = accountRepository.findCredential(accountId);
         if (credOpt.isEmpty()) return false;
@@ -324,6 +428,14 @@ public class AuthService {
         return true;
     }
 
+    /**
+     * Creates a new session for the given account and returns a successful login result.
+     *
+     * @param accountId the account identifier
+     * @param userAgent the client's user agent string
+     * @param location  the client's location
+     * @return a successful login result with the session token
+     */
     private LoginResult createSession(int accountId, String userAgent, String location) {
         String token = generateToken();
         Instant expiresAt = Instant.now().plus(authConfig.sessionMinutes(), ChronoUnit.MINUTES);
@@ -333,6 +445,13 @@ public class AuthService {
 
     // -- Email change --
 
+    /**
+     * Initiates an email change by sending a confirmation email to the new address.
+     * The new email is stored as token metadata and applied upon confirmation.
+     *
+     * @param accountId the account identifier
+     * @param newEmail  the new email address to change to
+     */
     public void requestEmailChange(int accountId, String newEmail) {
         accountRepository.deleteTokensByAccountAndType(accountId, TokenType.EMAIL_CHANGE);
         String token = generateToken();
@@ -347,6 +466,13 @@ public class AuthService {
         emailService.sendEmailChangeConfirmation(newEmail, name, token);
     }
 
+    /**
+     * Confirms an email change using the provided token. Updates the account's email to the new address
+     * stored in the token's metadata.
+     *
+     * @param token the email change confirmation token
+     * @return {@code true} if the email was successfully changed
+     */
     public boolean confirmEmailChange(String token) {
         Optional<AccountToken> tokenOpt = accountRepository.findToken(token);
         if (tokenOpt.isEmpty()) return false;
@@ -361,6 +487,13 @@ public class AuthService {
 
     // -- Station deletion --
 
+    /**
+     * Initiates a station deletion by sending a confirmation email to the account owner.
+     * The station ID is stored as token metadata.
+     *
+     * @param accountId the account identifier of the station owner
+     * @param stationId the station to be deleted
+     */
     public void requestStationDeletion(int accountId, int stationId) {
         accountRepository.deleteTokensByAccountAndType(accountId, TokenType.STATION_DELETE);
         String token = generateToken();
@@ -376,6 +509,12 @@ public class AuthService {
         }
     }
 
+    /**
+     * Confirms a station deletion using the provided token. Returns the station ID to be deleted.
+     *
+     * @param token the station deletion confirmation token
+     * @return the station ID to delete, or empty if the token is invalid or expired
+     */
     public Optional<Integer> confirmStationDeletion(String token) {
         Optional<AccountToken> tokenOpt = accountRepository.findToken(token);
         if (tokenOpt.isEmpty()) return Optional.empty();
@@ -387,32 +526,58 @@ public class AuthService {
         return Optional.of(Integer.parseInt(stationIdStr));
     }
 
+    /**
+     * Generates a cryptographically secure random token encoded as URL-safe Base64.
+     *
+     * @return the generated token string
+     */
     private String generateToken() {
         byte[] bytes = new byte[authConfig.tokenBytes()];
         RANDOM.nextBytes(bytes);
         return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
     }
 
+    /**
+     * Result of a registration attempt.
+     *
+     * @param success whether the registration succeeded
+     * @param message error message on failure, {@code null} on success
+     * @param account the created account on success, {@code null} on failure
+     */
     public record RegistrationResult(boolean success, String message, Account account) {
+        /** Creates a failed registration result with an error message. */
         public static RegistrationResult failure(String message) {
             return new RegistrationResult(false, message, null);
         }
 
+        /** Creates a successful registration result with the created account. */
         public static RegistrationResult success(Account account) {
             return new RegistrationResult(true, null, account);
         }
     }
 
+    /**
+     * Result of a login attempt.
+     *
+     * @param success                whether the login succeeded
+     * @param message                error message on failure, {@code null} on success
+     * @param token                  the session or password change token on success
+     * @param expiresAt              when the token expires
+     * @param passwordChangeRequired whether a password change is required before a session can be created
+     */
     public record LoginResult(
             boolean success, String message, String token, Instant expiresAt, boolean passwordChangeRequired) {
+        /** Creates a failed login result with an error message. */
         public static LoginResult failure(String message) {
             return new LoginResult(false, message, null, null, false);
         }
 
+        /** Creates a successful login result with a session token. */
         public static LoginResult success(String token, Instant expiresAt) {
             return new LoginResult(true, null, token, expiresAt, false);
         }
 
+        /** Creates a login result indicating a forced password change is required. */
         public static LoginResult passwordChangeRequired(String token, Instant expiresAt) {
             return new LoginResult(true, null, token, expiresAt, true);
         }

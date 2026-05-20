@@ -5,8 +5,14 @@
  */
 package dev.chojo.ember.feature.inventory.entity;
 
+/**
+ * Represents the possible outcomes when checking whether a member possesses an inventory item.
+ */
 public enum CheckResult {
+    /** The member confirmed possession of the item. */
     CONFIRMED,
+    /** The member does not currently have the item in their possession. */
     NOT_IN_POSSESSION,
+    /** The item has been lost. */
     LOST
 }

@@ -22,6 +22,10 @@ import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
+/**
+ * Routes for station application submission (public) and management (admin).
+ * Handles the full application lifecycle: submit, verify, list, accept, and deny.
+ */
 @Singleton
 public class StationApplicationRoutes implements Routes {
     private final StationApplicationService applicationService;
@@ -163,10 +167,29 @@ public class StationApplicationRoutes implements Routes {
         }
     }
 
+    /**
+     * Request body for submitting a new station application.
+     *
+     * @param firstName    the applicant's first name
+     * @param lastName     the applicant's last name
+     * @param email        the applicant's email address
+     * @param stationName  the desired station name
+     * @param introduction optional introduction text
+     */
     public record ApplicationRequest(
             String firstName, String lastName, String email, String stationName, String introduction) {}
 
+    /**
+     * Request body for verifying an application via email token.
+     *
+     * @param token the verification token
+     */
     public record VerifyRequest(String token) {}
 
+    /**
+     * Request body for denying a station application.
+     *
+     * @param reason the reason for denial
+     */
     public record DenyRequest(String reason) {}
 }

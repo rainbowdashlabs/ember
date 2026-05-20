@@ -131,6 +131,13 @@ public class LegalDocumentService {
         return previousHash != null; // Only report as "changed" if there was a previous version
     }
 
+    /**
+     * Retrieves and renders a legal document for the given locale, falling back to the default locale if unavailable.
+     *
+     * @param baseDir the base directory containing locale subdirectories with markdown files
+     * @param locale  the desired locale (e.g. "de", "en")
+     * @return the rendered document with HTML, raw markdown, and version hash
+     */
     public RenderedDocument getDocument(Path baseDir, String locale) {
         String markdown = readMarkdownDirectory(baseDir, locale);
         if (markdown.isEmpty()) {
@@ -145,6 +152,12 @@ public class LegalDocumentService {
         return new RenderedDocument(html, markdown, version);
     }
 
+    /**
+     * Retrieves and renders a legal document using the default locale.
+     *
+     * @param baseDir the base directory containing the markdown files
+     * @return the rendered document with HTML, raw markdown, and version hash
+     */
     public RenderedDocument getDocument(Path baseDir) {
         return getDocument(baseDir, DEFAULT_LOCALE);
     }
@@ -337,6 +350,12 @@ public class LegalDocumentService {
         }
     }
 
+    /**
+     * Computes a truncated SHA-256 hash (first 16 hex characters) of the given content.
+     *
+     * @param content the text to hash
+     * @return a 16-character hex string identifying the content version
+     */
     String hash(String content) {
         try {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
@@ -347,5 +366,12 @@ public class LegalDocumentService {
         }
     }
 
+    /**
+     * A rendered legal document containing the HTML output, raw markdown source, and a version hash.
+     *
+     * @param html     the rendered HTML content
+     * @param markdown the raw markdown source
+     * @param version  the content hash identifying this version
+     */
     public record RenderedDocument(String html, String markdown, String version) {}
 }

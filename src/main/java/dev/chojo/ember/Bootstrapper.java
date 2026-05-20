@@ -21,12 +21,20 @@ import org.slf4j.LoggerFactory;
 import java.security.SecureRandom;
 import java.util.Base64;
 
+/**
+ * Application entry point that initializes the Guice injector, runs database migrations,
+ * seeds demo data or creates a default admin account, and starts the API server.
+ */
 public class Bootstrapper {
     private static final Logger log = LoggerFactory.getLogger(Bootstrapper.class);
     private static final String ADMIN_EMAIL = "admin@ember.local";
     private static final String ADMIN_FIRST_NAME = "Admin";
     private static final String ADMIN_LAST_NAME = "Admin";
 
+    /**
+     * Creates a default admin account with a random password and a default station
+     * if no account with the ADMIN role exists yet. Logs the credentials to the console.
+     */
     private static void createDefaultAdmin(
             AccountRepository accountRepository,
             PasswordHasher passwordHasher,
@@ -57,6 +65,9 @@ public class Bootstrapper {
         log.info("==========================================================");
     }
 
+    /**
+     * Generates a cryptographically secure random password encoded as a URL-safe Base64 string.
+     */
     private static String generatePassword() {
         byte[] bytes = new byte[24];
         new SecureRandom().nextBytes(bytes);

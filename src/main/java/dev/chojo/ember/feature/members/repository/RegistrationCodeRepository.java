@@ -15,9 +15,11 @@ import java.util.Optional;
 
 import static de.chojo.sadu.queries.api.query.Query.query;
 
+/** Repository for managing registration codes and their group assignments. */
 @Singleton
 public class RegistrationCodeRepository {
 
+    /** Finds a registration code by its code string. */
     public Optional<RegistrationCode> findByCode(String code) {
         return query("SELECT id, station_id, code, max_uses, uses FROM registration_code WHERE code = :code;")
                 .single(Call.of().bind("code", code))
@@ -25,6 +27,7 @@ public class RegistrationCodeRepository {
                 .first();
     }
 
+    /** Finds a registration code by station and code string. */
     public Optional<RegistrationCode> findByStationAndCode(int stationId, String code) {
         return query("""
                 SELECT id, station_id, code, max_uses, uses
@@ -36,6 +39,7 @@ public class RegistrationCodeRepository {
                 .first();
     }
 
+    /** Finds a registration code by its identifier. */
     public Optional<RegistrationCode> findById(int id) {
         return query("SELECT id, station_id, code, max_uses, uses FROM registration_code WHERE id = :id;")
                 .single(Call.of().bind("id", id))
@@ -43,6 +47,7 @@ public class RegistrationCodeRepository {
                 .first();
     }
 
+    /** Finds all registration codes for a station. */
     public List<RegistrationCode> findByStation(int stationId) {
         return query(
                         "SELECT id, station_id, code, max_uses, uses FROM registration_code WHERE station_id = :station_id;")
@@ -51,6 +56,7 @@ public class RegistrationCodeRepository {
                 .all();
     }
 
+    /** Creates a new registration code for a station. */
     public RegistrationCode create(int stationId, String code, int maxUses) {
         return query(
                         "INSERT INTO registration_code(station_id, code, max_uses) VALUES(:station_id, :code, :max_uses) RETURNING id, station_id, code, max_uses, uses;")
@@ -63,6 +69,7 @@ public class RegistrationCodeRepository {
                 .orElseThrow();
     }
 
+    /** Increments the usage count of a registration code by one. */
     public boolean incrementUses(int id) {
         return query("UPDATE registration_code SET uses = uses + 1 WHERE id = :id;")
                 .single(Call.of().bind("id", id))
@@ -70,6 +77,7 @@ public class RegistrationCodeRepository {
                 .changed();
     }
 
+    /** Deletes a registration code. */
     public boolean delete(int id) {
         return query("DELETE FROM registration_code WHERE id = :id;")
                 .single(Call.of().bind("id", id))
@@ -79,6 +87,7 @@ public class RegistrationCodeRepository {
 
     // -- Code-Group assignments --
 
+    /** Finds all group IDs assigned to a registration code. */
     public List<Integer> findGroupIds(int codeId) {
         return query("SELECT group_id FROM registration_code_group WHERE code_id = :code_id;")
                 .single(Call.of().bind("code_id", codeId))
@@ -86,12 +95,14 @@ public class RegistrationCodeRepository {
                 .all();
     }
 
+    /** Assigns a group to a registration code. */
     public InsertionResult addGroup(int codeId, int groupId) {
         return query("INSERT INTO registration_code_group(code_id, group_id) VALUES(:code_id, :group_id);")
                 .single(Call.of().bind("code_id", codeId).bind("group_id", groupId))
                 .insert();
     }
 
+    /** Removes a group assignment from a registration code. */
     public boolean removeGroup(int codeId, int groupId) {
         return query("DELETE FROM registration_code_group WHERE code_id = :code_id AND group_id = :group_id;")
                 .single(Call.of().bind("code_id", codeId).bind("group_id", groupId))

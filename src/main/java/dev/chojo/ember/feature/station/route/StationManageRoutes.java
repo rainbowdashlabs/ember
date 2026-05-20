@@ -41,6 +41,10 @@ import java.time.zone.ZoneRulesException;
 import java.util.Optional;
 import java.util.Set;
 
+/**
+ * Routes for station self-management by managers, including settings, logo, mail configuration,
+ * module toggles, data import, ownership transfer, and station deletion.
+ */
 @Singleton
 public class StationManageRoutes implements Routes {
     private static final long MAX_LOGO_SIZE = 2 * 1024 * 1024;
@@ -239,8 +243,26 @@ public class StationManageRoutes implements Routes {
         ctx.json(new MessageResponse("Logo deleted"));
     }
 
+    /**
+     * Request body for updating station settings.
+     *
+     * @param name     the station name
+     * @param timezone the IANA timezone identifier
+     * @param locale   the locale string (e.g., "de-DE")
+     */
     public record UpdateStationRequest(String name, String timezone, String locale) {}
 
+    /**
+     * Response containing station management information.
+     *
+     * @param id            the station ID
+     * @param name          the station name
+     * @param timezone      the station timezone
+     * @param locale        the station locale
+     * @param hasLogo       whether the station has a logo uploaded
+     * @param ownerMemberId the member ID of the owner, or {@code null}
+     * @param isOwner       whether the current user is the station owner
+     */
     public record StationInfo(
             int id,
             String name,
@@ -252,6 +274,9 @@ public class StationManageRoutes implements Routes {
 
     // -- Mail config --
 
+    /**
+     * Response containing the station's mail configuration and current usage statistics.
+     */
     public record MailConfigResponse(
             String provider,
             String smtpHost,
@@ -268,6 +293,9 @@ public class StationManageRoutes implements Routes {
             int sentToday,
             int sentThisMonth) {}
 
+    /**
+     * Request body for updating the station's mail configuration.
+     */
     public record MailConfigRequest(
             String provider,
             String smtpHost,
@@ -283,6 +311,12 @@ public class StationManageRoutes implements Routes {
             Integer dailyLimit,
             Integer monthlyLimit) {}
 
+    /**
+     * Response from a mail configuration test.
+     *
+     * @param success whether the test connection succeeded
+     * @param error   the error message if the test failed, or {@code null}
+     */
     public record MailTestResponse(boolean success, String error) {}
 
     @OpenApi(
@@ -412,6 +446,11 @@ public class StationManageRoutes implements Routes {
         ctx.json(new ModulesResponse(stationService.findDisabledModules(session.stationId())));
     }
 
+    /**
+     * Response and request body for the set of disabled modules.
+     *
+     * @param disabledModules the names of disabled modules
+     */
     public record ModulesResponse(Set<String> disabledModules) {}
 
     // -- Station deletion --
@@ -453,6 +492,11 @@ public class StationManageRoutes implements Routes {
         ctx.json(new MessageResponse("Ownership transferred"));
     }
 
+    /**
+     * Request body for transferring station ownership.
+     *
+     * @param newOwnerMemberId the member ID of the new owner
+     */
     public record TransferOwnershipRequest(int newOwnerMemberId) {}
 
     // -- Station import into existing station --
@@ -504,8 +548,25 @@ public class StationManageRoutes implements Routes {
                 progress.error()));
     }
 
+    /**
+     * Request body for importing data from a remote Ember instance.
+     *
+     * @param sourceUrl the base URL of the remote instance
+     * @param token     the transfer token for authentication
+     */
     public record StationImportRequest(String sourceUrl, String token) {}
 
+    /**
+     * Response containing the progress of an ongoing import operation.
+     *
+     * @param stationId       the target station ID
+     * @param stationName     the target station name
+     * @param status          the import status (IN_PROGRESS, COMPLETED, FAILED)
+     * @param totalTables     the total number of tables to import
+     * @param completedTables the number of tables imported so far
+     * @param currentTable    the table currently being imported, or {@code null} if completed
+     * @param error           the error message if the import failed, or {@code null}
+     */
     public record ImportProgressResponse(
             int stationId,
             String stationName,

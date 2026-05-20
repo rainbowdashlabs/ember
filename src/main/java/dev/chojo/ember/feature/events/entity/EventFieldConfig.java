@@ -15,6 +15,13 @@ import java.util.List;
 
 import static org.slf4j.LoggerFactory.getLogger;
 
+/**
+ * Configuration for an event field, parsed from a JSONB column.
+ *
+ * @param required     whether the field is mandatory
+ * @param options      the list of selectable options, or null if free-text
+ * @param defaultValue the default value for the field, or null
+ */
 public record EventFieldConfig(boolean required, List<String> options, Object defaultValue) {
     private static final Logger log = getLogger(EventFieldConfig.class);
     private static final ObjectMapper MAPPER = JsonMapper.builder()
@@ -25,6 +32,12 @@ public record EventFieldConfig(boolean required, List<String> options, Object de
             .build();
     private static final EventFieldConfig EMPTY = new EventFieldConfig(false, null, null);
 
+    /**
+     * Parses a JSON string into an {@link EventFieldConfig}, returning an empty config if the input is null, blank, or invalid.
+     *
+     * @param json the JSON string to parse
+     * @return the parsed config, or a default empty config on failure
+     */
     public static EventFieldConfig parse(String json) {
         if (json == null || json.isBlank()) return EMPTY;
         try {

@@ -20,6 +20,10 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
+/**
+ * Manages authentication and authorization by resolving session tokens into user sessions
+ * and computing effective role sets for members.
+ */
 @Singleton
 public class AccessManager {
     private final AccountRepository accountRepository;
@@ -36,6 +40,13 @@ public class AccessManager {
         this.memberGroupRepository = memberGroupRepository;
     }
 
+    /**
+     * Resolves a session token to an active account session.
+     * Expired sessions are automatically deleted and treated as absent.
+     *
+     * @param token the bearer token from the Authorization header
+     * @return the account session if the token is valid and not expired
+     */
     public Optional<AccountSession> resolveSession(String token) {
         if (token == null || token.isBlank()) {
             return Optional.empty();
@@ -48,6 +59,14 @@ public class AccessManager {
         return session;
     }
 
+    /**
+     * Resolves a session token and optional station context into a full user session.
+     * Combines account-level roles with station-specific member and group roles, then expands the role hierarchy.
+     *
+     * @param token     the bearer token
+     * @param stationId the station to scope the session to, or {@code null} for account-level only
+     * @return the user session with resolved roles, or empty if the token is invalid
+     */
     public Optional<UserSession> resolveUserSession(String token, Integer stationId) {
         Optional<AccountSession> sessionOpt = resolveSession(token);
         if (sessionOpt.isEmpty()) {
@@ -95,6 +114,9 @@ public class AccessManager {
         return Roles.expand(roles);
     }
 
+    /**
+     * Resolves account-level roles (e.g. ADMIN) from the database and maps them to the {@link Roles} enum.
+     */
     private Set<Roles> resolveAccountRoles(int accountId) {
         Set<Roles> roles = EnumSet.noneOf(Roles.class);
         List<String> accountRoles = accountRepository.findAccountRoles(accountId);

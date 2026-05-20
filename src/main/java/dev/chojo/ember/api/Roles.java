@@ -10,6 +10,11 @@ import io.javalin.security.RouteRole;
 import java.util.EnumSet;
 import java.util.Set;
 
+/**
+ * Hierarchical role system used for route-level access control.
+ * Each role can include child roles, forming a tree where higher roles transitively grant
+ * all permissions of their children (e.g. {@link #MANAGER} includes all management roles).
+ */
 public enum Roles implements RouteRole {
     /**
      * Allows logging in
@@ -120,6 +125,11 @@ public enum Roles implements RouteRole {
         return expanded;
     }
 
+    /**
+     * Returns the direct child roles of this role.
+     *
+     * @return array of direct child roles
+     */
     public Roles[] getChildren() {
         return children;
     }

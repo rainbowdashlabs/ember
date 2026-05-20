@@ -17,9 +17,20 @@ import java.util.List;
 
 import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIMESTAMP;
 
+/**
+ * Repository for persisting and querying notifications, including acknowledgement and email digest tracking.
+ */
 @Singleton
 public class NotificationRepository {
 
+    /**
+     * Creates a new notification for a member.
+     *
+     * @param memberId the target member ID
+     * @param type     the notification category
+     * @param data     localized message data
+     * @return the persisted notification
+     */
     public Notification create(int memberId, NotificationType type, NotificationData data) {
         return Query.query("""
                             INSERT INTO notification(member_id, type, data)
@@ -31,6 +42,14 @@ public class NotificationRepository {
                 .orElseThrow();
     }
 
+    /**
+     * Checks whether an unacknowledged notification with the exact same type and data already exists for a member.
+     *
+     * @param memberId the member ID
+     * @param type     the notification type
+     * @param dataJson the notification data as JSON
+     * @return {@code true} if a matching unacknowledged notification exists
+     */
     public boolean exists(int memberId, NotificationType type, String dataJson) {
         return Query.query("""
                             SELECT 1 FROM notification
@@ -44,6 +63,12 @@ public class NotificationRepository {
                 .orElse(false);
     }
 
+    /**
+     * Retrieves all unacknowledged notifications for a member, ordered by creation time descending.
+     *
+     * @param memberId the member ID
+     * @return list of unacknowledged notifications
+     */
     public List<Notification> findUnacknowledged(int memberId) {
         return Query.query(
                         "SELECT * FROM notification WHERE member_id = :member_id AND acknowledged_at IS NULL ORDER BY created_at DESC;")
@@ -52,6 +77,12 @@ public class NotificationRepository {
                 .all();
     }
 
+    /**
+     * Retrieves the most recent 50 notifications for a member, regardless of acknowledgement status.
+     *
+     * @param memberId the member ID
+     * @return list of notifications
+     */
     public List<Notification> findAll(int memberId) {
         return Query.query("SELECT * FROM notification WHERE member_id = :member_id ORDER BY created_at DESC LIMIT 50;")
                 .single(Call.of().bind("member_id", memberId))
@@ -59,6 +90,12 @@ public class NotificationRepository {
                 .all();
     }
 
+    /**
+     * Counts unacknowledged notifications for a member.
+     *
+     * @param memberId the member ID
+     * @return count of unacknowledged notifications
+     */
     public int countUnacknowledged(int memberId) {
         return Query.query(
                         "SELECT COUNT(*) AS cnt FROM notification WHERE member_id = :member_id AND acknowledged_at IS NULL;")
@@ -68,6 +105,13 @@ public class NotificationRepository {
                 .orElse(0);
     }
 
+    /**
+     * Acknowledges a single notification by setting its acknowledged timestamp.
+     *
+     * @param id       the notification ID
+     * @param memberId the member ID (for ownership verification)
+     * @return {@code true} if the notification was acknowledged
+     */
     public boolean acknowledge(int id, int memberId) {
         return Query.query(
                         "UPDATE notification SET acknowledged_at = :now WHERE id = :id AND member_id = :member_id AND acknowledged_at IS NULL;")
@@ -79,6 +123,12 @@ public class NotificationRepository {
                 .changed();
     }
 
+    /**
+     * Acknowledges all unacknowledged notifications for a member.
+     *
+     * @param memberId the member ID
+     * @return the number of notifications acknowledged
+     */
     public int acknowledgeAll(int memberId) {
         return Query.query(
                         "UPDATE notification SET acknowledged_at = :now WHERE member_id = :member_id AND acknowledged_at IS NULL;")
@@ -87,6 +137,14 @@ public class NotificationRepository {
                 .rows();
     }
 
+    /**
+     * Deletes unacknowledged notifications of a given type whose data contains the specified JSON fragment.
+     * Uses PostgreSQL's {@code @>} containment operator for partial matching.
+     *
+     * @param type            the notification type to match
+     * @param partialDataJson a JSON fragment that must be contained in the notification data
+     * @return the number of notifications deleted
+     */
     public int deleteByTypeContaining(NotificationType type, String partialDataJson) {
         return Query.query("""
                             DELETE FROM notification
@@ -98,6 +156,9 @@ public class NotificationRepository {
                 .rows();
     }
 
+    /**
+     * Deletes acknowledged notifications older than 30 days.
+     */
     public void deleteOldAcknowledged() {
         Query.query(
                         "DELETE FROM notification WHERE acknowledged_at IS NOT NULL AND acknowledged_at < now() - INTERVAL '30 days';")
@@ -105,6 +166,11 @@ public class NotificationRepository {
                 .delete();
     }
 
+    /**
+     * Retrieves all notifications that have not yet been included in an email digest.
+     *
+     * @return list of unemailed notifications, ordered by member and creation time
+     */
     public List<Notification> findUnemailed() {
         return Query.query("""
                             SELECT * FROM notification
@@ -112,6 +178,11 @@ public class NotificationRepository {
                             ORDER BY member_id, created_at;""").single().map(Notification.map()).all();
     }
 
+    /**
+     * Marks the given notifications as having been included in an email digest.
+     *
+     * @param ids the notification IDs to mark
+     */
     public void markEmailed(List<Integer> ids) {
         if (ids.isEmpty()) return;
         var now = Instant.now();

@@ -10,6 +10,10 @@ import dev.chojo.ocular.override.Env;
 import dev.chojo.ocular.override.Overwrite;
 import dev.chojo.ocular.override.OverwritePrefix;
 
+/**
+ * PostgreSQL database connection configuration.
+ * Fields can be overridden via environment variables with the {@code DB_} prefix.
+ */
 @SuppressWarnings({"FieldCanBeLocal", "FieldMayBeFinal"})
 @OverwritePrefix("DB")
 public class Database implements DatabaseConfig {

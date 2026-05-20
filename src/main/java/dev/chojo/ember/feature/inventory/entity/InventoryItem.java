@@ -12,6 +12,19 @@ import java.util.Optional;
 
 import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIMESTAMP;
 
+/**
+ * Represents an individual item within an inventory that can be assigned to members.
+ *
+ * @param id         the unique item identifier
+ * @param inventoryId the inventory this item belongs to
+ * @param internalId  an internal identifier for the item (e.g. serial number)
+ * @param name        the display name of the item
+ * @param sizeId      the size variant of the item, or {@code null} if not applicable
+ * @param metadata    JSON metadata associated with the item
+ * @param assignedTo  the member this item is assigned to, or {@code null} if unassigned
+ * @param lostAt      when the item was marked as lost, or {@code null} if not lost
+ * @param itemSource  whether the item is internally or externally sourced
+ */
 public record InventoryItem(
         int id,
         int inventoryId,
@@ -22,6 +35,7 @@ public record InventoryItem(
         Integer assignedTo,
         Instant lostAt,
         ItemSource itemSource) {
+    /** Creates a row mapping for database result set conversion. */
     public static RowMapping<InventoryItem> map() {
         return row -> new InventoryItem(
                 row.getInt("id"),
@@ -35,16 +49,29 @@ public record InventoryItem(
                 row.getEnum("item_source", ItemSource.class));
     }
 
+    /**
+     * Returns the size ID as an optional.
+     *
+     * @return optional containing the size ID, or empty if not set
+     */
     public Optional<Integer> sizeIdOpt() {
         return Optional.ofNullable(sizeId);
     }
 
+    /**
+     * Returns the assigned member ID as an optional.
+     *
+     * @return optional containing the assigned member ID, or empty if unassigned
+     */
     public Optional<Integer> assignedToOpt() {
         return Optional.ofNullable(assignedTo);
     }
 
+    /** Indicates the origin of an inventory item. */
     public enum ItemSource {
+        /** The item is owned by the organization. */
         INTERNAL,
+        /** The item is owned by the member. */
         EXTERNAL
     }
 }

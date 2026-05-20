@@ -20,6 +20,10 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Service for exporting all personal data associated with an account or station member
+ * in compliance with GDPR/DSGVO data portability requirements (Art. 20 GDPR).
+ */
 @Singleton
 public class GdprExportService {
     private static final ObjectMapper MAPPER = JsonMapper.builder().build();
@@ -32,6 +36,13 @@ public class GdprExportService {
         this.stationMemberRepository = stationMemberRepository;
     }
 
+    /**
+     * Exports all personal data for an account including account info, sessions, consent records,
+     * saved filters, and all station membership data.
+     *
+     * @param accountId the account to export data for
+     * @return a structured map of all personal data suitable for JSON serialization
+     */
     public Map<String, Object> exportAccountData(int accountId) {
         var data = new LinkedHashMap<String, Object>();
         data.put("exportType", "GDPR/DSGVO Data Export");
@@ -80,12 +91,25 @@ public class GdprExportService {
         return data;
     }
 
+    /**
+     * Exports all personal data for a specific station member by member ID.
+     *
+     * @param memberId the station member ID to export data for
+     * @return a structured map of the member's data, or an empty map if not found
+     */
     public Map<String, Object> exportMemberData(int memberId) {
         var member = stationMemberRepository.findById(memberId);
         if (member.isEmpty()) return Map.of();
         return exportMemberData(member.get());
     }
 
+    /**
+     * Exports all personal data for a station member including roles, profile fields, groups, tags,
+     * manager relationships, attendance, events, absences, inventory, forms, notifications, and news.
+     *
+     * @param member the station member entity to export data for
+     * @return a structured map of all member-related personal data
+     */
     private Map<String, Object> exportMemberData(StationMember member) {
         int mid = member.id();
         var data = new LinkedHashMap<String, Object>();

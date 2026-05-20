@@ -15,6 +15,11 @@ import org.slf4j.Logger;
 
 import static org.slf4j.LoggerFactory.getLogger;
 
+/**
+ * Service for GDPR-compliant account deletion and member anonymization.
+ * Handles the right to erasure (Art. 17 GDPR) by deleting personal data
+ * and anonymizing records that must be retained for business purposes.
+ */
 @Singleton
 public class GdprDeletionService {
     private static final Logger log = getLogger(GdprDeletionService.class);
@@ -28,6 +33,13 @@ public class GdprDeletionService {
         this.stationMemberRepository = stationMemberRepository;
     }
 
+    /**
+     * Deletes an account and anonymizes all associated station memberships.
+     * This anonymizes each member record and then removes account-level data
+     * (sessions, tokens, credentials, external auth, saved filters, and the account itself).
+     *
+     * @param accountId the account to delete
+     */
     public void deleteAccount(int accountId) {
         log.info("GDPR: Starting account deletion for account {}", accountId);
 
@@ -43,6 +55,13 @@ public class GdprDeletionService {
         log.info("GDPR: Account {} deleted and {} memberships anonymized", accountId, members.size());
     }
 
+    /**
+     * Anonymizes a station member by deleting personal data (profile fields, notifications, settings,
+     * group memberships, tags, comments) and replacing names in history records. The member is marked
+     * as former and disconnected from the account.
+     *
+     * @param memberId the station member ID to anonymize
+     */
     public void anonymizeMember(int memberId) {
         // Delete profile field values
         Query.query("DELETE FROM profile_field_value WHERE member_id = :id;")

@@ -5,6 +5,9 @@
  */
 package dev.chojo.ember.feature.station.entity;
 
+/**
+ * Supported mail provider types for station email configuration.
+ */
 public enum MailProviderType {
     NONE,
     SMTP,

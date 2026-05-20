@@ -31,8 +31,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+/**
+ * Service for managing inventory checks on members.
+ * Handles the check workflow including locking, item verification, requirement calculation, and check completion.
+ */
 @Singleton
 public class InventoryCheckService {
+    /** Maximum duration in minutes before a check lock expires automatically. */
     private static final int LOCK_TIMEOUT_MINUTES = 30;
 
     private final InventoryCheckRepository checkRepository;
@@ -55,6 +60,13 @@ public class InventoryCheckService {
         this.accountRepository = accountRepository;
     }
 
+    /**
+     * Retrieves the check overview for all members of a station, enriched with member roles.
+     * Automatically releases expired locks before building the overview.
+     *
+     * @param stationId the station ID
+     * @return list of member check summaries with roles
+     */
     public List<MemberCheckSummary> getCheckOverview(int stationId) {
         checkRepository.releaseExpiredLocks(LOCK_TIMEOUT_MINUTES);
         var summaries = checkRepository.checkOverview(stationId);
@@ -80,6 +92,17 @@ public class InventoryCheckService {
                 .toList();
     }
 
+    /**
+     * Starts an inventory check for a member by acquiring a lock and loading the check state.
+     * If the same checker already holds the lock, the check continues. Otherwise, a new lock is acquired
+     * and any previous lock held by this checker is released.
+     *
+     * @param stationId the station ID
+     * @param memberId  the member to check
+     * @param lockedBy  the member performing the check
+     * @return the current check state including required items, assigned items, and unassigned items
+     * @throws ConflictResponse if the member is already locked by a different checker
+     */
     public MemberCheckState startCheck(int stationId, int memberId, int lockedBy) {
         checkRepository.releaseExpiredLocks(LOCK_TIMEOUT_MINUTES);
 
@@ -117,6 +140,15 @@ public class InventoryCheckService {
         return new MemberCheckState(memberName, required, assigned, lastCheck, unassigned);
     }
 
+    /**
+     * Completes an inventory check by recording all item results, marking lost items, and releasing the lock.
+     *
+     * @param stationId the station ID
+     * @param memberId  the member being checked
+     * @param checkedBy the member performing the check
+     * @param results   the check results for each item
+     * @return the created inventory check record
+     */
     public InventoryCheck completeCheck(int stationId, int memberId, int checkedBy, List<CheckItemRequest> results) {
         InventoryCheck check = checkRepository.createCheck(stationId, memberId, checkedBy);
 
@@ -133,6 +165,12 @@ public class InventoryCheckService {
         return check;
     }
 
+    /**
+     * Cancels an ongoing inventory check by releasing the lock, only if the caller holds it.
+     *
+     * @param memberId the member whose check to cancel
+     * @param lockedBy the member who should hold the lock
+     */
     public void cancelCheck(int memberId, int lockedBy) {
         var lock = checkRepository.findLock(memberId);
         if (lock.isPresent() && lock.get().lockedBy() == lockedBy) {
@@ -140,6 +178,12 @@ public class InventoryCheckService {
         }
     }
 
+    /**
+     * Retrieves the last check detail for a member, enriched with item names, inventory names, and size labels.
+     *
+     * @param memberId the member ID
+     * @return the enriched check detail, or empty if no checks exist
+     */
     public Optional<EnrichedCheckDetail> lastCheckDetail(int memberId) {
         var detail = checkRepository.latestCheckDetail(memberId);
         if (detail.isEmpty()) return Optional.empty();
@@ -191,10 +235,25 @@ public class InventoryCheckService {
                 new EnrichedCheckDetail(d.check(), d.checkerFirstName(), d.checkerLastName(), enrichedItems));
     }
 
+    /**
+     * Finds the next member to check based on who was checked least recently.
+     *
+     * @param stationId       the station ID
+     * @param currentMemberId the current member to exclude
+     * @return the next member ID, or empty if none available
+     */
     public Optional<Integer> nextMember(int stationId, int currentMemberId) {
         return checkRepository.nextUncheckedMember(stationId, currentMemberId);
     }
 
+    /**
+     * Calculates the inventory items required for a member based on their roles and groups.
+     * Aggregates requirement quantities per inventory and compares against currently assigned items.
+     *
+     * @param stationId the station ID
+     * @param memberId  the member ID
+     * @return list of required inventory items with quantities and assignment counts
+     */
     public List<RequiredInventoryItem> getRequiredItems(int stationId, int memberId) {
         List<Role> memberRoles = stationMemberRepository.findRoles(memberId);
         List<MemberGroup> memberGroups = memberGroupRepository.findGroupsForMember(memberId);
@@ -239,6 +298,15 @@ public class InventoryCheckService {
         return result;
     }
 
+    /**
+     * The state of an inventory check for a member, including requirements, assigned items, and available unassigned items.
+     *
+     * @param memberName the member's full name
+     * @param required   the list of required inventory items
+     * @param assigned   the items currently assigned to the member
+     * @param lastCheck  the member's most recent check, or {@code null} if never checked
+     * @param unassigned available unassigned items per inventory, keyed by inventory ID
+     */
     public record MemberCheckState(
             String memberName,
             List<RequiredInventoryItem> required,
@@ -246,6 +314,17 @@ public class InventoryCheckService {
             InventoryCheck lastCheck,
             Map<Integer, List<InventoryItem>> unassigned) {}
 
+    /**
+     * Describes an inventory requirement for a member, with comparison of required vs assigned quantities.
+     *
+     * @param inventoryId      the inventory ID
+     * @param inventoryName    the inventory name
+     * @param inventoryType    the inventory type
+     * @param hasSizes         whether the inventory supports sizes
+     * @param sizes            the available sizes if applicable
+     * @param requiredQuantity the total required quantity
+     * @param assignedQuantity the currently assigned quantity
+     */
     public record RequiredInventoryItem(
             int inventoryId,
             String inventoryName,
@@ -255,11 +334,39 @@ public class InventoryCheckService {
             int requiredQuantity,
             int assignedQuantity) {}
 
+    /**
+     * Request data for a single item check result.
+     *
+     * @param itemId      the item ID, or {@code null}
+     * @param inventoryId the inventory ID, or {@code null}
+     * @param result      the check result
+     * @param note        an optional note
+     */
     public record CheckItemRequest(Integer itemId, Integer inventoryId, CheckResult result, String note) {}
 
+    /**
+     * Enriched inventory check detail with resolved item names and sizes.
+     *
+     * @param check            the inventory check record
+     * @param checkerFirstName the checker's first name
+     * @param checkerLastName  the checker's last name
+     * @param items            the enriched check items
+     */
     public record EnrichedCheckDetail(
             InventoryCheck check, String checkerFirstName, String checkerLastName, List<EnrichedCheckItem> items) {}
 
+    /**
+     * A check item enriched with resolved names for display.
+     *
+     * @param id            the check item ID
+     * @param itemId        the item ID, or {@code null}
+     * @param itemName      the resolved item name
+     * @param internalId    the item's internal ID
+     * @param inventoryName the inventory name
+     * @param sizeName      the size label, or {@code null}
+     * @param result        the check result
+     * @param note          the note
+     */
     public record EnrichedCheckItem(
             int id,
             Integer itemId,

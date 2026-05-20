@@ -45,6 +45,9 @@ import java.util.stream.Collectors;
 
 import static org.slf4j.LoggerFactory.getLogger;
 
+/**
+ * Service for exporting individual attendance sessions as PDF documents using Typst templates.
+ */
 @Singleton
 public class AttendanceExportService {
     private static final Logger log = getLogger(AttendanceExportService.class);

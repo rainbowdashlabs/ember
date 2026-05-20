@@ -5,4 +5,9 @@
  */
 package dev.chojo.ember.api;
 
+/**
+ * Simple JSON response wrapper containing a single message string.
+ *
+ * @param message the response message
+ */
 public record MessageResponse(String message) {}

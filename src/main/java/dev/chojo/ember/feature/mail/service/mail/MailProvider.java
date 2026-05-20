@@ -11,8 +11,11 @@ package dev.chojo.ember.feature.mail.service.mail;
 public interface MailProvider {
 
     /**
-     * Send an email.
+     * Sends an HTML email to the specified recipient.
      *
+     * @param to       the recipient email address
+     * @param subject  the email subject
+     * @param htmlBody the HTML email body
      * @return true if sent successfully
      */
     boolean send(String to, String subject, String htmlBody);

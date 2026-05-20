@@ -20,6 +20,10 @@ import java.io.UnsupportedEncodingException;
 import java.util.Date;
 import java.util.Properties;
 
+/**
+ * SMTP-based implementation of {@link MailProvider}. Supports both direct SSL and STARTTLS connections.
+ * Used for sending emails through various providers (direct SMTP, Rapidmail, Twilio SendGrid, Sweego, Brevo).
+ */
 public class SmtpMailProvider implements MailProvider {
     private static final Logger log = LoggerFactory.getLogger(SmtpMailProvider.class);
 
@@ -31,6 +35,17 @@ public class SmtpMailProvider implements MailProvider {
     private final String senderAddress;
     private final String senderName;
 
+    /**
+     * Creates a new SMTP mail provider.
+     *
+     * @param host          the SMTP server hostname
+     * @param port          the SMTP server port
+     * @param ssl           true for direct SSL, false for STARTTLS
+     * @param user          the authentication username
+     * @param password      the authentication password
+     * @param senderAddress the sender email address (From header)
+     * @param senderName    the sender display name
+     */
     public SmtpMailProvider(
             String host, int port, boolean ssl, String user, String password, String senderAddress, String senderName) {
         this.host = host;

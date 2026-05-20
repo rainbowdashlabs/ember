@@ -16,6 +16,7 @@ import jakarta.inject.Singleton;
 import java.util.List;
 import java.util.Optional;
 
+/** Repository for profile field definitions and their values per member. */
 @Singleton
 public class ProfileFieldRepository {
 
@@ -23,6 +24,7 @@ public class ProfileFieldRepository {
 
     // -- Field Definitions --
 
+    /** Finds a profile field definition by its identifier. */
     public Optional<ProfileField> findById(int id) {
         return Query.query("SELECT " + COLUMNS + " FROM profile_field WHERE id = :id;")
                 .single(Call.of().bind("id", id))
@@ -30,6 +32,7 @@ public class ProfileFieldRepository {
                 .first();
     }
 
+    /** Finds all profile field definitions for a station, ordered by scope and position. */
     public List<ProfileField> findByStation(int stationId) {
         return Query.query("SELECT " + COLUMNS
                         + " FROM profile_field WHERE station_id = :station_id ORDER BY scope, position;")
@@ -38,6 +41,7 @@ public class ProfileFieldRepository {
                 .all();
     }
 
+    /** Finds profile field definitions for a station filtered by scope, ordered by position. */
     public List<ProfileField> findByStationAndScope(int stationId, ProfileFieldScope scope) {
         return Query.query("SELECT " + COLUMNS
                         + " FROM profile_field WHERE station_id = :station_id AND scope = :scope ORDER BY position;")
@@ -46,6 +50,7 @@ public class ProfileFieldRepository {
                 .all();
     }
 
+    /** Creates a new profile field definition for a station. */
     public ProfileField create(
             int stationId, String name, String fieldType, String config, int position, ProfileFieldScope scope) {
         return Query.query("""
@@ -64,6 +69,7 @@ public class ProfileFieldRepository {
                 .orElseThrow();
     }
 
+    /** Updates an existing profile field definition. */
     public boolean update(int id, String name, String fieldType, String config, int position, boolean keepOnArchive) {
         return Query.query("""
                             UPDATE profile_field
@@ -85,6 +91,7 @@ public class ProfileFieldRepository {
                 .changed();
     }
 
+    /** Deletes a profile field definition and all associated values. */
     public boolean delete(int id) {
         return Query.query("DELETE FROM profile_field WHERE id = :id;")
                 .single(Call.of().bind("id", id))
@@ -94,6 +101,7 @@ public class ProfileFieldRepository {
 
     // -- Field Values --
 
+    /** Finds all profile field values for a member. */
     public List<ProfileFieldValue> findValues(int memberId) {
         return Query.query("SELECT member_id, field_id, value FROM profile_field_value WHERE member_id = :member_id;")
                 .single(Call.of().bind("member_id", memberId))
@@ -101,6 +109,7 @@ public class ProfileFieldRepository {
                 .all();
     }
 
+    /** Finds a specific profile field value for a member. */
     public Optional<ProfileFieldValue> findValue(int memberId, int fieldId) {
         return Query.query("""
                             SELECT
@@ -116,6 +125,7 @@ public class ProfileFieldRepository {
                 .first();
     }
 
+    /** Sets a profile field value for a member, inserting or updating as needed. */
     public InsertionResult setValue(int memberId, int fieldId, String value) {
         return Query.query("""
                             INSERT
@@ -132,6 +142,7 @@ public class ProfileFieldRepository {
                 .insert();
     }
 
+    /** Deletes a specific profile field value for a member. */
     public boolean deleteValue(int memberId, int fieldId) {
         return Query.query("DELETE FROM profile_field_value WHERE member_id = :member_id AND field_id = :field_id;")
                 .single(Call.of().bind("member_id", memberId).bind("field_id", fieldId))

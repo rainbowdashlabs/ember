@@ -37,6 +37,10 @@ import java.util.Optional;
 
 import static org.slf4j.LoggerFactory.getLogger;
 
+/**
+ * Service for exporting inventory member lists as PDF documents.
+ * Generates Typst-based PDFs showing which items are assigned to which members.
+ */
 @Singleton
 public class InventoryExportService {
     private static final Logger log = getLogger(InventoryExportService.class);
@@ -67,6 +71,20 @@ public class InventoryExportService {
         this.apiConfig = apiConfig;
     }
 
+    /**
+     * Exports an inventory member list as a PDF document.
+     * Builds a table of members with their assigned items per inventory, respecting display toggles.
+     *
+     * @param stationId      the station ID
+     * @param memberIds      the member IDs to include
+     * @param inventoryIds   the inventory IDs to include, or empty for all
+     * @param extraFieldIds  additional profile field IDs to include as columns
+     * @param generatedBy    the name of the person generating the export
+     * @param showName       whether to show item names
+     * @param showInternalId whether to show internal IDs
+     * @param showSize       whether to show size labels
+     * @return the PDF bytes, or empty if no data or rendering failed
+     */
     public Optional<byte[]> exportPdf(
             int stationId,
             List<Integer> memberIds,
@@ -226,6 +244,16 @@ public class InventoryExportService {
         return ZoneOffset.UTC;
     }
 
+    /**
+     * Renders a PDF from a data map using a Typst template with optional station logo.
+     *
+     * @param data         the data map to serialize as JSON for the template
+     * @param templateName the Typst template file path relative to the templates directory
+     * @param logo         the station logo, or {@code null}
+     * @return the rendered PDF bytes
+     * @throws IOException          if template reading, writing, or compilation fails
+     * @throws InterruptedException if the Typst process is interrupted
+     */
     private byte[] renderPdf(Map<String, Object> data, String templateName, StationLogo logo)
             throws IOException, InterruptedException {
         Path tempDir = Files.createTempDirectory("inventory-export");

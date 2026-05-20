@@ -30,6 +30,12 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+/**
+ * Central email service handling both global system emails and per-station notification emails.
+ * Uses a queued architecture with a background worker that processes pending emails every 10 seconds.
+ * Supports multiple mail providers (SMTP, Rapidmail, Twilio SendGrid, Sweego, Brevo) and enforces
+ * daily send limits at both the global and per-station level.
+ */
 @Singleton
 public class EmailService {
     private static final Logger log = LoggerFactory.getLogger(EmailService.class);
@@ -138,6 +144,13 @@ public class EmailService {
      * Resolve the station-specific mail provider. Does NOT fall back to global —
      * the global provider is for system emails only.
      */
+    /**
+     * Resolves the station-specific mail provider based on the station's mail configuration.
+     * Does not fall back to the global provider; returns empty if no station config exists.
+     *
+     * @param stationId the station ID to resolve a provider for
+     * @return the configured mail provider, or empty if not configured
+     */
     public Optional<MailProvider> resolveStationProvider(Integer stationId) {
         if (stationId == null) return Optional.empty();
         var config = mailConfigRepository.findByStation(stationId);
@@ -204,6 +217,11 @@ public class EmailService {
         return mailing.senderName();
     }
 
+    /**
+     * Returns the configured base URL for the application, used in email links.
+     *
+     * @return the base URL
+     */
     public String getBaseUrl() {
         return api.baseUrl();
     }
@@ -236,6 +254,13 @@ public class EmailService {
 
     // -- Public send methods (system, via global provider queue) --
 
+    /**
+     * Sends an email verification link to a user.
+     *
+     * @param email the recipient email address
+     * @param name  the recipient's display name
+     * @param token the verification token
+     */
     public void sendVerificationEmail(String email, String name, String token) {
         String url = api.baseUrl() + "/verify-email?token=" + token;
         var vars = baseVars(name, null);

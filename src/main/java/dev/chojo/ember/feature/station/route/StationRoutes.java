@@ -24,6 +24,9 @@ import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
+/**
+ * Admin-only routes for listing, creating, updating, and deleting stations.
+ */
 @Singleton
 public class StationRoutes implements Routes {
     private final StationService stationService;
@@ -154,9 +157,30 @@ public class StationRoutes implements Routes {
         return new StationDetail(station.id(), station.name(), manager);
     }
 
+    /**
+     * Request body for creating or updating a station.
+     *
+     * @param name         the station name
+     * @param managerEmail optional email of the manager to assign
+     */
     public record StationRequest(String name, String managerEmail) {}
 
+    /**
+     * Response containing station details with optional manager information.
+     *
+     * @param id      the station ID
+     * @param name    the station name
+     * @param manager the manager details, or {@code null} if no manager is assigned
+     */
     public record StationDetail(int id, String name, ManagerDetail manager) {}
 
+    /**
+     * Manager information included in station detail responses.
+     *
+     * @param email        the manager's email address
+     * @param firstName    the manager's first name
+     * @param lastName     the manager's last name
+     * @param accountReady whether the manager's account is fully set up
+     */
     public record ManagerDetail(String email, String firstName, String lastName, boolean accountReady) {}
 }

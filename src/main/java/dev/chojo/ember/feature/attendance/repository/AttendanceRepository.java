@@ -24,11 +24,20 @@ import java.util.Optional;
 
 import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIMESTAMP;
 
+/**
+ * Repository for attendance data access, covering templates, sessions, entries, absences, and report presets.
+ */
 @Singleton
 public class AttendanceRepository {
 
     // -- Templates --
 
+    /**
+     * Finds an attendance template by its ID.
+     *
+     * @param id the template ID
+     * @return the template if found
+     */
     public Optional<AttendanceTemplate> findTemplateById(int id) {
         return Query.query("SELECT id, station_id, name FROM attendance_template WHERE id = :id;")
                 .single(Call.of().bind("id", id))
@@ -36,6 +45,12 @@ public class AttendanceRepository {
                 .first();
     }
 
+    /**
+     * Finds all attendance templates belonging to a station.
+     *
+     * @param stationId the station ID
+     * @return list of templates for the station
+     */
     public List<AttendanceTemplate> findTemplatesByStation(int stationId) {
         return Query.query("SELECT id, station_id, name FROM attendance_template WHERE station_id = :station_id;")
                 .single(Call.of().bind("station_id", stationId))
@@ -43,6 +58,13 @@ public class AttendanceRepository {
                 .all();
     }
 
+    /**
+     * Creates a new attendance template for a station.
+     *
+     * @param stationId the station ID
+     * @param name      the template name
+     * @return the created template
+     */
     public AttendanceTemplate createTemplate(int stationId, String name) {
         return Query.query(
                         "INSERT INTO attendance_template(station_id, name) VALUES(:station_id, :name) RETURNING id, station_id, name;")
@@ -52,6 +74,13 @@ public class AttendanceRepository {
                 .orElseThrow();
     }
 
+    /**
+     * Updates the name of an attendance template.
+     *
+     * @param id   the template ID
+     * @param name the new name
+     * @return {@code true} if the template was updated
+     */
     public boolean updateTemplate(int id, String name) {
         return Query.query("UPDATE attendance_template SET name = :name WHERE id = :id;")
                 .single(Call.of().bind("name", name).bind("id", id))
@@ -59,6 +88,12 @@ public class AttendanceRepository {
                 .changed();
     }
 
+    /**
+     * Deletes an attendance template by its ID.
+     *
+     * @param id the template ID
+     * @return {@code true} if the template was deleted
+     */
     public boolean deleteTemplate(int id) {
         return Query.query("DELETE FROM attendance_template WHERE id = :id;")
                 .single(Call.of().bind("id", id))
@@ -68,6 +103,12 @@ public class AttendanceRepository {
 
     // -- Template Fields --
 
+    /**
+     * Finds all fields for a template, ordered by position.
+     *
+     * @param templateId the template ID
+     * @return list of template fields
+     */
     public List<AttendanceTemplateField> findTemplateFields(int templateId) {
         return Query.query(
                         "SELECT id, template_id, name, field_type, config, position FROM attendance_template_field WHERE template_id = :template_id ORDER BY position;")
@@ -76,6 +117,16 @@ public class AttendanceRepository {
                 .all();
     }
 
+    /**
+     * Creates a new field for a template.
+     *
+     * @param templateId the template ID
+     * @param name       field display name
+     * @param fieldType  the type of field
+     * @param config     JSONB configuration string
+     * @param position   ordering position
+     * @return the insertion result
+     */
     public InsertionResult createTemplateField(
             int templateId, String name, String fieldType, String config, int position) {
         return Query.query("""
@@ -93,6 +144,16 @@ public class AttendanceRepository {
                 .insert();
     }
 
+    /**
+     * Updates an existing template field.
+     *
+     * @param id        the field ID
+     * @param name      new display name
+     * @param fieldType new field type
+     * @param config    new JSONB configuration
+     * @param position  new ordering position
+     * @return {@code true} if the field was updated
+     */
     public boolean updateTemplateField(int id, String name, String fieldType, String config, int position) {
         return Query.query("""
                             UPDATE attendance_template_field
@@ -112,6 +173,12 @@ public class AttendanceRepository {
                 .changed();
     }
 
+    /**
+     * Deletes a template field by its ID.
+     *
+     * @param id the field ID
+     * @return {@code true} if the field was deleted
+     */
     public boolean deleteTemplateField(int id) {
         return Query.query("DELETE FROM attendance_template_field WHERE id = :id;")
                 .single(Call.of().bind("id", id))
@@ -121,6 +188,12 @@ public class AttendanceRepository {
 
     // -- Template Groups --
 
+    /**
+     * Finds all group associations for a template, ordered by position.
+     *
+     * @param templateId the template ID
+     * @return list of template group associations
+     */
     public List<TemplateGroup> findTemplateGroups(int templateId) {
         return Query.query(
                         "SELECT group_id, position FROM attendance_template_group WHERE template_id = :template_id ORDER BY position;")
@@ -129,6 +202,12 @@ public class AttendanceRepository {
                 .all();
     }
 
+    /**
+     * Replaces all group associations for a template with the given list.
+     *
+     * @param templateId the template ID
+     * @param groups     the new group associations to set
+     */
     public void setTemplateGroups(int templateId, List<TemplateGroup> groups) {
         Query.query("DELETE FROM attendance_template_group WHERE template_id = :template_id;")
                 .single(Call.of().bind("template_id", templateId))
@@ -144,6 +223,12 @@ public class AttendanceRepository {
         }
     }
 
+    /**
+     * Finds an attendance session by its ID.
+     *
+     * @param id the session ID
+     * @return the session if found
+     */
     public Optional<AttendanceSession> findSessionById(int id) {
         return Query.query(
                         "SELECT id, template_id, start_time, end_time, created_at, event_id, title FROM attendance_session WHERE id = :id;")
@@ -154,6 +239,12 @@ public class AttendanceRepository {
 
     // -- Sessions --
 
+    /**
+     * Finds all sessions for a template, ordered by creation date descending.
+     *
+     * @param templateId the template ID
+     * @return list of sessions
+     */
     public List<AttendanceSession> findSessionsByTemplate(int templateId) {
         return Query.query("""
                             SELECT id, template_id, start_time, end_time, created_at, event_id, title
@@ -165,6 +256,12 @@ public class AttendanceRepository {
                 .all();
     }
 
+    /**
+     * Finds session summaries with attendance counts for all sessions in a station.
+     *
+     * @param stationId the station ID
+     * @return list of session summaries with present/absent/declined/unconfirmed counts
+     */
     public List<SessionSummary> findSessionSummariesByStation(int stationId) {
         return Query.query("""
                             SELECT s.id, s.template_id, s.start_time, s.end_time, s.created_at, s.event_id, s.title,
@@ -194,6 +291,12 @@ public class AttendanceRepository {
                 .all();
     }
 
+    /**
+     * Finds the most recent session linked to an event.
+     *
+     * @param eventId the event ID
+     * @return the session if found
+     */
     public Optional<AttendanceSession> findSessionByEventId(int eventId) {
         return Query.query(
                         "SELECT id, template_id, start_time, end_time, created_at, event_id, title FROM attendance_session WHERE event_id = :event_id ORDER BY created_at DESC LIMIT 1;")
@@ -202,6 +305,16 @@ public class AttendanceRepository {
                 .first();
     }
 
+    /**
+     * Creates a new attendance session.
+     *
+     * @param templateId the template this session is based on
+     * @param startTime  session start time
+     * @param endTime    session end time
+     * @param eventId    optional linked event ID
+     * @param title      session title
+     * @return the created session
+     */
     public AttendanceSession createSession(
             int templateId, Instant startTime, Instant endTime, Integer eventId, String title) {
         return Query.query(
@@ -217,6 +330,15 @@ public class AttendanceRepository {
                 .orElseThrow();
     }
 
+    /**
+     * Updates an attendance session's times and title.
+     *
+     * @param id        the session ID
+     * @param startTime new start time
+     * @param endTime   new end time
+     * @param title     new title
+     * @return {@code true} if the session was updated
+     */
     public boolean updateSession(int id, Instant startTime, Instant endTime, String title) {
         return Query.query(
                         "UPDATE attendance_session SET start_time = :start_time, end_time = :end_time, title = :title WHERE id = :id;")
@@ -229,6 +351,12 @@ public class AttendanceRepository {
                 .changed();
     }
 
+    /**
+     * Deletes an attendance session by its ID.
+     *
+     * @param id the session ID
+     * @return {@code true} if the session was deleted
+     */
     public boolean deleteSession(int id) {
         return Query.query("DELETE FROM attendance_session WHERE id = :id;")
                 .single(Call.of().bind("id", id))
@@ -236,6 +364,12 @@ public class AttendanceRepository {
                 .changed();
     }
 
+    /**
+     * Finds all field values for a session.
+     *
+     * @param sessionId the session ID
+     * @return list of session field values
+     */
     public List<AttendanceSessionField> findSessionFields(int sessionId) {
         return Query.query(
                         "SELECT session_id, field_id, value FROM attendance_session_field WHERE session_id = :session_id;")
@@ -244,6 +378,14 @@ public class AttendanceRepository {
                 .all();
     }
 
+    /**
+     * Upserts a field value for a session. Inserts or updates on conflict.
+     *
+     * @param sessionId the session ID
+     * @param fieldId   the template field ID
+     * @param value     the JSONB value to store
+     * @return the insertion result
+     */
     public InsertionResult setSessionField(int sessionId, int fieldId, String value) {
         return Query.query("""
                             INSERT
@@ -262,6 +404,13 @@ public class AttendanceRepository {
 
     // -- Session Fields --
 
+    /**
+     * Deletes a specific field value from a session.
+     *
+     * @param sessionId the session ID
+     * @param fieldId   the field ID
+     * @return {@code true} if the field value was deleted
+     */
     public boolean deleteSessionField(int sessionId, int fieldId) {
         return Query.query(
                         "DELETE FROM attendance_session_field WHERE session_id = :session_id AND field_id = :field_id;")
@@ -270,6 +419,12 @@ public class AttendanceRepository {
                 .changed();
     }
 
+    /**
+     * Finds all attendance entries for a session, ordered by member name.
+     *
+     * @param sessionId the session ID
+     * @return list of attendance entries
+     */
     public List<AttendanceEntry> findEntries(int sessionId) {
         return Query.query("""
                             SELECT e.id, e.session_id, e.member_id, e.status, e.check_in, e.check_out, e.source
@@ -283,6 +438,13 @@ public class AttendanceRepository {
                 .all();
     }
 
+    /**
+     * Finds a specific attendance entry for a member in a session.
+     *
+     * @param sessionId the session ID
+     * @param memberId  the member ID
+     * @return the entry if found
+     */
     public Optional<AttendanceEntry> findEntry(int sessionId, int memberId) {
         return Query.query("""
                             SELECT
@@ -304,6 +466,12 @@ public class AttendanceRepository {
 
     // -- Entries --
 
+    /**
+     * Finds all attendance entries for a specific member across all sessions.
+     *
+     * @param memberId the member ID
+     * @return list of attendance entries
+     */
     public List<AttendanceEntry> findEntriesByMember(int memberId) {
         return Query.query(
                         "SELECT id, session_id, member_id, status, check_in, check_out, source FROM attendance_entry WHERE member_id = :member_id;")
@@ -312,6 +480,15 @@ public class AttendanceRepository {
                 .all();
     }
 
+    /**
+     * Creates a new attendance entry for a member in a session.
+     *
+     * @param sessionId the session ID
+     * @param memberId  the member ID
+     * @param status    initial attendance status
+     * @param source    how the entry was created
+     * @return the insertion result
+     */
     public InsertionResult createEntry(
             int sessionId, int memberId, AttendanceEntry.AttendanceStatus status, AttendanceEntry.EntrySource source) {
         return Query.query(
@@ -324,6 +501,13 @@ public class AttendanceRepository {
                 .insert();
     }
 
+    /**
+     * Records the check-in time for an attendance entry.
+     *
+     * @param id      the entry ID
+     * @param checkIn the check-in timestamp
+     * @return {@code true} if the entry was updated
+     */
     public boolean checkIn(int id, Instant checkIn) {
         return Query.query("UPDATE attendance_entry SET check_in = :check_in WHERE id = :id;")
                 .single(Call.of().bind("check_in", checkIn, INSTANT_TIMESTAMP).bind("id", id))
@@ -331,6 +515,13 @@ public class AttendanceRepository {
                 .changed();
     }
 
+    /**
+     * Records the check-out time for an attendance entry.
+     *
+     * @param id       the entry ID
+     * @param checkOut the check-out timestamp
+     * @return {@code true} if the entry was updated
+     */
     public boolean checkOut(int id, Instant checkOut) {
         return Query.query("UPDATE attendance_entry SET check_out = :check_out WHERE id = :id;")
                 .single(Call.of().bind("check_out", checkOut, INSTANT_TIMESTAMP).bind("id", id))
@@ -338,6 +529,12 @@ public class AttendanceRepository {
                 .changed();
     }
 
+    /**
+     * Resets check-in and check-out times to {@code null} for an attendance entry.
+     *
+     * @param id the entry ID
+     * @return {@code true} if the entry was updated
+     */
     public boolean resetTimes(int id) {
         return Query.query("UPDATE attendance_entry SET check_in = NULL, check_out = NULL WHERE id = :id;")
                 .single(Call.of().bind("id", id))
@@ -345,6 +542,13 @@ public class AttendanceRepository {
                 .changed();
     }
 
+    /**
+     * Updates the attendance status of an entry.
+     *
+     * @param id     the entry ID
+     * @param status the new status
+     * @return {@code true} if the entry was updated
+     */
     public boolean updateEntryStatus(int id, AttendanceEntry.AttendanceStatus status) {
         return Query.query("UPDATE attendance_entry SET status = :status WHERE id = :id;")
                 .single(Call.of().bind("status", status).bind("id", id))
@@ -352,6 +556,12 @@ public class AttendanceRepository {
                 .changed();
     }
 
+    /**
+     * Deletes an attendance entry by its ID.
+     *
+     * @param id the entry ID
+     * @return {@code true} if the entry was deleted
+     */
     public boolean deleteEntry(int id) {
         return Query.query("DELETE FROM attendance_entry WHERE id = :id;")
                 .single(Call.of().bind("id", id))
@@ -359,6 +569,14 @@ public class AttendanceRepository {
                 .changed();
     }
 
+    /**
+     * Finds all sessions for a station within a time range, ordered by start time.
+     *
+     * @param stationId the station ID
+     * @param from      start of the range (inclusive)
+     * @param to        end of the range (exclusive)
+     * @return list of sessions in the range
+     */
     public List<AttendanceSession> findSessionsByStationInRange(int stationId, Instant from, Instant to) {
         return Query.query("""
                             SELECT s.id, s.template_id, s.start_time, s.end_time, s.created_at, s.event_id, s.title
@@ -376,6 +594,13 @@ public class AttendanceRepository {
                 .all();
     }
 
+    /**
+     * Finds all member IDs in a station that hold a specific role.
+     *
+     * @param stationId the station ID
+     * @param roleName  the role name to filter by
+     * @return list of member IDs
+     */
     public List<Integer> findMemberIdsByRole(int stationId, String roleName) {
         return Query.query("""
                             SELECT sm.id
@@ -390,6 +615,12 @@ public class AttendanceRepository {
 
     // -- Export Queries --
 
+    /**
+     * Finds all member IDs belonging to a specific group.
+     *
+     * @param groupId the group ID
+     * @return list of member IDs
+     */
     public List<Integer> findMemberIdsByGroup(int groupId) {
         return Query.query("""
                             SELECT member_id FROM member_group_entry WHERE group_id = :group_id;""")
@@ -398,6 +629,12 @@ public class AttendanceRepository {
                 .all();
     }
 
+    /**
+     * Finds all report presets for a station, ordered by name.
+     *
+     * @param stationId the station ID
+     * @return list of report presets
+     */
     public List<AttendanceReportPreset> findPresets(int stationId) {
         return Query.query(
                         "SELECT id, station_id, name, role_name, group_id, period, rounding FROM attendance_report_preset WHERE station_id = :station_id ORDER BY name;")
@@ -406,6 +643,17 @@ public class AttendanceRepository {
                 .all();
     }
 
+    /**
+     * Creates a new report preset for a station.
+     *
+     * @param stationId the station ID
+     * @param name      preset display name
+     * @param roleName  optional role filter
+     * @param groupId   optional group filter
+     * @param period    time period granularity
+     * @param rounding  hour rounding mode
+     * @return the created preset
+     */
     public AttendanceReportPreset createPreset(
             int stationId, String name, String roleName, Integer groupId, String period, String rounding) {
         return Query.query(
@@ -424,6 +672,12 @@ public class AttendanceRepository {
 
     // -- Report Presets --
 
+    /**
+     * Deletes a report preset by its ID.
+     *
+     * @param id the preset ID
+     * @return {@code true} if the preset was deleted
+     */
     public boolean deletePreset(int id) {
         return Query.query("DELETE FROM attendance_report_preset WHERE id = :id;")
                 .single(Call.of().bind("id", id))
@@ -431,6 +685,16 @@ public class AttendanceRepository {
                 .changed();
     }
 
+    /**
+     * Creates a new absence record for a member.
+     *
+     * @param memberId    the member ID
+     * @param absentFrom  start date of the absence
+     * @param absentUntil end date of the absence
+     * @param reason      optional reason for the absence
+     * @param createdBy   optional ID of the member who created the absence (for managed members)
+     * @return the created absence
+     */
     public MemberAbsence createAbsence(
             int memberId, LocalDate absentFrom, LocalDate absentUntil, String reason, Integer createdBy) {
         return Query.query(
@@ -446,6 +710,12 @@ public class AttendanceRepository {
                 .orElseThrow();
     }
 
+    /**
+     * Finds an absence record by its ID.
+     *
+     * @param id the absence ID
+     * @return the absence if found
+     */
     public Optional<MemberAbsence> findAbsenceById(int id) {
         return Query.query(
                         "SELECT id, member_id, absent_from, absent_until, reason, created_at, created_by FROM member_absence WHERE id = :id;")
@@ -456,6 +726,12 @@ public class AttendanceRepository {
 
     // -- Absences --
 
+    /**
+     * Finds all absences for a member, ordered by end date descending.
+     *
+     * @param memberId the member ID
+     * @return list of absences
+     */
     public List<MemberAbsence> findAbsencesByMember(int memberId) {
         return Query.query(
                         "SELECT id, member_id, absent_from, absent_until, reason, created_at, created_by FROM member_absence WHERE member_id = :member_id ORDER BY absent_until DESC;")
@@ -464,6 +740,12 @@ public class AttendanceRepository {
                 .all();
     }
 
+    /**
+     * Finds all currently active absences for a station (where today falls within the absence range).
+     *
+     * @param stationId the station ID
+     * @return list of active absences
+     */
     public List<MemberAbsence> findActiveAbsencesByStation(int stationId) {
         return Query.query("""
                             SELECT ma.id, ma.member_id, ma.absent_from, ma.absent_until, ma.reason, ma.created_at, ma.created_by
@@ -478,6 +760,13 @@ public class AttendanceRepository {
                 .all();
     }
 
+    /**
+     * Finds all absences for a station that are active on a specific date.
+     *
+     * @param stationId the station ID
+     * @param date      the date to check
+     * @return list of absences active on the given date
+     */
     public List<MemberAbsence> findAbsencesByStationOnDate(int stationId, LocalDate date) {
         return Query.query("""
                             SELECT ma.id, ma.member_id, ma.absent_from, ma.absent_until, ma.reason, ma.created_at, ma.created_by
@@ -492,6 +781,12 @@ public class AttendanceRepository {
                 .all();
     }
 
+    /**
+     * Checks whether a member has an active absence today.
+     *
+     * @param memberId the member ID
+     * @return {@code true} if the member is currently absent
+     */
     public boolean isAbsent(int memberId) {
         return Query.query(
                         "SELECT 1 FROM member_absence WHERE member_id = :member_id AND absent_from <= CURRENT_DATE AND absent_until >= CURRENT_DATE LIMIT 1;")
@@ -501,6 +796,12 @@ public class AttendanceRepository {
                 .isPresent();
     }
 
+    /**
+     * Deletes an absence record by its ID.
+     *
+     * @param id the absence ID
+     * @return {@code true} if the absence was deleted
+     */
     public boolean deleteAbsence(int id) {
         return Query.query("DELETE FROM member_absence WHERE id = :id;")
                 .single(Call.of().bind("id", id))
@@ -508,6 +809,11 @@ public class AttendanceRepository {
                 .changed();
     }
 
+    /**
+     * Deletes all absence records that have expired (end date before today).
+     *
+     * @return {@code true} if any absences were deleted
+     */
     public boolean deleteExpiredAbsences() {
         return Query.query("DELETE FROM member_absence WHERE absent_until < CURRENT_DATE;")
                 .single()
@@ -515,8 +821,29 @@ public class AttendanceRepository {
                 .changed();
     }
 
+    /**
+     * Associates a member group with a template at a given position.
+     *
+     * @param groupId  the group ID
+     * @param position ordering position
+     */
     public record TemplateGroup(int groupId, int position) {}
 
+    /**
+     * Summary of an attendance session including status counts.
+     *
+     * @param id               session ID
+     * @param templateId       template ID
+     * @param startTime        session start time
+     * @param endTime          session end time
+     * @param createdAt        creation timestamp
+     * @param eventId          optional linked event ID
+     * @param title            session title
+     * @param presentCount     number of present entries
+     * @param absentCount      number of absent entries
+     * @param declinedCount    number of declined entries
+     * @param unconfirmedCount number of unconfirmed entries
+     */
     public record SessionSummary(
             int id,
             int templateId,
@@ -530,6 +857,11 @@ public class AttendanceRepository {
             int declinedCount,
             int unconfirmedCount) {}
 
+    /**
+     * Deletes all absence records for a specific member.
+     *
+     * @param memberId the member ID
+     */
     public void deleteAbsencesByMember(int memberId) {
         Query.query("DELETE FROM member_absence WHERE member_id = :member_id;")
                 .single(Call.of().bind("member_id", memberId))

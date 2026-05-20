@@ -25,6 +25,10 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
+/**
+ * Service for station management including CRUD, logo handling, manager assignment,
+ * ownership transfer, and module configuration.
+ */
 @Singleton
 public class StationService {
     private static final long MAX_LOGO_SIZE = 2 * 1024 * 1024; // 2 MB
@@ -47,24 +51,55 @@ public class StationService {
         this.authService = authService;
     }
 
+    /**
+     * Retrieves all stations.
+     *
+     * @return a list of all stations
+     */
     public List<Station> findAll() {
         return stationRepository.findAll();
     }
 
+    /**
+     * Finds a station by its ID.
+     *
+     * @param id the station ID
+     * @return the station, or empty if not found
+     */
     public Optional<Station> findById(int id) {
         return stationRepository.findById(id);
     }
 
+    /**
+     * Creates a new station with the given name.
+     *
+     * @param name the station name
+     * @return the created station
+     */
     public Station create(String name) {
         return stationRepository.create(name);
     }
 
+    /**
+     * Creates a new station and assigns a manager by email.
+     *
+     * @param name         the station name
+     * @param managerEmail the email of the manager to assign
+     * @return the created station
+     */
     public Station createWithManager(String name, String managerEmail) {
         var station = stationRepository.create(name);
         assignManager(station.id(), managerEmail);
         return station;
     }
 
+    /**
+     * Updates the name of a station.
+     *
+     * @param id   the station ID
+     * @param name the new name
+     * @return the updated station, or empty if not found
+     */
     public Optional<Station> update(int id, String name) {
         if (stationRepository.update(id, name)) {
             return stationRepository.findById(id);
@@ -72,6 +107,13 @@ public class StationService {
         return Optional.empty();
     }
 
+    /**
+     * Updates the timezone of a station.
+     *
+     * @param id       the station ID
+     * @param timezone the IANA timezone identifier
+     * @return the updated station, or empty if not found
+     */
     public Optional<Station> updateTimezone(int id, String timezone) {
         if (stationRepository.updateTimezone(id, timezone)) {
             return stationRepository.findById(id);
@@ -79,6 +121,13 @@ public class StationService {
         return Optional.empty();
     }
 
+    /**
+     * Updates the locale of a station.
+     *
+     * @param id     the station ID
+     * @param locale the locale string (e.g., "de-DE")
+     * @return the updated station, or empty if not found
+     */
     public Optional<Station> updateLocale(int id, String locale) {
         if (stationRepository.updateLocale(id, locale)) {
             return stationRepository.findById(id);
@@ -86,6 +135,14 @@ public class StationService {
         return Optional.empty();
     }
 
+    /**
+     * Updates a station's name and assigns a manager by email.
+     *
+     * @param id           the station ID
+     * @param name         the new name
+     * @param managerEmail the email of the manager to assign
+     * @return the updated station, or empty if not found
+     */
     public Optional<Station> updateWithManager(int id, String name, String managerEmail) {
         if (!stationRepository.update(id, name)) {
             return Optional.empty();
@@ -94,10 +151,22 @@ public class StationService {
         return stationRepository.findById(id);
     }
 
+    /**
+     * Deletes a station by its ID.
+     *
+     * @param id the station ID
+     * @return {@code true} if the station was deleted
+     */
     public boolean delete(int id) {
         return stationRepository.delete(id);
     }
 
+    /**
+     * Finds the account of the first member with the MANAGER role for a station.
+     *
+     * @param stationId the station ID
+     * @return the manager's account, or empty if no manager is found
+     */
     public Optional<Account> findManager(int stationId) {
         Role managerRole = memberRepository.findRoleByName(Roles.MANAGER).orElse(null);
         if (managerRole == null) return Optional.empty();
@@ -111,6 +180,12 @@ public class StationService {
         return Optional.empty();
     }
 
+    /**
+     * Finds detailed manager information for a station, including account readiness status.
+     *
+     * @param stationId the station ID
+     * @return the manager info, or empty if no manager is found
+     */
     public Optional<ManagerInfo> findManagerInfo(int stationId) {
         Role managerRole = memberRepository.findRoleByName(Roles.MANAGER).orElse(null);
         if (managerRole == null) return Optional.empty();
@@ -131,10 +206,24 @@ public class StationService {
         return Optional.empty();
     }
 
+    /**
+     * Retrieves the logo for a station, using an in-memory cache.
+     *
+     * @param stationId the station ID
+     * @return the logo, or empty if no logo is set
+     */
     public Optional<StationLogo> getLogo(int stationId) {
         return logoCache.computeIfAbsent(stationId, stationRepository::findLogo);
     }
 
+    /**
+     * Sets the logo for a station.
+     *
+     * @param stationId   the station ID
+     * @param data        the logo image data
+     * @param contentType the MIME content type of the logo
+     * @throws IllegalArgumentException if the data exceeds the maximum size
+     */
     public void setLogo(int stationId, byte[] data, String contentType) {
         if (data.length > MAX_LOGO_SIZE) {
             throw new IllegalArgumentException("Logo exceeds maximum size of 2 MB");
@@ -145,6 +234,11 @@ public class StationService {
 
     // -- Logo --
 
+    /**
+     * Removes the logo from a station and clears the cache.
+     *
+     * @param stationId the station ID
+     */
     public void deleteLogo(int stationId) {
         stationRepository.deleteLogo(stationId);
         logoCache.put(stationId, Optional.empty());
@@ -208,6 +302,13 @@ public class StationService {
         return true;
     }
 
+    /**
+     * Checks whether a member is the owner of a station.
+     *
+     * @param stationId the station ID
+     * @param memberId  the member ID
+     * @return {@code true} if the member is the station owner
+     */
     public boolean isOwner(int stationId, int memberId) {
         var station = stationRepository.findById(stationId).orElse(null);
         return station != null && station.ownerMemberId() != null && station.ownerMemberId() == memberId;
@@ -215,17 +316,44 @@ public class StationService {
 
     // -- Modules --
 
+    /**
+     * Retrieves the set of disabled module names for a station.
+     *
+     * @param stationId the station ID
+     * @return the set of disabled module names
+     */
     public Set<String> findDisabledModules(int stationId) {
         return stationRepository.findDisabledModules(stationId);
     }
 
+    /**
+     * Replaces all disabled modules for a station with the given set.
+     *
+     * @param stationId the station ID
+     * @param modules   the set of module names to disable
+     */
     public void setDisabledModules(int stationId, Set<String> modules) {
         stationRepository.setDisabledModules(stationId, modules);
     }
 
+    /**
+     * Checks whether a module is enabled for a station.
+     *
+     * @param stationId the station ID
+     * @param module    the module name
+     * @return {@code true} if the module is enabled
+     */
     public boolean isModuleEnabled(int stationId, String module) {
         return !stationRepository.findDisabledModules(stationId).contains(module);
     }
 
+    /**
+     * Summary information about a station's manager.
+     *
+     * @param email        the manager's email address
+     * @param firstName    the manager's first name
+     * @param lastName     the manager's last name
+     * @param accountReady whether the manager's account is fully set up (has password, email verified)
+     */
     public record ManagerInfo(String email, String firstName, String lastName, boolean accountReady) {}
 }

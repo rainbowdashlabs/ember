@@ -40,6 +40,10 @@ import java.util.Set;
 
 import static org.slf4j.LoggerFactory.getLogger;
 
+/**
+ * Service for exporting exchange requests as PDF documents.
+ * Generates Typst-based PDFs with member exchange data, including size changes and profile fields.
+ */
 @Singleton
 public class ExchangeExportService {
     private static final Logger log = getLogger(ExchangeExportService.class);
@@ -73,6 +77,16 @@ public class ExchangeExportService {
         this.apiConfig = apiConfig;
     }
 
+    /**
+     * Exports selected exchange requests as a PDF document.
+     * Groups exchanges by member, resolves size labels, and renders using a Typst template.
+     *
+     * @param stationId     the station ID
+     * @param exchangeIds   the exchange request IDs to include, or empty for all
+     * @param extraFieldIds additional profile field IDs to include as columns
+     * @param generatedBy   the name of the person generating the export
+     * @return the PDF bytes, or empty if no data or rendering failed
+     */
     public Optional<byte[]> exportPdf(
             int stationId, List<Integer> exchangeIds, List<Integer> extraFieldIds, String generatedBy) {
         var station = stationRepository.findById(stationId).orElse(null);
@@ -225,6 +239,16 @@ public class ExchangeExportService {
         return ZoneOffset.UTC;
     }
 
+    /**
+     * Renders a PDF from a data map using a Typst template with optional station logo.
+     *
+     * @param data         the data map to serialize as JSON for the template
+     * @param templateName the Typst template file path relative to the templates directory
+     * @param logo         the station logo, or {@code null}
+     * @return the rendered PDF bytes
+     * @throws IOException          if template reading, writing, or compilation fails
+     * @throws InterruptedException if the Typst process is interrupted
+     */
     private byte[] renderPdf(Map<String, Object> data, String templateName, StationLogo logo)
             throws IOException, InterruptedException {
         Path tempDir = Files.createTempDirectory("exchange-export");

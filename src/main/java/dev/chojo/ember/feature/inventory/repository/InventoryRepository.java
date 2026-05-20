@@ -22,11 +22,20 @@ import java.util.Optional;
 
 import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIMESTAMP;
 
+/**
+ * Repository for managing inventories, their items, sizes, history entries, and requirements.
+ */
 @Singleton
 public class InventoryRepository {
 
     // -- Inventory --
 
+    /**
+     * Finds an inventory by its ID.
+     *
+     * @param id the inventory ID
+     * @return the inventory, or empty if not found
+     */
     public Optional<Inventory> findById(int id) {
         return Query.query("SELECT id, station_id, name, inventory_type, has_sizes FROM inventory WHERE id = :id;")
                 .single(Call.of().bind("id", id))
@@ -34,6 +43,12 @@ public class InventoryRepository {
                 .first();
     }
 
+    /**
+     * Finds all inventories belonging to a station.
+     *
+     * @param stationId the station ID
+     * @return list of inventories for the station
+     */
     public List<Inventory> findByStation(int stationId) {
         return Query.query(
                         "SELECT id, station_id, name, inventory_type, has_sizes FROM inventory WHERE station_id = :station_id;")
@@ -42,6 +57,15 @@ public class InventoryRepository {
                 .all();
     }
 
+    /**
+     * Creates a new inventory for a station.
+     *
+     * @param stationId     the station ID
+     * @param name          the inventory name
+     * @param inventoryType the inventory type
+     * @param hasSizes      whether the inventory supports sizes
+     * @return the created inventory
+     */
     public Inventory create(int stationId, String name, InventoryType inventoryType, boolean hasSizes) {
         return Query.query(
                         "INSERT INTO inventory(station_id, name, inventory_type, has_sizes) VALUES(:station_id, :name, :inventory_type, :has_sizes) RETURNING id, station_id, name, inventory_type, has_sizes;")
@@ -55,6 +79,15 @@ public class InventoryRepository {
                 .orElseThrow();
     }
 
+    /**
+     * Updates an existing inventory.
+     *
+     * @param id            the inventory ID
+     * @param name          the new name
+     * @param inventoryType the new inventory type
+     * @param hasSizes      whether the inventory supports sizes
+     * @return {@code true} if the inventory was updated
+     */
     public boolean update(int id, String name, InventoryType inventoryType, boolean hasSizes) {
         return Query.query(
                         "UPDATE inventory SET name = :name, inventory_type = :inventory_type, has_sizes = :has_sizes WHERE id = :id;")
@@ -67,6 +100,12 @@ public class InventoryRepository {
                 .changed();
     }
 
+    /**
+     * Deletes an inventory by its ID.
+     *
+     * @param id the inventory ID
+     * @return {@code true} if the inventory was deleted
+     */
     public boolean delete(int id) {
         return Query.query("DELETE FROM inventory WHERE id = :id;")
                 .single(Call.of().bind("id", id))
@@ -76,6 +115,12 @@ public class InventoryRepository {
 
     // -- Sizes --
 
+    /**
+     * Finds all sizes for an inventory, ordered by position.
+     *
+     * @param inventoryId the inventory ID
+     * @return list of sizes
+     */
     public List<InventorySize> findSizes(int inventoryId) {
         return Query.query(
                         "SELECT id, inventory_id, label, position, note FROM inventory_size WHERE inventory_id = :inventory_id ORDER BY position;")
@@ -84,6 +129,15 @@ public class InventoryRepository {
                 .all();
     }
 
+    /**
+     * Creates a new size for an inventory.
+     *
+     * @param inventoryId the inventory ID
+     * @param label       the size label
+     * @param position    the sort position
+     * @param note        an optional note
+     * @return the insertion result
+     */
     public InsertionResult createSize(int inventoryId, String label, int position, String note) {
         return Query.query(
                         "INSERT INTO inventory_size(inventory_id, label, position, note) VALUES(:inventory_id, :label, :position, :note);")
@@ -95,6 +149,15 @@ public class InventoryRepository {
                 .insert();
     }
 
+    /**
+     * Updates an existing inventory size.
+     *
+     * @param id       the size ID
+     * @param label    the new label
+     * @param position the new position
+     * @param note     the new note
+     * @return {@code true} if the size was updated
+     */
     public boolean updateSize(int id, String label, int position, String note) {
         return Query.query(
                         "UPDATE inventory_size SET label = :label, position = :position, note = :note WHERE id = :id;")
@@ -107,6 +170,12 @@ public class InventoryRepository {
                 .changed();
     }
 
+    /**
+     * Deletes an inventory size by its ID.
+     *
+     * @param id the size ID
+     * @return {@code true} if the size was deleted
+     */
     public boolean deleteSize(int id) {
         return Query.query("DELETE FROM inventory_size WHERE id = :id;")
                 .single(Call.of().bind("id", id))
@@ -116,6 +185,12 @@ public class InventoryRepository {
 
     // -- Items --
 
+    /**
+     * Finds an inventory item by its ID.
+     *
+     * @param id the item ID
+     * @return the item, or empty if not found
+     */
     public Optional<InventoryItem> findItemById(int id) {
         return Query.query("SELECT * FROM inventory_item WHERE id = :id;")
                 .single(Call.of().bind("id", id))
@@ -123,6 +198,12 @@ public class InventoryRepository {
                 .first();
     }
 
+    /**
+     * Finds all items in an inventory.
+     *
+     * @param inventoryId the inventory ID
+     * @return list of items
+     */
     public List<InventoryItem> findItems(int inventoryId) {
         return Query.query("SELECT * FROM inventory_item WHERE inventory_id = :inventory_id;")
                 .single(Call.of().bind("inventory_id", inventoryId))
@@ -130,6 +211,12 @@ public class InventoryRepository {
                 .all();
     }
 
+    /**
+     * Finds all items assigned to a specific member.
+     *
+     * @param memberId the member ID
+     * @return list of items assigned to the member
+     */
     public List<InventoryItem> findItemsByMember(int memberId) {
         return Query.query("SELECT * FROM inventory_item WHERE assigned_to = :member_id;")
                 .single(Call.of().bind("member_id", memberId))
@@ -137,6 +224,12 @@ public class InventoryRepository {
                 .all();
     }
 
+    /**
+     * Finds all unassigned and non-lost items in an inventory, ordered by name.
+     *
+     * @param inventoryId the inventory ID
+     * @return list of available items
+     */
     public List<InventoryItem> findUnassignedItems(int inventoryId) {
         return Query.query(
                         "SELECT * FROM inventory_item WHERE inventory_id = :inventory_id AND assigned_to IS NULL AND lost_at IS NULL ORDER BY name;")
@@ -145,10 +238,31 @@ public class InventoryRepository {
                 .all();
     }
 
+    /**
+     * Creates a new inventory item with the default item source.
+     *
+     * @param inventoryId the inventory ID
+     * @param internalId  the internal identifier
+     * @param name        the item name
+     * @param sizeId      the size ID, or {@code null}
+     * @param metadata    JSON metadata
+     * @return the created item
+     */
     public InventoryItem createItem(int inventoryId, String internalId, String name, Integer sizeId, String metadata) {
         return createItem(inventoryId, internalId, name, sizeId, metadata, null);
     }
 
+    /**
+     * Creates a new inventory item with a specified item source.
+     *
+     * @param inventoryId the inventory ID
+     * @param internalId  the internal identifier
+     * @param name        the item name
+     * @param sizeId      the size ID, or {@code null}
+     * @param metadata    JSON metadata
+     * @param itemSource  the item source (internal or external), or {@code null} for default
+     * @return the created item
+     */
     public InventoryItem createItem(
             int inventoryId,
             String internalId,
@@ -172,6 +286,16 @@ public class InventoryRepository {
                 .orElseThrow();
     }
 
+    /**
+     * Updates an existing inventory item.
+     *
+     * @param id         the item ID
+     * @param internalId the new internal identifier
+     * @param name       the new name
+     * @param sizeId     the new size ID, or {@code null}
+     * @param metadata   the new JSON metadata
+     * @return {@code true} if the item was updated
+     */
     public boolean updateItem(int id, String internalId, String name, Integer sizeId, String metadata) {
         return Query.query("""
                             UPDATE inventory_item
@@ -191,6 +315,13 @@ public class InventoryRepository {
                 .changed();
     }
 
+    /**
+     * Assigns an item to a member, or unassigns it by passing {@code null}.
+     *
+     * @param itemId   the item ID
+     * @param memberId the member ID to assign to, or {@code null} to unassign
+     * @return {@code true} if the assignment was updated
+     */
     public boolean assignItem(int itemId, Integer memberId) {
         return Query.query("UPDATE inventory_item SET assigned_to = :member_id WHERE id = :id;")
                 .single(Call.of().bind("member_id", memberId).bind("id", itemId))
@@ -198,6 +329,12 @@ public class InventoryRepository {
                 .changed();
     }
 
+    /**
+     * Marks an inventory item as lost by setting the lost timestamp.
+     *
+     * @param id the item ID
+     * @return {@code true} if the item was marked as lost
+     */
     public boolean markLost(int id) {
         return Query.query("UPDATE inventory_item SET lost_at = now() WHERE id = :id;")
                 .single(Call.of().bind("id", id))
@@ -205,6 +342,12 @@ public class InventoryRepository {
                 .changed();
     }
 
+    /**
+     * Marks a previously lost inventory item as found by clearing the lost timestamp.
+     *
+     * @param id the item ID
+     * @return {@code true} if the item was marked as found
+     */
     public boolean markFound(int id) {
         return Query.query("UPDATE inventory_item SET lost_at = NULL WHERE id = :id;")
                 .single(Call.of().bind("id", id))
@@ -212,6 +355,12 @@ public class InventoryRepository {
                 .changed();
     }
 
+    /**
+     * Deletes an inventory item by its ID.
+     *
+     * @param id the item ID
+     * @return {@code true} if the item was deleted
+     */
     public boolean deleteItem(int id) {
         return Query.query("DELETE FROM inventory_item WHERE id = :id;")
                 .single(Call.of().bind("id", id))
@@ -221,6 +370,12 @@ public class InventoryRepository {
 
     // -- History --
 
+    /**
+     * Finds the assignment history for an item, ordered by most recent first.
+     *
+     * @param itemId the item ID
+     * @return list of history entries
+     */
     public List<InventoryItemHistory> findHistory(int itemId) {
         return Query.query(
                         "SELECT id, item_id, member_id, member_name, given_out, returned FROM inventory_item_history WHERE item_id = :itemId ORDER BY given_out DESC;")
@@ -229,6 +384,14 @@ public class InventoryRepository {
                 .all();
     }
 
+    /**
+     * Creates a new history entry for an item assignment with the current timestamp.
+     *
+     * @param itemId     the item ID
+     * @param memberId   the member the item is assigned to
+     * @param memberName the member's name at the time of assignment
+     * @return the created history entry
+     */
     public InventoryItemHistory createHistory(int itemId, int memberId, String memberName) {
         return Query.query(
                         "INSERT INTO inventory_item_history(item_id, member_id, member_name) VALUES(:itemId, :memberId, :memberName) RETURNING id, item_id, member_id, member_name, given_out, returned;")
@@ -241,6 +404,15 @@ public class InventoryRepository {
                 .orElseThrow();
     }
 
+    /**
+     * Creates a history entry with explicit given-out and returned timestamps, used for data import.
+     *
+     * @param itemId     the item ID
+     * @param memberId   the member ID
+     * @param memberName the member's name
+     * @param givenOut   when the item was given out
+     * @param returned   when the item was returned
+     */
     public void createHistoryWithDates(
             int itemId, int memberId, String memberName, Instant givenOut, Instant returned) {
         Query.query("""
@@ -255,6 +427,13 @@ public class InventoryRepository {
                 .insert();
     }
 
+    /**
+     * Marks the open history entry for an item and member as returned by setting the returned timestamp.
+     *
+     * @param itemId   the item ID
+     * @param memberId the member ID
+     * @return {@code true} if a history entry was updated
+     */
     public boolean returnHistory(int itemId, int memberId) {
         return Query.query(
                         "UPDATE inventory_item_history SET returned = now() WHERE item_id = :itemId AND member_id = :memberId AND returned IS NULL;")
@@ -265,6 +444,12 @@ public class InventoryRepository {
 
     // -- Requirements --
 
+    /**
+     * Finds all inventory requirements for a station, ordered by position.
+     *
+     * @param stationId the station ID
+     * @return list of requirements
+     */
     public List<InventoryRequirement> findAllRequirementsByStation(int stationId) {
         return Query.query(
                         "SELECT r.id, r.inventory_id, r.role_id, r.group_id, r.quantity, r.position FROM inventory_requirement r JOIN inventory i ON r.inventory_id = i.id WHERE i.station_id = :stationId ORDER BY r.position, r.id;")
@@ -273,6 +458,15 @@ public class InventoryRepository {
                 .all();
     }
 
+    /**
+     * Creates a new inventory requirement for a role or group.
+     *
+     * @param inventoryId the inventory ID
+     * @param roleId      the role ID (0 means no role restriction)
+     * @param groupId     the group ID (0 means no group restriction)
+     * @param quantity    the required quantity
+     * @return the created requirement
+     */
     public InventoryRequirement createRequirement(int inventoryId, int roleId, int groupId, int quantity) {
         return Query.query(
                         "INSERT INTO inventory_requirement(inventory_id, role_id, group_id, quantity) VALUES(:inventoryId, :roleId, :groupId, :quantity) RETURNING id, inventory_id, role_id, group_id, quantity, position;")
@@ -286,6 +480,13 @@ public class InventoryRepository {
                 .orElseThrow();
     }
 
+    /**
+     * Updates the quantity of an inventory requirement.
+     *
+     * @param id       the requirement ID
+     * @param quantity the new quantity
+     * @return {@code true} if the requirement was updated
+     */
     public boolean updateRequirement(int id, int quantity) {
         return Query.query("UPDATE inventory_requirement SET quantity = :quantity WHERE id = :id;")
                 .single(Call.of().bind("quantity", quantity).bind("id", id))
@@ -293,6 +494,13 @@ public class InventoryRepository {
                 .changed();
     }
 
+    /**
+     * Updates the display position of an inventory requirement.
+     *
+     * @param id       the requirement ID
+     * @param position the new position
+     * @return {@code true} if the requirement was updated
+     */
     public boolean updateRequirementPosition(int id, int position) {
         return Query.query("UPDATE inventory_requirement SET position = :position WHERE id = :id;")
                 .single(Call.of().bind("position", position).bind("id", id))
@@ -300,6 +508,12 @@ public class InventoryRepository {
                 .changed();
     }
 
+    /**
+     * Deletes an inventory requirement by its ID.
+     *
+     * @param id the requirement ID
+     * @return {@code true} if the requirement was deleted
+     */
     public boolean deleteRequirement(int id) {
         return Query.query("DELETE FROM inventory_requirement WHERE id = :id;")
                 .single(Call.of().bind("id", id))

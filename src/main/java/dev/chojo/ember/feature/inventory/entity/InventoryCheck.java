@@ -11,7 +11,17 @@ import java.time.Instant;
 
 import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIMESTAMP;
 
+/**
+ * Represents a completed inventory check for a member.
+ *
+ * @param id        the unique check identifier
+ * @param stationId the station where the check was performed
+ * @param memberId  the member whose inventory was checked
+ * @param checkedBy the member who performed the check
+ * @param checkedAt when the check was completed
+ */
 public record InventoryCheck(int id, int stationId, int memberId, int checkedBy, Instant checkedAt) {
+    /** Creates a row mapping for database result set conversion. */
     public static RowMapping<InventoryCheck> map() {
         return row -> new InventoryCheck(
                 row.getInt("id"),

@@ -5,6 +5,10 @@
  */
 package dev.chojo.ember.conf.file.elements;
 
+/**
+ * Authentication configuration controlling token sizes and expiration durations
+ * for sessions, email verification, and password reset tokens.
+ */
 @SuppressWarnings({"FieldCanBeLocal", "FieldMayBeFinal"})
 public class Auth {
     private int tokenBytes = 32;

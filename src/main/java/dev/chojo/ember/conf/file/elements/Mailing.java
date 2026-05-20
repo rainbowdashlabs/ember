@@ -9,6 +9,10 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Properties;
 
+/**
+ * Email sending configuration including SMTP settings, authentication credentials,
+ * sender identity, daily send limits, and notification digest intervals.
+ */
 @SuppressWarnings({"FieldCanBeLocal", "FieldMayBeFinal"})
 public class Mailing {
     private String provider = "SMTP";
@@ -73,6 +77,11 @@ public class Mailing {
         return notificationDigestIntervalMinutes;
     }
 
+    /**
+     * Builds a {@link Properties} object combining SMTP settings with any additional custom properties.
+     *
+     * @return the merged mail properties
+     */
     public Properties properties() {
         Properties props = new Properties();
         props.putAll(smtp().properties("smtp"));

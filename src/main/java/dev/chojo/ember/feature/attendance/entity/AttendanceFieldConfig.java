@@ -16,6 +16,15 @@ import java.util.List;
 
 import static org.slf4j.LoggerFactory.getLogger;
 
+/**
+ * Configuration for an attendance template field, parsed from JSONB storage.
+ *
+ * @param required    whether the field must be filled in
+ * @param groupId     optional member group restriction for this field
+ * @param autoAttend  whether members referenced in this field are automatically marked as present
+ * @param options     selectable options for choice-type fields
+ * @param defaultValue default value to pre-populate when creating a session
+ */
 public record AttendanceFieldConfig(
         boolean required, Integer groupId, boolean autoAttend, List<String> options, Object defaultValue) {
     private static final Logger log = getLogger(AttendanceFieldConfig.class);
@@ -27,6 +36,12 @@ public record AttendanceFieldConfig(
             .build();
     private static final AttendanceFieldConfig EMPTY = new AttendanceFieldConfig(false, null, false, null, null);
 
+    /**
+     * Parses a JSON string into an {@link AttendanceFieldConfig}, returning an empty default on failure.
+     *
+     * @param json the JSON string to parse, may be {@code null} or blank
+     * @return the parsed config or an empty default
+     */
     public static AttendanceFieldConfig parse(String json) {
         if (json == null || json.isBlank()) return EMPTY;
         try {
@@ -37,6 +52,11 @@ public record AttendanceFieldConfig(
         }
     }
 
+    /**
+     * Checks whether this config specifies a default value.
+     *
+     * @return {@code true} if a default value is set
+     */
     public boolean hasDefaultValue() {
         return defaultValue != null;
     }

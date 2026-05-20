@@ -20,11 +20,22 @@ import java.util.Optional;
 
 import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIMESTAMP;
 
+/**
+ * Repository for managing inventory checks, check items, member locks, and check navigation.
+ */
 @Singleton
 public class InventoryCheckRepository {
 
     // -- Checks --
 
+    /**
+     * Creates a new inventory check record for a member.
+     *
+     * @param stationId the station ID
+     * @param memberId  the member being checked
+     * @param checkedBy the member performing the check
+     * @return the created check
+     */
     public InventoryCheck createCheck(int stationId, int memberId, int checkedBy) {
         return Query.query("""
                             INSERT INTO inventory_check(station_id, member_id, checked_by)
@@ -39,6 +50,12 @@ public class InventoryCheckRepository {
                 .orElseThrow();
     }
 
+    /**
+     * Finds the most recent inventory check for a member.
+     *
+     * @param memberId the member ID
+     * @return the latest check, or empty if no checks exist
+     */
     public Optional<InventoryCheck> latestCheckForMember(int memberId) {
         return Query.query(
                         "SELECT id, station_id, member_id, checked_by, checked_at FROM inventory_check WHERE member_id = :member_id ORDER BY checked_at DESC LIMIT 1;")
@@ -47,6 +64,13 @@ public class InventoryCheckRepository {
                 .first();
     }
 
+    /**
+     * Retrieves a check overview for all members of a station, including last check info and lock status.
+     * Results are ordered by last checked date ascending, with unchecked members first.
+     *
+     * @param stationId the station ID
+     * @return list of member check summaries
+     */
     public List<MemberCheckSummary> checkOverview(int stationId) {
         return Query.query("""
                             SELECT sm.id AS member_id, a.first_name, a.last_name,
@@ -84,6 +108,12 @@ public class InventoryCheckRepository {
                 .all();
     }
 
+    /**
+     * Retrieves the latest check detail for a member, including all check items and the checker's name.
+     *
+     * @param memberId the member ID
+     * @return the check detail, or empty if no checks exist
+     */
     public Optional<CheckDetail> latestCheckDetail(int memberId) {
         var check = latestCheckForMember(memberId);
         if (check.isEmpty()) return Optional.empty();
@@ -102,6 +132,16 @@ public class InventoryCheckRepository {
 
     // -- Check Items --
 
+    /**
+     * Creates a check item result within an inventory check.
+     *
+     * @param checkId     the parent check ID
+     * @param itemId      the item being checked, or {@code null}
+     * @param inventoryId the inventory, or {@code null}
+     * @param result      the check result
+     * @param note        an optional note
+     * @return the created check item
+     */
     public InventoryCheckItem createCheckItem(
             int checkId, Integer itemId, Integer inventoryId, CheckResult result, String note) {
         return Query.query("""
@@ -119,6 +159,12 @@ public class InventoryCheckRepository {
                 .orElseThrow();
     }
 
+    /**
+     * Finds all check items for a given check.
+     *
+     * @param checkId the check ID
+     * @return list of check items
+     */
     public List<InventoryCheckItem> findCheckItems(int checkId) {
         return Query.query(
                         "SELECT id, check_id, item_id, inventory_id, result, note FROM inventory_check_item WHERE check_id = :check_id;")
@@ -129,6 +175,15 @@ public class InventoryCheckRepository {
 
     // -- Locks --
 
+    /**
+     * Attempts to acquire a lock on a member for an inventory check.
+     * Uses {@code ON CONFLICT DO NOTHING} to prevent duplicate locks.
+     *
+     * @param stationId the station ID
+     * @param memberId  the member to lock
+     * @param lockedBy  the member acquiring the lock
+     * @return the acquired lock, or empty if the member is already locked
+     */
     public Optional<InventoryCheckLock> acquireLock(int stationId, int memberId, int lockedBy) {
         return Query.query("""
                             INSERT INTO inventory_check_lock(station_id, member_id, locked_by)
@@ -143,6 +198,12 @@ public class InventoryCheckRepository {
                 .first();
     }
 
+    /**
+     * Releases the lock on a member.
+     *
+     * @param memberId the member whose lock to release
+     * @return {@code true} if a lock was released
+     */
     public boolean releaseLock(int memberId) {
         return Query.query("DELETE FROM inventory_check_lock WHERE member_id = :member_id;")
                 .single(Call.of().bind("member_id", memberId))
@@ -150,6 +211,12 @@ public class InventoryCheckRepository {
                 .changed();
     }
 
+    /**
+     * Releases all locks held by a specific checker.
+     *
+     * @param lockedBy the member who holds the locks
+     * @return {@code true} if any locks were released
+     */
     public boolean releaseLockByLocker(int lockedBy) {
         return Query.query("DELETE FROM inventory_check_lock WHERE locked_by = :locked_by;")
                 .single(Call.of().bind("locked_by", lockedBy))
@@ -157,6 +224,12 @@ public class InventoryCheckRepository {
                 .changed();
     }
 
+    /**
+     * Finds the current lock on a member, if any.
+     *
+     * @param memberId the member ID
+     * @return the lock, or empty if not locked
+     */
     public Optional<InventoryCheckLock> findLock(int memberId) {
         return Query.query(
                         "SELECT id, station_id, member_id, locked_by, locked_at FROM inventory_check_lock WHERE member_id = :member_id;")
@@ -165,6 +238,11 @@ public class InventoryCheckRepository {
                 .first();
     }
 
+    /**
+     * Releases all locks that have been held for longer than the specified duration.
+     *
+     * @param maxMinutes the maximum lock age in minutes before automatic release
+     */
     public void releaseExpiredLocks(int maxMinutes) {
         Query.query("DELETE FROM inventory_check_lock WHERE locked_at < NOW() - INTERVAL '1 minute' * :minutes;")
                 .single(Call.of().bind("minutes", maxMinutes))
@@ -173,6 +251,13 @@ public class InventoryCheckRepository {
 
     // -- Navigation --
 
+    /**
+     * Finds the next unlocked member who was checked least recently (or never).
+     *
+     * @param stationId       the station ID
+     * @param excludeMemberId the member ID to exclude (typically the current one)
+     * @return the member ID, or empty if all members are locked or checked
+     */
     public Optional<Integer> nextUncheckedMember(int stationId, int excludeMemberId) {
         return Query.query("""
                             SELECT sm.id FROM station_member sm
@@ -192,6 +277,21 @@ public class InventoryCheckRepository {
 
     // -- Summary record --
 
+    /**
+     * Summary of a member's inventory check status, including lock information and roles.
+     *
+     * @param memberId         the member ID
+     * @param firstName        the member's first name
+     * @param lastName         the member's last name
+     * @param lastCheckedAt    when the member was last checked, or {@code null} if never
+     * @param checkerFirstName the first name of the person who last checked
+     * @param checkerLastName  the last name of the person who last checked
+     * @param locked           whether the member is currently locked for checking
+     * @param lockedBy         the member who holds the lock, or {@code null}
+     * @param lockerFirstName  the locker's first name
+     * @param lockerLastName   the locker's last name
+     * @param roles            the member's roles
+     */
     public record MemberCheckSummary(
             int memberId,
             String firstName,
@@ -205,6 +305,14 @@ public class InventoryCheckRepository {
             String lockerLastName,
             List<Roles> roles) {}
 
+    /**
+     * Detailed view of an inventory check including the checker's name and all checked items.
+     *
+     * @param check            the inventory check record
+     * @param checkerFirstName the checker's first name
+     * @param checkerLastName  the checker's last name
+     * @param items            the list of checked items
+     */
     public record CheckDetail(
             InventoryCheck check, String checkerFirstName, String checkerLastName, List<InventoryCheckItem> items) {}
 }

@@ -11,8 +11,19 @@ import java.time.Instant;
 
 import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIMESTAMP;
 
+/**
+ * Represents an in-app notification sent to a member.
+ *
+ * @param id             unique identifier of the notification
+ * @param memberId       the member this notification is for
+ * @param type           the notification category
+ * @param data           localized message data and optional navigation link
+ * @param createdAt      timestamp when the notification was created
+ * @param acknowledgedAt timestamp when the member acknowledged the notification, or {@code null}
+ */
 public record Notification(
         int id, int memberId, NotificationType type, NotificationData data, Instant createdAt, Instant acknowledgedAt) {
+    /** Creates a row mapping for database result set conversion. */
     public static RowMapping<Notification> map() {
         return row -> new Notification(
                 row.getInt("id"),

@@ -8,6 +8,10 @@ package dev.chojo.ember.conf.file.elements;
 import dev.chojo.ocular.override.Env;
 import dev.chojo.ocular.override.Overwrite;
 
+/**
+ * Demo mode configuration controlling whether demo mode is active, the data reset interval,
+ * and whether dev-mode features are enabled.
+ */
 @SuppressWarnings({"FieldCanBeLocal", "FieldMayBeFinal"})
 public class Demo {
     @Overwrite(env = @Env)

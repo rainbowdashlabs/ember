@@ -24,6 +24,11 @@ import jakarta.inject.Singleton;
 
 import java.time.Instant;
 
+/**
+ * HTTP routes for legal consent management including public document retrieval
+ * (privacy policy, terms of service, consent text, imprint) and authenticated
+ * consent recording and status checks.
+ */
 @Singleton
 public class ConsentRoutes implements Routes {
     private final ConsentService consentService;
@@ -236,12 +241,46 @@ public class ConsentRoutes implements Routes {
                 currentVersions.consentVersion()));
     }
 
+    /**
+     * Response containing a rendered legal document and its version hash.
+     *
+     * @param html    the rendered HTML content
+     * @param version the content version hash for consent proof
+     */
     public record DocumentResponse(String html, String version) {}
 
+    /**
+     * Request body for recording a user's consent, including the version hashes of all accepted documents.
+     *
+     * @param consentVersion the version hash of the consent text accepted
+     * @param privacyVersion the version hash of the privacy policy accepted
+     * @param tosVersion     the version hash of the terms of service accepted
+     */
     public record RecordConsentRequest(String consentVersion, String privacyVersion, String tosVersion) {}
 
+    /**
+     * Response containing the current version hashes of all legal documents.
+     *
+     * @param privacyVersion the current privacy policy version hash
+     * @param tosVersion     the current terms of service version hash
+     * @param consentVersion the current consent text version hash
+     */
     public record LegalVersionsResponse(String privacyVersion, String tosVersion, String consentVersion) {}
 
+    /**
+     * Response describing a user's current consent status, including whether consent has been given
+     * and whether it matches the latest document versions.
+     *
+     * @param consented              whether the user has ever consented
+     * @param current                whether the user's consent matches all current document versions
+     * @param consentVersion         the consent text version the user accepted (null if never consented)
+     * @param privacyVersion         the privacy policy version the user accepted
+     * @param tosVersion             the terms of service version the user accepted
+     * @param consentedAt            the timestamp when consent was last given
+     * @param currentPrivacyVersion  the current privacy policy version hash
+     * @param currentTosVersion      the current terms of service version hash
+     * @param currentConsentVersion  the current consent text version hash
+     */
     public record ConsentStatusResponse(
             boolean consented,
             boolean current,
@@ -253,6 +292,19 @@ public class ConsentRoutes implements Routes {
             String currentTosVersion,
             String currentConsentVersion) {}
 
+    /**
+     * Response containing diffs and current HTML for legal documents that changed since the user's last consent.
+     *
+     * @param privacyChanged        whether the privacy policy changed since last consent
+     * @param tosChanged            whether the terms of service changed since last consent
+     * @param privacyDiff           line-based diff of the privacy policy (null if unchanged)
+     * @param tosDiff               line-based diff of the terms of service (null if unchanged)
+     * @param privacyHtml           current privacy policy HTML (null if unchanged)
+     * @param tosHtml               current terms of service HTML (null if unchanged)
+     * @param currentPrivacyVersion the current privacy policy version hash
+     * @param currentTosVersion     the current terms of service version hash
+     * @param currentConsentVersion the current consent text version hash
+     */
     public record ConsentChangesResponse(
             boolean privacyChanged,
             boolean tosChanged,

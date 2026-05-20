@@ -17,9 +17,22 @@ import java.util.Optional;
 
 import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIMESTAMP;
 
+/**
+ * Repository for persisting and querying news articles, comments, group restrictions, and acknowledgements.
+ */
 @Singleton
 public class NewsRepository {
 
+    /**
+     * Creates a new news article and returns the persisted entity.
+     *
+     * @param stationId       the station to publish in
+     * @param title           article title
+     * @param contentMarkdown article body in Markdown
+     * @param contentHtml     article body as HTML
+     * @param authorId        member ID of the author
+     * @return the newly created news entry
+     */
     public News create(int stationId, String title, String contentMarkdown, String contentHtml, int authorId) {
         return Query.query("""
                             INSERT INTO news(station_id, title, content_markdown, content_html, author_id, published_at)
@@ -37,6 +50,12 @@ public class NewsRepository {
                 .orElseThrow();
     }
 
+    /**
+     * Finds a news article by its ID.
+     *
+     * @param id the news article ID
+     * @return the news article, or empty if not found
+     */
     public Optional<News> findById(int id) {
         return Query.query("SELECT * FROM news WHERE id = :id;")
                 .single(Call.of().bind("id", id))
@@ -44,6 +63,14 @@ public class NewsRepository {
                 .first();
     }
 
+    /**
+     * Retrieves news articles for a station, ordered by publication date descending.
+     *
+     * @param stationId the station ID
+     * @param offset    pagination offset
+     * @param limit     maximum number of results
+     * @return list of news articles
+     */
     public List<News> findByStation(int stationId, int offset, int limit) {
         return Query.query(
                         "SELECT * FROM news WHERE station_id = :station_id ORDER BY published_at DESC LIMIT :limit OFFSET :offset;")
@@ -55,6 +82,16 @@ public class NewsRepository {
                 .all();
     }
 
+    /**
+     * Retrieves published news visible to a specific member, respecting group restrictions.
+     * A news article is visible if it has no group restrictions or the member belongs to a restricted group.
+     *
+     * @param stationId the station ID
+     * @param memberId  the member ID
+     * @param offset    pagination offset
+     * @param limit     maximum number of results
+     * @return list of visible news articles
+     */
     public List<News> findVisibleForMember(int stationId, int memberId, int offset, int limit) {
         return Query.query("""
                             SELECT DISTINCT n.*
@@ -77,6 +114,15 @@ public class NewsRepository {
                 .all();
     }
 
+    /**
+     * Updates the title and content of a news article.
+     *
+     * @param id              the news article ID
+     * @param title           new title
+     * @param contentMarkdown new Markdown content
+     * @param contentHtml     new HTML content
+     * @return {@code true} if a row was updated
+     */
     public boolean update(int id, String title, String contentMarkdown, String contentHtml) {
         return Query.query("""
                             UPDATE news SET title = :title, content_markdown = :content_markdown, content_html = :content_html
@@ -90,6 +136,12 @@ public class NewsRepository {
                 .changed();
     }
 
+    /**
+     * Deletes a news article by its ID.
+     *
+     * @param id the news article ID
+     * @return {@code true} if a row was deleted
+     */
     public boolean delete(int id) {
         return Query.query("DELETE FROM news WHERE id = :id;")
                 .single(Call.of().bind("id", id))
@@ -99,6 +151,12 @@ public class NewsRepository {
 
     // -- Group Restrictions --
 
+    /**
+     * Retrieves the group IDs that restrict visibility of a news article.
+     *
+     * @param newsId the news article ID
+     * @return list of restricting group IDs
+     */
     public List<Integer> findGroupRestrictions(int newsId) {
         return Query.query("SELECT group_id FROM news_group_restriction WHERE news_id = :news_id;")
                 .single(Call.of().bind("news_id", newsId))
@@ -108,6 +166,15 @@ public class NewsRepository {
 
     // -- Comments --
 
+    /**
+     * Creates a comment on a news article.
+     *
+     * @param newsId   the news article ID
+     * @param parentId parent comment ID for replies, or {@code null} for top-level comments
+     * @param authorId member ID of the comment author
+     * @param content  comment text
+     * @return the newly created comment
+     */
     public NewsComment createComment(int newsId, Integer parentId, int authorId, String content) {
         return Query.query("""
                             INSERT INTO news_comment(news_id, parent_id, author_id, content)
@@ -123,6 +190,12 @@ public class NewsRepository {
                 .orElseThrow();
     }
 
+    /**
+     * Retrieves all comments for a news article, ordered by creation time ascending.
+     *
+     * @param newsId the news article ID
+     * @return list of comments
+     */
     public List<NewsComment> findCommentsByNews(int newsId) {
         return Query.query("SELECT * FROM news_comment WHERE news_id = :news_id ORDER BY created_at ASC;")
                 .single(Call.of().bind("news_id", newsId))
@@ -130,6 +203,12 @@ public class NewsRepository {
                 .all();
     }
 
+    /**
+     * Counts the total number of comments on a news article.
+     *
+     * @param newsId the news article ID
+     * @return comment count
+     */
     public int countComments(int newsId) {
         return Query.query("SELECT COUNT(*) AS cnt FROM news_comment WHERE news_id = :news_id;")
                 .single(Call.of().bind("news_id", newsId))
@@ -138,6 +217,12 @@ public class NewsRepository {
                 .orElse(0);
     }
 
+    /**
+     * Finds a comment by its ID.
+     *
+     * @param id the comment ID
+     * @return the comment, or empty if not found
+     */
     public Optional<NewsComment> findCommentById(int id) {
         return Query.query("SELECT * FROM news_comment WHERE id = :id;")
                 .single(Call.of().bind("id", id))
@@ -145,6 +230,13 @@ public class NewsRepository {
                 .first();
     }
 
+    /**
+     * Updates the content of a comment.
+     *
+     * @param id      the comment ID
+     * @param content new comment text
+     * @return {@code true} if a row was updated
+     */
     public boolean updateComment(int id, String content) {
         return Query.query("UPDATE news_comment SET content = :content WHERE id = :id;")
                 .single(Call.of().bind("id", id).bind("content", content))
@@ -152,6 +244,12 @@ public class NewsRepository {
                 .changed();
     }
 
+    /**
+     * Deletes a comment by its ID.
+     *
+     * @param id the comment ID
+     * @return {@code true} if a row was deleted
+     */
     public boolean deleteComment(int id) {
         return Query.query("DELETE FROM news_comment WHERE id = :id;")
                 .single(Call.of().bind("id", id))
@@ -161,6 +259,13 @@ public class NewsRepository {
 
     // -- Group Restrictions --
 
+    /**
+     * Replaces all group restrictions for a news article.
+     * Deletes existing restrictions and inserts the new set.
+     *
+     * @param newsId   the news article ID
+     * @param groupIds list of group IDs to restrict visibility to
+     */
     public void setGroupRestrictions(int newsId, List<Integer> groupIds) {
         Query.query("DELETE FROM news_group_restriction WHERE news_id = :news_id;")
                 .single(Call.of().bind("news_id", newsId))
@@ -174,6 +279,12 @@ public class NewsRepository {
 
     // -- Acknowledgements --
 
+    /**
+     * Records that a member has acknowledged (read) a news article. Idempotent.
+     *
+     * @param newsId   the news article ID
+     * @param memberId the member ID
+     */
     public void acknowledge(int newsId, int memberId) {
         Query.query(
                         "INSERT INTO news_acknowledgement(news_id, member_id) VALUES(:news_id, :member_id) ON CONFLICT DO NOTHING;")
@@ -181,6 +292,13 @@ public class NewsRepository {
                 .insert();
     }
 
+    /**
+     * Checks whether a member has acknowledged a news article.
+     *
+     * @param newsId   the news article ID
+     * @param memberId the member ID
+     * @return {@code true} if the member has acknowledged the article
+     */
     public boolean isAcknowledged(int newsId, int memberId) {
         return Query.query("SELECT 1 FROM news_acknowledgement WHERE news_id = :news_id AND member_id = :member_id;")
                 .single(Call.of().bind("news_id", newsId).bind("member_id", memberId))
@@ -189,6 +307,13 @@ public class NewsRepository {
                 .isPresent();
     }
 
+    /**
+     * Counts how many published and visible news articles a member has not yet acknowledged.
+     *
+     * @param stationId the station ID
+     * @param memberId  the member ID
+     * @return number of unacknowledged news articles
+     */
     public int countUnacknowledged(int stationId, int memberId) {
         return Query.query("""
                             SELECT count(*) AS cnt FROM news n

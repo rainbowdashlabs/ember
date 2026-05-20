@@ -12,6 +12,17 @@ import java.util.Optional;
 
 import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIMESTAMP;
 
+/**
+ * Represents a single member's attendance record within a session.
+ *
+ * @param id        unique entry identifier
+ * @param sessionId the attendance session this entry belongs to
+ * @param memberId  the station member this entry tracks
+ * @param status    current attendance status (e.g. PRESENT, ABSENT)
+ * @param checkIn   optional check-in timestamp
+ * @param checkOut  optional check-out timestamp
+ * @param source    how this entry was created (EXPECTED from group or EXTRA manually added)
+ */
 public record AttendanceEntry(
         int id,
         int sessionId,
@@ -20,6 +31,7 @@ public record AttendanceEntry(
         Instant checkIn,
         Instant checkOut,
         EntrySource source) {
+    /** Creates a row mapping for database result set conversion. */
     public static RowMapping<AttendanceEntry> map() {
         return row -> new AttendanceEntry(
                 row.getInt("id"),
@@ -39,6 +51,7 @@ public record AttendanceEntry(
         return Optional.ofNullable(checkOut);
     }
 
+    /** The attendance status of a member in a session. */
     public enum AttendanceStatus {
         UNCONFIRMED,
         PRESENT,
@@ -46,6 +59,7 @@ public record AttendanceEntry(
         DECLINED
     }
 
+    /** Indicates how an attendance entry was created. */
     public enum EntrySource {
         EXPECTED,
         EXTRA

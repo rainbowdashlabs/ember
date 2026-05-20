@@ -13,6 +13,10 @@ import jakarta.inject.Singleton;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * Service for managing equipment procurement requests.
+ * Handles creating, fulfilling, and deleting procurement requests, including automatic item creation on fulfillment.
+ */
 @Singleton
 public class ProcurementService {
     private final ProcurementRepository procurementRepository;
@@ -24,22 +28,56 @@ public class ProcurementService {
         this.inventoryService = inventoryService;
     }
 
+    /**
+     * Creates a new procurement request.
+     *
+     * @param stationId   the station ID
+     * @param inventoryId the inventory the equipment is from
+     * @param memberId    the member the equipment is for
+     * @param sizeId      the requested size, or {@code null}
+     * @param notes       additional notes
+     * @return the created procurement
+     */
     public Procurement create(int stationId, int inventoryId, int memberId, Integer sizeId, String notes) {
         return procurementRepository.create(stationId, inventoryId, memberId, sizeId, notes);
     }
 
+    /**
+     * Finds a procurement request by its ID.
+     *
+     * @param id the procurement ID
+     * @return the procurement, or empty if not found
+     */
     public Optional<Procurement> findById(int id) {
         return procurementRepository.findById(id);
     }
 
+    /**
+     * Finds all procurement requests for a station.
+     *
+     * @param stationId the station ID
+     * @return list of procurements
+     */
     public List<Procurement> findByStation(int stationId) {
         return procurementRepository.findByStation(stationId);
     }
 
+    /**
+     * Finds open (unfulfilled) procurement requests for a station.
+     *
+     * @param stationId the station ID
+     * @return list of open procurements
+     */
     public List<Procurement> findOpen(int stationId) {
         return procurementRepository.findOpen(stationId);
     }
 
+    /**
+     * Fulfills a procurement request by creating a new inventory item and assigning it to the member.
+     *
+     * @param id the procurement ID
+     * @return {@code true} if the procurement was fulfilled
+     */
     public boolean fulfill(int id) {
         var procurement = procurementRepository.findById(id);
         if (procurement.isEmpty()) return false;
@@ -56,6 +94,12 @@ public class ProcurementService {
         return procurementRepository.fulfill(id);
     }
 
+    /**
+     * Deletes a procurement request.
+     *
+     * @param id the procurement ID
+     * @return {@code true} if the procurement was deleted
+     */
     public boolean delete(int id) {
         return procurementRepository.delete(id);
     }

@@ -7,7 +7,21 @@ package dev.chojo.ember.feature.station.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
 
+/**
+ * Represents a station (organization unit) in the system.
+ *
+ * @param id            the unique station identifier
+ * @param name          the display name of the station
+ * @param timezone      the IANA timezone identifier for the station
+ * @param locale        the locale string used for formatting (e.g., "de-DE")
+ * @param ownerMemberId the member ID of the station owner, or {@code null} if no owner is set
+ */
 public record Station(int id, String name, String timezone, String locale, Integer ownerMemberId) {
+    /**
+     * Creates a row mapping for database result set conversion.
+     *
+     * @return a {@link RowMapping} that maps database rows to {@link Station} instances
+     */
     public static RowMapping<Station> map() {
         return row -> new Station(
                 row.getInt("id"),

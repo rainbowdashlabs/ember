@@ -46,6 +46,10 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
+/**
+ * HTTP route definitions for the attendance feature, handling templates, sessions, entries,
+ * absences, reports, and PDF exports.
+ */
 @Singleton
 public class AttendanceRoutes implements Routes {
     private final AttendanceService attendanceService;
@@ -72,6 +76,12 @@ public class AttendanceRoutes implements Routes {
         return s == null || s.isBlank();
     }
 
+    /**
+     * Resolves the display name of the member who created an absence record.
+     *
+     * @param createdBy the member ID of the creator, or {@code null}
+     * @return the full name of the creator, or {@code null} if not resolvable
+     */
     private String resolveCreatedByName(Integer createdBy) {
         if (createdBy == null) return null;
         return stationMemberRepository
@@ -81,6 +91,9 @@ public class AttendanceRoutes implements Routes {
                 .orElse(null);
     }
 
+    /**
+     * Converts a {@link MemberAbsence} entity to an {@link AbsenceResponse} with resolved creator name.
+     */
     private AbsenceResponse toAbsenceResponse(MemberAbsence a) {
         return new AbsenceResponse(
                 a.id(),
@@ -1038,8 +1051,10 @@ public class AttendanceRoutes implements Routes {
 
     // -- Request/Response records --
 
+    /** Request body for creating or updating an attendance template. */
     public record TemplateRequest(String name) {}
 
+    /** Detailed template response including fields and group associations. */
     public record TemplateDetail(
             int id,
             int stationId,
@@ -1047,39 +1062,55 @@ public class AttendanceRoutes implements Routes {
             List<AttendanceTemplateField> fields,
             List<TemplateGroupEntry> groups) {}
 
+    /** A group association entry with position for ordering. */
     public record TemplateGroupEntry(int groupId, int position) {}
 
+    /** Request body for replacing all group associations of a template. */
     public record SetTemplateGroupsRequest(List<TemplateGroupEntry> groups) {}
 
+    /** Request body for creating or updating a template field. */
     public record TemplateFieldRequest(String name, String fieldType, String config, int position) {}
 
+    /** Request body for creating or updating an attendance session. */
     public record SessionRequest(Instant startTime, Instant endTime, Integer eventId, String title) {}
 
+    /** Detailed session response including fields and attendance entries. */
     public record SessionDetail(
             AttendanceSession session, List<AttendanceSessionField> fields, List<AttendanceEntry> entries) {}
 
+    /** A field ID and its JSONB value for batch session field updates. */
     @OpenApiName("AttendanceFieldValueEntry")
     public record FieldValueEntry(int fieldId, String value) {}
 
+    /** Request body for batch-upserting session field values. */
     public record SetSessionFieldsRequest(List<FieldValueEntry> fields) {}
 
+    /** Request body for creating an attendance entry. */
     public record CreateEntryRequest(Integer memberId, AttendanceEntry.EntrySource source) {}
 
+    /** Request body for check-in or check-out with an optional timestamp. */
     public record TimestampRequest(Instant time) {}
 
+    /** Response confirming a check-in or check-out timestamp was recorded. */
     public record TimestampResponse(int entryId, Instant time) {}
 
+    /** Request body for updating an attendance entry's status. */
     public record StatusRequest(String status) {}
 
+    /** Response confirming an attendance entry's status was updated. */
     public record StatusResponse(int entryId, String status) {}
 
+    /** Request body for creating an absence by a manager. */
     public record AbsenceRequest(Integer memberId, String absentFrom, String absentUntil, String reason) {}
 
+    /** Request body for self-service absence creation, optionally targeting managed members. */
     @OpenApiName("MyAbsenceRequest")
     public record MyAbsenceRequest(String absentFrom, String absentUntil, String reason, List<Integer> memberIds) {}
 
+    /** Request body for creating a report preset. */
     public record CreatePresetRequest(String name, String roleName, Integer groupId, String period, String rounding) {}
 
+    /** Absence response enriched with the creator's display name. */
     public record AbsenceResponse(
             int id,
             int memberId,

@@ -11,6 +11,18 @@ import java.time.Instant;
 
 import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIMESTAMP;
 
+/**
+ * Represents an active login session for an account.
+ *
+ * @param id         the unique session identifier
+ * @param accountId  the associated account identifier
+ * @param token      the bearer token used to authenticate requests
+ * @param expiresAt  when the session expires
+ * @param createdAt  when the session was created
+ * @param userAgent  the user agent string from the client that created the session
+ * @param lastUsedAt when the session was last used
+ * @param location   the client's location (e.g. country code from CF-IPCountry)
+ */
 public record AccountSession(
         int id,
         int accountId,
@@ -21,6 +33,7 @@ public record AccountSession(
         Instant lastUsedAt,
         String location) {
 
+    /** Creates a row mapping for database result set conversion. */
     public static RowMapping<AccountSession> map() {
         return row -> new AccountSession(
                 row.getInt("id"),
@@ -33,6 +46,11 @@ public record AccountSession(
                 row.getString("location"));
     }
 
+    /**
+     * Checks whether this session has expired based on the current time.
+     *
+     * @return {@code true} if the session has expired
+     */
     public boolean isExpired() {
         return Instant.now().isAfter(expiresAt);
     }

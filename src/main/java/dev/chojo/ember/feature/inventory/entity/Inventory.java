@@ -7,7 +7,17 @@ package dev.chojo.ember.feature.inventory.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
 
+/**
+ * Represents an inventory belonging to a station.
+ *
+ * @param id            the unique inventory identifier
+ * @param stationId     the station this inventory belongs to
+ * @param name          the display name of the inventory
+ * @param inventoryType the type of inventory (internal, external, or mixed)
+ * @param hasSizes      whether this inventory supports size variants
+ */
 public record Inventory(int id, int stationId, String name, InventoryType inventoryType, boolean hasSizes) {
+    /** Creates a row mapping for database result set conversion. */
     public static RowMapping<Inventory> map() {
         return row -> new Inventory(
                 row.getInt("id"),

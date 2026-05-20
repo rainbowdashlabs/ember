@@ -42,6 +42,11 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * HTTP route handlers for form management, including CRUD operations, question management,
+ * access restrictions, response submission, and analytics. Requires {@code POLL_MANAGEMENT} role
+ * for administrative endpoints and {@code USER} role for respondent endpoints.
+ */
 @Singleton
 public class FormRoutes implements Routes {
     private final FormService formService;
@@ -64,6 +69,7 @@ public class FormRoutes implements Routes {
         this.accountRepository = accountRepository;
     }
 
+    /** {@inheritDoc} */
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
         // Management
@@ -520,6 +526,11 @@ public class FormRoutes implements Routes {
         ctx.json(response);
     }
 
+    /**
+     * Deletes all NEW_FORM notifications associated with a specific form, used when a form is deleted or closed.
+     *
+     * @param formId the form ID whose notifications should be removed
+     */
     private void deleteFormNotifications(int formId) {
         notificationService.deleteByTypeContaining(
                 NotificationType.NEW_FORM,
@@ -531,6 +542,13 @@ public class FormRoutes implements Routes {
                         .toJson());
     }
 
+    /**
+     * Verifies that the current user manages the specified member or has POLL_MANAGEMENT role.
+     *
+     * @param session  the current user session
+     * @param memberId the member ID to verify management of
+     * @throws ForbiddenResponse if the user does not manage the member and lacks POLL_MANAGEMENT role
+     */
     private void verifyManages(UserSession session, int memberId) {
         boolean manages =
                 stationMemberService.findManaged(session.member().id()).stream().anyMatch(m -> m.id() == memberId);
@@ -568,6 +586,12 @@ public class FormRoutes implements Routes {
             tags = {"Forms"},
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = FormResponse[].class)))
+    /**
+     * Resolves a member ID to their full name by looking up the station member and account.
+     *
+     * @param memberId the member ID
+     * @return the member's full name, or {@code null} if the member or account cannot be found
+     */
     private String resolveMemberName(int memberId) {
         return stationMemberRepository
                 .findById(memberId)
@@ -576,6 +600,13 @@ public class FormRoutes implements Routes {
                 .orElse(null);
     }
 
+    /**
+     * Converts a {@link FormResponse} to a {@link FormResponseEntry}, resolving the submitter name
+     * when the response was submitted by a different member (e.g., a guardian).
+     *
+     * @param r the form response
+     * @return the enriched response entry
+     */
     private FormResponseEntry toResponseEntry(FormResponse r) {
         String submittedByName = r.submittedBy() != r.memberId() ? resolveMemberName(r.submittedBy()) : null;
         return new FormResponseEntry(
@@ -612,6 +643,16 @@ public class FormRoutes implements Routes {
 
     // -- Records --
 
+    /**
+     * Request body for creating or updating a form.
+     *
+     * @param title            the form title
+     * @param description      optional form description
+     * @param shuffleQuestions whether to randomize question order
+     * @param allowEdit        whether respondents may edit their response
+     * @param startAt          optional start time for accepting responses
+     * @param endAt            optional end time for accepting responses
+     */
     public record FormRequest(
             String title,
             String description,
@@ -620,14 +661,47 @@ public class FormRoutes implements Routes {
             Instant startAt,
             Instant endAt) {}
 
+    /**
+     * Request body for creating a form question.
+     *
+     * @param questionType the question type name (must match {@link FormQuestion.QuestionType})
+     * @param title        the question text
+     * @param description  optional description
+     * @param required     whether an answer is mandatory
+     * @param shuffle      whether answer options should be randomized
+     * @param config       type-specific configuration as JSON string
+     */
     public record QuestionRequest(
             String questionType, String title, String description, Boolean required, Boolean shuffle, String config) {}
 
+    /**
+     * Access restrictions for a form, specifying which roles, groups, and tags may access it.
+     *
+     * @param roleIds  list of role IDs that grant access
+     * @param groupIds list of group IDs that grant access
+     * @param tagIds   list of tag IDs that grant access
+     */
     public record FormRestrictions(List<Integer> roleIds, List<Integer> groupIds, List<Integer> tagIds) {}
 
+    /**
+     * Request body for submitting or updating a form response.
+     *
+     * @param answers map of question ID to answer value (JSON string)
+     */
     @OpenApiName("FormSubmitRequest")
     public record SubmitRequest(Map<Integer, String> answers) {}
 
+    /**
+     * Enriched form response entry with optional submitter name resolution.
+     *
+     * @param id              unique response identifier
+     * @param formId          the form this response belongs to
+     * @param memberId        the member this response is for
+     * @param submittedBy     the member who submitted the response
+     * @param submittedByName resolved name of the submitter, or {@code null} if submitted by the member themselves
+     * @param submittedAt     timestamp of submission
+     * @param updatedAt       timestamp of last update
+     */
     public record FormResponseEntry(
             int id,
             int formId,
@@ -637,8 +711,27 @@ public class FormRoutes implements Routes {
             Instant submittedAt,
             Instant updatedAt) {}
 
+    /**
+     * Detailed view of a form response including all individual answers.
+     *
+     * @param response the response metadata, or {@code null} if the member has not responded
+     * @param answers  list of answers within the response
+     */
     public record ResponseDetail(FormResponseEntry response, List<FormAnswer> answers) {}
 
+    /**
+     * Summary entry for listing available forms, including response statistics for the current user.
+     *
+     * @param id            unique form identifier
+     * @param stationId     the station this form belongs to
+     * @param title         form title
+     * @param description   form description
+     * @param status        form status name
+     * @param startAt       optional start time
+     * @param endAt         optional end time
+     * @param responseCount total number of responses submitted
+     * @param hasResponded  whether the current user has already responded
+     */
     public record FormListEntry(
             int id,
             int stationId,
@@ -650,10 +743,32 @@ public class FormRoutes implements Routes {
             int responseCount,
             boolean hasResponded) {}
 
+    /**
+     * Aggregated analytics for a form, including per-question answer data.
+     *
+     * @param formId         the form ID
+     * @param totalResponses total number of responses
+     * @param questions      analytics for each question
+     */
     public record FormAnalytics(int formId, int totalResponses, List<QuestionAnalytics> questions) {}
 
+    /**
+     * Analytics data for a single question, containing all submitted answer values.
+     *
+     * @param questionId   the question ID
+     * @param questionType the question type name
+     * @param title        the question text
+     * @param config       type-specific configuration as JSON
+     * @param values       all answer values submitted for this question
+     */
     public record QuestionAnalytics(
             int questionId, String questionType, String title, String config, List<String> values) {}
 
+    /**
+     * Response indicating which members (self and managed) are eligible to respond to a form.
+     *
+     * @param selfEligible             whether the current user is eligible
+     * @param eligibleManagedMemberIds IDs of managed members who are eligible
+     */
     public record EligibleMembers(boolean selfEligible, List<Integer> eligibleManagedMemberIds) {}
 }
