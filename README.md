@@ -65,6 +65,8 @@ Database settings can be overridden via environment variables:
 | `DB_SCHEMA`    | Schema name                                   | `ember`     |
 | `DEMO_ENABLED` | Enable demo mode                              | `false`     |
 | `DEMO_DEV`     | Enable dev mode (demo accounts without reset) | `false`     |
+| `TYPST_BIN`    | Path to typst binary (for PDF export)         | `typst`     |
+| `PANDOC_BIN`   | Path to pandoc binary (for document import)   | `pandoc`    |
 
 ### Full Config Reference
 
@@ -78,6 +80,7 @@ api:
   privacyPolicyDir: "data/privacy"
   consentDir: "data/consent"
   tosDir: "data/tos"
+  imprintDir: "data/imprint"
 
 auth:
   sessionMinutes: 30        # Session duration
@@ -140,10 +143,10 @@ Ember ships with default legal documents in German and English. These are compos
 ```
 data/
   privacy/              # Privacy policy
-    de/                 # German
+    de/
       01-general.md
       02-rights.md
-    en/                 # English
+    en/
       01-general.md
       02-rights.md
   consent/              # Consent banner (shown before login)
@@ -152,6 +155,11 @@ data/
   tos/                  # Terms of service
     de/01-nutzungsbedingungen.md
     en/01-terms.md
+  imprint/              # Imprint / legal notice
+    de/01-impressum.md
+    en/01-imprint.md
+  images/               # Uploaded images (avatars, KB icons, quiz images)
+  kb-files/             # Knowledge base binary files (PDFs, etc.)
 ```
 
 Files within a locale directory are sorted alphabetically and concatenated to form the full document.
@@ -189,7 +197,10 @@ Ember uses a hierarchical role system:
 | `INVENTORY_MANAGEMENT`  | Manage inventory items and assignments                 |
 | `NEWS_MANAGEMENT`       | Manage news posts                                      |
 | `POLL_MANAGEMENT`       | Manage forms and surveys                               |
-| `MEMBER_MANAGER`        | Parent/guardian — can manage assigned children         |
+| `QUIZ_MANAGEMENT`       | Manage quiz catalogs, tests, and AI generation         |
+| `KNOWLEDGE_MANAGEMENT`  | Manage knowledge base files and folders                |
+| `WAITLIST_MANAGEMENT`   | Manage waiting lists and entries                       |
+| `GUARDIAN`              | Parent/guardian — can manage assigned children         |
 | `MEMBER`                | Regular group member                                   |
 | `LOGIN`                 | Can log in (base role)                                 |
 
@@ -203,7 +214,7 @@ Back up the PostgreSQL database regularly:
 docker compose exec postgres pg_dump -U ember ember > backup.sql
 ```
 
-The `config/` and `data/` directories should also be backed up as they contain your configuration and legal document history.
+The `config/` and `data/` directories should also be backed up as they contain your configuration, legal documents, uploaded images, and knowledge base files.
 
 ## Development
 

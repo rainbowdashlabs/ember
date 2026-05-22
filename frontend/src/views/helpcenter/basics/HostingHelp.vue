@@ -66,6 +66,26 @@ const {t} = useI18n()
       </ul>
     </HelpSection>
 
+    <HelpSection :title="t('helpCenter.basics.hosting.envVars')">
+      <p>{{ t('helpCenter.basics.hosting.envVarsText') }}</p>
+      <ul class="list-disc pl-5 space-y-1 text-sm">
+        <li><code class="text-xs bg-[var(--bg-accent)] px-1 rounded">{{ t('helpCenter.basics.hosting.envDb') }}</code></li>
+        <li><code class="text-xs bg-[var(--bg-accent)] px-1 rounded">{{ t('helpCenter.basics.hosting.envDemo') }}</code></li>
+        <li><code class="text-xs bg-[var(--bg-accent)] px-1 rounded">{{ t('helpCenter.basics.hosting.envTypst') }}</code></li>
+        <li><code class="text-xs bg-[var(--bg-accent)] px-1 rounded">{{ t('helpCenter.basics.hosting.envPandoc') }}</code></li>
+      </ul>
+    </HelpSection>
+
+    <HelpSection :title="t('helpCenter.basics.hosting.dataDir')">
+      <p>{{ t('helpCenter.basics.hosting.dataDirText') }}</p>
+      <ul class="list-disc pl-5 space-y-1 text-sm">
+        <li>{{ t('helpCenter.basics.hosting.dataLegal') }}</li>
+        <li>{{ t('helpCenter.basics.hosting.dataImages') }}</li>
+        <li>{{ t('helpCenter.basics.hosting.dataKbFiles') }}</li>
+      </ul>
+      <p class="mt-2 text-sm">{{ t('helpCenter.basics.hosting.dataDirText2') }}</p>
+    </HelpSection>
+
     <HelpSection :title="t('helpCenter.basics.hosting.reverseProxy')">
       <p>{{ t('helpCenter.basics.hosting.reverseProxyText') }}</p>
       <ul class="list-disc pl-5 space-y-1">
