@@ -48,7 +48,6 @@ WORKDIR /app
 COPY --from=frontend /build/dist/ public
 COPY --from=build /home/gradle/build/install/ember/ .
 COPY templates templates
-COPY data data
 
 RUN mkdir -p config
 
