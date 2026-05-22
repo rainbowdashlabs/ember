@@ -93,6 +93,10 @@ const pageSubtitle = computed(() => t('helpCenter.title'))
                      to="/helpcenter/station/profile/settings" @navigate="close">
           {{ t('sidebar.settings') }}
         </SidebarLink>
+        <SidebarLink :icon="['fas', 'palette']" name="help-profile-theme"
+                     to="/helpcenter/station/profile/theme" @navigate="close">
+          {{ t('helpCenter.themeUser.sidebarLabel') }}
+        </SidebarLink>
       </SidebarGroup>
 
       <SidebarGroup :icon="['fas', 'gears']" :label="t('sidebar.station')" prefix="/helpcenter/station/manage"
@@ -112,6 +116,10 @@ const pageSubtitle = computed(() => t('helpCenter.title'))
         <SidebarLink :icon="['fas', 'users-gear']" name="help-station-members-config"
                      to="/helpcenter/station/manage/members-config" @navigate="close">
           {{ t('sidebar.membersConfig') }}
+        </SidebarLink>
+        <SidebarLink :icon="['fas', 'palette']" name="help-station-theme-manage"
+                     to="/helpcenter/station/manage/theme" @navigate="close">
+          {{ t('helpCenter.themeManage.sidebarLabel') }}
         </SidebarLink>
       </SidebarGroup>
 
@@ -156,6 +164,10 @@ const pageSubtitle = computed(() => t('helpCenter.title'))
         <SidebarLink :icon="['fas', 'user-slash']" name="help-members-former"
                      to="/helpcenter/station/members/former" @navigate="close">
           {{ t('sidebar.formerMembers') }}
+        </SidebarLink>
+        <SidebarLink :icon="['fas', 'clipboard-list']" name="help-waiting-lists"
+                     to="/helpcenter/station/members/waiting-lists" @navigate="close">
+          {{ t('sidebar.waitingLists') }}
         </SidebarLink>
       </SidebarGroup>
 
@@ -285,6 +297,37 @@ const pageSubtitle = computed(() => t('helpCenter.title'))
 
       <SidebarGroup :icon="['fas', 'box-open']" :label="t('sidebar.lostAndFound')" prefix="/helpcenter/station/lost-and-found"
                     to="/helpcenter/station/lost-and-found" name="help-lost-and-found" @navigate="close">
+      </SidebarGroup>
+
+      <SidebarGroup :icon="['fas', 'graduation-cap']" :label="t('sidebar.quiz')" prefix="/helpcenter/station/quiz"
+                    to="/helpcenter/station/quiz" name="help-quiz-overview" @navigate="close">
+        <SidebarExpandableLink :icon="['fas', 'book']" name="help-quiz-catalogs"
+                               to="/helpcenter/station/quiz/catalogs" prefix="/helpcenter/station/quiz/catalog" @navigate="close">
+          <template #label>{{ t('sidebar.quizCatalogs') }}</template>
+          <SidebarLink :icon="['fas', 'eye']" name="help-quiz-catalog-detail" to="/helpcenter/station/quiz/catalog" @navigate="close">
+            {{ t('sidebar.quizCatalogDetail') }}
+          </SidebarLink>
+          <SidebarLink :icon="['fas', 'robot']" name="help-quiz-ai" to="/helpcenter/station/quiz/ai" @navigate="close">
+            {{ t('sidebar.quizAi') }}
+          </SidebarLink>
+        </SidebarExpandableLink>
+        <SidebarExpandableLink :icon="['fas', 'file-lines']" name="help-quiz-tests"
+                               to="/helpcenter/station/quiz/tests" prefix="/helpcenter/station/quiz/tests" @navigate="close">
+          <template #label>{{ t('sidebar.quizTests') }}</template>
+          <SidebarLink :icon="['fas', 'eye']" name="help-quiz-test-detail" to="/helpcenter/station/quiz/tests/details" @navigate="close">
+            {{ t('sidebar.quizTestDetail') }}
+          </SidebarLink>
+        </SidebarExpandableLink>
+        <SidebarLink :icon="['fas', 'brain']" name="help-quiz-training" to="/helpcenter/station/quiz/training" @navigate="close">
+          {{ t('sidebar.quizTraining') }}
+        </SidebarLink>
+      </SidebarGroup>
+
+      <SidebarGroup :icon="['fas', 'book-open']" :label="t('sidebar.knowledgeBase')" prefix="/helpcenter/station/knowledge"
+                    to="/helpcenter/station/knowledge" name="help-knowledge-base" @navigate="close">
+        <SidebarLink :icon="['fas', 'pen']" name="help-knowledge-editor" to="/helpcenter/station/knowledge/editor" @navigate="close">
+          {{ t('sidebar.knowledgeEditor') }}
+        </SidebarLink>
       </SidebarGroup>
     </template>
 

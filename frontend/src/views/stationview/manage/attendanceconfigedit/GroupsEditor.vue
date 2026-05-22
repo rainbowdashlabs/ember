@@ -68,7 +68,7 @@ const unselectedGroups = computed(() => {
     <div v-if="unselectedGroups.length > 0" class="pt-2">
       <label class="block text-sm font-medium mb-1">{{ t('attendanceConfig.addGroup') }}</label>
       <div class="flex flex-wrap gap-2">
-        <SecondaryButton v-for="group in unselectedGroups" :key="group.id" class="text-sm"
+        <SecondaryButton v-for="group in unselectedGroups" :key="group.id"
                          @click="emit('add', group.id)">
           <font-awesome-icon :icon="['fas', 'plus']" class="mr-1"/>
           {{ group.name }}

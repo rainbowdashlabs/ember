@@ -437,7 +437,7 @@ onMounted(loadForm)
                     <IconButton :icon="['fas', 'chevron-down']" :label="'Down'" class="text-(--text-muted) hover:text-primary" @click="moveOption(q, oi, 1)" />
                     <DeleteButton @click="removeOption(q, oi)" />
                   </div>
-                  <SecondaryButton class="text-xs" @click="addOption(q)">{{ t('forms.choice.addOption') }}</SecondaryButton>
+                  <SecondaryButton @click="addOption(q)">{{ t('forms.choice.addOption') }}</SecondaryButton>
                 </div>
               </template>
 
@@ -473,7 +473,7 @@ onMounted(loadForm)
                     <IconButton :icon="['fas', 'chevron-down']" :label="'Down'" class="text-(--text-muted) hover:text-primary" @click="moveOption(q, oi, 1)" />
                     <DeleteButton @click="removeOption(q, oi)" />
                   </div>
-                  <SecondaryButton class="text-xs" @click="addOption(q)">{{ t('forms.ranking.addOption') }}</SecondaryButton>
+                  <SecondaryButton @click="addOption(q)">{{ t('forms.ranking.addOption') }}</SecondaryButton>
                 </div>
               </template>
 
@@ -493,7 +493,7 @@ onMounted(loadForm)
                     <IconButton :icon="['fas', 'chevron-down']" :label="'Down'" class="text-(--text-muted) hover:text-primary" @click="moveStatement(q, si, 1)" />
                     <DeleteButton @click="removeStatement(q, si)" />
                   </div>
-                  <SecondaryButton class="text-xs" @click="addStatement(q)">{{ t('forms.likert.addStatement') }}</SecondaryButton>
+                  <SecondaryButton @click="addStatement(q)">{{ t('forms.likert.addStatement') }}</SecondaryButton>
                 </div>
               </template>
             </div>
@@ -502,7 +502,7 @@ onMounted(loadForm)
 
         <!-- Add Question -->
         <div class="flex flex-wrap gap-2">
-          <SecondaryButton v-for="type in questionTypes" :key="type" class="text-xs" @click="addQuestion(type)">
+          <SecondaryButton v-for="type in questionTypes" :key="type" @click="addQuestion(type)">
             <font-awesome-icon :icon="['fas', 'plus']" class="mr-1" />
             {{ t(`forms.questionTypes.${type}`) }}
           </SecondaryButton>

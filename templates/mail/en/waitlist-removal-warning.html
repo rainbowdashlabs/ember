@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+  body { margin:0; padding:0; background:#f4f4f4; font-family:Arial,Helvetica,sans-serif; }
+  .wrapper { background:#f4f4f4; padding:32px 0; }
+  .card { background:#fff; border-radius:8px; overflow:hidden; box-shadow:0 2px 8px rgba(0,0,0,0.08); max-width:600px; margin:0 auto; }
+  .header { background:#ec2929; padding:24px 32px; text-align:center; }
+  .header h1 { color:#fff; margin:0; font-size:22px; }
+  .header img { height:40px; border-radius:6px; margin-bottom:8px; }
+  .body { padding:32px; }
+  .body h2 { color:#333; margin:0 0 16px; }
+  .body p { color:#555; font-size:15px; line-height:1.6; }
+  .btn-wrap { text-align:center; margin:24px 0; }
+  .btn-green { display:inline-block; background:#00C507; color:#fff; padding:12px 32px; border-radius:6px; text-decoration:none; font-weight:bold; font-size:15px; }
+  .warning { color:#ec2929; font-size:14px; font-weight:bold; }
+  .footer { background:#f9f9f9; padding:16px 32px; text-align:center; border-top:1px solid #eee; }
+  .footer p { color:#aaa; font-size:11px; margin:0; }
+  .footer a { color:#FF6421; }
+</style>
+</head>
+<body>
+<div class="wrapper">
+  <div class="card">
+    <div class="header"><img src="{{logoUrl}}" alt=""><br><h1>{{stationName}}</h1></div>
+    <div class="body">
+      <h2>Hello {{name}},</h2>
+      <p class="warning">You will be automatically removed from the waiting list at {{stationName}} in 2 weeks!</p>
+      <p>Please confirm your interest now to stay on the waiting list:</p>
+      <div class="btn-wrap"><a class="btn-green" href="{{url}}">Confirm interest now</a></div>
+    </div>
+    <div class="footer"><p>{{stationName}} &middot; <a href="{{baseUrl}}">{{baseUrl}}</a></p></div>
+  </div>
+</div>
+</body>
+</html>

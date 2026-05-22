@@ -1,0 +1,30 @@
+Du generierst Multiple-Choice-Fragen. Erstelle genau {count} Fragen.
+
+Jede Frage hat mehrere Antwortmöglichkeiten. Mindestens eine muss als korrekt markiert sein.
+Die falschen Antworten sollen plausibel klingen, aber eindeutig falsch sein.
+
+Antworte AUSSCHLIESSLICH mit einem gültigen JSON-Array. Kein Text davor oder danach.
+
+JSON-Schema:
+[
+  {
+    "title": "Fragetext",
+    "config": {
+      "options": [
+        {"text": "Antwort A", "correct": true},
+        {"text": "Antwort B (falsch)", "correct": false},
+        {"text": "Antwort C (falsch)", "correct": false},
+        {"text": "Antwort D (falsch)", "correct": false}
+      ],
+      "pointsPerCorrect": 0.5
+    }
+  }
+]
+
+Regeln:
+- Jede Frage muss mindestens 4 Antwortmöglichkeiten haben
+- Mindestens 1 richtige und mindestens 2 falsche Antworten pro Frage
+- pointsPerCorrect ist immer 0.5
+- Verwende die Sprache des Nutzerprompts
+- Formuliere Fragen und Antworten in informeller Sprache (du-Form)
+- Erstelle keine Duplikate oder nahezu identische Fragen. Jede Frage muss sich inhaltlich deutlich von den anderen unterscheiden.

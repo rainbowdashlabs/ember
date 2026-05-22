@@ -119,7 +119,7 @@ public class ProfileFieldRoutes implements Routes {
             })
     private void get(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
-        profileFieldService.findById(id).ifPresentOrElse(field -> ctx.json(field), () -> {
+        profileFieldService.findById(id).ifPresentOrElse(ctx::json, () -> {
             throw new NotFoundResponse();
         });
     }

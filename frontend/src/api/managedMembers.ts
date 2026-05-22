@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
-import type {ProfileField, ProfileFieldValue, Role} from './types'
+import type {ProfileField, ProfileFieldValue} from './types'
 import type {MyInventoryItem, MyRequirement} from './inventory'
 
 export interface ManagedMember {
@@ -45,15 +45,5 @@ export async function getMemberInventory(memberId: number): Promise<MyInventoryI
 
 export async function getMemberRequirements(memberId: number): Promise<MyRequirement[]> {
     const res = await client.get<MyRequirement[]>(`/managed-members/${memberId}/inventory-requirements`)
-    return res.data
-}
-
-export async function getRoles(memberId: number): Promise<Role[]> {
-    const res = await client.get<Role[]>(`/managed-members/${memberId}/roles`)
-    return res.data
-}
-
-export async function setRoles(memberId: number, roleIds: number[]): Promise<Role[]> {
-    const res = await client.put<Role[]>(`/managed-members/${memberId}/roles`, {roleIds})
     return res.data
 }

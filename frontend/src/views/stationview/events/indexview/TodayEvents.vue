@@ -38,7 +38,7 @@ function formatTime(iso?: string): string {
           <span class="text-sm">{{ formatTime(ev.startTime) }} – {{ formatTime(ev.endTime) }}</span>
         </div>
         <p v-if="ev.description" class="text-sm text-(--text-muted)">{{ ev.description }}</p>
-        <PrimaryButton v-if="ev.templateId" class="text-sm" @click="emit('attendance', ev)">
+        <PrimaryButton v-if="ev.templateId" @click="emit('attendance', ev)">
           <font-awesome-icon :icon="['fas', 'clipboard-user']" class="mr-1"/>
           {{ t('events.manageAttendance') }}
         </PrimaryButton>

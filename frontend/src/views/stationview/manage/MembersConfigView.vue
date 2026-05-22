@@ -329,7 +329,7 @@ onMounted(loadFields)
             <div class="space-y-2">
               <label class="block text-sm font-medium">{{ t('membersConfig.templates') }}</label>
               <div class="flex flex-wrap gap-2">
-                <SecondaryButton v-for="tpl in fieldTemplates" :key="tpl.name" class="text-sm"
+                <SecondaryButton v-for="tpl in fieldTemplates" :key="tpl.name"
                                  @click="applyTemplate(tpl)">
                   <font-awesome-icon :icon="['fas', tpl.icon]" class="mr-1"/>
                   {{ tpl.name }}
@@ -352,7 +352,7 @@ onMounted(loadFields)
           <div v-if="currentFields.length > 0" class="pt-2 border-t border-bg-light-accent dark:border-bg-dark-accent">
             <label class="block text-xs font-medium text-(--text-muted) mb-2">{{ t('membersConfig.templates') }}</label>
             <div class="flex flex-wrap gap-2">
-              <SecondaryButton v-for="tpl in fieldTemplates" :key="tpl.name" class="text-xs"
+              <SecondaryButton v-for="tpl in fieldTemplates" :key="tpl.name"
                                @click="applyTemplate(tpl)">
                 <font-awesome-icon :icon="['fas', tpl.icon]" class="mr-1"/>
                 {{ tpl.name }}

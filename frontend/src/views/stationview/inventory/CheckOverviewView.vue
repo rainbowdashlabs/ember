@@ -184,10 +184,10 @@ onMounted(loadData)
                       class="text-(--text-muted) hover:text-primary"
                       @click="viewLastCheck(member)"
                   />
-                  <SecondaryButton v-if="isLockedByMe(member)" class="text-sm" @click="startCheck(member.memberId)">
+                  <SecondaryButton v-if="isLockedByMe(member)" @click="startCheck(member.memberId)">
                     {{ t('inventory.check.continue') }}
                   </SecondaryButton>
-                  <PrimaryButton v-else :disabled="isLockedByOther(member)" class="text-sm"
+                  <PrimaryButton v-else :disabled="isLockedByOther(member)"
                                  @click="startCheck(member.memberId)">
                     {{ t('inventory.check.start') }}
                   </PrimaryButton>

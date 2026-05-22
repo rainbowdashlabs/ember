@@ -7,6 +7,7 @@ import {readonly, ref} from 'vue'
 import {session} from '@/api'
 import type {SessionInfo} from '@/api/types'
 import {Roles} from '@/api/types'
+import {useTheme} from '@/composables/useTheme'
 
 const sessionInfo = ref<SessionInfo | null>(null)
 const loaded = ref(false)
@@ -15,6 +16,7 @@ export function useSession() {
     async function load() {
         try {
             sessionInfo.value = await session.getSessionInfo()
+            useTheme().initFromSession(sessionInfo.value?.theme)
         } catch {
             sessionInfo.value = null
         }
@@ -74,6 +76,18 @@ export function useSession() {
         return hasRole(Roles.LOST_AND_FOUND_MANAGEMENT)
     }
 
+    function canManageWaitlist(): boolean {
+        return hasRole(Roles.WAITLIST_MANAGEMENT)
+    }
+
+    function canManageQuiz(): boolean {
+        return hasRole(Roles.QUIZ_MANAGEMENT)
+    }
+
+    function canManageKnowledge(): boolean {
+        return hasRole(Roles.KNOWLEDGE_MANAGEMENT)
+    }
+
     function isModuleEnabled(module: string): boolean {
         return !(sessionInfo.value?.disabledModules?.includes(module) ?? false)
     }
@@ -101,6 +115,9 @@ export function useSession() {
         canManagePolls,
         isGuardian,
         canManageLostAndFound,
+        canManageWaitlist,
+        canManageQuiz,
+        canManageKnowledge,
         isModuleEnabled,
         fullName,
     }

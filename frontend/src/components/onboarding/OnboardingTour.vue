@@ -49,7 +49,7 @@ const {isActive, currentStep, currentStepData, totalSteps, nextStep, prevStep, s
                 <font-awesome-icon :icon="['fas', 'chevron-left']" class="mr-1"/>
                 {{ t('tour.back') }}
               </SecondaryButton>
-              <PrimaryButton class="text-xs" @click="nextStep">
+              <PrimaryButton @click="nextStep">
                 {{ currentStep === totalSteps - 1 ? t('tour.finish') : t('tour.next') }}
                 <font-awesome-icon v-if="currentStep < totalSteps - 1" :icon="['fas', 'chevron-right']" class="ml-1"/>
               </PrimaryButton>

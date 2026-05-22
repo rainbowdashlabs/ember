@@ -31,7 +31,7 @@ function handleChange(event: Event) {
 <template>
   <label
       :class="{ 'opacity-50 cursor-not-allowed pointer-events-none': disabled }"
-      class="inline-flex items-center cursor-pointer rounded-lg px-4 py-2 font-medium bg-primary text-white hover:bg-primary-accent transition-all duration-150 active:scale-95"
+      class="inline-flex items-center cursor-pointer rounded-lg px-3 py-1.5 text-sm font-medium bg-primary text-white hover:bg-primary-accent transition-all duration-150 active:scale-95"
   >
     <font-awesome-icon :icon="['fas', 'upload']" class="mr-2"/>
     <slot/>

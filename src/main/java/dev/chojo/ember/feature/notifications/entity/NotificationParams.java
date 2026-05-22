@@ -40,4 +40,6 @@ public sealed interface NotificationParams {
     record LostAndFoundNew(String description) implements NotificationParams {}
 
     record LostAndFoundClaimed(String name, String description) implements NotificationParams {}
+
+    record WaitlistNewEntry(String childName, String listName) implements NotificationParams {}
 }

@@ -46,7 +46,7 @@ const {t} = useI18n()
             <td class="px-3 py-2.5 font-medium text-(--text-muted)">Jan Müller</td>
             <td class="px-3 py-2.5 text-(--text-muted)">jan@example.com</td>
             <td class="px-3 py-2.5 text-right">
-              <PrimaryButton class="text-xs">
+              <PrimaryButton>
                 <font-awesome-icon :icon="['fas', 'user-check']" class="mr-1"/>
                 {{ t('formerMembers.reactivate') }}
               </PrimaryButton>
@@ -56,7 +56,7 @@ const {t} = useI18n()
             <td class="px-3 py-2.5 font-medium text-(--text-muted)">Sara Klein</td>
             <td class="px-3 py-2.5 text-(--text-muted)">sara@example.com</td>
             <td class="px-3 py-2.5 text-right">
-              <PrimaryButton class="text-xs">
+              <PrimaryButton>
                 <font-awesome-icon :icon="['fas', 'user-check']" class="mr-1"/>
                 {{ t('formerMembers.reactivate') }}
               </PrimaryButton>

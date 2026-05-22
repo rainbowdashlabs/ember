@@ -14,5 +14,8 @@ public enum StationModule {
     EVENTS,
     ATTENDANCE,
     FORMS,
-    LOST_AND_FOUND
+    LOST_AND_FOUND,
+    WAITING_LIST,
+    QUIZ,
+    KNOWLEDGE_BASE
 }

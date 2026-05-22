@@ -9,10 +9,12 @@ import dev.chojo.ember.api.MessageResponse;
 import dev.chojo.ember.api.Roles;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.lostandfound.entity.LostAndFoundItem;
 import dev.chojo.ember.feature.lostandfound.service.LostAndFoundService;
 import dev.chojo.ember.feature.media.service.ImageCategory;
+import dev.chojo.ember.feature.media.service.ImageService;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.StationMemberService;
 import io.javalin.http.BadRequestResponse;
@@ -48,8 +50,8 @@ public class LostAndFoundRoutes implements Routes {
     private final StationMemberService memberService;
     private final StationMemberRepository stationMemberRepository;
     private final AccountRepository accountRepository;
-    private final dev.chojo.ember.feature.media.service.ImageService imageService;
-    private final dev.chojo.ember.conf.file.elements.Api apiConfig;
+    private final ImageService imageService;
+    private final Api apiConfig;
 
     @Inject
     public LostAndFoundRoutes(
@@ -57,8 +59,8 @@ public class LostAndFoundRoutes implements Routes {
             StationMemberService memberService,
             StationMemberRepository stationMemberRepository,
             AccountRepository accountRepository,
-            dev.chojo.ember.feature.media.service.ImageService imageService,
-            dev.chojo.ember.conf.file.elements.Api apiConfig) {
+            ImageService imageService,
+            Api apiConfig) {
         this.lostAndFoundService = lostAndFoundService;
         this.memberService = memberService;
         this.stationMemberRepository = stationMemberRepository;
@@ -172,8 +174,8 @@ public class LostAndFoundRoutes implements Routes {
         if (!ALLOWED_IMAGE_TYPES.contains(file.contentType())) {
             throw new BadRequestResponse("Invalid file type. Allowed: PNG, JPEG, WebP");
         }
-        try {
-            byte[] data = file.content().readAllBytes();
+        try (var content = file.content()) {
+            byte[] data = content.readAllBytes();
             imageService.store(
                     ImageCategory.LOST_AND_FOUND,
                     String.valueOf(id),

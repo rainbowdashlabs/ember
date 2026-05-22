@@ -73,15 +73,15 @@ function formatDate(iso?: string): string {
 
 <template>
   <NeutralContainer class="space-y-4">
-    <div class="flex items-center justify-between">
+    <div class="flex items-center justify-between flex-wrap gap-2">
       <SectionHeader>{{ t('events.allEvents') }}</SectionHeader>
       <div class="flex items-center gap-2">
-        <SecondaryButton class="text-sm" @click="emit('addCategory')">
+        <SecondaryButton @click="emit('addCategory')">
           <font-awesome-icon :icon="['fas', 'folder-plus']" class="mr-1"/>
           {{ t('events.addCategory') }}
         </SecondaryButton>
         <PrimaryButton @click="emit('addEvent')">
-          <font-awesome-icon :icon="['fas', 'plus']" class="mr-2"/>
+          <font-awesome-icon :icon="['fas', 'plus']" class="mr-1"/>
           {{ t('events.addEvent') }}
         </PrimaryButton>
       </div>

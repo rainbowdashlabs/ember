@@ -39,7 +39,7 @@ const {t} = useI18n()
           <p class="text-sm text-(--text-muted)">{{ t('inventory.check.title') }}</p>
         </div>
         <div class="flex gap-2">
-          <SecondaryButton class="text-sm">{{ t('inventory.check.markAll') }}</SecondaryButton>
+          <SecondaryButton>{{ t('inventory.check.markAll') }}</SecondaryButton>
           <SecondaryButton>{{ t('inventory.check.cancel') }}</SecondaryButton>
         </div>
       </div>

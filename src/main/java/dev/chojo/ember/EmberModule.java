@@ -32,6 +32,7 @@ import dev.chojo.ember.feature.inventory.route.ExchangeRoutes;
 import dev.chojo.ember.feature.inventory.route.InventoryCheckRoutes;
 import dev.chojo.ember.feature.inventory.route.InventoryRoutes;
 import dev.chojo.ember.feature.inventory.route.ProcurementRoutes;
+import dev.chojo.ember.feature.knowledgebase.route.KnowledgeBaseRoutes;
 import dev.chojo.ember.feature.legal.route.ConsentRoutes;
 import dev.chojo.ember.feature.lostandfound.route.LostAndFoundRoutes;
 import dev.chojo.ember.feature.members.route.ManagedMemberRoutes;
@@ -48,10 +49,15 @@ import dev.chojo.ember.feature.members.route.UserSettingsRoutes;
 import dev.chojo.ember.feature.members.route.UserTagRoutes;
 import dev.chojo.ember.feature.news.route.NewsRoutes;
 import dev.chojo.ember.feature.notifications.route.NotificationRoutes;
+import dev.chojo.ember.feature.quiz.route.AiRoutes;
+import dev.chojo.ember.feature.quiz.route.QuizRoutes;
 import dev.chojo.ember.feature.station.route.StationApplicationRoutes;
 import dev.chojo.ember.feature.station.route.StationManageRoutes;
 import dev.chojo.ember.feature.station.route.StationRoutes;
 import dev.chojo.ember.feature.statistics.route.StatisticsRoutes;
+import dev.chojo.ember.feature.system.route.AdminSettingsRoutes;
+import dev.chojo.ember.feature.system.route.UtilRoutes;
+import dev.chojo.ember.feature.waitinglist.route.WaitingListRoutes;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -111,6 +117,12 @@ public class EmberModule extends AbstractModule {
         routesBinder.addBinding().to(ConsentRoutes.class);
         routesBinder.addBinding().to(LostAndFoundRoutes.class);
         routesBinder.addBinding().to(TransferRoutes.class);
+        routesBinder.addBinding().to(AdminSettingsRoutes.class);
+        routesBinder.addBinding().to(WaitingListRoutes.class);
+        routesBinder.addBinding().to(QuizRoutes.class);
+        routesBinder.addBinding().to(AiRoutes.class);
+        routesBinder.addBinding().to(KnowledgeBaseRoutes.class);
+        routesBinder.addBinding().to(UtilRoutes.class);
     }
 
     @Provides
@@ -173,11 +185,14 @@ public class EmberModule extends AbstractModule {
 
     @Provides
     @Singleton
-    QueryConfiguration queryConfiguration(DataSource dataSource, Database database) throws SQLException, IOException {
-        SqlUpdater.builder(dataSource, PostgreSql.get())
-                .setReplacements(new QueryReplacement("ember_schema", database.schema()))
-                .setSchemas(database.schema())
-                .execute();
+    QueryConfiguration queryConfiguration(DataSource dataSource, Database database, Demo demo)
+            throws SQLException, IOException {
+        if (!demo.dev() && !demo.enabled()) {
+            SqlUpdater.builder(dataSource, PostgreSql.get())
+                    .setReplacements(new QueryReplacement("ember_schema", database.schema()))
+                    .setSchemas(database.schema())
+                    .execute();
+        }
 
         var config = QueryConfiguration.builder(dataSource)
                 .setExceptionHandler(err -> log.error("Database query error", err))

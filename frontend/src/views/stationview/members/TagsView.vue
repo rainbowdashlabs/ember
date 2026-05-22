@@ -214,12 +214,12 @@ onMounted(loadData)
                 v-for="tag in tags"
                 :key="tag.id"
                 :class="selectedTag?.id === tag.id ? 'border-primary' : 'hover:border-primary'"
-                class="flex items-center justify-between cursor-pointer transition-colors"
+                class="flex items-center justify-between gap-2 flex-wrap cursor-pointer transition-colors"
                 @click="selectTag(tag)"
             >
               <span class="font-medium">{{ tag.name }}</span>
               <div class="flex items-center gap-2">
-                <SecondaryButton class="text-xs" @click.stop="requestConvert(tag)">
+                <SecondaryButton @click.stop="requestConvert(tag)">
                   <font-awesome-icon :icon="['fas', 'people-group']" class="mr-1"/>
                   Zu Gruppe
                 </SecondaryButton>

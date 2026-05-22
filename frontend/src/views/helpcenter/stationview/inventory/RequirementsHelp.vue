@@ -46,7 +46,7 @@ const {t} = useI18n()
             <span class="text-xs uppercase tracking-wide text-(--text-muted) mr-2">{{ t('inventory.requirements.role') }}</span>
             {{ t('membersCreate.roleMember') }}
           </SubHeader>
-          <SecondaryButton class="text-sm">
+          <SecondaryButton>
             <font-awesome-icon :icon="['fas', 'plus']" class="mr-1" />
             {{ t('inventory.requirements.addItem') }}
           </SecondaryButton>
@@ -71,7 +71,7 @@ const {t} = useI18n()
             <span class="text-xs uppercase tracking-wide text-(--text-muted) mr-2">{{ t('inventory.requirements.group') }}</span>
             Anfänger
           </SubHeader>
-          <SecondaryButton class="text-sm">
+          <SecondaryButton>
             <font-awesome-icon :icon="['fas', 'plus']" class="mr-1" />
             {{ t('inventory.requirements.addItem') }}
           </SecondaryButton>

@@ -10,10 +10,14 @@ import EditButton from '@/components/button/EditButton.vue'
 import IconButton from '@/components/button/IconButton.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import UserAvatar from '@/components/avatar/UserAvatar.vue'
+import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import ColumnFilterModal from './ColumnFilterModal.vue'
 import type {ProfileField, StationMember} from '@/api/types'
 import {Roles, hasTeamRole} from '@/api/types'
 import FieldValueDisplay from '@/components/display/FieldValueDisplay.vue'
+import {useBreakpoint} from '@/composables/useBreakpoint'
+
+const {isMobile} = useBreakpoint()
 
 const {t} = useI18n()
 
@@ -168,6 +172,58 @@ function onRowClick(member: StationMember) {
 </script>
 
 <template>
+  <!-- Mobile card layout -->
+  <div v-if="isMobile" class="space-y-3">
+    <div v-if="members.length === 0" class="text-center text-(--text-muted) py-8">{{ t('membersList.empty') }}</div>
+    <NeutralContainer v-for="member in members" :key="member.id" class="space-y-2" @click="onRowClick(member)">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <UserAvatar :member-id="member.id" :name="memberDisplayName(member)" size="sm"/>
+          <div>
+            <span class="font-medium">{{ memberDisplayName(member) }}</span>
+            <ErrorBadge v-if="member.profileComplete === false" class="ml-1.5 text-[10px]">{{ t('membersList.incomplete') }}</ErrorBadge>
+            <div v-if="getPrimaryRole(member.id)" class="mt-0.5">
+              <span
+                  class="inline-block rounded-full px-2 py-0.5 text-[10px] font-medium"
+                  :class="{
+                    'bg-primary/10 text-primary': getPrimaryRole(member.id) === 'TEAM',
+                    'bg-info/10 text-info-accent': getPrimaryRole(member.id) === 'GUARDIAN',
+                    'bg-bg-light-accent dark:bg-bg-dark-accent text-(--text-muted)': getPrimaryRole(member.id) === 'MEMBER',
+                  }"
+              >{{ primaryRoleLabels[getPrimaryRole(member.id)] }}</span>
+            </div>
+          </div>
+        </div>
+        <div v-if="!exportMode" class="flex gap-1" @click.stop>
+          <IconButton :icon="['fas', 'eye']" :label="t('membersList.detail')" class="text-primary hover:bg-primary/15" @click="emit('navigateDetail', member, $event)"/>
+          <EditButton @click="emit('navigateEdit', member, $event)"/>
+        </div>
+        <div v-else @click.stop>
+          <input :checked="selectedIds?.has(member.id)" class="h-4 w-4 rounded accent-primary cursor-pointer" type="checkbox" @change="emit('toggleSelect', member.id)"/>
+        </div>
+      </div>
+      <div class="grid grid-cols-2 gap-x-4 gap-y-1 text-sm mt-1">
+        <div v-if="member.email" class="col-span-2 text-(--text-muted) text-xs">{{ member.email }}</div>
+        <div v-if="getMemberGroups(member.id).length > 0" class="text-xs">
+          <div class="text-(--text-muted)">{{ t('membersList.colGroups') }}</div>
+          <div>{{ getMemberGroups(member.id).join(', ') }}</div>
+        </div>
+        <div v-if="getMemberTags(member.id).length > 0" class="text-xs">
+          <div class="text-(--text-muted)">{{ t('membersList.colTags') }}</div>
+          <div>{{ getMemberTags(member.id).join(', ') }}</div>
+        </div>
+        <template v-for="field in visibleColumns" :key="field.id">
+          <div v-if="isFieldApplicable(member.id, field) && getFieldValue(member.id, field.id)" class="text-xs">
+            <div class="text-(--text-muted)">{{ field.name }}</div>
+            <div><FieldValueDisplay :value="getFieldValue(member.id, field.id)" :field-type="field.fieldType"/></div>
+          </div>
+        </template>
+      </div>
+    </NeutralContainer>
+  </div>
+
+  <!-- Desktop table layout -->
+  <template v-else>
   <div class="overflow-x-auto">
     <table class="w-full text-sm">
       <thead>
@@ -340,6 +396,7 @@ function onRowClick(member: StationMember) {
   </div>
 
   <div v-if="members.length === 0" class="text-center text-(--text-muted) py-8">{{ t('membersList.empty') }}</div>
+  </template>
 
   <ColumnFilterModal
       v-model="filterModalOpen"

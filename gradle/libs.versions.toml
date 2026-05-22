@@ -68,12 +68,32 @@ angus = { group = "org.eclipse.angus", name = "angus-mail", version = "2.0.5" }
 
 # Image processing
 thumbnailator = { group = "net.coobird", name = "thumbnailator", version = "0.4.20" }
+imageio-webp = { group = "com.twelvemonkeys.imageio", name = "imageio-webp", version = "3.13.0" }
+
+# AI SDKs
+openai = { group = "com.openai", name = "openai-java", version = "4.37.0" }
+anthropic = { group = "com.anthropic", name = "anthropic-java", version = "2.34.0" }
+google-genai = { group = "com.google.genai", name = "google-genai", version = "1.54.0" }
+
+# CSV
+commons-csv = { group = "org.apache.commons", name = "commons-csv", version = "1.14.0" }
+
+# PDF
+pdfbox = { group = "org.apache.pdfbox", name = "pdfbox", version = "3.0.5" }
+
+# Diff
+java-diff-utils = { group = "io.github.java-diff-utils", name = "java-diff-utils", version = "4.15" }
 
 # Markdown
 commonmark = { group = "org.commonmark", name = "commonmark", version.ref = "commonmark" }
 commonmark-ext-gfm-tables = { group = "org.commonmark", name = "commonmark-ext-gfm-tables", version.ref = "commonmark" }
 commonmark-ext-heading-anchor = { group = "org.commonmark", name = "commonmark-ext-heading-anchor", version.ref = "commonmark" }
 commonmark-ext-autolink = { group = "org.commonmark", name = "commonmark-ext-autolink", version.ref = "commonmark" }
+commonmark-ext-footnotes = { group = "org.commonmark", name = "commonmark-ext-footnotes", version.ref = "commonmark" }
+commonmark-ext-strikethrough = { group = "org.commonmark", name = "commonmark-ext-gfm-strikethrough", version.ref = "commonmark" }
+commonmark-ext-image-attributes = { group = "org.commonmark", name = "commonmark-ext-image-attributes", version.ref = "commonmark" }
+commonmark-ext-task-list-items = { group = "org.commonmark", name = "commonmark-ext-task-list-items", version.ref = "commonmark" }
+commonmark-ext-alerts = { group = "org.commonmark", name = "commonmark-ext-gfm-alerts", version.ref = "commonmark" }
 
 [bundles]
 logback = [
@@ -109,9 +129,19 @@ testcontainers = [
     "testcontainers-junit",
     "testcontainers-postgres"
 ]
+ai = [
+    "openai",
+    "anthropic",
+    "google-genai"
+]
 commonmark = [
     "commonmark",
     "commonmark-ext-gfm-tables",
     "commonmark-ext-heading-anchor",
-    "commonmark-ext-autolink"
+    "commonmark-ext-autolink",
+    "commonmark-ext-footnotes",
+    "commonmark-ext-strikethrough",
+    "commonmark-ext-image-attributes",
+    "commonmark-ext-task-list-items",
+    "commonmark-ext-alerts"
 ]

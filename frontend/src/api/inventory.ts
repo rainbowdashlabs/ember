@@ -98,6 +98,16 @@ export async function deleteSize(inventoryId: number, sizeId: number): Promise<I
     return res.data
 }
 
+export async function listAllItems(): Promise<InventoryItem[]> {
+    const res = await client.get<InventoryItem[]>('/inventories/all-items')
+    return res.data
+}
+
+export async function listAllSizes(): Promise<InventorySize[]> {
+    const res = await client.get<InventorySize[]>('/inventories/all-sizes')
+    return res.data
+}
+
 // -- Items --
 
 export async function listItems(inventoryId: number): Promise<InventoryItem[]> {

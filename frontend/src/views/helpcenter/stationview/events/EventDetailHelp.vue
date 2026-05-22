@@ -61,11 +61,11 @@ const {t} = useI18n()
           <InfoBadge>{{ t('eventsUpcoming.statusPending') }}</InfoBadge>
         </div>
         <div class="flex gap-2 flex-wrap">
-          <PrimaryButton class="text-sm" disabled>
+          <PrimaryButton disabled>
             <font-awesome-icon :icon="['fas', 'check']" class="mr-1"/>
             {{ t('eventsUpcoming.register') }}
           </PrimaryButton>
-          <ErrorButton class="text-sm" disabled>
+          <ErrorButton disabled>
             <font-awesome-icon :icon="['fas', 'ban']" class="mr-1"/>
             {{ t('eventsUpcoming.decline') }}
           </ErrorButton>

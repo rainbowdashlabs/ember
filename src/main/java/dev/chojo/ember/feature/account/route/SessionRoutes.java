@@ -17,9 +17,11 @@ import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.legal.service.GdprDeletionService;
 import dev.chojo.ember.feature.legal.service.GdprExportService;
 import dev.chojo.ember.feature.media.service.ImageCategory;
+import dev.chojo.ember.feature.media.service.ImageService;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
+import dev.chojo.ember.feature.members.repository.UserSettingsRepository;
 import dev.chojo.ember.feature.members.service.MemberGroupService;
 import dev.chojo.ember.feature.members.service.ProfileFieldService;
 import dev.chojo.ember.feature.members.service.StationMemberService;
@@ -37,11 +39,14 @@ import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.slf4j.Logger;
 
 import java.io.IOException;
 import java.time.Instant;
 import java.util.List;
 import java.util.Set;
+
+import static org.slf4j.LoggerFactory.getLogger;
 
 /**
  * Routes for session management including session info, active session listing, session invalidation,
@@ -49,6 +54,7 @@ import java.util.Set;
  */
 @Singleton
 public class SessionRoutes implements Routes {
+    private static final Logger log = getLogger(SessionRoutes.class);
     private static final Set<String> ALLOWED_AVATAR_TYPES = Set.of("image/png", "image/jpeg", "image/webp");
     private final StationService stationService;
     private final StationMemberService memberService;
@@ -60,7 +66,8 @@ public class SessionRoutes implements Routes {
     private final GdprExportService gdprExportService;
     private final GdprDeletionService gdprDeletionService;
     private final Api apiConfig;
-    private final dev.chojo.ember.feature.media.service.ImageService imageService;
+    private final ImageService imageService;
+    private final UserSettingsRepository userSettingsRepository;
 
     @Inject
     public SessionRoutes(
@@ -74,7 +81,8 @@ public class SessionRoutes implements Routes {
             GdprExportService gdprExportService,
             GdprDeletionService gdprDeletionService,
             Api apiConfig,
-            dev.chojo.ember.feature.media.service.ImageService imageService) {
+            ImageService imageService,
+            UserSettingsRepository userSettingsRepository) {
         this.stationService = stationService;
         this.memberService = memberService;
         this.groupService = groupService;
@@ -86,6 +94,7 @@ public class SessionRoutes implements Routes {
         this.gdprDeletionService = gdprDeletionService;
         this.apiConfig = apiConfig;
         this.imageService = imageService;
+        this.userSettingsRepository = userSettingsRepository;
     }
 
     @Override
@@ -151,6 +160,22 @@ public class SessionRoutes implements Routes {
                 ? stationService.findDisabledModules(session.stationId())
                 : Set.<StationModule>of();
 
+        // Build theme info
+        ThemeInfo themeInfo = null;
+        if (session.member() != null && session.stationId() != null) {
+            var station = stationService.findById(session.stationId()).orElse(null);
+            var userSettings =
+                    userSettingsRepository.findOrCreate(session.member().id());
+            if (station != null) {
+                themeInfo = new ThemeInfo(
+                        station.defaultTheme(),
+                        station.allowUserTheme(),
+                        station.customThemeColors(),
+                        userSettings.theme(),
+                        userSettings.darkMode());
+            }
+        }
+
         ctx.json(new SessionInfo(
                 new AccountInfo(
                         session.account().id(),
@@ -163,7 +188,8 @@ public class SessionRoutes implements Routes {
                 managedInfos,
                 groups,
                 profileComplete,
-                disabledModules));
+                disabledModules,
+                themeInfo));
     }
 
     @OpenApi(
@@ -309,8 +335,8 @@ public class SessionRoutes implements Routes {
         if (!ALLOWED_AVATAR_TYPES.contains(file.contentType())) {
             throw new BadRequestResponse("Invalid file type. Allowed: PNG, JPEG, WebP");
         }
-        try {
-            byte[] data = file.content().readAllBytes();
+        try (var content = file.content()) {
+            byte[] data = content.readAllBytes();
             imageService.store(
                     ImageCategory.AVATARS,
                     String.valueOf(session.member().id()),
@@ -321,6 +347,7 @@ public class SessionRoutes implements Routes {
         } catch (IllegalArgumentException e) {
             throw new BadRequestResponse(e.getMessage());
         } catch (IOException e) {
+            log.error("Failed to process image", e);
             throw new InternalServerErrorResponse("Failed to process image");
         }
     }
@@ -371,7 +398,15 @@ public class SessionRoutes implements Routes {
             List<ManagedMemberInfo> managedMembers,
             List<MemberGroup> groups,
             boolean profileComplete,
-            Set<StationModule> disabledModules) {}
+            Set<StationModule> disabledModules,
+            ThemeInfo theme) {}
+
+    public record ThemeInfo(
+            String defaultTheme,
+            boolean allowUserTheme,
+            String customThemeColors,
+            String userTheme,
+            String userDarkMode) {}
 
     /**
      * Summary of a member managed by the current account.

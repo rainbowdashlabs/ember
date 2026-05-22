@@ -40,9 +40,11 @@ import type {
 import {attendance, memberGroups, stationMembers} from '@/api'
 import {useSession} from '@/composables/useSession'
 import {useStations} from '@/composables/useStations'
+import {useBreakpoint} from '@/composables/useBreakpoint'
 import MemberName from '@/components/avatar/MemberName.vue'
 
 const {t} = useI18n()
+const {isMobile} = useBreakpoint()
 const route = useRoute()
 const router = useRouter()
 const {loaded} = useSession()
@@ -489,12 +491,12 @@ watch(loaded, (isLoaded) => {
 <template>
   <ViewContent>
     <div class="space-y-6">
-      <div class="flex items-center justify-between">
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
         <SecondaryButton @click="goBack">
           <font-awesome-icon :icon="['fas', 'chevron-left']" class="mr-2"/>
           {{ t('attendanceSession.back') }}
         </SecondaryButton>
-        <div class="flex items-center gap-2">
+        <div class="grid grid-cols-2 sm:flex sm:items-center gap-2">
           <SecondaryButton @click="exportPdf">
             <font-awesome-icon :icon="['fas', 'download']" class="mr-1"/>
             {{ t('attendanceSession.export') }}
@@ -503,7 +505,7 @@ watch(loaded, (isLoaded) => {
             <font-awesome-icon :icon="['fas', 'clipboard-check']" class="mr-1"/>
             {{ t('attendanceSession.sync') }}
           </SecondaryButton>
-          <PrimaryButton v-if="!checkMode && uncheckedEntries.length > 0" @click="startCheckMode">
+          <PrimaryButton v-if="!checkMode && uncheckedEntries.length > 0" class="col-span-2" @click="startCheckMode">
             <font-awesome-icon :icon="['fas', 'clipboard-user']" class="mr-1"/>
             {{ t('attendanceSession.checkMode') }} ({{ uncheckedEntries.length }})
           </PrimaryButton>
@@ -547,23 +549,23 @@ watch(loaded, (isLoaded) => {
           <div class="text-center space-y-4 py-4">
             <p class="text-2xl font-bold"><MemberName :name="getMemberName(currentCheckEntry.memberId)" :member-id="currentCheckEntry!.memberId" size="md"/></p>
             <p class="text-sm text-(--text-muted)">{{ checkIndex + 1 }} / {{ uncheckedEntries.length }}</p>
-            <div class="flex justify-center gap-4">
-              <SuccessButton class="text-lg px-6 py-3" @click="checkSetStatus('PRESENT')">
+            <div class="flex flex-col sm:flex-row justify-center gap-3 sm:gap-4">
+              <SuccessButton :full-width="isMobile" @click="checkSetStatus('PRESENT')">
                 <font-awesome-icon :icon="['fas', 'check']" class="mr-2"/>
                 {{ t('attendanceSession.present') }}
               </SuccessButton>
-              <ErrorButton class="text-lg px-6 py-3" @click="checkSetStatus('ABSENT')">
+              <ErrorButton :full-width="isMobile" @click="checkSetStatus('ABSENT')">
                 <font-awesome-icon :icon="['fas', 'xmark']" class="mr-2"/>
                 {{ t('attendanceSession.absent') }}
               </ErrorButton>
-              <InfoButton class="text-lg px-6 py-3" @click="checkSetStatus('DECLINED')">
+              <InfoButton :full-width="isMobile" @click="checkSetStatus('DECLINED')">
                 <font-awesome-icon :icon="['fas', 'ban']" class="mr-2"/>
                 {{ t('attendanceSession.declined') }}
               </InfoButton>
             </div>
             <div class="flex justify-center gap-3 pt-2">
-              <SecondaryButton class="text-sm" @click="skipCheck">{{ t('attendanceSession.skip') }}</SecondaryButton>
-              <SecondaryButton class="text-sm" @click="endCheckMode">{{
+              <SecondaryButton @click="skipCheck">{{ t('attendanceSession.skip') }}</SecondaryButton>
+              <SecondaryButton @click="endCheckMode">{{
                   t('attendanceSession.endCheck')
                 }}
               </SecondaryButton>
@@ -651,7 +653,7 @@ watch(loaded, (isLoaded) => {
                 }"
                   class="rounded-lg px-4 py-3 border-l-4 transition-all"
               >
-                <div class="flex items-center justify-between flex-wrap gap-2">
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                   <div class="flex items-center gap-3 min-w-0">
                     <font-awesome-icon
                         v-if="getEntry(member.id)?.status === 'PRESENT'"
@@ -671,7 +673,37 @@ watch(loaded, (isLoaded) => {
                     />
                     <MemberName :name="getMemberName(member.id)" :member-id="member.id" class="font-medium text-sm truncate"/>
                   </div>
-                  <div v-if="getEntry(member.id)" class="flex items-center gap-2 flex-wrap">
+                  <div v-if="getEntry(member.id)" class="flex flex-col sm:flex-row sm:items-center gap-2">
+                    <!-- Status buttons -->
+                    <div class="flex items-center gap-2 w-full sm:w-auto">
+                      <SuccessButton
+                          :class="{ 'opacity-40': getEntry(member.id)!.status === 'PRESENT' }"
+                          :disabled="getEntry(member.id)!.status === 'PRESENT'"
+                          :full-width="isMobile"
+                          class="text-xs flex-1 sm:flex-initial"
+                          @click="setStatus(getEntry(member.id)!.id, 'PRESENT')"
+                      >
+                        <font-awesome-icon :icon="['fas', 'check']"/>
+                      </SuccessButton>
+                      <ErrorButton
+                          :class="{ 'opacity-40': getEntry(member.id)!.status === 'ABSENT' }"
+                          :disabled="getEntry(member.id)!.status === 'ABSENT'"
+                          :full-width="isMobile"
+                          class="text-xs flex-1 sm:flex-initial"
+                          @click="setStatus(getEntry(member.id)!.id, 'ABSENT')"
+                      >
+                        <font-awesome-icon :icon="['fas', 'xmark']"/>
+                      </ErrorButton>
+                      <InfoButton
+                          :class="{ 'opacity-40': getEntry(member.id)!.status === 'DECLINED' }"
+                          :disabled="getEntry(member.id)!.status === 'DECLINED'"
+                          :full-width="isMobile"
+                          class="text-xs flex-1 sm:flex-initial"
+                          @click="setStatus(getEntry(member.id)!.id, 'DECLINED')"
+                      >
+                        <font-awesome-icon :icon="['fas', 'ban']"/>
+                      </InfoButton>
+                    </div>
                     <!-- Time inputs for PRESENT -->
                     <div v-if="getEntry(member.id)!.status === 'PRESENT'" class="flex items-center gap-1 text-xs">
                       <TimeShortInput
@@ -694,31 +726,6 @@ watch(loaded, (isLoaded) => {
                         <font-awesome-icon :icon="['fas', 'xmark']" class="h-3 w-3"/>
                       </button>
                     </div>
-                    <!-- Status buttons -->
-                    <SuccessButton
-                        :class="{ 'opacity-40': getEntry(member.id)!.status === 'PRESENT' }"
-                        :disabled="getEntry(member.id)!.status === 'PRESENT'"
-                        class="text-xs"
-                        @click="setStatus(getEntry(member.id)!.id, 'PRESENT')"
-                    >
-                      <font-awesome-icon :icon="['fas', 'check']"/>
-                    </SuccessButton>
-                    <ErrorButton
-                        :class="{ 'opacity-40': getEntry(member.id)!.status === 'ABSENT' }"
-                        :disabled="getEntry(member.id)!.status === 'ABSENT'"
-                        class="text-xs"
-                        @click="setStatus(getEntry(member.id)!.id, 'ABSENT')"
-                    >
-                      <font-awesome-icon :icon="['fas', 'xmark']"/>
-                    </ErrorButton>
-                    <InfoButton
-                        :class="{ 'opacity-40': getEntry(member.id)!.status === 'DECLINED' }"
-                        :disabled="getEntry(member.id)!.status === 'DECLINED'"
-                        class="text-xs"
-                        @click="setStatus(getEntry(member.id)!.id, 'DECLINED')"
-                    >
-                      <font-awesome-icon :icon="['fas', 'ban']"/>
-                    </InfoButton>
                   </div>
                   <span v-else class="text-xs text-(--text-muted)">{{ t('attendanceSession.noEntry') }}</span>
                 </div>

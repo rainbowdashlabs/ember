@@ -29,10 +29,10 @@ const emit = defineEmits<{
 
 <template>
   <NeutralContainer class="space-y-4">
-    <div class="flex items-center justify-between">
+    <div class="flex items-center justify-between flex-wrap gap-2">
       <SectionHeader>{{ t('events.breaks') }}</SectionHeader>
-      <div class="flex items-center gap-2">
-        <SecondaryButton class="text-sm" @click="emit('importHolidays')">
+      <div class="flex items-center gap-2 flex-wrap">
+        <SecondaryButton @click="emit('importHolidays')">
           <font-awesome-icon :icon="['fas', 'download']" class="mr-1"/>
           {{ t('events.importHolidays') }}
         </SecondaryButton>
@@ -48,7 +48,7 @@ const emit = defineEmits<{
     </div>
 
     <div class="space-y-2">
-      <NeutralContainer v-for="br in breaks" :key="br.id" class="flex items-center justify-between">
+      <NeutralContainer v-for="br in breaks" :key="br.id" class="flex items-center justify-between flex-wrap gap-2">
         <div>
           <span class="font-medium">{{ br.name }}</span>
           <span class="ml-2 text-sm text-(--text-muted)">{{ br.startDate }} – {{ br.endDate }}</span>

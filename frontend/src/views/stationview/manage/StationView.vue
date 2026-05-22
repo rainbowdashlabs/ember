@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {onMounted, ref} from 'vue'
+import {onMounted, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
@@ -24,6 +24,8 @@ import SuccessButton from '@/components/button/SuccessButton.vue'
 import {stationManage, stationMembers} from '@/api'
 import {transfer} from '@/api'
 import client from '@/api/client'
+import {THEMES} from '@/theme/themes'
+import {useTheme} from '@/composables/useTheme'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import ErrorContainer from '@/components/container/ErrorContainer.vue'
@@ -32,6 +34,8 @@ import Modal from '@/components/feedback/Modal.vue'
 const {t} = useI18n()
 
 const timezoneOptions = Intl.supportedValuesOf('timeZone').map(tz => ({value: tz, label: tz}))
+
+const themeOptions = Object.entries(THEMES).map(([key, theme]) => ({value: key, label: theme.label}))
 
 const localeOptions = [
   {value: 'de-DE', label: 'Deutsch'},
@@ -51,6 +55,8 @@ const localeOptions = [
 const name = ref('')
 const timezone = ref('Europe/Berlin')
 const locale = ref('de-DE')
+const defaultTheme = ref('ember')
+const allowUserTheme = ref(true)
 const hasLogo = ref(false)
 const isOwner = ref(false)
 const loading = ref(true)
@@ -68,6 +74,8 @@ async function loadStation() {
     name.value = info.name ?? ''
     timezone.value = info.timezone ?? 'Europe/Berlin'
     locale.value = info.locale ?? 'de-DE'
+    defaultTheme.value = info.defaultTheme ?? 'ember'
+    allowUserTheme.value = info.allowUserTheme ?? true
     hasLogo.value = info.hasLogo
     isOwner.value = info.isOwner
     if (info.hasLogo) {
@@ -113,6 +121,41 @@ async function saveName() {
     error.value = t('common.error')
   } finally {
     saving.value = false
+  }
+}
+
+const themeSaving = ref(false)
+const themeCtrl = useTheme()
+
+// Live preview: apply theme when the dropdown changes
+watch(defaultTheme, (newTheme) => {
+  themeCtrl.applyTheme(newTheme)
+})
+
+async function saveTheme() {
+  themeSaving.value = true
+  error.value = ''
+  success.value = ''
+  try {
+    const info = await stationManage.updateStationName({
+      name: name.value,
+      timezone: timezone.value,
+      locale: locale.value,
+      defaultTheme: defaultTheme.value,
+      allowUserTheme: allowUserTheme.value,
+    })
+    defaultTheme.value = info.defaultTheme ?? 'ember'
+    allowUserTheme.value = info.allowUserTheme ?? true
+    // Apply the resolved theme: if user can override, use their theme; otherwise station default
+    const resolvedTheme = allowUserTheme.value && themeCtrl.activeTheme.value !== defaultTheme.value
+        ? themeCtrl.activeTheme.value
+        : defaultTheme.value
+    themeCtrl.applyTheme(resolvedTheme)
+    success.value = t('theme.saved')
+  } catch {
+    error.value = t('common.error')
+  } finally {
+    themeSaving.value = false
   }
 }
 
@@ -265,6 +308,9 @@ const allModules = [
   {key: 'ATTENDANCE', label: 'moduleAttendance'},
   {key: 'FORMS', label: 'moduleForms'},
   {key: 'LOST_AND_FOUND', label: 'moduleLostAndFound'},
+  {key: 'WAITING_LIST', label: 'moduleWaitingList'},
+  {key: 'QUIZ', label: 'moduleQuiz'},
+  {key: 'KNOWLEDGE_BASE', label: 'moduleKnowledgeBase'},
 ]
 
 async function loadModules() {
@@ -660,6 +706,32 @@ onMounted(async () => {
             <ToggleInput :model-value="isModuleEnabled(mod.key)" :disabled="modulesSaving" @update:model-value="toggleModule(mod.key)"/>
           </div>
         </div>
+      </NeutralContainer>
+
+      <!-- Theme settings -->
+      <NeutralContainer v-if="!loading" class="space-y-4">
+        <div class="flex items-center gap-2">
+          <SectionHeader>{{ t('theme.stationTheme') }}</SectionHeader>
+          <router-link :to="{name: 'help-station-theme-manage'}" target="_blank" class="text-[var(--text-muted)] hover:text-primary transition-colors">
+            <font-awesome-icon :icon="['fas', 'circle-question']" class="w-4 h-4"/>
+          </router-link>
+        </div>
+        <div class="space-y-1">
+          <label class="block text-sm font-medium">{{ t('theme.stationDefaultTheme') }}</label>
+          <SelectInput v-model="defaultTheme">
+            <option v-for="opt in themeOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+          </SelectInput>
+          <p class="text-xs text-(--text-muted)">{{ t('theme.stationDefaultThemeHint') }}</p>
+        </div>
+        <div class="flex items-center justify-between">
+          <div>
+            <span class="text-sm font-medium">{{ t('theme.allowUserTheme') }}</span>
+          </div>
+          <ToggleInput v-model="allowUserTheme"/>
+        </div>
+        <PrimaryButton :disabled="themeSaving" @click="saveTheme">
+          {{ themeSaving ? t('common.loading') : t('stationManage.save') }}
+        </PrimaryButton>
       </NeutralContainer>
 
       <!-- Station import -->

@@ -20,6 +20,7 @@ import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.station.repository.StationRepository.StationLogo;
+import dev.chojo.ember.util.TypstCompiler;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -27,14 +28,11 @@ import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.json.JsonMapper;
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -54,7 +52,6 @@ public class AttendanceExportService {
     private static final ObjectMapper MAPPER = JsonMapper.builder().build();
     private static final DateTimeFormatter TIME_FMT = DateTimeFormatter.ofPattern("HH:mm");
     private static final DateTimeFormatter DATE_TIME_FMT = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm");
-    private static final String TYPST_BIN = System.getenv().getOrDefault("TYPST_BIN", "typst");
     private final AttendanceRepository attendanceRepository;
     private final AccountRepository accountRepository;
     private final StationMemberRepository stationMemberRepository;
@@ -275,52 +272,10 @@ public class AttendanceExportService {
 
     private byte[] renderPdf(Map<String, Object> data, String templateName, StationLogo logo)
             throws IOException, InterruptedException {
-        Path tempDir = Files.createTempDirectory("attendance-export");
-        try {
-            // Write logo if available
-            if (logo != null) {
-                String ext =
-                        switch (logo.contentType()) {
-                            case "image/jpeg" -> "jpg";
-                            case "image/svg+xml" -> "svg";
-                            default -> "png";
-                        };
-                Files.write(tempDir.resolve("logo." + ext), logo.data());
-                data.put("hasLogo", true);
-                data.put("logoFile", "logo." + ext);
-            }
-
-            Path dataFile = tempDir.resolve("data.json");
-            Files.writeString(dataFile, MAPPER.writeValueAsString(data));
-
-            Path templateSource = Path.of("templates", "typst", templateName);
-            Path templateFile = tempDir.resolve(templateName);
-            Files.copy(templateSource, templateFile);
-
-            Path outputFile = tempDir.resolve("attendance.pdf");
-
-            var process = new ProcessBuilder(TYPST_BIN, "compile", templateFile.toString(), outputFile.toString())
-                    .directory(tempDir.toFile())
-                    .redirectErrorStream(true)
-                    .start();
-
-            String output = new String(process.getInputStream().readAllBytes());
-            int exitCode = process.waitFor();
-
-            if (exitCode != 0) {
-                throw new IOException("typst compile failed (exit " + exitCode + "): " + output);
-            }
-
-            return Files.readAllBytes(outputFile);
-        } finally {
-            try (var walk = Files.walk(tempDir)) {
-                walk.sorted(Comparator.reverseOrder()).forEach(p -> {
-                    try {
-                        Files.deleteIfExists(p);
-                    } catch (IOException ignored) {
-                    }
-                });
-            }
-        }
+        return TypstCompiler.compileTemplate(
+                data,
+                templateName,
+                logo != null ? new TypstCompiler.StationLogo(logo.data(), logo.contentType()) : null,
+                MAPPER);
     }
 }

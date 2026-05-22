@@ -13,6 +13,7 @@ import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.mail.service.EmailService;
 import dev.chojo.ember.feature.station.entity.MailProviderType;
+import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.entity.StationMailConfig;
 import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.feature.station.repository.StationMailConfigRepository;
@@ -110,7 +111,7 @@ public class StationManageRoutes implements Routes {
                 });
     }
 
-    private StationInfo buildStationInfo(dev.chojo.ember.feature.station.entity.Station station, UserSession session) {
+    private StationInfo buildStationInfo(Station station, UserSession session) {
         boolean hasLogo = stationService.getLogo(station.id()).isPresent();
         boolean isOwner = session.member() != null
                 && station.ownerMemberId() != null
@@ -122,7 +123,10 @@ public class StationManageRoutes implements Routes {
                 station.locale(),
                 hasLogo,
                 station.ownerMemberId(),
-                isOwner);
+                isOwner,
+                station.defaultTheme(),
+                station.allowUserTheme(),
+                station.customThemeColors());
     }
 
     @OpenApi(
@@ -153,6 +157,13 @@ public class StationManageRoutes implements Routes {
         if (request.locale() != null && !request.locale().isBlank()) {
             stationService.updateLocale(session.stationId(), request.locale());
         }
+        if (request.defaultTheme() != null) {
+            stationService.updateThemeSettings(
+                    session.stationId(),
+                    request.defaultTheme(),
+                    request.allowUserTheme() != null ? request.allowUserTheme() : true,
+                    request.customThemeColors());
+        }
         stationService
                 .update(session.stationId(), request.name())
                 .ifPresentOrElse(station -> ctx.json(buildStationInfo(station, session)), () -> {
@@ -182,8 +193,8 @@ public class StationManageRoutes implements Routes {
         if (!ALLOWED_CONTENT_TYPES.contains(contentType)) {
             throw new BadRequestResponse("Invalid file type. Allowed: PNG, JPEG, WebP, SVG");
         }
-        try {
-            byte[] data = file.content().readAllBytes();
+        try (var content = file.content()) {
+            byte[] data = content.readAllBytes();
             stationService.setLogo(session.stationId(), data, contentType);
             ctx.json(new MessageResponse("Logo uploaded"));
         } catch (IOException e) {
@@ -484,7 +495,13 @@ public class StationManageRoutes implements Routes {
      * @param timezone the IANA timezone identifier
      * @param locale   the locale string (e.g., "de-DE")
      */
-    public record UpdateStationRequest(String name, String timezone, String locale) {}
+    public record UpdateStationRequest(
+            String name,
+            String timezone,
+            String locale,
+            String defaultTheme,
+            Boolean allowUserTheme,
+            String customThemeColors) {}
 
     // -- Station deletion --
 
@@ -506,7 +523,10 @@ public class StationManageRoutes implements Routes {
             String locale,
             boolean hasLogo,
             Integer ownerMemberId,
-            boolean isOwner) {}
+            boolean isOwner,
+            String defaultTheme,
+            boolean allowUserTheme,
+            String customThemeColors) {}
 
     /**
      * Response containing the station's mail configuration and current usage statistics.

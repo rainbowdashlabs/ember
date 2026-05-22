@@ -10,6 +10,7 @@ import dev.chojo.ember.api.Roles;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
+import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.news.entity.News;
 import dev.chojo.ember.feature.news.entity.NewsComment;
@@ -216,7 +217,7 @@ public class NewsRoutes implements Routes {
      */
     private NewsResponse toResponse(News news, boolean includeRestrictions) {
         var memberOpt = stationMemberRepository.findById(news.authorId());
-        Integer authorAccountId = memberOpt.map(m -> m.accountId()).orElse(null);
+        Integer authorAccountId = memberOpt.map(StationMember::accountId).orElse(null);
         String authorName = memberOpt
                 .flatMap(m -> accountRepository.findById(m.accountId()))
                 .map(a -> (a.firstName() + " " + a.lastName()).trim())
@@ -296,7 +297,7 @@ public class NewsRoutes implements Routes {
             // Notify all NEWS_MANAGEMENT members
             var newsMgmtIds =
                     stationMemberRepository.findMembersWithRole(session.stationId(), Roles.NEWS_MANAGEMENT).stream()
-                            .map(m -> m.id())
+                            .map(StationMember::id)
                             .toList();
             notificationService.notifyMembersIfAbsent(
                     newsMgmtIds,
@@ -376,7 +377,7 @@ public class NewsRoutes implements Routes {
      */
     private CommentResponse toCommentResponse(NewsComment comment) {
         var memberOpt = stationMemberRepository.findById(comment.authorId());
-        Integer authorAccountId = memberOpt.map(m -> m.accountId()).orElse(null);
+        Integer authorAccountId = memberOpt.map(StationMember::accountId).orElse(null);
         String authorName = memberOpt
                 .flatMap(m -> accountRepository.findById(m.accountId()))
                 .map(a -> (a.firstName() + " " + a.lastName()).trim())

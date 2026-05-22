@@ -43,6 +43,14 @@ public class InventoryService {
         return inventoryRepository.findByStation(stationId);
     }
 
+    public List<InventoryItem> findAllItemsByStation(int stationId) {
+        return inventoryRepository.findItemsByStation(stationId);
+    }
+
+    public List<InventorySize> findAllSizesByStation(int stationId) {
+        return inventoryRepository.findSizesByStation(stationId);
+    }
+
     /**
      * Finds an inventory by its ID.
      *

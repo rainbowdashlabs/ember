@@ -383,7 +383,7 @@ onMounted(loadData)
                   <td class="px-3 py-2.5"><SizeBadge>{{ p.sizeLabel || t('common.unisize') }}</SizeBadge></td>
                   <td class="px-3 py-2.5 text-(--text-muted)">{{ p.notes || '-' }}</td>
                   <td class="px-3 py-2.5 text-right">
-                    <PrimaryButton class="text-xs" @click="fulfillProcurement(p.id)">
+                    <PrimaryButton @click="fulfillProcurement(p.id)">
                       <font-awesome-icon :icon="['fas', 'check']" class="mr-1" />
                       {{ t('procurement.markFulfilled') }}
                     </PrimaryButton>
@@ -426,7 +426,7 @@ onMounted(loadData)
                 </div>
                 <div v-if="item.internalId" class="text-xs text-(--text-muted)">{{ item.internalId }}</div>
               </div>
-              <PrimaryButton class="text-xs" @click="openAssign(item.id)">
+              <PrimaryButton @click="openAssign(item.id)">
                 {{ t('inventory.detail.assign') }}
               </PrimaryButton>
             </NeutralContainer>

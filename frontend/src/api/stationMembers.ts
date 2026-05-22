@@ -37,6 +37,11 @@ export async function getRoles(memberId: number): Promise<Role[]> {
     return res.data
 }
 
+export async function getAllMemberRoles(): Promise<Record<number, Role[]>> {
+    const res = await client.get<Record<number, Role[]>>('/station-members/all-roles')
+    return res.data
+}
+
 export async function setRoles(memberId: number, data: SetRolesRequest): Promise<Role[]> {
     const res = await client.put<Role[]>(`/station-members/${memberId}/roles`, data)
     return res.data

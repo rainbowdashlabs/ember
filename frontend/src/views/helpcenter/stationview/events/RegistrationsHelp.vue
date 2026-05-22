@@ -36,11 +36,11 @@ const {t} = useI18n()
           <span class="ml-2 text-xs text-(--text-muted)">2026-05-25</span>
         </div>
         <div class="flex items-center gap-2">
-          <PrimaryButton class="text-sm">
+          <PrimaryButton>
             <font-awesome-icon :icon="['fas', 'check']" class="mr-1"/>
             {{ t('eventsRegistrations.accept') }}
           </PrimaryButton>
-          <ErrorButton class="text-sm">
+          <ErrorButton>
             <font-awesome-icon :icon="['fas', 'xmark']" class="mr-1"/>
             {{ t('eventsRegistrations.deny') }}
           </ErrorButton>
@@ -53,11 +53,11 @@ const {t} = useI18n()
           <span class="ml-2 text-xs text-(--text-muted)">2026-05-25</span>
         </div>
         <div class="flex items-center gap-2">
-          <PrimaryButton class="text-sm">
+          <PrimaryButton>
             <font-awesome-icon :icon="['fas', 'check']" class="mr-1"/>
             {{ t('eventsRegistrations.accept') }}
           </PrimaryButton>
-          <ErrorButton class="text-sm">
+          <ErrorButton>
             <font-awesome-icon :icon="['fas', 'xmark']" class="mr-1"/>
             {{ t('eventsRegistrations.deny') }}
           </ErrorButton>

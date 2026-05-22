@@ -14,12 +14,9 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
-import type { ProfileField, Role } from '@/api/types'
-import { Roles } from '@/api/types'
-import { managedMembers, stationMembers } from '@/api'
+import type { ProfileField } from '@/api/types'
+import { managedMembers } from '@/api'
 import type { ManagedMember } from '@/api/managedMembers'
-import RoleSelector from '@/components/input/RoleSelector.vue'
-import SubHeader from '@/components/typography/SubHeader.vue'
 
 const { t } = useI18n()
 
@@ -27,17 +24,11 @@ const members = ref<ManagedMember[]>([])
 const fields = ref<ProfileField[]>([])
 const selectedMemberId = ref<string>('')
 const values = ref<Map<number, string>>(new Map())
-const allRoles = ref<Role[]>([])
-const memberRoleIds = ref<Set<number>>(new Set())
-const savingRoles = ref(false)
-const rolesSuccess = ref('')
 const loading = ref(true)
 const loadingProfile = ref(false)
 const saving = ref(false)
 const error = ref('')
 const success = ref('')
-
-const GUARDIAN_ALLOWED_ROLES = [Roles.MEMBER, Roles.GUARDIAN, Roles.LOGIN]
 
 function memberDisplayName(member: ManagedMember): string {
   if (member.name && member.name.trim()) return member.name
@@ -79,12 +70,7 @@ async function loadData() {
   loading.value = true
   error.value = ''
   try {
-    const [mems, roles] = await Promise.all([
-      managedMembers.listManaged(),
-      stationMembers.listAllRoles(),
-    ])
-    members.value = mems
-    allRoles.value = roles
+    members.value = await managedMembers.listManaged()
   } catch {
     error.value = t('common.error')
   } finally {
@@ -97,13 +83,9 @@ async function loadMemberProfile() {
   loadingProfile.value = true
   error.value = ''
   success.value = ''
-  rolesSuccess.value = ''
   try {
     const memberId = Number(selectedMemberId.value)
-    const [profile, roles] = await Promise.all([
-      managedMembers.getProfile(memberId),
-      managedMembers.getRoles(memberId),
-    ])
+    const profile = await managedMembers.getProfile(memberId)
     fields.value = profile.fields
     const map = new Map<number, string>()
     for (const v of profile.values) {
@@ -112,7 +94,6 @@ async function loadMemberProfile() {
       map.set(v.fieldId, typeof val === 'string' ? val : String(val))
     }
     values.value = map
-    memberRoleIds.value = new Set(roles.map(r => r.id))
   } catch {
     error.value = t('common.error')
   } finally {
@@ -135,22 +116,6 @@ async function saveProfile() {
     error.value = t('common.error')
   } finally {
     saving.value = false
-  }
-}
-
-async function saveRoles() {
-  if (!selectedMemberId.value) return
-  savingRoles.value = true
-  error.value = ''
-  rolesSuccess.value = ''
-  try {
-    const result = await managedMembers.setRoles(Number(selectedMemberId.value), [...memberRoleIds.value])
-    memberRoleIds.value = new Set(result.map(r => r.id))
-    rolesSuccess.value = t('profileManaged.rolesSaved')
-  } catch {
-    error.value = t('common.error')
-  } finally {
-    savingRoles.value = false
   }
 }
 
@@ -184,16 +149,6 @@ onMounted(loadData)
         </NeutralContainer>
 
         <Spinner v-if="loadingProfile" size="md" />
-
-        <!-- Role management -->
-        <NeutralContainer v-if="selectedMemberId && !loadingProfile" class="space-y-4">
-          <SubHeader>{{ t('profileManaged.roles') }}</SubHeader>
-          <Alert v-if="rolesSuccess" variant="success">{{ rolesSuccess }}</Alert>
-          <RoleSelector v-model="memberRoleIds" :all-roles="allRoles" :allowed-roles="GUARDIAN_ALLOWED_ROLES" />
-          <PrimaryButton :disabled="savingRoles" @click="saveRoles">
-            {{ savingRoles ? t('common.loading') : t('profileManaged.saveRoles') }}
-          </PrimaryButton>
-        </NeutralContainer>
 
         <NeutralContainer v-if="selectedMemberId && !loadingProfile && editableFields.length > 0" class="space-y-4">
           <SectionHeader>{{ t('profileManaged.fields') }}</SectionHeader>

@@ -116,6 +116,18 @@ public class StationMemberRepository {
                 .orElseThrow();
     }
 
+    /**
+     * Creates a station member without an account (non-login member with display name only).
+     */
+    public StationMember createWithDisplayName(int stationId, String displayName) {
+        return Query.query(
+                        "INSERT INTO station_member(station_id, display_name) VALUES(:station_id, :display_name) RETURNING *;")
+                .single(Call.of().bind("station_id", stationId).bind("display_name", displayName))
+                .map(StationMember.map())
+                .first()
+                .orElseThrow();
+    }
+
     public boolean delete(int id) {
         return Query.query("DELETE FROM station_member WHERE id = :id;")
                 .single(Call.of().bind("id", id))

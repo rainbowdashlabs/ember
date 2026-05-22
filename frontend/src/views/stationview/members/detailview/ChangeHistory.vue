@@ -182,11 +182,11 @@ function toggleComment(changeId: number) {
 
         <!-- Action buttons (only for notify changes) -->
         <div v-if="change.requiresAcknowledgement && !isAcknowledgedByMe(change)" class="flex items-center gap-2 pt-1">
-          <PrimaryButton :disabled="acknowledging" class="text-xs" @click="acknowledgeChange(change.id)">
+          <PrimaryButton :disabled="acknowledging" @click="acknowledgeChange(change.id)">
             <font-awesome-icon :icon="['fas', 'check']" class="mr-1"/>
             {{ t('memberDetail.acknowledge') }}
           </PrimaryButton>
-          <SecondaryButton class="text-xs" @click="toggleComment(change.id)">
+          <SecondaryButton @click="toggleComment(change.id)">
             <font-awesome-icon :icon="['fas', 'comment']" class="mr-1"/>
             {{ t('memberDetail.acknowledgeWithComment') }}
           </SecondaryButton>
@@ -199,7 +199,7 @@ function toggleComment(changeId: number) {
               :placeholder="t('memberDetail.commentPlaceholder')"
               class="text-sm"
           />
-          <PrimaryButton :disabled="acknowledging" class="text-xs" @click="acknowledgeChange(change.id)">
+          <PrimaryButton :disabled="acknowledging" @click="acknowledgeChange(change.id)">
             {{ t('memberDetail.submitAcknowledge') }}
           </PrimaryButton>
         </div>

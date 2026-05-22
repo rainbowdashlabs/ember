@@ -30,6 +30,9 @@ import type {InventoryDetail, InventoryItem, InventoryItemHistory, InventorySize
 import {InventoryTypes, ItemSource} from '@/api/types'
 import {inventory, stationMembers} from '@/api'
 import {useStations} from '@/composables/useStations'
+import {useBreakpoint} from '@/composables/useBreakpoint'
+
+const {isMobile} = useBreakpoint()
 
 const {t} = useI18n()
 const route = useRoute()
@@ -81,6 +84,20 @@ const historyLoading = ref(false)
 // Delete
 const showDeleteModal = ref(false)
 const deleteTarget = ref<InventoryItem | null>(null)
+
+// Search/filter
+const itemSearch = ref('')
+const filteredItems = computed(() => {
+  const query = itemSearch.value.trim().toLowerCase()
+  if (!query) return items.value
+  return items.value.filter(item => {
+    const name = (item.name ?? '').toLowerCase()
+    const internalId = (item.internalId ?? '').toLowerCase()
+    const memberName = getMemberName(item.assignedTo).toLowerCase()
+    const sizeLabel = getSizeLabel(item.sizeId).toLowerCase()
+    return name.includes(query) || internalId.includes(query) || memberName.includes(query) || sizeLabel.includes(query)
+  })
+})
 
 function getMemberName(memberId: number | null | undefined): string {
   if (!memberId) return ''
@@ -408,7 +425,7 @@ onMounted(loadData)
               </SelectInput>
             </div>
           </div>
-          <PrimaryButton :disabled="savingSettings || !editName.trim()" class="text-sm" @click="saveSettings">
+          <PrimaryButton :disabled="savingSettings || !editName.trim()" @click="saveSettings">
             {{ savingSettings ? t('common.loading') : t('common.save') }}
           </PrimaryButton>
         </NeutralContainer>
@@ -417,7 +434,7 @@ onMounted(loadData)
         <NeutralContainer v-if="detail.hasSizes" class="space-y-4">
           <div class="flex items-center justify-between">
             <SubHeader>{{ t('inventory.edit.sizesTitle') }}</SubHeader>
-            <SecondaryButton class="text-sm" @click="openAddSize">
+            <SecondaryButton @click="openAddSize">
               <font-awesome-icon :icon="['fas', 'plus']" class="mr-1"/>
               {{ t('inventory.edit.addSize') }}
             </SecondaryButton>
@@ -452,12 +469,12 @@ onMounted(loadData)
           <div class="flex items-center justify-between">
             <SubHeader>{{ t('inventory.edit.itemsTitle') }}</SubHeader>
             <div class="flex items-center gap-2">
-              <PrimaryButton v-if="detail.inventoryType === InventoryTypes.EXTERNAL || detail.inventoryType === InventoryTypes.MIXED" class="text-sm" @click="openQuickAssign">
+              <PrimaryButton v-if="detail.inventoryType === InventoryTypes.EXTERNAL || detail.inventoryType === InventoryTypes.MIXED" @click="openQuickAssign">
                 <font-awesome-icon :icon="['fas', 'user-plus']" class="mr-1"/>
                 {{ t('inventory.edit.quickAssign') }}
               </PrimaryButton>
-              <PrimaryButton v-if="detail.inventoryType !== InventoryTypes.EXTERNAL" class="text-sm" @click="openAddItem">
-                <font-awesome-icon :icon="['fas', 'plus']" class="mr-2"/>
+              <PrimaryButton v-if="detail.inventoryType !== InventoryTypes.EXTERNAL" @click="openAddItem">
+                <font-awesome-icon :icon="['fas', 'plus']" class="mr-1"/>
                 {{ t('inventory.edit.addItem') }}
               </PrimaryButton>
             </div>
@@ -467,11 +484,65 @@ onMounted(loadData)
             {{ t('inventory.edit.externalItemsHint') }}
           </p>
 
+          <TextInput v-if="items.length > 0" v-model="itemSearch" :placeholder="t('inventory.edit.searchItems')" />
+
           <div v-if="items.length === 0" class="text-center text-(--text-muted) py-4 text-sm">
             {{ t('inventory.edit.noItems') }}
           </div>
 
-          <div v-if="items.length > 0" class="overflow-x-auto">
+          <!-- Mobile card layout -->
+          <div v-if="filteredItems.length > 0 && isMobile" class="space-y-2">
+            <NeutralContainer v-for="item in filteredItems" :key="item.id" :class="item.lostAt ? 'opacity-60' : ''">
+              <div class="flex items-start justify-between gap-2">
+                <div class="min-w-0">
+                  <div class="font-medium text-sm">{{ item.name }}</div>
+                  <span v-if="item.lostAt" class="text-xs text-error">{{ t('inventory.edit.lost') }} ({{ formatDate(item.lostAt) }})</span>
+                </div>
+                <span v-if="item.internalId" class="text-xs text-(--text-muted) shrink-0">{{ item.internalId }}</span>
+              </div>
+              <div class="grid grid-cols-2 gap-x-4 gap-y-1 mt-2 text-xs">
+                <div v-if="detail!.hasSizes && getSizeLabel(item.sizeId)">
+                  <div class="text-(--text-muted)">{{ t('inventory.edit.colSize') }}</div>
+                  <div>{{ getSizeLabel(item.sizeId) }}</div>
+                </div>
+                <div v-if="detail!.inventoryType === InventoryTypes.MIXED">
+                  <div class="text-(--text-muted)">{{ t('inventory.edit.colSource') }}</div>
+                  <div>
+                    <PrimaryBadge v-if="item.itemSource === ItemSource.INTERNAL">{{ t('inventory.edit.sourceInternal') }}</PrimaryBadge>
+                    <SecondaryBadge v-else-if="item.itemSource === ItemSource.EXTERNAL">{{ t('inventory.edit.sourceExternal') }}</SecondaryBadge>
+                    <span v-else>–</span>
+                  </div>
+                </div>
+                <div>
+                  <div class="text-(--text-muted)">{{ t('inventory.edit.colAssigned') }}</div>
+                  <div v-if="item.assignedTo" class="text-primary font-medium">{{ getMemberName(item.assignedTo) }}</div>
+                  <div v-else class="text-(--text-muted)">–</div>
+                </div>
+              </div>
+              <div class="flex items-center gap-1 mt-2 pt-2 border-t border-bg-light-accent/50 dark:border-bg-dark-accent/50">
+                <IconButton v-if="!item.lostAt" :icon="['fas', 'user']"
+                            :label="item.assignedTo ? t('inventory.edit.reassign') : t('inventory.edit.assign')"
+                            class="text-primary hover:bg-primary/15" @click="openAssign(item)"/>
+                <IconButton v-if="item.assignedTo && !item.lostAt" :icon="['fas', 'right-from-bracket']"
+                            :label="t('inventory.edit.unassign')"
+                            class="text-(--text-muted) hover:bg-bg-light-accent dark:hover:bg-bg-dark-accent"
+                            @click="unassignItem(item)"/>
+                <IconButton v-if="!item.lostAt" :icon="['fas', 'triangle-exclamation']"
+                            :label="t('inventory.edit.markLost')" class="text-error hover:bg-error/15"
+                            @click="doMarkLost(item)"/>
+                <IconButton v-if="item.lostAt" :icon="['fas', 'check']" :label="t('inventory.edit.markFound')"
+                            class="text-success hover:bg-success/15" @click="doMarkFound(item)"/>
+                <IconButton :icon="['fas', 'clock-rotate-left']" :label="t('inventory.edit.historyTitle')"
+                            class="text-(--text-muted) hover:bg-bg-light-accent dark:hover:bg-bg-dark-accent"
+                            @click="openHistory(item)"/>
+                <EditButton @click="openEditItem(item)"/>
+                <DeleteButton @click="requestDeleteItem(item)"/>
+              </div>
+            </NeutralContainer>
+          </div>
+
+          <!-- Desktop table layout -->
+          <div v-if="filteredItems.length > 0 && !isMobile" class="overflow-x-auto">
             <table class="w-full text-sm">
               <thead>
               <tr class="border-b border-bg-light-accent dark:border-bg-dark-accent text-left">
@@ -484,7 +555,7 @@ onMounted(loadData)
               </tr>
               </thead>
               <tbody>
-              <tr v-for="item in items" :key="item.id"
+              <tr v-for="item in filteredItems" :key="item.id"
                   :class="item.lostAt ? 'opacity-60' : ''"
                   class="border-b border-bg-light-accent/50 dark:border-bg-dark-accent/50">
                 <td class="px-3 py-2.5 font-medium">

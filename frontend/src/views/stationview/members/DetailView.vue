@@ -500,11 +500,11 @@ onMounted(loadData)
           <div class="flex items-center justify-between">
             <h3 class="text-sm font-semibold">{{ t('memberDetail.managers') }}</h3>
             <div class="flex items-center gap-2">
-              <SecondaryButton class="text-sm" @click="showLinkManager = !showLinkManager">
+              <SecondaryButton @click="showLinkManager = !showLinkManager">
                 <font-awesome-icon :icon="['fas', 'link']" class="mr-1" />
                 {{ t('memberDetail.linkManager') }}
               </SecondaryButton>
-              <SecondaryButton class="text-sm" @click="showCreateManager = !showCreateManager">
+              <SecondaryButton @click="showCreateManager = !showCreateManager">
                 <font-awesome-icon :icon="['fas', 'plus']" class="mr-1" />
                 {{ t('memberDetail.createManager') }}
               </SecondaryButton>
@@ -569,7 +569,7 @@ onMounted(loadData)
         <NeutralContainer v-if="inventoryEnabled && (memberInventory.length > 0 || showInventoryManagement)" class="space-y-3">
           <div class="flex items-center justify-between">
             <SubHeader>{{ t('memberDetail.inventory') }}</SubHeader>
-            <PrimaryButton v-if="showInventoryManagement" class="text-sm" @click="openAssignModal">
+            <PrimaryButton v-if="showInventoryManagement" @click="openAssignModal">
               <font-awesome-icon :icon="['fas', 'plus']" class="mr-1"/>
               {{ t('memberDetail.assignItem') }}
             </PrimaryButton>

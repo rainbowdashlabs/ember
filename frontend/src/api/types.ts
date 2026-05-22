@@ -19,6 +19,9 @@ export const Roles = {
     NEWS_MANAGEMENT: 'NEWS_MANAGEMENT',
     POLL_MANAGEMENT: 'POLL_MANAGEMENT',
     LOST_AND_FOUND_MANAGEMENT: 'LOST_AND_FOUND_MANAGEMENT',
+    WAITLIST_MANAGEMENT: 'WAITLIST_MANAGEMENT',
+    QUIZ_MANAGEMENT: 'QUIZ_MANAGEMENT',
+    KNOWLEDGE_MANAGEMENT: 'KNOWLEDGE_MANAGEMENT',
     MANAGER: 'MANAGER',
     ADMIN: 'ADMIN',
 } as const
@@ -124,6 +127,15 @@ export interface SessionInfo {
     groups?: MemberGroup[]
     profileComplete?: boolean
     disabledModules?: string[]
+    theme?: ThemeSessionInfo
+}
+
+export interface ThemeSessionInfo {
+    defaultTheme?: string
+    allowUserTheme?: boolean
+    customThemeColors?: string | null
+    userTheme?: string
+    userDarkMode?: string
 }
 
 export const StationModules = {
@@ -133,6 +145,9 @@ export const StationModules = {
     ATTENDANCE: 'ATTENDANCE',
     FORMS: 'FORMS',
     LOST_AND_FOUND: 'LOST_AND_FOUND',
+    WAITING_LIST: 'WAITING_LIST',
+    QUIZ: 'QUIZ',
+    KNOWLEDGE_BASE: 'KNOWLEDGE_BASE',
 } as const
 
 export type StationModuleName = (typeof StationModules)[keyof typeof StationModules]
@@ -243,11 +258,13 @@ export interface EventRequest {
 export interface EventRestrictions {
     roleIds: number[]
     groupIds: number[]
+    tagIds: number[]
 }
 
 export interface AllEventRestrictions {
     roleRestrictions: Record<number, number[]>
     groupRestrictions: Record<number, number[]>
+    tagRestrictions: Record<number, number[]>
 }
 
 export interface EventBreak {
@@ -415,12 +432,18 @@ export interface StationManageInfo {
     hasLogo: boolean
     ownerMemberId?: number | null
     isOwner: boolean
+    defaultTheme?: string
+    allowUserTheme?: boolean
+    customThemeColors?: string | null
 }
 
 export interface UpdateStationNameRequest {
     name?: string
     timezone?: string
     locale?: string
+    defaultTheme?: string
+    allowUserTheme?: boolean
+    customThemeColors?: string | null
 }
 
 // -- Stations --
@@ -1016,6 +1039,8 @@ export interface NotificationToggle {
 
 export interface UserSettings {
     emailEnabled: boolean
+    theme: string
+    darkMode: string
     notifications: Record<string, NotificationToggle>
     mailConfigured: boolean
     mailProviderName: string
@@ -1023,8 +1048,10 @@ export interface UserSettings {
 }
 
 export interface UserSettingsRequest {
-    emailEnabled: boolean
-    notifications: Record<string, NotificationToggle>
+    emailEnabled?: boolean
+    theme?: string
+    darkMode?: string
+    notifications?: Record<string, NotificationToggle>
 }
 
 // -- Equipment Exchange --
@@ -1156,4 +1183,292 @@ export interface CreateLostAndFoundRequest {
 
 export interface ClaimLostAndFoundRequest {
     memberId?: number | null
+}
+
+// -- Waiting List --
+
+export const WaitingListEntryStatus = {
+    WAITING: 'WAITING',
+    INVITED: 'INVITED',
+    TESTING: 'TESTING',
+    WITHDRAWN: 'WITHDRAWN',
+    JOINED: 'JOINED',
+} as const
+
+export type WaitingListEntryStatusName = (typeof WaitingListEntryStatus)[keyof typeof WaitingListEntryStatus]
+
+export const WaitingListFieldTypes = {
+    TEXT: 'TEXT',
+    NUMBER: 'NUMBER',
+    DATE: 'DATE',
+    BOOLEAN: 'BOOLEAN',
+    ENUM: 'ENUM',
+} as const
+
+export type WaitingListFieldTypeName = (typeof WaitingListFieldTypes)[keyof typeof WaitingListFieldTypes]
+
+export interface WaitingList {
+    id: number
+    stationId: number
+    name: string
+    description: string
+    scoringFormula?: string | null
+    confirmIntervalDays: number
+    createdAt: string
+    visibleFields: number[]
+    testingGroupId?: number | null
+    joinGroupId?: number | null
+    joinRoleId?: number | null
+    attendanceThreshold: number
+}
+
+export interface WaitingListField {
+    id: number
+    listId: number
+    name: string
+    fieldType: WaitingListFieldTypeName
+    config: string
+    position: number
+    required: boolean
+}
+
+export interface WaitingListInvite {
+    id: number
+    listId: number
+    code: string
+    maxUses: number
+    uses: number
+    expiresAt?: string | null
+    createdAt: string
+}
+
+export interface WaitingListEntry {
+    id: number
+    listId: number
+    firstname: string
+    lastname: string
+    parentName: string
+    email: string
+    accessToken: string
+    status: WaitingListEntryStatusName
+    confirmedAt: string
+    reminderSentAt?: string | null
+    createdAt: string
+    notes: string
+    memberId?: number | null
+    invitedAt?: string | null
+    testingAt?: string | null
+    joinedAt?: string | null
+    withdrawnAt?: string | null
+    attendanceCount: number
+}
+
+export interface WaitingListEntryValue {
+    entryId: number
+    fieldId: number
+    value: string
+}
+
+export interface WaitingListEntryWithScore {
+    entry: WaitingListEntry
+    values: WaitingListEntryValue[]
+    score: number
+}
+
+export interface WaitingListWithCount {
+    list: WaitingList
+    entryCount: number
+}
+
+export interface WaitingListPublicStatus {
+    firstname: string
+    lastname: string
+    parentName: string
+    status: string
+    confirmedAt: string
+    position: number
+    listName: string
+    fields: WaitingListField[]
+    values: WaitingListEntryValue[]
+}
+
+export interface WaitingListInviteInfo {
+    listName: string
+    listDescription: string
+    fields: WaitingListField[]
+}
+
+// -- Quiz --
+
+export const QuizQuestionTypes = {
+    MULTIPLE_CHOICE: 'MULTIPLE_CHOICE',
+    FILL_IN_THE_BLANK: 'FILL_IN_THE_BLANK',
+    FREE_ANSWER: 'FREE_ANSWER',
+    CONNECT: 'CONNECT',
+    IMAGE_TEXT: 'IMAGE_TEXT',
+    TRUE_FALSE: 'TRUE_FALSE',
+    ORDERING: 'ORDERING',
+    ENUMERATION: 'ENUMERATION',
+} as const
+
+export type QuizQuestionTypeName = (typeof QuizQuestionTypes)[keyof typeof QuizQuestionTypes]
+
+export const QuizTestStatus = {
+    DRAFT: 'DRAFT',
+    ACTIVE: 'ACTIVE',
+    CLOSED: 'CLOSED',
+} as const
+
+export type QuizTestStatusName = (typeof QuizTestStatus)[keyof typeof QuizTestStatus]
+
+export const QuizAttemptStatus = {
+    IN_PROGRESS: 'IN_PROGRESS',
+    SUBMITTED: 'SUBMITTED',
+    GRADED: 'GRADED',
+} as const
+
+export type QuizAttemptStatusName = (typeof QuizAttemptStatus)[keyof typeof QuizAttemptStatus]
+
+export interface QuizCatalog {
+    id: number
+    stationId: number
+    name: string
+    description: string
+    trainingEnabled: boolean
+    createdAt: string
+    updatedAt: string
+}
+
+export interface QuizCategory {
+    id: number
+    stationId: number
+    name: string
+    description: string
+    position: number
+}
+
+export interface QuizQuestion {
+    id: number
+    catalogId: number
+    categoryId: number | null
+    questionType: QuizQuestionTypeName
+    title: string
+    description: string
+    imageUrl: string | null
+    points: number
+    autoPoints: boolean
+    config: string
+    position: number
+    createdAt: string
+    updatedAt: string
+}
+
+export interface QuizCatalogDetail {
+    id: number
+    stationId: number
+    name: string
+    description: string
+    trainingEnabled: boolean
+    questionCount: number
+    questionTypeCounts: Record<string, number>
+    categories: QuizCategory[]
+    createdAt: string
+    updatedAt: string
+}
+
+export interface QuizTest {
+    id: number
+    stationId: number
+    title: string
+    description: string
+    status: QuizTestStatusName
+    timeLimit: number | null
+    shuffle: boolean
+    startAt: string | null
+    endAt: string | null
+    createdBy: number
+    createdAt: string
+    updatedAt: string
+}
+
+export interface QuizTestSummary {
+    test: QuizTest
+    attemptCount: number
+}
+
+export interface QuizTestSection {
+    id: number
+    testId: number
+    title: string
+    description: string
+    position: number
+}
+
+export interface QuizTestSectionSource {
+    id: number
+    sectionId: number
+    catalogId: number
+    categoryId: number | null
+    questionCount: number
+}
+
+export interface QuizSectionDetail {
+    id: number
+    testId: number
+    title: string
+    description: string
+    position: number
+    sources: QuizTestSectionSource[]
+}
+
+export interface QuizTestDetail {
+    test: QuizTest
+    sections: QuizSectionDetail[]
+    attemptCount: number
+}
+
+export interface QuizTestAttempt {
+    id: number
+    testId: number
+    memberId: number
+    status: QuizAttemptStatusName
+    startedAt: string
+    submittedAt: string | null
+    gradedAt: string | null
+    gradedBy: number | null
+    totalPoints: number
+    maxPoints: number
+}
+
+export interface QuizTestAttemptQuestion {
+    id: number
+    attemptId: number
+    questionId: number
+    sectionId: number | null
+    position: number
+}
+
+export interface QuizTestAnswer {
+    id: number
+    attemptId: number
+    questionId: number
+    sectionId: number | null
+    answer: string
+    points: number | null
+    graded: boolean
+    position: number
+}
+
+export interface QuizAttemptDetail {
+    attempt: QuizTestAttempt
+    questions: QuizTestAttemptQuestion[]
+    answers: QuizTestAnswer[]
+}
+
+export interface QuizCatalogExport {
+    name: string
+    description: string
+    trainingEnabled: boolean
+    categories: QuizCategory[]
+    questions: QuizQuestion[]
 }

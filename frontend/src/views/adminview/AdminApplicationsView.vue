@@ -21,6 +21,9 @@ import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import {stationApplications} from '@/api'
 import type {StationApplication} from '@/api/stationApplications'
+import {useBreakpoint} from '@/composables/useBreakpoint'
+
+const {isMobile} = useBreakpoint()
 
 const {t} = useI18n()
 
@@ -128,7 +131,31 @@ onMounted(loadData)
           {{ t('adminApplications.empty') }}
         </div>
 
-        <NeutralContainer v-else class="overflow-x-auto">
+        <!-- Mobile card layout -->
+        <div v-if="isMobile && filteredApplications.length > 0" class="space-y-3">
+          <NeutralContainer v-for="app in filteredApplications" :key="app.id" class="space-y-2">
+            <div class="flex items-center justify-between">
+              <div class="font-medium">{{ app.firstName }} {{ app.lastName }}</div>
+              <SuccessBadge v-if="app.status === 'accepted'">{{ t('adminApplications.accepted') }}</SuccessBadge>
+              <ErrorBadge v-else-if="app.status === 'denied'">{{ t('adminApplications.denied') }}</ErrorBadge>
+              <SecondaryBadge v-else>{{ t('adminApplications.pendingBadge') }}</SecondaryBadge>
+            </div>
+            <div class="grid grid-cols-1 gap-1 text-xs">
+              <div class="text-(--text-muted)">{{ app.email }}</div>
+              <div><span class="text-(--text-muted)">{{ t('adminApplications.station') }}:</span> {{ app.stationName }}</div>
+              <div class="text-(--text-muted)">{{ formatDate(app.createdAt) }}</div>
+              <div v-if="app.introduction" class="text-(--text-muted) truncate">{{ app.introduction }}</div>
+            </div>
+            <div v-if="app.status === 'pending'" class="flex gap-1 pt-1 border-t border-bg-light-accent/50 dark:border-bg-dark-accent/50">
+              <PrimaryButton :disabled="processing" @click="acceptApplication(app)">{{ t('adminApplications.accept') }}</PrimaryButton>
+              <ErrorButton :disabled="processing" @click="openDeny(app)">{{ t('adminApplications.deny') }}</ErrorButton>
+            </div>
+            <div v-else-if="app.status === 'denied' && app.denyReason" class="text-xs text-(--text-muted)">{{ app.denyReason }}</div>
+          </NeutralContainer>
+        </div>
+
+        <!-- Desktop table layout -->
+        <NeutralContainer v-else-if="filteredApplications.length > 0" class="overflow-x-auto">
           <table class="w-full text-sm">
             <thead>
             <tr class="border-b border-bg-light-accent dark:border-bg-dark-accent text-left">
@@ -159,10 +186,10 @@ onMounted(loadData)
               </td>
               <td class="px-3 py-2.5 text-right">
                 <div v-if="app.status === 'pending'" class="flex items-center justify-end gap-1">
-                  <PrimaryButton :disabled="processing" class="text-sm" @click="acceptApplication(app)">
+                  <PrimaryButton :disabled="processing" @click="acceptApplication(app)">
                     {{ t('adminApplications.accept') }}
                   </PrimaryButton>
-                  <ErrorButton :disabled="processing" class="text-sm" @click="openDeny(app)">
+                  <ErrorButton :disabled="processing" @click="openDeny(app)">
                     {{ t('adminApplications.deny') }}
                   </ErrorButton>
                 </div>

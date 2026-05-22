@@ -124,9 +124,9 @@ watch(loaded, (isLoaded) => {
 
           <div class="space-y-2">
             <NeutralContainer v-for="form in managedForms" :key="form.id">
-              <div class="flex items-center justify-between">
+              <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                 <div class="space-y-1">
-                  <div class="flex items-center gap-2">
+                  <div class="flex items-center gap-2 flex-wrap">
                     <span class="font-medium">{{ form.title }}</span>
                     <SuccessBadge v-if="form.status === FormStatus.OPEN">{{ statusLabel(form.status) }}</SuccessBadge>
                     <ErrorBadge v-else-if="form.status === FormStatus.CLOSED">{{ statusLabel(form.status) }}</ErrorBadge>
@@ -134,22 +134,22 @@ watch(loaded, (isLoaded) => {
                   </div>
                   <p v-if="form.description" class="text-xs text-(--text-muted)">{{ form.description }}</p>
                 </div>
-                <div class="flex items-center gap-2">
-                  <SecondaryButton v-if="form.status === FormStatus.DRAFT" class="text-xs" @click="publishForm(form)">
+                <div class="flex items-center gap-2 flex-wrap">
+                  <SecondaryButton v-if="form.status === FormStatus.DRAFT" @click="publishForm(form)">
                     {{ t('forms.publish') }}
                   </SecondaryButton>
-                  <SecondaryButton v-if="form.status === FormStatus.OPEN" class="text-xs" @click="closeForm(form)">
+                  <SecondaryButton v-if="form.status === FormStatus.OPEN" @click="closeForm(form)">
                     {{ t('forms.close') }}
                   </SecondaryButton>
-                  <SecondaryButton v-if="form.status !== FormStatus.CLOSED" class="text-xs"
+                  <SecondaryButton v-if="form.status !== FormStatus.CLOSED"
                                    @click="router.push({ name: 'forms-edit', params: { id: form.id } })">
                     {{ t('forms.edit') }}
                   </SecondaryButton>
-                  <SecondaryButton v-if="form.status !== FormStatus.DRAFT" class="text-xs"
+                  <SecondaryButton v-if="form.status !== FormStatus.DRAFT"
                                    @click="router.push({ name: 'forms-analytics', params: { id: form.id } })">
                     {{ t('forms.viewAnalytics') }}
                   </SecondaryButton>
-                  <ErrorButton class="text-xs" @click="deleteForm(form)">
+                  <ErrorButton @click="deleteForm(form)">
                     {{ t('forms.delete') }}
                   </ErrorButton>
                 </div>
@@ -168,18 +168,18 @@ watch(loaded, (isLoaded) => {
 
           <div class="space-y-2">
             <NeutralContainer v-for="form in availableForms" :key="form.id">
-              <div class="flex items-center justify-between">
+              <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                 <div class="space-y-1">
                   <span class="font-medium">{{ form.title }}</span>
                   <p v-if="form.description" class="text-xs text-(--text-muted)">{{ form.description }}</p>
                   <p class="text-xs text-(--text-muted)">{{ form.responseCount }} {{ t('forms.responses') }}</p>
                 </div>
                 <div>
-                  <PrimaryButton v-if="!form.hasResponded" class="text-xs"
+                  <PrimaryButton v-if="!form.hasResponded"
                                  @click="router.push({ name: 'forms-fill', params: { id: form.id } })">
                     {{ t('forms.fillForm') }}
                   </PrimaryButton>
-                  <SecondaryButton v-else class="text-xs"
+                  <SecondaryButton v-else
                                    @click="router.push({ name: 'forms-fill', params: { id: form.id } })">
                     {{ t('forms.editResponse') }}
                   </SecondaryButton>

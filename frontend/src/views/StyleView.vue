@@ -7,6 +7,7 @@
 import {ref} from 'vue'
 
 import ThemeToggle from '@/components/theme/ThemeToggle.vue'
+import ThemePicker from '@/components/theme/ThemePicker.vue'
 
 import PageHeader from '@/components/typography/PageHeader.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
@@ -48,6 +49,8 @@ import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import SizeBadge from '@/components/badge/SizeBadge.vue'
 
+import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
+import DropdownMenuItem from '@/components/button/DropdownMenuItem.vue'
 import ProgressBar from '@/components/feedback/ProgressBar.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
@@ -64,6 +67,7 @@ const timeShortValue = ref('')
 const selectValue = ref('option1')
 const toggleValue = ref(false)
 const modalOpen = ref(false)
+const toggleStates = ref(new Set([1, 3]))
 </script>
 
 <template>
@@ -319,8 +323,39 @@ const modalOpen = ref(false)
       <SectionHeader>Theme Toggle</SectionHeader>
       <div class="flex items-center gap-4">
         <ThemeToggle/>
-        <span class="text-sm text-[var(--text-muted)]">Click to toggle light / dark</span>
+        <span class="text-sm text-[var(--text-muted)]">Click to cycle system / light / dark</span>
       </div>
+    </section>
+
+    <section class="space-y-4">
+      <SectionHeader>Theme Picker</SectionHeader>
+      <ThemePicker/>
+    </section>
+
+    <!-- Selection Toggle Buttons -->
+    <section class="space-y-4">
+      <SectionHeader>Selection Toggle Buttons</SectionHeader>
+      <div class="flex flex-wrap gap-2">
+        <SelectionToggleButton
+          v-for="i in 5"
+          :key="i"
+          :selected="toggleStates.has(i)"
+          @toggle="toggleStates.has(i) ? toggleStates.delete(i) : toggleStates.add(i)"
+        >
+          Option {{ i }}
+        </SelectionToggleButton>
+      </div>
+    </section>
+
+    <!-- Dropdown Menu Items -->
+    <section class="space-y-4">
+      <SectionHeader>Dropdown Menu Items</SectionHeader>
+      <NeutralContainer class="!p-0 max-w-xs overflow-hidden">
+        <DropdownMenuItem :icon="['fas', 'folder']" icon-class="text-[var(--accent)]">Neuer Ordner</DropdownMenuItem>
+        <DropdownMenuItem :icon="['fas', 'file-lines']">Neue Datei</DropdownMenuItem>
+        <DropdownMenuItem :icon="['fas', 'upload']">Hochladen</DropdownMenuItem>
+        <DropdownMenuItem :icon="['fab', 'youtube']" icon-class="text-red-600">YouTube</DropdownMenuItem>
+      </NeutralContainer>
     </section>
   </div>
 </template>

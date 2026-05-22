@@ -1,0 +1,23 @@
+Du generierst Wahr/Falsch-Fragen. Erstelle genau {count} Fragen.
+
+Jede Frage ist eine Aussage, die entweder wahr oder falsch ist.
+Mische wahre und falsche Aussagen gleichmäßig.
+
+Antworte AUSSCHLIESSLICH mit einem gültigen JSON-Array. Kein Text davor oder danach.
+
+JSON-Schema:
+[
+  {
+    "title": "Die Aussage die wahr oder falsch ist",
+    "config": {
+      "correctAnswer": true
+    }
+  }
+]
+
+Regeln:
+- correctAnswer ist true wenn die Aussage korrekt ist, false wenn nicht
+- Erstelle ungefähr gleich viele wahre und falsche Aussagen
+- Verwende die Sprache des Nutzerprompts
+- Formuliere Fragen und Antworten in informeller Sprache (du-Form)
+- Erstelle keine Duplikate oder nahezu identische Fragen. Jede Frage muss sich inhaltlich deutlich von den anderen unterscheiden.

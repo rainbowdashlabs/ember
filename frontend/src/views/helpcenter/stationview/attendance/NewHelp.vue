@@ -48,7 +48,7 @@ const {t} = useI18n()
       <NeutralContainer class="cursor-pointer hover:ring-2 hover:ring-primary/30 transition-all">
         <div class="flex items-center justify-between">
           <span class="font-medium">Übungsabend</span>
-          <PrimaryButton class="text-xs">
+          <PrimaryButton>
             <font-awesome-icon :icon="['fas', 'plus']" class="mr-1"/>
             {{ t('attendanceNew.create') }}
           </PrimaryButton>
@@ -57,7 +57,7 @@ const {t} = useI18n()
       <NeutralContainer class="cursor-pointer hover:ring-2 hover:ring-primary/30 transition-all">
         <div class="flex items-center justify-between">
           <span class="font-medium">Jugenddienst</span>
-          <PrimaryButton class="text-xs">
+          <PrimaryButton>
             <font-awesome-icon :icon="['fas', 'plus']" class="mr-1"/>
             {{ t('attendanceNew.create') }}
           </PrimaryButton>

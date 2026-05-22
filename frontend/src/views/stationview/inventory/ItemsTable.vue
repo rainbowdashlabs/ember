@@ -17,6 +17,9 @@ import PrimaryBadge from '@/components/badge/PrimaryBadge.vue'
 import type { InventoryItem, InventorySize, StationMember } from '@/api/types'
 import { InventoryTypes, ItemSource } from '@/api/types'
 import MemberName from '@/components/avatar/MemberName.vue'
+import { useBreakpoint } from '@/composables/useBreakpoint'
+
+const { isMobile } = useBreakpoint()
 
 const { t } = useI18n()
 const router = useRouter()
@@ -64,7 +67,45 @@ function formatDate(iso: string | null | undefined): string {
 </script>
 
 <template>
-  <NeutralContainer v-if="items.length > 0" class="overflow-x-auto">
+  <!-- Mobile card layout -->
+  <div v-if="isMobile && items.length > 0" class="space-y-3">
+    <NeutralContainer v-for="item in items" :key="item.id" :class="item.lostAt ? 'opacity-60' : ''" class="space-y-2">
+      <div class="flex items-center justify-between">
+        <div>
+          <span class="font-medium">{{ item.name }}</span>
+          <span v-if="item.lostAt" class="ml-2 text-xs text-error">{{ t('inventory.edit.lost') }} ({{ formatDate(item.lostAt) }})</span>
+        </div>
+        <div v-if="hasSizes">
+          <SizeBadge :lost="!!item.lostAt">{{ getSizeLabel(item.sizeId) }}</SizeBadge>
+        </div>
+      </div>
+      <div class="grid grid-cols-1 gap-1 text-xs">
+        <div v-if="item.internalId" class="text-(--text-muted)">{{ t('inventory.edit.colId') }}: {{ item.internalId }}</div>
+        <div v-if="isMixed">
+          <PrimaryBadge v-if="item.itemSource === ItemSource.INTERNAL">{{ t('inventory.edit.sourceInternal') }}</PrimaryBadge>
+          <SecondaryBadge v-else-if="item.itemSource === ItemSource.EXTERNAL">{{ t('inventory.edit.sourceExternal') }}</SecondaryBadge>
+        </div>
+        <div v-if="item.assignedTo">
+          <span class="text-(--text-muted)">{{ t('inventory.edit.colAssigned') }}:</span>
+          <button class="ml-1 text-primary font-medium hover:underline cursor-pointer" @click.stop="router.push({ name: 'inventory-member', params: { memberId: item.assignedTo } })">
+            <MemberName :name="getMemberName(item.assignedTo)" :member-id="item.assignedTo"/>
+          </button>
+        </div>
+      </div>
+      <div v-if="showActions" class="flex items-center gap-0.5 pt-1 border-t border-bg-light-accent/50 dark:border-bg-dark-accent/50">
+        <IconButton v-if="!item.lostAt" :icon="['fas', 'user']" :label="item.assignedTo ? t('inventory.edit.reassign') : t('inventory.edit.assign')" class="text-primary hover:bg-primary/15" @click="emit('assign', item)"/>
+        <IconButton v-if="item.assignedTo && !item.lostAt" :icon="['fas', 'right-from-bracket']" :label="t('inventory.edit.unassign')" class="text-(--text-muted) hover:bg-bg-light-accent dark:hover:bg-bg-dark-accent" @click="emit('unassign', item)"/>
+        <IconButton v-if="!item.lostAt" :icon="['fas', 'triangle-exclamation']" :label="t('inventory.edit.markLost')" class="text-error hover:bg-error/15" @click="emit('markLost', item)"/>
+        <IconButton v-if="item.lostAt" :icon="['fas', 'check']" :label="t('inventory.edit.markFound')" class="text-success hover:bg-success/15" @click="emit('markFound', item)"/>
+        <IconButton :icon="['fas', 'clock-rotate-left']" :label="t('inventory.edit.historyTitle')" class="text-(--text-muted) hover:bg-bg-light-accent dark:hover:bg-bg-dark-accent" @click="emit('history', item)"/>
+        <EditButton @click="emit('edit', item)"/>
+        <DeleteButton @click="emit('delete', item)"/>
+      </div>
+    </NeutralContainer>
+  </div>
+
+  <!-- Desktop table layout -->
+  <NeutralContainer v-else-if="items.length > 0" class="overflow-x-auto">
     <table class="w-full text-sm">
       <thead>
         <tr class="border-b border-bg-light-accent dark:border-bg-dark-accent text-left">

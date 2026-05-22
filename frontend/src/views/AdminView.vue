@@ -74,6 +74,12 @@ async function handleLogout() {
           {{ t('sidebar.applications') }}
         </SidebarLink>
       </SidebarGroup>
+
+      <SidebarGroup :icon="['fas', 'gear']" :label="t('sidebar.settings')" prefix="/admin/settings">
+        <SidebarLink :icon="['fas', 'sliders']" name="admin-settings" to="/admin/settings" @navigate="close">
+          {{ t('sidebar.appSettings') }}
+        </SidebarLink>
+      </SidebarGroup>
     </template>
 
     <template #header>

@@ -62,4 +62,18 @@ public class UserSettingsRepository {
                 .first()
                 .orElseThrow();
     }
+
+    public UserSettings updateTheme(int memberId, String theme, String darkMode) {
+        return Query.query("""
+                            INSERT INTO user_settings(member_id, theme, dark_mode) VALUES(:member_id, :theme, :dark_mode)
+                            ON CONFLICT (member_id) DO UPDATE SET theme = :theme, dark_mode = :dark_mode
+                            RETURNING *;""")
+                .single(Call.of()
+                        .bind("member_id", memberId)
+                        .bind("theme", theme)
+                        .bind("dark_mode", darkMode))
+                .map(UserSettings.map())
+                .first()
+                .orElseThrow();
+    }
 }

@@ -7,8 +7,12 @@
 import {useI18n} from 'vue-i18n'
 import EditButton from '@/components/button/EditButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
+import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import DragList from '@/components/input/DragList.vue'
 import type {ProfileField} from '@/api/types'
+import {useBreakpoint} from '@/composables/useBreakpoint'
+
+const {isMobile} = useBreakpoint()
 
 const {t} = useI18n()
 
@@ -48,7 +52,57 @@ function parseConfig(configStr: string | undefined): Record<string, unknown> {
 </script>
 
 <template>
-  <div>
+  <!-- Mobile card layout -->
+  <div v-if="isMobile">
+    <DragList :items="fields" :key-fn="(f) => f.id" @reorder="(from, to) => emit('reorder', from, to)">
+      <template #default="{ item: field }">
+        <NeutralContainer class="space-y-2 mb-2 cursor-grab active:cursor-grabbing">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <font-awesome-icon :icon="['fas', 'grip-vertical']" class="text-(--text-muted) h-3.5 w-3.5"/>
+              <span class="font-medium text-sm">{{ field.name }}</span>
+              <span class="text-xs text-(--text-muted)">{{ fieldTypeLabel(field.fieldType ?? '') }}</span>
+            </div>
+            <div class="flex items-center gap-1">
+              <EditButton @click="emit('edit', field)"/>
+              <DeleteButton @click="emit('delete', field)"/>
+            </div>
+          </div>
+          <div class="flex flex-wrap gap-3 text-xs">
+            <label class="flex items-center gap-1">
+              <input :checked="!!parseConfig(field.config).required" :disabled="!!parseConfig(field.config).readonly"
+                     class="h-3.5 w-3.5 rounded accent-primary cursor-pointer disabled:opacity-40" type="checkbox"
+                     @change="emit('toggleConfig', field, 'required', ($event.target as HTMLInputElement).checked)" @click.stop/>
+              {{ t('membersConfig.fieldRequired') }}
+            </label>
+            <label class="flex items-center gap-1">
+              <input :checked="!!parseConfig(field.config).readonly" class="h-3.5 w-3.5 rounded accent-primary cursor-pointer" type="checkbox"
+                     @change="(e) => { const v = (e.target as HTMLInputElement).checked; emit('toggleConfig', field, 'readonly', v); if (v) emit('toggleConfig', field, 'required', false) }" @click.stop/>
+              {{ t('membersConfig.fieldReadonly') }}
+            </label>
+            <label class="flex items-center gap-1">
+              <input :checked="!!parseConfig(field.config).notifyOnChange" class="h-3.5 w-3.5 rounded accent-primary cursor-pointer" type="checkbox"
+                     @change="emit('toggleConfig', field, 'notifyOnChange', ($event.target as HTMLInputElement).checked)" @click.stop/>
+              {{ t('membersConfig.fieldNotifyOnChange') }}
+            </label>
+            <label class="flex items-center gap-1">
+              <input :checked="!!parseConfig(field.config).overview" class="h-3.5 w-3.5 rounded accent-primary cursor-pointer" type="checkbox"
+                     @change="emit('toggleConfig', field, 'overview', ($event.target as HTMLInputElement).checked)" @click.stop/>
+              {{ t('membersConfig.fieldOverview') }}
+            </label>
+            <label class="flex items-center gap-1">
+              <input :checked="!!field.keepOnArchive" class="h-3.5 w-3.5 rounded accent-primary cursor-pointer" type="checkbox"
+                     @change="emit('toggleKeepOnArchive', field, ($event.target as HTMLInputElement).checked)" @click.stop/>
+              {{ t('membersConfig.fieldKeepOnArchive') }}
+            </label>
+          </div>
+        </NeutralContainer>
+      </template>
+    </DragList>
+  </div>
+
+  <!-- Desktop grid layout -->
+  <div v-else>
     <!-- Header row -->
     <div
         class="grid grid-cols-[2rem_1fr_6rem_2.5rem_2.5rem_2.5rem_2.5rem_2.5rem_5rem] gap-0 items-center border-b border-bg-light-accent dark:border-bg-dark-accent text-sm px-1 py-2">

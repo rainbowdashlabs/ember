@@ -456,17 +456,17 @@ onMounted(loadData)
             </div>
           </div>
           <div class="flex justify-center gap-4">
-            <SuccessButton class="px-8 py-3 text-lg" @click="checkModeSetResult('CONFIRMED')">
+            <SuccessButton @click="checkModeSetResult('CONFIRMED')">
               <font-awesome-icon :icon="['fas', 'check']" class="mr-2" />
               {{ t('inventory.check.confirmed') }}
             </SuccessButton>
-            <ErrorButton class="px-8 py-3 text-lg" @click="checkModeSetResult('LOST')">
+            <ErrorButton @click="checkModeSetResult('LOST')">
               <font-awesome-icon :icon="['fas', 'xmark']" class="mr-2" />
               {{ t('inventory.check.lost') }}
             </ErrorButton>
           </div>
           <div class="flex justify-center">
-            <SecondaryButton class="text-sm" @click="skipCheckItem">
+            <SecondaryButton @click="skipCheckItem">
               {{ t('inventory.check.skip') }}
             </SecondaryButton>
           </div>
@@ -491,7 +491,7 @@ onMounted(loadData)
                 {{ itemLabel(avail, currentCheckEntry.req) }}
               </option>
             </SelectInput>
-            <PrimaryButton class="text-sm" :disabled="!rapidAssignSelection" @click="checkModeAssign">
+            <PrimaryButton :disabled="!rapidAssignSelection" @click="checkModeAssign">
               {{ t('inventory.check.assign') }}
             </PrimaryButton>
           </div>
@@ -502,20 +502,20 @@ onMounted(loadData)
               <option value="" disabled>{{ t('inventory.check.selectSize') }}</option>
               <option v-for="size in currentCheckEntry.req.sizes" :key="size.id" :value="String(size.id)">{{ size.label }}</option>
             </SelectInput>
-            <SecondaryButton class="text-sm" :disabled="currentCheckEntry.req.hasSizes && currentCheckEntry.req.sizes.length > 0 && !rapidCreateSizeId" @click="checkModeCreateAndAssign">
+            <SecondaryButton :disabled="currentCheckEntry.req.hasSizes && currentCheckEntry.req.sizes.length > 0 && !rapidCreateSizeId" @click="checkModeCreateAndAssign">
               <font-awesome-icon :icon="['fas', 'plus']" class="mr-1" />
               {{ t('inventory.check.create') }}
             </SecondaryButton>
           </div>
 
           <div class="flex justify-center gap-4">
-            <InfoButton class="px-6 py-2" @click="checkModeMarkNotInPossession">
+            <InfoButton @click="checkModeMarkNotInPossession">
               <font-awesome-icon :icon="['fas', 'ban']" class="mr-2" />
               {{ t('inventory.check.notInPossession') }}
             </InfoButton>
           </div>
           <div class="flex justify-center">
-            <SecondaryButton class="text-sm" @click="skipCheckItem">
+            <SecondaryButton @click="skipCheckItem">
               {{ t('inventory.check.skip') }}
             </SecondaryButton>
           </div>

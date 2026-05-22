@@ -200,7 +200,7 @@ onMounted(loadData)
         <div class="flex items-center justify-between">
           <SectionHeader>{{ t('inventory.requirements.title') }}</SectionHeader>
           <PrimaryButton @click="openAdd()">
-            <font-awesome-icon :icon="['fas', 'plus']" class="mr-2" />
+            <font-awesome-icon :icon="['fas', 'plus']" class="mr-1" />
             {{ t('inventory.requirements.add') }}
           </PrimaryButton>
         </div>
@@ -220,7 +220,7 @@ onMounted(loadData)
                 </span>
                 {{ group.label }}
               </SubHeader>
-              <SecondaryButton class="text-sm" @click="openAdd({ type: group.type, id: group.id })">
+              <SecondaryButton @click="openAdd({ type: group.type, id: group.id })">
                 <font-awesome-icon :icon="['fas', 'plus']" class="mr-1" />
                 {{ t('inventory.requirements.addItem') }}
               </SecondaryButton>

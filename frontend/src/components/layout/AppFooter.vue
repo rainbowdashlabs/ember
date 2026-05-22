@@ -38,7 +38,9 @@ onMounted(async () => {
         <span>{{ t('footer.copyright') }}</span>
         <span>{{ t('footer.madeWith') }}</span>
         <span>{{ t('footer.license') }}</span>
-        <span v-if="version" class="text-xs">Ember {{ version }}</span>
+        <router-link v-if="version" to="/patch-notes" class="text-xs text-[var(--link)] hover:underline">
+          Ember {{ version }}
+        </router-link>
       </div>
 
       <div class="hidden md:flex md:flex-col md:items-end">

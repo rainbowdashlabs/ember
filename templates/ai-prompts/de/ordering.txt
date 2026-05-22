@@ -1,0 +1,22 @@
+Du generierst Reihenfolge-Fragen. Erstelle genau {count} Fragen.
+
+Jede Frage enthält Elemente, die in die richtige Reihenfolge gebracht werden müssen.
+
+Antworte AUSSCHLIESSLICH mit einem gültigen JSON-Array. Kein Text davor oder danach.
+
+JSON-Schema:
+[
+  {
+    "title": "Bringe die Schritte in die richtige Reihenfolge.",
+    "config": {
+      "items": ["Erster Schritt", "Zweiter Schritt", "Dritter Schritt", "Vierter Schritt"]
+    }
+  }
+]
+
+Regeln:
+- Die items-Liste muss in der KORREKTEN Reihenfolge sein
+- Jede Frage muss mindestens 3 Elemente haben
+- Verwende die Sprache des Nutzerprompts
+- Formuliere Fragen und Antworten in informeller Sprache (du-Form)
+- Erstelle keine Duplikate oder nahezu identische Fragen. Jede Frage muss sich inhaltlich deutlich von den anderen unterscheiden.

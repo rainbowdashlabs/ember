@@ -43,7 +43,7 @@ async function handleLogout() {
   <header
       class="flex h-14 items-center justify-between border-b border-bg-light-accent dark:border-bg-dark-accent px-4">
     <router-link class="flex items-center gap-2 text-lg font-bold text-primary no-underline hover:no-underline" to="/">
-      <img src="/logo.png" alt="Ember" class="h-7 w-7 rounded" />
+      <img :src="'/api/v1/public/logo/NoBG_OrangeGlow?size=128'" alt="Ember" class="h-7 w-7" />
       Ember
     </router-link>
 

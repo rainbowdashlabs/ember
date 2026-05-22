@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.account.service;
 
 import dev.chojo.ember.auth.PasswordHasher;
 import dev.chojo.ember.conf.file.elements.Auth;
+import dev.chojo.ember.conf.file.elements.Demo;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.entity.AccountCredential;
 import dev.chojo.ember.feature.account.entity.AccountSession;
@@ -43,6 +44,7 @@ public class AuthService {
     private final PasswordHasher passwordHasher;
     private final EmailService emailService;
     private final Auth authConfig;
+    private final Demo demo;
 
     @Inject
     public AuthService(
@@ -52,7 +54,8 @@ public class AuthService {
             MemberGroupRepository memberGroupRepository,
             PasswordHasher passwordHasher,
             EmailService emailService,
-            Auth authConfig) {
+            Auth authConfig,
+            Demo demo) {
         this.accountRepository = accountRepository;
         this.registrationCodeRepository = registrationCodeRepository;
         this.stationMemberRepository = stationMemberRepository;
@@ -60,6 +63,7 @@ public class AuthService {
         this.passwordHasher = passwordHasher;
         this.emailService = emailService;
         this.authConfig = authConfig;
+        this.demo = demo;
     }
 
     /**
@@ -486,10 +490,10 @@ public class AuthService {
                 TokenType.STATION_DELETE,
                 String.valueOf(stationId),
                 Instant.now().plus(1, ChronoUnit.HOURS));
-        var account = accountRepository.findById(accountId).orElse(null);
-        if (account != null) {
-            emailService.sendStationDeletionConfirmation(account.email(), account.firstName(), token);
-        }
+        accountRepository
+                .findById(accountId)
+                .ifPresent(account ->
+                        emailService.sendStationDeletionConfirmation(account.email(), account.firstName(), token));
     }
 
     // -- Station deletion --
@@ -520,8 +524,18 @@ public class AuthService {
      * @return a successful login result with the session token
      */
     private LoginResult createSession(int accountId, String userAgent, String location) {
-        String token = generateToken();
-        Instant expiresAt = Instant.now().plus(authConfig.sessionMinutes(), ChronoUnit.MINUTES);
+        String token;
+        Instant expiresAt;
+        if (demo.dev() || demo.enabled()) {
+            // In dev/demo mode, use the email as a stable session token so sessions survive restarts
+            token = accountRepository.findById(accountId).map(Account::email).orElseGet(this::generateToken);
+            expiresAt = Instant.now().plus(365, ChronoUnit.DAYS);
+            // Delete any existing session with this token to avoid duplicates
+            accountRepository.deleteSession(token);
+        } else {
+            token = generateToken();
+            expiresAt = Instant.now().plus(authConfig.sessionMinutes(), ChronoUnit.MINUTES);
+        }
         accountRepository.createSession(accountId, token, expiresAt, userAgent, location);
         return LoginResult.success(token, expiresAt);
     }

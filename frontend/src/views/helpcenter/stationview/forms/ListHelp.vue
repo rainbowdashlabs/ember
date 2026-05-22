@@ -39,7 +39,7 @@ const activeRole = ref('')
     <div class="space-y-3">
       <div class="flex items-center justify-between">
         <h3 class="font-semibold">{{ t('forms.title') }}</h3>
-        <PrimaryButton v-if="activeRole === 'manager'" class="text-sm">
+        <PrimaryButton v-if="activeRole === 'manager'">
           <font-awesome-icon :icon="['fas', 'plus']" class="mr-1"/>
           {{ t('forms.create') }}
         </PrimaryButton>
@@ -55,10 +55,10 @@ const activeRole = ref('')
             <p class="text-xs text-(--text-muted)">Wie gefällt dir unsere Jugendfeuerwehr?</p>
           </div>
           <div class="flex gap-2">
-            <PrimaryButton v-if="activeRole === 'member'" class="text-xs">{{ t('forms.fillForm') }}</PrimaryButton>
+            <PrimaryButton v-if="activeRole === 'member'">{{ t('forms.fillForm') }}</PrimaryButton>
             <template v-if="activeRole === 'manager'">
-              <SecondaryButton class="text-xs">{{ t('forms.viewAnalytics') }}</SecondaryButton>
-              <SecondaryButton class="text-xs">{{ t('forms.close') }}</SecondaryButton>
+              <SecondaryButton>{{ t('forms.viewAnalytics') }}</SecondaryButton>
+              <SecondaryButton>{{ t('forms.close') }}</SecondaryButton>
             </template>
           </div>
         </div>
@@ -73,7 +73,7 @@ const activeRole = ref('')
             </div>
             <p class="text-xs text-(--text-muted)">Rückmeldung zum letzten Übungsabend</p>
           </div>
-          <SecondaryButton v-if="activeRole === 'manager'" class="text-xs">{{ t('forms.viewAnalytics') }}</SecondaryButton>
+          <SecondaryButton v-if="activeRole === 'manager'">{{ t('forms.viewAnalytics') }}</SecondaryButton>
         </div>
       </NeutralContainer>
 
@@ -86,8 +86,8 @@ const activeRole = ref('')
             </div>
           </div>
           <div class="flex gap-2">
-            <SecondaryButton class="text-xs">{{ t('forms.publish') }}</SecondaryButton>
-            <SecondaryButton class="text-xs">{{ t('forms.edit') }}</SecondaryButton>
+            <SecondaryButton>{{ t('forms.publish') }}</SecondaryButton>
+            <SecondaryButton>{{ t('forms.edit') }}</SecondaryButton>
           </div>
         </div>
       </NeutralContainer>

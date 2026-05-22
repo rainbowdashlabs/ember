@@ -25,10 +25,14 @@ import {session as sessionApi, userSettings, managedMembers as managedMembersApi
 import type {ActiveSession, UserSettings, NotificationToggle} from '@/api/types'
 import {useOnboardingTour} from '@/composables/useOnboardingTour'
 import {useSession} from '@/composables/useSession'
+import {useTheme} from '@/composables/useTheme'
+import ThemePicker from '@/components/theme/ThemePicker.vue'
+import {DarkMode} from '@/theme/themes'
 
 const {t} = useI18n()
 const router = useRouter()
 const {startTour} = useOnboardingTour()
+const themeState = useTheme()
 
 function restartTour() {
   startTour()
@@ -307,11 +311,34 @@ onMounted(loadData)
       <Alert v-if="saved" variant="success">{{ t('userSettings.saved') }}</Alert>
 
       <template v-if="!loading && settings">
+        <!-- Theme -->
+        <NeutralContainer class="space-y-4">
+          <SubHeader>{{ t('theme.title') }}</SubHeader>
+          <div class="space-y-3">
+            <div class="flex items-center gap-3">
+              <span class="text-sm font-medium">{{ t('theme.darkMode') }}</span>
+              <div class="flex gap-1">
+                <button v-for="mode in [DarkMode.SYSTEM, DarkMode.LIGHT, DarkMode.DARK]" :key="mode"
+                        :class="themeState.darkMode.value === mode ? 'bg-primary text-white' : 'bg-(--bg-accent)/20 text-(--text-muted) hover:bg-(--bg-accent)/40'"
+                        class="px-3 py-1 rounded-lg text-xs font-medium transition-colors"
+                        @click="themeState.setDarkMode(mode)">
+                  {{ mode === 'system' ? t('theme.darkModeSystem') : mode === 'light' ? t('theme.darkModeLight') : t('theme.darkModeDark') }}
+                </button>
+              </div>
+            </div>
+            <template v-if="themeState.allowUserTheme.value">
+              <p class="text-sm text-(--text-muted)">{{ t('theme.selectThemeHint') }}</p>
+              <ThemePicker />
+            </template>
+            <p v-else class="text-sm text-(--text-muted)">{{ t('theme.controlledByStation') }}</p>
+          </div>
+        </NeutralContainer>
+
         <!-- Active Sessions -->
         <NeutralContainer class="space-y-4">
           <div class="flex items-center justify-between">
             <SubHeader>{{ t('userSettings.sessions') }}</SubHeader>
-            <ErrorButton class="text-xs" @click="showInvalidateAllModal = true">
+            <ErrorButton @click="showInvalidateAllModal = true">
               <font-awesome-icon :icon="['fas', 'trash']" class="mr-1"/>
               {{ t('userSettings.invalidateAll') }}
             </ErrorButton>
@@ -427,7 +454,7 @@ onMounted(loadData)
             <div class="space-y-2">
               <div v-for="m in managedMembers" :key="m.id" class="flex items-center justify-between">
                 <span class="text-sm">{{ m.name }}</span>
-                <DownloadButton :disabled="exportingMemberId === m.id" class="text-xs" @click="exportManagedMemberData(m.id)">
+                <DownloadButton :disabled="exportingMemberId === m.id" @click="exportManagedMemberData(m.id)">
                   {{ exportingMemberId === m.id ? t('common.loading') : t('userSettings.gdprExport') }}
                 </DownloadButton>
               </div>

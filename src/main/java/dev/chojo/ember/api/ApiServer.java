@@ -8,7 +8,9 @@ package dev.chojo.ember.api;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.conf.file.elements.Demo;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
+import dev.chojo.ember.feature.members.entity.MemberGroup;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.members.entity.UserTag;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.repository.UserTagRepository;
@@ -127,6 +129,18 @@ public class ApiServer {
 
             config.routes.before(ctx -> {
                 if (ctx.method() == HandlerType.OPTIONS) return;
+                String bodyLog;
+                if (ctx.path().contains("/ai/")
+                        || ctx.path().contains("/auth/")
+                        || ctx.path().contains("/admin/config/")) {
+                    bodyLog = "[REDACTED - contains sensitive data]";
+                } else if (ctx.contentType() == null
+                        || ctx.contentType().contains("text")
+                        || ctx.contentType().equals(JSON)) {
+                    bodyLog = ctx.body().substring(0, Math.min(ctx.body().length(), 180));
+                } else {
+                    bodyLog = "Bytes";
+                }
                 log.trace(
                         "Received request on route: {} {}\nHeaders:\n{}\nBody:\n{}",
                         ctx.method() + " " + ctx.url(),
@@ -134,15 +148,22 @@ public class ApiServer {
                         ctx.headerMap().entrySet().stream()
                                 .map(h -> "   " + h.getKey() + ": " + h.getValue())
                                 .collect(Collectors.joining("\n")),
-                        ctx.contentType() == null
-                                        || ctx.contentType().contains("text")
-                                        || ctx.contentType().equals(JSON)
-                                ? ctx.body().substring(0, Math.min(ctx.body().length(), 180))
-                                : "Bytes");
+                        bodyLog);
             });
 
             config.routes.after(ctx -> {
                 if (ctx.method() == HandlerType.OPTIONS) return;
+                String responseBody;
+                if (ctx.path().contains("/auth/")
+                        || ctx.path().contains("/ai/")
+                        || ctx.path().contains("/admin/config/")) {
+                    responseBody = "[REDACTED]";
+                } else if (JSON.equals(ctx.res().getContentType())) {
+                    String result = requireNonNullElse(ctx.result(), "");
+                    responseBody = result.substring(0, Math.min(result.length(), 360));
+                } else {
+                    responseBody = "Bytes";
+                }
                 log.trace(
                         "Answered request on route: {} {}\nStatus: {}\nHeaders:\n{}\nBody:\n{}",
                         ctx.method() + " " + ctx.url(),
@@ -151,15 +172,7 @@ public class ApiServer {
                         ctx.res().getHeaderNames().stream()
                                 .map(h -> "   " + h + ": " + ctx.res().getHeader(h))
                                 .collect(Collectors.joining("\n")),
-                        JSON.equals(ctx.res().getContentType())
-                                ? requireNonNullElse(ctx.result(), "")
-                                        .substring(
-                                                0,
-                                                Math.min(
-                                                        requireNonNullElse(ctx.result(), "")
-                                                                .length(),
-                                                        360))
-                                : "Bytes");
+                        responseBody);
             });
 
             // Cache-control headers
@@ -242,10 +255,10 @@ public class ApiServer {
                 var roles = stationMemberRepository.findRoles(member.id());
                 var roleNames = roles.stream().map(r -> r.role().name()).toList();
                 var groupNames = memberGroupRepository.findGroupsForMember(member.id()).stream()
-                        .map(g -> g.name())
+                        .map(MemberGroup::name)
                         .toList();
                 var tagNames = userTagRepository.findTagsForMember(member.id()).stream()
-                        .map(t -> t.name())
+                        .map(UserTag::name)
                         .toList();
                 boolean complete = profileFieldService.isProfileComplete(member.id(), stationId, roleNames);
                 accounts.add(new DemoAccount(
@@ -274,20 +287,26 @@ public class ApiServer {
             return;
         }
 
-        // Extract session token from Authorization header
+        // Extract session token from Authorization header or query param (for iframe/download URLs)
         String authHeader = ctx.header("Authorization");
         String token = null;
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
             token = authHeader.substring(7);
+        }
+        if ((token == null || token.isBlank()) && ctx.queryParam("token") != null) {
+            token = ctx.queryParam("token");
         }
 
         if (token == null || token.isBlank()) {
             throw new UnauthorizedResponse("Missing or invalid Authorization header");
         }
 
-        // Parse optional station ID
+        // Parse optional station ID from header or query param
         Integer stationId = null;
         String stationIdHeader = ctx.header("X-Station-Id");
+        if ((stationIdHeader == null || stationIdHeader.isBlank()) && ctx.queryParam("stationId") != null) {
+            stationIdHeader = ctx.queryParam("stationId");
+        }
         if (stationIdHeader != null && !stationIdHeader.isBlank()) {
             try {
                 stationId = Integer.parseInt(stationIdHeader);

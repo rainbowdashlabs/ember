@@ -45,6 +45,10 @@ const pageTitle = computed(() => {
                      to="/helpcenter/admin/stations/applications" @navigate="close">
           {{ t('sidebar.applications') }}
         </SidebarLink>
+        <SidebarLink :icon="['fas', 'gear']" name="help-admin-settings"
+                     to="/helpcenter/admin/settings" @navigate="close">
+          {{ t('sidebar.settings') }}
+        </SidebarLink>
       </SidebarGroup>
     </template>
 

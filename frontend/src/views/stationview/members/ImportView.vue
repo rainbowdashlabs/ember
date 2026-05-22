@@ -511,7 +511,7 @@ watch(loaded, async (isLoaded) => {
                   <input v-model="entry.to" :placeholder="t('memberImport.targetValue')" class="px-2 py-1.5 rounded border border-bg-light-accent dark:border-bg-dark-accent bg-bg-light dark:bg-bg-dark text-sm" />
                 </div>
               </div>
-              <SecondaryButton class="text-xs" @click="addValueMapEntry">+ {{ t('memberImport.addRow') }}</SecondaryButton>
+              <SecondaryButton @click="addValueMapEntry">+ {{ t('memberImport.addRow') }}</SecondaryButton>
               <div class="flex justify-end gap-3">
                 <SecondaryButton @click="editingValueMapIndex = null">{{ t('common.cancel') }}</SecondaryButton>
                 <PrimaryButton @click="saveValueMap">{{ t('common.save') }}</PrimaryButton>

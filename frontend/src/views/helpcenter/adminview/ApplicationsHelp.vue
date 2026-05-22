@@ -71,8 +71,8 @@ const {t} = useI18n()
           </td>
           <td class="px-3 py-2.5 text-right">
             <div class="flex items-center justify-end gap-1">
-              <PrimaryButton class="text-sm">{{ t('adminApplications.accept') }}</PrimaryButton>
-              <ErrorButton class="text-sm">{{ t('adminApplications.deny') }}</ErrorButton>
+              <PrimaryButton>{{ t('adminApplications.accept') }}</PrimaryButton>
+              <ErrorButton>{{ t('adminApplications.deny') }}</ErrorButton>
             </div>
           </td>
         </tr>

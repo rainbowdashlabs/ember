@@ -78,6 +78,16 @@ const router = createRouter({
             component: () => import('@/views/ApplyVerifyView.vue'),
         },
         {
+            path: '/waiting-list/register',
+            name: 'waitlist-register',
+            component: () => import('@/views/WaitingListRegisterView.vue'),
+        },
+        {
+            path: '/waiting-list/status',
+            name: 'waitlist-status',
+            component: () => import('@/views/WaitingListStatusView.vue'),
+        },
+        {
             path: '/privacy',
             name: 'privacy',
             component: () => import('@/views/PrivacyPolicyView.vue'),
@@ -96,6 +106,11 @@ const router = createRouter({
             path: '/imprint',
             name: 'imprint',
             component: () => import('@/views/ImprintView.vue'),
+        },
+        {
+            path: '/patch-notes',
+            name: 'patch-notes',
+            component: () => import('@/views/PatchNotesView.vue'),
         },
         {
             path: '/station-select',
@@ -209,6 +224,26 @@ const router = createRouter({
                     path: 'members/changes',
                     name: 'members-changes',
                     component: () => import('@/views/stationview/members/ChangesView.vue'),
+                },
+                {
+                    path: 'members/waiting-lists',
+                    name: 'waiting-lists',
+                    component: () => import('@/views/stationview/members/waitinglist/ListView.vue'),
+                },
+                {
+                    path: 'members/waiting-lists/:id',
+                    name: 'waiting-list-detail',
+                    component: () => import('@/views/stationview/members/waitinglist/DetailView.vue'),
+                },
+                {
+                    path: 'members/waiting-lists/:id/fields',
+                    name: 'waiting-list-fields',
+                    component: () => import('@/views/stationview/members/waitinglist/FieldEditorView.vue'),
+                },
+                {
+                    path: 'members/waiting-lists/:id/entries/:entryId',
+                    name: 'waiting-list-entry',
+                    component: () => import('@/views/stationview/members/waitinglist/EntryDetailView.vue'),
                 },
                 {
                     path: 'inventory/overview',
@@ -380,6 +415,83 @@ const router = createRouter({
                     name: 'attendance-report',
                     component: () => import('@/views/stationview/attendance/ReportView.vue'),
                 },
+                // Knowledge Base
+                {
+                    path: 'knowledge',
+                    name: 'kb-browse',
+                    component: () => import('@/views/stationview/knowledge/KnowledgeBaseView.vue'),
+                },
+                {
+                    path: 'knowledge/file/:id',
+                    name: 'kb-file',
+                    component: () => import('@/views/stationview/knowledge/KbFileView.vue'),
+                },
+                {
+                    path: 'knowledge/file/:id/versions',
+                    name: 'kb-versions',
+                    component: () => import('@/views/stationview/knowledge/KbVersionsView.vue'),
+                },
+                // Quiz
+                {
+                    path: 'quiz/catalogs',
+                    name: 'quiz-catalogs',
+                    component: () => import('@/views/stationview/quiz/CatalogListView.vue'),
+                },
+                {
+                    path: 'quiz/catalogs/:id',
+                    name: 'quiz-catalog-detail',
+                    component: () => import('@/views/stationview/quiz/CatalogDetailView.vue'),
+                },
+                {
+                    path: 'quiz/catalogs/:id/generate',
+                    name: 'quiz-catalog-generate',
+                    component: () => import('@/views/stationview/quiz/CatalogGenerateView.vue'),
+                },
+                {
+                    path: 'quiz/catalogs/:id/import',
+                    name: 'quiz-catalog-import',
+                    component: () => import('@/views/stationview/quiz/CsvImportView.vue'),
+                },
+                {
+                    path: 'quiz/tests',
+                    name: 'quiz-tests',
+                    component: () => import('@/views/stationview/quiz/TestListView.vue'),
+                },
+                {
+                    path: 'quiz/tests/create',
+                    name: 'quiz-test-create',
+                    component: () => import('@/views/stationview/quiz/TestBuilderView.vue'),
+                },
+                {
+                    path: 'quiz/tests/:id',
+                    name: 'quiz-test-detail',
+                    component: () => import('@/views/stationview/quiz/TestDetailView.vue'),
+                },
+                {
+                    path: 'quiz/tests/:id/edit',
+                    name: 'quiz-test-edit',
+                    component: () => import('@/views/stationview/quiz/TestBuilderView.vue'),
+                },
+                {
+                    path: 'quiz/tests/:id/take',
+                    name: 'quiz-test-take',
+                    component: () => import('@/views/stationview/quiz/TestTakeView.vue'),
+                },
+                {
+                    path: 'quiz/tests/:id/evaluate/:attemptId',
+                    name: 'quiz-test-evaluate',
+                    component: () => import('@/views/stationview/quiz/TestEvaluateView.vue'),
+                },
+                {
+                    path: 'quiz/training',
+                    name: 'quiz-training',
+                    component: () => import('@/views/stationview/quiz/TrainingView.vue'),
+                },
+                {
+                    path: ':pathMatch(.*)*',
+                    name: 'station-not-found',
+                    component: () => import('@/components/feedback/NotFoundContent.vue'),
+                },
             ],
         },
         {
@@ -415,6 +527,11 @@ const router = createRouter({
                     name: 'admin-station-applications',
                     component: () => import('@/views/adminview/AdminApplicationsView.vue'),
                 },
+                {
+                    path: 'settings',
+                    name: 'admin-settings',
+                    component: () => import('@/views/adminview/AdminSettingsView.vue'),
+                },
             ],
         },
         {
@@ -444,6 +561,7 @@ const router = createRouter({
                 {path: 'profile/managed', name: 'help-profile-managed', component: () => import('@/views/helpcenter/stationview/profile/ManagedHelp.vue')},
                 {path: 'profile/inventory', name: 'help-profile-inventory', component: () => import('@/views/helpcenter/stationview/profile/InventoryHelp.vue')},
                 {path: 'profile/settings', name: 'help-profile-settings', component: () => import('@/views/helpcenter/stationview/profile/SettingsHelp.vue')},
+                {path: 'profile/theme', name: 'help-profile-theme', component: () => import('@/views/helpcenter/stationview/profile/ThemeHelp.vue')},
                 // Station management
                 {path: 'manage', name: 'help-manage-overview', component: () => import('@/views/helpcenter/stationview/manage/OverviewHelp.vue')},
                 {path: 'manage/station', name: 'help-station-manage', component: () => import('@/views/helpcenter/stationview/manage/StationHelp.vue')},
@@ -451,6 +569,7 @@ const router = createRouter({
                 {path: 'manage/attendance-config/edit/:id?', name: 'help-station-attendance-config-edit', component: () => import('@/views/helpcenter/stationview/manage/AttendanceConfigEditHelp.vue')},
                 {path: 'manage/members-config', name: 'help-station-members-config', component: () => import('@/views/helpcenter/stationview/manage/MembersConfigHelp.vue')},
                 {path: 'manage/mail-config', name: 'help-station-mail-config', component: () => import('@/views/helpcenter/stationview/manage/MailConfigHelp.vue')},
+                {path: 'manage/theme', name: 'help-station-theme-manage', component: () => import('@/views/helpcenter/stationview/manage/ThemeManageHelp.vue')},
                 // Members
                 {path: 'members', name: 'help-members-overview', component: () => import('@/views/helpcenter/stationview/members/OverviewHelp.vue')},
                 {path: 'members/create', name: 'help-members-create', component: () => import('@/views/helpcenter/stationview/members/CreateHelp.vue')},
@@ -463,6 +582,7 @@ const router = createRouter({
                 {path: 'members/tags', name: 'help-members-tags', component: () => import('@/views/helpcenter/stationview/members/TagsHelp.vue')},
                 {path: 'members/changes', name: 'help-members-changes', component: () => import('@/views/helpcenter/stationview/members/ChangesHelp.vue')},
                 {path: 'members/former', name: 'help-members-former', component: () => import('@/views/helpcenter/stationview/members/FormerHelp.vue')},
+                {path: 'members/waiting-lists', name: 'help-waiting-lists', component: () => import('@/views/helpcenter/stationview/members/WaitingListHelp.vue')},
                 // Inventory
                 {path: 'inventory', name: 'help-inventory-module-overview', component: () => import('@/views/helpcenter/stationview/inventory/ModuleOverviewHelp.vue')},
                 {path: 'inventory/overview', name: 'help-inventory-overview', component: () => import('@/views/helpcenter/stationview/inventory/OverviewHelp.vue')},
@@ -500,6 +620,18 @@ const router = createRouter({
                 {path: 'forms/analytics/:id?', name: 'help-forms-analytics', component: () => import('@/views/helpcenter/stationview/forms/AnalyticsHelp.vue')},
                 // Lost and Found
                 {path: 'lost-and-found', name: 'help-lost-and-found', component: () => import('@/views/helpcenter/stationview/lostandfound/ListHelp.vue')},
+                // Quiz
+                {path: 'quiz', name: 'help-quiz-overview', component: () => import('@/views/helpcenter/stationview/quiz/OverviewHelp.vue')},
+                {path: 'quiz/catalogs', name: 'help-quiz-catalogs', component: () => import('@/views/helpcenter/stationview/quiz/CatalogListHelp.vue')},
+                {path: 'quiz/catalog', name: 'help-quiz-catalog-detail', component: () => import('@/views/helpcenter/stationview/quiz/CatalogDetailHelp.vue')},
+                {path: 'quiz/ai', name: 'help-quiz-ai', component: () => import('@/views/helpcenter/stationview/quiz/AiGenerationHelp.vue')},
+                {path: 'quiz/tests', name: 'help-quiz-tests', component: () => import('@/views/helpcenter/stationview/quiz/TestListHelp.vue')},
+                {path: 'quiz/tests/details', name: 'help-quiz-test-detail', component: () => import('@/views/helpcenter/stationview/quiz/TestDetailHelp.vue')},
+                {path: 'quiz/training', name: 'help-quiz-training', component: () => import('@/views/helpcenter/stationview/quiz/TrainingHelp.vue')},
+                // Knowledge Base
+                {path: 'knowledge', name: 'help-knowledge-base', component: () => import('@/views/helpcenter/stationview/knowledge/KnowledgeBaseHelp.vue')},
+                {path: 'knowledge/editor', name: 'help-knowledge-editor', component: () => import('@/views/helpcenter/stationview/knowledge/EditorHelp.vue')},
+                {path: ':pathMatch(.*)*', name: 'helpcenter-station-not-found', component: () => import('@/components/feedback/NotFoundContent.vue')},
             ],
         },
         {
@@ -512,6 +644,8 @@ const router = createRouter({
                 {path: 'stations', name: 'help-admin-stations', component: () => import('@/views/helpcenter/adminview/StationsHelp.vue')},
                 {path: 'stations/edit/:id?', name: 'help-admin-station-edit', component: () => import('@/views/helpcenter/adminview/StationEditHelp.vue')},
                 {path: 'stations/applications', name: 'help-admin-station-applications', component: () => import('@/views/helpcenter/adminview/ApplicationsHelp.vue')},
+                {path: 'settings', name: 'help-admin-settings', component: () => import('@/views/helpcenter/adminview/SettingsHelp.vue')},
+                {path: ':pathMatch(.*)*', name: 'helpcenter-admin-not-found', component: () => import('@/components/feedback/NotFoundContent.vue')},
             ],
         },
         {
@@ -519,11 +653,16 @@ const router = createRouter({
             name: 'style',
             component: StyleView,
         },
+        {
+            path: '/:pathMatch(.*)*',
+            name: 'not-found',
+            component: () => import('@/views/NotFoundView.vue'),
+        },
     ],
 })
 
 router.beforeEach((to) => {
-    const publicRoutes = ['home', 'login', 'forgot-password', 'set-password', 'reset-password', 'apply', 'apply-verify', 'style', 'privacy', 'terms', 'imprint']
+    const publicRoutes = ['home', 'login', 'forgot-password', 'set-password', 'reset-password', 'apply', 'apply-verify', 'waitlist-register', 'waitlist-status', 'style', 'privacy', 'terms', 'imprint', 'patch-notes', 'not-found']
     if (publicRoutes.includes(to.name as string)) {
         return true
     }

@@ -469,6 +469,39 @@ public class EventRepository {
         return result;
     }
 
+    public List<Integer> findTagRestrictions(int eventId) {
+        return Query.query("SELECT tag_id FROM event_tag_restriction WHERE event_id = :event_id;")
+                .single(Call.of().bind("event_id", eventId))
+                .map(row -> row.getInt("tag_id"))
+                .all();
+    }
+
+    public void setTagRestrictions(int eventId, List<Integer> tagIds) {
+        Query.query("DELETE FROM event_tag_restriction WHERE event_id = :event_id;")
+                .single(Call.of().bind("event_id", eventId))
+                .delete();
+        for (int tagId : tagIds) {
+            Query.query("INSERT INTO event_tag_restriction(event_id, tag_id) VALUES(:event_id, :tag_id);")
+                    .single(Call.of().bind("event_id", eventId).bind("tag_id", tagId))
+                    .insert();
+        }
+    }
+
+    public Map<Integer, List<Integer>> findAllTagRestrictionsByStation(int stationId) {
+        var result = new HashMap<Integer, List<Integer>>();
+        Query.query("""
+                     SELECT etr.event_id, etr.tag_id
+                     FROM event_tag_restriction etr
+                     JOIN station_event se ON se.id = etr.event_id
+                     WHERE se.station_id = :station_id;""")
+                .single(Call.of().bind("station_id", stationId))
+                .map(row -> new int[] {row.getInt("event_id"), row.getInt("tag_id")})
+                .all()
+                .forEach(r ->
+                        result.computeIfAbsent(r[0], k -> new ArrayList<>()).add(r[1]));
+        return result;
+    }
+
     // -- Field Defaults --
 
     /**

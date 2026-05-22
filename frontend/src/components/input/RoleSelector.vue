@@ -9,6 +9,9 @@ import {useI18n} from 'vue-i18n'
 import type {Role} from '@/api/types'
 import {Roles} from '@/api/types'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
+import {useBreakpoint} from '@/composables/useBreakpoint'
+
+const {isMobile} = useBreakpoint()
 
 const props = defineProps<{
   allRoles: Role[]
@@ -149,7 +152,35 @@ function isSelected(role: Role): boolean {
 </script>
 
 <template>
-  <div class="overflow-x-auto">
+  <!-- Mobile card layout -->
+  <div v-if="isMobile" class="space-y-2">
+    <div
+      v-for="role in assignableRoles"
+      :key="role.id"
+      class="flex items-center gap-3 rounded-lg px-3 py-2 border border-(--border)"
+      :class="{ 'opacity-40': isRoleDisabled(role) && !isSelected(role) }"
+    >
+      <ToggleInput
+        :model-value="isSelected(role) || isRoleIncluded(role.role)"
+        :disabled="isRoleDisabled(role)"
+        @update:model-value="toggleRole(role)"
+      />
+      <div class="min-w-0">
+        <div class="font-medium text-sm">{{ roleFriendlyNames[role.role] ?? role.role }}</div>
+        <div v-if="statusHint(role)" class="text-xs text-(--text-muted)">{{ statusHint(role) }}</div>
+        <div v-if="getDirectChildren(role.role).length > 0" class="flex flex-wrap gap-1 mt-1">
+          <span
+            v-for="child in getDirectChildren(role.role)"
+            :key="child"
+            class="inline-block rounded-full bg-secondary/10 text-secondary px-2 py-0.5 text-xs"
+          >{{ roleFriendlyNames[child] ?? child }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Desktop table layout -->
+  <div v-else class="overflow-x-auto">
     <table class="w-full text-sm">
       <thead>
         <tr class="border-b border-(--border) text-left">

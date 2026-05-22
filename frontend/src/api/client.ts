@@ -57,7 +57,11 @@ client.interceptors.response.use(
             if (token && !refreshing) {
                 removeItem('session_token')
                 removeItem('station_id')
-                window.location.href = '/login'
+                const currentPath = window.location.pathname + window.location.search
+                const redirect = currentPath && currentPath !== '/' && currentPath !== '/login'
+                    ? `?redirect=${encodeURIComponent(currentPath)}`
+                    : ''
+                window.location.href = '/login' + redirect
             }
         }
         return Promise.reject(error)

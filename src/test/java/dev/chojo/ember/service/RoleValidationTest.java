@@ -141,42 +141,4 @@ class RoleValidationTest {
 
         assertDoesNotThrow(() -> RoleValidation.validateRoleChanges(current, desired, ALL_ROLES, callerRoles, false));
     }
-
-    // --- validateGuardianRoleChanges ---
-
-    @Test
-    void guardianCanGrantMemberRole() {
-        List<Role> current = List.of(LOGIN);
-        List<Integer> desired = List.of(LOGIN.id(), MEMBER.id());
-
-        assertDoesNotThrow(() -> RoleValidation.validateGuardianRoleChanges(current, desired, ALL_ROLES));
-    }
-
-    @Test
-    void guardianCannotGrantManagementRole() {
-        List<Role> current = List.of(LOGIN);
-        List<Integer> desired = List.of(LOGIN.id(), TEAM.id());
-
-        assertThrows(
-                ForbiddenResponse.class, () -> RoleValidation.validateGuardianRoleChanges(current, desired, ALL_ROLES));
-    }
-
-    @Test
-    void guardianCannotRemoveRoles() {
-        List<Role> current = List.of(LOGIN, MEMBER);
-        List<Integer> desired = List.of(LOGIN.id()); // removing MEMBER
-
-        assertThrows(
-                ForbiddenResponse.class, () -> RoleValidation.validateGuardianRoleChanges(current, desired, ALL_ROLES));
-    }
-
-    @Test
-    void guardianCannotGrantConflictingRoles() {
-        List<Role> current = List.of(LOGIN, MEMBER);
-        List<Integer> desired = List.of(LOGIN.id(), MEMBER.id(), GUARDIAN.id());
-
-        assertThrows(
-                BadRequestResponse.class,
-                () -> RoleValidation.validateGuardianRoleChanges(current, desired, ALL_ROLES));
-    }
 }

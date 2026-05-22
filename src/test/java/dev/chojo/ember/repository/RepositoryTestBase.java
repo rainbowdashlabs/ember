@@ -82,6 +82,7 @@ public abstract class RepositoryTestBase {
     protected static NotificationSettingsRepository notificationSettingsRepo;
     protected static StationApplicationRepository stationApplicationRepo;
     protected static StationMailConfigRepository stationMailConfigRepo;
+    protected static dev.chojo.ember.feature.waitinglist.repository.WaitingListRepository waitingListRepo;
 
     @BeforeAll
     static void setupDatabase() throws Exception {
@@ -155,5 +156,6 @@ public abstract class RepositoryTestBase {
         notificationSettingsRepo = new NotificationSettingsRepository();
         stationApplicationRepo = new StationApplicationRepository();
         stationMailConfigRepo = new StationMailConfigRepository();
+        waitingListRepo = new dev.chojo.ember.feature.waitinglist.repository.WaitingListRepository();
     }
 }

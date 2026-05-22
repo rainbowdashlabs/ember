@@ -51,13 +51,13 @@ const {t} = useI18n()
             <span class="font-medium text-sm">Max Mustermann</span>
           </div>
           <div class="flex items-center gap-2">
-            <SuccessButton class="text-xs opacity-40" disabled>
+            <SuccessButton class="opacity-40" disabled>
               <font-awesome-icon :icon="['fas', 'check']"/>
             </SuccessButton>
-            <ErrorButton class="text-xs">
+            <ErrorButton>
               <font-awesome-icon :icon="['fas', 'xmark']"/>
             </ErrorButton>
-            <InfoButton class="text-xs">
+            <InfoButton>
               <font-awesome-icon :icon="['fas', 'ban']"/>
             </InfoButton>
           </div>
@@ -70,13 +70,13 @@ const {t} = useI18n()
             <span class="font-medium text-sm">Erika Muster</span>
           </div>
           <div class="flex items-center gap-2">
-            <SuccessButton class="text-xs">
+            <SuccessButton>
               <font-awesome-icon :icon="['fas', 'check']"/>
             </SuccessButton>
-            <ErrorButton class="text-xs opacity-40" disabled>
+            <ErrorButton class="opacity-40" disabled>
               <font-awesome-icon :icon="['fas', 'xmark']"/>
             </ErrorButton>
-            <InfoButton class="text-xs">
+            <InfoButton>
               <font-awesome-icon :icon="['fas', 'ban']"/>
             </InfoButton>
           </div>
@@ -89,13 +89,13 @@ const {t} = useI18n()
             <span class="font-medium text-sm">Anna Schmidt</span>
           </div>
           <div class="flex items-center gap-2">
-            <SuccessButton class="text-xs">
+            <SuccessButton>
               <font-awesome-icon :icon="['fas', 'check']"/>
             </SuccessButton>
-            <ErrorButton class="text-xs">
+            <ErrorButton>
               <font-awesome-icon :icon="['fas', 'xmark']"/>
             </ErrorButton>
-            <InfoButton class="text-xs">
+            <InfoButton>
               <font-awesome-icon :icon="['fas', 'ban']"/>
             </InfoButton>
           </div>
@@ -114,15 +114,15 @@ const {t} = useI18n()
         <p class="text-2xl font-bold">Anna Schmidt</p>
         <p class="text-sm text-(--text-muted)">1 / 2</p>
         <div class="flex justify-center gap-4">
-          <SuccessButton class="text-lg px-6 py-3">
+          <SuccessButton>
             <font-awesome-icon :icon="['fas', 'check']" class="mr-2"/>
             {{ t('attendanceSession.present') }}
           </SuccessButton>
-          <ErrorButton class="text-lg px-6 py-3">
+          <ErrorButton>
             <font-awesome-icon :icon="['fas', 'xmark']" class="mr-2"/>
             {{ t('attendanceSession.absent') }}
           </ErrorButton>
-          <InfoButton class="text-lg px-6 py-3">
+          <InfoButton>
             <font-awesome-icon :icon="['fas', 'ban']" class="mr-2"/>
             {{ t('attendanceSession.declined') }}
           </InfoButton>

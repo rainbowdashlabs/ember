@@ -43,7 +43,7 @@ const {t} = useI18n()
           <NeutralContainer class="flex items-center justify-between cursor-pointer border-primary">
             <span class="font-medium">Ersthelfer</span>
             <div class="flex items-center gap-2">
-              <SecondaryButton class="text-xs">
+              <SecondaryButton>
                 <font-awesome-icon :icon="['fas', 'people-group']" class="mr-1"/>
                 Zu Gruppe
               </SecondaryButton>
@@ -54,7 +54,7 @@ const {t} = useI18n()
           <NeutralContainer class="flex items-center justify-between cursor-pointer hover:border-primary">
             <span class="font-medium">Fahrer</span>
             <div class="flex items-center gap-2">
-              <SecondaryButton class="text-xs">
+              <SecondaryButton>
                 <font-awesome-icon :icon="['fas', 'people-group']" class="mr-1"/>
                 Zu Gruppe
               </SecondaryButton>

@@ -123,14 +123,14 @@ const {t} = useI18n()
           <div class="text-sm font-medium">Helm <span class="font-normal text-(--text-muted)">[M]</span></div>
           <div class="text-xs text-(--text-muted)">INV-0010</div>
         </div>
-        <PrimaryButton class="text-xs">{{ t('inventory.detail.assign') }}</PrimaryButton>
+        <PrimaryButton>{{ t('inventory.detail.assign') }}</PrimaryButton>
       </NeutralContainer>
       <NeutralContainer class="flex items-center justify-between gap-2">
         <div>
           <div class="text-sm font-medium">Helm <span class="font-normal text-(--text-muted)">[L]</span></div>
           <div class="text-xs text-(--text-muted)">INV-0011</div>
         </div>
-        <PrimaryButton class="text-xs">{{ t('inventory.detail.assign') }}</PrimaryButton>
+        <PrimaryButton>{{ t('inventory.detail.assign') }}</PrimaryButton>
       </NeutralContainer>
     </div>
 

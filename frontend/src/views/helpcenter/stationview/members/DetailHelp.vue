@@ -88,11 +88,11 @@ const {t} = useI18n()
       <div class="flex items-center justify-between">
         <h3 class="text-sm font-semibold">{{ t('memberDetail.managers') }}</h3>
         <div class="flex items-center gap-2">
-          <SecondaryButton class="text-sm">
+          <SecondaryButton>
             <font-awesome-icon :icon="['fas', 'link']" class="mr-1"/>
             {{ t('memberDetail.linkManager') }}
           </SecondaryButton>
-          <SecondaryButton class="text-sm">
+          <SecondaryButton>
             <font-awesome-icon :icon="['fas', 'plus']" class="mr-1"/>
             {{ t('memberDetail.createManager') }}
           </SecondaryButton>
@@ -130,7 +130,7 @@ const {t} = useI18n()
     <NeutralContainer class="space-y-3">
       <div class="flex items-center justify-between">
         <SubHeader>{{ t('memberDetail.inventory') }}</SubHeader>
-        <PrimaryButton class="text-sm" disabled>
+        <PrimaryButton disabled>
           <font-awesome-icon :icon="['fas', 'plus']" class="mr-1"/>
           {{ t('memberDetail.assignItem') }}
         </PrimaryButton>

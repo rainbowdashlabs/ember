@@ -136,6 +136,10 @@ public class StationService {
         return Optional.empty();
     }
 
+    public void updateThemeSettings(int id, String defaultTheme, boolean allowUserTheme, String customThemeColors) {
+        stationRepository.updateThemeSettings(id, defaultTheme, allowUserTheme, customThemeColors);
+    }
+
     /**
      * Updates a station's name and assigns a manager by email.
      *

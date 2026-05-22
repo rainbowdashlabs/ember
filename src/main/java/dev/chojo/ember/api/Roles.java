@@ -71,6 +71,18 @@ public enum Roles implements RouteRole {
      */
     LOST_AND_FOUND_MANAGEMENT(TEAM),
     /**
+     * Manage waiting lists
+     */
+    WAITLIST_MANAGEMENT(TEAM),
+    /**
+     * Manage quiz catalogs, tests and grading
+     */
+    QUIZ_MANAGEMENT(TEAM),
+    /**
+     * Manage knowledge base content
+     */
+    KNOWLEDGE_MANAGEMENT(TEAM),
+    /**
      * Manage everything. Includes all other management roles
      */
     MANAGER(
@@ -82,7 +94,10 @@ public enum Roles implements RouteRole {
             MEMBER_MANAGEMENT,
             NEWS_MANAGEMENT,
             POLL_MANAGEMENT,
-            LOST_AND_FOUND_MANAGEMENT),
+            LOST_AND_FOUND_MANAGEMENT,
+            WAITLIST_MANAGEMENT,
+            QUIZ_MANAGEMENT,
+            KNOWLEDGE_MANAGEMENT),
     /**
      * Manange the software itself.
      */
@@ -110,25 +125,12 @@ public enum Roles implements RouteRole {
                     MEMBER_MANAGEMENT,
                     NEWS_MANAGEMENT,
                     POLL_MANAGEMENT,
-                    LOST_AND_FOUND_MANAGEMENT),
+                    LOST_AND_FOUND_MANAGEMENT,
+                    WAITLIST_MANAGEMENT,
+                    QUIZ_MANAGEMENT,
+                    KNOWLEDGE_MANAGEMENT),
             GUARDIAN,
             Set.of(MEMBER));
-
-    /**
-     * Management roles that require elevated privileges and cannot be granted by guardians.
-     */
-    public static final Set<Roles> MANAGEMENT_ROLES = Set.of(
-            TEAM,
-            ATTENDENCE_MANAGEMENT,
-            ATTENDENCE_EXPORT_MANAGER,
-            INVENTORY_MANAGEMENT,
-            EVENT_MANAGEMENT,
-            MEMBER_MANAGEMENT,
-            NEWS_MANAGEMENT,
-            POLL_MANAGEMENT,
-            LOST_AND_FOUND_MANAGEMENT,
-            MANAGER,
-            ADMIN);
 
     private final Roles[] children;
     private Set<Roles> allChildren;

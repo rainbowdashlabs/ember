@@ -13,11 +13,12 @@ import de.chojo.sadu.mapper.rowmapper.RowMapping;
  * @param memberId     the station member identifier
  * @param emailEnabled whether email notifications are enabled for this member
  */
-public record UserSettings(int memberId, boolean emailEnabled) {
-    /**
-     * Creates a row mapping for database result set conversion.
-     */
+public record UserSettings(int memberId, boolean emailEnabled, String theme, String darkMode) {
     public static RowMapping<UserSettings> map() {
-        return row -> new UserSettings(row.getInt("member_id"), row.getBoolean("email_enabled"));
+        return row -> new UserSettings(
+                row.getInt("member_id"),
+                row.getBoolean("email_enabled"),
+                row.getString("theme"),
+                row.getString("dark_mode"));
     }
 }

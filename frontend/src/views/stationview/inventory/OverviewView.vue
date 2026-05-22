@@ -22,11 +22,13 @@ import type { InventoryItem, InventorySize, StationMember, ExchangeRequestEntry,
 import { ExchangeStatus } from '@/api/types'
 import { inventory, stationMembers, exchanges, procurement } from '@/api'
 import { useStations } from '@/composables/useStations'
+import { useBreakpoint } from '@/composables/useBreakpoint'
 import MemberName from '@/components/avatar/MemberName.vue'
 
 const { t } = useI18n()
 const router = useRouter()
 const { activeStation } = useStations()
+const { isMobile } = useBreakpoint()
 
 interface LostItem {
   item: InventoryItem
@@ -129,7 +131,19 @@ watch(() => activeStation.value?.stationId, (newId, oldId) => {
             <font-awesome-icon :icon="['fas', 'rotate']" class="mr-2" />
             {{ t('inventory.overview.exchanges') }} ({{ openExchanges.length }})
           </SubHeader>
-          <NeutralContainer class="overflow-x-auto">
+          <!-- Mobile cards -->
+          <div v-if="isMobile" class="space-y-2">
+            <NeutralContainer v-for="ex in openExchanges" :key="ex.id" class="space-y-1 cursor-pointer" @click="router.push({ name: 'inventory-exchanges' })">
+              <div class="flex items-center justify-between">
+                <span class="text-sm font-medium">{{ ex.inventoryName }}</span>
+                <component :is="exchangeStatusBadge(ex.status)">{{ t(`exchanges.status.${ex.status}`) }}</component>
+              </div>
+              <div class="text-xs text-(--text-muted)"><MemberName :name="ex.memberName"/></div>
+              <SizeBadge>{{ ex.oldSizeLabel ?? t('common.unisize') }} &rarr; {{ ex.newSizeLabel ?? t('common.unisize') }}</SizeBadge>
+            </NeutralContainer>
+          </div>
+          <!-- Desktop table -->
+          <NeutralContainer v-else class="overflow-x-auto">
             <table class="w-full text-sm">
               <thead>
                 <tr class="border-b border-bg-light-accent dark:border-bg-dark-accent text-left">
@@ -144,7 +158,7 @@ watch(() => activeStation.value?.stationId, (newId, oldId) => {
                     @click="router.push({ name: 'inventory-exchanges' })">
                   <td class="px-3 py-2.5">
                     {{ ex.inventoryName }}
-                    <SizeBadge>{{ ex.oldSizeLabel ?? t('common.unisize') }} → {{ ex.newSizeLabel ?? t('common.unisize') }}</SizeBadge>
+                    <SizeBadge>{{ ex.oldSizeLabel ?? t('common.unisize') }} &rarr; {{ ex.newSizeLabel ?? t('common.unisize') }}</SizeBadge>
                   </td>
                   <td class="px-3 py-2.5"><MemberName :name="ex.memberName"/></td>
                   <td class="px-3 py-2.5">
@@ -162,7 +176,19 @@ watch(() => activeStation.value?.stationId, (newId, oldId) => {
             <font-awesome-icon :icon="['fas', 'folder-plus']" class="mr-2" />
             {{ t('inventory.overview.procurement') }} ({{ openProcurement.length }})
           </SubHeader>
-          <NeutralContainer class="overflow-x-auto">
+          <!-- Mobile cards -->
+          <div v-if="isMobile" class="space-y-2">
+            <NeutralContainer v-for="p in openProcurement" :key="p.id" class="space-y-1 cursor-pointer" @click="router.push({ name: 'inventory-procurement' })">
+              <div class="flex items-center justify-between">
+                <span class="text-sm font-medium">{{ p.inventoryName }}</span>
+                <SizeBadge>{{ p.sizeLabel || t('common.unisize') }}</SizeBadge>
+              </div>
+              <div class="text-xs text-(--text-muted)"><MemberName :name="p.memberName"/></div>
+              <div v-if="p.notes" class="text-xs text-(--text-muted)">{{ p.notes }}</div>
+            </NeutralContainer>
+          </div>
+          <!-- Desktop table -->
+          <NeutralContainer v-else class="overflow-x-auto">
             <table class="w-full text-sm">
               <thead>
                 <tr class="border-b border-bg-light-accent dark:border-bg-dark-accent text-left">
@@ -190,7 +216,22 @@ watch(() => activeStation.value?.stationId, (newId, oldId) => {
         <!-- Lost items -->
         <div v-if="lostItems.length > 0" class="space-y-3">
           <SubHeader>{{ t('inventory.overview.lost') }}</SubHeader>
-          <NeutralContainer class="overflow-x-auto">
+          <!-- Mobile cards -->
+          <div v-if="isMobile" class="space-y-2">
+            <NeutralContainer v-for="a in lostItems" :key="a.item.id" class="space-y-1">
+              <div class="flex items-center justify-between">
+                <span class="text-sm font-medium">{{ a.item.name }}</span>
+                <ErrorBadge>{{ formatDate(a.item.lostAt) }}</ErrorBadge>
+              </div>
+              <div class="flex items-center gap-2">
+                <SizeBadge lost>{{ a.sizeName || t('common.unisize') }}</SizeBadge>
+                <span v-if="a.item.internalId" class="text-xs text-(--text-muted)">{{ a.item.internalId }}</span>
+              </div>
+              <div class="text-xs text-(--text-muted)"><MemberName :name="a.ownerName"/></div>
+            </NeutralContainer>
+          </div>
+          <!-- Desktop table -->
+          <NeutralContainer v-else class="overflow-x-auto">
             <table class="w-full text-sm">
               <thead>
                 <tr class="border-b border-bg-light-accent dark:border-bg-dark-accent text-left">

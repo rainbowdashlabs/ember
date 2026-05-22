@@ -15,7 +15,7 @@ defineEmits<{
 </script>
 
 <template>
-  <header class="flex h-14 items-center border-b border-bg-light-accent dark:border-bg-dark-accent px-4 gap-4">
+  <header class="sticky top-0 z-20 bg-(--bg) flex h-14 items-center border-b border-bg-light-accent dark:border-bg-dark-accent px-4 gap-4">
     <button
         aria-label="Menu"
         class="p-2 rounded-lg text-[var(--text)] hover:bg-bg-light-accent dark:hover:bg-bg-dark-accent lg:hidden"

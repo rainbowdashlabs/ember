@@ -66,7 +66,7 @@ const activeRole = ref('')
           <font-awesome-icon :icon="['fas', 'bell']" class="mr-2"/>
           {{ t('dashboard.notifications') }} (2)
         </SectionHeader>
-        <SecondaryButton class="text-sm">
+        <SecondaryButton>
           <font-awesome-icon :icon="['fas', 'check-double']" class="mr-1"/>
           {{ t('dashboard.acknowledgeAll') }}
         </SecondaryButton>

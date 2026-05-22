@@ -122,7 +122,7 @@ const {t} = useI18n()
             <IconButton :icon="['fas', 'chevron-down']" label="Down" class="text-(--text-muted)" disabled />
             <DeleteButton disabled />
           </div>
-          <SecondaryButton class="text-xs" disabled>{{ t('forms.choice.addOption') }}</SecondaryButton>
+          <SecondaryButton disabled>{{ t('forms.choice.addOption') }}</SecondaryButton>
         </div>
       </div>
     </NeutralContainer>
@@ -133,27 +133,27 @@ const {t} = useI18n()
 
     <!-- Dummy: Add question buttons -->
     <div class="flex flex-wrap gap-2">
-      <SecondaryButton class="text-xs" disabled>
+      <SecondaryButton disabled>
         <font-awesome-icon :icon="['fas', 'plus']" class="mr-1" />
         {{ t('forms.questionTypes.CHOICE') }}
       </SecondaryButton>
-      <SecondaryButton class="text-xs" disabled>
+      <SecondaryButton disabled>
         <font-awesome-icon :icon="['fas', 'plus']" class="mr-1" />
         {{ t('forms.questionTypes.TEXT') }}
       </SecondaryButton>
-      <SecondaryButton class="text-xs" disabled>
+      <SecondaryButton disabled>
         <font-awesome-icon :icon="['fas', 'plus']" class="mr-1" />
         {{ t('forms.questionTypes.RATING') }}
       </SecondaryButton>
-      <SecondaryButton class="text-xs" disabled>
+      <SecondaryButton disabled>
         <font-awesome-icon :icon="['fas', 'plus']" class="mr-1" />
         {{ t('forms.questionTypes.DATE') }}
       </SecondaryButton>
-      <SecondaryButton class="text-xs" disabled>
+      <SecondaryButton disabled>
         <font-awesome-icon :icon="['fas', 'plus']" class="mr-1" />
         {{ t('forms.questionTypes.RANKING') }}
       </SecondaryButton>
-      <SecondaryButton class="text-xs" disabled>
+      <SecondaryButton disabled>
         <font-awesome-icon :icon="['fas', 'plus']" class="mr-1" />
         {{ t('forms.questionTypes.LIKERT') }}
       </SecondaryButton>

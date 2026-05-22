@@ -1,0 +1,1178 @@
+/*
+ *     SPDX-License-Identifier: AGPL-3.0-only
+ *
+ *     Copyright (C) RainbowDashLabs and Contributor
+ */
+package dev.chojo.ember.feature.quiz.route;
+
+import dev.chojo.ember.api.Roles;
+import dev.chojo.ember.api.Routes;
+import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.conf.file.elements.Api;
+import dev.chojo.ember.feature.media.service.ImageCategory;
+import dev.chojo.ember.feature.media.service.ImageService;
+import dev.chojo.ember.feature.members.entity.MemberGroup;
+import dev.chojo.ember.feature.members.entity.Role;
+import dev.chojo.ember.feature.members.entity.UserTag;
+import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
+import dev.chojo.ember.feature.members.repository.StationMemberRepository;
+import dev.chojo.ember.feature.members.repository.UserTagRepository;
+import dev.chojo.ember.feature.quiz.entity.AttemptStatus;
+import dev.chojo.ember.feature.quiz.entity.QuestionType;
+import dev.chojo.ember.feature.quiz.entity.QuizCategory;
+import dev.chojo.ember.feature.quiz.entity.QuizQuestion;
+import dev.chojo.ember.feature.quiz.entity.QuizTest;
+import dev.chojo.ember.feature.quiz.entity.QuizTestAnswer;
+import dev.chojo.ember.feature.quiz.entity.QuizTestAttempt;
+import dev.chojo.ember.feature.quiz.entity.QuizTestAttemptQuestion;
+import dev.chojo.ember.feature.quiz.entity.QuizTestSectionSource;
+import dev.chojo.ember.feature.quiz.entity.TestStatus;
+import dev.chojo.ember.feature.quiz.service.QuizPdfService;
+import dev.chojo.ember.feature.quiz.service.QuizService;
+import io.javalin.http.BadRequestResponse;
+import io.javalin.http.Context;
+import io.javalin.http.ForbiddenResponse;
+import io.javalin.http.HttpStatus;
+import io.javalin.http.InternalServerErrorResponse;
+import io.javalin.http.NotFoundResponse;
+import io.javalin.router.JavalinDefaultRoutingApi;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
+
+import java.io.IOException;
+import java.time.Instant;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+@Singleton
+public class QuizRoutes implements Routes {
+    private static final Set<String> ALLOWED_IMAGE_TYPES = Set.of("image/png", "image/jpeg", "image/webp");
+
+    private final QuizService quizService;
+    private final QuizPdfService pdfService;
+    private final ImageService imageService;
+    private final StationMemberRepository stationMemberRepository;
+    private final MemberGroupRepository memberGroupRepository;
+    private final UserTagRepository userTagRepository;
+    private final Api apiConfig;
+
+    @Inject
+    public QuizRoutes(
+            QuizService quizService,
+            QuizPdfService pdfService,
+            ImageService imageService,
+            StationMemberRepository stationMemberRepository,
+            MemberGroupRepository memberGroupRepository,
+            UserTagRepository userTagRepository,
+            Api apiConfig) {
+        this.quizService = quizService;
+        this.pdfService = pdfService;
+        this.imageService = imageService;
+        this.stationMemberRepository = stationMemberRepository;
+        this.memberGroupRepository = memberGroupRepository;
+        this.userTagRepository = userTagRepository;
+        this.apiConfig = apiConfig;
+    }
+
+    @Override
+    public void register(JavalinDefaultRoutingApi routes, String prefix) {
+        // Catalogs
+        routes.get(prefix + "/quiz/catalogs", this::listCatalogs, Roles.QUIZ_MANAGEMENT);
+        routes.post(prefix + "/quiz/catalogs", this::createCatalog, Roles.QUIZ_MANAGEMENT);
+        routes.get(prefix + "/quiz/catalogs/{id}", this::getCatalog, Roles.QUIZ_MANAGEMENT);
+        routes.put(prefix + "/quiz/catalogs/{id}", this::updateCatalog, Roles.QUIZ_MANAGEMENT);
+        routes.delete(prefix + "/quiz/catalogs/{id}", this::deleteCatalog, Roles.QUIZ_MANAGEMENT);
+
+        // Categories (station-scoped, shared across catalogs)
+        routes.get(prefix + "/quiz/categories", this::listCategories, Roles.QUIZ_MANAGEMENT);
+        routes.post(prefix + "/quiz/categories", this::createCategory, Roles.QUIZ_MANAGEMENT);
+        routes.put(prefix + "/quiz/categories/{id}", this::updateCategory, Roles.QUIZ_MANAGEMENT);
+        routes.delete(prefix + "/quiz/categories/{id}", this::deleteCategory, Roles.QUIZ_MANAGEMENT);
+
+        // Questions
+        routes.get(prefix + "/quiz/catalogs/{id}/questions", this::listQuestions, Roles.QUIZ_MANAGEMENT);
+        routes.post(prefix + "/quiz/catalogs/{id}/questions", this::createQuestion, Roles.QUIZ_MANAGEMENT);
+        routes.get(prefix + "/quiz/questions/{id}", this::getQuestion, Roles.USER);
+        routes.put(prefix + "/quiz/questions/{id}", this::updateQuestion, Roles.QUIZ_MANAGEMENT);
+        routes.delete(prefix + "/quiz/questions/{id}", this::deleteQuestion, Roles.QUIZ_MANAGEMENT);
+
+        // Tests
+        routes.get(prefix + "/quiz/tests", this::listTests, Roles.QUIZ_MANAGEMENT);
+        routes.get(prefix + "/quiz/tests/available", this::listAvailableTests, Roles.USER);
+        routes.post(prefix + "/quiz/tests", this::createTest, Roles.QUIZ_MANAGEMENT);
+        routes.get(prefix + "/quiz/tests/{id}", this::getTest, Roles.USER);
+        routes.put(prefix + "/quiz/tests/{id}", this::updateTest, Roles.QUIZ_MANAGEMENT);
+        routes.delete(prefix + "/quiz/tests/{id}", this::deleteTest, Roles.QUIZ_MANAGEMENT);
+        routes.post(prefix + "/quiz/tests/{id}/activate", this::activateTest, Roles.QUIZ_MANAGEMENT);
+        routes.post(prefix + "/quiz/tests/{id}/close", this::closeTest, Roles.QUIZ_MANAGEMENT);
+        routes.post(
+                prefix + "/quiz/tests/{id}/generate-questions", this::generateFrozenQuestions, Roles.QUIZ_MANAGEMENT);
+        routes.get(prefix + "/quiz/tests/{id}/frozen-questions", this::listFrozenQuestions, Roles.QUIZ_MANAGEMENT);
+        routes.put(
+                prefix + "/quiz/tests/{id}/frozen-questions/{position}",
+                this::replaceFrozenQuestion,
+                Roles.QUIZ_MANAGEMENT);
+        routes.post(
+                prefix + "/quiz/tests/{id}/frozen-questions/{position}/random",
+                this::randomReplaceFrozenQuestion,
+                Roles.QUIZ_MANAGEMENT);
+        routes.get(
+                prefix + "/quiz/tests/{id}/available-questions",
+                this::listAvailableReplacements,
+                Roles.QUIZ_MANAGEMENT);
+
+        // Sections
+        routes.get(prefix + "/quiz/tests/{id}/sections", this::listSections, Roles.QUIZ_MANAGEMENT);
+        routes.put(prefix + "/quiz/tests/{id}/sections", this::replaceSections, Roles.QUIZ_MANAGEMENT);
+
+        // Test taking
+        routes.post(prefix + "/quiz/tests/{id}/start", this::startAttempt, Roles.USER);
+        routes.get(prefix + "/quiz/tests/{id}/my-attempt", this::getMyAttempt, Roles.USER);
+        routes.post(prefix + "/quiz/attempts/{id}/answer", this::saveAnswer, Roles.USER);
+        routes.post(prefix + "/quiz/attempts/{id}/submit", this::submitAttempt, Roles.USER);
+
+        // Grading
+        routes.get(prefix + "/quiz/tests/{id}/attempts", this::listAttempts, Roles.QUIZ_MANAGEMENT);
+        routes.get(prefix + "/quiz/attempts/{id}", this::getAttemptDetail, Roles.QUIZ_MANAGEMENT);
+        routes.post(prefix + "/quiz/answers/{id}/grade", this::gradeAnswer, Roles.QUIZ_MANAGEMENT);
+        routes.post(prefix + "/quiz/attempts/{id}/grade", this::gradeAttempt, Roles.QUIZ_MANAGEMENT);
+
+        // Restrictions
+        routes.get(prefix + "/quiz/tests/{id}/restrictions", this::getRestrictions, Roles.QUIZ_MANAGEMENT);
+        routes.put(prefix + "/quiz/tests/{id}/restrictions", this::setRestrictions, Roles.QUIZ_MANAGEMENT);
+
+        // Member access
+        routes.post(prefix + "/quiz/tests/{id}/access", this::grantAccess, Roles.QUIZ_MANAGEMENT);
+        routes.delete(prefix + "/quiz/tests/{testId}/access/{memberId}", this::revokeAccess, Roles.QUIZ_MANAGEMENT);
+
+        // Training
+        routes.get(prefix + "/quiz/training/catalogs", this::listTrainingCatalogs, Roles.USER);
+        routes.get(prefix + "/quiz/training/catalogs/{id}/questions", this::getTrainingQuestions, Roles.USER);
+
+        // Question images
+        routes.get(prefix + "/quiz/questions/{id}/image", this::getQuestionImage, Roles.USER);
+        routes.post(prefix + "/quiz/questions/{id}/image", this::uploadQuestionImage, Roles.QUIZ_MANAGEMENT);
+        routes.delete(prefix + "/quiz/questions/{id}/image", this::deleteQuestionImage, Roles.QUIZ_MANAGEMENT);
+
+        // PDF export
+        routes.get(prefix + "/quiz/tests/{id}/export/questions", this::exportQuestionPdf, Roles.QUIZ_MANAGEMENT);
+        routes.get(prefix + "/quiz/tests/{id}/export/solutions", this::exportSolutionPdf, Roles.QUIZ_MANAGEMENT);
+
+        // Import/Export
+        routes.get(prefix + "/quiz/catalogs/{id}/export", this::exportCatalog, Roles.QUIZ_MANAGEMENT);
+        routes.post(prefix + "/quiz/catalogs/import", this::importCatalog, Roles.QUIZ_MANAGEMENT);
+
+        // CSV Import
+        routes.post(prefix + "/quiz/catalogs/{id}/import-csv", this::importCsv, Roles.QUIZ_MANAGEMENT);
+    }
+
+    // -- Catalogs --
+
+    private void listCatalogs(Context ctx) {
+        var session = UserSession.from(ctx);
+        ctx.json(quizService.findCatalogs(session.stationId()));
+    }
+
+    private void getCatalog(Context ctx) {
+        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        quizService
+                .findCatalog(id)
+                .ifPresentOrElse(
+                        catalog -> {
+                            var questions = quizService.findQuestions(id);
+                            var categories = quizService.findCategories(catalog.stationId());
+                            var typeCounts = new LinkedHashMap<String, Integer>();
+                            for (var q : questions) {
+                                typeCounts.merge(q.questionType().name(), 1, Integer::sum);
+                            }
+                            ctx.json(new CatalogDetail(
+                                    catalog.id(),
+                                    catalog.stationId(),
+                                    catalog.name(),
+                                    catalog.description(),
+                                    catalog.trainingEnabled(),
+                                    questions.size(),
+                                    typeCounts,
+                                    categories,
+                                    catalog.createdAt(),
+                                    catalog.updatedAt()));
+                        },
+                        () -> {
+                            throw new NotFoundResponse();
+                        });
+    }
+
+    private void createCatalog(Context ctx) {
+        var session = UserSession.from(ctx);
+        var req = ctx.bodyAsClass(CatalogRequest.class);
+        if (req.name() == null || req.name().isBlank()) throw new BadRequestResponse("name is required");
+        var catalog = quizService.createCatalog(
+                session.stationId(),
+                req.name(),
+                req.description() != null ? req.description() : "",
+                req.trainingEnabled() != null && req.trainingEnabled());
+        ctx.status(HttpStatus.CREATED).json(catalog);
+    }
+
+    private void updateCatalog(Context ctx) {
+        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        var req = ctx.bodyAsClass(CatalogRequest.class);
+        if (!quizService.updateCatalog(
+                id,
+                req.name(),
+                req.description() != null ? req.description() : "",
+                req.trainingEnabled() != null && req.trainingEnabled())) {
+            throw new NotFoundResponse();
+        }
+        quizService.findCatalog(id).ifPresentOrElse(ctx::json, () -> {
+            throw new NotFoundResponse();
+        });
+    }
+
+    private void deleteCatalog(Context ctx) {
+        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        if (quizService.deleteCatalog(id)) {
+            ctx.status(HttpStatus.NO_CONTENT);
+        } else {
+            throw new NotFoundResponse();
+        }
+    }
+
+    // -- Categories --
+
+    private void listCategories(Context ctx) {
+        var session = UserSession.from(ctx);
+        ctx.json(quizService.findCategories(session.stationId()));
+    }
+
+    private void createCategory(Context ctx) {
+        var session = UserSession.from(ctx);
+        var req = ctx.bodyAsClass(CategoryRequest.class);
+        if (req.name() == null || req.name().isBlank()) throw new BadRequestResponse("name is required");
+        ctx.status(HttpStatus.CREATED)
+                .json(quizService.createCategory(
+                        session.stationId(),
+                        req.name(),
+                        req.description() != null ? req.description() : "",
+                        req.position() != null ? req.position() : 0));
+    }
+
+    private void updateCategory(Context ctx) {
+        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        var req = ctx.bodyAsClass(CategoryRequest.class);
+        if (!quizService.updateCategory(
+                id,
+                req.name(),
+                req.description() != null ? req.description() : "",
+                req.position() != null ? req.position() : 0)) {
+            throw new NotFoundResponse();
+        }
+        ctx.status(HttpStatus.OK).json(Map.of("success", true));
+    }
+
+    private void deleteCategory(Context ctx) {
+        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        if (quizService.deleteCategory(id)) {
+            ctx.status(HttpStatus.NO_CONTENT);
+        } else {
+            throw new NotFoundResponse();
+        }
+    }
+
+    // -- Questions --
+
+    private void listQuestions(Context ctx) {
+        int catalogId = ctx.pathParamAsClass("id", Integer.class).get();
+        ctx.json(quizService.findQuestions(catalogId));
+    }
+
+    private void getQuestion(Context ctx) {
+        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        var session = UserSession.from(ctx);
+        var question = quizService.findQuestion(id).orElseThrow(NotFoundResponse::new);
+        if (session.roles().contains(Roles.QUIZ_MANAGEMENT)) {
+            ctx.json(question);
+        } else {
+            ctx.json(sanitizeQuestion(question));
+        }
+    }
+
+    private Map<String, Object> sanitizeQuestion(QuizQuestion question) {
+        var result = new LinkedHashMap<String, Object>();
+        result.put("id", question.id());
+        result.put("catalogId", question.catalogId());
+        result.put("categoryId", question.categoryId());
+        result.put("questionType", question.questionType().name());
+        result.put("title", question.title());
+        result.put("description", question.description());
+        result.put("imageUrl", question.imageUrl());
+        result.put("points", question.points());
+        result.put("position", question.position());
+        result.put("config", sanitizeConfig(question.questionType(), question.config()));
+        return result;
+    }
+
+    @SuppressWarnings("unchecked")
+    private String sanitizeConfig(QuestionType type, tools.jackson.databind.JsonNode node) {
+        try {
+            var mapper = new tools.jackson.databind.ObjectMapper();
+            return switch (type) {
+                case MULTIPLE_CHOICE -> {
+                    var options = node.get("options");
+                    var sanitized = new java.util.ArrayList<Map<String, Object>>();
+                    if (options != null && options.isArray()) {
+                        for (var opt : options) {
+                            sanitized.add(Map.of("text", opt.get("text").asText()));
+                        }
+                    }
+                    yield mapper.writeValueAsString(Map.of("options", sanitized));
+                }
+                case TRUE_FALSE -> "{}";
+                case FREE_ANSWER -> {
+                    int lines = node.has("lines") ? node.get("lines").asInt() : 3;
+                    yield mapper.writeValueAsString(Map.of("lines", lines));
+                }
+                case FILL_IN_THE_BLANK -> {
+                    var answers = new java.util.ArrayList<String>();
+                    var distractors = new java.util.ArrayList<String>();
+                    if (node.has("answers") && node.get("answers").isArray())
+                        for (var a : node.get("answers")) answers.add(a.asText());
+                    if (node.has("distractors") && node.get("distractors").isArray())
+                        for (var d : node.get("distractors")) distractors.add(d.asText());
+                    var wordBank = new java.util.ArrayList<>(answers);
+                    wordBank.addAll(distractors);
+                    java.util.Collections.shuffle(wordBank);
+                    String text = node.has("text") ? node.get("text").asText() : "";
+                    boolean useDropdown =
+                            node.has("useDropdown") && node.get("useDropdown").asBoolean();
+                    yield mapper.writeValueAsString(Map.of(
+                            "text", text,
+                            "wordBank", wordBank,
+                            "gapCount", answers.size(),
+                            "useDropdown", useDropdown));
+                }
+                case CONNECT -> {
+                    var pairs = node.get("pairs");
+                    var leftItems = new java.util.ArrayList<String>();
+                    var rightItems = new java.util.ArrayList<String>();
+                    if (pairs != null && pairs.isArray()) {
+                        for (var pair : pairs) {
+                            leftItems.add(pair.get("left").asText());
+                            rightItems.add(pair.get("right").asText());
+                        }
+                    }
+                    java.util.Collections.shuffle(rightItems);
+                    yield mapper.writeValueAsString(Map.of("leftItems", leftItems, "rightItems", rightItems));
+                }
+                case ORDERING -> {
+                    var items = new java.util.ArrayList<String>();
+                    if (node.has("items") && node.get("items").isArray())
+                        for (var item : node.get("items")) items.add(item.asText());
+                    java.util.Collections.shuffle(items);
+                    yield mapper.writeValueAsString(Map.of("items", items));
+                }
+                case IMAGE_TEXT -> "{}";
+                case ENUMERATION -> {
+                    int requiredCount = node.has("requiredCount")
+                            ? node.get("requiredCount").asInt()
+                            : 3;
+                    yield mapper.writeValueAsString(Map.of("requiredCount", requiredCount));
+                }
+            };
+        } catch (Exception e) {
+            return "{}";
+        }
+    }
+
+    private void createQuestion(Context ctx) {
+        int catalogId = ctx.pathParamAsClass("id", Integer.class).get();
+        var req = ctx.bodyAsClass(QuestionRequest.class);
+        if (req.title() == null || req.title().isBlank()) throw new BadRequestResponse("title is required");
+        if (req.questionType() == null) throw new BadRequestResponse("questionType is required");
+        var question = quizService.createQuestion(
+                catalogId,
+                req.categoryId(),
+                QuestionType.valueOf(req.questionType()),
+                req.title(),
+                req.description() != null ? req.description() : "",
+                req.imageUrl(),
+                req.points() != null ? req.points() : 1,
+                req.autoPoints() == null || req.autoPoints(),
+                req.configString(),
+                req.position() != null ? req.position() : 0);
+        ctx.status(HttpStatus.CREATED).json(question);
+    }
+
+    private void updateQuestion(Context ctx) {
+        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        var req = ctx.bodyAsClass(QuestionRequest.class);
+        if (!quizService.updateQuestion(
+                id,
+                req.categoryId(),
+                req.title(),
+                req.description() != null ? req.description() : "",
+                req.imageUrl(),
+                req.points() != null ? req.points() : 1,
+                req.autoPoints() == null || req.autoPoints(),
+                req.configString(),
+                req.position() != null ? req.position() : 0)) {
+            throw new NotFoundResponse();
+        }
+        quizService.findQuestion(id).ifPresentOrElse(ctx::json, () -> {
+            throw new NotFoundResponse();
+        });
+    }
+
+    private void deleteQuestion(Context ctx) {
+        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        if (quizService.deleteQuestion(id)) {
+            ctx.status(HttpStatus.NO_CONTENT);
+        } else {
+            throw new NotFoundResponse();
+        }
+    }
+
+    // -- Tests --
+
+    private void listTests(Context ctx) {
+        var session = UserSession.from(ctx);
+        var tests = quizService.findTests(session.stationId());
+        var result = tests.stream()
+                .map(t -> new TestSummary(t, quizService.countAttempts(t.id())))
+                .toList();
+        ctx.json(result);
+    }
+
+    private void listAvailableTests(Context ctx) {
+        var session = UserSession.from(ctx);
+        if (session.member() == null) {
+            ctx.json(List.of());
+            return;
+        }
+        int memberId = session.member().id();
+        var memberRoleIds = stationMemberRepository.findRoles(memberId).stream()
+                .map(Role::id)
+                .toList();
+        var memberGroupIds = memberGroupRepository.findGroupsForMember(memberId).stream()
+                .map(MemberGroup::id)
+                .toList();
+        var memberTagIds = userTagRepository.findTagsForMember(memberId).stream()
+                .map(UserTag::id)
+                .toList();
+        var tests = quizService.findTests(session.stationId()).stream()
+                .filter(t -> t.status() == TestStatus.ACTIVE)
+                .filter(t -> quizService.canMemberAccess(t.id(), memberRoleIds, memberGroupIds, memberTagIds))
+                .toList();
+        ctx.json(tests);
+    }
+
+    private void getTest(Context ctx) {
+        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        var test = quizService.findTest(id).orElseThrow(NotFoundResponse::new);
+        var sections = quizService.findSections(id);
+        var sectionDetails = sections.stream()
+                .map(s -> {
+                    var sources = quizService.findSources(s.id());
+                    return new SectionDetail(s.id(), s.testId(), s.title(), s.description(), s.position(), sources);
+                })
+                .toList();
+        ctx.json(new TestDetail(
+                test, sectionDetails, quizService.findAttempts(id).size()));
+    }
+
+    private void createTest(Context ctx) {
+        var session = UserSession.from(ctx);
+        if (session.member() == null) throw new BadRequestResponse("Not a station member");
+        var req = ctx.bodyAsClass(TestRequest.class);
+        if (req.title() == null || req.title().isBlank()) throw new BadRequestResponse("title is required");
+        var test = quizService.createTest(
+                session.stationId(),
+                req.title(),
+                req.description() != null ? req.description() : "",
+                req.timeLimit(),
+                req.shuffle() != null && req.shuffle(),
+                session.member().id());
+        ctx.status(HttpStatus.CREATED).json(test);
+    }
+
+    private void updateTest(Context ctx) {
+        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        var req = ctx.bodyAsClass(TestRequest.class);
+        if (!quizService.updateTest(
+                id,
+                req.title(),
+                req.description() != null ? req.description() : "",
+                req.timeLimit(),
+                req.shuffle() != null && req.shuffle(),
+                req.startAt(),
+                req.endAt())) {
+            throw new NotFoundResponse();
+        }
+        quizService.findTest(id).ifPresentOrElse(ctx::json, () -> {
+            throw new NotFoundResponse();
+        });
+    }
+
+    private void deleteTest(Context ctx) {
+        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        if (quizService.deleteTest(id)) {
+            ctx.status(HttpStatus.NO_CONTENT);
+        } else {
+            throw new NotFoundResponse();
+        }
+    }
+
+    private void activateTest(Context ctx) {
+        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        var test = quizService.findTest(id).orElseThrow(NotFoundResponse::new);
+        if (test.status() != TestStatus.DRAFT) throw new BadRequestResponse("Test is not in DRAFT status");
+        quizService.activateTest(id);
+        quizService.findTest(id).ifPresentOrElse(ctx::json, () -> {
+            throw new NotFoundResponse();
+        });
+    }
+
+    private void closeTest(Context ctx) {
+        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        if (!quizService.closeTest(id)) throw new NotFoundResponse();
+        quizService.findTest(id).ifPresentOrElse(ctx::json, () -> {
+            throw new NotFoundResponse();
+        });
+    }
+
+    // -- Frozen Questions --
+
+    private void generateFrozenQuestions(Context ctx) {
+        int testId = ctx.pathParamAsClass("id", Integer.class).get();
+        var test = quizService.findTest(testId).orElseThrow(NotFoundResponse::new);
+        if (test.status() == TestStatus.ACTIVE) throw new BadRequestResponse("Cannot regenerate for active test");
+        quizService.generateFrozenQuestions(testId);
+        ctx.json(buildFrozenQuestionResponse(testId));
+    }
+
+    private void listFrozenQuestions(Context ctx) {
+        int testId = ctx.pathParamAsClass("id", Integer.class).get();
+        quizService.findTest(testId).orElseThrow(NotFoundResponse::new);
+        ctx.json(buildFrozenQuestionResponse(testId));
+    }
+
+    private void replaceFrozenQuestion(Context ctx) {
+        int testId = ctx.pathParamAsClass("id", Integer.class).get();
+        int position = ctx.pathParamAsClass("position", Integer.class).get();
+        var test = quizService.findTest(testId).orElseThrow(NotFoundResponse::new);
+        if (test.status() == TestStatus.ACTIVE) throw new BadRequestResponse("Cannot modify active test");
+        var req = ctx.bodyAsClass(ReplaceQuestionRequest.class);
+        quizService.replaceFrozenQuestion(testId, position, req.questionId());
+        ctx.json(buildFrozenQuestionResponse(testId));
+    }
+
+    private void randomReplaceFrozenQuestion(Context ctx) {
+        int testId = ctx.pathParamAsClass("id", Integer.class).get();
+        int position = ctx.pathParamAsClass("position", Integer.class).get();
+        var test = quizService.findTest(testId).orElseThrow(NotFoundResponse::new);
+        if (test.status() == TestStatus.ACTIVE) throw new BadRequestResponse("Cannot modify active test");
+        quizService.replaceWithRandomQuestion(testId, position);
+        ctx.json(buildFrozenQuestionResponse(testId));
+    }
+
+    private void listAvailableReplacements(Context ctx) {
+        int testId = ctx.pathParamAsClass("id", Integer.class).get();
+        quizService.findTest(testId).orElseThrow(NotFoundResponse::new);
+        ctx.json(quizService.findAvailableReplacements(testId));
+    }
+
+    private List<FrozenQuestionDetail> buildFrozenQuestionResponse(int testId) {
+        var frozen = quizService.findFrozenQuestions(testId);
+        return frozen.stream()
+                .map(fq -> {
+                    var question = quizService.findQuestion(fq.questionId()).orElse(null);
+                    return new FrozenQuestionDetail(fq.position(), fq.sectionId(), question);
+                })
+                .toList();
+    }
+
+    public record ReplaceQuestionRequest(int questionId) {}
+
+    public record FrozenQuestionDetail(int position, Integer sectionId, QuizQuestion question) {}
+
+    // -- Sections --
+
+    private void listSections(Context ctx) {
+        int testId = ctx.pathParamAsClass("id", Integer.class).get();
+        var sections = quizService.findSections(testId);
+        var result = sections.stream()
+                .map(s -> {
+                    var sources = quizService.findSources(s.id());
+                    return new SectionDetail(s.id(), s.testId(), s.title(), s.description(), s.position(), sources);
+                })
+                .toList();
+        ctx.json(result);
+    }
+
+    private void replaceSections(Context ctx) {
+        int testId = ctx.pathParamAsClass("id", Integer.class).get();
+        var req = ctx.bodyAsClass(SectionRequest[].class);
+        var entries = Arrays.stream(req)
+                .map(s -> new QuizService.SectionEntry(
+                        s.title() != null ? s.title() : "",
+                        s.description() != null ? s.description() : "",
+                        s.sources() != null
+                                ? s.sources().stream()
+                                        .map(src -> new QuizService.SourceEntry(
+                                                src.catalogId(), src.categoryId(), src.questionCount()))
+                                        .toList()
+                                : List.of()))
+                .toList();
+        quizService.replaceSections(testId, entries);
+        ctx.json(quizService.findSections(testId));
+    }
+
+    // -- Test Taking --
+
+    private void startAttempt(Context ctx) {
+        int testId = ctx.pathParamAsClass("id", Integer.class).get();
+        var session = UserSession.from(ctx);
+        if (session.member() == null) throw new BadRequestResponse("Not a station member");
+        var test = quizService.findTest(testId).orElseThrow(NotFoundResponse::new);
+        if (!quizService.isTestAccessible(test, session.member().id())) {
+            throw new ForbiddenResponse("Test is not currently accessible");
+        }
+        var existing = quizService.findAttempt(testId, session.member().id());
+        if (existing.isPresent()) {
+            ctx.json(new AttemptDetail(
+                    existing.get(),
+                    quizService.findAttemptQuestions(existing.get().id()),
+                    quizService.findAnswers(existing.get().id())));
+            return;
+        }
+        var attempt = quizService.startAttempt(testId, session.member().id());
+        ctx.status(HttpStatus.CREATED)
+                .json(new AttemptDetail(attempt, quizService.findAttemptQuestions(attempt.id()), List.of()));
+    }
+
+    private void getMyAttempt(Context ctx) {
+        int testId = ctx.pathParamAsClass("id", Integer.class).get();
+        var session = UserSession.from(ctx);
+        if (session.member() == null) throw new BadRequestResponse("Not a station member");
+        var attempt = quizService.findAttempt(testId, session.member().id());
+        if (attempt.isEmpty()) {
+            ctx.json(Map.of("attempt", (Object) Map.of()));
+            return;
+        }
+        ctx.json(new AttemptDetail(
+                attempt.get(),
+                quizService.findAttemptQuestions(attempt.get().id()),
+                quizService.findAnswers(attempt.get().id())));
+    }
+
+    private void saveAnswer(Context ctx) {
+        int attemptId = ctx.pathParamAsClass("id", Integer.class).get();
+        var session = UserSession.from(ctx);
+        if (session.member() == null) throw new BadRequestResponse("Not a station member");
+        var attempt = quizService.findAttemptById(attemptId).orElseThrow(NotFoundResponse::new);
+        if (attempt.memberId() != session.member().id()) throw new ForbiddenResponse();
+        if (attempt.status() != AttemptStatus.IN_PROGRESS) {
+            throw new BadRequestResponse("Attempt already submitted");
+        }
+        var req = ctx.bodyAsClass(AnswerRequest.class);
+        quizService.saveAnswer(attemptId, req.questionId(), req.answer());
+        ctx.json(Map.of("success", true));
+    }
+
+    private void submitAttempt(Context ctx) {
+        int attemptId = ctx.pathParamAsClass("id", Integer.class).get();
+        var session = UserSession.from(ctx);
+        if (session.member() == null) throw new BadRequestResponse("Not a station member");
+        var attempt = quizService.findAttemptById(attemptId).orElseThrow(NotFoundResponse::new);
+        if (attempt.memberId() != session.member().id()) throw new ForbiddenResponse();
+        quizService.submitAttempt(attemptId);
+        quizService.findAttemptById(attemptId).ifPresentOrElse(ctx::json, () -> {
+            throw new NotFoundResponse();
+        });
+    }
+
+    // -- Grading --
+
+    private void listAttempts(Context ctx) {
+        int testId = ctx.pathParamAsClass("id", Integer.class).get();
+        ctx.json(quizService.findAttempts(testId));
+    }
+
+    private void getAttemptDetail(Context ctx) {
+        int attemptId = ctx.pathParamAsClass("id", Integer.class).get();
+        var attempt = quizService.findAttemptById(attemptId).orElseThrow(NotFoundResponse::new);
+        ctx.json(new AttemptDetail(
+                attempt, quizService.findAttemptQuestions(attemptId), quizService.findAnswers(attemptId)));
+    }
+
+    private void gradeAnswer(Context ctx) {
+        int answerId = ctx.pathParamAsClass("id", Integer.class).get();
+        var req = ctx.bodyAsClass(GradeRequest.class);
+        if (req.points() == null) throw new BadRequestResponse("points is required");
+        quizService.gradeAnswer(answerId, req.points());
+        ctx.json(Map.of("success", true));
+    }
+
+    private void gradeAttempt(Context ctx) {
+        int attemptId = ctx.pathParamAsClass("id", Integer.class).get();
+        var session = UserSession.from(ctx);
+        if (session.member() == null) throw new BadRequestResponse("Not a station member");
+        quizService.gradeAttempt(attemptId, session.member().id());
+        quizService.findAttemptById(attemptId).ifPresentOrElse(ctx::json, () -> {
+            throw new NotFoundResponse();
+        });
+    }
+
+    // -- Restrictions --
+
+    private void getRestrictions(Context ctx) {
+        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        ctx.json(new TestRestrictions(
+                quizService.findRoleRestrictions(id),
+                quizService.findGroupRestrictions(id),
+                quizService.findTagRestrictions(id)));
+    }
+
+    private void setRestrictions(Context ctx) {
+        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        var req = ctx.bodyAsClass(TestRestrictions.class);
+        quizService.setRestrictions(id, req.roleIds(), req.groupIds(), req.tagIds());
+        ctx.json(req);
+    }
+
+    // -- Member Access --
+
+    private void grantAccess(Context ctx) {
+        int testId = ctx.pathParamAsClass("id", Integer.class).get();
+        var req = ctx.bodyAsClass(AccessRequest.class);
+        if (req.memberId() == null) throw new BadRequestResponse("memberId is required");
+        quizService.grantMemberAccess(testId, req.memberId(), req.closesAt());
+        ctx.json(Map.of("success", true));
+    }
+
+    private void revokeAccess(Context ctx) {
+        int testId = ctx.pathParamAsClass("testId", Integer.class).get();
+        int memberId = ctx.pathParamAsClass("memberId", Integer.class).get();
+        quizService.revokeMemberAccess(testId, memberId);
+        ctx.status(HttpStatus.NO_CONTENT);
+    }
+
+    // -- Training --
+
+    private void listTrainingCatalogs(Context ctx) {
+        var session = UserSession.from(ctx);
+        ctx.json(quizService.findTrainingCatalogs(session.stationId()));
+    }
+
+    private void getTrainingQuestions(Context ctx) {
+        int catalogId = ctx.pathParamAsClass("id", Integer.class).get();
+        var catalog = quizService.findCatalog(catalogId).orElseThrow(NotFoundResponse::new);
+        if (!catalog.trainingEnabled()) throw new ForbiddenResponse("Training not enabled for this catalog");
+        ctx.json(quizService.findQuestions(catalogId));
+    }
+
+    // -- PDF Export --
+
+    private void exportQuestionPdf(Context ctx) {
+        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        quizService.findTest(id).orElseThrow(NotFoundResponse::new);
+        try {
+            byte[] pdf = pdfService.exportQuestionPdf(id);
+            ctx.contentType("application/pdf");
+            ctx.header("Content-Disposition", "attachment; filename=\"test-questions.pdf\"");
+            ctx.result(pdf);
+        } catch (Exception e) {
+            throw new InternalServerErrorResponse("PDF export failed: " + e.getMessage());
+        }
+    }
+
+    private void exportSolutionPdf(Context ctx) {
+        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        quizService.findTest(id).orElseThrow(NotFoundResponse::new);
+        try {
+            byte[] pdf = pdfService.exportSolutionPdf(id);
+            ctx.contentType("application/pdf");
+            ctx.header("Content-Disposition", "attachment; filename=\"test-solutions.pdf\"");
+            ctx.result(pdf);
+        } catch (Exception e) {
+            throw new InternalServerErrorResponse("PDF export failed: " + e.getMessage());
+        }
+    }
+
+    // -- Import/Export --
+
+    private void exportCatalog(Context ctx) {
+        int catalogId = ctx.pathParamAsClass("id", Integer.class).get();
+        var catalog = quizService.findCatalog(catalogId).orElseThrow(NotFoundResponse::new);
+        var categories = quizService.findCategories(catalog.stationId());
+        var questions = quizService.findQuestions(catalogId);
+        ctx.json(new CatalogExport(
+                catalog.name(), catalog.description(), catalog.trainingEnabled(), categories, questions));
+    }
+
+    private void importCatalog(Context ctx) {
+        var session = UserSession.from(ctx);
+        var req = ctx.bodyAsClass(CatalogExport.class);
+        if (req.name() == null || req.name().isBlank()) throw new BadRequestResponse("name is required");
+        var catalog = quizService.createCatalog(
+                session.stationId(),
+                req.name(),
+                req.description() != null ? req.description() : "",
+                req.trainingEnabled());
+
+        // Import categories and build ID mapping
+        var categoryIdMap = new HashMap<Integer, Integer>();
+        if (req.categories() != null) {
+            for (var cat : req.categories()) {
+                var created = quizService.createCategory(catalog.id(), cat.name(), cat.description(), cat.position());
+                categoryIdMap.put(cat.id(), created.id());
+            }
+        }
+
+        // Import questions
+        if (req.questions() != null) {
+            for (var q : req.questions()) {
+                Integer newCategoryId = q.categoryId() != null ? categoryIdMap.get(q.categoryId()) : null;
+                quizService.createQuestion(
+                        catalog.id(),
+                        newCategoryId,
+                        q.questionType(),
+                        q.title(),
+                        q.description(),
+                        q.imageUrl(),
+                        q.points(),
+                        q.autoPoints(),
+                        q.configString(),
+                        q.position());
+            }
+        }
+        ctx.status(HttpStatus.CREATED).json(catalog);
+    }
+
+    // -- CSV Import --
+
+    private void importCsv(Context ctx) {
+        int catalogId = ctx.pathParamAsClass("id", Integer.class).get();
+        var session = UserSession.from(ctx);
+        var catalog = quizService.findCatalog(catalogId).orElseThrow(NotFoundResponse::new);
+
+        var csvFile = ctx.uploadedFile("file");
+        if (csvFile == null) throw new BadRequestResponse("No CSV file uploaded");
+
+        String mappingsJson = ctx.formParam("mappings");
+        if (mappingsJson == null || mappingsJson.isBlank()) throw new BadRequestResponse("mappings is required");
+
+        var mapper = new tools.jackson.databind.ObjectMapper();
+        CsvMappings mappings;
+        try {
+            mappings = mapper.readValue(mappingsJson, CsvMappings.class);
+        } catch (Exception e) {
+            throw new BadRequestResponse("Invalid mappings JSON");
+        }
+
+        String csvContent;
+        try (var content = csvFile.content()) {
+            csvContent = new String(content.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            throw new InternalServerErrorResponse("Failed to read CSV file");
+        }
+
+        String sep = mappings.separator() != null ? mappings.separator() : ",";
+        String answerSep = mappings.answerSeparator() != null ? mappings.answerSeparator() : ";";
+
+        dev.chojo.ember.util.CsvParser.ParsedCsv parsed;
+        try {
+            parsed = dev.chojo.ember.util.CsvParser.parse(csvContent, sep.charAt(0));
+        } catch (IOException e) {
+            throw new BadRequestResponse("Failed to parse CSV: " + e.getMessage());
+        }
+
+        var headerList = parsed.headers();
+        int questionIdx = headerList.indexOf(mappings.questionColumn());
+        int answerIdx = headerList.indexOf(mappings.answerColumn());
+        int categoryIdx = headerList.indexOf(mappings.categoryColumn());
+        int typeIdx = headerList.indexOf(mappings.typeColumn());
+        int pointsIdx = headerList.indexOf(mappings.pointsColumn());
+
+        if (questionIdx < 0) throw new BadRequestResponse("Question column not found in CSV headers");
+
+        var existingCategories = quizService.findCategories(catalog.stationId());
+        var categoryCache = new HashMap<String, Integer>();
+        for (var cat : existingCategories) {
+            categoryCache.put(cat.name().toLowerCase(), cat.id());
+        }
+
+        int imported = 0;
+        for (int i = 0; i < parsed.rows().size(); i++) {
+            var cells = parsed.rows().get(i);
+            String title = questionIdx < cells.size() ? cells.get(questionIdx).trim() : "";
+            if (title.isEmpty()) continue;
+
+            String answer = answerIdx >= 0 && answerIdx < cells.size()
+                    ? cells.get(answerIdx).trim()
+                    : "";
+            String categoryName = categoryIdx >= 0 && categoryIdx < cells.size()
+                    ? cells.get(categoryIdx).trim()
+                    : "";
+            String typeStr =
+                    typeIdx >= 0 && typeIdx < cells.size() ? cells.get(typeIdx).trim() : "";
+            String pointsStr = pointsIdx >= 0 && pointsIdx < cells.size()
+                    ? cells.get(pointsIdx).trim()
+                    : "";
+
+            // Determine question type
+            QuestionType questionType = mappings.defaultType() != null
+                    ? parseQuestionType(mappings.defaultType())
+                    : QuestionType.MULTIPLE_CHOICE;
+            if (!typeStr.isEmpty()) {
+                questionType = parseQuestionType(typeStr);
+            }
+
+            // Determine points
+            int points = 1;
+            if (!pointsStr.isEmpty()) {
+                try {
+                    points = Integer.parseInt(pointsStr);
+                } catch (NumberFormatException ignored) {
+                }
+            }
+
+            // Find or create category
+            Integer categoryId2 = null;
+            if (!categoryName.isEmpty()) {
+                String key = categoryName.toLowerCase();
+                if (categoryCache.containsKey(key)) {
+                    categoryId2 = categoryCache.get(key);
+                } else {
+                    var created = quizService.createCategory(
+                            catalog.stationId(), categoryName, "", existingCategories.size());
+                    categoryCache.put(key, created.id());
+                    categoryId2 = created.id();
+                }
+            }
+
+            // Build config JSON
+            String config = buildCsvConfig(questionType, answer, answerSep);
+
+            quizService.createQuestion(catalogId, categoryId2, questionType, title, "", null, points, true, config, i);
+            imported++;
+        }
+
+        ctx.json(Map.of("imported", imported));
+    }
+
+    private QuestionType parseQuestionType(String type) {
+        return switch (type.toUpperCase().replace(" ", "_").replace("-", "_")) {
+            case "MULTIPLE_CHOICE", "MC" -> QuestionType.MULTIPLE_CHOICE;
+            case "TRUE_FALSE", "TF", "WAHR_FALSCH" -> QuestionType.TRUE_FALSE;
+            case "FREE_ANSWER", "FREE", "FREITEXT" -> QuestionType.FREE_ANSWER;
+            case "FILL_IN_THE_BLANK", "FILL_BLANK", "LUECKENTEXT", "LÜCKENTEXT" -> QuestionType.FILL_IN_THE_BLANK;
+            case "CONNECT", "ZUORDNUNG" -> QuestionType.CONNECT;
+            case "ORDERING", "REIHENFOLGE" -> QuestionType.ORDERING;
+            case "IMAGE_TEXT" -> QuestionType.IMAGE_TEXT;
+            case "ENUMERATION", "AUFZÄHLUNG", "AUFZAEHLUNG" -> QuestionType.ENUMERATION;
+            default -> QuestionType.MULTIPLE_CHOICE;
+        };
+    }
+
+    private String buildCsvConfig(QuestionType type, String answer, String answerSep) {
+        var mapper = new tools.jackson.databind.ObjectMapper();
+        try {
+            return switch (type) {
+                case MULTIPLE_CHOICE -> {
+                    var parts = Arrays.stream(answer.split(java.util.regex.Pattern.quote(answerSep)))
+                            .map(String::trim)
+                            .filter(s -> !s.isEmpty())
+                            .toList();
+                    var options = new java.util.ArrayList<Map<String, Object>>();
+                    for (int j = 0; j < parts.size(); j++) {
+                        options.add(Map.of("text", parts.get(j), "correct", j == 0));
+                    }
+                    yield mapper.writeValueAsString(Map.of("options", options, "pointsPerCorrect", 0.5));
+                }
+                case TRUE_FALSE -> {
+                    boolean correct =
+                            answer.equalsIgnoreCase("true") || answer.equals("1") || answer.equalsIgnoreCase("wahr");
+                    yield mapper.writeValueAsString(Map.of("correctAnswer", correct));
+                }
+                case FREE_ANSWER -> {
+                    var answers = Arrays.stream(answer.split(java.util.regex.Pattern.quote(answerSep)))
+                            .map(String::trim)
+                            .filter(s -> !s.isEmpty())
+                            .toList();
+                    yield mapper.writeValueAsString(Map.of("lines", 3, "answers", answers));
+                }
+                case FILL_IN_THE_BLANK -> {
+                    var answers = Arrays.stream(answer.split(java.util.regex.Pattern.quote(answerSep)))
+                            .map(String::trim)
+                            .filter(s -> !s.isEmpty())
+                            .toList();
+                    yield mapper.writeValueAsString(Map.of("text", "", "answers", answers, "wordBank", answers));
+                }
+                case CONNECT -> {
+                    var pairs = Arrays.stream(answer.split(java.util.regex.Pattern.quote(answerSep)))
+                            .map(String::trim)
+                            .filter(s -> !s.isEmpty())
+                            .map(s -> {
+                                var split = s.split("=", 2);
+                                return Map.of(
+                                        "left",
+                                        (Object) split[0].trim(),
+                                        "right",
+                                        split.length > 1 ? split[1].trim() : "");
+                            })
+                            .toList();
+                    yield mapper.writeValueAsString(Map.of("pairs", pairs));
+                }
+                case ORDERING -> {
+                    var items = Arrays.stream(answer.split(java.util.regex.Pattern.quote(answerSep)))
+                            .map(String::trim)
+                            .filter(s -> !s.isEmpty())
+                            .toList();
+                    yield mapper.writeValueAsString(Map.of("items", items));
+                }
+                case IMAGE_TEXT -> "{}";
+                case ENUMERATION -> {
+                    var items = Arrays.stream(answer.split(java.util.regex.Pattern.quote(answerSep)))
+                            .map(String::trim)
+                            .filter(s -> !s.isEmpty())
+                            .toList();
+                    yield mapper.writeValueAsString(Map.of(
+                            "answers", items, "requiredCount", Math.min(3, items.size()), "orderedRequired", false));
+                }
+            };
+        } catch (Exception e) {
+            return "{}";
+        }
+    }
+
+    // -- Question Images --
+
+    private void getQuestionImage(Context ctx) {
+        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        int size = ctx.queryParamAsClass("size", Integer.class).getOrDefault(0);
+        imageService
+                .read(ImageCategory.QUIZ_QUESTIONS, String.valueOf(id), size)
+                .ifPresentOrElse(
+                        img -> {
+                            ctx.contentType(img.contentType());
+                            ctx.header("Cache-Control", "public, max-age=3600");
+                            ctx.result(img.data());
+                        },
+                        () -> {
+                            throw new NotFoundResponse("No image");
+                        });
+    }
+
+    private void uploadQuestionImage(Context ctx) {
+        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        quizService.findQuestion(id).orElseThrow(NotFoundResponse::new);
+        var file = ctx.uploadedFile("image");
+        if (file == null) {
+            throw new BadRequestResponse("No file uploaded");
+        }
+        if (!ALLOWED_IMAGE_TYPES.contains(file.contentType())) {
+            throw new BadRequestResponse("Invalid file type. Allowed: PNG, JPEG, WebP");
+        }
+        try (var content = file.content()) {
+            byte[] data = content.readAllBytes();
+            imageService.store(
+                    ImageCategory.QUIZ_QUESTIONS,
+                    String.valueOf(id),
+                    data,
+                    file.contentType(),
+                    apiConfig.maxImageSizeBytes());
+            ctx.json(Map.of("success", true));
+        } catch (IllegalArgumentException e) {
+            throw new BadRequestResponse(e.getMessage());
+        } catch (IOException e) {
+            throw new InternalServerErrorResponse("Failed to process image");
+        }
+    }
+
+    private void deleteQuestionImage(Context ctx) {
+        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        imageService.delete(ImageCategory.QUIZ_QUESTIONS, String.valueOf(id));
+        ctx.status(HttpStatus.NO_CONTENT);
+    }
+
+    // -- Request/Response records --
+
+    public record CatalogRequest(String name, String description, Boolean trainingEnabled) {}
+
+    public record CategoryRequest(String name, String description, Integer position) {}
+
+    public record QuestionRequest(
+            String questionType,
+            Integer categoryId,
+            String title,
+            String description,
+            String imageUrl,
+            Integer points,
+            Boolean autoPoints,
+            tools.jackson.databind.JsonNode config,
+            Integer position) {
+
+        public String configString() {
+            return config != null ? config.toString() : "{}";
+        }
+    }
+
+    public record TestRequest(
+            String title, String description, Integer timeLimit, Boolean shuffle, Instant startAt, Instant endAt) {}
+
+    public record SectionRequest(String title, String description, List<SourceRequest> sources) {}
+
+    public record SourceRequest(int catalogId, Integer categoryId, int questionCount) {}
+
+    public record AnswerRequest(int questionId, String answer) {}
+
+    public record GradeRequest(Integer points) {}
+
+    public record AccessRequest(Integer memberId, Instant closesAt) {}
+
+    public record TestRestrictions(List<Integer> roleIds, List<Integer> groupIds, List<Integer> tagIds) {}
+
+    public record CatalogDetail(
+            int id,
+            int stationId,
+            String name,
+            String description,
+            boolean trainingEnabled,
+            int questionCount,
+            Map<String, Integer> questionTypeCounts,
+            List<QuizCategory> categories,
+            Instant createdAt,
+            Instant updatedAt) {}
+
+    public record TestSummary(QuizTest test, int attemptCount) {}
+
+    public record TestDetail(QuizTest test, List<SectionDetail> sections, int attemptCount) {}
+
+    public record SectionDetail(
+            int id, int testId, String title, String description, int position, List<QuizTestSectionSource> sources) {}
+
+    public record AttemptDetail(
+            QuizTestAttempt attempt, List<QuizTestAttemptQuestion> questions, List<QuizTestAnswer> answers) {}
+
+    public record CsvMappings(
+            String questionColumn,
+            String answerColumn,
+            String categoryColumn,
+            String typeColumn,
+            String pointsColumn,
+            String separator,
+            String answerSeparator,
+            String defaultType) {}
+
+    public record CatalogExport(
+            String name,
+            String description,
+            boolean trainingEnabled,
+            List<QuizCategory> categories,
+            List<QuizQuestion> questions) {}
+}

@@ -10,15 +10,19 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import InfoButton from '@/components/button/InfoButton.vue'
 import client from '@/api/client'
+import {adminSettings} from '@/api'
+import EmberLogo from '@/components/display/EmberLogo.vue'
 
 const {t} = useI18n()
 const demoUrl = ref('')
+const registrationEnabled = ref(true)
 
 onMounted(async () => {
   try {
     const res = await client.get<{ demoUrl?: string }>('/public/config')
     demoUrl.value = res.data.demoUrl ?? ''
   } catch { /* ignore */ }
+  adminSettings.isRegistrationEnabled().then(v => registrationEnabled.value = v).catch(() => {})
 
   // Inject JSON-LD structured data
   const script = document.createElement('script')
@@ -73,7 +77,7 @@ const highlights = [
     <section aria-label="Einleitung" class="relative overflow-hidden">
       <div class="absolute inset-0 bg-gradient-to-b from-primary/10 via-secondary/5 to-transparent"/>
       <div class="relative mx-auto max-w-5xl px-6 py-20 sm:py-28 text-center">
-        <img src="/logo.png" alt="Ember" class="h-20 w-20 rounded-2xl mb-6 mx-auto" />
+        <EmberLogo base="NoBG_OrangeGlow" blink-base="NoBG_OrangeGlow_Blink" :pixel-size="256" size="h-20 w-20 rounded-2xl mb-6 mx-auto" :blink="true" />
         <h1 class="text-4xl sm:text-5xl font-extrabold tracking-tight mb-4">
           {{ t('landing.heroTitle') }}
         </h1>
@@ -81,7 +85,7 @@ const highlights = [
           {{ t('landing.heroSubtitle') }}
         </p>
         <div class="flex items-center justify-center gap-4 flex-wrap">
-          <router-link to="/apply">
+          <router-link v-if="registrationEnabled" to="/apply">
             <PrimaryButton class="text-base px-6 py-3">
               <font-awesome-icon :icon="['fas', 'building']" class="mr-2"/>
               {{ t('landing.cta') }}
@@ -160,7 +164,7 @@ const highlights = [
     <!-- Target Audience -->
     <section aria-label="Zielgruppe" class="mx-auto max-w-5xl px-6 py-16">
       <div class="rounded-2xl border border-(--border) bg-(--bg) p-8 sm:p-12 text-center">
-        <img src="/logo.png" alt="Ember" class="h-12 w-12 rounded-xl mx-auto mb-4" />
+        <EmberLogo base="NoBG_OrangeGlow" blink-base="NoBG_OrangeGlow_Blink" :pixel-size="128" size="h-12 w-12 rounded-xl mx-auto mb-4" />
         <h2 class="text-2xl font-bold mb-3">{{ t('landing.audienceTitle') }}</h2>
         <p class="text-(--text-muted) max-w-2xl mx-auto mb-6 leading-relaxed">
           {{ t('landing.audienceText') }}
@@ -177,15 +181,21 @@ const highlights = [
     <!-- CTA Section -->
     <section aria-label="Jetzt starten" class="bg-primary/5 py-16">
       <div class="mx-auto max-w-3xl px-6 text-center">
-        <h2 class="text-2xl sm:text-3xl font-bold mb-3">{{ t('landing.ctaTitle') }}</h2>
+        <h2 class="text-2xl sm:text-3xl font-bold mb-3">{{ registrationEnabled ? t('landing.ctaTitle') : t('landing.ctaTitleSelfHost') }}</h2>
         <p class="text-(--text-muted) mb-8 max-w-xl mx-auto">
-          {{ t('landing.ctaText') }}
+          {{ registrationEnabled ? t('landing.ctaText') : t('landing.ctaTextSelfHost') }}
         </p>
         <div class="flex items-center justify-center gap-4 flex-wrap">
-          <router-link to="/apply">
+          <router-link v-if="registrationEnabled" to="/apply">
             <PrimaryButton class="text-base px-8 py-3">
               <font-awesome-icon :icon="['fas', 'building']" class="mr-2"/>
               {{ t('landing.cta') }}
+            </PrimaryButton>
+          </router-link>
+          <router-link v-if="!registrationEnabled" to="/helpcenter/station/basics/hosting">
+            <PrimaryButton class="text-base px-8 py-3">
+              <font-awesome-icon :icon="['fas', 'server']" class="mr-2"/>
+              {{ t('landing.selfHostCta') }}
             </PrimaryButton>
           </router-link>
           <a v-if="demoUrl" :href="demoUrl" target="_blank" rel="noopener noreferrer">

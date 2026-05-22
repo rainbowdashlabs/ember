@@ -4,38 +4,46 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {ref} from 'vue'
+import { computed } from 'vue'
+import { DarkMode } from '@/theme/themes'
+import { useTheme } from '@/composables/useTheme'
 
-function getInitialTheme(): boolean {
-  const stored = localStorage.getItem('theme')
-  if (stored !== null) {
-    return stored === 'dark'
-  }
-  return window.matchMedia('(prefers-color-scheme: dark)').matches
-}
+const { darkMode, setDarkMode } = useTheme()
 
-const isDark = ref(getInitialTheme())
-applyTheme(isDark.value)
+const icon = computed(() => {
+    switch (darkMode.value) {
+        case DarkMode.SYSTEM:
+            return 'circle-half-stroke'
+        case DarkMode.LIGHT:
+            return 'sun'
+        case DarkMode.DARK:
+            return 'moon'
+        default:
+            return 'circle-half-stroke'
+    }
+})
 
-function applyTheme(dark: boolean) {
-  const root = document.documentElement
-  root.classList.toggle('dark', dark)
-  root.classList.toggle('light', !dark)
-  localStorage.setItem('theme', dark ? 'dark' : 'light')
-}
-
-function toggle() {
-  isDark.value = !isDark.value
-  applyTheme(isDark.value)
+function cycle() {
+    switch (darkMode.value) {
+        case DarkMode.SYSTEM:
+            setDarkMode(DarkMode.LIGHT)
+            break
+        case DarkMode.LIGHT:
+            setDarkMode(DarkMode.DARK)
+            break
+        case DarkMode.DARK:
+            setDarkMode(DarkMode.SYSTEM)
+            break
+    }
 }
 </script>
 
 <template>
-  <button
-      aria-label="Toggle theme"
-      class="p-2 rounded-lg text-[var(--text)] transition-colors duration-150 hover:bg-bg-light-accent dark:hover:bg-bg-dark-accent"
-      @click="toggle"
-  >
-    <font-awesome-icon :icon="['fas', isDark ? 'sun' : 'moon']" class="h-5 w-5"/>
-  </button>
+    <button
+        aria-label="Toggle theme"
+        class="p-2 rounded-lg text-[var(--text)] transition-colors duration-150 hover:bg-bg-light-accent dark:hover:bg-bg-dark-accent"
+        @click="cycle"
+    >
+        <font-awesome-icon :icon="['fas', icon]" class="h-5 w-5" />
+    </button>
 </template>

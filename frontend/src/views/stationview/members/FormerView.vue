@@ -97,7 +97,7 @@ onMounted(loadData)
                 <td class="px-3 py-2.5 font-medium text-(--text-muted)">{{ memberDisplayName(member) }}</td>
                 <td class="px-3 py-2.5 text-(--text-muted)">{{ member.email ?? '' }}</td>
                 <td class="px-3 py-2.5 text-right">
-                  <PrimaryButton class="text-xs" @click="openReactivate(member)">
+                  <PrimaryButton @click="openReactivate(member)">
                     <font-awesome-icon :icon="['fas', 'user-check']" class="mr-1" />
                     {{ t('formerMembers.reactivate') }}
                   </PrimaryButton>

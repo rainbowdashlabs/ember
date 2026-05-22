@@ -14,6 +14,7 @@ import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.legal.service.ConsentService;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.station.repository.StationRepository;
+import dev.chojo.ember.feature.system.service.DataInitializer;
 import dev.chojo.ember.feature.system.service.DemoService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -79,6 +80,9 @@ public class Bootstrapper {
         var injector = Guice.createInjector(new EmberModule(conf));
         // Eagerly initialize the query configuration so Query.query(...) works globally
         injector.getInstance(QueryConfiguration.class);
+
+        // Initialize data directory from templates if empty
+        injector.getInstance(DataInitializer.class).initialize();
 
         // Demo mode: wipe and seed before starting
         var demoService = injector.getInstance(DemoService.class);

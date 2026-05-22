@@ -19,7 +19,7 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import {auth, session} from '@/api'
+import {auth, session, adminSettings} from '@/api'
 import client from '@/api/client'
 import {StorageDeniedError} from '@/api/auth'
 import type {StorageConsent} from '@/api/storage'
@@ -45,6 +45,7 @@ interface DemoAccount {
 
 const isDemo = ref(false)
 const isDev = ref(false)
+const registrationEnabled = ref(true)
 const hasDemoAccounts = computed(() => demoAccounts.value.length > 0)
 const demoAccounts = ref<DemoAccount[]>([])
 const demoLoading = ref(true)
@@ -89,8 +90,9 @@ onMounted(async () => {
     return
   }
 
-  // Load consent text in parallel with demo status
+  // Load consent text and registration status in parallel with demo status
   loadConsentText()
+  adminSettings.isRegistrationEnabled().then(v => registrationEnabled.value = v).catch(() => {})
 
   try {
     const res = await client.get<{ demo: boolean; dev: boolean }>('/demo/status')
@@ -428,7 +430,7 @@ function topRoleLabel(account: DemoAccount): string {
                        to="/forgot-password">
             {{ t('login.forgotPassword') }}
           </router-link>
-          <router-link class="block w-full text-center text-sm text-primary hover:underline" to="/apply">
+          <router-link v-if="registrationEnabled" class="block w-full text-center text-sm text-primary hover:underline" to="/apply">
             {{ t('login.applyForStation') }}
           </router-link>
         </form>

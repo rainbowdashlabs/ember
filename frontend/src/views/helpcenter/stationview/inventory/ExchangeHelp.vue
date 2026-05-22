@@ -77,9 +77,9 @@ const activeRole = ref('')
               <td class="px-3 py-2.5 text-(--text-muted)">14.05.2026</td>
               <td class="px-3 py-2.5 text-right">
                 <div class="flex items-center justify-end gap-1">
-                  <SecondaryButton class="text-xs"><font-awesome-icon :icon="['fas', 'clock-rotate-left']" /></SecondaryButton>
+                  <SecondaryButton><font-awesome-icon :icon="['fas', 'clock-rotate-left']" /></SecondaryButton>
                   <template v-if="activeRole === 'manager'">
-                    <SecondaryButton class="text-xs"><font-awesome-icon :icon="['fas', 'arrow-right']" /></SecondaryButton>
+                    <SecondaryButton><font-awesome-icon :icon="['fas', 'arrow-right']" /></SecondaryButton>
                     <DeleteButton />
                   </template>
                 </div>
@@ -95,9 +95,9 @@ const activeRole = ref('')
               <td class="px-3 py-2.5 text-(--text-muted)">10.05.2026</td>
               <td class="px-3 py-2.5 text-right">
                 <div class="flex items-center justify-end gap-1">
-                  <SecondaryButton class="text-xs"><font-awesome-icon :icon="['fas', 'clock-rotate-left']" /></SecondaryButton>
+                  <SecondaryButton><font-awesome-icon :icon="['fas', 'clock-rotate-left']" /></SecondaryButton>
                   <template v-if="activeRole === 'manager'">
-                    <SecondaryButton class="text-xs"><font-awesome-icon :icon="['fas', 'arrow-right']" /></SecondaryButton>
+                    <SecondaryButton><font-awesome-icon :icon="['fas', 'arrow-right']" /></SecondaryButton>
                     <DeleteButton />
                   </template>
                 </div>
@@ -113,7 +113,7 @@ const activeRole = ref('')
               <td class="px-3 py-2.5 text-(--text-muted)">01.04.2026</td>
               <td class="px-3 py-2.5 text-right">
                 <div class="flex items-center justify-end gap-1">
-                  <SecondaryButton class="text-xs"><font-awesome-icon :icon="['fas', 'clock-rotate-left']" /></SecondaryButton>
+                  <SecondaryButton><font-awesome-icon :icon="['fas', 'clock-rotate-left']" /></SecondaryButton>
                   <template v-if="activeRole === 'manager'">
                     <DeleteButton />
                   </template>

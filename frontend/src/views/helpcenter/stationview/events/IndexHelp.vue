@@ -99,11 +99,11 @@ const {t} = useI18n()
       </NeutralContainer>
     </div>
     <div class="flex gap-2">
-      <PrimaryButton class="text-sm">
+      <PrimaryButton>
         <font-awesome-icon :icon="['fas', 'plus']" class="mr-1"/>
         {{ t('events.addBreak') }}
       </PrimaryButton>
-      <SecondaryButton class="text-sm">
+      <SecondaryButton>
         <font-awesome-icon :icon="['fas', 'download']" class="mr-1"/>
         {{ t('events.importHolidays') }}
       </SecondaryButton>

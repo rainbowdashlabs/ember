@@ -23,7 +23,8 @@ public enum NotificationType {
     PROCUREMENT_FULFILLED(NotificationParams.ProcurementFulfilled.class, "notification.procurementFulfilled"),
     NEW_FORM(NotificationParams.NewForm.class, "notification.newForm"),
     LOST_AND_FOUND_NEW(NotificationParams.LostAndFoundNew.class, "notification.lostAndFoundNew"),
-    LOST_AND_FOUND_CLAIMED(NotificationParams.LostAndFoundClaimed.class, "notification.lostAndFoundClaimed");
+    LOST_AND_FOUND_CLAIMED(NotificationParams.LostAndFoundClaimed.class, "notification.lostAndFoundClaimed"),
+    WAITLIST_NEW_ENTRY(NotificationParams.WaitlistNewEntry.class, "notification.waitlistNewEntry");
 
     private final Class<? extends NotificationParams> paramsType;
     private final String localeKey;

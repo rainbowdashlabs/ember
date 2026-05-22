@@ -330,7 +330,7 @@ watch(loaded, (isLoaded) => {
               </div>
               <p v-if="ev.description" class="text-sm text-(--text-muted)">{{ ev.description }}</p>
               <div class="flex gap-2">
-                <PrimaryButton v-if="ev.templateId && canManageAttendance()" class="text-sm"
+                <PrimaryButton v-if="ev.templateId && canManageAttendance()"
                                @click="goToAttendance(ev)">
                   <font-awesome-icon :icon="['fas', 'clipboard-user']" class="mr-1"/>
                   {{ t('eventsUpcoming.attendance') }}

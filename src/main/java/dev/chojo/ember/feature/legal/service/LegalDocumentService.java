@@ -225,37 +225,10 @@ public class LegalDocumentService {
     }
 
     /**
-     * Generates a line-based diff between two markdown texts.
-     * Output format: lines prefixed with + (added), - (removed), or space (unchanged).
-     * Uses an iterative LCS traceback to avoid stack overflow on large documents.
+     * Generates a human-readable diff between two markdown texts using java-diff-utils.
      */
     String generateDiff(String oldText, String newText) {
-        List<String> oldLines = List.of(oldText.split("\n", -1));
-        List<String> newLines = List.of(newText.split("\n", -1));
-
-        int[][] dp = buildLcsTable(oldLines, newLines);
-
-        // Iterative traceback: walk from (m,n) to (0,0) collecting diff entries in reverse
-        int i = oldLines.size();
-        int j = newLines.size();
-        var reversed = new ArrayList<String>();
-
-        while (i > 0 || j > 0) {
-            if (i > 0 && j > 0 && oldLines.get(i - 1).equals(newLines.get(j - 1))) {
-                reversed.add("  " + oldLines.get(i - 1));
-                i--;
-                j--;
-            } else if (j > 0 && (i == 0 || dp[i][j - 1] >= dp[i - 1][j])) {
-                reversed.add("+ " + newLines.get(j - 1));
-                j--;
-            } else {
-                reversed.add("- " + oldLines.get(i - 1));
-                i--;
-            }
-        }
-
-        Collections.reverse(reversed);
-        return String.join("\n", reversed);
+        return dev.chojo.ember.util.TextDiff.generateDiffSummary(oldText, newText);
     }
 
     /**
@@ -272,22 +245,6 @@ public class LegalDocumentService {
         } catch (NoSuchAlgorithmException e) {
             throw new RuntimeException(e);
         }
-    }
-
-    private int[][] buildLcsTable(List<String> a, List<String> b) {
-        int m = a.size();
-        int n = b.size();
-        int[][] dp = new int[m + 1][n + 1];
-        for (int i = 1; i <= m; i++) {
-            for (int j = 1; j <= n; j++) {
-                if (a.get(i - 1).equals(b.get(j - 1))) {
-                    dp[i][j] = dp[i - 1][j - 1] + 1;
-                } else {
-                    dp[i][j] = Math.max(dp[i - 1][j], dp[i][j - 1]);
-                }
-            }
-        }
-        return dp;
     }
 
     private String renderMarkdown(String markdown) {

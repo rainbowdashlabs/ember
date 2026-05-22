@@ -29,7 +29,7 @@ const {t} = useI18n()
     <!-- Dummy: Lost and found list -->
     <div class="flex items-center justify-between mb-4">
       <SectionHeader>{{ t('lostAndFound.title') }}</SectionHeader>
-      <PrimaryButton class="text-sm" disabled>
+      <PrimaryButton disabled>
         <font-awesome-icon :icon="['fas', 'plus']" class="mr-2"/>
         {{ t('lostAndFound.create') }}
       </PrimaryButton>

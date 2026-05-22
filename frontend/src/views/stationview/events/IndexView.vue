@@ -12,6 +12,7 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import IconButton from '@/components/button/IconButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
+import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import Modal from '@/components/feedback/Modal.vue'
@@ -414,18 +415,14 @@ onMounted(loadData)
           <div class="space-y-2">
             <label class="block text-sm font-medium">{{ t('events.exportCategories') }}</label>
             <div class="flex flex-wrap gap-2">
-              <button
+              <SelectionToggleButton
                   v-for="cat in categories"
                   :key="cat.id"
-                  :class="exportCategoryIds.has(cat.id)
-                  ? 'border-primary bg-primary/10 text-primary ring-1 ring-primary/30'
-                  : 'border-bg-light-accent dark:border-bg-dark-accent text-(--text-muted) hover:border-primary'"
-                  class="rounded-lg px-3 py-1.5 text-xs font-medium border transition-all"
-                  type="button"
-                  @click="toggleExportCategory(cat.id)"
+                  :selected="exportCategoryIds.has(cat.id)"
+                  @toggle="toggleExportCategory(cat.id)"
               >
                 {{ cat.name }}
-              </button>
+              </SelectionToggleButton>
             </div>
           </div>
 

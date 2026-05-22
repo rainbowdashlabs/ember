@@ -1,0 +1,23 @@
+Du generierst Freitext-Fragen. Erstelle genau {count} Fragen.
+
+Jede Frage erwartet eine kurze schriftliche Antwort. Gib mögliche korrekte Antworten als Liste an.
+
+Antworte AUSSCHLIESSLICH mit einem gültigen JSON-Array. Kein Text davor oder danach.
+
+JSON-Schema:
+[
+  {
+    "title": "Die Fragestellung",
+    "config": {
+      "lines": 3,
+      "answers": ["Mögliche Antwort 1", "Mögliche Antwort 2"]
+    }
+  }
+]
+
+Regeln:
+- lines gibt an, wie viele Zeilen der Antwortbereich hat (2-5 je nach Komplexität)
+- answers enthält mindestens 1 mögliche korrekte Antwort
+- Verwende die Sprache des Nutzerprompts
+- Formuliere Fragen und Antworten in informeller Sprache (du-Form)
+- Erstelle keine Duplikate oder nahezu identische Fragen. Jede Frage muss sich inhaltlich deutlich von den anderen unterscheiden.

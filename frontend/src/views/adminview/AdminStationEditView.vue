@@ -149,7 +149,7 @@ onMounted(loadStation)
           <template v-if="!isEdit || !hasManager || editingManager">
             <TextInput v-model="managerEmail" :placeholder="t('adminStations.managerEmailPlaceholder')"/>
             <p class="text-xs text-(--text-muted)">{{ t('adminStations.managerEmailHint') }}</p>
-            <SecondaryButton v-if="editingManager" class="text-sm" @click="cancelTransfer">
+            <SecondaryButton v-if="editingManager" @click="cancelTransfer">
               {{ t('adminStations.cancelTransfer') }}
             </SecondaryButton>
           </template>

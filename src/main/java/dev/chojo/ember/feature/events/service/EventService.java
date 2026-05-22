@@ -328,43 +328,76 @@ public class EventService {
         return eventRepository.findGroupRestrictions(eventId);
     }
 
+    public List<Integer> findTagRestrictions(int eventId) {
+        return eventRepository.findTagRestrictions(eventId);
+    }
+
     /**
-     * Sets both role and group restrictions for an event, replacing any existing restrictions.
+     * Sets role, group, and tag restrictions for an event, replacing any existing restrictions.
      *
      * @param eventId  the event ID
      * @param roleIds  the role IDs to restrict to, or null for no role restrictions
      * @param groupIds the group IDs to restrict to, or null for no group restrictions
      */
-    public void setRestrictions(int eventId, List<Integer> roleIds, List<Integer> groupIds) {
+    public void setRestrictions(int eventId, List<Integer> roleIds, List<Integer> groupIds, List<Integer> tagIds) {
         eventRepository.setRoleRestrictions(eventId, roleIds != null ? roleIds : List.of());
         eventRepository.setGroupRestrictions(eventId, groupIds != null ? groupIds : List.of());
+        eventRepository.setTagRestrictions(eventId, tagIds != null ? tagIds : List.of());
     }
 
     /**
-     * Checks if a member is eligible for an event based on their expanded roles and group memberships.
+     * Checks if a member is eligible for an event based on their expanded roles, group memberships, and tags.
+     * Uses AND logic: if multiple restriction types are set, the member must match ALL of them.
      *
      * @param eventId        the event to check
      * @param expandedRoles  the member's roles (already expanded via Roles.expand)
      * @param memberGroupIds the member's group IDs
+     * @param memberTagIds   the member's tag IDs
      */
-    public boolean isMemberEligible(int eventId, Set<Roles> expandedRoles, List<Integer> memberGroupIds) {
+    public boolean isMemberEligible(
+            int eventId, Set<Roles> expandedRoles, List<Integer> memberGroupIds, List<Integer> memberTagIds) {
         var roleRestrictionNames = eventRepository.findRoleRestrictionNames(eventId);
         var groupRestrictions = eventRepository.findGroupRestrictions(eventId);
+        var tagRestrictions = eventRepository.findTagRestrictions(eventId);
 
-        if (roleRestrictionNames.isEmpty() && groupRestrictions.isEmpty()) return true;
+        if (roleRestrictionNames.isEmpty() && groupRestrictions.isEmpty() && tagRestrictions.isEmpty()) return true;
 
-        // Check role restrictions: the member's expanded roles must include at least one restricted role
-        for (String roleName : roleRestrictionNames) {
-            Roles role = Roles.fromDbName(roleName);
-            if (role != null && expandedRoles.contains(role)) return true;
+        // AND logic: each non-empty restriction type must match
+        if (!roleRestrictionNames.isEmpty()) {
+            boolean roleMatch = false;
+            for (String roleName : roleRestrictionNames) {
+                Roles role = Roles.fromDbName(roleName);
+                if (role != null && expandedRoles.contains(role)) {
+                    roleMatch = true;
+                    break;
+                }
+            }
+            if (!roleMatch) return false;
         }
 
-        // Check group restrictions
-        for (int groupId : groupRestrictions) {
-            if (memberGroupIds.contains(groupId)) return true;
+        if (!groupRestrictions.isEmpty()) {
+            boolean groupMatch = false;
+            for (int groupId : groupRestrictions) {
+                if (memberGroupIds.contains(groupId)) {
+                    groupMatch = true;
+                    break;
+                }
+            }
+            if (!groupMatch) return false;
         }
 
-        return false;
+        if (!tagRestrictions.isEmpty()) {
+            boolean tagMatch = false;
+            for (int tagId : tagRestrictions) {
+                if (memberTagIds.contains(tagId)) {
+                    tagMatch = true;
+                    break;
+                }
+            }
+            return tagMatch;
+        }
+
+        return true;
     }
 
     /**
@@ -385,6 +418,10 @@ public class EventService {
      */
     public Map<Integer, List<Integer>> findAllGroupRestrictionsByStation(int stationId) {
         return eventRepository.findAllGroupRestrictionsByStation(stationId);
+    }
+
+    public Map<Integer, List<Integer>> findAllTagRestrictionsByStation(int stationId) {
+        return eventRepository.findAllTagRestrictionsByStation(stationId);
     }
 
     // -- Field Defaults --

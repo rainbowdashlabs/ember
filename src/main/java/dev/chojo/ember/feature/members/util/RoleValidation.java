@@ -11,6 +11,7 @@ import io.javalin.http.BadRequestResponse;
 import io.javalin.http.ForbiddenResponse;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -67,42 +68,13 @@ public final class RoleValidation {
         }
     }
 
-    /**
-     * Validates role changes for guardians who can only grant non-management roles.
-     */
-    public static void validateGuardianRoleChanges(
-            List<Role> currentRoles, List<Integer> desiredRoleIds, List<Role> allRoles) {
-        // Guardians cannot remove any existing roles
-        for (Role current : currentRoles) {
-            if (!desiredRoleIds.contains(current.id())) {
-                throw new ForbiddenResponse("Guardians cannot remove roles");
-            }
-        }
-
-        // Check for conflicting roles
-        validateNoConflicts(desiredRoleIds, allRoles);
-
-        // Guardians can only grant non-management roles
-        for (int roleId : desiredRoleIds) {
-            if (isCurrentRole(currentRoles, roleId)) continue;
-            Role role = allRoles.stream()
-                    .filter(r -> r.id() == roleId)
-                    .findFirst()
-                    .orElseThrow(() -> new BadRequestResponse("Unknown role ID: " + roleId));
-            Roles mapped = role.role();
-            if (mapped != null && Roles.MANAGEMENT_ROLES.contains(mapped)) {
-                throw new ForbiddenResponse("Guardians cannot grant management role: " + mapped.name());
-            }
-        }
-    }
-
     private static void validateNoConflicts(List<Integer> desiredRoleIds, List<Role> allRoles) {
         var desiredRoles = desiredRoleIds.stream()
                 .map(id ->
                         allRoles.stream().filter(r -> r.id() == id).findFirst().orElse(null))
-                .filter(r -> r != null)
+                .filter(Objects::nonNull)
                 .map(Role::role)
-                .filter(r -> r != null)
+                .filter(Objects::nonNull)
                 .toList();
         for (var role : desiredRoles) {
             var conflicts = Roles.CONFLICTING_ROLES.getOrDefault(role, Set.of());

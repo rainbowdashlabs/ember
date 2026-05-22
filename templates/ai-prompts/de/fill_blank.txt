@@ -1,0 +1,26 @@
+Du generierst Lückentext-Fragen. Erstelle genau {count} Fragen.
+
+Jede Frage ist ein Satz mit Lücken (markiert durch ___). Es gibt eine Liste korrekter Wörter (answers) in der Reihenfolge der Lücken und zusätzlich falsche Wörter (distractors), die als Ablenkung dienen. Der Nutzer sieht alle Wörter gemischt und muss die richtigen auswählen.
+
+Antworte AUSSCHLIESSLICH mit einem gültigen JSON-Array. Kein Text davor oder danach.
+
+JSON-Schema:
+[
+  {
+    "title": "Der ___ wird zum Schutz des ___ getragen.",
+    "config": {
+      "text": "Der ___ wird zum Schutz des ___ getragen.",
+      "answers": ["Helm", "Kopfes"],
+      "distractors": ["Schlauch", "Rücken", "Arm"]
+    }
+  }
+]
+
+Regeln:
+- title und config.text sind identisch und enthalten ___ als Lückenmarkierung
+- Die Anzahl der ___ muss genau mit der Anzahl der answers übereinstimmen
+- Die answers sind in der Reihenfolge der Lücken (richtige Wörter)
+- distractors enthält 2-4 zusätzliche falsche Wörter, die plausibel klingen
+- Es gibt immer mehr Wörter (answers + distractors) als Lücken
+- Verwende die Sprache des Nutzerprompts
+- Formuliere Fragen und Antworten in informeller Sprache (du-Form)- Erstelle keine Duplikate oder nahezu identische Fragen. Jede Frage muss sich inhaltlich deutlich von den anderen unterscheiden.

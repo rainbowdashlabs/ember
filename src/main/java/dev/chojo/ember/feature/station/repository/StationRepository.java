@@ -21,7 +21,8 @@ import java.util.Set;
 @Singleton
 public class StationRepository {
 
-    private static final String STATION_COLUMNS = "id, name, timezone, locale, owner_member_id";
+    private static final String STATION_COLUMNS =
+            "id, name, timezone, locale, owner_member_id, default_theme, allow_user_theme, custom_theme_colors";
 
     /**
      * Finds a station by its ID.
@@ -102,6 +103,18 @@ public class StationRepository {
                 .single(Call.of().bind("locale", locale).bind("id", id))
                 .update()
                 .changed();
+    }
+
+    public void updateThemeSettings(int id, String defaultTheme, boolean allowUserTheme, String customThemeColors) {
+        Query.query("""
+                        UPDATE station SET default_theme = :default_theme, allow_user_theme = :allow_user_theme,
+                        custom_theme_colors = :custom_theme_colors::jsonb WHERE id = :id;""")
+                .single(Call.of()
+                        .bind("id", id)
+                        .bind("default_theme", defaultTheme)
+                        .bind("allow_user_theme", allowUserTheme)
+                        .bind("custom_theme_colors", customThemeColors))
+                .update();
     }
 
     /**

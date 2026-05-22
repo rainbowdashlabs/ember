@@ -71,6 +71,8 @@ public class InventoryRoutes implements Routes {
                 Roles.INVENTORY_MANAGEMENT);
         routes.get(prefix + "/inventories", this::list, Roles.INVENTORY_MANAGEMENT);
         routes.post(prefix + "/inventories", this::create, Roles.INVENTORY_MANAGEMENT);
+        routes.get(prefix + "/inventories/all-items", this::listAllItems, Roles.INVENTORY_MANAGEMENT);
+        routes.get(prefix + "/inventories/all-sizes", this::listAllSizes, Roles.LOGIN);
         routes.get(prefix + "/inventories/{id}", this::get, Roles.INVENTORY_MANAGEMENT);
         routes.put(prefix + "/inventories/{id}", this::update, Roles.INVENTORY_MANAGEMENT);
         routes.delete(prefix + "/inventories/{id}", this::delete, Roles.INVENTORY_MANAGEMENT);
@@ -202,6 +204,16 @@ public class InventoryRoutes implements Routes {
     private void list(Context ctx) {
         UserSession session = UserSession.from(ctx);
         ctx.json(inventoryService.findByStation(session.stationId()));
+    }
+
+    private void listAllItems(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        ctx.json(inventoryService.findAllItemsByStation(session.stationId()));
+    }
+
+    private void listAllSizes(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        ctx.json(inventoryService.findAllSizesByStation(session.stationId()));
     }
 
     @OpenApi(

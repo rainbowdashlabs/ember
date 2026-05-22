@@ -72,11 +72,11 @@ const activeRole = ref('')
           </div>
         </div>
         <div class="flex items-center gap-2">
-          <PrimaryButton class="text-sm">
+          <PrimaryButton>
             <font-awesome-icon :icon="['fas', 'check']" class="mr-1"/>
             {{ t('eventsUpcoming.register') }}
           </PrimaryButton>
-          <ErrorButton class="text-sm">
+          <ErrorButton>
             <font-awesome-icon :icon="['fas', 'ban']" class="mr-1"/>
             {{ t('eventsUpcoming.decline') }}
           </ErrorButton>

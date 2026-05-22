@@ -146,11 +146,6 @@ public class EmailService {
     }
 
     /**
-     * Resolve the station-specific mail provider. Does NOT fall back to global —
-     * the global provider is for system emails only.
-     */
-
-    /**
      * Returns the configured base URL for the application, used in email links.
      *
      * @return the base URL
@@ -276,6 +271,69 @@ public class EmailService {
                 email,
                 resolveSubject(locale, "application-received", stationName),
                 loadTemplate("application-received.html", locale, vars));
+    }
+
+    public void sendWaitlistRegistrationEmail(
+            String email, String name, String accessToken, String stationName, String locale, Integer stationId) {
+        String url = api.baseUrl() + "/waiting-list/status?token=" + accessToken;
+        var vars = baseVars(name, stationId);
+        vars.put("url", url);
+        vars.put("stationName", stationName != null ? stationName : "");
+        if (stationId != null) {
+            vars.put("logoUrl", api.baseUrl() + "/api/v1/stations/" + stationId + "/logo");
+            queueStationEmail(
+                    stationId,
+                    email,
+                    resolveSubject(locale, "waitlist-registered", stationName),
+                    loadTemplate("waitlist-registered.html", locale, vars));
+        } else {
+            enqueueGlobal(
+                    email,
+                    resolveSubject(locale, "waitlist-registered", stationName),
+                    loadTemplate("waitlist-registered.html", locale, vars));
+        }
+    }
+
+    public void sendWaitlistConfirmReminderEmail(
+            String email, String name, String accessToken, String stationName, String locale, Integer stationId) {
+        String url = api.baseUrl() + "/waiting-list/status?token=" + accessToken;
+        var vars = baseVars(name, stationId);
+        vars.put("url", url);
+        vars.put("stationName", stationName != null ? stationName : "");
+        if (stationId != null) {
+            vars.put("logoUrl", api.baseUrl() + "/api/v1/stations/" + stationId + "/logo");
+            queueStationEmail(
+                    stationId,
+                    email,
+                    resolveSubject(locale, "waitlist-confirm-reminder", stationName),
+                    loadTemplate("waitlist-confirm-reminder.html", locale, vars));
+        } else {
+            enqueueGlobal(
+                    email,
+                    resolveSubject(locale, "waitlist-confirm-reminder", stationName),
+                    loadTemplate("waitlist-confirm-reminder.html", locale, vars));
+        }
+    }
+
+    public void sendWaitlistRemovalWarningEmail(
+            String email, String name, String accessToken, String stationName, String locale, Integer stationId) {
+        String url = api.baseUrl() + "/waiting-list/status?token=" + accessToken;
+        var vars = baseVars(name, stationId);
+        vars.put("url", url);
+        vars.put("stationName", stationName != null ? stationName : "");
+        if (stationId != null) {
+            vars.put("logoUrl", api.baseUrl() + "/api/v1/stations/" + stationId + "/logo");
+            queueStationEmail(
+                    stationId,
+                    email,
+                    resolveSubject(locale, "waitlist-removal-warning", stationName),
+                    loadTemplate("waitlist-removal-warning.html", locale, vars));
+        } else {
+            enqueueGlobal(
+                    email,
+                    resolveSubject(locale, "waitlist-removal-warning", stationName),
+                    loadTemplate("waitlist-removal-warning.html", locale, vars));
+        }
     }
 
     /**
@@ -478,6 +536,7 @@ public class EmailService {
     }
 
     private String resolveSubject(String locale, String template, String stationName) {
+        final String string = stationName != null && !stationName.isEmpty() ? " — " + stationName : "";
         return switch (template) {
             case "application-verify" ->
                 "de".equals(locale)
@@ -493,6 +552,16 @@ public class EmailService {
                 "de".equals(locale)
                         ? "Antrag für " + stationName + " eingegangen"
                         : "Application for " + stationName + " received";
+            case "waitlist-registered" ->
+                "de".equals(locale) ? "Wartelisten-Anmeldung" + string : "Waiting list registration" + string;
+            case "waitlist-confirm-reminder" ->
+                "de".equals(locale)
+                        ? "Bitte bestätige dein Interesse" + string
+                        : "Please confirm your interest" + string;
+            case "waitlist-removal-warning" ->
+                "de".equals(locale)
+                        ? "Wartelisten-Entfernung in 2 Wochen" + string
+                        : "Waiting list removal in 2 weeks" + string;
             default -> template;
         };
     }

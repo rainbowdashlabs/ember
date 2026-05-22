@@ -17,6 +17,7 @@ import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.station.repository.StationRepository.StationLogo;
+import dev.chojo.ember.util.TypstCompiler;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -24,8 +25,6 @@ import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.json.JsonMapper;
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.YearMonth;
@@ -33,7 +32,6 @@ import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -54,8 +52,6 @@ public class AttendanceReportService {
     private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("dd.MM.yyyy");
     private static final DateTimeFormatter TIME_FMT = DateTimeFormatter.ofPattern("HH:mm");
     private static final DateTimeFormatter MONTH_FMT_DEFAULT = DateTimeFormatter.ofPattern("MMMM yyyy");
-    private static final String TYPST_BIN = System.getenv().getOrDefault("TYPST_BIN", "typst");
-
     private final AttendanceRepository attendanceRepository;
     private final StationMemberRepository stationMemberRepository;
     private final AccountRepository accountRepository;
@@ -408,49 +404,11 @@ public class AttendanceReportService {
 
     private byte[] renderPdf(Map<String, Object> data, String templateName, StationLogo logo)
             throws IOException, InterruptedException {
-        Path tempDir = Files.createTempDirectory("attendance-report");
-        try {
-            Path templateSource = Path.of("templates", "typst", templateName);
-            Path templateFile = tempDir.resolve(templateName);
-            Files.createDirectories(templateFile.getParent());
-            Path templateDir = templateFile.getParent();
-
-            if (logo != null) {
-                String ext =
-                        switch (logo.contentType()) {
-                            case "image/jpeg" -> "jpg";
-                            case "image/svg+xml" -> "svg";
-                            default -> "png";
-                        };
-                data.put("hasLogo", true);
-                data.put("logoFile", "logo." + ext);
-                Files.write(templateDir.resolve("logo." + ext), logo.data());
-            }
-            // Write data and template next to each other so relative paths resolve correctly
-            Files.writeString(templateDir.resolve("data.json"), MAPPER.writeValueAsString(data));
-            Files.copy(templateSource, templateFile);
-            Path outputFile = tempDir.resolve("report.pdf");
-
-            var process = new ProcessBuilder(TYPST_BIN, "compile", templateFile.toString(), outputFile.toString())
-                    .directory(tempDir.toFile())
-                    .redirectErrorStream(true)
-                    .start();
-            String output = new String(process.getInputStream().readAllBytes());
-            int exitCode = process.waitFor();
-            if (exitCode != 0) {
-                throw new IOException("typst compile failed (exit " + exitCode + "): " + output);
-            }
-            return Files.readAllBytes(outputFile);
-        } finally {
-            try (var walk = Files.walk(tempDir)) {
-                walk.sorted(Comparator.reverseOrder()).forEach(p -> {
-                    try {
-                        Files.deleteIfExists(p);
-                    } catch (IOException ignored) {
-                    }
-                });
-            }
-        }
+        return TypstCompiler.compileTemplate(
+                data,
+                templateName,
+                logo != null ? new TypstCompiler.StationLogo(logo.data(), logo.contentType()) : null,
+                MAPPER);
     }
 
     /**

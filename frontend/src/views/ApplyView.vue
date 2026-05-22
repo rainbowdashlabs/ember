@@ -4,13 +4,14 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {ref} from 'vue'
+import {ref, onMounted} from 'vue'
 import {useI18n} from 'vue-i18n'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import Alert from '@/components/feedback/Alert.vue'
-import {stationApplications} from '@/api'
+import Spinner from '@/components/feedback/Spinner.vue'
+import {stationApplications, adminSettings} from '@/api'
 
 const {t} = useI18n()
 
@@ -22,6 +23,18 @@ const introduction = ref('')
 const submitting = ref(false)
 const error = ref('')
 const submitted = ref(false)
+const registrationEnabled = ref(true)
+const loading = ref(true)
+
+onMounted(async () => {
+  try {
+    registrationEnabled.value = await adminSettings.isRegistrationEnabled()
+  } catch {
+    // default to enabled if check fails
+  } finally {
+    loading.value = false
+  }
+})
 
 async function submit() {
   if (!firstName.value.trim() || !lastName.value.trim() || !email.value.trim() || !stationName.value.trim()) {
@@ -55,7 +68,19 @@ async function submit() {
         <h1 class="text-2xl font-bold">{{ t('apply.title') }}</h1>
       </div>
 
-      <template v-if="!submitted">
+      <Spinner v-if="loading" size="md" />
+
+      <template v-if="!loading && !registrationEnabled">
+        <Alert variant="info">{{ t('apply.disabled') }}</Alert>
+        <div class="text-center">
+          <router-link class="text-sm text-primary hover:underline" to="/login">{{
+              t('apply.backToLogin')
+            }}
+          </router-link>
+        </div>
+      </template>
+
+      <template v-if="!loading && registrationEnabled && !submitted">
         <p class="text-sm text-(--text-muted)">{{ t('apply.hint') }}</p>
 
         <Alert v-if="error" variant="error">{{ error }}</Alert>

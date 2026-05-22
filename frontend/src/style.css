@@ -31,6 +31,7 @@
     --bg-accent: var(--color-bg-light-accent);
     --text: #333333;
     --text-muted: #666666;
+    --border: #c0c0c0;
     --link: var(--color-primary);
 
     color-scheme: light dark;
@@ -45,6 +46,7 @@
         --bg-accent: var(--color-bg-dark-accent);
         --text: #e0e0e0;
         --text-muted: #9ca3af;
+        --border: #3a3a3a;
         --link: var(--color-primary);
     }
 }
@@ -54,6 +56,7 @@
     --bg-accent: var(--color-bg-dark-accent);
     --text: #e0e0e0;
     --text-muted: #9ca3af;
+    --border: #3a3a3a;
     --link: var(--color-primary);
 }
 
@@ -185,4 +188,205 @@ a:not(:has(button)):hover {
 
 .legal-content em {
     color: var(--text-muted);
+}
+
+/* Rendered markdown content (knowledge base, etc.) */
+.markdown-content {
+    color: var(--text);
+    line-height: 1.75;
+    font-size: 0.9375rem;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+.markdown-content h1 {
+    font-size: 1.75rem;
+    font-weight: 700;
+    margin-top: 0;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid var(--bg-accent);
+}
+
+.markdown-content h2 {
+    font-size: 1.35rem;
+    font-weight: 600;
+    margin-top: 2rem;
+    margin-bottom: 0.75rem;
+}
+
+.markdown-content h3 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-top: 1.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.markdown-content p {
+    margin-top: 0.75rem;
+    margin-bottom: 0.75rem;
+}
+
+.markdown-content ul,
+.markdown-content ol {
+    margin-top: 0.5rem;
+    margin-bottom: 0.75rem;
+    padding-left: 1.5rem;
+}
+
+.markdown-content ul {
+    list-style-type: disc;
+}
+
+.markdown-content ol {
+    list-style-type: decimal;
+}
+
+.markdown-content li {
+    margin-top: 0.25rem;
+    margin-bottom: 0.25rem;
+}
+
+.markdown-content li > ul,
+.markdown-content li > ol {
+    margin-top: 0.25rem;
+    margin-bottom: 0.25rem;
+}
+
+.markdown-content strong {
+    font-weight: 600;
+}
+
+.markdown-content a {
+    color: var(--link);
+    text-decoration: underline;
+}
+
+.markdown-content blockquote {
+    border-left: 4px solid var(--color-primary);
+    padding: 0.5rem 1rem;
+    margin: 1rem 0;
+    background: var(--bg-accent);
+    border-radius: 0 0.25rem 0.25rem 0;
+    color: var(--text);
+}
+
+.markdown-content blockquote p {
+    margin: 0.25rem 0;
+}
+
+.markdown-content table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1rem 0;
+    border: 1px solid var(--border);
+}
+
+.markdown-content th,
+.markdown-content td {
+    border: 1px solid var(--border);
+    padding: 0.5rem 0.75rem;
+    text-align: left;
+}
+
+.markdown-content th {
+    font-weight: 600;
+    background: var(--bg-accent);
+}
+
+.markdown-content thead th {
+    font-weight: 600;
+    background: var(--bg-accent);
+}
+
+.markdown-content tbody tr:nth-child(even) {
+    background: color-mix(in srgb, var(--bg-accent) 30%, transparent);
+}
+
+.markdown-content hr {
+    border: none;
+    border-top: 2px solid color-mix(in srgb, var(--text) 25%, transparent);
+    margin: 2rem 0;
+}
+
+.markdown-content code {
+    font-size: 0.875em;
+    background: var(--bg-accent);
+    border: 1px solid color-mix(in srgb, var(--text) 15%, transparent);
+    padding: 0.125rem 0.375rem;
+    border-radius: 0.25rem;
+    font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+}
+
+.markdown-content pre {
+    background: var(--bg-accent);
+    border: 1px solid color-mix(in srgb, var(--text) 15%, transparent);
+    border-radius: 0.5rem;
+    padding: 0.75rem 1rem;
+    margin: 1rem 0;
+    overflow-x: auto;
+}
+
+.markdown-content pre code {
+    background: none;
+    border: none;
+    padding: 0;
+    font-size: 0.875em;
+    color: var(--text);
+}
+
+.markdown-content mark {
+    background-color: #fef08a;
+    padding: 0.1em 0.2em;
+    border-radius: 2px;
+}
+
+.markdown-content img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 4px;
+    margin: 0.5em 0;
+}
+
+.markdown-content img[style*="float: left"] {
+    margin: 0 1em 0.5em 0;
+}
+
+.markdown-content img[style*="float: right"] {
+    margin: 0 0 0.5em 1em;
+}
+
+/* Clear floats after floated images */
+.markdown-content::after {
+    content: '';
+    display: table;
+    clear: both;
+}
+
+.markdown-content iframe {
+    max-width: 100%;
+    border: none;
+    border-radius: 0.5rem;
+    margin: 1em 0;
+}
+
+.markdown-content em {
+    font-style: italic;
+}
+
+.markdown-content del {
+    text-decoration: line-through;
+}
+
+.markdown-content u {
+    text-decoration: underline;
+}
+
+/* Search snippet highlight */
+.search-snippet mark {
+    background-color: #fef08a;
+    color: inherit;
+    padding: 0.1em 0.15em;
+    border-radius: 2px;
+    font-weight: 600;
 }

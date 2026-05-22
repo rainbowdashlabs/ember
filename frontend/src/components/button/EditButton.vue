@@ -5,6 +5,9 @@
  */
 <script lang="ts" setup>
 import IconButton from './IconButton.vue'
+import {useI18n} from 'vue-i18n'
+
+const {t} = useI18n()
 
 defineProps<{
   disabled?: boolean
@@ -20,7 +23,7 @@ defineEmits<{
       :disabled="disabled"
       :icon="['fas', 'pen']"
       class="text-info-accent hover:bg-info/15 dark:text-info"
-      label="Edit"
+      :label="t('common.edit')"
       @click="$emit('click', $event)"
   />
 </template>

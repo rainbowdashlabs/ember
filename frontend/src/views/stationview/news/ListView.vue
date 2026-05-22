@@ -270,7 +270,7 @@ onUnmounted(() => {
                 <!-- New top-level comment -->
                 <div class="space-y-2 pt-2">
                   <TextAreaInput v-model="newCommentText" :placeholder="t('news.commentPlaceholder')" :rows="2" />
-                  <PrimaryButton class="text-sm" :disabled="!newCommentText.trim()" @click="submitComment(entry.id)">
+                  <PrimaryButton :disabled="!newCommentText.trim()" @click="submitComment(entry.id)">
                     {{ t('news.submitComment') }}
                   </PrimaryButton>
                 </div>

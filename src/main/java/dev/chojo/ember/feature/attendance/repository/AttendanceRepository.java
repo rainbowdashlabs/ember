@@ -594,6 +594,19 @@ public class AttendanceRepository {
                 .all();
     }
 
+    public List<AttendanceSession> findRecentSessions(int stationId, int limit) {
+        return Query.query("""
+                            SELECT s.id, s.template_id, s.start_time, s.end_time, s.created_at, s.event_id, s.title
+                            FROM attendance_session s
+                            JOIN attendance_template t ON t.id = s.template_id
+                            WHERE t.station_id = :station_id
+                            ORDER BY s.start_time DESC
+                            LIMIT :limit;""")
+                .single(Call.of().bind("station_id", stationId).bind("limit", limit))
+                .map(AttendanceSession.map())
+                .all();
+    }
+
     /**
      * Finds all member IDs in a station that hold a specific role.
      *

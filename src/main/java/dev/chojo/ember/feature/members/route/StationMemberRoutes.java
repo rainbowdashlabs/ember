@@ -33,6 +33,7 @@ import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
+import java.util.HashMap;
 import java.util.List;
 
 /**
@@ -69,10 +70,10 @@ public class StationMemberRoutes implements Routes {
         routes.get(prefix + "/roles", this::listAllRoles, Roles.LOGIN);
         routes.get(prefix + "/station-members", this::listByStation, Roles.MEMBER_MANAGEMENT);
         routes.get(prefix + "/station-members/former", this::listFormer, Roles.MEMBER_MANAGEMENT);
+        routes.get(prefix + "/station-members/all-roles", this::getAllMemberRoles, Roles.MEMBER_MANAGEMENT);
         routes.get(prefix + "/station-members/{id}", this::get, Roles.MEMBER_MANAGEMENT);
         routes.post(prefix + "/station-members", this::create, Roles.MEMBER_MANAGEMENT);
         routes.delete(prefix + "/station-members/{id}", this::delete, Roles.MEMBER_MANAGEMENT);
-
         routes.get(prefix + "/station-members/{id}/roles", this::getRoles, Roles.MEMBER_MANAGEMENT);
         routes.put(prefix + "/station-members/{id}/roles", this::setRoles, Roles.MEMBER_MANAGEMENT);
 
@@ -169,6 +170,16 @@ public class StationMemberRoutes implements Routes {
             tags = {"Station Members"},
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = Role[].class)))
+    private void getAllMemberRoles(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        var members = memberService.findByStation(session.stationId());
+        var result = new HashMap<Integer, List<Role>>();
+        for (var member : members) {
+            result.put(member.id(), memberService.findRoles(member.id()));
+        }
+        ctx.json(result);
+    }
+
     private void getRoles(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
         ctx.json(memberService.findRoles(id));

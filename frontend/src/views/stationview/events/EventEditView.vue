@@ -18,12 +18,13 @@ import DateTimeInput from '@/components/input/datetime/DateTimeInput.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
+import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
-import type {AttendanceTemplate, AttendanceTemplateField, EventCategory, MemberGroup, Role} from '@/api/types'
+import type {AttendanceTemplate, AttendanceTemplateField, EventCategory, MemberGroup, Role, UserTag} from '@/api/types'
 import {Roles, EventTypes, needsDayOfWeek} from '@/api/types'
 import type {EventFieldDefault} from '@/api/events'
-import {attendance, events, memberGroups, stationMembers} from '@/api'
+import {attendance, events, memberGroups, stationMembers, userTags} from '@/api'
 import {useSession} from '@/composables/useSession'
 
 const {t} = useI18n()
@@ -38,9 +39,11 @@ const categories = ref<EventCategory[]>([])
 const templates = ref<AttendanceTemplate[]>([])
 const roles = ref<Role[]>([])
 const groups = ref<MemberGroup[]>([])
+const tags = ref<UserTag[]>([])
 const allTemplateFields = ref<AttendanceTemplateField[]>([])
 const eventRoleIds = ref<number[]>([])
 const eventGroupIds = ref<number[]>([])
+const eventTagIds = ref<number[]>([])
 const eventFieldDefaults = ref<EventFieldDefault[]>([])
 const eventCustomFields = ref<{ name: string; value: string }[]>([])
 
@@ -63,6 +66,7 @@ const eventRegistrationDeadline = ref('')
 const eventRequiresConfirmation = ref(false)
 const selectedRoleIds = ref<Set<number>>(new Set())
 const selectedGroupIds = ref<Set<number>>(new Set())
+const selectedTagIds = ref<Set<number>>(new Set())
 const fieldDefaults = ref<Map<number, { source: string; value: string }>>(new Map())
 
 function toLocalDateTime(iso: string): string {
@@ -75,16 +79,18 @@ async function loadData() {
   loading.value = true
   error.value = ''
   try {
-    const [cats, tpl, allRoles, allGroups] = await Promise.all([
+    const [cats, tpl, allRoles, allGroups, allTags] = await Promise.all([
       events.listCategories(),
       attendance.listTemplates(),
       stationMembers.listAllRoles(),
       memberGroups.listGroups(),
+      userTags.listTags(),
     ])
     categories.value = cats
     templates.value = tpl
     roles.value = allRoles
     groups.value = allGroups
+    tags.value = allTags
 
     const fieldResults = await Promise.all(tpl.map(t => attendance.listTemplateFields(t.id)))
     allTemplateFields.value = fieldResults.flat()
@@ -114,8 +120,10 @@ async function loadData() {
 
       eventRoleIds.value = restrictions.roleIds ?? []
       eventGroupIds.value = restrictions.groupIds ?? []
+      eventTagIds.value = restrictions.tagIds ?? []
       selectedRoleIds.value = new Set(eventRoleIds.value)
       selectedGroupIds.value = new Set(eventGroupIds.value)
+      selectedTagIds.value = new Set(eventTagIds.value)
 
       const fdMap = new Map<number, { source: string; value: string }>()
       for (const fd of defaults) {
@@ -151,6 +159,12 @@ function toggleGroup(groupId: number) {
   const s = new Set(selectedGroupIds.value)
   if (s.has(groupId)) s.delete(groupId); else s.add(groupId)
   selectedGroupIds.value = s
+}
+
+function toggleTag(tagId: number) {
+  const s = new Set(selectedTagIds.value)
+  if (s.has(tagId)) s.delete(tagId); else s.add(tagId)
+  selectedTagIds.value = s
 }
 
 const EVENT_SOURCES = [
@@ -218,6 +232,7 @@ async function submit() {
       requiresConfirmation: eventRequiresConfirmation.value,
       restrictedRoleIds: [...selectedRoleIds.value],
       restrictedGroupIds: [...selectedGroupIds.value],
+      restrictedTagIds: [...selectedTagIds.value],
     }
 
     let savedEventId: number
@@ -333,7 +348,7 @@ watch(loaded, (isLoaded) => {
         <NeutralContainer class="space-y-4">
           <div class="flex items-center justify-between">
             <SubHeader>{{ t('events.eventFields') }}</SubHeader>
-            <SecondaryButton class="text-xs" @click="addCustomField">
+            <SecondaryButton @click="addCustomField">
               <font-awesome-icon :icon="['fas', 'plus']" class="mr-1"/>
               {{ t('events.addField') }}
             </SecondaryButton>
@@ -426,38 +441,46 @@ watch(loaded, (isLoaded) => {
             <label class="block text-sm font-medium">{{ t('events.restrictToRoles') }}</label>
             <p class="text-xs text-(--text-muted)">{{ t('events.restrictToRolesHint') }}</p>
             <div class="flex flex-wrap gap-2">
-              <button
+              <SelectionToggleButton
                   v-for="role in restrictionRoles"
                   :key="role.id"
-                  :class="selectedRoleIds.has(role.id)
-                  ? 'border-primary bg-primary/10 text-primary ring-1 ring-primary/30'
-                  : 'border-bg-light-accent dark:border-bg-dark-accent text-(--text-muted) hover:border-primary'"
-                  class="rounded-lg px-3 py-1.5 text-xs font-medium border transition-all"
-                  type="button"
-                  @click="toggleRole(role.id)"
+                  :selected="selectedRoleIds.has(role.id)"
+                  @toggle="toggleRole(role.id)"
               >
                 {{ roleFriendlyNames[role.role] ?? role.role }}
-              </button>
+              </SelectionToggleButton>
             </div>
           </div>
 
           <div v-if="groups.length > 0" class="space-y-2">
             <label class="block text-sm font-medium">{{ t('events.restrictToGroups') }}</label>
             <div class="flex flex-wrap gap-2">
-              <button
+              <SelectionToggleButton
                   v-for="group in groups"
                   :key="group.id"
-                  :class="selectedGroupIds.has(group.id)
-                  ? 'border-primary bg-primary/10 text-primary ring-1 ring-primary/30'
-                  : 'border-bg-light-accent dark:border-bg-dark-accent text-(--text-muted) hover:border-primary'"
-                  class="rounded-lg px-3 py-1.5 text-xs font-medium border transition-all"
-                  type="button"
-                  @click="toggleGroup(group.id)"
+                  :selected="selectedGroupIds.has(group.id)"
+                  @toggle="toggleGroup(group.id)"
               >
                 {{ group.name }}
-              </button>
+              </SelectionToggleButton>
             </div>
           </div>
+
+          <div v-if="tags.length > 0" class="space-y-2">
+            <label class="block text-sm font-medium">{{ t('events.restrictToTags') }}</label>
+            <div class="flex flex-wrap gap-2">
+              <SelectionToggleButton
+                  v-for="tag in tags"
+                  :key="tag.id"
+                  :selected="selectedTagIds.has(tag.id)"
+                  @toggle="toggleTag(tag.id)"
+              >
+                {{ tag.name }}
+              </SelectionToggleButton>
+            </div>
+          </div>
+
+          <p class="text-xs text-(--text-muted)">{{ t('events.restrictionsAndHint') }}</p>
         </NeutralContainer>
 
         <div class="flex justify-end gap-3">

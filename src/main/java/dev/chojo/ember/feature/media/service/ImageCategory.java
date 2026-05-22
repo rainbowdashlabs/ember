@@ -10,7 +10,11 @@ package dev.chojo.ember.feature.media.service;
  */
 public enum ImageCategory {
     AVATARS("avatars"),
-    LOST_AND_FOUND("lost-and-found");
+    LOST_AND_FOUND("lost-and-found"),
+    APP_LOGOS("app-logos"),
+    QUIZ_QUESTIONS("quiz-questions"),
+    KB_ICONS("kb-icons"),
+    KB_IMAGES("kb-images");
 
     private final String directory;
 

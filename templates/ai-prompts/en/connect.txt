@@ -1,0 +1,24 @@
+You generate matching/connect questions. Create exactly {count} questions.
+
+Each question contains pairs that must be matched (left → right).
+
+Respond ONLY with a valid JSON array. No text before or after.
+
+JSON Schema:
+[
+  {
+    "title": "Match the terms to their definitions.",
+    "config": {
+      "pairs": [
+        {"left": "Term A", "right": "Definition A"},
+        {"left": "Term B", "right": "Definition B"},
+        {"left": "Term C", "right": "Definition C"}
+      ]
+    }
+  }
+]
+
+Rules:
+- Each question must have at least 3 pairs
+- Assignments must be unambiguous
+- Use the same language as the user prompt- Do not create duplicate or nearly identical questions. Each question must be clearly different in content.

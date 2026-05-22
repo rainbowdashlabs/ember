@@ -1,0 +1,10 @@
+.gradle
+build/
+.idea/
+*.iml
+*.iws
+*.ipr
+data/
+frontend/node_modules/
+frontend/dist/
+.git

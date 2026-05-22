@@ -16,6 +16,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
+import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import type {StationMember} from '@/api/types'
@@ -182,28 +183,22 @@ watch(loaded, (isLoaded) => {
           <div class="space-y-2">
             <label class="block text-sm font-medium">{{ t('profile.absenceFor') }}</label>
             <div class="flex flex-wrap gap-2">
-              <button
-                  :class="selectedMemberIds.has(currentMemberId)
-                  ? 'border-primary bg-primary/10 text-primary ring-1 ring-primary/30'
-                  : 'border-bg-light-accent dark:border-bg-dark-accent text-(--text-muted) hover:border-primary'"
-                  class="rounded-lg px-3 py-1.5 text-sm font-medium border transition-all"
-                  type="button"
-                  @click="toggleMember(currentMemberId)"
+              <SelectionToggleButton
+                  :selected="selectedMemberIds.has(currentMemberId)"
+                  size="md"
+                  @toggle="toggleMember(currentMemberId)"
               >
                 {{ t('profile.absenceMyself') }}
-              </button>
-              <button
+              </SelectionToggleButton>
+              <SelectionToggleButton
                   v-for="m in managedMembers"
                   :key="m.id"
-                  :class="selectedMemberIds.has(m.id)
-                  ? 'border-primary bg-primary/10 text-primary ring-1 ring-primary/30'
-                  : 'border-bg-light-accent dark:border-bg-dark-accent text-(--text-muted) hover:border-primary'"
-                  class="rounded-lg px-3 py-1.5 text-sm font-medium border transition-all"
-                  type="button"
-                  @click="toggleMember(m.id)"
+                  :selected="selectedMemberIds.has(m.id)"
+                  size="md"
+                  @toggle="toggleMember(m.id)"
               >
                 {{ m.name ?? m.email }}
-              </button>
+              </SelectionToggleButton>
             </div>
           </div>
 

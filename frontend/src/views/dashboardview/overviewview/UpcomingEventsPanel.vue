@@ -121,7 +121,7 @@ onMounted(loadData)
         <font-awesome-icon :icon="['fas', 'calendar-plus']" class="mr-2"/>
         {{ t('dashboard.upcomingEvents') }}
       </SectionHeader>
-      <SecondaryButton class="text-sm" @click="router.push({ name: 'events-upcoming' })">
+      <SecondaryButton @click="router.push({ name: 'events-upcoming' })">
         {{ t('dashboard.showAll') }}
       </SecondaryButton>
     </div>

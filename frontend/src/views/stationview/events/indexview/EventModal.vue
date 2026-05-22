@@ -13,6 +13,7 @@ import SelectInput from '@/components/input/select/SelectInput.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import DateTimeInput from '@/components/input/datetime/DateTimeInput.vue'
 import Modal from '@/components/feedback/Modal.vue'
+import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import type { StationEvent, EventCategory, AttendanceTemplate, AttendanceTemplateField, Role, MemberGroup } from '@/api/types'
 import { Roles, EventTypes } from '@/api/types'
@@ -304,36 +305,28 @@ function submit() {
         <label class="block text-sm font-medium">{{ t('events.restrictToRoles') }}</label>
         <p class="text-xs text-(--text-muted)">{{ t('events.restrictToRolesHint') }}</p>
         <div class="flex flex-wrap gap-2">
-          <button
+          <SelectionToggleButton
             v-for="role in restrictionRoles"
             :key="role.id"
-            type="button"
-            class="rounded-lg px-3 py-1.5 text-xs font-medium border transition-all"
-            :class="selectedRoleIds.has(role.id)
-              ? 'border-primary bg-primary/10 text-primary ring-1 ring-primary/30'
-              : 'border-bg-light-accent dark:border-bg-dark-accent text-(--text-muted) hover:border-primary'"
-            @click="toggleRole(role.id)"
+            :selected="selectedRoleIds.has(role.id)"
+            @toggle="toggleRole(role.id)"
           >
             {{ roleFriendlyNames[role.role] ?? role.role }}
-          </button>
+          </SelectionToggleButton>
         </div>
       </div>
 
       <div v-if="groups.length > 0" class="space-y-2">
         <label class="block text-sm font-medium">{{ t('events.restrictToGroups') }}</label>
         <div class="flex flex-wrap gap-2">
-          <button
+          <SelectionToggleButton
             v-for="group in groups"
             :key="group.id"
-            type="button"
-            class="rounded-lg px-3 py-1.5 text-xs font-medium border transition-all"
-            :class="selectedGroupIds.has(group.id)
-              ? 'border-primary bg-primary/10 text-primary ring-1 ring-primary/30'
-              : 'border-bg-light-accent dark:border-bg-dark-accent text-(--text-muted) hover:border-primary'"
-            @click="toggleGroup(group.id)"
+            :selected="selectedGroupIds.has(group.id)"
+            @toggle="toggleGroup(group.id)"
           >
             {{ group.name }}
-          </button>
+          </SelectionToggleButton>
         </div>
       </div>
 

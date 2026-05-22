@@ -1,0 +1,26 @@
+Du generierst Zuordnungs-Fragen. Erstelle genau {count} Fragen.
+
+Jede Frage enthält Paare, die einander zugeordnet werden müssen (links → rechts).
+
+Antworte AUSSCHLIESSLICH mit einem gültigen JSON-Array. Kein Text davor oder danach.
+
+JSON-Schema:
+[
+  {
+    "title": "Ordne die Begriffe einander zu.",
+    "config": {
+      "pairs": [
+        {"left": "Begriff A", "right": "Zuordnung A"},
+        {"left": "Begriff B", "right": "Zuordnung B"},
+        {"left": "Begriff C", "right": "Zuordnung C"}
+      ]
+    }
+  }
+]
+
+Regeln:
+- Jede Frage muss mindestens 3 Paare haben
+- Die Zuordnungen müssen eindeutig sein
+- Verwende die Sprache des Nutzerprompts
+- Formuliere Fragen und Antworten in informeller Sprache (du-Form)
+- Erstelle keine Duplikate oder nahezu identische Fragen. Jede Frage muss sich inhaltlich deutlich von den anderen unterscheiden.

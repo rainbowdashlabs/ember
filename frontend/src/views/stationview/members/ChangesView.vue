@@ -242,7 +242,7 @@ onMounted(loadPending)
                       class="h-3 w-3 text-(--text-muted)"
                   />
                   <div>
-                    <span class="font-semibold text-sm"><MemberName :name="summary.memberName ?? ''"/></span>
+                    <span class="font-semibold text-sm"><MemberName :name="summary.memberName ?? ''" :member-id="summary.memberId"/></span>
                     <p class="text-xs text-(--text-muted)">
                       {{ t('memberChanges.lastChange') }}: {{ formatDate(summary.latestChange) }}
                     </p>
@@ -260,7 +260,7 @@ onMounted(loadPending)
                     <font-awesome-icon :icon="['fas', 'check-double']" class="mr-1"/>
                     {{ t('memberDetail.acknowledgeAll') }}
                   </SuccessButton>
-                  <SecondaryButton class="text-xs" @click.stop="goToDetail(summary.memberId)">
+                  <SecondaryButton @click.stop="goToDetail(summary.memberId)">
                     <font-awesome-icon :icon="['fas', 'user']" class="mr-1"/>
                     {{ t('memberChanges.toProfile') }}
                   </SecondaryButton>
@@ -316,11 +316,11 @@ onMounted(loadPending)
                     </div>
 
                     <div v-if="!isAcknowledgedByMe(change)" class="flex items-center gap-2 pt-1">
-                      <PrimaryButton :disabled="acknowledging" class="text-xs" @click="acknowledgeChange(change.id)">
+                      <PrimaryButton :disabled="acknowledging" @click="acknowledgeChange(change.id)">
                         <font-awesome-icon :icon="['fas', 'check']" class="mr-1"/>
                         {{ t('memberDetail.acknowledge') }}
                       </PrimaryButton>
-                      <SecondaryButton class="text-xs" @click="toggleComment(change.id)">
+                      <SecondaryButton @click="toggleComment(change.id)">
                         <font-awesome-icon :icon="['fas', 'comment']" class="mr-1"/>
                         {{ t('memberDetail.acknowledgeWithComment') }}
                       </SecondaryButton>
@@ -332,7 +332,7 @@ onMounted(loadPending)
                           :placeholder="t('memberDetail.commentPlaceholder')"
                           class="text-sm"
                       />
-                      <PrimaryButton :disabled="acknowledging" class="text-xs" @click="acknowledgeChange(change.id)">
+                      <PrimaryButton :disabled="acknowledging" @click="acknowledgeChange(change.id)">
                         {{ t('memberDetail.submitAcknowledge') }}
                       </PrimaryButton>
                     </div>
@@ -361,7 +361,7 @@ onMounted(loadPending)
             >
               <div class="flex items-center justify-between flex-wrap gap-2">
                 <div class="flex items-center gap-2 flex-wrap">
-                  <span v-if="change.memberName" class="font-semibold text-sm text-primary"><MemberName :name="change.memberName!"/></span>
+                  <span v-if="change.memberName" class="font-semibold text-sm text-primary"><MemberName :name="change.memberName!" :member-id="change.memberId"/></span>
                   <span class="font-medium text-sm">{{ change.fieldName }}</span>
                   <span class="text-xs text-(--text-muted)">{{ formatDate(change.changedAt) }}</span>
                   <span class="text-xs text-(--text-muted)">

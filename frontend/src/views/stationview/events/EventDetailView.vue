@@ -359,7 +359,7 @@ onMounted(loadData)
             <component :is="myRegistration.status === RegistrationStatus.ACCEPTED ? SuccessBadge : myRegistration.status === RegistrationStatus.PENDING ? InfoBadge : ErrorBadge">
               {{ statusLabel(myRegistration.status) }}
             </component>
-            <SecondaryButton v-if="myRegistration.status !== RegistrationStatus.DECLINED" class="text-sm" :disabled="registering" @click="withdrawSelf">
+            <SecondaryButton v-if="myRegistration.status !== RegistrationStatus.DECLINED" :disabled="registering" @click="withdrawSelf">
               <font-awesome-icon :icon="['fas', 'xmark']" class="mr-1"/>
               {{ t('eventsUpcoming.withdraw') }}
             </SecondaryButton>
@@ -409,11 +409,11 @@ onMounted(loadData)
               </div>
               <div class="flex items-center gap-2">
                 <template v-if="canManageEvents() && event.requiresConfirmation && reg.status === RegistrationStatus.PENDING">
-                  <PrimaryButton class="text-xs" @click="acceptRegistration(reg.id)">
+                  <PrimaryButton @click="acceptRegistration(reg.id)">
                     <font-awesome-icon :icon="['fas', 'check']" class="mr-1"/>
                     {{ t('eventsRegistrations.accept') }}
                   </PrimaryButton>
-                  <ErrorButton class="text-xs" @click="denyRegistration(reg.id)">
+                  <ErrorButton @click="denyRegistration(reg.id)">
                     <font-awesome-icon :icon="['fas', 'xmark']" class="mr-1"/>
                     {{ t('eventsRegistrations.deny') }}
                   </ErrorButton>

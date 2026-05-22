@@ -8,10 +8,13 @@ import BaseInput from '../BaseInput.vue'
 
 const model = defineModel<number>()
 
-defineProps<{
+const props = withDefaults(defineProps<{
   placeholder?: string
   disabled?: boolean
-}>()
+  step?: string
+}>(), {
+  step: '0.01',
+})
 </script>
 
 <template>
@@ -19,7 +22,7 @@ defineProps<{
       v-model="model"
       :disabled="disabled"
       :placeholder="placeholder"
-      step="0.01"
+      :step="props.step"
       type="number"
   />
 </template>

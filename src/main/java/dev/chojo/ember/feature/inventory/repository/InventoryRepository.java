@@ -211,12 +211,26 @@ public class InventoryRepository {
                 .all();
     }
 
-    /**
-     * Finds all items assigned to a specific member.
-     *
-     * @param memberId the member ID
-     * @return list of items assigned to the member
-     */
+    public List<InventoryItem> findItemsByStation(int stationId) {
+        return Query.query("""
+                        SELECT ii.* FROM inventory_item ii
+                        JOIN inventory i ON i.id = ii.inventory_id
+                        WHERE i.station_id = :station_id;""")
+                .single(Call.of().bind("station_id", stationId))
+                .map(InventoryItem.map())
+                .all();
+    }
+
+    public List<InventorySize> findSizesByStation(int stationId) {
+        return Query.query("""
+                        SELECT s.id, s.inventory_id, s.label, s.position, s.note FROM inventory_size s
+                        JOIN inventory i ON i.id = s.inventory_id
+                        WHERE i.station_id = :station_id ORDER BY s.position;""")
+                .single(Call.of().bind("station_id", stationId))
+                .map(InventorySize.map())
+                .all();
+    }
+
     public List<InventoryItem> findItemsByMember(int memberId) {
         return Query.query("SELECT * FROM inventory_item WHERE assigned_to = :member_id;")
                 .single(Call.of().bind("member_id", memberId))

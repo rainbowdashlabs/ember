@@ -42,6 +42,8 @@ const {
   canExportAttendance,
   canManageEvents,
   canManagePolls,
+  canManageWaitlist,
+  canManageQuiz,
   isGuardian,
   isModuleEnabled,
   fullName,
@@ -195,6 +197,11 @@ async function handleLogout() {
                      @navigate="close">
           {{ t('sidebar.formerMembers') }}
         </SidebarLink>
+        <SidebarLink v-if="isModuleEnabled(StationModules.WAITING_LIST) && canManageWaitlist()"
+                     :icon="['fas', 'clipboard-list']" name="waiting-lists" to="/station/members/waiting-lists"
+                     @navigate="close">
+          {{ t('sidebar.waitingLists') }}
+        </SidebarLink>
       </SidebarGroup>
 
       <SidebarGroup :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => openGroup = v" v-if="isModuleEnabled(StationModules.INVENTORY)" :icon="['fas', 'boxes-stacked']" :label="t('sidebar.inventory')" prefix="/station/inventory">
@@ -276,6 +283,24 @@ async function handleLogout() {
       <SidebarGroup :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => openGroup = v" v-if="isModuleEnabled(StationModules.LOST_AND_FOUND)" :icon="['fas', 'box-open']" :label="t('sidebar.lostAndFound')" prefix="/station/lost-and-found">
         <SidebarLink :icon="['fas', 'box-open']" name="lost-and-found" to="/station/lost-and-found" @navigate="close">
           {{ t('sidebar.lostAndFoundList') }}
+        </SidebarLink>
+      </SidebarGroup>
+
+      <SidebarGroup :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => openGroup = v" v-if="isModuleEnabled(StationModules.QUIZ)" :icon="['fas', 'graduation-cap']" :label="t('sidebar.quiz')" prefix="/station/quiz">
+        <SidebarLink v-if="canManageQuiz()" :icon="['fas', 'book']" name="quiz-catalogs" to="/station/quiz/catalogs" @navigate="close">
+          {{ t('sidebar.quizCatalogs') }}
+        </SidebarLink>
+        <SidebarLink :icon="['fas', 'file-lines']" name="quiz-tests" to="/station/quiz/tests" @navigate="close">
+          {{ t('sidebar.quizTests') }}
+        </SidebarLink>
+        <SidebarLink :icon="['fas', 'brain']" name="quiz-training" to="/station/quiz/training" @navigate="close">
+          {{ t('sidebar.quizTraining') }}
+        </SidebarLink>
+      </SidebarGroup>
+
+      <SidebarGroup :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => openGroup = v" v-if="isModuleEnabled(StationModules.KNOWLEDGE_BASE)" :icon="['fas', 'book-open']" :label="t('sidebar.knowledgeBase')" prefix="/station/knowledge">
+        <SidebarLink :icon="['fas', 'folder-open']" name="kb-browse" to="/station/knowledge" @navigate="close">
+          {{ t('sidebar.kbBrowse') }}
         </SidebarLink>
       </SidebarGroup>
 

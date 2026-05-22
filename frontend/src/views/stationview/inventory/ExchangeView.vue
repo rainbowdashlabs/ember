@@ -37,12 +37,14 @@ import { InventoryTypes, ExchangeStatus } from '@/api/types'
 import { exchanges, inventory, procurement, stationMembers, profileFields, managedMembers } from '@/api'
 import { useSession } from '@/composables/useSession'
 import { useStations } from '@/composables/useStations'
+import { useBreakpoint } from '@/composables/useBreakpoint'
 import MemberName from '@/components/avatar/MemberName.vue'
 
 const { t } = useI18n()
 const router = useRouter()
 const { canManageInventory, isGuardian, sessionInfo } = useSession()
 const { activeStation } = useStations()
+const { isMobile } = useBreakpoint()
 
 import type { ManagedMember } from '@/api/managedMembers'
 
@@ -487,8 +489,57 @@ onMounted(loadData)
         {{ t('exchanges.empty') }}
       </div>
 
-      <!-- Exchange requests table -->
-      <NeutralContainer v-if="!loading && requests.length > 0" class="overflow-x-auto">
+      <!-- Exchange requests (mobile cards) -->
+      <div v-if="!loading && requests.length > 0 && isMobile" class="space-y-3">
+        <template v-for="req in requests" :key="req.id">
+          <NeutralContainer class="space-y-2">
+            <div class="flex items-center justify-between">
+              <span class="text-sm font-medium">{{ req.inventoryName }}</span>
+              <InfoBadge v-if="req.status === ExchangeStatus.ANNOUNCED">{{ statusLabel(req.status) }}</InfoBadge>
+              <PrimaryBadge v-else-if="req.status === ExchangeStatus.RECEIVED || req.status === ExchangeStatus.ARRIVED">{{ statusLabel(req.status) }}</PrimaryBadge>
+              <SecondaryBadge v-else-if="req.status === ExchangeStatus.SHIPPED">{{ statusLabel(req.status) }}</SecondaryBadge>
+              <SuccessBadge v-else-if="req.status === ExchangeStatus.EXCHANGED">{{ statusLabel(req.status) }}</SuccessBadge>
+            </div>
+            <div v-if="showMemberColumn" class="text-xs text-(--text-muted)"><MemberName :name="req.memberName"/></div>
+            <div class="text-xs">{{ req.oldSizeLabel ?? t('common.unisize') }} &rarr; {{ req.newSizeLabel ?? t('common.unisize') }}</div>
+            <div v-if="req.reason" class="text-xs text-(--text-muted) truncate">{{ req.reason }}</div>
+            <div class="text-xs text-(--text-muted)">{{ formatDate(req.createdAt) }}</div>
+            <div class="flex items-center gap-1">
+              <input v-if="exportMode" type="checkbox" :checked="selectedForExport.has(req.id)" @change="toggleExportSelection(req.id)" />
+              <SecondaryButton @click="openLog(req.id)">
+                <font-awesome-icon :icon="['fas', 'clock-rotate-left']" />
+              </SecondaryButton>
+              <SecondaryButton v-if="canManageInventory() && req.status !== ExchangeStatus.EXCHANGED" @click="startStatusUpdate(req)">
+                <font-awesome-icon :icon="['fas', 'arrow-right']" />
+              </SecondaryButton>
+              <DeleteButton v-if="canManageInventory()" @click="deleteRequest(req.id)" />
+            </div>
+            <!-- Inline status update -->
+            <div v-if="updatingId === req.id" class="space-y-2 pt-2 border-t border-bg-light-accent dark:border-bg-dark-accent">
+              <div class="space-y-1">
+                <label class="block text-xs font-medium text-(--text-muted)">{{ t('exchanges.newStatus') }}</label>
+                <SelectInput v-model="updateTargetStatus">
+                  <option value="" disabled>{{ t('exchanges.selectStatus') }}</option>
+                  <option v-for="s in nextStatuses(req.status, req.inventoryType)" :key="s" :value="s">{{ statusLabel(s) }}</option>
+                </SelectInput>
+              </div>
+              <div class="space-y-1">
+                <label class="block text-xs font-medium text-(--text-muted)">{{ t('exchanges.note') }}</label>
+                <TextInput v-model="updateNote" :placeholder="t('exchanges.notePlaceholder')" />
+              </div>
+              <div class="flex gap-2 justify-end">
+                <PrimaryButton :disabled="updateSaving || !updateTargetStatus" @click="submitStatusUpdate(req.id)">
+                  {{ updateSaving ? t('common.loading') : t('exchanges.updateStatus') }}
+                </PrimaryButton>
+                <SecondaryButton @click="cancelStatusUpdate">{{ t('common.cancel') }}</SecondaryButton>
+              </div>
+            </div>
+          </NeutralContainer>
+        </template>
+      </div>
+
+      <!-- Exchange requests table (desktop) -->
+      <NeutralContainer v-else-if="!loading && requests.length > 0" class="overflow-x-auto">
         <table class="w-full text-sm">
           <thead>
             <tr class="border-b border-bg-light-accent dark:border-bg-dark-accent text-left">
@@ -535,10 +586,10 @@ onMounted(loadData)
                 </td>
                 <td class="px-3 py-2.5 text-right">
                   <div class="flex items-center justify-end gap-1">
-                    <SecondaryButton class="text-xs" @click="openLog(req.id)">
+                    <SecondaryButton @click="openLog(req.id)">
                       <font-awesome-icon :icon="['fas', 'clock-rotate-left']" />
                     </SecondaryButton>
-                    <SecondaryButton v-if="canManageInventory() && req.status !== ExchangeStatus.EXCHANGED" class="text-xs" @click="startStatusUpdate(req)">
+                    <SecondaryButton v-if="canManageInventory() && req.status !== ExchangeStatus.EXCHANGED" @click="startStatusUpdate(req)">
                       <font-awesome-icon :icon="['fas', 'arrow-right']" />
                     </SecondaryButton>
                     <DeleteButton v-if="canManageInventory()" @click="deleteRequest(req.id)" />
@@ -567,7 +618,7 @@ onMounted(loadData)
                           </option>
                         </SelectInput>
                         <div class="flex gap-2 mt-1">
-                          <SecondaryButton v-if="req.inventoryType !== 'internal'" class="text-xs" @click="createNewItemForExchange = true">
+                          <SecondaryButton v-if="req.inventoryType !== 'internal'" @click="createNewItemForExchange = true">
                             <font-awesome-icon :icon="['fas', 'plus']" class="mr-1" />
                             {{ t('exchanges.createNewItem') }}
                           </SecondaryButton>
@@ -576,7 +627,7 @@ onMounted(loadData)
                               <font-awesome-icon :icon="['fas', 'check']" class="mr-1" />
                               {{ t('exchanges.procurementCreated') }}
                             </span>
-                            <SecondaryButton v-else class="text-xs" @click="createProcurementFromExchange(req)">
+                            <SecondaryButton v-else @click="createProcurementFromExchange(req)">
                               <font-awesome-icon :icon="['fas', 'folder-plus']" class="mr-1" />
                               {{ t('exchanges.createProcurement') }}
                             </SecondaryButton>

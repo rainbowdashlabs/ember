@@ -73,9 +73,6 @@ public class ImageService {
         }
 
         BufferedImage original = ImageIO.read(new ByteArrayInputStream(data));
-        if (original == null) {
-            throw new IOException("Unable to read image");
-        }
 
         // Delete old image files before writing new ones
         delete(category, id);
@@ -84,16 +81,25 @@ public class ImageService {
         Path dir = baseDir.resolve(category.directory()).resolve(id);
         Files.createDirectories(dir);
 
-        int longestSide = Math.max(original.getWidth(), original.getHeight());
+        if (original == null) {
+            // Format not supported by ImageIO (e.g. WebP) — store raw bytes without resizing
+            log.info("ImageIO cannot read format '{}', storing raw bytes", contentType);
+            Files.write(dir.resolve("original." + extension), data);
+            for (int size : SIZES) {
+                Files.write(dir.resolve(size + "." + extension), data);
+            }
+        } else {
+            int longestSide = Math.max(original.getWidth(), original.getHeight());
 
-        // Store original capped at MAX_PIXEL_SIZE, always compressed
-        int originalTarget = Math.min(longestSide, MAX_PIXEL_SIZE);
-        writeCompressed(original, dir.resolve("original." + extension), originalTarget, extension);
+            // Store original capped at MAX_PIXEL_SIZE, always compressed
+            int originalTarget = Math.min(longestSide, MAX_PIXEL_SIZE);
+            writeCompressed(original, dir.resolve("original." + extension), originalTarget, extension);
 
-        // Generate all fixed sizes — always, even if source is smaller
-        for (int size : SIZES) {
-            int target = Math.min(size, longestSide);
-            writeCompressed(original, dir.resolve(size + "." + extension), target, extension);
+            // Generate all fixed sizes — always, even if source is smaller
+            for (int size : SIZES) {
+                int target = Math.min(size, longestSide);
+                writeCompressed(original, dir.resolve(size + "." + extension), target, extension);
+            }
         }
 
         // Write content type marker

@@ -46,3 +46,4 @@ CLAUDE*.md
 config/
 data.csv
 .env
+data/

@@ -47,7 +47,12 @@ dependencies {
 
     implementation(libs.angus)
     implementation(libs.bundles.commonmark)
+    implementation(libs.java.diff.utils)
+    implementation(libs.commons.csv)
     implementation(libs.thumbnailator)
+    implementation(libs.imageio.webp)
+    implementation(libs.pdfbox)
+    implementation(libs.bundles.ai)
 
     testRuntimeOnly(libs.junit.platform)
     testImplementation(libs.sadu.testing)

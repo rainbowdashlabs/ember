@@ -21,6 +21,7 @@ import {inventory, stationMembers, memberGroups, profileFields} from '@/api'
 import type {Inventory, InventoryItem, MemberGroup, ProfileField, Role, StationMember} from '@/api/types'
 import {Roles} from '@/api/types'
 import {useStations} from '@/composables/useStations'
+import {useBreakpoint} from '@/composables/useBreakpoint'
 import client from '@/api/client'
 import {getItem, setItem} from '@/api/storage'
 import SizeBadge from '@/components/badge/SizeBadge.vue'
@@ -28,6 +29,7 @@ import SizeBadge from '@/components/badge/SizeBadge.vue'
 const {t} = useI18n()
 const router = useRouter()
 const {currentStationId} = useStations()
+const {isMobile} = useBreakpoint()
 
 const members = ref<StationMember[]>([])
 const inventories = ref<Inventory[]>([])
@@ -206,34 +208,32 @@ async function loadData() {
       visibleInventoryIds.value = new Set(invs.map(i => i.id))
     }
 
-    // Load all items and sizes for all inventories in parallel
-    const [itemArrays, sizeArrays] = await Promise.all([
-      Promise.all(invs.map(inv => inventory.listItems(inv.id))),
-      Promise.all(invs.map(inv => inventory.listSizes(inv.id))),
+    // Load all items, sizes, group membership, and roles in bulk
+    const [allItemsRes, allSizesRes, groupDetails, allMemberRoles] = await Promise.all([
+      inventory.listAllItems(),
+      inventory.listAllSizes(),
+      Promise.all(grps.map(g => memberGroups.getGroupMembers(g.id))),
+      stationMembers.getAllMemberRoles(),
     ])
-    allItems.value = itemArrays.flat()
+    allItems.value = allItemsRes
 
     // Build global size lookup
     const sm = new Map<number, string>()
-    for (const sizes of sizeArrays) {
-      for (const s of sizes) sm.set(s.id, s.label ?? '')
-    }
+    for (const s of allSizesRes) sm.set(s.id, s.label ?? '')
     sizeMap.value = sm
 
     // Load group membership
     const gMap = new Map<number, Set<number>>()
-    const groupDetails = await Promise.all(grps.map(g => memberGroups.getGroupMembers(g.id)))
     grps.forEach((g, i) => {
       gMap.set(g.id, new Set(groupDetails[i].map(m => m.id)))
     })
     groupMemberMap.value = gMap
 
-    // Load roles for all members
+    // Map member roles from bulk response
     const roleMap = new Map<number, Set<string>>()
-    const roleResults = await Promise.all(mems.map(m => stationMembers.getRoles(m.id).catch(() => [])))
-    mems.forEach((m, i) => {
-      roleMap.set(m.id, new Set(roleResults[i].map(r => r.role)))
-    })
+    for (const [memberId, memberRoles] of Object.entries(allMemberRoles)) {
+      roleMap.set(Number(memberId), new Set(memberRoles.map(r => r.role)))
+    }
     memberRoleMap.value = roleMap
   } catch {
     error.value = t('common.error')
@@ -454,8 +454,35 @@ onMounted(loadData)
           {{ t('inventoryMembers.empty') }}
         </div>
 
-        <!-- Member table -->
-        <NeutralContainer v-if="filteredMembers.length > 0" class="overflow-x-auto">
+        <!-- Member cards (mobile) -->
+        <div v-if="filteredMembers.length > 0 && isMobile" class="space-y-3">
+          <NeutralContainer v-for="member in filteredMembers" :key="member.id" class="space-y-2 cursor-pointer" @click="exportMode ? toggleExportSelection(member.id) : goToMember(member.id)">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <input v-if="exportMode" type="checkbox" :checked="selectedForExport.has(member.id)" @click.stop @change="toggleExportSelection(member.id)" />
+                <UserAvatar :member-id="member.id" :name="memberDisplayName(member)" size="sm"/>
+                <span class="font-medium text-primary text-sm">{{ memberDisplayName(member) }}</span>
+              </div>
+            </div>
+            <div v-for="inv in displayedInventories" :key="inv.id" class="text-xs">
+              <template v-if="memberInventoryCount(member.id, inv.id) > 0">
+                <span class="font-medium text-(--text-muted)">{{ inv.name }}:</span>
+                <div class="flex flex-wrap gap-1 mt-0.5">
+                  <span v-for="item in memberInventoryItems(member.id, inv.id)" :key="item.id"
+                        :class="item.lostAt ? 'text-error' : ''"
+                        class="inline-flex items-center gap-1">
+                    <template v-if="itemNamePart(item)">{{ itemNamePart(item) }}</template>
+                    <SizeBadge v-if="itemSizeLabel(item)" :lost="!!item.lostAt">{{ itemSizeLabel(item) }}</SizeBadge>
+                    <span v-if="item.lostAt" class="text-[10px]">({{ t('inventoryMembers.lost') }})</span>
+                  </span>
+                </div>
+              </template>
+            </div>
+          </NeutralContainer>
+        </div>
+
+        <!-- Member table (desktop) -->
+        <NeutralContainer v-else-if="filteredMembers.length > 0" class="overflow-x-auto">
           <table class="w-full text-sm">
             <thead>
               <tr class="border-b border-bg-light-accent dark:border-bg-dark-accent text-left">

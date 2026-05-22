@@ -146,7 +146,7 @@ watch(loaded, (isLoaded) => {
             >
               <div class="flex items-center justify-between">
                 <span class="font-medium">{{ tpl.name }}</span>
-                <PrimaryButton class="text-xs">
+                <PrimaryButton>
                   <font-awesome-icon :icon="['fas', 'plus']" class="mr-1"/>
                   {{ t('attendanceNew.create') }}
                 </PrimaryButton>

@@ -18,6 +18,7 @@ import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
+import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
 import type { MemberGroup } from '@/api/types'
 import { news, memberGroups } from '@/api'
 
@@ -141,18 +142,14 @@ onMounted(loadData)
           <SubHeader>{{ t('news.restrictToGroups') }}</SubHeader>
           <p class="text-xs text-(--text-muted)">{{ t('news.restrictHint') }}</p>
           <div class="flex flex-wrap gap-2">
-            <button
+            <SelectionToggleButton
               v-for="group in groups"
               :key="group.id"
-              type="button"
-              class="rounded-lg px-3 py-1.5 text-xs font-medium border transition-all"
-              :class="selectedGroupIds.has(group.id)
-                ? 'border-primary bg-primary/10 text-primary ring-1 ring-primary/30'
-                : 'border-bg-light-accent dark:border-bg-dark-accent text-(--text-muted) hover:border-primary'"
-              @click="toggleGroup(group.id)"
+              :selected="selectedGroupIds.has(group.id)"
+              @toggle="toggleGroup(group.id)"
             >
               {{ group.name }}
-            </button>
+            </SelectionToggleButton>
           </div>
         </NeutralContainer>
 

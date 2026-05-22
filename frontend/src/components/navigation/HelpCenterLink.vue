@@ -7,6 +7,7 @@
 import {useRoute} from 'vue-router'
 import {useI18n} from 'vue-i18n'
 import {computed} from 'vue'
+import EmberLogo from '@/components/display/EmberLogo.vue'
 
 const route = useRoute()
 const {t} = useI18n()
@@ -65,6 +66,17 @@ const routeToHelp: Record<string, string> = {
   'forms-fill': 'help-forms-fill',
   'forms-analytics': 'help-forms-analytics',
   'lost-and-found': 'help-lost-and-found',
+  'quiz-overview': 'help-quiz-overview',
+  'quiz-catalogs': 'help-quiz-catalogs',
+  'quiz-catalog-detail': 'help-quiz-catalog-detail',
+  'quiz-catalog-generate': 'help-quiz-ai',
+  'quiz-tests': 'help-quiz-tests',
+  'quiz-test-detail': 'help-quiz-test-detail',
+  'quiz-test-take': 'help-quiz-test-detail',
+  'quiz-training': 'help-quiz-training',
+  'kb-browse': 'help-knowledge-base',
+  'kb-file': 'help-knowledge-base',
+  'kb-versions': 'help-knowledge-base',
   'admin-overview': 'help-admin-overview',
   'admin-statistics': 'help-admin-statistics',
   'admin-stations': 'help-admin-stations',
@@ -81,10 +93,10 @@ const helpRoute = computed(() => {
 <template>
   <router-link
       :to="helpRoute"
-      class="inline-flex items-center gap-1.5 text-sm text-[var(--text-muted)] hover:text-primary transition-colors"
+      class="shrink-0 inline-flex items-center gap-1.5 text-sm text-[var(--text-muted)] hover:text-primary transition-colors"
       target="_blank"
   >
-    <font-awesome-icon :icon="['fas', 'circle-question']" class="w-4 h-4"/>
+    <EmberLogo base="NoBG_NoGlow_FAQ" blink-base="NoBG_NoGlow_FAQ_Blink" :pixel-size="128" size="w-6 h-6 shrink-0" :blink="true" />
     <span class="hidden sm:inline">{{ t('helpCenter.link') }}</span>
   </router-link>
 </template>

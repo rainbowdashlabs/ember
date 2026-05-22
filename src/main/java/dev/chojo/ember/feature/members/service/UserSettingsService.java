@@ -35,8 +35,16 @@ public class UserSettingsService {
         return settingsRepository.findOrCreate(memberId);
     }
 
+    public UserSettings findOrCreate(int memberId) {
+        return settingsRepository.findOrCreate(memberId);
+    }
+
     public UserSettings updateEmailEnabled(int memberId, boolean emailEnabled) {
         return settingsRepository.updateEmailEnabled(memberId, emailEnabled);
+    }
+
+    public UserSettings updateTheme(int memberId, String theme, String darkMode) {
+        return settingsRepository.updateTheme(memberId, theme, darkMode);
     }
 
     public Map<NotificationType, NotificationSetting> getNotificationSettings(int memberId) {

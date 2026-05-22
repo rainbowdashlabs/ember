@@ -251,7 +251,7 @@ onMounted(loadData)
                 v-for="group in groups"
                 :key="group.id"
                 :class="selectedGroup?.id === group.id ? 'border-primary' : 'hover:border-primary'"
-                class="flex items-center justify-between cursor-pointer transition-colors"
+                class="flex items-center justify-between gap-2 flex-wrap cursor-pointer transition-colors"
                 @click="selectGroup(group)"
             >
               <span class="font-medium">{{ group.name }}</span>
@@ -274,7 +274,7 @@ onMounted(loadData)
             <!-- Group roles -->
             <div v-if="canEditRoles" class="space-y-2">
               <label class="block text-sm font-medium text-(--text-muted)">{{ t('memberGroups.roles') }}</label>
-              <RoleSelector v-model="groupRoleIds" :all-roles="allRoles" />
+              <RoleSelector v-model="groupRoleIds" :all-roles="allRoles" class="max-w-md" />
               <p v-if="groupRoles.length === 0" class="text-xs text-(--text-muted)">{{ t('memberGroups.noRoles') }}</p>
             </div>
 

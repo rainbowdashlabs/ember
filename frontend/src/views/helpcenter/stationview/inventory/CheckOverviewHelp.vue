@@ -64,7 +64,7 @@ const {t} = useI18n()
               <td class="px-3 py-2.5 text-(--text-muted)">Admin User</td>
               <td class="px-3 py-2.5"></td>
               <td class="px-3 py-2.5 text-right">
-                <PrimaryButton class="text-sm">{{ t('inventory.check.start') }}</PrimaryButton>
+                <PrimaryButton>{{ t('inventory.check.start') }}</PrimaryButton>
               </td>
             </tr>
             <tr class="border-b border-bg-light-accent/50 dark:border-bg-dark-accent/50">
@@ -73,7 +73,7 @@ const {t} = useI18n()
               <td class="px-3 py-2.5 text-(--text-muted)">-</td>
               <td class="px-3 py-2.5"><SecondaryBadge>{{ t('inventory.check.neverChecked') }}</SecondaryBadge></td>
               <td class="px-3 py-2.5 text-right">
-                <PrimaryButton class="text-sm">{{ t('inventory.check.start') }}</PrimaryButton>
+                <PrimaryButton>{{ t('inventory.check.start') }}</PrimaryButton>
               </td>
             </tr>
             <tr class="border-b border-bg-light-accent/50 dark:border-bg-dark-accent/50">
@@ -82,7 +82,7 @@ const {t} = useI18n()
               <td class="px-3 py-2.5 text-(--text-muted)">Admin User</td>
               <td class="px-3 py-2.5"><InfoBadge>{{ t('inventory.check.lockedByMe') }}</InfoBadge></td>
               <td class="px-3 py-2.5 text-right">
-                <SecondaryButton class="text-sm">{{ t('inventory.check.continue') }}</SecondaryButton>
+                <SecondaryButton>{{ t('inventory.check.continue') }}</SecondaryButton>
               </td>
             </tr>
             <tr class="border-b border-bg-light-accent/50 dark:border-bg-dark-accent/50">
@@ -91,7 +91,7 @@ const {t} = useI18n()
               <td class="px-3 py-2.5 text-(--text-muted)">Betreuer A</td>
               <td class="px-3 py-2.5"><ErrorBadge>{{ t('inventory.check.locked') }}: Betreuer B</ErrorBadge></td>
               <td class="px-3 py-2.5 text-right">
-                <PrimaryButton class="text-sm" disabled>{{ t('inventory.check.start') }}</PrimaryButton>
+                <PrimaryButton disabled>{{ t('inventory.check.start') }}</PrimaryButton>
               </td>
             </tr>
           </tbody>

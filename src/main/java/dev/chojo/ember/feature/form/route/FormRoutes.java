@@ -15,6 +15,7 @@ import dev.chojo.ember.feature.form.entity.FormAnswer;
 import dev.chojo.ember.feature.form.entity.FormQuestion;
 import dev.chojo.ember.feature.form.entity.FormResponse;
 import dev.chojo.ember.feature.form.service.FormService;
+import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.StationMemberService;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
@@ -198,7 +199,7 @@ public class FormRoutes implements Routes {
             })
     private void get(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
-        formService.findById(id).ifPresentOrElse(item -> ctx.json(item), () -> {
+        formService.findById(id).ifPresentOrElse(ctx::json, () -> {
             throw new NotFoundResponse();
         });
     }
@@ -227,7 +228,7 @@ public class FormRoutes implements Routes {
                 req.endAt())) {
             throw new NotFoundResponse();
         }
-        formService.findById(id).ifPresentOrElse(item -> ctx.json(item), () -> {
+        formService.findById(id).ifPresentOrElse(ctx::json, () -> {
             throw new NotFoundResponse();
         });
     }
@@ -276,7 +277,7 @@ public class FormRoutes implements Routes {
                         new NotificationParams.NewForm(form.title()),
                         new NotificationData.NotificationLink("forms-fill", Map.of("id", String.valueOf(id)))));
 
-        formService.findById(id).ifPresentOrElse(item -> ctx.json(item), () -> {
+        formService.findById(id).ifPresentOrElse(ctx::json, () -> {
             throw new NotFoundResponse();
         });
     }
@@ -295,7 +296,7 @@ public class FormRoutes implements Routes {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
         if (!formService.close(id)) throw new NotFoundResponse();
         deleteFormNotifications(id);
-        formService.findById(id).ifPresentOrElse(item -> ctx.json(item), () -> {
+        formService.findById(id).ifPresentOrElse(ctx::json, () -> {
             throw new NotFoundResponse();
         });
     }
@@ -410,8 +411,8 @@ public class FormRoutes implements Routes {
         boolean selfEligible = formService.canMemberAccess(id, session.member().id());
         var managed = stationMemberService.findManaged(session.member().id());
         var eligibleManagedIds = managed.stream()
-                .filter(m -> formService.canMemberAccess(id, m.id()))
-                .map(m -> m.id())
+                .map(StationMember::id)
+                .filter(ided -> formService.canMemberAccess(id, ided))
                 .toList();
         ctx.json(new EligibleMembers(selfEligible, eligibleManagedIds));
     }
@@ -580,6 +581,12 @@ public class FormRoutes implements Routes {
         ctx.json(new FormAnalytics(id, formService.countResponses(id), questionAnalytics));
     }
 
+    /**
+     * Resolves a member ID to their full name by looking up the station member and account.
+     *
+     * @param memberId the member ID
+     * @return the member's full name, or {@code null} if the member or account cannot be found
+     */
     @OpenApi(
             path = "/api/v1/forms/{id}/responses",
             methods = HttpMethod.GET,
@@ -587,12 +594,6 @@ public class FormRoutes implements Routes {
             tags = {"Forms"},
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = FormResponse[].class)))
-    /**
-     * Resolves a member ID to their full name by looking up the station member and account.
-     *
-     * @param memberId the member ID
-     * @return the member's full name, or {@code null} if the member or account cannot be found
-     */
     private String resolveMemberName(int memberId) {
         return stationMemberRepository
                 .findById(memberId)

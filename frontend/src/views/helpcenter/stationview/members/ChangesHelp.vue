@@ -44,11 +44,11 @@ const {t} = useI18n()
           </div>
           <div class="flex items-center gap-3">
             <ErrorBadge>2 {{ t('memberChanges.pending') }}</ErrorBadge>
-            <SuccessButton class="text-xs">
+            <SuccessButton>
               <font-awesome-icon :icon="['fas', 'check-double']" class="mr-1"/>
               {{ t('memberDetail.acknowledgeAll') }}
             </SuccessButton>
-            <SecondaryButton class="text-xs">
+            <SecondaryButton>
               <font-awesome-icon :icon="['fas', 'user']" class="mr-1"/>
               {{ t('memberChanges.toProfile') }}
             </SecondaryButton>
@@ -72,11 +72,11 @@ const {t} = useI18n()
               <span class="font-medium">0170 2222222</span>
             </div>
             <div class="flex items-center gap-2 pt-1">
-              <PrimaryButton class="text-xs">
+              <PrimaryButton>
                 <font-awesome-icon :icon="['fas', 'check']" class="mr-1"/>
                 {{ t('memberDetail.acknowledge') }}
               </PrimaryButton>
-              <SecondaryButton class="text-xs">
+              <SecondaryButton>
                 <font-awesome-icon :icon="['fas', 'comment']" class="mr-1"/>
                 {{ t('memberDetail.acknowledgeWithComment') }}
               </SecondaryButton>

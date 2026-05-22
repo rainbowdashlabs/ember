@@ -14,22 +14,13 @@ import dev.chojo.ember.auth.PasswordHasher;
 import dev.chojo.ember.conf.file.elements.Database;
 import dev.chojo.ember.conf.file.elements.Demo;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
-import dev.chojo.ember.feature.attendance.entity.AttendanceEntry;
-import dev.chojo.ember.feature.attendance.entity.AttendanceTemplate;
 import dev.chojo.ember.feature.attendance.repository.AttendanceRepository;
 import dev.chojo.ember.feature.events.entity.EventRegistration;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventFieldRepository;
 import dev.chojo.ember.feature.events.repository.EventRepository;
-import dev.chojo.ember.feature.form.entity.Form;
-import dev.chojo.ember.feature.form.entity.FormQuestion;
-import dev.chojo.ember.feature.form.repository.FormRepository;
-import dev.chojo.ember.feature.inventory.entity.CheckResult;
 import dev.chojo.ember.feature.inventory.entity.ExchangeStatus;
-import dev.chojo.ember.feature.inventory.entity.InventoryItem;
-import dev.chojo.ember.feature.inventory.entity.InventoryType;
 import dev.chojo.ember.feature.inventory.repository.ExchangeRepository;
-import dev.chojo.ember.feature.inventory.repository.InventoryCheckRepository;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
 import dev.chojo.ember.feature.inventory.repository.ProcurementRepository;
 import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
@@ -40,11 +31,8 @@ import dev.chojo.ember.feature.members.repository.ProfileFieldRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.repository.UserTagRepository;
 import dev.chojo.ember.feature.news.repository.NewsRepository;
-import dev.chojo.ember.feature.notifications.entity.NotificationData;
-import dev.chojo.ember.feature.notifications.entity.NotificationParams;
-import dev.chojo.ember.feature.notifications.entity.NotificationType;
-import dev.chojo.ember.feature.notifications.repository.NotificationRepository;
 import dev.chojo.ember.feature.station.repository.StationRepository;
+import dev.chojo.ember.feature.system.repository.ApplicationSettingRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -57,12 +45,8 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
-import java.time.format.TextStyle;
-import java.time.temporal.IsoFields;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
-import java.util.Map;
 import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.Executors;
@@ -84,23 +68,29 @@ public class DemoService {
     private final Database databaseConfig;
     private final DataSource dataSource;
     private final AccountRepository accountRepository;
-    private final StationRepository stationRepository;
     private final StationMemberRepository stationMemberRepository;
     private final MemberGroupRepository memberGroupRepository;
     private final EventRepository eventRepository;
     private final AttendanceRepository attendanceRepository;
     private final InventoryRepository inventoryRepository;
-    private final InventoryCheckRepository inventoryCheckRepository;
     private final ProfileFieldRepository profileFieldRepository;
     private final NewsRepository newsRepository;
-    private final NotificationRepository notificationRepository;
     private final ExchangeRepository exchangeRepository;
     private final ProcurementRepository procurementRepository;
     private final UserTagRepository userTagRepository;
-    private final FormRepository formRepository;
     private final ProfileFieldChangeRepository profileFieldChangeRepository;
     private final EventFieldRepository eventFieldRepository;
+    private final StationRepository stationRepository;
     private final PasswordHasher passwordHasher;
+    private final DemoFormSeeder formSeeder;
+    private final DemoNotificationSeeder notificationSeeder;
+    private final DemoAttendanceSeeder attendanceSeeder;
+    private final DemoInventorySeeder inventorySeeder;
+    private final DemoWaitingListSeeder waitingListSeeder;
+    private final DemoQuizSeeder quizSeeder;
+    private final DemoMediaSeeder mediaSeeder;
+    private final DemoKnowledgeBaseSeeder kbSeeder;
+    private final ApplicationSettingRepository applicationSettingRepository;
     private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
 
     @Inject
@@ -115,17 +105,23 @@ public class DemoService {
             EventRepository eventRepository,
             AttendanceRepository attendanceRepository,
             InventoryRepository inventoryRepository,
-            InventoryCheckRepository inventoryCheckRepository,
             ProfileFieldRepository profileFieldRepository,
             NewsRepository newsRepository,
-            NotificationRepository notificationRepository,
             ExchangeRepository exchangeRepository,
             ProcurementRepository procurementRepository,
             UserTagRepository userTagRepository,
-            FormRepository formRepository,
             ProfileFieldChangeRepository profileFieldChangeRepository,
             EventFieldRepository eventFieldRepository,
-            PasswordHasher passwordHasher) {
+            PasswordHasher passwordHasher,
+            DemoFormSeeder formSeeder,
+            DemoNotificationSeeder notificationSeeder,
+            DemoAttendanceSeeder attendanceSeeder,
+            DemoInventorySeeder inventorySeeder,
+            DemoWaitingListSeeder waitingListSeeder,
+            DemoQuizSeeder quizSeeder,
+            DemoMediaSeeder mediaSeeder,
+            DemoKnowledgeBaseSeeder kbSeeder,
+            ApplicationSettingRepository applicationSettingRepository) {
         this.demoConfig = demoConfig;
         this.databaseConfig = databaseConfig;
         this.dataSource = dataSource;
@@ -136,17 +132,23 @@ public class DemoService {
         this.eventRepository = eventRepository;
         this.attendanceRepository = attendanceRepository;
         this.inventoryRepository = inventoryRepository;
-        this.inventoryCheckRepository = inventoryCheckRepository;
         this.profileFieldRepository = profileFieldRepository;
         this.newsRepository = newsRepository;
-        this.notificationRepository = notificationRepository;
         this.exchangeRepository = exchangeRepository;
         this.procurementRepository = procurementRepository;
         this.userTagRepository = userTagRepository;
-        this.formRepository = formRepository;
         this.profileFieldChangeRepository = profileFieldChangeRepository;
         this.eventFieldRepository = eventFieldRepository;
         this.passwordHasher = passwordHasher;
+        this.formSeeder = formSeeder;
+        this.notificationSeeder = notificationSeeder;
+        this.attendanceSeeder = attendanceSeeder;
+        this.inventorySeeder = inventorySeeder;
+        this.waitingListSeeder = waitingListSeeder;
+        this.quizSeeder = quizSeeder;
+        this.mediaSeeder = mediaSeeder;
+        this.kbSeeder = kbSeeder;
+        this.applicationSettingRepository = applicationSettingRepository;
     }
 
     public boolean isEnabled() {
@@ -554,7 +556,7 @@ public class DemoService {
 
         // -- Past profile field changes (acknowledged) --
         if (anfaengerMembers.size() >= 5 && !betreuerMembers.isEmpty()) {
-            int bId = betreuerMembers.get(0).id();
+            int bId = betreuerMembers.getFirst().id();
             // Phone number changes
             var c1 = profileFieldChangeRepository.create(
                     fieldTelefon.id(),
@@ -578,7 +580,7 @@ public class DemoService {
                     anfaengerMembers.get(3).id(),
                     "\"Keine\"",
                     "\"Laktoseintoleranz\"",
-                    betreuerMembers.get(0).id(),
+                    betreuerMembers.getFirst().id(),
                     true);
             profileFieldChangeRepository.acknowledge(c3.id(), bId, null);
             var c4 = profileFieldChangeRepository.create(
@@ -595,15 +597,15 @@ public class DemoService {
                     anfaengerMembers.get(3).id(),
                     "\"2014-05-10\"",
                     "\"2014-05-11\"",
-                    betreuerMembers.get(0).id(),
-                    false);
+                    betreuerMembers.getFirst().id(),
+                    true);
             // Non-acknowledged changes that don't require ack
             profileFieldChangeRepository.create(
                     fieldTelefon.id(),
-                    fortgeschrittenMembers.get(0).id(),
+                    fortgeschrittenMembers.getFirst().id(),
                     "\"0151 77766655\"",
                     "\"0176 88899900\"",
-                    fortgeschrittenMembers.get(0).id(),
+                    fortgeschrittenMembers.getFirst().id(),
                     false);
         }
 
@@ -742,7 +744,7 @@ public class DemoService {
                 false,
                 catVeranstaltung.id());
 
-        seedAttendanceSessions(
+        attendanceSeeder.seedAttendanceSessions(
                 rng,
                 templateAnfaenger,
                 templateFort,
@@ -755,7 +757,7 @@ public class DemoService {
                 betreuerMembers);
 
         // -- Inventory --
-        seedInventory(
+        inventorySeeder.seedInventory(
                 station.id(),
                 rng,
                 anfaengerMembers,
@@ -764,7 +766,8 @@ public class DemoService {
                 groupFortgeschritten.id());
 
         // -- Inventory checks (done by Betreuer) --
-        seedInventoryChecks(station.id(), rng, betreuerMembers, anfaengerMembers, fortgeschrittenMembers);
+        inventorySeeder.seedInventoryChecks(
+                station.id(), rng, betreuerMembers, anfaengerMembers, fortgeschrittenMembers);
 
         // One-time event for today (ensures there's always an event today)
         Instant todayEventStart = LocalDate.now().atTime(16, 0).toInstant(ZoneOffset.UTC);
@@ -967,7 +970,7 @@ public class DemoService {
         newsRepository.createComment(
                 news1.id(), null, elternMembers.get(1).id(), "Kann man hier auch Abwesenheiten eintragen?");
         newsRepository.createComment(
-                news2.id(), null, fortgeschrittenMembers.get(0).id(), "Ich bin dabei! 💪");
+                news2.id(), null, fortgeschrittenMembers.get(0).id(), "Ich bin dabei! \uD83D\uDCAA");
         var comment2 = newsRepository.createComment(
                 news2.id(), null, fortgeschrittenMembers.get(1).id(), "Wie viele Plätze gibt es?");
         newsRepository.createComment(
@@ -1089,9 +1092,10 @@ public class DemoService {
                 }
             }
         }
+        log.info("Demo: Created procurements");
 
         // -- Forms --
-        seedForms(
+        formSeeder.seedForms(
                 station.id(),
                 adminMember,
                 anfaengerMembers,
@@ -1110,14 +1114,15 @@ public class DemoService {
                 "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148",
                 "Mozilla/5.0 (X11; Linux x86_64; rv:150.0) Gecko/20100101 Firefox/150.0");
         var sessionExpiry = Instant.now().plus(Duration.ofHours(24));
-        for (int i = 0; i < demoUserAgents.size(); i++) {
+        for (String demoUserAgent : demoUserAgents) {
             var accountId = admin.id();
             var token = UUID.randomUUID().toString();
-            accountRepository.createSession(accountId, token, sessionExpiry, demoUserAgents.get(i), null);
+            accountRepository.createSession(accountId, token, sessionExpiry, demoUserAgent, null);
         }
+        log.info("Demo: Created previous sessions");
 
         // -- Notifications (demo data so users see them on the dashboard) --
-        seedNotifications(
+        notificationSeeder.seedNotifications(
                 station.id(),
                 adminMember,
                 betreuerMembers,
@@ -1126,461 +1131,35 @@ public class DemoService {
                 fortgeschrittenMembers,
                 tagDerOffenenTuer.id(),
                 stadtfest.id());
+        log.info("Demo: Created Notifications");
+
+        // -- Waiting List --
+        waitingListSeeder.seedWaitingList(station.id(), groupAnfaenger.id(), memberRole.id());
+        log.info("Demo: Created Waiting list");
+
+        // -- Quiz --
+        var quizTestTakers = new ArrayList<Integer>();
+        for (var m : anfaengerMembers) quizTestTakers.add(m.id());
+        for (var m : fortgeschrittenMembers) quizTestTakers.add(m.id());
+        quizSeeder.seedQuiz(station.id(), adminMember.id(), quizTestTakers);
+        log.info("Demo: Created Quiz entries");
+
+        // -- Knowledge Base --
+        kbSeeder.seed(station.id(), adminMember.id());
+        log.info("Demo: Created Knowledge Base content");
+
+        // -- Profile Pictures & Station Logo --
+        mediaSeeder.seedProfilePictures(
+                station.id(), adminMember, betreuerMembers, elternMembers, anfaengerMembers, fortgeschrittenMembers);
+        log.info("Demo: Created profile pictures");
+
+        // -- Settings --
+        applicationSettingRepository.setBoolean("station_registration_enabled", false);
+        log.info("Demo: Disabled station registration");
 
         int totalUsers = 1 + betreuer.size() + eltern.size() + anfaenger.size() + fortgeschritten.size();
         log.info("Demo: Created {} user accounts (password: '{}')", totalUsers, PASSWORD);
         log.info("Demo: Admin login: admin@ember.local / {}", PASSWORD);
-    }
-
-    private void seedForms(
-            int stationId,
-            StationMember admin,
-            List<StationMember> anfaenger,
-            List<StationMember> fortgeschritten,
-            int memberRoleId,
-            int memberManagerRoleId,
-            int anfaengerGroupId,
-            int wettkampfTagId,
-            Random rng) {
-        // Form 1: Satisfaction survey (OPEN, with responses)
-        var survey = formRepository.create(
-                stationId,
-                "Zufriedenheitsumfrage",
-                "Wie gefällt dir unsere Jugendfeuerwehr?",
-                false,
-                true,
-                null,
-                null,
-                admin.id());
-        formRepository.updateStatus(survey.id(), Form.FormStatus.OPEN);
-        formRepository.createQuestion(
-                survey.id(),
-                0,
-                FormQuestion.QuestionType.RATING,
-                "Wie zufrieden bist du insgesamt?",
-                "1 = sehr unzufrieden, 5 = sehr zufrieden",
-                true,
-                false,
-                "{\"scale\":5,\"icon\":\"STAR\"}");
-        formRepository.createQuestion(
-                survey.id(),
-                1,
-                FormQuestion.QuestionType.CHOICE,
-                "Was gefällt dir am besten?",
-                "",
-                false,
-                true,
-                "{\"multiSelect\":true,\"dropdown\":false,\"allowOther\":true,\"options\":[\"Übungen\",\"Gemeinschaft\",\"Ausflüge\",\"Wettbewerbe\"],\"multiLimitType\":\"NONE\"}");
-        formRepository.createQuestion(
-                survey.id(),
-                2,
-                FormQuestion.QuestionType.TEXT,
-                "Hast du Verbesserungsvorschläge?",
-                "",
-                false,
-                false,
-                "{\"longAnswer\":true}");
-
-        // Add some responses
-        var surveyQuestions = formRepository.findQuestions(survey.id());
-        var respondents = new ArrayList<StationMember>();
-        respondents.addAll(anfaenger.subList(0, Math.min(5, anfaenger.size())));
-        respondents.addAll(fortgeschritten.subList(0, Math.min(4, fortgeschritten.size())));
-        String[] suggestions = {"Mehr Ausflüge!", "Öfter draußen üben", "Alles super!", "", "Neue Geräte wären toll"};
-        for (int i = 0; i < respondents.size(); i++) {
-            var member = respondents.get(i);
-            var response = formRepository.createResponse(survey.id(), member.id(), member.id());
-            int rating = 3 + rng.nextInt(3);
-            formRepository.upsertAnswer(response.id(), surveyQuestions.get(0).id(), "{\"rating\":" + rating + "}");
-            int[] selected = rng.nextInt(2) == 0 ? new int[] {0, 2} : new int[] {1, 3};
-            formRepository.upsertAnswer(
-                    response.id(),
-                    surveyQuestions.get(1).id(),
-                    "{\"selected\":[" + selected[0] + "," + selected[1] + "],\"other\":\"\"}");
-            formRepository.upsertAnswer(
-                    response.id(),
-                    surveyQuestions.get(2).id(),
-                    "{\"text\":\"" + suggestions[i % suggestions.length] + "\"}");
-        }
-
-        // Add remaining types to survey: DATE, RANKING, LIKERT
-        formRepository.createQuestion(
-                survey.id(),
-                3,
-                FormQuestion.QuestionType.DATE,
-                "Wann bist du der Jugendfeuerwehr beigetreten?",
-                "",
-                false,
-                false,
-                "{}");
-        formRepository.createQuestion(
-                survey.id(),
-                4,
-                FormQuestion.QuestionType.RANKING,
-                "Ordne die Aktivitäten nach Beliebtheit",
-                "",
-                false,
-                true,
-                "{\"options\":[\"Übungen\",\"Wettbewerbe\",\"Ausflüge\",\"Theorie\"]}");
-        formRepository.createQuestion(
-                survey.id(),
-                5,
-                FormQuestion.QuestionType.LIKERT,
-                "Wie bewertest du die folgenden Bereiche?",
-                "",
-                false,
-                false,
-                "{\"statements\":[\"Ausrüstung\",\"Betreuung\",\"Abwechslung\"],\"scaleMin\":1,\"scaleMax\":5,\"scaleLabels\":[]}");
-
-        // Re-fetch questions after adding more
-        surveyQuestions = formRepository.findQuestions(survey.id());
-        // Add responses for the new question types
-        for (StationMember member : respondents) {
-            var existingResponse =
-                    formRepository.findResponse(survey.id(), member.id()).orElseThrow();
-            formRepository.upsertAnswer(
-                    existingResponse.id(),
-                    surveyQuestions.get(3).id(),
-                    "{\"date\":\"202" + (2 + rng.nextInt(4)) + "-0" + (1 + rng.nextInt(9)) + "-15\"}");
-            int[] rankOrder = {rng.nextInt(4), (1 + rng.nextInt(3)) % 4, (2 + rng.nextInt(2)) % 4, 3 - rng.nextInt(2)};
-            formRepository.upsertAnswer(
-                    existingResponse.id(),
-                    surveyQuestions.get(4).id(),
-                    "{\"order\":[" + rankOrder[0] + "," + rankOrder[1] + "," + rankOrder[2] + "," + rankOrder[3]
-                            + "]}");
-            formRepository.upsertAnswer(
-                    existingResponse.id(),
-                    surveyQuestions.get(5).id(),
-                    "{\"ratings\":{\"0\":" + (3 + rng.nextInt(3)) + ",\"1\":" + (3 + rng.nextInt(3)) + ",\"2\":"
-                            + (2 + rng.nextInt(4)) + "}}");
-        }
-
-        // Form 2: CLOSED comprehensive form with ALL types + responses
-        var feedback = formRepository.create(
-                stationId,
-                "Feedback Übungsabend",
-                "Rückmeldung zum letzten Übungsabend",
-                false,
-                true,
-                null,
-                null,
-                admin.id());
-        formRepository.updateStatus(feedback.id(), Form.FormStatus.OPEN);
-        formRepository.createQuestion(
-                feedback.id(),
-                0,
-                FormQuestion.QuestionType.CHOICE,
-                "Würdest du wieder teilnehmen?",
-                "",
-                true,
-                false,
-                "{\"multiSelect\":false,\"dropdown\":false,\"allowOther\":false,\"options\":[\"Ja\",\"Vielleicht\",\"Nein\"],\"multiLimitType\":\"NONE\"}");
-        formRepository.createQuestion(
-                feedback.id(),
-                1,
-                FormQuestion.QuestionType.TEXT,
-                "Was hat dir besonders gefallen?",
-                "",
-                false,
-                false,
-                "{\"longAnswer\":true}");
-        formRepository.createQuestion(
-                feedback.id(),
-                2,
-                FormQuestion.QuestionType.RATING,
-                "Gesamtbewertung",
-                "1 = schlecht, 10 = super",
-                true,
-                false,
-                "{\"scale\":10,\"icon\":\"HEART\"}");
-        formRepository.createQuestion(
-                feedback.id(),
-                3,
-                FormQuestion.QuestionType.DATE,
-                "An welchem Datum warst du dabei?",
-                "",
-                false,
-                false,
-                "{}");
-        formRepository.createQuestion(
-                feedback.id(),
-                4,
-                FormQuestion.QuestionType.RANKING,
-                "Was war am wichtigsten?",
-                "",
-                false,
-                true,
-                "{\"options\":[\"Teamwork\",\"Technik\",\"Fitness\",\"Spaß\"]}");
-        formRepository.createQuestion(
-                feedback.id(),
-                5,
-                FormQuestion.QuestionType.LIKERT,
-                "Bewerte die folgenden Aspekte",
-                "",
-                true,
-                false,
-                "{\"statements\":[\"Organisation\",\"Lerninhalte\",\"Spaßfaktor\",\"Zeitdauer\"],\"scaleMin\":1,\"scaleMax\":5,\"scaleLabels\":[]}");
-
-        var feedbackQuestions = formRepository.findQuestions(feedback.id());
-        String[] feedbackTexts = {
-            "Tolle Übung!", "Mehr davon!", "War ok", "Super organisiert", "Könnte besser sein", "Hat Spaß gemacht"
-        };
-        for (int i = 0; i < Math.min(8, anfaenger.size()); i++) {
-            var member = anfaenger.get(i);
-            var response = formRepository.createResponse(feedback.id(), member.id(), member.id());
-            int choiceIdx = rng.nextInt(3);
-            formRepository.upsertAnswer(
-                    response.id(), feedbackQuestions.get(0).id(), "{\"selected\":[" + choiceIdx + "],\"other\":\"\"}");
-            formRepository.upsertAnswer(
-                    response.id(),
-                    feedbackQuestions.get(1).id(),
-                    "{\"text\":\"" + feedbackTexts[i % feedbackTexts.length] + "\"}");
-            formRepository.upsertAnswer(
-                    response.id(), feedbackQuestions.get(2).id(), "{\"rating\":" + (5 + rng.nextInt(6)) + "}");
-            formRepository.upsertAnswer(response.id(), feedbackQuestions.get(3).id(), "{\"date\":\"2026-05-10\"}");
-            int[] order = {rng.nextInt(4), (1 + rng.nextInt(3)) % 4, 2, 3};
-            formRepository.upsertAnswer(
-                    response.id(),
-                    feedbackQuestions.get(4).id(),
-                    "{\"order\":[" + order[0] + "," + order[1] + "," + order[2] + "," + order[3] + "]}");
-            formRepository.upsertAnswer(
-                    response.id(),
-                    feedbackQuestions.get(5).id(),
-                    "{\"ratings\":{\"0\":" + (3 + rng.nextInt(3)) + ",\"1\":" + (2 + rng.nextInt(4)) + ",\"2\":"
-                            + (4 + rng.nextInt(2)) + ",\"3\":" + (2 + rng.nextInt(3)) + "}}");
-        }
-        formRepository.updateStatus(feedback.id(), Form.FormStatus.CLOSED);
-
-        // Form 3: Member-only form (restricted to MEMBER role)
-        var memberOnly = formRepository.create(
-                stationId,
-                "Persönliche Einschätzung",
-                "Nur für Mitglieder — Verwalter können dieses Formular für ihre verwalteten Mitglieder ausfüllen.",
-                false,
-                true,
-                null,
-                null,
-                admin.id());
-        formRepository.updateStatus(memberOnly.id(), Form.FormStatus.OPEN);
-        formRepository.createQuestion(
-                memberOnly.id(),
-                0,
-                FormQuestion.QuestionType.RATING,
-                "Wie wohl fühlst du dich in der Gruppe?",
-                "1 = gar nicht, 5 = sehr wohl",
-                true,
-                false,
-                "{\"scale\":5,\"icon\":\"STAR\"}");
-        formRepository.createQuestion(
-                memberOnly.id(),
-                1,
-                FormQuestion.QuestionType.TEXT,
-                "Was wünschst du dir für die nächsten Monate?",
-                "",
-                false,
-                false,
-                "{\"longAnswer\":true}");
-        formRepository.createQuestion(
-                memberOnly.id(),
-                2,
-                FormQuestion.QuestionType.CHOICE,
-                "Möchtest du an einem Wettbewerb teilnehmen?",
-                "",
-                true,
-                false,
-                "{\"multiSelect\":false,\"dropdown\":false,\"allowOther\":false,\"options\":[\"Ja, unbedingt!\",\"Vielleicht\",\"Nein, lieber nicht\"],\"multiLimitType\":\"NONE\"}");
-        formRepository.setRoleRestrictions(memberOnly.id(), List.of(memberRoleId));
-
-        // Form 4: For MEMBER + GUARDIAN (both can fill for themselves)
-        var bothRoles = formRepository.create(
-                stationId,
-                "Terminplanung Herbstfest",
-                "Für Mitglieder und Verwalter — bitte gebt eure Verfügbarkeit an.",
-                false,
-                true,
-                null,
-                null,
-                admin.id());
-        formRepository.updateStatus(bothRoles.id(), Form.FormStatus.OPEN);
-        formRepository.createQuestion(
-                bothRoles.id(),
-                0,
-                FormQuestion.QuestionType.DATE,
-                "An welchem Wochenende passt es dir am besten?",
-                "",
-                true,
-                false,
-                "{}");
-        formRepository.createQuestion(
-                bothRoles.id(),
-                1,
-                FormQuestion.QuestionType.CHOICE,
-                "Kannst du beim Aufbau helfen?",
-                "",
-                false,
-                false,
-                "{\"multiSelect\":false,\"dropdown\":false,\"allowOther\":false,\"options\":[\"Ja\",\"Nein\",\"Vielleicht\"],\"multiLimitType\":\"NONE\"}");
-        formRepository.setRoleRestrictions(bothRoles.id(), List.of(memberRoleId, memberManagerRoleId));
-
-        // Form 5: Restricted to Wettkampfgruppe tag only
-        var wettkampfForm = formRepository.create(
-                stationId,
-                "Wettkampf-Vorbereitung",
-                "Nur für Mitglieder der Wettkampfgruppe.",
-                false,
-                true,
-                null,
-                null,
-                admin.id());
-        formRepository.updateStatus(wettkampfForm.id(), Form.FormStatus.OPEN);
-        formRepository.createQuestion(
-                wettkampfForm.id(),
-                0,
-                FormQuestion.QuestionType.RATING,
-                "Wie fit fühlst du dich für den Wettkampf?",
-                "1 = gar nicht, 5 = top vorbereitet",
-                true,
-                false,
-                "{\"scale\":5,\"icon\":\"STAR\"}");
-        formRepository.createQuestion(
-                wettkampfForm.id(),
-                1,
-                FormQuestion.QuestionType.CHOICE,
-                "Welche Disziplin möchtest du übernehmen?",
-                "",
-                true,
-                false,
-                "{\"multiSelect\":true,\"dropdown\":false,\"allowOther\":true,\"options\":[\"Löschangriff\",\"Staffellauf\",\"Knotenkunde\",\"Erste Hilfe\"],\"multiLimitType\":\"AT_MOST\",\"multiLimit\":2}");
-        formRepository.setTagRestrictions(wettkampfForm.id(), List.of(wettkampfTagId));
-
-        // Form 6: Restricted to Anfänger group only
-        var anfaengerForm = formRepository.create(
-                stationId,
-                "Anfänger-Feedback",
-                "Nur für die Anfänger-Gruppe — wie läuft es bei euch?",
-                false,
-                true,
-                null,
-                null,
-                admin.id());
-        formRepository.updateStatus(anfaengerForm.id(), Form.FormStatus.OPEN);
-        formRepository.createQuestion(
-                anfaengerForm.id(),
-                0,
-                FormQuestion.QuestionType.LIKERT,
-                "Bewerte deine bisherige Erfahrung",
-                "",
-                true,
-                false,
-                "{\"statements\":[\"Ich verstehe die Übungen\",\"Ich fühle mich willkommen\",\"Ich lerne viel Neues\"],\"scaleMin\":1,\"scaleMax\":5,\"scaleLabels\":[]}");
-        formRepository.createQuestion(
-                anfaengerForm.id(),
-                1,
-                FormQuestion.QuestionType.TEXT,
-                "Was können wir für dich verbessern?",
-                "",
-                false,
-                false,
-                "{\"longAnswer\":true}");
-        formRepository.setGroupRestrictions(anfaengerForm.id(), List.of(anfaengerGroupId));
-
-        log.info(
-                "Demo: Created 6 forms (open all types, closed all types, member-only, member+manager, tag-restricted, group-restricted)");
-    }
-
-    private void seedNotifications(
-            int stationId,
-            StationMember admin,
-            List<StationMember> betreuer,
-            List<StationMember> eltern,
-            List<StationMember> anfaenger,
-            List<StationMember> fortgeschritten,
-            int tagDerOffenenTuerEventId,
-            int stadtfestEventId) {
-        // News notification for all members
-        for (var m : betreuer) {
-            notificationRepository.create(
-                    m.id(),
-                    NotificationType.NEW_NEWS,
-                    NotificationData.of(
-                            new NotificationParams.NewNews(
-                                    "Neue Ausrüstung eingetroffen",
-                                    "Anna Schmidt",
-                                    "Die bestellten Helme und Handschuhe sind eingetroffen..."),
-                            new NotificationData.NotificationLink("news-list")));
-        }
-
-        // Comment notifications for Betreuer (news author gets comment notification)
-        notificationRepository.create(
-                betreuer.get(1).id(),
-                NotificationType.NEWS_COMMENT,
-                NotificationData.of(
-                        new NotificationParams.NewsComment(
-                                "Neue Ausrüstung eingetroffen",
-                                "Klaus Schulze",
-                                "Werden die alten Helme eingesammelt?"),
-                        new NotificationData.NotificationLink("news-list")));
-
-        // Exchange request notification for Betreuer (INVENTORY_MANAGEMENT)
-        for (var m : betreuer) {
-            notificationRepository.create(
-                    m.id(),
-                    NotificationType.EXCHANGE_NEW_REQUEST,
-                    NotificationData.of(
-                            new NotificationParams.ExchangeNewRequest("Tim Berger", "Blouson", "Zu klein geworden"),
-                            new NotificationData.NotificationLink("inventory-exchanges")));
-        }
-
-        // Event registration status for some kids
-        for (int i = 0; i < 3 && i < fortgeschritten.size(); i++) {
-            notificationRepository.create(
-                    fortgeschritten.get(i).id(),
-                    NotificationType.EVENT_REGISTRATION_STATUS,
-                    NotificationData.of(
-                            new NotificationParams.EventRegistrationStatus("Tag der offenen Tür", "ACCEPTED", null),
-                            new NotificationData.NotificationLink(
-                                    "event-detail", Map.of("id", tagDerOffenenTuerEventId))));
-        }
-
-        // New event notification for some members
-        for (int i = 0; i < 5 && i < anfaenger.size(); i++) {
-            notificationRepository.create(
-                    anfaenger.get(i).id(),
-                    NotificationType.NEW_EVENT,
-                    NotificationData.of(
-                            new NotificationParams.NewEvent(
-                                    "Stadtfest Musterstadt", "Stand der Jugendfeuerwehr beim Stadtfest"),
-                            new NotificationData.NotificationLink("event-detail", Map.of("id", stadtfestEventId))));
-        }
-
-        // Group membership notification for some Eltern
-        for (int i = 0; i < 3 && i < eltern.size(); i++) {
-            notificationRepository.create(
-                    eltern.get(i).id(),
-                    NotificationType.MEMBER_ADDED_TO_GROUP,
-                    NotificationData.of(
-                            new NotificationParams.MemberAddedToGroup("Eltern"),
-                            new NotificationData.NotificationLink("dashboard-overview")));
-        }
-
-        // Procurement notification for a kid
-        notificationRepository.create(
-                anfaenger.get(2).id(),
-                NotificationType.PROCUREMENT_REQUESTED,
-                NotificationData.of(
-                        new NotificationParams.ProcurementRequested("Handschuhe"),
-                        new NotificationData.NotificationLink("dashboard-overview")));
-
-        // Profile change notification for Betreuer
-        notificationRepository.create(
-                betreuer.getFirst().id(),
-                NotificationType.PROFILE_FIELD_CHANGED,
-                NotificationData.of(
-                        new NotificationParams.ProfileFieldChanged("Lukas Frank", "Allergien"),
-                        new NotificationData.NotificationLink(
-                                "members-detail", Map.of("id", anfaenger.get(0).id()))));
-
-        log.info("Demo: Created sample notifications for dashboard");
     }
 
     private StationMember createUser(
@@ -1603,403 +1182,6 @@ public class DemoService {
         stationMemberRepository.addRole(member.id(), loginRoleId);
         stationMemberRepository.addRole(member.id(), guardianRoleId);
         return member;
-    }
-
-    private void seedAttendanceSessions(
-            Random rng,
-            AttendanceTemplate templateAnfaenger,
-            AttendanceTemplate templateFort,
-            AttendanceTemplate templateGesamt,
-            StationEvent evAnfaenger,
-            StationEvent evFort,
-            StationEvent evGesamt,
-            List<StationMember> anfaenger,
-            List<StationMember> fortgeschritten,
-            List<StationMember> betreuer) {
-        var teamForAnfaenger = betreuer.subList(0, Math.min(2, betreuer.size()));
-        var teamForFort = betreuer.subList(Math.min(1, betreuer.size()), Math.min(3, betreuer.size()));
-        var teamForGesamt = betreuer.subList(0, Math.min(3, betreuer.size()));
-
-        LocalDate today = LocalDate.now();
-        LocalDate startDate = today.minusMonths(14).withDayOfMonth(1);
-        int sessionCount = 0;
-
-        for (LocalDate date = startDate; !date.isAfter(today); date = date.plusDays(1)) {
-            int weekOfYear = date.get(IsoFields.WEEK_OF_WEEK_BASED_YEAR);
-            if (weekOfYear >= 28 && weekOfYear <= 33) continue; // summer break
-
-            int dow = date.getDayOfWeek().getValue();
-            boolean isToday = date.equals(today);
-
-            if (dow == 1) { // Monday: Anfänger
-                log.info("Demo: Creating attendance session for week {}", weekOfYear);
-                Instant start = date.atTime(17, 30).toInstant(ZoneOffset.UTC);
-                Instant end = date.atTime(19, 0).toInstant(ZoneOffset.UTC);
-                var sess = attendanceRepository.createSession(
-                        templateAnfaenger.id(), start, end, evAnfaenger.id(), "Übung Anfänger KW" + weekOfYear);
-                if (!isToday) {
-                    for (var m : anfaenger) {
-                        var status = rng.nextInt(10) < 8
-                                ? AttendanceEntry.AttendanceStatus.PRESENT
-                                : AttendanceEntry.AttendanceStatus.ABSENT;
-                        attendanceRepository.createEntry(
-                                sess.id(), m.id(), status, AttendanceEntry.EntrySource.EXPECTED);
-                    }
-                    for (var m : teamForAnfaenger) {
-                        attendanceRepository.createEntry(
-                                sess.id(),
-                                m.id(),
-                                AttendanceEntry.AttendanceStatus.PRESENT,
-                                AttendanceEntry.EntrySource.EXTRA);
-                    }
-                }
-                sessionCount++;
-            }
-
-            if (dow == 3) { // Wednesday: Fortgeschritten
-                log.info("Demo: Creating attendance session for week {}", weekOfYear);
-                Instant start = date.atTime(18, 0).toInstant(ZoneOffset.UTC);
-                Instant end = date.atTime(19, 30).toInstant(ZoneOffset.UTC);
-                var sess = attendanceRepository.createSession(
-                        templateFort.id(), start, end, evFort.id(), "Übung Fortgeschritten KW" + weekOfYear);
-                if (!isToday) {
-                    for (var m : fortgeschritten) {
-                        var status = rng.nextInt(10) < 7
-                                ? AttendanceEntry.AttendanceStatus.PRESENT
-                                : AttendanceEntry.AttendanceStatus.ABSENT;
-                        attendanceRepository.createEntry(
-                                sess.id(), m.id(), status, AttendanceEntry.EntrySource.EXPECTED);
-                    }
-                    for (var m : teamForFort) {
-                        attendanceRepository.createEntry(
-                                sess.id(),
-                                m.id(),
-                                AttendanceEntry.AttendanceStatus.PRESENT,
-                                AttendanceEntry.EntrySource.EXTRA);
-                    }
-                }
-                sessionCount++;
-            }
-
-            if (dow == 6 && date.getDayOfMonth() <= 7) { // 1st Saturday: Gesamtübung
-                log.info("Demo: Creating attendance session for week {}", weekOfYear);
-                Instant start = date.atTime(10, 0).toInstant(ZoneOffset.UTC);
-                Instant end = date.atTime(13, 0).toInstant(ZoneOffset.UTC);
-                var sess = attendanceRepository.createSession(
-                        templateGesamt.id(),
-                        start,
-                        end,
-                        evGesamt.id(),
-                        "Gesamtübung "
-                                + date.getMonth().getDisplayName(TextStyle.FULL, Locale.GERMAN)
-                                + " " + date.getYear());
-                if (!isToday) {
-                    for (var m : anfaenger) {
-                        var status = rng.nextInt(10) < 7
-                                ? AttendanceEntry.AttendanceStatus.PRESENT
-                                : AttendanceEntry.AttendanceStatus.ABSENT;
-                        attendanceRepository.createEntry(
-                                sess.id(), m.id(), status, AttendanceEntry.EntrySource.EXPECTED);
-                    }
-                    for (var m : fortgeschritten) {
-                        var status = rng.nextInt(10) < 7
-                                ? AttendanceEntry.AttendanceStatus.PRESENT
-                                : AttendanceEntry.AttendanceStatus.ABSENT;
-                        attendanceRepository.createEntry(
-                                sess.id(), m.id(), status, AttendanceEntry.EntrySource.EXPECTED);
-                    }
-                    for (var m : teamForGesamt) {
-                        attendanceRepository.createEntry(
-                                sess.id(),
-                                m.id(),
-                                AttendanceEntry.AttendanceStatus.PRESENT,
-                                AttendanceEntry.EntrySource.EXTRA);
-                    }
-                }
-                sessionCount++;
-            }
-        }
-        log.info("Demo: Created {} attendance sessions spanning 14 months", sessionCount);
-    }
-
-    private void seedInventoryChecks(
-            int stationId,
-            Random rng,
-            List<StationMember> betreuer,
-            List<StationMember> anfaenger,
-            List<StationMember> fortgeschritten) {
-        var allKids = new ArrayList<>(anfaenger);
-        allKids.addAll(fortgeschritten);
-
-        // Some Betreuer checked some kids
-        int checkedCount = 0;
-        for (StationMember allKid : allKids) {
-            if (rng.nextInt(3) != 0) continue; // ~1/3 of kids have been checked
-            var kid = allKid;
-            var checker = betreuer.get(rng.nextInt(betreuer.size()));
-            var check = inventoryCheckRepository.createCheck(stationId, kid.id(), checker.id());
-
-            // Check all items assigned to this kid
-            var items = inventoryRepository.findItemsByMember(kid.id());
-            for (var item : items) {
-                CheckResult result;
-                int roll = rng.nextInt(20);
-                if (roll == 0) {
-                    result = CheckResult.LOST;
-                } else if (roll < 3) {
-                    result = CheckResult.NOT_IN_POSSESSION;
-                } else {
-                    result = CheckResult.CONFIRMED;
-                }
-                String note = result == CheckResult.LOST ? "Seit letzter Übung vermisst" : "";
-                inventoryCheckRepository.createCheckItem(check.id(), item.id(), item.inventoryId(), result, note);
-                if (result == CheckResult.LOST) {
-                    inventoryRepository.markLost(item.id());
-                }
-            }
-            checkedCount++;
-        }
-        log.info("Demo: Created inventory checks for {} members", checkedCount);
-    }
-
-    private void seedInventory(
-            int stationId,
-            Random rng,
-            List<StationMember> anfaenger,
-            List<StationMember> fortgeschritten,
-            int anfaengerGroupId,
-            int fortgeschrittenGroupId) {
-        // Sizes reference from existing data
-        var kleidungSizes = List.of("140", "146", "152", "158", "164", "170", "176", "182");
-        var parkaSizes = List.of("XXXXS", "XXXS", "XXS", "XS", "S", "M", "L");
-        var handschuhSizes = List.of("4", "5", "6", "7", "8", "9", "10");
-        var stiefelSizes = List.of("34", "35", "36", "37", "38", "39", "40", "41", "42", "43");
-        var tshirtSizes = List.of("128", "140", "152", "164", "176");
-
-        // Create inventories
-        var helm = inventoryRepository.create(stationId, "Helm", InventoryType.MIXED, false);
-
-        var blouson = inventoryRepository.create(stationId, "Blouson", InventoryType.EXTERNAL, true);
-        for (int i = 0; i < kleidungSizes.size(); i++)
-            inventoryRepository.createSize(blouson.id(), kleidungSizes.get(i), i, "");
-
-        var parka = inventoryRepository.create(stationId, "Parka", InventoryType.EXTERNAL, true);
-        for (int i = 0; i < parkaSizes.size(); i++)
-            inventoryRepository.createSize(parka.id(), parkaSizes.get(i), i, "");
-
-        var latzhose = inventoryRepository.create(stationId, "Latzhose", InventoryType.EXTERNAL, true);
-        for (int i = 0; i < kleidungSizes.size(); i++)
-            inventoryRepository.createSize(latzhose.id(), kleidungSizes.get(i), i, "");
-
-        var handschuhe = inventoryRepository.create(stationId, "Handschuhe", InventoryType.MIXED, true);
-        for (int i = 0; i < handschuhSizes.size(); i++)
-            inventoryRepository.createSize(handschuhe.id(), handschuhSizes.get(i), i, "");
-
-        var stiefel = inventoryRepository.create(stationId, "Stiefel", InventoryType.INTERNAL, true);
-        for (int i = 0; i < stiefelSizes.size(); i++)
-            inventoryRepository.createSize(stiefel.id(), stiefelSizes.get(i), i, "");
-
-        var sporttasche = inventoryRepository.create(stationId, "Sporttasche", InventoryType.INTERNAL, false);
-
-        var tshirt = inventoryRepository.create(stationId, "T-Shirt", InventoryType.INTERNAL, true);
-        for (int i = 0; i < tshirtSizes.size(); i++)
-            inventoryRepository.createSize(tshirt.id(), tshirtSizes.get(i), i, "");
-
-        // Requirements: Anfänger and Fortgeschritten members each need 1 of each (2 T-shirts)
-        for (int groupId : List.of(anfaengerGroupId, fortgeschrittenGroupId)) {
-            inventoryRepository.createRequirement(helm.id(), 0, groupId, 1);
-            inventoryRepository.createRequirement(blouson.id(), 0, groupId, 1);
-            inventoryRepository.createRequirement(parka.id(), 0, groupId, 1);
-            inventoryRepository.createRequirement(latzhose.id(), 0, groupId, 1);
-            inventoryRepository.createRequirement(handschuhe.id(), 0, groupId, 1);
-            inventoryRepository.createRequirement(stiefel.id(), 0, groupId, 1);
-            inventoryRepository.createRequirement(sporttasche.id(), 0, groupId, 1);
-            inventoryRepository.createRequirement(tshirt.id(), 0, groupId, 2);
-        }
-
-        // Create items and assign to members
-        var allKids = new ArrayList<>(anfaenger);
-        allKids.addAll(fortgeschritten);
-
-        int itemCounter = 1;
-        var blousonSizeList = inventoryRepository.findSizes(blouson.id());
-        var parkaSizeList = inventoryRepository.findSizes(parka.id());
-        var latzhoseSizeList = inventoryRepository.findSizes(latzhose.id());
-        var handschuheSizeList = inventoryRepository.findSizes(handschuhe.id());
-        var stiefelSizeList = inventoryRepository.findSizes(stiefel.id());
-        var tshirtSizeList = inventoryRepository.findSizes(tshirt.id());
-
-        for (var member : allKids) {
-            int idx = allKids.indexOf(member);
-
-            // Helm (MIXED, no size) — station-provided = INTERNAL
-            var helmItem = inventoryRepository.createItem(
-                    helm.id(),
-                    "H-" + String.format("%03d", itemCounter++),
-                    "Helm",
-                    null,
-                    null,
-                    InventoryItem.ItemSource.INTERNAL);
-            inventoryRepository.assignItem(helmItem.id(), member.id());
-
-            // Blouson (EXTERNAL)
-            var blousonItem = inventoryRepository.createItem(
-                    blouson.id(),
-                    "BL-" + String.format("%03d", itemCounter++),
-                    "Blouson",
-                    blousonSizeList.get(idx % blousonSizeList.size()).id(),
-                    null,
-                    InventoryItem.ItemSource.EXTERNAL);
-            inventoryRepository.assignItem(blousonItem.id(), member.id());
-
-            // Parka (EXTERNAL)
-            var parkaItem = inventoryRepository.createItem(
-                    parka.id(),
-                    "PA-" + String.format("%03d", itemCounter++),
-                    "Parka",
-                    parkaSizeList.get(idx % parkaSizeList.size()).id(),
-                    null,
-                    InventoryItem.ItemSource.EXTERNAL);
-            inventoryRepository.assignItem(parkaItem.id(), member.id());
-
-            // Latzhose (EXTERNAL)
-            var latzItem = inventoryRepository.createItem(
-                    latzhose.id(),
-                    "LH-" + String.format("%03d", itemCounter++),
-                    "Latzhose",
-                    latzhoseSizeList.get(idx % latzhoseSizeList.size()).id(),
-                    null,
-                    InventoryItem.ItemSource.EXTERNAL);
-            inventoryRepository.assignItem(latzItem.id(), member.id());
-
-            // Handschuhe (MIXED) — station-provided = INTERNAL
-            var handschuhItem = inventoryRepository.createItem(
-                    handschuhe.id(),
-                    "HS-" + String.format("%03d", itemCounter++),
-                    "Handschuhe",
-                    handschuheSizeList.get(idx % handschuheSizeList.size()).id(),
-                    null,
-                    InventoryItem.ItemSource.INTERNAL);
-            inventoryRepository.assignItem(handschuhItem.id(), member.id());
-
-            // Stiefel (INTERNAL)
-            var stiefelItem = inventoryRepository.createItem(
-                    stiefel.id(),
-                    "ST-" + String.format("%03d", itemCounter++),
-                    "Stiefel",
-                    stiefelSizeList.get(idx % stiefelSizeList.size()).id(),
-                    null,
-                    InventoryItem.ItemSource.INTERNAL);
-            inventoryRepository.assignItem(stiefelItem.id(), member.id());
-
-            // T-Shirt (INTERNAL, 2 per member)
-            for (int t = 0; t < 2; t++) {
-                var tshirtItem = inventoryRepository.createItem(
-                        tshirt.id(),
-                        "TS-" + String.format("%03d", itemCounter++),
-                        "T-Shirt",
-                        tshirtSizeList.get(idx % tshirtSizeList.size()).id(),
-                        null,
-                        InventoryItem.ItemSource.INTERNAL);
-                inventoryRepository.assignItem(tshirtItem.id(), member.id());
-            }
-
-            // Sporttasche (INTERNAL, ~70% get one, rest need procurement)
-            if (rng.nextInt(10) < 7) {
-                var tasche = inventoryRepository.createItem(
-                        sporttasche.id(),
-                        "SP-" + String.format("%03d", itemCounter++),
-                        "Sporttasche",
-                        null,
-                        null,
-                        InventoryItem.ItemSource.INTERNAL);
-                inventoryRepository.assignItem(tasche.id(), member.id());
-            }
-        }
-
-        // Add some unassigned spare items (INTERNAL)
-        for (int i = 0; i < 5; i++) {
-            inventoryRepository.createItem(
-                    helm.id(),
-                    "H-" + String.format("%03d", itemCounter++),
-                    "Helm Ersatz",
-                    null,
-                    null,
-                    InventoryItem.ItemSource.INTERNAL);
-        }
-        for (int i = 0; i < 3; i++) {
-            inventoryRepository.createItem(
-                    sporttasche.id(),
-                    "SP-" + String.format("%03d", itemCounter++),
-                    "Sporttasche Ersatz",
-                    null,
-                    null,
-                    InventoryItem.ItemSource.INTERNAL);
-        }
-
-        // Add one personally owned Handschuh per size (MIXED → EXTERNAL = personally owned)
-        var handschuhSizeListOwned = inventoryRepository.findSizes(handschuhe.id());
-        for (var size : handschuhSizeListOwned) {
-            var kid = allKids.get(rng.nextInt(allKids.size()));
-            var ownedGlove = inventoryRepository.createItem(
-                    handschuhe.id(),
-                    "HS-" + String.format("%03d", itemCounter++),
-                    "Handschuhe (eigen) " + size.label(),
-                    size.id(),
-                    "{\"owned\":true}",
-                    InventoryItem.ItemSource.EXTERNAL);
-            inventoryRepository.assignItem(ownedGlove.id(), kid.id());
-        }
-
-        // Generate item assignment history for internal items
-        // For ~40% of items, create a history of 1-3 previous owners
-        var internalInventoryIds = List.of(helm.id(), stiefel.id(), sporttasche.id(), handschuhe.id());
-        var allInternalItems = new ArrayList<InventoryItem>();
-        for (int invId : internalInventoryIds) {
-            allInternalItems.addAll(inventoryRepository.findItems(invId));
-        }
-
-        int historyCount = 0;
-        for (var item : allInternalItems) {
-            if (item.assignedTo() == null) continue;
-            if (rng.nextInt(10) < 6) continue; // skip 60%
-
-            int prevOwnerCount = 1 + rng.nextInt(3);
-            Instant cursor = Instant.now().minus(Duration.ofDays(365 + rng.nextInt(730)));
-
-            for (int h = 0; h < prevOwnerCount; h++) {
-                var prevOwner = allKids.get(rng.nextInt(allKids.size()));
-                var prevAccount =
-                        accountRepository.findById(prevOwner.accountId()).orElse(null);
-                String prevName = prevAccount != null
-                        ? (prevAccount.firstName() + " " + prevAccount.lastName()).trim()
-                        : "#" + prevOwner.id();
-
-                Instant givenOut = cursor;
-                cursor = cursor.plus(Duration.ofDays(30 + rng.nextInt(180)));
-                Instant returned = cursor;
-                cursor = cursor.plus(Duration.ofDays(1 + rng.nextInt(14)));
-
-                inventoryRepository.createHistoryWithDates(item.id(), prevOwner.id(), prevName, givenOut, returned);
-                historyCount++;
-            }
-
-            // Current owner — given out after last return, no return date
-            var currentAccount = accountRepository
-                    .findById(allKids.stream()
-                            .filter(m -> m.id() == item.assignedTo())
-                            .findFirst()
-                            .map(StationMember::accountId)
-                            .orElse(0))
-                    .orElse(null);
-            String currentName = currentAccount != null
-                    ? (currentAccount.firstName() + " " + currentAccount.lastName()).trim()
-                    : "#" + item.assignedTo();
-            inventoryRepository.createHistoryWithDates(item.id(), item.assignedTo(), currentName, cursor, null);
-            historyCount++;
-        }
-
-        log.info("Demo: Created {} inventory items with {} history entries", itemCounter - 1, historyCount);
     }
 
     private String jsonStr(String value) {
