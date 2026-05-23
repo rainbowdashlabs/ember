@@ -22,6 +22,8 @@ export const Roles = {
     WAITLIST_MANAGEMENT: 'WAITLIST_MANAGEMENT',
     QUIZ_MANAGEMENT: 'QUIZ_MANAGEMENT',
     KNOWLEDGE_MANAGEMENT: 'KNOWLEDGE_MANAGEMENT',
+    PROTOCOL_MANAGEMENT: 'PROTOCOL_MANAGEMENT',
+    PROTOCOL_TESTER: 'PROTOCOL_TESTER',
     MANAGER: 'MANAGER',
     ADMIN: 'ADMIN',
 } as const
@@ -148,6 +150,7 @@ export const StationModules = {
     WAITING_LIST: 'WAITING_LIST',
     QUIZ: 'QUIZ',
     KNOWLEDGE_BASE: 'KNOWLEDGE_BASE',
+    TEST_PROTOCOL: 'TEST_PROTOCOL',
 } as const
 
 export type StationModuleName = (typeof StationModules)[keyof typeof StationModules]

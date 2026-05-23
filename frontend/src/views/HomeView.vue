@@ -54,6 +54,10 @@ const features = [
   {icon: ['fas', 'users'], key: 'members', help: '/helpcenter/station/members/list'},
   {icon: ['fas', 'square-poll-vertical'], key: 'forms', help: '/helpcenter/station/forms'},
   {icon: ['fas', 'newspaper'], key: 'news', help: '/helpcenter/station/news'},
+  {icon: ['fas', 'book-open'], key: 'knowledgeBase', help: '/helpcenter/station/knowledge'},
+  {icon: ['fas', 'graduation-cap'], key: 'quiz', help: '/helpcenter/station/quiz/catalogs'},
+  {icon: ['fas', 'clipboard-check'], key: 'protocol', help: '/helpcenter/station/protocols'},
+  {icon: ['fas', 'list-check'], key: 'waitingList', help: '/helpcenter/station/members/waitinglist'},
   {icon: ['fas', 'box-open'], key: 'lostAndFound', help: '/helpcenter/station/inventory/overview'},
   {icon: ['fas', 'bell'], key: 'notifications', help: '/helpcenter/station/profile/settings'},
   {icon: ['fas', 'circle-question'], key: 'helpCenter', help: '/helpcenter/station/basics'},
@@ -62,12 +66,14 @@ const features = [
 const highlights = [
   {icon: ['fas', 'mobile-screen'], key: 'responsive'},
   {icon: ['fas', 'moon'], key: 'darkMode'},
+  {icon: ['fas', 'palette'], key: 'themes'},
   {icon: ['fas', 'lock'], key: 'secure'},
   {icon: ['fas', 'users-gear'], key: 'roles'},
   {icon: ['fas', 'file-export'], key: 'export'},
   {icon: ['fas', 'shield'], key: 'gdpr'},
-  {icon: ['fas', 'arrow-right-arrow-left'], key: 'transfer'},
   {icon: ['fas', 'puzzle-piece'], key: 'modules'},
+  {icon: ['fas', 'server'], key: 'selfHosted'},
+  {icon: ['fas', 'arrow-right-arrow-left'], key: 'transfer'},
 ]
 </script>
 

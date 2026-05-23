@@ -487,6 +487,37 @@ const router = createRouter({
                     name: 'quiz-training',
                     component: () => import('@/views/stationview/quiz/TrainingView.vue'),
                 },
+                // Test Protocols
+                {
+                    path: 'protocols',
+                    name: 'protocol-list',
+                    component: () => import('@/views/stationview/protocol/ProtocolListView.vue'),
+                },
+                {
+                    path: 'protocols/:id',
+                    name: 'protocol-detail',
+                    component: () => import('@/views/stationview/protocol/ProtocolDetailView.vue'),
+                },
+                {
+                    path: 'protocols/runs',
+                    name: 'protocol-run-list',
+                    component: () => import('@/views/stationview/protocol/RunListView.vue'),
+                },
+                {
+                    path: 'protocols/runs/:id',
+                    name: 'protocol-run-detail',
+                    component: () => import('@/views/stationview/protocol/RunDetailView.vue'),
+                },
+                {
+                    path: 'protocols/runs/:id/grade/:memberId',
+                    name: 'protocol-grade',
+                    component: () => import('@/views/stationview/protocol/GradingView.vue'),
+                },
+                {
+                    path: 'protocols/runs/:id/evaluation',
+                    name: 'protocol-evaluation',
+                    component: () => import('@/views/stationview/protocol/EvaluationView.vue'),
+                },
                 {
                     path: ':pathMatch(.*)*',
                     name: 'station-not-found',
@@ -628,6 +659,8 @@ const router = createRouter({
                 {path: 'quiz/tests', name: 'help-quiz-tests', component: () => import('@/views/helpcenter/stationview/quiz/TestListHelp.vue')},
                 {path: 'quiz/tests/details', name: 'help-quiz-test-detail', component: () => import('@/views/helpcenter/stationview/quiz/TestDetailHelp.vue')},
                 {path: 'quiz/training', name: 'help-quiz-training', component: () => import('@/views/helpcenter/stationview/quiz/TrainingHelp.vue')},
+                // Test Protocols
+                {path: 'protocols', name: 'help-protocol', component: () => import('@/views/helpcenter/stationview/protocol/ProtocolHelp.vue')},
                 // Knowledge Base
                 {path: 'knowledge', name: 'help-knowledge-base', component: () => import('@/views/helpcenter/stationview/knowledge/KnowledgeBaseHelp.vue')},
                 {path: 'knowledge/editor', name: 'help-knowledge-editor', component: () => import('@/views/helpcenter/stationview/knowledge/EditorHelp.vue')},

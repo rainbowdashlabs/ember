@@ -90,6 +90,7 @@ public class DemoService {
     private final DemoQuizSeeder quizSeeder;
     private final DemoMediaSeeder mediaSeeder;
     private final DemoKnowledgeBaseSeeder kbSeeder;
+    private final DemoProtocolSeeder protocolSeeder;
     private final ApplicationSettingRepository applicationSettingRepository;
     private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
 
@@ -121,6 +122,7 @@ public class DemoService {
             DemoQuizSeeder quizSeeder,
             DemoMediaSeeder mediaSeeder,
             DemoKnowledgeBaseSeeder kbSeeder,
+            DemoProtocolSeeder protocolSeeder,
             ApplicationSettingRepository applicationSettingRepository) {
         this.demoConfig = demoConfig;
         this.databaseConfig = databaseConfig;
@@ -148,6 +150,7 @@ public class DemoService {
         this.quizSeeder = quizSeeder;
         this.mediaSeeder = mediaSeeder;
         this.kbSeeder = kbSeeder;
+        this.protocolSeeder = protocolSeeder;
         this.applicationSettingRepository = applicationSettingRepository;
     }
 
@@ -1147,6 +1150,12 @@ public class DemoService {
         // -- Knowledge Base --
         kbSeeder.seed(station.id(), adminMember.id());
         log.info("Demo: Created Knowledge Base content");
+
+        // -- Test Protocols --
+        var protocolTestees = new ArrayList<Integer>();
+        for (var m : anfaengerMembers) protocolTestees.add(m.id());
+        protocolSeeder.seed(station.id(), adminMember.id(), protocolTestees);
+        log.info("Demo: Created Test Protocol data");
 
         // -- Profile Pictures & Station Logo --
         mediaSeeder.seedProfilePictures(

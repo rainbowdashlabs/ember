@@ -17,5 +17,6 @@ public enum StationModule {
     LOST_AND_FOUND,
     WAITING_LIST,
     QUIZ,
-    KNOWLEDGE_BASE
+    KNOWLEDGE_BASE,
+    TEST_PROTOCOL
 }

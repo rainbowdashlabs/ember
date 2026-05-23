@@ -321,6 +321,9 @@ const pageSubtitle = computed(() => t('helpCenter.title'))
         <SidebarLink :icon="['fas', 'brain']" name="help-quiz-training" to="/helpcenter/station/quiz/training" @navigate="close">
           {{ t('sidebar.quizTraining') }}
         </SidebarLink>
+        <SidebarLink :icon="['fas', 'clipboard-check']" name="help-protocol" to="/helpcenter/station/protocols" @navigate="close">
+          {{ t('sidebar.protocols') }}
+        </SidebarLink>
       </SidebarGroup>
 
       <SidebarGroup :icon="['fas', 'book-open']" :label="t('sidebar.knowledgeBase')" prefix="/helpcenter/station/knowledge"

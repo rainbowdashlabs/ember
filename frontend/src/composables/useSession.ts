@@ -88,6 +88,14 @@ export function useSession() {
         return hasRole(Roles.KNOWLEDGE_MANAGEMENT)
     }
 
+    function canManageProtocol(): boolean {
+        return hasRole(Roles.PROTOCOL_MANAGEMENT)
+    }
+
+    function canTestProtocol(): boolean {
+        return hasRole(Roles.PROTOCOL_TESTER)
+    }
+
     function isModuleEnabled(module: string): boolean {
         return !(sessionInfo.value?.disabledModules?.includes(module) ?? false)
     }
@@ -118,6 +126,8 @@ export function useSession() {
         canManageWaitlist,
         canManageQuiz,
         canManageKnowledge,
+        canManageProtocol,
+        canTestProtocol,
         isModuleEnabled,
         fullName,
     }

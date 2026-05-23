@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.legal.service;
 
+import dev.chojo.ember.util.TextDiff;
 import org.commonmark.Extension;
 import org.commonmark.ext.autolink.AutolinkExtension;
 import org.commonmark.ext.gfm.tables.TablesExtension;
@@ -228,7 +229,7 @@ public class LegalDocumentService {
      * Generates a human-readable diff between two markdown texts using java-diff-utils.
      */
     String generateDiff(String oldText, String newText) {
-        return dev.chojo.ember.util.TextDiff.generateDiffSummary(oldText, newText);
+        return TextDiff.generateDiffSummary(oldText, newText);
     }
 
     /**

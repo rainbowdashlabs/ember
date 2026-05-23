@@ -44,6 +44,8 @@ const {
   canManagePolls,
   canManageWaitlist,
   canManageQuiz,
+  canManageProtocol,
+  canTestProtocol,
   isGuardian,
   isModuleEnabled,
   fullName,
@@ -286,7 +288,7 @@ async function handleLogout() {
         </SidebarLink>
       </SidebarGroup>
 
-      <SidebarGroup :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => openGroup = v" v-if="isModuleEnabled(StationModules.QUIZ)" :icon="['fas', 'graduation-cap']" :label="t('sidebar.quiz')" prefix="/station/quiz">
+      <SidebarGroup :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => openGroup = v" v-if="isModuleEnabled(StationModules.QUIZ) || isModuleEnabled(StationModules.TEST_PROTOCOL)" :icon="['fas', 'graduation-cap']" :label="t('sidebar.quiz')" prefix="/station/quiz" group-key="quiz-protocols">
         <SidebarLink v-if="canManageQuiz()" :icon="['fas', 'book']" name="quiz-catalogs" to="/station/quiz/catalogs" @navigate="close">
           {{ t('sidebar.quizCatalogs') }}
         </SidebarLink>
@@ -295,6 +297,12 @@ async function handleLogout() {
         </SidebarLink>
         <SidebarLink :icon="['fas', 'brain']" name="quiz-training" to="/station/quiz/training" @navigate="close">
           {{ t('sidebar.quizTraining') }}
+        </SidebarLink>
+        <SidebarLink v-if="canManageProtocol()" :icon="['fas', 'clipboard-list']" name="protocol-list" to="/station/protocols" @navigate="close">
+          {{ t('sidebar.protocols') }}
+        </SidebarLink>
+        <SidebarLink v-if="canTestProtocol()" :icon="['fas', 'clipboard-check']" name="protocol-run-list" to="/station/protocols/runs" @navigate="close">
+          {{ t('sidebar.protocolRuns') }}
         </SidebarLink>
       </SidebarGroup>
 

@@ -38,6 +38,7 @@ import dev.chojo.ember.feature.notifications.repository.NotificationSettingsRepo
 import dev.chojo.ember.feature.station.repository.StationApplicationRepository;
 import dev.chojo.ember.feature.station.repository.StationMailConfigRepository;
 import dev.chojo.ember.feature.station.repository.StationRepository;
+import dev.chojo.ember.feature.waitinglist.repository.WaitingListRepository;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.testcontainers.containers.PostgreSQLContainer;
@@ -82,7 +83,7 @@ public abstract class RepositoryTestBase {
     protected static NotificationSettingsRepository notificationSettingsRepo;
     protected static StationApplicationRepository stationApplicationRepo;
     protected static StationMailConfigRepository stationMailConfigRepo;
-    protected static dev.chojo.ember.feature.waitinglist.repository.WaitingListRepository waitingListRepo;
+    protected static WaitingListRepository waitingListRepo;
 
     @BeforeAll
     static void setupDatabase() throws Exception {
@@ -156,6 +157,6 @@ public abstract class RepositoryTestBase {
         notificationSettingsRepo = new NotificationSettingsRepository();
         stationApplicationRepo = new StationApplicationRepository();
         stationMailConfigRepo = new StationMailConfigRepository();
-        waitingListRepo = new dev.chojo.ember.feature.waitinglist.repository.WaitingListRepository();
+        waitingListRepo = new WaitingListRepository();
     }
 }

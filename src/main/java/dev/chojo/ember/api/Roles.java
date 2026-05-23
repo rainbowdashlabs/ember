@@ -83,6 +83,14 @@ public enum Roles implements RouteRole {
      */
     KNOWLEDGE_MANAGEMENT(TEAM),
     /**
+     * Create and manage test protocols (Prüfungsbögen)
+     */
+    PROTOCOL_MANAGEMENT(TEAM),
+    /**
+     * Grade members in test protocol runs
+     */
+    PROTOCOL_TESTER(TEAM),
+    /**
      * Manage everything. Includes all other management roles
      */
     MANAGER(
@@ -97,7 +105,9 @@ public enum Roles implements RouteRole {
             LOST_AND_FOUND_MANAGEMENT,
             WAITLIST_MANAGEMENT,
             QUIZ_MANAGEMENT,
-            KNOWLEDGE_MANAGEMENT),
+            KNOWLEDGE_MANAGEMENT,
+            PROTOCOL_MANAGEMENT,
+            PROTOCOL_TESTER),
     /**
      * Manange the software itself.
      */
@@ -128,7 +138,9 @@ public enum Roles implements RouteRole {
                     LOST_AND_FOUND_MANAGEMENT,
                     WAITLIST_MANAGEMENT,
                     QUIZ_MANAGEMENT,
-                    KNOWLEDGE_MANAGEMENT),
+                    KNOWLEDGE_MANAGEMENT,
+                    PROTOCOL_MANAGEMENT,
+                    PROTOCOL_TESTER),
             GUARDIAN,
             Set.of(MEMBER));
 
