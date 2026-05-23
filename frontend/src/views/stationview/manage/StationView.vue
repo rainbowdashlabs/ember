@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {onMounted, ref, watch} from 'vue'
+import {computed, onMounted, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
@@ -17,19 +17,14 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
-import SubHeader from '@/components/typography/SubHeader.vue'
-import NumberInput from '@/components/input/number/NumberInput.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
-import SuccessButton from '@/components/button/SuccessButton.vue'
-import {stationManage, stationMembers} from '@/api'
-import {transfer} from '@/api'
+import {stationManage} from '@/api'
 import client from '@/api/client'
 import {THEMES} from '@/theme/themes'
 import {useTheme} from '@/composables/useTheme'
-import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import ErrorButton from '@/components/button/ErrorButton.vue'
-import ErrorContainer from '@/components/container/ErrorContainer.vue'
-import Modal from '@/components/feedback/Modal.vue'
+import MailConfigSection from './stationview/MailConfigSection.vue'
+import StationImportSection from './stationview/StationImportSection.vue'
+import OwnerSection from './stationview/OwnerSection.vue'
 
 const {t} = useI18n()
 
@@ -59,6 +54,8 @@ const defaultTheme = ref('ember')
 const allowUserTheme = ref(true)
 const hasLogo = ref(false)
 const isOwner = ref(false)
+const stationId = ref(0)
+const ownerMemberId = ref<number | null>(null)
 const loading = ref(true)
 const saving = ref(false)
 const uploading = ref(false)
@@ -78,6 +75,8 @@ async function loadStation() {
     allowUserTheme.value = info.allowUserTheme ?? true
     hasLogo.value = info.hasLogo
     isOwner.value = info.isOwner
+    stationId.value = info.id
+    ownerMemberId.value = info.ownerMemberId ?? null
     if (info.hasLogo) {
       await loadLogoBlob()
     }
@@ -196,107 +195,6 @@ async function removeLogo() {
   }
 }
 
-// -- Mail config --
-const mailProvider = ref('NONE')
-const mailSmtpHost = ref('')
-const mailSmtpPort = ref(587)
-const mailSmtpSsl = ref(false)
-const mailSmtpUser = ref('')
-const mailSmtpPassword = ref('')
-const mailSenderAddress = ref('')
-const mailSenderName = ref('')
-const mailApiKey = ref('')
-const mailHasApiKey = ref(false)
-const mailProviderName = ref('')
-const mailProviderUrl = ref('')
-const mailDailyLimit = ref(100)
-const mailMonthlyLimit = ref(2000)
-const mailSentToday = ref(0)
-const mailSentThisMonth = ref(0)
-const mailSaving = ref(false)
-const mailTesting = ref(false)
-const mailTestResult = ref<{success: boolean, error?: string | null} | null>(null)
-
-async function loadMailConfig() {
-  try {
-    const config = await stationManage.getMailConfig()
-    mailProvider.value = config.provider
-    mailSmtpHost.value = config.smtpHost
-    mailSmtpPort.value = config.smtpPort
-    mailSmtpSsl.value = config.smtpSsl
-    mailSmtpUser.value = config.smtpUser
-    mailSenderAddress.value = config.senderAddress
-    mailSenderName.value = config.senderName
-    mailHasApiKey.value = config.hasApiKey
-    mailProviderName.value = config.providerName
-    mailProviderUrl.value = config.providerUrl
-    mailDailyLimit.value = config.dailyLimit
-    mailMonthlyLimit.value = config.monthlyLimit
-    mailSentToday.value = config.sentToday
-    mailSentThisMonth.value = config.sentThisMonth
-    mailSmtpPassword.value = ''
-    mailApiKey.value = ''
-  } catch { /* ignore */ }
-}
-
-async function saveMailConfig() {
-  mailSaving.value = true
-  error.value = ''
-  success.value = ''
-  mailTestResult.value = null
-  try {
-    const prov = mailProvider.value
-    const providerNameMap: Record<string, string> = {
-      RAPIDMAIL: 'RapidMail',
-      TWILIO: 'Twilio',
-      SWEEGO: 'Sweego',
-      BREVO: 'Brevo',
-    }
-    const providerUrlMap: Record<string, string> = {
-      RAPIDMAIL: 'https://www.rapidmail.com/data-protection',
-      TWILIO: 'https://www.twilio.com/en-us/legal/privacy',
-      SWEEGO: 'https://www.sweego.io/data-privacy-agreement-dpa',
-      BREVO: 'https://www.brevo.com/de/legal/privacypolicy/',
-    }
-    const config = await stationManage.updateMailConfig({
-      provider: prov,
-      smtpHost: mailSmtpHost.value,
-      smtpPort: mailSmtpPort.value,
-      smtpSsl: mailSmtpSsl.value,
-      smtpUser: mailSmtpUser.value,
-      smtpPassword: mailSmtpPassword.value || undefined,
-      senderAddress: mailSenderAddress.value,
-      senderName: mailSenderName.value,
-      apiKey: mailApiKey.value || undefined,
-      providerName: providerNameMap[prov] ?? mailProviderName.value,
-      providerUrl: providerUrlMap[prov] ?? mailProviderUrl.value,
-      dailyLimit: mailDailyLimit.value,
-      monthlyLimit: mailMonthlyLimit.value,
-    })
-    mailProvider.value = config.provider
-    mailHasApiKey.value = config.hasApiKey
-    mailSmtpPassword.value = ''
-    mailApiKey.value = ''
-    success.value = t('stationManage.mailSaved')
-  } catch {
-    error.value = t('common.error')
-  } finally {
-    mailSaving.value = false
-  }
-}
-
-async function testMail() {
-  mailTesting.value = true
-  mailTestResult.value = null
-  try {
-    mailTestResult.value = await stationManage.testMailConfig()
-  } catch {
-    mailTestResult.value = { success: false, error: t('common.error') }
-  } finally {
-    mailTesting.value = false
-  }
-}
-
 // -- Module settings --
 const disabledModules = ref<Set<string>>(new Set())
 const modulesSaving = ref(false)
@@ -341,138 +239,53 @@ async function toggleModule(key: string) {
   modulesSaving.value = false
 }
 
-// -- Station import --
-const importSourceUrl = ref('')
-const importTokenInput = ref('')
-const importingStation = ref(false)
-const showImportConfirm = ref(false)
-const importProgress = ref<stationManage.StationImportProgress | null>(null)
-let importPollTimer: ReturnType<typeof setInterval> | null = null
+// -- Public KB --
+const publicKbEnabled = computed(() => stationInfo.value?.publicKbMode != null && stationInfo.value.publicKbMode !== 'OFF')
+const publicKbMode = ref<string>('ALLOW_ALL')
 
-function requestStationImport() {
-  if (!importSourceUrl.value || !importTokenInput.value) return
-  showImportConfirm.value = true
-}
-
-async function startStationImport() {
-  showImportConfirm.value = false
-  importingStation.value = true
-  importProgress.value = null
-  error.value = ''
-  success.value = ''
+async function togglePublicKb() {
+  const newMode = publicKbEnabled.value ? 'OFF' : publicKbMode.value
   try {
-    await stationManage.importStation(importSourceUrl.value, importTokenInput.value)
-    pollStationImport()
-  } catch {
-    error.value = t('common.error')
-    importingStation.value = false
-  }
+    await stationManage.updateStationName({
+      name: stationInfo.value?.name ?? '',
+      publicKbMode: newMode,
+    })
+    await loadStation()
+    success.value = t('stationManage.saved')
+  } catch { error.value = t('common.error') }
 }
 
-function pollStationImport() {
-  importPollTimer = setInterval(async () => {
+async function changePublicKbMode(mode: string) {
+  publicKbMode.value = mode
+  if (publicKbEnabled.value) {
     try {
-      const progress = await stationManage.getImportProgress()
-      importProgress.value = progress
-      if (progress.status === 'COMPLETED' || progress.status === 'FAILED') {
-        if (importPollTimer) clearInterval(importPollTimer)
-        importPollTimer = null
-        importingStation.value = false
-      }
-    } catch {
-      if (importPollTimer) clearInterval(importPollTimer)
-      importPollTimer = null
-      importingStation.value = false
-    }
-  }, 1000)
-}
-
-// -- Transfer --
-const creatingToken = ref(false)
-const transferToken = ref('')
-
-async function createToken() {
-  creatingToken.value = true
-  error.value = ''
-  success.value = ''
-  transferToken.value = ''
-  try {
-    const result = await transfer.createTransferToken()
-    transferToken.value = result.token
-  } catch {
-    error.value = t('common.error')
-  } finally {
-    creatingToken.value = false
+      await stationManage.updateStationName({
+        name: stationInfo.value?.name ?? '',
+        publicKbMode: mode,
+      })
+      await loadStation()
+    } catch { error.value = t('common.error') }
   }
 }
 
-async function copyToken() {
-  await navigator.clipboard.writeText(transferToken.value)
-  success.value = t('stationManage.transferTokenCopied')
-}
+const publicKbUrl = computed(() => {
+  if (!stationInfo.value?.id) return ''
+  return `${window.location.origin}/public/kb/${stationInfo.value.id}`
+})
 
-// -- Owner handover --
-const managerMembers = ref<{id: number, name: string}[]>([])
-const newOwnerId = ref('')
-const transferringOwnership = ref(false)
-
-async function loadManagers() {
-  try {
-    const info = await stationManage.getStationInfo()
-    const members = await stationMembers.listMembers(info.id)
-    const allRolesList = await stationMembers.listAllRoles()
-    const managerRoleId = allRolesList.find(r => r.role === 'MANAGER')?.id
-    if (!managerRoleId) return
-    const result: {id: number, name: string}[] = []
-    for (const m of members) {
-      if (info.ownerMemberId && m.id === info.ownerMemberId) continue
-      const roles = await stationMembers.getRoles(m.id)
-      if (roles.some(r => r.id === managerRoleId)) {
-        result.push({id: m.id, name: m.name || m.email || `#${m.id}`})
-      }
-    }
-    managerMembers.value = result
-  } catch { /* ignore */ }
-}
-
-async function transferOwnershipAction() {
-  const id = Number(newOwnerId.value)
-  if (!id) return
-  transferringOwnership.value = true
-  error.value = ''
+function handleError(msg: string) {
+  error.value = msg
   success.value = ''
-  try {
-    await stationManage.transferOwnership(id)
-    success.value = t('stationManage.ownerHandoverSuccess')
-    isOwner.value = false
-  } catch {
-    error.value = t('common.error')
-  } finally {
-    transferringOwnership.value = false
-  }
 }
 
-// -- Station deletion --
-const requestingDelete = ref(false)
-
-async function requestDelete() {
-  requestingDelete.value = true
+function handleSuccess(msg: string) {
+  success.value = msg
   error.value = ''
-  success.value = ''
-  try {
-    await stationManage.requestStationDeletion()
-    success.value = t('stationManage.deleteRequested')
-  } catch {
-    error.value = t('common.error')
-  } finally {
-    requestingDelete.value = false
-  }
 }
 
 onMounted(async () => {
   await loadStation()
-  await Promise.all([loadMailConfig(), loadModules()])
-  if (isOwner.value) await loadManagers()
+  await loadModules()
 })
 </script>
 
@@ -536,165 +349,7 @@ onMounted(async () => {
       </NeutralContainer>
 
       <!-- Mail settings -->
-      <NeutralContainer v-if="!loading" class="space-y-4">
-        <div class="flex items-center gap-2">
-          <SectionHeader>{{ t('stationManage.mailTitle') }}</SectionHeader>
-          <router-link :to="{name: 'help-station-mail-config'}" target="_blank" class="text-[var(--text-muted)] hover:text-primary transition-colors">
-            <font-awesome-icon :icon="['fas', 'circle-question']" class="w-4 h-4"/>
-          </router-link>
-        </div>
-        <p class="text-sm text-(--text-muted)">{{ t('stationManage.mailHint') }}</p>
-
-        <div class="space-y-1">
-          <label class="block text-sm font-medium">{{ t('stationManage.mailProvider') }}</label>
-          <SelectInput v-model="mailProvider">
-            <option value="NONE">{{ t('stationManage.mailProviderNone') }}</option>
-            <option value="RAPIDMAIL">RapidMail</option>
-            <option value="TWILIO">Twilio</option>
-            <option value="SWEEGO">Sweego</option>
-            <option value="BREVO">Brevo</option>
-            <option value="SMTP">{{ t('stationManage.mailProviderCustomSmtp') }}</option>
-          </SelectInput>
-        </div>
-
-        <template v-if="mailProvider !== 'NONE'">
-          <div class="grid gap-4 sm:grid-cols-2">
-            <div class="space-y-1">
-              <label class="block text-sm font-medium">{{ t('stationManage.mailSenderAddress') }}</label>
-              <TextInput v-model="mailSenderAddress" placeholder="noreply@example.com" />
-            </div>
-            <div class="space-y-1">
-              <label class="block text-sm font-medium">{{ t('stationManage.mailSenderName') }}</label>
-              <TextInput v-model="mailSenderName" placeholder="Ember" />
-            </div>
-          </div>
-
-          <!-- Custom SMTP settings -->
-          <template v-if="mailProvider === 'SMTP'">
-            <SubHeader>SMTP</SubHeader>
-            <div class="grid gap-4 sm:grid-cols-2">
-              <div class="space-y-1">
-                <label class="block text-sm font-medium">{{ t('stationManage.mailProviderName') }}</label>
-                <TextInput v-model="mailProviderName" :placeholder="t('stationManage.mailProviderNamePlaceholder')" />
-              </div>
-              <div class="space-y-1">
-                <label class="block text-sm font-medium">{{ t('stationManage.mailProviderUrl') }}</label>
-                <TextInput v-model="mailProviderUrl" placeholder="https://example.com/privacy" />
-              </div>
-              <div class="space-y-1">
-                <label class="block text-sm font-medium">{{ t('stationManage.mailSmtpHost') }}</label>
-                <TextInput v-model="mailSmtpHost" placeholder="mail.example.com" />
-              </div>
-              <div class="space-y-1">
-                <label class="block text-sm font-medium">{{ t('stationManage.mailSmtpPort') }}</label>
-                <NumberInput v-model="mailSmtpPort" :min="1" :max="65535" />
-              </div>
-              <div class="space-y-1">
-                <label class="block text-sm font-medium">{{ t('stationManage.mailSmtpUser') }}</label>
-                <TextInput v-model="mailSmtpUser" placeholder="user@example.com" />
-              </div>
-              <div class="space-y-1">
-                <label class="block text-sm font-medium">{{ t('stationManage.mailSmtpPassword') }}</label>
-                <TextInput v-model="mailSmtpPassword" :placeholder="t('stationManage.mailPasswordPlaceholder')" type="password" />
-              </div>
-            </div>
-            <div class="flex items-center justify-between">
-              <label class="text-sm font-medium">SSL</label>
-              <ToggleInput v-model="mailSmtpSsl" />
-            </div>
-          </template>
-
-          <!-- RapidMail settings -->
-          <template v-if="mailProvider === 'RAPIDMAIL'">
-            <SubHeader>RapidMail</SubHeader>
-            <p class="text-xs text-(--text-muted)">{{ t('stationManage.mailRapidmailHint') }}</p>
-            <div class="grid gap-4 sm:grid-cols-2">
-              <div class="space-y-1">
-                <label class="block text-sm font-medium">{{ t('stationManage.mailSmtpUser') }}</label>
-                <TextInput v-model="mailSmtpUser" placeholder="user@example.com" />
-              </div>
-              <div class="space-y-1">
-                <label class="block text-sm font-medium">API Key</label>
-                <TextInput v-model="mailApiKey" :placeholder="mailHasApiKey ? t('stationManage.mailApiKeyPlaceholder') : ''" type="password" />
-              </div>
-            </div>
-          </template>
-
-          <!-- Brevo settings -->
-          <template v-if="mailProvider === 'BREVO'">
-            <SubHeader>Brevo</SubHeader>
-            <p class="text-xs text-(--text-muted)">{{ t('stationManage.mailBrevoHint') }}</p>
-            <div class="grid gap-4 sm:grid-cols-2">
-              <div class="space-y-1">
-                <label class="block text-sm font-medium">{{ t('stationManage.mailSmtpUser') }}</label>
-                <TextInput v-model="mailSmtpUser" placeholder="user@example.com" />
-              </div>
-              <div class="space-y-1">
-                <label class="block text-sm font-medium">API Key</label>
-                <TextInput v-model="mailApiKey" :placeholder="mailHasApiKey ? t('stationManage.mailApiKeyPlaceholder') : ''" type="password" />
-              </div>
-            </div>
-          </template>
-
-          <!-- Sweego settings -->
-          <template v-if="mailProvider === 'SWEEGO'">
-            <SubHeader>Sweego</SubHeader>
-            <p class="text-xs text-(--text-muted)">{{ t('stationManage.mailSweegoHint') }}</p>
-            <div class="grid gap-4 sm:grid-cols-2">
-              <div class="space-y-1">
-                <label class="block text-sm font-medium">{{ t('stationManage.mailSmtpUser') }}</label>
-                <TextInput v-model="mailSmtpUser" placeholder="user@example.com" />
-              </div>
-              <div class="space-y-1">
-                <label class="block text-sm font-medium">API Key</label>
-                <TextInput v-model="mailApiKey" :placeholder="mailHasApiKey ? t('stationManage.mailApiKeyPlaceholder') : ''" type="password" />
-              </div>
-            </div>
-          </template>
-
-          <!-- Twilio settings -->
-          <template v-if="mailProvider === 'TWILIO'">
-            <SubHeader>Twilio</SubHeader>
-            <p class="text-xs text-(--text-muted)">{{ t('stationManage.mailTwilioHint') }}</p>
-            <div class="space-y-1">
-              <label class="block text-sm font-medium">API Key</label>
-              <TextInput v-model="mailApiKey" :placeholder="mailHasApiKey ? t('stationManage.mailApiKeyPlaceholder') : 'SG.xxxxx'" type="password" />
-            </div>
-          </template>
-        </template>
-
-        <!-- Limits -->
-        <template v-if="mailProvider !== 'NONE'">
-          <SubHeader>{{ t('stationManage.mailLimits') }}</SubHeader>
-          <div class="grid gap-4 sm:grid-cols-2">
-            <div class="space-y-1">
-              <label class="block text-sm font-medium">{{ t('stationManage.mailDailyLimit') }}</label>
-              <NumberInput v-model="mailDailyLimit" :min="1" :max="10000" />
-              <p class="text-xs text-(--text-muted)">{{ t('stationManage.mailSentToday', { count: mailSentToday, limit: mailDailyLimit }) }}</p>
-            </div>
-            <div class="space-y-1">
-              <label class="block text-sm font-medium">{{ t('stationManage.mailMonthlyLimit') }}</label>
-              <NumberInput v-model="mailMonthlyLimit" :min="1" :max="100000" />
-              <p class="text-xs text-(--text-muted)">{{ t('stationManage.mailSentMonth', { count: mailSentThisMonth, limit: mailMonthlyLimit }) }}</p>
-            </div>
-          </div>
-        </template>
-
-        <div class="flex items-center gap-2">
-          <PrimaryButton :disabled="mailSaving" @click="saveMailConfig">
-            {{ mailSaving ? t('common.loading') : t('stationManage.save') }}
-          </PrimaryButton>
-          <SuccessButton v-if="mailProvider !== 'NONE'" :disabled="mailTesting" @click="testMail">
-            <font-awesome-icon :icon="['fas', 'plug']" class="mr-1" />
-            {{ mailTesting ? t('common.loading') : t('stationManage.mailTest') }}
-          </SuccessButton>
-        </div>
-
-        <Alert v-if="mailTestResult?.success" variant="success">{{ t('stationManage.mailTestSuccess') }}</Alert>
-        <Alert v-if="mailTestResult && !mailTestResult.success" variant="error">
-          {{ t('stationManage.mailTestFailed') }}: {{ mailTestResult.error }}
-        </Alert>
-      </NeutralContainer>
+      <MailConfigSection v-if="!loading" @error="handleError" @success="handleSuccess"/>
 
       <!-- Module settings -->
       <NeutralContainer v-if="!loading" class="space-y-4">
@@ -735,95 +390,17 @@ onMounted(async () => {
       </NeutralContainer>
 
       <!-- Station import -->
-      <NeutralContainer v-if="!loading" class="space-y-4">
-        <SectionHeader>{{ t('stationManage.importTitle') }}</SectionHeader>
-        <p class="text-sm text-(--text-muted)">{{ t('stationManage.importHint') }}</p>
-        <div class="grid gap-4 sm:grid-cols-2">
-          <div class="space-y-1">
-            <label class="block text-sm font-medium">{{ t('stationManage.importSourceUrl') }}</label>
-            <TextInput v-model="importSourceUrl" :placeholder="t('stationManage.importSourceUrlPlaceholder')" />
-          </div>
-          <div class="space-y-1">
-            <label class="block text-sm font-medium">{{ t('stationManage.importToken') }}</label>
-            <TextInput v-model="importTokenInput" :placeholder="t('stationManage.importTokenPlaceholder')" />
-          </div>
-        </div>
-        <PrimaryButton :disabled="importingStation || !importSourceUrl || !importTokenInput" @click="requestStationImport">
-          {{ importingStation ? t('stationManage.importStarting') : t('stationManage.importStart') }}
-        </PrimaryButton>
+      <StationImportSection v-if="!loading" @error="handleError" @success="handleSuccess"/>
 
-        <!-- Import progress -->
-        <div v-if="importProgress" class="space-y-2">
-          <div class="flex items-center justify-between text-sm">
-            <span>{{ importProgress.completedTables }} / {{ importProgress.totalTables }}</span>
-          </div>
-          <div class="w-full bg-bg-light-accent dark:bg-bg-dark-accent rounded-full h-2">
-            <div
-                class="h-2 rounded-full transition-all duration-300"
-                :class="importProgress.status === 'FAILED' ? 'bg-error' : 'bg-primary'"
-                :style="{ width: `${(importProgress.completedTables / importProgress.totalTables) * 100}%` }"
-            />
-          </div>
-          <Alert v-if="importProgress.status === 'COMPLETED'" variant="success">{{ t('stationManage.importCompleted') }}</Alert>
-          <Alert v-if="importProgress.status === 'FAILED'" variant="error">{{ t('stationManage.importFailed', { error: importProgress.error ?? '' }) }}</Alert>
-          <p v-if="importProgress.status === 'IN_PROGRESS' && importProgress.currentTable" class="text-xs text-(--text-muted)">
-            {{ t('stationManage.importProgress', { table: importProgress.currentTable, completed: importProgress.completedTables, total: importProgress.totalTables }) }}
-          </p>
-        </div>
-      </NeutralContainer>
-
-      <!-- Transfer (owner only) -->
-      <NeutralContainer v-if="!loading && isOwner" class="space-y-4">
-        <SectionHeader>{{ t('stationManage.transferTitle') }}</SectionHeader>
-        <p class="text-sm text-(--text-muted)">{{ t('stationManage.transferHint') }}</p>
-        <PrimaryButton :disabled="creatingToken" @click="createToken">
-          {{ creatingToken ? t('stationManage.transferCreating') : t('stationManage.transferCreate') }}
-        </PrimaryButton>
-        <div v-if="transferToken" class="space-y-2">
-          <label class="block text-sm font-medium">{{ t('stationManage.transferTokenLabel') }}</label>
-          <div class="flex items-center gap-2">
-            <code class="flex-1 rounded bg-bg-light-accent dark:bg-bg-dark-accent px-3 py-2 text-sm break-all select-all">{{ transferToken }}</code>
-            <SecondaryButton @click="copyToken">
-              <font-awesome-icon :icon="['fas', 'copy']" />
-            </SecondaryButton>
-          </div>
-        </div>
-      </NeutralContainer>
-      <!-- Owner handover (owner only) -->
-      <NeutralContainer v-if="!loading && isOwner" class="space-y-4">
-        <SectionHeader>{{ t('stationManage.ownerHandoverTitle') }}</SectionHeader>
-        <p class="text-sm text-(--text-muted)">{{ t('stationManage.ownerHandoverHint') }}</p>
-        <div v-if="managerMembers.length > 0" class="space-y-3">
-          <SelectInput v-model="newOwnerId">
-            <option value="">{{ t('stationManage.ownerHandoverSelect') }}</option>
-            <option v-for="m in managerMembers" :key="m.id" :value="m.id">{{ m.name }}</option>
-          </SelectInput>
-          <PrimaryButton :disabled="transferringOwnership || !newOwnerId" @click="transferOwnershipAction">
-            {{ transferringOwnership ? t('common.loading') : t('stationManage.ownerHandoverSubmit') }}
-          </PrimaryButton>
-        </div>
-        <p v-else class="text-sm text-(--text-muted)">{{ t('stationManage.ownerHandoverNone') }}</p>
-      </NeutralContainer>
-
-      <!-- Station deletion (owner only) -->
-      <ErrorContainer v-if="!loading && isOwner" class="space-y-4">
-        <SectionHeader>{{ t('stationManage.deleteTitle') }}</SectionHeader>
-        <p class="text-sm text-(--text-muted)">{{ t('stationManage.deleteHint') }}</p>
-        <ErrorButton :disabled="requestingDelete" @click="requestDelete">
-          {{ requestingDelete ? t('stationManage.deleteRequesting') : t('stationManage.deleteRequest') }}
-        </ErrorButton>
-      </ErrorContainer>
-      <!-- Import confirmation modal -->
-      <Modal v-model="showImportConfirm">
-        <div class="space-y-4">
-          <SectionHeader>{{ t('stationManage.importConfirmTitle') }}</SectionHeader>
-          <p class="text-sm">{{ t('stationManage.importConfirmText') }}</p>
-          <div class="flex justify-end gap-3">
-            <SecondaryButton @click="showImportConfirm = false">{{ t('common.cancel') }}</SecondaryButton>
-            <ErrorButton @click="startStationImport">{{ t('stationManage.importConfirmAction') }}</ErrorButton>
-          </div>
-        </div>
-      </Modal>
+      <!-- Owner sections (transfer, handover, deletion) -->
+      <OwnerSection
+          v-if="!loading && isOwner"
+          :station-id="stationId"
+          :owner-member-id="ownerMemberId"
+          @error="handleError"
+          @success="handleSuccess"
+          @owner-changed="isOwner = false"
+      />
     </div>
   </ViewContent>
 </template>

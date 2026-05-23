@@ -15,6 +15,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
+import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
 import DateInput from '@/components/input/datetime/DateInput.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
@@ -68,18 +69,15 @@ const activeRole = ref('')
         <div class="space-y-2">
           <label class="block text-sm font-medium">{{ t('profile.absenceFor') }}</label>
           <div class="flex flex-wrap gap-2">
-            <button type="button"
-                    class="rounded-lg px-3 py-1.5 text-sm font-medium border transition-all border-primary bg-primary/10 text-primary ring-1 ring-primary/30">
+            <SelectionToggleButton :selected="true" size="md">
               {{ t('profile.absenceMyself') }}
-            </button>
-            <button type="button"
-                    class="rounded-lg px-3 py-1.5 text-sm font-medium border transition-all border-primary bg-primary/10 text-primary ring-1 ring-primary/30">
+            </SelectionToggleButton>
+            <SelectionToggleButton :selected="true" size="md">
               Lena Mustermann
-            </button>
-            <button type="button"
-                    class="rounded-lg px-3 py-1.5 text-sm font-medium border transition-all border-bg-light-accent dark:border-bg-dark-accent text-(--text-muted) hover:border-primary">
+            </SelectionToggleButton>
+            <SelectionToggleButton :selected="false" size="md">
               Tim Mustermann
-            </button>
+            </SelectionToggleButton>
           </div>
         </div>
       </template>

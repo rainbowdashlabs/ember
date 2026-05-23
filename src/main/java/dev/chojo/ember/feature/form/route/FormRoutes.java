@@ -46,7 +46,7 @@ import java.util.Map;
 
 /**
  * HTTP route handlers for form management, including CRUD operations, question management,
- * access restrictions, response submission, and analytics. Requires {@code POLL_MANAGEMENT} role
+ * access restrictions, response submission, and analytics. Requires {@code POLL_MANAGER} role
  * for administrative endpoints and {@code USER} role for respondent endpoints.
  */
 @Singleton
@@ -77,22 +77,22 @@ public class FormRoutes implements Routes {
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
         // Management
-        routes.get(prefix + "/forms", this::list, Roles.POLL_MANAGEMENT);
-        routes.post(prefix + "/forms", this::create, Roles.POLL_MANAGEMENT);
+        routes.get(prefix + "/forms", this::list, Roles.POLL_MANAGER);
+        routes.post(prefix + "/forms", this::create, Roles.POLL_MANAGER);
         routes.get(prefix + "/forms/available", this::listAvailable, Roles.USER);
         routes.get(prefix + "/forms/{id}", this::get, Roles.USER);
-        routes.put(prefix + "/forms/{id}", this::update, Roles.POLL_MANAGEMENT);
-        routes.delete(prefix + "/forms/{id}", this::delete, Roles.POLL_MANAGEMENT);
-        routes.post(prefix + "/forms/{id}/publish", this::publish, Roles.POLL_MANAGEMENT);
-        routes.post(prefix + "/forms/{id}/close", this::close, Roles.POLL_MANAGEMENT);
+        routes.put(prefix + "/forms/{id}", this::update, Roles.POLL_MANAGER);
+        routes.delete(prefix + "/forms/{id}", this::delete, Roles.POLL_MANAGER);
+        routes.post(prefix + "/forms/{id}/publish", this::publish, Roles.POLL_MANAGER);
+        routes.post(prefix + "/forms/{id}/close", this::close, Roles.POLL_MANAGER);
 
         // Questions
         routes.get(prefix + "/forms/{id}/questions", this::listQuestions, Roles.USER);
-        routes.put(prefix + "/forms/{id}/questions", this::setQuestions, Roles.POLL_MANAGEMENT);
+        routes.put(prefix + "/forms/{id}/questions", this::setQuestions, Roles.POLL_MANAGER);
 
         // Restrictions
         routes.get(prefix + "/forms/{id}/restrictions", this::getRestrictions, Roles.USER);
-        routes.put(prefix + "/forms/{id}/restrictions", this::setRestrictions, Roles.POLL_MANAGEMENT);
+        routes.put(prefix + "/forms/{id}/restrictions", this::setRestrictions, Roles.POLL_MANAGER);
 
         // Responding
         routes.get(prefix + "/forms/{id}/my-response", this::getMyResponse, Roles.USER);
@@ -103,9 +103,9 @@ public class FormRoutes implements Routes {
         routes.put(prefix + "/forms/{id}/respond/{memberId}", this::updateForMember, Roles.GUARDIAN);
 
         // Analytics
-        routes.get(prefix + "/forms/{id}/analytics", this::getAnalytics, Roles.POLL_MANAGEMENT);
-        routes.get(prefix + "/forms/{id}/responses", this::listResponses, Roles.POLL_MANAGEMENT);
-        routes.get(prefix + "/forms/{id}/responses/{responseId}", this::getResponseDetail, Roles.POLL_MANAGEMENT);
+        routes.get(prefix + "/forms/{id}/analytics", this::getAnalytics, Roles.POLL_MANAGER);
+        routes.get(prefix + "/forms/{id}/responses", this::listResponses, Roles.POLL_MANAGER);
+        routes.get(prefix + "/forms/{id}/responses/{responseId}", this::getResponseDetail, Roles.POLL_MANAGER);
     }
 
     // -- Form CRUD --
@@ -545,16 +545,16 @@ public class FormRoutes implements Routes {
     }
 
     /**
-     * Verifies that the current user manages the specified member or has POLL_MANAGEMENT role.
+     * Verifies that the current user manages the specified member or has POLL_MANAGER role.
      *
      * @param session  the current user session
      * @param memberId the member ID to verify management of
-     * @throws ForbiddenResponse if the user does not manage the member and lacks POLL_MANAGEMENT role
+     * @throws ForbiddenResponse if the user does not manage the member and lacks POLL_MANAGER role
      */
     private void verifyManages(UserSession session, int memberId) {
         boolean manages =
                 stationMemberService.findManaged(session.member().id()).stream().anyMatch(m -> m.id() == memberId);
-        if (!manages && !session.hasRole(Roles.POLL_MANAGEMENT)) {
+        if (!manages && !session.hasRole(Roles.POLL_MANAGER)) {
             throw new ForbiddenResponse("You do not manage this member");
         }
     }

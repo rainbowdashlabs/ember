@@ -11,6 +11,7 @@ import SidebarLayout from '@/components/layout/SidebarLayout.vue'
 import SidebarGroup from '@/components/navigation/SidebarGroup.vue'
 import SidebarLink from '@/components/navigation/SidebarLink.vue'
 import SidebarExpandableLink from '@/components/navigation/SidebarExpandableLink.vue'
+import BaseButton from '@/components/button/BaseButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import {useHelpSearch} from '@/composables/useHelpSearch'
@@ -65,14 +66,15 @@ const pageSubtitle = computed(() => t('helpCenter.title'))
           {{ t('helpCenter.noSearchResults') }}
         </div>
         <div v-else class="flex flex-col gap-1 px-2 pb-3">
-          <button v-for="result in searchResults" :key="result.entry.route"
-                  class="text-left rounded-lg px-3 py-2 hover:bg-[var(--bg-hover)] transition-colors cursor-pointer"
+          <BaseButton v-for="result in searchResults" :key="result.entry.route"
+                  class="!text-left !block !py-2 hover:bg-[var(--bg-hover)]"
+                  full-width
                   @click="navigateToResult(result.entry.path, close)">
             <div class="text-sm font-medium text-[var(--text)]">{{ result.entry.title }}</div>
             <div class="text-xs text-[var(--text-muted)] mb-1">{{ result.entry.section }}</div>
             <div class="text-xs text-[var(--text-muted)] leading-relaxed break-words"
                  v-html="highlightSnippet(result)"/>
-          </button>
+          </BaseButton>
         </div>
       </template>
 

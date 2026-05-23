@@ -59,17 +59,17 @@ function parseConfig(configStr: string | undefined): { options?: string[]; [key:
 
 function getAllChildren(roleName: string): string[] {
   const hierarchy: Record<string, string[]> = {
-    [Roles.MANAGER]: [Roles.TEAM, Roles.ATTENDENCE_MANAGEMENT, Roles.INVENTORY_MANAGEMENT, Roles.EVENT_MANAGEMENT, Roles.MEMBER_MANAGEMENT, Roles.NEWS_MANAGEMENT, Roles.POLL_MANAGEMENT, Roles.LOST_AND_FOUND_MANAGEMENT],
+    [Roles.MANAGER]: [Roles.TEAM, Roles.ATTENDANCE_MANAGER, Roles.INVENTORY_MANAGER, Roles.EVENT_MANAGER, Roles.MEMBER_MANAGER, Roles.NEWS_MANAGER, Roles.POLL_MANAGER, Roles.LOST_AND_FOUND_MANAGER],
     [Roles.TEAM]: [Roles.LOGIN, Roles.USER],
     [Roles.GUARDIAN]: [Roles.USER, Roles.LOGIN],
     [Roles.MEMBER]: [Roles.USER],
-    [Roles.ATTENDENCE_MANAGEMENT]: [Roles.TEAM],
-    [Roles.INVENTORY_MANAGEMENT]: [Roles.TEAM],
-    [Roles.EVENT_MANAGEMENT]: [Roles.TEAM],
-    [Roles.MEMBER_MANAGEMENT]: [Roles.TEAM],
-    [Roles.NEWS_MANAGEMENT]: [Roles.TEAM],
-    [Roles.POLL_MANAGEMENT]: [Roles.TEAM],
-    [Roles.LOST_AND_FOUND_MANAGEMENT]: [Roles.TEAM],
+    [Roles.ATTENDANCE_MANAGER]: [Roles.TEAM],
+    [Roles.INVENTORY_MANAGER]: [Roles.TEAM],
+    [Roles.EVENT_MANAGER]: [Roles.TEAM],
+    [Roles.MEMBER_MANAGER]: [Roles.TEAM],
+    [Roles.NEWS_MANAGER]: [Roles.TEAM],
+    [Roles.POLL_MANAGER]: [Roles.TEAM],
+    [Roles.LOST_AND_FOUND_MANAGER]: [Roles.TEAM],
   }
   const direct = hierarchy[roleName] ?? []
   const all: string[] = [...direct]
@@ -122,7 +122,7 @@ async function loadData() {
   try {
     const [allFields, allMembers, roles, memberRoles, profileValues, groups, tags, mGroups, mTags] = await Promise.all([
       profileFields.listFields(),
-      stationMembers.listMembers(currentStationId.value!),
+      stationMembers.listMembers(),
       stationMembers.listAllRoles(),
       stationMembers.getRoles(memberId.value),
       profileFields.getValues(memberId.value),

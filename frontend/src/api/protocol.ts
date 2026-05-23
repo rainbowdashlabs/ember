@@ -8,7 +8,7 @@ import { getItem } from './storage'
 
 export interface TestProtocol {
     id: number
-    stationId: number
+    stationId: string
     name: string
     description: string
     passThreshold: number | null
@@ -39,7 +39,7 @@ export interface TestProtocolItem {
 export interface TestProtocolRun {
     id: number
     protocolId: number
-    stationId: number
+    stationId: string
     name: string
     testDate: string
     status: 'OPEN' | 'CLOSED'
@@ -85,7 +85,7 @@ export interface RunDetailResponse {
 export interface SharedProtocolEntry {
     protocol: TestProtocol
     stationName: string
-    sourceStationId: number
+    sourceStationId: string
 }
 
 export interface ProtocolListResponse {

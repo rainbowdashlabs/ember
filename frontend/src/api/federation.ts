@@ -7,8 +7,8 @@ import client from './client'
 
 export interface FederationPartner {
     id: number
-    stationId: number
-    partnerStationId: number
+    stationId: string
+    partnerStationId: string
     inviteCode: string | null
     publicKey: string | null
     partnerPublicKey: string | null
@@ -33,7 +33,7 @@ export interface FederationCapability {
 
 export interface FederationShare {
     id: number
-    stationId: number
+    stationId: string
     fileId: number | null
     folderId: number | null
     catalogId: number | null
@@ -46,7 +46,7 @@ export interface SharedContentItem {
     title: string
     description: string
     stationName: string
-    stationId: number
+    stationId: string
     partnerId: number
 }
 

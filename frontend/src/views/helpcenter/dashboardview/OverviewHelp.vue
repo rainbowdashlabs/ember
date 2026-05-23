@@ -80,10 +80,10 @@ const activeRole = ref('')
             <p class="text-xs text-(--text-muted)">14.05.2026, 10:30</p>
           </div>
         </div>
-        <button type="button" class="text-xs text-primary hover:underline shrink-0 mt-1">
+        <SecondaryButton class="shrink-0 mt-1">
           <font-awesome-icon :icon="['fas', 'check']" class="mr-0.5"/>
           {{ t('dashboard.acknowledge') }}
-        </button>
+        </SecondaryButton>
       </NeutralContainer>
       <NeutralContainer class="flex items-start justify-between gap-3 py-2 px-3">
         <div class="flex items-start gap-3">
@@ -94,10 +94,10 @@ const activeRole = ref('')
             <p class="text-xs text-(--text-muted)">13.05.2026, 18:00</p>
           </div>
         </div>
-        <button type="button" class="text-xs text-primary hover:underline shrink-0 mt-1">
+        <SecondaryButton class="shrink-0 mt-1">
           <font-awesome-icon :icon="['fas', 'check']" class="mr-0.5"/>
           {{ t('dashboard.acknowledge') }}
-        </button>
+        </SecondaryButton>
       </NeutralContainer>
     </NeutralContainer>
 

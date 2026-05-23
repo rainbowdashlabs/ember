@@ -9,12 +9,10 @@ import dev.chojo.ember.api.Roles;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
-import dev.chojo.ember.feature.federation.service.FederatedContentService;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.protocol.entity.TestProtocolRun;
 import dev.chojo.ember.feature.protocol.service.TestProtocolPdfService;
 import dev.chojo.ember.feature.protocol.service.TestProtocolService;
-import dev.chojo.ember.feature.station.repository.StationRepository;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
@@ -34,55 +32,49 @@ public class TestProtocolRoutes implements Routes {
     private final TestProtocolPdfService pdfService;
     private final StationMemberRepository stationMemberRepository;
     private final AccountRepository accountRepository;
-    private final FederatedContentService federatedContentService;
-    private final StationRepository stationRepository;
 
     @Inject
     public TestProtocolRoutes(
             TestProtocolService service,
             TestProtocolPdfService pdfService,
             StationMemberRepository stationMemberRepository,
-            AccountRepository accountRepository,
-            FederatedContentService federatedContentService,
-            StationRepository stationRepository) {
+            AccountRepository accountRepository) {
         this.service = service;
         this.pdfService = pdfService;
         this.stationMemberRepository = stationMemberRepository;
         this.accountRepository = accountRepository;
-        this.federatedContentService = federatedContentService;
-        this.stationRepository = stationRepository;
     }
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
         // Protocol list (static paths first, before {id} params)
-        routes.get(prefix + "/protocols", this::listProtocols, Roles.PROTOCOL_MANAGEMENT);
-        routes.post(prefix + "/protocols", this::createProtocol, Roles.PROTOCOL_MANAGEMENT);
+        routes.get(prefix + "/protocols", this::listProtocols, Roles.PROTOCOL_MANAGER);
+        routes.post(prefix + "/protocols", this::createProtocol, Roles.PROTOCOL_MANAGER);
 
         // Runs (static "runs" path must be registered before "/protocols/{id}")
         routes.get(prefix + "/protocols/runs", this::listRuns, Roles.PROTOCOL_TESTER);
         routes.get(prefix + "/protocols/runs/{id}", this::getRun, Roles.PROTOCOL_TESTER);
-        routes.put(prefix + "/protocols/runs/{id}", this::updateRun, Roles.PROTOCOL_MANAGEMENT);
-        routes.delete(prefix + "/protocols/runs/{id}", this::deleteRun, Roles.PROTOCOL_MANAGEMENT);
-        routes.post(prefix + "/protocols/runs/{id}/close", this::closeRun, Roles.PROTOCOL_MANAGEMENT);
+        routes.put(prefix + "/protocols/runs/{id}", this::updateRun, Roles.PROTOCOL_MANAGER);
+        routes.delete(prefix + "/protocols/runs/{id}", this::deleteRun, Roles.PROTOCOL_MANAGER);
+        routes.post(prefix + "/protocols/runs/{id}/close", this::closeRun, Roles.PROTOCOL_MANAGER);
 
         // Sections (static "sections" path before {id})
-        routes.put(prefix + "/protocols/sections/{id}", this::updateSection, Roles.PROTOCOL_MANAGEMENT);
-        routes.delete(prefix + "/protocols/sections/{id}", this::deleteSection, Roles.PROTOCOL_MANAGEMENT);
+        routes.put(prefix + "/protocols/sections/{id}", this::updateSection, Roles.PROTOCOL_MANAGER);
+        routes.delete(prefix + "/protocols/sections/{id}", this::deleteSection, Roles.PROTOCOL_MANAGER);
 
         // Items (static "items" path before {id})
-        routes.put(prefix + "/protocols/items/{id}", this::updateItem, Roles.PROTOCOL_MANAGEMENT);
-        routes.delete(prefix + "/protocols/items/{id}", this::deleteItem, Roles.PROTOCOL_MANAGEMENT);
+        routes.put(prefix + "/protocols/items/{id}", this::updateItem, Roles.PROTOCOL_MANAGER);
+        routes.delete(prefix + "/protocols/items/{id}", this::deleteItem, Roles.PROTOCOL_MANAGER);
 
         // Protocol CRUD with {id} param (after all static sub-paths)
         routes.get(prefix + "/protocols/{id}", this::getProtocol, Roles.PROTOCOL_TESTER);
-        routes.put(prefix + "/protocols/{id}", this::updateProtocol, Roles.PROTOCOL_MANAGEMENT);
-        routes.delete(prefix + "/protocols/{id}", this::deleteProtocol, Roles.PROTOCOL_MANAGEMENT);
-        routes.post(prefix + "/protocols/{id}/sections", this::createSection, Roles.PROTOCOL_MANAGEMENT);
-        routes.post(prefix + "/protocols/{id}/runs", this::createRun, Roles.PROTOCOL_MANAGEMENT);
+        routes.put(prefix + "/protocols/{id}", this::updateProtocol, Roles.PROTOCOL_MANAGER);
+        routes.delete(prefix + "/protocols/{id}", this::deleteProtocol, Roles.PROTOCOL_MANAGER);
+        routes.post(prefix + "/protocols/{id}/sections", this::createSection, Roles.PROTOCOL_MANAGER);
+        routes.post(prefix + "/protocols/{id}/runs", this::createRun, Roles.PROTOCOL_MANAGER);
 
         // Section items (needs section {id})
-        routes.post(prefix + "/protocols/sections/{id}/items", this::createItem, Roles.PROTOCOL_MANAGEMENT);
+        routes.post(prefix + "/protocols/sections/{id}/items", this::createItem, Roles.PROTOCOL_MANAGER);
         routes.get(
                 prefix + "/protocols/runs/{runId}/members/{memberId}/export",
                 this::exportMemberPdf,
@@ -120,34 +112,7 @@ public class TestProtocolRoutes implements Routes {
 
     private void listProtocols(Context ctx) {
         var session = UserSession.from(ctx);
-        var q = ctx.queryParam("q");
-        var federatedParam = ctx.queryParam("federated");
-        boolean includeFederated = federatedParam == null || !"false".equalsIgnoreCase(federatedParam);
-
-        List<dev.chojo.ember.feature.protocol.entity.TestProtocol> local;
-        if (q != null && !q.isBlank()) {
-            local = service.searchProtocols(session.stationId(), q.trim());
-        } else {
-            local = service.findProtocols(session.stationId());
-        }
-
-        if (!includeFederated) {
-            ctx.json(new ProtocolListResponse(local, List.of()));
-            return;
-        }
-
-        var shared = federatedContentService.browseSharedProtocols(session.stationId());
-        var sharedItems = shared.stream()
-                .map(i -> {
-                    String stationName = stationRepository
-                            .findById(i.sourceStationId())
-                            .map(s -> s.name())
-                            .orElse("Unknown");
-                    return new SharedProtocolEntry(i.protocol(), stationName, i.sourceStationId());
-                })
-                .toList();
-
-        ctx.json(new ProtocolListResponse(local, sharedItems));
+        ctx.json(service.findProtocols(session.stationId()));
     }
 
     private void createProtocol(Context ctx) {
@@ -534,10 +499,4 @@ public class TestProtocolRoutes implements Routes {
             java.util.Map<Integer, Double> sectionMaxPoints,
             List<EvalMemberData> members,
             Integer passThreshold) {}
-
-    public record SharedProtocolEntry(
-            dev.chojo.ember.feature.protocol.entity.TestProtocol protocol, String stationName, int sourceStationId) {}
-
-    public record ProtocolListResponse(
-            List<dev.chojo.ember.feature.protocol.entity.TestProtocol> protocols, List<SharedProtocolEntry> shared) {}
 }

@@ -11,6 +11,8 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import FileUploadButton from '@/components/button/FileUploadButton.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
+import TextInput from '@/components/input/text/TextInput.vue'
+import NumberInput from '@/components/input/number/NumberInput.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SuccessContainer from '@/components/container/SuccessContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
@@ -277,13 +279,13 @@ watch(loaded, async (isLoaded) => {
                 </span>
                 <div class="flex items-center gap-1">
                   <label class="text-(--text-muted)">{{ t('memberImport.order') }}:</label>
-                  <input type="number" :value="m.mergeOrder" class="w-12 px-1 py-0.5 rounded border border-bg-light-accent dark:border-bg-dark-accent bg-bg-light dark:bg-bg-dark text-center text-xs"
-                    @input="mappings[i] = { ...m, mergeOrder: Number(($event.target as HTMLInputElement).value) }" />
+                  <NumberInput :model-value="m.mergeOrder" class="!w-12 !px-1 !py-0.5 text-center text-xs"
+                    @update:model-value="mappings[i] = { ...m, mergeOrder: Number($event) }" />
                 </div>
                 <div class="flex items-center gap-1">
                   <label class="text-(--text-muted)">{{ t('memberImport.sep') }}:</label>
-                  <input type="text" :value="m.mergeSeparator" class="w-10 px-1 py-0.5 rounded border border-bg-light-accent dark:border-bg-dark-accent bg-bg-light dark:bg-bg-dark text-center text-xs"
-                    @input="mappings[i] = { ...m, mergeSeparator: ($event.target as HTMLInputElement).value }" />
+                  <TextInput :model-value="m.mergeSeparator" class="!w-10 !px-1 !py-0.5 text-center text-xs"
+                    @update:model-value="mappings[i] = { ...m, mergeSeparator: $event ?? '' }" />
                 </div>
               </div>
             </div>

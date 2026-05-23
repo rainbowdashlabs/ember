@@ -12,6 +12,7 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import EditButton from '@/components/button/EditButton.vue'
+import IconButton from '@/components/button/IconButton.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
@@ -64,7 +65,7 @@ async function loadData() {
   try {
     const [t, m] = await Promise.all([
       userTags.listTags(),
-      stationMembers.listMembers(currentStationId.value!),
+      stationMembers.listMembers(),
     ])
     tags.value = t
     allMembers.value = m
@@ -252,9 +253,7 @@ onMounted(loadData)
                         member.email
                       }}</span>
                   </div>
-                  <button class="text-error hover:text-error/80 text-sm" @click="removeMemberFromTag(member)">
-                    <font-awesome-icon :icon="['fas', 'xmark']"/>
-                  </button>
+                  <IconButton :icon="['fas', 'xmark']" label="Entfernen" class="text-error hover:text-error/80 text-sm" @click="removeMemberFromTag(member)"/>
                 </div>
               </div>
             </div>

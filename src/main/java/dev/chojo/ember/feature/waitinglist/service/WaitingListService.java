@@ -222,7 +222,7 @@ public class WaitingListService {
                 .findById(invite.listId())
                 .ifPresent(list -> notificationService.notifyMembersWithRole(
                         list.stationId(),
-                        "WAITLIST_MANAGEMENT",
+                        "WAITLIST_MANAGER",
                         NotificationType.WAITLIST_NEW_ENTRY,
                         NotificationData.of(
                                 new NotificationParams.WaitlistNewEntry(displayName, list.name()),

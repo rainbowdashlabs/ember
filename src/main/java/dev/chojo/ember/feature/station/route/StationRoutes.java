@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.station.route;
 import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.Roles;
 import dev.chojo.ember.api.Routes;
+import dev.chojo.ember.api.StationUidResolver;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.service.StationService;
 import io.javalin.http.BadRequestResponse;
@@ -23,6 +24,8 @@ import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+
+import java.util.UUID;
 
 /**
  * Admin-only routes for listing, creating, updating, and deleting stations.
@@ -56,7 +59,7 @@ public class StationRoutes implements Routes {
             tags = {"Stations"},
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = Station[].class)))
     private void list(Context ctx) {
-        ctx.json(stationService.findAll());
+        ctx.json(stationService.findAll().stream().map(this::toDetail).toList());
     }
 
     @OpenApi(
@@ -94,10 +97,8 @@ public class StationRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void get(Context ctx) {
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
-        stationService.findById(id).ifPresentOrElse(station -> ctx.json(toDetail(station)), () -> {
-            throw new NotFoundResponse();
-        });
+        var station = resolveStation(ctx);
+        ctx.json(toDetail(station));
     }
 
     @OpenApi(
@@ -112,7 +113,8 @@ public class StationRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void update(Context ctx) {
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        var station = resolveStation(ctx);
+        int id = station.id();
         var request = ctx.bodyAsClass(StationRequest.class);
         if (isBlank(request.name())) {
             throw new BadRequestResponse("name is required");
@@ -120,11 +122,11 @@ public class StationRoutes implements Routes {
         if (!isBlank(request.managerEmail())) {
             stationService
                     .updateWithManager(id, request.name(), request.managerEmail())
-                    .ifPresentOrElse(station -> ctx.json(toDetail(station)), () -> {
+                    .ifPresentOrElse(s -> ctx.json(toDetail(s)), () -> {
                         throw new NotFoundResponse();
                     });
         } else {
-            stationService.update(id, request.name()).ifPresentOrElse(station -> ctx.json(toDetail(station)), () -> {
+            stationService.update(id, request.name()).ifPresentOrElse(s -> ctx.json(toDetail(s)), () -> {
                 throw new NotFoundResponse();
             });
         }
@@ -141,11 +143,22 @@ public class StationRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void delete(Context ctx) {
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
-        if (stationService.delete(id)) {
+        var station = resolveStation(ctx);
+        if (stationService.delete(station.id())) {
+            StationUidResolver.instance().invalidate(station.id());
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
             throw new NotFoundResponse();
+        }
+    }
+
+    private Station resolveStation(Context ctx) {
+        String idParam = ctx.pathParam("id");
+        try {
+            UUID uid = UUID.fromString(idParam);
+            return stationService.findByUid(uid).orElseThrow(NotFoundResponse::new);
+        } catch (IllegalArgumentException e) {
+            throw new BadRequestResponse("Invalid station ID");
         }
     }
 
@@ -154,7 +167,7 @@ public class StationRoutes implements Routes {
         ManagerDetail manager = info != null
                 ? new ManagerDetail(info.email(), info.firstName(), info.lastName(), info.accountReady())
                 : null;
-        return new StationDetail(station.id(), station.name(), manager);
+        return new StationDetail(station.uid().toString(), station.name(), manager);
     }
 
     /**
@@ -172,7 +185,7 @@ public class StationRoutes implements Routes {
      * @param name    the station name
      * @param manager the manager details, or {@code null} if no manager is assigned
      */
-    public record StationDetail(int id, String name, ManagerDetail manager) {}
+    public record StationDetail(String id, String name, ManagerDetail manager) {}
 
     /**
      * Manager information included in station detail responses.

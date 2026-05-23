@@ -69,7 +69,7 @@ async function loadData() {
     const mid = memberId.value
     const [memberItems, allMembers] = await Promise.all([
       inventory.memberItems(mid),
-      stationMembers.listMembers(currentStationId.value!),
+      stationMembers.listMembers(),
     ])
     items.value = memberItems
     member.value = allMembers.find(m => m.id === mid) ?? null

@@ -16,6 +16,7 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import EditButton from '@/components/button/EditButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
+import SecondaryButton from '@/components/button/SecondaryButton.vue'
 
 const {t} = useI18n()
 
@@ -64,11 +65,11 @@ const activeRole = ref('')
           <p>Ab dem 20. Mai gilt ein neuer Dienstplan. Bitte prüft eure Einteilungen.</p>
         </div>
         <div class="pt-2 border-t border-bg-light-accent dark:border-bg-dark-accent">
-          <button type="button" class="text-sm text-(--text-muted) hover:text-primary transition-colors flex items-center gap-1.5">
+          <SecondaryButton>
             <font-awesome-icon :icon="['fas', 'comment']" class="h-3.5 w-3.5"/>
             {{ t('news.commentsCount', {count: 3}) }}
             <font-awesome-icon :icon="['fas', 'chevron-down']" class="h-2.5 w-2.5 ml-0.5"/>
-          </button>
+          </SecondaryButton>
         </div>
       </NeutralContainer>
 
@@ -87,11 +88,11 @@ const activeRole = ref('')
           <p>Die bestellten Helme und Jacken sind da. Bitte meldet euch bei eurem Betreuer zur Ausgabe.</p>
         </div>
         <div class="pt-2 border-t border-bg-light-accent dark:border-bg-dark-accent">
-          <button type="button" class="text-sm text-(--text-muted) hover:text-primary transition-colors flex items-center gap-1.5">
+          <SecondaryButton>
             <font-awesome-icon :icon="['fas', 'comment']" class="h-3.5 w-3.5"/>
             {{ t('news.addComment') }}
             <font-awesome-icon :icon="['fas', 'chevron-down']" class="h-2.5 w-2.5 ml-0.5"/>
-          </button>
+          </SecondaryButton>
         </div>
       </NeutralContainer>
     </div>

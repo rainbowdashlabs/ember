@@ -13,6 +13,7 @@ import SuccessContainer from '@/components/container/SuccessContainer.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
+import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 
 const { t } = useI18n()
 </script>
@@ -31,7 +32,7 @@ const { t } = useI18n()
     <div class="space-y-2">
       <NeutralContainer>
         <label class="flex items-center gap-3 cursor-pointer">
-          <input type="checkbox" checked disabled class="h-4 w-4 accent-primary" />
+          <ToggleInput :model-value="true" disabled />
           <div>
             <span class="font-medium">Brandschutz Grundlagen</span>
             <p class="text-xs text-(--text-muted)">12 Fragen</p>
@@ -40,7 +41,7 @@ const { t } = useI18n()
       </NeutralContainer>
       <NeutralContainer>
         <label class="flex items-center gap-3 cursor-pointer">
-          <input type="checkbox" disabled class="h-4 w-4" />
+          <ToggleInput :model-value="false" disabled />
           <div>
             <span class="font-medium">Erste Hilfe</span>
             <p class="text-xs text-(--text-muted)">8 Fragen</p>

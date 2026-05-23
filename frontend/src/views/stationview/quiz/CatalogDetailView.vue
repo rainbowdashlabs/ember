@@ -44,8 +44,7 @@ const { isMobile } = useBreakpoint()
 const catalogId = computed(() => Number(route.params.id))
 
 const currentStationId = computed(() => {
-  const id = storage.getItem('station_id')
-  return id ? Number(id) : null
+  return storage.getItem('station_id') ?? null
 })
 
 const isFederated = computed(() => {

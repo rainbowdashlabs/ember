@@ -5,6 +5,12 @@
         </encoder>
     </appender>
 
+    <appender name="PROBLEMS" class="dev.chojo.ember.feature.system.service.ProblemLogAppender">
+        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+            <level>WARN</level>
+        </filter>
+    </appender>
+
     <!-- Application -->
     <logger name="dev.chojo.ember" level="TRACE" />
 
@@ -25,5 +31,6 @@
 
     <root level="INFO">
         <appender-ref ref="STDOUT" />
+        <appender-ref ref="PROBLEMS" />
     </root>
 </configuration>

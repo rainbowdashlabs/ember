@@ -53,25 +53,25 @@ public class DemoMediaSeeder {
         allMembers.addAll(fortgeschritten);
 
         for (int i = 0; i < allMembers.size(); i++) {
+            String memberId = String.valueOf(allMembers.get(i).id());
+            if (imageService.exists(ImageCategory.AVATARS, memberId)) continue;
             String file = avatarFiles[i % avatarFiles.length];
             try {
                 byte[] data = loadDemoResource("demo/avatars/" + file);
-                imageService.store(
-                        ImageCategory.AVATARS, String.valueOf(allMembers.get(i).id()), data, "image/png");
+                imageService.store(ImageCategory.AVATARS, memberId, data, "image/png");
             } catch (Exception e) {
-                log.warn(
-                        "Failed to set demo avatar for member {}: {}",
-                        allMembers.get(i).id(),
-                        e.getMessage());
+                log.warn("Failed to set demo avatar for member {}: {}", memberId, e.getMessage());
             }
         }
 
-        // Set station logo
-        try {
-            byte[] logoData = loadDemoResource("demo/avatars/station_logo.png");
-            stationService.setLogo(stationId, logoData, "image/png");
-        } catch (Exception e) {
-            log.warn("Failed to set demo station logo: {}", e.getMessage());
+        // Set station logo (skip if already exists)
+        if (stationService.getLogo(stationId).isEmpty()) {
+            try {
+                byte[] logoData = loadDemoResource("demo/avatars/station_logo.png");
+                stationService.setLogo(stationId, logoData, "image/png");
+            } catch (Exception e) {
+                log.warn("Failed to set demo station logo: {}", e.getMessage());
+            }
         }
     }
 

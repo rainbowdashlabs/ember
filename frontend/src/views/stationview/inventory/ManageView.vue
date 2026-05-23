@@ -10,6 +10,7 @@ import { useRouter } from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import IconButton from '@/components/button/IconButton.vue'
 import EditButton from '@/components/button/EditButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
@@ -256,7 +257,7 @@ onMounted(loadData)
             <div v-if="createSizes.length > 0" class="space-y-1">
               <div v-for="(size, idx) in createSizes" :key="idx" class="flex items-center justify-between rounded-lg px-3 py-2 border border-bg-light-accent dark:border-bg-dark-accent">
                 <span class="text-sm">{{ size }}</span>
-                <button class="text-(--text-muted) hover:text-error text-sm" @click="removeSize(idx)">&times;</button>
+                <IconButton :icon="['fas', 'xmark']" :label="t('common.delete')" class="text-(--text-muted) hover:text-error text-sm" @click="removeSize(idx)"/>
               </div>
             </div>
 

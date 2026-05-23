@@ -45,12 +45,12 @@ const roleFriendlyNames: Record<string, string> = {
   MEMBER: 'Mitglied',
   TEAM: 'Team',
   GUARDIAN: 'Erziehungsberechtigter',
-  ATTENDENCE_MANAGEMENT: 'Anwesenheitsverwaltung',
-  INVENTORY_MANAGEMENT: 'Inventarverwaltung',
-  EVENT_MANAGEMENT: 'Terminverwaltung',
-  MEMBER_MANAGEMENT: 'Mitgliederverwaltung',
+  ATTENDANCE_MANAGER: 'Anwesenheitsverwaltung',
+  INVENTORY_MANAGER: 'Inventarverwaltung',
+  EVENT_MANAGER: 'Terminverwaltung',
+  MEMBER_MANAGER: 'Mitgliederverwaltung',
   MANAGER: 'Manager',
-  NEWS_MANAGEMENT: 'Neuigkeiten',
+  NEWS_MANAGER: 'Neuigkeiten',
 }
 
 function roleName(roleId: number): string {

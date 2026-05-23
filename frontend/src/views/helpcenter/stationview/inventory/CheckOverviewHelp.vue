@@ -10,6 +10,7 @@ import HelpSection from '@/components/helpcenter/HelpSection.vue'
 import HelpTip from '@/components/helpcenter/HelpTip.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
+import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
@@ -38,12 +39,12 @@ const {t} = useI18n()
 
       <!-- Dummy: Tabs -->
       <div class="flex gap-2 border-b border-bg-light-accent dark:border-bg-dark-accent">
-        <button class="px-4 py-2 text-sm font-medium border-b-2 border-primary text-primary">
+        <SelectionToggleButton :selected="true">
           {{ t('inventory.check.tabTeam') }}
-        </button>
-        <button class="px-4 py-2 text-sm font-medium text-(--text-muted)">
+        </SelectionToggleButton>
+        <SelectionToggleButton :selected="false">
           {{ t('inventory.check.tabMember') }}
-        </button>
+        </SelectionToggleButton>
       </div>
 
       <NeutralContainer class="overflow-x-auto">

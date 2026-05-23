@@ -14,6 +14,7 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import EditButton from '@/components/button/EditButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
+import IconButton from '@/components/button/IconButton.vue'
 
 const {t} = useI18n()
 </script>
@@ -73,9 +74,7 @@ const {t} = useI18n()
           <div class="space-y-1">
             <div class="flex items-center justify-between rounded-lg px-3 py-2 bg-bg-light-accent dark:bg-bg-dark-accent">
               <span class="text-sm font-medium">Max Mustermann</span>
-              <button class="text-error hover:text-error/80 text-sm">
-                <font-awesome-icon :icon="['fas', 'xmark']"/>
-              </button>
+              <IconButton :icon="['fas', 'xmark']" label="Remove" class="text-error hover:text-error/80" />
             </div>
           </div>
         </div>

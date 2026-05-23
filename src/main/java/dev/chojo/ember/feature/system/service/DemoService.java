@@ -91,8 +91,6 @@ public class DemoService {
     private final DemoMediaSeeder mediaSeeder;
     private final DemoKnowledgeBaseSeeder kbSeeder;
     private final DemoProtocolSeeder protocolSeeder;
-    private final DemoFederationSeeder federationSeeder;
-    private final DemoLendingSeeder lendingSeeder;
     private final ApplicationSettingRepository applicationSettingRepository;
     private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
 
@@ -125,8 +123,6 @@ public class DemoService {
             DemoMediaSeeder mediaSeeder,
             DemoKnowledgeBaseSeeder kbSeeder,
             DemoProtocolSeeder protocolSeeder,
-            DemoFederationSeeder federationSeeder,
-            DemoLendingSeeder lendingSeeder,
             ApplicationSettingRepository applicationSettingRepository) {
         this.demoConfig = demoConfig;
         this.databaseConfig = databaseConfig;
@@ -155,8 +151,6 @@ public class DemoService {
         this.mediaSeeder = mediaSeeder;
         this.kbSeeder = kbSeeder;
         this.protocolSeeder = protocolSeeder;
-        this.federationSeeder = federationSeeder;
-        this.lendingSeeder = lendingSeeder;
         this.applicationSettingRepository = applicationSettingRepository;
     }
 
@@ -237,13 +231,12 @@ public class DemoService {
         var teamRole = stationMemberRepository.findRoleByName(Roles.TEAM).orElseThrow();
         var memberManagerRole =
                 stationMemberRepository.findRoleByName(Roles.GUARDIAN).orElseThrow();
-        var attendanceMgmt = stationMemberRepository
-                .findRoleByName(Roles.ATTENDENCE_MANAGEMENT)
-                .orElseThrow();
+        var attendanceMgmt =
+                stationMemberRepository.findRoleByName(Roles.ATTENDANCE_MANAGER).orElseThrow();
         var eventMgmt =
-                stationMemberRepository.findRoleByName(Roles.EVENT_MANAGEMENT).orElseThrow();
+                stationMemberRepository.findRoleByName(Roles.EVENT_MANAGER).orElseThrow();
         var memberMgmt =
-                stationMemberRepository.findRoleByName(Roles.MEMBER_MANAGEMENT).orElseThrow();
+                stationMemberRepository.findRoleByName(Roles.MEMBER_MANAGER).orElseThrow();
 
         stationMemberRepository.addRole(adminMember.id(), managerRole.id());
         stationMemberRepository.addRole(adminMember.id(), loginRole.id());
@@ -629,35 +622,6 @@ public class DemoService {
                             elternMember.id(), allKids.get(kidIndex).id());
                 }
             }
-        }
-
-        // -- Non-login members (account without email, managed by parents) --
-        var noLoginMember1 = createNoLoginUser("Finn", "Neumann", station.id(), memberRole.id());
-        memberGroupRepository.addMember(groupAnfaenger.id(), noLoginMember1.id());
-        anfaengerMembers.add(noLoginMember1);
-        profileFieldRepository.setValue(
-                noLoginMember1.id(), fieldPersonalnummer.id(), jsonStr(String.valueOf(personalNr++)));
-        profileFieldRepository.setValue(noLoginMember1.id(), fieldGeschlecht.id(), jsonStr("männlich"));
-        profileFieldRepository.setValue(
-                noLoginMember1.id(),
-                fieldGeburtstag.id(),
-                jsonStr(LocalDate.now().minusYears(8).minusDays(42).toString()));
-
-        var noLoginMember2 = createNoLoginUser("Ella", "Fischer", station.id(), memberRole.id());
-        memberGroupRepository.addMember(groupAnfaenger.id(), noLoginMember2.id());
-        anfaengerMembers.add(noLoginMember2);
-        profileFieldRepository.setValue(
-                noLoginMember2.id(), fieldPersonalnummer.id(), jsonStr(String.valueOf(personalNr++)));
-        profileFieldRepository.setValue(noLoginMember2.id(), fieldGeschlecht.id(), jsonStr("weiblich"));
-        profileFieldRepository.setValue(
-                noLoginMember2.id(),
-                fieldGeburtstag.id(),
-                jsonStr(LocalDate.now().minusYears(7).minusDays(120).toString()));
-
-        // Assign parents as managers for the non-login kids
-        if (!elternMembers.isEmpty()) {
-            stationMemberRepository.addManager(elternMembers.get(0).id(), noLoginMember1.id());
-            stationMemberRepository.addManager(elternMembers.get(1).id(), noLoginMember2.id());
         }
 
         // -- Attendance templates --
@@ -1192,14 +1156,6 @@ public class DemoService {
         protocolSeeder.seed(station.id(), adminMember.id(), protocolTestees);
         log.info("Demo: Created Test Protocol data");
 
-        // -- Federation --
-        int partnerStationId = federationSeeder.seed(station.id(), adminMember.id());
-        log.info("Demo: Created Federation data");
-
-        // -- Lending --
-        lendingSeeder.seed(station.id(), partnerStationId, adminMember.id());
-        log.info("Demo: Created Lending data");
-
         // -- Profile Pictures & Station Logo --
         mediaSeeder.seedProfilePictures(
                 station.id(), adminMember, betreuerMembers, elternMembers, anfaengerMembers, fortgeschrittenMembers);
@@ -1233,13 +1189,6 @@ public class DemoService {
         var member = stationMemberRepository.create(stationId, account.id());
         stationMemberRepository.addRole(member.id(), loginRoleId);
         stationMemberRepository.addRole(member.id(), guardianRoleId);
-        return member;
-    }
-
-    private StationMember createNoLoginUser(String firstName, String lastName, int stationId, int memberRoleId) {
-        var account = accountRepository.createWithoutEmail(firstName, lastName);
-        var member = stationMemberRepository.create(stationId, account.id());
-        stationMemberRepository.addRole(member.id(), memberRoleId);
         return member;
     }
 

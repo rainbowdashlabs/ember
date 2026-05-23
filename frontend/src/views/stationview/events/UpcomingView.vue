@@ -9,6 +9,7 @@ import {useI18n} from 'vue-i18n'
 import {useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import PrimaryContainer from '@/components/container/PrimaryContainer.vue'
@@ -325,7 +326,7 @@ watch(loaded, (isLoaded) => {
           <div class="grid gap-3 sm:grid-cols-2">
             <PrimaryContainer v-for="ev in filteredTodayEvents" :key="ev.id" class="space-y-2">
               <div class="flex items-center justify-between">
-                <button class="font-semibold text-primary hover:underline cursor-pointer" @click="router.push({ name: 'event-detail', params: { id: ev.id } })">{{ ev.name }}</button>
+                <router-link :to="{ name: 'event-detail', params: { id: ev.id } }" class="font-semibold text-primary hover:underline">{{ ev.name }}</router-link>
                 <span class="text-sm">{{ formatTime(ev.startTime) }} – {{ formatTime(ev.endTime) }}</span>
               </div>
               <p v-if="ev.description" class="text-sm text-(--text-muted)">{{ ev.description }}</p>
@@ -351,7 +352,7 @@ watch(loaded, (isLoaded) => {
             <NeutralContainer v-for="item in upcomingEvents" :key="`${item.event.id}-${item.date}`" class="space-y-2">
               <div class="flex items-center justify-between flex-wrap gap-2">
                 <div>
-                  <button class="font-medium text-primary hover:underline cursor-pointer" @click="router.push({ name: 'event-detail', params: { id: item.event.id } })">{{ item.event.name }}</button>
+                  <router-link :to="{ name: 'event-detail', params: { id: item.event.id } }" class="font-medium text-primary hover:underline">{{ item.event.name }}</router-link>
                   <span class="ml-2 text-sm text-(--text-muted)">{{ item.dayLabel }}, {{ item.date }}</span>
                   <span class="ml-2 text-xs text-(--text-muted)">{{
                       formatTime(item.event.startTime)
@@ -387,9 +388,9 @@ watch(loaded, (isLoaded) => {
                   <template v-if="getRegistration(item.event.id, item.date, m.id)">
                     <div class="flex items-center gap-1">
                       <span v-if="managedMembers.length > 0" class="text-xs text-(--text-muted)">{{ m.name }}:</span>
-                      <button
+                      <SecondaryButton
                           :title="t('eventsUpcoming.withdraw')"
-                          class="cursor-pointer"
+                          class="!p-0 !bg-transparent !border-0"
                           @click="withdrawRegistration(getRegistration(item.event.id, item.date, m.id)!.id)"
                       >
                         <SuccessBadge v-if="getRegistration(item.event.id, item.date, m.id)!.status === RegistrationStatus.ACCEPTED">
@@ -408,7 +409,7 @@ watch(loaded, (isLoaded) => {
                           {{ t('eventsUpcoming.statusDeclined') }}
                           <font-awesome-icon :icon="['fas', 'xmark']" class="ml-1 h-3 w-3"/>
                         </ErrorBadge>
-                      </button>
+                      </SecondaryButton>
                       <span v-if="getRegistration(item.event.id, item.date, m.id)?.createdByName" class="text-xs text-(--text-muted) italic">
                         {{ t('common.createdBy', { name: getRegistration(item.event.id, item.date, m.id)!.createdByName }) }}
                       </span>

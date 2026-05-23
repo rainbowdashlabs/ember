@@ -8,6 +8,7 @@ import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
+import IconButton from '@/components/button/IconButton.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import type {MemberGroup, TemplateGroupEntry} from '@/api/types'
@@ -52,14 +53,10 @@ const unselectedGroups = computed(() => {
           <span class="font-medium">{{ groupName(group.groupId) }}</span>
         </div>
         <div class="flex items-center gap-1">
-          <button :disabled="index === 0" class="p-1 text-(--text-muted) hover:text-(--text) disabled:opacity-30"
-                  @click="emit('moveUp', index)">
-            <font-awesome-icon :icon="['fas', 'chevron-up']" class="h-3 w-3"/>
-          </button>
-          <button :disabled="index === groups.length - 1"
-                  class="p-1 text-(--text-muted) hover:text-(--text) disabled:opacity-30" @click="emit('moveDown', index)">
-            <font-awesome-icon :icon="['fas', 'chevron-down']" class="h-3 w-3"/>
-          </button>
+          <IconButton :disabled="index === 0" :icon="['fas', 'chevron-up']"
+                     :label="t('common.moveUp')" @click="emit('moveUp', index)"/>
+          <IconButton :disabled="index === groups.length - 1" :icon="['fas', 'chevron-down']"
+                     :label="t('common.moveDown')" @click="emit('moveDown', index)"/>
           <DeleteButton @click="emit('remove', group.groupId)"/>
         </div>
       </NeutralContainer>

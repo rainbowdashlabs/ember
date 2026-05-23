@@ -166,6 +166,17 @@ public class KnowledgeBaseRepository {
                 .changed();
     }
 
+    public boolean setSourceReference(int fileId, int sourceFileId, int sourceStationId) {
+        return Query.query(
+                        "UPDATE kb_file SET source_file_id = :source_file_id, source_station_id = :source_station_id WHERE id = :id;")
+                .single(Call.of()
+                        .bind("id", fileId)
+                        .bind("source_file_id", sourceFileId)
+                        .bind("source_station_id", sourceStationId))
+                .update()
+                .changed();
+    }
+
     public boolean deleteFile(int id) {
         return Query.query("DELETE FROM kb_file WHERE id = :id;")
                 .single(Call.of().bind("id", id))
@@ -502,5 +513,69 @@ public class KnowledgeBaseRepository {
             var tag = findOrCreateTag(stationId, name.trim());
             addFolderTag(folderId, tag.id());
         }
+    }
+
+    // -- Public Visibility --
+
+    public java.util.Optional<Boolean> findPublicVisibility(Integer folderId, Integer fileId) {
+        if (folderId != null) {
+            return Query.query("SELECT visible FROM kb_public_visibility WHERE folder_id = :folder_id;")
+                    .single(Call.of().bind("folder_id", folderId))
+                    .map(row -> row.getBoolean("visible"))
+                    .first();
+        }
+        if (fileId != null) {
+            return Query.query("SELECT visible FROM kb_public_visibility WHERE file_id = :file_id;")
+                    .single(Call.of().bind("file_id", fileId))
+                    .map(row -> row.getBoolean("visible"))
+                    .first();
+        }
+        return java.util.Optional.empty();
+    }
+
+    public void setPublicVisibility(Integer folderId, Integer fileId, boolean visible) {
+        if (folderId != null) {
+            Query.query("""
+                            INSERT INTO kb_public_visibility(folder_id, visible) VALUES(:folder_id, :visible)
+                            ON CONFLICT (folder_id) DO UPDATE SET visible = :visible;""")
+                    .single(Call.of().bind("folder_id", folderId).bind("visible", visible))
+                    .insert();
+        } else if (fileId != null) {
+            Query.query("""
+                            INSERT INTO kb_public_visibility(file_id, visible) VALUES(:file_id, :visible)
+                            ON CONFLICT (file_id) DO UPDATE SET visible = :visible;""")
+                    .single(Call.of().bind("file_id", fileId).bind("visible", visible))
+                    .insert();
+        }
+    }
+
+    public void removePublicVisibility(Integer folderId, Integer fileId) {
+        if (folderId != null) {
+            Query.query("DELETE FROM kb_public_visibility WHERE folder_id = :folder_id;")
+                    .single(Call.of().bind("folder_id", folderId))
+                    .delete();
+        } else if (fileId != null) {
+            Query.query("DELETE FROM kb_public_visibility WHERE file_id = :file_id;")
+                    .single(Call.of().bind("file_id", fileId))
+                    .delete();
+        }
+    }
+
+    public boolean hasRestrictions(Integer folderId, Integer fileId) {
+        if (folderId != null) {
+            return Query.query("SELECT 1 FROM kb_access_restriction WHERE folder_id = :folder_id LIMIT 1;")
+                    .single(Call.of().bind("folder_id", folderId))
+                    .map(row -> true)
+                    .first()
+                    .orElse(false);
+        }
+        if (fileId != null) {
+            return Query.query("SELECT 1 FROM kb_access_restriction WHERE file_id = :file_id LIMIT 1;")
+                    .single(Call.of().bind("file_id", fileId))
+                    .map(row -> true)
+                    .first()
+                    .orElse(false);
+        }
+        return false;
     }
 }

@@ -41,9 +41,9 @@ const {t} = useI18n()
       <div class="space-y-1">
         <div class="flex items-center justify-between">
           <label class="block text-sm font-medium">{{ t('news.content') }}</label>
-          <button type="button" class="text-xs text-primary hover:underline">
+          <SecondaryButton>
             {{ t('news.showPreview') }}
-          </button>
+          </SecondaryButton>
         </div>
         <div class="rounded-lg border border-bg-light-accent dark:border-bg-dark-accent px-3 py-2 text-sm min-h-[120px]">
           Ab dem 20. Mai gilt ein **neuer Dienstplan**. Bitte prüft eure Einteilungen.

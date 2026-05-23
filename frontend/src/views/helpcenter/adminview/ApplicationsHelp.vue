@@ -14,6 +14,7 @@ import ErrorButton from '@/components/button/ErrorButton.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
+import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
 
 const {t} = useI18n()
 </script>
@@ -36,12 +37,12 @@ const {t} = useI18n()
     <!-- Dummy: Tabs -->
     <SectionHeader>{{ t('adminApplications.title') }}</SectionHeader>
     <div class="flex gap-2 border-b border-bg-light-accent dark:border-bg-dark-accent">
-      <button class="px-4 py-2 text-sm font-medium border-b-2 border-primary text-primary">
+      <SelectionToggleButton :selected="true">
         {{ t('adminApplications.pending') }}
-      </button>
-      <button class="px-4 py-2 text-sm font-medium text-(--text-muted) hover:text-(--text)">
+      </SelectionToggleButton>
+      <SelectionToggleButton :selected="false">
         {{ t('adminApplications.all') }}
-      </button>
+      </SelectionToggleButton>
     </div>
 
     <!-- Dummy: Applications table -->

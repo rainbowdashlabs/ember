@@ -16,7 +16,7 @@ const {t} = useI18n()
 const router = useRouter()
 const {stationList, loaded, load, setActiveStation, getStationLogoUrl} = useStations()
 
-function selectStation(stationId: number) {
+function selectStation(stationId: string) {
   setActiveStation(stationId)
   router.push({name: 'dashboard-overview'})
 }

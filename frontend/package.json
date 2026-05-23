@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vue-tsc -b && vite build",
+    "lint:conventions": "node scripts/lint-conventions.mjs",
+    "build": "vue-tsc -b && node scripts/lint-conventions.mjs && vite build",
     "preview": "vite preview"
   },
   "dependencies": {

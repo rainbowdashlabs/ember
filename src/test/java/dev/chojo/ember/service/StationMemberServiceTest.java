@@ -36,7 +36,7 @@ class StationMemberServiceTest extends RepositoryTestBase {
 
     @BeforeAll
     static void setup() {
-        service = new StationMemberService(stationMemberRepo, stationRepo, accountRepo, null);
+        service = new StationMemberService(stationMemberRepo, stationRepo);
         station = stationRepo.create("MemberServiceStation");
         account1 = accountRepo.create("svc1@test.com", "First", "Member");
         account2 = accountRepo.create("svc2@test.com", "Second", "Member");
@@ -105,7 +105,7 @@ class StationMemberServiceTest extends RepositoryTestBase {
         var adminRole = stationMemberRepo.findRoleByName(Roles.ADMIN).orElseThrow();
         assertThrows(
                 ForbiddenResponse.class,
-                () -> service.setRoles(member2.id(), List.of(adminRole.id()), EnumSet.of(Roles.MEMBER_MANAGEMENT)));
+                () -> service.setRoles(member2.id(), List.of(adminRole.id()), EnumSet.of(Roles.MEMBER_MANAGER)));
     }
 
     @Test

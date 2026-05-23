@@ -9,6 +9,8 @@ import {useI18n} from 'vue-i18n'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import Modal from '@/components/feedback/Modal.vue'
+import CheckboxInput from '@/components/input/toggle/CheckboxInput.vue'
+import RadioInput from '@/components/input/toggle/RadioInput.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import type {ProfileField} from '@/api/types'
 
@@ -85,20 +87,14 @@ function submit() {
         <div class="flex items-center justify-between">
           <label class="block text-sm font-medium">{{ t('membersList.export.selectColumns') }}</label>
           <div class="flex items-center gap-2">
-            <button class="text-xs text-primary hover:underline" @click="selectAll">{{
-                t('membersList.export.selectAll')
-              }}
-            </button>
-            <button class="text-xs text-primary hover:underline" @click="selectNone">
-              {{ t('membersList.export.selectNone') }}
-            </button>
+            <SecondaryButton @click="selectAll">{{ t('membersList.export.selectAll') }}</SecondaryButton>
+            <SecondaryButton @click="selectNone">{{ t('membersList.export.selectNone') }}</SecondaryButton>
           </div>
         </div>
         <div class="grid gap-1 sm:grid-cols-2 max-h-64 overflow-y-auto">
           <label v-for="col in allColumns" :key="col.key"
                  class="flex items-center gap-2 cursor-pointer text-sm py-1 px-2 rounded hover:bg-bg-light-accent/30 dark:hover:bg-bg-dark-accent/30">
-            <input :checked="selectedColumns.has(col.key)" class="h-4 w-4 rounded accent-primary cursor-pointer"
-                   type="checkbox" @change="toggleColumn(col.key)"/>
+            <CheckboxInput :model-value="selectedColumns.has(col.key)" @update:model-value="toggleColumn(col.key)"/>
             {{ col.label }}
           </label>
         </div>
@@ -109,11 +105,11 @@ function submit() {
         <label class="block text-sm font-medium">{{ t('membersList.export.format') }}</label>
         <div class="flex items-center gap-4">
           <label class="flex items-center gap-2 cursor-pointer text-sm">
-            <input v-model="format" class="accent-primary" type="radio" value="csv"/>
+            <RadioInput v-model="format" value="csv"/>
             {{ t('membersList.export.formatCsv') }}
           </label>
           <label :class="{ 'opacity-40': !canExportValues }" class="flex items-center gap-2 cursor-pointer text-sm">
-            <input v-model="format" :disabled="!canExportValues" class="accent-primary" type="radio" value="values"/>
+            <RadioInput v-model="format" value="values" :disabled="!canExportValues"/>
             {{ t('membersList.export.formatValues') }}
           </label>
         </div>

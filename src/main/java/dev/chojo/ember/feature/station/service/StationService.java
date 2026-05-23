@@ -71,6 +71,14 @@ public class StationService {
         return stationRepository.findById(id);
     }
 
+    public Optional<Station> findByUid(java.util.UUID uid) {
+        return stationRepository.findByUid(uid);
+    }
+
+    public boolean updatePublicKbMode(int stationId, String mode) {
+        return stationRepository.updatePublicKbMode(stationId, mode);
+    }
+
     /**
      * Creates a new station with the given name.
      *

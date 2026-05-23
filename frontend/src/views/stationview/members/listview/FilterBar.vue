@@ -7,6 +7,7 @@
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import TextInput from '@/components/input/text/TextInput.vue'
+import CheckboxInput from '@/components/input/toggle/CheckboxInput.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import type { ProfileField } from '@/api/types'
@@ -82,7 +83,7 @@ function submitSaveFilter() {
           <p class="text-xs font-semibold text-(--text-muted) mb-2">{{ t('membersList.extraColumns') }}</p>
           <div v-if="nonOverviewFields.length === 0" class="text-xs text-(--text-muted)">{{ t('membersList.noExtraColumns') }}</div>
           <label v-for="field in nonOverviewFields" :key="field.id" class="flex items-center gap-2 cursor-pointer text-sm py-0.5">
-            <input type="checkbox" :checked="extraColumnIds.has(field.id)" class="h-4 w-4 rounded accent-primary cursor-pointer" @change="emit('toggleColumn', field.id)" />
+            <CheckboxInput :model-value="extraColumnIds.has(field.id)" @update:model-value="emit('toggleColumn', field.id)" />
             {{ field.name }}
           </label>
         </div>

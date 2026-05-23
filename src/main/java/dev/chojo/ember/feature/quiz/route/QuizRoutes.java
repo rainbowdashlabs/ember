@@ -9,7 +9,6 @@ import dev.chojo.ember.api.Roles;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.conf.file.elements.Api;
-import dev.chojo.ember.feature.federation.service.FederatedContentService;
 import dev.chojo.ember.feature.media.service.ImageCategory;
 import dev.chojo.ember.feature.media.service.ImageService;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
@@ -20,7 +19,6 @@ import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.repository.UserTagRepository;
 import dev.chojo.ember.feature.quiz.entity.AttemptStatus;
 import dev.chojo.ember.feature.quiz.entity.QuestionType;
-import dev.chojo.ember.feature.quiz.entity.QuizCatalog;
 import dev.chojo.ember.feature.quiz.entity.QuizCategory;
 import dev.chojo.ember.feature.quiz.entity.QuizQuestion;
 import dev.chojo.ember.feature.quiz.entity.QuizTest;
@@ -31,7 +29,6 @@ import dev.chojo.ember.feature.quiz.entity.QuizTestSectionSource;
 import dev.chojo.ember.feature.quiz.entity.TestStatus;
 import dev.chojo.ember.feature.quiz.service.QuizPdfService;
 import dev.chojo.ember.feature.quiz.service.QuizService;
-import dev.chojo.ember.feature.station.repository.StationRepository;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.ForbiddenResponse;
@@ -61,8 +58,6 @@ public class QuizRoutes implements Routes {
     private final StationMemberRepository stationMemberRepository;
     private final MemberGroupRepository memberGroupRepository;
     private final UserTagRepository userTagRepository;
-    private final FederatedContentService federatedContentService;
-    private final StationRepository stationRepository;
     private final Api apiConfig;
 
     @Inject
@@ -73,8 +68,6 @@ public class QuizRoutes implements Routes {
             StationMemberRepository stationMemberRepository,
             MemberGroupRepository memberGroupRepository,
             UserTagRepository userTagRepository,
-            FederatedContentService federatedContentService,
-            StationRepository stationRepository,
             Api apiConfig) {
         this.quizService = quizService;
         this.pdfService = pdfService;
@@ -82,62 +75,56 @@ public class QuizRoutes implements Routes {
         this.stationMemberRepository = stationMemberRepository;
         this.memberGroupRepository = memberGroupRepository;
         this.userTagRepository = userTagRepository;
-        this.federatedContentService = federatedContentService;
-        this.stationRepository = stationRepository;
         this.apiConfig = apiConfig;
     }
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
         // Catalogs
-        routes.get(prefix + "/quiz/catalogs", this::listCatalogs, Roles.QUIZ_MANAGEMENT);
-        routes.get(prefix + "/quiz/catalogs/search", this::searchCatalogs, Roles.QUIZ_MANAGEMENT);
-        routes.post(prefix + "/quiz/catalogs", this::createCatalog, Roles.QUIZ_MANAGEMENT);
-        routes.get(prefix + "/quiz/catalogs/{id}", this::getCatalog, Roles.QUIZ_MANAGEMENT);
-        routes.put(prefix + "/quiz/catalogs/{id}", this::updateCatalog, Roles.QUIZ_MANAGEMENT);
-        routes.delete(prefix + "/quiz/catalogs/{id}", this::deleteCatalog, Roles.QUIZ_MANAGEMENT);
+        routes.get(prefix + "/quiz/catalogs", this::listCatalogs, Roles.QUIZ_MANAGER);
+        routes.post(prefix + "/quiz/catalogs", this::createCatalog, Roles.QUIZ_MANAGER);
+        routes.get(prefix + "/quiz/catalogs/{id}", this::getCatalog, Roles.QUIZ_MANAGER);
+        routes.put(prefix + "/quiz/catalogs/{id}", this::updateCatalog, Roles.QUIZ_MANAGER);
+        routes.delete(prefix + "/quiz/catalogs/{id}", this::deleteCatalog, Roles.QUIZ_MANAGER);
 
         // Categories (station-scoped, shared across catalogs)
-        routes.get(prefix + "/quiz/categories", this::listCategories, Roles.QUIZ_MANAGEMENT);
-        routes.post(prefix + "/quiz/categories", this::createCategory, Roles.QUIZ_MANAGEMENT);
-        routes.put(prefix + "/quiz/categories/{id}", this::updateCategory, Roles.QUIZ_MANAGEMENT);
-        routes.delete(prefix + "/quiz/categories/{id}", this::deleteCategory, Roles.QUIZ_MANAGEMENT);
+        routes.get(prefix + "/quiz/categories", this::listCategories, Roles.QUIZ_MANAGER);
+        routes.post(prefix + "/quiz/categories", this::createCategory, Roles.QUIZ_MANAGER);
+        routes.put(prefix + "/quiz/categories/{id}", this::updateCategory, Roles.QUIZ_MANAGER);
+        routes.delete(prefix + "/quiz/categories/{id}", this::deleteCategory, Roles.QUIZ_MANAGER);
 
         // Questions
-        routes.get(prefix + "/quiz/catalogs/{id}/questions", this::listQuestions, Roles.QUIZ_MANAGEMENT);
-        routes.post(prefix + "/quiz/catalogs/{id}/questions", this::createQuestion, Roles.QUIZ_MANAGEMENT);
+        routes.get(prefix + "/quiz/catalogs/{id}/questions", this::listQuestions, Roles.QUIZ_MANAGER);
+        routes.post(prefix + "/quiz/catalogs/{id}/questions", this::createQuestion, Roles.QUIZ_MANAGER);
         routes.get(prefix + "/quiz/questions/{id}", this::getQuestion, Roles.USER);
-        routes.put(prefix + "/quiz/questions/{id}", this::updateQuestion, Roles.QUIZ_MANAGEMENT);
-        routes.delete(prefix + "/quiz/questions/{id}", this::deleteQuestion, Roles.QUIZ_MANAGEMENT);
+        routes.put(prefix + "/quiz/questions/{id}", this::updateQuestion, Roles.QUIZ_MANAGER);
+        routes.delete(prefix + "/quiz/questions/{id}", this::deleteQuestion, Roles.QUIZ_MANAGER);
 
         // Tests
-        routes.get(prefix + "/quiz/tests", this::listTests, Roles.QUIZ_MANAGEMENT);
+        routes.get(prefix + "/quiz/tests", this::listTests, Roles.QUIZ_MANAGER);
         routes.get(prefix + "/quiz/tests/available", this::listAvailableTests, Roles.USER);
-        routes.post(prefix + "/quiz/tests", this::createTest, Roles.QUIZ_MANAGEMENT);
+        routes.post(prefix + "/quiz/tests", this::createTest, Roles.QUIZ_MANAGER);
         routes.get(prefix + "/quiz/tests/{id}", this::getTest, Roles.USER);
-        routes.put(prefix + "/quiz/tests/{id}", this::updateTest, Roles.QUIZ_MANAGEMENT);
-        routes.delete(prefix + "/quiz/tests/{id}", this::deleteTest, Roles.QUIZ_MANAGEMENT);
-        routes.post(prefix + "/quiz/tests/{id}/activate", this::activateTest, Roles.QUIZ_MANAGEMENT);
-        routes.post(prefix + "/quiz/tests/{id}/close", this::closeTest, Roles.QUIZ_MANAGEMENT);
-        routes.post(
-                prefix + "/quiz/tests/{id}/generate-questions", this::generateFrozenQuestions, Roles.QUIZ_MANAGEMENT);
-        routes.get(prefix + "/quiz/tests/{id}/frozen-questions", this::listFrozenQuestions, Roles.QUIZ_MANAGEMENT);
+        routes.put(prefix + "/quiz/tests/{id}", this::updateTest, Roles.QUIZ_MANAGER);
+        routes.delete(prefix + "/quiz/tests/{id}", this::deleteTest, Roles.QUIZ_MANAGER);
+        routes.post(prefix + "/quiz/tests/{id}/activate", this::activateTest, Roles.QUIZ_MANAGER);
+        routes.post(prefix + "/quiz/tests/{id}/close", this::closeTest, Roles.QUIZ_MANAGER);
+        routes.post(prefix + "/quiz/tests/{id}/generate-questions", this::generateFrozenQuestions, Roles.QUIZ_MANAGER);
+        routes.get(prefix + "/quiz/tests/{id}/frozen-questions", this::listFrozenQuestions, Roles.QUIZ_MANAGER);
         routes.put(
                 prefix + "/quiz/tests/{id}/frozen-questions/{position}",
                 this::replaceFrozenQuestion,
-                Roles.QUIZ_MANAGEMENT);
+                Roles.QUIZ_MANAGER);
         routes.post(
                 prefix + "/quiz/tests/{id}/frozen-questions/{position}/random",
                 this::randomReplaceFrozenQuestion,
-                Roles.QUIZ_MANAGEMENT);
+                Roles.QUIZ_MANAGER);
         routes.get(
-                prefix + "/quiz/tests/{id}/available-questions",
-                this::listAvailableReplacements,
-                Roles.QUIZ_MANAGEMENT);
+                prefix + "/quiz/tests/{id}/available-questions", this::listAvailableReplacements, Roles.QUIZ_MANAGER);
 
         // Sections
-        routes.get(prefix + "/quiz/tests/{id}/sections", this::listSections, Roles.QUIZ_MANAGEMENT);
-        routes.put(prefix + "/quiz/tests/{id}/sections", this::replaceSections, Roles.QUIZ_MANAGEMENT);
+        routes.get(prefix + "/quiz/tests/{id}/sections", this::listSections, Roles.QUIZ_MANAGER);
+        routes.put(prefix + "/quiz/tests/{id}/sections", this::replaceSections, Roles.QUIZ_MANAGER);
 
         // Test taking
         routes.post(prefix + "/quiz/tests/{id}/start", this::startAttempt, Roles.USER);
@@ -146,18 +133,18 @@ public class QuizRoutes implements Routes {
         routes.post(prefix + "/quiz/attempts/{id}/submit", this::submitAttempt, Roles.USER);
 
         // Grading
-        routes.get(prefix + "/quiz/tests/{id}/attempts", this::listAttempts, Roles.QUIZ_MANAGEMENT);
-        routes.get(prefix + "/quiz/attempts/{id}", this::getAttemptDetail, Roles.QUIZ_MANAGEMENT);
-        routes.post(prefix + "/quiz/answers/{id}/grade", this::gradeAnswer, Roles.QUIZ_MANAGEMENT);
-        routes.post(prefix + "/quiz/attempts/{id}/grade", this::gradeAttempt, Roles.QUIZ_MANAGEMENT);
+        routes.get(prefix + "/quiz/tests/{id}/attempts", this::listAttempts, Roles.QUIZ_MANAGER);
+        routes.get(prefix + "/quiz/attempts/{id}", this::getAttemptDetail, Roles.QUIZ_MANAGER);
+        routes.post(prefix + "/quiz/answers/{id}/grade", this::gradeAnswer, Roles.QUIZ_MANAGER);
+        routes.post(prefix + "/quiz/attempts/{id}/grade", this::gradeAttempt, Roles.QUIZ_MANAGER);
 
         // Restrictions
-        routes.get(prefix + "/quiz/tests/{id}/restrictions", this::getRestrictions, Roles.QUIZ_MANAGEMENT);
-        routes.put(prefix + "/quiz/tests/{id}/restrictions", this::setRestrictions, Roles.QUIZ_MANAGEMENT);
+        routes.get(prefix + "/quiz/tests/{id}/restrictions", this::getRestrictions, Roles.QUIZ_MANAGER);
+        routes.put(prefix + "/quiz/tests/{id}/restrictions", this::setRestrictions, Roles.QUIZ_MANAGER);
 
         // Member access
-        routes.post(prefix + "/quiz/tests/{id}/access", this::grantAccess, Roles.QUIZ_MANAGEMENT);
-        routes.delete(prefix + "/quiz/tests/{testId}/access/{memberId}", this::revokeAccess, Roles.QUIZ_MANAGEMENT);
+        routes.post(prefix + "/quiz/tests/{id}/access", this::grantAccess, Roles.QUIZ_MANAGER);
+        routes.delete(prefix + "/quiz/tests/{testId}/access/{memberId}", this::revokeAccess, Roles.QUIZ_MANAGER);
 
         // Training
         routes.get(prefix + "/quiz/training/catalogs", this::listTrainingCatalogs, Roles.USER);
@@ -165,90 +152,26 @@ public class QuizRoutes implements Routes {
 
         // Question images
         routes.get(prefix + "/quiz/questions/{id}/image", this::getQuestionImage, Roles.USER);
-        routes.post(prefix + "/quiz/questions/{id}/image", this::uploadQuestionImage, Roles.QUIZ_MANAGEMENT);
-        routes.delete(prefix + "/quiz/questions/{id}/image", this::deleteQuestionImage, Roles.QUIZ_MANAGEMENT);
+        routes.post(prefix + "/quiz/questions/{id}/image", this::uploadQuestionImage, Roles.QUIZ_MANAGER);
+        routes.delete(prefix + "/quiz/questions/{id}/image", this::deleteQuestionImage, Roles.QUIZ_MANAGER);
 
         // PDF export
-        routes.get(prefix + "/quiz/tests/{id}/export/questions", this::exportQuestionPdf, Roles.QUIZ_MANAGEMENT);
-        routes.get(prefix + "/quiz/tests/{id}/export/solutions", this::exportSolutionPdf, Roles.QUIZ_MANAGEMENT);
+        routes.get(prefix + "/quiz/tests/{id}/export/questions", this::exportQuestionPdf, Roles.QUIZ_MANAGER);
+        routes.get(prefix + "/quiz/tests/{id}/export/solutions", this::exportSolutionPdf, Roles.QUIZ_MANAGER);
 
         // Import/Export
-        routes.get(prefix + "/quiz/catalogs/{id}/export", this::exportCatalog, Roles.QUIZ_MANAGEMENT);
-        routes.post(prefix + "/quiz/catalogs/import", this::importCatalog, Roles.QUIZ_MANAGEMENT);
+        routes.get(prefix + "/quiz/catalogs/{id}/export", this::exportCatalog, Roles.QUIZ_MANAGER);
+        routes.post(prefix + "/quiz/catalogs/import", this::importCatalog, Roles.QUIZ_MANAGER);
 
         // CSV Import
-        routes.post(prefix + "/quiz/catalogs/{id}/import-csv", this::importCsv, Roles.QUIZ_MANAGEMENT);
+        routes.post(prefix + "/quiz/catalogs/{id}/import-csv", this::importCsv, Roles.QUIZ_MANAGER);
     }
 
     // -- Catalogs --
 
     private void listCatalogs(Context ctx) {
         var session = UserSession.from(ctx);
-        var catalogs = quizService.findCatalogs(session.stationId());
-        List<SharedCatalogEntry> sharedCatalogs = List.of();
-        try {
-            var sharedItems = federatedContentService.browseSharedQuiz(session.stationId());
-            sharedCatalogs = sharedItems.stream()
-                    .map(item -> {
-                        String stationName = stationRepository
-                                .findById(item.sourceStationId())
-                                .map(s -> s.name())
-                                .orElse("Partner");
-                        return new SharedCatalogEntry(item.catalog(), stationName, item.sourceStationId());
-                    })
-                    .toList();
-        } catch (Exception e) {
-            // silently ignore federation errors
-        }
-        ctx.json(new CatalogListResponse(catalogs, sharedCatalogs));
-    }
-
-    private void searchCatalogs(Context ctx) {
-        var session = UserSession.from(ctx);
-        String query = ctx.queryParam("q");
-        boolean federated = "true".equals(ctx.queryParam("federated"));
-
-        var catalogs = quizService.findCatalogs(session.stationId());
-
-        // Filter by name/description
-        List<QuizCatalog> filtered = catalogs;
-        if (query != null && !query.isBlank()) {
-            String lower = query.toLowerCase();
-            filtered = catalogs.stream()
-                    .filter(c -> c.name().toLowerCase().contains(lower)
-                            || (c.description() != null
-                                    && c.description().toLowerCase().contains(lower)))
-                    .toList();
-        }
-
-        List<SharedCatalogEntry> sharedCatalogs = List.of();
-        if (federated) {
-            try {
-                var sharedItems = federatedContentService.browseSharedQuiz(session.stationId());
-                var stream = sharedItems.stream();
-                if (query != null && !query.isBlank()) {
-                    String lower = query.toLowerCase();
-                    stream = stream.filter(
-                            item -> item.catalog().name().toLowerCase().contains(lower)
-                                    || (item.catalog().description() != null
-                                            && item.catalog()
-                                                    .description()
-                                                    .toLowerCase()
-                                                    .contains(lower)));
-                }
-                sharedCatalogs = stream.map(item -> {
-                            String stationName = stationRepository
-                                    .findById(item.sourceStationId())
-                                    .map(s -> s.name())
-                                    .orElse("Partner");
-                            return new SharedCatalogEntry(item.catalog(), stationName, item.sourceStationId());
-                        })
-                        .toList();
-            } catch (Exception e) {
-                // silently ignore federation errors
-            }
-        }
-        ctx.json(new CatalogListResponse(filtered, sharedCatalogs));
+        ctx.json(quizService.findCatalogs(session.stationId()));
     }
 
     private void getCatalog(Context ctx) {
@@ -368,7 +291,7 @@ public class QuizRoutes implements Routes {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
         var session = UserSession.from(ctx);
         var question = quizService.findQuestion(id).orElseThrow(NotFoundResponse::new);
-        if (session.roles().contains(Roles.QUIZ_MANAGEMENT)) {
+        if (session.roles().contains(Roles.QUIZ_MANAGER)) {
             ctx.json(question);
         } else {
             ctx.json(sanitizeQuestion(question));
@@ -1249,8 +1172,4 @@ public class QuizRoutes implements Routes {
             boolean trainingEnabled,
             List<QuizCategory> categories,
             List<QuizQuestion> questions) {}
-
-    public record SharedCatalogEntry(QuizCatalog catalog, String stationName, int sourceStationId) {}
-
-    public record CatalogListResponse(List<QuizCatalog> catalogs, List<SharedCatalogEntry> sharedCatalogs) {}
 }

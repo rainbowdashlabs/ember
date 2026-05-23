@@ -7,7 +7,7 @@ import client from './client'
 
 export interface AiProviderConfig {
     id: number
-    stationId: number
+    stationId: string
     provider: string
     apiKey: string
     model: string | null

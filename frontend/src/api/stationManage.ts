@@ -118,7 +118,7 @@ export async function importStation(sourceUrl: string, token: string): Promise<{
 }
 
 export interface StationImportProgress {
-    stationId: number
+    stationId: string
     stationName: string
     status: 'IN_PROGRESS' | 'COMPLETED' | 'FAILED'
     totalTables: number

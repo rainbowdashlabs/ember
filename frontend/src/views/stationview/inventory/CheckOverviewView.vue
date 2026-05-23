@@ -11,6 +11,7 @@ import ViewContent from '@/components/layout/ViewContent.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import IconButton from '@/components/button/IconButton.vue'
+import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
@@ -118,26 +119,23 @@ onMounted(loadData)
       <template v-if="!loading && !error">
         <!-- Tabs and sort -->
         <div class="flex items-center justify-between gap-4">
-          <div class="flex gap-2 border-b border-bg-light-accent dark:border-bg-dark-accent">
-            <button
-                :class="activeTab === 'team' ? 'border-b-2 border-primary text-primary' : 'text-(--text-muted) hover:text-(--text)'"
-                class="px-4 py-2 text-sm font-medium transition-colors"
-                @click="activeTab = 'team'"
+          <div class="flex gap-2">
+            <SelectionToggleButton
+                :selected="activeTab === 'team'"
+                size="md"
+                @toggle="activeTab = 'team'"
             >
               {{ t('inventory.check.tabTeam') }}
-            </button>
-            <button
-                :class="activeTab === 'member' ? 'border-b-2 border-primary text-primary' : 'text-(--text-muted) hover:text-(--text)'"
-                class="px-4 py-2 text-sm font-medium transition-colors"
-                @click="activeTab = 'member'"
+            </SelectionToggleButton>
+            <SelectionToggleButton
+                :selected="activeTab === 'member'"
+                size="md"
+                @toggle="activeTab = 'member'"
             >
               {{ t('inventory.check.tabMember') }}
-            </button>
+            </SelectionToggleButton>
           </div>
-          <button class="text-xs text-(--text-muted) hover:text-primary flex items-center gap-1" @click="sortBy = sortBy === 'name' ? 'lastChecked' : 'name'">
-            <font-awesome-icon :icon="['fas', 'sort']" class="h-3 w-3"/>
-            {{ sortBy === 'name' ? t('inventory.check.sortByLastChecked') : t('inventory.check.sortByName') }}
-          </button>
+          <IconButton :icon="['fas', 'sort']" :label="sortBy === 'name' ? t('inventory.check.sortByLastChecked') : t('inventory.check.sortByName')" class="text-xs text-(--text-muted) hover:text-primary" @click="sortBy = sortBy === 'name' ? 'lastChecked' : 'name'"/>
         </div>
 
         <div v-if="filteredMembers.length === 0" class="text-center text-(--text-muted) py-8">

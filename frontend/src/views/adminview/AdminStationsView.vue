@@ -50,7 +50,7 @@ function navigateToCreate() {
   router.push({name: 'admin-station-edit'})
 }
 
-function navigateToEdit(id: number) {
+function navigateToEdit(id: string) {
   router.push({name: 'admin-station-edit', params: {id}})
 }
 
@@ -94,7 +94,7 @@ async function handleStartImport() {
   }
 }
 
-async function pollProgress(stationId: number) {
+async function pollProgress(stationId: string) {
   pollTimer = setInterval(async () => {
     try {
       const progress = await transfer.getImportProgress(stationId)

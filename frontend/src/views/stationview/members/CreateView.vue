@@ -66,7 +66,7 @@ async function loadData() {
     const [fields, groups, mems] = await Promise.all([
       profileFields.listFields(),
       memberGroups.listGroups(),
-      stationMembers.listMembers(currentStationId.value!),
+      stationMembers.listMembers(),
     ])
     allFields.value = fields
     allGroups.value = groups
@@ -130,7 +130,7 @@ async function createNewManager(data: { firstName: string; lastName: string; ema
   error.value = ''
   try {
     const invited = await members.invite(data)
-    const membersList = await stationMembers.listMembers(currentStationId.value!)
+    const membersList = await stationMembers.listMembers()
     const newMember = membersList.find(m => m.accountId === invited.id)
     if (newMember) {
       createdManagers.value = [...createdManagers.value, {
@@ -161,7 +161,7 @@ async function createAccount() {
       lastName: lastName.value,
     })
 
-    const membersList = await stationMembers.listMembers(currentStationId.value!)
+    const membersList = await stationMembers.listMembers()
     const newMember = membersList.find(m => m.accountId === invited.id)
     if (!newMember) throw new Error('Member not found after invite')
 

@@ -370,9 +370,65 @@ public class KnowledgeBaseService {
         return repository.updateFile(id, name, description, iconUrl, position);
     }
 
+    public void setSourceReference(int fileId, int sourceFileId, int sourceStationId) {
+        repository.setSourceReference(fileId, sourceFileId, sourceStationId);
+    }
+
     public boolean deleteFile(int id) {
         fileStorage.delete(id);
         return repository.deleteFile(id);
+    }
+
+    // -- Public Visibility --
+
+    /**
+     * Checks if a folder or file is publicly visible based on the station's public KB mode.
+     * Items with access restrictions are never public.
+     * In ALLOW_ALL mode: public unless explicitly opted out.
+     * In DENY_ALL mode: not public unless explicitly opted in.
+     * Folder visibility is inherited by child items unless overridden.
+     */
+    public boolean isPubliclyVisible(
+            dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode mode, Integer folderId, Integer fileId) {
+        if (mode == dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode.OFF) return false;
+
+        // Items with access restrictions are never public
+        if (repository.hasRestrictions(folderId, fileId)) return false;
+
+        // For files, also check parent folder restrictions
+        if (fileId != null) {
+            var file = repository.findFileById(fileId).orElse(null);
+            if (file != null && file.folderId() != null) {
+                if (!isPubliclyVisible(mode, file.folderId(), null)) return false;
+            }
+        }
+
+        // For folders, check parent folder restrictions recursively
+        if (folderId != null) {
+            var folder = repository.findFolderById(folderId).orElse(null);
+            if (folder != null && folder.parentId() != null) {
+                if (!isPubliclyVisible(mode, folder.parentId(), null)) return false;
+            }
+        }
+
+        // Check explicit visibility override
+        var override = repository.findPublicVisibility(folderId, fileId);
+        if (override.isPresent()) return override.get();
+
+        // Default based on mode
+        return mode == dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode.ALLOW_ALL;
+    }
+
+    public void setPublicVisibility(Integer folderId, Integer fileId, boolean visible) {
+        repository.setPublicVisibility(folderId, fileId, visible);
+    }
+
+    public void removePublicVisibility(Integer folderId, Integer fileId) {
+        repository.removePublicVisibility(folderId, fileId);
+    }
+
+    public java.util.Optional<Boolean> findPublicVisibility(Integer folderId, Integer fileId) {
+        return repository.findPublicVisibility(folderId, fileId);
     }
 
     private void storeBinaryFile(int fileId, byte[] data, String contentType) {

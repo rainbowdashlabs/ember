@@ -109,26 +109,25 @@ public class EventRoutes implements Routes {
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
         routes.get(prefix + "/events", this::list, Roles.USER);
         routes.get(prefix + "/events/today", this::listToday, Roles.USER);
-        routes.post(prefix + "/events", this::create, Roles.EVENT_MANAGEMENT);
+        routes.post(prefix + "/events", this::create, Roles.EVENT_MANAGER);
 
-        routes.post(prefix + "/events/export", this::exportPdf, Roles.EVENT_MANAGEMENT);
-        routes.get(prefix + "/events/field-names", this::listFieldNames, Roles.EVENT_MANAGEMENT);
+        routes.post(prefix + "/events/export", this::exportPdf, Roles.EVENT_MANAGER);
+        routes.get(prefix + "/events/field-names", this::listFieldNames, Roles.EVENT_MANAGER);
 
         routes.get(prefix + "/events/categories", this::listCategories, Roles.USER);
-        routes.post(prefix + "/events/categories", this::createCategory, Roles.EVENT_MANAGEMENT);
-        routes.put(prefix + "/events/categories/{id}", this::updateCategory, Roles.EVENT_MANAGEMENT);
-        routes.delete(prefix + "/events/categories/{id}", this::deleteCategory, Roles.EVENT_MANAGEMENT);
+        routes.post(prefix + "/events/categories", this::createCategory, Roles.EVENT_MANAGER);
+        routes.put(prefix + "/events/categories/{id}", this::updateCategory, Roles.EVENT_MANAGER);
+        routes.delete(prefix + "/events/categories/{id}", this::deleteCategory, Roles.EVENT_MANAGER);
 
         routes.get(prefix + "/events/breaks", this::listBreaks, Roles.USER);
-        routes.post(prefix + "/events/breaks", this::createBreak, Roles.EVENT_MANAGEMENT);
-        routes.put(prefix + "/events/breaks/{id}", this::updateBreak, Roles.EVENT_MANAGEMENT);
-        routes.delete(prefix + "/events/breaks/{id}", this::deleteBreak, Roles.EVENT_MANAGEMENT);
+        routes.post(prefix + "/events/breaks", this::createBreak, Roles.EVENT_MANAGER);
+        routes.put(prefix + "/events/breaks/{id}", this::updateBreak, Roles.EVENT_MANAGER);
+        routes.delete(prefix + "/events/breaks/{id}", this::deleteBreak, Roles.EVENT_MANAGER);
 
         routes.get(prefix + "/events/registrations/mine", this::listMyRegistrations, Roles.USER);
-        routes.get(prefix + "/events/registrations/pending", this::listPendingRegistrations, Roles.EVENT_MANAGEMENT);
+        routes.get(prefix + "/events/registrations/pending", this::listPendingRegistrations, Roles.EVENT_MANAGER);
         routes.get(prefix + "/events/registrations/counts", this::listRegistrationCounts, Roles.USER);
-        routes.put(
-                prefix + "/events/registrations/{id}/status", this::updateRegistrationStatus, Roles.EVENT_MANAGEMENT);
+        routes.put(prefix + "/events/registrations/{id}/status", this::updateRegistrationStatus, Roles.EVENT_MANAGER);
         routes.delete(prefix + "/events/registrations/{id}", this::withdrawRegistration, Roles.USER);
 
         routes.get(prefix + "/events/restrictions", this::listAllRestrictions, Roles.USER);
@@ -139,19 +138,19 @@ public class EventRoutes implements Routes {
         routes.post(prefix + "/events/{eventId}/decline", this::decline, Roles.USER);
 
         routes.get(prefix + "/events/{id}", this::get, Roles.USER);
-        routes.put(prefix + "/events/{id}", this::update, Roles.EVENT_MANAGEMENT);
-        routes.delete(prefix + "/events/{id}", this::delete, Roles.EVENT_MANAGEMENT);
+        routes.put(prefix + "/events/{id}", this::update, Roles.EVENT_MANAGER);
+        routes.delete(prefix + "/events/{id}", this::delete, Roles.EVENT_MANAGER);
 
         routes.get(prefix + "/events/{id}/restrictions", this::getRestrictions, Roles.USER);
-        routes.put(prefix + "/events/{id}/restrictions", this::setRestrictions, Roles.EVENT_MANAGEMENT);
+        routes.put(prefix + "/events/{id}/restrictions", this::setRestrictions, Roles.EVENT_MANAGER);
 
         routes.get(prefix + "/events/{id}/field-defaults", this::getFieldDefaults, Roles.USER);
-        routes.put(prefix + "/events/{id}/field-defaults", this::setFieldDefaults, Roles.EVENT_MANAGEMENT);
+        routes.put(prefix + "/events/{id}/field-defaults", this::setFieldDefaults, Roles.EVENT_MANAGER);
 
         routes.get(prefix + "/events/{id}/fields", this::getFields, Roles.USER);
-        routes.put(prefix + "/events/{id}/fields", this::setFields, Roles.EVENT_MANAGEMENT);
+        routes.put(prefix + "/events/{id}/fields", this::setFields, Roles.EVENT_MANAGER);
 
-        routes.get(prefix + "/events/{id}/absences", this::listAbsencesForDate, Roles.EVENT_MANAGEMENT);
+        routes.get(prefix + "/events/{id}/absences", this::listAbsencesForDate, Roles.EVENT_MANAGER);
     }
 
     private Set<Roles> resolveRolesForMember(UserSession session, int memberId) {
@@ -546,7 +545,7 @@ public class EventRoutes implements Routes {
                         .findManaged(session.member().id())
                         .stream()
                         .anyMatch(m -> m.id() == memberId);
-                if (!manages && !session.hasRole(Roles.EVENT_MANAGEMENT)) {
+                if (!manages && !session.hasRole(Roles.EVENT_MANAGER)) {
                     throw new ForbiddenResponse("You do not manage this member");
                 }
             }
@@ -594,7 +593,7 @@ public class EventRoutes implements Routes {
                         .findManaged(session.member().id())
                         .stream()
                         .anyMatch(m -> m.id() == memberId);
-                if (!manages && !session.hasRole(Roles.EVENT_MANAGEMENT)) {
+                if (!manages && !session.hasRole(Roles.EVENT_MANAGER)) {
                     throw new ForbiddenResponse("You do not manage this member");
                 }
             }
@@ -654,7 +653,7 @@ public class EventRoutes implements Routes {
                 new NotificationData.NotificationLink("event-detail", Map.of("id", registration.eventId())));
         notificationService.notify(registration.memberId(), NotificationType.EVENT_REGISTRATION_STATUS, data);
         var eventMgmtIds =
-                stationMemberRepository.findMembersWithRole(session.stationId(), Roles.EVENT_MANAGEMENT).stream()
+                stationMemberRepository.findMembersWithRole(session.stationId(), Roles.EVENT_MANAGER).stream()
                         .map(StationMember::id)
                         .toList();
         notificationService.notifyMembersIfAbsent(
@@ -680,14 +679,14 @@ public class EventRoutes implements Routes {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
         var reg = eventService.findRegistrationById(id).orElseThrow(NotFoundResponse::new);
 
-        // Allow if it's the user's own registration, they manage the member, or they have EVENT_MANAGEMENT
+        // Allow if it's the user's own registration, they manage the member, or they have EVENT_MANAGER
         int regMemberId = reg.memberId();
         boolean isOwn = session.member() != null && session.member().id() == regMemberId;
         boolean manages = session.member() != null
                 && session.hasRole(Roles.GUARDIAN)
                 && stationMemberService.findManaged(session.member().id()).stream()
                         .anyMatch(m -> m.id() == regMemberId);
-        if (!isOwn && !manages && !session.hasRole(Roles.EVENT_MANAGEMENT)) {
+        if (!isOwn && !manages && !session.hasRole(Roles.EVENT_MANAGER)) {
             throw new ForbiddenResponse("You cannot withdraw this registration");
         }
 

@@ -16,6 +16,7 @@ import TextInput from '@/components/input/text/TextInput.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import NumberInput from '@/components/input/number/NumberInput.vue'
 import DateInput from '@/components/input/datetime/DateInput.vue'
+import DateTimeInput from '@/components/input/datetime/DateTimeInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
@@ -219,7 +220,7 @@ onMounted(loadData)
           <span class="inline-flex items-center gap-1">
             {{ t('waitingList.createdAt') }}:
             <template v-if="editingCreatedAt">
-              <input type="datetime-local" v-model="editCreatedAtValue" class="text-xs px-1 py-0.5 rounded border border-[var(--border)] bg-[var(--bg)] text-[var(--text)]" />
+              <DateTimeInput v-model="editCreatedAtValue" />
               <IconButton :icon="['fas', 'check']" label="Speichern" @click="saveCreatedAt" />
               <IconButton :icon="['fas', 'xmark']" label="Abbrechen" @click="editingCreatedAt = false" />
             </template>

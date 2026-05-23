@@ -45,31 +45,28 @@ public class FederationRoutes implements Routes {
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
         // Partner management
-        routes.get(prefix + "/federation/partners", this::listPartners, Roles.FEDERATION_MANAGEMENT);
-        routes.post(prefix + "/federation/invite", this::createInvite, Roles.FEDERATION_MANAGEMENT);
-        routes.post(prefix + "/federation/accept", this::acceptInvite, Roles.FEDERATION_MANAGEMENT);
-        routes.get(prefix + "/federation/partners/{id}", this::getPartner, Roles.FEDERATION_MANAGEMENT);
-        routes.post(prefix + "/federation/partners/{id}/suspend", this::suspendPartner, Roles.FEDERATION_MANAGEMENT);
-        routes.post(prefix + "/federation/partners/{id}/resume", this::resumePartner, Roles.FEDERATION_MANAGEMENT);
-        routes.delete(prefix + "/federation/partners/{id}", this::endFederation, Roles.FEDERATION_MANAGEMENT);
+        routes.get(prefix + "/federation/partners", this::listPartners, Roles.FEDERATION_MANAGER);
+        routes.post(prefix + "/federation/invite", this::createInvite, Roles.FEDERATION_MANAGER);
+        routes.post(prefix + "/federation/accept", this::acceptInvite, Roles.FEDERATION_MANAGER);
+        routes.get(prefix + "/federation/partners/{id}", this::getPartner, Roles.FEDERATION_MANAGER);
+        routes.post(prefix + "/federation/partners/{id}/suspend", this::suspendPartner, Roles.FEDERATION_MANAGER);
+        routes.post(prefix + "/federation/partners/{id}/resume", this::resumePartner, Roles.FEDERATION_MANAGER);
+        routes.delete(prefix + "/federation/partners/{id}", this::endFederation, Roles.FEDERATION_MANAGER);
 
         // Capabilities
-        routes.get(
-                prefix + "/federation/partners/{id}/capabilities", this::getCapabilities, Roles.FEDERATION_MANAGEMENT);
-        routes.put(
-                prefix + "/federation/partners/{id}/capabilities", this::setCapabilities, Roles.FEDERATION_MANAGEMENT);
+        routes.get(prefix + "/federation/partners/{id}/capabilities", this::getCapabilities, Roles.FEDERATION_MANAGER);
+        routes.put(prefix + "/federation/partners/{id}/capabilities", this::setCapabilities, Roles.FEDERATION_MANAGER);
 
         // Sharing management
-        routes.get(prefix + "/federation/shares/kb", this::listKbShares, Roles.FEDERATION_MANAGEMENT);
-        routes.post(prefix + "/federation/shares/kb", this::createKbShare, Roles.FEDERATION_MANAGEMENT);
-        routes.delete(prefix + "/federation/shares/kb/{id}", this::deleteKbShare, Roles.FEDERATION_MANAGEMENT);
-        routes.get(prefix + "/federation/shares/quiz", this::listQuizShares, Roles.FEDERATION_MANAGEMENT);
-        routes.post(prefix + "/federation/shares/quiz", this::createQuizShare, Roles.FEDERATION_MANAGEMENT);
-        routes.delete(prefix + "/federation/shares/quiz/{id}", this::deleteQuizShare, Roles.FEDERATION_MANAGEMENT);
-        routes.get(prefix + "/federation/shares/protocol", this::listProtocolShares, Roles.FEDERATION_MANAGEMENT);
-        routes.post(prefix + "/federation/shares/protocol", this::createProtocolShare, Roles.FEDERATION_MANAGEMENT);
-        routes.delete(
-                prefix + "/federation/shares/protocol/{id}", this::deleteProtocolShare, Roles.FEDERATION_MANAGEMENT);
+        routes.get(prefix + "/federation/shares/kb", this::listKbShares, Roles.FEDERATION_MANAGER);
+        routes.post(prefix + "/federation/shares/kb", this::createKbShare, Roles.FEDERATION_MANAGER);
+        routes.delete(prefix + "/federation/shares/kb/{id}", this::deleteKbShare, Roles.FEDERATION_MANAGER);
+        routes.get(prefix + "/federation/shares/quiz", this::listQuizShares, Roles.FEDERATION_MANAGER);
+        routes.post(prefix + "/federation/shares/quiz", this::createQuizShare, Roles.FEDERATION_MANAGER);
+        routes.delete(prefix + "/federation/shares/quiz/{id}", this::deleteQuizShare, Roles.FEDERATION_MANAGER);
+        routes.get(prefix + "/federation/shares/protocol", this::listProtocolShares, Roles.FEDERATION_MANAGER);
+        routes.post(prefix + "/federation/shares/protocol", this::createProtocolShare, Roles.FEDERATION_MANAGER);
+        routes.delete(prefix + "/federation/shares/protocol/{id}", this::deleteProtocolShare, Roles.FEDERATION_MANAGER);
 
         // Browse shared content (available to all users)
         routes.get(prefix + "/federation/shared/kb", this::browseSharedKb, Roles.USER);
@@ -77,12 +74,12 @@ public class FederationRoutes implements Routes {
         routes.get(prefix + "/federation/shared/protocols", this::browseSharedProtocols, Roles.USER);
 
         // Copy shared content to own station
-        routes.post(prefix + "/federation/copy/kb/{fileId}", this::copyKbFile, Roles.KNOWLEDGE_MANAGEMENT);
-        routes.post(prefix + "/federation/copy/quiz/{catalogId}", this::copyQuizCatalog, Roles.QUIZ_MANAGEMENT);
-        routes.post(prefix + "/federation/copy/protocol/{protocolId}", this::copyProtocol, Roles.PROTOCOL_MANAGEMENT);
+        routes.post(prefix + "/federation/copy/kb/{fileId}", this::copyKbFile, Roles.KNOWLEDGE_MANAGER);
+        routes.post(prefix + "/federation/copy/quiz/{catalogId}", this::copyQuizCatalog, Roles.QUIZ_MANAGER);
+        routes.post(prefix + "/federation/copy/protocol/{protocolId}", this::copyProtocol, Roles.PROTOCOL_MANAGER);
 
         // Version/capabilities info
-        routes.get(prefix + "/federation/info", this::getInfo, Roles.FEDERATION_MANAGEMENT);
+        routes.get(prefix + "/federation/info", this::getInfo, Roles.FEDERATION_MANAGER);
     }
 
     // -- Partner Management --

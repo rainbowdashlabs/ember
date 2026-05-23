@@ -78,6 +78,7 @@ public class ApiServer {
     private final ProfileFieldService profileFieldService;
     private final MemberGroupRepository memberGroupRepository;
     private final UserTagRepository userTagRepository;
+    private final dev.chojo.ember.feature.system.service.ApiRequestLogger apiRequestLogger;
 
     @Inject
     public ApiServer(
@@ -90,7 +91,8 @@ public class ApiServer {
             StationRepository stationRepository,
             ProfileFieldService profileFieldService,
             MemberGroupRepository memberGroupRepository,
-            UserTagRepository userTagRepository) {
+            UserTagRepository userTagRepository,
+            dev.chojo.ember.feature.system.service.ApiRequestLogger apiRequestLogger) {
         this.routes = routes;
         this.apiConfig = apiConfig;
         this.demoConfig = demoConfig;
@@ -101,6 +103,8 @@ public class ApiServer {
         this.profileFieldService = profileFieldService;
         this.memberGroupRepository = memberGroupRepository;
         this.userTagRepository = userTagRepository;
+        this.apiRequestLogger = apiRequestLogger;
+        this.apiRequestLogger.start();
     }
 
     /**
@@ -177,6 +181,16 @@ public class ApiServer {
 
             // Cache-control headers
             config.routes.after(this::applyCacheHeaders);
+
+            // API request timing
+            config.routes.before(ctx -> ctx.attribute("_requestStart", System.currentTimeMillis()));
+            config.routes.after(ctx -> {
+                Long start = ctx.attribute("_requestStart");
+                if (start != null && ctx.path().startsWith(API_PREFIX)) {
+                    long duration = System.currentTimeMillis() - start;
+                    apiRequestLogger.record(ctx.method().name(), ctx.path(), ctx.statusCode(), duration);
+                }
+            });
 
             if (demoConfig.enabled()) {
                 config.routes.before(this::handleDemoGuard);
@@ -274,7 +288,7 @@ public class ApiServer {
             }
             if (!accounts.isEmpty()) {
                 stationGroups.add(Map.of(
-                        "stationId", station.id(),
+                        "stationId", station.uid().toString(),
                         "stationName", station.name(),
                         "accounts", accounts));
             }
@@ -315,22 +329,26 @@ public class ApiServer {
             throw new UnauthorizedResponse("Missing or invalid Authorization header");
         }
 
-        // Parse optional station ID from header or query param
-        Integer stationId = null;
+        // Parse optional station UID from header or query param
+        dev.chojo.ember.feature.station.entity.Station station = null;
         String stationIdHeader = ctx.header("X-Station-Id");
         if ((stationIdHeader == null || stationIdHeader.isBlank()) && ctx.queryParam("stationId") != null) {
             stationIdHeader = ctx.queryParam("stationId");
         }
         if (stationIdHeader != null && !stationIdHeader.isBlank()) {
             try {
-                stationId = Integer.parseInt(stationIdHeader);
-            } catch (NumberFormatException e) {
+                var uid = java.util.UUID.fromString(stationIdHeader);
+                station = stationRepository.findByUid(uid).orElse(null);
+                if (station == null) {
+                    throw new UnauthorizedResponse("Unknown station");
+                }
+            } catch (IllegalArgumentException e) {
                 throw new UnauthorizedResponse("Invalid X-Station-Id header");
             }
         }
 
         // Resolve user session with account info and roles
-        Optional<UserSession> sessionOpt = accessManager.resolveUserSession(token, stationId);
+        Optional<UserSession> sessionOpt = accessManager.resolveUserSession(token, station);
         if (sessionOpt.isEmpty()) {
             throw new UnauthorizedResponse("Invalid or expired session");
         }
@@ -368,6 +386,7 @@ public class ApiServer {
      */
     private Jackson3Mapper jacksonMapper() {
         ObjectMapper mapper = JsonMapper.builder()
+                .addModule(new StationIdModule())
                 .defaultDateFormat(new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSX"))
                 .build();
         return new Jackson3Mapper(mapper);

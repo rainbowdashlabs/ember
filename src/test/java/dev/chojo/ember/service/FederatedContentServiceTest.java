@@ -6,9 +6,11 @@
 package dev.chojo.ember.service;
 
 import dev.chojo.ember.conf.file.elements.Api;
+import dev.chojo.ember.conf.file.elements.Demo;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.service.FederatedContentService;
+import dev.chojo.ember.feature.federation.service.FederationHttpClient;
 import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFile;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFileType;
@@ -71,8 +73,10 @@ class FederatedContentServiceTest extends RepositoryTestBase {
         kbService = mock(KnowledgeBaseService.class);
         quizService = mock(QuizService.class);
         protocolService = mock(TestProtocolService.class);
-        contentService =
-                new FederatedContentService(federationRepo, federationService, kbService, quizService, protocolService);
+        var httpClient = mock(FederationHttpClient.class);
+        var demo = new Demo();
+        contentService = new FederatedContentService(
+                federationRepo, federationService, httpClient, kbService, quizService, protocolService, demo);
 
         kbRepo = new KnowledgeBaseRepository();
         quizCatalogRepo = new QuizCatalogRepository();
@@ -137,26 +141,32 @@ class FederatedContentServiceTest extends RepositoryTestBase {
                 0,
                 memberB.id(),
                 now,
-                now);
+                now,
+                null,
+                null);
         when(kbService.findFile(realKbFileId)).thenReturn(Optional.of(kbFile));
         when(kbService.getMarkdownContent(realKbFileId)).thenReturn(Optional.of("# Shared Content"));
+        var copiedFile = new KbFile(
+                9999,
+                stationA.id(),
+                null,
+                "SharedFile",
+                "A shared file",
+                KbFileType.MARKDOWN,
+                "text/markdown",
+                1024,
+                null,
+                null,
+                null,
+                0,
+                1,
+                now,
+                now,
+                realKbFileId,
+                stationB.id());
         when(kbService.createMarkdownFile(anyInt(), any(), anyString(), anyString(), anyString(), anyInt()))
-                .thenReturn(new KbFile(
-                        9999,
-                        stationA.id(),
-                        null,
-                        "SharedFile",
-                        "A shared file",
-                        KbFileType.MARKDOWN,
-                        "text/markdown",
-                        1024,
-                        null,
-                        null,
-                        null,
-                        0,
-                        1,
-                        now,
-                        now));
+                .thenReturn(copiedFile);
+        when(kbService.findFile(9999)).thenReturn(Optional.of(copiedFile));
 
         // Mock QuizService
         var catalog =
@@ -262,6 +272,8 @@ class FederatedContentServiceTest extends RepositoryTestBase {
         var copied = contentService.copyKbFile(realKbFileId, stationA.id(), 1);
         assertNotNull(copied);
         assertEquals(stationA.id(), copied.stationId());
+        assertEquals(realKbFileId, copied.sourceFileId());
+        assertEquals(stationB.id(), copied.sourceStationId());
         verify(kbService)
                 .createMarkdownFile(
                         eq(stationA.id()),
@@ -270,6 +282,7 @@ class FederatedContentServiceTest extends RepositoryTestBase {
                         eq("A shared file"),
                         eq("# Shared Content"),
                         eq(1));
+        verify(kbService).setSourceReference(9999, realKbFileId, stationB.id());
     }
 
     @Test

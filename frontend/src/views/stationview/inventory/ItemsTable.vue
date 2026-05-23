@@ -9,6 +9,7 @@ import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import IconButton from '@/components/button/IconButton.vue'
+import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import EditButton from '@/components/button/EditButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import SizeBadge from '@/components/badge/SizeBadge.vue'
@@ -87,9 +88,9 @@ function formatDate(iso: string | null | undefined): string {
         </div>
         <div v-if="item.assignedTo">
           <span class="text-(--text-muted)">{{ t('inventory.edit.colAssigned') }}:</span>
-          <button class="ml-1 text-primary font-medium hover:underline cursor-pointer" @click.stop="router.push({ name: 'inventory-member', params: { memberId: item.assignedTo } })">
+          <SecondaryButton class="!bg-transparent !p-0 ml-1 text-primary font-medium hover:underline" @click.stop="router.push({ name: 'inventory-member', params: { memberId: item.assignedTo } })">
             <MemberName :name="getMemberName(item.assignedTo)" :member-id="item.assignedTo"/>
-          </button>
+          </SecondaryButton>
         </div>
       </div>
       <div v-if="showActions" class="flex items-center gap-0.5 pt-1 border-t border-bg-light-accent/50 dark:border-bg-dark-accent/50">
@@ -135,7 +136,7 @@ function formatDate(iso: string | null | undefined): string {
             <span v-else class="text-(--text-muted)">–</span>
           </td>
           <td class="px-3 py-2.5">
-            <button v-if="item.assignedTo" class="text-primary font-medium hover:underline cursor-pointer" @click.stop="router.push({ name: 'inventory-member', params: { memberId: item.assignedTo } })"><MemberName :name="getMemberName(item.assignedTo)" :member-id="item.assignedTo"/></button>
+            <SecondaryButton v-if="item.assignedTo" class="!bg-transparent !p-0 text-primary font-medium hover:underline" @click.stop="router.push({ name: 'inventory-member', params: { memberId: item.assignedTo } })"><MemberName :name="getMemberName(item.assignedTo)" :member-id="item.assignedTo"/></SecondaryButton>
             <span v-else class="text-(--text-muted)">–</span>
           </td>
           <td v-if="showActions" class="px-3 py-2.5 text-right">

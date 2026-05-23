@@ -46,21 +46,21 @@ public class AiRoutes implements Routes {
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
         // Settings
-        routes.get(prefix + "/ai/settings", this::getSettings, Roles.QUIZ_MANAGEMENT);
-        routes.put(prefix + "/ai/settings/prompt", this::savePrompt, Roles.QUIZ_MANAGEMENT);
+        routes.get(prefix + "/ai/settings", this::getSettings, Roles.QUIZ_MANAGER);
+        routes.put(prefix + "/ai/settings/prompt", this::savePrompt, Roles.QUIZ_MANAGER);
 
         // Provider management
-        routes.put(prefix + "/ai/providers/{provider}", this::saveProvider, Roles.QUIZ_MANAGEMENT);
-        routes.delete(prefix + "/ai/providers/{provider}", this::deleteProvider, Roles.QUIZ_MANAGEMENT);
+        routes.put(prefix + "/ai/providers/{provider}", this::saveProvider, Roles.QUIZ_MANAGER);
+        routes.delete(prefix + "/ai/providers/{provider}", this::deleteProvider, Roles.QUIZ_MANAGER);
 
         // Model listing
-        routes.post(prefix + "/ai/providers/{provider}/models", this::fetchModels, Roles.QUIZ_MANAGEMENT);
+        routes.post(prefix + "/ai/providers/{provider}/models", this::fetchModels, Roles.QUIZ_MANAGER);
 
         // Generation
-        routes.post(prefix + "/ai/generate", this::generate, Roles.QUIZ_MANAGEMENT);
-        routes.post(prefix + "/ai/generate-questions", this::generateQuestions, Roles.QUIZ_MANAGEMENT);
-        routes.get(prefix + "/ai/generate-questions/{jobId}", this::pollGeneration, Roles.QUIZ_MANAGEMENT);
-        routes.post(prefix + "/ai/batch-generate/{catalogId}", this::batchGenerate, Roles.QUIZ_MANAGEMENT);
+        routes.post(prefix + "/ai/generate", this::generate, Roles.QUIZ_MANAGER);
+        routes.post(prefix + "/ai/generate-questions", this::generateQuestions, Roles.QUIZ_MANAGER);
+        routes.get(prefix + "/ai/generate-questions/{jobId}", this::pollGeneration, Roles.QUIZ_MANAGER);
+        routes.post(prefix + "/ai/batch-generate/{catalogId}", this::batchGenerate, Roles.QUIZ_MANAGER);
     }
 
     private void getSettings(Context ctx) {

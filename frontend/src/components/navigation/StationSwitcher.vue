@@ -33,7 +33,7 @@ onMounted(() => {
   load()
 })
 
-async function switchStation(stationId: number) {
+async function switchStation(stationId: string) {
   setActiveStation(stationId)
   showModal.value = false
   await loadSession()

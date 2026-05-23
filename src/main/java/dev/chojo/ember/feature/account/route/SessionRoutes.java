@@ -131,7 +131,7 @@ public class SessionRoutes implements Routes {
             groups = groupService.findGroupsForMember(session.member().id());
             memberInfo = new MemberInfo(
                     session.member().id(),
-                    session.member().stationId(),
+                    session.stationUid() != null ? session.stationUid().toString() : null,
                     session.member().accountId());
         }
 
@@ -151,8 +151,11 @@ public class SessionRoutes implements Routes {
                             ? (account.firstName() + " " + account.lastName()).trim()
                             : (m.displayName() != null ? m.displayName() : "");
                     String email = account != null ? account.email() : "";
+                    var managedStation = stationService.findById(m.stationId()).orElse(null);
+                    String managedStationUid =
+                            managedStation != null ? managedStation.uid().toString() : null;
                     return new ManagedMemberInfo(
-                            m.id(), m.stationId(), m.accountId() != null ? m.accountId() : 0, name, email);
+                            m.id(), managedStationUid, m.accountId() != null ? m.accountId() : 0, name, email);
                 })
                 .toList();
 
@@ -182,14 +185,20 @@ public class SessionRoutes implements Routes {
                         session.account().email(),
                         session.account().firstName(),
                         session.account().lastName()),
-                session.stationId(),
+                session.stationUid() != null ? session.stationUid().toString() : null,
                 memberInfo,
                 roleNames,
                 managedInfos,
                 groups,
                 profileComplete,
                 disabledModules,
-                themeInfo));
+                themeInfo,
+                session.stationId() != null
+                        ? stationService
+                                .findById(session.stationId())
+                                .map(s -> s.publicKbMode().name())
+                                .orElse("OFF")
+                        : null));
     }
 
     @OpenApi(
@@ -205,7 +214,8 @@ public class SessionRoutes implements Routes {
                 .map(m -> {
                     var station = stationService.findById(m.stationId()).orElse(null);
                     String stationName = station != null ? station.name() : null;
-                    return new StationMembership(m.id(), m.stationId(), stationName);
+                    String stationUid = station != null ? station.uid().toString() : null;
+                    return new StationMembership(m.id(), stationUid, stationName);
                 })
                 .toList();
         ctx.json(result);
@@ -392,14 +402,15 @@ public class SessionRoutes implements Routes {
      */
     public record SessionInfo(
             AccountInfo account,
-            Integer stationId,
+            String stationId,
             MemberInfo member,
             List<String> roles,
             List<ManagedMemberInfo> managedMembers,
             List<MemberGroup> groups,
             boolean profileComplete,
             Set<StationModule> disabledModules,
-            ThemeInfo theme) {}
+            ThemeInfo theme,
+            String publicKbMode) {}
 
     public record ThemeInfo(
             String defaultTheme,
@@ -417,7 +428,7 @@ public class SessionRoutes implements Routes {
      * @param name      the member's display name
      * @param email     the member's email, or empty string if unavailable
      */
-    public record ManagedMemberInfo(int id, int stationId, int accountId, String name, String email) {}
+    public record ManagedMemberInfo(int id, String stationId, int accountId, String name, String email) {}
 
     /**
      * Account information included in the session response.
@@ -436,7 +447,7 @@ public class SessionRoutes implements Routes {
      * @param stationId the station identifier
      * @param accountId the account identifier
      */
-    public record MemberInfo(int id, int stationId, int accountId) {}
+    public record MemberInfo(int id, String stationId, int accountId) {}
 
     /**
      * A station membership entry listing which stations the user belongs to.
@@ -445,7 +456,7 @@ public class SessionRoutes implements Routes {
      * @param stationId   the station identifier
      * @param stationName the station name
      */
-    public record StationMembership(int memberId, int stationId, String stationName) {}
+    public record StationMembership(int memberId, String stationId, String stationName) {}
 
     /**
      * Represents an active session as returned to the user.

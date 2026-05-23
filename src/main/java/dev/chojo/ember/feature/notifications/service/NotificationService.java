@@ -42,15 +42,16 @@ import java.util.concurrent.TimeUnit;
 public class NotificationService {
     private static final Logger log = LoggerFactory.getLogger(NotificationService.class);
     private static final Localizer LOCALIZER = new Localizer();
-    private static final Map<String, String> ROUTE_PATHS = Map.of(
-            "news-list", "/station/news",
-            "events-registrations", "/station/events/registrations",
-            "events-upcoming", "/station/events/upcoming",
-            "inventory-exchanges", "/station/inventory/exchanges",
-            "inventory-procurement", "/station/inventory/procurement",
-            "members-detail", "/station/members/detail/{id}",
-            "dashboard-overview", "/station/dashboard/overview",
-            "lost-and-found", "/station/lost-and-found");
+    private static final Map<String, String> ROUTE_PATHS = Map.ofEntries(
+            Map.entry("news-list", "/station/news"),
+            Map.entry("events-registrations", "/station/events/registrations"),
+            Map.entry("events-upcoming", "/station/events/upcoming"),
+            Map.entry("inventory-exchanges", "/station/inventory/exchanges"),
+            Map.entry("inventory-procurement", "/station/inventory/procurement"),
+            Map.entry("members-detail", "/station/members/detail/{id}"),
+            Map.entry("dashboard-overview", "/station/dashboard/overview"),
+            Map.entry("lost-and-found", "/station/lost-and-found"),
+            Map.entry("lending-request", "/station/inventory/lending/{id}"));
     private final NotificationRepository notificationRepository;
     private final StationMemberRepository stationMemberRepository;
     private final UserSettingsRepository userSettingsRepository;

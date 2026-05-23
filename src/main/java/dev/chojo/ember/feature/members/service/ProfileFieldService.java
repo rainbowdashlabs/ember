@@ -108,11 +108,11 @@ public class ProfileFieldService {
                 .anyMatch(r -> r.equals("TEAM")
                         || r.equals("MANAGER")
                         || r.equals("ADMIN")
-                        || r.equals("ATTENDENCE_MANAGEMENT")
-                        || r.equals("INVENTORY_MANAGEMENT")
-                        || r.equals("EVENT_MANAGEMENT")
-                        || r.equals("MEMBER_MANAGEMENT")
-                        || r.equals("NEWS_MANAGEMENT"))) {
+                        || r.equals("ATTENDANCE_MANAGER")
+                        || r.equals("INVENTORY_MANAGER")
+                        || r.equals("EVENT_MANAGER")
+                        || r.equals("MEMBER_MANAGER")
+                        || r.equals("NEWS_MANAGER"))) {
             scopes.add(ProfileFieldScope.TEAM);
         }
 
@@ -258,7 +258,7 @@ public class ProfileFieldService {
                 new NotificationData.NotificationLink("members-detail", Map.of("id", memberId)));
 
         var memberMgmtIds =
-                stationMemberRepository.findMembersWithRole(member.stationId(), Roles.MEMBER_MANAGEMENT).stream()
+                stationMemberRepository.findMembersWithRole(member.stationId(), Roles.MEMBER_MANAGER).stream()
                         .map(StationMember::id)
                         .toList();
 

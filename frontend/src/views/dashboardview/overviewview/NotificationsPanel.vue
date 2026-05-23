@@ -9,6 +9,7 @@ import {useI18n} from 'vue-i18n'
 import {useRouter} from 'vue-router'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import LinkButton from '@/components/button/LinkButton.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import {notifications} from '@/api'
 import type {NotificationEntry} from '@/api/types'
@@ -119,10 +120,10 @@ onMounted(loadData)
               <p class="text-xs text-(--text-muted)">{{ formatDate(n.createdAt) }}</p>
             </div>
           </div>
-          <button type="button" class="text-xs text-primary hover:underline shrink-0 mt-1" @click.stop="ack(n.id)">
+          <LinkButton class="shrink-0 mt-1" @click="($event: MouseEvent) => { $event.stopPropagation(); ack(n.id) }">
             <font-awesome-icon :icon="['fas', 'check']" class="mr-0.5"/>
             {{ t('dashboard.acknowledge') }}
-          </button>
+          </LinkButton>
         </NeutralContainer>
       </template>
     </div>

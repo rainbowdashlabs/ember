@@ -45,11 +45,11 @@ const searchQuery = ref('')
 
 // Filters
 const showFederated = ref(true)
-const filterStationId = ref<number | null>(null)
+const filterStationId = ref<string | null>(null)
 
 // Unique partner stations from shared catalogs
 const partnerStations = computed(() => {
-  const map = new Map<number, string>()
+  const map = new Map<string, string>()
   for (const s of sharedCatalogs.value) {
     map.set(s.sourceStationId, s.stationName)
   }
@@ -248,7 +248,7 @@ watch(loaded, (isLoaded) => {
           v-if="showFederated && partnerStations.length > 0"
           :model-value="filterStationId != null ? String(filterStationId) : ''"
           class="!w-auto !text-xs !py-1"
-          @update:model-value="(v: string | undefined) => { filterStationId = v ? Number(v) : null }"
+          @update:model-value="(v: string | undefined) => { filterStationId = v || null }"
         >
           <option value="">{{ t('quiz.catalogs.allStations') }}</option>
           <option v-for="station in partnerStations" :key="station.id" :value="String(station.id)">

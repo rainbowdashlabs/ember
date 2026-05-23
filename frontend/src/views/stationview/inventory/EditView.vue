@@ -117,7 +117,7 @@ async function loadData() {
     const [inv, allItems, allMembers] = await Promise.all([
       inventory.getInventory(inventoryId.value),
       inventory.listItems(inventoryId.value),
-      stationMembers.listMembers(currentStationId.value!),
+      stationMembers.listMembers(),
     ])
     detail.value = inv
     items.value = allItems

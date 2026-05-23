@@ -11,19 +11,19 @@ export const Roles = {
     MEMBER: 'MEMBER',
     GUARDIAN: 'GUARDIAN',
     TEAM: 'TEAM',
-    ATTENDENCE_MANAGEMENT: 'ATTENDENCE_MANAGEMENT',
-    ATTENDENCE_EXPORT_MANAGER: 'ATTENDENCE_EXPORT_MANAGER',
-    INVENTORY_MANAGEMENT: 'INVENTORY_MANAGEMENT',
-    EVENT_MANAGEMENT: 'EVENT_MANAGEMENT',
-    MEMBER_MANAGEMENT: 'MEMBER_MANAGEMENT',
-    NEWS_MANAGEMENT: 'NEWS_MANAGEMENT',
-    POLL_MANAGEMENT: 'POLL_MANAGEMENT',
-    LOST_AND_FOUND_MANAGEMENT: 'LOST_AND_FOUND_MANAGEMENT',
-    WAITLIST_MANAGEMENT: 'WAITLIST_MANAGEMENT',
-    QUIZ_MANAGEMENT: 'QUIZ_MANAGEMENT',
-    KNOWLEDGE_MANAGEMENT: 'KNOWLEDGE_MANAGEMENT',
-    PROTOCOL_MANAGEMENT: 'PROTOCOL_MANAGEMENT',
-    FEDERATION_MANAGEMENT: 'FEDERATION_MANAGEMENT',
+    ATTENDANCE_MANAGER: 'ATTENDANCE_MANAGER',
+    ATTENDANCE_EXPORT_MANAGER: 'ATTENDANCE_EXPORT_MANAGER',
+    INVENTORY_MANAGER: 'INVENTORY_MANAGER',
+    EVENT_MANAGER: 'EVENT_MANAGER',
+    MEMBER_MANAGER: 'MEMBER_MANAGER',
+    NEWS_MANAGER: 'NEWS_MANAGER',
+    POLL_MANAGER: 'POLL_MANAGER',
+    LOST_AND_FOUND_MANAGER: 'LOST_AND_FOUND_MANAGER',
+    WAITLIST_MANAGER: 'WAITLIST_MANAGER',
+    QUIZ_MANAGER: 'QUIZ_MANAGER',
+    KNOWLEDGE_MANAGER: 'KNOWLEDGE_MANAGER',
+    FEDERATION_MANAGER: 'FEDERATION_MANAGER',
+    PROTOCOL_MANAGER: 'PROTOCOL_MANAGER',
     PROTOCOL_TESTER: 'PROTOCOL_TESTER',
     MANAGER: 'MANAGER',
     ADMIN: 'ADMIN',
@@ -33,9 +33,9 @@ export type RoleName = (typeof Roles)[keyof typeof Roles]
 
 export const TEAM_ROLES: readonly RoleName[] = [
     Roles.TEAM, Roles.MANAGER, Roles.ADMIN,
-    Roles.ATTENDENCE_MANAGEMENT, Roles.INVENTORY_MANAGEMENT,
-    Roles.EVENT_MANAGEMENT, Roles.MEMBER_MANAGEMENT,
-    Roles.POLL_MANAGEMENT,
+    Roles.ATTENDANCE_MANAGER, Roles.INVENTORY_MANAGER,
+    Roles.EVENT_MANAGER, Roles.MEMBER_MANAGER,
+    Roles.POLL_MANAGER,
 ] as const
 
 export function isTeamRole(role: string): boolean {
@@ -117,13 +117,13 @@ export interface AccountInfo {
 
 export interface MemberInfo {
     id: number
-    stationId: number
+    stationId: string
     accountId: number
 }
 
 export interface SessionInfo {
     account?: AccountInfo
-    stationId?: number
+    stationId?: string
     member?: MemberInfo
     roles?: string[]
     managedMembers?: StationMember[]
@@ -131,6 +131,7 @@ export interface SessionInfo {
     profileComplete?: boolean
     disabledModules?: string[]
     theme?: ThemeSessionInfo
+    publicKbMode?: string
 }
 
 export interface ThemeSessionInfo {
@@ -209,7 +210,7 @@ export interface ConsentChangesResponse {
 
 export interface StationMembership {
     memberId: number
-    stationId: number
+    stationId: string
     stationName?: string
 }
 
@@ -217,7 +218,7 @@ export interface StationMembership {
 
 export interface EventCategory {
     id: number
-    stationId: number
+    stationId: string
     name?: string
     position: number
 }
@@ -229,7 +230,7 @@ export interface CategoryRequest {
 
 export interface StationEvent {
     id: number
-    stationId: number
+    stationId: string
     name?: string
     description?: string
     eventType?: string
@@ -273,7 +274,7 @@ export interface AllEventRestrictions {
 
 export interface EventBreak {
     id: number
-    stationId: number
+    stationId: string
     name?: string
     startDate?: string
     endDate?: string
@@ -324,7 +325,7 @@ export type RatingIcon = 'STAR' | 'NUMBER' | 'HEART' | 'THUMB_UP'
 
 export interface Form {
     id: number
-    stationId: number
+    stationId: string
     title: string
     description: string
     status: FormStatusName
@@ -340,7 +341,7 @@ export interface Form {
 
 export interface FormListEntry {
     id: number
-    stationId: number
+    stationId: string
     title: string
     description: string
     status: string
@@ -429,7 +430,7 @@ export interface FormQuestionAnalytics {
 // -- Station Manage --
 
 export interface StationManageInfo {
-    id: number
+    id: string
     name?: string
     timezone?: string
     locale?: string
@@ -439,6 +440,7 @@ export interface StationManageInfo {
     defaultTheme?: string
     allowUserTheme?: boolean
     customThemeColors?: string | null
+    publicKbMode?: string
 }
 
 export interface UpdateStationNameRequest {
@@ -479,7 +481,7 @@ export interface ManagerDetail {
 
 export interface StationMember {
     id: number
-    stationId: number
+    stationId: string
     accountId: number
     name?: string
     email?: string
@@ -528,7 +530,7 @@ export interface ResetPasswordRequest {
 
 export interface AttendanceTemplate {
     id: number
-    stationId: number
+    stationId: string
     name?: string
 }
 
@@ -554,7 +556,7 @@ export interface TemplateFieldRequest {
 
 export interface TemplateDetail {
     id: number
-    stationId: number
+    stationId: string
     name?: string
     fields?: AttendanceTemplateField[]
     groups?: TemplateGroupEntry[]
@@ -698,7 +700,7 @@ export type ItemSourceName = (typeof ItemSource)[keyof typeof ItemSource]
 
 export interface Inventory {
     id: number
-    stationId: number
+    stationId: string
     name?: string
     inventoryType?: InventoryTypeName
     hasSizes: boolean
@@ -712,7 +714,7 @@ export interface InventoryRequest {
 
 export interface InventoryDetail {
     id: number
-    stationId: number
+    stationId: string
     name?: string
     inventoryType?: InventoryTypeName
     hasSizes: boolean
@@ -845,7 +847,7 @@ export interface RequiredInventoryItem {
 
 export interface InventoryCheck {
     id: number
-    stationId: number
+    stationId: string
     memberId: number
     checkedBy: number
     checkedAt: string
@@ -872,7 +874,7 @@ export interface NextMemberResponse {
 
 export interface ProfileField {
     id: number
-    stationId: number
+    stationId: string
     name?: string
     fieldType?: string
     config?: string
@@ -946,7 +948,7 @@ export interface AcknowledgeRequest {
 
 export interface MemberGroup {
     id: number
-    stationId: number
+    stationId: string
     name?: string
 }
 
@@ -956,7 +958,7 @@ export interface GroupRequest {
 
 export interface GroupDetail {
     id: number
-    stationId: number
+    stationId: string
     name?: string
     members?: StationMember[]
 }
@@ -969,7 +971,7 @@ export interface SetMembersRequest {
 
 export interface RegistrationCode {
     id: number
-    stationId: number
+    stationId: string
     code?: string
     maxUses: number
     uses: number
@@ -983,7 +985,7 @@ export interface CreateCodeRequest {
 
 export interface CodeDetail {
     id: number
-    stationId: number
+    stationId: string
     code?: string
     maxUses: number
     uses: number
@@ -998,7 +1000,7 @@ export interface SetGroupsRequest {
 
 export interface NewsEntry {
     id: number
-    stationId: number
+    stationId: string
     title: string
     contentMarkdown: string
     contentHtml: string
@@ -1140,7 +1142,7 @@ export interface CreateProcurementRequest {
 
 export interface UserTag {
     id: number
-    stationId: number
+    stationId: string
     name: string
 }
 
@@ -1169,7 +1171,7 @@ export interface NotificationEntry {
 
 export interface LostAndFoundItem {
     id: number
-    stationId: number
+    stationId: string
     description?: string
     foundAt?: string
     hasImage: boolean
@@ -1213,7 +1215,7 @@ export type WaitingListFieldTypeName = (typeof WaitingListFieldTypes)[keyof type
 
 export interface WaitingList {
     id: number
-    stationId: number
+    stationId: string
     name: string
     description: string
     scoringFormula?: string | null
@@ -1335,7 +1337,7 @@ export type QuizAttemptStatusName = (typeof QuizAttemptStatus)[keyof typeof Quiz
 
 export interface QuizCatalog {
     id: number
-    stationId: number
+    stationId: string
     name: string
     description: string
     trainingEnabled: boolean
@@ -1345,7 +1347,7 @@ export interface QuizCatalog {
 
 export interface QuizCategory {
     id: number
-    stationId: number
+    stationId: string
     name: string
     description: string
     position: number
@@ -1369,7 +1371,7 @@ export interface QuizQuestion {
 
 export interface QuizCatalogDetail {
     id: number
-    stationId: number
+    stationId: string
     name: string
     description: string
     trainingEnabled: boolean
@@ -1382,7 +1384,7 @@ export interface QuizCatalogDetail {
 
 export interface QuizTest {
     id: number
-    stationId: number
+    stationId: string
     title: string
     description: string
     status: QuizTestStatusName

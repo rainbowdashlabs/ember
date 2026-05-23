@@ -27,7 +27,7 @@ const router = useRouter()
 const {loaded} = useSession()
 
 const inventoryId = Number(route.query.inventoryId)
-const stationId = Number(route.query.stationId)
+const stationId = String(route.query.stationId ?? '')
 const stationName = String(route.query.stationName || '')
 
 // Form state

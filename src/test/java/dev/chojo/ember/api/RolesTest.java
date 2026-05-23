@@ -20,11 +20,11 @@ class RolesTest {
     @EnumSource(
             value = Roles.class,
             names = {
-                "ATTENDENCE_MANAGEMENT",
-                "ATTENDENCE_EXPORT_MANAGER",
-                "INVENTORY_MANAGEMENT",
-                "EVENT_MANAGEMENT",
-                "MEMBER_MANAGEMENT",
+                "ATTENDANCE_MANAGER",
+                "ATTENDANCE_EXPORT_MANAGER",
+                "INVENTORY_MANAGER",
+                "EVENT_MANAGER",
+                "MEMBER_MANAGER",
                 "MANAGER",
                 "ADMIN"
             })
@@ -40,9 +40,9 @@ class RolesTest {
         assertTrue(expanded.contains(Roles.TEAM));
         assertTrue(expanded.contains(Roles.LOGIN));
         assertTrue(expanded.contains(Roles.USER));
-        assertTrue(expanded.contains(Roles.MEMBER_MANAGEMENT));
-        assertTrue(expanded.contains(Roles.ATTENDENCE_MANAGEMENT));
-        assertTrue(expanded.contains(Roles.INVENTORY_MANAGEMENT));
-        assertTrue(expanded.contains(Roles.EVENT_MANAGEMENT));
+        assertTrue(expanded.contains(Roles.MEMBER_MANAGER));
+        assertTrue(expanded.contains(Roles.ATTENDANCE_MANAGER));
+        assertTrue(expanded.contains(Roles.INVENTORY_MANAGER));
+        assertTrue(expanded.contains(Roles.EVENT_MANAGER));
     }
 }

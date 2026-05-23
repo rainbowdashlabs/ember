@@ -12,6 +12,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
+import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 
 const { t } = useI18n()
 </script>
@@ -71,10 +72,10 @@ const { t } = useI18n()
         </div>
         <TextInput model-value="Was ist kein Loeschmittel?" disabled />
         <div class="space-y-1 opacity-60 text-sm">
-          <label class="flex items-center gap-2"><input type="checkbox" disabled class="h-4 w-4" /> Wasser</label>
-          <label class="flex items-center gap-2"><input type="checkbox" disabled checked class="h-4 w-4 accent-primary" /> Benzin</label>
-          <label class="flex items-center gap-2"><input type="checkbox" disabled class="h-4 w-4" /> Schaum</label>
-          <label class="flex items-center gap-2"><input type="checkbox" disabled class="h-4 w-4" /> CO2</label>
+          <label class="flex items-center gap-2"><ToggleInput :model-value="false" disabled /> Wasser</label>
+          <label class="flex items-center gap-2"><ToggleInput :model-value="true" disabled /> Benzin</label>
+          <label class="flex items-center gap-2"><ToggleInput :model-value="false" disabled /> Schaum</label>
+          <label class="flex items-center gap-2"><ToggleInput :model-value="false" disabled /> CO2</label>
         </div>
       </div>
     </NeutralContainer>

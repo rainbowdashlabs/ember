@@ -8,7 +8,7 @@ import {getItem} from './storage'
 
 export interface KbFolder {
     id: number
-    stationId: number
+    stationId: string
     parentId: number | null
     name: string
     description: string
@@ -21,7 +21,7 @@ export interface KbFolder {
 
 export interface KbFile {
     id: number
-    stationId: number
+    stationId: string
     folderId: number | null
     name: string
     description: string
@@ -35,6 +35,8 @@ export interface KbFile {
     createdBy: number
     createdAt: string
     updatedAt: string
+    sourceFileId: number | null
+    sourceStationId: string | null
 }
 
 export interface KbFileVersion {
@@ -51,7 +53,7 @@ export interface KbFileVersion {
 export interface SharedFileEntry {
     file: KbFile
     stationName: string
-    sourceStationId: number
+    sourceStationId: string
 }
 
 export interface BrowseResponse {
@@ -308,7 +310,7 @@ export async function uploadFolderIcon(folderId: number, file: File): Promise<vo
 
 export interface KbTag {
     id: number
-    stationId: number
+    stationId: string
     name: string
 }
 
@@ -392,8 +394,21 @@ export interface SearchResult {
     snippet: string
     folderPath: string
     stationName: string | null
-    sourceStationId: number
+    sourceStationId: string
 }
+
+// -- Public Visibility --
+
+export async function getPublicVisibility(type: 'files' | 'folders', id: number): Promise<{ visible: boolean | null }> {
+    const res = await client.get<{ visible: boolean | null }>(`/kb/${type}/${id}/public-visibility`)
+    return res.data
+}
+
+export async function setPublicVisibility(type: 'files' | 'folders', id: number, visible: boolean | null): Promise<void> {
+    await client.put(`/kb/${type}/${id}/public-visibility`, { visible })
+}
+
+// -- Search --
 
 export async function search(query: string, options?: { tag?: string; federated?: boolean }): Promise<SearchResult[]> {
     const params: Record<string, string> = {q: query}

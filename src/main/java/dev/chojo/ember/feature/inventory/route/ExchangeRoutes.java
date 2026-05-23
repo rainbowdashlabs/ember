@@ -79,9 +79,9 @@ public class ExchangeRoutes implements Routes {
         routes.get(prefix + "/exchanges/{id}", this::get, Roles.LOGIN);
         routes.get(prefix + "/exchanges/{id}/logs", this::logs, Roles.LOGIN);
         routes.post(prefix + "/exchanges", this::create, Roles.LOGIN);
-        routes.put(prefix + "/exchanges/{id}/status", this::updateStatus, Roles.INVENTORY_MANAGEMENT);
-        routes.delete(prefix + "/exchanges/{id}", this::delete, Roles.INVENTORY_MANAGEMENT);
-        routes.post(prefix + "/exchanges/export", this::exportPdf, Roles.INVENTORY_MANAGEMENT);
+        routes.put(prefix + "/exchanges/{id}/status", this::updateStatus, Roles.INVENTORY_MANAGER);
+        routes.delete(prefix + "/exchanges/{id}", this::delete, Roles.INVENTORY_MANAGER);
+        routes.post(prefix + "/exchanges/export", this::exportPdf, Roles.INVENTORY_MANAGER);
     }
 
     @OpenApi(
@@ -93,7 +93,7 @@ public class ExchangeRoutes implements Routes {
     private void list(Context ctx) {
         UserSession session = UserSession.from(ctx);
         List<ExchangeRequest> requests;
-        if (session.hasRole(Roles.INVENTORY_MANAGEMENT)) {
+        if (session.hasRole(Roles.INVENTORY_MANAGER)) {
             requests = exchangeService.findByStation(session.stationId());
         } else {
             var own = exchangeService.findByMember(session.member().id());
@@ -162,7 +162,7 @@ public class ExchangeRoutes implements Routes {
         int targetMemberId = callerMemberId;
         if (request.memberId() != null && request.memberId() != callerMemberId) {
             // Verify caller manages the target member or has inventory management
-            if (!session.hasRole(Roles.INVENTORY_MANAGEMENT)) {
+            if (!session.hasRole(Roles.INVENTORY_MANAGER)) {
                 boolean manages = stationMemberRepository.findManagers(request.memberId()).stream()
                         .anyMatch(m -> m.id() == callerMemberId);
                 if (!manages) {
@@ -193,7 +193,7 @@ public class ExchangeRoutes implements Routes {
                 new NotificationParams.ExchangeNewRequest(memberName, inventoryName, reason),
                 new NotificationData.NotificationLink("inventory-exchanges"));
         var inventoryMgmtIds =
-                stationMemberRepository.findMembersWithRole(session.stationId(), Roles.INVENTORY_MANAGEMENT).stream()
+                stationMemberRepository.findMembersWithRole(session.stationId(), Roles.INVENTORY_MANAGER).stream()
                         .map(StationMember::id)
                         .toList();
         notificationService.notifyMembersIfAbsent(
@@ -245,7 +245,7 @@ public class ExchangeRoutes implements Routes {
                 new NotificationData.NotificationLink("inventory-exchanges"));
         notificationService.notify(exchange.memberId(), NotificationType.EXCHANGE_STATUS_CHANGE, data);
         var invMgmtIds =
-                stationMemberRepository.findMembersWithRole(session.stationId(), Roles.INVENTORY_MANAGEMENT).stream()
+                stationMemberRepository.findMembersWithRole(session.stationId(), Roles.INVENTORY_MANAGER).stream()
                         .map(StationMember::id)
                         .toList();
         notificationService.notifyMembersIfAbsent(

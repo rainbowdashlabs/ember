@@ -72,13 +72,13 @@ public class LostAndFoundRoutes implements Routes {
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
         routes.get(prefix + "/lost-and-found", this::list, Roles.LOGIN);
-        routes.post(prefix + "/lost-and-found", this::create, Roles.LOST_AND_FOUND_MANAGEMENT);
+        routes.post(prefix + "/lost-and-found", this::create, Roles.LOST_AND_FOUND_MANAGER);
         routes.get(prefix + "/lost-and-found/{id}", this::getById, Roles.LOGIN);
         routes.get(prefix + "/lost-and-found/{id}/image", this::getImage, Roles.LOGIN);
-        routes.post(prefix + "/lost-and-found/{id}/image", this::uploadImage, Roles.LOST_AND_FOUND_MANAGEMENT);
+        routes.post(prefix + "/lost-and-found/{id}/image", this::uploadImage, Roles.LOST_AND_FOUND_MANAGER);
         routes.post(prefix + "/lost-and-found/{id}/claim", this::claim, Roles.LOGIN);
-        routes.post(prefix + "/lost-and-found/{id}/provided", this::provided, Roles.LOST_AND_FOUND_MANAGEMENT);
-        routes.delete(prefix + "/lost-and-found/{id}", this::delete, Roles.LOST_AND_FOUND_MANAGEMENT);
+        routes.post(prefix + "/lost-and-found/{id}/provided", this::provided, Roles.LOST_AND_FOUND_MANAGER);
+        routes.delete(prefix + "/lost-and-found/{id}", this::delete, Roles.LOST_AND_FOUND_MANAGER);
     }
 
     @OpenApi(
@@ -93,7 +93,7 @@ public class LostAndFoundRoutes implements Routes {
                             content = @OpenApiContent(from = LostAndFoundItemResponse[].class)))
     private void list(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        boolean isManager = session.roles().contains(Roles.LOST_AND_FOUND_MANAGEMENT);
+        boolean isManager = session.roles().contains(Roles.LOST_AND_FOUND_MANAGER);
         var items = isManager
                 ? lostAndFoundService.findByStation(session.stationId())
                 : lostAndFoundService.findUnclaimedOrClaimedBy(

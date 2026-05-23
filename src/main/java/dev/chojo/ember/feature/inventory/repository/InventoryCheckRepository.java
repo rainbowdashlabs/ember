@@ -260,8 +260,8 @@ public class InventoryCheckRepository {
      */
     public Optional<Integer> nextUncheckedMember(int stationId, int excludeMemberId, boolean teamOnly) {
         String roleFilter = teamOnly
-                ? "AND sm.id IN (SELECT member_id FROM station_member_role smr JOIN role r ON smr.role_id = r.id WHERE r.name IN ('TEAM','MANAGER','ADMIN','ATTENDENCE_MANAGEMENT','ATTENDENCE_EXPORT_MANAGER','INVENTORY_MANAGEMENT','EVENT_MANAGEMENT','MEMBER_MANAGEMENT','NEWS_MANAGEMENT','POLL_MANAGEMENT','LOST_AND_FOUND_MANAGEMENT'))"
-                : "AND sm.id IN (SELECT member_id FROM station_member_role smr JOIN role r ON smr.role_id = r.id WHERE r.name = 'MEMBER') AND sm.id NOT IN (SELECT member_id FROM station_member_role smr JOIN role r ON smr.role_id = r.id WHERE r.name IN ('TEAM','MANAGER','ADMIN','ATTENDENCE_MANAGEMENT','ATTENDENCE_EXPORT_MANAGER','INVENTORY_MANAGEMENT','EVENT_MANAGEMENT','MEMBER_MANAGEMENT','NEWS_MANAGEMENT','POLL_MANAGEMENT','LOST_AND_FOUND_MANAGEMENT'))";
+                ? "AND sm.id IN (SELECT member_id FROM station_member_role smr JOIN role r ON smr.role_id = r.id WHERE r.name IN ('TEAM','MANAGER','ADMIN','ATTENDANCE_MANAGER','ATTENDANCE_EXPORT_MANAGER','INVENTORY_MANAGER','EVENT_MANAGER','MEMBER_MANAGER','NEWS_MANAGER','POLL_MANAGER','LOST_AND_FOUND_MANAGER'))"
+                : "AND sm.id IN (SELECT member_id FROM station_member_role smr JOIN role r ON smr.role_id = r.id WHERE r.name = 'MEMBER') AND sm.id NOT IN (SELECT member_id FROM station_member_role smr JOIN role r ON smr.role_id = r.id WHERE r.name IN ('TEAM','MANAGER','ADMIN','ATTENDANCE_MANAGER','ATTENDANCE_EXPORT_MANAGER','INVENTORY_MANAGER','EVENT_MANAGER','MEMBER_MANAGER','NEWS_MANAGER','POLL_MANAGER','LOST_AND_FOUND_MANAGER'))";
         return Query.query("SELECT sm.id FROM station_member sm"
                         + " LEFT JOIN inventory_check_lock l ON l.member_id = sm.id"
                         + " LEFT JOIN LATERAL ("

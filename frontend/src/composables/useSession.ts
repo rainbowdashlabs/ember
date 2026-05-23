@@ -41,31 +41,31 @@ export function useSession() {
     }
 
     function canManageMembers(): boolean {
-        return hasRole(Roles.MEMBER_MANAGEMENT)
+        return hasRole(Roles.MEMBER_MANAGER)
     }
 
     function canManageInventory(): boolean {
-        return hasRole(Roles.INVENTORY_MANAGEMENT)
+        return hasRole(Roles.INVENTORY_MANAGER)
     }
 
     function canManageAttendance(): boolean {
-        return hasRole(Roles.ATTENDENCE_MANAGEMENT)
+        return hasRole(Roles.ATTENDANCE_MANAGER)
     }
 
     function canExportAttendance(): boolean {
-        return hasRole(Roles.ATTENDENCE_EXPORT_MANAGER)
+        return hasRole(Roles.ATTENDANCE_EXPORT_MANAGER)
     }
 
     function canManageEvents(): boolean {
-        return hasRole(Roles.EVENT_MANAGEMENT)
+        return hasRole(Roles.EVENT_MANAGER)
     }
 
     function canManageNews(): boolean {
-        return hasRole(Roles.NEWS_MANAGEMENT)
+        return hasRole(Roles.NEWS_MANAGER)
     }
 
     function canManagePolls(): boolean {
-        return hasRole(Roles.POLL_MANAGEMENT)
+        return hasRole(Roles.POLL_MANAGER)
     }
 
     function isGuardian(): boolean {
@@ -73,27 +73,23 @@ export function useSession() {
     }
 
     function canManageLostAndFound(): boolean {
-        return hasRole(Roles.LOST_AND_FOUND_MANAGEMENT)
+        return hasRole(Roles.LOST_AND_FOUND_MANAGER)
     }
 
     function canManageWaitlist(): boolean {
-        return hasRole(Roles.WAITLIST_MANAGEMENT)
+        return hasRole(Roles.WAITLIST_MANAGER)
     }
 
     function canManageQuiz(): boolean {
-        return hasRole(Roles.QUIZ_MANAGEMENT)
+        return hasRole(Roles.QUIZ_MANAGER)
     }
 
     function canManageKnowledge(): boolean {
-        return hasRole(Roles.KNOWLEDGE_MANAGEMENT)
-    }
-
-    function canManageFederation(): boolean {
-        return hasRole(Roles.FEDERATION_MANAGEMENT)
+        return hasRole(Roles.KNOWLEDGE_MANAGER)
     }
 
     function canManageProtocol(): boolean {
-        return hasRole(Roles.PROTOCOL_MANAGEMENT)
+        return hasRole(Roles.PROTOCOL_MANAGER)
     }
 
     function canTestProtocol(): boolean {
@@ -104,10 +100,18 @@ export function useSession() {
         return !(sessionInfo.value?.disabledModules?.includes(module) ?? false)
     }
 
+    function canManageFederation(): boolean {
+        return hasRole(Roles.FEDERATION_MANAGER)
+    }
+
     function fullName(): string {
         const account = sessionInfo.value?.account
         if (!account) return ''
         return [account.firstName, account.lastName].filter(Boolean).join(' ')
+    }
+
+    function isKbPublic(): boolean {
+        return sessionInfo.value?.publicKbMode != null && sessionInfo.value.publicKbMode !== 'OFF'
     }
 
     return {
@@ -135,5 +139,6 @@ export function useSession() {
         canTestProtocol,
         isModuleEnabled,
         fullName,
+        isKbPublic,
     }
 }

@@ -15,6 +15,7 @@ import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import PrimaryBadge from '@/components/badge/PrimaryBadge.vue'
+import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
@@ -43,7 +44,7 @@ async function loadData() {
   try {
     const [runData, allMembers] = await Promise.all([
       protocol.getRun(runId.value),
-      stationMembers.listMembers(currentStationId.value!),
+      stationMembers.listMembers(),
     ])
     run.value = runData.run
     runMembers.value = runData.members
@@ -108,7 +109,7 @@ onMounted(() => { if (loaded.value) loadData() })
       <div class="flex items-center gap-3 mb-4">
         <p class="text-sm text-[var(--text-muted)]">{{ new Date(run.testDate).toLocaleDateString('de-DE') }}</p>
         <label class="flex items-center gap-2 text-sm text-[var(--text-muted)] ml-auto cursor-pointer">
-          <input type="checkbox" v-model="filterIncomplete" />
+          <ToggleInput v-model="filterIncomplete" />
           {{ t('protocol.filterIncomplete') }}
         </label>
       </div>

@@ -23,7 +23,7 @@ import type {
 export interface SharedCatalogEntry {
     catalog: QuizCatalog
     stationName: string
-    sourceStationId: number
+    sourceStationId: string
 }
 
 export interface CatalogListResponse {

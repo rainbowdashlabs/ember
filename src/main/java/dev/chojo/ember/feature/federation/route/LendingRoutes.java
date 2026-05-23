@@ -18,6 +18,10 @@ import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.federation.service.LendingService;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
+import dev.chojo.ember.feature.notifications.entity.NotificationData;
+import dev.chojo.ember.feature.notifications.entity.NotificationParams;
+import dev.chojo.ember.feature.notifications.entity.NotificationType;
+import dev.chojo.ember.feature.notifications.service.NotificationService;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
@@ -43,6 +47,7 @@ public class LendingRoutes implements Routes {
     private final InventoryRepository inventoryRepository;
     private final StationMemberRepository stationMemberRepository;
     private final AccountRepository accountRepository;
+    private final NotificationService notificationService;
 
     @Inject
     public LendingRoutes(
@@ -51,41 +56,43 @@ public class LendingRoutes implements Routes {
             FederationService federationService,
             InventoryRepository inventoryRepository,
             StationMemberRepository stationMemberRepository,
-            AccountRepository accountRepository) {
+            AccountRepository accountRepository,
+            NotificationService notificationService) {
         this.service = service;
         this.stationRepository = stationRepository;
         this.federationService = federationService;
         this.inventoryRepository = inventoryRepository;
         this.stationMemberRepository = stationMemberRepository;
         this.accountRepository = accountRepository;
+        this.notificationService = notificationService;
     }
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
         // Lending requests
-        routes.get(prefix + "/lending/requests", this::listRequests, Roles.INVENTORY_MANAGEMENT);
-        routes.get(prefix + "/lending/available", this::listAvailable, Roles.INVENTORY_MANAGEMENT);
-        routes.post(prefix + "/lending/requests", this::createRequest, Roles.INVENTORY_MANAGEMENT);
-        routes.get(prefix + "/lending/requests/{id}", this::getRequest, Roles.INVENTORY_MANAGEMENT);
-        routes.post(prefix + "/lending/requests/{id}/approve", this::approveRequest, Roles.INVENTORY_MANAGEMENT);
-        routes.post(prefix + "/lending/requests/{id}/decline", this::declineRequest, Roles.INVENTORY_MANAGEMENT);
+        routes.get(prefix + "/lending/requests", this::listRequests, Roles.INVENTORY_MANAGER);
+        routes.get(prefix + "/lending/available", this::listAvailable, Roles.INVENTORY_MANAGER);
+        routes.post(prefix + "/lending/requests", this::createRequest, Roles.INVENTORY_MANAGER);
+        routes.get(prefix + "/lending/requests/{id}", this::getRequest, Roles.INVENTORY_MANAGER);
+        routes.post(prefix + "/lending/requests/{id}/approve", this::approveRequest, Roles.INVENTORY_MANAGER);
+        routes.post(prefix + "/lending/requests/{id}/decline", this::declineRequest, Roles.INVENTORY_MANAGER);
         routes.get(
                 prefix + "/lending/requests/{id}/available-items",
                 this::availableItemsForRequest,
-                Roles.INVENTORY_MANAGEMENT);
-        routes.post(prefix + "/lending/requests/{id}/assign-items", this::assignItems, Roles.INVENTORY_MANAGEMENT);
-        routes.post(prefix + "/lending/requests/{id}/lent", this::markLent, Roles.INVENTORY_MANAGEMENT);
-        routes.post(prefix + "/lending/requests/{id}/returned", this::markReturned, Roles.INVENTORY_MANAGEMENT);
-        routes.post(prefix + "/lending/requests/{id}/close", this::closeRequest, Roles.INVENTORY_MANAGEMENT);
+                Roles.INVENTORY_MANAGER);
+        routes.post(prefix + "/lending/requests/{id}/assign-items", this::assignItems, Roles.INVENTORY_MANAGER);
+        routes.post(prefix + "/lending/requests/{id}/lent", this::markLent, Roles.INVENTORY_MANAGER);
+        routes.post(prefix + "/lending/requests/{id}/returned", this::markReturned, Roles.INVENTORY_MANAGER);
+        routes.post(prefix + "/lending/requests/{id}/close", this::closeRequest, Roles.INVENTORY_MANAGER);
 
         // Chat messages
-        routes.get(prefix + "/lending/requests/{id}/messages", this::getMessages, Roles.INVENTORY_MANAGEMENT);
-        routes.post(prefix + "/lending/requests/{id}/messages", this::sendMessage, Roles.INVENTORY_MANAGEMENT);
+        routes.get(prefix + "/lending/requests/{id}/messages", this::getMessages, Roles.INVENTORY_MANAGER);
+        routes.post(prefix + "/lending/requests/{id}/messages", this::sendMessage, Roles.INVENTORY_MANAGER);
 
         // Inventory blocks
-        routes.get(prefix + "/lending/blocks", this::listBlocks, Roles.INVENTORY_MANAGEMENT);
-        routes.post(prefix + "/lending/blocks", this::createBlock, Roles.INVENTORY_MANAGEMENT);
-        routes.delete(prefix + "/lending/blocks/{id}", this::deleteBlock, Roles.INVENTORY_MANAGEMENT);
+        routes.get(prefix + "/lending/blocks", this::listBlocks, Roles.INVENTORY_MANAGER);
+        routes.post(prefix + "/lending/blocks", this::createBlock, Roles.INVENTORY_MANAGER);
+        routes.delete(prefix + "/lending/blocks/{id}", this::deleteBlock, Roles.INVENTORY_MANAGER);
     }
 
     // -- Requests --
@@ -123,6 +130,16 @@ public class LendingRoutes implements Routes {
             }
         }
 
+        // Notify owning station about the new incoming request
+        notificationService.notifyMembersWithRole(
+                req.owningStationId(),
+                "INVENTORY_MANAGER",
+                NotificationType.LENDING_NEW_REQUEST,
+                NotificationData.of(
+                        new NotificationParams.LendingNewRequest(
+                                stationName(session.stationId()), buildItemSummary(request.id())),
+                        lendingLink(request.id())));
+
         ctx.status(HttpStatus.CREATED).json(enrichRequest(request, session.stationId()));
     }
 
@@ -142,6 +159,13 @@ public class LendingRoutes implements Routes {
         var request = service.findRequest(id).orElseThrow(NotFoundResponse::new);
         verifyOwner(request, session.stationId());
         service.approveRequest(id, session.stationId());
+        notifyOtherStation(
+                request,
+                session.stationId(),
+                NotificationType.LENDING_STATUS_CHANGE,
+                NotificationData.of(
+                        new NotificationParams.LendingStatusChange(stationName(session.stationId()), "APPROVED"),
+                        lendingLink(id)));
         ctx.json(enrichRequest(service.findRequest(id).orElseThrow(), session.stationId()));
     }
 
@@ -152,6 +176,13 @@ public class LendingRoutes implements Routes {
         verifyOwner(request, session.stationId());
         var body = ctx.bodyAsClass(DeclineBody.class);
         service.declineRequest(id, session.stationId(), body.reason());
+        notifyOtherStation(
+                request,
+                session.stationId(),
+                NotificationType.LENDING_STATUS_CHANGE,
+                NotificationData.of(
+                        new NotificationParams.LendingStatusChange(stationName(session.stationId()), "DECLINED"),
+                        lendingLink(id)));
         ctx.json(enrichRequest(service.findRequest(id).orElseThrow(), session.stationId()));
     }
 
@@ -216,6 +247,13 @@ public class LendingRoutes implements Routes {
         var request = service.findRequest(id).orElseThrow(NotFoundResponse::new);
         verifyOwner(request, session.stationId());
         service.markLent(id, session.stationId());
+        notifyOtherStation(
+                request,
+                session.stationId(),
+                NotificationType.LENDING_STATUS_CHANGE,
+                NotificationData.of(
+                        new NotificationParams.LendingStatusChange(stationName(session.stationId()), "LENT"),
+                        lendingLink(id)));
         ctx.json(enrichRequest(service.findRequest(id).orElseThrow(), session.stationId()));
     }
 
@@ -225,6 +263,13 @@ public class LendingRoutes implements Routes {
         var request = service.findRequest(id).orElseThrow(NotFoundResponse::new);
         verifyAccess(request, session.stationId());
         service.markReturned(id, session.stationId());
+        notifyOtherStation(
+                request,
+                session.stationId(),
+                NotificationType.LENDING_STATUS_CHANGE,
+                NotificationData.of(
+                        new NotificationParams.LendingStatusChange(stationName(session.stationId()), "RETURNED"),
+                        lendingLink(id)));
         ctx.json(enrichRequest(service.findRequest(id).orElseThrow(), session.stationId()));
     }
 
@@ -234,6 +279,13 @@ public class LendingRoutes implements Routes {
         var request = service.findRequest(id).orElseThrow(NotFoundResponse::new);
         verifyAccess(request, session.stationId());
         service.closeRequest(id, session.stationId());
+        notifyOtherStation(
+                request,
+                session.stationId(),
+                NotificationType.LENDING_STATUS_CHANGE,
+                NotificationData.of(
+                        new NotificationParams.LendingStatusChange(stationName(session.stationId()), "CLOSED"),
+                        lendingLink(id)));
         ctx.json(enrichRequest(service.findRequest(id).orElseThrow(), session.stationId()));
     }
 
@@ -282,6 +334,20 @@ public class LendingRoutes implements Routes {
             throw new BadRequestResponse("message is required");
         }
         var msg = service.sendMessage(id, session.stationId(), session.member().id(), body.message());
+
+        // Notify the other station about the new message
+        String senderName = accountRepository
+                .findById(session.account().id())
+                .map(a -> (a.firstName() + " " + a.lastName()).trim())
+                .orElse("");
+        notifyOtherStation(
+                request,
+                session.stationId(),
+                NotificationType.LENDING_NEW_MESSAGE,
+                NotificationData.of(
+                        new NotificationParams.LendingNewMessage(stationName(session.stationId()), senderName),
+                        lendingLink(id)));
+
         ctx.status(HttpStatus.CREATED).json(msg);
     }
 
@@ -429,6 +495,40 @@ public class LendingRoutes implements Routes {
                     return new EnrichedItem(item, name);
                 })
                 .toList();
+    }
+
+    // -- Notification helpers --
+
+    private String stationName(int stationId) {
+        return stationRepository.findById(stationId).map(s -> s.name()).orElse("Unknown");
+    }
+
+    private String buildItemSummary(int requestId) {
+        var items = service.findRequestItems(requestId);
+        var parts = new ArrayList<String>();
+        for (var item : items) {
+            String name = item.inventoryId() != null
+                    ? inventoryRepository
+                            .findById(item.inventoryId())
+                            .map(i -> i.name())
+                            .orElse("?")
+                    : "?";
+            parts.add(item.quantity() + "x " + name);
+        }
+        return String.join(", ", parts);
+    }
+
+    private NotificationData.NotificationLink lendingLink(int requestId) {
+        return new NotificationData.NotificationLink(
+                "lending-request", java.util.Map.of("id", String.valueOf(requestId)));
+    }
+
+    private void notifyOtherStation(
+            LendingRequest request, int currentStationId, NotificationType type, NotificationData data) {
+        int targetStationId = request.requestingStationId() == currentStationId
+                ? request.owningStationId()
+                : request.requestingStationId();
+        notificationService.notifyMembersWithRole(targetStationId, "INVENTORY_MANAGER", type, data);
     }
 
     // -- Records --

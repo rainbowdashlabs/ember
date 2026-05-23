@@ -11,7 +11,6 @@ import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
-import dev.chojo.ember.feature.federation.service.FederatedContentService;
 import dev.chojo.ember.feature.knowledgebase.entity.KbAccessRestriction;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFile;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFolder;
@@ -24,7 +23,6 @@ import dev.chojo.ember.feature.members.entity.UserTag;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.repository.UserTagRepository;
-import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.util.PandocConverter;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.ContentType;
@@ -57,8 +55,6 @@ public class KnowledgeBaseRoutes implements Routes {
     private final MemberGroupRepository memberGroupRepository;
     private final UserTagRepository userTagRepository;
     private final ImageService imageService;
-    private final FederatedContentService federatedContentService;
-    private final StationRepository stationRepository;
 
     @Inject
     public KnowledgeBaseRoutes(
@@ -67,17 +63,13 @@ public class KnowledgeBaseRoutes implements Routes {
             AccountRepository accountRepository,
             MemberGroupRepository memberGroupRepository,
             UserTagRepository userTagRepository,
-            ImageService imageService,
-            FederatedContentService federatedContentService,
-            StationRepository stationRepository) {
+            ImageService imageService) {
         this.service = service;
         this.stationMemberRepository = stationMemberRepository;
         this.accountRepository = accountRepository;
         this.memberGroupRepository = memberGroupRepository;
         this.userTagRepository = userTagRepository;
         this.imageService = imageService;
-        this.federatedContentService = federatedContentService;
-        this.stationRepository = stationRepository;
     }
 
     private String resolveFolderPath(Integer folderId) {
@@ -113,45 +105,40 @@ public class KnowledgeBaseRoutes implements Routes {
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        // Favourites (registered before parameterized file routes to avoid path conflicts)
-        routes.get(prefix + "/kb/favourites", this::listFavourites, Roles.USER);
-        routes.post(prefix + "/kb/favourites/{fileId}", this::addFavourite, Roles.USER);
-        routes.delete(prefix + "/kb/favourites/{fileId}", this::removeFavourite, Roles.USER);
-
         // Folders
         routes.get(prefix + "/kb/folders", this::listFolders, Roles.USER);
-        routes.post(prefix + "/kb/folders", this::createFolder, Roles.KNOWLEDGE_MANAGEMENT);
+        routes.post(prefix + "/kb/folders", this::createFolder, Roles.KNOWLEDGE_MANAGER);
         routes.get(prefix + "/kb/folders/{id}", this::getFolder, Roles.USER);
-        routes.put(prefix + "/kb/folders/{id}", this::updateFolder, Roles.KNOWLEDGE_MANAGEMENT);
-        routes.delete(prefix + "/kb/folders/{id}", this::deleteFolder, Roles.KNOWLEDGE_MANAGEMENT);
+        routes.put(prefix + "/kb/folders/{id}", this::updateFolder, Roles.KNOWLEDGE_MANAGER);
+        routes.delete(prefix + "/kb/folders/{id}", this::deleteFolder, Roles.KNOWLEDGE_MANAGER);
 
         // Files
         routes.get(prefix + "/kb/files", this::listFiles, Roles.USER);
         routes.get(prefix + "/kb/files/{id}", this::getFile, Roles.USER);
-        routes.put(prefix + "/kb/files/{id}", this::updateFile, Roles.KNOWLEDGE_MANAGEMENT);
-        routes.delete(prefix + "/kb/files/{id}", this::deleteFile, Roles.KNOWLEDGE_MANAGEMENT);
+        routes.put(prefix + "/kb/files/{id}", this::updateFile, Roles.KNOWLEDGE_MANAGER);
+        routes.delete(prefix + "/kb/files/{id}", this::deleteFile, Roles.KNOWLEDGE_MANAGER);
 
         // File creation
-        routes.post(prefix + "/kb/files/markdown", this::createMarkdownFile, Roles.KNOWLEDGE_MANAGEMENT);
-        routes.post(prefix + "/kb/files/youtube", this::createYoutubeFile, Roles.KNOWLEDGE_MANAGEMENT);
-        routes.post(prefix + "/kb/files/upload", this::uploadFile, Roles.KNOWLEDGE_MANAGEMENT);
-        routes.post(prefix + "/kb/files/import-document", this::importDocument, Roles.KNOWLEDGE_MANAGEMENT);
-        routes.post(prefix + "/kb/files/link", this::createLinkFile, Roles.KNOWLEDGE_MANAGEMENT);
+        routes.post(prefix + "/kb/files/markdown", this::createMarkdownFile, Roles.KNOWLEDGE_MANAGER);
+        routes.post(prefix + "/kb/files/youtube", this::createYoutubeFile, Roles.KNOWLEDGE_MANAGER);
+        routes.post(prefix + "/kb/files/upload", this::uploadFile, Roles.KNOWLEDGE_MANAGER);
+        routes.post(prefix + "/kb/files/import-document", this::importDocument, Roles.KNOWLEDGE_MANAGER);
+        routes.post(prefix + "/kb/files/link", this::createLinkFile, Roles.KNOWLEDGE_MANAGER);
 
         // File content
         routes.get(prefix + "/kb/files/{id}/content", this::getFileContent, Roles.USER);
         routes.get(prefix + "/kb/files/{id}/html", this::getMarkdownHtml, Roles.USER);
-        routes.put(prefix + "/kb/files/{id}/content", this::updateMarkdownContent, Roles.KNOWLEDGE_MANAGEMENT);
+        routes.put(prefix + "/kb/files/{id}/content", this::updateMarkdownContent, Roles.KNOWLEDGE_MANAGER);
 
         // Versions (markdown only)
-        routes.get(prefix + "/kb/files/{id}/versions", this::listVersions, Roles.KNOWLEDGE_MANAGEMENT);
-        routes.get(prefix + "/kb/files/{id}/versions/{version}", this::getVersion, Roles.KNOWLEDGE_MANAGEMENT);
+        routes.get(prefix + "/kb/files/{id}/versions", this::listVersions, Roles.KNOWLEDGE_MANAGER);
+        routes.get(prefix + "/kb/files/{id}/versions/{version}", this::getVersion, Roles.KNOWLEDGE_MANAGER);
         routes.post(
-                prefix + "/kb/files/{id}/versions/{version}/revert", this::revertToVersion, Roles.KNOWLEDGE_MANAGEMENT);
+                prefix + "/kb/files/{id}/versions/{version}/revert", this::revertToVersion, Roles.KNOWLEDGE_MANAGER);
 
         // Related files
         routes.get(prefix + "/kb/files/{id}/related", this::getRelatedFiles, Roles.USER);
-        routes.put(prefix + "/kb/files/{id}/related", this::setRelatedFiles, Roles.KNOWLEDGE_MANAGEMENT);
+        routes.put(prefix + "/kb/files/{id}/related", this::setRelatedFiles, Roles.KNOWLEDGE_MANAGER);
 
         // Search
         routes.get(prefix + "/kb/search", this::search, Roles.USER);
@@ -160,25 +147,25 @@ public class KnowledgeBaseRoutes implements Routes {
         routes.get(prefix + "/kb/browse", this::browse, Roles.USER);
 
         // Access restrictions
-        routes.get(prefix + "/kb/folders/{id}/restrictions", this::getFolderRestrictions, Roles.KNOWLEDGE_MANAGEMENT);
-        routes.put(prefix + "/kb/folders/{id}/restrictions", this::setFolderRestrictions, Roles.KNOWLEDGE_MANAGEMENT);
-        routes.get(prefix + "/kb/files/{id}/restrictions", this::getFileRestrictions, Roles.KNOWLEDGE_MANAGEMENT);
-        routes.put(prefix + "/kb/files/{id}/restrictions", this::setFileRestrictions, Roles.KNOWLEDGE_MANAGEMENT);
+        routes.get(prefix + "/kb/folders/{id}/restrictions", this::getFolderRestrictions, Roles.KNOWLEDGE_MANAGER);
+        routes.put(prefix + "/kb/folders/{id}/restrictions", this::setFolderRestrictions, Roles.KNOWLEDGE_MANAGER);
+        routes.get(prefix + "/kb/files/{id}/restrictions", this::getFileRestrictions, Roles.KNOWLEDGE_MANAGER);
+        routes.put(prefix + "/kb/files/{id}/restrictions", this::setFileRestrictions, Roles.KNOWLEDGE_MANAGER);
 
         // Folder icons
         routes.get(prefix + "/kb/folders/{id}/icon", this::getFolderIcon, Roles.USER);
-        routes.post(prefix + "/kb/folders/{id}/icon", this::uploadFolderIcon, Roles.KNOWLEDGE_MANAGEMENT);
+        routes.post(prefix + "/kb/folders/{id}/icon", this::uploadFolderIcon, Roles.KNOWLEDGE_MANAGER);
 
         // KB Images (for markdown embedding)
-        routes.post(prefix + "/kb/files/{id}/images", this::uploadKbImage, Roles.KNOWLEDGE_MANAGEMENT);
+        routes.post(prefix + "/kb/files/{id}/images", this::uploadKbImage, Roles.KNOWLEDGE_MANAGER);
         routes.get(prefix + "/kb/images/{imageId}", this::getKbImage, Roles.USER);
 
         // Tags
         routes.get(prefix + "/kb/tags", this::listTags, Roles.USER);
         routes.get(prefix + "/kb/files/{id}/tags", this::getFileTags, Roles.USER);
-        routes.put(prefix + "/kb/files/{id}/tags", this::setFileTags, Roles.KNOWLEDGE_MANAGEMENT);
+        routes.put(prefix + "/kb/files/{id}/tags", this::setFileTags, Roles.KNOWLEDGE_MANAGER);
         routes.get(prefix + "/kb/folders/{id}/tags", this::getFolderTags, Roles.USER);
-        routes.put(prefix + "/kb/folders/{id}/tags", this::setFolderTags, Roles.KNOWLEDGE_MANAGEMENT);
+        routes.put(prefix + "/kb/folders/{id}/tags", this::setFolderTags, Roles.KNOWLEDGE_MANAGER);
     }
 
     // -- Folders --
@@ -243,14 +230,11 @@ public class KnowledgeBaseRoutes implements Routes {
     }
 
     private void getFile(Context ctx) {
-        var session = UserSession.from(ctx);
         int id = ctx.pathParamAsClass("id", Integer.class).get();
         service.findFile(id)
                 .ifPresentOrElse(
                         file -> {
-                            boolean favourite =
-                                    service.isFavourite(session.member().id(), file.id());
-                            ctx.json(new FileResponse(file, resolveMemberName(file.createdBy()), favourite));
+                            ctx.json(new FileResponse(file, resolveMemberName(file.createdBy())));
                         },
                         () -> {
                             throw new NotFoundResponse();
@@ -499,67 +483,15 @@ public class KnowledgeBaseRoutes implements Routes {
     private void search(Context ctx) {
         var session = UserSession.from(ctx);
         String query = ctx.queryParam("q");
-        String tagFilter = ctx.queryParam("tag");
-        boolean includeFederated = !"false".equals(ctx.queryParam("federated"));
-
-        if ((query == null || query.isBlank()) && (tagFilter == null || tagFilter.isBlank())) {
+        if (query == null || query.isBlank()) {
             ctx.json(List.of());
             return;
         }
-
-        var response = new java.util.ArrayList<SearchResultResponse>();
-
-        // Local search
-        if (query != null && !query.isBlank()) {
-            var results = service.searchWithSnippets(session.stationId(), query);
-            results.stream()
-                    .map(r -> new SearchResultResponse(
-                            r.file(), r.snippet(), resolveFolderPath(r.file().folderId()), null, session.stationId()))
-                    .forEach(response::add);
-        }
-
-        // Tag filter (local only)
-        if (tagFilter != null && !tagFilter.isBlank()) {
-            var taggedFileIds = service.findFilesByTag(session.stationId(), tagFilter).stream()
-                    .map(KbFile::id)
-                    .collect(java.util.stream.Collectors.toSet());
-            if (query != null && !query.isBlank()) {
-                // Filter existing results by tag
-                response.removeIf(r -> r.stationName() == null
-                        && !taggedFileIds.contains(r.file().id()));
-            } else {
-                // Show all tagged files
-                for (var file : service.findFilesByTag(session.stationId(), tagFilter)) {
-                    response.add(new SearchResultResponse(
-                            file, null, resolveFolderPath(file.folderId()), null, session.stationId()));
-                }
-            }
-        }
-
-        // Include federated search results
-        if (includeFederated && query != null && !query.isBlank()) {
-            try {
-                var sharedItems = federatedContentService.browseSharedKb(session.stationId());
-                String lowerQuery = query.toLowerCase();
-                for (var item : sharedItems) {
-                    if (item.file() == null) continue;
-                    var f = item.file();
-                    if (f.name().toLowerCase().contains(lowerQuery)
-                            || (f.description() != null
-                                    && f.description().toLowerCase().contains(lowerQuery))) {
-                        String stationName = stationRepository
-                                .findById(item.sourceStationId())
-                                .map(s -> s.name())
-                                .orElse("Partner");
-                        response.add(new SearchResultResponse(f, null, null, stationName, item.sourceStationId()));
-                    }
-                }
-            } catch (Exception e) {
-                log.debug("Failed to search federated KB content", e);
-            }
-        }
-
-        ctx.json(response);
+        var results = service.searchWithSnippets(session.stationId(), query);
+        ctx.json(results.stream()
+                .map(r -> new SearchResultResponse(
+                        r.file(), r.snippet(), resolveFolderPath(r.file().folderId())))
+                .toList());
     }
 
     // -- Browse (combined) --
@@ -573,8 +505,8 @@ public class KnowledgeBaseRoutes implements Routes {
         var files = service.findFiles(session.stationId(), folderId);
         KbFolder currentFolder = folderId != null ? service.findFolder(folderId).orElse(null) : null;
 
-        // Filter by access restrictions unless user has KNOWLEDGE_MANAGEMENT role
-        if (!session.hasRole(Roles.KNOWLEDGE_MANAGEMENT)) {
+        // Filter by access restrictions unless user has KNOWLEDGE_MANAGER role
+        if (!session.hasRole(Roles.KNOWLEDGE_MANAGER)) {
             int memberId = session.member().id();
             var memberRoleIds = stationMemberRepository.findRoles(memberId).stream()
                     .map(Role::id)
@@ -594,33 +526,7 @@ public class KnowledgeBaseRoutes implements Routes {
                     .toList();
         }
 
-        // Include shared files at root level (no folder selected)
-        List<SharedFileEntry> sharedFiles = List.of();
-        if (folderId == null) {
-            try {
-                var sharedItems = federatedContentService.browseSharedKb(session.stationId());
-                sharedFiles = sharedItems.stream()
-                        .filter(item -> item.file() != null)
-                        .map(item -> {
-                            String stationName = stationRepository
-                                    .findById(item.sourceStationId())
-                                    .map(s -> s.name())
-                                    .orElse("Partner");
-                            return new SharedFileEntry(item.file(), stationName, item.sourceStationId());
-                        })
-                        .toList();
-            } catch (Exception e) {
-                log.debug("Failed to load federated KB content", e);
-            }
-        }
-
-        // Include favourites at root level
-        List<KbFile> favourites = List.of();
-        if (folderId == null) {
-            favourites = service.findFavourites(session.member().id());
-        }
-
-        ctx.json(new BrowseResponse(currentFolder, folders, files, sharedFiles, favourites));
+        ctx.json(new BrowseResponse(currentFolder, folders, files));
     }
 
     // -- Access Restrictions --
@@ -683,27 +589,6 @@ public class KnowledgeBaseRoutes implements Routes {
         return new RestrictionResponse(roleIds, groupIds, tagIds, memberIds);
     }
 
-    // -- Favourites --
-
-    private void listFavourites(Context ctx) {
-        var session = UserSession.from(ctx);
-        ctx.json(service.findFavourites(session.member().id()));
-    }
-
-    private void addFavourite(Context ctx) {
-        var session = UserSession.from(ctx);
-        int fileId = ctx.pathParamAsClass("fileId", Integer.class).get();
-        service.addFavourite(session.member().id(), fileId);
-        ctx.status(204);
-    }
-
-    private void removeFavourite(Context ctx) {
-        var session = UserSession.from(ctx);
-        int fileId = ctx.pathParamAsClass("fileId", Integer.class).get();
-        service.removeFavourite(session.member().id(), fileId);
-        ctx.status(204);
-    }
-
     // -- Request/Response Records --
 
     public record FolderRequest(Integer parentId, String name, String description, String iconUrl, Integer position) {}
@@ -730,17 +615,7 @@ public class KnowledgeBaseRoutes implements Routes {
     public record RestrictionResponse(
             List<Integer> roleIds, List<Integer> groupIds, List<Integer> tagIds, List<Integer> memberIds) {}
 
-    public record BrowseResponse(
-            KbFolder currentFolder,
-            List<KbFolder> folders,
-            List<KbFile> files,
-            List<SharedFileEntry> sharedFiles,
-            List<KbFile> favourites) {}
-
-    public record SharedFileEntry(KbFile file, String stationName, int sourceStationId) {}
-
-    public record SearchResultResponse(
-            KbFile file, String snippet, String folderPath, String stationName, int sourceStationId) {}
+    public record BrowseResponse(KbFolder currentFolder, List<KbFolder> folders, List<KbFile> files) {}
 
     // -- Folder Icons --
 
@@ -853,12 +728,14 @@ public class KnowledgeBaseRoutes implements Routes {
 
     public record RelatedFilesRequest(List<Integer> fileIds) {}
 
-    public record FileResponse(KbFile file, String lastEditedByName, boolean isFavourite) {
+    public record FileResponse(KbFile file, String lastEditedByName) {
         // Jackson will serialize both the file fields and the name
     }
 
     public record VersionResponse(
             int id, int version, boolean isFull, int createdBy, String createdByName, Instant createdAt) {}
+
+    public record SearchResultResponse(KbFile file, String snippet, String folderPath) {}
 
     public record ImageUploadResponse(String imageId) {}
 }

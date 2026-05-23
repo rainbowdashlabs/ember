@@ -67,10 +67,10 @@ const activeRole = ref('')
                 </div>
                 <div class="text-xs text-(--text-muted)">HLM-2024-012</div>
               </div>
-              <button type="button" class="text-xs text-primary hover:underline shrink-0">
+              <SecondaryButton class="shrink-0">
                 <font-awesome-icon :icon="['fas', 'rotate']" class="mr-0.5"/>
                 {{ t('profile.requestExchange') }}
-              </button>
+              </SecondaryButton>
             </div>
           </NeutralContainer>
         </div>

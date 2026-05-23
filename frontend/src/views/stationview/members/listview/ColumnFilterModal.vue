@@ -69,8 +69,8 @@ function close() {
       <h3 class="text-lg font-semibold">{{ t('membersList.filterBy', { column: columnLabel }) }}</h3>
 
       <div class="flex gap-2 text-xs">
-        <button class="text-primary hover:underline" @click="selectAll">{{ t('membersList.filterSelectAll') }}</button>
-        <button class="text-primary hover:underline" @click="selectNone">{{ t('membersList.filterSelectNone') }}</button>
+        <SecondaryButton @click="selectAll">{{ t('membersList.filterSelectAll') }}</SecondaryButton>
+        <SecondaryButton @click="selectNone">{{ t('membersList.filterSelectNone') }}</SecondaryButton>
       </div>
 
       <div class="max-h-64 overflow-y-auto space-y-1 border rounded border-bg-light-accent dark:border-bg-dark-accent p-2">

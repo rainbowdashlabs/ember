@@ -11,6 +11,7 @@ import IconButton from '@/components/button/IconButton.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import UserAvatar from '@/components/avatar/UserAvatar.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
+import CheckboxInput from '@/components/input/toggle/CheckboxInput.vue'
 import ColumnFilterModal from './ColumnFilterModal.vue'
 import type {ProfileField, StationMember} from '@/api/types'
 import {Roles, hasTeamRole} from '@/api/types'
@@ -199,7 +200,7 @@ function onRowClick(member: StationMember) {
           <EditButton @click="emit('navigateEdit', member, $event)"/>
         </div>
         <div v-else @click.stop>
-          <input :checked="selectedIds?.has(member.id)" class="h-4 w-4 rounded accent-primary cursor-pointer" type="checkbox" @change="emit('toggleSelect', member.id)"/>
+          <CheckboxInput :model-value="selectedIds?.has(member.id) ?? false" @update:model-value="emit('toggleSelect', member.id)"/>
         </div>
       </div>
       <div class="grid grid-cols-2 gap-x-4 gap-y-1 text-sm mt-1">
@@ -229,8 +230,7 @@ function onRowClick(member: StationMember) {
       <thead>
       <tr class="border-b border-bg-light-accent dark:border-bg-dark-accent text-left">
         <th v-if="exportMode" class="px-2 py-2 w-10">
-          <input :checked="allSelected" class="h-4 w-4 rounded accent-primary cursor-pointer" type="checkbox"
-                 @change="emit('toggleSelectAll')"/>
+          <CheckboxInput :model-value="allSelected" @update:model-value="emit('toggleSelectAll')"/>
         </th>
         <th v-if="!exportMode" class="px-3 py-2 w-20"></th>
         <!-- Name column -->
@@ -308,8 +308,7 @@ function onRowClick(member: StationMember) {
             @click="onRowClick(member)"
         >
           <td v-if="exportMode" class="px-2 py-2.5" @click.stop>
-            <input :checked="selectedIds?.has(member.id)" class="h-4 w-4 rounded accent-primary cursor-pointer"
-                   type="checkbox" @change="emit('toggleSelect', member.id)"/>
+            <CheckboxInput :model-value="selectedIds?.has(member.id) ?? false" @update:model-value="emit('toggleSelect', member.id)"/>
           </td>
           <td v-if="!exportMode" class="px-3 py-2.5" @click.stop>
             <IconButton :icon="['fas', 'eye']" :label="t('membersList.detail')"

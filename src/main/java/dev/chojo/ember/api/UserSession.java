@@ -11,16 +11,18 @@ import io.javalin.http.Context;
 
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 
 /**
  * Represents an authenticated user's session context, including account info, station scope, and resolved roles.
  *
- * @param account   the authenticated account
- * @param stationId the station the user is scoped to, or {@code null} if no station is selected
- * @param member    the station member record if the user belongs to the station, or {@code null}
- * @param roles     the fully expanded set of roles for this session
+ * @param account    the authenticated account
+ * @param stationId  the internal station ID, or {@code null} if no station is selected
+ * @param stationUid the external station UUID, or {@code null} if no station is selected
+ * @param member     the station member record if the user belongs to the station, or {@code null}
+ * @param roles      the fully expanded set of roles for this session
  */
-public record UserSession(Account account, Integer stationId, StationMember member, Set<Roles> roles) {
+public record UserSession(Account account, Integer stationId, UUID stationUid, StationMember member, Set<Roles> roles) {
 
     /**
      * Extracts the user session from a Javalin request context.

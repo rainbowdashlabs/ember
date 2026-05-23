@@ -425,7 +425,7 @@ async function loadData() {
   try {
     const [allFields, allMembers, groups, tags] = await Promise.all([
       profileFields.listFields(),
-      stationMembers.listMembers(currentStationId.value!),
+      stationMembers.listMembers(),
       memberGroups.listGroups(),
       userTags.listTags(),
     ])

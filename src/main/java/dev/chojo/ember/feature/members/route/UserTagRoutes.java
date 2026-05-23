@@ -58,17 +58,17 @@ public class UserTagRoutes implements Routes {
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        routes.get(prefix + "/tags", this::list, Roles.MEMBER_MANAGEMENT);
-        routes.post(prefix + "/tags", this::create, Roles.MEMBER_MANAGEMENT);
-        routes.put(prefix + "/tags/{id}", this::update, Roles.MEMBER_MANAGEMENT);
-        routes.delete(prefix + "/tags/{id}", this::delete, Roles.MEMBER_MANAGEMENT);
+        routes.get(prefix + "/tags", this::list, Roles.MEMBER_MANAGER);
+        routes.post(prefix + "/tags", this::create, Roles.MEMBER_MANAGER);
+        routes.put(prefix + "/tags/{id}", this::update, Roles.MEMBER_MANAGER);
+        routes.delete(prefix + "/tags/{id}", this::delete, Roles.MEMBER_MANAGER);
 
-        routes.get(prefix + "/tags/{id}/members", this::getMembers, Roles.MEMBER_MANAGEMENT);
-        routes.put(prefix + "/tags/{id}/members", this::setMembers, Roles.MEMBER_MANAGEMENT);
+        routes.get(prefix + "/tags/{id}/members", this::getMembers, Roles.MEMBER_MANAGER);
+        routes.put(prefix + "/tags/{id}/members", this::setMembers, Roles.MEMBER_MANAGER);
 
-        routes.get(prefix + "/station-members/{memberId}/tags", this::getMemberTags, Roles.MEMBER_MANAGEMENT);
+        routes.get(prefix + "/station-members/{memberId}/tags", this::getMemberTags, Roles.MEMBER_MANAGER);
 
-        routes.post(prefix + "/tags/{id}/convert-to-group", this::convertToGroup, Roles.MEMBER_MANAGEMENT);
+        routes.post(prefix + "/tags/{id}/convert-to-group", this::convertToGroup, Roles.MEMBER_MANAGER);
     }
 
     // -- Tags --

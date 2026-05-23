@@ -63,11 +63,11 @@ public class ProcurementRoutes implements Routes {
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        routes.get(prefix + "/procurement", this::list, Roles.INVENTORY_MANAGEMENT);
-        routes.get(prefix + "/procurement/open", this::listOpen, Roles.INVENTORY_MANAGEMENT);
-        routes.post(prefix + "/procurement", this::create, Roles.INVENTORY_MANAGEMENT);
-        routes.put(prefix + "/procurement/{id}/fulfill", this::fulfill, Roles.INVENTORY_MANAGEMENT);
-        routes.delete(prefix + "/procurement/{id}", this::delete, Roles.INVENTORY_MANAGEMENT);
+        routes.get(prefix + "/procurement", this::list, Roles.INVENTORY_MANAGER);
+        routes.get(prefix + "/procurement/open", this::listOpen, Roles.INVENTORY_MANAGER);
+        routes.post(prefix + "/procurement", this::create, Roles.INVENTORY_MANAGER);
+        routes.put(prefix + "/procurement/{id}/fulfill", this::fulfill, Roles.INVENTORY_MANAGER);
+        routes.delete(prefix + "/procurement/{id}", this::delete, Roles.INVENTORY_MANAGER);
     }
 
     @OpenApi(

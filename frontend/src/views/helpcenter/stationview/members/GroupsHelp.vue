@@ -13,6 +13,8 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import EditButton from '@/components/button/EditButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
+import IconButton from '@/components/button/IconButton.vue'
+import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
 
 const {t} = useI18n()
 </script>
@@ -73,15 +75,11 @@ const {t} = useI18n()
           <div class="space-y-1">
             <div class="flex items-center justify-between rounded-lg px-3 py-2 bg-bg-light-accent dark:bg-bg-dark-accent">
               <span class="text-sm font-medium">Max Mustermann</span>
-              <button class="text-error hover:text-error/80 text-sm">
-                <font-awesome-icon :icon="['fas', 'xmark']"/>
-              </button>
+              <IconButton :icon="['fas', 'xmark']" label="Remove" class="text-error hover:text-error/80" />
             </div>
             <div class="flex items-center justify-between rounded-lg px-3 py-2 bg-bg-light-accent dark:bg-bg-dark-accent">
               <span class="text-sm font-medium">Anna Schmidt</span>
-              <button class="text-error hover:text-error/80 text-sm">
-                <font-awesome-icon :icon="['fas', 'xmark']"/>
-              </button>
+              <IconButton :icon="['fas', 'xmark']" label="Remove" class="text-error hover:text-error/80" />
             </div>
           </div>
         </div>
@@ -105,15 +103,15 @@ const {t} = useI18n()
     <NeutralContainer class="space-y-2">
       <label class="block text-sm font-medium text-(--text-muted)">{{ t('memberGroups.roles') }}</label>
       <div class="flex flex-wrap gap-2">
-        <button class="rounded-lg px-3 py-1.5 text-xs font-medium border border-primary bg-primary/10 text-primary ring-1 ring-primary/30">
+        <SelectionToggleButton :selected="true">
           Mitglied
-        </button>
-        <button class="rounded-lg px-3 py-1.5 text-xs font-medium border border-primary bg-primary/10 text-primary ring-1 ring-primary/30">
+        </SelectionToggleButton>
+        <SelectionToggleButton :selected="true">
           Login
-        </button>
-        <button class="rounded-lg px-3 py-1.5 text-xs font-medium border border-bg-light-accent dark:border-bg-dark-accent text-(--text-muted) hover:border-primary">
+        </SelectionToggleButton>
+        <SelectionToggleButton :selected="false">
           Team
-        </button>
+        </SelectionToggleButton>
       </div>
     </NeutralContainer>
 

@@ -10,22 +10,9 @@ import {useRoute, useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import SuccessButton from '@/components/button/SuccessButton.vue'
-import ErrorButton from '@/components/button/ErrorButton.vue'
-import InfoButton from '@/components/button/InfoButton.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
-import TextInput from '@/components/input/text/TextInput.vue'
-import TimeShortInput from '@/components/input/datetime/TimeShortInput.vue'
-import ProfileFieldInput from '@/components/input/ProfileFieldInput.vue'
-import MultiSelectInput from '@/components/input/select/MultiSelectInput.vue'
-import NeutralContainer from '@/components/container/NeutralContainer.vue'
-import SuccessBadge from '@/components/badge/SuccessBadge.vue'
-import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
-import ErrorBadge from '@/components/badge/ErrorBadge.vue'
-import InfoBadge from '@/components/badge/InfoBadge.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import type {
   AttendanceEntry,
@@ -40,11 +27,12 @@ import type {
 import {attendance, memberGroups, stationMembers} from '@/api'
 import {useSession} from '@/composables/useSession'
 import {useStations} from '@/composables/useStations'
-import {useBreakpoint} from '@/composables/useBreakpoint'
-import MemberName from '@/components/avatar/MemberName.vue'
+import CheckModePanel from './sessionview/CheckModePanel.vue'
+import SessionFieldsPanel from './sessionview/SessionFieldsPanel.vue'
+import MemberEntry from './sessionview/MemberEntry.vue'
+import SessionHeader from './sessionview/SessionHeader.vue'
 
 const {t} = useI18n()
-const {isMobile} = useBreakpoint()
 const route = useRoute()
 const router = useRouter()
 const {loaded} = useSession()
@@ -85,7 +73,6 @@ const membersNotInSession = computed(() => {
   return allMembers.value.filter(m => !entryMemberIds.has(m.id))
 })
 
-// Group members into sections based on template groups
 interface MemberSection {
   group: MemberGroup | null
   members: StationMember[]
@@ -94,11 +81,9 @@ interface MemberSection {
 const memberSections = computed((): MemberSection[] => {
   const sections: MemberSection[] = []
   const assignedMemberIds = new Set<number>()
-
   const sortByName = (a: StationMember, b: StationMember) =>
       (a.name ?? '').localeCompare(b.name ?? '', 'de')
 
-  // Template-defined groups in order
   for (const tg of templateGroups.value) {
     const group = groups.value.find(g => g.id === tg.groupId)
     if (!group) continue
@@ -109,7 +94,6 @@ const memberSections = computed((): MemberSection[] => {
     }
   }
 
-  // Members in entries but not in any group
   const ungroupedMembers = entries.value
       .filter(e => !assignedMemberIds.has(e.memberId))
       .map(e => allMembers.value.find(m => m.id === e.memberId))
@@ -119,7 +103,6 @@ const memberSections = computed((): MemberSection[] => {
   if (ungroupedMembers.length > 0) {
     sections.push({group: null, members: ungroupedMembers})
   }
-
   return sections
 })
 
@@ -130,13 +113,6 @@ function getMemberName(memberId: number): string {
 
 function getEntry(memberId: number): AttendanceEntry | undefined {
   return entries.value.find(e => e.memberId === memberId)
-}
-
-function formatTime(iso?: string): string {
-  if (!iso) return ''
-  const d = new Date(iso)
-  const pad = (n: number) => String(n).padStart(2, '0')
-  return `${pad(d.getHours())}:${pad(d.getMinutes())}`
 }
 
 function getFieldValue(fieldId: number): string {
@@ -156,45 +132,11 @@ function parseFieldConfig(configStr?: string): { options?: string[]; groupId?: n
   }
 }
 
-function isMemberField(fieldType: string): boolean {
-  return ['member', 'member_list', 'member_of_group', 'member_list_of_group'].includes(fieldType)
-}
-
-function isListField(fieldType: string): boolean {
-  return ['member_list', 'member_list_of_group'].includes(fieldType)
-}
-
-function getMemberOptions(field: AttendanceTemplateField): { value: string; label: string }[] {
-  const config = parseFieldConfig(field.config)
-  const groupId = config.groupId
-  let members: StationMember[]
-  if (groupId && groupMembers.value.has(groupId)) {
-    members = groupMembers.value.get(groupId)!
-  } else {
-    members = allMembers.value
-  }
-  return members.map(m => ({value: String(m.id), label: m.name ?? m.email ?? `#${m.id}`}))
-}
-
-function getFieldMemberIds(fieldId: number): string[] {
-  const raw = getFieldValue(fieldId)
-  if (!raw) return []
-  try {
-    const parsed = JSON.parse(raw)
-    if (Array.isArray(parsed)) return parsed.map(String)
-    if (parsed) return [String(parsed)]
-  } catch { /* ignore */
-  }
-  if (raw) return [raw]
-  return []
-}
-
 async function setFieldMemberIds(fieldId: number, ids: string[]) {
   const val = ids.length === 0 ? '' : ids.length === 1 ? ids[0] : JSON.stringify(ids)
   setFieldValue(fieldId, val)
   await saveField(fieldId)
 
-  // Auto-create attendance entries for autoAttend fields and mark as PRESENT
   const field = templateFields.value.find(f => f.id === fieldId)
   if (field && parseFieldConfig(field.config).autoAttend) {
     const entryMemberIds = new Set(entries.value.map(e => e.memberId))
@@ -209,7 +151,6 @@ async function setFieldMemberIds(fieldId: number, ids: string[]) {
         await attendance.updateEntryStatus(entry.id, 'PRESENT')
       }
     }
-    // Refresh entries to get updated statuses
     const detail = await attendance.getSession(sessionId.value)
     entries.value = detail.entries ?? []
   }
@@ -221,7 +162,7 @@ async function loadData() {
   try {
     const [detail, members, allGroups] = await Promise.all([
       attendance.getSession(sessionId.value),
-      stationMembers.listMembers(currentStationId.value!, true),
+      stationMembers.listMembers(),
       memberGroups.listGroups(),
     ])
     session.value = detail.session ?? null
@@ -238,28 +179,22 @@ async function loadData() {
       templateFields.value = tplFields
       templateGroups.value = tplDetail.groups ?? []
 
-      // Collect all group IDs needed: template groups + field config groups
       const groupIdsToLoad = new Set<number>()
-      for (const tg of templateGroups.value) {
-        groupIdsToLoad.add(tg.groupId)
-      }
+      for (const tg of templateGroups.value) groupIdsToLoad.add(tg.groupId)
       for (const field of tplFields) {
         const cfg = parseFieldConfig(field.config)
         if (cfg.groupId) groupIdsToLoad.add(cfg.groupId)
       }
 
-      // Load group members
       const gm = new Map<number, StationMember[]>()
       for (const groupId of groupIdsToLoad) {
         try {
           const members = await memberGroups.getGroupMembers(groupId)
           gm.set(groupId, members)
-        } catch { /* skip */
-        }
+        } catch { /* skip */ }
       }
       groupMembers.value = gm
 
-      // Auto-create entries for template group members not yet in session
       const entryMemberIds = new Set(entries.value.map(e => e.memberId))
       for (const tg of templateGroups.value) {
         const members = gm.get(tg.groupId) ?? []
@@ -272,14 +207,12 @@ async function loadData() {
       }
     }
 
-    // Populate field values from session fields
     const fv = new Map<number, string>()
     for (const sf of sessionFields.value) {
       let val = sf.value ?? ''
       try {
         val = JSON.parse(val)
-      } catch { /* use as-is */
-      }
+      } catch { /* use as-is */ }
       fv.set(sf.fieldId, typeof val === 'string' ? val : String(val))
     }
     fieldValues.value = fv
@@ -302,21 +235,15 @@ async function saveField(fieldId: number) {
 
 const fieldSaveTimers = new Map<number, ReturnType<typeof setTimeout>>()
 
-function onFieldUpdate(fieldId: number, value: string, immediate = false) {
+function onFieldUpdate(fieldId: number, value: string, immediate: boolean) {
   setFieldValue(fieldId, value)
-  // Clear pending timer
   const existing = fieldSaveTimers.get(fieldId)
   if (existing) clearTimeout(existing)
   if (immediate) {
     saveField(fieldId)
   } else {
-    // Debounce text fields
     fieldSaveTimers.set(fieldId, setTimeout(() => saveField(fieldId), 500))
   }
-}
-
-function isImmediateField(fieldType: string): boolean {
-  return ['boolean', 'date', 'enum', 'member', 'member_list', 'member_of_group', 'member_list_of_group'].includes(fieldType)
 }
 
 async function addMember() {
@@ -345,7 +272,6 @@ async function setCheckIn(entryId: number, time: string) {
   error.value = ''
   try {
     if (time) {
-      // Convert HH:mm to today's ISO timestamp
       const [h, m] = time.split(':')
       const d = new Date()
       d.setHours(Number(h), Number(m), 0, 0)
@@ -412,10 +338,6 @@ async function exportPdf() {
 function startCheckMode() {
   checkIndex.value = 0
   checkMode.value = true
-}
-
-function endCheckMode() {
-  checkMode.value = false
 }
 
 async function checkSetStatus(status: AttendanceStatus) {
@@ -516,220 +438,61 @@ watch(loaded, (isLoaded) => {
       <Alert v-if="error" variant="error">{{ error }}</Alert>
 
       <template v-if="!loading && session">
-        <!-- Session header (title + times when no event linked) -->
-        <NeutralContainer v-if="!session.eventId" class="space-y-3">
-          <div class="grid gap-3 sm:grid-cols-3">
-            <div class="space-y-1">
-              <label class="block text-sm font-medium">{{ t('attendanceSession.title') }}</label>
-              <TextInput :model-value="session.title ?? ''" @update:model-value="setSessionTitle(($event as string) ?? '')"/>
-            </div>
-            <div class="space-y-1">
-              <label class="block text-sm font-medium">{{ t('attendanceSession.startTime') }}</label>
-              <TimeShortInput
-                  :model-value="formatTime(session.startTime)"
-                  @change="setSessionStartTime(($event.target as HTMLInputElement).value)"
-              />
-            </div>
-            <div class="space-y-1">
-              <label class="block text-sm font-medium">{{ t('attendanceSession.endTime') }}</label>
-              <TimeShortInput
-                  :model-value="formatTime(session.endTime)"
-                  @change="setSessionEndTime(($event.target as HTMLInputElement).value)"
-              />
-            </div>
-          </div>
-        </NeutralContainer>
-
-        <!-- Event-linked session title -->
-        <SectionHeader v-if="session.eventId && session.title">{{ session.title }}</SectionHeader>
+        <SessionHeader
+            :session="session"
+            @update-title="setSessionTitle"
+            @update-start-time="setSessionStartTime"
+            @update-end-time="setSessionEndTime"
+        />
 
         <!-- Check mode -->
-        <NeutralContainer v-if="checkMode && currentCheckEntry" class="space-y-4">
-          <SectionHeader>{{ t('attendanceSession.checkMode') }}</SectionHeader>
-          <div class="text-center space-y-4 py-4">
-            <p class="text-2xl font-bold"><MemberName :name="getMemberName(currentCheckEntry.memberId)" :member-id="currentCheckEntry!.memberId" size="md"/></p>
-            <p class="text-sm text-(--text-muted)">{{ checkIndex + 1 }} / {{ uncheckedEntries.length }}</p>
-            <div class="flex flex-col sm:flex-row justify-center gap-3 sm:gap-4">
-              <SuccessButton :full-width="isMobile" @click="checkSetStatus('PRESENT')">
-                <font-awesome-icon :icon="['fas', 'check']" class="mr-2"/>
-                {{ t('attendanceSession.present') }}
-              </SuccessButton>
-              <ErrorButton :full-width="isMobile" @click="checkSetStatus('ABSENT')">
-                <font-awesome-icon :icon="['fas', 'xmark']" class="mr-2"/>
-                {{ t('attendanceSession.absent') }}
-              </ErrorButton>
-              <InfoButton :full-width="isMobile" @click="checkSetStatus('DECLINED')">
-                <font-awesome-icon :icon="['fas', 'ban']" class="mr-2"/>
-                {{ t('attendanceSession.declined') }}
-              </InfoButton>
-            </div>
-            <div class="flex justify-center gap-3 pt-2">
-              <SecondaryButton @click="skipCheck">{{ t('attendanceSession.skip') }}</SecondaryButton>
-              <SecondaryButton @click="endCheckMode">{{
-                  t('attendanceSession.endCheck')
-                }}
-              </SecondaryButton>
-            </div>
-          </div>
-        </NeutralContainer>
-
-        <div v-if="checkMode && !currentCheckEntry" class="text-center py-6">
-          <p class="text-lg font-semibold text-success">{{ t('attendanceSession.allChecked') }}</p>
-          <SecondaryButton class="mt-3" @click="endCheckMode">{{ t('attendanceSession.endCheck') }}</SecondaryButton>
-        </div>
+        <CheckModePanel
+            v-if="checkMode"
+            :current-entry="currentCheckEntry"
+            :check-index="checkIndex"
+            :total-unchecked="uncheckedEntries.length"
+            :member-name="currentCheckEntry ? getMemberName(currentCheckEntry.memberId) : ''"
+            @set-status="checkSetStatus"
+            @skip="skipCheck"
+            @end="checkMode = false"
+        />
 
         <template v-if="!checkMode">
           <!-- Template fields -->
-          <NeutralContainer v-if="templateFields.length > 0" class="space-y-4">
-            <SectionHeader>{{ t('attendanceSession.fields') }}</SectionHeader>
-            <div class="space-y-3">
-              <div v-for="field in templateFields" :key="field.id" class="space-y-1">
-                <label class="block text-sm font-medium">{{ field.name }}</label>
-                <!-- Member list fields -->
-                <template v-if="isMemberField(field.fieldType ?? '')">
-                  <MultiSelectInput
-                      v-if="isListField(field.fieldType ?? '')"
-                      :model-value="getFieldMemberIds(field.id)"
-                      :options="getMemberOptions(field)"
-                      :placeholder="t('attendanceSession.addMember')"
-                      @update:model-value="setFieldMemberIds(field.id, $event)"
-                  />
-                  <SelectInput
-                      v-else
-                      :model-value="getFieldValue(field.id)"
-                      @update:model-value="setFieldMemberIds(field.id, $event ? [$event] : [])"
-                  >
-                    <option value="">—</option>
-                    <option v-for="opt in getMemberOptions(field)" :key="opt.value" :value="opt.value">{{
-                        opt.label
-                      }}
-                    </option>
-                  </SelectInput>
-                </template>
-                <!-- Regular fields -->
-                <template v-else>
-                  <ProfileFieldInput
-                      :field-type="field.fieldType ?? 'text'"
-                      :model-value="getFieldValue(field.id)"
-                      :options="(parseFieldConfig(field.config).options as string[]) ?? []"
-                      @update:model-value="onFieldUpdate(field.id, $event, isImmediateField(field.fieldType ?? ''))"
-                  />
-                </template>
-              </div>
-            </div>
-          </NeutralContainer>
+          <SessionFieldsPanel
+              :template-fields="templateFields"
+              :field-values="fieldValues"
+              :group-members="groupMembers"
+              :all-members="allMembers"
+              @field-update="onFieldUpdate"
+              @field-member-ids="setFieldMemberIds"
+          />
 
           <!-- Summary -->
           <div class="flex gap-3 text-sm flex-wrap">
             <SecondaryBadge v-if="entries.filter(e => e.status === 'UNCONFIRMED').length > 0">
               {{ entries.filter(e => e.status === 'UNCONFIRMED').length }} {{ t('attendanceSession.unconfirmed') }}
             </SecondaryBadge>
-            <SuccessBadge>{{ entries.filter(e => e.status === 'PRESENT').length }} {{
-                t('attendanceSession.present')
-              }}
-            </SuccessBadge>
-            <ErrorBadge>{{ entries.filter(e => e.status === 'ABSENT').length }} {{
-                t('attendanceSession.absent')
-              }}
-            </ErrorBadge>
-            <InfoBadge>{{ entries.filter(e => e.status === 'DECLINED').length }} {{
-                t('attendanceSession.declined')
-              }}
-            </InfoBadge>
+            <SuccessBadge>{{ entries.filter(e => e.status === 'PRESENT').length }} {{ t('attendanceSession.present') }}</SuccessBadge>
+            <ErrorBadge>{{ entries.filter(e => e.status === 'ABSENT').length }} {{ t('attendanceSession.absent') }}</ErrorBadge>
+            <InfoBadge>{{ entries.filter(e => e.status === 'DECLINED').length }} {{ t('attendanceSession.declined') }}</InfoBadge>
           </div>
 
           <!-- Members by group -->
           <div v-for="section in memberSections" :key="section.group?.id ?? 'ungrouped'" class="space-y-2">
             <SubHeader>{{ section.group?.name ?? t('attendanceSession.otherMembers') }}</SubHeader>
             <div class="space-y-1">
-              <div
+              <MemberEntry
                   v-for="member in section.members"
                   :key="member.id"
-                  :class="{
-                  'border-success bg-success/5': getEntry(member.id)?.status === 'PRESENT',
-                  'border-error bg-error/5': getEntry(member.id)?.status === 'ABSENT',
-                  'border-info bg-info/5': getEntry(member.id)?.status === 'DECLINED',
-                  'border-bg-light-accent dark:border-bg-dark-accent bg-bg-light-accent/20 dark:bg-bg-dark-accent/20': !getEntry(member.id) || getEntry(member.id)?.status === 'UNCONFIRMED',
-                }"
-                  class="rounded-lg px-4 py-3 border-l-4 transition-all"
-              >
-                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                  <div class="flex items-center gap-3 min-w-0">
-                    <font-awesome-icon
-                        v-if="getEntry(member.id)?.status === 'PRESENT'"
-                        :icon="['fas', 'check']" class="h-4 w-4 text-success shrink-0"
-                    />
-                    <font-awesome-icon
-                        v-else-if="getEntry(member.id)?.status === 'ABSENT'"
-                        :icon="['fas', 'xmark']" class="h-4 w-4 text-error shrink-0"
-                    />
-                    <font-awesome-icon
-                        v-else-if="getEntry(member.id)?.status === 'DECLINED'"
-                        :icon="['fas', 'ban']" class="h-4 w-4 text-info shrink-0"
-                    />
-                    <font-awesome-icon
-                        v-else
-                        :icon="['fas', 'asterisk']" class="h-4 w-4 text-(--text-muted) shrink-0"
-                    />
-                    <MemberName :name="getMemberName(member.id)" :member-id="member.id" class="font-medium text-sm truncate"/>
-                  </div>
-                  <div v-if="getEntry(member.id)" class="flex flex-col sm:flex-row sm:items-center gap-2">
-                    <!-- Status buttons -->
-                    <div class="flex items-center gap-2 w-full sm:w-auto">
-                      <SuccessButton
-                          :class="{ 'opacity-40': getEntry(member.id)!.status === 'PRESENT' }"
-                          :disabled="getEntry(member.id)!.status === 'PRESENT'"
-                          :full-width="isMobile"
-                          class="text-xs flex-1 sm:flex-initial"
-                          @click="setStatus(getEntry(member.id)!.id, 'PRESENT')"
-                      >
-                        <font-awesome-icon :icon="['fas', 'check']"/>
-                      </SuccessButton>
-                      <ErrorButton
-                          :class="{ 'opacity-40': getEntry(member.id)!.status === 'ABSENT' }"
-                          :disabled="getEntry(member.id)!.status === 'ABSENT'"
-                          :full-width="isMobile"
-                          class="text-xs flex-1 sm:flex-initial"
-                          @click="setStatus(getEntry(member.id)!.id, 'ABSENT')"
-                      >
-                        <font-awesome-icon :icon="['fas', 'xmark']"/>
-                      </ErrorButton>
-                      <InfoButton
-                          :class="{ 'opacity-40': getEntry(member.id)!.status === 'DECLINED' }"
-                          :disabled="getEntry(member.id)!.status === 'DECLINED'"
-                          :full-width="isMobile"
-                          class="text-xs flex-1 sm:flex-initial"
-                          @click="setStatus(getEntry(member.id)!.id, 'DECLINED')"
-                      >
-                        <font-awesome-icon :icon="['fas', 'ban']"/>
-                      </InfoButton>
-                    </div>
-                    <!-- Time inputs for PRESENT -->
-                    <div v-if="getEntry(member.id)!.status === 'PRESENT'" class="flex items-center gap-1 text-xs">
-                      <TimeShortInput
-                          :model-value="formatTime(getEntry(member.id)?.checkIn)"
-                          class="w-20 text-xs"
-                          @change="setCheckIn(getEntry(member.id)!.id, ($event.target as HTMLInputElement).value)"
-                      />
-                      <span class="text-(--text-muted)">–</span>
-                      <TimeShortInput
-                          :model-value="formatTime(getEntry(member.id)?.checkOut)"
-                          class="w-20 text-xs"
-                          @change="setCheckOut(getEntry(member.id)!.id, ($event.target as HTMLInputElement).value)"
-                      />
-                      <button
-                          v-if="getEntry(member.id)?.checkIn || getEntry(member.id)?.checkOut"
-                          :title="t('attendanceSession.resetTimes')"
-                          class="text-(--text-muted) hover:text-error cursor-pointer"
-                          @click="resetEntryTimes(getEntry(member.id)!.id)"
-                      >
-                        <font-awesome-icon :icon="['fas', 'xmark']" class="h-3 w-3"/>
-                      </button>
-                    </div>
-                  </div>
-                  <span v-else class="text-xs text-(--text-muted)">{{ t('attendanceSession.noEntry') }}</span>
-                </div>
-              </div>
+                  :member="member"
+                  :entry="getEntry(member.id)"
+                  :member-name="getMemberName(member.id)"
+                  @set-status="setStatus"
+                  @check-in="setCheckIn"
+                  @check-out="setCheckOut"
+                  @reset-times="resetEntryTimes"
+              />
             </div>
           </div>
 

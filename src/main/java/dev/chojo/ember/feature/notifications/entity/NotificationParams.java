@@ -42,4 +42,10 @@ public sealed interface NotificationParams {
     record LostAndFoundClaimed(String name, String description) implements NotificationParams {}
 
     record WaitlistNewEntry(String childName, String listName) implements NotificationParams {}
+
+    record LendingNewRequest(String stationName, String itemSummary) implements NotificationParams {}
+
+    record LendingStatusChange(String stationName, String status) implements NotificationParams {}
+
+    record LendingNewMessage(String stationName, String senderName) implements NotificationParams {}
 }

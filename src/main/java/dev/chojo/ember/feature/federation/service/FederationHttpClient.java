@@ -19,6 +19,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 
 /**
  * HTTP client for cross-instance federation communication.
@@ -53,26 +54,8 @@ public class FederationHttpClient {
      */
     public List<LendingMessage> fetchRemoteMessages(int requestId, int localStationId, String localPrivateKeyBase64) {
         try {
-            String baseUrl = "http://localhost:" + apiConfig.port();
-            String url = baseUrl + "/api/v1/federation/remote/lending/messages/" + requestId;
-
-            var timestamp = Instant.now();
-            String timestampStr = timestamp.toString();
-            String body = "";
-
-            var privateKey = signingService.decodePrivateKey(localPrivateKeyBase64);
-            String signature = signingService.sign(body, timestampStr, privateKey);
-
-            var request = HttpRequest.newBuilder()
-                    .uri(URI.create(url))
-                    .header("X-Federation-Station-Id", String.valueOf(localStationId))
-                    .header("X-Federation-Signature", signature)
-                    .header("X-Federation-Timestamp", timestampStr)
-                    .GET()
-                    .build();
-
-            var response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-
+            String url = baseUrl() + "/federation/remote/lending/messages/" + requestId;
+            var response = signedGet(url, localStationId, localPrivateKeyBase64);
             if (response.statusCode() != 200) {
                 log.warn(
                         "Failed to fetch remote lending messages: HTTP {} - {}",
@@ -80,12 +63,113 @@ public class FederationHttpClient {
                         response.body());
                 return List.of();
             }
-
             var type = mapper.getTypeFactory().constructCollectionType(List.class, LendingMessage.class);
             return mapper.readValue(response.body(), type);
         } catch (Exception e) {
             log.error("Failed to fetch remote lending messages for request {}", requestId, e);
             return List.of();
         }
+    }
+
+    /**
+     * Fetches shared KB file summaries from a remote station.
+     */
+    @SuppressWarnings("unchecked")
+    public List<Map<String, Object>> fetchSharedKbFiles(int localStationId, String localPrivateKeyBase64) {
+        try {
+            String url = baseUrl() + "/federation/remote/kb/browse";
+            var response = signedGet(url, localStationId, localPrivateKeyBase64);
+            if (response.statusCode() != 200) {
+                log.warn("Failed to fetch shared KB files: HTTP {} - {}", response.statusCode(), response.body());
+                return List.of();
+            }
+            var type = mapper.getTypeFactory().constructCollectionType(List.class, Map.class);
+            return mapper.readValue(response.body(), type);
+        } catch (Exception e) {
+            log.error("Failed to fetch shared KB files", e);
+            return List.of();
+        }
+    }
+
+    /**
+     * Fetches a KB file's content from a remote station.
+     */
+    public String fetchKbFileContent(int fileId, int localStationId, String localPrivateKeyBase64) {
+        try {
+            String url = baseUrl() + "/federation/remote/kb/file/" + fileId + "/content";
+            var response = signedGet(url, localStationId, localPrivateKeyBase64);
+            if (response.statusCode() != 200) {
+                log.warn("Failed to fetch KB file content: HTTP {} - {}", response.statusCode(), response.body());
+                return "";
+            }
+            @SuppressWarnings("unchecked")
+            var map = mapper.readValue(response.body(), Map.class);
+            return map.getOrDefault("content", "").toString();
+        } catch (Exception e) {
+            log.error("Failed to fetch KB file content for file {}", fileId, e);
+            return "";
+        }
+    }
+
+    /**
+     * Fetches shared quiz catalog summaries from a remote station.
+     */
+    @SuppressWarnings("unchecked")
+    public List<Map<String, Object>> fetchSharedQuizCatalogs(int localStationId, String localPrivateKeyBase64) {
+        try {
+            String url = baseUrl() + "/federation/remote/quiz/catalogs";
+            var response = signedGet(url, localStationId, localPrivateKeyBase64);
+            if (response.statusCode() != 200) {
+                log.warn("Failed to fetch shared quiz catalogs: HTTP {} - {}", response.statusCode(), response.body());
+                return List.of();
+            }
+            var type = mapper.getTypeFactory().constructCollectionType(List.class, Map.class);
+            return mapper.readValue(response.body(), type);
+        } catch (Exception e) {
+            log.error("Failed to fetch shared quiz catalogs", e);
+            return List.of();
+        }
+    }
+
+    /**
+     * Fetches shared protocol summaries from a remote station.
+     */
+    @SuppressWarnings("unchecked")
+    public List<Map<String, Object>> fetchSharedProtocols(int localStationId, String localPrivateKeyBase64) {
+        try {
+            String url = baseUrl() + "/federation/remote/protocols";
+            var response = signedGet(url, localStationId, localPrivateKeyBase64);
+            if (response.statusCode() != 200) {
+                log.warn("Failed to fetch shared protocols: HTTP {} - {}", response.statusCode(), response.body());
+                return List.of();
+            }
+            var type = mapper.getTypeFactory().constructCollectionType(List.class, Map.class);
+            return mapper.readValue(response.body(), type);
+        } catch (Exception e) {
+            log.error("Failed to fetch shared protocols", e);
+            return List.of();
+        }
+    }
+
+    private String baseUrl() {
+        return "http://localhost:" + apiConfig.port() + "/api/v1";
+    }
+
+    private HttpResponse<String> signedGet(String url, int localStationId, String localPrivateKeyBase64)
+            throws Exception {
+        var timestamp = Instant.now();
+        String timestampStr = timestamp.toString();
+        var privateKey = signingService.decodePrivateKey(localPrivateKeyBase64);
+        String signature = signingService.sign("", timestampStr, privateKey);
+
+        var request = HttpRequest.newBuilder()
+                .uri(URI.create(url))
+                .header("X-Federation-Station-Id", String.valueOf(localStationId))
+                .header("X-Federation-Signature", signature)
+                .header("X-Federation-Timestamp", timestampStr)
+                .GET()
+                .build();
+
+        return httpClient.send(request, HttpResponse.BodyHandlers.ofString());
     }
 }

@@ -9,6 +9,7 @@ import EditButton from '@/components/button/EditButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import DragList from '@/components/input/DragList.vue'
+import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import type {ProfileField} from '@/api/types'
 import {useBreakpoint} from '@/composables/useBreakpoint'
 
@@ -70,29 +71,28 @@ function parseConfig(configStr: string | undefined): Record<string, unknown> {
           </div>
           <div class="flex flex-wrap gap-3 text-xs">
             <label class="flex items-center gap-1">
-              <input :checked="!!parseConfig(field.config).required" :disabled="!!parseConfig(field.config).readonly"
-                     class="h-3.5 w-3.5 rounded accent-primary cursor-pointer disabled:opacity-40" type="checkbox"
-                     @change="emit('toggleConfig', field, 'required', ($event.target as HTMLInputElement).checked)" @click.stop/>
+              <ToggleInput :model-value="!!parseConfig(field.config).required" :disabled="!!parseConfig(field.config).readonly"
+                           @update:model-value="v => emit('toggleConfig', field, 'required', v)"/>
               {{ t('membersConfig.fieldRequired') }}
             </label>
             <label class="flex items-center gap-1">
-              <input :checked="!!parseConfig(field.config).readonly" class="h-3.5 w-3.5 rounded accent-primary cursor-pointer" type="checkbox"
-                     @change="(e) => { const v = (e.target as HTMLInputElement).checked; emit('toggleConfig', field, 'readonly', v); if (v) emit('toggleConfig', field, 'required', false) }" @click.stop/>
+              <ToggleInput :model-value="!!parseConfig(field.config).readonly"
+                           @update:model-value="v => { emit('toggleConfig', field, 'readonly', v); if (v) emit('toggleConfig', field, 'required', false) }"/>
               {{ t('membersConfig.fieldReadonly') }}
             </label>
             <label class="flex items-center gap-1">
-              <input :checked="!!parseConfig(field.config).notifyOnChange" class="h-3.5 w-3.5 rounded accent-primary cursor-pointer" type="checkbox"
-                     @change="emit('toggleConfig', field, 'notifyOnChange', ($event.target as HTMLInputElement).checked)" @click.stop/>
+              <ToggleInput :model-value="!!parseConfig(field.config).notifyOnChange"
+                           @update:model-value="v => emit('toggleConfig', field, 'notifyOnChange', v)"/>
               {{ t('membersConfig.fieldNotifyOnChange') }}
             </label>
             <label class="flex items-center gap-1">
-              <input :checked="!!parseConfig(field.config).overview" class="h-3.5 w-3.5 rounded accent-primary cursor-pointer" type="checkbox"
-                     @change="emit('toggleConfig', field, 'overview', ($event.target as HTMLInputElement).checked)" @click.stop/>
+              <ToggleInput :model-value="!!parseConfig(field.config).overview"
+                           @update:model-value="v => emit('toggleConfig', field, 'overview', v)"/>
               {{ t('membersConfig.fieldOverview') }}
             </label>
             <label class="flex items-center gap-1">
-              <input :checked="!!field.keepOnArchive" class="h-3.5 w-3.5 rounded accent-primary cursor-pointer" type="checkbox"
-                     @change="emit('toggleKeepOnArchive', field, ($event.target as HTMLInputElement).checked)" @click.stop/>
+              <ToggleInput :model-value="!!field.keepOnArchive"
+                           @update:model-value="v => emit('toggleKeepOnArchive', field, v)"/>
               {{ t('membersConfig.fieldKeepOnArchive') }}
             </label>
           </div>
@@ -138,35 +138,24 @@ function parseConfig(configStr: string | undefined): Record<string, unknown> {
           <div class="font-medium px-2 truncate">{{ field.name }}</div>
           <div class="text-(--text-muted) px-2 truncate text-xs">{{ fieldTypeLabel(field.fieldType ?? '') }}</div>
           <div class="flex justify-center">
-            <input :checked="!!parseConfig(field.config).required" :disabled="!!parseConfig(field.config).readonly"
-                   class="h-4 w-4 rounded border-2 border-bg-light-accent dark:border-bg-dark-accent accent-primary cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
-                   type="checkbox"
-                   @change="emit('toggleConfig', field, 'required', ($event.target as HTMLInputElement).checked)"
-                   @click.stop/>
+            <ToggleInput :model-value="!!parseConfig(field.config).required" :disabled="!!parseConfig(field.config).readonly"
+                         @update:model-value="v => emit('toggleConfig', field, 'required', v)"/>
           </div>
           <div class="flex justify-center">
-            <input :checked="!!parseConfig(field.config).readonly" class="h-4 w-4 rounded border-2 border-bg-light-accent dark:border-bg-dark-accent accent-primary cursor-pointer"
-                   type="checkbox"
-                   @change="(e) => { const v = (e.target as HTMLInputElement).checked; emit('toggleConfig', field, 'readonly', v); if (v) emit('toggleConfig', field, 'required', false) }"
-                   @click.stop/>
+            <ToggleInput :model-value="!!parseConfig(field.config).readonly"
+                         @update:model-value="v => { emit('toggleConfig', field, 'readonly', v); if (v) emit('toggleConfig', field, 'required', false) }"/>
           </div>
           <div class="flex justify-center">
-            <input :checked="!!parseConfig(field.config).notifyOnChange" class="h-4 w-4 rounded border-2 border-bg-light-accent dark:border-bg-dark-accent accent-primary cursor-pointer"
-                   type="checkbox"
-                   @change="emit('toggleConfig', field, 'notifyOnChange', ($event.target as HTMLInputElement).checked)"
-                   @click.stop/>
+            <ToggleInput :model-value="!!parseConfig(field.config).notifyOnChange"
+                         @update:model-value="v => emit('toggleConfig', field, 'notifyOnChange', v)"/>
           </div>
           <div class="flex justify-center">
-            <input :checked="!!parseConfig(field.config).overview" class="h-4 w-4 rounded border-2 border-bg-light-accent dark:border-bg-dark-accent accent-primary cursor-pointer"
-                   type="checkbox"
-                   @change="emit('toggleConfig', field, 'overview', ($event.target as HTMLInputElement).checked)"
-                   @click.stop/>
+            <ToggleInput :model-value="!!parseConfig(field.config).overview"
+                         @update:model-value="v => emit('toggleConfig', field, 'overview', v)"/>
           </div>
           <div class="flex justify-center">
-            <input :checked="!!field.keepOnArchive" class="h-4 w-4 rounded border-2 border-bg-light-accent dark:border-bg-dark-accent accent-primary cursor-pointer"
-                   type="checkbox"
-                   @change="emit('toggleKeepOnArchive', field, ($event.target as HTMLInputElement).checked)"
-                   @click.stop/>
+            <ToggleInput :model-value="!!field.keepOnArchive"
+                         @update:model-value="v => emit('toggleKeepOnArchive', field, v)"/>
           </div>
           <div class="flex items-center justify-end gap-1">
             <EditButton @click="emit('edit', field)"/>

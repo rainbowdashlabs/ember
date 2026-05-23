@@ -27,7 +27,7 @@ const router = useRouter()
 
 const stationId = computed(() => {
   const id = route.params.id
-  return id ? Number(id) : null
+  return id ? String(id) : null
 })
 const isEdit = computed(() => stationId.value !== null)
 

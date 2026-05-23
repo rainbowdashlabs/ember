@@ -27,7 +27,7 @@ import {Roles} from '@/api/types'
 
 const {t} = useI18n()
 const {hasRole, sessionInfo} = useSession()
-const isManager = () => hasRole(Roles.LOST_AND_FOUND_MANAGEMENT)
+const isManager = () => hasRole(Roles.LOST_AND_FOUND_MANAGER)
 const myMemberId = () => sessionInfo.value?.member?.id
 
 const items = ref<LostAndFoundItem[]>([])

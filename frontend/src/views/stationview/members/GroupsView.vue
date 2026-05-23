@@ -85,7 +85,7 @@ async function loadData() {
   try {
     const [g, m, r] = await Promise.all([
       memberGroups.listGroups(),
-      stationMembers.listMembers(currentStationId.value!),
+      stationMembers.listMembers(),
       stationMembers.listAllRoles(),
     ])
     groups.value = g
@@ -295,9 +295,7 @@ onMounted(loadData)
                         member.email
                       }}</span>
                   </div>
-                  <button class="text-error hover:text-error/80 text-sm" @click="removeMemberFromGroup(member)">
-                    <font-awesome-icon :icon="['fas', 'xmark']"/>
-                  </button>
+                  <IconButton :icon="['fas', 'xmark']" :label="t('memberGroups.removeMember')" class="text-error hover:text-error/80 text-sm" @click="removeMemberFromGroup(member)"/>
                 </div>
               </div>
             </div>

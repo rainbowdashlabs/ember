@@ -16,6 +16,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import InfoContainer from '@/components/container/InfoContainer.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import SuccessButton from '@/components/button/SuccessButton.vue'
+import LinkButton from '@/components/button/LinkButton.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 
 const {t} = useI18n()
@@ -109,10 +110,9 @@ async function handleAccept() {
             </div>
           </template>
 
-          <button class="text-xs text-primary hover:underline cursor-pointer"
-                  @click="showPrivacyFull = !showPrivacyFull">
+          <LinkButton @click="showPrivacyFull = !showPrivacyFull">
             {{ showPrivacyFull ? t('reconsent.hideFullText') : t('reconsent.showFullText') }}
-          </button>
+          </LinkButton>
           <div v-if="showPrivacyFull && changes.privacyHtml"
                class="legal-content max-h-96 overflow-y-auto border border-(--border) rounded-lg p-3"
                v-html="changes.privacyHtml"/>
@@ -132,10 +132,9 @@ async function handleAccept() {
             </div>
           </template>
 
-          <button class="text-xs text-primary hover:underline cursor-pointer"
-                  @click="showTosFull = !showTosFull">
+          <LinkButton @click="showTosFull = !showTosFull">
             {{ showTosFull ? t('reconsent.hideFullText') : t('reconsent.showFullText') }}
-          </button>
+          </LinkButton>
           <div v-if="showTosFull && changes.tosHtml"
                class="legal-content max-h-96 overflow-y-auto border border-(--border) rounded-lg p-3"
                v-html="changes.tosHtml"/>

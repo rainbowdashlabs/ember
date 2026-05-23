@@ -131,7 +131,7 @@ async function loadData() {
       protocol.getProtocol((await protocol.getRun(runId.value)).run.protocolId),
       protocol.getChecks(runId.value, memberId.value),
       protocol.getSectionsDone(runId.value, memberId.value),
-      stationMembers.listMembers(currentStationId.value!),
+      stationMembers.listMembers(),
     ])
     sections.value = protocolData.sections
     items.value = protocolData.items

@@ -54,7 +54,7 @@ async function loadData() {
     const [regs, evs, members] = await Promise.all([
       events.listPendingRegistrations(),
       events.listEvents(),
-      stationMembers.listMembers(currentStationId.value!),
+      stationMembers.listMembers(),
     ])
     registrations.value = regs
     allEvents.value = evs

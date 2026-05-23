@@ -20,8 +20,8 @@ export type LendingStatusName = (typeof LendingStatus)[keyof typeof LendingStatu
 
 export interface LendingRequest {
     id: number
-    requestingStationId: number
-    owningStationId: number
+    requestingStationId: string
+    owningStationId: string
     status: LendingStatusName
     requestedDateFrom: string
     requestedDateTo: string | null
@@ -61,7 +61,7 @@ export interface LendingRequestDetail {
 export interface LendingMessage {
     id: number
     requestId: number
-    senderStationId: number
+    senderStationId: string
     senderMemberId: number | null
     message: string
     isSystem: boolean
@@ -87,7 +87,7 @@ export interface EnrichedMessage {
 
 export interface InventoryBlock {
     id: number
-    stationId: number
+    stationId: string
     inventoryId: number | null
     itemId: number | null
     blockFrom: string
@@ -96,7 +96,7 @@ export interface InventoryBlock {
 }
 
 export interface CreateLendingRequestPayload {
-    owningStationId: number
+    owningStationId: string
     dateFrom: string
     dateTo: string | null
     items: { inventoryId?: number | null; itemId?: number | null; quantity: number }[]
@@ -113,7 +113,7 @@ export interface CreateBlockPayload {
 export interface AvailableInventoryEntry {
     inventoryId: number
     inventoryName: string
-    stationId: number
+    stationId: string
     stationName: string
     availableCount: number
 }

@@ -142,33 +142,6 @@ CREATE TABLE ember_schema.federation_lending_message (
     created_at        TIMESTAMP NOT NULL DEFAULT now()
 );
 
--- Webhook and sync support for cross-instance federation
-ALTER TABLE ember_schema.federation_partner ADD COLUMN IF NOT EXISTS webhook_url TEXT;
-ALTER TABLE ember_schema.federation_partner ADD COLUMN IF NOT EXISTS last_sync_at TIMESTAMP;
-
--- Change log for federation sync polling
-CREATE TABLE ember_schema.federation_change_log (
-    id              SERIAL PRIMARY KEY,
-    station_id      INT       NOT NULL REFERENCES ember_schema.station (id) ON DELETE CASCADE,
-    content_type    TEXT      NOT NULL,
-    content_id      INT       NOT NULL,
-    change_type     TEXT      NOT NULL,
-    changed_at      TIMESTAMP NOT NULL DEFAULT now()
-);
-
-CREATE INDEX idx_federation_change_log_station_time
-    ON ember_schema.federation_change_log (station_id, changed_at);
-
--- ============================================================
--- KB Favourites (per-member file bookmarks)
--- ============================================================
-CREATE TABLE ember_schema.kb_favourite (
-    member_id INT NOT NULL REFERENCES ember_schema.station_member(id) ON DELETE CASCADE,
-    file_id   INT NOT NULL REFERENCES ember_schema.kb_file(id) ON DELETE CASCADE,
-    created_at TIMESTAMP NOT NULL DEFAULT now(),
-    PRIMARY KEY (member_id, file_id)
-);
-
 -- Inventory date blocking (station blocks lending during specific periods)
 CREATE TABLE ember_schema.federation_inventory_block (
     id          SERIAL PRIMARY KEY,

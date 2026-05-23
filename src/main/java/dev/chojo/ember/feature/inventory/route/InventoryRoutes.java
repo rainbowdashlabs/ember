@@ -67,42 +67,41 @@ public class InventoryRoutes implements Routes {
         routes.get(
                 prefix + "/station-members/{memberId}/inventory-items",
                 this::memberItems,
-                Roles.MEMBER_MANAGEMENT,
-                Roles.INVENTORY_MANAGEMENT);
-        routes.get(prefix + "/inventories", this::list, Roles.INVENTORY_MANAGEMENT);
-        routes.post(prefix + "/inventories", this::create, Roles.INVENTORY_MANAGEMENT);
-        routes.get(prefix + "/inventories/all-items", this::listAllItems, Roles.INVENTORY_MANAGEMENT);
+                Roles.MEMBER_MANAGER,
+                Roles.INVENTORY_MANAGER);
+        routes.get(prefix + "/inventories", this::list, Roles.INVENTORY_MANAGER);
+        routes.post(prefix + "/inventories", this::create, Roles.INVENTORY_MANAGER);
+        routes.get(prefix + "/inventories/all-items", this::listAllItems, Roles.INVENTORY_MANAGER);
         routes.get(prefix + "/inventories/all-sizes", this::listAllSizes, Roles.LOGIN);
-        routes.get(prefix + "/inventories/{id}", this::get, Roles.INVENTORY_MANAGEMENT);
-        routes.put(prefix + "/inventories/{id}", this::update, Roles.INVENTORY_MANAGEMENT);
-        routes.delete(prefix + "/inventories/{id}", this::delete, Roles.INVENTORY_MANAGEMENT);
+        routes.get(prefix + "/inventories/{id}", this::get, Roles.INVENTORY_MANAGER);
+        routes.put(prefix + "/inventories/{id}", this::update, Roles.INVENTORY_MANAGER);
+        routes.delete(prefix + "/inventories/{id}", this::delete, Roles.INVENTORY_MANAGER);
 
         routes.get(prefix + "/inventories/{inventoryId}/sizes", this::listSizes, Roles.LOGIN);
-        routes.post(prefix + "/inventories/{inventoryId}/sizes", this::createSize, Roles.INVENTORY_MANAGEMENT);
-        routes.put(prefix + "/inventories/{inventoryId}/sizes/{sizeId}", this::updateSize, Roles.INVENTORY_MANAGEMENT);
-        routes.delete(
-                prefix + "/inventories/{inventoryId}/sizes/{sizeId}", this::deleteSize, Roles.INVENTORY_MANAGEMENT);
+        routes.post(prefix + "/inventories/{inventoryId}/sizes", this::createSize, Roles.INVENTORY_MANAGER);
+        routes.put(prefix + "/inventories/{inventoryId}/sizes/{sizeId}", this::updateSize, Roles.INVENTORY_MANAGER);
+        routes.delete(prefix + "/inventories/{inventoryId}/sizes/{sizeId}", this::deleteSize, Roles.INVENTORY_MANAGER);
 
-        routes.get(prefix + "/inventories/{inventoryId}/items", this::listItems, Roles.INVENTORY_MANAGEMENT);
-        routes.post(prefix + "/inventories/{inventoryId}/items", this::createItem, Roles.INVENTORY_MANAGEMENT);
-        routes.get(prefix + "/inventory-items/{id}", this::getItem, Roles.INVENTORY_MANAGEMENT);
-        routes.put(prefix + "/inventory-items/{id}", this::updateItem, Roles.INVENTORY_MANAGEMENT);
-        routes.put(prefix + "/inventory-items/{id}/assign", this::assignItem, Roles.INVENTORY_MANAGEMENT);
-        routes.get(prefix + "/inventory-items/{id}/history", this::getHistory, Roles.INVENTORY_MANAGEMENT);
-        routes.put(prefix + "/inventory-items/{id}/lost", this::markLost, Roles.INVENTORY_MANAGEMENT);
-        routes.delete(prefix + "/inventory-items/{id}/lost", this::markFound, Roles.INVENTORY_MANAGEMENT);
-        routes.delete(prefix + "/inventory-items/{id}", this::deleteItem, Roles.INVENTORY_MANAGEMENT);
+        routes.get(prefix + "/inventories/{inventoryId}/items", this::listItems, Roles.INVENTORY_MANAGER);
+        routes.post(prefix + "/inventories/{inventoryId}/items", this::createItem, Roles.INVENTORY_MANAGER);
+        routes.get(prefix + "/inventory-items/{id}", this::getItem, Roles.INVENTORY_MANAGER);
+        routes.put(prefix + "/inventory-items/{id}", this::updateItem, Roles.INVENTORY_MANAGER);
+        routes.put(prefix + "/inventory-items/{id}/assign", this::assignItem, Roles.INVENTORY_MANAGER);
+        routes.get(prefix + "/inventory-items/{id}/history", this::getHistory, Roles.INVENTORY_MANAGER);
+        routes.put(prefix + "/inventory-items/{id}/lost", this::markLost, Roles.INVENTORY_MANAGER);
+        routes.delete(prefix + "/inventory-items/{id}/lost", this::markFound, Roles.INVENTORY_MANAGER);
+        routes.delete(prefix + "/inventory-items/{id}", this::deleteItem, Roles.INVENTORY_MANAGER);
 
-        routes.get(prefix + "/inventory-requirements", this::listAllRequirements, Roles.INVENTORY_MANAGEMENT);
-        routes.post(prefix + "/inventory-requirements", this::createRequirement, Roles.INVENTORY_MANAGEMENT);
-        routes.put(prefix + "/inventory-requirements/{id}", this::updateRequirement, Roles.INVENTORY_MANAGEMENT);
+        routes.get(prefix + "/inventory-requirements", this::listAllRequirements, Roles.INVENTORY_MANAGER);
+        routes.post(prefix + "/inventory-requirements", this::createRequirement, Roles.INVENTORY_MANAGER);
+        routes.put(prefix + "/inventory-requirements/{id}", this::updateRequirement, Roles.INVENTORY_MANAGER);
         routes.patch(
                 prefix + "/inventory-requirements/{id}/position",
                 this::updateRequirementPosition,
-                Roles.INVENTORY_MANAGEMENT);
-        routes.delete(prefix + "/inventory-requirements/{id}", this::deleteRequirement, Roles.INVENTORY_MANAGEMENT);
+                Roles.INVENTORY_MANAGER);
+        routes.delete(prefix + "/inventory-requirements/{id}", this::deleteRequirement, Roles.INVENTORY_MANAGER);
 
-        routes.post(prefix + "/inventories/members/export", this::exportMembers, Roles.INVENTORY_MANAGEMENT);
+        routes.post(prefix + "/inventories/members/export", this::exportMembers, Roles.INVENTORY_MANAGER);
     }
 
     @OpenApi(

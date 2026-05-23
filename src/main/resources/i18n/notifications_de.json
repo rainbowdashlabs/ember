@@ -12,7 +12,10 @@
     "PROCUREMENT_FULFILLED": "Beschaffung abgeschlossen",
     "NEW_FORM": "Neues Formular",
     "LOST_AND_FOUND_NEW": "Fundbüro",
-    "LOST_AND_FOUND_CLAIMED": "Fundsache beansprucht"
+    "LOST_AND_FOUND_CLAIMED": "Fundsache beansprucht",
+    "LENDING_NEW_REQUEST": "Neue Leihanfrage",
+    "LENDING_STATUS_CHANGE": "Leihanfrage aktualisiert",
+    "LENDING_NEW_MESSAGE": "Neue Nachricht"
   },
   "message": {
     "notification.newNews": "{title} — von {author}",
@@ -27,6 +30,9 @@
     "notification.procurementFulfilled": "Beschaffung abgeschlossen: {inventoryName}",
     "notification.newForm": "Neues Formular: {title}",
     "notification.lostAndFoundNew": "Neuer Fundgegenstand: {description}",
-    "notification.lostAndFoundClaimed": "{name} hat \"{description}\" beansprucht"
+    "notification.lostAndFoundClaimed": "{name} hat \"{description}\" beansprucht",
+    "notification.lendingNewRequest": "Neue Leihanfrage von {stationName}: {itemSummary}",
+    "notification.lendingStatusChange": "Leihanfrage von {stationName}: {status}",
+    "notification.lendingNewMessage": "Neue Nachricht von {senderName} ({stationName})"
   }
 }

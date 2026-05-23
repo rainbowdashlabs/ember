@@ -63,28 +63,24 @@ public class MemberGroupRoutes implements Routes {
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        routes.get(prefix + "/groups", this::list, Roles.MEMBER_MANAGEMENT);
-        routes.post(prefix + "/groups", this::create, Roles.MEMBER_MANAGEMENT);
-        routes.get(prefix + "/groups/{id}", this::get, Roles.MEMBER_MANAGEMENT);
-        routes.put(prefix + "/groups/{id}", this::update, Roles.MEMBER_MANAGEMENT);
-        routes.delete(prefix + "/groups/{id}", this::delete, Roles.MEMBER_MANAGEMENT);
+        routes.get(prefix + "/groups", this::list, Roles.MEMBER_MANAGER);
+        routes.post(prefix + "/groups", this::create, Roles.MEMBER_MANAGER);
+        routes.get(prefix + "/groups/{id}", this::get, Roles.MEMBER_MANAGER);
+        routes.put(prefix + "/groups/{id}", this::update, Roles.MEMBER_MANAGER);
+        routes.delete(prefix + "/groups/{id}", this::delete, Roles.MEMBER_MANAGER);
 
-        routes.get(prefix + "/groups/{id}/members", this::getMembers, Roles.MEMBER_MANAGEMENT);
-        routes.put(prefix + "/groups/{id}/members", this::setMembers, Roles.MEMBER_MANAGEMENT);
+        routes.get(prefix + "/groups/{id}/members", this::getMembers, Roles.MEMBER_MANAGER);
+        routes.put(prefix + "/groups/{id}/members", this::setMembers, Roles.MEMBER_MANAGER);
 
-        routes.get(prefix + "/groups/{id}/roles", this::getGroupRoles, Roles.MEMBER_MANAGEMENT);
-        routes.put(prefix + "/groups/{id}/roles", this::setGroupRoles, Roles.MEMBER_MANAGEMENT);
+        routes.get(prefix + "/groups/{id}/roles", this::getGroupRoles, Roles.MEMBER_MANAGER);
+        routes.put(prefix + "/groups/{id}/roles", this::setGroupRoles, Roles.MEMBER_MANAGER);
 
-        routes.post(prefix + "/groups/{id}/convert-to-tag", this::convertToTag, Roles.MEMBER_MANAGEMENT);
+        routes.post(prefix + "/groups/{id}/convert-to-tag", this::convertToTag, Roles.MEMBER_MANAGER);
 
-        routes.get(prefix + "/station-members/{memberId}/groups", this::getMemberGroups, Roles.MEMBER_MANAGEMENT);
+        routes.get(prefix + "/station-members/{memberId}/groups", this::getMemberGroups, Roles.MEMBER_MANAGER);
     }
 
     private MemberWithName toMemberWithName(StationMember m) {
-        if (m.accountId() == null) {
-            String displayName = m.displayName() != null ? m.displayName() : "";
-            return new MemberWithName(m.id(), m.stationId(), null, displayName, "");
-        }
         Account account = accountRepository.findById(m.accountId()).orElse(null);
         String name = account != null ? (account.firstName() + " " + account.lastName()).trim() : "";
         String email = account != null ? account.email() : "";
@@ -275,7 +271,7 @@ public class MemberGroupRoutes implements Routes {
             summary = "Set roles of a group (replaces all existing roles)",
             description =
                     "Provide the full list of role IDs. Existing roles not in the list are removed, new ones are added. "
-                            + "Protected roles (MEMBER_MANAGEMENT, MANAGER) cannot be removed. "
+                            + "Protected roles (MEMBER_MANAGER, MANAGER) cannot be removed. "
                             + "You can only grant roles that you yourself have.",
             tags = {"Member Groups"},
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
@@ -318,7 +314,7 @@ public class MemberGroupRoutes implements Routes {
 
     // -- Request/Response records --
 
-    public record MemberWithName(int id, int stationId, Integer accountId, String name, String email) {}
+    public record MemberWithName(int id, int stationId, int accountId, String name, String email) {}
 
     public record GroupRequest(String name) {}
 

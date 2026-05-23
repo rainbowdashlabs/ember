@@ -54,10 +54,10 @@ public class ManagedMemberRoutes implements Routes {
             Roles.TEAM,
             Roles.MANAGER,
             Roles.ADMIN,
-            Roles.ATTENDENCE_MANAGEMENT,
-            Roles.INVENTORY_MANAGEMENT,
-            Roles.EVENT_MANAGEMENT,
-            Roles.MEMBER_MANAGEMENT);
+            Roles.ATTENDANCE_MANAGER,
+            Roles.INVENTORY_MANAGER,
+            Roles.EVENT_MANAGER,
+            Roles.MEMBER_MANAGER);
 
     private final StationMemberService memberService;
     private final StationMemberRepository stationMemberRepository;

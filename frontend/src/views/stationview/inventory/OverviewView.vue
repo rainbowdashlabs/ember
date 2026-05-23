@@ -54,7 +54,7 @@ async function loadData() {
 
     const [inventories, members, exch, proc] = await Promise.all([
       inventory.listInventories(),
-      stationMembers.listMembers(stationId),
+      stationMembers.listMembers(),
       exchanges.listExchanges(),
       procurement.listOpen(),
     ])

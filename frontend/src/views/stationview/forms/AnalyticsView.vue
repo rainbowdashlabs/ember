@@ -19,6 +19,7 @@ import Modal from '@/components/feedback/Modal.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import IconButton from '@/components/button/IconButton.vue'
+import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import TabBar from '@/components/navigation/TabBar.vue'
 import type { Form, FormAnalytics, FormQuestionAnalytics, FormResponse, FormAnswer, ProfileField } from '@/api/types'
@@ -303,7 +304,7 @@ async function loadData() {
       forms.getAnalytics(formId.value),
       forms.listResponses(formId.value),
       profileFields.listFields(),
-      stationMembers.listMembers(currentStationId.value!),
+      stationMembers.listMembers(),
     ])
     form.value = f
     analytics.value = a
@@ -438,12 +439,11 @@ onMounted(loadData)
               </div>
             </div>
             <div class="max-h-40 overflow-y-auto space-y-1 border rounded border-bg-light-accent dark:border-bg-dark-accent p-2">
-              <label v-for="q in analytics?.questions" :key="q.questionId"
-                     class="flex items-center gap-2 text-sm cursor-pointer py-0.5">
-                <input type="checkbox" :checked="exportQuestionIds.has(q.questionId)"
-                       class="h-4 w-4 rounded accent-primary" @change="toggleExportQuestion(q.questionId)" />
-                {{ q.title }}
-              </label>
+              <div v-for="q in analytics?.questions" :key="q.questionId" class="py-0.5">
+                <SelectionToggleButton :selected="exportQuestionIds.has(q.questionId)" @toggle="toggleExportQuestion(q.questionId)">
+                  {{ q.title }}
+                </SelectionToggleButton>
+              </div>
             </div>
           </div>
 
@@ -451,12 +451,11 @@ onMounted(loadData)
           <div class="space-y-2">
             <label class="text-sm font-medium">{{ t('forms.analytics.exportFields') }}</label>
             <div class="max-h-40 overflow-y-auto space-y-1 border rounded border-bg-light-accent dark:border-bg-dark-accent p-2">
-              <label v-for="f in allFields" :key="f.id"
-                     class="flex items-center gap-2 text-sm cursor-pointer py-0.5">
-                <input type="checkbox" :checked="exportFieldIds.has(f.id)"
-                       class="h-4 w-4 rounded accent-primary" @change="toggleExportField(f.id)" />
-                {{ f.name }}
-              </label>
+              <div v-for="f in allFields" :key="f.id" class="py-0.5">
+                <SelectionToggleButton :selected="exportFieldIds.has(f.id)" @toggle="toggleExportField(f.id)">
+                  {{ f.name }}
+                </SelectionToggleButton>
+              </div>
               <p v-if="allFields.length === 0" class="text-xs text-(--text-muted)">–</p>
             </div>
           </div>

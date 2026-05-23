@@ -135,7 +135,10 @@ class NotificationDataTest {
         var remaining = Map.<NotificationType, NotificationParams>of(
                 NotificationType.NEW_FORM, new NotificationParams.NewForm("t"),
                 NotificationType.LOST_AND_FOUND_NEW, new NotificationParams.LostAndFoundNew("d"),
-                NotificationType.LOST_AND_FOUND_CLAIMED, new NotificationParams.LostAndFoundClaimed("n", "d"));
+                NotificationType.LOST_AND_FOUND_CLAIMED, new NotificationParams.LostAndFoundClaimed("n", "d"),
+                NotificationType.LENDING_NEW_REQUEST, new NotificationParams.LendingNewRequest("s", "items"),
+                NotificationType.LENDING_STATUS_CHANGE, new NotificationParams.LendingStatusChange("s", "APPROVED"),
+                NotificationType.LENDING_NEW_MESSAGE, new NotificationParams.LendingNewMessage("s", "sender"));
 
         for (var entry : testParams.entrySet()) {
             var data = NotificationData.of(entry.getValue());

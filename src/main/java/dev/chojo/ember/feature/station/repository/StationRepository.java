@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.station.repository;
 
 import de.chojo.sadu.queries.api.call.Call;
 import de.chojo.sadu.queries.api.query.Query;
+import de.chojo.sadu.queries.converter.StandardValueConverter;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.entity.StationModule;
 import jakarta.inject.Singleton;
@@ -14,6 +15,7 @@ import jakarta.inject.Singleton;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 
 /**
  * Repository for station CRUD operations, logo management, and module settings.
@@ -22,7 +24,7 @@ import java.util.Set;
 public class StationRepository {
 
     private static final String STATION_COLUMNS =
-            "id, name, timezone, locale, owner_member_id, default_theme, allow_user_theme, custom_theme_colors";
+            "id, uid, name, timezone, locale, owner_member_id, default_theme, allow_user_theme, custom_theme_colors, public_kb_mode";
 
     /**
      * Finds a station by its ID.
@@ -33,6 +35,19 @@ public class StationRepository {
     public Optional<Station> findById(int id) {
         return Query.query("SELECT " + STATION_COLUMNS + " FROM station WHERE id = :id;")
                 .single(Call.of().bind("id", id))
+                .map(Station.map())
+                .first();
+    }
+
+    /**
+     * Finds a station by its external UUID.
+     *
+     * @param uid the station UUID
+     * @return the station, or empty if not found
+     */
+    public Optional<Station> findByUid(UUID uid) {
+        return Query.query("SELECT " + STATION_COLUMNS + " FROM station WHERE uid = :uid::uuid;")
+                .single(Call.of().bind("uid", uid, StandardValueConverter.UUID_STRING))
                 .map(Station.map())
                 .first();
     }
@@ -101,6 +116,13 @@ public class StationRepository {
     public boolean updateLocale(int id, String locale) {
         return Query.query("UPDATE station SET locale = :locale WHERE id = :id;")
                 .single(Call.of().bind("locale", locale).bind("id", id))
+                .update()
+                .changed();
+    }
+
+    public boolean updatePublicKbMode(int id, String mode) {
+        return Query.query("UPDATE station SET public_kb_mode = :mode WHERE id = :id;")
+                .single(Call.of().bind("mode", mode).bind("id", id))
                 .update()
                 .changed();
     }

@@ -80,6 +80,15 @@ async function handleLogout() {
           {{ t('sidebar.appSettings') }}
         </SidebarLink>
       </SidebarGroup>
+
+      <SidebarGroup :icon="['fas', 'triangle-exclamation']" :label="t('sidebar.monitoring')" prefix="/admin/problems">
+        <SidebarLink :icon="['fas', 'bug']" name="admin-problems" to="/admin/problems" @navigate="close">
+          {{ t('sidebar.problemLog') }}
+        </SidebarLink>
+        <SidebarLink :icon="['fas', 'chart-line']" name="admin-api-status" to="/admin/api-status" @navigate="close">
+          {{ t('sidebar.apiStatus') }}
+        </SidebarLink>
+      </SidebarGroup>
     </template>
 
     <template #header>

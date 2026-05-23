@@ -36,7 +36,7 @@ async function loadData() {
   try {
     const [ev, members] = await Promise.all([
       protocol.getEvaluation(runId.value),
-      stationMembers.listMembers(currentStationId.value!),
+      stationMembers.listMembers(),
     ])
     evalData.value = ev
     memberMap.value = new Map(members.map(m => [m.id, m]))

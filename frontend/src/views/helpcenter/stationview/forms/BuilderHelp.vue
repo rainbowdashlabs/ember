@@ -12,6 +12,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
+import DateTimeInput from '@/components/input/datetime/DateTimeInput.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import IconButton from '@/components/button/IconButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
@@ -37,11 +38,11 @@ const {t} = useI18n()
         <div class="grid grid-cols-2 gap-4">
           <div>
             <label class="text-xs text-(--text-muted) block mb-1">{{ t('forms.startAt') }}</label>
-            <input type="datetime-local" disabled class="w-full px-3 py-2 rounded border border-bg-light-accent dark:border-bg-dark-accent bg-transparent text-sm opacity-60" />
+            <DateTimeInput disabled />
           </div>
           <div>
             <label class="text-xs text-(--text-muted) block mb-1">{{ t('forms.endAt') }}</label>
-            <input type="datetime-local" disabled class="w-full px-3 py-2 rounded border border-bg-light-accent dark:border-bg-dark-accent bg-transparent text-sm opacity-60" />
+            <DateTimeInput disabled />
           </div>
         </div>
         <div class="flex gap-6">

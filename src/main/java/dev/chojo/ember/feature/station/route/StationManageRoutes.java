@@ -117,7 +117,7 @@ public class StationManageRoutes implements Routes {
                 && station.ownerMemberId() != null
                 && station.ownerMemberId() == session.member().id();
         return new StationInfo(
-                station.id(),
+                station.uid().toString(),
                 station.name(),
                 station.timezone(),
                 station.locale(),
@@ -126,7 +126,8 @@ public class StationManageRoutes implements Routes {
                 isOwner,
                 station.defaultTheme(),
                 station.allowUserTheme(),
-                station.customThemeColors());
+                station.customThemeColors(),
+                station.publicKbMode().name());
     }
 
     @OpenApi(
@@ -163,6 +164,9 @@ public class StationManageRoutes implements Routes {
                     request.defaultTheme(),
                     request.allowUserTheme() != null ? request.allowUserTheme() : true,
                     request.customThemeColors());
+        }
+        if (request.publicKbMode() != null) {
+            stationService.updatePublicKbMode(session.stationId(), request.publicKbMode());
         }
         stationService
                 .update(session.stationId(), request.name())
@@ -233,8 +237,10 @@ public class StationManageRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void getLogoByStation(Context ctx) {
-        int stationId = ctx.pathParamAsClass("stationId", Integer.class).get();
-        Optional<StationLogo> logoOpt = stationService.getLogo(stationId);
+        String uidParam = ctx.pathParam("stationId");
+        var station =
+                stationService.findByUid(java.util.UUID.fromString(uidParam)).orElseThrow(NotFoundResponse::new);
+        Optional<StationLogo> logoOpt = stationService.getLogo(station.id());
         if (logoOpt.isEmpty()) {
             throw new NotFoundResponse("No logo set");
         }
@@ -501,7 +507,8 @@ public class StationManageRoutes implements Routes {
             String locale,
             String defaultTheme,
             Boolean allowUserTheme,
-            String customThemeColors) {}
+            String customThemeColors,
+            String publicKbMode) {}
 
     // -- Station deletion --
 
@@ -517,7 +524,7 @@ public class StationManageRoutes implements Routes {
      * @param isOwner       whether the current user is the station owner
      */
     public record StationInfo(
-            int id,
+            String id,
             String name,
             String timezone,
             String locale,
@@ -526,7 +533,8 @@ public class StationManageRoutes implements Routes {
             boolean isOwner,
             String defaultTheme,
             boolean allowUserTheme,
-            String customThemeColors) {}
+            String customThemeColors,
+            String publicKbMode) {}
 
     /**
      * Response containing the station's mail configuration and current usage statistics.

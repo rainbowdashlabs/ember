@@ -19,6 +19,7 @@ import Alert from '@/components/feedback/Alert.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import DateInput from '@/components/input/datetime/DateInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
+import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import { useSession } from '@/composables/useSession'
 import { useStations } from '@/composables/useStations'
@@ -50,10 +51,10 @@ async function loadData() {
     const [r, p, m] = await Promise.all([
       protocol.listRuns(),
       protocol.listProtocols(),
-      stationMembers.listMembers(currentStationId.value!),
+      stationMembers.listMembers(),
     ])
     runs.value = r
-    protocols.value = p.protocols
+    protocols.value = p
     members.value = m
   } catch { error.value = t('common.error') }
   finally { loading.value = false }
@@ -134,7 +135,7 @@ onMounted(() => { if (loaded.value) loadData() })
           <label class="block text-sm font-medium mb-1">{{ t('protocol.selectMembers') }}</label>
           <div class="max-h-40 overflow-y-auto border border-[var(--border)] rounded p-2 space-y-1">
             <label v-for="m in members" :key="m.id" class="flex items-center gap-2 text-sm cursor-pointer">
-              <input type="checkbox" :checked="selectedMemberIds.includes(m.id)" @change="toggleMember(m.id)" />
+              <ToggleInput :model-value="selectedMemberIds.includes(m.id)" @update:model-value="toggleMember(m.id)" />
               {{ m.name || m.email || `#${m.id}` }}
             </label>
           </div>
