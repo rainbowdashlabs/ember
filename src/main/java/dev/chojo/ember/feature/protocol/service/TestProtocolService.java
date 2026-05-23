@@ -36,6 +36,10 @@ public class TestProtocolService {
         return repository.findProtocols(stationId);
     }
 
+    public List<TestProtocol> searchProtocols(int stationId, String query) {
+        return repository.searchProtocols(stationId, query);
+    }
+
     public Optional<TestProtocol> findProtocol(int id) {
         return repository.findProtocolById(id);
     }

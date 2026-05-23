@@ -9,10 +9,12 @@ import dev.chojo.ember.api.Roles;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
+import dev.chojo.ember.feature.federation.service.FederatedContentService;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.protocol.entity.TestProtocolRun;
 import dev.chojo.ember.feature.protocol.service.TestProtocolPdfService;
 import dev.chojo.ember.feature.protocol.service.TestProtocolService;
+import dev.chojo.ember.feature.station.repository.StationRepository;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
@@ -22,6 +24,7 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -32,17 +35,23 @@ public class TestProtocolRoutes implements Routes {
     private final TestProtocolPdfService pdfService;
     private final StationMemberRepository stationMemberRepository;
     private final AccountRepository accountRepository;
+    private final FederatedContentService federatedContentService;
+    private final StationRepository stationRepository;
 
     @Inject
     public TestProtocolRoutes(
             TestProtocolService service,
             TestProtocolPdfService pdfService,
             StationMemberRepository stationMemberRepository,
-            AccountRepository accountRepository) {
+            AccountRepository accountRepository,
+            FederatedContentService federatedContentService,
+            StationRepository stationRepository) {
         this.service = service;
         this.pdfService = pdfService;
         this.stationMemberRepository = stationMemberRepository;
         this.accountRepository = accountRepository;
+        this.federatedContentService = federatedContentService;
+        this.stationRepository = stationRepository;
     }
 
     @Override
@@ -112,7 +121,34 @@ public class TestProtocolRoutes implements Routes {
 
     private void listProtocols(Context ctx) {
         var session = UserSession.from(ctx);
-        ctx.json(service.findProtocols(session.stationId()));
+        var q = ctx.queryParam("q");
+        var federatedParam = ctx.queryParam("federated");
+        boolean includeFederated = federatedParam == null || !"false".equalsIgnoreCase(federatedParam);
+
+        List<dev.chojo.ember.feature.protocol.entity.TestProtocol> local;
+        if (q != null && !q.isBlank()) {
+            local = service.searchProtocols(session.stationId(), q.trim());
+        } else {
+            local = service.findProtocols(session.stationId());
+        }
+
+        if (!includeFederated) {
+            ctx.json(new ProtocolListResponse(local, List.of()));
+            return;
+        }
+
+        var shared = federatedContentService.browseSharedProtocols(session.stationId());
+        var sharedItems = shared.stream()
+                .map(i -> {
+                    String stationName = stationRepository
+                            .findById(i.sourceStationId())
+                            .map(s -> s.name())
+                            .orElse("Unknown");
+                    return new SharedProtocolEntry(i.protocol(), stationName, i.sourceStationId());
+                })
+                .toList();
+
+        ctx.json(new ProtocolListResponse(local, sharedItems));
     }
 
     private void createProtocol(Context ctx) {
@@ -499,4 +535,13 @@ public class TestProtocolRoutes implements Routes {
             java.util.Map<Integer, Double> sectionMaxPoints,
             List<EvalMemberData> members,
             Integer passThreshold) {}
+
+    public record SharedProtocolEntry(
+            dev.chojo.ember.feature.protocol.entity.TestProtocol protocol,
+            String stationName,
+            int sourceStationId) {}
+
+    public record ProtocolListResponse(
+            List<dev.chojo.ember.feature.protocol.entity.TestProtocol> protocols,
+            List<SharedProtocolEntry> shared) {}
 }

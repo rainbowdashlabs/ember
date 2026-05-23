@@ -6,11 +6,14 @@
 package dev.chojo.ember.feature.members.service;
 
 import dev.chojo.ember.api.Roles;
+import dev.chojo.ember.feature.account.repository.AccountRepository;
+import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.members.entity.Role;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.util.RoleValidation;
 import dev.chojo.ember.feature.station.repository.StationRepository;
+import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
@@ -26,11 +29,19 @@ import java.util.Set;
 public class StationMemberService {
     private final StationMemberRepository memberRepository;
     private final StationRepository stationRepository;
+    private final AccountRepository accountRepository;
+    private final AuthService authService;
 
     @Inject
-    public StationMemberService(StationMemberRepository memberRepository, StationRepository stationRepository) {
+    public StationMemberService(
+            StationMemberRepository memberRepository,
+            StationRepository stationRepository,
+            AccountRepository accountRepository,
+            AuthService authService) {
         this.memberRepository = memberRepository;
         this.stationRepository = stationRepository;
+        this.accountRepository = accountRepository;
+        this.authService = authService;
     }
 
     public List<StationMember> findByStation(int stationId) {
@@ -76,6 +87,19 @@ public class StationMemberService {
         }
         RoleValidation.validateRoleChanges(currentRoles, desiredRoleIds, allRoles, callerRoles, isOwner);
 
+        // Check if LOGIN role is being added — requires account with email
+        var loginRole = allRoles.stream().filter(r -> r.role() == Roles.LOGIN).findFirst();
+        boolean addingLogin = loginRole.isPresent()
+                && desiredRoleIds.contains(loginRole.get().id())
+                && !currentRoleIds.contains(loginRole.get().id());
+
+        if (addingLogin && member != null && member.accountId() != null) {
+            var account = accountRepository.findById(member.accountId()).orElse(null);
+            if (account == null || account.email() == null) {
+                throw new BadRequestResponse("Cannot grant login role: account has no email address");
+            }
+        }
+
         for (int roleId : currentRoleIds) {
             if (!desiredRoleIds.contains(roleId)) {
                 memberRepository.removeRole(memberId, roleId);
@@ -84,6 +108,15 @@ public class StationMemberService {
         for (int roleId : desiredRoleIds) {
             if (!currentRoleIds.contains(roleId)) {
                 memberRepository.addRole(memberId, roleId);
+            }
+        }
+
+        // If LOGIN was just granted and the account has no credentials, send onboarding email
+        if (addingLogin && authService != null && member != null && member.accountId() != null) {
+            var credential = accountRepository.findCredential(member.accountId());
+            if (credential.isEmpty()) {
+                var account = accountRepository.findById(member.accountId()).orElseThrow();
+                authService.sendPasswordSetup(member.accountId(), account.email(), account.firstName());
             }
         }
 

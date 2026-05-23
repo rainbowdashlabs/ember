@@ -17,6 +17,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
+import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import {auth, session, adminSettings} from '@/api'
@@ -43,11 +44,19 @@ interface DemoAccount {
   profileComplete: boolean
 }
 
+interface StationGroup {
+  stationId: number
+  stationName: string
+  accounts: DemoAccount[]
+}
+
 const isDemo = ref(false)
 const isDev = ref(false)
 const registrationEnabled = ref(true)
-const hasDemoAccounts = computed(() => demoAccounts.value.length > 0)
-const demoAccounts = ref<DemoAccount[]>([])
+const stationGroups = ref<StationGroup[]>([])
+const activeStationIdx = ref(0)
+const demoAccounts = computed(() => stationGroups.value[activeStationIdx.value]?.accounts ?? [])
+const hasDemoAccounts = computed(() => stationGroups.value.some(g => g.accounts.length > 0))
 const demoLoading = ref(true)
 
 const roleFriendlyNames: Record<string, string> = {
@@ -104,8 +113,13 @@ onMounted(async () => {
       consent.value = 'accepted'
     }
     if (isDemo.value || isDev.value) {
-      const accountsRes = await client.get<DemoAccount[]>('/demo/accounts')
-      demoAccounts.value = accountsRes.data
+      const accountsRes = await client.get<StationGroup[] | DemoAccount[]>('/demo/accounts')
+      // Handle both formats: array of station groups or flat array of accounts
+      if (accountsRes.data.length > 0 && 'stationId' in accountsRes.data[0]) {
+        stationGroups.value = accountsRes.data as StationGroup[]
+      } else {
+        stationGroups.value = [{ stationId: 0, stationName: '', accounts: accountsRes.data as DemoAccount[] }]
+      }
     }
   } catch { /* not demo/dev */
   }
@@ -313,6 +327,18 @@ function topRoleLabel(account: DemoAccount): string {
         </div>
         <Alert v-if="error" variant="error">{{ error }}</Alert>
 
+        <!-- Station tabs (only if multiple stations) -->
+        <div v-if="stationGroups.length > 1" class="flex flex-wrap gap-2 mb-4">
+          <SelectionToggleButton
+            v-for="(sg, idx) in stationGroups"
+            :key="sg.stationId"
+            :selected="activeStationIdx === idx"
+            @toggle="activeStationIdx = idx"
+          >
+            {{ sg.stationName || `Station ${sg.stationId}` }}
+          </SelectionToggleButton>
+        </div>
+
         <div v-for="group in roleGroups" :key="group.label" class="space-y-2">
           <SectionHeader>{{ group.label }}</SectionHeader>
           <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
@@ -439,6 +465,18 @@ function topRoleLabel(account: DemoAccount): string {
         <template v-if="isDev && hasDemoAccounts && consent === 'accepted'">
           <div class="border-t border-bg-light-accent dark:border-bg-dark-accent pt-4 mt-2">
             <p class="text-sm font-medium mb-3">{{ t('demo.devLoginHint') }}</p>
+            <!-- Station tabs for dev mode -->
+            <div v-if="stationGroups.length > 1" class="flex flex-wrap gap-2 mb-3">
+              <SelectionToggleButton
+                v-for="(sg, idx) in stationGroups"
+                :key="sg.stationId"
+                :selected="activeStationIdx === idx"
+                @toggle="activeStationIdx = idx"
+              >
+                {{ sg.stationName || `Station ${sg.stationId}` }}
+              </SelectionToggleButton>
+            </div>
+
             <div v-for="group in roleGroups" :key="group.label" class="mb-3">
               <p class="text-xs font-semibold text-(--text-muted) mb-1">{{ group.label }}</p>
               <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-1.5">

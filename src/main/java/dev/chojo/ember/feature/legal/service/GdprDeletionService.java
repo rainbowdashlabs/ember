@@ -70,6 +70,10 @@ public class GdprDeletionService {
      * @param memberId the station member ID to anonymize
      */
     public void anonymizeMember(int memberId) {
+        // Remember the account before we disconnect it
+        var member = stationMemberRepository.findById(memberId).orElse(null);
+        Integer accountId = member != null ? member.accountId() : null;
+
         // Delete profile field values
         Query.query("DELETE FROM profile_field_value WHERE member_id = :id;")
                 .single(Call.of().bind("id", memberId))
@@ -138,6 +142,15 @@ public class GdprDeletionService {
         Query.query("UPDATE station_member SET former = TRUE, account_id = NULL WHERE id = :id;")
                 .single(Call.of().bind("id", memberId))
                 .update();
+
+        // If the account has no remaining members, delete the account entirely
+        if (accountId != null) {
+            var remainingMembers = stationMemberRepository.findAllByAccountId(accountId);
+            if (remainingMembers.isEmpty()) {
+                log.info("GDPR: Account {} has no remaining members, deleting account", accountId);
+                deleteAccountData(accountId);
+            }
+        }
     }
 
     private void deleteAccountData(int accountId) {

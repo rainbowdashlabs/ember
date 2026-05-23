@@ -48,10 +48,17 @@ export interface KbFileVersion {
     createdAt: string
 }
 
+export interface SharedFileEntry {
+    file: KbFile
+    stationName: string
+    sourceStationId: number
+}
+
 export interface BrowseResponse {
     currentFolder: KbFolder | null
     folders: KbFolder[]
     files: KbFile[]
+    sharedFiles: SharedFileEntry[]
 }
 
 export interface MarkdownHtmlResponse {
@@ -367,9 +374,14 @@ export interface SearchResult {
     file: KbFile
     snippet: string
     folderPath: string
+    stationName: string | null
+    sourceStationId: number
 }
 
-export async function search(query: string): Promise<SearchResult[]> {
-    const res = await client.get<SearchResult[]>('/kb/search', {params: {q: query}})
+export async function search(query: string, options?: { tag?: string; federated?: boolean }): Promise<SearchResult[]> {
+    const params: Record<string, string> = {q: query}
+    if (options?.tag) params.tag = options.tag
+    if (options?.federated === false) params.federated = 'false'
+    const res = await client.get<SearchResult[]>('/kb/search', {params})
     return res.data
 }

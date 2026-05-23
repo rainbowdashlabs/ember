@@ -81,6 +81,10 @@ public class MemberGroupRoutes implements Routes {
     }
 
     private MemberWithName toMemberWithName(StationMember m) {
+        if (m.accountId() == null) {
+            String displayName = m.displayName() != null ? m.displayName() : "";
+            return new MemberWithName(m.id(), m.stationId(), null, displayName, "");
+        }
         Account account = accountRepository.findById(m.accountId()).orElse(null);
         String name = account != null ? (account.firstName() + " " + account.lastName()).trim() : "";
         String email = account != null ? account.email() : "";
@@ -314,7 +318,7 @@ public class MemberGroupRoutes implements Routes {
 
     // -- Request/Response records --
 
-    public record MemberWithName(int id, int stationId, int accountId, String name, String email) {}
+    public record MemberWithName(int id, int stationId, Integer accountId, String name, String email) {}
 
     public record GroupRequest(String name) {}
 

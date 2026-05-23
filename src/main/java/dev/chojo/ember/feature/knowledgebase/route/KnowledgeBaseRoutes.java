@@ -11,6 +11,7 @@ import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
+import dev.chojo.ember.feature.federation.service.FederatedContentService;
 import dev.chojo.ember.feature.knowledgebase.entity.KbAccessRestriction;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFile;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFolder;
@@ -23,6 +24,7 @@ import dev.chojo.ember.feature.members.entity.UserTag;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.repository.UserTagRepository;
+import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.util.PandocConverter;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.ContentType;
@@ -55,6 +57,8 @@ public class KnowledgeBaseRoutes implements Routes {
     private final MemberGroupRepository memberGroupRepository;
     private final UserTagRepository userTagRepository;
     private final ImageService imageService;
+    private final FederatedContentService federatedContentService;
+    private final StationRepository stationRepository;
 
     @Inject
     public KnowledgeBaseRoutes(
@@ -63,13 +67,17 @@ public class KnowledgeBaseRoutes implements Routes {
             AccountRepository accountRepository,
             MemberGroupRepository memberGroupRepository,
             UserTagRepository userTagRepository,
-            ImageService imageService) {
+            ImageService imageService,
+            FederatedContentService federatedContentService,
+            StationRepository stationRepository) {
         this.service = service;
         this.stationMemberRepository = stationMemberRepository;
         this.accountRepository = accountRepository;
         this.memberGroupRepository = memberGroupRepository;
         this.userTagRepository = userTagRepository;
         this.imageService = imageService;
+        this.federatedContentService = federatedContentService;
+        this.stationRepository = stationRepository;
     }
 
     private String resolveFolderPath(Integer folderId) {
@@ -483,15 +491,67 @@ public class KnowledgeBaseRoutes implements Routes {
     private void search(Context ctx) {
         var session = UserSession.from(ctx);
         String query = ctx.queryParam("q");
-        if (query == null || query.isBlank()) {
+        String tagFilter = ctx.queryParam("tag");
+        boolean includeFederated = !"false".equals(ctx.queryParam("federated"));
+
+        if ((query == null || query.isBlank()) && (tagFilter == null || tagFilter.isBlank())) {
             ctx.json(List.of());
             return;
         }
-        var results = service.searchWithSnippets(session.stationId(), query);
-        ctx.json(results.stream()
-                .map(r -> new SearchResultResponse(
-                        r.file(), r.snippet(), resolveFolderPath(r.file().folderId())))
-                .toList());
+
+        var response = new java.util.ArrayList<SearchResultResponse>();
+
+        // Local search
+        if (query != null && !query.isBlank()) {
+            var results = service.searchWithSnippets(session.stationId(), query);
+            results.stream()
+                    .map(r -> new SearchResultResponse(
+                            r.file(), r.snippet(), resolveFolderPath(r.file().folderId()), null, session.stationId()))
+                    .forEach(response::add);
+        }
+
+        // Tag filter (local only)
+        if (tagFilter != null && !tagFilter.isBlank()) {
+            var taggedFileIds = service.findFilesByTag(session.stationId(), tagFilter).stream()
+                    .map(KbFile::id)
+                    .collect(java.util.stream.Collectors.toSet());
+            if (query != null && !query.isBlank()) {
+                // Filter existing results by tag
+                response.removeIf(r -> r.stationName() == null
+                        && !taggedFileIds.contains(r.file().id()));
+            } else {
+                // Show all tagged files
+                for (var file : service.findFilesByTag(session.stationId(), tagFilter)) {
+                    response.add(new SearchResultResponse(
+                            file, null, resolveFolderPath(file.folderId()), null, session.stationId()));
+                }
+            }
+        }
+
+        // Include federated search results
+        if (includeFederated && query != null && !query.isBlank()) {
+            try {
+                var sharedItems = federatedContentService.browseSharedKb(session.stationId());
+                String lowerQuery = query.toLowerCase();
+                for (var item : sharedItems) {
+                    if (item.file() == null) continue;
+                    var f = item.file();
+                    if (f.name().toLowerCase().contains(lowerQuery)
+                            || (f.description() != null
+                                    && f.description().toLowerCase().contains(lowerQuery))) {
+                        String stationName = stationRepository
+                                .findById(item.sourceStationId())
+                                .map(s -> s.name())
+                                .orElse("Partner");
+                        response.add(new SearchResultResponse(f, null, null, stationName, item.sourceStationId()));
+                    }
+                }
+            } catch (Exception e) {
+                log.debug("Failed to search federated KB content", e);
+            }
+        }
+
+        ctx.json(response);
     }
 
     // -- Browse (combined) --
@@ -526,7 +586,27 @@ public class KnowledgeBaseRoutes implements Routes {
                     .toList();
         }
 
-        ctx.json(new BrowseResponse(currentFolder, folders, files));
+        // Include shared files at root level (no folder selected)
+        List<SharedFileEntry> sharedFiles = List.of();
+        if (folderId == null) {
+            try {
+                var sharedItems = federatedContentService.browseSharedKb(session.stationId());
+                sharedFiles = sharedItems.stream()
+                        .filter(item -> item.file() != null)
+                        .map(item -> {
+                            String stationName = stationRepository
+                                    .findById(item.sourceStationId())
+                                    .map(s -> s.name())
+                                    .orElse("Partner");
+                            return new SharedFileEntry(item.file(), stationName, item.sourceStationId());
+                        })
+                        .toList();
+            } catch (Exception e) {
+                log.debug("Failed to load federated KB content", e);
+            }
+        }
+
+        ctx.json(new BrowseResponse(currentFolder, folders, files, sharedFiles));
     }
 
     // -- Access Restrictions --
@@ -615,7 +695,13 @@ public class KnowledgeBaseRoutes implements Routes {
     public record RestrictionResponse(
             List<Integer> roleIds, List<Integer> groupIds, List<Integer> tagIds, List<Integer> memberIds) {}
 
-    public record BrowseResponse(KbFolder currentFolder, List<KbFolder> folders, List<KbFile> files) {}
+    public record BrowseResponse(
+            KbFolder currentFolder, List<KbFolder> folders, List<KbFile> files, List<SharedFileEntry> sharedFiles) {}
+
+    public record SharedFileEntry(KbFile file, String stationName, int sourceStationId) {}
+
+    public record SearchResultResponse(
+            KbFile file, String snippet, String folderPath, String stationName, int sourceStationId) {}
 
     // -- Folder Icons --
 
@@ -734,8 +820,6 @@ public class KnowledgeBaseRoutes implements Routes {
 
     public record VersionResponse(
             int id, int version, boolean isFull, int createdBy, String createdByName, Instant createdAt) {}
-
-    public record SearchResultResponse(KbFile file, String snippet, String folderPath) {}
 
     public record ImageUploadResponse(String imageId) {}
 }

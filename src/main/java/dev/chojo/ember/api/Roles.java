@@ -83,6 +83,10 @@ public enum Roles implements RouteRole {
      */
     KNOWLEDGE_MANAGEMENT(TEAM),
     /**
+     * Manage federation partnerships and sharing
+     */
+    FEDERATION_MANAGEMENT(TEAM),
+    /**
      * Create and manage test protocols (Prüfungsbögen)
      */
     PROTOCOL_MANAGEMENT(TEAM),
@@ -107,7 +111,8 @@ public enum Roles implements RouteRole {
             QUIZ_MANAGEMENT,
             KNOWLEDGE_MANAGEMENT,
             PROTOCOL_MANAGEMENT,
-            PROTOCOL_TESTER),
+            PROTOCOL_TESTER,
+            FEDERATION_MANAGEMENT),
     /**
      * Manange the software itself.
      */
@@ -140,7 +145,8 @@ public enum Roles implements RouteRole {
                     QUIZ_MANAGEMENT,
                     KNOWLEDGE_MANAGEMENT,
                     PROTOCOL_MANAGEMENT,
-                    PROTOCOL_TESTER),
+                    PROTOCOL_TESTER,
+                    FEDERATION_MANAGEMENT),
             GUARDIAN,
             Set.of(MEMBER));
 

@@ -88,6 +88,10 @@ export function useSession() {
         return hasRole(Roles.KNOWLEDGE_MANAGEMENT)
     }
 
+    function canManageFederation(): boolean {
+        return hasRole(Roles.FEDERATION_MANAGEMENT)
+    }
+
     function canManageProtocol(): boolean {
         return hasRole(Roles.PROTOCOL_MANAGEMENT)
     }
@@ -126,6 +130,7 @@ export function useSession() {
         canManageWaitlist,
         canManageQuiz,
         canManageKnowledge,
+        canManageFederation,
         canManageProtocol,
         canTestProtocol,
         isModuleEnabled,

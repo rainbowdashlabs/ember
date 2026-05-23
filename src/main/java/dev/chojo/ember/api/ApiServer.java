@@ -246,32 +246,46 @@ public class ApiServer {
             ctx.json(List.of());
             return;
         }
-        int stationId = allStations.getFirst().id();
-        var members = stationMemberRepository.findByStation(stationId);
-        var accounts = new ArrayList<DemoAccount>();
-        for (StationMember member : members) {
-            if (member.accountId() == null) continue;
-            accountRepository.findById(member.accountId()).ifPresent(account -> {
-                var roles = stationMemberRepository.findRoles(member.id());
-                var roleNames = roles.stream().map(r -> r.role().name()).toList();
-                var groupNames = memberGroupRepository.findGroupsForMember(member.id()).stream()
-                        .map(MemberGroup::name)
-                        .toList();
-                var tagNames = userTagRepository.findTagsForMember(member.id()).stream()
-                        .map(UserTag::name)
-                        .toList();
-                boolean complete = profileFieldService.isProfileComplete(member.id(), stationId, roleNames);
-                accounts.add(new DemoAccount(
-                        account.email(),
-                        account.firstName(),
-                        account.lastName(),
-                        roleNames,
-                        groupNames,
-                        tagNames,
-                        complete));
-            });
+        var stationGroups = new ArrayList<Map<String, Object>>();
+        for (var station : allStations) {
+            var members = stationMemberRepository.findByStation(station.id());
+            var accounts = new ArrayList<DemoAccount>();
+            for (StationMember member : members) {
+                if (member.accountId() == null) continue;
+                accountRepository.findById(member.accountId()).ifPresent(account -> {
+                    var roles = stationMemberRepository.findRoles(member.id());
+                    var roleNames = roles.stream().map(r -> r.role().name()).toList();
+                    var groupNames = memberGroupRepository.findGroupsForMember(member.id()).stream()
+                            .map(MemberGroup::name)
+                            .toList();
+                    var tagNames = userTagRepository.findTagsForMember(member.id()).stream()
+                            .map(UserTag::name)
+                            .toList();
+                    boolean complete = profileFieldService.isProfileComplete(member.id(), station.id(), roleNames);
+                    accounts.add(new DemoAccount(
+                            account.email(),
+                            account.firstName(),
+                            account.lastName(),
+                            roleNames,
+                            groupNames,
+                            tagNames,
+                            complete));
+                });
+            }
+            if (!accounts.isEmpty()) {
+                stationGroups.add(Map.of(
+                        "stationId", station.id(),
+                        "stationName", station.name(),
+                        "accounts", accounts));
+            }
         }
-        ctx.json(accounts);
+        // Always return flat list from the first station (primary)
+        // Additional stations are appended with stationName for display
+        if (stationGroups.isEmpty()) {
+            ctx.json(List.of());
+        } else {
+            ctx.json(stationGroups);
+        }
     }
 
     /**

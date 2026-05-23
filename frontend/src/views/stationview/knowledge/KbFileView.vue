@@ -17,7 +17,7 @@ import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import MarkdownEditor from '@/components/input/MarkdownEditor.vue'
 import {useSession} from '@/composables/useSession'
-import {knowledgeBase} from '@/api'
+import {knowledgeBase, federation} from '@/api'
 import type {KbFile, KbTag, MarkdownHtmlResponse} from '@/api/knowledgeBase'
 import {KbFileType} from '@/api/knowledgeBase'
 import {getItem} from '@/api/storage'
@@ -58,6 +58,22 @@ const editingDescription = ref(false)
 const editDescriptionValue = ref('')
 
 const fileId = computed(() => Number(route.params.id))
+const isFederated = computed(() => {
+    if (!file.value) return false
+    const stationId = Number(getItem('station_id'))
+    return file.value.stationId !== stationId
+})
+
+async function copyToStation() {
+    if (!file.value) return
+    try {
+        await federation.copyKbFile(file.value.id)
+        // Navigate to the browse view after copying
+        router.push({name: 'kb-browse'})
+    } catch {
+        error.value = t('common.error')
+    }
+}
 
 // Process rendered HTML: add auth tokens to KB image URLs (leaves external URLs untouched)
 const renderedHtml = computed(() => {
@@ -283,7 +299,11 @@ onMounted(() => {
 
                 <h1 class="text-xl font-bold flex-1">{{ file.name }}</h1>
 
-                <template v-if="canManageKnowledge()">
+                <PrimaryButton v-if="isFederated" @click="copyToStation">
+                    <font-awesome-icon :icon="['fas', 'copy']"/>
+                    {{ t('federation.copyToStation') }}
+                </PrimaryButton>
+                <template v-else-if="canManageKnowledge()">
                     <PrimaryButton
                         v-if="file.fileType === KbFileType.MARKDOWN || file.fileType === KbFileType.TEXT"
                         @click="toggleEdit"
@@ -302,7 +322,7 @@ onMounted(() => {
             </div>
 
             <!-- Description -->
-            <div v-if="editingDescription" class="flex items-center gap-2 mb-4">
+            <div v-if="!isFederated && editingDescription" class="flex items-center gap-2 mb-4">
                 <TextAreaInput v-model="editDescriptionValue" class="flex-1 !text-sm" :placeholder="t('kb.description')"/>
                 <PrimaryButton @click="saveDescription">
                     <font-awesome-icon :icon="['fas', 'check']"/>
@@ -311,10 +331,10 @@ onMounted(() => {
                     <font-awesome-icon :icon="['fas', 'xmark']"/>
                 </SecondaryButton>
             </div>
-            <p v-else-if="file.description || canManageKnowledge()" class="text-sm text-[var(--text-muted)] mb-4 group/desc">
+            <p v-else-if="file.description || (!isFederated && canManageKnowledge())" class="text-sm text-[var(--text-muted)] mb-4 group/desc">
                 {{ file.description || t('kb.description') }}
                 <button
-                    v-if="canManageKnowledge()"
+                    v-if="!isFederated && canManageKnowledge()"
                     class="opacity-0 group-hover/desc:opacity-100 ml-1 text-[var(--primary)] transition-opacity cursor-pointer"
                     @click="startEditDescription"
                 >

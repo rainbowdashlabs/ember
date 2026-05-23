@@ -36,6 +36,7 @@ export * as quiz from './quiz'
 export * as knowledgeBase from './knowledgeBase'
 export * as ai from './ai'
 export * as protocol from './protocol'
+export * as federation from './federation'
 export * as storage from './storage'
 export * as util from './util'
 

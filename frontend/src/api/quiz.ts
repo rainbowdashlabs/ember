@@ -18,10 +18,30 @@ import type {
     QuizAttemptDetail,
 } from './types'
 
+// -- Shared catalog entry from federation --
+
+export interface SharedCatalogEntry {
+    catalog: QuizCatalog
+    stationName: string
+    sourceStationId: number
+}
+
+export interface CatalogListResponse {
+    catalogs: QuizCatalog[]
+    sharedCatalogs: SharedCatalogEntry[]
+}
+
 // -- Catalogs --
 
-export async function listCatalogs(): Promise<QuizCatalog[]> {
-    const res = await client.get<QuizCatalog[]>('/quiz/catalogs')
+export async function listCatalogs(): Promise<CatalogListResponse> {
+    const res = await client.get<CatalogListResponse>('/quiz/catalogs')
+    return res.data
+}
+
+export async function searchCatalogs(query: string, federated: boolean): Promise<CatalogListResponse> {
+    const res = await client.get<CatalogListResponse>('/quiz/catalogs/search', {
+        params: { q: query, federated },
+    })
     return res.data
 }
 

@@ -9,15 +9,18 @@ import dev.chojo.ember.api.Roles;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.conf.file.elements.Api;
+import dev.chojo.ember.feature.federation.service.FederatedContentService;
 import dev.chojo.ember.feature.media.service.ImageCategory;
 import dev.chojo.ember.feature.media.service.ImageService;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
 import dev.chojo.ember.feature.members.entity.Role;
 import dev.chojo.ember.feature.members.entity.UserTag;
+import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.repository.UserTagRepository;
 import dev.chojo.ember.feature.quiz.entity.AttemptStatus;
+import dev.chojo.ember.feature.quiz.entity.QuizCatalog;
 import dev.chojo.ember.feature.quiz.entity.QuestionType;
 import dev.chojo.ember.feature.quiz.entity.QuizCategory;
 import dev.chojo.ember.feature.quiz.entity.QuizQuestion;
@@ -58,6 +61,8 @@ public class QuizRoutes implements Routes {
     private final StationMemberRepository stationMemberRepository;
     private final MemberGroupRepository memberGroupRepository;
     private final UserTagRepository userTagRepository;
+    private final FederatedContentService federatedContentService;
+    private final StationRepository stationRepository;
     private final Api apiConfig;
 
     @Inject
@@ -68,6 +73,8 @@ public class QuizRoutes implements Routes {
             StationMemberRepository stationMemberRepository,
             MemberGroupRepository memberGroupRepository,
             UserTagRepository userTagRepository,
+            FederatedContentService federatedContentService,
+            StationRepository stationRepository,
             Api apiConfig) {
         this.quizService = quizService;
         this.pdfService = pdfService;
@@ -75,6 +82,8 @@ public class QuizRoutes implements Routes {
         this.stationMemberRepository = stationMemberRepository;
         this.memberGroupRepository = memberGroupRepository;
         this.userTagRepository = userTagRepository;
+        this.federatedContentService = federatedContentService;
+        this.stationRepository = stationRepository;
         this.apiConfig = apiConfig;
     }
 
@@ -82,6 +91,7 @@ public class QuizRoutes implements Routes {
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
         // Catalogs
         routes.get(prefix + "/quiz/catalogs", this::listCatalogs, Roles.QUIZ_MANAGEMENT);
+        routes.get(prefix + "/quiz/catalogs/search", this::searchCatalogs, Roles.QUIZ_MANAGEMENT);
         routes.post(prefix + "/quiz/catalogs", this::createCatalog, Roles.QUIZ_MANAGEMENT);
         routes.get(prefix + "/quiz/catalogs/{id}", this::getCatalog, Roles.QUIZ_MANAGEMENT);
         routes.put(prefix + "/quiz/catalogs/{id}", this::updateCatalog, Roles.QUIZ_MANAGEMENT);
@@ -174,7 +184,72 @@ public class QuizRoutes implements Routes {
 
     private void listCatalogs(Context ctx) {
         var session = UserSession.from(ctx);
-        ctx.json(quizService.findCatalogs(session.stationId()));
+        var catalogs = quizService.findCatalogs(session.stationId());
+        List<SharedCatalogEntry> sharedCatalogs = List.of();
+        try {
+            var sharedItems = federatedContentService.browseSharedQuiz(session.stationId());
+            sharedCatalogs = sharedItems.stream()
+                    .map(item -> {
+                        String stationName = stationRepository
+                                .findById(item.sourceStationId())
+                                .map(s -> s.name())
+                                .orElse("Partner");
+                        return new SharedCatalogEntry(item.catalog(), stationName, item.sourceStationId());
+                    })
+                    .toList();
+        } catch (Exception e) {
+            // silently ignore federation errors
+        }
+        ctx.json(new CatalogListResponse(catalogs, sharedCatalogs));
+    }
+
+    private void searchCatalogs(Context ctx) {
+        var session = UserSession.from(ctx);
+        String query = ctx.queryParam("q");
+        boolean federated = "true".equals(ctx.queryParam("federated"));
+
+        var catalogs = quizService.findCatalogs(session.stationId());
+
+        // Filter by name/description
+        List<QuizCatalog> filtered = catalogs;
+        if (query != null && !query.isBlank()) {
+            String lower = query.toLowerCase();
+            filtered = catalogs.stream()
+                    .filter(c ->
+                            c.name().toLowerCase().contains(lower)
+                                    || (c.description() != null
+                                            && c.description().toLowerCase().contains(lower)))
+                    .toList();
+        }
+
+        List<SharedCatalogEntry> sharedCatalogs = List.of();
+        if (federated) {
+            try {
+                var sharedItems = federatedContentService.browseSharedQuiz(session.stationId());
+                var stream = sharedItems.stream();
+                if (query != null && !query.isBlank()) {
+                    String lower = query.toLowerCase();
+                    stream = stream.filter(item ->
+                            item.catalog().name().toLowerCase().contains(lower)
+                                    || (item.catalog().description() != null
+                                            && item.catalog()
+                                                    .description()
+                                                    .toLowerCase()
+                                                    .contains(lower)));
+                }
+                sharedCatalogs = stream.map(item -> {
+                            String stationName = stationRepository
+                                    .findById(item.sourceStationId())
+                                    .map(s -> s.name())
+                                    .orElse("Partner");
+                            return new SharedCatalogEntry(item.catalog(), stationName, item.sourceStationId());
+                        })
+                        .toList();
+            } catch (Exception e) {
+                // silently ignore federation errors
+            }
+        }
+        ctx.json(new CatalogListResponse(filtered, sharedCatalogs));
     }
 
     private void getCatalog(Context ctx) {
@@ -1175,4 +1250,8 @@ public class QuizRoutes implements Routes {
             boolean trainingEnabled,
             List<QuizCategory> categories,
             List<QuizQuestion> questions) {}
+
+    public record SharedCatalogEntry(QuizCatalog catalog, String stationName, int sourceStationId) {}
+
+    public record CatalogListResponse(List<QuizCatalog> catalogs, List<SharedCatalogEntry> sharedCatalogs) {}
 }

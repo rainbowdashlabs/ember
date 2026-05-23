@@ -45,6 +45,7 @@ const {
   canManageWaitlist,
   canManageQuiz,
   canManageProtocol,
+  canManageFederation,
   canTestProtocol,
   isGuardian,
   isModuleEnabled,
@@ -172,6 +173,10 @@ async function handleLogout() {
         <SidebarLink :icon="['fas', 'users-gear']" name="station-members-config" to="/station/manage/members-config"
                      @navigate="close">
           {{ t('sidebar.membersConfig') }}
+        </SidebarLink>
+        <SidebarLink v-if="canManageFederation()" :icon="['fas', 'arrow-right-arrow-left']" name="station-federation" to="/station/manage/federation"
+                     @navigate="close">
+          {{ t('sidebar.federation') }}
         </SidebarLink>
       </SidebarGroup>
 

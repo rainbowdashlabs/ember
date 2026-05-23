@@ -161,6 +161,25 @@ public class AuthService {
     }
 
     /**
+     * Sends a password setup email to an existing account that has no credentials yet.
+     * Creates a SET_PASSWORD token and sends the setup email.
+     *
+     * @param accountId the account identifier
+     * @param email     the email address
+     * @param firstName the first name for the email greeting
+     */
+    public void sendPasswordSetup(int accountId, String email, String firstName) {
+        accountRepository.deleteTokensByAccountAndType(accountId, TokenType.SET_PASSWORD);
+        String token = generateToken();
+        accountRepository.createToken(
+                accountId,
+                token,
+                TokenType.SET_PASSWORD,
+                Instant.now().plus(authConfig.passwordTokenHours(), ChronoUnit.HOURS));
+        emailService.sendPasswordSetupEmail(email, firstName, token);
+    }
+
+    /**
      * Verifies an email address using the provided token. The token is consumed on success or deleted if expired.
      *
      * @param token the verification token

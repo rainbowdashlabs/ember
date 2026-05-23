@@ -386,6 +386,14 @@ public class KnowledgeBaseRepository {
                 .all();
     }
 
+    public List<KbFile> findFilesByTag(int stationId, String tagName) {
+        return Query.query(
+                        "SELECT f.* FROM kb_file f JOIN kb_file_tag ft ON ft.file_id = f.id JOIN kb_tag t ON t.id = ft.tag_id WHERE f.station_id = :station_id AND lower(t.name) = lower(:tag_name) ORDER BY f.name;")
+                .single(Call.of().bind("station_id", stationId).bind("tag_name", tagName))
+                .map(KbFile.map())
+                .all();
+    }
+
     public void addFileTag(int fileId, int tagId) {
         Query.query("INSERT INTO kb_file_tag(file_id, tag_id) VALUES(:file_id, :tag_id) ON CONFLICT DO NOTHING;")
                 .single(Call.of().bind("file_id", fileId).bind("tag_id", tagId))

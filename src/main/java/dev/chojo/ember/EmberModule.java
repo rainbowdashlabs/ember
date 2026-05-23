@@ -27,6 +27,7 @@ import dev.chojo.ember.feature.account.route.AuthRoutes;
 import dev.chojo.ember.feature.account.route.SessionRoutes;
 import dev.chojo.ember.feature.attendance.route.AttendanceRoutes;
 import dev.chojo.ember.feature.events.route.EventRoutes;
+import dev.chojo.ember.feature.federation.route.FederationRoutes;
 import dev.chojo.ember.feature.form.route.FormRoutes;
 import dev.chojo.ember.feature.inventory.route.ExchangeRoutes;
 import dev.chojo.ember.feature.inventory.route.InventoryCheckRoutes;
@@ -125,6 +126,7 @@ public class EmberModule extends AbstractModule {
         routesBinder.addBinding().to(KnowledgeBaseRoutes.class);
         routesBinder.addBinding().to(UtilRoutes.class);
         routesBinder.addBinding().to(TestProtocolRoutes.class);
+        routesBinder.addBinding().to(FederationRoutes.class);
     }
 
     @Provides

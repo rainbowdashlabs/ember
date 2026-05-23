@@ -43,7 +43,7 @@ public class StationRepository {
      * @return a list of all stations
      */
     public List<Station> findAll() {
-        return Query.query("SELECT " + STATION_COLUMNS + " FROM station;")
+        return Query.query("SELECT " + STATION_COLUMNS + " FROM station ORDER BY id;")
                 .single()
                 .map(Station.map())
                 .all();

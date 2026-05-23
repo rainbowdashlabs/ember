@@ -19,9 +19,13 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import DropdownMenuItem from '@/components/button/DropdownMenuItem.vue'
+import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
+import SelectInput from '@/components/input/select/SelectInput.vue'
+import StationBadge from '@/components/badge/StationBadge.vue'
+import IconButton from '@/components/button/IconButton.vue'
 import {useSession} from '@/composables/useSession'
-import {knowledgeBase, stationMembers, memberGroups, userTags} from '@/api'
-import type {KbFolder, KbFile} from '@/api/knowledgeBase'
+import {knowledgeBase, stationMembers, memberGroups, userTags, federation} from '@/api'
+import type {KbFolder, KbFile, SharedFileEntry} from '@/api/knowledgeBase'
 import {KbFileType} from '@/api/knowledgeBase'
 import type {Role, MemberGroup, UserTag} from '@/api/types'
 
@@ -38,15 +42,53 @@ const error = ref('')
 const currentFolder = ref<KbFolder | null>(null)
 const folders = ref<KbFolder[]>([])
 const files = ref<KbFile[]>([])
+const sharedFiles = ref<SharedFileEntry[]>([])
 
 // Breadcrumb
 const breadcrumbs = ref<KbFolder[]>([])
+
+// Filters
+const showFederated = ref(true)
+const filterStationId = ref<number | null>(null)
+const filterTag = ref('')
+const allKbTags = ref<import('@/api/knowledgeBase').KbTag[]>([])
+
+// Unique station names from shared files
+const partnerStations = computed(() => {
+    const map = new Map<number, string>()
+    for (const s of sharedFiles.value) {
+        map.set(s.sourceStationId, s.stationName)
+    }
+    return [...map.entries()].map(([id, name]) => ({id, name}))
+})
+
+const filteredSharedFiles = computed(() => {
+    if (!showFederated.value) return []
+    if (filterStationId.value != null) {
+        return sharedFiles.value.filter(s => s.sourceStationId === filterStationId.value)
+    }
+    return sharedFiles.value
+})
 
 // Search
 const searchQuery = ref('')
 const searchResults = ref<import('@/api/knowledgeBase').SearchResult[]>([])
 const searching = ref(false)
 const isSearching = computed(() => searchQuery.value.trim().length > 0)
+
+const filteredSearchResults = computed(() => {
+    let results = searchResults.value
+    if (!showFederated.value) {
+        results = results.filter(r => !r.stationName)
+    } else if (filterStationId.value != null) {
+        results = results.filter(r => !r.stationName || r.sourceStationId === filterStationId.value)
+    }
+    if (filterTag.value) {
+        // Tag filter only applies to local results (federated don't have tags)
+        results = results.filter(r => r.stationName || true) // keep all for now, tag filtering done server-side
+    }
+    return results
+})
 
 // Create dropdown
 const showCreateDropdown = ref(false)
@@ -172,6 +214,7 @@ async function loadData() {
         currentFolder.value = result.currentFolder
         folders.value = result.folders
         files.value = result.files
+        sharedFiles.value = result.sharedFiles ?? []
         await buildBreadcrumbs()
     } catch {
         error.value = t('common.error')
@@ -196,6 +239,13 @@ async function buildBreadcrumbs() {
         }
     }
     breadcrumbs.value = crumbs
+}
+
+async function copySharedFile(fileId: number) {
+    try {
+        await federation.copyKbFile(fileId)
+        await loadData()
+    } catch { error.value = t('common.error') }
 }
 
 function navigateToFolder(folderId: number | null) {
@@ -266,13 +316,21 @@ function onSearchInput() {
     searchTimeout = setTimeout(async () => {
         searching.value = true
         try {
-            searchResults.value = await knowledgeBase.search(searchQuery.value.trim())
+            searchResults.value = await knowledgeBase.search(searchQuery.value.trim(), {
+                tag: filterTag.value || undefined,
+                federated: showFederated.value,
+            })
         } catch {
             searchResults.value = []
         } finally {
             searching.value = false
         }
     }, 300)
+}
+
+async function loadTags() {
+    try { allKbTags.value = await knowledgeBase.listTags() }
+    catch { /* silent */ }
 }
 
 // -- Dropdown actions --
@@ -631,11 +689,11 @@ watch(() => route.query.folderId, () => {
 })
 
 watch(loaded, (isLoaded) => {
-    if (isLoaded) loadData()
+    if (isLoaded) { loadData(); loadTags() }
 }, {immediate: true})
 
 onMounted(() => {
-    if (loaded.value) loadData()
+    if (loaded.value) { loadData(); loadTags() }
 })
 </script>
 
@@ -650,6 +708,26 @@ onMounted(() => {
                 :placeholder="t('kb.search')"
                 @input="onSearchInput"
             />
+        </div>
+
+        <!-- Filters -->
+        <div class="flex flex-wrap items-center gap-2 mb-4">
+            <SelectionToggleButton :selected="showFederated" @toggle="showFederated = !showFederated; onSearchInput()">
+                <font-awesome-icon :icon="['fas', 'arrow-right-arrow-left']" class="w-3 h-3 mr-1" />
+                {{ t('federation.shared') }}
+            </SelectionToggleButton>
+            <SelectInput v-if="showFederated && partnerStations.length > 0" :model-value="filterStationId != null ? String(filterStationId) : ''" class="!w-auto !text-xs !py-1" @update:model-value="(v: string | undefined) => { filterStationId = v ? Number(v) : null; onSearchInput() }">
+                <option value="">{{ t('kb.allStations') }}</option>
+                <option v-for="station in partnerStations" :key="station.id" :value="String(station.id)">
+                    {{ station.name }}
+                </option>
+            </SelectInput>
+            <SelectInput v-if="allKbTags.length > 0" v-model="filterTag" class="!w-auto !text-xs !py-1" @change="onSearchInput()">
+                <option value="">{{ t('kb.allTags') }}</option>
+                <option v-for="tag in allKbTags" :key="tag.id" :value="tag.name">
+                    {{ tag.name }}
+                </option>
+            </SelectInput>
         </div>
 
         <!-- Breadcrumbs + View Toggle -->
@@ -702,20 +780,29 @@ onMounted(() => {
             </p>
             <div v-else class="flex flex-col gap-2">
                 <NeutralContainer
-                    v-for="result in searchResults"
-                    :key="result.file.id"
+                    v-for="result in filteredSearchResults"
+                    :key="result.file.id + '-' + (result.stationName || 'local')"
                     class="cursor-pointer hover:border-[var(--primary)] transition-colors"
                     @click="navigateToFile(result.file)"
                 >
                     <div class="flex items-start gap-3 p-2">
                         <font-awesome-icon :icon="fileIcon(result.file)" class="text-xl text-[var(--primary)] mt-0.5"/>
                         <div class="flex-1 min-w-0">
-                            <span class="text-sm font-medium">{{ result.file.name }}</span>
+                            <div class="flex items-center gap-2">
+                                <span class="text-sm font-medium">{{ result.file.name }}</span>
+                                <StationBadge v-if="result.stationName" :station-name="result.stationName" />
+                            </div>
                             <p v-if="result.snippet" class="search-snippet text-xs text-[var(--text-muted)] mt-1 line-clamp-2" v-html="result.snippet"/>
                             <p v-else-if="result.file.description" class="text-xs text-[var(--text-muted)] mt-1 truncate">
                                 {{ result.file.description }}
                             </p>
                         </div>
+                        <IconButton
+                            v-if="result.stationName"
+                            :icon="['fas', 'copy']"
+                            :label="t('federation.copyToStation')"
+                            @click.stop="copySharedFile(result.file.id)"
+                        />
                     </div>
                 </NeutralContainer>
             </div>
@@ -765,7 +852,7 @@ onMounted(() => {
                 </div>
 
                 <!-- Content: Grid or List -->
-                <template v-if="folders.length > 0 || files.length > 0">
+                <template v-if="folders.length > 0 || files.length > 0 || filteredSharedFiles.length > 0">
                     <!-- Grid View -->
                     <div v-if="viewMode === 'grid'"
                          class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
@@ -829,6 +916,31 @@ onMounted(() => {
                                 <DeleteButton
                                     :label="t('kb.deleteFile')"
                                     @click.stop="confirmDeleteFile(file)"
+                                />
+                            </div>
+                        </NeutralContainer>
+
+                        <!-- Shared Files (from partner stations) -->
+                        <NeutralContainer
+                            v-for="shared in filteredSharedFiles"
+                            :key="'shared-' + shared.file.id"
+                            class="cursor-pointer hover:border-[var(--primary)] transition-colors relative group"
+                            @click="navigateToFile(shared.file)"
+                        >
+                            <div class="flex flex-col items-center gap-2 p-2 text-center">
+                                <font-awesome-icon :icon="fileIcon(shared.file)" class="text-2xl text-[var(--primary)]"/>
+                                <span class="text-sm font-medium truncate w-full">{{ shared.file.name }}</span>
+                                <StationBadge :station-name="shared.stationName" />
+                                <span v-if="shared.file.description"
+                                      class="text-xs text-[var(--text-muted)] truncate w-full">
+                                    {{ shared.file.description }}
+                                </span>
+                            </div>
+                            <div class="absolute top-1 right-1 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <IconButton
+                                    :icon="['fas', 'copy']"
+                                    :label="t('federation.copyToStation')"
+                                    @click.stop="copySharedFile(shared.file.id)"
                                 />
                             </div>
                         </NeutralContainer>
@@ -906,6 +1018,34 @@ onMounted(() => {
                                 <DeleteButton
                                     :label="t('kb.deleteFile')"
                                     @click.stop="confirmDeleteFile(file)"
+                                />
+                            </div>
+                        </div>
+
+                        <!-- Shared Files (from partner stations) -->
+                        <div
+                            v-for="shared in filteredSharedFiles"
+                            :key="'shared-' + shared.file.id"
+                            class="flex items-center gap-3 px-3 py-1.5 cursor-pointer hover:bg-[var(--bg-accent)] transition-colors group"
+                            @click="navigateToFile(shared.file)"
+                        >
+                            <div class="w-5 flex-shrink-0 flex justify-center">
+                                <font-awesome-icon :icon="fileIcon(shared.file)" class="text-sm text-[var(--primary)]"/>
+                            </div>
+                            <span class="text-sm font-medium truncate min-w-0 flex-1">{{ shared.file.name }}</span>
+                            <StationBadge :station-name="shared.stationName" />
+                            <span v-if="shared.file.description"
+                                  class="hidden sm:block text-xs text-[var(--text-muted)] truncate max-w-48">
+                                {{ shared.file.description }}
+                            </span>
+                            <span class="hidden md:block text-xs text-[var(--text-muted)] w-16 text-right flex-shrink-0">
+                                {{ fileTypeLabel(shared.file) }}
+                            </span>
+                            <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
+                                <IconButton
+                                    :icon="['fas', 'copy']"
+                                    :label="t('federation.copyToStation')"
+                                    @click.stop="copySharedFile(shared.file.id)"
                                 />
                             </div>
                         </div>

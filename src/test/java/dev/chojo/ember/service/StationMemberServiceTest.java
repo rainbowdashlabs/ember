@@ -36,7 +36,7 @@ class StationMemberServiceTest extends RepositoryTestBase {
 
     @BeforeAll
     static void setup() {
-        service = new StationMemberService(stationMemberRepo, stationRepo);
+        service = new StationMemberService(stationMemberRepo, stationRepo, accountRepo, null);
         station = stationRepo.create("MemberServiceStation");
         account1 = accountRepo.create("svc1@test.com", "First", "Member");
         account2 = accountRepo.create("svc2@test.com", "Second", "Member");

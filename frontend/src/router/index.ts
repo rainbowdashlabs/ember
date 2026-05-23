@@ -176,6 +176,16 @@ const router = createRouter({
                     component: MembersConfigView,
                 },
                 {
+                    path: 'manage/federation',
+                    name: 'station-federation',
+                    component: () => import('@/views/stationview/manage/FederationView.vue'),
+                },
+                {
+                    path: 'manage/federation/:id',
+                    name: 'station-federation-partner',
+                    component: () => import('@/views/stationview/manage/FederationPartnerView.vue'),
+                },
+                {
                     path: 'members/create',
                     name: 'members-create',
                     component: MembersCreateView,
