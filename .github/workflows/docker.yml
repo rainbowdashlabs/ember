@@ -39,20 +39,6 @@ jobs:
         run: |
           docker image tag ghcr.io/rainbowdashlabs/ember:${{ github.sha }} ghcr.io/rainbowdashlabs/ember:latest
           docker push ghcr.io/rainbowdashlabs/ember:latest
-      - name: Tag & Push dev image
-        if: github.ref_name == 'dev'
-        run: |
-          docker image tag ghcr.io/rainbowdashlabs/ember:${{ github.sha }} ghcr.io/rainbowdashlabs/ember:dev
-          docker push ghcr.io/rainbowdashlabs/ember:dev
-      - name: Tag & Push snapshot image
-        if: github.ref_name != 'main' && github.ref_name != 'dev' && github.event_name != 'release'
-        run: |
-          IMAGE="ghcr.io/rainbowdashlabs/ember"
-          BRANCH_TAG=$(echo "${{ github.ref_name }}" | sed 's|/|-|g')
-          docker image tag "$IMAGE:${{ github.sha }}" "$IMAGE:snapshot"
-          docker image tag "$IMAGE:${{ github.sha }}" "$IMAGE:$BRANCH_TAG"
-          docker push "$IMAGE:snapshot"
-          docker push "$IMAGE:$BRANCH_TAG"
       - name: Tag & Push version images
         if: github.event_name == 'release'
         run: |
