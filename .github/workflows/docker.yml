@@ -5,10 +5,10 @@ on:
     types:
       - published
   push:
-    tags:
     branches:
       - main
       - dev
+      - 'feature/**'
 
 jobs:
   docker-build:
