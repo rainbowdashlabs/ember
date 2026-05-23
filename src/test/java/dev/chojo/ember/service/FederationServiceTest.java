@@ -1,0 +1,225 @@
+/*
+ *     SPDX-License-Identifier: AGPL-3.0-only
+ *
+ *     Copyright (C) RainbowDashLabs and Contributor
+ */
+package dev.chojo.ember.service;
+
+import dev.chojo.ember.conf.file.elements.Api;
+import dev.chojo.ember.feature.federation.entity.FederationPartner;
+import dev.chojo.ember.feature.federation.repository.FederationRepository;
+import dev.chojo.ember.feature.federation.service.FederationService;
+import dev.chojo.ember.feature.station.entity.Station;
+import dev.chojo.ember.repository.RepositoryTestBase;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.Order;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestMethodOrder;
+
+import java.time.Instant;
+
+import static org.junit.jupiter.api.Assertions.*;
+
+@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
+class FederationServiceTest extends RepositoryTestBase {
+
+    private static FederationService service;
+    private static FederationRepository federationRepo;
+    private static Station stationA;
+    private static Station stationB;
+    private static int partnerIdAtoB;
+
+    @BeforeAll
+    static void setup() {
+        federationRepo = new FederationRepository();
+        service = new FederationService(federationRepo, new Api());
+
+        stationA = stationRepo.create("FedSvcTestStationA");
+        stationB = stationRepo.create("FedSvcTestStationB");
+    }
+
+    @AfterAll
+    static void cleanup() {
+        stationRepo.delete(stationA.id());
+        stationRepo.delete(stationB.id());
+    }
+
+    @Test
+    @Order(1)
+    void generateInviteCodeFormat() {
+        String code = service.generateInviteCode();
+        assertNotNull(code);
+        assertTrue(code.startsWith("ember-"), "Code should start with ember-");
+        // Format: ember-CODE-BASE64(HOST)
+        var parts = service.parseInviteCode(code);
+        assertTrue(parts.isPresent(), "Generated invite code should be parseable");
+        assertEquals(8, parts.get().code().length(), "Random code part should be 8 characters");
+    }
+
+    @Test
+    @Order(2)
+    void generateInviteCodeUniqueness() {
+        String code1 = service.generateInviteCode();
+        String code2 = service.generateInviteCode();
+        // While not guaranteed, the probability of collision is extremely low
+        assertNotEquals(code1, code2);
+    }
+
+    @Test
+    @Order(3)
+    void createInviteReturnsPartnerWithPendingStatus() {
+        var invite = service.createInvite(stationA.id());
+        assertNotNull(invite);
+        assertEquals(stationA.id(), invite.stationId());
+        assertEquals(FederationPartner.FederationStatus.PENDING, invite.status());
+        assertNotNull(invite.inviteCode());
+        assertNotNull(invite.publicKey());
+    }
+
+    @Test
+    @Order(4)
+    void acceptInviteCreatesBidirectionalPartners() {
+        var invite = service.createInvite(stationA.id());
+        var partner = service.acceptInvite(stationB.id(), stationA.id(), invite.publicKey());
+
+        assertNotNull(partner);
+        assertEquals(FederationPartner.FederationStatus.ACTIVE, partner.status());
+        assertEquals(stationA.id(), partner.stationId());
+        assertEquals(stationB.id(), partner.partnerStationId());
+        assertNotNull(partner.partnerPublicKey());
+        partnerIdAtoB = partner.id();
+
+        // Verify reverse partner exists
+        var reversePartners = service.findPartners(stationB.id());
+        assertTrue(reversePartners.stream()
+                .anyMatch(p -> p.partnerStationId() == stationA.id()
+                        && p.status() == FederationPartner.FederationStatus.ACTIVE));
+    }
+
+    @Test
+    @Order(5)
+    void findPartnersByStation() {
+        var partners = service.findPartners(stationA.id());
+        assertFalse(partners.isEmpty());
+        assertTrue(partners.stream().anyMatch(p -> p.id() == partnerIdAtoB));
+    }
+
+    @Test
+    @Order(6)
+    void findPartnerById() {
+        var found = service.findPartner(partnerIdAtoB);
+        assertTrue(found.isPresent());
+        assertEquals(partnerIdAtoB, found.get().id());
+    }
+
+    // -- Capabilities --
+
+    @Test
+    @Order(10)
+    void hasCapabilityReturnsTrueWhenEnabled() {
+        // Capabilities are initialized with all enabled during acceptInvite
+        assertTrue(service.hasCapability(partnerIdAtoB, "KB_SHARE", "IMPORT"));
+        assertTrue(service.hasCapability(partnerIdAtoB, "QUIZ_SHARE", "EXPORT"));
+    }
+
+    @Test
+    @Order(11)
+    void setCapabilityDisables() {
+        service.setCapability(partnerIdAtoB, "KB_SHARE", "IMPORT", false);
+        assertFalse(service.hasCapability(partnerIdAtoB, "KB_SHARE", "IMPORT"));
+    }
+
+    @Test
+    @Order(12)
+    void setCapabilityReenables() {
+        service.setCapability(partnerIdAtoB, "KB_SHARE", "IMPORT", true);
+        assertTrue(service.hasCapability(partnerIdAtoB, "KB_SHARE", "IMPORT"));
+    }
+
+    @Test
+    @Order(13)
+    void findCapabilitiesReturnsAll() {
+        var caps = service.findCapabilities(partnerIdAtoB);
+        assertFalse(caps.isEmpty());
+    }
+
+    // -- Suspend / Resume --
+
+    @Test
+    @Order(20)
+    void suspendPartner() {
+        assertTrue(service.suspendPartner(partnerIdAtoB));
+        var partner = service.findPartner(partnerIdAtoB).orElseThrow();
+        assertEquals(FederationPartner.FederationStatus.SUSPENDED, partner.status());
+    }
+
+    @Test
+    @Order(21)
+    void resumePartner() {
+        assertTrue(service.resumePartner(partnerIdAtoB));
+        var partner = service.findPartner(partnerIdAtoB).orElseThrow();
+        assertEquals(FederationPartner.FederationStatus.ACTIVE, partner.status());
+    }
+
+    // -- Change Logging --
+
+    @Test
+    @Order(30)
+    void logAndRetrieveChanges() {
+        Instant before = Instant.now().minusSeconds(1);
+        service.logChange(stationA.id(), "KB", 42, "CREATED");
+        service.logChange(stationA.id(), "QUIZ", 7, "UPDATED");
+
+        var changes = service.getChangesSince(stationA.id(), before);
+        assertTrue(changes.size() >= 2);
+        assertTrue(changes.stream().anyMatch(c -> c.contentType().equals("KB") && c.contentId() == 42));
+    }
+
+    // -- Federation Version --
+
+    @Test
+    @Order(40)
+    void federationVersionIsPositive() {
+        assertTrue(service.getFederationVersion() > 0);
+    }
+
+    @Test
+    @Order(41)
+    void supportedCapabilitiesNotEmpty() {
+        var caps = service.getSupportedCapabilities();
+        assertFalse(caps.isEmpty());
+        assertTrue(caps.contains("KB_SHARE"));
+        assertTrue(caps.contains("QUIZ_SHARE"));
+        assertTrue(caps.contains("PROTOCOL_SHARE"));
+    }
+
+    // -- Keypair --
+
+    @Test
+    @Order(50)
+    void generateKeyPairAndEncodePublicKey() {
+        var keyPair = service.generateKeyPair();
+        assertNotNull(keyPair);
+        assertNotNull(keyPair.getPublic());
+        assertNotNull(keyPair.getPrivate());
+
+        String encoded = service.encodePublicKey(keyPair);
+        assertNotNull(encoded);
+        assertFalse(encoded.isEmpty());
+    }
+
+    // -- End Federation --
+
+    @Test
+    @Order(99)
+    void endFederationDeletesBothDirections() {
+        assertTrue(service.endFederation(partnerIdAtoB));
+        assertTrue(service.findPartner(partnerIdAtoB).isEmpty());
+
+        // Reverse partner should also be deleted
+        var reversePartners = service.findPartners(stationB.id());
+        assertTrue(reversePartners.stream().noneMatch(p -> p.partnerStationId() == stationA.id()));
+    }
+}

@@ -20,6 +20,7 @@ const sections = [
   {icon: ['fas', 'shield'], route: 'help-basics-roles', key: 'roles'},
   {icon: ['fas', 'puzzle-piece'], route: 'help-basics-modules', key: 'modules'},
   {icon: ['fas', 'server'], route: 'help-basics-hosting', key: 'hosting'},
+  {icon: ['fas', 'arrow-right-arrow-left'], route: 'help-basics-federation', key: 'federation'},
 ]
 </script>
 

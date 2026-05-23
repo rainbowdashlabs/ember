@@ -43,6 +43,7 @@ const currentFolder = ref<KbFolder | null>(null)
 const folders = ref<KbFolder[]>([])
 const files = ref<KbFile[]>([])
 const sharedFiles = ref<SharedFileEntry[]>([])
+const favourites = ref<KbFile[]>([])
 
 // Breadcrumb
 const breadcrumbs = ref<KbFolder[]>([])
@@ -186,6 +187,23 @@ function onFolderIconSelect(event: Event) {
     folderIconFile.value = input.files?.[0] ?? null
 }
 
+const favouriteIds = computed(() => new Set(favourites.value.map(f => f.id)))
+
+async function toggleFavourite(file: KbFile, event?: MouseEvent) {
+    if (event) event.stopPropagation()
+    try {
+        if (favouriteIds.value.has(file.id)) {
+            await knowledgeBase.removeFavourite(file.id)
+            favourites.value = favourites.value.filter(f => f.id !== file.id)
+        } else {
+            await knowledgeBase.addFavourite(file.id)
+            favourites.value = [...favourites.value, file]
+        }
+    } catch {
+        error.value = t('common.error')
+    }
+}
+
 const currentFolderId = computed(() => {
     const param = route.query.folderId
     return param ? Number(param) : null
@@ -215,6 +233,7 @@ async function loadData() {
         folders.value = result.folders
         files.value = result.files
         sharedFiles.value = result.sharedFiles ?? []
+        favourites.value = result.favourites ?? []
         await buildBreadcrumbs()
     } catch {
         error.value = t('common.error')
@@ -851,6 +870,68 @@ onMounted(() => {
                     </div>
                 </div>
 
+                <!-- Favourites section (only at root level when there are favourites) -->
+                <div v-if="!currentFolder && favourites.length > 0" class="mb-6">
+                    <h2 class="text-sm font-semibold text-[var(--text-muted)] mb-2 flex items-center gap-2">
+                        <font-awesome-icon :icon="['fas', 'star']" class="text-yellow-500"/>
+                        {{ t('kb.favourites') }}
+                    </h2>
+                    <div v-if="viewMode === 'grid'"
+                         class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                        <NeutralContainer
+                            v-for="fav in favourites"
+                            :key="'fav-' + fav.id"
+                            class="cursor-pointer hover:border-[var(--primary)] transition-colors relative group"
+                            @click="navigateToFile(fav)"
+                        >
+                            <div class="flex flex-col items-center gap-2 p-2 text-center">
+                                <font-awesome-icon :icon="fileIcon(fav)" class="text-2xl text-[var(--primary)]"/>
+                                <span class="text-sm font-medium truncate w-full">{{ fav.name }}</span>
+                                <span v-if="fav.description"
+                                      class="text-xs text-[var(--text-muted)] truncate w-full">
+                                    {{ fav.description }}
+                                </span>
+                            </div>
+                            <div class="absolute top-1 right-1 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <IconButton
+                                    :icon="['fas', 'star']"
+                                    :label="t('kb.removeFavourite')"
+                                    class="!text-yellow-500"
+                                    @click.stop="toggleFavourite(fav, $event)"
+                                />
+                            </div>
+                        </NeutralContainer>
+                    </div>
+                    <div v-else class="border border-[var(--border)] rounded-lg overflow-hidden divide-y divide-[var(--border)]">
+                        <div
+                            v-for="fav in favourites"
+                            :key="'fav-' + fav.id"
+                            class="flex items-center gap-3 px-3 py-1.5 cursor-pointer hover:bg-[var(--bg-accent)] transition-colors group"
+                            @click="navigateToFile(fav)"
+                        >
+                            <div class="w-5 flex-shrink-0 flex justify-center">
+                                <font-awesome-icon :icon="fileIcon(fav)" class="text-sm text-[var(--primary)]"/>
+                            </div>
+                            <span class="text-sm font-medium truncate min-w-0 flex-1">{{ fav.name }}</span>
+                            <span v-if="fav.description"
+                                  class="hidden sm:block text-xs text-[var(--text-muted)] truncate max-w-48">
+                                {{ fav.description }}
+                            </span>
+                            <span class="hidden md:block text-xs text-[var(--text-muted)] w-16 text-right flex-shrink-0">
+                                {{ fileTypeLabel(fav) }}
+                            </span>
+                            <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
+                                <IconButton
+                                    :icon="['fas', 'star']"
+                                    :label="t('kb.removeFavourite')"
+                                    class="!text-yellow-500"
+                                    @click.stop="toggleFavourite(fav, $event)"
+                                />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Content: Grid or List -->
                 <template v-if="folders.length > 0 || files.length > 0 || filteredSharedFiles.length > 0">
                     <!-- Grid View -->
@@ -906,6 +987,13 @@ onMounted(() => {
                                       class="text-xs text-[var(--text-muted)] truncate w-full">
                                     {{ file.description }}
                                 </span>
+                            </div>
+                            <div class="absolute top-1 left-1 flex gap-1">
+                                <font-awesome-icon
+                                    v-if="favouriteIds.has(file.id)"
+                                    :icon="['fas', 'star']"
+                                    class="text-xs text-yellow-500"
+                                />
                             </div>
                             <div v-if="canManageKnowledge()"
                                  class="absolute top-1 right-1 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -998,6 +1086,11 @@ onMounted(() => {
                             <div class="w-5 flex-shrink-0 flex justify-center">
                                 <font-awesome-icon :icon="fileIcon(file)" class="text-sm text-[var(--primary)]"/>
                             </div>
+                            <font-awesome-icon
+                                v-if="favouriteIds.has(file.id)"
+                                :icon="['fas', 'star']"
+                                class="text-xs text-yellow-500 flex-shrink-0"
+                            />
                             <span class="text-sm font-medium truncate min-w-0 flex-1">{{ file.name }}</span>
                             <span v-if="file.description"
                                   class="hidden sm:block text-xs text-[var(--text-muted)] truncate max-w-48">

@@ -92,6 +92,7 @@ public class DemoService {
     private final DemoKnowledgeBaseSeeder kbSeeder;
     private final DemoProtocolSeeder protocolSeeder;
     private final DemoFederationSeeder federationSeeder;
+    private final DemoLendingSeeder lendingSeeder;
     private final ApplicationSettingRepository applicationSettingRepository;
     private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
 
@@ -125,6 +126,7 @@ public class DemoService {
             DemoKnowledgeBaseSeeder kbSeeder,
             DemoProtocolSeeder protocolSeeder,
             DemoFederationSeeder federationSeeder,
+            DemoLendingSeeder lendingSeeder,
             ApplicationSettingRepository applicationSettingRepository) {
         this.demoConfig = demoConfig;
         this.databaseConfig = databaseConfig;
@@ -154,6 +156,7 @@ public class DemoService {
         this.kbSeeder = kbSeeder;
         this.protocolSeeder = protocolSeeder;
         this.federationSeeder = federationSeeder;
+        this.lendingSeeder = lendingSeeder;
         this.applicationSettingRepository = applicationSettingRepository;
     }
 
@@ -1190,8 +1193,12 @@ public class DemoService {
         log.info("Demo: Created Test Protocol data");
 
         // -- Federation --
-        federationSeeder.seed(station.id(), adminMember.id());
+        int partnerStationId = federationSeeder.seed(station.id(), adminMember.id());
         log.info("Demo: Created Federation data");
+
+        // -- Lending --
+        lendingSeeder.seed(station.id(), partnerStationId, adminMember.id());
+        log.info("Demo: Created Lending data");
 
         // -- Profile Pictures & Station Logo --
         mediaSeeder.seedProfilePictures(

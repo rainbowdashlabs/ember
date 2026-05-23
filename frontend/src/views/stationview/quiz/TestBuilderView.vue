@@ -130,7 +130,7 @@ async function loadData() {
   loading.value = true
   error.value = ''
   try {
-    catalogs.value = await quiz.listCatalogs()
+    catalogs.value = (await quiz.listCatalogs()).catalogs
 
     if (testId.value) {
       const detail = await quiz.getTest(testId.value)

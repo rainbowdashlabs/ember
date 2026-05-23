@@ -30,9 +30,10 @@ import QuestionEditor from './QuestionEditor.vue'
 import CsvImportDialog from './CsvImportDialog.vue'
 import type { QuizCatalogDetail, QuizCategory, QuizQuestion, QuizQuestionTypeName } from '@/api/types'
 import { QuizQuestionTypes } from '@/api/types'
-import { quiz } from '@/api'
+import { quiz, federation, storage } from '@/api'
 import { useSession } from '@/composables/useSession'
 import { useBreakpoint } from '@/composables/useBreakpoint'
+import StationBadge from '@/components/badge/StationBadge.vue'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -41,6 +42,16 @@ const { loaded } = useSession()
 const { isMobile } = useBreakpoint()
 
 const catalogId = computed(() => Number(route.params.id))
+
+const currentStationId = computed(() => {
+  const id = storage.getItem('station_id')
+  return id ? Number(id) : null
+})
+
+const isFederated = computed(() => {
+  if (!catalog.value || currentStationId.value == null) return false
+  return catalog.value.stationId !== currentStationId.value
+})
 
 const catalog = ref<QuizCatalogDetail | null>(null)
 const questions = ref<QuizQuestion[]>([])
@@ -348,6 +359,16 @@ async function onCsvImported(_count: number) {
   await loadData()
 }
 
+async function copyToStation() {
+  error.value = ''
+  try {
+    await federation.copyQuizCatalog(catalogId.value)
+    router.push({ name: 'quiz-catalogs' })
+  } catch {
+    error.value = t('common.error')
+  }
+}
+
 function getCategoryName(catId: number | null): string {
   if (!catId || !catalog.value) return t('quiz.questions.noCategory')
   const cat = catalog.value.categories.find(c => c.id === catId)
@@ -375,8 +396,31 @@ watch(loaded, (isLoaded) => {
       <Alert v-if="error" variant="error">{{ error }}</Alert>
 
       <template v-if="!loading && catalog">
-        <!-- Catalog Metadata -->
-        <NeutralContainer>
+        <!-- Federated: Copy to station button -->
+        <NeutralContainer v-if="isFederated">
+          <div class="space-y-4">
+            <div class="flex items-center gap-3 flex-wrap">
+              <PageHeader>{{ catalog.name }}</PageHeader>
+              <StationBadge :station-name="''" />
+            </div>
+            <p v-if="catalog.description" class="text-sm text-(--text-muted)">{{ catalog.description }}</p>
+            <div v-if="catalog.questionTypeCounts && Object.keys(catalog.questionTypeCounts).length > 0" class="flex flex-wrap gap-2">
+              <InfoBadge v-for="(count, type) in catalog.questionTypeCounts" :key="type">
+                {{ t(`quiz.questionTypes.${type}`) }}: {{ count }}
+              </InfoBadge>
+              <SecondaryBadge>{{ t('quiz.catalogs.questionCount', { count: catalog.questionCount }) }}</SecondaryBadge>
+            </div>
+            <div class="flex justify-end">
+              <PrimaryButton @click="copyToStation">
+                <font-awesome-icon :icon="['fas', 'copy']" class="mr-1" />
+                {{ t('federation.copyToStation') }}
+              </PrimaryButton>
+            </div>
+          </div>
+        </NeutralContainer>
+
+        <!-- Catalog Metadata (editable, local only) -->
+        <NeutralContainer v-else>
           <div class="space-y-4">
             <PageHeader>{{ catalog.name }}</PageHeader>
             <div v-if="catalog.questionTypeCounts && Object.keys(catalog.questionTypeCounts).length > 0" class="flex flex-wrap gap-2">
@@ -397,8 +441,8 @@ watch(loaded, (isLoaded) => {
           </div>
         </NeutralContainer>
 
-        <!-- Categories Section -->
-        <div class="space-y-3">
+        <!-- Categories Section (hidden for federated) -->
+        <div v-if="!isFederated" class="space-y-3">
           <div class="flex items-center justify-between flex-wrap gap-2">
             <SectionHeader>{{ t('quiz.categories.title') }}</SectionHeader>
             <SecondaryButton @click="openCategoryModal">
@@ -423,8 +467,8 @@ watch(loaded, (isLoaded) => {
           </div>
         </div>
 
-        <!-- Questions Section -->
-        <div class="space-y-3">
+        <!-- Questions Section (hidden for federated) -->
+        <div v-if="!isFederated" class="space-y-3">
           <div class="flex items-center justify-between flex-wrap gap-2">
             <SectionHeader>{{ t('quiz.questions.title') }}</SectionHeader>
             <div class="flex gap-2 flex-wrap">
@@ -554,6 +598,26 @@ watch(loaded, (isLoaded) => {
                   />
                 </div>
               </template>
+            </NeutralContainer>
+          </div>
+        </div>
+
+        <!-- Read-only question list for federated catalogs -->
+        <div v-if="isFederated && questions.length > 0" class="space-y-3">
+          <SectionHeader>{{ t('quiz.questions.title') }}</SectionHeader>
+          <div class="space-y-2">
+            <NeutralContainer v-for="q in questions" :key="q.id">
+              <div class="flex items-center justify-between gap-4">
+                <div class="flex-1 min-w-0 space-y-1">
+                  <div class="flex items-center gap-2 flex-wrap">
+                    <span class="font-medium">{{ q.title }}</span>
+                    <InfoBadge>{{ t(`quiz.questionTypes.${q.questionType}`) }}</InfoBadge>
+                    <SecondaryBadge>{{ getCategoryName(q.categoryId) }}</SecondaryBadge>
+                  </div>
+                  <p v-if="q.description" class="text-xs text-(--text-muted) truncate">{{ q.description }}</p>
+                </div>
+                <span class="text-sm text-(--text-muted) shrink-0">{{ q.points }} {{ t('quiz.questions.points') }}</span>
+              </div>
             </NeutralContainer>
           </div>
         </div>

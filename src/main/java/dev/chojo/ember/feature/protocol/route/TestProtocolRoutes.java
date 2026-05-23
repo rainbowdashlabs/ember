@@ -24,7 +24,6 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
 import java.time.LocalDate;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -537,11 +536,8 @@ public class TestProtocolRoutes implements Routes {
             Integer passThreshold) {}
 
     public record SharedProtocolEntry(
-            dev.chojo.ember.feature.protocol.entity.TestProtocol protocol,
-            String stationName,
-            int sourceStationId) {}
+            dev.chojo.ember.feature.protocol.entity.TestProtocol protocol, String stationName, int sourceStationId) {}
 
     public record ProtocolListResponse(
-            List<dev.chojo.ember.feature.protocol.entity.TestProtocol> protocols,
-            List<SharedProtocolEntry> shared) {}
+            List<dev.chojo.ember.feature.protocol.entity.TestProtocol> protocols, List<SharedProtocolEntry> shared) {}
 }

@@ -113,6 +113,11 @@ public class KnowledgeBaseRoutes implements Routes {
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
+        // Favourites (registered before parameterized file routes to avoid path conflicts)
+        routes.get(prefix + "/kb/favourites", this::listFavourites, Roles.USER);
+        routes.post(prefix + "/kb/favourites/{fileId}", this::addFavourite, Roles.USER);
+        routes.delete(prefix + "/kb/favourites/{fileId}", this::removeFavourite, Roles.USER);
+
         // Folders
         routes.get(prefix + "/kb/folders", this::listFolders, Roles.USER);
         routes.post(prefix + "/kb/folders", this::createFolder, Roles.KNOWLEDGE_MANAGEMENT);
@@ -238,11 +243,14 @@ public class KnowledgeBaseRoutes implements Routes {
     }
 
     private void getFile(Context ctx) {
+        var session = UserSession.from(ctx);
         int id = ctx.pathParamAsClass("id", Integer.class).get();
         service.findFile(id)
                 .ifPresentOrElse(
                         file -> {
-                            ctx.json(new FileResponse(file, resolveMemberName(file.createdBy())));
+                            boolean favourite =
+                                    service.isFavourite(session.member().id(), file.id());
+                            ctx.json(new FileResponse(file, resolveMemberName(file.createdBy()), favourite));
                         },
                         () -> {
                             throw new NotFoundResponse();
@@ -606,7 +614,13 @@ public class KnowledgeBaseRoutes implements Routes {
             }
         }
 
-        ctx.json(new BrowseResponse(currentFolder, folders, files, sharedFiles));
+        // Include favourites at root level
+        List<KbFile> favourites = List.of();
+        if (folderId == null) {
+            favourites = service.findFavourites(session.member().id());
+        }
+
+        ctx.json(new BrowseResponse(currentFolder, folders, files, sharedFiles, favourites));
     }
 
     // -- Access Restrictions --
@@ -669,6 +683,27 @@ public class KnowledgeBaseRoutes implements Routes {
         return new RestrictionResponse(roleIds, groupIds, tagIds, memberIds);
     }
 
+    // -- Favourites --
+
+    private void listFavourites(Context ctx) {
+        var session = UserSession.from(ctx);
+        ctx.json(service.findFavourites(session.member().id()));
+    }
+
+    private void addFavourite(Context ctx) {
+        var session = UserSession.from(ctx);
+        int fileId = ctx.pathParamAsClass("fileId", Integer.class).get();
+        service.addFavourite(session.member().id(), fileId);
+        ctx.status(204);
+    }
+
+    private void removeFavourite(Context ctx) {
+        var session = UserSession.from(ctx);
+        int fileId = ctx.pathParamAsClass("fileId", Integer.class).get();
+        service.removeFavourite(session.member().id(), fileId);
+        ctx.status(204);
+    }
+
     // -- Request/Response Records --
 
     public record FolderRequest(Integer parentId, String name, String description, String iconUrl, Integer position) {}
@@ -696,7 +731,11 @@ public class KnowledgeBaseRoutes implements Routes {
             List<Integer> roleIds, List<Integer> groupIds, List<Integer> tagIds, List<Integer> memberIds) {}
 
     public record BrowseResponse(
-            KbFolder currentFolder, List<KbFolder> folders, List<KbFile> files, List<SharedFileEntry> sharedFiles) {}
+            KbFolder currentFolder,
+            List<KbFolder> folders,
+            List<KbFile> files,
+            List<SharedFileEntry> sharedFiles,
+            List<KbFile> favourites) {}
 
     public record SharedFileEntry(KbFile file, String stationName, int sourceStationId) {}
 
@@ -814,7 +853,7 @@ public class KnowledgeBaseRoutes implements Routes {
 
     public record RelatedFilesRequest(List<Integer> fileIds) {}
 
-    public record FileResponse(KbFile file, String lastEditedByName) {
+    public record FileResponse(KbFile file, String lastEditedByName, boolean isFavourite) {
         // Jackson will serialize both the file fields and the name
     }
 

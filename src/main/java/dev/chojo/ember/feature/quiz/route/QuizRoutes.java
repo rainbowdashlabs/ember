@@ -15,13 +15,12 @@ import dev.chojo.ember.feature.media.service.ImageService;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
 import dev.chojo.ember.feature.members.entity.Role;
 import dev.chojo.ember.feature.members.entity.UserTag;
-import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.repository.UserTagRepository;
 import dev.chojo.ember.feature.quiz.entity.AttemptStatus;
-import dev.chojo.ember.feature.quiz.entity.QuizCatalog;
 import dev.chojo.ember.feature.quiz.entity.QuestionType;
+import dev.chojo.ember.feature.quiz.entity.QuizCatalog;
 import dev.chojo.ember.feature.quiz.entity.QuizCategory;
 import dev.chojo.ember.feature.quiz.entity.QuizQuestion;
 import dev.chojo.ember.feature.quiz.entity.QuizTest;
@@ -32,6 +31,7 @@ import dev.chojo.ember.feature.quiz.entity.QuizTestSectionSource;
 import dev.chojo.ember.feature.quiz.entity.TestStatus;
 import dev.chojo.ember.feature.quiz.service.QuizPdfService;
 import dev.chojo.ember.feature.quiz.service.QuizService;
+import dev.chojo.ember.feature.station.repository.StationRepository;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.ForbiddenResponse;
@@ -215,10 +215,9 @@ public class QuizRoutes implements Routes {
         if (query != null && !query.isBlank()) {
             String lower = query.toLowerCase();
             filtered = catalogs.stream()
-                    .filter(c ->
-                            c.name().toLowerCase().contains(lower)
-                                    || (c.description() != null
-                                            && c.description().toLowerCase().contains(lower)))
+                    .filter(c -> c.name().toLowerCase().contains(lower)
+                            || (c.description() != null
+                                    && c.description().toLowerCase().contains(lower)))
                     .toList();
         }
 
@@ -229,8 +228,8 @@ public class QuizRoutes implements Routes {
                 var stream = sharedItems.stream();
                 if (query != null && !query.isBlank()) {
                     String lower = query.toLowerCase();
-                    stream = stream.filter(item ->
-                            item.catalog().name().toLowerCase().contains(lower)
+                    stream = stream.filter(
+                            item -> item.catalog().name().toLowerCase().contains(lower)
                                     || (item.catalog().description() != null
                                             && item.catalog()
                                                     .description()

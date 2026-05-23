@@ -59,6 +59,7 @@ export interface BrowseResponse {
     folders: KbFolder[]
     files: KbFile[]
     sharedFiles: SharedFileEntry[]
+    favourites: KbFile[]
 }
 
 export interface MarkdownHtmlResponse {
@@ -131,6 +132,7 @@ export async function listFiles(folderId?: number | null): Promise<KbFile[]> {
 export interface FileResponse {
     file: KbFile
     lastEditedByName: string | null
+    isFavourite: boolean
 }
 
 export async function getFile(id: number): Promise<FileResponse> {
@@ -366,6 +368,21 @@ export function kbImageUrl(imageId: string, size = 1024): string {
     const token = getItem('session_token') ?? ''
     const stationId = getItem('station_id') ?? ''
     return `${client.defaults.baseURL}/kb/images/${imageId}?size=${size}&token=${encodeURIComponent(token)}&stationId=${encodeURIComponent(stationId)}`
+}
+
+// -- Favourites --
+
+export async function listFavourites(): Promise<KbFile[]> {
+    const res = await client.get<KbFile[]>('/kb/favourites')
+    return res.data
+}
+
+export async function addFavourite(fileId: number): Promise<void> {
+    await client.post(`/kb/favourites/${fileId}`)
+}
+
+export async function removeFavourite(fileId: number): Promise<void> {
+    await client.delete(`/kb/favourites/${fileId}`)
 }
 
 // -- Search --

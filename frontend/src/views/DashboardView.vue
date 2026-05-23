@@ -244,6 +244,10 @@ async function handleLogout() {
                      @navigate="close">
           {{ t('sidebar.inventoryProcurement') }}
         </SidebarLink>
+        <SidebarLink v-if="canManageInventory() && canManageFederation()" :icon="['fas', 'handshake']" name="inventory-lending" to="/station/inventory/lending"
+                     @navigate="close">
+          {{ t('sidebar.inventoryLending') }}
+        </SidebarLink>
       </SidebarGroup>
 
       <SidebarGroup :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => openGroup = v" v-if="canManageAttendance() && isModuleEnabled(StationModules.ATTENDANCE)" :icon="['fas', 'clipboard-user']" :label="t('sidebar.attendance')"

@@ -53,7 +53,7 @@ async function loadData() {
       stationMembers.listMembers(currentStationId.value!),
     ])
     runs.value = r
-    protocols.value = p
+    protocols.value = p.protocols
     members.value = m
   } catch { error.value = t('common.error') }
   finally { loading.value = false }

@@ -152,12 +152,12 @@ async function loadData() {
   loading.value = true
   error.value = ''
   try {
-    const [d, catalogList] = await Promise.all([
+    const [d, catalogResponse] = await Promise.all([
       quiz.getTest(testId.value),
       quiz.listCatalogs(),
     ])
     detail.value = d
-    catalogs.value = catalogList
+    catalogs.value = catalogResponse.catalogs
     editStartAt.value = toLocalInput(d.test.startAt)
     editEndAt.value = toLocalInput(d.test.endAt)
     timesDirty.value = false

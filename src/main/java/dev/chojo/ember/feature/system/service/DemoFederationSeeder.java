@@ -47,7 +47,14 @@ public class DemoFederationSeeder {
         this.passwordHasher = passwordHasher;
     }
 
-    public void seed(int primaryStationId, int createdBy) {
+    /**
+     * Seeds a partner station, federates it with the primary station, and shares content.
+     *
+     * @param primaryStationId the primary station ID
+     * @param createdBy        the member ID creating the data
+     * @return the partner station ID
+     */
+    public int seed(int primaryStationId, int createdBy) {
         // Create a second station
         var partnerStation = stationRepository.create("JF Partnerwache");
         log.info("Demo: Created partner station '{}' (id={})", partnerStation.name(), partnerStation.id());
@@ -137,5 +144,7 @@ public class DemoFederationSeeder {
                 thirdMember.id());
 
         log.info("Demo: Created third station with manager nachbar@demo.ember (not federated)");
+
+        return partnerStation.id();
     }
 }

@@ -16,6 +16,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import MarkdownEditor from '@/components/input/MarkdownEditor.vue'
+import IconButton from '@/components/button/IconButton.vue'
 import {useSession} from '@/composables/useSession'
 import {knowledgeBase, federation} from '@/api'
 import type {KbFile, KbTag, MarkdownHtmlResponse} from '@/api/knowledgeBase'
@@ -29,6 +30,7 @@ const {canManageKnowledge, loaded} = useSession()
 
 const file = ref<KbFile | null>(null)
 const lastEditedByName = ref<string | null>(null)
+const isFavourite = ref(false)
 const loading = ref(true)
 const error = ref('')
 
@@ -128,6 +130,7 @@ async function loadData() {
         const fileRes = await knowledgeBase.getFile(fileId.value)
         file.value = fileRes.file
         lastEditedByName.value = fileRes.lastEditedByName
+        isFavourite.value = fileRes.isFavourite
 
         const [tags, stationTags, related] = await Promise.all([
             knowledgeBase.getFileTags(file.value.id),
@@ -267,6 +270,21 @@ async function removeRelatedFile(targetId: number) {
     relatedFiles.value = await knowledgeBase.setRelatedFiles(file.value.id, ids)
 }
 
+async function toggleFavourite() {
+    if (!file.value) return
+    try {
+        if (isFavourite.value) {
+            await knowledgeBase.removeFavourite(file.value.id)
+            isFavourite.value = false
+        } else {
+            await knowledgeBase.addFavourite(file.value.id)
+            isFavourite.value = true
+        }
+    } catch {
+        error.value = t('common.error')
+    }
+}
+
 function goBack() {
     if (file.value?.folderId) {
         router.push({name: 'kb-browse', query: {folderId: file.value.folderId}})
@@ -298,6 +316,13 @@ onMounted(() => {
                 </SecondaryButton>
 
                 <h1 class="text-xl font-bold flex-1">{{ file.name }}</h1>
+
+                <IconButton
+                    :icon="['fas', 'star']"
+                    :label="isFavourite ? t('kb.removeFavourite') : t('kb.addFavourite')"
+                    :class="isFavourite ? '!text-yellow-500' : '!text-[var(--text-muted)]'"
+                    @click="toggleFavourite"
+                />
 
                 <PrimaryButton v-if="isFederated" @click="copyToStation">
                     <font-awesome-icon :icon="['fas', 'copy']"/>

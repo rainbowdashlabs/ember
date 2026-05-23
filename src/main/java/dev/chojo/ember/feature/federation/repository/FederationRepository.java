@@ -8,13 +8,17 @@ package dev.chojo.ember.feature.federation.repository;
 import de.chojo.sadu.queries.api.call.Call;
 import de.chojo.sadu.queries.api.query.Query;
 import dev.chojo.ember.feature.federation.entity.FederationCapability;
+import dev.chojo.ember.feature.federation.entity.FederationChangeLog;
 import dev.chojo.ember.feature.federation.entity.FederationMetadataCache;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.entity.FederationShare;
 import jakarta.inject.Singleton;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+
+import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIMESTAMP;
 
 @Singleton
 public class FederationRepository {
@@ -218,5 +222,61 @@ public class FederationRepository {
         Query.query("DELETE FROM federation_metadata_cache WHERE partner_id = :partner_id;")
                 .single(Call.of().bind("partner_id", partnerId))
                 .delete();
+    }
+
+    // -- Partner by remote station ID (for signature verification) --
+
+    public Optional<FederationPartner> findPartnerByRemoteStationId(int remoteStationId) {
+        return Query.query(
+                        "SELECT * FROM federation_partner WHERE partner_station_id = :partner_station_id AND status = 'ACTIVE' LIMIT 1;")
+                .single(Call.of().bind("partner_station_id", remoteStationId))
+                .map(FederationPartner.map())
+                .first();
+    }
+
+    // -- Webhook URL --
+
+    public String getWebhookUrl(int partnerId) {
+        return Query.query("SELECT webhook_url FROM federation_partner WHERE id = :id;")
+                .single(Call.of().bind("id", partnerId))
+                .map(row -> row.getString("webhook_url"))
+                .first()
+                .orElse(null);
+    }
+
+    public void setWebhookUrl(int partnerId, String webhookUrl) {
+        Query.query("UPDATE federation_partner SET webhook_url = :webhook_url, updated_at = now() WHERE id = :id;")
+                .single(Call.of().bind("id", partnerId).bind("webhook_url", webhookUrl))
+                .update();
+    }
+
+    // -- Last Sync --
+
+    public void updateLastSyncAt(int partnerId) {
+        Query.query("UPDATE federation_partner SET last_sync_at = now(), updated_at = now() WHERE id = :id;")
+                .single(Call.of().bind("id", partnerId))
+                .update();
+    }
+
+    // -- Change Log --
+
+    public void logChange(int stationId, String contentType, int contentId, String changeType) {
+        Query.query("""
+                        INSERT INTO federation_change_log(station_id, content_type, content_id, change_type)
+                        VALUES (:station_id, :content_type, :content_id, :change_type);""")
+                .single(Call.of()
+                        .bind("station_id", stationId)
+                        .bind("content_type", contentType)
+                        .bind("content_id", contentId)
+                        .bind("change_type", changeType))
+                .insert();
+    }
+
+    public List<FederationChangeLog> findChangesSince(int stationId, Instant since) {
+        return Query.query(
+                        "SELECT * FROM federation_change_log WHERE station_id = :station_id AND changed_at > :since ORDER BY changed_at;")
+                .single(Call.of().bind("station_id", stationId).bind("since", since, INSTANT_TIMESTAMP))
+                .map(FederationChangeLog.map())
+                .all();
     }
 }

@@ -463,6 +463,37 @@ public class KnowledgeBaseRepository {
         }
     }
 
+    // -- Favourites --
+
+    public void addFavourite(int memberId, int fileId) {
+        Query.query("INSERT INTO kb_favourite(member_id, file_id) VALUES(:member_id, :file_id) ON CONFLICT DO NOTHING;")
+                .single(Call.of().bind("member_id", memberId).bind("file_id", fileId))
+                .insert();
+    }
+
+    public boolean removeFavourite(int memberId, int fileId) {
+        return Query.query("DELETE FROM kb_favourite WHERE member_id = :member_id AND file_id = :file_id;")
+                .single(Call.of().bind("member_id", memberId).bind("file_id", fileId))
+                .delete()
+                .changed();
+    }
+
+    public List<KbFile> findFavourites(int memberId) {
+        return Query.query(
+                        "SELECT f.* FROM kb_file f JOIN kb_favourite fav ON fav.file_id = f.id WHERE fav.member_id = :member_id ORDER BY fav.created_at DESC;")
+                .single(Call.of().bind("member_id", memberId))
+                .map(KbFile.map())
+                .all();
+    }
+
+    public boolean isFavourite(int memberId, int fileId) {
+        return Query.query("SELECT 1 FROM kb_favourite WHERE member_id = :member_id AND file_id = :file_id;")
+                .single(Call.of().bind("member_id", memberId).bind("file_id", fileId))
+                .map(row -> true)
+                .first()
+                .orElse(false);
+    }
+
     public void setFolderTags(int folderId, List<String> tagNames, int stationId) {
         Query.query("DELETE FROM kb_folder_tag WHERE folder_id = :folder_id;")
                 .single(Call.of().bind("folder_id", folderId))

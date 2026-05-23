@@ -6,15 +6,37 @@
 <script lang="ts" setup>
 import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
-import {useRoute} from 'vue-router'
+import {useRoute, useRouter} from 'vue-router'
 import SidebarLayout from '@/components/layout/SidebarLayout.vue'
 import SidebarGroup from '@/components/navigation/SidebarGroup.vue'
 import SidebarLink from '@/components/navigation/SidebarLink.vue'
 import SidebarExpandableLink from '@/components/navigation/SidebarExpandableLink.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import TextInput from '@/components/input/text/TextInput.vue'
+import {useHelpSearch} from '@/composables/useHelpSearch'
 
 const {t, te} = useI18n()
 const route = useRoute()
+const router = useRouter()
+const {query: searchQuery, results: searchResults, isSearching, clearSearch} = useHelpSearch()
+
+function navigateToResult(path: string, closeFn: () => void) {
+  router.push(path)
+  clearSearch()
+  closeFn()
+}
+
+function highlightSnippet(result: (typeof searchResults.value)[number]): string {
+  const s = result.snippet
+  const before = escapeHtml(s.substring(0, result.matchStart))
+  const match = escapeHtml(s.substring(result.matchStart, result.matchEnd))
+  const after = escapeHtml(s.substring(result.matchEnd))
+  return `${before}<mark class="bg-amber-300 dark:bg-amber-600 text-inherit rounded-xs px-0.5">${match}</mark>${after}`
+}
+
+function escapeHtml(text: string): string {
+  return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+}
 
 const pageTitle = computed(() => {
   const name = (route.name as string)?.replace('help-', '') ?? ''
@@ -30,6 +52,31 @@ const pageSubtitle = computed(() => t('helpCenter.title'))
 <template>
   <SidebarLayout :subtitle="pageSubtitle" :title="pageTitle" :station-name="t('helpCenter.title')">
     <template #sidebar="{ close }">
+      <div class="px-2 pb-3">
+        <div class="relative">
+          <TextInput v-model="searchQuery" :placeholder="t('helpCenter.search')"/>
+          <font-awesome-icon :icon="['fas', 'magnifying-glass']"
+                             class="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] h-3.5 w-3.5 pointer-events-none"/>
+        </div>
+      </div>
+
+      <template v-if="isSearching">
+        <div v-if="searchResults.length === 0" class="px-3 py-4 text-sm text-[var(--text-muted)]">
+          {{ t('helpCenter.noSearchResults') }}
+        </div>
+        <div v-else class="flex flex-col gap-1 px-2 pb-3">
+          <button v-for="result in searchResults" :key="result.entry.route"
+                  class="text-left rounded-lg px-3 py-2 hover:bg-[var(--bg-hover)] transition-colors cursor-pointer"
+                  @click="navigateToResult(result.entry.path, close)">
+            <div class="text-sm font-medium text-[var(--text)]">{{ result.entry.title }}</div>
+            <div class="text-xs text-[var(--text-muted)] mb-1">{{ result.entry.section }}</div>
+            <div class="text-xs text-[var(--text-muted)] leading-relaxed break-words"
+                 v-html="highlightSnippet(result)"/>
+          </button>
+        </div>
+      </template>
+
+      <template v-else>
       <SidebarGroup :icon="['fas', 'book']" :label="t('helpCenter.basics.sidebar')" prefix="/helpcenter/station/basics"
                     to="/helpcenter/station/basics" name="help-welcome" @navigate="close">
         <SidebarLink :icon="['fas', 'circle-info']" name="help-basics-overview"
@@ -47,6 +94,10 @@ const pageSubtitle = computed(() => t('helpCenter.title'))
         <SidebarLink :icon="['fas', 'server']" name="help-basics-hosting"
                      to="/helpcenter/station/basics/hosting" @navigate="close">
           {{ t('helpCenter.basics.sidebarHosting') }}
+        </SidebarLink>
+        <SidebarLink :icon="['fas', 'arrow-right-arrow-left']" name="help-basics-federation"
+                     to="/helpcenter/station/basics/federation" @navigate="close">
+          {{ t('helpCenter.basics.sidebarFederation') }}
         </SidebarLink>
       </SidebarGroup>
 
@@ -120,6 +171,10 @@ const pageSubtitle = computed(() => t('helpCenter.title'))
         <SidebarLink :icon="['fas', 'palette']" name="help-station-theme-manage"
                      to="/helpcenter/station/manage/theme" @navigate="close">
           {{ t('helpCenter.themeManage.sidebarLabel') }}
+        </SidebarLink>
+        <SidebarLink :icon="['fas', 'arrow-right-arrow-left']" name="help-station-federation"
+                     to="/helpcenter/station/manage/federation" @navigate="close">
+          {{ t('helpCenter.federation.sidebarLabel') }}
         </SidebarLink>
       </SidebarGroup>
 
@@ -331,7 +386,11 @@ const pageSubtitle = computed(() => t('helpCenter.title'))
         <SidebarLink :icon="['fas', 'pen']" name="help-knowledge-editor" to="/helpcenter/station/knowledge/editor" @navigate="close">
           {{ t('sidebar.knowledgeEditor') }}
         </SidebarLink>
+        <SidebarLink :icon="['fas', 'arrow-right-arrow-left']" name="help-knowledge-federated" to="/helpcenter/station/knowledge/federated" @navigate="close">
+          {{ t('helpCenter.federatedKb.sidebarLabel') }}
+        </SidebarLink>
       </SidebarGroup>
+      </template>
     </template>
 
     <template #header>

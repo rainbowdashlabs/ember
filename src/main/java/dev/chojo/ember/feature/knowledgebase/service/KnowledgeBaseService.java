@@ -535,6 +535,24 @@ public class KnowledgeBaseService {
         repository.setRelatedFiles(fileId, targetFileIds);
     }
 
+    // -- Favourites --
+
+    public void addFavourite(int memberId, int fileId) {
+        repository.addFavourite(memberId, fileId);
+    }
+
+    public boolean removeFavourite(int memberId, int fileId) {
+        return repository.removeFavourite(memberId, fileId);
+    }
+
+    public List<KbFile> findFavourites(int memberId) {
+        return repository.findFavourites(memberId);
+    }
+
+    public boolean isFavourite(int memberId, int fileId) {
+        return repository.isFavourite(memberId, fileId);
+    }
+
     public List<KbTag> setFolderTags(int folderId, List<String> tagNames, int stationId) {
         repository.setFolderTags(folderId, tagNames, stationId);
         return repository.findFolderTags(folderId);

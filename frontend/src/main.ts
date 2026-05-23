@@ -129,6 +129,7 @@ import {
     faChartPie,
     faClock,
     faHand,
+    faHandHolding,
     faImage,
     faPaperPlane,
     faPlug,
@@ -152,6 +153,8 @@ import {
     faFolderOpen,
     faFile,
     faMagnifyingGlass,
+    faHandshake,
+    faCalendarXmark,
 } from '@fortawesome/free-solid-svg-icons'
 import {
     faGithub,
@@ -168,7 +171,7 @@ import {
 } from '@fortawesome/free-brands-svg-icons'
 import {initTokenRefresh} from '@/api/client'
 
-library.add(faSun, faMoon, faCheck, faXmark, faXmarkCircle, faSpinner, faCircleInfo, faCircleCheck, faTriangleExclamation, faDownload, faUpload, faTrash, faPen, faLock, faRightFromBracket, faBars, faGauge, faChevronDown, faChevronRight, faHouse, faChartLine, faShield, faBuilding, faGears, faUsers, faUserPlus, faList, faLayerGroup, faBoxesStacked, faBoxOpen, faClipboardUser, faCalendarPlus, faClockRotateLeft, faClipboardCheck, faUsersGear, faPlus, faChevronLeft, faChevronUp, faGripVertical, faCopy, faBell, faPhone, faMobileScreen, faIdCard, faHashtag, faFire, faMedal, faRainbow, faCalendarDays, faPenToSquare, faFolderPlus, faClipboardList, faUser, faSort, faSortUp, faSortDown, faAsterisk, faEye, faLink, faTableColumns, faBan, faComment, faCheckDouble, faMinus, faRotate, faScissors, faNewspaper, faGear, faPeopleGroup, faArrowRight, faFileExport, faGithub, faWindows, faApple, faLinux, faAndroid, faChrome, faFirefoxBrowser, faSafari, faEdge, faOpera, faGlobe, faUserSlash, faUserCheck, faCircleQuestion, faFilter, faTags, faSquarePollVertical, faStar, faHeart, faThumbsUp, faGripLines, faLocationDot, faCamera, faToggleOn, faArrowRightArrowLeft, faPuzzlePiece, faBook, faServer, faDatabase, faEnvelope, faArrowDown, faUserGear, faCalendar, faChartBar, faChartPie, faClock, faHand, faImage, faPaperPlane, faPlug, faTag, faUmbrellaBeach, faUserShield, faUserTie, faListCheck, faSliders, faCircleHalfStroke, faPalette, faSquare, faSquareCheck, faGraduationCap, faBrain, faFileLines, faFilePdf, faFileImport, faFlask, faShuffle, faPlay, faBookOpen, faFolder, faFolderOpen, faFile, faMagnifyingGlass, faYoutube, faBold, faItalic, faUnderline, faStrikethrough, faCode, faListUl, faListOl, faQuoteLeft, faFileCode, faParagraph, faHeading, faHighlighter, faLinkSlash, faAlignLeft, faAlignCenter, faAlignRight)
+library.add(faSun, faMoon, faCheck, faXmark, faXmarkCircle, faSpinner, faCircleInfo, faCircleCheck, faTriangleExclamation, faDownload, faUpload, faTrash, faPen, faLock, faRightFromBracket, faBars, faGauge, faChevronDown, faChevronRight, faHouse, faChartLine, faShield, faBuilding, faGears, faUsers, faUserPlus, faList, faLayerGroup, faBoxesStacked, faBoxOpen, faClipboardUser, faCalendarPlus, faClockRotateLeft, faClipboardCheck, faUsersGear, faPlus, faChevronLeft, faChevronUp, faGripVertical, faCopy, faBell, faPhone, faMobileScreen, faIdCard, faHashtag, faFire, faMedal, faRainbow, faCalendarDays, faPenToSquare, faFolderPlus, faClipboardList, faUser, faSort, faSortUp, faSortDown, faAsterisk, faEye, faLink, faTableColumns, faBan, faComment, faCheckDouble, faMinus, faRotate, faScissors, faNewspaper, faGear, faPeopleGroup, faArrowRight, faFileExport, faGithub, faWindows, faApple, faLinux, faAndroid, faChrome, faFirefoxBrowser, faSafari, faEdge, faOpera, faGlobe, faUserSlash, faUserCheck, faCircleQuestion, faFilter, faTags, faSquarePollVertical, faStar, faHeart, faThumbsUp, faGripLines, faLocationDot, faCamera, faToggleOn, faArrowRightArrowLeft, faPuzzlePiece, faBook, faServer, faDatabase, faEnvelope, faArrowDown, faUserGear, faCalendar, faChartBar, faChartPie, faClock, faHand, faImage, faPaperPlane, faPlug, faTag, faUmbrellaBeach, faUserShield, faUserTie, faListCheck, faSliders, faCircleHalfStroke, faPalette, faSquare, faSquareCheck, faGraduationCap, faBrain, faFileLines, faFilePdf, faFileImport, faFlask, faShuffle, faPlay, faBookOpen, faFolder, faFolderOpen, faFile, faMagnifyingGlass, faYoutube, faBold, faItalic, faUnderline, faStrikethrough, faCode, faListUl, faListOl, faQuoteLeft, faFileCode, faParagraph, faHeading, faHighlighter, faLinkSlash, faAlignLeft, faAlignCenter, faAlignRight, faHandshake, faHandHolding, faCalendarXmark)
 
 import {useTheme} from '@/composables/useTheme'
 

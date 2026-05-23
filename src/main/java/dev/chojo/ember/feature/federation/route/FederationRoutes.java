@@ -116,7 +116,21 @@ public class FederationRoutes implements Routes {
             throw new BadRequestResponse("inviteCode is required");
         }
 
-        var pending = pendingInvites.remove(req.inviteCode().trim().toUpperCase());
+        String code = req.inviteCode().trim();
+
+        // Parse the invite code to validate format and extract host
+        var parts = service.parseInviteCode(code);
+        if (parts.isEmpty()) {
+            throw new BadRequestResponse("Invalid invite code format");
+        }
+
+        // Check if the invite is for this instance
+        if (!parts.get().host().equalsIgnoreCase(service.getInstanceHost())) {
+            throw new BadRequestResponse("This invite code is for a different instance: "
+                    + parts.get().host());
+        }
+
+        var pending = pendingInvites.remove(code);
         if (pending == null) {
             throw new BadRequestResponse("Invalid or expired invite code");
         }

@@ -43,6 +43,16 @@ jobs:
         run: |
           docker image tag ghcr.io/rainbowdashlabs/ember:${{ github.sha }} ghcr.io/rainbowdashlabs/ember:latest
           docker push ghcr.io/rainbowdashlabs/ember:latest
+      - name: Tag & Push dev image
+        if: github.ref_name == 'dev'
+        run: |
+          docker image tag ghcr.io/rainbowdashlabs/ember:${{ github.sha }} ghcr.io/rainbowdashlabs/ember:dev
+          docker push ghcr.io/rainbowdashlabs/ember:dev
+      - name: Tag & Push snapshot image
+        if: ${{ startsWith(github.ref_name, 'feature/') }}
+        run: |
+          docker image tag ghcr.io/rainbowdashlabs/ember:${{ github.sha }} ghcr.io/rainbowdashlabs/ember:snapshot
+          docker push ghcr.io/rainbowdashlabs/ember:snapshot
       - name: Tag & Push version images
         if: github.event_name == 'release'
         run: |

@@ -5,7 +5,9 @@
  */
 package dev.chojo.ember.feature.federation.service;
 
+import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.federation.entity.FederationCapability;
+import dev.chojo.ember.feature.federation.entity.FederationChangeLog;
 import dev.chojo.ember.feature.federation.entity.FederationMetadataCache;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.entity.FederationShare;
@@ -15,6 +17,8 @@ import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.SecureRandom;
@@ -28,23 +32,62 @@ public class FederationService {
     private static final int FEDERATION_VERSION = 1;
 
     private final FederationRepository repository;
+    private final String instanceHost;
 
     @Inject
-    public FederationService(FederationRepository repository) {
+    public FederationService(FederationRepository repository, Api apiConfig) {
         this.repository = repository;
+        this.instanceHost = extractHost(apiConfig.baseUrl());
+    }
+
+    private static String extractHost(String baseUrl) {
+        try {
+            return URI.create(baseUrl).getHost();
+        } catch (Exception e) {
+            return baseUrl;
+        }
     }
 
     // -- Invite Code --
 
+    /**
+     * Generates an invite code in the format: ember-CODE-BASE64(HOST)
+     * where CODE is an 8-char random string and HOST is the base64-encoded instance hostname.
+     */
     public String generateInviteCode() {
         var random = new SecureRandom();
-        var sb = new StringBuilder("EMBER-");
         var chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-        for (int i = 0; i < 4; i++) sb.append(chars.charAt(random.nextInt(chars.length())));
-        sb.append("-");
-        for (int i = 0; i < 4; i++) sb.append(chars.charAt(random.nextInt(chars.length())));
-        return sb.toString();
+        var code = new StringBuilder();
+        for (int i = 0; i < 8; i++) code.append(chars.charAt(random.nextInt(chars.length())));
+        String encodedHost =
+                Base64.getUrlEncoder().withoutPadding().encodeToString(instanceHost.getBytes(StandardCharsets.UTF_8));
+        return "ember-" + code + "-" + encodedHost;
     }
+
+    /**
+     * Parses an invite code in the format ember-CODE-BASE64(HOST).
+     * Returns the decoded parts [code, host] or empty if invalid.
+     */
+    public Optional<InviteCodeParts> parseInviteCode(String inviteCode) {
+        if (!inviteCode.startsWith("ember-")) return Optional.empty();
+        String rest = inviteCode.substring("ember-".length());
+        int dashIdx = rest.indexOf('-');
+        if (dashIdx < 1) return Optional.empty();
+        String code = rest.substring(0, dashIdx);
+        String encodedHost = rest.substring(dashIdx + 1);
+        try {
+            String host = new String(Base64.getUrlDecoder().decode(encodedHost), StandardCharsets.UTF_8);
+            return Optional.of(new InviteCodeParts(code, host));
+        } catch (Exception e) {
+            return Optional.empty();
+        }
+    }
+
+    public String getInstanceHost() {
+        return instanceHost;
+    }
+
+    public record InviteCodeParts(String code, String host) {}
 
     // -- Keypair --
 
@@ -238,5 +281,21 @@ public class FederationService {
                 FederationCapability.CapabilityType.QUIZ_SHARE.name(),
                 FederationCapability.CapabilityType.PROTOCOL_SHARE.name(),
                 FederationCapability.CapabilityType.INVENTORY_LEND.name());
+    }
+
+    // -- Change Tracking --
+
+    /**
+     * Logs a content change for federation sync polling.
+     */
+    public void logChange(int stationId, String contentType, int contentId, String changeType) {
+        repository.logChange(stationId, contentType, contentId, changeType);
+    }
+
+    /**
+     * Returns content changes since the given timestamp for sync polling.
+     */
+    public List<FederationChangeLog> getChangesSince(int stationId, java.time.Instant since) {
+        return repository.findChangesSince(stationId, since);
     }
 }

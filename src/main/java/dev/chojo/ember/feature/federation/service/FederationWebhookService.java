@@ -20,7 +20,6 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -33,8 +32,7 @@ import java.util.concurrent.Executors;
 public class FederationWebhookService {
     private static final Logger log = LoggerFactory.getLogger(FederationWebhookService.class);
     private static final int MAX_RETRIES = 3;
-    private static final Duration[] RETRY_DELAYS = {
-        Duration.ofSeconds(1), Duration.ofSeconds(2), Duration.ofSeconds(4)
+    private static final Duration[] RETRY_DELAYS = {Duration.ofSeconds(1), Duration.ofSeconds(2), Duration.ofSeconds(4)
     };
 
     private final FederationRepository repository;
@@ -54,9 +52,8 @@ public class FederationWebhookService {
         this.federationService = federationService;
         this.executor = Executors.newVirtualThreadPerTaskExecutor();
         this.objectMapper = JsonMapper.builder().build();
-        this.httpClient = HttpClient.newBuilder()
-                .connectTimeout(Duration.ofSeconds(10))
-                .build();
+        this.httpClient =
+                HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build();
     }
 
     /**

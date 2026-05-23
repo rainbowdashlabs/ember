@@ -108,7 +108,7 @@ onMounted(() => { if (loaded.value) loadData() })
           <SubHeader>{{ t('federation.createInvite') }}</SubHeader>
           <p class="text-sm text-[var(--text-muted)] mb-2">{{ t('federation.createInviteHint') }}</p>
           <PrimaryButton @click="generateInvite">{{ t('federation.generate') }}</PrimaryButton>
-          <div v-if="generatedCode" class="mt-2 p-3 bg-[var(--bg-accent)] rounded font-mono text-lg text-center select-all">
+          <div v-if="generatedCode" class="mt-2 p-3 bg-[var(--bg-accent)] rounded font-mono text-sm text-center select-all break-all">
             {{ generatedCode }}
           </div>
         </div>
@@ -116,7 +116,7 @@ onMounted(() => { if (loaded.value) loadData() })
           <SubHeader>{{ t('federation.acceptInvite') }}</SubHeader>
           <p class="text-sm text-[var(--text-muted)] mb-2">{{ t('federation.acceptInviteHint') }}</p>
           <form @submit.prevent="handleAccept" class="flex gap-2">
-            <TextInput v-model="acceptCode" placeholder="EMBER-XXXX-XXXX" class="flex-1 font-mono" />
+            <TextInput v-model="acceptCode" :placeholder="t('federation.codePlaceholder')" class="flex-1 font-mono text-sm" />
             <PrimaryButton type="submit" :disabled="!acceptCode.trim()">{{ t('federation.connect') }}</PrimaryButton>
           </form>
         </div>

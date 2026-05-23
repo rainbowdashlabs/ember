@@ -306,6 +306,31 @@ const router = createRouter({
                     component: () => import('@/views/stationview/inventory/ProcurementView.vue'),
                 },
                 {
+                    path: 'inventory/lending',
+                    name: 'inventory-lending',
+                    component: () => import('@/views/stationview/inventory/LendingView.vue'),
+                },
+                {
+                    path: 'inventory/lending/request/new',
+                    name: 'inventory-lending-create',
+                    component: () => import('@/views/stationview/inventory/LendingCreateRequestView.vue'),
+                },
+                {
+                    path: 'inventory/lending/request/:id',
+                    name: 'inventory-lending-request',
+                    component: () => import('@/views/stationview/inventory/LendingRequestView.vue'),
+                },
+                {
+                    path: 'inventory/lending/blocks',
+                    name: 'inventory-lending-blocks',
+                    component: () => import('@/views/stationview/inventory/LendingBlocksView.vue'),
+                },
+                {
+                    path: 'inventory/lending/browse',
+                    name: 'inventory-lending-browse',
+                    component: () => import('@/views/stationview/inventory/LendingBrowseView.vue'),
+                },
+                {
                     path: 'inventory/my',
                     name: 'inventory-my',
                     component: () => import('@/views/stationview/profile/InventoryView.vue'),
@@ -586,6 +611,7 @@ const router = createRouter({
                 {path: 'basics/roles', name: 'help-basics-roles', component: () => import('@/views/helpcenter/basics/RolesHelp.vue')},
                 {path: 'basics/modules', name: 'help-basics-modules', component: () => import('@/views/helpcenter/basics/ModulesHelp.vue')},
                 {path: 'basics/hosting', name: 'help-basics-hosting', component: () => import('@/views/helpcenter/basics/HostingHelp.vue')},
+                {path: 'basics/federation', name: 'help-basics-federation', component: () => import('@/views/helpcenter/basics/FederationHelp.vue')},
                 // Dashboard
                 {path: 'dashboard', name: 'help-dashboard-module-overview', component: () => import('@/views/helpcenter/dashboardview/ModuleOverviewHelp.vue')},
                 {path: 'dashboard/overview', name: 'help-dashboard-overview', component: () => import('@/views/helpcenter/dashboardview/OverviewHelp.vue')},
@@ -611,6 +637,7 @@ const router = createRouter({
                 {path: 'manage/members-config', name: 'help-station-members-config', component: () => import('@/views/helpcenter/stationview/manage/MembersConfigHelp.vue')},
                 {path: 'manage/mail-config', name: 'help-station-mail-config', component: () => import('@/views/helpcenter/stationview/manage/MailConfigHelp.vue')},
                 {path: 'manage/theme', name: 'help-station-theme-manage', component: () => import('@/views/helpcenter/stationview/manage/ThemeManageHelp.vue')},
+                {path: 'manage/federation', name: 'help-station-federation', component: () => import('@/views/helpcenter/stationview/manage/FederationHelp.vue')},
                 // Members
                 {path: 'members', name: 'help-members-overview', component: () => import('@/views/helpcenter/stationview/members/OverviewHelp.vue')},
                 {path: 'members/create', name: 'help-members-create', component: () => import('@/views/helpcenter/stationview/members/CreateHelp.vue')},
@@ -674,6 +701,7 @@ const router = createRouter({
                 // Knowledge Base
                 {path: 'knowledge', name: 'help-knowledge-base', component: () => import('@/views/helpcenter/stationview/knowledge/KnowledgeBaseHelp.vue')},
                 {path: 'knowledge/editor', name: 'help-knowledge-editor', component: () => import('@/views/helpcenter/stationview/knowledge/EditorHelp.vue')},
+                {path: 'knowledge/federated', name: 'help-knowledge-federated', component: () => import('@/views/helpcenter/stationview/knowledge/FederatedKbHelp.vue')},
                 {path: ':pathMatch(.*)*', name: 'helpcenter-station-not-found', component: () => import('@/components/feedback/NotFoundContent.vue')},
             ],
         },
