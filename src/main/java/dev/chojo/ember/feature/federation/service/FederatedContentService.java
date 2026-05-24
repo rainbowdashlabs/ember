@@ -5,7 +5,6 @@
  */
 package dev.chojo.ember.feature.federation.service;
 
-import dev.chojo.ember.conf.file.elements.Demo;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFile;
@@ -16,6 +15,7 @@ import dev.chojo.ember.feature.protocol.entity.TestProtocol;
 import dev.chojo.ember.feature.protocol.service.TestProtocolService;
 import dev.chojo.ember.feature.quiz.entity.QuizCatalog;
 import dev.chojo.ember.feature.quiz.service.QuizService;
+import dev.chojo.ember.feature.station.repository.StationRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -23,13 +23,13 @@ import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 /**
  * Provides access to federated content from partner stations.
- * For same-instance federation, this directly calls the service layer.
- * For cross-instance (future), this will use HTTP.
+ * Automatically uses direct DB queries for local partners and HTTP for remote partners.
  */
 @Singleton
 public class FederatedContentService {
@@ -41,7 +41,7 @@ public class FederatedContentService {
     private final KnowledgeBaseService kbService;
     private final QuizService quizService;
     private final TestProtocolService protocolService;
-    private final Demo demo;
+    private final StationRepository stationRepository;
 
     @Inject
     public FederatedContentService(
@@ -51,20 +51,25 @@ public class FederatedContentService {
             KnowledgeBaseService kbService,
             QuizService quizService,
             TestProtocolService protocolService,
-            Demo demo) {
+            StationRepository stationRepository) {
         this.federationRepository = federationRepository;
         this.federationService = federationService;
         this.httpClient = httpClient;
         this.kbService = kbService;
         this.quizService = quizService;
         this.protocolService = protocolService;
-        this.demo = demo;
+        this.stationRepository = stationRepository;
     }
 
-    /**
-     * Browse shared KB files from all active federation partners.
-     * Fetches from each partner in parallel.
-     */
+    private String getPrivateKey(int stationId) {
+        return stationRepository
+                .findById(stationId)
+                .map(s -> s.federationPrivateKey())
+                .orElse(null);
+    }
+
+    // -- KB --
+
     public List<SharedKbItem> browseSharedKb(int stationId) {
         var futures = new ArrayList<CompletableFuture<List<SharedKbItem>>>();
         for (var partner : federationService.findPartners(stationId)) {
@@ -74,7 +79,7 @@ public class FederatedContentService {
 
             futures.add(CompletableFuture.supplyAsync(() -> {
                 var items = new ArrayList<SharedKbItem>();
-                if (demo.federationForceHttp()) {
+                if (partner.isRemote()) {
                     browseSharedKbViaHttp(stationId, partner, remoteStationId, items);
                 } else {
                     browseSharedKbDirect(remoteStationId, partner, items);
@@ -115,19 +120,15 @@ public class FederatedContentService {
 
     private void browseSharedKbViaHttp(
             int localStationId, FederationPartner partner, int remoteStationId, List<SharedKbItem> result) {
-        var files = httpClient.fetchSharedKbFiles(localStationId, partner.publicKey());
-        for (var fileMap : files) {
-            int fileId = ((Number) fileMap.get("id")).intValue();
-            String name = (String) fileMap.getOrDefault("name", "");
-            String description = (String) fileMap.getOrDefault("description", "");
-            String fileType = (String) fileMap.getOrDefault("fileType", "MARKDOWN");
+        var files = httpClient.fetchSharedKbFiles(partner.remoteHost(), localStationId, getPrivateKey(localStationId));
+        for (var remoteFile : files) {
             var file = new KbFile(
-                    fileId,
+                    remoteFile.id(),
                     remoteStationId,
                     null,
-                    name,
-                    description,
-                    KbFileType.valueOf(fileType),
+                    remoteFile.name(),
+                    remoteFile.description(),
+                    KbFileType.valueOf(remoteFile.fileType() != null ? remoteFile.fileType() : "MARKDOWN"),
                     null,
                     0,
                     null,
@@ -140,14 +141,13 @@ public class FederatedContentService {
                     null,
                     null);
             result.add(new SharedKbItem(file, null, remoteStationId, partner.id()));
-            federationRepository.upsertMetadataCache(partner.id(), "KB", fileId, name, description);
+            federationRepository.upsertMetadataCache(
+                    partner.id(), "KB", remoteFile.id(), remoteFile.name(), remoteFile.description());
         }
     }
 
-    /**
-     * Browse shared quiz catalogs from all active federation partners.
-     * Fetches from each partner in parallel.
-     */
+    // -- Quiz --
+
     public List<SharedQuizItem> browseSharedQuiz(int stationId) {
         var futures = new ArrayList<CompletableFuture<List<SharedQuizItem>>>();
         for (var partner : federationService.findPartners(stationId)) {
@@ -157,7 +157,7 @@ public class FederatedContentService {
 
             futures.add(CompletableFuture.supplyAsync(() -> {
                 var items = new ArrayList<SharedQuizItem>();
-                if (demo.federationForceHttp()) {
+                if (partner.isRemote()) {
                     browseSharedQuizViaHttp(stationId, partner, remoteStationId, items);
                 } else {
                     browseSharedQuizDirect(remoteStationId, partner, items);
@@ -188,23 +188,19 @@ public class FederatedContentService {
 
     private void browseSharedQuizViaHttp(
             int localStationId, FederationPartner partner, int remoteStationId, List<SharedQuizItem> result) {
-        var catalogs = httpClient.fetchSharedQuizCatalogs(localStationId, partner.publicKey());
-        for (var catMap : catalogs) {
-            int id = ((Number) catMap.get("id")).intValue();
-            String name = (String) catMap.getOrDefault("name", "");
-            String description = (String) catMap.getOrDefault("description", "");
-            // Fetch the actual catalog from the local DB to get a full object
-            quizService.findCatalog(id).ifPresent(catalog -> {
+        var catalogs =
+                httpClient.fetchSharedQuizCatalogs(partner.remoteHost(), localStationId, getPrivateKey(localStationId));
+        for (var remoteCatalog : catalogs) {
+            quizService.findCatalog(remoteCatalog.id()).ifPresent(catalog -> {
                 result.add(new SharedQuizItem(catalog, remoteStationId, partner.id()));
-                federationRepository.upsertMetadataCache(partner.id(), "QUIZ", id, name, description);
+                federationRepository.upsertMetadataCache(
+                        partner.id(), "QUIZ", remoteCatalog.id(), remoteCatalog.name(), remoteCatalog.description());
             });
         }
     }
 
-    /**
-     * Browse shared test protocols from all active federation partners.
-     * Fetches from each partner in parallel.
-     */
+    // -- Protocols --
+
     public List<SharedProtocolItem> browseSharedProtocols(int stationId) {
         var futures = new ArrayList<CompletableFuture<List<SharedProtocolItem>>>();
         for (var partner : federationService.findPartners(stationId)) {
@@ -214,7 +210,7 @@ public class FederatedContentService {
 
             futures.add(CompletableFuture.supplyAsync(() -> {
                 var items = new ArrayList<SharedProtocolItem>();
-                if (demo.federationForceHttp()) {
+                if (partner.isRemote()) {
                     browseSharedProtocolsViaHttp(stationId, partner, remoteStationId, items);
                 } else {
                     browseSharedProtocolsDirect(remoteStationId, partner, items);
@@ -241,27 +237,26 @@ public class FederatedContentService {
 
     private void browseSharedProtocolsViaHttp(
             int localStationId, FederationPartner partner, int remoteStationId, List<SharedProtocolItem> result) {
-        var protocols = httpClient.fetchSharedProtocols(localStationId, partner.publicKey());
-        for (var protoMap : protocols) {
-            int id = ((Number) protoMap.get("id")).intValue();
-            String name = (String) protoMap.getOrDefault("name", "");
-            String description = (String) protoMap.getOrDefault("description", "");
-            protocolService.findProtocol(id).ifPresent(proto -> {
+        var protocols =
+                httpClient.fetchSharedProtocols(partner.remoteHost(), localStationId, getPrivateKey(localStationId));
+        for (var remoteProto : protocols) {
+            protocolService.findProtocol(remoteProto.id()).ifPresent(proto -> {
                 result.add(new SharedProtocolItem(proto, remoteStationId, partner.id()));
-                federationRepository.upsertMetadataCache(partner.id(), "PROTOCOL", id, name, description);
+                federationRepository.upsertMetadataCache(
+                        partner.id(), "PROTOCOL", remoteProto.id(), remoteProto.name(), remoteProto.description());
             });
         }
     }
 
-    /**
-     * Copy a shared KB file to the local station.
-     * Keeps a reference to the original file and carries over the favourite status.
-     */
+    // -- Copy operations --
+
     public KbFile copyKbFile(int fileId, int targetStationId, int createdBy) {
         var source = kbService.findFile(fileId).orElseThrow();
         String content;
-        if (demo.federationForceHttp()) {
-            content = fetchKbContentViaHttp(fileId, targetStationId, source.stationId());
+        var partner = findPartnerForStation(targetStationId, source.stationId());
+        if (partner != null && partner.isRemote()) {
+            content = httpClient.fetchKbFileContent(
+                    partner.remoteHost(), fileId, targetStationId, getPrivateKey(targetStationId));
         } else {
             content = kbService.getMarkdownContent(fileId).orElse("");
         }
@@ -274,39 +269,18 @@ public class FederatedContentService {
         return kbService.findFile(copied.id()).orElseThrow();
     }
 
-    private String fetchKbContentViaHttp(int fileId, int localStationId, int remoteStationId) {
-        var partners = federationService.findPartners(localStationId);
-        for (var partner : partners) {
-            int partnerRemoteId =
-                    partner.stationId() == localStationId ? partner.partnerStationId() : partner.stationId();
-            if (partnerRemoteId == remoteStationId && partner.status() == FederationPartner.FederationStatus.ACTIVE) {
-                return httpClient.fetchKbFileContent(fileId, localStationId, partner.publicKey());
-            }
-        }
-        log.warn(
-                "No active federation partner found for station {} -> {}, falling back to direct query",
-                localStationId,
-                remoteStationId);
-        return kbService.getMarkdownContent(fileId).orElse("");
-    }
-
-    /**
-     * Copy a shared quiz catalog to the local station.
-     */
     public QuizCatalog copyQuizCatalog(int catalogId, int targetStationId) {
         var source = quizService.findCatalog(catalogId).orElseThrow();
         var newCatalog = quizService.createCatalog(
                 targetStationId, source.name(), source.description(), source.trainingEnabled());
 
-        // Copy categories
         var categories = quizService.findCategories(source.id());
-        var categoryMap = new java.util.HashMap<Integer, Integer>(); // old ID -> new ID
+        var categoryMap = new HashMap<Integer, Integer>();
         for (var cat : categories) {
             var newCat = quizService.createCategory(newCatalog.id(), cat.name(), cat.description(), cat.position());
             categoryMap.put(cat.id(), newCat.id());
         }
 
-        // Copy questions
         var questions = quizService.findQuestions(source.id());
         for (var q : questions) {
             Integer newCatId = q.categoryId() != null ? categoryMap.get(q.categoryId()) : null;
@@ -325,18 +299,14 @@ public class FederatedContentService {
         return newCatalog;
     }
 
-    /**
-     * Copy a shared test protocol to the local station.
-     */
     public TestProtocol copyProtocol(int protocolId, int targetStationId) {
         var source = protocolService.findProtocol(protocolId).orElseThrow();
         var newProto = protocolService.createProtocol(
                 targetStationId, source.name(), source.description(), source.passThreshold());
 
         var sections = protocolService.findSections(source.id());
-        var sectionMap = new java.util.HashMap<Integer, Integer>();
+        var sectionMap = new HashMap<Integer, Integer>();
 
-        // Copy top-level sections first
         for (var sec : sections) {
             if (sec.parentId() != null) continue;
             var newSec = protocolService.createSection(
@@ -350,7 +320,6 @@ public class FederatedContentService {
             sectionMap.put(sec.id(), newSec.id());
         }
 
-        // Copy sub-sections
         for (var sec : sections) {
             if (sec.parentId() == null) continue;
             Integer newParentId = sectionMap.get(sec.parentId());
@@ -365,7 +334,6 @@ public class FederatedContentService {
             sectionMap.put(sec.id(), newSec.id());
         }
 
-        // Copy items
         var allItems = protocolService.findAllItemsByProtocol(source.id());
         for (var item : allItems) {
             Integer newSectionId = sectionMap.get(item.sectionId());
@@ -376,6 +344,20 @@ public class FederatedContentService {
         }
 
         return newProto;
+    }
+
+    // -- Helpers --
+
+    private FederationPartner findPartnerForStation(int localStationId, int remoteStationId) {
+        var partners = federationService.findPartners(localStationId);
+        for (var partner : partners) {
+            int partnerRemoteId =
+                    partner.stationId() == localStationId ? partner.partnerStationId() : partner.stationId();
+            if (partnerRemoteId == remoteStationId && partner.status() == FederationPartner.FederationStatus.ACTIVE) {
+                return partner;
+            }
+        }
+        return null;
     }
 
     private <T> List<T> collectResults(List<CompletableFuture<List<T>>> futures) {
@@ -395,8 +377,6 @@ public class FederatedContentService {
         }
         return result;
     }
-
-    // -- Response types --
 
     public record SharedKbItem(KbFile file, KbFolder folder, int sourceStationId, int partnerId) {}
 

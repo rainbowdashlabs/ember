@@ -17,12 +17,12 @@ import TextInput from '@/components/input/text/TextInput.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import DateTimeInput from '@/components/input/datetime/DateTimeInput.vue'
-import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
+import RestrictionPicker from '@/components/input/RestrictionPicker.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import QuestionEditor from './builderview/QuestionEditor.vue'
 import type { QuestionDraft } from './builderview/types'
 import type { FormQuestionRequest, QuestionType, Role, MemberGroup, UserTag } from '@/api/types'
-import { Roles, QuestionTypes } from '@/api/types'
+import { QuestionTypes } from '@/api/types'
 import { forms, stationMembers, memberGroups, userTags } from '@/api'
 
 const { t } = useI18n()
@@ -46,37 +46,9 @@ const endAt = ref('')
 const allRoles = ref<Role[]>([])
 const allGroups = ref<MemberGroup[]>([])
 const allTags = ref<UserTag[]>([])
-const selectedRoleIds = ref<Set<number>>(new Set())
-const selectedGroupIds = ref<Set<number>>(new Set())
-const selectedTagIds = ref<Set<number>>(new Set())
-
-const RESTRICTION_ROLES = [Roles.MEMBER, Roles.GUARDIAN, Roles.TEAM] as readonly string[]
-const roleFriendlyNames: Record<string, string> = {
-  [Roles.MEMBER]: 'Mitglied',
-  [Roles.GUARDIAN]: 'Erziehungsberechtigter',
-  [Roles.TEAM]: 'Team',
-}
-const restrictionRoles = computed(() =>
-    allRoles.value.filter(r => RESTRICTION_ROLES.includes(r.role))
-)
-
-function toggleRole(roleId: number) {
-  const s = new Set(selectedRoleIds.value)
-  if (s.has(roleId)) s.delete(roleId); else s.add(roleId)
-  selectedRoleIds.value = s
-}
-
-function toggleGroup(groupId: number) {
-  const s = new Set(selectedGroupIds.value)
-  if (s.has(groupId)) s.delete(groupId); else s.add(groupId)
-  selectedGroupIds.value = s
-}
-
-function toggleTag(tagId: number) {
-  const s = new Set(selectedTagIds.value)
-  if (s.has(tagId)) s.delete(tagId); else s.add(tagId)
-  selectedTagIds.value = s
-}
+const selectedRoleIds = ref<number[]>([])
+const selectedGroupIds = ref<number[]>([])
+const selectedTagIds = ref<number[]>([])
 
 // Questions
 const questions = ref<QuestionDraft[]>([])
@@ -146,9 +118,9 @@ async function loadForm() {
     startAt.value = form.startAt ? form.startAt.slice(0, 16) : ''
     endAt.value = form.endAt ? form.endAt.slice(0, 16) : ''
 
-    selectedRoleIds.value = new Set(restrictions.roleIds)
-    selectedGroupIds.value = new Set(restrictions.groupIds)
-    selectedTagIds.value = new Set(restrictions.tagIds)
+    selectedRoleIds.value = restrictions.roleIds
+    selectedGroupIds.value = restrictions.groupIds
+    selectedTagIds.value = restrictions.tagIds
 
     questions.value = qs.map(q => ({
       id: `existing-${q.id}`,
@@ -197,9 +169,9 @@ async function save() {
     await forms.setQuestions(id!, questionRequests)
 
     await forms.setRestrictions(id!, {
-      roleIds: [...selectedRoleIds.value],
-      groupIds: [...selectedGroupIds.value],
-      tagIds: [...selectedTagIds.value],
+      roleIds: selectedRoleIds.value,
+      groupIds: selectedGroupIds.value,
+      tagIds: selectedTagIds.value,
     })
 
     router.push({ name: 'forms-list' })
@@ -250,40 +222,17 @@ onMounted(loadForm)
         <NeutralContainer>
           <div class="space-y-4">
             <SubHeader>{{ t('forms.restrictions.title') }}</SubHeader>
-            <div class="space-y-2">
-              <label class="text-xs text-(--text-muted)">{{ t('forms.restrictions.roles') }}</label>
-              <div class="flex flex-wrap gap-2">
-                <SelectionToggleButton v-for="role in restrictionRoles" :key="role.id"
-                        :selected="selectedRoleIds.has(role.id)"
-                        @toggle="toggleRole(role.id)">
-                  {{ roleFriendlyNames[role.role] ?? role.role }}
-                </SelectionToggleButton>
-              </div>
-            </div>
-            <div class="space-y-2">
-              <label class="text-xs text-(--text-muted)">{{ t('forms.restrictions.groups') }}</label>
-              <div class="flex flex-wrap gap-2">
-                <SelectionToggleButton v-for="group in allGroups" :key="group.id"
-                        :selected="selectedGroupIds.has(group.id)"
-                        @toggle="toggleGroup(group.id)">
-                  {{ group.name }}
-                </SelectionToggleButton>
-                <span v-if="allGroups.length === 0" class="text-xs text-(--text-muted)">--</span>
-              </div>
-            </div>
-            <div class="space-y-2">
-              <label class="text-xs text-(--text-muted)">{{ t('forms.restrictions.tags') }}</label>
-              <div class="flex flex-wrap gap-2">
-                <SelectionToggleButton v-for="tag in allTags" :key="tag.id"
-                        :selected="selectedTagIds.has(tag.id)"
-                        @toggle="toggleTag(tag.id)">
-                  {{ tag.name }}
-                </SelectionToggleButton>
-                <span v-if="allTags.length === 0" class="text-xs text-(--text-muted)">--</span>
-              </div>
-            </div>
-            <p v-if="selectedRoleIds.size === 0 && selectedGroupIds.size === 0 && selectedTagIds.size === 0"
-               class="text-xs text-(--text-muted) italic">{{ t('forms.restrictions.noRestrictions') }}</p>
+            <RestrictionPicker
+              :roles="allRoles"
+              :groups="allGroups"
+              :tags="allTags"
+              :selected-role-ids="selectedRoleIds"
+              :selected-group-ids="selectedGroupIds"
+              :selected-tag-ids="selectedTagIds"
+              @update:selected-role-ids="selectedRoleIds = $event"
+              @update:selected-group-ids="selectedGroupIds = $event"
+              @update:selected-tag-ids="selectedTagIds = $event"
+            />
           </div>
         </NeutralContainer>
 

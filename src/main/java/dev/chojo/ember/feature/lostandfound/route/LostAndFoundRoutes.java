@@ -31,6 +31,8 @@ import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.time.Instant;
@@ -44,6 +46,7 @@ import java.util.Set;
  */
 @Singleton
 public class LostAndFoundRoutes implements Routes {
+    private static final Logger log = LoggerFactory.getLogger(LostAndFoundRoutes.class);
     private static final Set<String> ALLOWED_IMAGE_TYPES = Set.of("image/png", "image/jpeg", "image/webp");
 
     private final LostAndFoundService lostAndFoundService;
@@ -184,8 +187,10 @@ public class LostAndFoundRoutes implements Routes {
                     apiConfig.maxImageSizeBytes());
             ctx.json(new MessageResponse("Image uploaded"));
         } catch (IllegalArgumentException e) {
+            log.warn("Invalid argument storing lost-and-found image for item {}", id, e);
             throw new BadRequestResponse(e.getMessage());
         } catch (IOException e) {
+            log.error("Failed to process lost-and-found image for item {}", id, e);
             throw new InternalServerErrorResponse("Failed to process image");
         }
     }

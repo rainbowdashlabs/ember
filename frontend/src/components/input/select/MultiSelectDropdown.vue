@@ -31,7 +31,11 @@ const selectedSet = computed(() => new Set(props.modelValue))
 
 const triggerLabel = computed(() => {
   if (props.modelValue.length === 0) return props.placeholder ?? 'Auswahl'
-  return `${props.modelValue.length} ausgewählt`
+  const selectedLabels = props.options
+      .filter(o => selectedSet.value.has(o.value))
+      .map(o => o.label)
+  if (selectedLabels.length <= 2) return selectedLabels.join(', ')
+  return `${selectedLabels.slice(0, 2).join(', ')} +${selectedLabels.length - 2}`
 })
 
 const groupedOptions = computed(() => {

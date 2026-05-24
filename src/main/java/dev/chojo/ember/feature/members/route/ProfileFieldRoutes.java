@@ -29,6 +29,8 @@ import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 
@@ -38,6 +40,8 @@ import java.util.List;
  */
 @Singleton
 public class ProfileFieldRoutes implements Routes {
+    private static final Logger log = LoggerFactory.getLogger(ProfileFieldRoutes.class);
+
     private final ProfileFieldService profileFieldService;
 
     @Inject
@@ -95,6 +99,7 @@ public class ProfileFieldRoutes implements Routes {
         try {
             ProfileFieldType.valueOf(request.fieldType().toUpperCase());
         } catch (IllegalArgumentException e) {
+            log.warn("Invalid profile field type: {}", request.fieldType(), e);
             throw new BadRequestResponse("Invalid field type: " + request.fieldType());
         }
         ctx.status(HttpStatus.CREATED)

@@ -833,10 +833,12 @@ public class EventRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = EventRestrictions.class)))
     private void getRestrictions(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
+        var event = eventService.findById(id).orElseThrow(NotFoundResponse::new);
         ctx.json(new EventRestrictions(
                 eventService.findRoleRestrictions(id),
                 eventService.findGroupRestrictions(id),
-                eventService.findTagRestrictions(id)));
+                eventService.findTagRestrictions(id),
+                event.restrictionMode()));
     }
 
     // -- Restrictions --
@@ -853,6 +855,9 @@ public class EventRoutes implements Routes {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
         var req = ctx.bodyAsClass(EventRestrictions.class);
         eventService.setRestrictions(id, req.roleIds(), req.groupIds(), req.tagIds());
+        if (req.mode() != null) {
+            eventService.updateRestrictionMode(id, req.mode());
+        }
         ctx.json(req);
     }
 
@@ -1041,7 +1046,7 @@ public class EventRoutes implements Routes {
 
     public record StatusUpdateRequest(String status) {}
 
-    public record EventRestrictions(List<Integer> roleIds, List<Integer> groupIds, List<Integer> tagIds) {}
+    public record EventRestrictions(List<Integer> roleIds, List<Integer> groupIds, List<Integer> tagIds, String mode) {}
 
     public record AllEventRestrictions(
             Map<Integer, List<Integer>> roleRestrictions,

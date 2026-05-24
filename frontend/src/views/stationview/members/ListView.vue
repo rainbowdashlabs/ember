@@ -14,19 +14,20 @@ import TabBar from '@/components/navigation/TabBar.vue'
 import MemberFilterBar from './listview/FilterBar.vue'
 import MemberTable from './listview/Table.vue'
 import ExportModal from './listview/ExportModal.vue'
-import type { ProfileField, StationMember, MemberGroup, UserTag } from '@/api/types'
+import type { ProfileField, StationMember, MemberGroup, UserTag, Role } from '@/api/types'
 import { Roles, hasTeamRole } from '@/api/types'
 import { profileFields, stationMembers, memberGroups, savedFilters as savedFiltersApi, userTags } from '@/api'
-import { useStations } from '@/composables/useStations'
+import type { FilterCriteria, FilterOption } from '@/components/input/filter/MemberFilterBar.vue'
 
 const { t } = useI18n()
 const router = useRouter()
-const { currentStationId } = useStations()
 
 const members = ref<StationMember[]>([])
 const fields = ref<ProfileField[]>([])
 const allGroups = ref<MemberGroup[]>([])
 const allTags = ref<UserTag[]>([])
+const allRoles = ref<Role[]>([])
+const memberFilterCriteria = ref<FilterCriteria>({ roleIds: [], groupIds: [], tagIds: [], mode: 'AND' })
 const memberValues = ref<Map<number, Map<number, string>>>(new Map())
 const memberRolesMap = ref<Map<number, string[]>>(new Map())
 const memberGroupsMap = ref<Map<number, string[]>>(new Map())
@@ -259,8 +260,38 @@ function getColumnValues(m: StationMember, key: 'name' | 'groups' | 'tags' | num
   return v ? [v] : []
 }
 
+const roleFriendlyNames: Record<string, string> = {
+  MEMBER: 'Mitglied', GUARDIAN: 'Erziehungsberechtigter', TEAM: 'Team', TRIAL: 'Probe',
+}
+const filterRoleOptions = computed<FilterOption[]>(() => {
+  const allowed: string[] = [Roles.MEMBER, Roles.GUARDIAN, Roles.TEAM, Roles.TRIAL]
+  return allRoles.value.filter(r => allowed.includes(r.role)).map(r => ({ id: r.id, name: roleFriendlyNames[r.role] ?? r.role }))
+})
+const filterGroupOptions = computed<FilterOption[]>(() => allGroups.value.map(g => ({ id: g.id, name: g.name ?? '' })))
+const filterTagOptions = computed<FilterOption[]>(() => allTags.value.map(t => ({ id: t.id, name: t.name })))
+
+function onMemberFilter(criteria: FilterCriteria) {
+  memberFilterCriteria.value = criteria
+}
+
 const filteredMembers = computed(() => {
   let list = activeTab.value === 'ALL' ? members.value : members.value.filter(m => getMemberType(m.id) === activeTab.value)
+
+  // Apply MemberFilterBar criteria (role/group/tag)
+  const fc = memberFilterCriteria.value
+  if (fc.roleIds.length > 0 || fc.groupIds.length > 0 || fc.tagIds.length > 0) {
+    const filterRoleNames = new Set<string>(allRoles.value.filter(r => fc.roleIds.includes(r.id)).map(r => r.role))
+    const filterGroupNames = new Set(allGroups.value.filter(g => fc.groupIds.includes(g.id)).map(g => g.name ?? ''))
+    const filterTagNames = new Set(allTags.value.filter(t => fc.tagIds.includes(t.id)).map(t => t.name))
+
+    list = list.filter(m => {
+      const matchesRole = fc.roleIds.length === 0 || (memberRolesMap.value.get(m.id) ?? []).some(r => filterRoleNames.has(r))
+      const matchesGroup = fc.groupIds.length === 0 || (memberGroupsMap.value.get(m.id) ?? []).some(g => filterGroupNames.has(g))
+      const matchesTag = fc.tagIds.length === 0 || (memberTagsMap.value.get(m.id) ?? []).some(t => filterTagNames.has(t))
+      return fc.mode === 'AND' ? (matchesRole && matchesGroup && matchesTag) : (matchesRole || matchesGroup || matchesTag)
+    })
+  }
+
   const q = filterText.value.toLowerCase().trim()
   if (q) {
     list = list.filter(m => {
@@ -423,16 +454,18 @@ async function loadData() {
   loading.value = true
   error.value = ''
   try {
-    const [allFields, allMembers, groups, tags] = await Promise.all([
+    const [allFields, allMembers, groups, tags, roles] = await Promise.all([
       profileFields.listFields(),
       stationMembers.listMembers(),
       memberGroups.listGroups(),
       userTags.listTags(),
+      stationMembers.listAllRoles(),
     ])
     fields.value = allFields
     members.value = allMembers
     allGroups.value = groups
     allTags.value = tags
+    allRoles.value = roles
 
     const valMap = new Map<number, Map<number, string>>()
     const rolesMap = new Map<number, string[]>()
@@ -506,6 +539,9 @@ onMounted(() => {
           :extra-column-ids="extraColumnIds"
           :export-mode="exportMode"
           :selected-count="selectedIds.size"
+          :roles="filterRoleOptions"
+          :groups="filterGroupOptions"
+          :tags="filterTagOptions"
           @clear-filters="clearFilters"
           @apply-filter="applyFilter"
           @delete-filter="deleteFilter"
@@ -513,6 +549,7 @@ onMounted(() => {
           @toggle-column="toggleExtraColumn"
           @toggle-export="toggleExportMode"
           @export-continue="openExportModal"
+          @filter="onMemberFilter"
         />
 
         <MemberTable

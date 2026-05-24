@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.system.service;
 
+import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.media.service.ImageCategory;
 import dev.chojo.ember.feature.media.service.ImageService;
 import dev.chojo.ember.feature.members.entity.StationMember;
@@ -16,6 +17,12 @@ import org.slf4j.LoggerFactory;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -25,14 +32,18 @@ import java.util.List;
 @Singleton
 public class DemoMediaSeeder {
     private static final Logger log = LoggerFactory.getLogger(DemoMediaSeeder.class);
+    private static final Path AVATAR_CACHE_DIR = Path.of("data", "demo-avatars");
 
     private final ImageService imageService;
     private final StationService stationService;
+    private final AccountRepository accountRepository;
 
     @Inject
-    public DemoMediaSeeder(ImageService imageService, StationService stationService) {
+    public DemoMediaSeeder(
+            ImageService imageService, StationService stationService, AccountRepository accountRepository) {
         this.imageService = imageService;
         this.stationService = stationService;
+        this.accountRepository = accountRepository;
     }
 
     public void seedProfilePictures(
@@ -42,9 +53,14 @@ public class DemoMediaSeeder {
             List<StationMember> eltern,
             List<StationMember> anfaenger,
             List<StationMember> fortgeschritten) {
-        String[] avatarFiles = {"avatar1.png", "avatar2.png", "avatar3.png", "avatar4.png", "avatar5.png"};
+        // Ensure cache directory exists
+        try {
+            Files.createDirectories(AVATAR_CACHE_DIR);
+        } catch (IOException e) {
+            log.warn("Failed to create avatar cache directory: {}", e.getMessage());
+        }
 
-        // Assign avatars round-robin to all members
+        // Assign DiceBear avatars to all members
         var allMembers = new ArrayList<StationMember>();
         allMembers.add(admin);
         allMembers.addAll(betreuer);
@@ -52,15 +68,17 @@ public class DemoMediaSeeder {
         allMembers.addAll(anfaenger);
         allMembers.addAll(fortgeschritten);
 
-        for (int i = 0; i < allMembers.size(); i++) {
-            String memberId = String.valueOf(allMembers.get(i).id());
-            if (imageService.exists(ImageCategory.AVATARS, memberId)) continue;
-            String file = avatarFiles[i % avatarFiles.length];
-            try {
-                byte[] data = loadDemoResource("demo/avatars/" + file);
-                imageService.store(ImageCategory.AVATARS, memberId, data, "image/png");
-            } catch (Exception e) {
-                log.warn("Failed to set demo avatar for member {}: {}", memberId, e.getMessage());
+        try (var httpClient = HttpClient.newHttpClient()) {
+            for (var member : allMembers) {
+                String memberId = String.valueOf(member.id());
+                if (imageService.exists(ImageCategory.AVATARS, memberId)) continue;
+                try {
+                    String seed = buildSeed(member);
+                    byte[] data = fetchAvatar(httpClient, seed);
+                    imageService.store(ImageCategory.AVATARS, memberId, data, "image/png");
+                } catch (Exception e) {
+                    log.warn("Failed to set demo avatar for member {}: {}", memberId, e.getMessage());
+                }
             }
         }
 
@@ -73,6 +91,33 @@ public class DemoMediaSeeder {
                 log.warn("Failed to set demo station logo: {}", e.getMessage());
             }
         }
+    }
+
+    private String buildSeed(StationMember member) {
+        if (member.accountId() != null) {
+            var account = accountRepository.findById(member.accountId());
+            if (account.isPresent()) {
+                return account.get().firstName() + "+" + account.get().lastName();
+            }
+        }
+        return "member-" + member.id();
+    }
+
+    private byte[] fetchAvatar(HttpClient httpClient, String seed) throws IOException, InterruptedException {
+        Path cacheFile = AVATAR_CACHE_DIR.resolve(seed + ".png");
+        if (Files.exists(cacheFile)) {
+            return Files.readAllBytes(cacheFile);
+        }
+
+        String url = "https://api.dicebear.com/9.x/adventurer/png?seed=" + seed + "&size=256";
+        var request = HttpRequest.newBuilder().uri(URI.create(url)).GET().build();
+        var response = httpClient.send(request, HttpResponse.BodyHandlers.ofByteArray());
+        if (response.statusCode() != 200) {
+            throw new IOException("DiceBear API returned status " + response.statusCode());
+        }
+        byte[] data = response.body();
+        Files.write(cacheFile, data);
+        return data;
     }
 
     private byte[] loadDemoResource(String path) throws IOException {

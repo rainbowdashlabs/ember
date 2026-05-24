@@ -24,6 +24,8 @@ import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.UUID;
 
@@ -32,6 +34,8 @@ import java.util.UUID;
  */
 @Singleton
 public class StationRoutes implements Routes {
+    private static final Logger log = LoggerFactory.getLogger(StationRoutes.class);
+
     private final StationService stationService;
 
     @Inject
@@ -158,6 +162,7 @@ public class StationRoutes implements Routes {
             UUID uid = UUID.fromString(idParam);
             return stationService.findByUid(uid).orElseThrow(NotFoundResponse::new);
         } catch (IllegalArgumentException e) {
+            log.warn("Invalid station UUID: {}", idParam, e);
             throw new BadRequestResponse("Invalid station ID");
         }
     }

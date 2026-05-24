@@ -17,6 +17,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
+import TabBar from '@/components/navigation/TabBar.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import {auth, session, adminSettings} from '@/api'
@@ -43,12 +44,26 @@ interface DemoAccount {
   profileComplete: boolean
 }
 
+interface StationGroup {
+  stationId: string
+  stationName: string
+  accounts: DemoAccount[]
+}
+
 const isDemo = ref(false)
 const isDev = ref(false)
 const registrationEnabled = ref(true)
-const hasDemoAccounts = computed(() => demoAccounts.value.length > 0)
-const demoAccounts = ref<DemoAccount[]>([])
+const stationGroups = ref<StationGroup[]>([])
+const activeStationTab = ref('')
+const hasDemoAccounts = computed(() => stationGroups.value.some(g => g.accounts.length > 0))
+const demoAccounts = computed(() => {
+  const group = stationGroups.value.find(g => g.stationId === activeStationTab.value)
+  return group?.accounts ?? []
+})
 const demoLoading = ref(true)
+
+const stationTabs = computed(() => stationGroups.value.map(g => ({key: g.stationId, label: g.stationName})))
+const showStationTabs = computed(() => stationGroups.value.length > 1)
 
 const roleFriendlyNames: Record<string, string> = {
   ADMIN: 'Admin',
@@ -104,13 +119,14 @@ onMounted(async () => {
       consent.value = 'accepted'
     }
     if (isDemo.value || isDev.value) {
-      const accountsRes = await client.get<{stationId: string; stationName: string; accounts: DemoAccount[]}[] | DemoAccount[]>('/demo/accounts')
+      const accountsRes = await client.get<StationGroup[] | DemoAccount[]>('/demo/accounts')
       if (Array.isArray(accountsRes.data) && accountsRes.data.length > 0 && 'accounts' in accountsRes.data[0]) {
-        // Station-grouped format — flatten all accounts
-        const groups = accountsRes.data as {accounts: DemoAccount[]}[]
-        demoAccounts.value = groups.flatMap(g => g.accounts)
+        stationGroups.value = accountsRes.data as StationGroup[]
       } else {
-        demoAccounts.value = accountsRes.data as DemoAccount[]
+        stationGroups.value = [{stationId: 'default', stationName: 'Station', accounts: accountsRes.data as DemoAccount[]}]
+      }
+      if (stationGroups.value.length > 0) {
+        activeStationTab.value = stationGroups.value[0].stationId
       }
     }
   } catch { /* not demo/dev */
@@ -319,6 +335,8 @@ function topRoleLabel(account: DemoAccount): string {
         </div>
         <Alert v-if="error" variant="error">{{ error }}</Alert>
 
+        <TabBar v-if="showStationTabs" v-model="activeStationTab" :tabs="stationTabs"/>
+
         <div v-for="group in roleGroups" :key="group.label" class="space-y-2">
           <SectionHeader>{{ group.label }}</SectionHeader>
           <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
@@ -445,6 +463,7 @@ function topRoleLabel(account: DemoAccount): string {
         <template v-if="isDev && hasDemoAccounts && consent === 'accepted'">
           <div class="border-t border-bg-light-accent dark:border-bg-dark-accent pt-4 mt-2">
             <p class="text-sm font-medium mb-3">{{ t('demo.devLoginHint') }}</p>
+            <TabBar v-if="showStationTabs" v-model="activeStationTab" :tabs="stationTabs" class="mb-3"/>
             <div v-for="group in roleGroups" :key="group.label" class="mb-3">
               <p class="text-xs font-semibold text-(--text-muted) mb-1">{{ group.label }}</p>
               <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-1.5">

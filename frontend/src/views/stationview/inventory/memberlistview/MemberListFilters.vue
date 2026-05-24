@@ -6,20 +6,20 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
-import SelectInput from '@/components/input/select/SelectInput.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import CheckboxInput from '@/components/input/toggle/CheckboxInput.vue'
-import type { Inventory, MemberGroup } from '@/api/types'
+import MemberFilterBar from '@/components/input/filter/MemberFilterBar.vue'
+import type { FilterCriteria, FilterOption } from '@/components/input/filter/MemberFilterBar.vue'
+import type { Inventory } from '@/api/types'
 
 const { t } = useI18n()
 
-const filterRole = defineModel<string>('filterRole', { required: true })
 const showEmpty = defineModel<boolean>('showEmpty', { required: true })
 
-const props = defineProps<{
-  filterableRoles: string[]
-  groups: MemberGroup[]
-  filterGroups: Set<number>
+defineProps<{
+  roles: FilterOption[]
+  groups: FilterOption[]
+  tags: FilterOption[]
   inventories: Inventory[]
   visibleInventoryIds: Set<number>
   showName: boolean
@@ -28,48 +28,26 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  toggleGroupFilter: [groupId: number]
+  filter: [criteria: FilterCriteria]
   toggleInventory: [invId: number]
   'update:showName': [value: boolean]
   'update:showInternalId': [value: boolean]
   'update:showSize': [value: boolean]
 }>()
-
-const roleLabels: Record<string, string> = {
-  MEMBER: 'Mitglied',
-  GUARDIAN: 'Erziehungsberechtigter',
-  TEAM: 'Team',
-}
-
-function translateRole(role: string): string {
-  return roleLabels[role] ?? role
-}
 </script>
 
 <template>
-  <!-- Filters -->
+  <!-- Role / Group / Tag filter -->
   <NeutralContainer class="flex flex-wrap items-center gap-4">
-    <div class="flex items-center gap-2">
-      <label class="text-sm font-medium">{{ t('inventoryMembers.role') }}</label>
-      <SelectInput v-model="filterRole" class="w-40 text-sm">
-        <option value="">{{ t('inventoryMembers.allRoles') }}</option>
-        <option v-for="role in filterableRoles" :key="role" :value="role">{{ translateRole(role) }}</option>
-      </SelectInput>
-    </div>
+    <MemberFilterBar
+        :roles="roles"
+        :groups="groups"
+        :tags="tags"
+        @filter="criteria => emit('filter', criteria)"
+    />
     <div class="flex items-center gap-2">
       <label class="text-sm font-medium">{{ t('inventoryMembers.showEmpty') }}</label>
       <ToggleInput v-model="showEmpty" />
-    </div>
-  </NeutralContainer>
-
-  <!-- Group multi-select -->
-  <NeutralContainer v-if="groups.length > 0" class="space-y-2">
-    <p class="text-sm font-medium">{{ t('inventoryMembers.group') }}</p>
-    <div class="flex flex-wrap gap-2">
-      <label v-for="g in groups" :key="g.id" class="inline-flex items-center gap-1.5 text-sm cursor-pointer">
-        <CheckboxInput :model-value="filterGroups.has(g.id)" @update:model-value="emit('toggleGroupFilter', g.id)" />
-        {{ g.name }}
-      </label>
     </div>
   </NeutralContainer>
 

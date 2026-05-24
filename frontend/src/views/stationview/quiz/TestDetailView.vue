@@ -32,8 +32,6 @@ import type { FrozenQuestionDetail } from '@/api/quiz'
 import { quiz, stationMembers, memberGroups, userTags } from '@/api'
 import type { StationMember } from '@/api/types'
 import { useSession } from '@/composables/useSession'
-import { useStations } from '@/composables/useStations'
-
 import TestRestrictions from './testdetailview/TestRestrictions.vue'
 import TestAccessGrant from './testdetailview/TestAccessGrant.vue'
 import TestAttemptList from './testdetailview/TestAttemptList.vue'
@@ -42,7 +40,7 @@ const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
 const { canManageQuiz, loaded } = useSession()
-const { currentStationId } = useStations()
+
 
 const testId = computed(() => Number(route.params.id))
 
@@ -65,9 +63,9 @@ const pickSearch = ref('')
 const allRoles = ref<Role[]>([])
 const allGroups = ref<MemberGroup[]>([])
 const allTags = ref<UserTag[]>([])
-const selectedRoleIds = ref<Set<number>>(new Set())
-const selectedGroupIds = ref<Set<number>>(new Set())
-const selectedTagIds = ref<Set<number>>(new Set())
+const selectedRoleIds = ref<number[]>([])
+const selectedGroupIds = ref<number[]>([])
+const selectedTagIds = ref<number[]>([])
 const restrictionsDirty = ref(false)
 
 // Confirmation modal
@@ -133,7 +131,7 @@ async function loadData() {
   try {
     const [d, catalogList] = await Promise.all([quiz.getTest(testId.value), quiz.listCatalogs()])
     detail.value = d
-    catalogs.value = catalogList
+    catalogs.value = catalogList.catalogs
     editStartAt.value = toLocalInput(d.test.startAt)
     editEndAt.value = toLocalInput(d.test.endAt)
     timesDirty.value = false
@@ -153,9 +151,9 @@ async function loadData() {
       allRoles.value = roleList
       allGroups.value = groupList
       allTags.value = tagList
-      selectedRoleIds.value = new Set(restrictions.roleIds)
-      selectedGroupIds.value = new Set(restrictions.groupIds)
-      selectedTagIds.value = new Set(restrictions.tagIds)
+      selectedRoleIds.value = restrictions.roleIds ?? []
+      selectedGroupIds.value = restrictions.groupIds ?? []
+      selectedTagIds.value = restrictions.tagIds ?? []
       restrictionsDirty.value = false
     }
   } catch { error.value = t('common.error') }
@@ -221,24 +219,18 @@ function closeTest() {
   showConfirm(t('quiz.tests.confirmClose'), async () => { await quiz.closeTest(testId.value); await loadData() })
 }
 
-function toggleRole(roleId: number) {
-  const next = new Set(selectedRoleIds.value)
-  if (next.has(roleId)) next.delete(roleId); else next.add(roleId)
-  selectedRoleIds.value = next
+function onRoleIdsUpdate(ids: number[]) {
+  selectedRoleIds.value = ids
   restrictionsDirty.value = true
 }
 
-function toggleGroup(groupId: number) {
-  const next = new Set(selectedGroupIds.value)
-  if (next.has(groupId)) next.delete(groupId); else next.add(groupId)
-  selectedGroupIds.value = next
+function onGroupIdsUpdate(ids: number[]) {
+  selectedGroupIds.value = ids
   restrictionsDirty.value = true
 }
 
-function toggleTag(tagId: number) {
-  const next = new Set(selectedTagIds.value)
-  if (next.has(tagId)) next.delete(tagId); else next.add(tagId)
-  selectedTagIds.value = next
+function onTagIdsUpdate(ids: number[]) {
+  selectedTagIds.value = ids
   restrictionsDirty.value = true
 }
 
@@ -246,9 +238,9 @@ async function saveRestrictions() {
   error.value = ''
   try {
     await quiz.setRestrictions(testId.value, {
-      roleIds: [...selectedRoleIds.value],
-      groupIds: [...selectedGroupIds.value],
-      tagIds: [...selectedTagIds.value],
+      roleIds: selectedRoleIds.value,
+      groupIds: selectedGroupIds.value,
+      tagIds: selectedTagIds.value,
     })
     restrictionsDirty.value = false
   } catch { error.value = t('common.error') }
@@ -444,9 +436,9 @@ watch(loaded, (isLoaded) => { if (isLoaded && loading.value) loadData() })
             :selected-group-ids="selectedGroupIds"
             :selected-tag-ids="selectedTagIds"
             :restrictions-dirty="restrictionsDirty"
-            @toggle-role="toggleRole"
-            @toggle-group="toggleGroup"
-            @toggle-tag="toggleTag"
+            @update:selected-role-ids="onRoleIdsUpdate"
+            @update:selected-group-ids="onGroupIdsUpdate"
+            @update:selected-tag-ids="onTagIdsUpdate"
             @save="saveRestrictions"
           />
 

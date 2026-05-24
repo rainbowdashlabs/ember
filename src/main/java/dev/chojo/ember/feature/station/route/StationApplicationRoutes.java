@@ -23,6 +23,8 @@ import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Routes for station application submission (public) and management (admin).
@@ -30,6 +32,8 @@ import jakarta.inject.Singleton;
  */
 @Singleton
 public class StationApplicationRoutes implements Routes {
+    private static final Logger log = LoggerFactory.getLogger(StationApplicationRoutes.class);
+
     private final StationApplicationService applicationService;
     private final ApplicationSettingRepository settingRepository;
 
@@ -144,8 +148,10 @@ public class StationApplicationRoutes implements Routes {
             var result = applicationService.accept(id);
             ctx.json(result);
         } catch (IllegalArgumentException e) {
+            log.warn("Station application not found for accept, id={}", id, e);
             throw new NotFoundResponse();
         } catch (IllegalStateException e) {
+            log.warn("Invalid state when accepting station application id={}", id, e);
             throw new BadRequestResponse(e.getMessage());
         }
     }
@@ -169,8 +175,10 @@ public class StationApplicationRoutes implements Routes {
             var result = applicationService.deny(id, request.reason());
             ctx.json(result);
         } catch (IllegalArgumentException e) {
+            log.warn("Station application not found for deny, id={}", id, e);
             throw new NotFoundResponse();
         } catch (IllegalStateException e) {
+            log.warn("Invalid state when denying station application id={}", id, e);
             throw new BadRequestResponse(e.getMessage());
         }
     }

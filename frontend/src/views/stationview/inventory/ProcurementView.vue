@@ -27,11 +27,9 @@ import type {
   StationMember,
 } from '@/api/types'
 import { procurement, inventory, stationMembers } from '@/api'
-import { useStations } from '@/composables/useStations'
 import MemberName from '@/components/avatar/MemberName.vue'
 
 const { t } = useI18n()
-const { currentStationId } = useStations()
 
 const entries = ref<ProcurementEntry[]>([])
 const inventories = ref<Inventory[]>([])
@@ -176,7 +174,7 @@ onMounted(loadData)
                 <ErrorBadge v-else>{{ t('procurement.open') }}</ErrorBadge>
               </div>
               <div class="text-sm text-(--text-muted)">
-                <MemberName :name="entry.memberName"/> &mdash; {{ formatDate(entry.requestedAt) }}
+                <MemberName :name="entry.memberName" :member-id="entry.memberId"/> &mdash; {{ formatDate(entry.requestedAt) }}
               </div>
               <div v-if="entry.fulfilledAt" class="text-xs text-(--text-muted)">
                 {{ t('procurement.fulfilledAt') }}: {{ formatDate(entry.fulfilledAt) }}

@@ -37,6 +37,7 @@ import org.slf4j.Logger;
 
 import java.io.IOException;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
@@ -74,7 +75,7 @@ public class KnowledgeBaseRoutes implements Routes {
 
     private String resolveFolderPath(Integer folderId) {
         if (folderId == null) return "/";
-        var parts = new java.util.ArrayList<String>();
+        var parts = new ArrayList<String>();
         Integer current = folderId;
         while (current != null) {
             var folder = service.findFolder(current);
@@ -328,7 +329,8 @@ public class KnowledgeBaseRoutes implements Routes {
                     file.contentType(),
                     session.member().id()));
         } catch (Exception e) {
-            throw new BadRequestResponse("Failed to read file: " + e.getMessage());
+            log.warn("Failed to read uploaded file for KB", e);
+            throw new BadRequestResponse("Failed to read file");
         }
     }
 
@@ -367,7 +369,8 @@ public class KnowledgeBaseRoutes implements Routes {
                     markdown,
                     session.member().id()));
         } catch (Exception e) {
-            throw new BadRequestResponse("Document conversion failed: " + e.getMessage());
+            log.warn("Document conversion failed for KB import", e);
+            throw new BadRequestResponse("Document conversion failed");
         }
     }
 
@@ -648,6 +651,7 @@ public class KnowledgeBaseRoutes implements Routes {
             service.updateFolder(id, folder.name(), folder.description(), "folder-" + id, folder.position());
             ctx.json(new MessageResponse("Icon updated"));
         } catch (IllegalArgumentException e) {
+            log.warn("Invalid argument storing folder icon for folder {}", id, e);
             throw new BadRequestResponse(e.getMessage());
         } catch (IOException e) {
             log.error("Failed to process image", e);
@@ -672,6 +676,7 @@ public class KnowledgeBaseRoutes implements Routes {
             imageService.store(ImageCategory.KB_IMAGES, imageId, data, file.contentType(), 10 * 1024 * 1024);
             ctx.json(new ImageUploadResponse(imageId));
         } catch (IllegalArgumentException e) {
+            log.warn("Invalid argument storing KB image for file {}", fileId, e);
             throw new BadRequestResponse(e.getMessage());
         } catch (IOException e) {
             log.error("Failed to process image", e);

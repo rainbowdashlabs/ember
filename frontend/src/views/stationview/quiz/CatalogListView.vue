@@ -101,8 +101,14 @@ async function loadData() {
   error.value = ''
   try {
     const response = await quiz.listCatalogs()
-    catalogs.value = response.catalogs
-    sharedCatalogs.value = response.sharedCatalogs ?? []
+    // Backend may return wrapped {catalogs, sharedCatalogs} or plain array
+    if (Array.isArray(response)) {
+      catalogs.value = response as unknown as typeof catalogs.value
+      sharedCatalogs.value = []
+    } else {
+      catalogs.value = response.catalogs ?? []
+      sharedCatalogs.value = response.sharedCatalogs ?? []
+    }
   } catch {
     error.value = t('common.error')
   } finally {

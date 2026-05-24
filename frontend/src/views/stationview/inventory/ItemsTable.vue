@@ -17,6 +17,8 @@ import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import PrimaryBadge from '@/components/badge/PrimaryBadge.vue'
 import type { InventoryItem, InventorySize, StationMember } from '@/api/types'
 import { InventoryTypes, ItemSource } from '@/api/types'
+import type { LentOutItem } from '@/api/lending'
+import InfoBadge from '@/components/badge/InfoBadge.vue'
 import MemberName from '@/components/avatar/MemberName.vue'
 import { useBreakpoint } from '@/composables/useBreakpoint'
 
@@ -32,10 +34,15 @@ const props = withDefaults(defineProps<{
   members?: Map<number, StationMember>
   showActions?: boolean
   inventoryType?: string
+  lentOutItems?: LentOutItem[]
 }>(), {
   showActions: false,
   inventoryType: InventoryTypes.INTERNAL,
 })
+
+function lendingInfoForItem(itemId: number): LentOutItem | undefined {
+  return props.lentOutItems?.find(l => l.assignedItemId === itemId)
+}
 
 const isMixed = computed(() => props.inventoryType === InventoryTypes.MIXED)
 
@@ -75,6 +82,14 @@ function formatDate(iso: string | null | undefined): string {
         <div>
           <span class="font-medium">{{ item.name }}</span>
           <span v-if="item.lostAt" class="ml-2 text-xs text-error">{{ t('inventory.edit.lost') }} ({{ formatDate(item.lostAt) }})</span>
+          <div v-if="lendingInfoForItem(item.id)" class="mt-0.5">
+            <router-link :to="{ name: 'inventory-lending-request', params: { id: lendingInfoForItem(item.id)!.requestId } }">
+              <InfoBadge>
+                <font-awesome-icon :icon="['fas', 'arrow-right-arrow-left']" class="mr-0.5 h-2.5 w-2.5"/>
+                {{ t('inventory.detail.lentTo') }} {{ lendingInfoForItem(item.id)!.requestingStationName }}
+              </InfoBadge>
+            </router-link>
+          </div>
         </div>
         <div v-if="hasSizes">
           <SizeBadge :lost="!!item.lostAt">{{ getSizeLabel(item.sizeId) }}</SizeBadge>
@@ -127,6 +142,15 @@ function formatDate(iso: string | null | undefined): string {
             <span v-if="item.lostAt" class="ml-2 text-xs text-error font-normal">
               {{ t('inventory.edit.lost') }} ({{ formatDate(item.lostAt) }})
             </span>
+            <template v-if="lendingInfoForItem(item.id)">
+              <router-link :to="{ name: 'inventory-lending-request', params: { id: lendingInfoForItem(item.id)!.requestId } }" class="ml-2 inline-flex items-center gap-1">
+                <InfoBadge>
+                  <font-awesome-icon :icon="['fas', 'arrow-right-arrow-left']" class="mr-0.5 h-2.5 w-2.5"/>
+                  {{ t('inventory.detail.lentTo') }} {{ lendingInfoForItem(item.id)!.requestingStationName }}
+                  <template v-if="lendingInfoForItem(item.id)!.dateTo"> · {{ t('inventory.detail.until') }} {{ formatDate(lendingInfoForItem(item.id)!.dateTo) }}</template>
+                </InfoBadge>
+              </router-link>
+            </template>
           </td>
           <td class="px-3 py-2.5 text-(--text-muted)">{{ item.internalId || '–' }}</td>
           <td v-if="hasSizes" class="px-3 py-2.5"><SizeBadge :lost="!!item.lostAt">{{ getSizeLabel(item.sizeId) }}</SizeBadge></td>

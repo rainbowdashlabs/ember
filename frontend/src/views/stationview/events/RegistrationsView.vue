@@ -16,11 +16,9 @@ import SectionHeader from '@/components/typography/SectionHeader.vue'
 import {events, stationMembers} from '@/api'
 import type {StationEvent, StationMember} from '@/api/types'
 import {RegistrationStatus} from '@/api/types'
-import {useStations} from '@/composables/useStations'
 import MemberName from '@/components/avatar/MemberName.vue'
 
 const {t} = useI18n()
-const {currentStationId} = useStations()
 
 interface PendingRegistration {
   id: number

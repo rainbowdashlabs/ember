@@ -14,6 +14,7 @@ import ch.qos.logback.core.AppenderBase;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -111,9 +112,7 @@ public class ProblemLogAppender extends AppenderBase<ILoggingEvent> {
         // Cap at MAX_ENTRIES
         if (problems.size() > MAX_ENTRIES) {
             var sorted = new ArrayList<>(problems.entrySet());
-            sorted.sort((a, b) -> Long.compare(
-                    a.getValue().lastOccurrence().toEpochMilli(),
-                    b.getValue().lastOccurrence().toEpochMilli()));
+            sorted.sort(Comparator.comparingLong(a -> a.getValue().lastOccurrence().toEpochMilli()));
             int toRemove = sorted.size() - MAX_ENTRIES;
             for (int i = 0; i < toRemove; i++) {
                 problems.remove(sorted.get(i).getKey());

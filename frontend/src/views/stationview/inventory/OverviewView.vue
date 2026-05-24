@@ -138,7 +138,7 @@ watch(() => activeStation.value?.stationId, (newId, oldId) => {
                 <span class="text-sm font-medium">{{ ex.inventoryName }}</span>
                 <component :is="exchangeStatusBadge(ex.status)">{{ t(`exchanges.status.${ex.status}`) }}</component>
               </div>
-              <div class="text-xs text-(--text-muted)"><MemberName :name="ex.memberName"/></div>
+              <div class="text-xs text-(--text-muted)"><MemberName :name="ex.memberName" :member-id="ex.memberId"/></div>
               <SizeBadge>{{ ex.oldSizeLabel ?? t('common.unisize') }} &rarr; {{ ex.newSizeLabel ?? t('common.unisize') }}</SizeBadge>
             </NeutralContainer>
           </div>
@@ -160,7 +160,7 @@ watch(() => activeStation.value?.stationId, (newId, oldId) => {
                     {{ ex.inventoryName }}
                     <SizeBadge>{{ ex.oldSizeLabel ?? t('common.unisize') }} &rarr; {{ ex.newSizeLabel ?? t('common.unisize') }}</SizeBadge>
                   </td>
-                  <td class="px-3 py-2.5"><MemberName :name="ex.memberName"/></td>
+                  <td class="px-3 py-2.5"><MemberName :name="ex.memberName" :member-id="ex.memberId"/></td>
                   <td class="px-3 py-2.5">
                     <component :is="exchangeStatusBadge(ex.status)">{{ t(`exchanges.status.${ex.status}`) }}</component>
                   </td>
@@ -183,7 +183,7 @@ watch(() => activeStation.value?.stationId, (newId, oldId) => {
                 <span class="text-sm font-medium">{{ p.inventoryName }}</span>
                 <SizeBadge>{{ p.sizeLabel || t('common.unisize') }}</SizeBadge>
               </div>
-              <div class="text-xs text-(--text-muted)"><MemberName :name="p.memberName"/></div>
+              <div class="text-xs text-(--text-muted)"><MemberName :name="p.memberName" :member-id="p.memberId"/></div>
               <div v-if="p.notes" class="text-xs text-(--text-muted)">{{ p.notes }}</div>
             </NeutralContainer>
           </div>
@@ -205,7 +205,7 @@ watch(() => activeStation.value?.stationId, (newId, oldId) => {
                     {{ p.inventoryName }}
                     <SizeBadge>{{ p.sizeLabel || t('common.unisize') }}</SizeBadge>
                   </td>
-                  <td class="px-3 py-2.5"><MemberName :name="p.memberName"/></td>
+                  <td class="px-3 py-2.5"><MemberName :name="p.memberName" :member-id="p.memberId"/></td>
                   <td class="px-3 py-2.5 text-(--text-muted)">{{ p.notes || '-' }}</td>
                 </tr>
               </tbody>
@@ -227,7 +227,7 @@ watch(() => activeStation.value?.stationId, (newId, oldId) => {
                 <SizeBadge lost>{{ a.sizeName || t('common.unisize') }}</SizeBadge>
                 <span v-if="a.item.internalId" class="text-xs text-(--text-muted)">{{ a.item.internalId }}</span>
               </div>
-              <div class="text-xs text-(--text-muted)"><MemberName :name="a.ownerName"/></div>
+              <div class="text-xs text-(--text-muted)"><MemberName :name="a.ownerName" :member-id="a.item.assignedTo"/></div>
             </NeutralContainer>
           </div>
           <!-- Desktop table -->
@@ -249,7 +249,7 @@ watch(() => activeStation.value?.stationId, (newId, oldId) => {
                     </div>
                     <div v-if="a.item.internalId" class="text-xs text-(--text-muted)">{{ a.item.internalId }}</div>
                   </td>
-                  <td class="px-3 py-2.5"><MemberName :name="a.ownerName"/></td>
+                  <td class="px-3 py-2.5"><MemberName :name="a.ownerName" :member-id="a.item.assignedTo"/></td>
                   <td class="px-3 py-2.5">
                     <ErrorBadge>{{ formatDate(a.item.lostAt) }}</ErrorBadge>
                   </td>

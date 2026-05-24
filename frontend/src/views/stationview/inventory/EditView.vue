@@ -29,7 +29,6 @@ import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import type {InventoryDetail, InventoryItem, InventoryItemHistory, InventorySize, StationMember} from '@/api/types'
 import {InventoryTypes, ItemSource} from '@/api/types'
 import {inventory, stationMembers} from '@/api'
-import {useStations} from '@/composables/useStations'
 import {useBreakpoint} from '@/composables/useBreakpoint'
 
 const {isMobile} = useBreakpoint()
@@ -37,7 +36,7 @@ const {isMobile} = useBreakpoint()
 const {t} = useI18n()
 const route = useRoute()
 const router = useRouter()
-const {currentStationId} = useStations()
+
 
 const inventoryId = computed(() => Number(route.params.id))
 

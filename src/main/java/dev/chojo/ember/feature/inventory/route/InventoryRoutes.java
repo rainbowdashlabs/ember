@@ -30,6 +30,8 @@ import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
 import java.util.List;
@@ -40,6 +42,7 @@ import java.util.List;
  */
 @Singleton
 public class InventoryRoutes implements Routes {
+    private static final Logger log = LoggerFactory.getLogger(InventoryRoutes.class);
     private final InventoryService inventoryService;
     private final InventoryCheckService checkService;
     private final InventoryExportService inventoryExportService;
@@ -661,6 +664,7 @@ public class InventoryRoutes implements Routes {
         try {
             return InventoryType.valueOf(type);
         } catch (IllegalArgumentException e) {
+            log.warn("Invalid inventory type: {}", type, e);
             throw new BadRequestResponse("Invalid inventory type: " + type);
         }
     }

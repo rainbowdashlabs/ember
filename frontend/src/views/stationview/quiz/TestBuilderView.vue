@@ -22,8 +22,10 @@ import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import DateTimeInput from '@/components/input/datetime/DateTimeInput.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
-import type { QuizCatalog, QuizCategory, QuizSectionDetail } from '@/api/types'
-import { quiz } from '@/api'
+import type { QuizCatalog, QuizCategory, QuizSectionDetail, Role, MemberGroup, UserTag } from '@/api/types'
+import { quiz, stationMembers, memberGroups, userTags } from '@/api'
+import RestrictionPicker from '@/components/input/RestrictionPicker.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -43,6 +45,14 @@ const timeLimitEnabled = ref(false)
 const shuffle = ref(false)
 const startAt = ref('')
 const endAt = ref('')
+
+// Restrictions
+const allRoles = ref<Role[]>([])
+const allGroups = ref<MemberGroup[]>([])
+const allTags = ref<UserTag[]>([])
+const selectedRoleIds = ref<number[]>([])
+const selectedGroupIds = ref<number[]>([])
+const selectedTagIds = ref<number[]>([])
 
 // Catalogs for source selection
 const catalogs = ref<QuizCatalog[]>([])
@@ -130,7 +140,16 @@ async function loadData() {
   loading.value = true
   error.value = ''
   try {
-    catalogs.value = (await quiz.listCatalogs()).catalogs
+    const [catalogRes, roles, groups, tags] = await Promise.all([
+      quiz.listCatalogs(),
+      stationMembers.listAllRoles(),
+      memberGroups.listGroups(),
+      userTags.listTags(),
+    ])
+    catalogs.value = Array.isArray(catalogRes) ? catalogRes as unknown as QuizCatalog[] : (catalogRes.catalogs ?? [])
+    allRoles.value = roles
+    allGroups.value = groups
+    allTags.value = tags
 
     if (testId.value) {
       const detail = await quiz.getTest(testId.value)
@@ -151,6 +170,14 @@ async function loadData() {
         }
       }
       await Promise.all([...catalogIds].map(id => loadCatalogCategories(id)))
+
+      // Load restrictions
+      try {
+        const restrictions = await quiz.getRestrictions(testId.value)
+        selectedRoleIds.value = restrictions.roleIds ?? []
+        selectedGroupIds.value = restrictions.groupIds ?? []
+        selectedTagIds.value = restrictions.tagIds ?? []
+      } catch { /* no restrictions */ }
 
       sections.value = detail.sections.map((sec: QuizSectionDetail) => ({
         key: generateKey(),
@@ -204,6 +231,14 @@ async function save() {
     }))
 
     await quiz.replaceSections(id!, sectionPayload)
+
+    // Save restrictions
+    await quiz.setRestrictions(id!, {
+      roleIds: selectedRoleIds.value,
+      groupIds: selectedGroupIds.value,
+      tagIds: selectedTagIds.value,
+    })
+
     router.push({ name: 'quiz-test-detail', params: { id: id! } })
   } catch {
     error.value = t('common.error')
@@ -255,6 +290,23 @@ onMounted(loadData)
               <NumberInput v-model="timeLimit" class="w-24" />
             </div>
           </div>
+        </NeutralContainer>
+
+        <!-- Restrictions -->
+        <NeutralContainer class="space-y-3">
+          <SubHeader>{{ t('quiz.tests.restrictions') }}</SubHeader>
+          <RestrictionPicker
+              :roles="allRoles"
+              :groups="allGroups"
+              :tags="allTags"
+              :selected-role-ids="selectedRoleIds"
+              :selected-group-ids="selectedGroupIds"
+              :selected-tag-ids="selectedTagIds"
+              :show-mode="false"
+              @update:selected-role-ids="v => selectedRoleIds = v"
+              @update:selected-group-ids="v => selectedGroupIds = v"
+              @update:selected-tag-ids="v => selectedTagIds = v"
+          />
         </NeutralContainer>
 
         <!-- Sections -->

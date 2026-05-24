@@ -27,7 +27,7 @@ public final class CsvParser {
                 .setTrim(true)
                 .setHeader()
                 .setSkipHeaderRecord(true)
-                .build();
+                .get();
 
         try (var parser = CSVParser.parse(new StringReader(content), format)) {
             var headers = new ArrayList<>(parser.getHeaderNames());

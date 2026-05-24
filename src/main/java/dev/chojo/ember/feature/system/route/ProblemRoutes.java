@@ -14,6 +14,7 @@ import io.javalin.http.NotFoundResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Singleton;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -33,7 +34,7 @@ public class ProblemRoutes implements Routes {
         boolean includeAcknowledged = "true".equals(ctx.queryParam("includeAcknowledged"));
         var appender = ProblemLogAppender.instance();
         if (appender == null) {
-            ctx.json(java.util.List.of());
+            ctx.json(List.of());
             return;
         }
         ctx.json(appender.getProblems(includeAcknowledged).stream()

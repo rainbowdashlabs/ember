@@ -41,7 +41,8 @@ public record StationEvent(
         boolean requiresRegistration,
         Instant registrationDeadline,
         boolean requiresConfirmation,
-        Integer categoryId) {
+        Integer categoryId,
+        String restrictionMode) {
 
     /**
      * Creates a row mapping for database result set conversion.
@@ -60,7 +61,8 @@ public record StationEvent(
                 row.getBoolean("requires_registration"),
                 row.get("registration_deadline", INSTANT_TIMESTAMP),
                 row.getBoolean("requires_confirmation"),
-                row.getObject("category_id", Integer.class));
+                row.getObject("category_id", Integer.class),
+                row.getString("restriction_mode"));
     }
 
     /**

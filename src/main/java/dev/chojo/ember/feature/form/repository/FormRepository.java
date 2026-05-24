@@ -416,6 +416,20 @@ public class FormRepository {
     // -- Restrictions --
 
     /**
+     * Updates the restriction mode for a form.
+     *
+     * @param formId the form ID
+     * @param mode   the restriction mode ("AND" or "OR")
+     * @return {@code true} if a row was updated
+     */
+    public boolean updateRestrictionMode(int formId, String mode) {
+        return Query.query("UPDATE form SET restriction_mode = :mode WHERE id = :id;")
+                .single(Call.of().bind("mode", mode).bind("id", formId))
+                .update()
+                .changed();
+    }
+
+    /**
      * Retrieves the role IDs that restrict access to a form.
      *
      * @param formId the form ID

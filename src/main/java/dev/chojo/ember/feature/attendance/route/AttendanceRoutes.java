@@ -38,6 +38,8 @@ import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -52,6 +54,8 @@ import java.util.Set;
  */
 @Singleton
 public class AttendanceRoutes implements Routes {
+    private static final Logger log = LoggerFactory.getLogger(AttendanceRoutes.class);
+
     private final AttendanceService attendanceService;
     private final AttendanceExportService exportService;
     private final AttendanceReportService reportService;
@@ -644,6 +648,7 @@ public class AttendanceRoutes implements Routes {
         try {
             status = AttendanceEntry.AttendanceStatus.valueOf(request.status());
         } catch (IllegalArgumentException e) {
+            log.warn("Invalid attendance status value: {}", request.status(), e);
             throw new BadRequestResponse("status must be UNCONFIRMED, PRESENT, ABSENT, or DECLINED");
         }
         if (attendanceService.updateEntryStatus(id, status)) {

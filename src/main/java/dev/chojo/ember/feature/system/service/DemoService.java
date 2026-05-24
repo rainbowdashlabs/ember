@@ -91,6 +91,8 @@ public class DemoService {
     private final DemoMediaSeeder mediaSeeder;
     private final DemoKnowledgeBaseSeeder kbSeeder;
     private final DemoProtocolSeeder protocolSeeder;
+    private final DemoFederationSeeder federationSeeder;
+    private final DemoLendingSeeder lendingSeeder;
     private final ApplicationSettingRepository applicationSettingRepository;
     private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
 
@@ -123,6 +125,8 @@ public class DemoService {
             DemoMediaSeeder mediaSeeder,
             DemoKnowledgeBaseSeeder kbSeeder,
             DemoProtocolSeeder protocolSeeder,
+            DemoFederationSeeder federationSeeder,
+            DemoLendingSeeder lendingSeeder,
             ApplicationSettingRepository applicationSettingRepository) {
         this.demoConfig = demoConfig;
         this.databaseConfig = databaseConfig;
@@ -151,6 +155,8 @@ public class DemoService {
         this.mediaSeeder = mediaSeeder;
         this.kbSeeder = kbSeeder;
         this.protocolSeeder = protocolSeeder;
+        this.federationSeeder = federationSeeder;
+        this.lendingSeeder = lendingSeeder;
         this.applicationSettingRepository = applicationSettingRepository;
     }
 
@@ -1160,6 +1166,18 @@ public class DemoService {
         mediaSeeder.seedProfilePictures(
                 station.id(), adminMember, betreuerMembers, elternMembers, anfaengerMembers, fortgeschrittenMembers);
         log.info("Demo: Created profile pictures");
+
+        // -- Federation --
+        int partnerStationId = federationSeeder.seed(station.id(), adminMember.id());
+        log.info("Demo: Created federation data");
+
+        // -- Lending --
+        lendingSeeder.seed(station.id(), partnerStationId, adminMember.id());
+        log.info("Demo: Created lending data");
+
+        // -- Public Knowledge Base --
+        stationRepository.updatePublicKbMode(station.id(), "ALLOW_ALL");
+        log.info("Demo: Enabled public knowledge base");
 
         // -- Settings --
         applicationSettingRepository.setBoolean("station_registration_enabled", false);

@@ -31,7 +31,7 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
 public class EventRepository {
 
     private static final String EVENT_COLUMNS =
-            "id, station_id, name, description, event_type, day_of_week, start_time, end_time, template_id, requires_registration, registration_deadline, requires_confirmation, category_id";
+            "id, station_id, name, description, event_type, day_of_week, start_time, end_time, template_id, requires_registration, registration_deadline, requires_confirmation, category_id, restriction_mode";
 
     // -- Events --
 
@@ -350,6 +350,20 @@ public class EventRepository {
     }
 
     // -- Restrictions --
+
+    /**
+     * Updates the restriction mode for an event.
+     *
+     * @param eventId the event ID
+     * @param mode    the restriction mode ("AND" or "OR")
+     * @return true if a row was updated
+     */
+    public boolean updateRestrictionMode(int eventId, String mode) {
+        return Query.query("UPDATE station_event SET restriction_mode = :mode WHERE id = :id;")
+                .single(Call.of().bind("mode", mode).bind("id", eventId))
+                .update()
+                .changed();
+    }
 
     /**
      * Retrieves the role IDs restricting access to an event.

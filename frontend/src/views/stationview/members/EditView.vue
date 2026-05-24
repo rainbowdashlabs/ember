@@ -24,12 +24,12 @@ import type { ProfileField, StationMember, Role, MemberGroup, UserTag } from '@/
 import { Roles, hasTeamRole } from '@/api/types'
 import { profileFields, stationMembers, members, inventory, memberGroups, userTags } from '@/api'
 import type { MyInventoryItem } from '@/api/inventory'
-import { useStations } from '@/composables/useStations'
+
 
 const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
-const { currentStationId } = useStations()
+
 
 const memberId = computed(() => Number(route.params.id))
 

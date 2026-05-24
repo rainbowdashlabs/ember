@@ -49,34 +49,34 @@ function onSepClick(value: string) {
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
       <div>
         <label class="text-xs text-(--text-muted) block mb-1">{{ t('quiz.csv.questionColumn') }} *</label>
-        <SelectInput :model-value="questionCol" @update:model-value="emit('update:questionCol', $event)">
+        <SelectInput :model-value="questionCol" @update:model-value="emit('update:questionCol', $event ?? questionCol)">
           <option v-for="h in headers" :key="h" :value="h">{{ h }}</option>
         </SelectInput>
       </div>
       <div>
         <label class="text-xs text-(--text-muted) block mb-1">{{ t('quiz.csv.answerColumn') }}</label>
-        <SelectInput :model-value="answerCol" @update:model-value="emit('update:answerCol', $event)">
+        <SelectInput :model-value="answerCol" @update:model-value="emit('update:answerCol', $event ?? answerCol)">
           <option value="">&ndash;</option>
           <option v-for="h in headers" :key="h" :value="h">{{ h }}</option>
         </SelectInput>
       </div>
       <div>
         <label class="text-xs text-(--text-muted) block mb-1">{{ t('quiz.csv.categoryColumn') }}</label>
-        <SelectInput :model-value="categoryCol" @update:model-value="emit('update:categoryCol', $event)">
+        <SelectInput :model-value="categoryCol" @update:model-value="emit('update:categoryCol', $event ?? categoryCol)">
           <option value="">&ndash;</option>
           <option v-for="h in headers" :key="h" :value="h">{{ h }}</option>
         </SelectInput>
       </div>
       <div>
         <label class="text-xs text-(--text-muted) block mb-1">{{ t('quiz.csv.typeColumn') }}</label>
-        <SelectInput :model-value="typeCol" @update:model-value="emit('update:typeCol', $event)">
+        <SelectInput :model-value="typeCol" @update:model-value="emit('update:typeCol', $event ?? typeCol)">
           <option value="">&ndash;</option>
           <option v-for="h in headers" :key="h" :value="h">{{ h }}</option>
         </SelectInput>
       </div>
       <div>
         <label class="text-xs text-(--text-muted) block mb-1">{{ t('quiz.csv.pointsColumn') }}</label>
-        <SelectInput :model-value="pointsCol" @update:model-value="emit('update:pointsCol', $event)">
+        <SelectInput :model-value="pointsCol" @update:model-value="emit('update:pointsCol', $event ?? pointsCol)">
           <option value="">&ndash;</option>
           <option v-for="h in headers" :key="h" :value="h">{{ h }}</option>
         </SelectInput>
@@ -97,7 +97,7 @@ function onSepClick(value: string) {
     </div>
     <div v-if="!typeCol">
       <label class="text-xs text-(--text-muted) block mb-1">{{ t('quiz.csv.defaultType') }}</label>
-      <SelectInput :model-value="defaultType" class="w-64" @update:model-value="emit('update:defaultType', $event as QuizQuestionTypeName)">
+      <SelectInput :model-value="defaultType" class="w-64" @update:model-value="emit('update:defaultType', ($event ?? defaultType) as QuizQuestionTypeName)">
         <option v-for="opt in typeOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
       </SelectInput>
     </div>

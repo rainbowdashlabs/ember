@@ -389,6 +389,13 @@ public class QuizTestRepository {
 
     // -- Restrictions --
 
+    public boolean updateRestrictionMode(int testId, String mode) {
+        return Query.query("UPDATE quiz_test SET restriction_mode = :mode WHERE id = :id;")
+                .single(Call.of().bind("mode", mode).bind("id", testId))
+                .update()
+                .changed();
+    }
+
     public List<Integer> findRoleRestrictions(int testId) {
         return Query.query("SELECT role_id FROM quiz_test_role_restriction WHERE test_id = :test_id;")
                 .single(Call.of().bind("test_id", testId))

@@ -46,19 +46,29 @@ public class FederationRepository {
                 .first();
     }
 
-    public FederationPartner createPartner(int stationId, int partnerStationId, String inviteCode, String publicKey) {
+    public FederationPartner createPartner(
+            int stationId, int partnerStationId, String inviteCode, String publicKey, String remoteHost) {
         return Query.query("""
-                        INSERT INTO federation_partner(station_id, partner_station_id, invite_code, public_key, status)
-                        VALUES (:station_id, :partner_station_id, :invite_code, :public_key, 'PENDING')
+                        INSERT INTO federation_partner(station_id, partner_station_id, invite_code, public_key, status, remote_host)
+                        VALUES (:station_id, :partner_station_id, :invite_code, :public_key, 'PENDING', :remote_host)
                         RETURNING *;""")
                 .single(Call.of()
                         .bind("station_id", stationId)
                         .bind("partner_station_id", partnerStationId)
                         .bind("invite_code", inviteCode)
-                        .bind("public_key", publicKey))
+                        .bind("public_key", publicKey)
+                        .bind("remote_host", remoteHost))
                 .map(FederationPartner.map())
                 .first()
                 .orElseThrow();
+    }
+
+    public boolean updateRemoteHost(int id, String remoteHost) {
+        return Query.query(
+                        "UPDATE federation_partner SET remote_host = :remote_host, updated_at = now() WHERE id = :id;")
+                .single(Call.of().bind("id", id).bind("remote_host", remoteHost))
+                .update()
+                .changed();
     }
 
     public boolean activatePartner(int id, String partnerPublicKey) {
@@ -81,6 +91,16 @@ public class FederationRepository {
                 .single(Call.of().bind("id", id))
                 .delete()
                 .changed();
+    }
+
+    /**
+     * Updates the remote_host on all partner records where the given station is the partner.
+     */
+    public void updateRemoteHostForPartnerStation(int partnerStationId, String remoteHost) {
+        Query.query(
+                        "UPDATE federation_partner SET remote_host = :remote_host, updated_at = now() WHERE partner_station_id = :partner_station_id;")
+                .single(Call.of().bind("partner_station_id", partnerStationId).bind("remote_host", remoteHost))
+                .update();
     }
 
     // -- Capabilities --

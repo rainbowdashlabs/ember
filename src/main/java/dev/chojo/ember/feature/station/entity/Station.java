@@ -31,7 +31,8 @@ public record Station(
         String defaultTheme,
         boolean allowUserTheme,
         String customThemeColors,
-        PublicKbMode publicKbMode) {
+        PublicKbMode publicKbMode,
+        String federationPrivateKey) {
     public static RowMapping<Station> map() {
         return row -> new Station(
                 row.getInt("id"),
@@ -43,6 +44,7 @@ public record Station(
                 row.getString("default_theme"),
                 row.getBoolean("allow_user_theme"),
                 row.getString("custom_theme_colors"),
-                PublicKbMode.valueOf(row.getString("public_kb_mode")));
+                PublicKbMode.valueOf(row.getString("public_kb_mode")),
+                row.getString("federation_private_key"));
     }
 }

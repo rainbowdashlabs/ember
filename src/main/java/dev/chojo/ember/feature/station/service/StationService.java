@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -71,7 +72,7 @@ public class StationService {
         return stationRepository.findById(id);
     }
 
-    public Optional<Station> findByUid(java.util.UUID uid) {
+    public Optional<Station> findByUid(UUID uid) {
         return stationRepository.findByUid(uid);
     }
 

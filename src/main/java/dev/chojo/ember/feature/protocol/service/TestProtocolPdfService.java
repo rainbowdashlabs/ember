@@ -17,6 +17,7 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
@@ -138,7 +139,7 @@ public class TestProtocolPdfService {
         var itemsBySectionId = allItems.stream().collect(Collectors.groupingBy(TestProtocolItem::sectionId));
 
         record MS(int memberId, String name, Map<Integer, Double> scores, double total) {}
-        var data = new java.util.ArrayList<MS>();
+        var data = new ArrayList<MS>();
         for (var rm : members) {
             var checks = repository.findChecks(rm.id());
             var checkedIds = checks.stream()

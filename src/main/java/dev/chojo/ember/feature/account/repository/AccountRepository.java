@@ -93,22 +93,6 @@ public class AccountRepository {
                 .orElseThrow();
     }
 
-    /**
-     * Creates a new account without an email address (non-login member).
-     *
-     * @param firstName the first name
-     * @param lastName  the last name
-     * @return the created account
-     */
-    public Account createWithoutEmail(String firstName, String lastName) {
-        return query("INSERT INTO account(first_name, last_name) VALUES(:first_name, :last_name) RETURNING "
-                        + ACCOUNT_COLUMNS + ";")
-                .single(Call.of().bind("first_name", firstName).bind("last_name", lastName))
-                .map(Account.map())
-                .first()
-                .orElseThrow();
-    }
-
     // -- Account Roles --
 
     /**

@@ -10,7 +10,7 @@ import Modal from '@/components/feedback/Modal.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import IconButton from '@/components/button/IconButton.vue'
-import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
+import RestrictionPicker from '@/components/input/RestrictionPicker.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import {knowledgeBase, stationMembers, memberGroups, userTags} from '@/api'
@@ -31,9 +31,9 @@ const emit = defineEmits<{
 
 const editName = ref('')
 const editDescription = ref('')
-const roleIds = ref<Set<number>>(new Set())
-const groupIds = ref<Set<number>>(new Set())
-const tagIds = ref<Set<number>>(new Set())
+const roleIds = ref<number[]>([])
+const groupIds = ref<number[]>([])
+const tagIds = ref<number[]>([])
 const tags = ref<string[]>([])
 const newTag = ref('')
 const iconFile = ref<File | null>(null)
@@ -45,27 +45,6 @@ const error = ref('')
 function onIconSelect(event: Event) {
     const input = event.target as HTMLInputElement
     iconFile.value = input.files?.[0] ?? null
-}
-
-function toggleRole(roleId: number) {
-    const next = new Set(roleIds.value)
-    if (next.has(roleId)) next.delete(roleId)
-    else next.add(roleId)
-    roleIds.value = next
-}
-
-function toggleGroup(groupId: number) {
-    const next = new Set(groupIds.value)
-    if (next.has(groupId)) next.delete(groupId)
-    else next.add(groupId)
-    groupIds.value = next
-}
-
-function toggleTag(tagId: number) {
-    const next = new Set(tagIds.value)
-    if (next.has(tagId)) next.delete(tagId)
-    else next.add(tagId)
-    tagIds.value = next
 }
 
 function addTag() {
@@ -83,9 +62,9 @@ watch(() => props.show, async (visible) => {
     if (visible && props.folder) {
         editName.value = props.folder.name
         editDescription.value = props.folder.description
-        roleIds.value = new Set()
-        groupIds.value = new Set()
-        tagIds.value = new Set()
+        roleIds.value = []
+        groupIds.value = []
+        tagIds.value = []
         tags.value = []
         newTag.value = ''
         iconFile.value = null
@@ -109,9 +88,9 @@ watch(() => props.show, async (visible) => {
                 knowledgeBase.getFolderRestrictions(props.folder.id),
                 knowledgeBase.getFolderTags(props.folder.id),
             ])
-            roleIds.value = new Set(r.roleIds)
-            groupIds.value = new Set(r.groupIds)
-            tagIds.value = new Set(r.tagIds)
+            roleIds.value = r.roleIds
+            groupIds.value = r.groupIds
+            tagIds.value = r.tagIds
             tags.value = folderTags.map(t => t.name)
         } catch {
             // ignore
@@ -128,9 +107,9 @@ async function handleSave() {
                 description: editDescription.value,
             }),
             knowledgeBase.setFolderRestrictions(props.folder.id, {
-                roleIds: [...roleIds.value],
-                groupIds: [...groupIds.value],
-                tagIds: [...tagIds.value],
+                roleIds: roleIds.value,
+                groupIds: groupIds.value,
+                tagIds: tagIds.value,
                 memberIds: [],
             }),
             knowledgeBase.setFolderTags(props.folder.id, tags.value),
@@ -168,46 +147,18 @@ async function handleSave() {
             <!-- Restrictions -->
             <div class="space-y-3 border-t border-bg-light-accent dark:border-bg-dark-accent pt-3">
                 <h3 class="text-sm font-semibold">{{ t('kb.restrictions') }}</h3>
-                <div class="space-y-2">
-                    <label class="text-xs text-[var(--text-muted)]">{{ t('kb.restrictionRoles') }}</label>
-                    <div class="flex flex-wrap gap-2">
-                        <SelectionToggleButton
-                            v-for="role in allRoles" :key="role.id"
-                            :selected="roleIds.has(role.id)"
-                            @toggle="toggleRole(role.id)"
-                        >
-                            {{ role.role }}
-                        </SelectionToggleButton>
-                    </div>
-                </div>
-                <div class="space-y-2">
-                    <label class="text-xs text-[var(--text-muted)]">{{ t('kb.restrictionGroups') }}</label>
-                    <div class="flex flex-wrap gap-2">
-                        <SelectionToggleButton
-                            v-for="group in allGroups" :key="group.id"
-                            :selected="groupIds.has(group.id)"
-                            @toggle="toggleGroup(group.id)"
-                        >
-                            {{ group.name }}
-                        </SelectionToggleButton>
-                        <span v-if="allGroups.length === 0" class="text-xs text-[var(--text-muted)]">&#8211;</span>
-                    </div>
-                </div>
-                <div class="space-y-2">
-                    <label class="text-xs text-[var(--text-muted)]">{{ t('kb.restrictionTags') }}</label>
-                    <div class="flex flex-wrap gap-2">
-                        <SelectionToggleButton
-                            v-for="tag in allTags" :key="tag.id"
-                            :selected="tagIds.has(tag.id)"
-                            @toggle="toggleTag(tag.id)"
-                        >
-                            {{ tag.name }}
-                        </SelectionToggleButton>
-                        <span v-if="allTags.length === 0" class="text-xs text-[var(--text-muted)]">&#8211;</span>
-                    </div>
-                </div>
-                <p v-if="roleIds.size === 0 && groupIds.size === 0 && tagIds.size === 0"
-                   class="text-xs text-[var(--text-muted)] italic">{{ t('kb.restrictionsHint') }}</p>
+                <RestrictionPicker
+                    :roles="allRoles"
+                    :groups="allGroups"
+                    :tags="allTags"
+                    :selected-role-ids="roleIds"
+                    :selected-group-ids="groupIds"
+                    :selected-tag-ids="tagIds"
+                    :show-mode="false"
+                    @update:selected-role-ids="roleIds = $event"
+                    @update:selected-group-ids="groupIds = $event"
+                    @update:selected-tag-ids="tagIds = $event"
+                />
             </div>
 
             <!-- Tags -->

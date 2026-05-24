@@ -30,6 +30,8 @@ import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -39,6 +41,8 @@ import java.util.Map;
 
 @Singleton
 public class WaitingListRoutes implements Routes {
+    private static final Logger log = LoggerFactory.getLogger(WaitingListRoutes.class);
+
     private final WaitingListService service;
 
     @Inject
@@ -135,8 +139,10 @@ public class WaitingListRoutes implements Routes {
                     request.notes());
             ctx.status(HttpStatus.CREATED).json(new PublicEntryResponse(entry.accessToken()));
         } catch (IllegalArgumentException e) {
+            log.warn("Invalid argument registering via waiting list invite", e);
             throw new BadRequestResponse(e.getMessage());
         } catch (IllegalStateException e) {
+            log.warn("Invalid state registering via waiting list invite", e);
             throw new ForbiddenResponse(e.getMessage());
         }
     }
@@ -441,8 +447,10 @@ public class WaitingListRoutes implements Routes {
             var entry = service.inviteEntry(entryId);
             ctx.json(entry);
         } catch (IllegalArgumentException e) {
+            log.warn("Waiting list entry not found for invite, entryId={}", entryId, e);
             throw new NotFoundResponse(e.getMessage());
         } catch (IllegalStateException e) {
+            log.warn("Invalid state when inviting waiting list entry, entryId={}", entryId, e);
             throw new BadRequestResponse(e.getMessage());
         }
     }
@@ -453,8 +461,10 @@ public class WaitingListRoutes implements Routes {
             var entry = service.moveToTesting(entryId);
             ctx.json(entry);
         } catch (IllegalArgumentException e) {
+            log.warn("Waiting list entry not found for moveToTesting, entryId={}", entryId, e);
             throw new NotFoundResponse(e.getMessage());
         } catch (IllegalStateException e) {
+            log.warn("Invalid state when moving waiting list entry to testing, entryId={}", entryId, e);
             throw new BadRequestResponse(e.getMessage());
         }
     }
@@ -465,8 +475,10 @@ public class WaitingListRoutes implements Routes {
             var entry = service.moveToJoined(entryId);
             ctx.json(entry);
         } catch (IllegalArgumentException e) {
+            log.warn("Waiting list entry not found for moveToJoined, entryId={}", entryId, e);
             throw new NotFoundResponse(e.getMessage());
         } catch (IllegalStateException e) {
+            log.warn("Invalid state when moving waiting list entry to joined, entryId={}", entryId, e);
             throw new BadRequestResponse(e.getMessage());
         }
     }
@@ -477,8 +489,10 @@ public class WaitingListRoutes implements Routes {
             var entry = service.withdrawEntry(entryId);
             ctx.json(entry);
         } catch (IllegalArgumentException e) {
+            log.warn("Waiting list entry not found for withdraw, entryId={}", entryId, e);
             throw new NotFoundResponse(e.getMessage());
         } catch (IllegalStateException e) {
+            log.warn("Invalid state when withdrawing waiting list entry, entryId={}", entryId, e);
             throw new BadRequestResponse(e.getMessage());
         }
     }
@@ -488,6 +502,7 @@ public class WaitingListRoutes implements Routes {
         try {
             ScoreEvaluator.validate(formula, fieldNames);
         } catch (IllegalArgumentException e) {
+            log.warn("Invalid scoring formula: {}", formula, e);
             throw new BadRequestResponse("Invalid formula: " + e.getMessage());
         }
     }

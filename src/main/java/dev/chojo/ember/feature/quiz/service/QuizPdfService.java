@@ -218,7 +218,7 @@ public class QuizPdfService {
 
         for (var idx : indexed) {
             var opt = options.get(idx[0]);
-            String text = opt.get("text").asText();
+            String text = opt.get("text").asString();
             boolean correct = opt.has("correct") && opt.get("correct").asBoolean();
             if (showAnswers) {
                 sb.append(
@@ -261,7 +261,7 @@ public class QuizPdfService {
             if (answers != null && answers.isArray() && !answers.isEmpty()) {
                 sb.append("*Mögliche Antworten:*\n");
                 for (var a : answers) {
-                    sb.append("- ").append(escape(a.asText())).append("\n");
+                    sb.append("- ").append(escape(a.asString())).append("\n");
                 }
             }
         } else {
@@ -281,15 +281,15 @@ public class QuizPdfService {
 
             if (hasDistractorsSol
                     && textNode != null
-                    && !textNode.asText().isBlank()
+                    && !textNode.asString().isBlank()
                     && answers != null
                     && answers.isArray()) {
                 // Word bank mode: build the word list to find the correct number for each answer
                 List<String> allWords = new ArrayList<>();
-                for (var a : answers) allWords.add(a.asText());
-                for (var d : distractors) allWords.add(d.asText());
+                for (var a : answers) allWords.add(a.asString());
+                for (var d : distractors) allWords.add(d.asString());
                 // Show the sentence with the correct word bank number in each gap
-                String text = textNode.asText();
+                String text = textNode.asString();
                 int ansIdx = 0;
                 StringBuilder segment = new StringBuilder();
                 for (int i = 0; i < text.length(); i++) {
@@ -299,7 +299,7 @@ public class QuizPdfService {
                         while (i < text.length() && text.charAt(i) == '_') i++;
                         i--;
                         String answer =
-                                ansIdx < answers.size() ? answers.get(ansIdx).asText() : "?";
+                                ansIdx < answers.size() ? answers.get(ansIdx).asString() : "?";
                         int wordNum = allWords.indexOf(answer) + 1;
                         ansIdx++;
                         sb.append(" *")
@@ -312,9 +312,9 @@ public class QuizPdfService {
                     }
                 }
                 sb.append(escape(segment.toString())).append("\n\n");
-            } else if (textNode != null && !textNode.asText().isBlank() && answers != null && answers.isArray()) {
+            } else if (textNode != null && !textNode.asString().isBlank() && answers != null && answers.isArray()) {
                 // No word bank: show sentence with answers filled in bold
-                String text = textNode.asText();
+                String text = textNode.asString();
                 int ansIdx = 0;
                 StringBuilder segment = new StringBuilder();
                 for (int i = 0; i < text.length(); i++) {
@@ -324,7 +324,7 @@ public class QuizPdfService {
                         while (i < text.length() && text.charAt(i) == '_') i++;
                         i--;
                         String answer =
-                                ansIdx < answers.size() ? answers.get(ansIdx).asText() : "?";
+                                ansIdx < answers.size() ? answers.get(ansIdx).asString() : "?";
                         ansIdx++;
                         sb.append(" *").append(escape(answer)).append("* ");
                     } else {
@@ -336,7 +336,7 @@ public class QuizPdfService {
                 // Fallback: just list the answers
                 List<String> parts = new ArrayList<>();
                 for (int i = 0; i < answers.size(); i++) {
-                    parts.add(answers.get(i).asText());
+                    parts.add(answers.get(i).asString());
                 }
                 sb.append("*Lücken:* ").append(String.join(", ", parts)).append("\n\n");
             }
@@ -347,8 +347,8 @@ public class QuizPdfService {
             if (hasDistractors) {
                 // Word bank mode: show highlighted word list and text with numbered gaps
                 List<String> allWords = new ArrayList<>();
-                if (answers != null && answers.isArray()) for (var a : answers) allWords.add(a.asText());
-                for (var d : distractors) allWords.add(d.asText());
+                if (answers != null && answers.isArray()) for (var a : answers) allWords.add(a.asString());
+                for (var d : distractors) allWords.add(d.asString());
                 Collections.shuffle(allWords);
                 sb.append("#rect(fill: luma(240), radius: 4pt, inset: 8pt)[#text(size: 9pt)[\n");
                 sb.append("*Wörter:* ");
@@ -359,13 +359,13 @@ public class QuizPdfService {
                 sb.append("\n]]\n\n");
 
                 // Show text with numbered gaps
-                if (textNode != null && !textNode.asText().isBlank()) {
-                    renderFillBlankText(sb, textNode.asText(), true, null);
+                if (textNode != null && !textNode.asString().isBlank()) {
+                    renderFillBlankText(sb, textNode.asString(), true, null);
                 }
             } else {
                 // No word bank: show text with inline blank lines sized to answer length
-                if (textNode != null && !textNode.asText().isBlank() && answers != null && answers.isArray()) {
-                    renderFillBlankText(sb, textNode.asText(), false, answers);
+                if (textNode != null && !textNode.asString().isBlank() && answers != null && answers.isArray()) {
+                    renderFillBlankText(sb, textNode.asString(), false, answers);
                 } else {
                     // Fallback: plain gap lines
                     int gapCount = answers != null ? answers.size() : 1;
@@ -384,8 +384,8 @@ public class QuizPdfService {
         List<String> left = new ArrayList<>();
         List<String> right = new ArrayList<>();
         for (var pair : pairs) {
-            left.add(pair.get("left").asText());
-            right.add(pair.get("right").asText());
+            left.add(pair.get("left").asString());
+            right.add(pair.get("right").asString());
         }
 
         if (showAnswers) {
@@ -418,12 +418,12 @@ public class QuizPdfService {
         if (showAnswers) {
             int i = 1;
             for (var item : items) {
-                sb.append(i++).append(". ").append(escape(item.asText())).append("\n");
+                sb.append(i++).append(". ").append(escape(item.asString())).append("\n");
             }
         } else {
             // Shuffled items, each on its own line with a number field
             List<String> shuffled = new ArrayList<>();
-            for (var item : items) shuffled.add(item.asText());
+            for (var item : items) shuffled.add(item.asString());
             Collections.shuffle(shuffled);
             for (var item : shuffled) {
                 sb.append("#box(stroke: 0.5pt, width: 10pt, height: 10pt) #h(4pt) ")
@@ -436,7 +436,7 @@ public class QuizPdfService {
 
     private void renderImageText(StringBuilder sb, JsonNode cfg, boolean showAnswers) {
         if (showAnswers) {
-            String answer = cfg.has("answer") ? cfg.get("answer").asText() : "";
+            String answer = cfg.has("answer") ? cfg.get("answer").asString() : "";
             sb.append("*Antwort:* ").append(escape(answer)).append("\n\n");
         } else {
             sb.append("#v(8pt)\n");
@@ -455,7 +455,7 @@ public class QuizPdfService {
             if (answers != null && answers.isArray()) {
                 int i = 1;
                 for (var a : answers) {
-                    sb.append(i++).append(". ").append(escape(a.asText())).append("\n");
+                    sb.append(i++).append(". ").append(escape(a.asString())).append("\n");
                 }
             }
             if (ordered) {
@@ -489,7 +489,7 @@ public class QuizPdfService {
                 } else {
                     // Sized inline gap (using box with bottom stroke to stay inline)
                     int ansLen = answers != null && ansIdx < answers.size()
-                            ? answers.get(ansIdx).asText().length()
+                            ? answers.get(ansIdx).asString().length()
                             : 5;
                     ansIdx++;
                     double cm = Math.max(1.5, (ansLen + 2) * 0.25);

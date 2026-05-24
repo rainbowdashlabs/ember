@@ -351,10 +351,12 @@ public class FormRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = FormRestrictions.class)))
     private void getRestrictions(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
+        var form = formService.findById(id).orElseThrow(NotFoundResponse::new);
         ctx.json(new FormRestrictions(
                 formService.findRoleRestrictions(id),
                 formService.findGroupRestrictions(id),
-                formService.findTagRestrictions(id)));
+                formService.findTagRestrictions(id),
+                form.restrictionMode()));
     }
 
     @OpenApi(
@@ -369,6 +371,9 @@ public class FormRoutes implements Routes {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
         var req = ctx.bodyAsClass(FormRestrictions.class);
         formService.setRestrictions(id, req.roleIds(), req.groupIds(), req.tagIds());
+        if (req.mode() != null) {
+            formService.updateRestrictionMode(id, req.mode());
+        }
         ctx.json(req);
     }
 
@@ -683,7 +688,7 @@ public class FormRoutes implements Routes {
      * @param groupIds list of group IDs that grant access
      * @param tagIds   list of tag IDs that grant access
      */
-    public record FormRestrictions(List<Integer> roleIds, List<Integer> groupIds, List<Integer> tagIds) {}
+    public record FormRestrictions(List<Integer> roleIds, List<Integer> groupIds, List<Integer> tagIds, String mode) {}
 
     /**
      * Request body for submitting or updating a form response.

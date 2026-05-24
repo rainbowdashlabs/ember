@@ -26,6 +26,8 @@ import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import type { InventoryDetail, InventoryItem, InventoryItemHistory, InventorySize, StationMember, ProcurementEntry } from '@/api/types'
 import { InventoryTypes } from '@/api/types'
 import { inventory, stationMembers, procurement } from '@/api'
+import { getLentOutByInventory, type LentOutItem } from '@/api/lending'
+import InfoBadge from '@/components/badge/InfoBadge.vue'
 import { useStations } from '@/composables/useStations'
 import MemberName from '@/components/avatar/MemberName.vue'
 
@@ -39,6 +41,7 @@ const detail = ref<InventoryDetail | null>(null)
 const items = ref<InventoryItem[]>([])
 const memberMap = ref<Map<number, StationMember>>(new Map())
 const openProcurement = ref<ProcurementEntry[]>([])
+const lentOutItems = ref<LentOutItem[]>([])
 const loading = ref(true)
 const error = ref('')
 
@@ -77,6 +80,7 @@ const lostCount = computed(() => items.value.filter(i => i.lostAt).length)
 const assignedCount = computed(() => items.value.filter(i => i.assignedTo && !i.lostAt).length)
 const freeCount = computed(() => items.value.filter(i => !i.assignedTo && !i.lostAt).length)
 
+const lentOutCount = computed(() => lentOutItems.value.reduce((sum, l) => sum + l.quantity, 0))
 const lostItems = computed(() => items.value.filter(i => i.lostAt))
 
 const sizeDistribution = computed(() => {
@@ -144,6 +148,9 @@ async function loadData() {
       const allProc = await procurement.listOpen()
       openProcurement.value = allProc.filter(p => p.inventoryId === inventoryId.value)
     } catch { openProcurement.value = [] }
+    try {
+      lentOutItems.value = await getLentOutByInventory(inventoryId.value)
+    } catch { lentOutItems.value = [] }
   } catch {
     error.value = t('common.error')
   } finally {
@@ -315,7 +322,7 @@ onMounted(loadData)
 
       <template v-if="!loading && detail">
         <!-- Summary -->
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div :class="lentOutCount > 0 ? 'grid-cols-2 sm:grid-cols-5' : 'grid-cols-2 sm:grid-cols-4'" class="grid gap-3">
           <NeutralContainer class="text-center">
             <div class="text-2xl font-bold">{{ totalCount }}</div>
             <div class="text-xs text-(--text-muted)">{{ t('inventory.detail.total') }}</div>
@@ -331,6 +338,10 @@ onMounted(loadData)
           <NeutralContainer class="text-center">
             <div class="text-2xl font-bold text-error">{{ lostCount }}</div>
             <div class="text-xs text-(--text-muted)">{{ t('inventory.detail.lost') }}</div>
+          </NeutralContainer>
+          <NeutralContainer v-if="lentOutCount > 0" class="text-center">
+            <div class="text-2xl font-bold text-secondary-accent">{{ lentOutCount }}</div>
+            <div class="text-xs text-(--text-muted)">{{ t('inventory.detail.lentOut') }}</div>
           </NeutralContainer>
         </div>
 
@@ -379,7 +390,7 @@ onMounted(loadData)
               </thead>
               <tbody>
                 <tr v-for="p in openProcurement" :key="p.id" class="border-b border-bg-light-accent/50 dark:border-bg-dark-accent/50">
-                  <td class="px-3 py-2.5"><MemberName :name="p.memberName"/></td>
+                  <td class="px-3 py-2.5"><MemberName :name="p.memberName" :member-id="p.memberId"/></td>
                   <td class="px-3 py-2.5"><SizeBadge>{{ p.sizeLabel || t('common.unisize') }}</SizeBadge></td>
                   <td class="px-3 py-2.5 text-(--text-muted)">{{ p.notes || '-' }}</td>
                   <td class="px-3 py-2.5 text-right">
@@ -387,6 +398,48 @@ onMounted(loadData)
                       <font-awesome-icon :icon="['fas', 'check']" class="mr-1" />
                       {{ t('procurement.markFulfilled') }}
                     </PrimaryButton>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </NeutralContainer>
+        </template>
+
+        <!-- Lent out items -->
+        <template v-if="lentOutItems.length > 0">
+          <SubHeader>
+            <font-awesome-icon :icon="['fas', 'arrow-right-arrow-left']" class="mr-2" />
+            {{ t('inventory.detail.lentOut') }} ({{ lentOutCount }})
+          </SubHeader>
+          <NeutralContainer class="overflow-x-auto">
+            <table class="w-full text-sm">
+              <thead>
+                <tr class="border-b border-bg-light-accent dark:border-bg-dark-accent text-left">
+                  <th class="px-3 py-2 font-medium">{{ t('inventory.detail.lentToStation') }}</th>
+                  <th class="px-3 py-2 font-medium text-center">{{ t('inventory.detail.lentQuantity') }}</th>
+                  <th class="px-3 py-2 font-medium">{{ t('inventory.detail.lentUntil') }}</th>
+                  <th class="px-3 py-2 font-medium">{{ t('inventory.detail.lentStatus') }}</th>
+                  <th class="px-3 py-2"></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="lent in lentOutItems" :key="lent.requestItemId" class="border-b border-bg-light-accent/50 dark:border-bg-dark-accent/50">
+                  <td class="px-3 py-2.5 font-medium">{{ lent.requestingStationName }}</td>
+                  <td class="px-3 py-2.5 text-center">{{ lent.quantity }}</td>
+                  <td class="px-3 py-2.5">
+                    <template v-if="lent.dateTo">{{ formatDate(lent.dateTo) }}</template>
+                    <span v-else class="text-(--text-muted)">–</span>
+                  </td>
+                  <td class="px-3 py-2.5">
+                    <InfoBadge>{{ lent.status === 'LENT' ? t('inventory.detail.statusLent') : t('inventory.detail.statusApproved') }}</InfoBadge>
+                  </td>
+                  <td class="px-3 py-2.5 text-right">
+                    <router-link :to="{ name: 'inventory-lending-request', params: { id: lent.requestId } }">
+                      <SecondaryButton>
+                        <font-awesome-icon :icon="['fas', 'eye']" class="mr-1" />
+                        {{ t('inventory.detail.viewRequest') }}
+                      </SecondaryButton>
+                    </router-link>
                   </td>
                 </tr>
               </tbody>
@@ -404,6 +457,7 @@ onMounted(loadData)
             :members="memberMap"
             :show-actions="true"
             :inventory-type="detail.inventoryType ?? InventoryTypes.INTERNAL"
+            :lent-out-items="lentOutItems"
             @assign="onAssign"
             @unassign="onUnassign"
             @edit="onEditItem"
@@ -462,7 +516,7 @@ onMounted(loadData)
                     </div>
                     <div v-if="item.internalId" class="text-xs text-(--text-muted)">{{ item.internalId }}</div>
                   </td>
-                  <td class="px-3 py-2.5"><MemberName :name="ownerName(item.assignedTo)"/></td>
+                  <td class="px-3 py-2.5"><MemberName :name="ownerName(item.assignedTo)" :member-id="item.assignedTo"/></td>
                   <td class="px-3 py-2.5">
                     <ErrorBadge>{{ formatDate(item.lostAt) }}</ErrorBadge>
                   </td>

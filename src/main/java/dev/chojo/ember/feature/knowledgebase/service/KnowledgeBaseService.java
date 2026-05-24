@@ -11,6 +11,7 @@ import dev.chojo.ember.feature.knowledgebase.entity.KbFileType;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFileVersion;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFolder;
 import dev.chojo.ember.feature.knowledgebase.entity.KbTag;
+import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
 import dev.chojo.ember.feature.knowledgebase.repository.KnowledgeBaseRepository;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.util.TextDiff;
@@ -29,9 +30,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.URI;
+import java.net.URLEncoder;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
@@ -197,7 +200,7 @@ public class KnowledgeBaseService {
     private String fetchYoutubeMetadata(String youtubeUrl) {
         try {
             String oembedUrl = "https://www.youtube.com/oembed?url="
-                    + java.net.URLEncoder.encode(youtubeUrl, java.nio.charset.StandardCharsets.UTF_8)
+                    + URLEncoder.encode(youtubeUrl, StandardCharsets.UTF_8)
                     + "&format=json";
             HttpClient httpClient = HttpClient.newBuilder()
                     .connectTimeout(Duration.ofSeconds(5))
@@ -222,7 +225,7 @@ public class KnowledgeBaseService {
     }
 
     private static String extractJsonString(String json, String key) {
-        var pattern = java.util.regex.Pattern.compile("\"" + key + "\"\\s*:\\s*\"([^\"]+)\"");
+        var pattern = Pattern.compile("\"" + key + "\"\\s*:\\s*\"([^\"]+)\"");
         var matcher = pattern.matcher(json);
         return matcher.find() ? matcher.group(1) : null;
     }
@@ -388,9 +391,8 @@ public class KnowledgeBaseService {
      * In DENY_ALL mode: not public unless explicitly opted in.
      * Folder visibility is inherited by child items unless overridden.
      */
-    public boolean isPubliclyVisible(
-            dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode mode, Integer folderId, Integer fileId) {
-        if (mode == dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode.OFF) return false;
+    public boolean isPubliclyVisible(PublicKbMode mode, Integer folderId, Integer fileId) {
+        if (mode == PublicKbMode.OFF) return false;
 
         // Items with access restrictions are never public
         if (repository.hasRestrictions(folderId, fileId)) return false;
@@ -413,10 +415,9 @@ public class KnowledgeBaseService {
 
         // Check explicit visibility override
         var override = repository.findPublicVisibility(folderId, fileId);
-        if (override.isPresent()) return override.get();
+        return override.orElseGet(() -> mode == PublicKbMode.ALLOW_ALL);
 
         // Default based on mode
-        return mode == dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode.ALLOW_ALL;
     }
 
     public void setPublicVisibility(Integer folderId, Integer fileId, boolean visible) {
@@ -427,7 +428,7 @@ public class KnowledgeBaseService {
         repository.removePublicVisibility(folderId, fileId);
     }
 
-    public java.util.Optional<Boolean> findPublicVisibility(Integer folderId, Integer fileId) {
+    public Optional<Boolean> findPublicVisibility(Integer folderId, Integer fileId) {
         return repository.findPublicVisibility(folderId, fileId);
     }
 

@@ -15,9 +15,11 @@ import dev.chojo.ember.feature.knowledgebase.entity.KbFolder;
 import dev.chojo.ember.feature.knowledgebase.entity.KbTag;
 import jakarta.inject.Singleton;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Singleton
 public class KnowledgeBaseRepository {
@@ -264,10 +266,10 @@ public class KnowledgeBaseRepository {
     }
 
     private static String preparePrefixQuery(String query) {
-        return java.util.Arrays.stream(query.trim().split("\\s+"))
+        return Arrays.stream(query.trim().split("\\s+"))
                 .filter(w -> !w.isBlank())
                 .map(w -> w.replaceAll("[^\\w\\p{L}]", "") + ":*")
-                .collect(java.util.stream.Collectors.joining(" & "));
+                .collect(Collectors.joining(" & "));
     }
 
     public List<KbFile> search(int stationId, String query, String tsConfig) {
@@ -517,7 +519,7 @@ public class KnowledgeBaseRepository {
 
     // -- Public Visibility --
 
-    public java.util.Optional<Boolean> findPublicVisibility(Integer folderId, Integer fileId) {
+    public Optional<Boolean> findPublicVisibility(Integer folderId, Integer fileId) {
         if (folderId != null) {
             return Query.query("SELECT visible FROM kb_public_visibility WHERE folder_id = :folder_id;")
                     .single(Call.of().bind("folder_id", folderId))
@@ -530,7 +532,7 @@ public class KnowledgeBaseRepository {
                     .map(row -> row.getBoolean("visible"))
                     .first();
         }
-        return java.util.Optional.empty();
+        return Optional.empty();
     }
 
     public void setPublicVisibility(Integer folderId, Integer fileId, boolean visible) {

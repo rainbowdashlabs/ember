@@ -23,7 +23,8 @@ public record QuizTest(
         Instant endAt,
         int createdBy,
         Instant createdAt,
-        Instant updatedAt) {
+        Instant updatedAt,
+        String restrictionMode) {
 
     public static RowMapping<QuizTest> map() {
         return row -> new QuizTest(
@@ -38,6 +39,7 @@ public record QuizTest(
                 row.get("end_at", INSTANT_TIMESTAMP),
                 row.getInt("created_by"),
                 row.get("created_at", INSTANT_TIMESTAMP),
-                row.get("updated_at", INSTANT_TIMESTAMP));
+                row.get("updated_at", INSTANT_TIMESTAMP),
+                row.getString("restriction_mode"));
     }
 }

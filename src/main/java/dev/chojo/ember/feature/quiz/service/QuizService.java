@@ -21,13 +21,17 @@ import dev.chojo.ember.feature.quiz.repository.QuizCatalogRepository;
 import dev.chojo.ember.feature.quiz.repository.QuizTestRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Singleton
 public class QuizService {
@@ -206,7 +210,7 @@ public class QuizService {
     public void replaceWithRandomQuestion(int testId, int position) {
         var frozen = testRepository.findFrozenQuestions(testId);
         var usedQuestionIds =
-                frozen.stream().map(QuizTestFrozenQuestion::questionId).collect(java.util.stream.Collectors.toSet());
+                frozen.stream().map(QuizTestFrozenQuestion::questionId).collect(Collectors.toSet());
 
         Integer sectionId = null;
         for (var fq : frozen) {
@@ -250,7 +254,7 @@ public class QuizService {
     public List<QuizQuestion> findAvailableReplacements(int testId) {
         var frozen = testRepository.findFrozenQuestions(testId);
         var usedQuestionIds =
-                frozen.stream().map(QuizTestFrozenQuestion::questionId).collect(java.util.stream.Collectors.toSet());
+                frozen.stream().map(QuizTestFrozenQuestion::questionId).collect(Collectors.toSet());
 
         var sections = testRepository.findSections(testId);
         List<QuizQuestion> candidates = new ArrayList<>();
@@ -289,15 +293,20 @@ public class QuizService {
         return testRepository.delete(id);
     }
 
-    public boolean isTestAccessible(QuizTest test, int memberId) {
+    public boolean isTestAccessible(
+            QuizTest test,
+            int memberId,
+            List<Integer> memberRoleIds,
+            List<Integer> memberGroupIds,
+            List<Integer> memberTagIds) {
         if (test.status() != TestStatus.ACTIVE) return false;
         Instant now = Instant.now();
         if (test.startAt() != null && now.isBefore(test.startAt())) return false;
         if (test.endAt() != null && now.isAfter(test.endAt())) return false;
-        // Check per-member override
-        testRepository.hasMemberAccess(test.id(), memberId);
-        // Global access when no time restrictions or within window
-        return true;
+        // Check per-member override (grants access regardless of restrictions)
+        if (testRepository.hasMemberAccess(test.id(), memberId)) return true;
+        // Check role/group/tag restrictions
+        return canMemberAccess(test.id(), memberRoleIds, memberGroupIds, memberTagIds);
     }
 
     // -- Sections --
@@ -448,7 +457,7 @@ public class QuizService {
 
     private void autoGradeAnswers(int attemptId) {
         var answers = testRepository.findAnswers(attemptId);
-        var mapper = new tools.jackson.databind.ObjectMapper();
+        var mapper = new ObjectMapper();
 
         for (var answer : answers) {
             var question = catalogRepository.findQuestionById(answer.questionId());
@@ -461,7 +470,7 @@ public class QuizService {
         }
     }
 
-    private int autoGradeQuestion(QuizQuestion q, String answerJson, tools.jackson.databind.ObjectMapper mapper) {
+    private int autoGradeQuestion(QuizQuestion q, String answerJson, ObjectMapper mapper) {
         if (answerJson == null || answerJson.isBlank()) return 0;
         try {
             var config = q.config();
@@ -480,13 +489,12 @@ public class QuizService {
         }
     }
 
-    private int gradeMultipleChoice(
-            tools.jackson.databind.JsonNode config, tools.jackson.databind.JsonNode answer, int maxPoints) {
+    private int gradeMultipleChoice(JsonNode config, JsonNode answer, int maxPoints) {
         var options = config.get("options");
         var selected = answer.get("selected");
         if (options == null || selected == null || !selected.isArray()) return 0;
 
-        var correctSet = new java.util.HashSet<Integer>();
+        var correctSet = new HashSet<Integer>();
         for (int i = 0; i < options.size(); i++) {
             if (options.get(i).has("correct") && options.get(i).get("correct").asBoolean()) {
                 correctSet.add(i);
@@ -506,25 +514,23 @@ public class QuizService {
         return Math.max(0, (int) Math.round(Math.min(points, maxPoints)));
     }
 
-    private int gradeTrueFalse(
-            tools.jackson.databind.JsonNode config, tools.jackson.databind.JsonNode answer, int maxPoints) {
+    private int gradeTrueFalse(JsonNode config, JsonNode answer, int maxPoints) {
         if (!config.has("correctAnswer") || !answer.has("value")) return 0;
         boolean correct = config.get("correctAnswer").asBoolean();
         boolean given = answer.get("value").asBoolean();
         return correct == given ? maxPoints : 0;
     }
 
-    private int gradeConnect(
-            tools.jackson.databind.JsonNode config, tools.jackson.databind.JsonNode answer, int maxPoints) {
+    private int gradeConnect(JsonNode config, JsonNode answer, int maxPoints) {
         var pairs = config.get("pairs");
         var givenPairs = answer.get("pairs");
         if (pairs == null || givenPairs == null) return 0;
 
         int correct = 0;
         for (int i = 0; i < pairs.size(); i++) {
-            String expectedRight = pairs.get(i).get("right").asText();
+            String expectedRight = pairs.get(i).get("right").asString();
             var given = givenPairs.get(String.valueOf(i));
-            if (given != null && given.asText().equals(expectedRight)) {
+            if (given != null && given.asString().equals(expectedRight)) {
                 correct++;
             }
         }
@@ -533,8 +539,7 @@ public class QuizService {
         return totalPairs == 0 ? 0 : Math.round((float) correct / totalPairs * maxPoints);
     }
 
-    private int gradeOrdering(
-            tools.jackson.databind.JsonNode config, tools.jackson.databind.JsonNode answer, int maxPoints) {
+    private int gradeOrdering(JsonNode config, JsonNode answer, int maxPoints) {
         var items = config.get("items");
         var order = answer.get("order");
         if (items == null || order == null || !order.isArray()) return 0;
@@ -550,8 +555,7 @@ public class QuizService {
         return allCorrect ? maxPoints : 0;
     }
 
-    private int gradeFillBlank(
-            tools.jackson.databind.JsonNode config, tools.jackson.databind.JsonNode answer, int maxPoints) {
+    private int gradeFillBlank(JsonNode config, JsonNode answer, int maxPoints) {
         var correctAnswers = config.get("answers");
         if (correctAnswers == null || !correctAnswers.isArray()) return -1;
         if (correctAnswers.isEmpty()) return -1;
@@ -563,9 +567,10 @@ public class QuizService {
             for (int i = 0; i < correctAnswers.size(); i++) {
                 var given = gaps.get(String.valueOf(i));
                 if (given != null
-                        && given.asText()
+                        && given.asString()
                                 .trim()
-                                .equalsIgnoreCase(correctAnswers.get(i).asText().trim())) {
+                                .equalsIgnoreCase(
+                                        correctAnswers.get(i).asString().trim())) {
                     correct++;
                 }
             }
@@ -574,18 +579,17 @@ public class QuizService {
         }
 
         // Legacy format: text = "single answer"
-        String given = answer.has("text") ? answer.get("text").asText().trim() : "";
+        String given = answer.has("text") ? answer.get("text").asString().trim() : "";
         if (given.isEmpty()) return 0;
         for (var a : correctAnswers) {
-            if (a.asText().trim().equalsIgnoreCase(given)) {
+            if (a.asString().trim().equalsIgnoreCase(given)) {
                 return maxPoints;
             }
         }
         return 0;
     }
 
-    private int gradeEnumeration(
-            tools.jackson.databind.JsonNode config, tools.jackson.databind.JsonNode answer, int maxPoints) {
+    private int gradeEnumeration(JsonNode config, JsonNode answer, int maxPoints) {
         var correctAnswers = config.get("answers");
         if (correctAnswers == null || !correctAnswers.isArray()) return -1;
         int requiredCount =
@@ -597,12 +601,12 @@ public class QuizService {
         if (items == null || !items.isArray()) return 0;
 
         // Build set of correct answers (lowercase for comparison)
-        var correctSet = new java.util.ArrayList<String>();
-        for (var a : correctAnswers) correctSet.add(a.asText().trim().toLowerCase());
+        var correctSet = new ArrayList<String>();
+        for (var a : correctAnswers) correctSet.add(a.asString().trim().toLowerCase());
 
         int correct = 0;
         for (int i = 0; i < Math.min(items.size(), requiredCount); i++) {
-            String given = items.get(i).asText().trim().toLowerCase();
+            String given = items.get(i).asString().trim().toLowerCase();
             if (ordered) {
                 // Must match position
                 if (i < correctSet.size() && correctSet.get(i).equals(given)) {
@@ -675,6 +679,10 @@ public class QuizService {
         testRepository.setTagRestrictions(testId, tagIds);
     }
 
+    public void updateRestrictionMode(int testId, String mode) {
+        testRepository.updateRestrictionMode(testId, mode);
+    }
+
     public boolean canMemberAccess(
             int testId, List<Integer> memberRoleIds, List<Integer> memberGroupIds, List<Integer> memberTagIds) {
         var roleRestrictions = testRepository.findRoleRestrictions(testId);
@@ -682,17 +690,30 @@ public class QuizService {
         var tagRestrictions = testRepository.findTagRestrictions(testId);
         // No restrictions = open to all
         if (roleRestrictions.isEmpty() && groupRestrictions.isEmpty() && tagRestrictions.isEmpty()) return true;
-        // Check if member matches any restriction
-        for (int rId : roleRestrictions) {
-            if (memberRoleIds.contains(rId)) return true;
+
+        var test = testRepository.findById(testId).orElse(null);
+        String mode = test != null && "AND".equals(test.restrictionMode()) ? "AND" : "OR";
+
+        if ("OR".equals(mode)) {
+            // Any match across any type returns true
+            for (int rId : roleRestrictions) {
+                if (memberRoleIds.contains(rId)) return true;
+            }
+            for (int gId : groupRestrictions) {
+                if (memberGroupIds.contains(gId)) return true;
+            }
+            for (int tId : tagRestrictions) {
+                if (memberTagIds.contains(tId)) return true;
+            }
+            return false;
         }
-        for (int gId : groupRestrictions) {
-            if (memberGroupIds.contains(gId)) return true;
-        }
-        for (int tId : tagRestrictions) {
-            if (memberTagIds.contains(tId)) return true;
-        }
-        return false;
+
+        // AND: each non-empty type must have at least one match
+        if (!roleRestrictions.isEmpty() && roleRestrictions.stream().noneMatch(memberRoleIds::contains)) return false;
+        if (!groupRestrictions.isEmpty() && groupRestrictions.stream().noneMatch(memberGroupIds::contains))
+            return false;
+        if (!tagRestrictions.isEmpty() && tagRestrictions.stream().noneMatch(memberTagIds::contains)) return false;
+        return true;
     }
 
     // -- Records --

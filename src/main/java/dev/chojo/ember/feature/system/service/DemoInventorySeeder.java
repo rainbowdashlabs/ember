@@ -297,12 +297,11 @@ public class DemoInventorySeeder {
         int checkedCount = 0;
         for (StationMember allKid : allKids) {
             if (rng.nextInt(3) != 0) continue; // ~1/3 of kids have been checked
-            var kid = allKid;
             var checker = betreuer.get(rng.nextInt(betreuer.size()));
-            var check = inventoryCheckRepository.createCheck(stationId, kid.id(), checker.id());
+            var check = inventoryCheckRepository.createCheck(stationId, allKid.id(), checker.id());
 
             // Check all items assigned to this kid
-            var items = inventoryRepository.findItemsByMember(kid.id());
+            var items = inventoryRepository.findItemsByMember(allKid.id());
             for (var item : items) {
                 CheckResult result;
                 int roll = rng.nextInt(20);

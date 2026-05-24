@@ -15,7 +15,6 @@ import SelectInput from '@/components/input/select/SelectInput.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import type {
   ExchangeRequestEntry,
-  ExchangeStatusName,
   InventorySize,
   CreateExchangeRequest,
   StationMember,

@@ -54,7 +54,7 @@ const defaultTheme = ref('ember')
 const allowUserTheme = ref(true)
 const hasLogo = ref(false)
 const isOwner = ref(false)
-const stationId = ref(0)
+const stationId = ref('')
 const ownerMemberId = ref<number | null>(null)
 const loading = ref(true)
 const saving = ref(false)
@@ -77,6 +77,7 @@ async function loadStation() {
     isOwner.value = info.isOwner
     stationId.value = info.id
     ownerMemberId.value = info.ownerMemberId ?? null
+    publicKbModeValue.value = info.publicKbMode ?? 'OFF'
     if (info.hasLogo) {
       await loadLogoBlob()
     }
@@ -240,37 +241,35 @@ async function toggleModule(key: string) {
 }
 
 // -- Public KB --
-const publicKbEnabled = computed(() => stationInfo.value?.publicKbMode != null && stationInfo.value.publicKbMode !== 'OFF')
-const publicKbMode = ref<string>('ALLOW_ALL')
+const publicKbModeValue = ref<string>('OFF')
+const publicKbEnabled = computed(() => publicKbModeValue.value !== 'OFF')
 
 async function togglePublicKb() {
-  const newMode = publicKbEnabled.value ? 'OFF' : publicKbMode.value
+  const newMode = publicKbEnabled.value ? 'OFF' : 'ALLOW_ALL'
   try {
     await stationManage.updateStationName({
-      name: stationInfo.value?.name ?? '',
+      name: name.value,
       publicKbMode: newMode,
     })
-    await loadStation()
+    publicKbModeValue.value = newMode
     success.value = t('stationManage.saved')
   } catch { error.value = t('common.error') }
 }
 
-async function changePublicKbMode(mode: string) {
-  publicKbMode.value = mode
-  if (publicKbEnabled.value) {
-    try {
-      await stationManage.updateStationName({
-        name: stationInfo.value?.name ?? '',
-        publicKbMode: mode,
-      })
-      await loadStation()
-    } catch { error.value = t('common.error') }
-  }
+async function changePublicKbMode(mode: string | undefined) {
+  if (!mode) return
+  try {
+    await stationManage.updateStationName({
+      name: name.value,
+      publicKbMode: mode,
+    })
+    publicKbModeValue.value = mode
+  } catch { error.value = t('common.error') }
 }
 
 const publicKbUrl = computed(() => {
-  if (!stationInfo.value?.id) return ''
-  return `${window.location.origin}/public/kb/${stationInfo.value.id}`
+  if (!stationId.value) return ''
+  return `${window.location.origin}/public/kb/${stationId.value}`
 })
 
 function handleError(msg: string) {
@@ -359,6 +358,29 @@ onMounted(async () => {
           <div v-for="mod in allModules" :key="mod.key" class="flex items-center justify-between">
             <span class="text-sm font-medium">{{ t(`stationManage.${mod.label}`) }}</span>
             <ToggleInput :model-value="isModuleEnabled(mod.key)" :disabled="modulesSaving" @update:model-value="toggleModule(mod.key)"/>
+          </div>
+        </div>
+      </NeutralContainer>
+
+      <!-- Public Knowledge Base -->
+      <NeutralContainer v-if="!loading" class="space-y-4">
+        <SectionHeader>{{ t('stationManage.publicKb.title') }}</SectionHeader>
+        <p class="text-sm text-(--text-muted)">{{ t('stationManage.publicKb.hint') }}</p>
+        <div class="flex items-center justify-between">
+          <span class="text-sm font-medium">{{ t('stationManage.publicKb.enabled') }}</span>
+          <ToggleInput :model-value="publicKbEnabled" @update:model-value="togglePublicKb"/>
+        </div>
+        <div v-if="publicKbEnabled" class="space-y-3">
+          <div class="space-y-1">
+            <label class="block text-sm font-medium">{{ t('stationManage.publicKb.mode') }}</label>
+            <SelectInput :model-value="publicKbModeValue" @update:model-value="changePublicKbMode">
+              <option value="ALLOW_ALL">{{ t('stationManage.publicKb.modeAllowAll') }}</option>
+              <option value="DENY_ALL">{{ t('stationManage.publicKb.modeDenyAll') }}</option>
+            </SelectInput>
+          </div>
+          <div class="space-y-1">
+            <label class="block text-sm font-medium">{{ t('stationManage.publicKb.publicUrl') }}</label>
+            <code class="block rounded bg-bg-light-accent dark:bg-bg-dark-accent px-3 py-2 text-sm break-all select-all">{{ publicKbUrl }}</code>
           </div>
         </div>
       </NeutralContainer>

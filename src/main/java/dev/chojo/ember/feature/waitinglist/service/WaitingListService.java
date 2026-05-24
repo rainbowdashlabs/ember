@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.waitinglist.service;
 
 import dev.chojo.ember.api.Roles;
+import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.mail.service.EmailService;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
@@ -49,6 +50,7 @@ public class WaitingListService {
     private final StationRepository stationRepository;
     private final StationMemberRepository stationMemberRepository;
     private final MemberGroupRepository memberGroupRepository;
+    private final AccountRepository accountRepository;
     private final EmailService emailService;
     private final NotificationService notificationService;
     private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
@@ -63,12 +65,14 @@ public class WaitingListService {
             StationRepository stationRepository,
             StationMemberRepository stationMemberRepository,
             MemberGroupRepository memberGroupRepository,
+            AccountRepository accountRepository,
             EmailService emailService,
             NotificationService notificationService) {
         this.repository = repository;
         this.stationRepository = stationRepository;
         this.stationMemberRepository = stationMemberRepository;
         this.memberGroupRepository = memberGroupRepository;
+        this.accountRepository = accountRepository;
         this.emailService = emailService;
         this.notificationService = notificationService;
         scheduler.scheduleAtFixedRate(this::checkAllExpiredConfirmations, 1, 24, TimeUnit.HOURS);
@@ -328,10 +332,11 @@ public class WaitingListService {
         }
         var list = repository.findById(entry.listId()).orElseThrow();
 
-        // Create a non-login station member (no account link) with MEMBER role
-        var member = stationMemberRepository.createWithDisplayName(list.stationId(), entry.fullName());
+        // Create a non-login account (no email, no credentials) and station member with TRIAL role
+        var account = accountRepository.create(null, entry.firstname(), entry.lastname());
+        var member = stationMemberRepository.create(list.stationId(), account.id());
         stationMemberRepository
-                .findRoleByName(Roles.MEMBER)
+                .findRoleByName(Roles.TRIAL)
                 .ifPresent(role -> stationMemberRepository.addRole(member.id(), role.id()));
 
         // Assign testing group if configured
@@ -385,11 +390,15 @@ public class WaitingListService {
             if (list.testingGroupId() != null) {
                 memberGroupRepository.removeMember(list.testingGroupId(), entry.memberId());
             }
+            // Remove TRIAL role
+            stationMemberRepository
+                    .findRoleByName(Roles.TRIAL)
+                    .ifPresent(role -> stationMemberRepository.removeRole(entry.memberId(), role.id()));
             // Assign join group
             if (list.joinGroupId() != null) {
                 memberGroupRepository.addMember(list.joinGroupId(), entry.memberId());
             }
-            // Assign join role
+            // Assign join role (typically MEMBER)
             if (list.joinRoleId() != null) {
                 stationMemberRepository.addRole(entry.memberId(), list.joinRoleId());
             }
@@ -401,6 +410,7 @@ public class WaitingListService {
 
     /**
      * Withdraw an entry (from WAITING, INVITED, or TESTING).
+     * Deletes the linked member and orphaned account if present.
      */
     public WaitingListEntry withdrawEntry(int entryId) {
         var entry =
@@ -408,6 +418,26 @@ public class WaitingListService {
         if (entry.status() == WaitingListEntryStatus.JOINED || entry.status() == WaitingListEntryStatus.WITHDRAWN) {
             throw new IllegalStateException("Cannot withdraw an entry that is already JOINED or WITHDRAWN");
         }
+
+        // Delete the linked member and its orphaned account
+        if (entry.memberId() != null) {
+            var member = stationMemberRepository.findById(entry.memberId()).orElse(null);
+            if (member != null) {
+                stationMemberRepository.delete(member.id());
+                // Delete account if it has no other members and no email (non-login account)
+                if (member.accountId() != null) {
+                    var otherMembers = stationMemberRepository.findAllByAccountId(member.accountId());
+                    if (otherMembers.isEmpty()) {
+                        var account =
+                                accountRepository.findById(member.accountId()).orElse(null);
+                        if (account != null && account.email() == null) {
+                            accountRepository.delete(account.id());
+                        }
+                    }
+                }
+            }
+        }
+
         repository.updateEntryStatusWithTimestamp(entryId, WaitingListEntryStatus.WITHDRAWN, "withdrawn_at");
         return repository.findEntryById(entryId).orElseThrow();
     }

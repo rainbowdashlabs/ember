@@ -14,6 +14,7 @@ import dev.chojo.ember.feature.federation.entity.LendingMessage;
 import dev.chojo.ember.feature.federation.entity.LendingRequest;
 import dev.chojo.ember.feature.federation.entity.LendingRequestItem;
 import dev.chojo.ember.feature.federation.entity.LendingStatus;
+import dev.chojo.ember.feature.federation.repository.LendingRepository;
 import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.federation.service.LendingService;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
@@ -34,6 +35,7 @@ import jakarta.inject.Singleton;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Routes for cross-station inventory lending, chat messages, and date blocking.
@@ -42,6 +44,7 @@ import java.util.List;
 public class LendingRoutes implements Routes {
 
     private final LendingService service;
+    private final LendingRepository lendingRepository;
     private final StationRepository stationRepository;
     private final FederationService federationService;
     private final InventoryRepository inventoryRepository;
@@ -52,6 +55,7 @@ public class LendingRoutes implements Routes {
     @Inject
     public LendingRoutes(
             LendingService service,
+            LendingRepository lendingRepository,
             StationRepository stationRepository,
             FederationService federationService,
             InventoryRepository inventoryRepository,
@@ -59,6 +63,7 @@ public class LendingRoutes implements Routes {
             AccountRepository accountRepository,
             NotificationService notificationService) {
         this.service = service;
+        this.lendingRepository = lendingRepository;
         this.stationRepository = stationRepository;
         this.federationService = federationService;
         this.inventoryRepository = inventoryRepository;
@@ -84,6 +89,12 @@ public class LendingRoutes implements Routes {
         routes.post(prefix + "/lending/requests/{id}/lent", this::markLent, Roles.INVENTORY_MANAGER);
         routes.post(prefix + "/lending/requests/{id}/returned", this::markReturned, Roles.INVENTORY_MANAGER);
         routes.post(prefix + "/lending/requests/{id}/close", this::closeRequest, Roles.INVENTORY_MANAGER);
+
+        // Lent-out items by inventory
+        routes.get(
+                prefix + "/lending/inventory/{inventoryId}/lent-out",
+                this::lentOutByInventory,
+                Roles.INVENTORY_MANAGER);
 
         // Chat messages
         routes.get(prefix + "/lending/requests/{id}/messages", this::getMessages, Roles.INVENTORY_MANAGER);
@@ -194,7 +205,7 @@ public class LendingRoutes implements Routes {
 
         // Collect all inventory IDs from request items
         var requestItems = service.findRequestItems(id);
-        var result = new java.util.ArrayList<AvailableItemDetail>();
+        var result = new ArrayList<AvailableItemDetail>();
         for (var ri : requestItems) {
             if (ri.inventoryId() == null) continue;
             var inv = inventoryRepository.findById(ri.inventoryId()).orElse(null);
@@ -228,7 +239,7 @@ public class LendingRoutes implements Routes {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
         var request = service.findRequest(id).orElseThrow(NotFoundResponse::new);
         verifyOwner(request, session.stationId());
-        if (request.status() != dev.chojo.ember.feature.federation.entity.LendingStatus.APPROVED) {
+        if (request.status() != LendingStatus.APPROVED) {
             throw new BadRequestResponse("Can only assign items to approved requests");
         }
 
@@ -519,8 +530,7 @@ public class LendingRoutes implements Routes {
     }
 
     private NotificationData.NotificationLink lendingLink(int requestId) {
-        return new NotificationData.NotificationLink(
-                "lending-request", java.util.Map.of("id", String.valueOf(requestId)));
+        return new NotificationData.NotificationLink("lending-request", Map.of("id", String.valueOf(requestId)));
     }
 
     private void notifyOtherStation(
@@ -529,6 +539,15 @@ public class LendingRoutes implements Routes {
                 ? request.owningStationId()
                 : request.requestingStationId();
         notificationService.notifyMembersWithRole(targetStationId, "INVENTORY_MANAGER", type, data);
+    }
+
+    // -- Lent-out items by inventory --
+
+    private void lentOutByInventory(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        int inventoryId = ctx.pathParamAsClass("inventoryId", Integer.class).get();
+        var lentItems = lendingRepository.findLentOutByInventory(inventoryId, session.stationId());
+        ctx.json(lentItems);
     }
 
     // -- Records --

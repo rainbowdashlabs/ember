@@ -22,13 +22,12 @@ import {inventory, exchanges, stationMembers} from '@/api'
 import type {ExchangeRequestEntry, InventorySize, StationMember} from '@/api/types'
 import {ExchangeStatus} from '@/api/types'
 import type {MyInventoryItem} from '@/api/inventory'
-import {useStations} from '@/composables/useStations'
 import {useSession} from '@/composables/useSession'
 
 const {t} = useI18n()
 const route = useRoute()
 const router = useRouter()
-const {currentStationId} = useStations()
+
 const {canManageInventory} = useSession()
 
 const memberId = computed(() => Number(route.params.memberId))

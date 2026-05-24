@@ -15,7 +15,9 @@ import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.repository.UserTagRepository;
 import dev.chojo.ember.feature.members.service.ProfileFieldService;
+import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
+import dev.chojo.ember.feature.system.service.ApiRequestLogger;
 import io.javalin.Javalin;
 import io.javalin.config.RoutesConfig;
 import io.javalin.http.BadRequestResponse;
@@ -50,6 +52,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import static io.javalin.http.ContentType.JSON;
@@ -78,7 +81,7 @@ public class ApiServer {
     private final ProfileFieldService profileFieldService;
     private final MemberGroupRepository memberGroupRepository;
     private final UserTagRepository userTagRepository;
-    private final dev.chojo.ember.feature.system.service.ApiRequestLogger apiRequestLogger;
+    private final ApiRequestLogger apiRequestLogger;
 
     @Inject
     public ApiServer(
@@ -92,7 +95,7 @@ public class ApiServer {
             ProfileFieldService profileFieldService,
             MemberGroupRepository memberGroupRepository,
             UserTagRepository userTagRepository,
-            dev.chojo.ember.feature.system.service.ApiRequestLogger apiRequestLogger) {
+            ApiRequestLogger apiRequestLogger) {
         this.routes = routes;
         this.apiConfig = apiConfig;
         this.demoConfig = demoConfig;
@@ -330,19 +333,20 @@ public class ApiServer {
         }
 
         // Parse optional station UID from header or query param
-        dev.chojo.ember.feature.station.entity.Station station = null;
+        Station station = null;
         String stationIdHeader = ctx.header("X-Station-Id");
         if ((stationIdHeader == null || stationIdHeader.isBlank()) && ctx.queryParam("stationId") != null) {
             stationIdHeader = ctx.queryParam("stationId");
         }
         if (stationIdHeader != null && !stationIdHeader.isBlank()) {
             try {
-                var uid = java.util.UUID.fromString(stationIdHeader);
+                var uid = UUID.fromString(stationIdHeader);
                 station = stationRepository.findByUid(uid).orElse(null);
                 if (station == null) {
                     throw new UnauthorizedResponse("Unknown station");
                 }
             } catch (IllegalArgumentException e) {
+                log.warn("Invalid X-Station-Id header value", e);
                 throw new UnauthorizedResponse("Invalid X-Station-Id header");
             }
         }
@@ -409,20 +413,36 @@ public class ApiServer {
      * Registers exception handlers that convert exceptions into standardized JSON error responses.
      */
     private void setupExceptionHandlers(RoutesConfig routes) {
-        routes.exception(ApiException.class, (err, ctx) -> ctx.json(
-                        new ErrorResponseWrapper(err.getClass().getSimpleName(), err.getMessage()))
-                .status(err.status()));
+        routes.exception(ApiException.class, (err, ctx) -> {
+            int code = err.status().getCode();
+            if (code >= 500) {
+                log.error("API error {} on {} {}: {}", code, ctx.method(), ctx.path(), err.getMessage(), err);
+            } else if (code >= 400 && code != 401) {
+                log.warn("API error {} on {} {}: {}", code, ctx.method(), ctx.path(), err.getMessage());
+            }
+            ctx.json(new ErrorResponseWrapper(err.getClass().getSimpleName(), err.getMessage()))
+                    .status(err.status());
+        });
 
-        routes.exception(HttpResponseException.class, (err, ctx) -> ctx.json(new ErrorResponseWrapper(
-                        HttpStatus.forStatus(err.getStatus()).getMessage(), err.getMessage()))
-                .status(err.getStatus()));
+        routes.exception(HttpResponseException.class, (err, ctx) -> {
+            int code = err.getStatus();
+            if (code >= 500) {
+                log.error("HTTP {} on {} {}: {}", code, ctx.method(), ctx.path(), err.getMessage(), err);
+            } else if (code >= 400 && code != 401) {
+                log.warn("HTTP {} on {} {}: {}", code, ctx.method(), ctx.path(), err.getMessage());
+            }
+            ctx.json(new ErrorResponseWrapper(HttpStatus.forStatus(code).getMessage(), err.getMessage()))
+                    .status(code);
+        });
 
-        routes.exception(IllegalArgumentException.class, (err, ctx) -> ctx.json(
-                        new ErrorResponseWrapper("Invalid Input", err.getMessage()))
-                .status(HttpStatus.BAD_REQUEST));
+        routes.exception(IllegalArgumentException.class, (err, ctx) -> {
+            log.warn("Invalid input on {} {}: {}", ctx.method(), ctx.path(), err.getMessage());
+            ctx.json(new ErrorResponseWrapper("Invalid Input", err.getMessage()))
+                    .status(HttpStatus.BAD_REQUEST);
+        });
 
         routes.exception(Exception.class, (err, ctx) -> {
-            log.error("Unhandled exception on route {}", ctx.path(), err);
+            log.error("Unhandled exception on route {} {}", ctx.method(), ctx.path(), err);
             ctx.json(new ErrorResponseWrapper("Internal Server Error")).status(HttpStatus.INTERNAL_SERVER_ERROR);
         });
     }

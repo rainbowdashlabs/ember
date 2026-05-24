@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.federation.route;
 import dev.chojo.ember.api.Roles;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.service.FederatedContentService;
 import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.station.repository.StationRepository;
@@ -135,7 +136,8 @@ public class FederationRoutes implements Routes {
             throw new BadRequestResponse("Cannot federate with yourself");
         }
 
-        var partner = service.acceptInvite(session.stationId(), pending.stationId(), pending.publicKey());
+        // Same-instance accept — both stations are local (null remote host)
+        var partner = service.acceptInvite(session.stationId(), pending.stationId(), pending.publicKey(), null, null);
         ctx.status(HttpStatus.CREATED).json(partner);
     }
 
@@ -356,8 +358,7 @@ public class FederationRoutes implements Routes {
 
     public record ProtocolShareRequest(int protocolId, String shareScope) {}
 
-    public record PartnerResponse(
-            dev.chojo.ember.feature.federation.entity.FederationPartner partner, String partnerStationName) {}
+    public record PartnerResponse(FederationPartner partner, String partnerStationName) {}
 
     public record SharedContentItem(
             int remoteId, String title, String description, String stationName, int stationId, int partnerId) {}

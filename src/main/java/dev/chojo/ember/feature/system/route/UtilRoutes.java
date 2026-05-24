@@ -12,12 +12,15 @@ import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Singleton;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.List;
 
 @Singleton
 public class UtilRoutes implements Routes {
+    private static final Logger log = LoggerFactory.getLogger(UtilRoutes.class);
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
@@ -34,7 +37,8 @@ public class UtilRoutes implements Routes {
             var parsed = CsvParser.parse(text, sep);
             ctx.json(new CsvResponse(parsed.headers(), parsed.rows()));
         } catch (IOException e) {
-            throw new BadRequestResponse("Failed to parse CSV: " + e.getMessage());
+            log.warn("Failed to parse CSV file", e);
+            throw new BadRequestResponse("Failed to parse CSV");
         }
     }
 

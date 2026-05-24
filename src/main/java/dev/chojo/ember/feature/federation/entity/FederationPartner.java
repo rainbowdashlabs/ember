@@ -21,12 +21,21 @@ public record FederationPartner(
         FederationStatus status,
         int federationVersion,
         Instant createdAt,
-        Instant updatedAt) {
+        Instant updatedAt,
+        String remoteHost) {
 
     public enum FederationStatus {
         PENDING,
         ACTIVE,
         SUSPENDED
+    }
+
+    /**
+     * Returns true if this partner is on a remote instance (requires HTTP communication).
+     * A null remoteHost means the partner is on the same instance.
+     */
+    public boolean isRemote() {
+        return remoteHost != null;
     }
 
     public static RowMapping<FederationPartner> map() {
@@ -40,6 +49,7 @@ public record FederationPartner(
                 FederationStatus.valueOf(row.getString("status")),
                 row.getInt("federation_version"),
                 row.get("created_at", INSTANT_TIMESTAMP),
-                row.get("updated_at", INSTANT_TIMESTAMP));
+                row.get("updated_at", INSTANT_TIMESTAMP),
+                row.getString("remote_host"));
     }
 }

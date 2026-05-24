@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.federation.repository;
 
+import de.chojo.sadu.mapper.rowmapper.RowMapping;
 import de.chojo.sadu.queries.api.call.Call;
 import de.chojo.sadu.queries.api.query.Query;
 import dev.chojo.ember.feature.federation.entity.InventoryBlock;
@@ -96,6 +97,51 @@ public class LendingRepository {
                 .single(Call.of().bind("id", requestItemId).bind("assigned_item_id", assignedItemId))
                 .update()
                 .changed();
+    }
+
+    /**
+     * Finds items from lending requests that are currently lent out (APPROVED or LENT status)
+     * for a specific inventory, owned by a specific station.
+     */
+    public record LentOutItem(
+            int requestItemId,
+            int requestId,
+            Integer itemId,
+            int quantity,
+            Integer assignedItemId,
+            String status,
+            LocalDate dateFrom,
+            LocalDate dateTo,
+            String requestingStationName) {
+        public static RowMapping<LentOutItem> map() {
+            return row -> new LentOutItem(
+                    row.getInt("request_item_id"),
+                    row.getInt("request_id"),
+                    row.getObject("item_id", Integer.class),
+                    row.getInt("quantity"),
+                    row.getObject("assigned_item_id", Integer.class),
+                    row.getString("status"),
+                    row.getObject("date_from", LocalDate.class),
+                    row.getObject("date_to", LocalDate.class),
+                    row.getString("requesting_station_name"));
+        }
+    }
+
+    public List<LentOutItem> findLentOutByInventory(int inventoryId, int owningStationId) {
+        return Query.query("""
+                        SELECT ri.id AS request_item_id, r.id AS request_id, ri.item_id, ri.quantity, ri.assigned_item_id,
+                               r.status, r.requested_date_from AS date_from, r.requested_date_to AS date_to,
+                               s.name AS requesting_station_name
+                        FROM federation_lending_request_item ri
+                        JOIN federation_lending_request r ON r.id = ri.request_id
+                        JOIN station s ON s.id = r.requesting_station_id
+                        WHERE ri.inventory_id = :inventory_id
+                          AND r.owning_station_id = :owning_station_id
+                          AND r.status IN ('APPROVED', 'LENT')
+                        ORDER BY r.requested_date_to ASC NULLS LAST;""")
+                .single(Call.of().bind("inventory_id", inventoryId).bind("owning_station_id", owningStationId))
+                .map(LentOutItem.map())
+                .all();
     }
 
     // -- Messages --

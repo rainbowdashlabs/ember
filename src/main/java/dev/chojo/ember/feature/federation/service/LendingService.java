@@ -5,7 +5,6 @@
  */
 package dev.chojo.ember.feature.federation.service;
 
-import dev.chojo.ember.conf.file.elements.Demo;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.entity.InventoryBlock;
 import dev.chojo.ember.feature.federation.entity.LendingMessage;
@@ -13,6 +12,7 @@ import dev.chojo.ember.feature.federation.entity.LendingRequest;
 import dev.chojo.ember.feature.federation.entity.LendingRequestItem;
 import dev.chojo.ember.feature.federation.entity.LendingStatus;
 import dev.chojo.ember.feature.federation.repository.LendingRepository;
+import dev.chojo.ember.feature.station.repository.StationRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -34,18 +34,18 @@ public class LendingService {
     private final LendingRepository repository;
     private final FederationHttpClient httpClient;
     private final FederationService federationService;
-    private final Demo demo;
+    private final StationRepository stationRepository;
 
     @Inject
     public LendingService(
             LendingRepository repository,
             FederationHttpClient httpClient,
             FederationService federationService,
-            Demo demo) {
+            StationRepository stationRepository) {
         this.repository = repository;
         this.httpClient = httpClient;
         this.federationService = federationService;
-        this.demo = demo;
+        this.stationRepository = stationRepository;
     }
 
     // -- Requests --
@@ -124,10 +124,6 @@ public class LendingService {
         return repository.createMessage(requestId, senderStationId, senderMemberId, message, false);
     }
 
-    /**
-     * Returns only messages sent by the given station for a lending request.
-     * Used for distributed message retrieval and the remote federation endpoint.
-     */
     public List<LendingMessage> getLocalMessages(int requestId, int stationId) {
         return repository.findLocalMessages(requestId, stationId);
     }
@@ -135,11 +131,7 @@ public class LendingService {
     /**
      * Returns all messages for a lending request by merging local and remote messages.
      * Each station only stores messages it sent. The partner's messages are fetched either
-     * via direct repository call (same-instance) or HTTP (cross-instance / dev force-HTTP mode).
-     *
-     * @param requestId      the lending request ID
-     * @param localStationId the station requesting the messages
-     * @return merged and time-sorted list of all messages
+     * via direct DB query (local partner) or HTTP (remote partner).
      */
     public List<LendingMessage> getMessages(int requestId, int localStationId) {
         var request = repository.findRequestById(requestId).orElseThrow();
@@ -149,11 +141,13 @@ public class LendingService {
 
         var localMessages = repository.findLocalMessages(requestId, localStationId);
 
+        // Check if the partner is remote
+        var partner = findPartnerForStation(localStationId, partnerStationId);
         List<LendingMessage> remoteMessages;
-        if (demo.federationForceHttp()) {
-            remoteMessages = fetchRemoteMessagesViaHttp(requestId, localStationId, partnerStationId);
+        if (partner != null && partner.isRemote()) {
+            remoteMessages = fetchRemoteMessagesViaHttp(partner, requestId, localStationId);
         } else {
-            // Same-instance: directly query partner's messages from local DB
+            // Local partner — directly query their messages from shared DB
             remoteMessages = repository.findLocalMessages(requestId, partnerStationId);
         }
 
@@ -163,25 +157,28 @@ public class LendingService {
         return all;
     }
 
-    private List<LendingMessage> fetchRemoteMessagesViaHttp(int requestId, int localStationId, int partnerStationId) {
-        // Find the federation partner to get the private key for signing
-        var partners = federationService.findPartners(localStationId);
-        for (var partner : partners) {
-            if (partner.partnerStationId() == partnerStationId
-                    && partner.status() == FederationPartner.FederationStatus.ACTIVE) {
-                return httpClient.fetchRemoteMessages(requestId, localStationId, partner.publicKey());
-            }
+    private List<LendingMessage> fetchRemoteMessagesViaHttp(
+            FederationPartner partner, int requestId, int localStationId) {
+        var station = stationRepository.findById(localStationId).orElse(null);
+        if (station == null || station.federationPrivateKey() == null) {
+            log.warn("No private key found for station {}, cannot fetch remote messages", localStationId);
+            return List.of();
         }
-        log.warn(
-                "No active federation partner found for station {} -> {}, falling back to local query",
-                localStationId,
-                partnerStationId);
-        return repository.findLocalMessages(requestId, partnerStationId);
+        return httpClient.fetchRemoteMessages(
+                partner.remoteHost(), requestId, localStationId, station.federationPrivateKey());
     }
 
-    /**
-     * @deprecated Use {@link #getMessages(int, int)} for distributed message retrieval.
-     */
+    private FederationPartner findPartnerForStation(int localStationId, int partnerStationId) {
+        var partners = federationService.findPartners(localStationId);
+        for (var p : partners) {
+            int remoteId = p.stationId() == localStationId ? p.partnerStationId() : p.stationId();
+            if (remoteId == partnerStationId && p.status() == FederationPartner.FederationStatus.ACTIVE) {
+                return p;
+            }
+        }
+        return null;
+    }
+
     @Deprecated
     public List<LendingMessage> getMessages(int requestId) {
         return repository.findMessagesByRequest(requestId);

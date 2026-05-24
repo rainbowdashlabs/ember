@@ -22,7 +22,6 @@ import SelectInput from '@/components/input/select/SelectInput.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import { useSession } from '@/composables/useSession'
-import { useStations } from '@/composables/useStations'
 import { protocol, stationMembers } from '@/api'
 import type { TestProtocol, TestProtocolRun } from '@/api/protocol'
 import type { StationMember } from '@/api/types'
@@ -30,7 +29,7 @@ import type { StationMember } from '@/api/types'
 const { t } = useI18n()
 const router = useRouter()
 const { canManageProtocol, loaded } = useSession()
-const { currentStationId } = useStations()
+
 
 const runs = ref<TestProtocolRun[]>([])
 const protocols = ref<TestProtocol[]>([])
@@ -54,7 +53,7 @@ async function loadData() {
       stationMembers.listMembers(),
     ])
     runs.value = r
-    protocols.value = p
+    protocols.value = Array.isArray(p) ? p : (p.protocols ?? [])
     members.value = m
   } catch { error.value = t('common.error') }
   finally { loading.value = false }

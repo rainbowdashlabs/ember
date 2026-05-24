@@ -26,7 +26,6 @@ import type {
 } from '@/api/types'
 import {attendance, memberGroups, stationMembers} from '@/api'
 import {useSession} from '@/composables/useSession'
-import {useStations} from '@/composables/useStations'
 import CheckModePanel from './sessionview/CheckModePanel.vue'
 import SessionFieldsPanel from './sessionview/SessionFieldsPanel.vue'
 import MemberEntry from './sessionview/MemberEntry.vue'
@@ -36,7 +35,7 @@ const {t} = useI18n()
 const route = useRoute()
 const router = useRouter()
 const {loaded} = useSession()
-const {currentStationId} = useStations()
+
 
 const sessionId = computed(() => Number(route.params.id))
 

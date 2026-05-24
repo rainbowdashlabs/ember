@@ -70,7 +70,7 @@ public class FederationSigningService {
         try {
             var verifier = Signature.getInstance(ALGORITHM);
             verifier.initVerify(publicKey);
-            verifier.update((timestamp.toString() + "\n" + body).getBytes());
+            verifier.update((timestamp + "\n" + body).getBytes());
             return verifier.verify(Base64.getDecoder().decode(signature));
         } catch (Exception e) {
             log.warn("Federation signature verification failed", e);

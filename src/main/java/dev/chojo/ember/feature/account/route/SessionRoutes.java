@@ -19,9 +19,12 @@ import dev.chojo.ember.feature.legal.service.GdprExportService;
 import dev.chojo.ember.feature.media.service.ImageCategory;
 import dev.chojo.ember.feature.media.service.ImageService;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
+import dev.chojo.ember.feature.members.entity.Role;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.members.entity.UserTag;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.repository.UserSettingsRepository;
+import dev.chojo.ember.feature.members.repository.UserTagRepository;
 import dev.chojo.ember.feature.members.service.MemberGroupService;
 import dev.chojo.ember.feature.members.service.ProfileFieldService;
 import dev.chojo.ember.feature.members.service.StationMemberService;
@@ -68,6 +71,7 @@ public class SessionRoutes implements Routes {
     private final Api apiConfig;
     private final ImageService imageService;
     private final UserSettingsRepository userSettingsRepository;
+    private final UserTagRepository userTagRepository;
 
     @Inject
     public SessionRoutes(
@@ -82,7 +86,8 @@ public class SessionRoutes implements Routes {
             GdprDeletionService gdprDeletionService,
             Api apiConfig,
             ImageService imageService,
-            UserSettingsRepository userSettingsRepository) {
+            UserSettingsRepository userSettingsRepository,
+            UserTagRepository userTagRepository) {
         this.stationService = stationService;
         this.memberService = memberService;
         this.groupService = groupService;
@@ -95,6 +100,7 @@ public class SessionRoutes implements Routes {
         this.apiConfig = apiConfig;
         this.imageService = imageService;
         this.userSettingsRepository = userSettingsRepository;
+        this.userTagRepository = userTagRepository;
     }
 
     @Override
@@ -124,11 +130,23 @@ public class SessionRoutes implements Routes {
 
         List<StationMember> managed = List.of();
         List<MemberGroup> groups = List.of();
+        List<UserTag> tags = List.of();
+        List<Integer> roleIds = List.of();
+        List<Integer> groupIds = List.of();
+        List<Integer> tagIds = List.of();
         MemberInfo memberInfo = null;
 
         if (session.member() != null) {
             managed = memberService.findManaged(session.member().id());
             groups = groupService.findGroupsForMember(session.member().id());
+            tags = userTagRepository.findTagsForMember(session.member().id());
+            roleIds = stationMemberRepository.findRoles(session.member().id()).stream()
+                    .map(Role::id)
+                    .toList();
+            groupIds = groups.stream().map(MemberGroup::id).toList();
+            tagIds = tags.stream()
+                    .map(UserTag::id)
+                    .toList();
             memberInfo = new MemberInfo(
                     session.member().id(),
                     session.stationUid() != null ? session.stationUid().toString() : null,
@@ -190,6 +208,10 @@ public class SessionRoutes implements Routes {
                 roleNames,
                 managedInfos,
                 groups,
+                tags,
+                roleIds,
+                groupIds,
+                tagIds,
                 profileComplete,
                 disabledModules,
                 themeInfo,
@@ -407,6 +429,10 @@ public class SessionRoutes implements Routes {
             List<String> roles,
             List<ManagedMemberInfo> managedMembers,
             List<MemberGroup> groups,
+            List<UserTag> tags,
+            List<Integer> roleIds,
+            List<Integer> groupIds,
+            List<Integer> tagIds,
             boolean profileComplete,
             Set<StationModule> disabledModules,
             ThemeInfo theme,

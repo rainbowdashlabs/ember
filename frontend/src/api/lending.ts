@@ -118,6 +118,25 @@ export interface AvailableInventoryEntry {
     availableCount: number
 }
 
+// -- Lent-out items by inventory --
+
+export interface LentOutItem {
+    requestItemId: number
+    requestId: number
+    itemId: number | null
+    quantity: number
+    assignedItemId: number | null
+    status: string
+    dateFrom: string
+    dateTo: string | null
+    requestingStationName: string
+}
+
+export async function getLentOutByInventory(inventoryId: number): Promise<LentOutItem[]> {
+    const res = await client.get<LentOutItem[]>(`/lending/inventory/${inventoryId}/lent-out`)
+    return res.data
+}
+
 // -- Available inventory --
 
 export async function listAvailable(options?: { q?: string; from?: string; to?: string }): Promise<AvailableInventoryEntry[]> {

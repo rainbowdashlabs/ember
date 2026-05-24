@@ -38,6 +38,8 @@ import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -50,6 +52,7 @@ import java.util.List;
  */
 @Singleton
 public class ExchangeRoutes implements Routes {
+    private static final Logger log = LoggerFactory.getLogger(ExchangeRoutes.class);
     private final ExchangeService exchangeService;
     private final ExchangeExportService exchangeExportService;
     private final AccountRepository accountRepository;
@@ -228,6 +231,7 @@ public class ExchangeRoutes implements Routes {
         try {
             status = ExchangeStatus.valueOf(request.status());
         } catch (IllegalArgumentException e) {
+            log.warn("Invalid exchange status: {}", request.status(), e);
             throw new BadRequestResponse("Invalid status: " + request.status());
         }
         if (status == ExchangeStatus.EXCHANGED && request.exchangedItemId() == null) {

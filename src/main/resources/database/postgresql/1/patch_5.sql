@@ -50,3 +50,29 @@ CREATE TABLE ember_schema.api_request_log (
 );
 CREATE INDEX idx_api_request_log_created ON ember_schema.api_request_log(created_at);
 CREATE INDEX idx_api_request_log_path ON ember_schema.api_request_log(path, created_at);
+
+-- Add private key storage for federation request signing (per station, reused for all partners)
+ALTER TABLE ember_schema.station ADD COLUMN federation_private_key TEXT;
+
+-- Federation partner: add remote_host for cross-instance communication (NULL = local/same instance)
+ALTER TABLE ember_schema.federation_partner ADD COLUMN remote_host TEXT;
+
+-- Federation partner: add webhook and sync columns
+ALTER TABLE ember_schema.federation_partner ADD COLUMN webhook_url TEXT;
+ALTER TABLE ember_schema.federation_partner ADD COLUMN last_sync_at TIMESTAMP;
+
+-- Federation change log for sync polling
+CREATE TABLE ember_schema.federation_change_log (
+    id          SERIAL PRIMARY KEY,
+    station_id  INT       NOT NULL REFERENCES ember_schema.station(id) ON DELETE CASCADE,
+    content_type TEXT     NOT NULL,
+    content_id  INT       NOT NULL,
+    change_type TEXT      NOT NULL,
+    changed_at  TIMESTAMP NOT NULL DEFAULT now()
+);
+CREATE INDEX idx_federation_change_log_station ON ember_schema.federation_change_log(station_id, changed_at);
+
+-- Restriction mode (AND/OR) for entities with role/group/tag restrictions
+ALTER TABLE ember_schema.station_event ADD COLUMN restriction_mode TEXT NOT NULL DEFAULT 'AND';
+ALTER TABLE ember_schema.quiz_test ADD COLUMN restriction_mode TEXT NOT NULL DEFAULT 'AND';
+ALTER TABLE ember_schema.form ADD COLUMN restriction_mode TEXT NOT NULL DEFAULT 'AND';

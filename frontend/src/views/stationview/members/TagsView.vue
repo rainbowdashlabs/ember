@@ -21,9 +21,7 @@ import Modal from '@/components/feedback/Modal.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import type {UserTag, StationMember} from '@/api/types'
 import {userTags, stationMembers} from '@/api'
-import {useStations} from '@/composables/useStations'
 
-const {currentStationId} = useStations()
 
 const tags = ref<UserTag[]>([])
 const allMembers = ref<StationMember[]>([])
@@ -249,9 +247,7 @@ onMounted(loadData)
                      class="flex items-center justify-between rounded-lg px-3 py-2 bg-bg-light-accent dark:bg-bg-dark-accent">
                   <div>
                     <MemberName :name="memberDisplayName(member)" :member-id="member.id" class="text-sm font-medium"/>
-                    <span v-if="member.name && member.email" class="ml-2 text-xs text-(--text-muted)">{{
-                        member.email
-                      }}</span>
+                    <div v-if="member.name && member.email" class="text-xs text-(--text-muted) ml-7">{{ member.email }}</div>
                   </div>
                   <IconButton :icon="['fas', 'xmark']" label="Entfernen" class="text-error hover:text-error/80 text-sm" @click="removeMemberFromTag(member)"/>
                 </div>
@@ -273,9 +269,7 @@ onMounted(loadData)
                 >
                   <div>
                     <MemberName :name="memberDisplayName(member)" :member-id="member.id" class="text-sm font-medium"/>
-                    <span v-if="member.name && member.email" class="ml-2 text-xs text-(--text-muted)">{{
-                        member.email
-                      }}</span>
+                    <div v-if="member.name && member.email" class="text-xs text-(--text-muted) ml-7">{{ member.email }}</div>
                   </div>
                   <font-awesome-icon :icon="['fas', 'plus']" class="text-primary text-sm"/>
                 </div>

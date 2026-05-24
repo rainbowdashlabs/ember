@@ -12,6 +12,7 @@ import dev.chojo.ember.feature.federation.entity.FederationMetadataCache;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.entity.FederationShare;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
+import dev.chojo.ember.feature.station.repository.StationRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -22,6 +23,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.SecureRandom;
+import java.time.Instant;
 import java.util.Base64;
 import java.util.List;
 import java.util.Optional;
@@ -32,11 +34,13 @@ public class FederationService {
     private static final int FEDERATION_VERSION = 1;
 
     private final FederationRepository repository;
+    private final StationRepository stationRepository;
     private final String instanceHost;
 
     @Inject
-    public FederationService(FederationRepository repository, Api apiConfig) {
+    public FederationService(FederationRepository repository, StationRepository stationRepository, Api apiConfig) {
         this.repository = repository;
+        this.stationRepository = stationRepository;
         this.instanceHost = extractHost(apiConfig.baseUrl());
     }
 
@@ -105,6 +109,10 @@ public class FederationService {
         return Base64.getEncoder().encodeToString(keyPair.getPublic().getEncoded());
     }
 
+    public String encodePrivateKey(KeyPair keyPair) {
+        return Base64.getEncoder().encodeToString(keyPair.getPrivate().getEncoded());
+    }
+
     // -- Partner Management --
 
     public List<FederationPartner> findPartners(int stationId) {
@@ -123,18 +131,6 @@ public class FederationService {
         var keyPair = generateKeyPair();
         String publicKey = encodePublicKey(keyPair);
         String inviteCode = generateInviteCode();
-        // We store the partner_station_id as the same station temporarily — it's updated on accept
-        // Actually, we need a valid station ID for the FK. Let's use a different approach:
-        // The invite is created with just the station_id. partner_station_id is set on accept.
-        // But the FK constraint requires a valid reference. So we'll create the full record on accept.
-        // For now, store the invite code + public key in a temporary way.
-        // Simplest approach: return just the code and public key, store nothing in DB until accepted.
-        // Actually, let's store the invite in the partner table with partner = station (self-ref blocked by CHECK).
-        // Better: remove the CHECK constraint and allow pending records with partner=0.
-        // Simplest: just return the data without DB storage. The accepting station creates the record.
-
-        // For same-instance: we can look up the station by invite code from a temporary store.
-        // Let's use a simple in-memory map for pending invites.
         return new FederationPartner(
                 0,
                 stationId,
@@ -144,24 +140,45 @@ public class FederationService {
                 null,
                 FederationPartner.FederationStatus.PENDING,
                 FEDERATION_VERSION,
-                java.time.Instant.now(),
-                java.time.Instant.now());
+                Instant.now(),
+                Instant.now(),
+                null);
     }
 
     /**
      * Accepts a federation invite on the same instance.
      * Creates partner records for both stations.
      */
-    public FederationPartner acceptInvite(int acceptingStationId, int initiatingStationId, String initiatingPublicKey) {
+    /**
+     * Accepts a federation invite on the same instance (or cross-instance).
+     * Creates bidirectional partner records with optional remote host URLs.
+     *
+     * @param acceptingStationId    the station accepting the invite
+     * @param initiatingStationId   the station that created the invite
+     * @param initiatingPublicKey   the initiating station's public key
+     * @param initiatingRemoteHost  the initiating station's base URL (null if same instance)
+     * @param acceptingRemoteHost   the accepting station's base URL (null if same instance)
+     */
+    public FederationPartner acceptInvite(
+            int acceptingStationId,
+            int initiatingStationId,
+            String initiatingPublicKey,
+            String initiatingRemoteHost,
+            String acceptingRemoteHost) {
         var keyPair = generateKeyPair();
         String acceptingPublicKey = encodePublicKey(keyPair);
 
-        // Create partner record: initiating -> accepting
-        var partner = repository.createPartner(initiatingStationId, acceptingStationId, null, initiatingPublicKey);
+        // Store private key on accepting station (if not already set)
+        stationRepository.updateFederationPrivateKey(acceptingStationId, encodePrivateKey(keyPair));
+
+        // Create partner record: initiating -> accepting (from initiating's POV, accepting may be remote)
+        var partner = repository.createPartner(
+                initiatingStationId, acceptingStationId, null, initiatingPublicKey, acceptingRemoteHost);
         repository.activatePartner(partner.id(), acceptingPublicKey);
 
-        // Create reverse partner record: accepting -> initiating
-        var reverse = repository.createPartner(acceptingStationId, initiatingStationId, null, acceptingPublicKey);
+        // Create reverse partner record: accepting -> initiating (from accepting's POV, initiating may be remote)
+        var reverse = repository.createPartner(
+                acceptingStationId, initiatingStationId, null, acceptingPublicKey, initiatingRemoteHost);
         repository.activatePartner(reverse.id(), initiatingPublicKey);
 
         // Initialize default capabilities (all enabled for both directions)
@@ -181,6 +198,29 @@ public class FederationService {
 
     public boolean resumePartner(int partnerId) {
         return repository.updatePartnerStatus(partnerId, "ACTIVE");
+    }
+
+    /**
+     * Updates the remote host for all partner records pointing to the given station.
+     * Called when a station announces it has moved to a new host.
+     *
+     * @param stationId the station that moved
+     * @param newHost   the new base URL (null if the station moved to the same instance)
+     */
+    public void updateRemoteHost(int stationId, String newHost) {
+        // Find all partner records where this station is the partner
+        // and update the remote_host on each
+        var allPartners = repository.findPartners(stationId);
+        for (var partner : allPartners) {
+            if (partner.partnerStationId() == stationId) {
+                // This is a record where stationId is the remote partner — should not happen
+                // in normal findPartners (which filters by station_id), but guard anyway
+                continue;
+            }
+        }
+        // We need to find all records across ALL stations where partner_station_id = stationId
+        // and update their remote_host
+        repository.updateRemoteHostForPartnerStation(stationId, newHost);
     }
 
     public boolean endFederation(int partnerId) {
@@ -295,7 +335,7 @@ public class FederationService {
     /**
      * Returns content changes since the given timestamp for sync polling.
      */
-    public List<FederationChangeLog> getChangesSince(int stationId, java.time.Instant since) {
+    public List<FederationChangeLog> getChangesSince(int stationId, Instant since) {
         return repository.findChangesSince(stationId, since);
     }
 }

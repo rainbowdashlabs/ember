@@ -61,6 +61,10 @@ function shortLogger(logger: string): string {
     return parts[parts.length - 1]
 }
 
+async function copyStacktrace(text: string) {
+    await navigator.clipboard.writeText(text)
+}
+
 function formatTime(iso: string): string {
     return new Date(iso).toLocaleString('de-DE')
 }
@@ -153,7 +157,15 @@ onMounted(loadData)
                 <div v-if="expandedId === entry.id" class="mt-3 pt-3 border-t border-[var(--border)]">
                     <!-- Stacktrace -->
                     <div v-if="entry.stacktrace" class="mb-3">
-                        <SectionHeader class="!text-xs !mb-1">Stacktrace</SectionHeader>
+                        <div class="flex items-center gap-2 mb-1">
+                            <SectionHeader class="!text-xs !mb-0">Stacktrace</SectionHeader>
+                            <IconButton
+                                :icon="['fas', 'copy']"
+                                :label="t('adminProblems.copyStacktrace')"
+                                class="text-[var(--text-muted)] hover:text-primary"
+                                @click.stop="copyStacktrace(entry.stacktrace)"
+                            />
+                        </div>
                         <pre class="text-xs font-mono bg-[var(--bg)] rounded p-2 overflow-x-auto max-h-64 whitespace-pre-wrap">{{ entry.stacktrace }}</pre>
                     </div>
 

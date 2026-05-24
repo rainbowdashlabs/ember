@@ -25,7 +25,6 @@ import TabBar from '@/components/navigation/TabBar.vue'
 import type { Form, FormAnalytics, FormQuestionAnalytics, FormResponse, FormAnswer, ProfileField } from '@/api/types'
 import { QuestionTypes } from '@/api/types'
 import { forms, profileFields, stationMembers } from '@/api'
-import { useStations } from '@/composables/useStations'
 import MemberName from '@/components/avatar/MemberName.vue'
 
 use([CanvasRenderer, BarChart, PieChart, TitleComponent, TooltipComponent, LegendComponent, GridComponent])
@@ -33,7 +32,7 @@ use([CanvasRenderer, BarChart, PieChart, TitleComponent, TooltipComponent, Legen
 const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
-const { currentStationId } = useStations()
+
 
 const formId = computed(() => Number(route.params.id))
 const loading = ref(true)

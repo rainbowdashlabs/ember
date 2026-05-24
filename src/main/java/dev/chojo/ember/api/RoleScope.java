@@ -32,5 +32,5 @@ public enum RoleScope {
     /**
      * Represents a permission type on station level
      */
-    STATION_PERMISSION;
+    STATION_PERMISSION
 }

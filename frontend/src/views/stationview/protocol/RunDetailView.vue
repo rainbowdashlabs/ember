@@ -20,7 +20,6 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import { useSession } from '@/composables/useSession'
-import { useStations } from '@/composables/useStations'
 import { protocol, stationMembers } from '@/api'
 import type { TestProtocolRun, RunMemberWithProgress } from '@/api/protocol'
 import type { StationMember } from '@/api/types'
@@ -29,7 +28,7 @@ const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
 const { canManageProtocol, canTestProtocol, loaded } = useSession()
-const { currentStationId } = useStations()
+
 
 const runId = computed(() => Number(route.params.id))
 const run = ref<TestProtocolRun | null>(null)

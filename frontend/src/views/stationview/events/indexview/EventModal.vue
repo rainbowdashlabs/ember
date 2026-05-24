@@ -13,10 +13,10 @@ import SelectInput from '@/components/input/select/SelectInput.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import DateTimeInput from '@/components/input/datetime/DateTimeInput.vue'
 import Modal from '@/components/feedback/Modal.vue'
-import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
+import RestrictionPicker from '@/components/input/RestrictionPicker.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import type { StationEvent, EventCategory, AttendanceTemplate, AttendanceTemplateField, Role, MemberGroup } from '@/api/types'
-import { Roles, EventTypes } from '@/api/types'
+import { EventTypes } from '@/api/types'
 import type { EventFieldDefault } from '@/api/events'
 
 const { t } = useI18n()
@@ -51,8 +51,8 @@ const eventRequiresRegistration = ref(false)
 const eventHasDeadline = ref(false)
 const eventRegistrationDeadline = ref('')
 const eventRequiresConfirmation = ref(false)
-const selectedRoleIds = ref<Set<number>>(new Set())
-const selectedGroupIds = ref<Set<number>>(new Set())
+const selectedRoleIds = ref<number[]>([])
+const selectedGroupIds = ref<number[]>([])
 // field defaults: fieldId -> { source, value }
 const fieldDefaults = ref<Map<number, { source: string; value: string }>>(new Map())
 const saving = ref(false)
@@ -79,8 +79,8 @@ watch(() => props.modelValue, (open) => {
     eventHasDeadline.value = !!ev.registrationDeadline
     eventRegistrationDeadline.value = ev.registrationDeadline ? toLocalDateTime(ev.registrationDeadline) : ''
     eventRequiresConfirmation.value = ev.requiresConfirmation ?? false
-    selectedRoleIds.value = new Set(props.eventRoleIds)
-    selectedGroupIds.value = new Set(props.eventGroupIds)
+    selectedRoleIds.value = [...props.eventRoleIds]
+    selectedGroupIds.value = [...props.eventGroupIds]
     const fdMap = new Map<number, { source: string; value: string }>()
     for (const fd of props.eventFieldDefaults) {
       fdMap.set(fd.fieldId, { source: fd.source, value: fd.value ?? '' })
@@ -99,27 +99,11 @@ watch(() => props.modelValue, (open) => {
     eventHasDeadline.value = false
     eventRegistrationDeadline.value = ''
     eventRequiresConfirmation.value = false
-    selectedRoleIds.value = new Set()
-    selectedGroupIds.value = new Set()
+    selectedRoleIds.value = []
+    selectedGroupIds.value = []
     fieldDefaults.value = new Map()
   }
 })
-
-const RESTRICTION_ROLES = [Roles.MEMBER, Roles.GUARDIAN, Roles.TEAM] as readonly string[]
-
-const roleFriendlyNames: Record<string, string> = {
-  MEMBER: 'Mitglied', GUARDIAN: 'Erziehungsberechtigter', TEAM: 'Team',
-}
-
-const restrictionRoles = computed(() =>
-  props.roles.filter(r => RESTRICTION_ROLES.includes(r.role))
-)
-
-function toggleRole(roleId: number) {
-  const s = new Set(selectedRoleIds.value)
-  if (s.has(roleId)) s.delete(roleId); else s.add(roleId)
-  selectedRoleIds.value = s
-}
 
 const EVENT_SOURCES = [
   { value: 'EVENT_NAME', label: 'Terminname' },
@@ -155,12 +139,6 @@ function setFieldDefaultValue(fieldId: number, value: string) {
   fieldDefaults.value = m
 }
 
-function toggleGroup(groupId: number) {
-  const s = new Set(selectedGroupIds.value)
-  if (s.has(groupId)) s.delete(groupId); else s.add(groupId)
-  selectedGroupIds.value = s
-}
-
 function submit() {
   saving.value = true
   emit('save', {
@@ -176,8 +154,8 @@ function submit() {
     registrationDeadline: eventHasDeadline.value && eventRegistrationDeadline.value
       ? new Date(eventRegistrationDeadline.value).toISOString() : null,
     requiresConfirmation: eventRequiresConfirmation.value,
-    restrictedRoleIds: [...selectedRoleIds.value],
-    restrictedGroupIds: [...selectedGroupIds.value],
+    restrictedRoleIds: selectedRoleIds.value,
+    restrictedGroupIds: selectedGroupIds.value,
     fieldDefaults: [...fieldDefaults.value.entries()]
       .filter(([, v]) => v.source)
       .map(([fieldId, v]) => ({ fieldId, source: v.source, value: v.value || undefined })),
@@ -304,30 +282,18 @@ function submit() {
       <div class="space-y-2">
         <label class="block text-sm font-medium">{{ t('events.restrictToRoles') }}</label>
         <p class="text-xs text-(--text-muted)">{{ t('events.restrictToRolesHint') }}</p>
-        <div class="flex flex-wrap gap-2">
-          <SelectionToggleButton
-            v-for="role in restrictionRoles"
-            :key="role.id"
-            :selected="selectedRoleIds.has(role.id)"
-            @toggle="toggleRole(role.id)"
-          >
-            {{ roleFriendlyNames[role.role] ?? role.role }}
-          </SelectionToggleButton>
-        </div>
-      </div>
-
-      <div v-if="groups.length > 0" class="space-y-2">
-        <label class="block text-sm font-medium">{{ t('events.restrictToGroups') }}</label>
-        <div class="flex flex-wrap gap-2">
-          <SelectionToggleButton
-            v-for="group in groups"
-            :key="group.id"
-            :selected="selectedGroupIds.has(group.id)"
-            @toggle="toggleGroup(group.id)"
-          >
-            {{ group.name }}
-          </SelectionToggleButton>
-        </div>
+        <RestrictionPicker
+          :roles="roles"
+          :groups="groups"
+          :selected-role-ids="selectedRoleIds"
+          :selected-group-ids="selectedGroupIds"
+          :selected-tag-ids="[]"
+          :show-tags="false"
+          :show-mode="false"
+          @update:selected-role-ids="selectedRoleIds = $event"
+          @update:selected-group-ids="selectedGroupIds = $event"
+          @update:selected-tag-ids="() => {}"
+        />
       </div>
 
       <div class="flex justify-end gap-3">

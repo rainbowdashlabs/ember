@@ -87,8 +87,13 @@ async function loadData() {
   loading.value = true
   try {
     const data = await protocol.listProtocols()
-    protocols.value = data.protocols
-    sharedProtocols.value = data.shared
+    if (Array.isArray(data)) {
+      protocols.value = data as unknown as typeof protocols.value
+      sharedProtocols.value = []
+    } else {
+      protocols.value = data.protocols ?? []
+      sharedProtocols.value = data.shared ?? []
+    }
   } catch { error.value = t('common.error') }
   finally { loading.value = false }
 }

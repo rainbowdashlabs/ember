@@ -35,6 +35,7 @@ class FederationRepositoryTest extends RepositoryTestBase {
 
     private static Station stationA;
     private static Station stationB;
+    private static Station stationC;
     private static Account account;
     private static StationMember member;
     private static int partnerId;
@@ -54,6 +55,7 @@ class FederationRepositoryTest extends RepositoryTestBase {
 
         stationA = stationRepo.create("FedRepoTestStationA");
         stationB = stationRepo.create("FedRepoTestStationB");
+        stationC = stationRepo.create("FedRepoTestStationC");
 
         // Create account and member for createdBy references
         account = accountRepo.create("fedrepo@test.com", "Fed", "Tester");
@@ -78,6 +80,7 @@ class FederationRepositoryTest extends RepositoryTestBase {
     static void cleanup() {
         stationRepo.delete(stationA.id());
         stationRepo.delete(stationB.id());
+        stationRepo.delete(stationC.id());
         accountRepo.delete(account.id());
     }
 
@@ -86,7 +89,7 @@ class FederationRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(1)
     void createPartner() {
-        var partner = federationRepo.createPartner(stationA.id(), stationB.id(), "EMBER-TEST-CODE", "publicKeyA");
+        var partner = federationRepo.createPartner(stationA.id(), stationB.id(), "EMBER-TEST-CODE", "publicKeyA", null);
         assertNotNull(partner);
         assertTrue(partner.id() > 0);
         assertEquals(stationA.id(), partner.stationId());
@@ -94,6 +97,8 @@ class FederationRepositoryTest extends RepositoryTestBase {
         assertEquals("EMBER-TEST-CODE", partner.inviteCode());
         assertEquals("publicKeyA", partner.publicKey());
         assertEquals(FederationPartner.FederationStatus.PENDING, partner.status());
+        assertNull(partner.remoteHost());
+        assertFalse(partner.isRemote());
         partnerId = partner.id();
     }
 
@@ -325,6 +330,54 @@ class FederationRepositoryTest extends RepositoryTestBase {
     void setAndGetWebhookUrl() {
         federationRepo.setWebhookUrl(partnerId, "https://example.com/webhook");
         assertEquals("https://example.com/webhook", federationRepo.getWebhookUrl(partnerId));
+    }
+
+    // -- Remote Host --
+
+    @Test
+    @Order(71)
+    void createPartnerWithRemoteHost() {
+        var remote = federationRepo.createPartner(
+                stationA.id(), stationC.id(), "EMBER-REMOTE-CODE", "publicKeyRemote", "https://remote.example.com");
+        assertNotNull(remote);
+        assertEquals("https://remote.example.com", remote.remoteHost());
+        assertTrue(remote.isRemote());
+        // Cleanup
+        federationRepo.deletePartner(remote.id());
+    }
+
+    @Test
+    @Order(72)
+    void updateRemoteHost() {
+        assertTrue(federationRepo.updateRemoteHost(partnerId, "https://new-host.example.com"));
+        var updated = federationRepo.findPartnerById(partnerId).orElseThrow();
+        assertEquals("https://new-host.example.com", updated.remoteHost());
+        assertTrue(updated.isRemote());
+
+        // Reset to null
+        assertTrue(federationRepo.updateRemoteHost(partnerId, null));
+        var reset = federationRepo.findPartnerById(partnerId).orElseThrow();
+        assertNull(reset.remoteHost());
+        assertFalse(reset.isRemote());
+    }
+
+    @Test
+    @Order(73)
+    void updateRemoteHostForPartnerStation() {
+        // Create a partner from stationC to stationB, alongside the existing stationA->stationB partner
+        var extra = federationRepo.createPartner(stationC.id(), stationB.id(), "EMBER-EXTRA-CODE", "pubKeyExtra", null);
+
+        federationRepo.updateRemoteHostForPartnerStation(stationB.id(), "https://moved.example.com");
+
+        var main = federationRepo.findPartnerById(partnerId).orElseThrow();
+        assertEquals("https://moved.example.com", main.remoteHost());
+
+        var extraUpdated = federationRepo.findPartnerById(extra.id()).orElseThrow();
+        assertEquals("https://moved.example.com", extraUpdated.remoteHost());
+
+        // Reset
+        federationRepo.updateRemoteHostForPartnerStation(stationB.id(), null);
+        federationRepo.deletePartner(extra.id());
     }
 
     // -- Delete Partner --

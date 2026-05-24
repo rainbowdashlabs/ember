@@ -41,7 +41,8 @@ public record Form(
         Instant closedAt,
         int createdBy,
         Instant createdAt,
-        Instant updatedAt) {
+        Instant updatedAt,
+        String restrictionMode) {
 
     /**
      * Creates a row mapping for database result set conversion.
@@ -60,7 +61,8 @@ public record Form(
                 row.get("closed_at", INSTANT_TIMESTAMP),
                 row.getInt("created_by"),
                 row.get("created_at", INSTANT_TIMESTAMP),
-                row.get("updated_at", INSTANT_TIMESTAMP));
+                row.get("updated_at", INSTANT_TIMESTAMP),
+                row.getString("restriction_mode"));
     }
 
     /**

@@ -66,15 +66,12 @@ const avgResponseTime = computed(() => {
     return totalRequests.value > 0 ? total / totalRequests.value : 0
 })
 
-const hourlyChartOption = computed(() => ({
+const requestVolumeOption = computed(() => ({
     tooltip: {trigger: 'axis'},
-    legend: {data: [t('apiStatus.requests'), t('apiStatus.avgResponseTime'), t('apiStatus.errors')]},
-    grid: {left: 60, right: 60, bottom: 40},
+    legend: {data: [t('apiStatus.requests'), t('apiStatus.errors')]},
+    grid: {left: 60, right: 20, bottom: 40},
     xAxis: {type: 'category', data: hourly.value.map(h => h.hour.substring(11))},
-    yAxis: [
-        {type: 'value', name: t('apiStatus.count'), position: 'left'},
-        {type: 'value', name: 'ms', position: 'right'},
-    ],
+    yAxis: {type: 'value', name: t('apiStatus.count')},
     series: [
         {
             name: t('apiStatus.requests'),
@@ -83,18 +80,26 @@ const hourlyChartOption = computed(() => ({
             itemStyle: {color: '#73CEFF'},
         },
         {
-            name: t('apiStatus.avgResponseTime'),
-            type: 'line',
-            yAxisIndex: 1,
-            data: hourly.value.map(h => Math.round(h.avgDurationMs)),
-            itemStyle: {color: '#FF6421'},
-            smooth: true,
-        },
-        {
             name: t('apiStatus.errors'),
             type: 'bar',
             data: hourly.value.map(h => h.errorCount),
             itemStyle: {color: '#ec2929'},
+        },
+    ],
+}))
+
+const responseTimeOption = computed(() => ({
+    tooltip: {trigger: 'axis'},
+    grid: {left: 60, right: 20, bottom: 40},
+    xAxis: {type: 'category', data: hourly.value.map(h => h.hour.substring(11))},
+    yAxis: {type: 'value', name: 'ms'},
+    series: [
+        {
+            name: t('apiStatus.avgResponseTime'),
+            type: 'line',
+            data: hourly.value.map(h => Math.round(h.avgDurationMs)),
+            itemStyle: {color: '#FF6421'},
+            smooth: true,
         },
     ],
 }))
@@ -176,8 +181,14 @@ onMounted(loadData)
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
                 <NeutralContainer>
                     <SectionHeader>{{ t('apiStatus.requestsOverTime') }}</SectionHeader>
-                    <VChart :option="hourlyChartOption" style="height: 280px" autoresize/>
+                    <VChart :option="requestVolumeOption" style="height: 280px" autoresize/>
                 </NeutralContainer>
+                <NeutralContainer>
+                    <SectionHeader>{{ t('apiStatus.avgResponseTime') }}</SectionHeader>
+                    <VChart :option="responseTimeOption" style="height: 280px" autoresize/>
+                </NeutralContainer>
+            </div>
+            <div class="mb-6">
                 <NeutralContainer>
                     <SectionHeader>{{ t('apiStatus.statusCodes') }}</SectionHeader>
                     <VChart :option="statusChartOption" style="height: 280px" autoresize/>

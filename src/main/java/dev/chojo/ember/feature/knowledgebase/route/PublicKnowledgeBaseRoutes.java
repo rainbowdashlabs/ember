@@ -24,6 +24,8 @@ import io.javalin.http.NotFoundResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.Map;
@@ -35,6 +37,7 @@ import java.util.UUID;
  */
 @Singleton
 public class PublicKnowledgeBaseRoutes implements Routes {
+    private static final Logger log = LoggerFactory.getLogger(PublicKnowledgeBaseRoutes.class);
 
     private final KnowledgeBaseService kbService;
     private final StationService stationService;
@@ -74,6 +77,7 @@ public class PublicKnowledgeBaseRoutes implements Routes {
         try {
             uid = UUID.fromString(uidParam);
         } catch (IllegalArgumentException e) {
+            log.warn("Invalid station UUID for public KB: {}", uidParam, e);
             throw new BadRequestResponse("Invalid station ID");
         }
         var station = stationRepository.findByUid(uid).orElseThrow(NotFoundResponse::new);

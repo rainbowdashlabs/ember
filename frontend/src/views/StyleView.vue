@@ -41,6 +41,7 @@ import TimeInput from '@/components/input/datetime/TimeInput.vue'
 import TimeShortInput from '@/components/input/datetime/TimeShortInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
+import CompactToggle from '@/components/input/toggle/CompactToggle.vue'
 
 import PrimaryBadge from '@/components/badge/PrimaryBadge.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
@@ -235,6 +236,25 @@ const toggleStates = ref(new Set([1, 3]))
         </div>
         <div class="flex items-center gap-2">
           <ToggleInput :model-value="true" disabled/>
+          <span class="text-sm text-[var(--text-muted)]">Disabled (on)</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Compact Toggle -->
+    <section class="space-y-4">
+      <SectionHeader>Compact Toggle</SectionHeader>
+      <div class="flex flex-wrap items-center gap-4 sm:gap-6">
+        <div class="flex items-center gap-2">
+          <CompactToggle v-model="toggleValue"/>
+          <span class="text-sm">{{ toggleValue ? 'On' : 'Off' }}</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <CompactToggle disabled/>
+          <span class="text-sm text-[var(--text-muted)]">Disabled (off)</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <CompactToggle :model-value="true" disabled/>
           <span class="text-sm text-[var(--text-muted)]">Disabled (on)</span>
         </div>
       </div>

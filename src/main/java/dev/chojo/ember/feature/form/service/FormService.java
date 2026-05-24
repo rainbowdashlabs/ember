@@ -49,8 +49,7 @@ public class FormService {
 
     /**
      * Check if a specific member has access to a form based on its restrictions.
-     * If the form has no restrictions, everyone has access.
-     * Otherwise, the member must match at least one role, group, or tag restriction.
+     * Uses the form's restriction mode: AND requires each non-empty type to match, OR requires any match.
      */
     public boolean canMemberAccess(int formId, int memberId) {
         var roleRestrictions = repository.findRoleRestrictions(formId);
@@ -62,30 +61,40 @@ public class FormService {
             return true;
         }
 
-        // Check role match
-        if (!roleRestrictions.isEmpty()) {
-            var memberRoleIds =
-                    memberService.findRoles(memberId).stream().map(Role::id).toList();
+        var form = repository.findById(formId).orElse(null);
+        String mode = form != null && "AND".equals(form.restrictionMode()) ? "AND" : "OR";
+
+        var memberRoleIds =
+                memberService.findRoles(memberId).stream().map(Role::id).toList();
+        var memberGroupIds = groupService.findGroupsForMember(memberId).stream()
+                .map(MemberGroup::id)
+                .toList();
+        var memberTagIds =
+                tagService.findTagsForMember(memberId).stream().map(UserTag::id).toList();
+
+        if ("OR".equals(mode)) {
+            // Any match across any type returns true
             if (memberRoleIds.stream().anyMatch(roleRestrictions::contains)) return true;
-        }
-
-        // Check group match
-        if (!groupRestrictions.isEmpty()) {
-            var memberGroupIds = groupService.findGroupsForMember(memberId).stream()
-                    .map(MemberGroup::id)
-                    .toList();
             if (memberGroupIds.stream().anyMatch(groupRestrictions::contains)) return true;
-        }
-
-        // Check tag match
-        if (!tagRestrictions.isEmpty()) {
-            var memberTagIds = tagService.findTagsForMember(memberId).stream()
-                    .map(UserTag::id)
-                    .toList();
             return memberTagIds.stream().anyMatch(tagRestrictions::contains);
         }
 
-        return false;
+        // AND: each non-empty type must have at least one match
+        if (!roleRestrictions.isEmpty() && roleRestrictions.stream().noneMatch(memberRoleIds::contains)) return false;
+        if (!groupRestrictions.isEmpty() && groupRestrictions.stream().noneMatch(memberGroupIds::contains))
+            return false;
+        if (!tagRestrictions.isEmpty() && tagRestrictions.stream().noneMatch(memberTagIds::contains)) return false;
+        return true;
+    }
+
+    /**
+     * Updates the restriction mode for a form.
+     *
+     * @param formId the form ID
+     * @param mode   the restriction mode ("AND" or "OR")
+     */
+    public void updateRestrictionMode(int formId, String mode) {
+        repository.updateRestrictionMode(formId, mode);
     }
 
     // -- Forms --

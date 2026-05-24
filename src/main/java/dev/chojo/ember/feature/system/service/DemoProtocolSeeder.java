@@ -11,6 +11,7 @@ import jakarta.inject.Singleton;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Random;
 
 /**
  * Seeds demo test protocol data modeled after the Jugendflamme Stufe 1 Prüfungsbogen.
@@ -203,7 +204,7 @@ public class DemoProtocolSeeder {
         // === Completed run from 2025 ===
         if (!memberIds.isEmpty()) {
             var allItems = repo.findAllItemsByProtocol(protocol.id());
-            var rng = new java.util.Random(42);
+            var rng = new Random(42);
 
             var lastYear = LocalDate.now().minusYears(1);
             var pastRun = repo.createRun(

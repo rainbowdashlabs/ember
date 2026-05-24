@@ -10,6 +10,8 @@ import TextInput from '@/components/input/text/TextInput.vue'
 import CheckboxInput from '@/components/input/toggle/CheckboxInput.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import MemberFilterBar from '@/components/input/filter/MemberFilterBar.vue'
+import type { FilterOption, FilterCriteria } from '@/components/input/filter/MemberFilterBar.vue'
 import type { ProfileField } from '@/api/types'
 import { useBreakpoint } from '@/composables/useBreakpoint'
 
@@ -31,6 +33,9 @@ defineProps<{
   extraColumnIds: Set<number>
   exportMode: boolean
   selectedCount: number
+  roles: FilterOption[]
+  groups: FilterOption[]
+  tags: FilterOption[]
 }>()
 
 const emit = defineEmits<{
@@ -42,6 +47,7 @@ const emit = defineEmits<{
   toggleColumn: [fieldId: number]
   toggleExport: []
   exportContinue: []
+  filter: [criteria: FilterCriteria]
 }>()
 
 const showColumnPicker = ref(false)
@@ -60,16 +66,23 @@ function submitSaveFilter() {
   <!-- Saved filters -->
   <div v-if="savedFilters.length > 0" class="flex flex-wrap items-center gap-2">
     <span class="text-xs text-(--text-muted)">{{ t('membersList.savedFilters') }}:</span>
-    <button
+    <SecondaryButton
       v-for="(preset, idx) in savedFilters"
       :key="idx"
-      class="inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded border border-bg-light-accent dark:border-bg-dark-accent hover:border-primary transition-colors"
       @click="emit('applyFilter', preset)"
     >
       {{ preset.name }}
       <span class="text-(--text-muted) hover:text-error ml-1" @click.stop="emit('deleteFilter', idx)">&times;</span>
-    </button>
+    </SecondaryButton>
   </div>
+
+  <!-- Role / Group / Tag filter -->
+  <MemberFilterBar
+      :roles="roles"
+      :groups="groups"
+      :tags="tags"
+      @filter="criteria => emit('filter', criteria)"
+  />
 
   <div class="space-y-2">
     <TextInput :model-value="filterText" :placeholder="t('membersList.filter')" class="w-full" @update:model-value="(v: string | undefined) => emit('update:filterText', v ?? '')" />

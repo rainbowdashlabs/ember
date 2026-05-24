@@ -18,7 +18,7 @@ import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
-import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
+import RestrictionPicker from '@/components/input/RestrictionPicker.vue'
 import type { MemberGroup } from '@/api/types'
 import { news, memberGroups } from '@/api'
 
@@ -31,7 +31,7 @@ const newsId = computed(() => isEdit.value ? Number(route.params.id) : null)
 
 const title = ref('')
 const contentMarkdown = ref('')
-const selectedGroupIds = ref<Set<number>>(new Set())
+const selectedGroupIds = ref<number[]>([])
 const groups = ref<MemberGroup[]>([])
 const loading = ref(false)
 const saving = ref(false)
@@ -54,19 +54,13 @@ async function loadData() {
       const entry = await news.getNews(newsId.value)
       title.value = entry.title
       contentMarkdown.value = entry.contentMarkdown
-      selectedGroupIds.value = new Set(entry.groupIds)
+      selectedGroupIds.value = entry.groupIds ?? []
     }
   } catch {
     error.value = t('common.error')
   } finally {
     loading.value = false
   }
-}
-
-function toggleGroup(groupId: number) {
-  const s = new Set(selectedGroupIds.value)
-  if (s.has(groupId)) s.delete(groupId); else s.add(groupId)
-  selectedGroupIds.value = s
 }
 
 async function save() {
@@ -78,7 +72,7 @@ async function save() {
       title: title.value,
       contentMarkdown: contentMarkdown.value,
       contentHtml: contentHtml.value,
-      groupIds: [...selectedGroupIds.value],
+      groupIds: selectedGroupIds.value,
     }
     if (newsId.value) {
       await news.updateNews(newsId.value, data)
@@ -141,16 +135,16 @@ onMounted(loadData)
         <NeutralContainer v-if="groups.length > 0" class="space-y-3">
           <SubHeader>{{ t('news.restrictToGroups') }}</SubHeader>
           <p class="text-xs text-(--text-muted)">{{ t('news.restrictHint') }}</p>
-          <div class="flex flex-wrap gap-2">
-            <SelectionToggleButton
-              v-for="group in groups"
-              :key="group.id"
-              :selected="selectedGroupIds.has(group.id)"
-              @toggle="toggleGroup(group.id)"
-            >
-              {{ group.name }}
-            </SelectionToggleButton>
-          </div>
+          <RestrictionPicker
+              :groups="groups"
+              :selected-role-ids="[]"
+              :selected-group-ids="selectedGroupIds"
+              :selected-tag-ids="[]"
+              :show-roles="false"
+              :show-tags="false"
+              :show-mode="false"
+              @update:selected-group-ids="v => selectedGroupIds = v"
+          />
         </NeutralContainer>
 
         <div class="flex justify-end gap-3">

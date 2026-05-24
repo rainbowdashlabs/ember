@@ -23,11 +23,9 @@ import SectionHeader from '@/components/typography/SectionHeader.vue'
 import RoleSelector from '@/components/input/RoleSelector.vue'
 import type {MemberGroup, Role, StationMember} from '@/api/types'
 import {memberGroups, stationMembers} from '@/api'
-import {useStations} from '@/composables/useStations'
 import {useSession} from '@/composables/useSession'
 
 const {t} = useI18n()
-const {currentStationId} = useStations()
 const {canManageMembers, isManager} = useSession()
 
 const groups = ref<MemberGroup[]>([])

@@ -37,7 +37,7 @@ function onFileSelect(file: File) {
       <span v-if="fileName" class="text-sm text-(--text-muted)">{{ fileName }}</span>
       <div class="flex items-center gap-2">
         <label class="text-xs text-(--text-muted)">{{ t('quiz.csv.separator') }}</label>
-        <SelectInput :model-value="separator" class="w-24" @update:model-value="emit('update:separator', $event)">
+        <SelectInput :model-value="separator" class="w-24" @update:model-value="emit('update:separator', $event ?? separator)">
           <option value=",">,</option>
           <option value=";">;</option>
           <option value="&#9">Tab</option>

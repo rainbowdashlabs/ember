@@ -34,7 +34,7 @@ class FederationServiceTest extends RepositoryTestBase {
     @BeforeAll
     static void setup() {
         federationRepo = new FederationRepository();
-        service = new FederationService(federationRepo, new Api());
+        service = new FederationService(federationRepo, stationRepo, new Api());
 
         stationA = stationRepo.create("FedSvcTestStationA");
         stationB = stationRepo.create("FedSvcTestStationB");
@@ -82,13 +82,15 @@ class FederationServiceTest extends RepositoryTestBase {
     @Order(4)
     void acceptInviteCreatesBidirectionalPartners() {
         var invite = service.createInvite(stationA.id());
-        var partner = service.acceptInvite(stationB.id(), stationA.id(), invite.publicKey());
+        var partner = service.acceptInvite(stationB.id(), stationA.id(), invite.publicKey(), null, null);
 
         assertNotNull(partner);
         assertEquals(FederationPartner.FederationStatus.ACTIVE, partner.status());
         assertEquals(stationA.id(), partner.stationId());
         assertEquals(stationB.id(), partner.partnerStationId());
         assertNotNull(partner.partnerPublicKey());
+        assertNull(partner.remoteHost());
+        assertFalse(partner.isRemote());
         partnerIdAtoB = partner.id();
 
         // Verify reverse partner exists
@@ -208,6 +210,93 @@ class FederationServiceTest extends RepositoryTestBase {
         String encoded = service.encodePublicKey(keyPair);
         assertNotNull(encoded);
         assertFalse(encoded.isEmpty());
+    }
+
+    // -- Remote Host --
+
+    @Test
+    @Order(60)
+    void acceptInviteWithRemoteHosts() {
+        var stationC = stationRepo.create("FedSvcTestStationC");
+        var invite = service.createInvite(stationC.id());
+        var partner = service.acceptInvite(
+                stationA.id(),
+                stationC.id(),
+                invite.publicKey(),
+                "https://remote-c.example.com",
+                "https://remote-a.example.com");
+
+        assertNotNull(partner);
+        assertEquals(FederationPartner.FederationStatus.ACTIVE, partner.status());
+
+        // The partner record from C's POV should show A as remote
+        var found = federationRepo.findPartnerById(partner.id()).orElseThrow();
+        assertEquals("https://remote-a.example.com", found.remoteHost());
+        assertTrue(found.isRemote());
+
+        // The reverse partner (A -> C) should show C as remote
+        var reversePartners = service.findPartners(stationA.id());
+        var reverse = reversePartners.stream()
+                .filter(p -> p.partnerStationId() == stationC.id())
+                .findFirst()
+                .orElseThrow();
+        assertEquals("https://remote-c.example.com", reverse.remoteHost());
+        assertTrue(reverse.isRemote());
+
+        // Cleanup
+        service.endFederation(partner.id());
+        stationRepo.delete(stationC.id());
+    }
+
+    @Test
+    @Order(61)
+    void updateRemoteHost() {
+        var stationD = stationRepo.create("FedSvcTestStationD");
+        var invite = service.createInvite(stationD.id());
+        var partner = service.acceptInvite(stationA.id(), stationD.id(), invite.publicKey(), null, null);
+
+        // Initially local
+        var reverse = service.findPartners(stationA.id()).stream()
+                .filter(p -> p.partnerStationId() == stationD.id())
+                .findFirst()
+                .orElseThrow();
+        assertFalse(reverse.isRemote());
+
+        // Update remote host for stationD (it moved to a remote server)
+        service.updateRemoteHost(stationD.id(), "https://new-host.example.com");
+
+        // Now the partner record pointing at stationD should have the new host
+        var updated = service.findPartners(stationA.id()).stream()
+                .filter(p -> p.partnerStationId() == stationD.id())
+                .findFirst()
+                .orElseThrow();
+        assertEquals("https://new-host.example.com", updated.remoteHost());
+        assertTrue(updated.isRemote());
+
+        // Cleanup
+        service.endFederation(partner.id());
+        stationRepo.delete(stationD.id());
+    }
+
+    @Test
+    @Order(62)
+    void isRemoteOnCreatedPartners() {
+        var stationE = stationRepo.create("FedSvcTestStationE");
+        var stationF = stationRepo.create("FedSvcTestStationF");
+
+        var local = federationRepo.createPartner(stationE.id(), stationF.id(), "LOCAL-CODE", "pubKey", null);
+        assertFalse(local.isRemote());
+        assertNull(local.remoteHost());
+        federationRepo.deletePartner(local.id());
+
+        var remote = federationRepo.createPartner(
+                stationE.id(), stationF.id(), "REMOTE-CODE", "pubKey", "https://remote.example.com");
+        assertTrue(remote.isRemote());
+        assertEquals("https://remote.example.com", remote.remoteHost());
+        federationRepo.deletePartner(remote.id());
+
+        stationRepo.delete(stationE.id());
+        stationRepo.delete(stationF.id());
     }
 
     // -- End Federation --

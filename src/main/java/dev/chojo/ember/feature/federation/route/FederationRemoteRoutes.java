@@ -8,7 +8,6 @@ package dev.chojo.ember.feature.federation.route;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
-import dev.chojo.ember.feature.federation.service.FederatedContentService;
 import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.federation.service.FederationSigningService;
 import dev.chojo.ember.feature.federation.service.FederationWebhookService;
@@ -40,7 +39,6 @@ public class FederationRemoteRoutes implements Routes {
     private static final Logger log = LoggerFactory.getLogger(FederationRemoteRoutes.class);
 
     private final FederationService federationService;
-    private final FederatedContentService contentService;
     private final FederationSigningService signingService;
     private final FederationWebhookService webhookService;
     private final FederationRepository repository;
@@ -52,7 +50,6 @@ public class FederationRemoteRoutes implements Routes {
     @Inject
     public FederationRemoteRoutes(
             FederationService federationService,
-            FederatedContentService contentService,
             FederationSigningService signingService,
             FederationWebhookService webhookService,
             FederationRepository repository,
@@ -61,7 +58,6 @@ public class FederationRemoteRoutes implements Routes {
             QuizService quizService,
             TestProtocolService protocolService) {
         this.federationService = federationService;
-        this.contentService = contentService;
         this.signingService = signingService;
         this.webhookService = webhookService;
         this.repository = repository;
@@ -99,6 +95,9 @@ public class FederationRemoteRoutes implements Routes {
 
         // Sync polling (signature required)
         routes.get(base + "/sync/metadata", this::syncMetadata);
+
+        // Host change announcement (signature required)
+        routes.post(base + "/announce", this::announceHostChange);
     }
 
     // -- Handshake --
@@ -145,6 +144,7 @@ public class FederationRemoteRoutes implements Routes {
         try {
             remoteStationId = Integer.parseInt(stationIdHeader);
         } catch (NumberFormatException e) {
+            log.warn("Invalid X-Federation-Station-Id header value: {}", stationIdHeader, e);
             throw new BadRequestResponse("Invalid X-Federation-Station-Id");
         }
 
@@ -152,6 +152,7 @@ public class FederationRemoteRoutes implements Routes {
         try {
             timestamp = Instant.parse(timestampHeader);
         } catch (Exception e) {
+            log.warn("Invalid X-Federation-Timestamp header value: {}", timestampHeader, e);
             throw new BadRequestResponse("Invalid X-Federation-Timestamp");
         }
 
@@ -185,16 +186,20 @@ public class FederationRemoteRoutes implements Routes {
 
     private void browseKb(Context ctx) {
         var partner = verifySignature(ctx);
-        var items = contentService.browseSharedKb(partner.stationId());
-        ctx.json(items.stream()
-                .filter(i -> i.file() != null)
-                .map(i -> Map.of(
-                        "id", i.file().id(),
-                        "name", i.file().name(),
-                        "description", i.file().description(),
-                        "fileType", i.file().fileType().name(),
-                        "updatedAt", i.file().updatedAt().toString()))
-                .toList());
+        // Only return files shared by THIS station — never re-share federated content
+        var shares = repository.findKbShares(partner.stationId());
+        var result = shares.stream()
+                .filter(s -> s.fileId() != null)
+                .flatMap(s -> kbService.findFile(s.fileId()).stream())
+                .filter(file -> file.stationId() == partner.stationId())
+                .map(file -> Map.<String, Object>of(
+                        "id", file.id(),
+                        "name", file.name(),
+                        "description", file.description() != null ? file.description() : "",
+                        "fileType", file.fileType().name(),
+                        "updatedAt", file.updatedAt().toString()))
+                .toList();
+        ctx.json(result);
     }
 
     private void getKbFile(Context ctx) {
@@ -227,14 +232,19 @@ public class FederationRemoteRoutes implements Routes {
 
     private void browseCatalogs(Context ctx) {
         var partner = verifySignature(ctx);
-        var items = contentService.browseSharedQuiz(partner.stationId());
-        ctx.json(items.stream()
-                .map(i -> Map.of(
-                        "id", i.catalog().id(),
-                        "name", i.catalog().name(),
-                        "description", i.catalog().description(),
-                        "updatedAt", i.catalog().updatedAt().toString()))
-                .toList());
+        // Only return catalogs shared by THIS station — never re-share federated content
+        var shares = repository.findQuizShares(partner.stationId());
+        var result = shares.stream()
+                .filter(s -> s.catalogId() != null)
+                .flatMap(s -> quizService.findCatalog(s.catalogId()).stream())
+                .filter(catalog -> catalog.stationId() == partner.stationId())
+                .map(catalog -> Map.<String, Object>of(
+                        "id", catalog.id(),
+                        "name", catalog.name(),
+                        "description", catalog.description(),
+                        "updatedAt", catalog.updatedAt().toString()))
+                .toList();
+        ctx.json(result);
     }
 
     private void getCatalog(Context ctx) {
@@ -255,14 +265,19 @@ public class FederationRemoteRoutes implements Routes {
 
     private void browseProtocols(Context ctx) {
         var partner = verifySignature(ctx);
-        var items = contentService.browseSharedProtocols(partner.stationId());
-        ctx.json(items.stream()
-                .map(i -> Map.of(
-                        "id", i.protocol().id(),
-                        "name", i.protocol().name(),
-                        "description", i.protocol().description(),
-                        "updatedAt", i.protocol().updatedAt().toString()))
-                .toList());
+        // Only return protocols shared by THIS station — never re-share federated content
+        var shares = repository.findProtocolShares(partner.stationId());
+        var result = shares.stream()
+                .filter(s -> s.protocolId() != null)
+                .flatMap(s -> protocolService.findProtocol(s.protocolId()).stream())
+                .filter(proto -> proto.stationId() == partner.stationId())
+                .map(proto -> Map.<String, Object>of(
+                        "id", proto.id(),
+                        "name", proto.name(),
+                        "description", proto.description(),
+                        "updatedAt", proto.updatedAt().toString()))
+                .toList();
+        ctx.json(result);
     }
 
     private void getProtocol(Context ctx) {
@@ -316,6 +331,7 @@ public class FederationRemoteRoutes implements Routes {
         try {
             since = Instant.parse(sinceParam);
         } catch (Exception e) {
+            log.warn("Invalid since timestamp for sync metadata: {}", sinceParam, e);
             throw new BadRequestResponse("Invalid since timestamp");
         }
 
@@ -324,7 +340,35 @@ public class FederationRemoteRoutes implements Routes {
         ctx.json(changes);
     }
 
+    // -- Host Change Announcement --
+
+    /**
+     * Called by a station that has moved to a new host. Updates the remote_host
+     * on all partner records pointing to the announcing station.
+     * Notifies managers of the host change.
+     */
+    private void announceHostChange(Context ctx) {
+        var partner = verifySignature(ctx);
+        var req = ctx.bodyAsClass(AnnounceRequest.class);
+        if (req.newHost() == null || req.newHost().isBlank()) {
+            throw new BadRequestResponse("newHost is required");
+        }
+
+        // Update all partner records where this station is the partner
+        int announcingStationId =
+                partner.stationId() == partner.partnerStationId() ? partner.stationId() : partner.partnerStationId();
+        // The announcing station is the one identified by the federation signature header
+        int remoteStationId = Integer.parseInt(ctx.header("X-Federation-Station-Id"));
+        federationService.updateRemoteHost(remoteStationId, req.newHost());
+
+        log.info("Federation: Station {} announced host change to {}", remoteStationId, req.newHost());
+
+        ctx.json(Map.of("status", "ok"));
+    }
+
     // -- Request/Response Records --
+
+    public record AnnounceRequest(String newHost) {}
 
     public record HandshakeRequest(
             int stationId, int federationVersion, List<String> capabilities, String publicKey, String signature) {}

@@ -338,6 +338,7 @@ public class EventService {
      * @param eventId  the event ID
      * @param roleIds  the role IDs to restrict to, or null for no role restrictions
      * @param groupIds the group IDs to restrict to, or null for no group restrictions
+     * @param tagIds   the tag IDs to restrict to, or null for no tag restrictions
      */
     public void setRestrictions(int eventId, List<Integer> roleIds, List<Integer> groupIds, List<Integer> tagIds) {
         eventRepository.setRoleRestrictions(eventId, roleIds != null ? roleIds : List.of());
@@ -346,8 +347,18 @@ public class EventService {
     }
 
     /**
+     * Updates the restriction mode for an event.
+     *
+     * @param eventId the event ID
+     * @param mode    the restriction mode ("AND" or "OR")
+     */
+    public void updateRestrictionMode(int eventId, String mode) {
+        eventRepository.updateRestrictionMode(eventId, mode);
+    }
+
+    /**
      * Checks if a member is eligible for an event based on their expanded roles, group memberships, and tags.
-     * Uses AND logic: if multiple restriction types are set, the member must match ALL of them.
+     * Uses the event's restriction mode: AND requires each non-empty type to match, OR requires any match.
      *
      * @param eventId        the event to check
      * @param expandedRoles  the member's roles (already expanded via Roles.expand)
@@ -361,6 +372,23 @@ public class EventService {
         var tagRestrictions = eventRepository.findTagRestrictions(eventId);
 
         if (roleRestrictionNames.isEmpty() && groupRestrictions.isEmpty() && tagRestrictions.isEmpty()) return true;
+
+        var event = eventRepository.findById(eventId).orElse(null);
+        String mode = event != null && "OR".equals(event.restrictionMode()) ? "OR" : "AND";
+
+        if ("OR".equals(mode)) {
+            for (String roleName : roleRestrictionNames) {
+                Roles role = Roles.fromDbName(roleName);
+                if (role != null && expandedRoles.contains(role)) return true;
+            }
+            for (int gId : groupRestrictions) {
+                if (memberGroupIds.contains(gId)) return true;
+            }
+            for (int tId : tagRestrictions) {
+                if (memberTagIds.contains(tId)) return true;
+            }
+            return false;
+        }
 
         // AND logic: each non-empty restriction type must match
         if (!roleRestrictionNames.isEmpty()) {
@@ -376,25 +404,11 @@ public class EventService {
         }
 
         if (!groupRestrictions.isEmpty()) {
-            boolean groupMatch = false;
-            for (int groupId : groupRestrictions) {
-                if (memberGroupIds.contains(groupId)) {
-                    groupMatch = true;
-                    break;
-                }
-            }
-            if (!groupMatch) return false;
+            if (groupRestrictions.stream().noneMatch(memberGroupIds::contains)) return false;
         }
 
         if (!tagRestrictions.isEmpty()) {
-            boolean tagMatch = false;
-            for (int tagId : tagRestrictions) {
-                if (memberTagIds.contains(tagId)) {
-                    tagMatch = true;
-                    break;
-                }
-            }
-            return tagMatch;
+            if (tagRestrictions.stream().noneMatch(memberTagIds::contains)) return false;
         }
 
         return true;

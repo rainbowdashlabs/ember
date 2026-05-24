@@ -11,6 +11,7 @@ export const Roles = {
     MEMBER: 'MEMBER',
     GUARDIAN: 'GUARDIAN',
     TEAM: 'TEAM',
+    TRIAL: 'TRIAL',
     ATTENDANCE_MANAGER: 'ATTENDANCE_MANAGER',
     ATTENDANCE_EXPORT_MANAGER: 'ATTENDANCE_EXPORT_MANAGER',
     INVENTORY_MANAGER: 'INVENTORY_MANAGER',
@@ -128,6 +129,10 @@ export interface SessionInfo {
     roles?: string[]
     managedMembers?: StationMember[]
     groups?: MemberGroup[]
+    tags?: UserTag[]
+    roleIds?: number[]
+    groupIds?: number[]
+    tagIds?: number[]
     profileComplete?: boolean
     disabledModules?: string[]
     theme?: ThemeSessionInfo
@@ -264,6 +269,7 @@ export interface EventRestrictions {
     roleIds: number[]
     groupIds: number[]
     tagIds: number[]
+    mode?: string
 }
 
 export interface AllEventRestrictions {
@@ -402,6 +408,7 @@ export interface FormRestrictions {
     roleIds: number[]
     groupIds: number[]
     tagIds: number[]
+    mode?: string
 }
 
 export interface FormSubmitRequest {
@@ -450,6 +457,7 @@ export interface UpdateStationNameRequest {
     defaultTheme?: string
     allowUserTheme?: boolean
     customThemeColors?: string | null
+    publicKbMode?: string
 }
 
 // -- Stations --

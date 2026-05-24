@@ -25,13 +25,12 @@ import { Roles, hasTeamRole, ExchangeStatus, StationModules } from '@/api/types'
 import type { MyInventoryItem } from '@/api/inventory'
 import type { ExchangeRequestEntry } from '@/api/types'
 import { profileFields, profileFieldChanges, stationMembers, members, inventory, exchanges } from '@/api'
-import { useStations } from '@/composables/useStations'
 import { useSession } from '@/composables/useSession'
 
 const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
-const { currentStationId } = useStations()
+
 const { sessionInfo, canManageMembers, isGuardian, canManageInventory, isModuleEnabled } = useSession()
 const inventoryEnabled = computed(() => isModuleEnabled(StationModules.INVENTORY))
 const showInventoryManagement = computed(() => inventoryEnabled.value && canManageInventory())

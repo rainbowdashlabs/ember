@@ -9,6 +9,7 @@ import dev.chojo.ember.api.Roles;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.conf.file.elements.Api;
+import dev.chojo.ember.feature.federation.service.FederatedContentService;
 import dev.chojo.ember.feature.media.service.ImageCategory;
 import dev.chojo.ember.feature.media.service.ImageService;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
@@ -19,6 +20,7 @@ import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.repository.UserTagRepository;
 import dev.chojo.ember.feature.quiz.entity.AttemptStatus;
 import dev.chojo.ember.feature.quiz.entity.QuestionType;
+import dev.chojo.ember.feature.quiz.entity.QuizCatalog;
 import dev.chojo.ember.feature.quiz.entity.QuizCategory;
 import dev.chojo.ember.feature.quiz.entity.QuizQuestion;
 import dev.chojo.ember.feature.quiz.entity.QuizTest;
@@ -29,6 +31,8 @@ import dev.chojo.ember.feature.quiz.entity.QuizTestSectionSource;
 import dev.chojo.ember.feature.quiz.entity.TestStatus;
 import dev.chojo.ember.feature.quiz.service.QuizPdfService;
 import dev.chojo.ember.feature.quiz.service.QuizService;
+import dev.chojo.ember.feature.station.repository.StationRepository;
+import dev.chojo.ember.util.CsvParser;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.ForbiddenResponse;
@@ -38,18 +42,27 @@ import io.javalin.http.NotFoundResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 @Singleton
 public class QuizRoutes implements Routes {
+    private static final Logger log = LoggerFactory.getLogger(QuizRoutes.class);
     private static final Set<String> ALLOWED_IMAGE_TYPES = Set.of("image/png", "image/jpeg", "image/webp");
 
     private final QuizService quizService;
@@ -58,6 +71,8 @@ public class QuizRoutes implements Routes {
     private final StationMemberRepository stationMemberRepository;
     private final MemberGroupRepository memberGroupRepository;
     private final UserTagRepository userTagRepository;
+    private final FederatedContentService federatedContentService;
+    private final StationRepository stationRepository;
     private final Api apiConfig;
 
     @Inject
@@ -68,6 +83,8 @@ public class QuizRoutes implements Routes {
             StationMemberRepository stationMemberRepository,
             MemberGroupRepository memberGroupRepository,
             UserTagRepository userTagRepository,
+            FederatedContentService federatedContentService,
+            StationRepository stationRepository,
             Api apiConfig) {
         this.quizService = quizService;
         this.pdfService = pdfService;
@@ -75,6 +92,8 @@ public class QuizRoutes implements Routes {
         this.stationMemberRepository = stationMemberRepository;
         this.memberGroupRepository = memberGroupRepository;
         this.userTagRepository = userTagRepository;
+        this.federatedContentService = federatedContentService;
+        this.stationRepository = stationRepository;
         this.apiConfig = apiConfig;
     }
 
@@ -171,7 +190,18 @@ public class QuizRoutes implements Routes {
 
     private void listCatalogs(Context ctx) {
         var session = UserSession.from(ctx);
-        ctx.json(quizService.findCatalogs(session.stationId()));
+        var catalogs = quizService.findCatalogs(session.stationId());
+        var sharedItems = federatedContentService.browseSharedQuiz(session.stationId());
+        var sharedCatalogs = sharedItems.stream()
+                .map(i -> {
+                    String name = stationRepository
+                            .findById(i.sourceStationId())
+                            .map(s -> s.name())
+                            .orElse("Unknown");
+                    return new SharedCatalogItem(i.catalog(), name, i.sourceStationId());
+                })
+                .toList();
+        ctx.json(new CatalogListResponse(catalogs, sharedCatalogs));
     }
 
     private void getCatalog(Context ctx) {
@@ -314,16 +344,16 @@ public class QuizRoutes implements Routes {
     }
 
     @SuppressWarnings("unchecked")
-    private String sanitizeConfig(QuestionType type, tools.jackson.databind.JsonNode node) {
+    private String sanitizeConfig(QuestionType type, JsonNode node) {
         try {
-            var mapper = new tools.jackson.databind.ObjectMapper();
+            var mapper = new ObjectMapper();
             return switch (type) {
                 case MULTIPLE_CHOICE -> {
                     var options = node.get("options");
-                    var sanitized = new java.util.ArrayList<Map<String, Object>>();
+                    var sanitized = new ArrayList<Map<String, Object>>();
                     if (options != null && options.isArray()) {
                         for (var opt : options) {
-                            sanitized.add(Map.of("text", opt.get("text").asText()));
+                            sanitized.add(Map.of("text", opt.get("text").asString()));
                         }
                     }
                     yield mapper.writeValueAsString(Map.of("options", sanitized));
@@ -334,16 +364,16 @@ public class QuizRoutes implements Routes {
                     yield mapper.writeValueAsString(Map.of("lines", lines));
                 }
                 case FILL_IN_THE_BLANK -> {
-                    var answers = new java.util.ArrayList<String>();
-                    var distractors = new java.util.ArrayList<String>();
+                    var answers = new ArrayList<String>();
+                    var distractors = new ArrayList<String>();
                     if (node.has("answers") && node.get("answers").isArray())
-                        for (var a : node.get("answers")) answers.add(a.asText());
+                        for (var a : node.get("answers")) answers.add(a.asString());
                     if (node.has("distractors") && node.get("distractors").isArray())
-                        for (var d : node.get("distractors")) distractors.add(d.asText());
-                    var wordBank = new java.util.ArrayList<>(answers);
+                        for (var d : node.get("distractors")) distractors.add(d.asString());
+                    var wordBank = new ArrayList<>(answers);
                     wordBank.addAll(distractors);
-                    java.util.Collections.shuffle(wordBank);
-                    String text = node.has("text") ? node.get("text").asText() : "";
+                    Collections.shuffle(wordBank);
+                    String text = node.has("text") ? node.get("text").asString() : "";
                     boolean useDropdown =
                             node.has("useDropdown") && node.get("useDropdown").asBoolean();
                     yield mapper.writeValueAsString(Map.of(
@@ -354,22 +384,22 @@ public class QuizRoutes implements Routes {
                 }
                 case CONNECT -> {
                     var pairs = node.get("pairs");
-                    var leftItems = new java.util.ArrayList<String>();
-                    var rightItems = new java.util.ArrayList<String>();
+                    var leftItems = new ArrayList<String>();
+                    var rightItems = new ArrayList<String>();
                     if (pairs != null && pairs.isArray()) {
                         for (var pair : pairs) {
-                            leftItems.add(pair.get("left").asText());
-                            rightItems.add(pair.get("right").asText());
+                            leftItems.add(pair.get("left").asString());
+                            rightItems.add(pair.get("right").asString());
                         }
                     }
-                    java.util.Collections.shuffle(rightItems);
+                    Collections.shuffle(rightItems);
                     yield mapper.writeValueAsString(Map.of("leftItems", leftItems, "rightItems", rightItems));
                 }
                 case ORDERING -> {
-                    var items = new java.util.ArrayList<String>();
+                    var items = new ArrayList<String>();
                     if (node.has("items") && node.get("items").isArray())
-                        for (var item : node.get("items")) items.add(item.asText());
-                    java.util.Collections.shuffle(items);
+                        for (var item : node.get("items")) items.add(item.asString());
+                    Collections.shuffle(items);
                     yield mapper.writeValueAsString(Map.of("items", items));
                 }
                 case IMAGE_TEXT -> "{}";
@@ -635,7 +665,17 @@ public class QuizRoutes implements Routes {
         var session = UserSession.from(ctx);
         if (session.member() == null) throw new BadRequestResponse("Not a station member");
         var test = quizService.findTest(testId).orElseThrow(NotFoundResponse::new);
-        if (!quizService.isTestAccessible(test, session.member().id())) {
+        int memberId = session.member().id();
+        var memberRoleIds = stationMemberRepository.findRoles(memberId).stream()
+                .map(Role::id)
+                .toList();
+        var memberGroupIds = memberGroupRepository.findGroupsForMember(memberId).stream()
+                .map(MemberGroup::id)
+                .toList();
+        var memberTagIds = userTagRepository.findTagsForMember(memberId).stream()
+                .map(UserTag::id)
+                .toList();
+        if (!quizService.isTestAccessible(test, memberId, memberRoleIds, memberGroupIds, memberTagIds)) {
             throw new ForbiddenResponse("Test is not currently accessible");
         }
         var existing = quizService.findAttempt(testId, session.member().id());
@@ -728,16 +768,21 @@ public class QuizRoutes implements Routes {
 
     private void getRestrictions(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
+        var test = quizService.findTest(id).orElseThrow(NotFoundResponse::new);
         ctx.json(new TestRestrictions(
                 quizService.findRoleRestrictions(id),
                 quizService.findGroupRestrictions(id),
-                quizService.findTagRestrictions(id)));
+                quizService.findTagRestrictions(id),
+                test.restrictionMode()));
     }
 
     private void setRestrictions(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
         var req = ctx.bodyAsClass(TestRestrictions.class);
         quizService.setRestrictions(id, req.roleIds(), req.groupIds(), req.tagIds());
+        if (req.mode() != null) {
+            quizService.updateRestrictionMode(id, req.mode());
+        }
         ctx.json(req);
     }
 
@@ -783,7 +828,8 @@ public class QuizRoutes implements Routes {
             ctx.header("Content-Disposition", "attachment; filename=\"test-questions.pdf\"");
             ctx.result(pdf);
         } catch (Exception e) {
-            throw new InternalServerErrorResponse("PDF export failed: " + e.getMessage());
+            log.error("PDF export failed for test {}", id, e);
+            throw new InternalServerErrorResponse("Internal server error");
         }
     }
 
@@ -796,7 +842,8 @@ public class QuizRoutes implements Routes {
             ctx.header("Content-Disposition", "attachment; filename=\"test-solutions.pdf\"");
             ctx.result(pdf);
         } catch (Exception e) {
-            throw new InternalServerErrorResponse("PDF export failed: " + e.getMessage());
+            log.error("PDF solution export failed for test {}", id, e);
+            throw new InternalServerErrorResponse("Internal server error");
         }
     }
 
@@ -863,29 +910,32 @@ public class QuizRoutes implements Routes {
         String mappingsJson = ctx.formParam("mappings");
         if (mappingsJson == null || mappingsJson.isBlank()) throw new BadRequestResponse("mappings is required");
 
-        var mapper = new tools.jackson.databind.ObjectMapper();
+        var mapper = new ObjectMapper();
         CsvMappings mappings;
         try {
             mappings = mapper.readValue(mappingsJson, CsvMappings.class);
         } catch (Exception e) {
+            log.warn("Invalid mappings JSON for CSV import", e);
             throw new BadRequestResponse("Invalid mappings JSON");
         }
 
         String csvContent;
         try (var content = csvFile.content()) {
-            csvContent = new String(content.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
+            csvContent = new String(content.readAllBytes(), StandardCharsets.UTF_8);
         } catch (IOException e) {
+            log.error("Failed to read CSV file for catalog {}", catalogId, e);
             throw new InternalServerErrorResponse("Failed to read CSV file");
         }
 
         String sep = mappings.separator() != null ? mappings.separator() : ",";
         String answerSep = mappings.answerSeparator() != null ? mappings.answerSeparator() : ";";
 
-        dev.chojo.ember.util.CsvParser.ParsedCsv parsed;
+        CsvParser.ParsedCsv parsed;
         try {
-            parsed = dev.chojo.ember.util.CsvParser.parse(csvContent, sep.charAt(0));
+            parsed = CsvParser.parse(csvContent, sep.charAt(0));
         } catch (IOException e) {
-            throw new BadRequestResponse("Failed to parse CSV: " + e.getMessage());
+            log.warn("Failed to parse CSV for catalog {}", catalogId, e);
+            throw new BadRequestResponse("Failed to parse CSV");
         }
 
         var headerList = parsed.headers();
@@ -977,15 +1027,15 @@ public class QuizRoutes implements Routes {
     }
 
     private String buildCsvConfig(QuestionType type, String answer, String answerSep) {
-        var mapper = new tools.jackson.databind.ObjectMapper();
+        var mapper = new ObjectMapper();
         try {
             return switch (type) {
                 case MULTIPLE_CHOICE -> {
-                    var parts = Arrays.stream(answer.split(java.util.regex.Pattern.quote(answerSep)))
+                    var parts = Arrays.stream(answer.split(Pattern.quote(answerSep)))
                             .map(String::trim)
                             .filter(s -> !s.isEmpty())
                             .toList();
-                    var options = new java.util.ArrayList<Map<String, Object>>();
+                    var options = new ArrayList<Map<String, Object>>();
                     for (int j = 0; j < parts.size(); j++) {
                         options.add(Map.of("text", parts.get(j), "correct", j == 0));
                     }
@@ -997,21 +1047,21 @@ public class QuizRoutes implements Routes {
                     yield mapper.writeValueAsString(Map.of("correctAnswer", correct));
                 }
                 case FREE_ANSWER -> {
-                    var answers = Arrays.stream(answer.split(java.util.regex.Pattern.quote(answerSep)))
+                    var answers = Arrays.stream(answer.split(Pattern.quote(answerSep)))
                             .map(String::trim)
                             .filter(s -> !s.isEmpty())
                             .toList();
                     yield mapper.writeValueAsString(Map.of("lines", 3, "answers", answers));
                 }
                 case FILL_IN_THE_BLANK -> {
-                    var answers = Arrays.stream(answer.split(java.util.regex.Pattern.quote(answerSep)))
+                    var answers = Arrays.stream(answer.split(Pattern.quote(answerSep)))
                             .map(String::trim)
                             .filter(s -> !s.isEmpty())
                             .toList();
                     yield mapper.writeValueAsString(Map.of("text", "", "answers", answers, "wordBank", answers));
                 }
                 case CONNECT -> {
-                    var pairs = Arrays.stream(answer.split(java.util.regex.Pattern.quote(answerSep)))
+                    var pairs = Arrays.stream(answer.split(Pattern.quote(answerSep)))
                             .map(String::trim)
                             .filter(s -> !s.isEmpty())
                             .map(s -> {
@@ -1026,7 +1076,7 @@ public class QuizRoutes implements Routes {
                     yield mapper.writeValueAsString(Map.of("pairs", pairs));
                 }
                 case ORDERING -> {
-                    var items = Arrays.stream(answer.split(java.util.regex.Pattern.quote(answerSep)))
+                    var items = Arrays.stream(answer.split(Pattern.quote(answerSep)))
                             .map(String::trim)
                             .filter(s -> !s.isEmpty())
                             .toList();
@@ -1034,7 +1084,7 @@ public class QuizRoutes implements Routes {
                 }
                 case IMAGE_TEXT -> "{}";
                 case ENUMERATION -> {
-                    var items = Arrays.stream(answer.split(java.util.regex.Pattern.quote(answerSep)))
+                    var items = Arrays.stream(answer.split(Pattern.quote(answerSep)))
                             .map(String::trim)
                             .filter(s -> !s.isEmpty())
                             .toList();
@@ -1085,8 +1135,10 @@ public class QuizRoutes implements Routes {
                     apiConfig.maxImageSizeBytes());
             ctx.json(Map.of("success", true));
         } catch (IllegalArgumentException e) {
+            log.warn("Invalid argument storing question image for question {}", id, e);
             throw new BadRequestResponse(e.getMessage());
         } catch (IOException e) {
+            log.error("Failed to process question image for question {}", id, e);
             throw new InternalServerErrorResponse("Failed to process image");
         }
     }
@@ -1111,7 +1163,7 @@ public class QuizRoutes implements Routes {
             String imageUrl,
             Integer points,
             Boolean autoPoints,
-            tools.jackson.databind.JsonNode config,
+            JsonNode config,
             Integer position) {
 
         public String configString() {
@@ -1132,7 +1184,7 @@ public class QuizRoutes implements Routes {
 
     public record AccessRequest(Integer memberId, Instant closesAt) {}
 
-    public record TestRestrictions(List<Integer> roleIds, List<Integer> groupIds, List<Integer> tagIds) {}
+    public record TestRestrictions(List<Integer> roleIds, List<Integer> groupIds, List<Integer> tagIds, String mode) {}
 
     public record CatalogDetail(
             int id,
@@ -1172,4 +1224,8 @@ public class QuizRoutes implements Routes {
             boolean trainingEnabled,
             List<QuizCategory> categories,
             List<QuizQuestion> questions) {}
+
+    private record CatalogListResponse(List<QuizCatalog> catalogs, List<SharedCatalogItem> sharedCatalogs) {}
+
+    private record SharedCatalogItem(QuizCatalog catalog, String stationName, int sourceStationId) {}
 }

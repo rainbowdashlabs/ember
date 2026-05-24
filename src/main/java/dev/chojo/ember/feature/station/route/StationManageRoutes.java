@@ -35,6 +35,8 @@ import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.time.LocalDate;
@@ -42,6 +44,7 @@ import java.time.ZoneId;
 import java.time.zone.ZoneRulesException;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 
 /**
  * Routes for station self-management by managers, including settings, logo, mail configuration,
@@ -49,6 +52,7 @@ import java.util.Set;
  */
 @Singleton
 public class StationManageRoutes implements Routes {
+    private static final Logger log = LoggerFactory.getLogger(StationManageRoutes.class);
     private static final long MAX_LOGO_SIZE = 2 * 1024 * 1024;
     private static final Set<String> ALLOWED_CONTENT_TYPES =
             Set.of("image/png", "image/jpeg", "image/webp", "image/svg+xml");
@@ -151,6 +155,7 @@ public class StationManageRoutes implements Routes {
             try {
                 ZoneId.of(request.timezone());
             } catch (ZoneRulesException e) {
+                log.warn("Invalid timezone: {}", request.timezone(), e);
                 throw new BadRequestResponse("Invalid timezone: " + request.timezone());
             }
             stationService.updateTimezone(session.stationId(), request.timezone());
@@ -202,6 +207,7 @@ public class StationManageRoutes implements Routes {
             stationService.setLogo(session.stationId(), data, contentType);
             ctx.json(new MessageResponse("Logo uploaded"));
         } catch (IOException e) {
+            log.warn("Failed to read uploaded logo file", e);
             throw new BadRequestResponse("Failed to read uploaded file");
         }
     }
@@ -238,8 +244,7 @@ public class StationManageRoutes implements Routes {
             })
     private void getLogoByStation(Context ctx) {
         String uidParam = ctx.pathParam("stationId");
-        var station =
-                stationService.findByUid(java.util.UUID.fromString(uidParam)).orElseThrow(NotFoundResponse::new);
+        var station = stationService.findByUid(UUID.fromString(uidParam)).orElseThrow(NotFoundResponse::new);
         Optional<StationLogo> logoOpt = stationService.getLogo(station.id());
         if (logoOpt.isEmpty()) {
             throw new NotFoundResponse("No logo set");
@@ -312,6 +317,7 @@ public class StationManageRoutes implements Routes {
         try {
             provider = body.provider() != null ? MailProviderType.valueOf(body.provider()) : MailProviderType.NONE;
         } catch (IllegalArgumentException e) {
+            log.warn("Invalid mail provider: {}", body.provider(), e);
             throw new BadRequestResponse("Invalid provider: " + body.provider());
         }
 

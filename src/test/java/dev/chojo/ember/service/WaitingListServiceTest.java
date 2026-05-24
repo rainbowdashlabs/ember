@@ -31,7 +31,13 @@ class WaitingListServiceTest extends RepositoryTestBase {
         var emailService = mock(EmailService.class);
         var notificationService = mock(NotificationService.class);
         service = new WaitingListService(
-                waitingListRepo, stationRepo, stationMemberRepo, memberGroupRepo, emailService, notificationService);
+                waitingListRepo,
+                stationRepo,
+                stationMemberRepo,
+                memberGroupRepo,
+                accountRepo,
+                emailService,
+                notificationService);
         station = stationRepo.create("WaitlistStation");
     }
 

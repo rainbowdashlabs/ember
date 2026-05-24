@@ -62,7 +62,7 @@ function requestDelete(station: Station) {
 async function confirmDelete() {
   if (!deleteTarget.value) return
   try {
-    await stations.deleteStation(deleteTarget.value.id)
+    await stations.deleteStation(deleteTarget.value.id.toString())
     showDeleteModal.value = false
     deleteTarget.value = null
     await loadStations()
@@ -150,7 +150,7 @@ onMounted(loadStations)
                           class="flex items-center justify-between py-6">
           <span class="font-medium text-lg">{{ station.name }}</span>
           <div class="flex items-center gap-2">
-            <EditButton @click="navigateToEdit(station.id)"/>
+            <EditButton @click="navigateToEdit(station.id.toString())"/>
             <DeleteButton @click="requestDelete(station)"/>
           </div>
         </NeutralContainer>

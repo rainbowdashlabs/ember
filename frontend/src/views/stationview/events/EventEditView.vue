@@ -18,11 +18,11 @@ import DateTimeInput from '@/components/input/datetime/DateTimeInput.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
-import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
+import RestrictionPicker from '@/components/input/RestrictionPicker.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import type {AttendanceTemplate, AttendanceTemplateField, EventCategory, MemberGroup, Role, UserTag} from '@/api/types'
-import {Roles, EventTypes, needsDayOfWeek} from '@/api/types'
+import {EventTypes, needsDayOfWeek} from '@/api/types'
 import type {EventFieldDefault} from '@/api/events'
 import {attendance, events, memberGroups, stationMembers, userTags} from '@/api'
 import {useSession} from '@/composables/useSession'
@@ -64,9 +64,10 @@ const eventRequiresRegistration = ref(false)
 const eventHasDeadline = ref(false)
 const eventRegistrationDeadline = ref('')
 const eventRequiresConfirmation = ref(false)
-const selectedRoleIds = ref<Set<number>>(new Set())
-const selectedGroupIds = ref<Set<number>>(new Set())
-const selectedTagIds = ref<Set<number>>(new Set())
+const selectedRoleIds = ref<number[]>([])
+const selectedGroupIds = ref<number[]>([])
+const selectedTagIds = ref<number[]>([])
+const restrictionMode = ref<'AND' | 'OR'>('AND')
 const fieldDefaults = ref<Map<number, { source: string; value: string }>>(new Map())
 
 function toLocalDateTime(iso: string): string {
@@ -121,9 +122,10 @@ async function loadData() {
       eventRoleIds.value = restrictions.roleIds ?? []
       eventGroupIds.value = restrictions.groupIds ?? []
       eventTagIds.value = restrictions.tagIds ?? []
-      selectedRoleIds.value = new Set(eventRoleIds.value)
-      selectedGroupIds.value = new Set(eventGroupIds.value)
-      selectedTagIds.value = new Set(eventTagIds.value)
+      selectedRoleIds.value = [...eventRoleIds.value]
+      selectedGroupIds.value = [...eventGroupIds.value]
+      selectedTagIds.value = [...eventTagIds.value]
+      restrictionMode.value = (restrictions.mode as 'AND' | 'OR') ?? 'AND'
 
       const fdMap = new Map<number, { source: string; value: string }>()
       for (const fd of defaults) {
@@ -137,34 +139,6 @@ async function loadData() {
   } finally {
     loading.value = false
   }
-}
-
-const RESTRICTION_ROLES = [Roles.MEMBER, Roles.GUARDIAN, Roles.TEAM] as readonly string[]
-
-const roleFriendlyNames: Record<string, string> = {
-  MEMBER: 'Mitglied', GUARDIAN: 'Erziehungsberechtigter', TEAM: 'Team',
-}
-
-const restrictionRoles = computed(() =>
-    roles.value.filter(r => RESTRICTION_ROLES.includes(r.role))
-)
-
-function toggleRole(roleId: number) {
-  const s = new Set(selectedRoleIds.value)
-  if (s.has(roleId)) s.delete(roleId); else s.add(roleId)
-  selectedRoleIds.value = s
-}
-
-function toggleGroup(groupId: number) {
-  const s = new Set(selectedGroupIds.value)
-  if (s.has(groupId)) s.delete(groupId); else s.add(groupId)
-  selectedGroupIds.value = s
-}
-
-function toggleTag(tagId: number) {
-  const s = new Set(selectedTagIds.value)
-  if (s.has(tagId)) s.delete(tagId); else s.add(tagId)
-  selectedTagIds.value = s
 }
 
 const EVENT_SOURCES = [
@@ -230,9 +204,9 @@ async function submit() {
       registrationDeadline: eventHasDeadline.value && eventRegistrationDeadline.value
           ? new Date(eventRegistrationDeadline.value).toISOString() : undefined,
       requiresConfirmation: eventRequiresConfirmation.value,
-      restrictedRoleIds: [...selectedRoleIds.value],
-      restrictedGroupIds: [...selectedGroupIds.value],
-      restrictedTagIds: [...selectedTagIds.value],
+      restrictedRoleIds: selectedRoleIds.value,
+      restrictedGroupIds: selectedGroupIds.value,
+      restrictedTagIds: selectedTagIds.value,
     }
 
     let savedEventId: number
@@ -436,51 +410,19 @@ watch(loaded, (isLoaded) => {
 
         <NeutralContainer class="space-y-4">
           <SubHeader>{{ t('events.restrictions') }}</SubHeader>
-
-          <div class="space-y-2">
-            <label class="block text-sm font-medium">{{ t('events.restrictToRoles') }}</label>
-            <p class="text-xs text-(--text-muted)">{{ t('events.restrictToRolesHint') }}</p>
-            <div class="flex flex-wrap gap-2">
-              <SelectionToggleButton
-                  v-for="role in restrictionRoles"
-                  :key="role.id"
-                  :selected="selectedRoleIds.has(role.id)"
-                  @toggle="toggleRole(role.id)"
-              >
-                {{ roleFriendlyNames[role.role] ?? role.role }}
-              </SelectionToggleButton>
-            </div>
-          </div>
-
-          <div v-if="groups.length > 0" class="space-y-2">
-            <label class="block text-sm font-medium">{{ t('events.restrictToGroups') }}</label>
-            <div class="flex flex-wrap gap-2">
-              <SelectionToggleButton
-                  v-for="group in groups"
-                  :key="group.id"
-                  :selected="selectedGroupIds.has(group.id)"
-                  @toggle="toggleGroup(group.id)"
-              >
-                {{ group.name }}
-              </SelectionToggleButton>
-            </div>
-          </div>
-
-          <div v-if="tags.length > 0" class="space-y-2">
-            <label class="block text-sm font-medium">{{ t('events.restrictToTags') }}</label>
-            <div class="flex flex-wrap gap-2">
-              <SelectionToggleButton
-                  v-for="tag in tags"
-                  :key="tag.id"
-                  :selected="selectedTagIds.has(tag.id)"
-                  @toggle="toggleTag(tag.id)"
-              >
-                {{ tag.name }}
-              </SelectionToggleButton>
-            </div>
-          </div>
-
-          <p class="text-xs text-(--text-muted)">{{ t('events.restrictionsAndHint') }}</p>
+          <p class="text-xs text-(--text-muted)">{{ t('events.restrictToRolesHint') }}</p>
+          <RestrictionPicker
+              :roles="roles"
+              :groups="groups"
+              :tags="tags"
+              :selected-role-ids="selectedRoleIds"
+              :selected-group-ids="selectedGroupIds"
+              :selected-tag-ids="selectedTagIds"
+              :show-mode="true"
+              @update:selected-role-ids="v => selectedRoleIds = v"
+              @update:selected-group-ids="v => selectedGroupIds = v"
+              @update:selected-tag-ids="v => selectedTagIds = v"
+          />
         </NeutralContainer>
 
         <div class="flex justify-end gap-3">

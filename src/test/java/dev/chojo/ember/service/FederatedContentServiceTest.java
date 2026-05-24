@@ -6,7 +6,6 @@
 package dev.chojo.ember.service;
 
 import dev.chojo.ember.conf.file.elements.Api;
-import dev.chojo.ember.conf.file.elements.Demo;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.service.FederatedContentService;
@@ -69,14 +68,13 @@ class FederatedContentServiceTest extends RepositoryTestBase {
     @BeforeAll
     static void setup() {
         federationRepo = new FederationRepository();
-        federationService = new FederationService(federationRepo, new Api());
+        federationService = new FederationService(federationRepo, stationRepo, new Api());
         kbService = mock(KnowledgeBaseService.class);
         quizService = mock(QuizService.class);
         protocolService = mock(TestProtocolService.class);
         var httpClient = mock(FederationHttpClient.class);
-        var demo = new Demo();
         contentService = new FederatedContentService(
-                federationRepo, federationService, httpClient, kbService, quizService, protocolService, demo);
+                federationRepo, federationService, httpClient, kbService, quizService, protocolService, stationRepo);
 
         kbRepo = new KnowledgeBaseRepository();
         quizCatalogRepo = new QuizCatalogRepository();
@@ -111,7 +109,7 @@ class FederatedContentServiceTest extends RepositoryTestBase {
 
         // Create bidirectional federation
         var invite = federationService.createInvite(stationA.id());
-        var partner = federationService.acceptInvite(stationB.id(), stationA.id(), invite.publicKey());
+        var partner = federationService.acceptInvite(stationB.id(), stationA.id(), invite.publicKey(), null, null);
         partnerIdAtoB = partner.id();
 
         // Create shares on stationB
@@ -303,6 +301,25 @@ class FederatedContentServiceTest extends RepositoryTestBase {
         assertEquals(stationA.id(), copied.stationId());
         verify(protocolService)
                 .createProtocol(eq(stationA.id()), eq("SharedProtocol"), eq("A shared protocol"), eq(70));
+    }
+
+    // -- Metadata cache is updated during browse --
+
+    // -- Local partner uses direct DB, not HTTP --
+
+    @Test
+    @Order(35)
+    void localPartnerDoesNotUseHttpClient() {
+        // Both partners are local (remoteHost=null), so browseSharedKb should use direct DB access
+        var partner = federationRepo.findPartnerById(partnerIdAtoB).orElseThrow();
+        assertNull(partner.remoteHost());
+        assertFalse(partner.isRemote());
+
+        // Browse should succeed without any HTTP calls
+        var items = contentService.browseSharedKb(stationA.id());
+        assertFalse(items.isEmpty());
+        // The httpClient mock was never configured for browseSharedKb, so if HTTP were used it would fail or return
+        // empty
     }
 
     // -- Metadata cache is updated during browse --

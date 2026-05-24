@@ -9,40 +9,63 @@ import dev.chojo.ember.api.Roles;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
+import dev.chojo.ember.feature.federation.service.FederatedContentService;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
+import dev.chojo.ember.feature.protocol.entity.TestProtocol;
+import dev.chojo.ember.feature.protocol.entity.TestProtocolItem;
 import dev.chojo.ember.feature.protocol.entity.TestProtocolRun;
+import dev.chojo.ember.feature.protocol.entity.TestProtocolRunCheck;
+import dev.chojo.ember.feature.protocol.entity.TestProtocolRunMember;
+import dev.chojo.ember.feature.protocol.entity.TestProtocolSection;
 import dev.chojo.ember.feature.protocol.service.TestProtocolPdfService;
 import dev.chojo.ember.feature.protocol.service.TestProtocolService;
+import dev.chojo.ember.feature.station.repository.StationRepository;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
+import io.javalin.http.InternalServerErrorResponse;
 import io.javalin.http.NotFoundResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.io.ByteArrayOutputStream;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 
 @Singleton
 public class TestProtocolRoutes implements Routes {
+    private static final Logger log = LoggerFactory.getLogger(TestProtocolRoutes.class);
 
     private final TestProtocolService service;
     private final TestProtocolPdfService pdfService;
     private final StationMemberRepository stationMemberRepository;
     private final AccountRepository accountRepository;
+    private final FederatedContentService federatedContentService;
+    private final StationRepository stationRepository;
 
     @Inject
     public TestProtocolRoutes(
             TestProtocolService service,
             TestProtocolPdfService pdfService,
             StationMemberRepository stationMemberRepository,
-            AccountRepository accountRepository) {
+            AccountRepository accountRepository,
+            FederatedContentService federatedContentService,
+            StationRepository stationRepository) {
         this.service = service;
         this.pdfService = pdfService;
         this.stationMemberRepository = stationMemberRepository;
         this.accountRepository = accountRepository;
+        this.federatedContentService = federatedContentService;
+        this.stationRepository = stationRepository;
     }
 
     @Override
@@ -112,8 +135,26 @@ public class TestProtocolRoutes implements Routes {
 
     private void listProtocols(Context ctx) {
         var session = UserSession.from(ctx);
-        ctx.json(service.findProtocols(session.stationId()));
+        var protocols = service.findProtocols(session.stationId());
+        var sharedItems = federatedContentService.browseSharedProtocols(session.stationId());
+        var shared = sharedItems.stream()
+                .map(item -> {
+                    String stationName = stationRepository
+                            .findById(item.sourceStationId())
+                            .map(s -> s.name())
+                            .orElse("Unknown");
+                    return new SharedProtocolItem(item.protocol(), stationName, item.sourceStationId());
+                })
+                .toList();
+        ctx.json(new ProtocolListResponse(protocols, shared));
     }
+
+    private record ProtocolListResponse(
+            List<TestProtocol> protocols,
+            List<SharedProtocolItem> shared) {}
+
+    private record SharedProtocolItem(
+            TestProtocol protocol, String stationName, int sourceStationId) {}
 
     private void createProtocol(Context ctx) {
         var session = UserSession.from(ctx);
@@ -342,24 +383,22 @@ public class TestProtocolRoutes implements Routes {
         var members = service.findRunMembers(id);
 
         // Build per-section scores per member
-        var itemsBySectionId = allItems.stream()
-                .collect(java.util.stream.Collectors.groupingBy(
-                        dev.chojo.ember.feature.protocol.entity.TestProtocolItem::sectionId));
+        var itemsBySectionId = allItems.stream().collect(Collectors.groupingBy(TestProtocolItem::sectionId));
 
-        var memberScores = new java.util.ArrayList<EvalMemberData>();
+        var memberScores = new ArrayList<EvalMemberData>();
         for (var rm : members) {
             var checks = service.findChecks(id, rm.memberId());
             var checkedIds = checks.stream()
-                    .filter(dev.chojo.ember.feature.protocol.entity.TestProtocolRunCheck::checked)
-                    .map(dev.chojo.ember.feature.protocol.entity.TestProtocolRunCheck::itemId)
-                    .collect(java.util.stream.Collectors.toSet());
+                    .filter(TestProtocolRunCheck::checked)
+                    .map(TestProtocolRunCheck::itemId)
+                    .collect(Collectors.toSet());
 
-            var sectionScores = new java.util.HashMap<Integer, Double>();
+            var sectionScores = new HashMap<Integer, Double>();
             for (var section : sections) {
                 var sItems = itemsBySectionId.getOrDefault(section.id(), List.of());
                 var score = sItems.stream()
                         .filter(i -> checkedIds.contains(i.id()))
-                        .map(dev.chojo.ember.feature.protocol.entity.TestProtocolItem::points)
+                        .map(TestProtocolItem::points)
                         .reduce(0.0, Double::sum);
                 sectionScores.put(section.id(), score);
             }
@@ -367,14 +406,11 @@ public class TestProtocolRoutes implements Routes {
         }
 
         // Section max points
-        var sectionMaxPoints = new java.util.HashMap<Integer, Double>();
+        var sectionMaxPoints = new HashMap<Integer, Double>();
         for (var section : sections) {
             var sItems = itemsBySectionId.getOrDefault(section.id(), List.of());
             sectionMaxPoints.put(
-                    section.id(),
-                    sItems.stream()
-                            .map(dev.chojo.ember.feature.protocol.entity.TestProtocolItem::points)
-                            .reduce(0.0, Double::sum));
+                    section.id(), sItems.stream().map(TestProtocolItem::points).reduce(0.0, Double::sum));
         }
 
         ctx.json(new EvaluationResponse(
@@ -388,12 +424,12 @@ public class TestProtocolRoutes implements Routes {
         var members = service.findRunMembers(id);
 
         try {
-            var baos = new java.io.ByteArrayOutputStream();
-            var zos = new java.util.zip.ZipOutputStream(baos);
+            var baos = new ByteArrayOutputStream();
+            var zos = new ZipOutputStream(baos);
 
             // Table PDF
             byte[] tablePdf = pdfService.exportEvaluationTable(id, proto.name(), run.testDate());
-            zos.putNextEntry(new java.util.zip.ZipEntry("Auswertung.pdf"));
+            zos.putNextEntry(new ZipEntry("Auswertung.pdf"));
             zos.write(tablePdf);
             zos.closeEntry();
 
@@ -401,7 +437,7 @@ public class TestProtocolRoutes implements Routes {
             for (var rm : members) {
                 String memberName = resolveMemberNameForFile(rm.memberId());
                 byte[] pdf = pdfService.exportRunMember(id, rm.memberId(), proto.name(), run.testDate());
-                zos.putNextEntry(new java.util.zip.ZipEntry(memberName + ".pdf"));
+                zos.putNextEntry(new ZipEntry(memberName + ".pdf"));
                 zos.write(pdf);
                 zos.closeEntry();
             }
@@ -415,7 +451,8 @@ public class TestProtocolRoutes implements Routes {
                     "attachment; filename=\"" + proto.name().replaceAll("[^a-zA-ZäöüÄÖÜß0-9 _-]", "") + ".zip\"");
             ctx.result(baos.toByteArray());
         } catch (Exception e) {
-            throw new io.javalin.http.InternalServerErrorResponse("Export failed: " + e.getMessage());
+            log.error("Test protocol export failed", e);
+            throw new InternalServerErrorResponse("Internal server error");
         }
     }
 
@@ -479,24 +516,19 @@ public class TestProtocolRoutes implements Routes {
     public record ChecksRequest(Map<Integer, Boolean> checks) {}
 
     public record ProtocolDetailResponse(
-            dev.chojo.ember.feature.protocol.entity.TestProtocol protocol,
-            List<dev.chojo.ember.feature.protocol.entity.TestProtocolSection> sections,
-            List<dev.chojo.ember.feature.protocol.entity.TestProtocolItem> items) {}
+            TestProtocol protocol, List<TestProtocolSection> sections, List<TestProtocolItem> items) {}
 
-    public record RunMemberWithProgress(
-            dev.chojo.ember.feature.protocol.entity.TestProtocolRunMember member,
-            int sectionsDone,
-            int sectionsTotal) {}
+    public record RunMemberWithProgress(TestProtocolRunMember member, int sectionsDone, int sectionsTotal) {}
 
     public record RunDetailResponse(TestProtocolRun run, List<RunMemberWithProgress> members) {}
 
-    public record EvalMemberData(int memberId, Double totalScore, java.util.Map<Integer, Double> sectionScores) {}
+    public record EvalMemberData(int memberId, Double totalScore, Map<Integer, Double> sectionScores) {}
 
     public record EvaluationResponse(
             String protocolName,
-            java.time.LocalDate testDate,
-            List<dev.chojo.ember.feature.protocol.entity.TestProtocolSection> sections,
-            java.util.Map<Integer, Double> sectionMaxPoints,
+            LocalDate testDate,
+            List<TestProtocolSection> sections,
+            Map<Integer, Double> sectionMaxPoints,
             List<EvalMemberData> members,
             Integer passThreshold) {}
 }

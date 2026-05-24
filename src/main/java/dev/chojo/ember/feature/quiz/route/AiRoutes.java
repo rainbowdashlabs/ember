@@ -10,6 +10,7 @@ import dev.chojo.ember.api.Roles;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.feature.quiz.entity.QuestionType;
+import dev.chojo.ember.feature.quiz.entity.QuizCategory;
 import dev.chojo.ember.feature.quiz.entity.StationAiProvider;
 import dev.chojo.ember.feature.quiz.service.AiService;
 import dev.chojo.ember.feature.quiz.service.QuizService;
@@ -24,8 +25,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Singleton
@@ -105,9 +108,11 @@ public class AiRoutes implements Routes {
             var models = aiService.fetchModels(session.stationId(), provider, req.apiKey());
             ctx.json(models);
         } catch (IllegalArgumentException e) {
+            log.warn("Invalid argument fetching AI models for provider {}", provider, e);
             throw new BadRequestResponse(e.getMessage());
         } catch (Exception e) {
-            throw new BadRequestResponse("Failed to fetch models: " + e.getMessage());
+            log.warn("Failed to fetch AI models for provider {}", provider, e);
+            throw new BadRequestResponse("Failed to fetch models");
         }
     }
 
@@ -131,9 +136,11 @@ public class AiRoutes implements Routes {
                     req.count() != null ? req.count() : 3);
             ctx.json(new GenerateResponse(results));
         } catch (IllegalArgumentException e) {
+            log.warn("Invalid argument during AI generation", e);
             throw new BadRequestResponse(e.getMessage());
         } catch (Exception e) {
-            throw new BadRequestResponse("Generation failed: " + e.getMessage());
+            log.warn("AI generation failed", e);
+            throw new BadRequestResponse("Generation failed");
         }
     }
 
@@ -145,7 +152,7 @@ public class AiRoutes implements Routes {
         }
         String provider = req.provider() != null ? req.provider() : "openai";
         var categories = quizService.findCategories(session.stationId());
-        var categoryMap = new java.util.HashMap<Integer, dev.chojo.ember.feature.quiz.entity.QuizCategory>();
+        var categoryMap = new HashMap<Integer, QuizCategory>();
         for (var cat : categories) categoryMap.put(cat.id(), cat);
 
         // Collect existing question titles from the catalog to avoid duplicates
@@ -158,7 +165,7 @@ public class AiRoutes implements Routes {
         }
 
         // Start async generation
-        String jobId = java.util.UUID.randomUUID().toString();
+        String jobId = UUID.randomUUID().toString();
         var job = new GenerationJob();
         generationJobs.put(jobId, job);
 
@@ -250,7 +257,7 @@ public class AiRoutes implements Routes {
                 var correctParts = new ArrayList<String>();
                 for (var opt : options) {
                     if (opt.has("correct") && opt.get("correct").asBoolean()) {
-                        correctParts.add(opt.get("text").asText());
+                        correctParts.add(opt.get("text").asString());
                     }
                 }
                 if (correctParts.isEmpty()) continue;
@@ -269,7 +276,7 @@ public class AiRoutes implements Routes {
                 for (var opt : options) {
                     updatedOptions.add(Map.of(
                             "text",
-                            opt.get("text").asText(),
+                            opt.get("text").asString(),
                             "correct",
                             opt.has("correct") && opt.get("correct").asBoolean()));
                 }

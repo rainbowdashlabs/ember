@@ -24,7 +24,7 @@ import java.util.UUID;
 public class StationRepository {
 
     private static final String STATION_COLUMNS =
-            "id, uid, name, timezone, locale, owner_member_id, default_theme, allow_user_theme, custom_theme_colors, public_kb_mode";
+            "id, uid, name, timezone, locale, owner_member_id, default_theme, allow_user_theme, custom_theme_colors, public_kb_mode, federation_private_key";
 
     /**
      * Finds a station by its ID.
@@ -123,6 +123,13 @@ public class StationRepository {
     public boolean updatePublicKbMode(int id, String mode) {
         return Query.query("UPDATE station SET public_kb_mode = :mode WHERE id = :id;")
                 .single(Call.of().bind("mode", mode).bind("id", id))
+                .update()
+                .changed();
+    }
+
+    public boolean updateFederationPrivateKey(int id, String privateKey) {
+        return Query.query("UPDATE station SET federation_private_key = :key WHERE id = :id;")
+                .single(Call.of().bind("key", privateKey).bind("id", id))
                 .update()
                 .changed();
     }
