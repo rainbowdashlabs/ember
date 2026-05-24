@@ -143,7 +143,7 @@ public class FederationHttpClient {
     }
 
     /**
-     * Converts a base URL like "https://ember.example.com" to the API prefix.
+     * Converts a base URL like "<a href="https://ember.example.com">...</a>" to the API prefix.
      */
     private String apiUrl(String remoteHost) {
         // Strip trailing slash if present
@@ -162,6 +162,7 @@ public class FederationHttpClient {
                 .header("X-Federation-Station-Id", String.valueOf(localStationId))
                 .header("X-Federation-Signature", signature)
                 .header("X-Federation-Timestamp", timestampStr)
+                .header("X-Federation-Version", String.valueOf(FederationService.FEDERATION_VERSION))
                 .GET()
                 .build();
 

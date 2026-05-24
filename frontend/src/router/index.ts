@@ -495,6 +495,11 @@ const router = createRouter({
                     component: () => import('@/views/stationview/quiz/CatalogGenerateView.vue'),
                 },
                 {
+                    path: 'quiz/catalogs/:id/mc-fill',
+                    name: 'quiz-catalog-mc-fill',
+                    component: () => import('@/views/stationview/quiz/McFillView.vue'),
+                },
+                {
                     path: 'quiz/catalogs/:id/import',
                     name: 'quiz-catalog-import',
                     component: () => import('@/views/stationview/quiz/CsvImportView.vue'),
@@ -1067,6 +1072,11 @@ const router = createRouter({
                 {
                     path: 'quiz/catalogs/:id/generate',
                     name: 'help-quiz-catalog-generate',
+                    component: () => import('@/views/helpcenter/stationview/quiz/CatalogGenerateHelp.vue')
+                },
+                {
+                    path: 'quiz/catalogs/:id/mc-fill',
+                    name: 'help-quiz-catalog-mc-fill',
                     component: () => import('@/views/helpcenter/stationview/quiz/CatalogGenerateHelp.vue')
                 },
                 {

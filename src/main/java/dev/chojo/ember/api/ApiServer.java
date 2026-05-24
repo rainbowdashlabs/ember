@@ -18,6 +18,7 @@ import dev.chojo.ember.feature.members.service.ProfileFieldService;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.system.service.ApiRequestLogger;
+import dev.chojo.ember.feature.system.service.DemoService;
 import io.javalin.Javalin;
 import io.javalin.config.RoutesConfig;
 import io.javalin.http.BadRequestResponse;
@@ -82,7 +83,7 @@ public class ApiServer {
     private final MemberGroupRepository memberGroupRepository;
     private final UserTagRepository userTagRepository;
     private final ApiRequestLogger apiRequestLogger;
-    private final dev.chojo.ember.feature.system.service.DemoService demoService;
+    private final DemoService demoService;
 
     @Inject
     public ApiServer(
@@ -97,7 +98,7 @@ public class ApiServer {
             MemberGroupRepository memberGroupRepository,
             UserTagRepository userTagRepository,
             ApiRequestLogger apiRequestLogger,
-            dev.chojo.ember.feature.system.service.DemoService demoService) {
+            DemoService demoService) {
         this.routes = routes;
         this.apiConfig = apiConfig;
         this.demoConfig = demoConfig;

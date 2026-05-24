@@ -11,6 +11,7 @@ import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.service.FederatedContentService;
 import dev.chojo.ember.feature.federation.service.FederationService;
+import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
@@ -91,7 +92,7 @@ public class FederationRoutes implements Routes {
                 .map(p -> {
                     String partnerName = stationRepository
                             .findById(p.stationId() == session.stationId() ? p.partnerStationId() : p.stationId())
-                            .map(s -> s.name())
+                            .map(Station::name)
                             .orElse("Unknown");
                     return new PartnerResponse(p, partnerName);
                 })
@@ -319,7 +320,7 @@ public class FederationRoutes implements Routes {
                 .map(i -> {
                     String name = stationRepository
                             .findById(i.sourceStationId())
-                            .map(s -> s.name())
+                            .map(Station::name)
                             .orElse("Unknown");
                     return new SharedContentItem(
                             i.file().id(),
@@ -339,7 +340,7 @@ public class FederationRoutes implements Routes {
                 .map(i -> {
                     String name = stationRepository
                             .findById(i.sourceStationId())
-                            .map(s -> s.name())
+                            .map(Station::name)
                             .orElse("Unknown");
                     return new SharedContentItem(
                             i.catalog().id(),
@@ -359,7 +360,7 @@ public class FederationRoutes implements Routes {
                 .map(i -> {
                     String name = stationRepository
                             .findById(i.sourceStationId())
-                            .map(s -> s.name())
+                            .map(Station::name)
                             .orElse("Unknown");
                     return new SharedContentItem(
                             i.protocol().id(),

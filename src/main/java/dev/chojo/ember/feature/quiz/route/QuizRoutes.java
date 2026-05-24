@@ -29,6 +29,7 @@ import dev.chojo.ember.feature.quiz.entity.TestStatus;
 import dev.chojo.ember.feature.quiz.service.QuizPdfService;
 import dev.chojo.ember.feature.quiz.service.QuizService;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
+import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.util.CsvParser;
 import io.javalin.http.BadRequestResponse;
@@ -194,7 +195,7 @@ public class QuizRoutes implements Routes {
                 .map(i -> {
                     String name = stationRepository
                             .findById(i.sourceStationId())
-                            .map(s -> s.name())
+                            .map(Station::name)
                             .orElse("Unknown");
                     return new SharedCatalogItem(i.catalog(), name, i.sourceStationId());
                 })
@@ -337,7 +338,7 @@ public class QuizRoutes implements Routes {
         result.put("imageUrl", question.imageUrl());
         result.put("points", question.points());
         result.put("position", question.position());
-        result.put("config", sanitizeConfig(question.questionType(), question.config()));
+        result.put("config", sanitizeConfig(question.questionType(), question.configNode()));
         return result;
     }
 
@@ -425,7 +426,7 @@ public class QuizRoutes implements Routes {
                 req.title(),
                 req.description() != null ? req.description() : "",
                 req.imageUrl(),
-                req.points() != null ? req.points() : 1,
+                req.points() != null ? req.points() : 1.0,
                 req.autoPoints() == null || req.autoPoints(),
                 req.configString(),
                 req.position() != null ? req.position() : 0);
@@ -441,7 +442,7 @@ public class QuizRoutes implements Routes {
                 req.title(),
                 req.description() != null ? req.description() : "",
                 req.imageUrl(),
-                req.points() != null ? req.points() : 1,
+                req.points() != null ? req.points() : 1.0,
                 req.autoPoints() == null || req.autoPoints(),
                 req.configString(),
                 req.position() != null ? req.position() : 0)) {
@@ -970,10 +971,10 @@ public class QuizRoutes implements Routes {
             }
 
             // Determine points
-            int points = 1;
+            double points = 1;
             if (!pointsStr.isEmpty()) {
                 try {
-                    points = Integer.parseInt(pointsStr);
+                    points = Double.parseDouble(pointsStr);
                 } catch (NumberFormatException ignored) {
                 }
             }
@@ -1151,7 +1152,7 @@ public class QuizRoutes implements Routes {
             String title,
             String description,
             String imageUrl,
-            Integer points,
+            Double points,
             Boolean autoPoints,
             JsonNode config,
             Integer position) {
@@ -1170,7 +1171,7 @@ public class QuizRoutes implements Routes {
 
     public record AnswerRequest(int questionId, String answer) {}
 
-    public record GradeRequest(Integer points) {}
+    public record GradeRequest(Double points) {}
 
     public record AccessRequest(Integer memberId, Instant closesAt) {}
 

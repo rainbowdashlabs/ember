@@ -40,10 +40,14 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * HTTP route handlers for form management, including CRUD operations, question management,
@@ -145,16 +149,16 @@ public class FormRoutes implements Routes {
         // Also include forms where a managed member has access but the current member does not
         var managed = stationMemberService.findManaged(memberId);
         var managedAccessible = managed.isEmpty()
-                ? java.util.Set.<Integer>of()
+                ? Set.<Integer>of()
                 : managed.stream()
                         .flatMap(m -> formService.findByStationForMember(session.stationId(), m.id()).stream())
                         .filter(f -> f.status() == Form.FormStatus.OPEN)
                         .filter(formService::isAcceptingResponses)
-                        .map(f -> f.id())
-                        .collect(java.util.stream.Collectors.toSet());
+                        .map(Form::id)
+                        .collect(Collectors.toSet());
 
-        var seen = new java.util.HashSet<Integer>();
-        var combined = new java.util.ArrayList<>(accessibleForms);
+        var seen = new HashSet<Integer>();
+        var combined = new ArrayList<>(accessibleForms);
         accessibleForms.forEach(f -> seen.add(f.id()));
         if (!managedAccessible.isEmpty()) {
             formService.findByStation(session.stationId()).stream()

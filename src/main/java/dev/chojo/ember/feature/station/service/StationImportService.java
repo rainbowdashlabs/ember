@@ -871,14 +871,13 @@ public class StationImportService {
             Integer oldParentId = folder.get("parent_id") != null ? intVal(folder, "parent_id") : null;
             Integer parentId = oldParentId != null ? idMap.get("kbFolder", oldParentId) : null;
             int newId = insertReturningId(
-                    "INSERT INTO kb_folder(station_id, parent_id, name, description, position, restricted, restriction_mode) VALUES(:station_id, :parent_id, :name, :description, :position, :restricted, :restriction_mode) RETURNING id;",
+                    "INSERT INTO kb_folder(station_id, parent_id, name, description, position, restriction_mode) VALUES(:station_id, :parent_id, :name, :description, :position, :restriction_mode) RETURNING id;",
                     Call.of()
                             .bind("station_id", stationId)
                             .bind("parent_id", parentId)
                             .bind("name", str(folder, "name", ""))
                             .bind("description", str(folder, "description", ""))
                             .bind("position", intVal(folder, "position"))
-                            .bind("restricted", boolVal(folder, "restricted"))
                             .bind("restriction_mode", str(folder, "restriction_mode", "AND")));
             idMap.put("kbFolder", oldId, newId);
         }
@@ -893,7 +892,7 @@ public class StationImportService {
             Integer oldFolderId = file.get("folder_id") != null ? intVal(file, "folder_id") : null;
             Integer folderId = oldFolderId != null ? idMap.get("kbFolder", oldFolderId) : null;
             int newId = insertReturningId(
-                    "INSERT INTO kb_file(station_id, folder_id, name, description, file_type, position, restricted, restriction_mode) VALUES(:station_id, :folder_id, :name, :description, :file_type, :position, :restricted, :restriction_mode) RETURNING id;",
+                    "INSERT INTO kb_file(station_id, folder_id, name, description, file_type, position, restriction_mode) VALUES(:station_id, :folder_id, :name, :description, :file_type, :position, :restriction_mode) RETURNING id;",
                     Call.of()
                             .bind("station_id", stationId)
                             .bind("folder_id", folderId)
@@ -901,7 +900,6 @@ public class StationImportService {
                             .bind("description", str(file, "description", ""))
                             .bind("file_type", str(file, "file_type", "MARKDOWN"))
                             .bind("position", intVal(file, "position"))
-                            .bind("restricted", boolVal(file, "restricted"))
                             .bind("restriction_mode", str(file, "restriction_mode", "AND")));
             idMap.put("kbFile", oldId, newId);
         }

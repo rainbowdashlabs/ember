@@ -428,30 +428,30 @@ public class AiService {
         try {
             return switch (questionType) {
                 case MULTIPLE_CHOICE -> {
-                    var cfg = MAPPER.readValue(configJson, QuestionConfig.MultipleChoiceConfig.class);
+                    var cfg = MAPPER.readValue(configJson, QuestionConfig.MultipleChoice.class);
                     yield cfg.options() != null
                             && cfg.options().size() >= 2
-                            && cfg.options().stream().anyMatch(QuestionConfig.MultipleChoiceConfig.Option::correct)
+                            && cfg.options().stream().anyMatch(QuestionConfig.MultipleChoice.Option::correct)
                             && cfg.options().stream()
                                     .allMatch(o -> o.text() != null && !o.text().isBlank());
                 }
                 case TRUE_FALSE -> {
-                    MAPPER.readValue(configJson, QuestionConfig.TrueFalseConfig.class);
+                    MAPPER.readValue(configJson, QuestionConfig.TrueFalse.class);
                     yield true;
                 }
                 case FREE_ANSWER -> {
-                    var cfg = MAPPER.readValue(configJson, QuestionConfig.FreeAnswerConfig.class);
+                    var cfg = MAPPER.readValue(configJson, QuestionConfig.FreeAnswer.class);
                     yield cfg.lines() > 0;
                 }
                 case FILL_IN_THE_BLANK -> {
-                    var cfg = MAPPER.readValue(configJson, QuestionConfig.FillBlankConfig.class);
+                    var cfg = MAPPER.readValue(configJson, QuestionConfig.FillInTheBlank.class);
                     yield cfg.text() != null
                             && !cfg.text().isBlank()
                             && cfg.answers() != null
                             && !cfg.answers().isEmpty();
                 }
                 case CONNECT -> {
-                    var cfg = MAPPER.readValue(configJson, QuestionConfig.ConnectConfig.class);
+                    var cfg = MAPPER.readValue(configJson, QuestionConfig.Connect.class);
                     yield cfg.pairs() != null
                             && cfg.pairs().size() >= 2
                             && cfg.pairs().stream()
@@ -461,7 +461,7 @@ public class AiService {
                                             && !p.right().isBlank());
                 }
                 case ORDERING -> {
-                    var cfg = MAPPER.readValue(configJson, QuestionConfig.OrderingConfig.class);
+                    var cfg = MAPPER.readValue(configJson, QuestionConfig.Ordering.class);
                     yield cfg.items() != null
                             && cfg.items().size() >= 2
                             && cfg.items().stream().allMatch(i -> i != null && !i.isBlank());

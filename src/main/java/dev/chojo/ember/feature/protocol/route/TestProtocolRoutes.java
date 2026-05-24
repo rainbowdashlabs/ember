@@ -19,6 +19,7 @@ import dev.chojo.ember.feature.protocol.entity.TestProtocolRunMember;
 import dev.chojo.ember.feature.protocol.entity.TestProtocolSection;
 import dev.chojo.ember.feature.protocol.service.TestProtocolPdfService;
 import dev.chojo.ember.feature.protocol.service.TestProtocolService;
+import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
@@ -141,7 +142,7 @@ public class TestProtocolRoutes implements Routes {
                 .map(item -> {
                     String stationName = stationRepository
                             .findById(item.sourceStationId())
-                            .map(s -> s.name())
+                            .map(Station::name)
                             .orElse("Unknown");
                     return new SharedProtocolItem(item.protocol(), stationName, item.sourceStationId());
                 })

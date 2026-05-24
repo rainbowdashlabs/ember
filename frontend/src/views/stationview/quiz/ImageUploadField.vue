@@ -4,13 +4,15 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import { useI18n } from 'vue-i18n'
+import {useI18n} from 'vue-i18n'
 import ErrorButton from '@/components/button/ErrorButton.vue'
+import AuthImage from '@/components/display/AuthImage.vue'
 
-const { t } = useI18n()
+const {t} = useI18n()
 
 defineProps<{
   imagePreview: string | null
+  authSrc?: string | null
 }>()
 
 const emit = defineEmits<{
@@ -22,16 +24,17 @@ const emit = defineEmits<{
 <template>
   <div class="space-y-2">
     <label class="text-xs text-(--text-muted) block">{{ t('quiz.questions.image') }}</label>
-    <div v-if="imagePreview" class="flex items-start gap-3">
-      <img :src="imagePreview" alt="" class="h-24 w-24 object-cover rounded border border-bg-light-accent dark:border-bg-dark-accent" />
+    <div v-if="imagePreview || authSrc" class="flex items-start gap-3">
+      <img v-if="imagePreview" :src="imagePreview" alt="" class="h-24 w-24 object-cover rounded border border-bg-light-accent dark:border-bg-dark-accent"/>
+      <AuthImage v-else-if="authSrc" :src="authSrc" alt="" class="h-24 w-24 object-cover rounded border border-bg-light-accent dark:border-bg-dark-accent"/>
       <ErrorButton :icon="['fas', 'trash']" @click="emit('removeImage')">
         {{ t('common.delete') }}
       </ErrorButton>
     </div>
     <label v-else class="inline-flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg font-medium cursor-pointer bg-bg-light-accent dark:bg-bg-dark-accent hover:brightness-110 transition-all">
-      <font-awesome-icon :icon="['fas', 'upload']" />
+      <font-awesome-icon :icon="['fas', 'upload']"/>
       {{ t('quiz.questions.uploadImage') }}
-      <input type="file" accept="image/png,image/jpeg,image/webp" class="hidden" @change="(e: Event) => emit('selectImage', e)" />
+      <input type="file" accept="image/png,image/jpeg,image/webp" class="hidden" @change="(e: Event) => emit('selectImage', e)"/>
     </label>
   </div>
 </template>

@@ -240,14 +240,11 @@ public class LendingRepository {
                 return true;
             }
             // Inventory-level block
-            if (inventoryId != null
-                    && block.inventoryId() != null
-                    && block.inventoryId().equals(inventoryId)
-                    && block.itemId() == null) {
+            if (block.inventoryId() != null && block.inventoryId().equals(inventoryId) && block.itemId() == null) {
                 return true;
             }
             // Item-level block
-            if (itemId != null && block.itemId() != null && block.itemId().equals(itemId)) {
+            if (block.itemId() != null && block.itemId().equals(itemId)) {
                 return true;
             }
         }

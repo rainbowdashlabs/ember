@@ -100,6 +100,12 @@ public class FederationRepository {
                 .changed();
     }
 
+    public void updateFederationVersion(int id, int version) {
+        Query.query("UPDATE federation_partner SET federation_version = :version, updated_at = now() WHERE id = :id;")
+                .single(Call.of().bind("id", id).bind("version", version))
+                .update();
+    }
+
     public boolean updatePartnerStatus(int id, String status) {
         return Query.query("UPDATE federation_partner SET status = :status, updated_at = now() WHERE id = :id;")
                 .single(Call.of().bind("id", id).bind("status", status))

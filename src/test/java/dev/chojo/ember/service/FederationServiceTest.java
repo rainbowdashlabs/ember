@@ -48,41 +48,39 @@ class FederationServiceTest extends RepositoryTestBase {
 
     @Test
     @Order(1)
-    void generateInviteCodeFormat() {
-        String code = service.generateInviteCode();
+    void generatePairingCodeFormat() {
+        String code = service.generatePairingCode(stationA.uid());
         assertNotNull(code);
         assertTrue(code.startsWith("ember-"), "Code should start with ember-");
-        // Format: ember-CODE-BASE64(HOST)
-        var parts = service.parseInviteCode(code);
-        assertTrue(parts.isPresent(), "Generated invite code should be parseable");
-        assertEquals(8, parts.get().code().length(), "Random code part should be 8 characters");
+        var parts = service.parsePairingCode(code);
+        assertTrue(parts.isPresent(), "Generated pairing code should be parseable");
+        assertEquals(stationA.uid(), parts.get().stationUid());
+        assertFalse(parts.get().isStationInvite(), "Pairing code should not be a station invite");
     }
 
     @Test
     @Order(2)
-    void generateInviteCodeUniqueness() {
-        String code1 = service.generateInviteCode();
-        String code2 = service.generateInviteCode();
-        // While not guaranteed, the probability of collision is extremely low
-        assertNotEquals(code1, code2);
+    void generatePairingCodeDeterministic() {
+        String code1 = service.generatePairingCode(stationA.uid());
+        String code2 = service.generatePairingCode(stationA.uid());
+        assertEquals(code1, code2, "Pairing code should be deterministic for the same station");
     }
 
     @Test
     @Order(3)
-    void createInviteReturnsPartnerWithPendingStatus() {
-        var invite = service.createInvite(stationA.id());
-        assertNotNull(invite);
-        assertEquals(stationA.id(), invite.stationId());
-        assertEquals(FederationPartner.FederationStatus.PENDING, invite.status());
-        assertNotNull(invite.inviteCode());
-        assertNotNull(invite.publicKey());
+    void generateKeyPairProducesValidKeys() {
+        var keyPair = service.generateKeyPair();
+        assertNotNull(keyPair);
+        String publicKey = service.encodePublicKey(keyPair);
+        assertNotNull(publicKey);
+        assertFalse(publicKey.isEmpty());
     }
 
     @Test
     @Order(4)
     void acceptInviteCreatesBidirectionalPartners() {
-        var invite = service.createInvite(stationA.id());
-        var partner = service.acceptInvite(stationB.id(), stationA.id(), invite.publicKey(), null, null);
+        var keyPair = service.generateKeyPair();
+        var partner = service.acceptInvite(stationB.id(), stationA.id(), service.encodePublicKey(keyPair), null, null);
 
         assertNotNull(partner);
         assertEquals(FederationPartner.FederationStatus.ACTIVE, partner.status());
@@ -218,11 +216,11 @@ class FederationServiceTest extends RepositoryTestBase {
     @Order(60)
     void acceptInviteWithRemoteHosts() {
         var stationC = stationRepo.create("FedSvcTestStationC");
-        var invite = service.createInvite(stationC.id());
+        var keyPair = service.generateKeyPair();
         var partner = service.acceptInvite(
                 stationA.id(),
                 stationC.id(),
-                invite.publicKey(),
+                service.encodePublicKey(keyPair),
                 "https://remote-c.example.com",
                 "https://remote-a.example.com");
 
@@ -252,8 +250,8 @@ class FederationServiceTest extends RepositoryTestBase {
     @Order(61)
     void updateRemoteHost() {
         var stationD = stationRepo.create("FedSvcTestStationD");
-        var invite = service.createInvite(stationD.id());
-        var partner = service.acceptInvite(stationA.id(), stationD.id(), invite.publicKey(), null, null);
+        var keyPair = service.generateKeyPair();
+        var partner = service.acceptInvite(stationA.id(), stationD.id(), service.encodePublicKey(keyPair), null, null);
 
         // Initially local
         var reverse = service.findPartners(stationA.id()).stream()

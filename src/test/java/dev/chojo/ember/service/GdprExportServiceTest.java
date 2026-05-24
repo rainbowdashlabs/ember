@@ -9,6 +9,7 @@ import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.attendance.entity.AttendanceEntry;
 import dev.chojo.ember.feature.events.entity.EventRegistration;
 import dev.chojo.ember.feature.events.entity.StationEvent;
+import dev.chojo.ember.feature.knowledgebase.service.KbFileStorageService;
 import dev.chojo.ember.feature.legal.service.GdprExportService;
 import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
 import dev.chojo.ember.feature.members.entity.StationMember;
@@ -25,6 +26,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.mock;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class GdprExportServiceTest extends RepositoryTestBase {
@@ -36,7 +38,7 @@ class GdprExportServiceTest extends RepositoryTestBase {
     @Test
     @Order(1)
     void setup() {
-        gdprService = new GdprExportService(accountRepo, stationMemberRepo);
+        gdprService = new GdprExportService(accountRepo, stationMemberRepo, mock(KbFileStorageService.class));
 
         // Create account
         account = accountRepo.create("gdpr-test@example.com", "Max", "Mustermann", true);

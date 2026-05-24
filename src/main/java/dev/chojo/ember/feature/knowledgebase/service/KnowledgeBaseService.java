@@ -39,6 +39,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -314,8 +315,7 @@ public class KnowledgeBaseService {
             List<Integer> memberGroupIds,
             List<Integer> memberTagIds) {
         // Check file/folder restrictions
-        var rawRestrictions =
-                repository.findRestrictions(folderId != null ? folderId : null, fileId != null ? fileId : null);
+        var rawRestrictions = repository.findRestrictions(folderId, fileId);
         if (!rawRestrictions.isEmpty()) {
             // Determine restriction mode from the entity
             RestrictionMode mode = RestrictionMode.AND;
@@ -499,7 +499,7 @@ public class KnowledgeBaseService {
     public Optional<String> reconstructVersion(int fileId, int targetVersion) {
         var allVersions = repository.findVersions(fileId);
         // Sort ascending by version
-        allVersions.sort((a, b) -> Integer.compare(a.version(), b.version()));
+        allVersions.sort(Comparator.comparingInt(KbFileVersion::version));
 
         String content = null;
         for (var v : allVersions) {

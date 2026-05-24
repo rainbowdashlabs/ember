@@ -15,6 +15,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
+import InfoBadge from '@/components/badge/InfoBadge.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
@@ -31,6 +32,7 @@ const { canManageFederation, loaded } = useSession()
 
 const partners = ref<PartnerResponse[]>([])
 const pairRequests = ref<PairRequest[]>([])
+const localVersion = ref(0)
 const loading = ref(true)
 const error = ref('')
 const success = ref('')
@@ -43,9 +45,14 @@ const acceptCode = ref('')
 async function loadData() {
   loading.value = true
   try {
-    const [p, r] = await Promise.all([federation.listPartners(), federation.listPairRequests()])
+    const [p, r, info] = await Promise.all([
+      federation.listPartners(),
+      federation.listPairRequests(),
+      federation.getFederationInfo(),
+    ])
     partners.value = p
     pairRequests.value = r
+    localVersion.value = info.federationVersion
   }
   catch { error.value = t('common.error') }
   finally { loading.value = false }
@@ -131,6 +138,10 @@ onMounted(() => { if (loaded.value) loadData() })
           <div class="font-medium">{{ p.partnerStationName }}</div>
           <div class="text-xs text-[var(--text-muted)]">v{{ p.partner.federationVersion }}</div>
         </div>
+        <InfoBadge v-if="localVersion > 0 && p.partner.federationVersion !== localVersion" :title="t('federation.versionMismatchHint')">
+          <font-awesome-icon :icon="['fas', 'triangle-exclamation']" class="mr-1"/>
+          {{ t('federation.versionMismatch') }}
+        </InfoBadge>
         <SuccessBadge v-if="p.partner.status === 'ACTIVE'">{{ t('federation.active') }}</SuccessBadge>
         <ErrorBadge v-else-if="p.partner.status === 'SUSPENDED'">{{ t('federation.suspended') }}</ErrorBadge>
         <SecondaryBadge v-else>{{ t('federation.pending') }}</SecondaryBadge>

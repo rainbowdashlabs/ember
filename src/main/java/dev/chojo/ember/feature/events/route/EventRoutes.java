@@ -172,7 +172,7 @@ public class EventRoutes implements Routes {
             ctx.json(eventService.findByStationForMember(
                     session.stationId(), session.member().id()));
         } else {
-            ctx.json(java.util.List.of());
+            ctx.json(List.of());
         }
     }
 

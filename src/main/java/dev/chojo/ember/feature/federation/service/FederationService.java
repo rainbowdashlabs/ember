@@ -31,7 +31,7 @@ import java.util.UUID;
 @Singleton
 public class FederationService {
     private static final Logger log = LoggerFactory.getLogger(FederationService.class);
-    private static final int FEDERATION_VERSION = 1;
+    public static final int FEDERATION_VERSION = 1;
 
     private final FederationRepository repository;
     private final StationRepository stationRepository;

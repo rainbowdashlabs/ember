@@ -13,16 +13,16 @@ import Alert from '@/components/feedback/Alert.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
-import SelectInput from '@/components/input/select/SelectInput.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import NumberInput from '@/components/input/number/NumberInput.vue'
+import TextInput from '@/components/input/text/TextInput.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import { useSession } from '@/composables/useSession'
 import type { QuizCategory, QuizQuestionTypeName } from '@/api/types'
 import { QuizQuestionTypes } from '@/api/types'
 import { quiz, ai, util } from '@/api'
-import type { AiProviderConfig } from '@/api/ai'
+import { getItem } from '@/api/storage'
 import CsvFileUpload from './csvimportview/CsvFileUpload.vue'
 import CsvColumnMapping from './csvimportview/CsvColumnMapping.vue'
 import CsvQuestionCard from './csvimportview/CsvQuestionCard.vue'
@@ -59,9 +59,9 @@ const questions = ref<ImportQuestion[]>([])
 // AI wrong answer generation
 const generateWrongAnswers = ref(false)
 const wrongAnswerCount = ref(3)
-const aiProviders = ref<AiProviderConfig[]>([])
-const selectedProvider = ref('')
+const aiPrompt = ref('')
 const aiStatus = ref('')
+const hasAiKey = computed(() => !!(getItem('ai_api_key')))
 
 // Import state
 const importing = ref(false)
@@ -91,16 +91,9 @@ const splitPresets = [
 async function loadData() {
   loading.value = true
   try {
-    const [detail, aiSettings] = await Promise.all([
-      quiz.getCatalog(catalogId.value),
-      ai.getSettings().catch(() => null),
-    ])
+    const detail = await quiz.getCatalog(catalogId.value)
     catalogName.value = detail.name
     categories.value = detail.categories
-    if (aiSettings?.providers?.length) {
-      aiProviders.value = aiSettings.providers
-      selectedProvider.value = aiSettings.providers[0].provider
-    }
   } catch {
     error.value = t('common.error')
   } finally {
@@ -175,7 +168,7 @@ function rebuildQuestions() {
       answerSepOverride: '',
       rawRow: row,
       mcCorrectIndices: new Set<number>(),
-      mcPointsPerCorrect: 0.5,
+      mcPointsPerCorrect: 1,
       enumRequiredCount: 3,
       enumOrderRequired: false,
       splitItems: [],
@@ -308,26 +301,35 @@ async function doImport() {
       importCount.value = i + 1
     }
 
-    if (createdMcQuestions.length > 0 && selectedProvider.value) {
-      aiStatus.value = t('quiz.csv.generatingAnswers')
-      for (let i = 0; i < createdMcQuestions.length; i++) {
-        const { question: q, id: questionId } = createdMcQuestions[i]
-        aiStatus.value = `${t('quiz.csv.generatingAnswers')} (${i + 1}/${createdMcQuestions.length})`
-        try {
-          const existingConfig = JSON.parse(buildConfig(q))
-          const options = existingConfig.options || []
-          const correctAnswers = options.filter((o: { correct: boolean }) => o.correct).map((o: { text: string }) => o.text)
-          const wrongAnswers = await ai.generate({
-            provider: selectedProvider.value, question: q.title,
-            correctAnswer: correctAnswers.join(', '), count: wrongAnswerCount.value,
-          })
-          for (const wrong of wrongAnswers) {
-            options.push({ text: wrong, correct: false })
-          }
-          await quiz.updateQuestion(questionId, { config: { ...existingConfig, options } })
-        } catch { /* skip AI errors */ }
+    if (createdMcQuestions.length > 0 && generateWrongAnswers.value) {
+      const provider = getItem('ai_provider') || 'openai'
+      const apiKey = getItem('ai_api_key') || ''
+      const model = getItem('ai_model') || ''
+      if (apiKey) {
+        aiStatus.value = t('quiz.csv.generatingAnswers')
+        for (let i = 0; i < createdMcQuestions.length; i++) {
+          const { question: q, id: questionId } = createdMcQuestions[i]
+          aiStatus.value = `${t('quiz.csv.generatingAnswers')} (${i + 1}/${createdMcQuestions.length})`
+          try {
+            const existingConfig = JSON.parse(buildConfig(q))
+            const options = existingConfig.options || []
+            const correctAnswers = options.filter((o: { correct: boolean }) => o.correct).map((o: { text: string }) => o.text)
+            const context = aiPrompt.value
+                ? `${aiPrompt.value}\nKatalog: ${catalogName.value}`
+                : `Katalog: ${catalogName.value}`
+            const wrongAnswers = await ai.generate({
+              provider, apiKey, model: model || null,
+              question: `${context}\n\n${q.title}`,
+              correctAnswer: correctAnswers.join(', '), count: wrongAnswerCount.value,
+            })
+            for (const wrong of wrongAnswers) {
+              options.push({ text: wrong, correct: false })
+            }
+            await quiz.updateQuestion(questionId, { config: { ...existingConfig, options } })
+          } catch { /* skip AI errors */ }
+        }
+        aiStatus.value = ''
       }
-      aiStatus.value = ''
     }
 
     importDone.value = true
@@ -396,23 +398,23 @@ watch(loaded, (isLoaded) => {
       />
 
       <!-- AI Wrong Answers -->
-      <NeutralContainer v-if="aiProviders.length > 0" class="space-y-3 mb-4">
+      <NeutralContainer v-if="hasAiKey" class="space-y-3 mb-4">
         <div class="flex items-center gap-2">
           <ToggleInput v-model="generateWrongAnswers" />
           <span class="text-sm font-medium">{{ t('quiz.csv.generateWrongAnswers') }}</span>
         </div>
-        <div v-if="generateWrongAnswers" class="flex items-center gap-4 flex-wrap">
-          <div>
-            <FieldLabel hint class="mb-1">{{ t('quiz.csv.wrongAnswerCount') }}</FieldLabel>
-            <NumberInput v-model="wrongAnswerCount" :min="1" :max="10" class="w-20" />
+        <template v-if="generateWrongAnswers">
+          <div class="flex items-center gap-4 flex-wrap">
+            <div>
+              <FieldLabel hint class="mb-1">{{ t('quiz.csv.wrongAnswerCount') }}</FieldLabel>
+              <NumberInput v-model="wrongAnswerCount" :min="1" :max="10" class="w-20" />
+            </div>
           </div>
           <div>
-            <FieldLabel hint class="mb-1">AI Provider</FieldLabel>
-            <SelectInput v-model="selectedProvider" class="w-48">
-              <option v-for="p in aiProviders" :key="p.provider" :value="p.provider">{{ p.provider }}</option>
-            </SelectInput>
+            <FieldLabel hint class="mb-1">{{ t('quiz.ai.additionalPrompt') }}</FieldLabel>
+            <TextInput v-model="aiPrompt" :placeholder="t('quiz.ai.additionalPromptPlaceholder')" />
           </div>
-        </div>
+        </template>
         <p class="text-xs text-(--text-muted)">{{ t('quiz.csv.generateWrongAnswersHint') }}</p>
       </NeutralContainer>
 

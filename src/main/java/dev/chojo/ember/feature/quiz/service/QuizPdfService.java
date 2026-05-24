@@ -58,7 +58,7 @@ public class QuizPdfService {
         return TypstCompiler.compile(typst, resources);
     }
 
-    private record ExportData(String title, List<SectionData> sections, int totalMaxPoints) {}
+    private record ExportData(String title, List<SectionData> sections, double totalMaxPoints) {}
 
     private ExportData buildExportData(int testId) {
         var test = testRepository.findById(testId).orElseThrow();
@@ -82,11 +82,11 @@ public class QuizPdfService {
         }
 
         List<SectionData> sectionDataList = new ArrayList<>();
-        int totalMaxPoints = 0;
+        double totalMaxPoints = 0;
         for (var section : sections) {
             var questions = questionsBySection.getOrDefault(section.id(), List.of());
-            int sectionPoints =
-                    questions.stream().mapToInt(QuizQuestion::points).sum();
+            double sectionPoints =
+                    questions.stream().mapToDouble(QuizQuestion::points).sum();
             totalMaxPoints += sectionPoints;
             sectionDataList.add(new SectionData(section, questions, sectionPoints));
         }
@@ -97,7 +97,7 @@ public class QuizPdfService {
     private String generateTypst(
             String title,
             List<SectionData> sections,
-            int totalMaxPoints,
+            double totalMaxPoints,
             boolean showAnswers,
             Map<String, byte[]> resources) {
         var sb = new StringBuilder();
@@ -171,7 +171,7 @@ public class QuizPdfService {
                 }
 
                 try {
-                    var cfg = q.config();
+                    var cfg = q.configNode();
                     renderQuestion(sb, q.questionType(), cfg, showAnswers);
                 } catch (Exception e) {
                     log.warn("Failed to parse question config for question {}", q.id(), e);
@@ -545,5 +545,5 @@ public class QuizPdfService {
                 .replace("]", "\\]");
     }
 
-    private record SectionData(QuizTestSection section, List<QuizQuestion> questions, int maxPoints) {}
+    private record SectionData(QuizTestSection section, List<QuizQuestion> questions, double maxPoints) {}
 }

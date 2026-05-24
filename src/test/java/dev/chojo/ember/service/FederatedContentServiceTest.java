@@ -109,8 +109,9 @@ class FederatedContentServiceTest extends RepositoryTestBase {
         realProtocolId = protocol.id();
 
         // Create bidirectional federation
-        var invite = federationService.createInvite(stationA.id());
-        var partner = federationService.acceptInvite(stationB.id(), stationA.id(), invite.publicKey(), null, null);
+        var keyPair = federationService.generateKeyPair();
+        var partner = federationService.acceptInvite(
+                stationB.id(), stationA.id(), federationService.encodePublicKey(keyPair), null, null);
         partnerIdAtoB = partner.id();
 
         // Create shares on stationB

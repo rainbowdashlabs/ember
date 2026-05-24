@@ -269,7 +269,7 @@ export async function getTrainingQuestions(catalogId: number): Promise<QuizQuest
 // -- Question Images --
 
 export function questionImageUrl(questionId: number, size?: number): string {
-    const base = `${client.defaults.baseURL}/quiz/questions/${questionId}/image`
+    const base = `/quiz/questions/${questionId}/image`
     return size ? `${base}?size=${size}` : base
 }
 

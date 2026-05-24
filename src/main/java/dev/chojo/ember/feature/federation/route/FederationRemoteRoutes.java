@@ -179,6 +179,26 @@ public class FederationRemoteRoutes implements Routes {
             throw new ForbiddenResponse("Invalid federation signature");
         }
 
+        // Track remote federation version
+        String versionHeader = ctx.header("X-Federation-Version");
+        if (versionHeader != null) {
+            try {
+                int remoteVersion = Integer.parseInt(versionHeader);
+                if (remoteVersion != p.federationVersion()) {
+                    repository.updateFederationVersion(p.id(), remoteVersion);
+                    if (remoteVersion != FederationService.FEDERATION_VERSION) {
+                        log.warn(
+                                "Federation partner {} (station {}) is running version {} (we are version {})",
+                                p.id(),
+                                p.partnerStationId(),
+                                remoteVersion,
+                                FederationService.FEDERATION_VERSION);
+                    }
+                }
+            } catch (NumberFormatException ignored) {
+            }
+        }
+
         return p;
     }
 

@@ -6,6 +6,8 @@
 package dev.chojo.ember.feature.system.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import dev.chojo.ember.feature.media.service.ImageCategory;
+import dev.chojo.ember.feature.media.service.ImageService;
 import dev.chojo.ember.feature.quiz.entity.QuestionType;
 import dev.chojo.ember.feature.quiz.entity.QuizQuestion;
 import dev.chojo.ember.feature.quiz.repository.QuizCatalogRepository;
@@ -13,7 +15,10 @@ import dev.chojo.ember.feature.quiz.repository.QuizTestRepository;
 import dev.chojo.ember.feature.quiz.service.QuizService;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -25,18 +30,22 @@ import java.util.Map;
  */
 @Singleton
 public class DemoQuizSeeder {
+    private static final Logger log = LoggerFactory.getLogger(DemoQuizSeeder.class);
     private final QuizCatalogRepository quizCatalogRepository;
     private final QuizTestRepository quizTestRepository;
     private final QuizService quizService;
+    private final ImageService imageService;
 
     @Inject
     public DemoQuizSeeder(
             QuizCatalogRepository quizCatalogRepository,
             QuizTestRepository quizTestRepository,
-            QuizService quizService) {
+            QuizService quizService,
+            ImageService imageService) {
         this.quizCatalogRepository = quizCatalogRepository;
         this.quizTestRepository = quizTestRepository;
         this.quizService = quizService;
+        this.imageService = imageService;
     }
 
     public void seedQuiz(int stationId, int createdBy, List<Integer> memberIds) {
@@ -609,18 +618,29 @@ public class DemoQuizSeeder {
                 4,
                 List.of("Helm", "Handschuhe"),
                 List.of("Stiefel", "Jacke"));
-        // IMAGE_TEXT question (imageUrl "demo" triggers logo fallback in PDF export)
-        quizCatalogRepository.createQuestion(
+        // IMAGE_TEXT question with actual image
+        var imageTextQuestion = quizCatalogRepository.createQuestion(
                 showcaseCatalog.id(),
                 catShowcase.id(),
                 QuestionType.IMAGE_TEXT,
                 "Was siehst du auf dem Bild?",
                 "Beschreibe das abgebildete Logo.",
-                "demo",
+                "uploaded",
                 2,
                 false,
                 "{\"answer\":\"Das Ember-Logo der Jugendfeuerwehr-Plattform.\"}",
                 5);
+        try (var logoStream = getClass().getResourceAsStream("/logo/NoBG_NoGlow.png")) {
+            if (logoStream != null) {
+                imageService.store(
+                        ImageCategory.QUIZ_QUESTIONS,
+                        String.valueOf(imageTextQuestion.id()),
+                        logoStream.readAllBytes(),
+                        "image/png");
+            }
+        } catch (IOException e) {
+            log.warn("Failed to store demo quiz question image", e);
+        }
         createConnectQuestion(
                 showcaseCatalog.id(),
                 catShowcase.id(),
@@ -719,7 +739,7 @@ public class DemoQuizSeeder {
 
     private String generateShowcaseAnswer(QuizQuestion q) {
         try {
-            var cfg = q.config();
+            var cfg = q.configNode();
             return switch (q.questionType()) {
                 case MULTIPLE_CHOICE -> {
                     // Select all correct options
@@ -807,7 +827,7 @@ public class DemoQuizSeeder {
 
     private String generateDemoAnswer(QuizQuestion q, boolean correct) {
         try {
-            var cfg = q.config();
+            var cfg = q.configNode();
             return switch (q.questionType()) {
                 case MULTIPLE_CHOICE -> {
                     var options = cfg.get("options");
@@ -910,7 +930,7 @@ public class DemoQuizSeeder {
                     .append("}");
         }
         config.append("],\"pointsPerCorrect\":").append(pointsPerCorrect).append("}");
-        int points = (int) Math.ceil(correctIndices.size() * pointsPerCorrect);
+        double points = correctIndices.size() * pointsPerCorrect;
         quizCatalogRepository.createQuestion(
                 catalogId,
                 categoryId,

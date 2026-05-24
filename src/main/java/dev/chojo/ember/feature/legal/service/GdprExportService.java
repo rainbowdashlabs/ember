@@ -40,18 +40,15 @@ public class GdprExportService {
     private final AccountRepository accountRepository;
     private final StationMemberRepository stationMemberRepository;
     private final KbFileStorageService kbFileStorageService;
-    private final TypstCompiler typstCompiler;
 
     @Inject
     public GdprExportService(
             AccountRepository accountRepository,
             StationMemberRepository stationMemberRepository,
-            KbFileStorageService kbFileStorageService,
-            TypstCompiler typstCompiler) {
+            KbFileStorageService kbFileStorageService) {
         this.accountRepository = accountRepository;
         this.stationMemberRepository = stationMemberRepository;
         this.kbFileStorageService = kbFileStorageService;
-        this.typstCompiler = typstCompiler;
     }
 
     /**
@@ -154,7 +151,7 @@ public class GdprExportService {
     private byte[] generatePdf(Map<String, Object> data, String locale) {
         String lang = locale != null && locale.startsWith("en") ? "en" : "de";
         try {
-            return typstCompiler.compileTemplate(data, lang + "/gdpr-export", null, MAPPER);
+            return TypstCompiler.compileTemplate(data, lang + "/gdpr-export", null, MAPPER);
         } catch (Exception e) {
             log.warn("Typst PDF generation failed for GDPR export", e);
             return null;
@@ -168,8 +165,8 @@ public class GdprExportService {
                         "SELECT kf.id, kf.name, kf.file_type FROM kb_file kf JOIN kb_file_version kfv ON kfv.file_id = kf.id WHERE kfv.version = 1 AND kfv.created_by = :member_id")
                 .single(Call.of().bind("member_id", memberId))
                 .map(row -> Map.of(
-                        "id", (Object) row.getInt("id"),
-                        "name", (Object) row.getString("name"),
+                        "id", row.getInt("id"),
+                        "name", row.getString("name"),
                         "fileType", (Object) row.getString("file_type")))
                 .all();
 

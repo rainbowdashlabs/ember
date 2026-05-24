@@ -17,12 +17,15 @@ import dev.chojo.ember.feature.federation.entity.LendingStatus;
 import dev.chojo.ember.feature.federation.repository.LendingRepository;
 import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.federation.service.LendingService;
+import dev.chojo.ember.feature.inventory.entity.Inventory;
+import dev.chojo.ember.feature.inventory.entity.InventorySize;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
 import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
 import dev.chojo.ember.feature.notifications.service.NotificationService;
+import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
@@ -216,7 +219,7 @@ public class LendingRoutes implements Routes {
                 if (item.sizeId() != null) {
                     sizeName = inventoryRepository.findSizes(ri.inventoryId()).stream()
                             .filter(s -> s.id() == item.sizeId())
-                            .map(s -> s.label())
+                            .map(InventorySize::label)
                             .findFirst()
                             .orElse(null);
                 }
@@ -330,7 +333,7 @@ public class LendingRoutes implements Routes {
         }
         String stationName = stationRepository
                 .findById(msg.senderStationId())
-                .map(s -> s.name())
+                .map(Station::name)
                 .orElse("Unknown");
         return new EnrichedMessage(msg, senderName, stationName);
     }
@@ -410,7 +413,7 @@ public class LendingRoutes implements Routes {
             int partnerStationId = partner.partnerStationId();
             String stationName = stationRepository
                     .findById(partnerStationId)
-                    .map(s -> s.name())
+                    .map(Station::name)
                     .orElse("Unknown");
 
             // Skip if station-wide block for the requested period
@@ -465,11 +468,11 @@ public class LendingRoutes implements Routes {
     private LendingRequestResponse enrichRequest(LendingRequest request, int currentStationId) {
         String requestingName = stationRepository
                 .findById(request.requestingStationId())
-                .map(s -> s.name())
+                .map(Station::name)
                 .orElse("Unknown");
         String owningName = stationRepository
                 .findById(request.owningStationId())
-                .map(s -> s.name())
+                .map(Station::name)
                 .orElse("Unknown");
         boolean isOwner = request.owningStationId() == currentStationId;
 
@@ -480,7 +483,7 @@ public class LendingRoutes implements Routes {
             String name = item.inventoryId() != null
                     ? inventoryRepository
                             .findById(item.inventoryId())
-                            .map(i -> i.name())
+                            .map(Inventory::name)
                             .orElse("?")
                     : "?";
             summaryParts.add(item.quantity() + "x " + name);
@@ -500,7 +503,7 @@ public class LendingRoutes implements Routes {
                     String name = item.inventoryId() != null
                             ? inventoryRepository
                                     .findById(item.inventoryId())
-                                    .map(i -> i.name())
+                                    .map(Inventory::name)
                                     .orElse("Unbekannt")
                             : "Unbekannt";
                     return new EnrichedItem(item, name);
@@ -511,7 +514,7 @@ public class LendingRoutes implements Routes {
     // -- Notification helpers --
 
     private String stationName(int stationId) {
-        return stationRepository.findById(stationId).map(s -> s.name()).orElse("Unknown");
+        return stationRepository.findById(stationId).map(Station::name).orElse("Unknown");
     }
 
     private String buildItemSummary(int requestId) {
@@ -521,7 +524,7 @@ public class LendingRoutes implements Routes {
             String name = item.inventoryId() != null
                     ? inventoryRepository
                             .findById(item.inventoryId())
-                            .map(i -> i.name())
+                            .map(Inventory::name)
                             .orElse("?")
                     : "?";
             parts.add(item.quantity() + "x " + name);

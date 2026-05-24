@@ -97,10 +97,10 @@ async function deleteCategory() {
       </SecondaryButton>
     </div>
     <EmptyState compact v-if="categories.length === 0">{{ t('quiz.categories.noCategories') }}</EmptyState>
-    <div class="flex flex-wrap gap-2">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
       <NeutralContainer v-for="category in categories" :key="category.id" class="!p-2">
         <div class="flex items-center gap-2">
-          <div>
+          <div class="flex-1 min-w-0">
             <span class="text-sm">{{ category.name }}</span>
             <p v-if="category.description" class="text-xs text-(--text-muted)">{{ category.description }}</p>
           </div>

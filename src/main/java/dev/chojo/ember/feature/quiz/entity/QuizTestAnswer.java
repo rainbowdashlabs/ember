@@ -13,7 +13,7 @@ public record QuizTestAnswer(
         int questionId,
         Integer sectionId,
         String answer,
-        Integer points,
+        Double points,
         boolean graded,
         int position) {
 
@@ -24,7 +24,7 @@ public record QuizTestAnswer(
                 row.getInt("question_id"),
                 row.getObject("section_id", Integer.class),
                 row.getString("answer"),
-                row.getObject("points", Integer.class),
+                row.getObject("points") != null ? row.getDouble("points") : null,
                 row.getBoolean("graded"),
                 row.getInt("position"));
     }

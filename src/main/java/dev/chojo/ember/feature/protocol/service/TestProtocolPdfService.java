@@ -11,6 +11,7 @@ import dev.chojo.ember.feature.protocol.entity.TestProtocolItem;
 import dev.chojo.ember.feature.protocol.entity.TestProtocolRunCheck;
 import dev.chojo.ember.feature.protocol.entity.TestProtocolSection;
 import dev.chojo.ember.feature.protocol.repository.TestProtocolRepository;
+import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.util.TypstCompiler;
 import jakarta.inject.Inject;
@@ -70,7 +71,7 @@ public class TestProtocolPdfService {
 
         String memberName = resolveMemberName(memberId);
         String stationName =
-                stationRepository.findById(run.stationId()).map(s -> s.name()).orElse("");
+                stationRepository.findById(run.stationId()).map(Station::name).orElse("");
 
         var resources = loadLogo();
         var sb = new StringBuilder();
@@ -164,7 +165,7 @@ public class TestProtocolPdfService {
                 .toList();
 
         String stationName =
-                stationRepository.findById(run.stationId()).map(s -> s.name()).orElse("");
+                stationRepository.findById(run.stationId()).map(Station::name).orElse("");
         var resources = loadLogo();
         var sb = new StringBuilder();
         sb.append("""
@@ -196,9 +197,9 @@ public class TestProtocolPdfService {
 
         // Table
         sb.append("#table(\n  columns: (auto, 3em, 3em");
-        for (int i = 0; i < data.size(); i++) sb.append(", 1fr");
+        sb.repeat(", 1fr", data.size());
         sb.append("),\n  align: (left, center, center");
-        for (int i = 0; i < data.size(); i++) sb.append(", center");
+        sb.repeat(", center", data.size());
         sb.append("),\n  stroke: 0.3pt + luma(180),\n");
 
         // Header row

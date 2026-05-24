@@ -75,8 +75,9 @@ class LendingServiceTest extends RepositoryTestBase {
         itemIdA = item.id();
 
         // Create federation between A and B (local, remoteHost = null)
-        var invite = federationService.createInvite(stationA.id());
-        var partner = federationService.acceptInvite(stationB.id(), stationA.id(), invite.publicKey(), null, null);
+        var keyPair = federationService.generateKeyPair();
+        var partner = federationService.acceptInvite(
+                stationB.id(), stationA.id(), federationService.encodePublicKey(keyPair), null, null);
         partnerIdAtoB = partner.id();
     }
 
@@ -207,9 +208,13 @@ class LendingServiceTest extends RepositoryTestBase {
         var stationC = stationRepo.create("LendSvcTestStationC");
         var memberC = stationMemberRepo.create(stationC.id(), account.id());
 
-        var invite = federationService.createInvite(stationA.id());
+        var keyPairC = federationService.generateKeyPair();
         var partner = federationService.acceptInvite(
-                stationC.id(), stationA.id(), invite.publicKey(), null, "https://remote.example.com");
+                stationC.id(),
+                stationA.id(),
+                federationService.encodePublicKey(keyPairC),
+                null,
+                "https://remote.example.com");
 
         // Create a request between A and C
         var req = service.createRequest(

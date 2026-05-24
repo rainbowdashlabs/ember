@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
@@ -36,6 +36,7 @@ const props = defineProps<{
   points: number
   autoPoints: boolean
   imagePreview: string | null
+  authImageSrc?: string | null
   hasImage: boolean
   config: Record<string, unknown>
   categories: QuizCategory[]
@@ -78,24 +79,28 @@ const calculatedPoints = computed(() => {
     case QuizQuestionTypes.MULTIPLE_CHOICE: {
       const opts = (config.options as { text: string; correct: boolean }[]) || []
       const correctCount = opts.filter(o => o.correct).length
-      const ppc = (config.pointsPerCorrect as number) || 0.5
+      const ppc = (config.pointsPerCorrect as number) || 1
       return correctCount * ppc
     }
     case QuizQuestionTypes.FILL_IN_THE_BLANK: {
       const answers = (config.answers as string[]) || []
-      return answers.length || 1
+      const ppcFill = (config.pointsPerCorrect as number) || 1
+      return (answers.length || 1) * ppcFill
     }
     case QuizQuestionTypes.FREE_ANSWER: {
       const answers = (config.answers as string[]) || []
-      return answers.length || 1
+      const ppcFree = (config.pointsPerCorrect as number) || 1
+      return (answers.length || 1) * ppcFree
     }
     case QuizQuestionTypes.CONNECT: {
       const pairs = (config.pairs as { left: string; right: string }[]) || []
-      return pairs.length || 1
+      const ppcConn = (config.pointsPerCorrect as number) || 1
+      return (pairs.length || 1) * ppcConn
     }
     case QuizQuestionTypes.ORDERING: {
       const items = (config.items as string[]) || []
-      return items.length || 1
+      const ppcOrd = (config.pointsPerCorrect as number) || 1
+      return (items.length || 1) * ppcOrd
     }
     case QuizQuestionTypes.TRUE_FALSE:
       return 1
@@ -103,6 +108,13 @@ const calculatedPoints = computed(() => {
       return 1
     default:
       return 1
+  }
+})
+
+// Auto-update points when autoPoints is on and config/type changes
+watch(calculatedPoints, (val) => {
+  if (props.autoPoints) {
+    emit('update:points', val)
   }
 })
 
@@ -144,7 +156,7 @@ function onTypeChange(val: QuizQuestionTypeName | string | undefined) {
     </div>
 
     <!-- Image upload (only for IMAGE_TEXT) -->
-    <ImageUploadField v-if="questionType === QuizQuestionTypes.IMAGE_TEXT" :image-preview="imagePreview" @select-image="(e: Event) => emit('selectImage', e)" @remove-image="emit('removeImage')" />
+    <ImageUploadField v-if="questionType === QuizQuestionTypes.IMAGE_TEXT" :image-preview="imagePreview" :auth-src="authImageSrc" @select-image="(e: Event) => emit('selectImage', e)" @remove-image="emit('removeImage')" />
 
     <!-- Type-specific config editors -->
     <McConfigEditor v-if="questionType === QuizQuestionTypes.MULTIPLE_CHOICE" :config="config" :question-title="title" @update:config="(v: Record<string, unknown>) => emit('update:config', v)" />

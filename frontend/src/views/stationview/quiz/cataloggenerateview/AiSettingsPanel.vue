@@ -4,135 +4,99 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import { ref } from 'vue'
-import { useI18n } from 'vue-i18n'
+import {ref, watch} from 'vue'
+import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
-import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
-import NumberInput from '@/components/input/number/NumberInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
-import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import ErrorButton from '@/components/button/ErrorButton.vue'
+import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
-import FieldHint from '@/components/typography/FieldHint.vue'
 import MutedText from '@/components/typography/MutedText.vue'
-import type { AiSettings, AiModel } from '@/api/ai'
-import { ai as aiApi } from '@/api'
+import type {AiModel} from '@/api/ai'
+import {ai as aiApi} from '@/api'
+import {getItem, setItem} from '@/api/storage'
 
-const props = defineProps<{
-  catalogId: number
-}>()
-
-const { t } = useI18n()
+const {t} = useI18n()
 
 const showAiSettings = ref(false)
-const aiSettingsData = ref<AiSettings | null>(null)
-const aiBatchProvider = ref('openai')
-const aiBatchTransientKey = ref('')
-const aiBatchModel = ref('')
-const aiBatchTarget = ref(5)
-const aiBatchGenerating = ref(false)
-const aiBatchResult = ref('')
-const aiPromptEdit = ref('')
-const aiSavingKey = ref(false)
-const aiSaveKeyValue = ref('')
+const aiBatchProvider = ref(getItem('ai_provider') || 'openai')
+const aiBatchApiKey = ref(getItem('ai_api_key') || '')
+const aiBatchModel = ref(getItem('ai_model') || '')
+const saveOnServer = ref(false)
 const aiModels = ref<AiModel[]>([])
 const aiFetchingModels = ref(false)
-const error = ref('')
+const savingToServer = ref(false)
 
-async function loadAiSettings() {
+// Persist to localStorage on change
+watch(aiBatchProvider, v => setItem('ai_provider', v))
+watch(aiBatchApiKey, v => setItem('ai_api_key', v))
+watch(aiBatchModel, v => setItem('ai_model', v))
+
+// Load server settings if they exist
+async function loadServerSettings() {
   try {
-    aiSettingsData.value = await aiApi.getSettings()
-    aiPromptEdit.value = aiSettingsData.value.prompt
-    if (aiSettingsData.value.providers.length > 0) {
-      aiBatchProvider.value = aiSettingsData.value.providers[0].provider
-      aiBatchModel.value = aiSettingsData.value.providers[0].model ?? ''
+    const settings = await aiApi.getSettings()
+    if (settings.providers.length > 0) {
+      const p = settings.providers[0]
+      // Only apply server settings if no local key is set
+      if (!aiBatchApiKey.value) {
+        aiBatchProvider.value = p.provider
+        aiBatchModel.value = p.model ?? ''
+        saveOnServer.value = true
+      }
     }
   } catch { /* ignore */ }
 }
 
-function hasStoredKey(provider: string): boolean {
-  return aiSettingsData.value?.providers.some(p => p.provider === provider) ?? false
-}
-
-async function saveAiPrompt() {
-  try {
-    await aiApi.savePrompt(aiPromptEdit.value)
-  } catch { error.value = t('common.error') }
-}
-
-async function saveAiKey() {
-  if (!aiSaveKeyValue.value) return
-  aiSavingKey.value = true
-  try {
-    await aiApi.saveProvider(aiBatchProvider.value, aiSaveKeyValue.value, aiBatchModel.value || null)
-    aiSaveKeyValue.value = ''
-    await loadAiSettings()
-  } catch { error.value = t('common.error') }
-  finally { aiSavingKey.value = false }
-}
-
-async function removeAiKey(provider: string) {
-  try {
-    await aiApi.deleteProvider(provider)
-    await loadAiSettings()
-  } catch { error.value = t('common.error') }
-}
-
 async function loadAiModels() {
+  if (!aiBatchApiKey.value) return
   aiFetchingModels.value = true
   try {
-    aiModels.value = await aiApi.fetchModels(aiBatchProvider.value, aiBatchTransientKey.value || null)
+    aiModels.value = await aiApi.fetchModels(aiBatchProvider.value, aiBatchApiKey.value)
   } catch { /* ignore */ }
   finally { aiFetchingModels.value = false }
 }
 
-async function batchGenerate() {
-  aiBatchGenerating.value = true
-  aiBatchResult.value = ''
+async function saveToServer() {
+  if (!aiBatchApiKey.value) return
+  savingToServer.value = true
   try {
-    const result = await aiApi.batchGenerate(props.catalogId, {
-      provider: aiBatchProvider.value,
-      apiKey: aiBatchTransientKey.value || null,
-      model: aiBatchModel.value || null,
-      targetTotalOptions: aiBatchTarget.value,
-    })
-    aiBatchResult.value = t('quiz.ai.batchSuccess', { count: result.generatedCount })
-    if (result.errors.length > 0) {
-      aiBatchResult.value += ' ' + t('quiz.ai.batchErrors', { count: result.errors.length })
-    }
-  } catch (e: unknown) {
-    aiBatchResult.value = e instanceof Error ? e.message : t('common.error')
-  } finally {
-    aiBatchGenerating.value = false
+    await aiApi.saveProvider(aiBatchProvider.value, aiBatchApiKey.value, aiBatchModel.value || null)
+  } catch { /* ignore */ }
+  finally { savingToServer.value = false }
+}
+
+async function removeFromServer() {
+  try {
+    await aiApi.deleteProvider(aiBatchProvider.value)
+    saveOnServer.value = false
+  } catch { /* ignore */ }
+}
+
+watch(saveOnServer, async (val) => {
+  if (val && aiBatchApiKey.value) {
+    await saveToServer()
+  } else if (!val) {
+    await removeFromServer()
   }
-}
+})
 
-function getProvider(): string {
-  return aiBatchProvider.value
-}
+function getProvider(): string { return aiBatchProvider.value }
+function getTransientKey(): string { return aiBatchApiKey.value }
+function getModel(): string { return aiBatchModel.value }
 
-function getTransientKey(): string {
-  return aiBatchTransientKey.value
-}
+loadServerSettings()
 
-function getModel(): string {
-  return aiBatchModel.value
-}
-
-loadAiSettings()
-
-defineExpose({ getProvider, getTransientKey, getModel })
+defineExpose({getProvider, getTransientKey, getModel})
 </script>
 
 <template>
   <div class="space-y-3">
     <div class="flex items-center justify-between flex-wrap gap-2">
-      <SectionHeader>{{ t('quiz.ai.settingsTitle') }}</SectionHeader>
+      <SubHeader>{{ t('quiz.ai.settingsTitle') }}</SubHeader>
       <SecondaryButton :icon="['fas', 'brain']" @click="showAiSettings = !showAiSettings">
         {{ showAiSettings ? t('common.close') : t('quiz.ai.settingsTitle') }}
       </SecondaryButton>
@@ -140,7 +104,7 @@ defineExpose({ getProvider, getTransientKey, getModel })
 
     <NeutralContainer v-if="showAiSettings">
       <div class="space-y-4">
-        <!-- Provider + Key -->
+        <!-- Provider + Model -->
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <FieldLabel hint class="mb-1">{{ t('quiz.ai.provider') }}</FieldLabel>
@@ -151,75 +115,34 @@ defineExpose({ getProvider, getTransientKey, getModel })
             </SelectInput>
           </div>
           <div>
-            <FieldLabel hint class="mb-1">
-              {{ t('quiz.ai.model') }}
-            </FieldLabel>
+            <FieldLabel hint class="mb-1">{{ t('quiz.ai.model') }}</FieldLabel>
             <div class="flex gap-1">
               <SelectInput v-if="aiModels.length > 0" v-model="aiBatchModel" class="flex-1">
                 <option value="">{{ t('quiz.ai.defaultModel') }}</option>
                 <option v-for="m in aiModels" :key="m.id" :value="m.id">{{ m.name }}</option>
               </SelectInput>
-              <TextInput v-else v-model="aiBatchModel" class="flex-1" placeholder="gpt-4o-mini" />
-              <SecondaryButton @click="loadAiModels" :disabled="aiFetchingModels">
-                <font-awesome-icon :icon="['fas', 'rotate']" />
+              <TextInput v-else v-model="aiBatchModel" class="flex-1" placeholder="gpt-4o-mini"/>
+              <SecondaryButton @click="loadAiModels" :disabled="aiFetchingModels || !aiBatchApiKey">
+                <Spinner v-if="aiFetchingModels" size="sm"/>
+                <font-awesome-icon v-else :icon="['fas', 'rotate']"/>
               </SecondaryButton>
             </div>
           </div>
         </div>
 
-        <!-- Stored key management -->
-        <div class="space-y-2">
-          <div class="flex items-center gap-2 flex-wrap">
-            <span v-if="hasStoredKey(aiBatchProvider)" class="text-xs text-success">
-              <font-awesome-icon :icon="['fas', 'check']" class="mr-1" />
-              {{ t('quiz.ai.keyStored') }}
-            </span>
-            <ErrorButton v-if="hasStoredKey(aiBatchProvider)" @click="removeAiKey(aiBatchProvider)">
-              {{ t('quiz.ai.removeKey') }}
-            </ErrorButton>
-          </div>
-          <div class="flex gap-2">
-            <TextInput v-model="aiSaveKeyValue" type="password" :placeholder="hasStoredKey(aiBatchProvider) ? t('quiz.ai.keyStoredPlaceholder') : 'sk-...'" class="flex-1" />
-            <PrimaryButton :disabled="!aiSaveKeyValue || aiSavingKey" @click="saveAiKey">
-              {{ t('quiz.ai.saveKey') }}
-            </PrimaryButton>
-          </div>
-          <p class="text-xs text-(--text-muted)">{{ t('quiz.ai.keyNotEncrypted') }}</p>
-        </div>
-
-        <!-- Transient key (for this session only) -->
+        <!-- API Key -->
         <div>
-          <FieldLabel hint class="mb-1">{{ t('quiz.ai.apiKey') }} ({{ t('quiz.ai.transientKeyHint') }})</FieldLabel>
-          <TextInput v-model="aiBatchTransientKey" type="password" placeholder="sk-..." />
+          <FieldLabel hint class="mb-1">{{ t('quiz.ai.apiKey') }}</FieldLabel>
+          <TextInput v-model="aiBatchApiKey" type="password" placeholder="sk-..."/>
+          <MutedText tag="p" class="mt-1">{{ t('quiz.ai.keyLocalHint') }}</MutedText>
         </div>
 
-        <!-- Prompt -->
-        <div>
-          <FieldLabel hint class="mb-1">{{ t('quiz.ai.prompt') }}</FieldLabel>
-          <TextAreaInput v-model="aiPromptEdit" class="text-xs" />
-          <MutedText tag="p" class="mt-1">{{ t('quiz.ai.promptHint') }}</MutedText>
-          <div class="flex justify-end mt-2">
-            <SecondaryButton @click="saveAiPrompt">{{ t('quiz.ai.savePrompt') }}</SecondaryButton>
-          </div>
+        <!-- Server save toggle -->
+        <div class="flex items-center gap-2">
+          <ToggleInput v-model="saveOnServer"/>
+          <span class="text-sm font-medium">{{ t('quiz.ai.saveOnServer') }}</span>
         </div>
-
-        <!-- Batch generate -->
-        <div class="border-t border-bg-light-accent dark:border-bg-dark-accent pt-3 space-y-3">
-          <SubHeader>{{ t('quiz.ai.batchGenerate') }}</SubHeader>
-          <MutedText tag="p" class="text-xs">{{ t('quiz.ai.batchHint') }}</MutedText>
-          <div class="flex items-center gap-2">
-            <div class="flex items-center gap-2">
-              <FieldHint>{{ t('quiz.ai.batchTarget') }}</FieldHint>
-              <NumberInput v-model="aiBatchTarget" class="w-16" />
-            </div>
-            <PrimaryButton :disabled="aiBatchGenerating" @click="batchGenerate">
-              <Spinner v-if="aiBatchGenerating" size="sm" class="mr-1" />
-              <font-awesome-icon v-else :icon="['fas', 'brain']" class="mr-1" />
-              {{ t('quiz.ai.batchGenerate') }}
-            </PrimaryButton>
-          </div>
-          <p v-if="aiBatchResult" class="text-xs" :class="aiBatchResult.includes('Fehler') ? 'text-error' : 'text-success'">{{ aiBatchResult }}</p>
-        </div>
+        <MutedText v-if="saveOnServer" tag="p" class="text-xs">{{ t('quiz.ai.keyNotEncrypted') }}</MutedText>
       </div>
     </NeutralContainer>
   </div>

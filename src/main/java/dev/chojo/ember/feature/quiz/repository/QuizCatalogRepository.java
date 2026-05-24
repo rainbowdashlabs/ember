@@ -145,7 +145,7 @@ public class QuizCatalogRepository {
             String title,
             String description,
             String imageUrl,
-            int points,
+            double points,
             boolean autoPoints,
             String config,
             int position) {
@@ -175,7 +175,7 @@ public class QuizCatalogRepository {
             String title,
             String description,
             String imageUrl,
-            int points,
+            double points,
             boolean autoPoints,
             String config,
             int position) {

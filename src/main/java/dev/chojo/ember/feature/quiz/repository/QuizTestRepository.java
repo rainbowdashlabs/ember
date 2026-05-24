@@ -256,7 +256,7 @@ public class QuizTestRepository {
                 .changed();
     }
 
-    public boolean gradeAttempt(int id, int totalPoints, int gradedBy) {
+    public boolean gradeAttempt(int id, double totalPoints, int gradedBy) {
         return Query.query("""
                         UPDATE quiz_test_attempt
                         SET status = 'GRADED', total_points = :total_points, graded_at = now(), graded_by = :graded_by
@@ -333,7 +333,7 @@ public class QuizTestRepository {
                 .update();
     }
 
-    public boolean gradeAnswer(int answerId, int points) {
+    public boolean gradeAnswer(int answerId, double points) {
         return Query.query("UPDATE quiz_test_answer SET points = :points, graded = true WHERE id = :id;")
                 .single(Call.of().bind("id", answerId).bind("points", points))
                 .update()

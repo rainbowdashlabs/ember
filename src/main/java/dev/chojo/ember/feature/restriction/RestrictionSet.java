@@ -73,8 +73,7 @@ public record RestrictionSet(List<Restriction> restrictions, RestrictionMode mod
                 return false;
             if (!groupRestrictions.isEmpty() && groupRestrictions.stream().noneMatch(memberGroupIds::contains))
                 return false;
-            if (!tagRestrictions.isEmpty() && tagRestrictions.stream().noneMatch(memberTagIds::contains)) return false;
-            return true;
+            return tagRestrictions.isEmpty() || tagRestrictions.stream().anyMatch(memberTagIds::contains);
         }
     }
 

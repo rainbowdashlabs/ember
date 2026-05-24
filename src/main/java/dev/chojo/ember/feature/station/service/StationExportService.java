@@ -300,7 +300,7 @@ public class StationExportService {
                 data.put(
                         "kbFolders",
                         queryRows(
-                                "SELECT id, parent_id, name, description, position, restricted, restriction_mode FROM kb_folder WHERE station_id = :id ORDER BY position",
+                                "SELECT id, parent_id, name, description, position, restriction_mode FROM kb_folder WHERE station_id = :id ORDER BY position",
                                 stationId,
                                 offset,
                                 limit));
@@ -308,7 +308,7 @@ public class StationExportService {
                 data.put(
                         "kbFiles",
                         queryRows(
-                                "SELECT id, folder_id, name, description, file_type, position, restricted, restriction_mode FROM kb_file WHERE station_id = :id ORDER BY position",
+                                "SELECT id, folder_id, name, description, file_type, position, restriction_mode FROM kb_file WHERE station_id = :id ORDER BY position",
                                 stationId,
                                 offset,
                                 limit));

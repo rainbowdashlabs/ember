@@ -246,7 +246,7 @@ public class AiRoutes implements Routes {
         for (var q : questions) {
             if (q.questionType() != QuestionType.MULTIPLE_CHOICE) continue;
             try {
-                var cfg = q.config();
+                var cfg = q.configNode();
                 var options = cfg.get("options");
                 if (options == null || !options.isArray()) continue;
                 int currentCount = options.size();

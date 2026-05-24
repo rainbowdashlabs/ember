@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.quiz.service;
 
+import dev.chojo.ember.feature.quiz.entity.QuestionConfig;
 import dev.chojo.ember.feature.quiz.entity.QuestionType;
 import dev.chojo.ember.feature.quiz.entity.QuizCatalog;
 import dev.chojo.ember.feature.quiz.entity.QuizCategory;
@@ -114,10 +115,11 @@ public class QuizService {
             String title,
             String description,
             String imageUrl,
-            int points,
+            double points,
             boolean autoPoints,
             String config,
             int position) {
+        double effectivePoints = autoPoints ? calculateAutoPoints(questionType, config, points) : points;
         return catalogRepository.createQuestion(
                 catalogId,
                 categoryId,
@@ -125,7 +127,7 @@ public class QuizService {
                 title,
                 description,
                 imageUrl,
-                points,
+                effectivePoints,
                 autoPoints,
                 config,
                 position);
@@ -137,12 +139,32 @@ public class QuizService {
             String title,
             String description,
             String imageUrl,
-            int points,
+            double points,
             boolean autoPoints,
             String config,
             int position) {
+        double effectivePoints = points;
+        if (autoPoints && config != null) {
+            // Determine question type from existing record
+            var existing = catalogRepository.findQuestionById(id);
+            if (existing.isPresent()) {
+                effectivePoints = calculateAutoPoints(existing.get().questionType(), config, points);
+            }
+        }
         return catalogRepository.updateQuestion(
-                id, categoryId, title, description, imageUrl, points, autoPoints, config, position);
+                id, categoryId, title, description, imageUrl, effectivePoints, autoPoints, config, position);
+    }
+
+    /**
+     * Calculates auto-points from the question config based on type.
+     * Uses {@link QuestionType#parseConfig} for typed deserialization and
+     * {@link QuestionConfig#autoPoints} for the calculation.
+     */
+    private double calculateAutoPoints(QuestionType type, String configStr, double fallback) {
+        var config = type.parseConfig(configStr);
+        if (config instanceof QuestionConfig.Unknown) return fallback;
+        double points = config.autoPoints();
+        return points > 0 ? points : fallback;
     }
 
     public boolean deleteQuestion(int id) {
@@ -471,17 +493,17 @@ public class QuizService {
             var question = catalogRepository.findQuestionById(answer.questionId());
             if (question.isEmpty()) continue;
             var q = question.get();
-            int autoPoints = autoGradeQuestion(q, answer.answer(), mapper);
+            double autoPoints = autoGradeQuestion(q, answer.answer(), mapper);
             if (autoPoints >= 0) {
                 testRepository.gradeAnswer(answer.id(), autoPoints);
             }
         }
     }
 
-    private int autoGradeQuestion(QuizQuestion q, String answerJson, ObjectMapper mapper) {
+    private double autoGradeQuestion(QuizQuestion q, String answerJson, ObjectMapper mapper) {
         if (answerJson == null || answerJson.isBlank()) return 0;
         try {
-            var config = q.config();
+            var config = q.configNode();
             var answer = mapper.readTree(answerJson);
             return switch (q.questionType()) {
                 case MULTIPLE_CHOICE -> gradeMultipleChoice(config, answer, q.points());
@@ -497,7 +519,7 @@ public class QuizService {
         }
     }
 
-    private int gradeMultipleChoice(JsonNode config, JsonNode answer, int maxPoints) {
+    private double gradeMultipleChoice(JsonNode config, JsonNode answer, double maxPoints) {
         var options = config.get("options");
         var selected = answer.get("selected");
         if (options == null || selected == null || !selected.isArray()) return 0;
@@ -510,7 +532,7 @@ public class QuizService {
         }
 
         double pointsPerCorrect =
-                config.has("pointsPerCorrect") ? config.get("pointsPerCorrect").asDouble() : 0.5;
+                config.has("pointsPerCorrect") ? config.get("pointsPerCorrect").asDouble() : 1;
         int correct = 0;
         int wrong = 0;
         for (var s : selected) {
@@ -519,20 +541,23 @@ public class QuizService {
         }
 
         double points = (correct * pointsPerCorrect) - (wrong * pointsPerCorrect);
-        return Math.max(0, (int) Math.round(Math.min(points, maxPoints)));
+        return Math.max(0, Math.min(points, maxPoints));
     }
 
-    private int gradeTrueFalse(JsonNode config, JsonNode answer, int maxPoints) {
+    private double gradeTrueFalse(JsonNode config, JsonNode answer, double maxPoints) {
         if (!config.has("correctAnswer") || !answer.has("value")) return 0;
         boolean correct = config.get("correctAnswer").asBoolean();
         boolean given = answer.get("value").asBoolean();
         return correct == given ? maxPoints : 0;
     }
 
-    private int gradeConnect(JsonNode config, JsonNode answer, int maxPoints) {
+    private double gradeConnect(JsonNode config, JsonNode answer, double maxPoints) {
         var pairs = config.get("pairs");
         var givenPairs = answer.get("pairs");
         if (pairs == null || givenPairs == null) return 0;
+
+        double ppc =
+                config.has("pointsPerCorrect") ? config.get("pointsPerCorrect").asDouble() : 0;
 
         int correct = 0;
         for (int i = 0; i < pairs.size(); i++) {
@@ -543,30 +568,35 @@ public class QuizService {
             }
         }
 
+        if (ppc > 0) return Math.min(correct * ppc, maxPoints);
         int totalPairs = pairs.size();
-        return totalPairs == 0 ? 0 : Math.round((float) correct / totalPairs * maxPoints);
+        return totalPairs == 0 ? 0 : (double) correct / totalPairs * maxPoints;
     }
 
-    private int gradeOrdering(JsonNode config, JsonNode answer, int maxPoints) {
+    private double gradeOrdering(JsonNode config, JsonNode answer, double maxPoints) {
         var items = config.get("items");
         var order = answer.get("order");
         if (items == null || order == null || !order.isArray()) return 0;
 
-        // Correct order is 0, 1, 2, ... (items are stored in correct order)
-        boolean allCorrect = true;
+        double ppc =
+                config.has("pointsPerCorrect") ? config.get("pointsPerCorrect").asDouble() : 0;
+
+        int correct = 0;
         for (int i = 0; i < order.size(); i++) {
-            if (order.get(i).asInt() != i) {
-                allCorrect = false;
-                break;
-            }
+            if (order.get(i).asInt() == i) correct++;
         }
-        return allCorrect ? maxPoints : 0;
+
+        if (ppc > 0) return Math.min(correct * ppc, maxPoints);
+        return correct == items.size() ? maxPoints : 0;
     }
 
-    private int gradeFillBlank(JsonNode config, JsonNode answer, int maxPoints) {
+    private double gradeFillBlank(JsonNode config, JsonNode answer, double maxPoints) {
         var correctAnswers = config.get("answers");
         if (correctAnswers == null || !correctAnswers.isArray()) return -1;
         if (correctAnswers.isEmpty()) return -1;
+
+        double ppc =
+                config.has("pointsPerCorrect") ? config.get("pointsPerCorrect").asDouble() : 0;
 
         // New format: gaps = {"0": "answer1", "1": "answer2"}
         var gaps = answer.get("gaps");
@@ -582,8 +612,9 @@ public class QuizService {
                     correct++;
                 }
             }
+            if (ppc > 0) return Math.min(correct * ppc, maxPoints);
             int total = correctAnswers.size();
-            return total == 0 ? 0 : Math.round((float) correct / total * maxPoints);
+            return total == 0 ? 0 : (double) correct / total * maxPoints;
         }
 
         // Legacy format: text = "single answer"
@@ -591,13 +622,13 @@ public class QuizService {
         if (given.isEmpty()) return 0;
         for (var a : correctAnswers) {
             if (a.asString().trim().equalsIgnoreCase(given)) {
-                return maxPoints;
+                return ppc > 0 ? ppc : maxPoints;
             }
         }
         return 0;
     }
 
-    private int gradeEnumeration(JsonNode config, JsonNode answer, int maxPoints) {
+    private double gradeEnumeration(JsonNode config, JsonNode answer, double maxPoints) {
         var correctAnswers = config.get("answers");
         if (correctAnswers == null || !correctAnswers.isArray()) return -1;
         int requiredCount =
@@ -644,15 +675,15 @@ public class QuizService {
         testRepository.saveAnswer(attemptId, questionId, answer);
     }
 
-    public boolean gradeAnswer(int answerId, int points) {
+    public boolean gradeAnswer(int answerId, double points) {
         return testRepository.gradeAnswer(answerId, points);
     }
 
     public boolean gradeAttempt(int attemptId, int gradedBy) {
         var answers = testRepository.findAnswers(attemptId);
-        int total = answers.stream()
+        double total = answers.stream()
                 .filter(QuizTestAnswer::graded)
-                .mapToInt(a -> a.points() != null ? a.points() : 0)
+                .mapToDouble(a -> a.points() != null ? a.points() : 0)
                 .sum();
         return testRepository.gradeAttempt(attemptId, total, gradedBy);
     }

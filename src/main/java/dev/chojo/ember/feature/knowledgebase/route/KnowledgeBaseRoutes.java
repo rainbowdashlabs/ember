@@ -233,13 +233,9 @@ public class KnowledgeBaseRoutes implements Routes {
     private void getFile(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
         service.findFile(id)
-                .ifPresentOrElse(
-                        file -> {
-                            ctx.json(new FileResponse(file, resolveMemberName(file.createdBy())));
-                        },
-                        () -> {
-                            throw new NotFoundResponse();
-                        });
+                .ifPresentOrElse(file -> ctx.json(new FileResponse(file, resolveMemberName(file.createdBy()))), () -> {
+                    throw new NotFoundResponse();
+                });
     }
 
     private void updateFile(Context ctx) {
