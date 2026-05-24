@@ -34,14 +34,12 @@ public class QuizPdfService {
 
     private final QuizTestRepository testRepository;
     private final QuizCatalogRepository catalogRepository;
-    private final QuizService quizService;
 
     @Inject
     public QuizPdfService(
             QuizTestRepository testRepository, QuizCatalogRepository catalogRepository, QuizService quizService) {
         this.testRepository = testRepository;
         this.catalogRepository = catalogRepository;
-        this.quizService = quizService;
     }
 
     public byte[] exportQuestionPdf(int testId) throws IOException, InterruptedException {

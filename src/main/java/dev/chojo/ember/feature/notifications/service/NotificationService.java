@@ -59,11 +59,6 @@ public class NotificationService {
     private final AccountRepository accountRepository;
     private final StationRepository stationRepository;
     private final EmailService emailService;
-    private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
-        var t = new Thread(r, "notification-digest");
-        t.setDaemon(true);
-        return t;
-    });
 
     @Inject
     public NotificationService(
@@ -85,6 +80,11 @@ public class NotificationService {
 
         int intervalMinutes = mailing.notificationDigestIntervalMinutes();
         if (intervalMinutes > 0) {
+            ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
+                var t = new Thread(r, "notification-digest");
+                t.setDaemon(true);
+                return t;
+            });
             scheduler.scheduleWithFixedDelay(this::processDigest, intervalMinutes, intervalMinutes, TimeUnit.MINUTES);
             log.info("Notification digest scheduled every {} minutes", intervalMinutes);
         } else {

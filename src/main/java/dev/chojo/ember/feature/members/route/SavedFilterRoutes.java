@@ -48,7 +48,7 @@ public class SavedFilterRoutes implements Routes {
             methods = HttpMethod.GET,
             summary = "List saved filters for the current user and table type",
             tags = {"Saved Filters"},
-            queryParams = @OpenApiParam(name = "tableType", type = String.class, required = true),
+            queryParams = @OpenApiParam(name = "tableType", required = true),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = SavedFilter[].class)))
     private void list(Context ctx) {
         var session = UserSession.from(ctx);

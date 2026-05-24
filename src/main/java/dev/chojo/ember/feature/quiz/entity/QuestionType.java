@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.quiz.entity;
 
 import org.slf4j.Logger;
+import tools.jackson.databind.DeserializationFeature;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.json.JsonMapper;
 
@@ -23,8 +24,8 @@ public enum QuestionType {
 
     private static final Logger log = getLogger(QuestionType.class);
     private static final ObjectMapper MAPPER = JsonMapper.builder()
-            .disable(tools.jackson.databind.DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
-            .disable(tools.jackson.databind.DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES)
+            .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
+            .disable(DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES)
             .build();
 
     private final String promptFile;

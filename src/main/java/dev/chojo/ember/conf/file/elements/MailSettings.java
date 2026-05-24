@@ -10,7 +10,7 @@ import java.util.Properties;
 /**
  * Settings for a mail service (SMTP or IMAP).
  */
-@SuppressWarnings({"FieldCanBeLocal", "FieldMayBeFinal"})
+@SuppressWarnings({"FieldCanBeLocal", "FieldMayBeFinal", "CanBeFinal"})
 public class MailSettings {
     private String host = "";
     private int port = 665;

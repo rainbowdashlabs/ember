@@ -22,6 +22,7 @@ import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
+import java.security.SecureRandom;
 import java.time.Instant;
 import java.util.Base64;
 import java.util.List;
@@ -78,7 +79,7 @@ public class FederationService {
     }
 
     private String generateRandomToken() {
-        var random = new java.security.SecureRandom();
+        var random = new SecureRandom();
         var chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
         var sb = new StringBuilder();
         for (int i = 0; i < 12; i++) sb.append(chars.charAt(random.nextInt(chars.length())));
@@ -342,21 +343,17 @@ public class FederationService {
 
     // -- Metadata Cache --
 
+    // TODO: Why is this unused
     public List<FederationMetadataCache> getCachedMetadata(int partnerId, String contentType) {
         return repository.findCachedMetadata(partnerId, contentType);
     }
 
+    // TODO: Why is this unused
     public void refreshMetadataCache(int partnerId, String contentType, List<FederationMetadataCache> entries) {
         for (var entry : entries) {
             repository.upsertMetadataCache(
                     partnerId, contentType, entry.remoteId(), entry.title(), entry.description());
         }
-    }
-
-    // -- Federation Version --
-
-    public int getFederationVersion() {
-        return FEDERATION_VERSION;
     }
 
     /**

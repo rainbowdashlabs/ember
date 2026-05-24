@@ -44,14 +44,4 @@ public record MemberAbsence(
                 row.get("created_at", INSTANT_TIMESTAMP),
                 row.getObject("created_by", Integer.class));
     }
-
-    /**
-     * Checks whether this absence is currently active based on today's date.
-     *
-     * @return true if today falls within the absence period (inclusive)
-     */
-    public boolean isActive() {
-        var today = LocalDate.now();
-        return !today.isBefore(absentFrom) && !today.isAfter(absentUntil);
-    }
 }

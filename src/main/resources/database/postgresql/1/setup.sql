@@ -422,7 +422,7 @@ CREATE TABLE ember_schema.attendance_template_field
     id          SERIAL PRIMARY KEY,
     template_id INTEGER NOT NULL REFERENCES ember_schema.attendance_template (id) ON DELETE CASCADE,
     name        TEXT    NOT NULL,
-    field_type  TEXT    NOT NULL, -- member, member_list, string, time, date, member_of_group, member_list_of_group, attendance, attendance_of_group
+    field_type  TEXT    NOT NULL, -- member, member_list, string, time, date, member_of_group, member_list_of_group
     config      JSONB   NOT NULL DEFAULT '{}',
     position    INTEGER NOT NULL DEFAULT 0,
     UNIQUE (template_id, name)

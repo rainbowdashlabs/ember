@@ -51,7 +51,6 @@ public class AttendanceReportService {
     private static final ObjectMapper MAPPER = JsonMapper.builder().build();
     private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("dd.MM.yyyy");
     private static final DateTimeFormatter TIME_FMT = DateTimeFormatter.ofPattern("HH:mm");
-    private static final DateTimeFormatter MONTH_FMT_DEFAULT = DateTimeFormatter.ofPattern("MMMM yyyy");
     private final AttendanceRepository attendanceRepository;
     private final StationMemberRepository stationMemberRepository;
     private final AccountRepository accountRepository;

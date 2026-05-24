@@ -401,8 +401,10 @@ public class FederationRoutes implements Routes {
 
     private void getInfo(Context ctx) {
         ctx.json(Map.of(
-                "federationVersion", service.getFederationVersion(),
-                "supportedCapabilities", service.getSupportedCapabilities()));
+                "federationVersion",
+                FederationService.FEDERATION_VERSION,
+                "supportedCapabilities",
+                service.getSupportedCapabilities()));
     }
 
     // -- Records --

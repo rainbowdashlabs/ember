@@ -397,6 +397,7 @@ public class KnowledgeBaseRepository {
                 .orElseThrow();
     }
 
+    // TODO: Why is this unused
     public boolean deleteTag(int id) {
         return Query.query("DELETE FROM kb_tag WHERE id = :id;")
                 .single(Call.of().bind("id", id))
@@ -427,12 +428,6 @@ public class KnowledgeBaseRepository {
                 .insert();
     }
 
-    public void removeFileTag(int fileId, int tagId) {
-        Query.query("DELETE FROM kb_file_tag WHERE file_id = :file_id AND tag_id = :tag_id;")
-                .single(Call.of().bind("file_id", fileId).bind("tag_id", tagId))
-                .delete();
-    }
-
     public List<KbTag> findFolderTags(int folderId) {
         return Query.query(
                         "SELECT t.id, t.station_id, t.name FROM kb_tag t JOIN kb_folder_tag ft ON ft.tag_id = t.id WHERE ft.folder_id = :folder_id ORDER BY t.name;")
@@ -445,12 +440,6 @@ public class KnowledgeBaseRepository {
         Query.query("INSERT INTO kb_folder_tag(folder_id, tag_id) VALUES(:folder_id, :tag_id) ON CONFLICT DO NOTHING;")
                 .single(Call.of().bind("folder_id", folderId).bind("tag_id", tagId))
                 .insert();
-    }
-
-    public void removeFolderTag(int folderId, int tagId) {
-        Query.query("DELETE FROM kb_folder_tag WHERE folder_id = :folder_id AND tag_id = :tag_id;")
-                .single(Call.of().bind("folder_id", folderId).bind("tag_id", tagId))
-                .delete();
     }
 
     public void setFileTags(int fileId, List<String> tagNames, int stationId) {
@@ -499,6 +488,7 @@ public class KnowledgeBaseRepository {
                 .insert();
     }
 
+    // TODO: The favourite feature seems to be lost for the knowledge base
     public boolean removeFavourite(int memberId, int fileId) {
         return Query.query("DELETE FROM kb_favourite WHERE member_id = :member_id AND file_id = :file_id;")
                 .single(Call.of().bind("member_id", memberId).bind("file_id", fileId))

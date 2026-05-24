@@ -24,9 +24,7 @@ import dev.chojo.ember.feature.events.service.EventFieldService;
 import dev.chojo.ember.feature.events.service.EventService;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
-import dev.chojo.ember.feature.members.service.MemberGroupService;
 import dev.chojo.ember.feature.members.service.StationMemberService;
-import dev.chojo.ember.feature.members.service.UserTagService;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
 import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
@@ -67,36 +65,30 @@ public class EventRoutes implements Routes {
     private final EventService eventService;
     private final EventFieldService eventFieldService;
     private final StationMemberService stationMemberService;
-    private final MemberGroupService memberGroupService;
     private final NotificationService notificationService;
     private final StationMemberRepository stationMemberRepository;
     private final AccountRepository accountRepository;
     private final AttendanceService attendanceService;
     private final EventExportService eventExportService;
-    private final UserTagService userTagService;
 
     @Inject
     public EventRoutes(
             EventService eventService,
             EventFieldService eventFieldService,
             StationMemberService stationMemberService,
-            MemberGroupService memberGroupService,
             NotificationService notificationService,
             StationMemberRepository stationMemberRepository,
             AccountRepository accountRepository,
             AttendanceService attendanceService,
-            EventExportService eventExportService,
-            UserTagService userTagService) {
+            EventExportService eventExportService) {
         this.eventService = eventService;
         this.eventFieldService = eventFieldService;
         this.stationMemberService = stationMemberService;
-        this.memberGroupService = memberGroupService;
         this.notificationService = notificationService;
         this.stationMemberRepository = stationMemberRepository;
         this.accountRepository = accountRepository;
         this.attendanceService = attendanceService;
         this.eventExportService = eventExportService;
-        this.userTagService = userTagService;
     }
 
     @Override
@@ -929,7 +921,7 @@ public class EventRoutes implements Routes {
             summary = "List absent members for a given date",
             tags = {"Events"},
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
-            queryParams = @OpenApiParam(name = "date", type = String.class),
+            queryParams = @OpenApiParam(name = "date"),
             responses = @OpenApiResponse(status = "200"))
     private void listAbsencesForDate(Context ctx) {
         UserSession session = UserSession.from(ctx);

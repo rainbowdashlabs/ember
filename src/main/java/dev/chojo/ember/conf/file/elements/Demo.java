@@ -12,7 +12,7 @@ import dev.chojo.ocular.override.Overwrite;
  * Demo mode configuration controlling whether demo mode is active, the data reset interval,
  * and whether dev-mode features are enabled.
  */
-@SuppressWarnings({"FieldCanBeLocal", "FieldMayBeFinal"})
+@SuppressWarnings({"FieldCanBeLocal", "FieldMayBeFinal", "CanBeFinal"})
 public class Demo {
     @Overwrite(env = @Env)
     private boolean dev = false;

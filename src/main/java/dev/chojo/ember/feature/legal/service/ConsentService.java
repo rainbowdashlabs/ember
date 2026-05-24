@@ -14,7 +14,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.nio.file.Path;
-import java.util.List;
 import java.util.Optional;
 
 /**
@@ -32,10 +31,6 @@ public class ConsentService {
     private final Path tosDir;
     private final Path imprintDir;
 
-    private boolean privacyChanged;
-    private boolean tosChanged;
-    private boolean consentChanged;
-
     @Inject
     public ConsentService(AccountRepository accountRepository, Api apiConfig) {
         this.accountRepository = accountRepository;
@@ -51,9 +46,9 @@ public class ConsentService {
      * detects version changes, archives old content.
      */
     public void initialize() {
-        privacyChanged = documentService.initialize(privacyPolicyDir);
-        tosChanged = documentService.initialize(tosDir);
-        consentChanged = documentService.initialize(consentDir);
+        boolean privacyChanged = documentService.initialize(privacyPolicyDir);
+        boolean tosChanged = documentService.initialize(tosDir);
+        boolean consentChanged = documentService.initialize(consentDir);
 
         if (privacyChanged || tosChanged || consentChanged) {
             log.warn(
@@ -78,13 +73,6 @@ public class ConsentService {
     }
 
     /**
-     * Retrieves the privacy policy rendered in the default locale.
-     */
-    public LegalDocumentService.RenderedDocument getPrivacyPolicy() {
-        return documentService.getDocument(privacyPolicyDir);
-    }
-
-    /**
      * Retrieves the terms of service rendered for the given locale.
      *
      * @param locale the desired locale (e.g. "de", "en")
@@ -92,13 +80,6 @@ public class ConsentService {
      */
     public LegalDocumentService.RenderedDocument getTermsOfService(String locale) {
         return documentService.getDocument(tosDir, locale);
-    }
-
-    /**
-     * Retrieves the terms of service rendered in the default locale.
-     */
-    public LegalDocumentService.RenderedDocument getTermsOfService() {
-        return documentService.getDocument(tosDir);
     }
 
     /**
@@ -112,13 +93,6 @@ public class ConsentService {
     }
 
     /**
-     * Retrieves the imprint (Impressum) rendered in the default locale.
-     */
-    public LegalDocumentService.RenderedDocument getImprint() {
-        return documentService.getDocument(imprintDir);
-    }
-
-    /**
      * Retrieves the GDPR consent text rendered for the given locale.
      *
      * @param locale the desired locale (e.g. "de", "en")
@@ -126,13 +100,6 @@ public class ConsentService {
      */
     public LegalDocumentService.RenderedDocument getConsentText(String locale) {
         return documentService.getDocument(consentDir, locale);
-    }
-
-    /**
-     * Retrieves the GDPR consent text rendered in the default locale.
-     */
-    public LegalDocumentService.RenderedDocument getConsentText() {
-        return documentService.getDocument(consentDir);
     }
 
     // -- Version info --
@@ -206,29 +173,6 @@ public class ConsentService {
      */
     public Optional<GdprConsent> findLatestConsent(int accountId) {
         return accountRepository.findLatestConsent(accountId);
-    }
-
-    /**
-     * Retrieves all consent records for the given account, ordered by date.
-     *
-     * @param accountId the account to look up
-     * @return list of all consent records
-     */
-    public List<GdprConsent> findAllConsents(int accountId) {
-        return accountRepository.findAllConsents(accountId);
-    }
-
-    /**
-     * Checks whether the user's latest consent matches all current document versions.
-     */
-    public boolean isConsentCurrent(int accountId) {
-        var latest = findLatestConsent(accountId);
-        if (latest.isEmpty()) return false;
-        var c = latest.get();
-        var current = getCurrentVersions();
-        return current.privacyVersion().equals(c.privacyVersion())
-                && current.tosVersion().equals(c.tosVersion())
-                && current.consentVersion().equals(c.consentVersion());
     }
 
     /**

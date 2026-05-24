@@ -67,9 +67,6 @@ public class QuizRoutes implements Routes {
     private final QuizService quizService;
     private final QuizPdfService pdfService;
     private final ImageService imageService;
-    private final StationMemberRepository stationMemberRepository;
-    private final MemberGroupRepository memberGroupRepository;
-    private final UserTagRepository userTagRepository;
     private final FederatedContentService federatedContentService;
     private final StationRepository stationRepository;
     private final Api apiConfig;
@@ -88,9 +85,6 @@ public class QuizRoutes implements Routes {
         this.quizService = quizService;
         this.pdfService = pdfService;
         this.imageService = imageService;
-        this.stationMemberRepository = stationMemberRepository;
-        this.memberGroupRepository = memberGroupRepository;
-        this.userTagRepository = userTagRepository;
         this.federatedContentService = federatedContentService;
         this.stationRepository = stationRepository;
         this.apiConfig = apiConfig;

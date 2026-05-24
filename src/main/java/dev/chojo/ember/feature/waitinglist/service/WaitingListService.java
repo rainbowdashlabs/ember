@@ -53,11 +53,6 @@ public class WaitingListService {
     private final AccountRepository accountRepository;
     private final EmailService emailService;
     private final NotificationService notificationService;
-    private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
-        var t = new Thread(r, "waitlist-confirmation-checker");
-        t.setDaemon(true);
-        return t;
-    });
 
     @Inject
     public WaitingListService(
@@ -75,6 +70,11 @@ public class WaitingListService {
         this.accountRepository = accountRepository;
         this.emailService = emailService;
         this.notificationService = notificationService;
+        ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
+            var t = new Thread(r, "waitlist-confirmation-checker");
+            t.setDaemon(true);
+            return t;
+        });
         scheduler.scheduleAtFixedRate(this::checkAllExpiredConfirmations, 1, 24, TimeUnit.HOURS);
     }
 

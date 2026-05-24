@@ -37,8 +37,6 @@ const fieldTypeOptions: Record<string, string> = {
   member_list: 'Mitgliederliste',
   member_of_group: 'Mitglied aus Gruppe',
   member_list_of_group: 'Mitgliederliste aus Gruppe',
-  attendance: 'Anwesenheit',
-  attendance_of_group: 'Anwesenheit einer Gruppe',
 }
 
 function fieldTypeLabel(value: string): string {

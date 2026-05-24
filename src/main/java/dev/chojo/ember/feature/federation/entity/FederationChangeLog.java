@@ -15,27 +15,15 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
  * Tracks content changes for federation sync polling.
  */
 public record FederationChangeLog(
-        int id, int stationId, String contentType, int contentId, String changeType, Instant changedAt) {
-
-    public enum ContentType {
-        KB,
-        QUIZ,
-        PROTOCOL
-    }
-
-    public enum ChangeType {
-        CREATED,
-        UPDATED,
-        DELETED
-    }
+        int id, int stationId, ContentType contentType, int contentId, ChangeType changeType, Instant changedAt) {
 
     public static RowMapping<FederationChangeLog> map() {
         return row -> new FederationChangeLog(
                 row.getInt("id"),
                 row.getInt("station_id"),
-                row.getString("content_type"),
+                row.getEnum("content_type", ContentType.class),
                 row.getInt("content_id"),
-                row.getString("change_type"),
+                row.getEnum("change_type", ChangeType.class),
                 row.get("changed_at", INSTANT_TIMESTAMP));
     }
 }

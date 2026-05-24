@@ -75,7 +75,12 @@ public class StationApplicationService {
     public boolean verify(String token) {
         var application = applicationRepository.findByToken(token);
         return application
-                .filter(stationApplication -> applicationRepository.verify(stationApplication.id()))
+                .filter(app -> applicationRepository.verify(app.id()))
+                .map(app -> {
+                    emailService.sendApplicationReceivedEmail(
+                            app.email(), app.firstName(), app.stationName(), "de", null);
+                    return true;
+                })
                 .isPresent();
     }
 

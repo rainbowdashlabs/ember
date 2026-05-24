@@ -61,7 +61,7 @@ public class ConsentRoutes implements Routes {
             summary = "Get GDPR consent text",
             description = "Returns the current consent text as HTML with a version hash for proof of consent.",
             tags = {"GDPR"},
-            queryParams = @OpenApiParam(name = "lang", description = "Locale (e.g. de, en)", required = false),
+            queryParams = @OpenApiParam(name = "lang", description = "Locale (e.g. de, en)"),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = DocumentResponse.class)))
     private void getConsentText(Context ctx) {
         var content = consentService.getConsentText(resolveLocale(ctx));
@@ -74,7 +74,7 @@ public class ConsentRoutes implements Routes {
             summary = "Get privacy policy",
             description = "Returns the current privacy policy as HTML.",
             tags = {"GDPR"},
-            queryParams = @OpenApiParam(name = "lang", description = "Locale (e.g. de, en)", required = false),
+            queryParams = @OpenApiParam(name = "lang", description = "Locale (e.g. de, en)"),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = DocumentResponse.class)))
     private void getPrivacyPolicy(Context ctx) {
         var content = consentService.getPrivacyPolicy(resolveLocale(ctx));
@@ -87,7 +87,7 @@ public class ConsentRoutes implements Routes {
             summary = "Get terms of service",
             description = "Returns the current terms of service as HTML.",
             tags = {"GDPR"},
-            queryParams = @OpenApiParam(name = "lang", description = "Locale (e.g. de, en)", required = false),
+            queryParams = @OpenApiParam(name = "lang", description = "Locale (e.g. de, en)"),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = DocumentResponse.class)))
     private void getTermsOfService(Context ctx) {
         var content = consentService.getTermsOfService(resolveLocale(ctx));
@@ -100,7 +100,7 @@ public class ConsentRoutes implements Routes {
             summary = "Get imprint",
             description = "Returns the imprint / Impressum as HTML.",
             tags = {"GDPR"},
-            queryParams = @OpenApiParam(name = "lang", description = "Locale (e.g. de, en)", required = false),
+            queryParams = @OpenApiParam(name = "lang", description = "Locale (e.g. de, en)"),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = DocumentResponse.class)))
     private void getImprint(Context ctx) {
         var content = consentService.getImprint(resolveLocale(ctx));

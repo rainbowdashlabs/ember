@@ -166,14 +166,6 @@ public class DemoService {
         return demoConfig.enabled() || demoConfig.dev();
     }
 
-    public boolean isDemo() {
-        return demoConfig.enabled();
-    }
-
-    public boolean isDev() {
-        return demoConfig.dev();
-    }
-
     public void initialize() {
         if (demoConfig.dev()) {
             log.info("Dev mode enabled. Seeding database once...");
@@ -621,7 +613,7 @@ public class DemoService {
                     true);
             profileFieldChangeRepository.acknowledge(c4.id(), bId, "Mit Eltern abgestimmt");
             // Birthday correction
-            var c5 = profileFieldChangeRepository.create(
+            profileFieldChangeRepository.create(
                     fieldGeburtstag.id(),
                     anfaengerMembers.get(3).id(),
                     "\"2014-05-10\"",

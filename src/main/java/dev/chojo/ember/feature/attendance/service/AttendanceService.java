@@ -386,10 +386,6 @@ public class AttendanceService {
         return attendanceRepository.findAbsencesByStationOnDate(stationId, date);
     }
 
-    public boolean isAbsent(int memberId) {
-        return attendanceRepository.isAbsent(memberId);
-    }
-
     public boolean deleteAbsence(int id) {
         return attendanceRepository.deleteAbsence(id);
     }

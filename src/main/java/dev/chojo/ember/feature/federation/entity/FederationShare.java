@@ -17,7 +17,7 @@ public record FederationShare(
         Integer folderId,
         Integer catalogId,
         Integer protocolId,
-        String shareScope) {
+        ShareScope shareScope) {
 
     public enum ShareScope {
         ALL_PARTNERS,
@@ -32,7 +32,7 @@ public record FederationShare(
                 row.getObject("folder_id", Integer.class),
                 null,
                 null,
-                row.getString("share_scope"));
+                row.getEnum("share_scope", ShareScope.class));
     }
 
     public static RowMapping<FederationShare> mapQuiz() {
@@ -43,7 +43,7 @@ public record FederationShare(
                 null,
                 row.getInt("catalog_id"),
                 null,
-                row.getString("share_scope"));
+                row.getEnum("share_scope", ShareScope.class));
     }
 
     public static RowMapping<FederationShare> mapProtocol() {
@@ -54,6 +54,6 @@ public record FederationShare(
                 null,
                 null,
                 row.getInt("protocol_id"),
-                row.getString("share_scope"));
+                row.getEnum("share_scope", ShareScope.class));
     }
 }

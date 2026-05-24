@@ -721,11 +721,11 @@ public class AttendanceRoutes implements Routes {
             summary = "Preview an attendance report",
             tags = {"Attendance"},
             queryParams = {
-                @OpenApiParam(name = "role", type = String.class),
+                @OpenApiParam(name = "role"),
                 @OpenApiParam(name = "groupId", type = Integer.class),
-                @OpenApiParam(name = "from", type = String.class, required = true),
-                @OpenApiParam(name = "to", type = String.class, required = true),
-                @OpenApiParam(name = "rounding", type = String.class)
+                @OpenApiParam(name = "from", required = true),
+                @OpenApiParam(name = "to", required = true),
+                @OpenApiParam(name = "rounding")
             },
             responses = {
                 @OpenApiResponse(status = "200", content = @OpenApiContent(from = ReportData.class)),
@@ -756,12 +756,12 @@ public class AttendanceRoutes implements Routes {
             summary = "Export an attendance report as PDF",
             tags = {"Attendance"},
             queryParams = {
-                @OpenApiParam(name = "role", type = String.class),
+                @OpenApiParam(name = "role"),
                 @OpenApiParam(name = "groupId", type = Integer.class),
-                @OpenApiParam(name = "from", type = String.class, required = true),
-                @OpenApiParam(name = "to", type = String.class, required = true),
-                @OpenApiParam(name = "rounding", type = String.class),
-                @OpenApiParam(name = "period", type = String.class)
+                @OpenApiParam(name = "from", required = true),
+                @OpenApiParam(name = "to", required = true),
+                @OpenApiParam(name = "rounding"),
+                @OpenApiParam(name = "period")
             },
             responses = {
                 @OpenApiResponse(status = "200"),

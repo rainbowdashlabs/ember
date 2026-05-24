@@ -104,7 +104,7 @@ public class WaitingListRoutes implements Routes {
             methods = HttpMethod.GET,
             summary = "Get invite info and fields for registration",
             tags = {"Waiting List"},
-            pathParams = @OpenApiParam(name = "code", type = String.class, required = true))
+            pathParams = @OpenApiParam(name = "code", required = true))
     private void getInviteInfo(Context ctx) {
         String code = ctx.pathParam("code");
         var invite = service.findInviteByCode(code).orElseThrow(NotFoundResponse::new);
@@ -152,7 +152,7 @@ public class WaitingListRoutes implements Routes {
             methods = HttpMethod.GET,
             summary = "View waiting list entry by access token",
             tags = {"Waiting List"},
-            pathParams = @OpenApiParam(name = "token", type = String.class, required = true))
+            pathParams = @OpenApiParam(name = "token", required = true))
     private void getEntryByToken(Context ctx) {
         String token = ctx.pathParam("token");
         var entry = service.findEntryByToken(token).orElseThrow(NotFoundResponse::new);
@@ -181,7 +181,7 @@ public class WaitingListRoutes implements Routes {
             methods = HttpMethod.POST,
             summary = "Remove self from waiting list",
             tags = {"Waiting List"},
-            pathParams = @OpenApiParam(name = "token", type = String.class, required = true))
+            pathParams = @OpenApiParam(name = "token", required = true))
     private void removeByToken(Context ctx) {
         String token = ctx.pathParam("token");
         service.removeByToken(token);
@@ -193,7 +193,7 @@ public class WaitingListRoutes implements Routes {
             methods = HttpMethod.POST,
             summary = "Re-confirm interest on waiting list",
             tags = {"Waiting List"},
-            pathParams = @OpenApiParam(name = "token", type = String.class, required = true))
+            pathParams = @OpenApiParam(name = "token", required = true))
     private void confirmInterest(Context ctx) {
         String token = ctx.pathParam("token");
         service.confirmInterest(token);

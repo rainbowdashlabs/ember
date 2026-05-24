@@ -40,7 +40,6 @@ import java.util.List;
 public class UserTagRoutes implements Routes {
     private final UserTagService tagService;
     private final AccountRepository accountRepository;
-    private final StationMemberRepository stationMemberRepository;
 
     @Inject
     public UserTagRoutes(
@@ -49,7 +48,6 @@ public class UserTagRoutes implements Routes {
             StationMemberRepository stationMemberRepository) {
         this.tagService = tagService;
         this.accountRepository = accountRepository;
-        this.stationMemberRepository = stationMemberRepository;
     }
 
     private static boolean isBlank(String s) {

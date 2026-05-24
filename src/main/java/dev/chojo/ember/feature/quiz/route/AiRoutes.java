@@ -5,10 +5,10 @@
  */
 package dev.chojo.ember.feature.quiz.route;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.chojo.ember.api.Roles;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.feature.quiz.entity.QuestionConfig;
 import dev.chojo.ember.feature.quiz.entity.QuestionType;
 import dev.chojo.ember.feature.quiz.entity.QuizCategory;
 import dev.chojo.ember.feature.quiz.entity.StationAiProvider;
@@ -23,18 +23,19 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Singleton
 public class AiRoutes implements Routes {
     private static final Logger log = LoggerFactory.getLogger(AiRoutes.class);
-    private static final ObjectMapper MAPPER = new ObjectMapper();
+    private static final ObjectMapper MAPPER = JsonMapper.builder().build();
     private final ConcurrentHashMap<String, GenerationJob> generationJobs = new ConcurrentHashMap<>();
 
     private final AiService aiService;
@@ -79,7 +80,7 @@ public class AiRoutes implements Routes {
         var session = UserSession.from(ctx);
         var req = ctx.bodyAsClass(PromptRequest.class);
         aiService.setPrompt(session.stationId(), req.prompt() != null ? req.prompt() : "");
-        ctx.json(Map.of("success", true));
+        ctx.json(new SuccessResponse(true));
     }
 
     private void saveProvider(Context ctx) {
@@ -90,7 +91,7 @@ public class AiRoutes implements Routes {
             throw new BadRequestResponse("apiKey is required");
         }
         aiService.saveProvider(session.stationId(), provider, req.apiKey(), req.model());
-        ctx.json(Map.of("success", true));
+        ctx.json(new SuccessResponse(true));
     }
 
     private void deleteProvider(Context ctx) {
@@ -173,7 +174,7 @@ public class AiRoutes implements Routes {
             try {
                 for (var entry : req.entries()) {
                     if (entry.questionType() == null || entry.count() == null || entry.count() < 1) continue;
-                    var type = QuestionType.valueOf(entry.questionType());
+                    var type = entry.questionType();
                     String catName = null;
                     String catDesc = null;
                     if (entry.categoryId() != null) {
@@ -201,8 +202,8 @@ public class AiRoutes implements Routes {
                         try {
                             var generated = aiService.generateNextQuestion(chatSession, type);
                             for (var q : generated) {
-                                job.addResult(new GeneratedQuestionWithMeta(
-                                        q.title(), q.config(), entry.questionType(), entry.categoryId()));
+                                job.addResult(
+                                        new GeneratedQuestionWithMeta(q.title(), q.config(), type, entry.categoryId()));
                                 existingTitles.add(q.title());
                             }
                         } catch (Exception e) {
@@ -219,7 +220,7 @@ public class AiRoutes implements Routes {
             }
         });
 
-        ctx.json(Map.of("jobId", jobId));
+        ctx.json(new JobIdResponse(jobId));
     }
 
     private void pollGeneration(Context ctx) {
@@ -244,22 +245,16 @@ public class AiRoutes implements Routes {
         var errors = new ArrayList<String>();
 
         for (var q : questions) {
-            if (q.questionType() != QuestionType.MULTIPLE_CHOICE) continue;
             try {
-                var cfg = q.configNode();
-                var options = cfg.get("options");
-                if (options == null || !options.isArray()) continue;
-                int currentCount = options.size();
-                if (currentCount >= targetTotal) continue;
+                if (!(q.config() instanceof QuestionConfig.MultipleChoice mc)) continue;
+                if (mc.options() == null || mc.options().isEmpty()) continue;
+                if (mc.options().size() >= targetTotal) continue;
 
-                int need = targetTotal - currentCount;
-                // Find correct answers
-                var correctParts = new ArrayList<String>();
-                for (var opt : options) {
-                    if (opt.has("correct") && opt.get("correct").asBoolean()) {
-                        correctParts.add(opt.get("text").asString());
-                    }
-                }
+                int need = targetTotal - mc.options().size();
+                var correctParts = mc.options().stream()
+                        .filter(QuestionConfig.MultipleChoice.Option::correct)
+                        .map(QuestionConfig.MultipleChoice.Option::text)
+                        .toList();
                 if (correctParts.isEmpty()) continue;
 
                 var newAnswers = aiService.generate(
@@ -271,23 +266,13 @@ public class AiRoutes implements Routes {
                         String.join(", ", correctParts),
                         need);
 
-                // Build updated options array
-                var updatedOptions = new ArrayList<Map<String, Object>>();
-                for (var opt : options) {
-                    updatedOptions.add(Map.of(
-                            "text",
-                            opt.get("text").asString(),
-                            "correct",
-                            opt.has("correct") && opt.get("correct").asBoolean()));
-                }
+                var updatedOptions = new ArrayList<>(mc.options());
                 for (var answer : newAnswers) {
-                    updatedOptions.add(Map.of("text", answer, "correct", false));
+                    updatedOptions.add(new QuestionConfig.MultipleChoice.Option(answer, false));
                 }
 
-                // Update config
-                var cfgMap = MAPPER.readValue(q.configString(), Map.class);
-                cfgMap.put("options", updatedOptions);
-                String newConfig = MAPPER.writeValueAsString(cfgMap);
+                var updatedMc = new QuestionConfig.MultipleChoice(updatedOptions, mc.pointsPerCorrect());
+                String newConfig = MAPPER.writeValueAsString(updatedMc);
                 quizService.updateQuestion(
                         q.id(),
                         q.categoryId(),
@@ -307,6 +292,10 @@ public class AiRoutes implements Routes {
     }
 
     // -- Records --
+
+    public record SuccessResponse(boolean success) {}
+
+    public record JobIdResponse(String jobId) {}
 
     public record SettingsResponse(List<StationAiProvider> providers, String prompt, String defaultPrompt) {}
 
@@ -332,9 +321,10 @@ public class AiRoutes implements Routes {
             Integer catalogId,
             List<GenerateEntry> entries) {}
 
-    public record GenerateEntry(String questionType, Integer count, Integer categoryId) {}
+    public record GenerateEntry(QuestionType questionType, Integer count, Integer categoryId) {}
 
-    public record GeneratedQuestionWithMeta(String title, String config, String questionType, Integer categoryId) {}
+    public record GeneratedQuestionWithMeta(
+            String title, String config, QuestionType questionType, Integer categoryId) {}
 
     public record GenerateQuestionsResponse(List<GeneratedQuestionWithMeta> questions) {}
 

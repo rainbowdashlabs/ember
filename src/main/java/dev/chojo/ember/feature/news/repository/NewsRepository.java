@@ -250,6 +250,7 @@ public class NewsRepository {
      * @param newsId   the news article ID
      * @param memberId the member ID
      */
+    // TODO: Seems like we lost the news acknowledgement feature
     public void acknowledge(int newsId, int memberId) {
         Query.query(
                         "INSERT INTO news_acknowledgement(news_id, member_id) VALUES(:news_id, :member_id) ON CONFLICT DO NOTHING;")

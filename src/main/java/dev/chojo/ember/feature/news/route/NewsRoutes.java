@@ -169,6 +169,7 @@ public class NewsRoutes implements Routes {
     private void update(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
         UserSession session = UserSession.from(ctx);
+        // TODO: It is not checked whether the news actually belongs to the station.
         var request = ctx.bodyAsClass(NewsRequest.class);
         newsService
                 .update(

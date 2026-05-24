@@ -219,13 +219,6 @@ public class LegalDocumentService {
     }
 
     /**
-     * Gets the stored version hash from the version file.
-     */
-    public String getStoredVersion(Path baseDir) {
-        return readVersionFile(baseDir.resolve("version.txt"));
-    }
-
-    /**
      * Generates a human-readable diff between two markdown texts using java-diff-utils.
      */
     String generateDiff(String oldText, String newText) {

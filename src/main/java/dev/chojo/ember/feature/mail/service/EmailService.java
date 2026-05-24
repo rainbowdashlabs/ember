@@ -48,12 +48,6 @@ public class EmailService {
     private final StationMailConfigRepository mailConfigRepository;
     private final MailProvider globalProvider;
 
-    private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
-        var t = new Thread(r, "email-worker");
-        t.setDaemon(true);
-        return t;
-    });
-
     @Inject
     public EmailService(
             Mailing mailing,
@@ -67,6 +61,11 @@ public class EmailService {
         this.queueRepository = queueRepository;
         this.mailConfigRepository = mailConfigRepository;
         this.globalProvider = createGlobalProvider();
+        ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
+            var t = new Thread(r, "email-worker");
+            t.setDaemon(true);
+            return t;
+        });
         scheduler.scheduleWithFixedDelay(this::processQueue, 10, 10, TimeUnit.SECONDS);
         scheduler.scheduleAtFixedRate(
                 () -> {

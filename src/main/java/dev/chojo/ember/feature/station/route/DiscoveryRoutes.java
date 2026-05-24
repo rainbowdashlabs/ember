@@ -21,6 +21,7 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -57,7 +58,7 @@ public class DiscoveryRoutes implements Routes {
         if (session != null && session.stationId() != null) {
             excludeStationId = session.stationId();
             var existingPartners = federationService.findPartners(excludeStationId);
-            partnerStationIds = new java.util.HashSet<>(
+            partnerStationIds = new HashSet<>(
                     existingPartners.stream().map(p -> p.partnerStationId()).toList());
         }
 

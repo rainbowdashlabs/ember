@@ -40,7 +40,6 @@ public class FederationRemoteRoutes implements Routes {
 
     private final FederationService federationService;
     private final FederationSigningService signingService;
-    private final FederationWebhookService webhookService;
     private final FederationRepository repository;
     private final LendingService lendingService;
     private final KnowledgeBaseService kbService;
@@ -59,7 +58,6 @@ public class FederationRemoteRoutes implements Routes {
             TestProtocolService protocolService) {
         this.federationService = federationService;
         this.signingService = signingService;
-        this.webhookService = webhookService;
         this.repository = repository;
         this.lendingService = lendingService;
         this.kbService = kbService;
@@ -120,7 +118,7 @@ public class FederationRemoteRoutes implements Routes {
 
         ctx.json(new HandshakeResponse(
                 0, // Our station ID would come from config; 0 as placeholder for remote
-                federationService.getFederationVersion(),
+                FederationService.FEDERATION_VERSION,
                 federationService.getSupportedCapabilities(),
                 "")); // Public key returned on partner creation
     }
@@ -209,16 +207,16 @@ public class FederationRemoteRoutes implements Routes {
         // Only return files shared by THIS station — never re-share federated content
         var shares = repository.findKbShares(partner.stationId());
         var result = shares.stream()
-                .filter(s -> s.fileId() != null)
-                .flatMap(s -> kbService.findFile(s.fileId()).stream())
-                .filter(file -> file.stationId() == partner.stationId())
-                .map(file -> Map.<String, Object>of(
-                        "id", file.id(),
-                        "name", file.name(),
-                        "description", file.description() != null ? file.description() : "",
-                        "fileType", file.fileType().name(),
-                        "updatedAt", file.updatedAt().toString()))
-                .toList();
+                           .filter(s -> s.fileId() != null)
+                           .flatMap(s -> kbService.findFile(s.fileId()).stream())
+                           .filter(file -> file.stationId() == partner.stationId())
+                           .map(file -> Map.<String, Object>of(
+                                   "id", file.id(),
+                                   "name", file.name(),
+                                   "description", file.description() != null ? file.description() : "",
+                                   "fileType", file.fileType().name(),
+                                   "updatedAt", file.updatedAt().toString()))
+                           .toList();
         ctx.json(result);
     }
 
@@ -255,15 +253,15 @@ public class FederationRemoteRoutes implements Routes {
         // Only return catalogs shared by THIS station — never re-share federated content
         var shares = repository.findQuizShares(partner.stationId());
         var result = shares.stream()
-                .filter(s -> s.catalogId() != null)
-                .flatMap(s -> quizService.findCatalog(s.catalogId()).stream())
-                .filter(catalog -> catalog.stationId() == partner.stationId())
-                .map(catalog -> Map.<String, Object>of(
-                        "id", catalog.id(),
-                        "name", catalog.name(),
-                        "description", catalog.description(),
-                        "updatedAt", catalog.updatedAt().toString()))
-                .toList();
+                           .filter(s -> s.catalogId() != null)
+                           .flatMap(s -> quizService.findCatalog(s.catalogId()).stream())
+                           .filter(catalog -> catalog.stationId() == partner.stationId())
+                           .map(catalog -> Map.<String, Object>of(
+                                   "id", catalog.id(),
+                                   "name", catalog.name(),
+                                   "description", catalog.description(),
+                                   "updatedAt", catalog.updatedAt().toString()))
+                           .toList();
         ctx.json(result);
     }
 
@@ -288,15 +286,15 @@ public class FederationRemoteRoutes implements Routes {
         // Only return protocols shared by THIS station — never re-share federated content
         var shares = repository.findProtocolShares(partner.stationId());
         var result = shares.stream()
-                .filter(s -> s.protocolId() != null)
-                .flatMap(s -> protocolService.findProtocol(s.protocolId()).stream())
-                .filter(proto -> proto.stationId() == partner.stationId())
-                .map(proto -> Map.<String, Object>of(
-                        "id", proto.id(),
-                        "name", proto.name(),
-                        "description", proto.description(),
-                        "updatedAt", proto.updatedAt().toString()))
-                .toList();
+                           .filter(s -> s.protocolId() != null)
+                           .flatMap(s -> protocolService.findProtocol(s.protocolId()).stream())
+                           .filter(proto -> proto.stationId() == partner.stationId())
+                           .map(proto -> Map.<String, Object>of(
+                                   "id", proto.id(),
+                                   "name", proto.name(),
+                                   "description", proto.description(),
+                                   "updatedAt", proto.updatedAt().toString()))
+                           .toList();
         ctx.json(result);
     }
 
@@ -375,9 +373,11 @@ public class FederationRemoteRoutes implements Routes {
         }
 
         // Update all partner records where this station is the partner
+        // TODO: Why is that unused
         int announcingStationId =
                 partner.stationId() == partner.partnerStationId() ? partner.stationId() : partner.partnerStationId();
         // The announcing station is the one identified by the federation signature header
+        // TODO shouldnt this be a uuid now?
         int remoteStationId = Integer.parseInt(ctx.header("X-Federation-Station-Id"));
         federationService.updateRemoteHost(remoteStationId, req.newHost());
 
@@ -388,13 +388,19 @@ public class FederationRemoteRoutes implements Routes {
 
     // -- Request/Response Records --
 
-    public record AnnounceRequest(String newHost) {}
+    public record AnnounceRequest(String newHost) {
+    }
 
+    // TODO shouldnt this be a uuid now?
     public record HandshakeRequest(
-            int stationId, int federationVersion, List<String> capabilities, String publicKey, String signature) {}
+            int stationId, int federationVersion, List<String> capabilities, String publicKey, String signature) {
+    }
 
+    // TODO shouldnt this be a uuid now?
     public record HandshakeResponse(
-            int stationId, int federationVersion, List<String> capabilities, String publicKey) {}
+            int stationId, int federationVersion, List<String> capabilities, String publicKey) {
+    }
 
-    public record WebhookRegisterRequest(String webhookUrl) {}
+    public record WebhookRegisterRequest(String webhookUrl) {
+    }
 }
