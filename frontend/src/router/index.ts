@@ -4,45 +4,47 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {createRouter, createWebHistory} from 'vue-router'
-import LoginView from '@/views/LoginView.vue'
-import ForgotPasswordView from '@/views/ForgotPasswordView.vue'
-import SetPasswordView from '@/views/SetPasswordView.vue'
-import DashboardView from '@/views/DashboardView.vue'
-import OverviewView from '@/views/dashboardview/OverviewView.vue'
-import StationManageView from '@/views/stationview/manage/StationView.vue'
-import MembersCreateView from '@/views/stationview/members/CreateView.vue'
-import MembersListView from '@/views/stationview/members/ListView.vue'
-import MembersGroupsView from '@/views/stationview/members/GroupsView.vue'
-import InventoryOverviewView from '@/views/stationview/inventory/OverviewView.vue'
-import InventoryManageView from '@/views/stationview/inventory/ManageView.vue'
-import EventsView from '@/views/stationview/events/IndexView.vue'
-import EventsUpcomingView from '@/views/stationview/events/UpcomingView.vue'
-import EventsRegistrationsView from '@/views/stationview/events/RegistrationsView.vue'
-import AttendanceNewView from '@/views/stationview/attendance/NewView.vue'
-import AttendancePastView from '@/views/stationview/attendance/PastView.vue'
-import AttendanceConfigView from '@/views/stationview/manage/AttendanceConfigView.vue'
-import AttendanceConfigEditView from '@/views/stationview/manage/AttendanceConfigEditView.vue'
-import MembersConfigView from '@/views/stationview/manage/MembersConfigView.vue'
-import MemberEditView from '@/views/stationview/members/EditView.vue'
-import MemberDetailView from '@/views/stationview/members/DetailView.vue'
-import ProfileView from '@/views/stationview/profile/IndexView.vue'
-import ProfileManagedView from '@/views/stationview/profile/ManagedView.vue'
-import AdminView from '@/views/AdminView.vue'
-import AdminOverviewView from '@/views/adminview/AdminOverviewView.vue'
-import AdminStationsView from '@/views/adminview/AdminStationsView.vue'
-import AdminStationEditView from '@/views/adminview/AdminStationEditView.vue'
-import StationSelectView from '@/views/StationSelectView.vue'
-import HomeView from '@/views/HomeView.vue'
-import StyleView from '@/views/StyleView.vue'
-import HelpCenterStationView from '@/views/HelpCenterStationView.vue'
-import HelpCenterAdminView from '@/views/HelpCenterAdminView.vue'
 import {getItem} from '@/api/storage'
 import {useConsentGuard} from '@/composables/useConsentGuard'
 import i18n from '@/i18n'
 
-const StatisticsView = () => import('@/views/dashboardview/StatisticsView.vue')
+// Layout shells are eagerly loaded (they wrap all child routes)
+import DashboardView from '@/views/DashboardView.vue'
+import AdminView from '@/views/AdminView.vue'
+import HelpCenterStationView from '@/views/HelpCenterStationView.vue'
+import HelpCenterAdminView from '@/views/HelpCenterAdminView.vue'
 
+// Everything else is lazy-loaded for smaller initial bundle
+const LoginView = () => import('@/views/LoginView.vue')
+const ForgotPasswordView = () => import('@/views/ForgotPasswordView.vue')
+const SetPasswordView = () => import('@/views/SetPasswordView.vue')
+const HomeView = () => import('@/views/HomeView.vue')
+const StationSelectView = () => import('@/views/StationSelectView.vue')
+const StyleView = () => import('@/views/StyleView.vue')
+const OverviewView = () => import('@/views/dashboardview/OverviewView.vue')
+const StatisticsView = () => import('@/views/dashboardview/StatisticsView.vue')
+const StationManageView = () => import('@/views/stationview/manage/StationView.vue')
+const MembersCreateView = () => import('@/views/stationview/members/CreateView.vue')
+const MembersListView = () => import('@/views/stationview/members/ListView.vue')
+const MembersGroupsView = () => import('@/views/stationview/members/GroupsView.vue')
+const MemberEditView = () => import('@/views/stationview/members/EditView.vue')
+const MemberDetailView = () => import('@/views/stationview/members/DetailView.vue')
+const MembersConfigView = () => import('@/views/stationview/manage/MembersConfigView.vue')
+const InventoryOverviewView = () => import('@/views/stationview/inventory/OverviewView.vue')
+const InventoryManageView = () => import('@/views/stationview/inventory/ManageView.vue')
+const EventsView = () => import('@/views/stationview/events/IndexView.vue')
+const EventsUpcomingView = () => import('@/views/stationview/events/UpcomingView.vue')
+const EventsRegistrationsView = () => import('@/views/stationview/events/RegistrationsView.vue')
+const AttendanceNewView = () => import('@/views/stationview/attendance/NewView.vue')
+const AttendancePastView = () => import('@/views/stationview/attendance/PastView.vue')
+const AttendanceConfigView = () => import('@/views/stationview/manage/AttendanceConfigView.vue')
+const AttendanceConfigEditView = () => import('@/views/stationview/manage/AttendanceConfigEditView.vue')
+const ProfileView = () => import('@/views/stationview/profile/IndexView.vue')
+const ProfileManagedView = () => import('@/views/stationview/profile/ManagedView.vue')
+const AdminOverviewView = () => import('@/views/adminview/AdminOverviewView.vue')
 const AdminStatisticsView = () => import('@/views/adminview/AdminStatisticsView.vue')
+const AdminStationsView = () => import('@/views/adminview/AdminStationsView.vue')
+const AdminStationEditView = () => import('@/views/adminview/AdminStationEditView.vue')
 
 const router = createRouter({
     history: createWebHistory(import.meta.env.BASE_URL),
@@ -665,13 +667,8 @@ const router = createRouter({
                 // News
                 {
                     path: 'news',
-                    name: 'help-news-overview',
+                    name: 'help-news-module-overview',
                     component: () => import('@/views/helpcenter/stationview/news/OverviewHelp.vue')
-                },
-                {
-                    path: 'news/list',
-                    name: 'help-news-list',
-                    component: () => import('@/views/helpcenter/stationview/news/ListHelp.vue')
                 },
                 {
                     path: 'news/create',
@@ -686,13 +683,8 @@ const router = createRouter({
                 // Profile
                 {
                     path: 'profile',
-                    name: 'help-profile-overview',
+                    name: 'help-profile-module-overview',
                     component: () => import('@/views/helpcenter/stationview/profile/OverviewHelp.vue')
-                },
-                {
-                    path: 'profile/index',
-                    name: 'help-profile',
-                    component: () => import('@/views/helpcenter/stationview/profile/IndexHelp.vue')
                 },
                 {
                     path: 'profile/absences',
@@ -722,13 +714,8 @@ const router = createRouter({
                 // Station management
                 {
                     path: 'manage',
-                    name: 'help-manage-overview',
+                    name: 'help-manage-module-overview',
                     component: () => import('@/views/helpcenter/stationview/manage/OverviewHelp.vue')
-                },
-                {
-                    path: 'manage/station',
-                    name: 'help-station-manage',
-                    component: () => import('@/views/helpcenter/stationview/manage/StationHelp.vue')
                 },
                 {
                     path: 'manage/attendance-config',
@@ -760,10 +747,15 @@ const router = createRouter({
                     name: 'help-station-federation',
                     component: () => import('@/views/helpcenter/stationview/manage/FederationHelp.vue')
                 },
+                {
+                    path: 'manage/federation/:id',
+                    name: 'help-station-federation-partner',
+                    component: () => import('@/views/helpcenter/stationview/manage/FederationPartnerHelp.vue')
+                },
                 // Members
                 {
                     path: 'members',
-                    name: 'help-members-overview',
+                    name: 'help-members-module-overview',
                     component: () => import('@/views/helpcenter/stationview/members/OverviewHelp.vue')
                 },
                 {
@@ -892,10 +884,35 @@ const router = createRouter({
                     name: 'help-inventory-procurement',
                     component: () => import('@/views/helpcenter/stationview/inventory/ProcurementHelp.vue')
                 },
+                {
+                    path: 'inventory/lending',
+                    name: 'help-inventory-lending',
+                    component: () => import('@/views/helpcenter/stationview/inventory/LendingHelp.vue')
+                },
+                {
+                    path: 'inventory/lending/blocks',
+                    name: 'help-inventory-lending-blocks',
+                    component: () => import('@/views/helpcenter/stationview/inventory/LendingBlocksHelp.vue')
+                },
+                {
+                    path: 'inventory/lending/browse',
+                    name: 'help-inventory-lending-browse',
+                    component: () => import('@/views/helpcenter/stationview/inventory/LendingBrowseHelp.vue')
+                },
+                {
+                    path: 'inventory/lending/request/:id',
+                    name: 'help-inventory-lending-request',
+                    component: () => import('@/views/helpcenter/stationview/inventory/LendingRequestHelp.vue')
+                },
+                {
+                    path: 'inventory/lending/request/new',
+                    name: 'help-inventory-lending-create',
+                    component: () => import('@/views/helpcenter/stationview/inventory/LendingCreateHelp.vue')
+                },
                 // Attendance
                 {
                     path: 'attendance',
-                    name: 'help-attendance-overview',
+                    name: 'help-attendance-module-overview',
                     component: () => import('@/views/helpcenter/stationview/attendance/OverviewHelp.vue')
                 },
                 {
@@ -920,8 +937,8 @@ const router = createRouter({
                 },
                 // Events
                 {
-                    path: 'events/overview',
-                    name: 'help-events-overview',
+                    path: 'events',
+                    name: 'help-events-module-overview',
                     component: () => import('@/views/helpcenter/stationview/events/OverviewHelp.vue')
                 },
                 {
@@ -950,20 +967,15 @@ const router = createRouter({
                     component: () => import('@/views/helpcenter/stationview/events/EventEditHelp.vue')
                 },
                 {
-                    path: 'events/detail/:id?',
+                    path: 'events/:id',
                     name: 'help-event-detail',
                     component: () => import('@/views/helpcenter/stationview/events/EventDetailHelp.vue')
                 },
                 // Forms
                 {
                     path: 'forms',
-                    name: 'help-forms-overview',
+                    name: 'help-forms-module-overview',
                     component: () => import('@/views/helpcenter/stationview/forms/OverviewHelp.vue')
-                },
-                {
-                    path: 'forms/list',
-                    name: 'help-forms-list',
-                    component: () => import('@/views/helpcenter/stationview/forms/ListHelp.vue')
                 },
                 {
                     path: 'forms/create',
@@ -971,12 +983,17 @@ const router = createRouter({
                     component: () => import('@/views/helpcenter/stationview/forms/BuilderHelp.vue')
                 },
                 {
-                    path: 'forms/fill/:id?',
+                    path: 'forms/:id/edit',
+                    name: 'help-forms-edit',
+                    component: () => import('@/views/helpcenter/stationview/forms/EditHelp.vue')
+                },
+                {
+                    path: 'forms/:id/fill',
                     name: 'help-forms-fill',
                     component: () => import('@/views/helpcenter/stationview/forms/FillHelp.vue')
                 },
                 {
-                    path: 'forms/analytics/:id?',
+                    path: 'forms/:id/analytics',
                     name: 'help-forms-analytics',
                     component: () => import('@/views/helpcenter/stationview/forms/AnalyticsHelp.vue')
                 },
@@ -989,7 +1006,7 @@ const router = createRouter({
                 // Quiz
                 {
                     path: 'quiz',
-                    name: 'help-quiz-overview',
+                    name: 'help-quiz-module-overview',
                     component: () => import('@/views/helpcenter/stationview/quiz/OverviewHelp.vue')
                 },
                 {
@@ -998,7 +1015,7 @@ const router = createRouter({
                     component: () => import('@/views/helpcenter/stationview/quiz/CatalogListHelp.vue')
                 },
                 {
-                    path: 'quiz/catalog',
+                    path: 'quiz/catalogs/:id',
                     name: 'help-quiz-catalog-detail',
                     component: () => import('@/views/helpcenter/stationview/quiz/CatalogDetailHelp.vue')
                 },
@@ -1013,7 +1030,7 @@ const router = createRouter({
                     component: () => import('@/views/helpcenter/stationview/quiz/TestListHelp.vue')
                 },
                 {
-                    path: 'quiz/tests/details',
+                    path: 'quiz/tests/:id',
                     name: 'help-quiz-test-detail',
                     component: () => import('@/views/helpcenter/stationview/quiz/TestDetailHelp.vue')
                 },
@@ -1022,15 +1039,80 @@ const router = createRouter({
                     name: 'help-quiz-training',
                     component: () => import('@/views/helpcenter/stationview/quiz/TrainingHelp.vue')
                 },
+                {
+                    path: 'quiz/catalogs/:id/generate',
+                    name: 'help-quiz-catalog-generate',
+                    component: () => import('@/views/helpcenter/stationview/quiz/CatalogGenerateHelp.vue')
+                },
+                {
+                    path: 'quiz/catalogs/:id/import',
+                    name: 'help-quiz-catalog-import',
+                    component: () => import('@/views/helpcenter/stationview/quiz/CatalogImportHelp.vue')
+                },
+                {
+                    path: 'quiz/tests/create',
+                    name: 'help-quiz-test-create',
+                    component: () => import('@/views/helpcenter/stationview/quiz/TestCreateHelp.vue')
+                },
+                {
+                    path: 'quiz/tests/:id/edit',
+                    name: 'help-quiz-test-edit',
+                    component: () => import('@/views/helpcenter/stationview/quiz/TestEditHelp.vue')
+                },
+                {
+                    path: 'quiz/tests/:id/evaluate/:attemptId',
+                    name: 'help-quiz-test-evaluate',
+                    component: () => import('@/views/helpcenter/stationview/quiz/TestEvaluateHelp.vue')
+                },
+                {
+                    path: 'quiz/tests/:id/take',
+                    name: 'help-quiz-test-take',
+                    component: () => import('@/views/helpcenter/stationview/quiz/TestTakeHelp.vue')
+                },
                 // Test Protocols
                 {
                     path: 'protocols',
                     name: 'help-protocol',
                     component: () => import('@/views/helpcenter/stationview/protocol/ProtocolHelp.vue')
                 },
+                {
+                    path: 'protocols',
+                    name: 'help-protocol-module-overview',
+                    component: () => import('@/views/helpcenter/stationview/protocol/ModuleOverviewHelp.vue')
+                },
+                {
+                    path: 'protocols/:id',
+                    name: 'help-protocol-detail',
+                    component: () => import('@/views/helpcenter/stationview/protocol/DetailHelp.vue')
+                },
+                {
+                    path: 'protocols/runs',
+                    name: 'help-protocol-run-list',
+                    component: () => import('@/views/helpcenter/stationview/protocol/RunListHelp.vue')
+                },
+                {
+                    path: 'protocols/runs/:id',
+                    name: 'help-protocol-run-detail',
+                    component: () => import('@/views/helpcenter/stationview/protocol/RunDetailHelp.vue')
+                },
+                {
+                    path: 'protocols/runs/:id/evaluation',
+                    name: 'help-protocol-evaluation',
+                    component: () => import('@/views/helpcenter/stationview/protocol/EvaluationHelp.vue')
+                },
+                {
+                    path: 'protocols/runs/:id/grade/:memberId',
+                    name: 'help-protocol-grade',
+                    component: () => import('@/views/helpcenter/stationview/protocol/GradingHelp.vue')
+                },
                 // Knowledge Base
                 {
                     path: 'knowledge',
+                    name: 'help-knowledge-module-overview',
+                    component: () => import('@/views/helpcenter/stationview/knowledge/ModuleOverviewHelp.vue')
+                },
+                {
+                    path: 'knowledge/browse',
                     name: 'help-knowledge-base',
                     component: () => import('@/views/helpcenter/stationview/knowledge/KnowledgeBaseHelp.vue')
                 },
@@ -1045,6 +1127,16 @@ const router = createRouter({
                     component: () => import('@/views/helpcenter/stationview/knowledge/FederatedKbHelp.vue')
                 },
                 {
+                    path: 'knowledge/file/:id',
+                    name: 'help-kb-file',
+                    component: () => import('@/views/helpcenter/stationview/knowledge/FileViewHelp.vue')
+                },
+                {
+                    path: 'knowledge/file/:id/versions',
+                    name: 'help-kb-versions',
+                    component: () => import('@/views/helpcenter/stationview/knowledge/VersionsHelp.vue')
+                },
+                {
                     path: ':pathMatch(.*)*',
                     name: 'helpcenter-station-not-found',
                     component: () => import('@/components/feedback/NotFoundContent.vue')
@@ -1055,16 +1147,21 @@ const router = createRouter({
             path: '/helpcenter/admin',
             component: HelpCenterAdminView,
             children: [
-                {path: '', redirect: {name: 'help-admin-overview'}},
+                {path: '', redirect: {name: 'help-admin-module-overview'}},
                 {
                     path: 'dashboard/overview',
-                    name: 'help-admin-overview',
+                    name: 'help-admin-module-overview',
                     component: () => import('@/views/helpcenter/adminview/OverviewHelp.vue')
                 },
                 {
                     path: 'dashboard/statistics',
                     name: 'help-admin-statistics',
                     component: () => import('@/views/helpcenter/adminview/StatisticsHelp.vue')
+                },
+                {
+                    path: 'stations/overview',
+                    name: 'help-admin-stations-module-overview',
+                    component: () => import('@/views/helpcenter/adminview/StationsModuleOverviewHelp.vue')
                 },
                 {
                     path: 'stations',
@@ -1085,6 +1182,16 @@ const router = createRouter({
                     path: 'settings',
                     name: 'help-admin-settings',
                     component: () => import('@/views/helpcenter/adminview/SettingsHelp.vue')
+                },
+                {
+                    path: 'api-status',
+                    name: 'help-admin-api-status',
+                    component: () => import('@/views/helpcenter/adminview/ApiStatusHelp.vue')
+                },
+                {
+                    path: 'problems',
+                    name: 'help-admin-problems',
+                    component: () => import('@/views/helpcenter/adminview/ProblemsHelp.vue')
                 },
                 {
                     path: ':pathMatch(.*)*',

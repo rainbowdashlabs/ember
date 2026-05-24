@@ -144,7 +144,7 @@ const previewRows = computed(() => rows.value.slice(0, 5))
 <template>
   <Modal :model-value="show" @update:model-value="(v: boolean) => { if (!v) close() }">
     <div class="space-y-4 max-h-[70vh] overflow-y-auto">
-      <SubHeader class="text-lg font-semibold">{{ t('quiz.csv.import') }}</SubHeader>
+      <SubHeader class="font-semibold">{{ t('quiz.csv.import') }}</SubHeader>
 
       <Alert v-if="successCount !== null" variant="success">
         {{ t('quiz.csv.importSuccess', { count: successCount }) }}

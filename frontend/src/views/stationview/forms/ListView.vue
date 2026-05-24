@@ -113,7 +113,7 @@ watch(loaded, (isLoaded) => {
         <!-- Management Section -->
         <div v-if="canManagePolls()" class="space-y-4">
           <div class="flex items-center justify-between">
-            <SectionHeader class="text-lg font-semibold">{{ t('forms.title') }}</SectionHeader>
+            <SectionHeader>{{ t('forms.title') }}</SectionHeader>
             <PrimaryButton @click="router.push({ name: 'forms-create' })">
               <font-awesome-icon :icon="['fas', 'plus']" class="mr-1" />
               {{ t('forms.create') }}
@@ -161,7 +161,7 @@ watch(loaded, (isLoaded) => {
 
         <!-- Available Forms for User -->
         <div class="space-y-4">
-          <SectionHeader v-if="canManagePolls()" class="text-lg font-semibold mt-6">{{ t('forms.fillForm') }}</SectionHeader>
+          <SectionHeader v-if="canManagePolls()" class="mt-6">{{ t('forms.fillForm') }}</SectionHeader>
 
           <EmptyState compact v-if="availableForms.length === 0">{{ t('forms.noAvailableForms') }}</EmptyState>
 

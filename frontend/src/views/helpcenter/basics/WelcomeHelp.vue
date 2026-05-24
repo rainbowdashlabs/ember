@@ -64,7 +64,7 @@ const sections = [
             {{ t('helpCenter.welcome.goToStation') }}
           </PrimaryButton>
         </router-link>
-        <router-link :to="{name: 'help-admin-overview'}">
+        <router-link :to="{name: 'help-admin-module-overview'}">
           <SecondaryButton>
             <font-awesome-icon :icon="['fas', 'shield']" class="mr-2"/>
             {{ t('helpCenter.welcome.goToAdmin') }}

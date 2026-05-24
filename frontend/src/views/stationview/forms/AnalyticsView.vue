@@ -369,7 +369,7 @@ onMounted(loadData)
           <div v-if="activeTab === 'charts'" class="space-y-6">
             <NeutralContainer v-for="q in analytics.questions" :key="q.questionId">
               <div class="space-y-3">
-                <SubHeader class="font-medium">{{ q.title }}</SubHeader>
+                <SubHeader>{{ q.title }}</SubHeader>
                 <p class="text-xs text-(--text-muted)">{{ q.values.length }} {{ t('forms.responses') }}</p>
                 <VChart v-if="q.questionType === QuestionTypes.CHOICE" :option="buildChoiceChart(q)" autoresize style="height: 250px" />
                 <VChart v-if="q.questionType === QuestionTypes.RATING" :option="buildRatingChart(q)" autoresize style="height: 200px" />
@@ -427,7 +427,7 @@ onMounted(loadData)
       <!-- Export Modal -->
       <Modal v-model="showExportModal">
         <div class="space-y-4">
-          <SubHeader class="text-lg font-semibold">{{ t('forms.analytics.export') }}</SubHeader>
+          <SubHeader class="font-semibold">{{ t('forms.analytics.export') }}</SubHeader>
 
           <!-- Question selection -->
           <div class="space-y-2">

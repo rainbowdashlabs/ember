@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "vite",
     "lint:conventions": "node scripts/lint-conventions.mjs",
-    "build": "vue-tsc -b && node scripts/lint-conventions.mjs && vite build",
+    "lint:helpcenter": "node scripts/lint-helpcenter.mjs",
+    "lint:icons": "node scripts/lint-icons.mjs",
+    "build": "vue-tsc -b && node scripts/lint-icons.mjs && node scripts/lint-conventions.mjs && node scripts/lint-helpcenter.mjs && vite build",
     "preview": "vite preview"
   },
   "dependencies": {

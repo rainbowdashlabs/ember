@@ -248,7 +248,7 @@ watch(loaded, (isLoaded) => {
 
       <template v-if="!loading && form">
         <div>
-          <SectionHeader class="text-xl font-semibold">{{ form.title }}</SectionHeader>
+          <SectionHeader>{{ form.title }}</SectionHeader>
           <p v-if="form.description" class="text-(--text-muted) mt-1">{{ form.description }}</p>
         </div>
 
