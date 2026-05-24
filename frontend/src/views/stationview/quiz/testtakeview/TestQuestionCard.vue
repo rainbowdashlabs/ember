@@ -102,7 +102,7 @@ const isMultipleCorrect = (): boolean => {
         <div
           v-for="(opt, i) in mcOptions()"
           :key="i"
-          class="flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer transition-colors"
+          class="flex items-center gap-2 p-3 rounded-lg border-2 cursor-pointer transition-colors"
           :class="isMcSelected(i) ? 'border-primary bg-primary/10' : 'border-bg-light-accent dark:border-bg-dark-accent hover:border-primary/50'"
           @click="emit('setMCAnswer', i, isMultipleCorrect())"
         >
@@ -171,7 +171,7 @@ const isMultipleCorrect = (): boolean => {
     <!-- Connect -->
     <template v-else-if="questionDetail.questionType === QuizQuestionTypes.CONNECT">
       <div class="space-y-2">
-        <div v-for="(left, leftIdx) in connectLeftItems" :key="leftIdx" class="flex items-center gap-3">
+        <div v-for="(left, leftIdx) in connectLeftItems" :key="leftIdx" class="flex items-center gap-2">
           <span class="text-sm font-medium w-1/3 shrink-0">{{ left }}</span>
           <select
             :value="connectPairValue(leftIdx)"
@@ -191,7 +191,7 @@ const isMultipleCorrect = (): boolean => {
         <div
           v-for="(item, i) in orderItems()"
           :key="orderIndices()[i]"
-          class="flex items-center gap-3 p-2 rounded-lg border border-bg-light-accent dark:border-bg-dark-accent"
+          class="flex items-center gap-2 p-2 rounded-lg border border-bg-light-accent dark:border-bg-dark-accent"
         >
           <span class="text-xs text-(--text-muted) w-5 text-right shrink-0">{{ i + 1 }}.</span>
           <span class="flex-1 text-sm">{{ item }}</span>

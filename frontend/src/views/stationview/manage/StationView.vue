@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {computed, onMounted, ref, watch} from 'vue'
+import {onMounted, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
@@ -78,7 +78,6 @@ async function loadStation() {
     isOwner.value = info.isOwner
     stationId.value = info.id
     ownerMemberId.value = info.ownerMemberId ?? null
-    publicKbModeValue.value = info.publicKbMode ?? 'OFF'
     if (info.hasLogo) {
       await loadLogoBlob()
     }
@@ -241,37 +240,6 @@ async function toggleModule(key: string) {
   modulesSaving.value = false
 }
 
-// -- Public KB --
-const publicKbModeValue = ref<string>('OFF')
-const publicKbEnabled = computed(() => publicKbModeValue.value !== 'OFF')
-
-async function togglePublicKb() {
-  const newMode = publicKbEnabled.value ? 'OFF' : 'ALLOW_ALL'
-  try {
-    await stationManage.updateStationName({
-      name: name.value,
-      publicKbMode: newMode,
-    })
-    publicKbModeValue.value = newMode
-    success.value = t('stationManage.saved')
-  } catch { error.value = t('common.error') }
-}
-
-async function changePublicKbMode(mode: string | undefined) {
-  if (!mode) return
-  try {
-    await stationManage.updateStationName({
-      name: name.value,
-      publicKbMode: mode,
-    })
-    publicKbModeValue.value = mode
-  } catch { error.value = t('common.error') }
-}
-
-const publicKbUrl = computed(() => {
-  if (!stationId.value) return ''
-  return `${window.location.origin}/public/kb/${stationId.value}`
-})
 
 function handleError(msg: string) {
   error.value = msg
@@ -359,29 +327,6 @@ onMounted(async () => {
           <div v-for="mod in allModules" :key="mod.key" class="flex items-center justify-between">
             <span class="text-sm font-medium">{{ t(`stationManage.${mod.label}`) }}</span>
             <ToggleInput :model-value="isModuleEnabled(mod.key)" :disabled="modulesSaving" @update:model-value="toggleModule(mod.key)"/>
-          </div>
-        </div>
-      </NeutralContainer>
-
-      <!-- Public Knowledge Base -->
-      <NeutralContainer v-if="!loading" class="space-y-4">
-        <SectionHeader>{{ t('stationManage.publicKb.title') }}</SectionHeader>
-        <p class="text-sm text-(--text-muted)">{{ t('stationManage.publicKb.hint') }}</p>
-        <div class="flex items-center justify-between">
-          <span class="text-sm font-medium">{{ t('stationManage.publicKb.enabled') }}</span>
-          <ToggleInput :model-value="publicKbEnabled" @update:model-value="togglePublicKb"/>
-        </div>
-        <div v-if="publicKbEnabled" class="space-y-3">
-          <div class="space-y-1">
-            <FieldLabel>{{ t('stationManage.publicKb.mode') }}</FieldLabel>
-            <SelectInput :model-value="publicKbModeValue" @update:model-value="changePublicKbMode">
-              <option value="ALLOW_ALL">{{ t('stationManage.publicKb.modeAllowAll') }}</option>
-              <option value="DENY_ALL">{{ t('stationManage.publicKb.modeDenyAll') }}</option>
-            </SelectInput>
-          </div>
-          <div class="space-y-1">
-            <FieldLabel>{{ t('stationManage.publicKb.publicUrl') }}</FieldLabel>
-            <code class="block rounded bg-bg-light-accent dark:bg-bg-dark-accent px-3 py-2 text-sm break-all select-all">{{ publicKbUrl }}</code>
           </div>
         </div>
       </NeutralContainer>

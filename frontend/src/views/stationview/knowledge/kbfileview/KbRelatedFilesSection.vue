@@ -100,7 +100,7 @@ const filteredRelatedCandidates = computed(() => {
                 </DropdownMenuItem>
             </div>
             <p v-else class="text-xs text-[var(--text-muted)]">{{ t('kb.noFilesFound') }}</p>
-            <SecondaryButton class="mt-2 !text-xs !py-1 !px-2" @click="showAddRelated = false">
+            <SecondaryButton compact class="mt-2 " @click="showAddRelated = false">
                 {{ t('common.close') }}
             </SecondaryButton>
         </div>

@@ -56,8 +56,7 @@ function getLabel(value: string): string {
 
     <!-- Add dropdown -->
     <div v-if="availableOptions.length > 0" class="relative">
-      <SecondaryButton @click="open = !open">
-        <font-awesome-icon :icon="['fas', 'plus']" class="mr-1"/>
+      <SecondaryButton :icon="['fas', 'plus']" @click="open = !open">
         {{ placeholder ?? 'Hinzufügen' }}
       </SecondaryButton>
       <div

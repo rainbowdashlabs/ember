@@ -11,6 +11,8 @@ import HelpTip from '@/components/helpcenter/HelpTip.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import StationBadge from '@/components/badge/StationBadge.vue'
 import IconButton from '@/components/button/IconButton.vue'
+import BulletList from '@/components/typography/BulletList.vue'
+import MutedText from '@/components/typography/MutedText.vue'
 
 const {t} = useI18n()
 </script>
@@ -23,12 +25,12 @@ const {t} = useI18n()
     </HelpSection>
 
     <HelpSection :title="t('helpCenter.basics.federation.whatShared')">
-      <ul class="list-disc pl-5 space-y-1">
+      <BulletList>
         <li>{{ t('helpCenter.basics.federation.shared1') }}</li>
         <li>{{ t('helpCenter.basics.federation.shared2') }}</li>
         <li>{{ t('helpCenter.basics.federation.shared3') }}</li>
         <li>{{ t('helpCenter.basics.federation.shared4') }}</li>
-      </ul>
+      </BulletList>
     </HelpSection>
 
     <HelpSection :title="t('helpCenter.basics.federation.howRecognize')">
@@ -38,7 +40,7 @@ const {t} = useI18n()
     <!-- Dummy: Content with station badge -->
     <NeutralContainer>
       <div class="space-y-3">
-        <div class="flex items-center gap-3">
+        <div class="flex items-center gap-2">
           <font-awesome-icon :icon="['fas', 'file-lines']" class="text-xl text-primary" />
           <div class="flex-1 min-w-0">
             <div class="flex items-center gap-2">
@@ -48,7 +50,7 @@ const {t} = useI18n()
             <span class="text-xs text-(--text-muted)">Schutzausrüstung erklärt</span>
           </div>
         </div>
-        <div class="flex items-center gap-3">
+        <div class="flex items-center gap-2">
           <font-awesome-icon :icon="['fas', 'file-lines']" class="text-xl text-(--text-muted)" />
           <div class="flex-1 min-w-0">
             <span class="text-sm font-medium">Knotenkunde</span>
@@ -58,7 +60,7 @@ const {t} = useI18n()
       </div>
     </NeutralContainer>
 
-    <p class="text-xs text-(--text-muted) mt-1">{{ t('helpCenter.basics.federation.badgeHint') }}</p>
+    <MutedText tag="p" class="mt-1">{{ t('helpCenter.basics.federation.badgeHint') }}</MutedText>
 
     <HelpSection :title="t('helpCenter.basics.federation.viewTitle')">
       <p>{{ t('helpCenter.basics.federation.viewText') }}</p>
@@ -70,7 +72,7 @@ const {t} = useI18n()
 
     <!-- Dummy: Copy button example -->
     <NeutralContainer>
-      <div class="flex items-center gap-3">
+      <div class="flex items-center gap-2">
         <font-awesome-icon :icon="['fas', 'book']" class="text-xl text-primary" />
         <div class="flex-1 min-w-0">
           <div class="flex items-center gap-2">
@@ -83,7 +85,7 @@ const {t} = useI18n()
       </div>
     </NeutralContainer>
 
-    <p class="text-xs text-(--text-muted) mt-1">{{ t('helpCenter.basics.federation.copyHint') }}</p>
+    <MutedText tag="p" class="mt-1">{{ t('helpCenter.basics.federation.copyHint') }}</MutedText>
 
     <HelpSection :title="t('helpCenter.basics.federation.editTitle')">
       <p>{{ t('helpCenter.basics.federation.editText') }}</p>

@@ -98,8 +98,7 @@ const {t} = useI18n()
               <SecondaryButton class="text-xs px-2 py-1">
                 <font-awesome-icon :icon="['fas', 'right-from-bracket']" />
               </SecondaryButton>
-              <SecondaryButton class="text-xs px-2 py-1">
-                <font-awesome-icon :icon="['fas', 'folder-plus']" class="mr-1" />
+              <SecondaryButton :icon="['fas', 'folder-plus']" class="text-xs px-2 py-1">
                 {{ t('inventory.check.createProcurement') }}
               </SecondaryButton>
             </div>

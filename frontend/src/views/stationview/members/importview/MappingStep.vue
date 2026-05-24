@@ -11,7 +11,9 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
+import NumberInput from '@/components/input/number/NumberInput.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
+import MutedText from '@/components/typography/MutedText.vue'
 
 export interface ColumnMapping {
   csvColumn: string
@@ -208,8 +210,7 @@ function addValueMapEntry() {
             <!-- Split char config (shown on first split sibling only) -->
             <div v-if="isSplit(i) && getSplitSiblings(m.csvColumn)[0] === i" class="flex items-center gap-2 mt-1 text-xs">
               <label class="text-(--text-muted)">{{ t('memberImport.splitChar') }}:</label>
-              <input type="text" :value="m.splitChar" class="w-12 px-1 py-0.5 rounded border border-bg-light-accent dark:border-bg-dark-accent bg-bg-light dark:bg-bg-dark text-center text-xs"
-                @input="updateSplitChar(m.csvColumn, ($event.target as HTMLInputElement).value)" />
+              <TextInput :model-value="m.splitChar" class="w-12 text-center text-xs" @update:model-value="updateSplitChar(m.csvColumn, $event ?? '')" />
             </div>
           </div>
           <!-- Right: target dropdown + value map -->
@@ -232,26 +233,24 @@ function addValueMapEntry() {
           </div>
         </div>
         <!-- Merge indicator -->
-        <div v-if="m.target !== 'skip' && isMerged(m.target)" class="flex items-center gap-3 mt-2 text-xs">
+        <div v-if="m.target !== 'skip' && isMerged(m.target)" class="flex items-center gap-2 mt-2 text-xs">
           <span class="text-(--text-muted)">
             <font-awesome-icon :icon="['fas', 'link']" class="mr-1" />
             {{ t('memberImport.mergedWith') }}
           </span>
           <div class="flex items-center gap-1">
             <label class="text-(--text-muted)">{{ t('memberImport.order') }}:</label>
-            <input type="number" :value="m.mergeOrder" class="w-12 px-1 py-0.5 rounded border border-bg-light-accent dark:border-bg-dark-accent bg-bg-light dark:bg-bg-dark text-center text-xs"
-              @input="updateMapping(i, { mergeOrder: Number(($event.target as HTMLInputElement).value) })" />
+            <NumberInput :model-value="m.mergeOrder" class="w-12 text-center text-xs" @update:model-value="updateMapping(i, { mergeOrder: $event })" />
           </div>
           <div class="flex items-center gap-1">
             <label class="text-(--text-muted)">{{ t('memberImport.sep') }}:</label>
-            <input type="text" :value="m.mergeSeparator" class="w-10 px-1 py-0.5 rounded border border-bg-light-accent dark:border-bg-dark-accent bg-bg-light dark:bg-bg-dark text-center text-xs"
-              @input="updateMapping(i, { mergeSeparator: ($event.target as HTMLInputElement).value })" />
+            <TextInput :model-value="m.mergeSeparator" class="w-10 text-center text-xs" @update:model-value="updateMapping(i, { mergeSeparator: $event })" />
           </div>
         </div>
         <!-- Value map summary -->
-        <div v-if="Object.keys(m.valueMap || {}).length > 0" class="mt-1 text-xs text-(--text-muted)">
+        <MutedText tag="div" class="mt-1" v-if="Object.keys(m.valueMap || {}).length > 0">
           <span v-for="(to, from) in m.valueMap" :key="String(from)" class="mr-2">{{ from }} &rarr; {{ to }}</span>
-        </div>
+        </MutedText>
       </div>
     </div>
 
@@ -277,8 +276,7 @@ function addValueMapEntry() {
 
   <div class="flex justify-between">
     <SecondaryButton @click="emit('back')">{{ t('common.back') }}</SecondaryButton>
-    <PrimaryButton :disabled="loading" @click="emit('preview')">
-      <font-awesome-icon :icon="['fas', 'eye']" class="mr-1" />
+    <PrimaryButton :icon="['fas', 'eye']" :disabled="loading" @click="emit('preview')">
       {{ loading ? t('common.loading') : t('memberImport.preview') }}
     </PrimaryButton>
   </div>

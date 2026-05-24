@@ -14,6 +14,7 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SuccessButton from '@/components/button/SuccessButton.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
+import MutedIcon from '@/components/display/MutedIcon.vue'
 
 const {t} = useI18n()
 </script>
@@ -31,9 +32,9 @@ const {t} = useI18n()
     <!-- Dummy: Change summary list -->
     <div class="space-y-3">
       <NeutralContainer>
-        <div class="flex items-center justify-between flex-wrap gap-3 cursor-pointer">
-          <div class="flex items-center gap-3">
-            <font-awesome-icon :icon="['fas', 'chevron-down']" class="h-3 w-3 text-(--text-muted)"/>
+        <div class="flex items-center justify-between flex-wrap gap-2 cursor-pointer">
+          <div class="flex items-center gap-2">
+            <MutedIcon :icon="['fas', 'chevron-down']"/>
             <font-awesome-icon :icon="['fas', 'user']" class="h-4 w-4 text-(--text-muted)"/>
             <div>
               <span class="font-semibold text-sm">Max Mustermann</span>
@@ -42,14 +43,12 @@ const {t} = useI18n()
               </p>
             </div>
           </div>
-          <div class="flex items-center gap-3">
+          <div class="flex items-center gap-2">
             <ErrorBadge>2 {{ t('memberChanges.pending') }}</ErrorBadge>
-            <SuccessButton>
-              <font-awesome-icon :icon="['fas', 'check-double']" class="mr-1"/>
+            <SuccessButton :icon="['fas', 'check-double']">
               {{ t('memberDetail.acknowledgeAll') }}
             </SuccessButton>
-            <SecondaryButton>
-              <font-awesome-icon :icon="['fas', 'user']" class="mr-1"/>
+            <SecondaryButton :icon="['fas', 'user']">
               {{ t('memberChanges.toProfile') }}
             </SecondaryButton>
           </div>
@@ -66,18 +65,16 @@ const {t} = useI18n()
               </div>
               <ErrorBadge>{{ t('memberDetail.notAcknowledged') }}</ErrorBadge>
             </div>
-            <div class="flex items-center gap-3 text-sm">
+            <div class="flex items-center gap-2 text-xs">
               <span class="text-(--text-muted)">0170 1111111</span>
-              <font-awesome-icon :icon="['fas', 'chevron-right']" class="h-3 w-3 text-(--text-muted)"/>
+              <MutedIcon :icon="['fas', 'chevron-right']"/>
               <span class="font-medium">0170 2222222</span>
             </div>
             <div class="flex items-center gap-2 pt-1">
-              <PrimaryButton>
-                <font-awesome-icon :icon="['fas', 'check']" class="mr-1"/>
+              <PrimaryButton :icon="['fas', 'check']">
                 {{ t('memberDetail.acknowledge') }}
               </PrimaryButton>
-              <SecondaryButton>
-                <font-awesome-icon :icon="['fas', 'comment']" class="mr-1"/>
+              <SecondaryButton :icon="['fas', 'comment']">
                 {{ t('memberDetail.acknowledgeWithComment') }}
               </SecondaryButton>
             </div>
@@ -94,9 +91,9 @@ const {t} = useI18n()
                 {{ t('memberDetail.acknowledged') }}
               </SuccessBadge>
             </div>
-            <div class="flex items-center gap-3 text-sm">
+            <div class="flex items-center gap-2 text-xs">
               <span class="text-(--text-muted)">S</span>
-              <font-awesome-icon :icon="['fas', 'chevron-right']" class="h-3 w-3 text-(--text-muted)"/>
+              <MutedIcon :icon="['fas', 'chevron-right']"/>
               <span class="font-medium">M</span>
             </div>
           </div>

@@ -16,6 +16,7 @@ import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.protocol.service.TestProtocolService;
 import dev.chojo.ember.feature.quiz.entity.QuestionType;
 import dev.chojo.ember.feature.quiz.service.QuizService;
+import dev.chojo.ember.feature.station.entity.DiscoveryVisibility;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -73,9 +74,21 @@ public class DemoFederationSeeder {
      * @return the partner station ID
      */
     public int seed(int primaryStationId, int createdBy) {
+        // Opt primary station into discovery
+        stationRepository.updateDiscoverySettings(
+                primaryStationId,
+                DiscoveryVisibility.PUBLIC,
+                "Unsere Jugendfeuerwehr — Ausbildung, Technik und Gemeinschaft",
+                true);
+
         // Create a second station
         var partnerStation = stationRepository.create("JF Partnerwache");
         log.info("Demo: Created partner station '{}' (id={})", partnerStation.name(), partnerStation.id());
+        stationRepository.updateDiscoverySettings(
+                partnerStation.id(),
+                DiscoveryVisibility.PUBLIC,
+                "Partnerwache für gemeinsame Übungen und Ausbildung",
+                false);
 
         // Create a manager account on the partner station
         var partnerAccount = accountRepository.create("partner@demo.ember", "Partner", "Manager", true);
@@ -179,6 +192,8 @@ public class DemoFederationSeeder {
         // === Third station (not federated) ===
         var thirdStation = stationRepository.create("JF Nachbarstadt");
         log.info("Demo: Created third station '{}' (id={})", thirdStation.name(), thirdStation.id());
+        stationRepository.updateDiscoverySettings(
+                thirdStation.id(), DiscoveryVisibility.PUBLIC, "Nachbarstadt sucht Partner für Übungsaustausch", true);
 
         var thirdAccount = accountRepository.create("nachbar@demo.ember", "Nachbar", "Manager", true);
         accountRepository.createCredential(thirdAccount.id(), passwordHasher.hash("demo"));

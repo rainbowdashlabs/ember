@@ -11,6 +11,7 @@ import HelpTip from '@/components/helpcenter/HelpTip.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
+import FieldLabel from '@/components/typography/FieldLabel.vue'
 
 const { t } = useI18n()
 </script>
@@ -32,15 +33,15 @@ const { t } = useI18n()
       <div class="text-xs text-[var(--text-muted)] uppercase font-semibold">Frage 3 von 15</div>
       <p class="font-medium">Welche Notrufnummer wählst du bei einem Feuer?</p>
       <div class="space-y-2 text-sm">
-        <label class="flex items-center gap-2 cursor-not-allowed">
+        <FieldLabel inline class="cursor-not-allowed">
           <ToggleInput :model-value="false" disabled /> 110
-        </label>
-        <label class="flex items-center gap-2 cursor-not-allowed">
+        </FieldLabel>
+        <FieldLabel inline class="cursor-not-allowed">
           <ToggleInput :model-value="true" disabled /> 112
-        </label>
-        <label class="flex items-center gap-2 cursor-not-allowed">
+        </FieldLabel>
+        <FieldLabel inline class="cursor-not-allowed">
           <ToggleInput :model-value="false" disabled /> 118
-        </label>
+        </FieldLabel>
       </div>
     </NeutralContainer>
 

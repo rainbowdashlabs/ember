@@ -9,6 +9,7 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import StationBadge from '@/components/badge/StationBadge.vue'
 import IconButton from '@/components/button/IconButton.vue'
+import SectionHeader from '@/components/typography/SectionHeader.vue'
 import type {KbFile} from '@/api/knowledgeBase'
 import {KbFileType} from '@/api/knowledgeBase'
 import type {SearchResult} from '@/api/knowledgeBase'
@@ -47,7 +48,7 @@ function fileIcon(file: KbFile): string[] {
 
 <template>
     <div>
-        <h2 class="text-lg font-semibold mb-3">{{ t('kb.searchResults') }}</h2>
+        <SectionHeader class="mb-3">{{ t('kb.searchResults') }}</SectionHeader>
         <Spinner v-if="searching"/>
         <p v-else-if="totalCount === 0" class="text-[var(--text-muted)]">
             {{ t('kb.noResults') }}

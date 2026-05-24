@@ -208,8 +208,7 @@ watch(loaded, async (isLoaded) => {
     <div class="space-y-6">
       <div class="flex items-center justify-between">
         <SectionHeader>{{ t('memberImport.title') }}</SectionHeader>
-        <SecondaryButton @click="router.push({ name: 'members-create' })">
-          <font-awesome-icon :icon="['fas', 'chevron-left']" class="mr-2" />
+        <SecondaryButton :icon="['fas', 'chevron-left']" @click="router.push({ name: 'members-create' })">
           {{ t('common.back') }}
         </SecondaryButton>
       </div>
@@ -223,7 +222,7 @@ watch(loaded, async (isLoaded) => {
           </div>
           <p class="text-sm text-(--text-muted)">{{ t('memberImport.modeMembersHint') }}</p>
         </NeutralContainer>
-        <NeutralContainer class="space-y-2 cursor-pointer hover:border-primary transition-colors" @click="router.push({ name: 'members-import-team' })">
+        <NeutralContainer clickable class="space-y-2" @click="router.push({ name: 'members-import-team' })">
           <div class="flex items-center gap-2">
             <font-awesome-icon :icon="['fas', 'user-shield']" class="text-primary" />
             <span class="font-semibold">{{ t('teamImport.modeTeam') }}</span>

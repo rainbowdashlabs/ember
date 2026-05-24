@@ -7,7 +7,7 @@
 </script>
 
 <template>
-  <h3 class="text-base sm:text-lg font-medium">
+  <h3 class="text-base sm:text-lg font-semibold">
     <slot/>
   </h3>
 </template>

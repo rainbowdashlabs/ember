@@ -23,6 +23,7 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import type { Inventory, InventoryRequirement, MemberGroup, Role } from '@/api/types'
 import { inventory, memberGroups, stationMembers } from '@/api'
+import MutedIcon from '@/components/display/MutedIcon.vue'
 
 const { t } = useI18n()
 
@@ -201,8 +202,7 @@ onMounted(loadData)
       <template v-if="!loading">
         <div class="flex items-center justify-between">
           <SectionHeader>{{ t('inventory.requirements.title') }}</SectionHeader>
-          <PrimaryButton @click="openAdd()">
-            <font-awesome-icon :icon="['fas', 'plus']" class="mr-1" />
+          <PrimaryButton :icon="['fas', 'plus']" @click="openAdd()">
             {{ t('inventory.requirements.add') }}
           </PrimaryButton>
         </div>
@@ -220,8 +220,7 @@ onMounted(loadData)
                 </span>
                 {{ group.label }}
               </SubHeader>
-              <SecondaryButton @click="openAdd({ type: group.type, id: group.id })">
-                <font-awesome-icon :icon="['fas', 'plus']" class="mr-1" />
+              <SecondaryButton :icon="['fas', 'plus']" @click="openAdd({ type: group.type, id: group.id })">
                 {{ t('inventory.requirements.addItem') }}
               </SecondaryButton>
             </div>
@@ -229,7 +228,7 @@ onMounted(loadData)
             <DragList :items="group.items" :key-fn="(r) => r.id" @reorder="(from, to) => onReorder(group, from, to)">
               <template #default="{ item: req }">
                 <div class="grid grid-cols-[auto_1fr_6rem_2.5rem] gap-2 items-center px-3 py-2 border-b border-bg-light-accent/50 dark:border-bg-dark-accent/50 cursor-grab active:cursor-grabbing">
-                  <font-awesome-icon :icon="['fas', 'grip-vertical']" class="text-(--text-muted) h-3.5 w-3.5" />
+                  <MutedIcon size="md" :icon="['fas', 'grip-vertical']" />
                   <div class="text-sm">{{ inventoryName(req.inventoryId) }}</div>
                   <NumberInput :model-value="req.quantity" :min="1" @update:model-value="updateQuantity(req, $event as number)" />
                   <DeleteButton @click="removeRequirement(req)" />

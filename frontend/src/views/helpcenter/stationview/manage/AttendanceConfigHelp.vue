@@ -31,8 +31,7 @@ const {t} = useI18n()
 
     <!-- Dummy: Create button and template list -->
     <div class="space-y-4">
-      <PrimaryButton disabled>
-        <font-awesome-icon :icon="['fas', 'plus']" class="mr-2"/>
+      <PrimaryButton :icon="['fas', 'plus']" disabled>
         {{ t('attendanceConfig.create') }}
       </PrimaryButton>
 

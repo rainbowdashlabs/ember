@@ -25,6 +25,7 @@ import type {MemberAbsence} from '@/api/absences'
 import {useSession} from '@/composables/useSession'
 import MemberName from '@/components/avatar/MemberName.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
+import MutedText from '@/components/typography/MutedText.vue'
 
 const {t} = useI18n()
 const {sessionInfo, loaded, isGuardian} = useSession()
@@ -157,8 +158,7 @@ watch(loaded, (isLoaded) => {
       <template v-if="!loading">
         <div class="flex items-center justify-between">
           <div/>
-          <SecondaryButton @click="openAddForm">
-            <font-awesome-icon :icon="['fas', 'plus']" class="mr-1"/>
+          <SecondaryButton :icon="['fas', 'plus']" @click="openAddForm">
             {{ t('profile.absenceAdd') }}
           </SecondaryButton>
         </div>
@@ -232,7 +232,7 @@ watch(loaded, (isLoaded) => {
                 <span class="text-sm">{{ formatDate(absence.absentFrom) }} – {{
                     formatDate(absence.absentUntil)
                   }}</span>
-                <span v-if="absence.reason" class="ml-3 text-sm text-(--text-muted)">{{ absence.reason }}</span>
+                <MutedText size="sm" class="ml-3" v-if="absence.reason">{{ absence.reason }}</MutedText>
                 <span v-if="absence.createdByName" class="ml-3 text-xs text-(--text-muted) italic">{{ t('common.createdBy', { name: absence.createdByName }) }}</span>
               </div>
               <div class="flex items-center gap-2">

@@ -9,6 +9,8 @@ import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import DeleteButton from '@/components/button/DeleteButton.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
@@ -21,13 +23,14 @@ import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import { useSession } from '@/composables/useSession'
 import { federation } from '@/api'
-import type { PartnerResponse } from '@/api/federation'
+import type { PartnerResponse, PairRequest } from '@/api/federation'
 
 const { t } = useI18n()
 const router = useRouter()
 const { canManageFederation, loaded } = useSession()
 
 const partners = ref<PartnerResponse[]>([])
+const pairRequests = ref<PairRequest[]>([])
 const loading = ref(true)
 const error = ref('')
 const success = ref('')
@@ -39,9 +42,29 @@ const acceptCode = ref('')
 
 async function loadData() {
   loading.value = true
-  try { partners.value = await federation.listPartners() }
+  try {
+    const [p, r] = await Promise.all([federation.listPartners(), federation.listPairRequests()])
+    partners.value = p
+    pairRequests.value = r
+  }
   catch { error.value = t('common.error') }
   finally { loading.value = false }
+}
+
+async function handleAcceptRequest(id: number) {
+  try {
+    await federation.acceptPairRequest(id)
+    success.value = t('federation.connected')
+    setTimeout(() => { success.value = '' }, 3000)
+    await loadData()
+  } catch { error.value = t('common.error') }
+}
+
+async function handleDeclineRequest(id: number) {
+  try {
+    await federation.declinePairRequest(id)
+    await loadData()
+  } catch { error.value = t('common.error') }
 }
 
 async function generateInvite() {
@@ -54,11 +77,11 @@ async function generateInvite() {
 async function handleAccept() {
   if (!acceptCode.value.trim()) return
   try {
-    await federation.acceptInvite(acceptCode.value.trim())
+    const result = await federation.acceptInvite(acceptCode.value.trim())
     showInviteModal.value = false
     acceptCode.value = ''
     generatedCode.value = ''
-    success.value = t('federation.connected')
+    success.value = result.status === 'ACTIVE' ? t('federation.connected') : t('federation.requestSent')
     setTimeout(() => { success.value = '' }, 3000)
     await loadData()
   } catch { error.value = t('federation.invalidCode') }
@@ -81,12 +104,29 @@ onMounted(() => { if (loaded.value) loadData() })
     <Alert v-if="error" variant="error">{{ error }}</Alert>
     <Alert v-if="success" variant="success">{{ success }}</Alert>
 
-    <div v-if="!loading && partners.length === 0" class="text-center text-[var(--text-muted)] py-8">
+    <!-- Pending pair requests -->
+    <div v-if="!loading && pairRequests.length > 0" class="mb-6">
+      <SubHeader class="mb-2">{{ t('federation.pairRequests') }}</SubHeader>
+      <div class="space-y-2">
+        <NeutralContainer v-for="req in pairRequests" :key="req.id" class="flex items-center gap-2">
+          <div class="flex-1 min-w-0">
+            <div class="font-medium">{{ req.stationName }}</div>
+            <div class="text-xs text-[var(--text-muted)]">{{ new Date(req.createdAt).toLocaleDateString('de-DE') }}</div>
+          </div>
+          <SecondaryButton compact @click="handleAcceptRequest(req.id)">
+            <font-awesome-icon :icon="['fas', 'check']" class="mr-1"/> {{ t('federation.acceptRequest') }}
+          </SecondaryButton>
+          <DeleteButton @click="handleDeclineRequest(req.id)"/>
+        </NeutralContainer>
+      </div>
+    </div>
+
+    <div v-if="!loading && partners.length === 0 && pairRequests.length === 0" class="text-center text-[var(--text-muted)] py-8">
       {{ t('federation.noPartners') }}
     </div>
 
     <div class="space-y-2">
-      <NeutralContainer v-for="p in partners" :key="p.partner.id" class="flex items-center gap-3">
+      <NeutralContainer v-for="p in partners" :key="p.partner.id" class="flex items-center gap-2">
         <div class="flex-1 min-w-0">
           <div class="font-medium">{{ p.partnerStationName }}</div>
           <div class="text-xs text-[var(--text-muted)]">v{{ p.partner.federationVersion }}</div>
@@ -94,7 +134,7 @@ onMounted(() => { if (loaded.value) loadData() })
         <SuccessBadge v-if="p.partner.status === 'ACTIVE'">{{ t('federation.active') }}</SuccessBadge>
         <ErrorBadge v-else-if="p.partner.status === 'SUSPENDED'">{{ t('federation.suspended') }}</ErrorBadge>
         <SecondaryBadge v-else>{{ t('federation.pending') }}</SecondaryBadge>
-        <PrimaryButton class="!text-xs !py-1 !px-2" @click="router.push({ name: 'station-federation-partner', params: { id: p.partner.id } })">
+        <PrimaryButton compact @click="router.push({ name: 'station-federation-partner', params: { id: p.partner.id } })">
           <font-awesome-icon :icon="['fas', 'sliders']" class="mr-1" /> {{ t('federation.manage') }}
         </PrimaryButton>
       </NeutralContainer>
@@ -102,7 +142,7 @@ onMounted(() => { if (loaded.value) loadData() })
 
     <!-- Invite / Accept Modal -->
     <Modal v-model="showInviteModal">
-      <SubHeader class="text-lg font-semibold mb-3">{{ t('federation.addPartner') }}</SubHeader>
+      <SubHeader class="mb-3">{{ t('federation.addPartner') }}</SubHeader>
       <div class="space-y-4">
         <div>
           <SubHeader>{{ t('federation.createInvite') }}</SubHeader>

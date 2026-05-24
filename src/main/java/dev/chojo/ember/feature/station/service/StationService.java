@@ -10,9 +10,11 @@ import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.entity.AccountCredential;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.account.service.AuthService;
+import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.members.entity.Role;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
+import dev.chojo.ember.feature.station.entity.DiscoveryVisibility;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.feature.station.repository.StationRepository;
@@ -39,6 +41,7 @@ public class StationService {
     private final StationMemberRepository memberRepository;
     private final AccountRepository accountRepository;
     private final AuthService authService;
+    private final FederationService federationService;
     private final Map<Integer, Optional<StationLogo>> logoCache = new ConcurrentHashMap<>();
 
     @Inject
@@ -46,11 +49,13 @@ public class StationService {
             StationRepository stationRepository,
             StationMemberRepository memberRepository,
             AccountRepository accountRepository,
-            AuthService authService) {
+            AuthService authService,
+            FederationService federationService) {
         this.stationRepository = stationRepository;
         this.memberRepository = memberRepository;
         this.accountRepository = accountRepository;
         this.authService = authService;
+        this.federationService = federationService;
     }
 
     /**
@@ -87,7 +92,11 @@ public class StationService {
      * @return the created station
      */
     public Station create(String name) {
-        return stationRepository.create(name);
+        var station = stationRepository.create(name);
+        // Ensure every station has a federation private key
+        var keyPair = federationService.generateKeyPair();
+        stationRepository.updateFederationPrivateKey(station.id(), federationService.encodePrivateKey(keyPair));
+        return stationRepository.findById(station.id()).orElse(station);
     }
 
     /**
@@ -313,6 +322,22 @@ public class StationService {
      */
     public boolean isModuleEnabled(int stationId, StationModule module) {
         return !stationRepository.findDisabledModules(stationId).contains(module);
+    }
+
+    /**
+     * Updates the discovery settings for a station.
+     */
+    public void updateDiscoverySettings(
+            int stationId, DiscoveryVisibility visibility, String description, boolean showKb) {
+        stationRepository.updateDiscoverySettings(stationId, visibility, description, showKb);
+    }
+
+    /**
+     * Finds all stations discoverable by the given station (instance-level visibility).
+     */
+    public List<Station> findDiscoverable(int excludeStationId) {
+        return stationRepository.findDiscoverable(
+                excludeStationId, DiscoveryVisibility.INSTANCE, DiscoveryVisibility.PUBLIC);
     }
 
     /**

@@ -101,18 +101,16 @@ onMounted(loadData)
 
         <div class="space-y-3">
           <NeutralContainer v-for="reg in registrations" :key="reg.id" class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-            <div class="flex items-center gap-2 flex-wrap text-sm">
+            <div class="flex items-center gap-2 flex-wrap text-xs">
               <MemberName :name="memberName(reg.memberId)" :member-id="reg.memberId"/>
               <span class="text-(--text-muted)">{{ eventName(reg.eventId) }}</span>
               <span class="text-xs text-(--text-muted)">{{ reg.eventDate }}</span>
             </div>
             <div class="flex items-center gap-2">
-              <PrimaryButton @click="accept(reg.id)">
-                <font-awesome-icon :icon="['fas', 'check']" class="mr-1"/>
+              <PrimaryButton :icon="['fas', 'check']" @click="accept(reg.id)">
                 {{ t('eventsRegistrations.accept') }}
               </PrimaryButton>
-              <ErrorButton @click="deny(reg.id)">
-                <font-awesome-icon :icon="['fas', 'xmark']" class="mr-1"/>
+              <ErrorButton :icon="['fas', 'xmark']" @click="deny(reg.id)">
                 {{ t('eventsRegistrations.deny') }}
               </ErrorButton>
             </div>

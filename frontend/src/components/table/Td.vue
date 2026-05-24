@@ -16,7 +16,7 @@ defineProps<{
         muted ? 'text-(--text-muted)' : '',
         align === 'center' ? 'text-center' : align === 'right' ? 'text-right' : '',
       ]"
-      class="px-3 py-2.5"
+      class="px-3 py-2"
   >
     <slot/>
   </td>

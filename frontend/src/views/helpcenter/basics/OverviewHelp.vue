@@ -9,6 +9,7 @@ import HelpArticle from '@/components/helpcenter/HelpArticle.vue'
 import HelpSection from '@/components/helpcenter/HelpSection.vue'
 import HelpTip from '@/components/helpcenter/HelpTip.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
+import BulletList from '@/components/typography/BulletList.vue'
 
 const {t} = useI18n()
 
@@ -32,12 +33,12 @@ const features = [
 
     <HelpSection :title="t('helpCenter.basics.overview.whoFor')">
       <p>{{ t('helpCenter.basics.overview.whoForText') }}</p>
-      <ul class="list-disc pl-5 space-y-1">
+      <BulletList>
         <li>{{ t('helpCenter.basics.overview.whoFor1') }}</li>
         <li>{{ t('helpCenter.basics.overview.whoFor2') }}</li>
         <li>{{ t('helpCenter.basics.overview.whoFor3') }}</li>
         <li>{{ t('helpCenter.basics.overview.whoFor4') }}</li>
-      </ul>
+      </BulletList>
     </HelpSection>
 
     <HelpSection :title="t('helpCenter.basics.overview.features')">
@@ -55,21 +56,21 @@ const features = [
 
     <HelpSection :title="t('helpCenter.basics.overview.concepts')">
       <p>{{ t('helpCenter.basics.overview.conceptsText') }}</p>
-      <ul class="list-disc pl-5 space-y-1">
+      <BulletList>
         <li><strong>{{ t('helpCenter.basics.overview.conceptStation') }}:</strong> {{ t('helpCenter.basics.overview.conceptStationText') }}</li>
         <li><strong>{{ t('helpCenter.basics.overview.conceptAccount') }}:</strong> {{ t('helpCenter.basics.overview.conceptAccountText') }}</li>
         <li><strong>{{ t('helpCenter.basics.overview.conceptMember') }}:</strong> {{ t('helpCenter.basics.overview.conceptMemberText') }}</li>
         <li><strong>{{ t('helpCenter.basics.overview.conceptGroup') }}:</strong> {{ t('helpCenter.basics.overview.conceptGroupText') }}</li>
-      </ul>
+      </BulletList>
     </HelpSection>
 
     <HelpSection :title="t('helpCenter.basics.overview.privacy')">
       <p>{{ t('helpCenter.basics.overview.privacyText') }}</p>
-      <ul class="list-disc pl-5 space-y-1">
+      <BulletList>
         <li>{{ t('helpCenter.basics.overview.privacy1') }}</li>
         <li>{{ t('helpCenter.basics.overview.privacy2') }}</li>
         <li>{{ t('helpCenter.basics.overview.privacy3') }}</li>
-      </ul>
+      </BulletList>
     </HelpSection>
 
     <HelpTip>{{ t('helpCenter.basics.overview.tip') }}</HelpTip>

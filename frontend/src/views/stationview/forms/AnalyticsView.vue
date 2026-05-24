@@ -352,8 +352,7 @@ onMounted(loadData)
             </p>
           </div>
           <div class="flex gap-2">
-            <SecondaryButton @click="openExportModal">
-              <font-awesome-icon :icon="['fas', 'file-export']" class="mr-1" />
+            <SecondaryButton :icon="['fas', 'file-export']" @click="openExportModal">
               {{ t('forms.analytics.export') }}
             </SecondaryButton>
             <SecondaryButton @click="router.push({ name: 'forms-list' })">{{ t('common.back') }}</SecondaryButton>
@@ -427,7 +426,7 @@ onMounted(loadData)
       <!-- Export Modal -->
       <Modal v-model="showExportModal">
         <div class="space-y-4">
-          <SubHeader class="font-semibold">{{ t('forms.analytics.export') }}</SubHeader>
+          <SubHeader>{{ t('forms.analytics.export') }}</SubHeader>
 
           <!-- Question selection -->
           <div class="space-y-2">

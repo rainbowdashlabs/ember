@@ -22,6 +22,7 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import { adminSettings } from '@/api'
 import type { AuthConfig, MailingConfig } from '@/api/adminSettings'
+import MutedText from '@/components/typography/MutedText.vue'
 
 const { t } = useI18n()
 
@@ -198,34 +199,34 @@ onMounted(async () => {
             <div>
               <FieldLabel class="mb-1">{{ t('adminSettings.auth.tokenBytes') }}</FieldLabel>
               <NumberInput v-model="authConfig.tokenBytes" />
-              <div class="text-xs text-(--text-muted) mt-1">{{ t('adminSettings.auth.tokenBytesHint') }}</div>
+              <MutedText tag="div" class="mt-1">{{ t('adminSettings.auth.tokenBytesHint') }}</MutedText>
             </div>
             <div>
               <FieldLabel class="mb-1">{{
                 t('adminSettings.auth.verifyTokenHours')
               }}</FieldLabel>
               <NumberInput v-model="authConfig.verifyTokenHours" />
-              <div class="text-xs text-(--text-muted) mt-1">
+              <MutedText tag="div" class="mt-1">
                 {{ t('adminSettings.auth.verifyTokenHoursHint') }}
-              </div>
+              </MutedText>
             </div>
             <div>
               <FieldLabel class="mb-1">{{
                 t('adminSettings.auth.passwordTokenHours')
               }}</FieldLabel>
               <NumberInput v-model="authConfig.passwordTokenHours" />
-              <div class="text-xs text-(--text-muted) mt-1">
+              <MutedText tag="div" class="mt-1">
                 {{ t('adminSettings.auth.passwordTokenHoursHint') }}
-              </div>
+              </MutedText>
             </div>
             <div>
               <FieldLabel class="mb-1">{{
                 t('adminSettings.auth.sessionMinutes')
               }}</FieldLabel>
               <NumberInput v-model="authConfig.sessionMinutes" />
-              <div class="text-xs text-(--text-muted) mt-1">
+              <MutedText tag="div" class="mt-1">
                 {{ t('adminSettings.auth.sessionMinutesHint') }}
-              </div>
+              </MutedText>
             </div>
           </div>
 
@@ -272,18 +273,18 @@ onMounted(async () => {
                 t('adminSettings.mailing.dailySendLimit')
               }}</FieldLabel>
               <NumberInput v-model="mailingConfig.dailySendLimit" />
-              <div class="text-xs text-(--text-muted) mt-1">
+              <MutedText tag="div" class="mt-1">
                 {{ t('adminSettings.mailing.dailySendLimitHint') }}
-              </div>
+              </MutedText>
             </div>
             <div>
               <FieldLabel class="mb-1">{{
                 t('adminSettings.mailing.notificationDigestIntervalMinutes')
               }}</FieldLabel>
               <NumberInput v-model="mailingConfig.notificationDigestIntervalMinutes" />
-              <div class="text-xs text-(--text-muted) mt-1">
+              <MutedText tag="div" class="mt-1">
                 {{ t('adminSettings.mailing.notificationDigestIntervalMinutesHint') }}
-              </div>
+              </MutedText>
             </div>
           </div>
 

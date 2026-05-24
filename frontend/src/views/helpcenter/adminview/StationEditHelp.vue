@@ -64,8 +64,7 @@ const {t} = useI18n()
     </NeutralContainer>
 
     <!-- Dummy: Back button -->
-    <SecondaryButton>
-      <font-awesome-icon :icon="['fas', 'chevron-left']" class="mr-2"/>
+    <SecondaryButton :icon="['fas', 'chevron-left']">
       {{ t('adminStations.back') }}
     </SecondaryButton>
 

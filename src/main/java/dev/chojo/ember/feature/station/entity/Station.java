@@ -14,12 +14,15 @@ import java.util.UUID;
 /**
  * Represents a station (organization unit) in the system.
  *
- * @param id            the internal database identifier
- * @param uid           the external UUID identifier (used in APIs and federation)
- * @param name          the display name of the station
- * @param timezone      the IANA timezone identifier for the station
- * @param locale        the locale string used for formatting (e.g., "de-DE")
- * @param ownerMemberId the member ID of the station owner, or {@code null} if no owner is set
+ * @param id                    the internal database identifier
+ * @param uid                   the external UUID identifier (used in APIs and federation)
+ * @param name                  the display name of the station
+ * @param timezone              the IANA timezone identifier for the station
+ * @param locale                the locale string used for formatting (e.g., "de-DE")
+ * @param ownerMemberId         the member ID of the station owner, or {@code null} if no owner is set
+ * @param discoveryVisibility   controls whether this station appears in federation discovery
+ * @param discoveryDescription  optional description shown in discovery
+ * @param discoveryShowKb       whether to show a link to the public knowledge base in discovery
  */
 public record Station(
         int id,
@@ -32,7 +35,10 @@ public record Station(
         boolean allowUserTheme,
         String customThemeColors,
         PublicKbMode publicKbMode,
-        String federationPrivateKey) {
+        String federationPrivateKey,
+        DiscoveryVisibility discoveryVisibility,
+        String discoveryDescription,
+        boolean discoveryShowKb) {
     public static RowMapping<Station> map() {
         return row -> new Station(
                 row.getInt("id"),
@@ -45,6 +51,9 @@ public record Station(
                 row.getBoolean("allow_user_theme"),
                 row.getString("custom_theme_colors"),
                 PublicKbMode.valueOf(row.getString("public_kb_mode")),
-                row.getString("federation_private_key"));
+                row.getString("federation_private_key"),
+                DiscoveryVisibility.valueOf(row.getString("discovery_visibility")),
+                row.getString("discovery_description"),
+                row.getBoolean("discovery_show_kb"));
     }
 }

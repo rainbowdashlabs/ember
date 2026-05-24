@@ -43,7 +43,11 @@ onMounted(async () => {
         </router-link>
       </div>
 
-      <div class="hidden md:flex md:flex-col md:items-end">
+      <div class="hidden md:flex md:flex-col md:items-end gap-2">
+        <router-link class="text-sm text-[var(--link)] hover:underline flex items-center gap-1" :to="{name: 'public-discovery'}">
+          <font-awesome-icon :icon="['fas', 'compass']"/>
+          {{ t('discovery.title') }}
+        </router-link>
         <slot/>
       </div>
     </div>

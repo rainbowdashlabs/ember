@@ -12,6 +12,7 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import DateTimeInput from '@/components/input/datetime/DateTimeInput.vue'
 import type {StationMember} from '@/api/types'
+import FieldLabel from '@/components/typography/FieldLabel.vue'
 
 const props = defineProps<{
   members: StationMember[]
@@ -53,7 +54,7 @@ function grantAccess() {
     <NeutralContainer>
       <div class="flex flex-col sm:flex-row gap-3 items-start sm:items-end">
         <div class="flex-1 relative">
-          <label class="text-xs text-(--text-muted) block mb-1">{{ t('quiz.tests.grantAccessMember') }}</label>
+          <FieldLabel hint class="mb-1">{{ t('quiz.tests.grantAccessMember') }}</FieldLabel>
           <TextInput v-model="accessMemberSearch" :placeholder="t('quiz.tests.searchMember')" />
           <div v-if="accessMemberSearch && !accessMemberId && filteredMembers.length > 0"
                class="absolute z-10 top-full mt-1 w-full rounded-lg border border-bg-light-accent dark:border-bg-dark-accent bg-bg-light dark:bg-bg-dark shadow-lg max-h-48 overflow-y-auto">
@@ -65,7 +66,7 @@ function grantAccess() {
           </div>
         </div>
         <div>
-          <label class="text-xs text-(--text-muted) block mb-1">{{ t('quiz.tests.accessClosesAt') }}</label>
+          <FieldLabel hint class="mb-1">{{ t('quiz.tests.accessClosesAt') }}</FieldLabel>
           <DateTimeInput v-model="accessClosesAt" />
         </div>
         <PrimaryButton :disabled="!accessMemberId" @click="grantAccess">

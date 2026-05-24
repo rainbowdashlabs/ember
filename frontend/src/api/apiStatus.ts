@@ -53,3 +53,25 @@ export async function getHourlyStats(): Promise<HourlyStats[]> {
     const res = await client.get<HourlyStats[]>('/admin/api-status/hourly')
     return res.data
 }
+
+export interface RequestEntry {
+    timestamp: string
+    method: string
+    path: string
+    statusCode: number
+    durationMs: number
+}
+
+export interface EndpointDetail {
+    method: string
+    path: string
+    avgDurationMs: number
+    requestCount: number
+    statusCodes: { statusCode: number; count: number }[]
+    recentRequests: RequestEntry[]
+}
+
+export async function getEndpointDetail(method: string, path: string): Promise<EndpointDetail> {
+    const res = await client.get<EndpointDetail>('/admin/api-status/endpoint', {params: {method, path}})
+    return res.data
+}

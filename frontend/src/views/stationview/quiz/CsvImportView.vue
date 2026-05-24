@@ -27,6 +27,7 @@ import CsvFileUpload from './csvimportview/CsvFileUpload.vue'
 import CsvColumnMapping from './csvimportview/CsvColumnMapping.vue'
 import CsvQuestionCard from './csvimportview/CsvQuestionCard.vue'
 import type { ImportQuestion } from './csvimportview/CsvQuestionCard.vue'
+import FieldLabel from '@/components/typography/FieldLabel.vue'
 
 const { t } = useI18n()
 const router = useRouter()
@@ -349,7 +350,7 @@ watch(loaded, (isLoaded) => {
 
 <template>
   <ViewContent>
-    <div class="flex items-center gap-3 mb-4">
+    <div class="flex items-center gap-2 mb-4">
       <SecondaryButton @click="router.push({ name: 'quiz-catalog-detail', params: { id: catalogId } })">
         <font-awesome-icon :icon="['fas', 'chevron-left']" />
         {{ catalogName || t('common.back') }}
@@ -396,17 +397,17 @@ watch(loaded, (isLoaded) => {
 
       <!-- AI Wrong Answers -->
       <NeutralContainer v-if="aiProviders.length > 0" class="space-y-3 mb-4">
-        <div class="flex items-center gap-3">
+        <div class="flex items-center gap-2">
           <ToggleInput v-model="generateWrongAnswers" />
           <span class="text-sm font-medium">{{ t('quiz.csv.generateWrongAnswers') }}</span>
         </div>
         <div v-if="generateWrongAnswers" class="flex items-center gap-4 flex-wrap">
           <div>
-            <label class="text-xs text-(--text-muted) block mb-1">{{ t('quiz.csv.wrongAnswerCount') }}</label>
+            <FieldLabel hint class="mb-1">{{ t('quiz.csv.wrongAnswerCount') }}</FieldLabel>
             <NumberInput v-model="wrongAnswerCount" :min="1" :max="10" class="w-20" />
           </div>
           <div>
-            <label class="text-xs text-(--text-muted) block mb-1">AI Provider</label>
+            <FieldLabel hint class="mb-1">AI Provider</FieldLabel>
             <SelectInput v-model="selectedProvider" class="w-48">
               <option v-for="p in aiProviders" :key="p.provider" :value="p.provider">{{ p.provider }}</option>
             </SelectInput>
@@ -419,7 +420,7 @@ watch(loaded, (isLoaded) => {
       <NeutralContainer class="space-y-4 mb-4">
         <div class="flex items-center justify-between flex-wrap gap-2">
           <SectionHeader>3. {{ t('quiz.csv.preview') }} ({{ includedCount }} / {{ questions.length }})</SectionHeader>
-          <div class="flex items-center gap-3">
+          <div class="flex items-center gap-2">
             <span v-if="aiStatus" class="text-xs text-(--text-muted)">
               <font-awesome-icon :icon="['fas', 'spinner']" spin class="mr-1" />
               {{ aiStatus }}

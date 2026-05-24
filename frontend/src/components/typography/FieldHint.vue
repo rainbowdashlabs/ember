@@ -4,8 +4,9 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
+import FieldLabel from './FieldLabel.vue'
 </script>
 
 <template>
-  <label class="block text-xs text-(--text-muted) mb-1"><slot/></label>
+  <FieldLabel hint><slot/></FieldLabel>
 </template>

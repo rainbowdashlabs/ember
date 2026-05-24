@@ -27,6 +27,8 @@ import type { QuizCatalog, QuizCategory, QuizSectionDetail, Role, MemberGroup, U
 import { quiz, stationMembers, memberGroups, userTags } from '@/api'
 import RestrictionPicker from '@/components/input/RestrictionPicker.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
+import FieldLabel from '@/components/typography/FieldLabel.vue'
+import SectionLabel from '@/components/typography/SectionLabel.vue'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -266,24 +268,24 @@ onMounted(loadData)
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label class="text-xs text-(--text-muted) block mb-1">{{ t('quiz.tests.startAt') }}</label>
+                <FieldLabel hint class="mb-1">{{ t('quiz.tests.startAt') }}</FieldLabel>
                 <DateTimeInput v-model="startAt" />
               </div>
               <div>
-                <label class="text-xs text-(--text-muted) block mb-1">{{ t('quiz.tests.endAt') }}</label>
+                <FieldLabel hint class="mb-1">{{ t('quiz.tests.endAt') }}</FieldLabel>
                 <DateTimeInput v-model="endAt" />
               </div>
             </div>
 
             <div class="flex flex-wrap gap-6">
-              <label class="flex items-center gap-2 text-sm">
+              <FieldLabel inline>
                 <ToggleInput v-model="shuffle" />
                 {{ t('quiz.tests.shuffle') }}
-              </label>
-              <label class="flex items-center gap-2 text-sm">
+              </FieldLabel>
+              <FieldLabel inline>
                 <ToggleInput v-model="timeLimitEnabled" />
                 {{ t('quiz.tests.timeLimitEnabled') }}
-              </label>
+              </FieldLabel>
             </div>
 
             <div v-if="timeLimitEnabled" class="flex items-center gap-2">
@@ -313,8 +315,7 @@ onMounted(loadData)
         <div class="space-y-4">
           <div class="flex items-center justify-between">
             <SectionHeader>{{ t('quiz.sections.title') }}</SectionHeader>
-            <SecondaryButton @click="addSection">
-              <font-awesome-icon :icon="['fas', 'plus']" class="mr-1" />
+            <SecondaryButton :icon="['fas', 'plus']" @click="addSection">
               {{ t('quiz.sections.add') }}
             </SecondaryButton>
           </div>
@@ -324,9 +325,9 @@ onMounted(loadData)
           <NeutralContainer v-for="(section, sIdx) in sections" :key="section.key">
             <div class="space-y-4">
               <div class="flex items-center justify-between">
-                <span class="text-xs font-semibold text-(--text-muted) uppercase">
+                <SectionLabel>
                   {{ t('quiz.sections.sectionNumber', { n: sIdx + 1 }) }}
-                </span>
+                </SectionLabel>
                 <div class="flex gap-1">
                   <IconButton :icon="['fas', 'chevron-up']" :label="t('common.moveUp')" :disabled="sIdx === 0"
                               class="text-(--text-muted) hover:text-primary" @click="moveSection(sIdx, -1)" />
@@ -376,8 +377,7 @@ onMounted(loadData)
                   <DeleteButton @click="removeSource(section, srcIdx)" />
                 </div>
 
-                <SecondaryButton @click="addSource(section)">
-                  <font-awesome-icon :icon="['fas', 'plus']" class="mr-1" />
+                <SecondaryButton :icon="['fas', 'plus']" @click="addSource(section)">
                   {{ t('quiz.sections.addSource') }}
                 </SecondaryButton>
               </div>

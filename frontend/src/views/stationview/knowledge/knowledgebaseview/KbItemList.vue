@@ -12,6 +12,7 @@ import StationBadge from '@/components/badge/StationBadge.vue'
 import type {KbFolder, KbFile, SharedFileEntry} from '@/api/knowledgeBase'
 import {KbFileType} from '@/api/knowledgeBase'
 import {knowledgeBase} from '@/api'
+import MutedIcon from '@/components/display/MutedIcon.vue'
 
 const {t} = useI18n()
 
@@ -88,7 +89,7 @@ function formatDate(dateStr: string): string {
         <!-- Virtual Favourites Folder (root only, list view) -->
         <div
             v-if="!currentFolder && !isFavouritesView && favourites.length > 0"
-            class="flex items-center gap-3 px-3 py-1.5 cursor-pointer hover:bg-[var(--bg-accent)] transition-colors"
+            class="flex items-center gap-2 px-3 py-1.5 cursor-pointer hover:bg-[var(--bg-accent)] transition-colors"
             @click="emit('navigateToFavourites')"
         >
             <div class="w-5 flex-shrink-0 flex justify-center">
@@ -102,7 +103,7 @@ function formatDate(dateStr: string): string {
         <div
             v-for="folder in folders"
             :key="'folder-' + folder.id"
-            class="flex items-center gap-3 px-3 py-1.5 cursor-pointer hover:bg-[var(--bg-accent)] transition-colors group"
+            class="flex items-center gap-2 px-3 py-1.5 cursor-pointer hover:bg-[var(--bg-accent)] transition-colors group"
             @click="emit('navigateFolder', folder.id)"
         >
             <div class="w-5 flex-shrink-0 flex justify-center">
@@ -117,7 +118,7 @@ function formatDate(dateStr: string): string {
                                    class="text-sm text-[var(--accent)]"/>
             </div>
             <span class="text-sm font-medium truncate min-w-0 flex-1">{{ folder.name }}</span>
-            <font-awesome-icon v-if="folder.restricted" :icon="['fas', 'lock']" class="ml-1 h-3 w-3 text-[var(--text-muted)] flex-shrink-0"/>
+            <MutedIcon v-if="folder.restricted" :icon="['fas', 'lock']" class="flex-shrink-0 ml-1"/>
             <span v-if="folder.description"
                   class="hidden sm:block text-xs text-[var(--text-muted)] truncate max-w-48">
                 {{ folder.description }}
@@ -143,7 +144,7 @@ function formatDate(dateStr: string): string {
         <div
             v-for="file in files"
             :key="'file-' + file.id"
-            class="flex items-center gap-3 px-3 py-1.5 cursor-pointer hover:bg-[var(--bg-accent)] transition-colors group"
+            class="flex items-center gap-2 px-3 py-1.5 cursor-pointer hover:bg-[var(--bg-accent)] transition-colors group"
             @click="emit('navigateFile', file)"
         >
             <div class="w-5 flex-shrink-0 flex justify-center">
@@ -155,7 +156,7 @@ function formatDate(dateStr: string): string {
                 class="text-xs text-yellow-500 flex-shrink-0"
             />
             <span class="text-sm font-medium truncate min-w-0 flex-1">{{ file.name }}</span>
-            <font-awesome-icon v-if="file.restricted" :icon="['fas', 'lock']" class="ml-1 h-3 w-3 text-[var(--text-muted)] flex-shrink-0"/>
+            <MutedIcon v-if="file.restricted" :icon="['fas', 'lock']" class="flex-shrink-0 ml-1"/>
             <span v-if="file.description"
                   class="hidden sm:block text-xs text-[var(--text-muted)] truncate max-w-48">
                 {{ file.description }}
@@ -183,7 +184,7 @@ function formatDate(dateStr: string): string {
         <div
             v-for="shared in sharedFiles"
             :key="'shared-' + shared.file.id"
-            class="flex items-center gap-3 px-3 py-1.5 cursor-pointer hover:bg-[var(--bg-accent)] transition-colors group"
+            class="flex items-center gap-2 px-3 py-1.5 cursor-pointer hover:bg-[var(--bg-accent)] transition-colors group"
             @click="emit('navigateFile', shared.file)"
         >
             <div class="w-5 flex-shrink-0 flex justify-center">

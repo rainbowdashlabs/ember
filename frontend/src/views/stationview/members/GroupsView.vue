@@ -26,6 +26,7 @@ import RoleSelector from '@/components/input/RoleSelector.vue'
 import type {MemberGroup, Role, StationMember} from '@/api/types'
 import {memberGroups, stationMembers} from '@/api'
 import {useSession} from '@/composables/useSession'
+import MutedText from '@/components/typography/MutedText.vue'
 
 const {t} = useI18n()
 const {canManageMembers, isManager} = useSession()
@@ -236,8 +237,7 @@ onMounted(loadData)
         <div class="space-y-4">
           <div class="flex items-center justify-between">
             <SectionHeader>{{ t('memberGroups.title') }}</SectionHeader>
-            <PrimaryButton @click="openCreateGroup">
-              <font-awesome-icon :icon="['fas', 'plus']" class="mr-2"/>
+            <PrimaryButton :icon="['fas', 'plus']" @click="openCreateGroup">
               {{ t('memberGroups.create') }}
             </PrimaryButton>
           </div>
@@ -281,17 +281,17 @@ onMounted(loadData)
               <FieldLabel class="text-(--text-muted)">{{
                   t('memberGroups.currentMembers')
                 }}</FieldLabel>
-              <div v-if="groupMembers.length === 0" class="text-sm text-(--text-muted) py-2">
+              <MutedText tag="div" size="sm" class="py-2" v-if="groupMembers.length === 0">
                 {{ t('memberGroups.noMembers') }}
-              </div>
+              </MutedText>
               <div class="space-y-1">
                 <div v-for="member in sortedGroupMembers" :key="member.id"
                      class="flex items-center justify-between rounded-lg px-3 py-2 bg-bg-light-accent dark:bg-bg-dark-accent">
                   <div>
                     <MemberName :name="memberDisplayName(member)" :member-id="member.id" class="text-sm font-medium"/>
-                    <span v-if="member.name && member.email" class="ml-2 text-xs text-(--text-muted)">{{
+                    <MutedText class="ml-2" v-if="member.name && member.email">{{
                         member.email
-                      }}</span>
+                      }}</MutedText>
                   </div>
                   <IconButton :icon="['fas', 'xmark']" :label="t('memberGroups.removeMember')" class="text-error hover:text-error/80 text-sm" @click="removeMemberFromGroup(member)"/>
                 </div>
@@ -301,9 +301,9 @@ onMounted(loadData)
             <!-- Available members to add -->
             <div class="space-y-1">
               <FieldLabel class="text-(--text-muted)">{{ t('memberGroups.addMembers') }}</FieldLabel>
-              <div v-if="availableMembers.length === 0" class="text-sm text-(--text-muted) py-2">
+              <MutedText tag="div" size="sm" class="py-2" v-if="availableMembers.length === 0">
                 {{ t('memberGroups.allAdded') }}
-              </div>
+              </MutedText>
               <div class="space-y-1">
                 <div
                     v-for="member in availableMembers"
@@ -313,9 +313,9 @@ onMounted(loadData)
                 >
                   <div>
                     <MemberName :name="memberDisplayName(member)" :member-id="member.id" class="text-sm font-medium"/>
-                    <span v-if="member.name && member.email" class="ml-2 text-xs text-(--text-muted)">{{
+                    <MutedText class="ml-2" v-if="member.name && member.email">{{
                         member.email
-                      }}</span>
+                      }}</MutedText>
                   </div>
                   <font-awesome-icon :icon="['fas', 'plus']" class="text-primary text-sm"/>
                 </div>

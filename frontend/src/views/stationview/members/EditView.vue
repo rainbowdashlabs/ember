@@ -29,6 +29,7 @@ import Th from '@/components/table/Th.vue'
 import Td from '@/components/table/Td.vue'
 import THead from '@/components/table/THead.vue'
 import TRow from '@/components/table/TRow.vue'
+import FieldLabel from '@/components/typography/FieldLabel.vue'
 
 
 const { t } = useI18n()
@@ -263,8 +264,7 @@ onMounted(async () => {
 <template>
   <ViewContent>
     <div class="space-y-6">
-      <SecondaryButton @click="goBack">
-        <font-awesome-icon :icon="['fas', 'chevron-left']" class="mr-2" />
+      <SecondaryButton :icon="['fas', 'chevron-left']" @click="goBack">
         {{ t('memberEdit.back') }}
       </SecondaryButton>
 
@@ -277,18 +277,18 @@ onMounted(async () => {
 
         <!-- Base fields -->
         <NeutralContainer class="space-y-4">
-          <SubHeader class="text-sm font-semibold">{{ t('memberEdit.baseFields') }}</SubHeader>
+          <SubHeader class="text-sm">{{ t('memberEdit.baseFields') }}</SubHeader>
           <div class="grid gap-4 sm:grid-cols-3">
             <div class="space-y-1">
-              <label class="block text-xs font-medium text-(--text-muted)">{{ t('memberEdit.firstName') }}</label>
+              <FieldLabel hint>{{ t('memberEdit.firstName') }}</FieldLabel>
               <TextInput v-model="editFirstName" />
             </div>
             <div class="space-y-1">
-              <label class="block text-xs font-medium text-(--text-muted)">{{ t('memberEdit.lastName') }}</label>
+              <FieldLabel hint>{{ t('memberEdit.lastName') }}</FieldLabel>
               <TextInput v-model="editLastName" />
             </div>
             <div class="space-y-1">
-              <label class="block text-xs font-medium text-(--text-muted)">{{ t('memberEdit.email') }}</label>
+              <FieldLabel hint>{{ t('memberEdit.email') }}</FieldLabel>
               <TextInput v-model="editEmail" />
             </div>
           </div>
@@ -296,13 +296,13 @@ onMounted(async () => {
 
         <!-- Roles -->
         <NeutralContainer class="space-y-3">
-          <SubHeader class="text-sm font-semibold">{{ t('memberEdit.roles') }}</SubHeader>
+          <SubHeader class="text-sm">{{ t('memberEdit.roles') }}</SubHeader>
           <RoleSelector v-model="editRoleIds" :all-roles="allRoles" />
         </NeutralContainer>
 
         <!-- Groups -->
         <NeutralContainer class="space-y-3">
-          <SubHeader class="text-sm font-semibold">{{ t('memberEdit.groups') }}</SubHeader>
+          <SubHeader class="text-sm">{{ t('memberEdit.groups') }}</SubHeader>
           <div class="flex flex-wrap gap-2">
             <button
               v-for="group in allGroups"
@@ -319,7 +319,7 @@ onMounted(async () => {
 
         <!-- Tags -->
         <NeutralContainer class="space-y-3">
-          <SubHeader class="text-sm font-semibold">{{ t('memberEdit.tags') }}</SubHeader>
+          <SubHeader class="text-sm">{{ t('memberEdit.tags') }}</SubHeader>
           <div class="flex flex-wrap gap-2">
             <button
               v-for="tag in allTags"
@@ -336,7 +336,7 @@ onMounted(async () => {
 
         <!-- Profile fields -->
         <NeutralContainer class="space-y-4">
-          <SubHeader class="text-sm font-semibold">{{ t('memberEdit.fields') }}</SubHeader>
+          <SubHeader class="text-sm">{{ t('memberEdit.fields') }}</SubHeader>
           <div class="overflow-x-auto">
             <table class="w-full text-sm">
               <thead>
@@ -367,8 +367,7 @@ onMounted(async () => {
           <PrimaryButton :disabled="saving" @click="save">
             {{ saving ? t('common.loading') : t('memberEdit.save') }}
           </PrimaryButton>
-          <ErrorButton v-if="!formerSuccess" @click="showFormerModal = true">
-            <font-awesome-icon :icon="['fas', 'user-slash']" class="mr-1" />
+          <ErrorButton :icon="['fas', 'user-slash']" v-if="!formerSuccess" @click="showFormerModal = true">
             {{ t('memberDetail.markFormer') }}
           </ErrorButton>
         </div>

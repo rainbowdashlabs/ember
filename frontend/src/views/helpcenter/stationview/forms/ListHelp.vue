@@ -18,6 +18,7 @@ import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
+import BulletList from '@/components/typography/BulletList.vue'
 
 const {t} = useI18n()
 
@@ -39,9 +40,8 @@ const activeRole = ref('')
     <!-- Dummy: Form list -->
     <div class="space-y-3">
       <div class="flex items-center justify-between">
-        <SubHeader class="font-semibold">{{ t('forms.title') }}</SubHeader>
-        <PrimaryButton v-if="activeRole === 'manager'">
-          <font-awesome-icon :icon="['fas', 'plus']" class="mr-1"/>
+        <SubHeader>{{ t('forms.title') }}</SubHeader>
+        <PrimaryButton :icon="['fas', 'plus']" v-if="activeRole === 'manager'">
           {{ t('forms.create') }}
         </PrimaryButton>
       </div>
@@ -101,14 +101,14 @@ const activeRole = ref('')
 
     <HelpSection :title="t('helpCenter.forms.questionTypesTitle')">
       <p>{{ t('helpCenter.forms.questionTypesText') }}</p>
-      <ul class="list-disc pl-5 space-y-1 mt-2">
+      <BulletList class="mt-2">
         <li>{{ t('helpCenter.forms.typeChoice') }}</li>
         <li>{{ t('helpCenter.forms.typeText') }}</li>
         <li>{{ t('helpCenter.forms.typeRating') }}</li>
         <li>{{ t('helpCenter.forms.typeDate') }}</li>
         <li>{{ t('helpCenter.forms.typeRanking') }}</li>
         <li>{{ t('helpCenter.forms.typeLikert') }}</li>
-      </ul>
+      </BulletList>
     </HelpSection>
 
     <template v-if="activeRole === 'manager'">
@@ -122,11 +122,11 @@ const activeRole = ref('')
 
       <HelpSection :title="t('helpCenter.forms.lifecycleTitle')">
         <p>{{ t('helpCenter.forms.lifecycleText') }}</p>
-        <ul class="list-disc pl-5 space-y-1 mt-2">
+        <BulletList class="mt-2">
           <li><strong>{{ t('forms.statusDraft') }}:</strong> {{ t('helpCenter.forms.statusDraftDesc') }}</li>
           <li><strong>{{ t('forms.statusOpen') }}:</strong> {{ t('helpCenter.forms.statusOpenDesc') }}</li>
           <li><strong>{{ t('forms.statusClosed') }}:</strong> {{ t('helpCenter.forms.statusClosedDesc') }}</li>
-        </ul>
+        </BulletList>
       </HelpSection>
 
       <HelpSection :title="t('helpCenter.forms.analyticsTitle')">

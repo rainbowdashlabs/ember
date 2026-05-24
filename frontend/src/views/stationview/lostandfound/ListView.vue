@@ -188,8 +188,7 @@ onMounted(loadItems)
     <div class="space-y-6">
       <div class="flex items-center justify-between">
         <SectionHeader>{{ t('lostAndFound.title') }}</SectionHeader>
-        <PrimaryButton v-if="isManager()" @click="showCreate = true">
-          <font-awesome-icon :icon="['fas', 'plus']" class="mr-1"/>
+        <PrimaryButton :icon="['fas', 'plus']" v-if="isManager()" @click="showCreate = true">
           {{ t('lostAndFound.create') }}
         </PrimaryButton>
       </div>
@@ -227,8 +226,7 @@ onMounted(loadItems)
             </SuccessBadge>
 
             <div v-if="isManager()" class="flex items-center gap-2">
-              <SuccessButton class="flex-1 text-sm" @click="askProvided(item.id)">
-                <font-awesome-icon :icon="['fas', 'circle-check']" class="mr-1"/>
+              <SuccessButton :icon="['fas', 'circle-check']" class="flex-1 text-sm" @click="askProvided(item.id)">
                 {{ t('lostAndFound.provided') }}
               </SuccessButton>
               <DeleteButton @click="handleDelete(item.id)"/>
@@ -248,7 +246,7 @@ onMounted(loadItems)
       <!-- Claim confirmation modal -->
       <Modal v-model="showClaimConfirm">
         <div class="space-y-4 p-4">
-          <SubHeader class="text-lg font-semibold">{{ t('lostAndFound.claimConfirmTitle') }}</SubHeader>
+          <SubHeader>{{ t('lostAndFound.claimConfirmTitle') }}</SubHeader>
           <p class="text-sm text-(--text-muted)">{{ t('lostAndFound.claimConfirmMessage') }}</p>
           <div class="flex justify-end gap-2">
             <SecondaryButton @click="showClaimConfirm = false">{{ t('common.cancel') }}</SecondaryButton>
@@ -262,7 +260,7 @@ onMounted(loadItems)
       <!-- Provided confirmation modal -->
       <Modal v-model="showProvidedConfirm">
         <div class="space-y-4 p-4">
-          <SubHeader class="text-lg font-semibold">{{ t('lostAndFound.providedConfirmTitle') }}</SubHeader>
+          <SubHeader>{{ t('lostAndFound.providedConfirmTitle') }}</SubHeader>
           <p class="text-sm text-(--text-muted)">{{ t('lostAndFound.providedConfirmMessage') }}</p>
           <div class="flex justify-end gap-2">
             <SecondaryButton @click="showProvidedConfirm = false">{{ t('common.cancel') }}</SecondaryButton>
@@ -276,7 +274,7 @@ onMounted(loadItems)
       <!-- Create modal -->
       <Modal v-model="showCreate">
         <div class="space-y-4 p-4">
-          <SubHeader class="text-lg font-semibold">{{ t('lostAndFound.createTitle') }}</SubHeader>
+          <SubHeader>{{ t('lostAndFound.createTitle') }}</SubHeader>
 
           <div class="space-y-2">
             <FieldLabel>{{ t('lostAndFound.image') }}</FieldLabel>
@@ -290,12 +288,10 @@ onMounted(loadItems)
               />
             </div>
             <div v-else class="flex gap-2">
-              <SecondaryButton class="flex-1" @click="fileInputRef?.click()">
-                <font-awesome-icon :icon="['fas', 'upload']" class="mr-1"/>
+              <SecondaryButton :icon="['fas', 'upload']" class="flex-1" @click="fileInputRef?.click()">
                 {{ t('lostAndFound.uploadImage') }}
               </SecondaryButton>
-              <SecondaryButton class="flex-1" @click="cameraInputRef?.click()">
-                <font-awesome-icon :icon="['fas', 'camera']" class="mr-1"/>
+              <SecondaryButton :icon="['fas', 'camera']" class="flex-1" @click="cameraInputRef?.click()">
                 {{ t('lostAndFound.takePhoto') }}
               </SecondaryButton>
             </div>

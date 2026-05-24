@@ -38,8 +38,7 @@ const {t} = useI18n()
       <div class="space-y-4">
         <div class="flex items-center justify-between">
           <SectionHeader>{{ t('memberGroups.title') }}</SectionHeader>
-          <PrimaryButton>
-            <font-awesome-icon :icon="['fas', 'plus']" class="mr-2"/>
+          <PrimaryButton :icon="['fas', 'plus']">
             {{ t('memberGroups.create') }}
           </PrimaryButton>
         </div>

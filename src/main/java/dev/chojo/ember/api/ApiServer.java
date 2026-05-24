@@ -316,8 +316,27 @@ public class ApiServer {
     private void handleAccess(@NotNull Context ctx) {
         Set<RouteRole> routeRoles = ctx.routeRoles();
 
-        // Routes with no roles defined are public
+        // Routes with no roles defined are public — still populate session if token is present (best effort)
         if (routeRoles.isEmpty()) {
+            String publicAuthHeader = ctx.header("Authorization");
+            if (publicAuthHeader != null && publicAuthHeader.startsWith("Bearer ")) {
+                String publicToken = publicAuthHeader.substring(7);
+                if (!publicToken.isBlank()) {
+                    Station publicStation = null;
+                    String publicStationId = ctx.header("X-Station-Id");
+                    if (publicStationId != null && !publicStationId.isBlank()) {
+                        try {
+                            publicStation = stationRepository
+                                    .findByUid(UUID.fromString(publicStationId))
+                                    .orElse(null);
+                        } catch (IllegalArgumentException ignored) {
+                        }
+                    }
+                    accessManager
+                            .resolveUserSession(publicToken, publicStation)
+                            .ifPresent(s -> ctx.attribute(ATTR_SESSION, s));
+                }
+            }
             return;
         }
 

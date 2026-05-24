@@ -14,6 +14,7 @@ import VChart from 'vue-echarts'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
+import StatValue from '@/components/typography/StatValue.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import client from '@/api/client'
@@ -228,21 +229,21 @@ watch(loaded, (isLoaded) => {
         <!-- Summary cards -->
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <NeutralContainer class="text-center">
-            <p class="text-2xl font-bold text-primary">{{ stats.memberCount }}</p>
+            <StatValue>{{ stats.memberCount }}</StatValue>
             <p class="text-sm text-(--text-muted)">{{ t('statistics.members') }}</p>
           </NeutralContainer>
           <NeutralContainer class="text-center">
-            <p class="text-2xl font-bold text-primary">{{ Object.keys(stats.groupCounts).length }}</p>
+            <StatValue>{{ Object.keys(stats.groupCounts).length }}</StatValue>
             <p class="text-sm text-(--text-muted)">{{ t('statistics.groups') }}</p>
           </NeutralContainer>
           <NeutralContainer class="text-center">
-            <p class="text-2xl font-bold text-primary">{{
+            <StatValue>{{
                 stats.attendanceByMonth.reduce((s, a) => s + a.sessions, 0)
-              }}</p>
+              }}</StatValue>
             <p class="text-sm text-(--text-muted)">{{ t('statistics.totalSessions') }}</p>
           </NeutralContainer>
           <NeutralContainer class="text-center">
-            <p class="text-2xl font-bold text-primary">{{ stats.inventoryStatus.reduce((s, i) => s + i.total, 0) }}</p>
+            <StatValue>{{ stats.inventoryStatus.reduce((s, i) => s + i.total, 0) }}</StatValue>
             <p class="text-sm text-(--text-muted)">{{ t('statistics.totalItems') }}</p>
           </NeutralContainer>
         </div>

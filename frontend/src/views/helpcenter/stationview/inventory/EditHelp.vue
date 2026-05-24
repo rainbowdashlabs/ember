@@ -43,8 +43,7 @@ const {t} = useI18n()
     <NeutralContainer class="space-y-4">
       <div class="flex items-center justify-between">
         <SubHeader>{{ t('inventory.edit.itemsTitle') }}</SubHeader>
-        <PrimaryButton>
-          <font-awesome-icon :icon="['fas', 'plus']" class="mr-2" />
+        <PrimaryButton :icon="['fas', 'plus']">
           {{ t('inventory.edit.addItem') }}
         </PrimaryButton>
       </div>

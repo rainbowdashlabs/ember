@@ -53,19 +53,21 @@ function initFromLocalStorage() {
     const savedDarkMode = getItem('dark_mode') as DarkModeValue | null
     if (savedTheme && THEMES[savedTheme]) {
         activeTheme.value = savedTheme
-        applyTheme(savedTheme)
     }
+    // Always apply theme colors (defaults to 'ember' if nothing saved)
+    applyTheme(activeTheme.value)
+
     if (savedDarkMode) {
         darkMode.value = savedDarkMode
-        applyDarkMode(savedDarkMode)
     } else {
         // Legacy: check old 'theme' key (was 'dark'/'light')
         const old = getItem('theme')
         if (old === 'dark' || old === 'light') {
             darkMode.value = old
-            applyDarkMode(old)
         }
     }
+    // Always apply dark mode (defaults to 'system' if nothing saved)
+    applyDarkMode(darkMode.value)
 }
 
 function initFromSession(

@@ -46,6 +46,27 @@ public class FederationRepository {
                 .first();
     }
 
+    public void createInviteToken(int stationId, String token) {
+        Query.query("INSERT INTO federation_invite_token(station_id, token) VALUES(:station_id, :token);")
+                .single(Call.of().bind("station_id", stationId).bind("token", token))
+                .insert();
+    }
+
+    public boolean deleteInviteToken(int stationId, String token) {
+        return Query.query("DELETE FROM federation_invite_token WHERE station_id = :station_id AND token = :token;")
+                .single(Call.of().bind("station_id", stationId).bind("token", token))
+                .delete()
+                .changed();
+    }
+
+    public List<FederationPartner> findPendingRequestsForStation(int targetStationId) {
+        return Query.query(
+                        "SELECT * FROM federation_partner WHERE partner_station_id = :target_id AND status = 'PENDING';")
+                .single(Call.of().bind("target_id", targetStationId))
+                .map(FederationPartner.map())
+                .all();
+    }
+
     public FederationPartner createPartner(
             int stationId, int partnerStationId, String inviteCode, String publicKey, String remoteHost) {
         return Query.query("""

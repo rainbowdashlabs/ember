@@ -24,6 +24,7 @@ import type { ManagedMember } from '@/api/managedMembers'
 import { ExchangeStatus } from '@/api/types'
 import { exchanges, inventory, managedMembers } from '@/api'
 import { useSession } from '@/composables/useSession'
+import MutedText from '@/components/typography/MutedText.vue'
 
 const { t } = useI18n()
 const { canManageInventory, isGuardian, sessionInfo } = useSession()
@@ -207,9 +208,9 @@ async function submitCreate() {
       <template v-if="createStep === 2">
         <Spinner v-if="createLoadingItems" size="md" />
         <template v-else>
-          <div v-if="createMemberItems.length === 0" class="text-sm text-(--text-muted) py-2">
+          <MutedText tag="div" size="sm" class="py-2" v-if="createMemberItems.length === 0">
             {{ t('exchanges.noItemsForMember') }}
-          </div>
+          </MutedText>
           <div v-else class="space-y-1">
             <FieldLabel>{{ t('exchanges.selectItem') }}</FieldLabel>
             <SelectInput v-model="createItemId">

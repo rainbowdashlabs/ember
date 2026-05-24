@@ -18,6 +18,7 @@ import FieldLabel from '@/components/typography/FieldLabel.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import type {EventCategory} from '@/api/types'
 import {events} from '@/api'
+import MutedText from '@/components/typography/MutedText.vue'
 
 const {t} = useI18n()
 
@@ -160,12 +161,12 @@ async function doExport() {
 <template>
   <Modal v-model="modelValue">
     <div class="space-y-5 p-4 max-h-[80vh] overflow-y-auto">
-      <SubHeader class="text-lg font-semibold">{{ t('events.exportPdf') }}</SubHeader>
+      <SubHeader>{{ t('events.exportPdf') }}</SubHeader>
 
       <!-- Time range -->
       <div class="space-y-2">
         <FieldLabel>{{ t('events.exportPeriod') }}</FieldLabel>
-        <div class="flex items-center gap-3 flex-wrap">
+        <div class="flex items-center gap-2 flex-wrap">
           <SelectInput v-model="exportMode" class="w-32">
             <option value="year">{{ t('events.exportYear') }}</option>
             <option value="month">{{ t('events.exportMonth') }}</option>
@@ -197,9 +198,9 @@ async function doExport() {
         <FieldLabel>{{ t('events.exportColumns') }}</FieldLabel>
 
         <!-- Selected columns in order -->
-        <div v-if="selectedColumns.length === 0" class="text-sm text-(--text-muted) py-2 text-center">
+        <MutedText tag="div" size="sm" class="py-2 text-center" v-if="selectedColumns.length === 0">
           {{ t('events.exportNoColumns') }}
-        </div>
+        </MutedText>
         <div class="space-y-1">
           <div
               v-for="(col, index) in selectedColumns"
@@ -258,8 +259,7 @@ async function doExport() {
 
       <div class="flex justify-end gap-2 pt-2">
         <SecondaryButton @click="modelValue = false">{{ t('common.cancel') }}</SecondaryButton>
-        <PrimaryButton :disabled="exporting || selectedColumns.length === 0" @click="doExport">
-          <font-awesome-icon :icon="['fas', 'file-export']" class="mr-1"/>
+        <PrimaryButton :icon="['fas', 'file-export']" :disabled="exporting || selectedColumns.length === 0" @click="doExport">
           {{ exporting ? t('common.loading') : t('events.exportPdf') }}
         </PrimaryButton>
       </div>

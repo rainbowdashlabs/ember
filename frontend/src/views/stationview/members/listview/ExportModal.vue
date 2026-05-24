@@ -94,7 +94,7 @@ function submit() {
         </div>
         <div class="grid gap-1 sm:grid-cols-2 max-h-64 overflow-y-auto">
           <label v-for="col in allColumns" :key="col.key"
-                 class="flex items-center gap-2 cursor-pointer text-sm py-1 px-2 rounded hover:bg-bg-light-accent/30 dark:hover:bg-bg-dark-accent/30">
+                 class="flex items-center gap-2 cursor-pointer text-xs py-1 px-2 rounded hover:bg-bg-light-accent/30 dark:hover:bg-bg-dark-accent/30">
             <CheckboxInput :model-value="selectedColumns.has(col.key)" @update:model-value="toggleColumn(col.key)"/>
             {{ col.label }}
           </label>
@@ -105,11 +105,11 @@ function submit() {
       <div class="space-y-2">
         <FieldLabel>{{ t('membersList.export.format') }}</FieldLabel>
         <div class="flex items-center gap-4">
-          <label class="flex items-center gap-2 cursor-pointer text-sm">
+          <FieldLabel inline class="cursor-pointer">
             <RadioInput v-model="format" value="csv"/>
             {{ t('membersList.export.formatCsv') }}
-          </label>
-          <label :class="{ 'opacity-40': !canExportValues }" class="flex items-center gap-2 cursor-pointer text-sm">
+          </FieldLabel>
+          <label :class="{ 'opacity-40': !canExportValues }" class="flex items-center gap-2 cursor-pointer text-xs">
             <RadioInput v-model="format" value="values" :disabled="!canExportValues"/>
             {{ t('membersList.export.formatValues') }}
           </label>
@@ -120,8 +120,7 @@ function submit() {
 
       <div class="flex justify-end gap-3">
         <SecondaryButton @click="emit('update:modelValue', false)">{{ t('common.cancel') }}</SecondaryButton>
-        <PrimaryButton :disabled="selectedColumns.size === 0" @click="submit">
-          <font-awesome-icon :icon="['fas', 'download']" class="mr-1"/>
+        <PrimaryButton :icon="['fas', 'download']" :disabled="selectedColumns.size === 0" @click="submit">
           {{ t('membersList.export.submit') }}
         </PrimaryButton>
       </div>

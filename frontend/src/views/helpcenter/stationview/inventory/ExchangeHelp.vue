@@ -51,8 +51,7 @@ const activeRole = ref('')
     <NeutralContainer class="space-y-3">
       <div class="flex items-center justify-between flex-wrap gap-2">
         <SectionHeader>{{ t('exchanges.title') }}</SectionHeader>
-        <PrimaryButton>
-          <font-awesome-icon :icon="['fas', 'plus']" class="mr-2" />
+        <PrimaryButton :icon="['fas', 'plus']">
           {{ t('exchanges.create') }}
         </PrimaryButton>
       </div>

@@ -37,8 +37,7 @@ function itemExchange(itemId: number, exchanges: ExchangeRequestEntry[]): Exchan
   <NeutralContainer class="space-y-3">
     <div class="flex items-center justify-between">
       <SubHeader>{{ t('memberDetail.inventory') }}</SubHeader>
-      <PrimaryButton v-if="showInventoryManagement" @click="emit('assignItem')">
-        <font-awesome-icon :icon="['fas', 'plus']" class="mr-1"/>
+      <PrimaryButton :icon="['fas', 'plus']" v-if="showInventoryManagement" @click="emit('assignItem')">
         {{ t('memberDetail.assignItem') }}
       </PrimaryButton>
     </div>

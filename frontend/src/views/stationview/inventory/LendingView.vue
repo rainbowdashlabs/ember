@@ -26,6 +26,7 @@ import type {LendingRequestResponse, LendingStatusName, AvailableInventoryEntry}
 import {LendingStatus} from '@/api/lending'
 import * as lending from '@/api/lending'
 import {useSession} from '@/composables/useSession'
+import FieldLabel from '@/components/typography/FieldLabel.vue'
 
 const {t} = useI18n()
 const router = useRouter()
@@ -143,8 +144,7 @@ watch(loaded, (v) => {
   <ViewContent>
     <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 mb-4">
       <SectionHeader>{{ t('lending.title') }}</SectionHeader>
-      <PrimaryButton @click="router.push({name: 'inventory-lending-blocks'})">
-        <font-awesome-icon :icon="['fas', 'calendar-xmark']" class="mr-1"/>
+      <PrimaryButton :icon="['fas', 'calendar-xmark']" @click="router.push({name: 'inventory-lending-blocks'})">
         {{ t('lending.blocks') }}
       </PrimaryButton>
     </div>
@@ -174,11 +174,11 @@ watch(loaded, (v) => {
       <!-- Date range filter -->
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
         <div>
-          <label class="text-sm font-medium mb-1 block">{{ t('lending.dateFrom') }}</label>
+          <FieldLabel class="mb-1">{{ t('lending.dateFrom') }}</FieldLabel>
           <DateInput v-model="filterDateFrom"/>
         </div>
         <div>
-          <label class="text-sm font-medium mb-1 block">{{ t('lending.dateTo') }}</label>
+          <FieldLabel class="mb-1">{{ t('lending.dateTo') }}</FieldLabel>
           <DateInput v-model="filterDateTo"/>
         </div>
       </div>
@@ -201,8 +201,7 @@ watch(loaded, (v) => {
                 {{ item.availableCount }} {{ t('lending.available') }}
               </span>
             </div>
-            <PrimaryButton @click="navigateToCreateRequest(item)">
-              <font-awesome-icon :icon="['fas', 'paper-plane']" class="mr-1"/>
+            <PrimaryButton :icon="['fas', 'paper-plane']" @click="navigateToCreateRequest(item)">
               {{ t('lending.requestItem') }}
             </PrimaryButton>
           </div>

@@ -25,6 +25,7 @@ import type {ExchangeRequestEntry, InventorySize, StationMember} from '@/api/typ
 import {ExchangeStatus} from '@/api/types'
 import type {MyInventoryItem} from '@/api/inventory'
 import {useSession} from '@/composables/useSession'
+import MutedText from '@/components/typography/MutedText.vue'
 
 const {t} = useI18n()
 const route = useRoute()
@@ -147,12 +148,11 @@ watch(memberId, loadData)
 <template>
   <ViewContent>
     <div class="space-y-6">
-      <div class="flex items-center justify-between flex-wrap gap-3">
+      <div class="flex items-center justify-between flex-wrap gap-2">
         <SectionHeader>
           {{ member ? `${t('profile.inventory')} — ${memberDisplayName(member)}` : t('profile.inventory') }}
         </SectionHeader>
-        <SecondaryButton @click="goBack">
-          <font-awesome-icon :icon="['fas', 'chevron-left']" class="mr-2" />
+        <SecondaryButton :icon="['fas', 'chevron-left']" @click="goBack">
           {{ t('common.back') }}
         </SecondaryButton>
       </div>
@@ -170,9 +170,9 @@ watch(memberId, loadData)
               <span class="text-sm text-(--text-muted)">{{ group.items.length }}</span>
             </div>
 
-            <div v-if="group.items.length === 0" class="text-sm text-(--text-muted) py-2">
+            <MutedText tag="div" size="sm" class="py-2" v-if="group.items.length === 0">
               {{ t('profile.noInventory') }}
-            </div>
+            </MutedText>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
               <InventoryItemCard

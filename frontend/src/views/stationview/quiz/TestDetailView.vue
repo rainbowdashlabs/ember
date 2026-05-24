@@ -36,6 +36,7 @@ import { useSession } from '@/composables/useSession'
 import TestRestrictions from './testdetailview/TestRestrictions.vue'
 import TestAccessGrant from './testdetailview/TestAccessGrant.vue'
 import TestAttemptList from './testdetailview/TestAttemptList.vue'
+import FieldLabel from '@/components/typography/FieldLabel.vue'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -277,8 +278,7 @@ watch(loaded, (isLoaded) => { if (isLoaded && loading.value) loadData() })
             <p v-if="canManageQuiz() && detail" class="text-sm text-(--text-muted)">{{ detail.attemptCount }} {{ t('quiz.attemptCount') }}</p>
           </div>
           <div class="flex items-center gap-2 flex-wrap">
-            <PrimaryButton v-if="test.status === QuizTestStatus.ACTIVE" @click="router.push({ name: 'quiz-test-take', params: { id: test.id } })">
-              <font-awesome-icon :icon="['fas', 'play']" class="mr-1" />
+            <PrimaryButton :icon="['fas', 'play']" v-if="test.status === QuizTestStatus.ACTIVE" @click="router.push({ name: 'quiz-test-take', params: { id: test.id } })">
               {{ t('quiz.tests.takeTest') }}
             </PrimaryButton>
             <template v-if="canManageQuiz()">
@@ -292,12 +292,10 @@ watch(loaded, (isLoaded) => { if (isLoaded && loading.value) loadData() })
                                @click="router.push({ name: 'quiz-test-edit', params: { id: test.id } })">
                 {{ t('common.edit') }}
               </SecondaryButton>
-              <SecondaryButton @click="quiz.downloadQuestionPdf(test.id)">
-                <font-awesome-icon :icon="['fas', 'file-lines']" class="mr-1" />
+              <SecondaryButton :icon="['fas', 'file-lines']" @click="quiz.downloadQuestionPdf(test.id)">
                 {{ t('quiz.tests.exportQuestions') }}
               </SecondaryButton>
-              <SecondaryButton @click="quiz.downloadSolutionPdf(test.id)">
-                <font-awesome-icon :icon="['fas', 'file-lines']" class="mr-1" />
+              <SecondaryButton :icon="['fas', 'file-lines']" @click="quiz.downloadSolutionPdf(test.id)">
                 {{ t('quiz.tests.exportSolutions') }}
               </SecondaryButton>
             </template>
@@ -316,7 +314,7 @@ watch(loaded, (isLoaded) => { if (isLoaded && loading.value) loadData() })
               <span>{{ test.shuffle ? t('common.yes') : t('common.no') }}</span>
             </div>
             <div v-if="canManageQuiz() && test.status !== QuizTestStatus.CLOSED">
-              <label class="text-xs text-(--text-muted) block mb-1">{{ t('quiz.tests.startAt') }}</label>
+              <FieldLabel hint class="mb-1">{{ t('quiz.tests.startAt') }}</FieldLabel>
               <DateTimeInput v-model="editStartAt" @update:model-value="markTimesDirty" />
             </div>
             <div v-else>
@@ -324,7 +322,7 @@ watch(loaded, (isLoaded) => { if (isLoaded && loading.value) loadData() })
               <span>{{ formatDateTime(test.startAt) }}</span>
             </div>
             <div v-if="canManageQuiz() && test.status !== QuizTestStatus.CLOSED">
-              <label class="text-xs text-(--text-muted) block mb-1">{{ t('quiz.tests.endAt') }}</label>
+              <FieldLabel hint class="mb-1">{{ t('quiz.tests.endAt') }}</FieldLabel>
               <DateTimeInput v-model="editEndAt" @update:model-value="markTimesDirty" />
             </div>
             <div v-else>
@@ -445,8 +443,7 @@ watch(loaded, (isLoaded) => { if (isLoaded && loading.value) loadData() })
         </template>
 
         <div class="flex justify-start">
-          <SecondaryButton @click="router.push({ name: 'quiz-tests' })">
-            <font-awesome-icon :icon="['fas', 'arrow-left']" class="mr-1" />
+          <SecondaryButton :icon="['fas', 'arrow-left']" @click="router.push({ name: 'quiz-tests' })">
             {{ t('quiz.tests.backToList') }}
           </SecondaryButton>
         </div>

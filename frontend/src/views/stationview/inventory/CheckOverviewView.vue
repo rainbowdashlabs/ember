@@ -225,8 +225,7 @@ onMounted(loadData)
               </template>
             </div>
             <div class="flex gap-2">
-              <SecondaryButton v-if="member.lastCheckedAt" class="text-sm flex-1" @click="viewLastCheck(member)">
-                <font-awesome-icon :icon="['fas', 'eye']" class="mr-1"/>
+              <SecondaryButton :icon="['fas', 'eye']" v-if="member.lastCheckedAt" class="text-sm flex-1" @click="viewLastCheck(member)">
                 {{ t('inventory.check.showLastCheck') }}
               </SecondaryButton>
               <SecondaryButton v-if="isLockedByMe(member)" class="text-sm flex-1" @click="startCheck(member.memberId)">

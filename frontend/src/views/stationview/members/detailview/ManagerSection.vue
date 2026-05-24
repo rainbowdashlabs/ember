@@ -17,6 +17,7 @@ import FieldValueDisplay from '@/components/display/FieldValueDisplay.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import type { ProfileField, StationMember } from '@/api/types'
+import MutedText from '@/components/typography/MutedText.vue'
 
 const { t } = useI18n()
 
@@ -73,29 +74,27 @@ async function doCreateManager() {
 <template>
   <NeutralContainer class="space-y-4">
     <div class="flex items-center justify-between">
-      <SubHeader class="text-sm font-semibold">{{ t('memberDetail.managers') }}</SubHeader>
+      <SubHeader class="text-sm">{{ t('memberDetail.managers') }}</SubHeader>
       <div class="flex items-center gap-2">
-        <SecondaryButton @click="showLinkManager = !showLinkManager">
-          <font-awesome-icon :icon="['fas', 'link']" class="mr-1" />
+        <SecondaryButton :icon="['fas', 'link']" @click="showLinkManager = !showLinkManager">
           {{ t('memberDetail.linkManager') }}
         </SecondaryButton>
-        <SecondaryButton @click="showCreateManager = !showCreateManager">
-          <font-awesome-icon :icon="['fas', 'plus']" class="mr-1" />
+        <SecondaryButton :icon="['fas', 'plus']" @click="showCreateManager = !showCreateManager">
           {{ t('memberDetail.createManager') }}
         </SecondaryButton>
       </div>
     </div>
 
-    <div v-if="managers.length === 0" class="text-(--text-muted) text-sm py-2">
+    <MutedText tag="div" size="sm" class="py-2" v-if="managers.length === 0">
       {{ t('memberDetail.noManagers') }}
-    </div>
+    </MutedText>
 
     <div class="space-y-3">
       <div v-for="mgr in managers" :key="mgr.id" class="rounded-lg px-4 py-3 bg-bg-light-accent/30 dark:bg-bg-dark-accent/30 space-y-2">
         <div class="flex items-center justify-between">
           <div>
             <span class="font-semibold">{{ memberDisplayNameFn(mgr) }}</span>
-            <span v-if="mgr.email" class="ml-2 text-xs text-(--text-muted)">{{ mgr.email }}</span>
+            <MutedText class="ml-2" v-if="mgr.email">{{ mgr.email }}</MutedText>
           </div>
           <div class="flex items-center gap-2">
             <EditButton @click="emit('editManager', mgr.id)" />
@@ -133,8 +132,7 @@ async function doCreateManager() {
         <TextInput v-model="newMgrLastName" :placeholder="t('memberDetail.lastName')" />
         <TextInput v-model="newMgrEmail" :placeholder="t('memberDetail.email')" />
       </div>
-      <SecondaryButton :disabled="!newMgrFirstName || !newMgrLastName || !newMgrEmail || creatingManager" @click="doCreateManager">
-        <font-awesome-icon :icon="['fas', 'plus']" class="mr-1" />
+      <SecondaryButton :icon="['fas', 'plus']" :disabled="!newMgrFirstName || !newMgrLastName || !newMgrEmail || creatingManager" @click="doCreateManager">
         {{ creatingManager ? t('common.loading') : t('memberDetail.createManagerSubmit') }}
       </SecondaryButton>
     </div>

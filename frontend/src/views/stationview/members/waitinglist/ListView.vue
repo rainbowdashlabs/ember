@@ -87,8 +87,7 @@ onMounted(loadData)
     <div class="space-y-6">
       <div class="flex items-center justify-between">
         <SectionHeader>{{ t('waitingList.title') }}</SectionHeader>
-        <PrimaryButton @click="openCreate">
-          <font-awesome-icon :icon="['fas', 'plus']" class="mr-2" />
+        <PrimaryButton :icon="['fas', 'plus']" @click="openCreate">
           {{ t('waitingList.create') }}
         </PrimaryButton>
       </div>
@@ -108,7 +107,7 @@ onMounted(loadData)
           >
             <div class="space-y-3">
               <div class="flex items-center justify-between">
-                <SubHeader class="font-semibold text-lg">{{ item.list.name }}</SubHeader>
+                <SubHeader>{{ item.list.name }}</SubHeader>
                 <span class="text-sm font-medium bg-primary/15 text-primary rounded-full px-3 py-0.5">
                   {{ item.entryCount }}
                 </span>

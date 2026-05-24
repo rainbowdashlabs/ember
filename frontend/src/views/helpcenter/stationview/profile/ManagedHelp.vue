@@ -14,6 +14,7 @@ import FieldLabel from '@/components/typography/FieldLabel.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
+import MutedText from '@/components/typography/MutedText.vue'
 
 const {t} = useI18n()
 </script>
@@ -66,7 +67,7 @@ const {t} = useI18n()
       </div>
       <div class="space-y-1">
         <FieldLabel>
-          Alter <span class="text-xs text-(--text-muted) ml-1">({{ t('profile.readonlyHint') }})</span>
+          Alter <MutedText class="ml-1">({{ t('profile.readonlyHint') }})</MutedText>
         </FieldLabel>
         <TextInput model-value="10" disabled/>
       </div>

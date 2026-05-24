@@ -176,6 +176,27 @@ export async function copyProtocol(protocolId: number): Promise<unknown> {
     return res.data
 }
 
+// -- Pair Requests --
+
+export interface PairRequest {
+    id: number
+    stationName: string
+    createdAt: string
+}
+
+export async function listPairRequests(): Promise<PairRequest[]> {
+    const res = await client.get<PairRequest[]>('/federation/requests')
+    return res.data
+}
+
+export async function acceptPairRequest(id: number): Promise<void> {
+    await client.post(`/federation/requests/${id}/accept`)
+}
+
+export async function declinePairRequest(id: number): Promise<void> {
+    await client.post(`/federation/requests/${id}/decline`)
+}
+
 // -- Info --
 
 export async function getFederationInfo(): Promise<{ federationVersion: number; supportedCapabilities: string[] }> {

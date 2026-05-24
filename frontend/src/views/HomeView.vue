@@ -95,8 +95,7 @@ const highlights = [
         </p>
         <div class="flex items-center justify-center gap-4 flex-wrap">
           <router-link v-if="registrationEnabled" to="/apply">
-            <PrimaryButton class="text-base px-6 py-3">
-              <font-awesome-icon :icon="['fas', 'building']" class="mr-2"/>
+            <PrimaryButton :icon="['fas', 'building']" class="text-base px-6 py-3">
               {{ t('landing.cta') }}
             </PrimaryButton>
           </router-link>
@@ -106,14 +105,12 @@ const highlights = [
             </SecondaryButton>
           </router-link>
           <a v-if="demoUrl" :href="demoUrl" target="_blank" rel="noopener noreferrer">
-            <InfoButton class="text-base px-6 py-3">
-              <font-awesome-icon :icon="['fas', 'eye']" class="mr-2"/>
+            <InfoButton :icon="['fas', 'eye']" class="text-base px-6 py-3">
               {{ t('landing.demo') }}
             </InfoButton>
           </a>
           <router-link to="/helpcenter/station/basics">
-            <SecondaryButton class="text-base px-6 py-3">
-              <font-awesome-icon :icon="['fas', 'circle-question']" class="mr-2"/>
+            <SecondaryButton :icon="['fas', 'circle-question']" class="text-base px-6 py-3">
               {{ t('landing.helpCenter') }}
             </SecondaryButton>
           </router-link>
@@ -139,7 +136,7 @@ const highlights = [
           <div class="flex items-center justify-center h-12 w-12 rounded-lg bg-primary/10 mb-4">
             <font-awesome-icon :icon="feature.icon" class="h-6 w-6 text-primary"/>
           </div>
-          <SubHeader class="font-bold text-lg mb-2">{{ t(`landing.feature.${feature.key}.title`) }}</SubHeader>
+          <SubHeader class="mb-2">{{ t(`landing.feature.${feature.key}.title`) }}</SubHeader>
           <p class="text-sm text-(--text-muted) leading-relaxed">{{ t(`landing.feature.${feature.key}.desc`) }}</p>
         </router-link>
       </div>
@@ -162,7 +159,7 @@ const highlights = [
           >
             <font-awesome-icon :icon="h.icon" class="h-5 w-5 text-secondary mt-0.5 shrink-0"/>
             <div>
-              <SubHeader class="font-semibold text-sm mb-1">{{ t(`landing.highlight.${h.key}.title`) }}</SubHeader>
+              <SubHeader class="text-sm mb-1">{{ t(`landing.highlight.${h.key}.title`) }}</SubHeader>
               <p class="text-xs text-(--text-muted) leading-relaxed">{{ t(`landing.highlight.${h.key}.desc`) }}</p>
             </div>
           </div>
@@ -196,26 +193,22 @@ const highlights = [
         </p>
         <div class="flex items-center justify-center gap-4 flex-wrap">
           <router-link v-if="registrationEnabled" to="/apply">
-            <PrimaryButton class="text-base px-8 py-3">
-              <font-awesome-icon :icon="['fas', 'building']" class="mr-2"/>
+            <PrimaryButton :icon="['fas', 'building']" class="text-base px-8 py-3">
               {{ t('landing.cta') }}
             </PrimaryButton>
           </router-link>
           <router-link v-if="!registrationEnabled" to="/helpcenter/station/basics/hosting">
-            <PrimaryButton class="text-base px-8 py-3">
-              <font-awesome-icon :icon="['fas', 'server']" class="mr-2"/>
+            <PrimaryButton :icon="['fas', 'server']" class="text-base px-8 py-3">
               {{ t('landing.selfHostCta') }}
             </PrimaryButton>
           </router-link>
           <a v-if="demoUrl" :href="demoUrl" target="_blank" rel="noopener noreferrer">
-            <SecondaryButton class="text-base px-6 py-3">
-              <font-awesome-icon :icon="['fas', 'eye']" class="mr-2"/>
+            <SecondaryButton :icon="['fas', 'eye']" class="text-base px-6 py-3">
               {{ t('landing.demo') }}
             </SecondaryButton>
           </a>
           <router-link to="/helpcenter/station/basics">
-            <SecondaryButton class="text-base px-6 py-3">
-              <font-awesome-icon :icon="['fas', 'circle-question']" class="mr-2"/>
+            <SecondaryButton :icon="['fas', 'circle-question']" class="text-base px-6 py-3">
               {{ t('landing.helpCenter') }}
             </SecondaryButton>
           </router-link>

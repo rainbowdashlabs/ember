@@ -38,8 +38,7 @@ const {t} = useI18n()
     <NeutralContainer class="space-y-3">
       <div class="flex items-center justify-between flex-wrap gap-2">
         <SectionHeader>{{ t('helpCenter.inventoryLending.title') }}</SectionHeader>
-        <PrimaryButton>
-          <font-awesome-icon :icon="['fas', 'plus']" class="mr-2" />
+        <PrimaryButton :icon="['fas', 'plus']">
           {{ t('helpCenter.inventoryLending.dummyNewRequest') }}
         </PrimaryButton>
       </div>

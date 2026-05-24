@@ -164,12 +164,10 @@ onMounted(loadStatus)
 
         <!-- Actions -->
         <div v-if="status.status === 'WAITING'" class="flex flex-col sm:flex-row gap-3">
-          <PrimaryButton :disabled="confirming" class="flex-1" @click="confirmInterest">
-            <font-awesome-icon :icon="['fas', 'check']" class="mr-2" />
+          <PrimaryButton :icon="['fas', 'check']" :disabled="confirming" class="flex-1" @click="confirmInterest">
             {{ confirming ? t('common.loading') : t('waitingList.publicStatus.confirmInterest') }}
           </PrimaryButton>
-          <ErrorButton class="flex-1" @click="showRemoveModal = true">
-            <font-awesome-icon :icon="['fas', 'xmark']" class="mr-2" />
+          <ErrorButton :icon="['fas', 'xmark']" class="flex-1" @click="showRemoveModal = true">
             {{ t('waitingList.publicStatus.removeFromList') }}
           </ErrorButton>
         </div>

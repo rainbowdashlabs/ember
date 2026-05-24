@@ -43,8 +43,7 @@ const activeRole = ref('')
     <!-- Dummy: News list -->
     <div class="flex items-center justify-between">
       <SectionHeader>{{ t('news.title') }}</SectionHeader>
-      <PrimaryButton v-if="activeRole === 'manager'">
-        <font-awesome-icon :icon="['fas', 'plus']" class="mr-2"/>
+      <PrimaryButton :icon="['fas', 'plus']" v-if="activeRole === 'manager'">
         {{ t('news.create') }}
       </PrimaryButton>
     </div>
@@ -53,7 +52,7 @@ const activeRole = ref('')
       <NeutralContainer class="space-y-3">
         <div class="flex items-start justify-between gap-3">
           <div>
-            <SubHeader class="font-semibold text-lg">Dienstplanänderung Mai</SubHeader>
+            <SubHeader>Dienstplanänderung Mai</SubHeader>
             <p class="text-xs text-(--text-muted)">Admin &middot; 14.05.2026, 10:30</p>
           </div>
           <div v-if="activeRole === 'manager'" class="flex items-center gap-1 shrink-0">
@@ -76,7 +75,7 @@ const activeRole = ref('')
       <NeutralContainer class="space-y-3">
         <div class="flex items-start justify-between gap-3">
           <div>
-            <SubHeader class="font-semibold text-lg">Neue Ausrüstung eingetroffen</SubHeader>
+            <SubHeader>Neue Ausrüstung eingetroffen</SubHeader>
             <p class="text-xs text-(--text-muted)">Admin &middot; 10.05.2026, 14:00</p>
           </div>
           <div v-if="activeRole === 'manager'" class="flex items-center gap-1 shrink-0">

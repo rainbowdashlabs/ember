@@ -8,6 +8,7 @@ import { useI18n } from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import CheckboxInput from '@/components/input/toggle/CheckboxInput.vue'
+import FieldLabel from '@/components/typography/FieldLabel.vue'
 import MemberFilterBar from '@/components/input/filter/MemberFilterBar.vue'
 import type { FilterCriteria, FilterOption } from '@/components/input/filter/MemberFilterBar.vue'
 import type { Inventory } from '@/api/types'
@@ -55,10 +56,10 @@ const emit = defineEmits<{
   <NeutralContainer class="space-y-2">
     <p class="text-sm font-medium">{{ t('inventoryMembers.columns') }}</p>
     <div class="flex flex-wrap gap-2">
-      <label v-for="inv in inventories" :key="inv.id" class="inline-flex items-center gap-1.5 text-sm cursor-pointer">
+      <FieldLabel v-for="inv in inventories" :key="inv.id" inline class="cursor-pointer">
         <CheckboxInput :model-value="visibleInventoryIds.has(inv.id)" @update:model-value="emit('toggleInventory', inv.id)" />
         {{ inv.name }}
-      </label>
+      </FieldLabel>
     </div>
   </NeutralContainer>
 
@@ -66,18 +67,18 @@ const emit = defineEmits<{
   <NeutralContainer class="space-y-2">
     <p class="text-sm font-medium">{{ t('inventoryMembers.displayOptions') }}</p>
     <div class="flex flex-wrap gap-4">
-      <label class="inline-flex items-center gap-1.5 text-sm cursor-pointer">
+      <FieldLabel inline class="cursor-pointer">
         <CheckboxInput :model-value="showName" @update:model-value="emit('update:showName', $event)" />
         {{ t('inventoryMembers.optName') }}
-      </label>
-      <label class="inline-flex items-center gap-1.5 text-sm cursor-pointer">
+      </FieldLabel>
+      <FieldLabel inline class="cursor-pointer">
         <CheckboxInput :model-value="showInternalId" @update:model-value="emit('update:showInternalId', $event)" />
         {{ t('inventoryMembers.optInternalId') }}
-      </label>
-      <label class="inline-flex items-center gap-1.5 text-sm cursor-pointer">
+      </FieldLabel>
+      <FieldLabel inline class="cursor-pointer">
         <CheckboxInput :model-value="showSize" @update:model-value="emit('update:showSize', $event)" />
         {{ t('inventoryMembers.optSize') }}
-      </label>
+      </FieldLabel>
     </div>
   </NeutralContainer>
 </template>

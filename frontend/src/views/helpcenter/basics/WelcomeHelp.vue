@@ -44,7 +44,7 @@ const sections = [
       <p>{{ t('helpCenter.welcome.basicsText') }}</p>
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
         <router-link v-for="s in sections" :key="s.key" :to="{name: s.route}">
-          <NeutralContainer class="flex items-center gap-3 p-4 cursor-pointer hover:bg-(--bg-accent) transition-colors">
+          <NeutralContainer class="flex items-center gap-2 p-4 cursor-pointer hover:bg-(--bg-accent) transition-colors">
             <font-awesome-icon :icon="s.icon" class="h-5 w-5 text-primary shrink-0"/>
             <div>
               <p class="font-semibold text-sm">{{ t(`helpCenter.welcome.section.${s.key}.title`) }}</p>
@@ -59,14 +59,12 @@ const sections = [
       <p>{{ t('helpCenter.welcome.otherPagesText') }}</p>
       <div class="flex flex-wrap gap-3 mt-3">
         <router-link :to="{name: 'help-dashboard-overview'}">
-          <PrimaryButton>
-            <font-awesome-icon :icon="['fas', 'gauge']" class="mr-2"/>
+          <PrimaryButton :icon="['fas', 'gauge']">
             {{ t('helpCenter.welcome.goToStation') }}
           </PrimaryButton>
         </router-link>
         <router-link :to="{name: 'help-admin-module-overview'}">
-          <SecondaryButton>
-            <font-awesome-icon :icon="['fas', 'shield']" class="mr-2"/>
+          <SecondaryButton :icon="['fas', 'shield']">
             {{ t('helpCenter.welcome.goToAdmin') }}
           </SecondaryButton>
         </router-link>

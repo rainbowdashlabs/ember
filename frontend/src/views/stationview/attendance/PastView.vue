@@ -18,6 +18,7 @@ import Alert from '@/components/feedback/Alert.vue'
 import {attendance} from '@/api'
 import type {SessionSummary} from '@/api/attendance'
 import {useSession} from '@/composables/useSession'
+import MutedText from '@/components/typography/MutedText.vue'
 
 const {t} = useI18n()
 const router = useRouter()
@@ -83,13 +84,13 @@ watch(loaded, (isLoaded) => {
               class="cursor-pointer hover:ring-2 hover:ring-primary/30 transition-all"
               @click="openSession(s.id)"
           >
-            <div class="flex items-center justify-between flex-wrap gap-3">
+            <div class="flex items-center justify-between flex-wrap gap-2">
               <div>
                 <span class="font-semibold text-sm">{{ s.title || t('attendancePast.untitled') }}</span>
-                <span class="ml-3 text-sm text-(--text-muted)">{{ formatDate(s.createdAt) }}</span>
-                <span class="ml-2 text-xs text-(--text-muted)">{{ formatTime(s.startTime) }} – {{
+                <MutedText size="sm" class="ml-3">{{ formatDate(s.createdAt) }}</MutedText>
+                <MutedText class="ml-2">{{ formatTime(s.startTime) }} – {{
                     formatTime(s.endTime)
-                  }}</span>
+                  }}</MutedText>
               </div>
               <div class="flex items-center gap-2 text-xs">
                 <SuccessBadge>{{ s.presentCount }} {{ t('attendancePast.present') }}</SuccessBadge>

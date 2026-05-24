@@ -41,7 +41,7 @@ const activeRole = ref('')
 
     <!-- Dummy: Member selector for managers -->
     <template v-if="activeRole === 'memberManager'">
-      <div class="flex items-center justify-between flex-wrap gap-3">
+      <div class="flex items-center justify-between flex-wrap gap-2">
         <SectionHeader>{{ t('profile.inventory') }}</SectionHeader>
         <SelectInput model-value="self" class="w-48 text-sm">
           <option value="self">{{ t('profile.myInventorySelf') }}</option>

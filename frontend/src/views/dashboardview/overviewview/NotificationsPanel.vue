@@ -96,8 +96,7 @@ onMounted(loadData)
         {{ t('dashboard.notifications') }}
         <span v-if="notifs.length > 0"> ({{ notifs.length }})</span>
       </SectionHeader>
-      <SecondaryButton v-if="notifs.length > 0" class="text-sm" @click="ackAll">
-        <font-awesome-icon :icon="['fas', 'check-double']" class="mr-1"/>
+      <SecondaryButton :icon="['fas', 'check-double']" v-if="notifs.length > 0" class="text-sm" @click="ackAll">
         {{ t('dashboard.acknowledgeAll') }}
       </SecondaryButton>
     </div>

@@ -24,6 +24,7 @@ import {knowledgeBase} from '@/api'
 import type {KbFile, KbTag, MarkdownHtmlResponse} from '@/api/knowledgeBase'
 import {KbFileType} from '@/api/knowledgeBase'
 import {getItem} from '@/api/storage'
+import MutedText from '@/components/typography/MutedText.vue'
 
 const {t} = useI18n()
 const router = useRouter()
@@ -265,7 +266,7 @@ onMounted(() => {
 
         <template v-else-if="file">
             <!-- Header -->
-            <div class="flex flex-wrap items-center gap-3 mb-4">
+            <div class="flex flex-wrap items-center gap-2 mb-4">
                 <SecondaryButton @click="goBack">
                     <font-awesome-icon :icon="['fas', 'chevron-left']"/>
                     {{ t('kb.backToBrowse') }}
@@ -313,7 +314,7 @@ onMounted(() => {
                     <font-awesome-icon :icon="['fas', 'xmark']"/>
                 </SecondaryButton>
             </div>
-            <p v-else-if="file.description || canManageKnowledge()" class="text-sm text-[var(--text-muted)] mb-4 group/desc">
+            <MutedText tag="p" size="sm" v-else-if="file.description || canManageKnowledge()" class="group/desc">
                 {{ file.description || t('kb.description') }}
                 <IconButton
                     v-if="canManageKnowledge()"
@@ -322,7 +323,7 @@ onMounted(() => {
                     class="opacity-0 group-hover/desc:opacity-100 ml-1 text-[var(--primary)] !p-0 text-xs"
                     @click="startEditDescription"
                 />
-            </p>
+            </MutedText>
 
             <!-- Last edit info -->
             <p v-if="file.updatedAt" class="text-xs text-[var(--text-muted)] mb-3">
@@ -351,7 +352,7 @@ onMounted(() => {
             />
 
             <!-- Save bar -->
-            <div v-if="editing" class="flex items-center gap-3 mb-3">
+            <div v-if="editing" class="flex items-center gap-2 mb-3">
                 <PrimaryButton :disabled="saving || !hasUnsavedChanges" @click="saveContent">
                     <font-awesome-icon :icon="['fas', saving ? 'spinner' : 'check']" :spin="saving"/>
                     {{ t('kb.save') }}

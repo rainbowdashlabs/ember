@@ -130,7 +130,7 @@ onMounted(loadStations)
       <div v-if="!loading" class="grid gap-4 sm:grid-cols-2">
         <!-- Add station tile -->
         <PrimaryContainer
-            class="flex flex-col items-center justify-center gap-3 cursor-pointer py-6 border-dashed hover:opacity-80 transition-opacity"
+            class="flex flex-col items-center justify-center gap-2 cursor-pointer py-6 border-dashed hover:opacity-80 transition-opacity"
             @click="navigateToCreate"
         >
           <font-awesome-icon :icon="['fas', 'plus']" class="text-2xl"/>
@@ -139,7 +139,7 @@ onMounted(loadStations)
 
         <!-- Import station tile -->
         <NeutralContainer
-            class="flex flex-col items-center justify-center gap-3 cursor-pointer py-6 hover:opacity-80 transition-opacity"
+            class="flex flex-col items-center justify-center gap-2 cursor-pointer py-6 hover:opacity-80 transition-opacity"
             @click="showImportModal = true"
         >
           <font-awesome-icon :icon="['fas', 'upload']" class="text-2xl text-(--text-muted)"/>

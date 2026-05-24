@@ -42,7 +42,7 @@ const dummyNotifyEventStatus = ref(true)
 
     <!-- Dummy: Email settings -->
     <NeutralContainer class="space-y-4">
-      <SubHeader class="font-semibold text-sm">{{ t('userSettings.emailTitle') }}</SubHeader>
+      <SubHeader class="text-sm">{{ t('userSettings.emailTitle') }}</SubHeader>
 
       <!-- Master email toggle -->
       <div class="flex items-center justify-between">
@@ -57,7 +57,7 @@ const dummyNotifyEventStatus = ref(true)
       </div>
 
       <template v-if="dummyEmailEnabled">
-        <SubHeader class="font-semibold text-sm pt-2">{{ t('userSettings.notifications') }}</SubHeader>
+        <SubHeader class="text-sm pt-2">{{ t('userSettings.notifications') }}</SubHeader>
         <p class="text-xs text-(--text-muted)">{{ t('userSettings.notificationsHint') }}</p>
 
         <div class="space-y-3">

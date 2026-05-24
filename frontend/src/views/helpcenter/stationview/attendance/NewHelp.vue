@@ -45,20 +45,18 @@ const {t} = useI18n()
     <!-- Dummy: Templates -->
     <SectionHeader>{{ t('attendanceNew.fromTemplate') }}</SectionHeader>
     <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-      <NeutralContainer class="cursor-pointer hover:ring-2 hover:ring-primary/30 transition-all">
+      <NeutralContainer clickable>
         <div class="flex items-center justify-between">
           <span class="font-medium">Übungsabend</span>
-          <PrimaryButton>
-            <font-awesome-icon :icon="['fas', 'plus']" class="mr-1"/>
+          <PrimaryButton :icon="['fas', 'plus']">
             {{ t('attendanceNew.create') }}
           </PrimaryButton>
         </div>
       </NeutralContainer>
-      <NeutralContainer class="cursor-pointer hover:ring-2 hover:ring-primary/30 transition-all">
+      <NeutralContainer clickable>
         <div class="flex items-center justify-between">
           <span class="font-medium">Jugenddienst</span>
-          <PrimaryButton>
-            <font-awesome-icon :icon="['fas', 'plus']" class="mr-1"/>
+          <PrimaryButton :icon="['fas', 'plus']">
             {{ t('attendanceNew.create') }}
           </PrimaryButton>
         </div>

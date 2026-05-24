@@ -20,6 +20,9 @@ import PrimaryBadge from '@/components/badge/PrimaryBadge.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import type { WaitingListEntryWithScore, WaitingListField } from '@/api/types'
 import { computed } from 'vue'
+import THead from '@/components/table/THead.vue'
+import TRow from '@/components/table/TRow.vue'
+import Th from '@/components/table/Th.vue'
 
 const props = defineProps<{
   entries: WaitingListEntryWithScore[]
@@ -67,8 +70,7 @@ function statusBadgeComponent(status: string) {
       <SubHeader>{{ t('waitingList.sectionWaiting') }} ({{ entries.length }})</SubHeader>
       <div class="flex items-center gap-2 w-full sm:w-auto">
         <div class="relative flex-1 sm:flex-initial">
-          <SecondaryButton :full-width="isMobile" @click="emit('toggleFieldMenu')">
-            <font-awesome-icon :icon="['fas', 'table-columns']" class="mr-2" />
+          <SecondaryButton :icon="['fas', 'table-columns']" :full-width="isMobile" @click="emit('toggleFieldMenu')">
             {{ t('waitingList.columns') }}
           </SecondaryButton>
           <div v-if="showFieldToggle" class="absolute right-0 top-full mt-1 z-20 rounded-lg border border-bg-light-accent dark:border-bg-dark-accent bg-bg-light dark:bg-bg-dark shadow-lg p-2 min-w-48">
@@ -79,8 +81,7 @@ function statusBadgeComponent(status: string) {
             <div v-if="fields.length === 0" class="text-xs text-(--text-muted) px-2 py-1">{{ t('waitingList.noFields') }}</div>
           </div>
         </div>
-        <PrimaryButton :full-width="isMobile" class="flex-1 sm:flex-initial" @click="emit('addEntry')">
-          <font-awesome-icon :icon="['fas', 'plus']" class="mr-2" />
+        <PrimaryButton :icon="['fas', 'plus']" :full-width="isMobile" class="flex-1 sm:flex-initial" @click="emit('addEntry')">
           {{ t('waitingList.addEntry') }}
         </PrimaryButton>
       </div>
@@ -92,24 +93,20 @@ function statusBadgeComponent(status: string) {
     <div v-if="!isMobile && entries.length > 0" class="overflow-x-auto">
       <table class="w-full text-sm">
         <thead>
-          <tr class="border-b border-bg-light-accent dark:border-bg-dark-accent text-left">
-            <th class="py-2 px-2 font-medium">#</th>
-            <th class="py-2 px-2 font-medium">{{ t('waitingList.firstname') }}</th>
-            <th class="py-2 px-2 font-medium">{{ t('waitingList.lastname') }}</th>
-            <th class="py-2 px-2 font-medium">{{ t('waitingList.parentName') }}</th>
-            <th class="py-2 px-2 font-medium">{{ t('waitingList.email') }}</th>
-            <th v-for="vf in visibleFields" :key="vf.id" class="py-2 px-2 font-medium">{{ vf.name }}</th>
-            <th class="py-2 px-2 font-medium">{{ t('waitingList.status') }}</th>
-            <th class="py-2 px-2 font-medium text-right">{{ t('waitingList.score') }}</th>
-            <th class="py-2 px-2 font-medium text-right">{{ t('waitingList.actions') }}</th>
-          </tr>
+          <THead>
+            <Th class="\!px-2">#</th>
+            <Th class="\!px-2">{{ t('waitingList.firstname') }}</th>
+            <Th class="\!px-2">{{ t('waitingList.lastname') }}</th>
+            <Th class="\!px-2">{{ t('waitingList.parentName') }}</th>
+            <Th class="\!px-2">{{ t('waitingList.email') }}</th>
+            <Th class="px-2!" v-for="vf in visibleFields" :key="vf.id">{{ vf.name }}</Th>
+            <Th class="px-2!">{{ t('waitingList.status') }}</Th>
+            <Th class="px-2! text-right">{{ t('waitingList.score') }}</Th>
+            <Th class="px-2! text-right">{{ t('waitingList.actions') }}</Th>
+          </THead>
         </thead>
         <tbody>
-          <tr
-            v-for="(item, index) in entries"
-            :key="item.entry.id"
-            class="border-b border-bg-light-accent/50 dark:border-bg-dark-accent/50 hover:bg-bg-light-accent/30 dark:hover:bg-bg-dark-accent/30"
-          >
+          <TRow v-for="(item, index) in entries" :key="item.entry.id" class="hover:bg-bg-light-accent/30 dark:hover:bg-bg-dark-accent/30">
             <td class="py-2 px-2 text-(--text-muted)">{{ index + 1 }}</td>
             <td class="py-2 px-2">
               <span class="text-primary hover:underline cursor-pointer" role="link" tabindex="0" @click="emit('navigateToEntry', item.entry.id)" @keydown.enter="emit('navigateToEntry', item.entry.id)">
@@ -142,7 +139,7 @@ function statusBadgeComponent(status: string) {
                 <DeleteButton @click="emit('deleteEntry', item)" />
               </div>
             </td>
-          </tr>
+          </TRow>
         </tbody>
       </table>
     </div>

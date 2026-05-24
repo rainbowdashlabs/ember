@@ -13,6 +13,7 @@ import TextInput from '@/components/input/text/TextInput.vue'
 import type { ExchangeRequestEntry, ExchangeStatusName, InventoryItem } from '@/api/types'
 import { ExchangeStatus } from '@/api/types'
 import { exchanges, inventory, procurement } from '@/api'
+import FieldLabel from '@/components/typography/FieldLabel.vue'
 
 const { t } = useI18n()
 
@@ -88,14 +89,14 @@ async function createProcurementFromExchange() {
   <div class="flex flex-col gap-2 items-stretch">
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
       <div class="space-y-1">
-        <label class="block text-xs font-medium text-(--text-muted)">{{ t('exchanges.newStatus') }}</label>
+        <FieldLabel hint>{{ t('exchanges.newStatus') }}</FieldLabel>
         <SelectInput v-model="updateTargetStatus">
           <option value="" disabled>{{ t('exchanges.selectStatus') }}</option>
           <option v-for="s in nextStatuses" :key="s" :value="s">{{ statusLabel(s) }}</option>
         </SelectInput>
       </div>
       <div v-if="updateTargetStatus === ExchangeStatus.EXCHANGED" class="space-y-1 sm:col-span-2">
-        <label class="block text-xs font-medium text-(--text-muted)">{{ t('exchanges.exchangedItem') }}</label>
+        <FieldLabel hint>{{ t('exchanges.exchangedItem') }}</FieldLabel>
         <template v-if="!createNewItemForExchange">
           <SelectInput v-model="updateExchangedItemId">
             <option value="">{{ t('exchanges.noItem') }}</option>
@@ -104,8 +105,7 @@ async function createProcurementFromExchange() {
             </option>
           </SelectInput>
           <div class="flex gap-2 mt-1">
-            <SecondaryButton v-if="request.inventoryType !== 'internal'" @click="createNewItemForExchange = true">
-              <font-awesome-icon :icon="['fas', 'plus']" class="mr-1" />
+            <SecondaryButton :icon="['fas', 'plus']" v-if="request.inventoryType !== 'internal'" @click="createNewItemForExchange = true">
               {{ t('exchanges.createNewItem') }}
             </SecondaryButton>
             <template v-if="availableItems.length === 0">
@@ -113,8 +113,7 @@ async function createProcurementFromExchange() {
                 <font-awesome-icon :icon="['fas', 'check']" class="mr-1" />
                 {{ t('exchanges.procurementCreated') }}
               </span>
-              <SecondaryButton v-else @click="createProcurementFromExchange">
-                <font-awesome-icon :icon="['fas', 'folder-plus']" class="mr-1" />
+              <SecondaryButton :icon="['fas', 'folder-plus']" v-else @click="createProcurementFromExchange">
                 {{ t('exchanges.createProcurement') }}
               </SecondaryButton>
             </template>
@@ -128,7 +127,7 @@ async function createProcurementFromExchange() {
         </template>
       </div>
       <div class="space-y-1">
-        <label class="block text-xs font-medium text-(--text-muted)">{{ t('exchanges.note') }}</label>
+        <FieldLabel hint>{{ t('exchanges.note') }}</FieldLabel>
         <TextInput v-model="updateNote" :placeholder="t('exchanges.notePlaceholder')" />
       </div>
     </div>

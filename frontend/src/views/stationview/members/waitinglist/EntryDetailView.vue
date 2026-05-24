@@ -199,8 +199,7 @@ onMounted(loadData)
   <ViewContent>
     <div class="space-y-6">
       <div class="flex items-center justify-between">
-        <SecondaryButton @click="goBack">
-          <font-awesome-icon :icon="['fas', 'chevron-left']" class="mr-2" />
+        <SecondaryButton :icon="['fas', 'chevron-left']" @click="goBack">
           {{ t('waitingList.backToList') }}
         </SecondaryButton>
       </div>
@@ -210,7 +209,7 @@ onMounted(loadData)
       <Alert v-if="success" variant="success">{{ success }}</Alert>
 
       <template v-if="!loading && entry">
-        <div class="flex items-center gap-3">
+        <div class="flex items-center gap-2">
           <SectionHeader>{{ entryFullName() }}</SectionHeader>
           <component :is="statusBadgeComponent(entry.entry.status)">{{ t('waitingList.status_' + entry.entry.status) }}</component>
         </div>

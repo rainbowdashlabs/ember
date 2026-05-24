@@ -114,10 +114,10 @@ function formatDate(iso: string | null | undefined): string {
       </div>
       <div v-if="showActions" class="flex items-center gap-0.5 pt-1 border-t border-bg-light-accent/50 dark:border-bg-dark-accent/50">
         <IconButton v-if="!item.lostAt" :icon="['fas', 'user']" :label="item.assignedTo ? t('inventory.edit.reassign') : t('inventory.edit.assign')" class="text-primary hover:bg-primary/15" @click="emit('assign', item)"/>
-        <IconButton v-if="item.assignedTo && !item.lostAt" :icon="['fas', 'right-from-bracket']" :label="t('inventory.edit.unassign')" class="text-(--text-muted) hover:bg-bg-light-accent dark:hover:bg-bg-dark-accent" @click="emit('unassign', item)"/>
+        <IconButton class="text-(--text-muted) hover:bg-bg-light-accent dark:hover:bg-bg-dark-accent" v-if="item.assignedTo && !item.lostAt" :icon="['fas', 'right-from-bracket']" :label="t('inventory.edit.unassign')" @click="emit('unassign', item)"/>
         <IconButton v-if="!item.lostAt" :icon="['fas', 'triangle-exclamation']" :label="t('inventory.edit.markLost')" class="text-error hover:bg-error/15" @click="emit('markLost', item)"/>
         <IconButton v-if="item.lostAt" :icon="['fas', 'check']" :label="t('inventory.edit.markFound')" class="text-success hover:bg-success/15" @click="emit('markFound', item)"/>
-        <IconButton :icon="['fas', 'clock-rotate-left']" :label="t('inventory.edit.historyTitle')" class="text-(--text-muted) hover:bg-bg-light-accent dark:hover:bg-bg-dark-accent" @click="emit('history', item)"/>
+        <IconButton class="text-(--text-muted) hover:bg-bg-light-accent dark:hover:bg-bg-dark-accent" :icon="['fas', 'clock-rotate-left']" :label="t('inventory.edit.historyTitle')" @click="emit('history', item)"/>
         <EditButton @click="emit('edit', item)"/>
         <DeleteButton @click="emit('delete', item)"/>
       </div>

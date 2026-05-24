@@ -66,8 +66,7 @@ const activeRole = ref('')
           <font-awesome-icon :icon="['fas', 'bell']" class="mr-2"/>
           {{ t('dashboard.notifications') }} (2)
         </SectionHeader>
-        <SecondaryButton>
-          <font-awesome-icon :icon="['fas', 'check-double']" class="mr-1"/>
+        <SecondaryButton :icon="['fas', 'check-double']">
           {{ t('dashboard.acknowledgeAll') }}
         </SecondaryButton>
       </div>
@@ -107,7 +106,7 @@ const activeRole = ref('')
         <font-awesome-icon :icon="['fas', 'rotate']" class="mr-2"/>
         {{ t('dashboard.exchanges') }}
       </SectionHeader>
-      <NeutralContainer class="flex items-center justify-between gap-3 py-2 px-3">
+      <NeutralContainer class="flex items-center justify-between gap-2 py-2 px-3">
         <div>
           <p class="text-sm font-medium">Helme</p>
           <p class="text-xs text-(--text-muted)">M → L</p>
@@ -123,14 +122,14 @@ const activeRole = ref('')
         <font-awesome-icon :icon="['fas', 'calendar-days']" class="mr-2"/>
         {{ t('dashboard.registrations') }}
       </SectionHeader>
-      <NeutralContainer class="flex items-center justify-between gap-3 py-2 px-3">
+      <NeutralContainer class="flex items-center justify-between gap-2 py-2 px-3">
         <div>
           <p class="text-sm font-medium">Übungsabend</p>
           <p class="text-xs text-(--text-muted)">20.05.2026</p>
         </div>
         <SuccessBadge>{{ t('dashboard.registrationStatus.ACCEPTED') }}</SuccessBadge>
       </NeutralContainer>
-      <NeutralContainer class="flex items-center justify-between gap-3 py-2 px-3">
+      <NeutralContainer class="flex items-center justify-between gap-2 py-2 px-3">
         <div>
           <p class="text-sm font-medium">Wettkampf Vorbereitung</p>
           <p class="text-xs text-(--text-muted)">25.05.2026</p>

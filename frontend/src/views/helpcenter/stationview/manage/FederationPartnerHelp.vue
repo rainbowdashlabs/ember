@@ -12,6 +12,8 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import {ref} from 'vue'
+import Td from '@/components/table/Td.vue'
+import Th from '@/components/table/Th.vue'
 
 const {t} = useI18n()
 
@@ -31,7 +33,7 @@ const dummyProtocolSend = ref(false)
 
     <!-- Dummy: partner header -->
     <NeutralContainer class="space-y-2">
-      <div class="flex items-center gap-3">
+      <div class="flex items-center gap-2">
         <div class="flex-1">
           <div class="font-semibold text-base">JF Musterstadt</div>
           <div class="text-xs text-(--text-muted)">Verbunden seit 1. März 2026 · Protokollversion v1</div>
@@ -50,25 +52,25 @@ const dummyProtocolSend = ref(false)
         <thead>
           <tr class="border-b border-[var(--border)]">
             <th class="text-left py-2 px-3 font-medium">{{ t('federation.feature') }}</th>
-            <th class="text-center py-2 px-3 font-medium w-32">{{ t('federation.receive') }}</th>
-            <th class="text-center py-2 px-3 font-medium w-32">{{ t('federation.send') }}</th>
+            <Th align="center" class="font-medium w-32">{{ t('federation.receive') }}</th>
+            <Th align="center" class="font-medium w-32">{{ t('federation.send') }}</th>
           </tr>
         </thead>
         <tbody>
           <tr class="border-b border-[var(--border)]">
-            <td class="py-2 px-3">{{ t('federation.cap.kb') }}</td>
-            <td class="py-2 px-3 text-center"><ToggleInput v-model="dummyKbReceive" /></td>
-            <td class="py-2 px-3 text-center"><ToggleInput v-model="dummyKbSend" /></td>
+            <Td>{{ t('federation.cap.kb') }}</Td>
+            <Td align="center"><ToggleInput v-model="dummyKbReceive" /></Td>
+            <Td align="center"><ToggleInput v-model="dummyKbSend" /></Td>
           </tr>
           <tr class="border-b border-[var(--border)]">
-            <td class="py-2 px-3">{{ t('federation.cap.quiz') }}</td>
-            <td class="py-2 px-3 text-center"><ToggleInput v-model="dummyQuizReceive" /></td>
-            <td class="py-2 px-3 text-center"><ToggleInput v-model="dummyQuizSend" /></td>
+            <Td>{{ t('federation.cap.quiz') }}</Td>
+            <Td align="center"><ToggleInput v-model="dummyQuizReceive" /></Td>
+            <Td align="center"><ToggleInput v-model="dummyQuizSend" /></Td>
           </tr>
           <tr>
-            <td class="py-2 px-3">{{ t('federation.cap.protocol') }}</td>
-            <td class="py-2 px-3 text-center"><ToggleInput v-model="dummyProtocolReceive" /></td>
-            <td class="py-2 px-3 text-center"><ToggleInput v-model="dummyProtocolSend" /></td>
+            <Td>{{ t('federation.cap.protocol') }}</Td>
+            <Td align="center"><ToggleInput v-model="dummyProtocolReceive" /></Td>
+            <Td align="center"><ToggleInput v-model="dummyProtocolSend" /></Td>
           </tr>
         </tbody>
       </table>

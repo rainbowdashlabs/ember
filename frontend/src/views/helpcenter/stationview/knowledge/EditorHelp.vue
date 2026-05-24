@@ -8,6 +8,7 @@ import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import HelpArticle from '@/components/helpcenter/HelpArticle.vue'
 import HelpSection from '@/components/helpcenter/HelpSection.vue'
+import KeyBadge from '@/components/display/KeyBadge.vue'
 import HelpTip from '@/components/helpcenter/HelpTip.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import MarkdownEditor from '@/components/input/MarkdownEditor.vue'
@@ -85,54 +86,54 @@ Normaler Absatztext darunter.`)
       <div class="space-y-2 text-sm">
         <div class="flex flex-wrap items-center gap-2">
           <span class="font-medium w-28">Formatierung:</span>
-          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-[var(--bg)] border border-[var(--border)]">
+          <KeyBadge>
             <font-awesome-icon :icon="['fas', 'bold']" class="w-3 h-3" /> Fett
-          </span>
-          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-[var(--bg)] border border-[var(--border)]">
+          </KeyBadge>
+          <KeyBadge>
             <font-awesome-icon :icon="['fas', 'italic']" class="w-3 h-3" /> Kursiv
-          </span>
-          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-[var(--bg)] border border-[var(--border)]">
+          </KeyBadge>
+          <KeyBadge>
             <font-awesome-icon :icon="['fas', 'underline']" class="w-3 h-3" /> Unterstrichen
-          </span>
-          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-[var(--bg)] border border-[var(--border)]">
+          </KeyBadge>
+          <KeyBadge>
             <font-awesome-icon :icon="['fas', 'strikethrough']" class="w-3 h-3" /> Durchgestrichen
-          </span>
-          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-[var(--bg)] border border-[var(--border)]">
+          </KeyBadge>
+          <KeyBadge>
             <font-awesome-icon :icon="['fas', 'code']" class="w-3 h-3" /> Code
-          </span>
+          </KeyBadge>
         </div>
         <div class="flex flex-wrap items-center gap-2">
           <span class="font-medium w-28">Struktur:</span>
-          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-[var(--bg)] border border-[var(--border)]">
-            <font-awesome-icon :icon="['fas', 'heading']" class="w-3 h-3" /><span class="text-[10px] font-bold">1</span> <span class="text-[10px] font-bold">2</span> <span class="text-[10px] font-bold">3</span> Überschriften
-          </span>
-          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-[var(--bg)] border border-[var(--border)]">
+          <KeyBadge>
+            <font-awesome-icon :icon="['fas', 'heading']" class="w-3 h-3" /><span class="text-[10px] font-bold">1</span>
+          </KeyBadge> <span class="text-[10px] font-bold">2</span> <span class="text-[10px] font-bold">3</span> Überschriften
+          <KeyBadge>
             <font-awesome-icon :icon="['fas', 'list-ul']" class="w-3 h-3" /> Aufzählung
-          </span>
-          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-[var(--bg)] border border-[var(--border)]">
+          </KeyBadge>
+          <KeyBadge>
             <font-awesome-icon :icon="['fas', 'list-ol']" class="w-3 h-3" /> Nummeriert
-          </span>
-          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-[var(--bg)] border border-[var(--border)]">
+          </KeyBadge>
+          <KeyBadge>
             <font-awesome-icon :icon="['fas', 'quote-left']" class="w-3 h-3" /> Zitat
-          </span>
+          </KeyBadge>
         </div>
         <div class="flex flex-wrap items-center gap-2">
           <span class="font-medium w-28">Medien:</span>
-          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-[var(--bg)] border border-[var(--border)]">
+          <KeyBadge>
             <font-awesome-icon :icon="['fas', 'link']" class="w-3 h-3" /> Link
-          </span>
-          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-[var(--bg)] border border-[var(--border)]">
+          </KeyBadge>
+          <KeyBadge>
             <font-awesome-icon :icon="['fas', 'table-columns']" class="w-3 h-3" /> Tabelle
-          </span>
-          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-[var(--bg)] border border-[var(--border)]">
+          </KeyBadge>
+          <KeyBadge>
             <font-awesome-icon :icon="['fas', 'highlighter']" class="w-3 h-3" /> Hervorhebung
-          </span>
-          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-[var(--bg)] border border-[var(--border)]">
+          </KeyBadge>
+          <KeyBadge>
             <font-awesome-icon :icon="['fab', 'youtube']" class="w-3 h-3" /> YouTube
-          </span>
-          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-[var(--bg)] border border-[var(--border)]">
+          </KeyBadge>
+          <KeyBadge>
             <font-awesome-icon :icon="['fas', 'image']" class="w-3 h-3" /> Bild
-          </span>
+          </KeyBadge>
         </div>
       </div>
     </NeutralContainer>

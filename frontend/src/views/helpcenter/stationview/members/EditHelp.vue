@@ -18,6 +18,7 @@ import Th from '@/components/table/Th.vue'
 import Td from '@/components/table/Td.vue'
 import THead from '@/components/table/THead.vue'
 import TRow from '@/components/table/TRow.vue'
+import FieldLabel from '@/components/typography/FieldLabel.vue'
 
 const {t} = useI18n()
 
@@ -33,8 +34,7 @@ const dummyEmail = ref('max@example.com')
     </HelpSection>
 
     <!-- Dummy: Back button + header -->
-    <SecondaryButton>
-      <font-awesome-icon :icon="['fas', 'chevron-left']" class="mr-2"/>
+    <SecondaryButton :icon="['fas', 'chevron-left']">
       {{ t('memberEdit.back') }}
     </SecondaryButton>
     <SectionHeader>Max Mustermann</SectionHeader>
@@ -45,18 +45,18 @@ const dummyEmail = ref('max@example.com')
 
     <!-- Dummy: Base fields -->
     <NeutralContainer class="space-y-4">
-      <SubHeader class="text-sm font-semibold">{{ t('memberEdit.baseFields') }}</SubHeader>
+      <SubHeader class="text-sm">{{ t('memberEdit.baseFields') }}</SubHeader>
       <div class="grid gap-4 sm:grid-cols-3">
         <div class="space-y-1">
-          <label class="block text-xs font-medium text-(--text-muted)">{{ t('memberEdit.firstName') }}</label>
+          <FieldLabel hint>{{ t('memberEdit.firstName') }}</FieldLabel>
           <TextInput v-model="dummyFirstName"/>
         </div>
         <div class="space-y-1">
-          <label class="block text-xs font-medium text-(--text-muted)">{{ t('memberEdit.lastName') }}</label>
+          <FieldLabel hint>{{ t('memberEdit.lastName') }}</FieldLabel>
           <TextInput v-model="dummyLastName"/>
         </div>
         <div class="space-y-1">
-          <label class="block text-xs font-medium text-(--text-muted)">{{ t('memberEdit.email') }}</label>
+          <FieldLabel hint>{{ t('memberEdit.email') }}</FieldLabel>
           <TextInput v-model="dummyEmail"/>
         </div>
       </div>
@@ -68,7 +68,7 @@ const dummyEmail = ref('max@example.com')
 
     <!-- Dummy: Role cards -->
     <NeutralContainer class="space-y-3">
-      <SubHeader class="text-sm font-semibold">{{ t('memberEdit.roles') }}</SubHeader>
+      <SubHeader class="text-sm">{{ t('memberEdit.roles') }}</SubHeader>
       <div class="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
         <div class="flex items-center justify-between rounded-lg px-3 py-2.5 border border-primary bg-primary/10 ring-2 ring-primary/30">
           <span class="text-sm font-medium">{{ t('membersCreate.roleMember') }}</span>
@@ -96,7 +96,7 @@ const dummyEmail = ref('max@example.com')
 
     <!-- Dummy: Profile fields table -->
     <NeutralContainer class="space-y-4">
-      <SubHeader class="text-sm font-semibold">{{ t('memberEdit.fields') }}</SubHeader>
+      <SubHeader class="text-sm">{{ t('memberEdit.fields') }}</SubHeader>
       <div class="overflow-x-auto">
         <table class="w-full text-sm">
           <thead>

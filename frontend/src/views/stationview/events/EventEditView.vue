@@ -27,6 +27,7 @@ import {EventTypes, needsDayOfWeek} from '@/api/types'
 import type {EventFieldDefault} from '@/api/events'
 import {attendance, events, memberGroups, stationMembers, userTags} from '@/api'
 import {useSession} from '@/composables/useSession'
+import MutedText from '@/components/typography/MutedText.vue'
 
 const {t} = useI18n()
 const route = useRoute()
@@ -251,8 +252,7 @@ watch(loaded, (isLoaded) => {
   <ViewContent>
     <div class="space-y-6">
       <div class="flex items-center justify-between">
-        <SecondaryButton @click="goBack">
-          <font-awesome-icon :icon="['fas', 'chevron-left']" class="mr-2"/>
+        <SecondaryButton :icon="['fas', 'chevron-left']" @click="goBack">
           {{ t('common.back') }}
         </SecondaryButton>
       </div>
@@ -323,15 +323,14 @@ watch(loaded, (isLoaded) => {
         <NeutralContainer class="space-y-4">
           <div class="flex items-center justify-between">
             <SubHeader>{{ t('events.eventFields') }}</SubHeader>
-            <SecondaryButton @click="addCustomField">
-              <font-awesome-icon :icon="['fas', 'plus']" class="mr-1"/>
+            <SecondaryButton :icon="['fas', 'plus']" @click="addCustomField">
               {{ t('events.addField') }}
             </SecondaryButton>
           </div>
           <p class="text-xs text-(--text-muted)">{{ t('events.eventFieldsHint') }}</p>
-          <div v-if="eventCustomFields.length === 0" class="text-sm text-(--text-muted) py-2">
+          <MutedText tag="div" size="sm" class="py-2" v-if="eventCustomFields.length === 0">
             {{ t('events.noFields') }}
-          </div>
+          </MutedText>
           <div v-for="(field, index) in eventCustomFields" :key="index"
                class="flex items-start gap-2">
             <div class="flex-1 grid gap-2 sm:grid-cols-2">

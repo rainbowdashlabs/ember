@@ -85,7 +85,7 @@ const correctPairs = computed<{ left: string; right: string }[]>(() => {
         <div
           v-for="(opt, i) in mcOptions"
           :key="i"
-          class="flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer transition-colors"
+          class="flex items-center gap-2 p-3 rounded-lg border-2 cursor-pointer transition-colors"
           :class="[
             showAnswer
               ? opt.correct ? 'border-success bg-success/10' : userMcSelections.has(i) ? 'border-error bg-error/10' : 'border-bg-light-accent dark:border-bg-dark-accent'
@@ -170,7 +170,7 @@ const correctPairs = computed<{ left: string; right: string }[]>(() => {
         <div
           v-for="(item, i) in orderedItems"
           :key="i"
-          class="flex items-center gap-3 p-2 rounded-lg border border-bg-light-accent dark:border-bg-dark-accent"
+          class="flex items-center gap-2 p-2 rounded-lg border border-bg-light-accent dark:border-bg-dark-accent"
         >
           <span class="text-xs text-(--text-muted) w-5 text-right shrink-0">{{ i + 1 }}.</span>
           <span class="flex-1 text-sm">{{ item }}</span>
@@ -182,7 +182,7 @@ const correctPairs = computed<{ left: string; right: string }[]>(() => {
       </div>
       <div v-if="showAnswer" class="space-y-1">
         <span class="text-xs text-(--text-muted)">{{ t('quiz.training.correctOrder') }}:</span>
-        <div v-for="(item, i) in correctOrderItems" :key="i" class="flex items-center gap-2 text-sm text-success">
+        <div v-for="(item, i) in correctOrderItems" :key="i" class="flex items-center gap-2 text-xs text-success">
           <span class="w-5 text-right">{{ i + 1 }}.</span>
           <span>{{ item }}</span>
         </div>
@@ -192,7 +192,7 @@ const correctPairs = computed<{ left: string; right: string }[]>(() => {
     <!-- Connect -->
     <template v-else-if="question.questionType === QuizQuestionTypes.CONNECT">
       <div class="space-y-2">
-        <div v-for="(left, leftIdx) in connectLeftItems" :key="leftIdx" class="flex items-center gap-3">
+        <div v-for="(left, leftIdx) in connectLeftItems" :key="leftIdx" class="flex items-center gap-2">
           <span class="text-sm font-medium w-1/3 shrink-0">{{ left }}</span>
           <select
             :value="userConnectPairs[String(leftIdx)] ?? ''"
@@ -207,7 +207,7 @@ const correctPairs = computed<{ left: string; right: string }[]>(() => {
       </div>
       <div v-if="showAnswer" class="space-y-1">
         <span class="text-xs text-(--text-muted)">{{ t('quiz.training.correctPairs') }}:</span>
-        <div v-for="pair in correctPairs" :key="pair.left" class="text-sm text-success flex items-center gap-2">
+        <div v-for="pair in correctPairs" :key="pair.left" class="text-xs text-success flex items-center gap-2">
           <span>{{ pair.left }}</span>
           <font-awesome-icon :icon="['fas', 'arrow-right']" class="text-xs" />
           <span>{{ pair.right }}</span>

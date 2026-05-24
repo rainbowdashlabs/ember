@@ -9,6 +9,7 @@ import HelpArticle from '@/components/helpcenter/HelpArticle.vue'
 import HelpSection from '@/components/helpcenter/HelpSection.vue'
 import HelpTip from '@/components/helpcenter/HelpTip.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
+import BulletList from '@/components/typography/BulletList.vue'
 
 const { t } = useI18n()
 </script>
@@ -21,11 +22,11 @@ const { t } = useI18n()
 
     <HelpSection :title="t('helpCenter.quiz.pagesTitle')">
       <p>{{ t('helpCenter.quiz.pagesText') }}</p>
-      <ul class="list-disc pl-5 space-y-1 mt-2 text-sm">
+      <BulletList class="mt-2">
         <li><strong>{{ t('helpCenter.quiz.pageCatalogs') }}:</strong> {{ t('helpCenter.quiz.pageCatalogsDesc') }}</li>
         <li><strong>{{ t('helpCenter.quiz.pageTests') }}:</strong> {{ t('helpCenter.quiz.pageTestsDesc') }}</li>
         <li><strong>{{ t('helpCenter.quiz.pageTraining') }}:</strong> {{ t('helpCenter.quiz.pageTrainingDesc') }}</li>
-      </ul>
+      </BulletList>
     </HelpSection>
 
     <!-- Dummy: Overview cards -->

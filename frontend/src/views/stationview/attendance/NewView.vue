@@ -17,6 +17,7 @@ import Alert from '@/components/feedback/Alert.vue'
 import type {AttendanceTemplate, StationEvent} from '@/api/types'
 import {attendance, events} from '@/api'
 import {useSession} from '@/composables/useSession'
+import MutedText from '@/components/typography/MutedText.vue'
 
 const {t} = useI18n()
 const router = useRouter()
@@ -134,9 +135,9 @@ watch(loaded, (isLoaded) => {
         <!-- All templates -->
         <div class="space-y-3">
           <SectionHeader>{{ t('attendanceNew.fromTemplate') }}</SectionHeader>
-          <div v-if="templates.length === 0" class="text-(--text-muted) text-sm py-2">
+          <MutedText tag="div" size="sm" class="py-2" v-if="templates.length === 0">
             {{ t('attendanceNew.noTemplates') }}
-          </div>
+          </MutedText>
           <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             <NeutralContainer
                 v-for="tpl in templates"
@@ -146,8 +147,7 @@ watch(loaded, (isLoaded) => {
             >
               <div class="flex items-center justify-between">
                 <span class="font-medium">{{ tpl.name }}</span>
-                <PrimaryButton>
-                  <font-awesome-icon :icon="['fas', 'plus']" class="mr-1"/>
+                <PrimaryButton :icon="['fas', 'plus']">
                   {{ t('attendanceNew.create') }}
                 </PrimaryButton>
               </div>
@@ -156,7 +156,7 @@ watch(loaded, (isLoaded) => {
         </div>
       </template>
 
-      <div v-if="creating" class="flex items-center gap-3 justify-center py-8">
+      <div v-if="creating" class="flex items-center gap-2 justify-center py-8">
         <Spinner size="md"/>
         <span class="text-(--text-muted)">{{ t('attendanceNew.creating') }}</span>
       </div>

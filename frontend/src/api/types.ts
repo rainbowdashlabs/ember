@@ -453,6 +453,9 @@ export interface StationManageInfo {
     allowUserTheme?: boolean
     customThemeColors?: string | null
     publicKbMode?: string
+    discoveryVisibility?: string
+    discoveryDescription?: string | null
+    discoveryShowKb?: boolean
 }
 
 export interface UpdateStationNameRequest {
@@ -463,6 +466,9 @@ export interface UpdateStationNameRequest {
     allowUserTheme?: boolean
     customThemeColors?: string | null
     publicKbMode?: string
+    discoveryVisibility?: string
+    discoveryDescription?: string | null
+    discoveryShowKb?: boolean
 }
 
 // -- Stations --

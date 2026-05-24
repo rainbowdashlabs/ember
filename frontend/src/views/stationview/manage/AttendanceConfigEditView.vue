@@ -206,8 +206,7 @@ onMounted(loadTemplate)
 <template>
   <ViewContent>
     <div class="space-y-6">
-      <SecondaryButton @click="goBack">
-        <font-awesome-icon :icon="['fas', 'chevron-left']" class="mr-2"/>
+      <SecondaryButton :icon="['fas', 'chevron-left']" @click="goBack">
         {{ t('attendanceConfig.back') }}
       </SecondaryButton>
 

@@ -12,6 +12,8 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
+import Td from '@/components/table/Td.vue'
+import Th from '@/components/table/Th.vue'
 
 const {t} = useI18n()
 </script>
@@ -34,33 +36,33 @@ const {t} = useI18n()
             <th class="text-left py-2 px-3 font-medium">Endpunkt</th>
             <th class="text-right py-2 px-3 font-medium">Ø Zeit</th>
             <th class="text-right py-2 px-3 font-medium">Anfragen</th>
-            <th class="text-center py-2 px-3 font-medium">Status</th>
+            <Th align="center" class="font-medium">Status</th>
           </tr>
         </thead>
         <tbody>
           <tr class="border-b border-[var(--border)]">
-            <td class="py-2 px-3 font-mono text-xs">GET /api/v1/members</td>
-            <td class="py-2 px-3 text-right">12 ms</td>
-            <td class="py-2 px-3 text-right">1 240</td>
-            <td class="py-2 px-3 text-center"><SuccessBadge>OK</SuccessBadge></td>
+            <Td class="font-mono text-xs">GET /api/v1/members</Td>
+            <Td align="right">12 ms</Td>
+            <Td align="right">1 240</Td>
+            <Td align="center"><SuccessBadge>OK</SuccessBadge></Td>
           </tr>
           <tr class="border-b border-[var(--border)]">
-            <td class="py-2 px-3 font-mono text-xs">POST /api/v1/quiz/submit</td>
-            <td class="py-2 px-3 text-right">45 ms</td>
-            <td class="py-2 px-3 text-right">382</td>
-            <td class="py-2 px-3 text-center"><SuccessBadge>OK</SuccessBadge></td>
+            <Td class="font-mono text-xs">POST /api/v1/quiz/submit</Td>
+            <Td align="right">45 ms</Td>
+            <Td align="right">382</Td>
+            <Td align="center"><SuccessBadge>OK</SuccessBadge></Td>
           </tr>
           <tr class="border-b border-[var(--border)]">
-            <td class="py-2 px-3 font-mono text-xs">GET /api/v1/kb/search</td>
-            <td class="py-2 px-3 text-right">210 ms</td>
-            <td class="py-2 px-3 text-right">94</td>
-            <td class="py-2 px-3 text-center"><InfoBadge>Langsam</InfoBadge></td>
+            <Td class="font-mono text-xs">GET /api/v1/kb/search</Td>
+            <Td align="right">210 ms</Td>
+            <Td align="right">94</Td>
+            <Td align="center"><InfoBadge>Langsam</InfoBadge></Td>
           </tr>
           <tr>
-            <td class="py-2 px-3 font-mono text-xs">POST /api/v1/mail/send</td>
-            <td class="py-2 px-3 text-right">—</td>
-            <td class="py-2 px-3 text-right">3</td>
-            <td class="py-2 px-3 text-center"><ErrorBadge>Fehler</ErrorBadge></td>
+            <Td class="font-mono text-xs">POST /api/v1/mail/send</Td>
+            <Td align="right">—</Td>
+            <Td align="right">3</Td>
+            <Td align="center"><ErrorBadge>Fehler</ErrorBadge></Td>
           </tr>
         </tbody>
       </table>

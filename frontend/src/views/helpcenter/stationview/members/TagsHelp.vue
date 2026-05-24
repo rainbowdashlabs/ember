@@ -36,8 +36,7 @@ const {t} = useI18n()
       <div class="space-y-4">
         <div class="flex items-center justify-between">
           <SectionHeader>Tags</SectionHeader>
-          <PrimaryButton>
-            <font-awesome-icon :icon="['fas', 'plus']" class="mr-2"/>
+          <PrimaryButton :icon="['fas', 'plus']">
             Tag erstellen
           </PrimaryButton>
         </div>
@@ -45,8 +44,7 @@ const {t} = useI18n()
           <NeutralContainer class="flex items-center justify-between cursor-pointer border-primary">
             <span class="font-medium">Ersthelfer</span>
             <div class="flex items-center gap-2">
-              <SecondaryButton>
-                <font-awesome-icon :icon="['fas', 'people-group']" class="mr-1"/>
+              <SecondaryButton :icon="['fas', 'people-group']">
                 Zu Gruppe
               </SecondaryButton>
               <EditButton/>
@@ -56,8 +54,7 @@ const {t} = useI18n()
           <NeutralContainer class="flex items-center justify-between cursor-pointer hover:border-primary">
             <span class="font-medium">Fahrer</span>
             <div class="flex items-center gap-2">
-              <SecondaryButton>
-                <font-awesome-icon :icon="['fas', 'people-group']" class="mr-1"/>
+              <SecondaryButton :icon="['fas', 'people-group']">
                 Zu Gruppe
               </SecondaryButton>
               <EditButton/>

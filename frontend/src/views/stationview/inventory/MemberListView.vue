@@ -16,6 +16,7 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
+import FieldLabel from '@/components/typography/FieldLabel.vue'
 import MemberListFilters from './memberlistview/MemberListFilters.vue'
 import MemberListTable from './memberlistview/MemberListTable.vue'
 import { inventory, stationMembers, memberGroups, profileFields, userTags } from '@/api'
@@ -320,19 +321,16 @@ onMounted(loadData)
         <SectionHeader>{{ t('inventoryMembers.title') }}</SectionHeader>
         <div class="flex items-center gap-2">
           <template v-if="exportMode">
-            <SecondaryButton :disabled="exporting || selectedForExport.size === 0" @click="exportCsv">
-              <font-awesome-icon :icon="['fas', 'download']" class="mr-1" />
+            <SecondaryButton :icon="['fas', 'download']" :disabled="exporting || selectedForExport.size === 0" @click="exportCsv">
               CSV ({{ selectedForExport.size }})
             </SecondaryButton>
-            <SecondaryButton :disabled="exporting || selectedForExport.size === 0" @click="exportPdf">
-              <font-awesome-icon :icon="['fas', 'download']" class="mr-1" />
+            <SecondaryButton :icon="['fas', 'download']" :disabled="exporting || selectedForExport.size === 0" @click="exportPdf">
               {{ exporting ? t('common.loading') : 'PDF' }} ({{ selectedForExport.size }})
             </SecondaryButton>
             <SecondaryButton @click="cancelExport">{{ t('common.cancel') }}</SecondaryButton>
           </template>
           <template v-else>
-            <PrimaryButton v-if="filteredMembers.length > 0" @click="enterExportMode">
-              <font-awesome-icon :icon="['fas', 'file-export']" class="mr-1" />
+            <PrimaryButton :icon="['fas', 'file-export']" v-if="filteredMembers.length > 0" @click="enterExportMode">
               {{ t('inventoryMembers.export') }}
             </PrimaryButton>
           </template>
@@ -364,10 +362,10 @@ onMounted(loadData)
         <NeutralContainer v-if="exportMode && allFields.length > 0" class="space-y-2">
           <p class="text-sm font-medium">{{ t('inventoryMembers.exportFieldsHint') }}</p>
           <div class="flex flex-wrap gap-2">
-            <label v-for="field in allFields" :key="field.id" class="inline-flex items-center gap-1.5 text-sm cursor-pointer">
+            <FieldLabel v-for="field in allFields" :key="field.id" inline class="cursor-pointer">
               <CheckboxInput :model-value="selectedExportFields.has(field.id)" @update:model-value="toggleExportField(field.id)" />
               {{ field.name }}
-            </label>
+            </FieldLabel>
           </div>
         </NeutralContainer>
 

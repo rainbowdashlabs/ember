@@ -13,6 +13,7 @@ import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
+import MutedText from '@/components/typography/MutedText.vue'
 
 const {t} = useI18n()
 </script>
@@ -27,12 +28,12 @@ const {t} = useI18n()
 
     <!-- Dummy: Past sessions list -->
     <div class="space-y-2">
-      <NeutralContainer class="cursor-pointer hover:ring-2 hover:ring-primary/30 transition-all">
-        <div class="flex items-center justify-between flex-wrap gap-3">
+      <NeutralContainer clickable>
+        <div class="flex items-center justify-between flex-wrap gap-2">
           <div>
             <span class="font-semibold text-sm">Übungsabend</span>
-            <span class="ml-3 text-sm text-(--text-muted)">10.05.2026</span>
-            <span class="ml-2 text-xs text-(--text-muted)">18:00 – 20:00</span>
+            <MutedText size="sm" class="ml-3">10.05.2026</MutedText>
+            <MutedText class="ml-2">18:00 – 20:00</MutedText>
           </div>
           <div class="flex items-center gap-2 text-xs">
             <SuccessBadge>18 {{ t('attendancePast.present') }}</SuccessBadge>
@@ -41,12 +42,12 @@ const {t} = useI18n()
           </div>
         </div>
       </NeutralContainer>
-      <NeutralContainer class="cursor-pointer hover:ring-2 hover:ring-primary/30 transition-all">
-        <div class="flex items-center justify-between flex-wrap gap-3">
+      <NeutralContainer clickable>
+        <div class="flex items-center justify-between flex-wrap gap-2">
           <div>
             <span class="font-semibold text-sm">Jugenddienst</span>
-            <span class="ml-3 text-sm text-(--text-muted)">07.05.2026</span>
-            <span class="ml-2 text-xs text-(--text-muted)">14:00 – 17:00</span>
+            <MutedText size="sm" class="ml-3">07.05.2026</MutedText>
+            <MutedText class="ml-2">14:00 – 17:00</MutedText>
           </div>
           <div class="flex items-center gap-2 text-xs">
             <SuccessBadge>12 {{ t('attendancePast.present') }}</SuccessBadge>

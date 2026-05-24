@@ -48,11 +48,11 @@ const {t} = useI18n()
 
     <NeutralContainer class="space-y-4">
       <SectionHeader>{{ t('events.registration') }}</SectionHeader>
-      <div class="flex items-center gap-3">
+      <div class="flex items-center gap-2">
         <ToggleInput :model-value="true"/>
         <span class="text-sm">{{ t('events.requiresRegistration') }}</span>
       </div>
-      <div class="flex items-center gap-3">
+      <div class="flex items-center gap-2">
         <ToggleInput :model-value="false"/>
         <span class="text-sm">{{ t('events.requiresConfirmation') }}</span>
       </div>

@@ -15,6 +15,7 @@ import FieldLabel from '@/components/typography/FieldLabel.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import PasswordInput from '@/components/input/text/PasswordInput.vue'
+import MutedText from '@/components/typography/MutedText.vue'
 
 const {t} = useI18n()
 </script>
@@ -102,7 +103,7 @@ const {t} = useI18n()
       </div>
       <div class="space-y-1">
         <FieldLabel>
-          {{ t('helpCenter.exampleFields.memberNumber') }} <span class="text-xs text-(--text-muted) ml-1">({{ t('profile.readonlyHint') }})</span>
+          {{ t('helpCenter.exampleFields.memberNumber') }} <MutedText class="ml-1">({{ t('profile.readonlyHint') }})</MutedText>
         </FieldLabel>
         <TextInput model-value="M-2024-042" disabled/>
       </div>

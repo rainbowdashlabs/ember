@@ -23,6 +23,7 @@ import SectionHeader from '@/components/typography/SectionHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import type {UserTag, StationMember} from '@/api/types'
 import {userTags, stationMembers} from '@/api'
+import MutedText from '@/components/typography/MutedText.vue'
 
 
 const tags = ref<UserTag[]>([])
@@ -200,8 +201,7 @@ onMounted(loadData)
         <div class="space-y-4">
           <div class="flex items-center justify-between">
             <SectionHeader>Tags</SectionHeader>
-            <PrimaryButton @click="openCreateTag">
-              <font-awesome-icon :icon="['fas', 'plus']" class="mr-2"/>
+            <PrimaryButton :icon="['fas', 'plus']" @click="openCreateTag">
               Tag erstellen
             </PrimaryButton>
           </div>
@@ -218,8 +218,7 @@ onMounted(loadData)
             >
               <span class="font-medium">{{ tag.name }}</span>
               <div class="flex items-center gap-2">
-                <SecondaryButton @click.stop="requestConvert(tag)">
-                  <font-awesome-icon :icon="['fas', 'people-group']" class="mr-1"/>
+                <SecondaryButton :icon="['fas', 'people-group']" @click.stop="requestConvert(tag)">
                   Zu Gruppe
                 </SecondaryButton>
                 <EditButton @click.stop="openEditTag(tag)"/>
@@ -239,9 +238,9 @@ onMounted(loadData)
             <!-- Current members -->
             <div class="space-y-1">
               <FieldLabel class="text-(--text-muted)">Mitglieder</FieldLabel>
-              <div v-if="tagMembers.length === 0" class="text-sm text-(--text-muted) py-2">
+              <MutedText tag="div" size="sm" class="py-2" v-if="tagMembers.length === 0">
                 Keine Mitglieder in diesem Tag.
-              </div>
+              </MutedText>
               <div class="space-y-1">
                 <div v-for="member in tagMembers" :key="member.id"
                      class="flex items-center justify-between rounded-lg px-3 py-2 bg-bg-light-accent dark:bg-bg-dark-accent">
@@ -257,9 +256,9 @@ onMounted(loadData)
             <!-- Available members to add -->
             <div class="space-y-1">
               <FieldLabel class="text-(--text-muted)">Mitglied hinzufügen</FieldLabel>
-              <div v-if="availableMembers.length === 0" class="text-sm text-(--text-muted) py-2">
+              <MutedText tag="div" size="sm" class="py-2" v-if="availableMembers.length === 0">
                 Alle Mitglieder sind bereits zugewiesen.
-              </div>
+              </MutedText>
               <div class="space-y-1">
                 <div
                     v-for="member in availableMembers"

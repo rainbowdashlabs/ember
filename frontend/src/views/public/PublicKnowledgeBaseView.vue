@@ -18,6 +18,7 @@ import * as publicKb from '@/api/publicKb'
 import type {PublicStationInfo, PublicBrowseResponse, PublicSearchResult} from '@/api/publicKb'
 import type {KbFile, KbFolder} from '@/api/knowledgeBase'
 import {KbFileType} from '@/api/knowledgeBase'
+import MutedText from '@/components/typography/MutedText.vue'
 
 const {t} = useI18n()
 const router = useRouter()
@@ -213,9 +214,9 @@ onMounted(() => {
                 <Spinner v-if="loading"/>
                 <template v-else>
                     <!-- Folder description -->
-                    <p v-if="currentFolder?.description" class="text-sm text-[var(--text-muted)] mb-4">
+                    <MutedText tag="p" size="sm" v-if="currentFolder?.description">
                         {{ currentFolder.description }}
-                    </p>
+                    </MutedText>
 
                     <!-- Content grid -->
                     <template v-if="folders.length > 0 || files.length > 0">

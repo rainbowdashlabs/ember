@@ -139,7 +139,7 @@ onMounted(() => {
         <Spinner v-if="loading"/>
 
         <template v-else>
-            <div class="flex items-center gap-3 mb-4">
+            <div class="flex items-center gap-2 mb-4">
                 <SecondaryButton @click="router.push({name: 'kb-file', params: {id: fileId}})">
                     <font-awesome-icon :icon="['fas', 'chevron-left']"/>
                     {{ t('common.back') }}

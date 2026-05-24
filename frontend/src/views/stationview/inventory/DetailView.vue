@@ -12,30 +12,26 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
-import EmptyState from '@/components/feedback/EmptyState.vue'
-import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import SizeBadge from '@/components/badge/SizeBadge.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
-import FieldLabel from '@/components/typography/FieldLabel.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import ItemsTable from './ItemsTable.vue'
-import TextInput from '@/components/input/text/TextInput.vue'
 import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
-import type { InventoryDetail, InventoryItem, InventoryItemHistory, InventorySize, StationMember, ProcurementEntry } from '@/api/types'
+import type { InventoryDetail, InventoryItem, InventorySize, StationMember, ProcurementEntry } from '@/api/types'
 import { InventoryTypes } from '@/api/types'
 import { inventory, stationMembers, procurement } from '@/api'
 import { getLentOutByInventory, type LentOutItem } from '@/api/lending'
-import InfoBadge from '@/components/badge/InfoBadge.vue'
 import { useStations } from '@/composables/useStations'
-import MemberName from '@/components/avatar/MemberName.vue'
-import Th from '@/components/table/Th.vue'
-import Td from '@/components/table/Td.vue'
-import THead from '@/components/table/THead.vue'
-import TRow from '@/components/table/TRow.vue'
+import InventoryStatsPanel from './detailview/InventoryStatsPanel.vue'
+import LentOutTable from './detailview/LentOutTable.vue'
+import EditItemModal from './detailview/EditItemModal.vue'
+import HistoryModal from './detailview/HistoryModal.vue'
+import ProcurementTable from './detailview/ProcurementTable.vue'
+import LostItemsTable from './detailview/LostItemsTable.vue'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -66,16 +62,10 @@ const procCreated = ref(false)
 // Edit item modal
 const showEditItemModal = ref(false)
 const editingItem = ref<InventoryItem | null>(null)
-const editItemName = ref('')
-const editItemInternalId = ref('')
-const editItemSizeId = ref('')
-const editItemSaving = ref(false)
 
 // History modal
 const showHistoryModal = ref(false)
 const historyTarget = ref<InventoryItem | null>(null)
-const historyEntries = ref<InventoryItemHistory[]>([])
-const historyLoading = ref(false)
 
 // Delete
 const showDeleteModal = ref(false)
@@ -91,8 +81,7 @@ const lostItems = computed(() => items.value.filter(i => i.lostAt))
 
 const sizeDistribution = computed(() => {
   if (!detail.value?.hasSizes || !detail.value.sizes) return []
-  const sizes = detail.value.sizes
-  return sizes.map(size => {
+  return detail.value.sizes.map(size => {
     const sizeItems = items.value.filter(i => i.sizeId === size.id)
     return {
       size,
@@ -104,7 +93,6 @@ const sizeDistribution = computed(() => {
   })
 })
 
-// Items without a size
 const noSizeItems = computed(() => {
   if (!detail.value?.hasSizes) return []
   const nosizeItems = items.value.filter(i => !i.sizeId)
@@ -120,20 +108,9 @@ const noSizeItems = computed(() => {
 
 const allSizeStats = computed(() => [...sizeDistribution.value, ...noSizeItems.value])
 
-function ownerName(memberId: number | null | undefined): string {
-  if (!memberId) return '-'
-  const m = memberMap.value.get(memberId)
-  return m ? (m.name || m.email || `#${m.id}`) : `#${memberId}`
-}
-
 function sizeName(sizeId: number | null | undefined): string {
   if (!sizeId || !detail.value?.sizes) return ''
   return detail.value.sizes.find(s => s.id === sizeId)?.label ?? ''
-}
-
-function formatDate(dateStr?: string | null): string {
-  if (!dateStr) return ''
-  return new Date(dateStr).toLocaleDateString('de-DE')
 }
 
 async function loadData() {
@@ -206,10 +183,7 @@ async function submitProcurement() {
   } catch { /* ignore */ }
 }
 
-// Item actions
-function onAssign(item: InventoryItem) {
-  openAssign(item.id)
-}
+function onAssign(item: InventoryItem) { openAssign(item.id) }
 
 async function onUnassign(item: InventoryItem) {
   error.value = ''
@@ -225,53 +199,24 @@ async function onUnassign(item: InventoryItem) {
 
 function onEditItem(item: InventoryItem) {
   editingItem.value = item
-  editItemName.value = item.name ?? ''
-  editItemInternalId.value = item.internalId ?? ''
-  editItemSizeId.value = item.sizeId != null ? String(item.sizeId) : ''
   showEditItemModal.value = true
-}
-
-async function saveEditItem() {
-  if (!editingItem.value) return
-  editItemSaving.value = true
-  error.value = ''
-  try {
-    await inventory.updateItem(editingItem.value.id, {
-      name: editItemName.value,
-      internalId: editItemInternalId.value || undefined,
-      sizeId: editItemSizeId.value ? Number(editItemSizeId.value) : undefined,
-    })
-    showEditItemModal.value = false
-    await loadData()
-  } catch { error.value = t('common.error') }
-  finally { editItemSaving.value = false }
 }
 
 async function onMarkLost(item: InventoryItem) {
   error.value = ''
-  try {
-    await inventory.markLost(item.id)
-    await loadData()
-  } catch { error.value = t('common.error') }
+  try { await inventory.markLost(item.id); await loadData() }
+  catch { error.value = t('common.error') }
 }
 
 async function onMarkFound(item: InventoryItem) {
   error.value = ''
-  try {
-    await inventory.markFound(item.id)
-    await loadData()
-  } catch { error.value = t('common.error') }
+  try { await inventory.markFound(item.id); await loadData() }
+  catch { error.value = t('common.error') }
 }
 
-async function onHistory(item: InventoryItem) {
+function onHistory(item: InventoryItem) {
   historyTarget.value = item
-  historyEntries.value = []
-  historyLoading.value = true
   showHistoryModal.value = true
-  try {
-    historyEntries.value = await inventory.getItemHistory(item.id)
-  } catch { error.value = t('common.error') }
-  finally { historyLoading.value = false }
 }
 
 function onDeleteItem(item: InventoryItem) {
@@ -291,17 +236,11 @@ async function confirmDeleteItem() {
 
 async function fulfillProcurement(id: number) {
   error.value = ''
-  try {
-    await procurement.fulfill(id)
-    await loadData()
-  } catch {
-    error.value = t('common.error')
-  }
+  try { await procurement.fulfill(id); await loadData() }
+  catch { error.value = t('common.error') }
 }
 
-function goBack() {
-  router.push({ name: 'inventory-manage' })
-}
+function goBack() { router.push({ name: 'inventory-manage' }) }
 
 onMounted(loadData)
 </script>
@@ -317,8 +256,7 @@ onMounted(loadData)
             <span v-if="detail?.hasSizes"> &middot; {{ t('inventory.manage.withSizes') }}</span>
           </p>
         </div>
-        <SecondaryButton @click="goBack">
-          <font-awesome-icon :icon="['fas', 'chevron-left']" class="mr-1" />
+        <SecondaryButton :icon="['fas', 'chevron-left']" @click="goBack">
           {{ t('inventory.manage.back') }}
         </SecondaryButton>
       </div>
@@ -327,131 +265,19 @@ onMounted(loadData)
       <Alert v-if="error" variant="error">{{ error }}</Alert>
 
       <template v-if="!loading && detail">
-        <!-- Summary -->
-        <div :class="lentOutCount > 0 ? 'grid-cols-2 sm:grid-cols-5' : 'grid-cols-2 sm:grid-cols-4'" class="grid gap-3">
-          <NeutralContainer class="text-center">
-            <div class="text-2xl font-bold">{{ totalCount }}</div>
-            <div class="text-xs text-(--text-muted)">{{ t('inventory.detail.total') }}</div>
-          </NeutralContainer>
-          <NeutralContainer class="text-center">
-            <div class="text-2xl font-bold text-success">{{ freeCount }}</div>
-            <div class="text-xs text-(--text-muted)">{{ t('inventory.detail.free') }}</div>
-          </NeutralContainer>
-          <NeutralContainer class="text-center">
-            <div class="text-2xl font-bold text-primary">{{ assignedCount }}</div>
-            <div class="text-xs text-(--text-muted)">{{ t('inventory.detail.assigned') }}</div>
-          </NeutralContainer>
-          <NeutralContainer class="text-center">
-            <div class="text-2xl font-bold text-error">{{ lostCount }}</div>
-            <div class="text-xs text-(--text-muted)">{{ t('inventory.detail.lost') }}</div>
-          </NeutralContainer>
-          <NeutralContainer v-if="lentOutCount > 0" class="text-center">
-            <div class="text-2xl font-bold text-secondary-accent">{{ lentOutCount }}</div>
-            <div class="text-xs text-(--text-muted)">{{ t('inventory.detail.lentOut') }}</div>
-          </NeutralContainer>
-        </div>
+        <InventoryStatsPanel
+          :total-count="totalCount"
+          :free-count="freeCount"
+          :assigned-count="assignedCount"
+          :lost-count="lostCount"
+          :lent-out-count="lentOutCount"
+          :has-sizes="detail.hasSizes"
+          :size-stats="allSizeStats"
+        />
 
-        <!-- Size distribution -->
-        <template v-if="detail.hasSizes && allSizeStats.length > 0">
-          <SubHeader>{{ t('inventory.detail.bySize') }}</SubHeader>
-          <NeutralContainer class="overflow-x-auto">
-            <table class="w-full text-sm">
-              <thead>
-                <THead>
-                  <Th>{{ t('inventory.detail.size') }}</Th>
-                  <Th align="center">{{ t('inventory.detail.total') }}</Th>
-                  <Th align="center">{{ t('inventory.detail.free') }}</Th>
-                  <Th align="center">{{ t('inventory.detail.assigned') }}</Th>
-                  <Th align="center">{{ t('inventory.detail.lost') }}</Th>
-                </THead>
-              </thead>
-              <tbody>
-                <TRow v-for="row in allSizeStats" :key="row.size?.id ?? 'none'">
-                  <Td class="font-medium">{{ row.size?.label ?? t('inventory.detail.noSize') }}</Td>
-                  <Td align="center">{{ row.total }}</Td>
-                  <Td align="center" class="text-success">{{ row.free }}</Td>
-                  <Td align="center" class="text-primary">{{ row.assigned }}</Td>
-                  <Td align="center" class="text-error">{{ row.lost }}</Td>
-                </TRow>
-              </tbody>
-            </table>
-          </NeutralContainer>
-        </template>
+        <ProcurementTable :entries="openProcurement" @fulfill="fulfillProcurement" />
 
-        <!-- Procurement needs -->
-        <template v-if="openProcurement.length > 0">
-          <SubHeader>
-            <font-awesome-icon :icon="['fas', 'folder-plus']" class="mr-2" />
-            {{ t('inventory.detail.procurement') }} ({{ openProcurement.length }})
-          </SubHeader>
-          <NeutralContainer class="overflow-x-auto">
-            <table class="w-full text-sm">
-              <thead>
-                <THead>
-                  <Th>{{ t('inventory.detail.owner') }}</Th>
-                  <Th>{{ t('inventory.detail.size') }}</Th>
-                  <Th>{{ t('inventory.detail.notes') }}</Th>
-                  <th class="px-3 py-2"></th>
-                </THead>
-              </thead>
-              <tbody>
-                <TRow v-for="p in openProcurement" :key="p.id">
-                  <Td><MemberName :name="p.memberName" :member-id="p.memberId"/></Td>
-                  <Td><SizeBadge>{{ p.sizeLabel || t('common.unisize') }}</SizeBadge></Td>
-                  <Td muted>{{ p.notes || '-' }}</Td>
-                  <Td align="right">
-                    <PrimaryButton @click="fulfillProcurement(p.id)">
-                      <font-awesome-icon :icon="['fas', 'check']" class="mr-1" />
-                      {{ t('procurement.markFulfilled') }}
-                    </PrimaryButton>
-                  </Td>
-                </TRow>
-              </tbody>
-            </table>
-          </NeutralContainer>
-        </template>
-
-        <!-- Lent out items -->
-        <template v-if="lentOutItems.length > 0">
-          <SubHeader>
-            <font-awesome-icon :icon="['fas', 'arrow-right-arrow-left']" class="mr-2" />
-            {{ t('inventory.detail.lentOut') }} ({{ lentOutCount }})
-          </SubHeader>
-          <NeutralContainer class="overflow-x-auto">
-            <table class="w-full text-sm">
-              <thead>
-                <THead>
-                  <Th>{{ t('inventory.detail.lentToStation') }}</Th>
-                  <Th align="center">{{ t('inventory.detail.lentQuantity') }}</Th>
-                  <Th>{{ t('inventory.detail.lentUntil') }}</Th>
-                  <Th>{{ t('inventory.detail.lentStatus') }}</Th>
-                  <th class="px-3 py-2"></th>
-                </THead>
-              </thead>
-              <tbody>
-                <TRow v-for="lent in lentOutItems" :key="lent.requestItemId">
-                  <Td class="font-medium">{{ lent.requestingStationName }}</Td>
-                  <Td align="center">{{ lent.quantity }}</Td>
-                  <Td>
-                    <template v-if="lent.dateTo">{{ formatDate(lent.dateTo) }}</template>
-                    <span v-else class="text-(--text-muted)">–</span>
-                  </Td>
-                  <Td>
-                    <InfoBadge>{{ lent.status === 'LENT' ? t('inventory.detail.statusLent') : t('inventory.detail.statusApproved') }}</InfoBadge>
-                  </Td>
-                  <Td align="right">
-                    <router-link :to="{ name: 'inventory-lending-request', params: { id: lent.requestId } }">
-                      <SecondaryButton>
-                        <font-awesome-icon :icon="['fas', 'eye']" class="mr-1" />
-                        {{ t('inventory.detail.viewRequest') }}
-                      </SecondaryButton>
-                    </router-link>
-                  </Td>
-                </TRow>
-              </tbody>
-            </table>
-          </NeutralContainer>
-        </template>
+        <LentOutTable :lent-out-items="lentOutItems" :lent-out-count="lentOutCount" />
 
         <!-- All items -->
         <template v-if="items.length > 0">
@@ -495,42 +321,12 @@ onMounted(loadData)
 
         <!-- Actions -->
         <div class="flex gap-2">
-          <PrimaryButton @click="openProcurementModal">
-            <font-awesome-icon :icon="['fas', 'folder-plus']" class="mr-1" />
+          <PrimaryButton :icon="['fas', 'folder-plus']" @click="openProcurementModal">
             {{ t('inventory.detail.createProcurement') }}
           </PrimaryButton>
         </div>
 
-        <!-- Lost items -->
-        <template v-if="lostItems.length > 0">
-          <SubHeader>{{ t('inventory.detail.lostItems') }}</SubHeader>
-          <NeutralContainer class="overflow-x-auto">
-            <table class="w-full text-sm">
-              <thead>
-                <THead>
-                  <Th>{{ t('inventory.detail.item') }}</Th>
-                  <Th>{{ t('inventory.detail.owner') }}</Th>
-                  <Th>{{ t('inventory.detail.lostSince') }}</Th>
-                </THead>
-              </thead>
-              <tbody>
-                <TRow v-for="item in lostItems" :key="item.id">
-                  <Td>
-                    <div class="font-medium">
-                      {{ item.name }}
-                      <SizeBadge v-if="sizeName(item.sizeId)" lost>{{ sizeName(item.sizeId) }}</SizeBadge>
-                    </div>
-                    <div v-if="item.internalId" class="text-xs text-(--text-muted)">{{ item.internalId }}</div>
-                  </Td>
-                  <Td><MemberName :name="ownerName(item.assignedTo)" :member-id="item.assignedTo"/></Td>
-                  <Td>
-                    <ErrorBadge>{{ formatDate(item.lostAt) }}</ErrorBadge>
-                  </Td>
-                </TRow>
-              </tbody>
-            </table>
-          </NeutralContainer>
-        </template>
+        <LostItemsTable :items="lostItems" :sizes="detail.sizes ?? []" :member-map="memberMap" />
       </template>
 
       <!-- Assign modal -->
@@ -575,57 +371,19 @@ onMounted(loadData)
         </div>
       </Modal>
 
-      <!-- Edit item modal -->
-      <Modal v-model="showEditItemModal">
-        <div class="space-y-4">
-          <SectionHeader>{{ t('inventory.edit.editItem') }}</SectionHeader>
-          <div class="space-y-1">
-            <FieldLabel>{{ t('inventory.edit.itemName') }}</FieldLabel>
-            <TextInput v-model="editItemName" :placeholder="t('inventory.edit.itemNamePlaceholder')" />
-          </div>
-          <div class="space-y-1">
-            <FieldLabel>{{ t('inventory.edit.itemInternalId') }}</FieldLabel>
-            <TextInput v-model="editItemInternalId" :placeholder="t('inventory.edit.itemInternalIdPlaceholder')" />
-          </div>
-          <div v-if="detail?.hasSizes" class="space-y-1">
-            <FieldLabel>{{ t('inventory.edit.itemSize') }}</FieldLabel>
-            <SelectInput v-model="editItemSizeId">
-              <option value="">–</option>
-              <option v-for="size in detail?.sizes ?? []" :key="size.id" :value="String(size.id)">{{ size.label }}</option>
-            </SelectInput>
-          </div>
-          <div class="flex justify-end gap-3">
-            <SecondaryButton @click="showEditItemModal = false">{{ t('common.cancel') }}</SecondaryButton>
-            <PrimaryButton :disabled="editItemSaving || !editItemName.trim()" @click="saveEditItem">
-              {{ editItemSaving ? t('common.loading') : t('common.save') }}
-            </PrimaryButton>
-          </div>
-        </div>
-      </Modal>
+      <EditItemModal
+        v-model="showEditItemModal"
+        :item="editingItem"
+        :has-sizes="detail?.hasSizes ?? false"
+        :sizes="detail?.sizes ?? []"
+        @saved="loadData"
+      />
 
-      <!-- History modal -->
-      <Modal v-model="showHistoryModal">
-        <div class="space-y-4">
-          <SectionHeader>{{ t('inventory.edit.historyTitle') }}</SectionHeader>
-          <p class="text-sm text-(--text-muted)">{{ historyTarget?.name }}</p>
-          <Spinner v-if="historyLoading" size="md" />
-          <EmptyState compact v-if="!historyLoading && historyEntries.length === 0">{{ t('inventory.edit.noHistory') }}</EmptyState>
-          <div v-if="!historyLoading && historyEntries.length > 0" class="space-y-2 max-h-80 overflow-y-auto">
-            <div v-for="entry in historyEntries" :key="entry.id"
-                 class="flex items-center justify-between rounded-lg px-3 py-2 border border-bg-light-accent dark:border-bg-dark-accent">
-              <span class="text-sm font-medium"><MemberName :name="entry.memberName || ownerName(entry.memberId)"/></span>
-              <div class="text-xs text-(--text-muted) text-right">
-                <div>{{ t('inventory.edit.givenOut') }}: {{ formatDate(entry.givenOut) }}</div>
-                <div v-if="entry.returned">{{ t('inventory.edit.returned') }}: {{ formatDate(entry.returned) }}</div>
-                <div v-else class="text-primary font-medium">{{ t('inventory.edit.currentlyAssigned') }}</div>
-              </div>
-            </div>
-          </div>
-          <div class="flex justify-end">
-            <SecondaryButton @click="showHistoryModal = false">{{ t('common.close') }}</SecondaryButton>
-          </div>
-        </div>
-      </Modal>
+      <HistoryModal
+        v-model="showHistoryModal"
+        :item="historyTarget"
+        :member-map="memberMap"
+      />
 
       <ConfirmDeleteModal
         v-model="showDeleteModal"

@@ -229,19 +229,16 @@ onMounted(loadData)
         <SectionHeader>{{ t('exchanges.title') }}</SectionHeader>
         <div class="flex items-center gap-2">
           <template v-if="exportMode">
-            <SecondaryButton :disabled="exporting || selectedForExport.size === 0" @click="exportSelected">
-              <font-awesome-icon :icon="['fas', 'download']" class="mr-1" />
+            <SecondaryButton :icon="['fas', 'download']" :disabled="exporting || selectedForExport.size === 0" @click="exportSelected">
               {{ exporting ? t('common.loading') : t('exchanges.download') }} ({{ selectedForExport.size }})
             </SecondaryButton>
             <SecondaryButton @click="cancelExport">{{ t('common.cancel') }}</SecondaryButton>
           </template>
           <template v-else>
-            <SecondaryButton v-if="canManageInventory() && requests.length > 0" @click="enterExportMode">
-              <font-awesome-icon :icon="['fas', 'file-export']" class="mr-1" />
+            <SecondaryButton :icon="['fas', 'file-export']" v-if="canManageInventory() && requests.length > 0" @click="enterExportMode">
               {{ t('exchanges.export') }}
             </SecondaryButton>
-            <PrimaryButton @click="showCreateModal = true">
-              <font-awesome-icon :icon="['fas', 'plus']" class="mr-2" />
+            <PrimaryButton :icon="['fas', 'plus']" @click="showCreateModal = true">
               {{ t('exchanges.create') }}
             </PrimaryButton>
           </template>

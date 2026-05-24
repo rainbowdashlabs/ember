@@ -31,6 +31,7 @@ import type { SharedCatalogEntry } from '@/api/quiz'
 import { quiz, federation } from '@/api'
 import { useSession } from '@/composables/useSession'
 import { useBreakpoint } from '@/composables/useBreakpoint'
+import FieldLabel from '@/components/typography/FieldLabel.vue'
 
 const { t } = useI18n()
 const router = useRouter()
@@ -222,15 +223,13 @@ watch(loaded, (isLoaded) => {
 <template>
   <ViewContent>
     <div class="space-y-6">
-      <div class="flex items-center justify-between flex-wrap gap-3">
+      <div class="flex items-center justify-between flex-wrap gap-2">
         <PageHeader>{{ t('quiz.catalogs.title') }}</PageHeader>
         <div class="flex gap-2 flex-wrap">
-          <SecondaryButton @click="triggerImport">
-            <font-awesome-icon :icon="['fas', 'file-import']" class="mr-1" />
+          <SecondaryButton :icon="['fas', 'file-import']" @click="triggerImport">
             {{ t('quiz.catalogs.import') }}
           </SecondaryButton>
-          <PrimaryButton @click="openCreateModal">
-            <font-awesome-icon :icon="['fas', 'plus']" class="mr-1" />
+          <PrimaryButton :icon="['fas', 'plus']" @click="openCreateModal">
             {{ t('quiz.catalogs.create') }}
           </PrimaryButton>
         </div>
@@ -302,7 +301,7 @@ watch(loaded, (isLoaded) => {
                 </div>
                 <p v-if="catalog.description" class="text-xs text-(--text-muted) truncate">{{ catalog.description }}</p>
               </div>
-              <div class="flex items-center gap-3 shrink-0" @click.stop>
+              <div class="flex items-center gap-2 shrink-0" @click.stop>
                 <IconButton :icon="['fas', 'file-export']" :label="t('quiz.catalogs.export')" class="text-(--text-muted) hover:text-primary" @click="exportCatalog(catalog)" />
                 <DeleteButton @click="confirmDelete(catalog)" />
               </div>
@@ -341,7 +340,7 @@ watch(loaded, (isLoaded) => {
                 </div>
                 <p v-if="shared.catalog.description" class="text-xs text-(--text-muted) truncate">{{ shared.catalog.description }}</p>
               </div>
-              <div class="flex items-center gap-3 shrink-0" @click.stop>
+              <div class="flex items-center gap-2 shrink-0" @click.stop>
                 <IconButton
                   :icon="['fas', 'copy']"
                   :label="t('federation.copyToStation')"
@@ -360,10 +359,10 @@ watch(loaded, (isLoaded) => {
           <SubHeader>{{ t('quiz.catalogs.create') }}</SubHeader>
           <TextInput v-model="createName" :placeholder="t('quiz.catalogs.name')" />
           <TextAreaInput v-model="createDescription" :placeholder="t('quiz.catalogs.description')" />
-          <label class="flex items-center gap-2 text-sm">
+          <FieldLabel inline>
             <ToggleInput v-model="createTrainingEnabled" />
             {{ t('quiz.catalogs.trainingEnabled') }}
-          </label>
+          </FieldLabel>
           <div class="flex justify-end gap-3">
             <SecondaryButton @click="showCreateModal = false">{{ t('common.cancel') }}</SecondaryButton>
             <PrimaryButton :disabled="!createName.trim()" @click="createCatalog">{{ t('common.save') }}</PrimaryButton>

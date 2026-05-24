@@ -22,6 +22,9 @@ import SectionHeader from '@/components/typography/SectionHeader.vue'
 import { useSession } from '@/composables/useSession'
 import { federation } from '@/api'
 import type { PartnerResponse, FederationCapability } from '@/api/federation'
+import Td from '@/components/table/Td.vue'
+import Th from '@/components/table/Th.vue'
+import MutedText from '@/components/typography/MutedText.vue'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -97,7 +100,7 @@ onMounted(() => { if (loaded.value) loadData() })
 
 <template>
   <ViewContent>
-    <div class="flex items-center gap-3 mb-4">
+    <div class="flex items-center gap-2 mb-4">
       <SecondaryButton @click="router.push({ name: 'station-federation' })">
         <font-awesome-icon :icon="['fas', 'chevron-left']" />
       </SecondaryButton>
@@ -122,10 +125,10 @@ onMounted(() => { if (loaded.value) loadData() })
     <Alert v-if="error" variant="error">{{ error }}</Alert>
 
     <template v-if="!loading && partner">
-      <p class="text-sm text-[var(--text-muted)] mb-4">
+      <MutedText tag="p" size="sm">
         {{ t('federation.version') }}: v{{ partner.partner.federationVersion }}
         &mdash; {{ t('federation.since') }}: {{ new Date(partner.partner.createdAt).toLocaleDateString('de-DE') }}
-      </p>
+      </MutedText>
 
       <!-- Capabilities table -->
       <NeutralContainer>
@@ -133,25 +136,25 @@ onMounted(() => { if (loaded.value) loadData() })
           <thead>
             <tr class="border-b border-[var(--border)]">
               <th class="text-left py-2 px-3 font-medium">{{ t('federation.feature') }}</th>
-              <th class="text-center py-2 px-3 font-medium w-32">{{ t('federation.receive') }}</th>
-              <th class="text-center py-2 px-3 font-medium w-32">{{ t('federation.send') }}</th>
+              <Th align="center" class="font-medium w-32">{{ t('federation.receive') }}</th>
+              <Th align="center" class="font-medium w-32">{{ t('federation.send') }}</th>
             </tr>
           </thead>
           <tbody>
             <tr v-for="row in capRows" :key="row.capability" class="border-b border-[var(--border)] last:border-b-0">
-              <td class="py-2 px-3">{{ row.label }}</td>
-              <td class="py-2 px-3 text-center">
+              <Td>{{ row.label }}</Td>
+              <Td align="center">
                 <ToggleInput
                   :model-value="row.importCap?.enabled ?? false"
                   @update:model-value="toggleCap(row.capability, 'IMPORT', row.importCap?.enabled ?? false)"
                 />
-              </td>
-              <td class="py-2 px-3 text-center">
+              </Td>
+              <Td align="center">
                 <ToggleInput
                   :model-value="row.exportCap?.enabled ?? false"
                   @update:model-value="toggleCap(row.capability, 'EXPORT', row.exportCap?.enabled ?? false)"
                 />
-              </td>
+              </Td>
             </tr>
           </tbody>
         </table>

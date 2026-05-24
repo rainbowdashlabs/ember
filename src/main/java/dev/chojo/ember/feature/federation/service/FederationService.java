@@ -22,11 +22,11 @@ import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
-import java.security.SecureRandom;
 import java.time.Instant;
 import java.util.Base64;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Singleton
 public class FederationService {
@@ -52,46 +52,76 @@ public class FederationService {
         }
     }
 
-    // -- Invite Code --
+    // -- Pairing Code --
 
     /**
-     * Generates an invite code in the format: ember-CODE-BASE64(HOST)
-     * where CODE is an 8-char random string and HOST is the base64-encoded instance hostname.
+     * Generates a discovery/pairing code: ember-BASE64(stationUid)-BASE64(host).
+     * Stateless — entering this creates a PENDING request that the target station must accept.
      */
-    public String generateInviteCode() {
-        var random = new SecureRandom();
-        var chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-        var code = new StringBuilder();
-        for (int i = 0; i < 8; i++) code.append(chars.charAt(random.nextInt(chars.length())));
+    public String generatePairingCode(UUID stationUid) {
+        String encodedUid = Base64.getUrlEncoder()
+                .withoutPadding()
+                .encodeToString(stationUid.toString().getBytes(StandardCharsets.UTF_8));
         String encodedHost =
                 Base64.getUrlEncoder().withoutPadding().encodeToString(instanceHost.getBytes(StandardCharsets.UTF_8));
-        return "ember-" + code + "-" + encodedHost;
+        return "ember-" + encodedUid + "-" + encodedHost;
     }
 
     /**
-     * Parses an invite code in the format ember-CODE-BASE64(HOST).
-     * Returns the decoded parts [code, host] or empty if invalid.
+     * Generates a station invite code: ember-BASE64(stationUid)-BASE64(host)-TOKEN.
+     * The token proves the station consented — entering this auto-activates the federation.
      */
-    public Optional<InviteCodeParts> parseInviteCode(String inviteCode) {
-        if (!inviteCode.startsWith("ember-")) return Optional.empty();
-        String rest = inviteCode.substring("ember-".length());
-        int dashIdx = rest.indexOf('-');
-        if (dashIdx < 1) return Optional.empty();
-        String code = rest.substring(0, dashIdx);
-        String encodedHost = rest.substring(dashIdx + 1);
+    public String generateStationInvite(int stationId, UUID stationUid) {
+        String token = generateRandomToken();
+        repository.createInviteToken(stationId, token);
+        return generatePairingCode(stationUid) + "-" + token;
+    }
+
+    private String generateRandomToken() {
+        var random = new java.security.SecureRandom();
+        var chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
+        var sb = new StringBuilder();
+        for (int i = 0; i < 12; i++) sb.append(chars.charAt(random.nextInt(chars.length())));
+        return sb.toString();
+    }
+
+    /**
+     * Parses any pairing/invite code. Returns the parts including an optional token.
+     * - 2 segments: discovery code (PENDING request)
+     * - 3 segments: station invite (auto-activate if token is valid)
+     */
+    public Optional<PairingCodeParts> parsePairingCode(String code) {
+        if (!code.startsWith("ember-")) return Optional.empty();
+        String rest = code.substring("ember-".length());
+        // Split into exactly 2 or 3 parts: encodedUid, encodedHost, [token]
+        String[] segments = rest.split("-", 3);
+        if (segments.length < 2) return Optional.empty();
         try {
-            String host = new String(Base64.getUrlDecoder().decode(encodedHost), StandardCharsets.UTF_8);
-            return Optional.of(new InviteCodeParts(code, host));
+            String uid = new String(Base64.getUrlDecoder().decode(segments[0]), StandardCharsets.UTF_8);
+            String host = new String(Base64.getUrlDecoder().decode(segments[1]), StandardCharsets.UTF_8);
+            String token = segments.length == 3 ? segments[2] : null;
+            return Optional.of(new PairingCodeParts(UUID.fromString(uid), host, token));
         } catch (Exception e) {
             return Optional.empty();
         }
+    }
+
+    /**
+     * Validates and consumes a station invite token. Returns true if valid (station consented).
+     */
+    public boolean consumeInviteToken(int stationId, String token) {
+        return repository.deleteInviteToken(stationId, token);
     }
 
     public String getInstanceHost() {
         return instanceHost;
     }
 
-    public record InviteCodeParts(String code, String host) {}
+    public record PairingCodeParts(UUID stationUid, String host, String token) {
+        public boolean isStationInvite() {
+            return token != null && !token.isBlank();
+        }
+    }
 
     // -- Keypair --
 
@@ -124,31 +154,48 @@ public class FederationService {
     }
 
     /**
-     * Creates a federation invite. The initiating station generates a keypair and invite code.
-     * The partner station ID is set to 0 initially (placeholder) until the invite is accepted.
+     * Creates a pending pair request from the requesting station to the target station.
+     * This shows up on the target station's federation page for approval.
      */
-    public FederationPartner createInvite(int stationId) {
-        var keyPair = generateKeyPair();
-        String publicKey = encodePublicKey(keyPair);
-        String inviteCode = generateInviteCode();
-        return new FederationPartner(
-                0,
-                stationId,
-                0,
-                inviteCode,
-                publicKey,
-                null,
-                FederationPartner.FederationStatus.PENDING,
-                FEDERATION_VERSION,
-                Instant.now(),
-                Instant.now(),
-                null);
+    public FederationPartner createPairRequest(int requestingStationId, int targetStationId) {
+        return repository.createPartner(requestingStationId, targetStationId, null, null, null);
     }
 
     /**
-     * Accepts a federation invite on the same instance.
-     * Creates partner records for both stations.
+     * Accepts a pending pair request, establishing the full bidirectional federation.
+     * Generates keypairs for both sides.
      */
+    public FederationPartner acceptPairRequest(int partnerId) {
+        var partner = repository.findPartnerById(partnerId).orElseThrow();
+        if (partner.status() != FederationPartner.FederationStatus.PENDING) {
+            throw new IllegalStateException("Partner is not in PENDING status");
+        }
+
+        int requestingStationId = partner.stationId();
+        int targetStationId = partner.partnerStationId();
+
+        // Delete the pending request record
+        repository.deletePartner(partnerId);
+
+        // Create full bidirectional federation with fresh keypairs
+        var keyPair = generateKeyPair();
+        return acceptInvite(targetStationId, requestingStationId, encodePublicKey(keyPair), null, null);
+    }
+
+    /**
+     * Declines a pending pair request.
+     */
+    public void declinePairRequest(int partnerId) {
+        repository.deletePartner(partnerId);
+    }
+
+    /**
+     * Finds pending pair requests targeting the given station.
+     */
+    public List<FederationPartner> findPendingRequests(int targetStationId) {
+        return repository.findPendingRequestsForStation(targetStationId);
+    }
+
     /**
      * Accepts a federation invite on the same instance (or cross-instance).
      * Creates bidirectional partner records with optional remote host URLs.

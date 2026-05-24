@@ -56,8 +56,7 @@ const {t} = useI18n()
           <TextInput model-value="Wird für das Stadtfest benötigt." disabled />
         </div>
       </div>
-      <PrimaryButton>
-        <font-awesome-icon :icon="['fas', 'paper-plane']" class="mr-2" />
+      <PrimaryButton :icon="['fas', 'paper-plane']">
         {{ t('helpCenter.inventoryLendingCreate.dummySend') }}
       </PrimaryButton>
     </NeutralContainer>

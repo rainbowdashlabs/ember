@@ -192,8 +192,7 @@ onUnmounted(() => {
     <div class="space-y-6">
       <div class="flex items-center justify-between">
         <SectionHeader>{{ t('news.title') }}</SectionHeader>
-        <PrimaryButton v-if="canManageNews()" @click="router.push({ name: 'news-create' })">
-          <font-awesome-icon :icon="['fas', 'plus']" class="mr-2" />
+        <PrimaryButton :icon="['fas', 'plus']" v-if="canManageNews()" @click="router.push({ name: 'news-create' })">
           {{ t('news.create') }}
         </PrimaryButton>
       </div>
@@ -210,7 +209,7 @@ onUnmounted(() => {
             <div class="flex items-center gap-2">
               <UserAvatar :member-id="entry.authorId" :name="entry.authorName" size="md"/>
               <div>
-                <SubHeader class="font-semibold text-lg flex items-center gap-1">{{ entry.title }}<font-awesome-icon v-if="entry.restricted" :icon="['fas', 'lock']" class="ml-1 h-3 w-3 text-[var(--text-muted)]"/></SubHeader>
+                <SubHeader class="flex items-center gap-1">{{ entry.title }}<font-awesome-icon v-if="entry.restricted" :icon="['fas', 'lock']" class="ml-1 h-3 w-3 text-[var(--text-muted)]"/></SubHeader>
                 <p class="text-xs text-(--text-muted)">
                   {{ entry.authorName }} &middot; {{ formatDate(entry.publishedAt) }}
                 </p>

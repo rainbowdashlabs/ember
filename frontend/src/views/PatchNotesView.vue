@@ -13,6 +13,7 @@ import PageHeader from '@/components/typography/PageHeader.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import PrimaryBadge from '@/components/badge/PrimaryBadge.vue'
+import MutedText from '@/components/typography/MutedText.vue'
 
 const { t } = useI18n()
 
@@ -82,7 +83,7 @@ onMounted(async () => {
         <SectionHeader class="text-lg font-bold">{{ release.name || release.tag_name }}</SectionHeader>
         <PrimaryBadge>{{ release.tag_name }}</PrimaryBadge>
         <SecondaryBadge v-if="release.prerelease">Pre-release</SecondaryBadge>
-        <span class="text-xs text-[var(--text-muted)] ml-auto">{{ formatDate(release.published_at) }}</span>
+        <MutedText class="ml-auto">{{ formatDate(release.published_at) }}</MutedText>
       </div>
 
       <div v-if="release.body" class="markdown-content text-sm" v-html="renderMarkdown(release.body)" />

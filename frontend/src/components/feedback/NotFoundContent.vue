@@ -20,14 +20,12 @@ const { t } = useI18n()
     <p class="text-(--text-muted) mb-8 max-w-md">{{ t('notFound.text') }}</p>
     <div class="flex gap-3">
       <router-link to="/">
-        <SecondaryButton>
-          <font-awesome-icon :icon="['fas', 'house']" class="mr-2" />
+        <SecondaryButton :icon="['fas', 'house']">
           {{ t('notFound.home') }}
         </SecondaryButton>
       </router-link>
       <router-link to="/login">
-        <SecondaryButton>
-          <font-awesome-icon :icon="['fas', 'right-from-bracket']" class="mr-2" />
+        <SecondaryButton :icon="['fas', 'right-from-bracket']">
           {{ t('notFound.login') }}
         </SecondaryButton>
       </router-link>

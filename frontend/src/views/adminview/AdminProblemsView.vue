@@ -83,8 +83,7 @@ onMounted(loadData)
                 <SelectionToggleButton :selected="showAcknowledged" @toggle="showAcknowledged = !showAcknowledged; loadData()">
                     {{ t('adminProblems.showAcknowledged') }}
                 </SelectionToggleButton>
-                <SecondaryButton v-if="entries.some(e => !e.acknowledged)" @click="ackAll">
-                    <font-awesome-icon :icon="['fas', 'check-double']" class="mr-1"/>
+                <SecondaryButton :icon="['fas', 'check-double']" v-if="entries.some(e => !e.acknowledged)" @click="ackAll">
                     {{ t('adminProblems.acknowledgeAll') }}
                 </SecondaryButton>
             </div>

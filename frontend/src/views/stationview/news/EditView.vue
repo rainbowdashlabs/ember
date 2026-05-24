@@ -112,8 +112,7 @@ onMounted(loadData)
     <div class="space-y-6">
       <div class="flex items-center justify-between">
         <SectionHeader>{{ isEdit ? t('news.editTitle') : t('news.createTitle') }}</SectionHeader>
-        <SecondaryButton @click="router.push({ name: 'news-list' })">
-          <font-awesome-icon :icon="['fas', 'chevron-left']" class="mr-2" />
+        <SecondaryButton :icon="['fas', 'chevron-left']" @click="router.push({ name: 'news-list' })">
           {{ t('common.back') }}
         </SecondaryButton>
       </div>

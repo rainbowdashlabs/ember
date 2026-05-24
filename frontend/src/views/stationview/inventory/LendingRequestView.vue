@@ -29,6 +29,7 @@ import type {LendingRequestDetail, EnrichedMessage, AvailableItemDetail, Lending
 import {LendingStatus} from '@/api/lending'
 import * as lending from '@/api/lending'
 import {useSession} from '@/composables/useSession'
+import MutedText from '@/components/typography/MutedText.vue'
 
 const {t} = useI18n()
 const route = useRoute()
@@ -226,8 +227,7 @@ function formatTime(d: string): string {
 
 <template>
   <ViewContent>
-    <SecondaryButton class="mb-4" @click="router.push({name: 'inventory-lending'})">
-      <font-awesome-icon :icon="['fas', 'chevron-left']" class="mr-1"/>
+    <SecondaryButton :icon="['fas', 'chevron-left']" class="mb-4" @click="router.push({name: 'inventory-lending'})">
       {{ t('lending.backToList') }}
     </SecondaryButton>
 
@@ -277,17 +277,15 @@ function formatTime(d: string): string {
           </tbody>
         </table>
       </NeutralContainer>
-      <p v-else class="text-sm text-[var(--text-muted)] mb-4">{{ t('lending.noItems') }}</p>
+      <MutedText tag="p" size="sm" v-else>{{ t('lending.noItems') }}</MutedText>
 
       <!-- Actions -->
       <div class="flex flex-wrap gap-2 mb-4">
         <template v-if="detail.request.isOwner">
-          <SuccessButton v-if="detail.request.request.status === LendingStatus.REQUESTED" @click="handleApprove">
-            <font-awesome-icon :icon="['fas', 'check']" class="mr-1"/>
+          <SuccessButton :icon="['fas', 'check']" v-if="detail.request.request.status === LendingStatus.REQUESTED" @click="handleApprove">
             {{ t('lending.approve') }}
           </SuccessButton>
-          <ErrorButton v-if="detail.request.request.status === LendingStatus.REQUESTED" @click="showDeclineModal = true">
-            <font-awesome-icon :icon="['fas', 'xmark']" class="mr-1"/>
+          <ErrorButton :icon="['fas', 'xmark']" v-if="detail.request.request.status === LendingStatus.REQUESTED" @click="showDeclineModal = true">
             {{ t('lending.decline') }}
           </ErrorButton>
         </template>
@@ -325,13 +323,12 @@ function formatTime(d: string): string {
           </template>
           <div class="flex items-center justify-between mt-2">
             <span class="text-sm text-[var(--text-muted)]">{{ selectedCount }} {{ t('lending.itemsSelected') }}</span>
-            <SuccessButton :disabled="selectedCount === 0 || assigning" @click="handleAssignAndLend">
-              <font-awesome-icon :icon="['fas', 'hand-holding']" class="mr-1"/>
+            <SuccessButton :icon="['fas', 'hand-holding']" :disabled="selectedCount === 0 || assigning" @click="handleAssignAndLend">
               {{ t('lending.lendOut') }}
             </SuccessButton>
           </div>
         </NeutralContainer>
-        <p v-else class="text-sm text-[var(--text-muted)] mb-4">{{ t('lending.noItems') }}</p>
+        <MutedText tag="p" size="sm" v-else>{{ t('lending.noItems') }}</MutedText>
       </template>
 
       <!-- Chat -->

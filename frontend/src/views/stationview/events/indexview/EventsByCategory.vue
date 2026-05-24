@@ -17,6 +17,7 @@ import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import type {AttendanceTemplate, EventCategory, StationEvent} from '@/api/types'
 import {EventTypes, isRecurringEvent} from '@/api/types'
+import MutedIcon from '@/components/display/MutedIcon.vue'
 
 const {t} = useI18n()
 const router = useRouter()
@@ -78,12 +79,10 @@ function formatDate(iso?: string): string {
     <div class="flex items-center justify-between flex-wrap gap-2">
       <SectionHeader>{{ t('events.allEvents') }}</SectionHeader>
       <div class="flex items-center gap-2">
-        <SecondaryButton @click="emit('addCategory')">
-          <font-awesome-icon :icon="['fas', 'folder-plus']" class="mr-1"/>
+        <SecondaryButton :icon="['fas', 'folder-plus']" @click="emit('addCategory')">
           {{ t('events.addCategory') }}
         </SecondaryButton>
-        <PrimaryButton @click="emit('addEvent')">
-          <font-awesome-icon :icon="['fas', 'plus']" class="mr-1"/>
+        <PrimaryButton :icon="['fas', 'plus']" @click="emit('addEvent')">
           {{ t('events.addEvent') }}
         </PrimaryButton>
       </div>
@@ -109,7 +108,7 @@ function formatDate(iso?: string): string {
             {{ eventTypeLabel(ev.eventType) }}
           </SecondaryBadge>
           <span class="font-medium text-primary">{{ ev.name }}</span>
-          <font-awesome-icon v-if="ev.restricted" :icon="['fas', 'lock']" class="ml-1 h-3 w-3 text-[var(--text-muted)]"/>
+          <MutedIcon v-if="ev.restricted" :icon="['fas', 'lock']" class="ml-1"/>
           <span v-if="isRecurringEvent(ev.eventType)" class="text-sm text-(--text-muted)">{{
               dayName(ev.dayOfWeek)
             }}, {{ formatTime(ev.startTime) }} – {{ formatTime(ev.endTime) }}</span>

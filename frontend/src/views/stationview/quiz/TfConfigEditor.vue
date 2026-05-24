@@ -6,6 +6,7 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
+import FieldLabel from '@/components/typography/FieldLabel.vue'
 
 const { t } = useI18n()
 
@@ -23,8 +24,8 @@ function updateConfig(patch: Record<string, unknown>) {
 </script>
 
 <template>
-  <label class="flex items-center gap-2 text-sm">
+  <FieldLabel inline>
     <ToggleInput :model-value="(config.correctAnswer as boolean)" @update:model-value="(v: boolean) => updateConfig({ correctAnswer: v })" />
     {{ t('quiz.questions.config.correctAnswer') }}
-  </label>
+  </FieldLabel>
 </template>

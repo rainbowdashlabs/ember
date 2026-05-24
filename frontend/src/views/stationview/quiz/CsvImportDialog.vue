@@ -18,6 +18,7 @@ import type { QuizCategory, QuizQuestionTypeName } from '@/api/types'
 import { QuizQuestionTypes } from '@/api/types'
 import { quiz } from '@/api'
 import type { CsvMappings } from '@/api/quiz'
+import FieldLabel from '@/components/typography/FieldLabel.vue'
 
 const { t } = useI18n()
 
@@ -144,7 +145,7 @@ const previewRows = computed(() => rows.value.slice(0, 5))
 <template>
   <Modal :model-value="show" @update:model-value="(v: boolean) => { if (!v) close() }">
     <div class="space-y-4 max-h-[70vh] overflow-y-auto">
-      <SubHeader class="font-semibold">{{ t('quiz.csv.import') }}</SubHeader>
+      <SubHeader>{{ t('quiz.csv.import') }}</SubHeader>
 
       <Alert v-if="successCount !== null" variant="success">
         {{ t('quiz.csv.importSuccess', { count: successCount }) }}
@@ -152,7 +153,7 @@ const previewRows = computed(() => rows.value.slice(0, 5))
       <Alert v-if="error" variant="error">{{ error }}</Alert>
 
       <!-- File upload -->
-      <div class="flex items-center gap-3">
+      <div class="flex items-center gap-2">
         <label class="inline-flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg font-medium cursor-pointer bg-bg-light-accent dark:bg-bg-dark-accent hover:brightness-110 transition-all">
           <font-awesome-icon :icon="['fas', 'upload']" />
           {{ t('quiz.csv.selectFile') }}
@@ -172,41 +173,41 @@ const previewRows = computed(() => rows.value.slice(0, 5))
         <!-- Column mapping -->
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
-            <label class="text-xs text-(--text-muted) block mb-1">{{ t('quiz.csv.questionColumn') }}</label>
+            <FieldLabel hint class="mb-1">{{ t('quiz.csv.questionColumn') }}</FieldLabel>
             <SelectInput v-model="questionColumn">
               <option v-for="h in headers" :key="h" :value="h">{{ h }}</option>
             </SelectInput>
           </div>
           <div>
-            <label class="text-xs text-(--text-muted) block mb-1">{{ t('quiz.csv.answerColumn') }}</label>
+            <FieldLabel hint class="mb-1">{{ t('quiz.csv.answerColumn') }}</FieldLabel>
             <SelectInput v-model="answerColumn">
               <option value="">–</option>
               <option v-for="h in headers" :key="h" :value="h">{{ h }}</option>
             </SelectInput>
           </div>
           <div>
-            <label class="text-xs text-(--text-muted) block mb-1">{{ t('quiz.csv.categoryColumn') }}</label>
+            <FieldLabel hint class="mb-1">{{ t('quiz.csv.categoryColumn') }}</FieldLabel>
             <SelectInput v-model="categoryColumn">
               <option value="">–</option>
               <option v-for="h in headers" :key="h" :value="h">{{ h }}</option>
             </SelectInput>
           </div>
           <div>
-            <label class="text-xs text-(--text-muted) block mb-1">{{ t('quiz.csv.typeColumn') }}</label>
+            <FieldLabel hint class="mb-1">{{ t('quiz.csv.typeColumn') }}</FieldLabel>
             <SelectInput v-model="typeColumn">
               <option value="">–</option>
               <option v-for="h in headers" :key="h" :value="h">{{ h }}</option>
             </SelectInput>
           </div>
           <div>
-            <label class="text-xs text-(--text-muted) block mb-1">{{ t('quiz.csv.pointsColumn') }}</label>
+            <FieldLabel hint class="mb-1">{{ t('quiz.csv.pointsColumn') }}</FieldLabel>
             <SelectInput v-model="pointsColumn">
               <option value="">–</option>
               <option v-for="h in headers" :key="h" :value="h">{{ h }}</option>
             </SelectInput>
           </div>
           <div>
-            <label class="text-xs text-(--text-muted) block mb-1">{{ t('quiz.questions.type') }} ({{ t('quiz.csv.defaultType') }})</label>
+            <FieldLabel hint class="mb-1">{{ t('quiz.questions.type') }} ({{ t('quiz.csv.defaultType') }})</FieldLabel>
             <SelectInput v-model="defaultType">
               <option :value="QuizQuestionTypes.MULTIPLE_CHOICE">{{ t('quiz.questionTypes.MULTIPLE_CHOICE') }}</option>
               <option :value="QuizQuestionTypes.FREE_ANSWER">{{ t('quiz.questionTypes.FREE_ANSWER') }}</option>
@@ -244,8 +245,7 @@ const previewRows = computed(() => rows.value.slice(0, 5))
 
         <div class="flex justify-end gap-3">
           <SecondaryButton @click="close">{{ t('common.cancel') }}</SecondaryButton>
-          <PrimaryButton :disabled="!questionColumn || importing" @click="doImport">
-            <font-awesome-icon :icon="['fas', 'file-import']" class="mr-1" />
+          <PrimaryButton :icon="['fas', 'file-import']" :disabled="!questionColumn || importing" @click="doImport">
             <template v-if="importing">{{ t('common.loading') }}...</template>
             <template v-else>{{ t('quiz.csv.importButton') }} ({{ rows.length }})</template>
           </PrimaryButton>

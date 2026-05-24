@@ -27,6 +27,7 @@ import FieldLabel from '@/components/typography/FieldLabel.vue'
 import type { Inventory, InventoryItem, ProcurementEntry } from '@/api/types'
 import { InventoryTypes } from '@/api/types'
 import { inventory, procurement } from '@/api'
+import MutedText from '@/components/typography/MutedText.vue'
 
 const { t } = useI18n()
 const router = useRouter()
@@ -173,8 +174,7 @@ onMounted(loadData)
       <template v-if="!loading">
         <div class="flex items-center justify-between">
           <SectionHeader>{{ t('inventory.manage.title') }}</SectionHeader>
-          <PrimaryButton @click="openCreate">
-            <font-awesome-icon :icon="['fas', 'plus']" class="mr-2" />
+          <PrimaryButton :icon="['fas', 'plus']" @click="openCreate">
             {{ t('inventory.manage.create') }}
           </PrimaryButton>
         </div>
@@ -182,11 +182,11 @@ onMounted(loadData)
         <EmptyState v-if="inventories.length === 0">{{ t('inventory.manage.empty') }}</EmptyState>
 
         <div class="space-y-3">
-          <NeutralContainer v-for="inv in inventories" :key="inv.id" class="cursor-pointer hover:ring-1 hover:ring-primary/30 transition-all" @click="viewDetail(inv)">
+          <NeutralContainer clickable v-for="inv in inventories" :key="inv.id" @click="viewDetail(inv)">
             <div class="flex items-center justify-between">
               <div>
                 <span class="font-medium">{{ inv.name }}</span>
-                <span class="ml-2 text-xs text-(--text-muted)">{{ t('inventory.manage.type.' + (inv.inventoryType ?? InventoryTypes.INTERNAL)) }}</span>
+                <MutedText class="ml-2">{{ t('inventory.manage.type.' + (inv.inventoryType ?? InventoryTypes.INTERNAL)) }}</MutedText>
                 <span v-if="inv.hasSizes" class="ml-2 text-xs text-secondary-accent dark:text-secondary">{{ t('inventory.manage.withSizes') }}</span>
               </div>
               <div class="flex items-center gap-2" @click.stop>
@@ -194,7 +194,7 @@ onMounted(loadData)
                 <DeleteButton @click="requestDelete(inv)" />
               </div>
             </div>
-            <div class="text-xs text-(--text-muted) mt-1">
+            <MutedText tag="div" class="mt-1">
               {{ t('inventory.manage.itemCount', { count: itemCount(inv.id) }) }}
               <template v-if="lostCount(inv.id) > 0">
                 &middot; <span class="text-error">{{ t('inventory.manage.lostCount', { count: lostCount(inv.id) }) }}</span>
@@ -202,7 +202,7 @@ onMounted(loadData)
               <template v-if="procurementCount(inv.id) > 0">
                 &middot; <span class="text-info-accent dark:text-info">{{ t('inventory.manage.procurementCount', { count: procurementCount(inv.id) }) }}</span>
               </template>
-            </div>
+            </MutedText>
           </NeutralContainer>
         </div>
       </template>

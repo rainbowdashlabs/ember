@@ -23,6 +23,7 @@ import {profileFieldChanges} from '@/api'
 import {useSession} from '@/composables/useSession'
 import {usePendingChanges} from '@/composables/usePendingChanges'
 import MemberName from '@/components/avatar/MemberName.vue'
+import MutedIcon from '@/components/display/MutedIcon.vue'
 
 const {t} = useI18n()
 const router = useRouter()
@@ -233,10 +234,10 @@ onMounted(loadPending)
             >
               <!-- Member header -->
               <div
-                  class="flex items-center justify-between flex-wrap gap-3 cursor-pointer"
+                  class="flex items-center justify-between flex-wrap gap-2 cursor-pointer"
                   @click="toggleMember(summary.memberId)"
               >
-                <div class="flex items-center gap-3">
+                <div class="flex items-center gap-2">
                   <font-awesome-icon
                       :icon="['fas', expandedMemberId === summary.memberId ? 'chevron-down' : 'chevron-right']"
                       class="h-3 w-3 text-(--text-muted)"
@@ -248,7 +249,7 @@ onMounted(loadPending)
                     </p>
                   </div>
                 </div>
-                <div class="flex items-center gap-3">
+                <div class="flex items-center gap-2">
                   <ErrorBadge>
                     {{ summary.pendingCount }} {{ t('memberChanges.pending') }}
                   </ErrorBadge>
@@ -260,8 +261,7 @@ onMounted(loadPending)
                     <font-awesome-icon :icon="['fas', 'check-double']" class="mr-1"/>
                     {{ t('memberDetail.acknowledgeAll') }}
                   </SuccessButton>
-                  <SecondaryButton @click.stop="goToDetail(summary.memberId)">
-                    <font-awesome-icon :icon="['fas', 'user']" class="mr-1"/>
+                  <SecondaryButton :icon="['fas', 'user']" @click.stop="goToDetail(summary.memberId)">
                     {{ t('memberChanges.toProfile') }}
                   </SecondaryButton>
                 </div>
@@ -298,9 +298,9 @@ onMounted(loadPending)
                       </div>
                     </div>
 
-                    <div class="flex items-center gap-3 text-sm">
+                    <div class="flex items-center gap-2 text-xs">
                       <span class="text-(--text-muted)">{{ formatValue(change.oldValue) }}</span>
-                      <font-awesome-icon :icon="['fas', 'chevron-right']" class="h-3 w-3 text-(--text-muted)"/>
+                      <MutedIcon :icon="['fas', 'chevron-right']"/>
                       <span class="font-medium">{{ formatValue(change.newValue) }}</span>
                     </div>
 
@@ -316,12 +316,10 @@ onMounted(loadPending)
                     </div>
 
                     <div v-if="!isAcknowledgedByMe(change)" class="flex items-center gap-2 pt-1">
-                      <PrimaryButton :disabled="acknowledging" @click="acknowledgeChange(change.id)">
-                        <font-awesome-icon :icon="['fas', 'check']" class="mr-1"/>
+                      <PrimaryButton :icon="['fas', 'check']" :disabled="acknowledging" @click="acknowledgeChange(change.id)">
                         {{ t('memberDetail.acknowledge') }}
                       </PrimaryButton>
-                      <SecondaryButton @click="toggleComment(change.id)">
-                        <font-awesome-icon :icon="['fas', 'comment']" class="mr-1"/>
+                      <SecondaryButton :icon="['fas', 'comment']" @click="toggleComment(change.id)">
                         {{ t('memberDetail.acknowledgeWithComment') }}
                       </SecondaryButton>
                     </div>
@@ -379,9 +377,9 @@ onMounted(loadPending)
                 </div>
               </div>
 
-              <div class="flex items-center gap-3 text-sm">
+              <div class="flex items-center gap-2 text-xs">
                 <span class="text-(--text-muted)">{{ formatValue(change.oldValue) }}</span>
-                <font-awesome-icon :icon="['fas', 'chevron-right']" class="h-3 w-3 text-(--text-muted)"/>
+                <MutedIcon :icon="['fas', 'chevron-right']"/>
                 <span class="font-medium">{{ formatValue(change.newValue) }}</span>
               </div>
 
@@ -400,8 +398,7 @@ onMounted(loadPending)
 
           <!-- Pagination -->
           <div v-if="historyTotal > historyLimit" class="flex items-center justify-between pt-2">
-            <SecondaryButton :disabled="historyOffset === 0" @click="historyPrevPage">
-              <font-awesome-icon :icon="['fas', 'chevron-left']" class="mr-1"/>
+            <SecondaryButton :icon="['fas', 'chevron-left']" :disabled="historyOffset === 0" @click="historyPrevPage">
               {{ t('common.back') }}
             </SecondaryButton>
             <span class="text-sm text-(--text-muted)">

@@ -55,8 +55,7 @@ const {t} = useI18n()
               <Td muted>5</Td>
               <Td><SuccessBadge>{{ t('helpCenter.inventoryLendingBrowse.available') }}</SuccessBadge></Td>
               <Td align="right">
-                <PrimaryButton>
-                  <font-awesome-icon :icon="['fas', 'paper-plane']" class="mr-1" />
+                <PrimaryButton :icon="['fas', 'paper-plane']">
                   {{ t('helpCenter.inventoryLendingBrowse.dummyRequest') }}
                 </PrimaryButton>
               </Td>
@@ -67,8 +66,7 @@ const {t} = useI18n()
               <Td muted>2</Td>
               <Td><InfoBadge>{{ t('helpCenter.inventoryLendingBrowse.partiallyAvailable') }}</InfoBadge></Td>
               <Td align="right">
-                <PrimaryButton>
-                  <font-awesome-icon :icon="['fas', 'paper-plane']" class="mr-1" />
+                <PrimaryButton :icon="['fas', 'paper-plane']">
                   {{ t('helpCenter.inventoryLendingBrowse.dummyRequest') }}
                 </PrimaryButton>
               </Td>
@@ -79,8 +77,7 @@ const {t} = useI18n()
               <Td muted>3</Td>
               <Td><SuccessBadge>{{ t('helpCenter.inventoryLendingBrowse.available') }}</SuccessBadge></Td>
               <Td align="right">
-                <PrimaryButton>
-                  <font-awesome-icon :icon="['fas', 'paper-plane']" class="mr-1" />
+                <PrimaryButton :icon="['fas', 'paper-plane']">
                   {{ t('helpCenter.inventoryLendingBrowse.dummyRequest') }}
                 </PrimaryButton>
               </Td>

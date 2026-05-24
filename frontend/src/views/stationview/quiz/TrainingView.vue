@@ -197,7 +197,7 @@ onMounted(loadCatalogs)
             :class="selectedCatalogIds.has(catalog.id) ? 'border-success bg-success/10' : 'border-bg-light-accent dark:border-bg-dark-accent hover:border-primary'"
             @click="toggleCatalog(catalog.id)"
           >
-            <div class="flex items-center gap-3">
+            <div class="flex items-center gap-2">
               <font-awesome-icon
                 :icon="['fas', selectedCatalogIds.has(catalog.id) ? 'square-check' : 'square']"
                 class="text-xl shrink-0"
@@ -275,8 +275,7 @@ onMounted(loadCatalogs)
             <font-awesome-icon :icon="['fas', 'check']" class="text-4xl" />
             <SubHeader>{{ t('quiz.training.finished') }}</SubHeader>
             <div class="flex justify-center">
-              <SecondaryButton @click="restart">
-                <font-awesome-icon :icon="['fas', 'rotate']" class="mr-1" />
+              <SecondaryButton :icon="['fas', 'rotate']" @click="restart">
                 {{ t('quiz.training.restart') }}
               </SecondaryButton>
             </div>

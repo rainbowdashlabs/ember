@@ -22,6 +22,7 @@ import Th from '@/components/table/Th.vue'
 import Td from '@/components/table/Td.vue'
 import THead from '@/components/table/THead.vue'
 import TRow from '@/components/table/TRow.vue'
+import MutedIcon from '@/components/display/MutedIcon.vue'
 
 const {isMobile} = useBreakpoint()
 
@@ -377,7 +378,7 @@ function onRowClick(member: StationMember) {
                   <div v-for="mgr in getManagers(member.id)" :key="mgr.id"
                        class="rounded-lg px-4 py-3 bg-bg-light-accent/40 dark:bg-bg-dark-accent/40 space-y-1">
                     <div class="flex items-center gap-2">
-                      <font-awesome-icon :icon="['fas', 'user']" class="text-(--text-muted) h-3 w-3"/>
+                      <MutedIcon :icon="['fas', 'user']"/>
                       <span class="text-sm font-medium">{{ managerName(mgr) }}</span>
                       <span v-if="mgr.email" class="text-xs text-(--text-muted)">{{ mgr.email }}</span>
                     </div>

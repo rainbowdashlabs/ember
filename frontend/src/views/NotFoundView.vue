@@ -16,7 +16,7 @@ const { t } = useI18n()
     <!-- Landing header -->
     <header class="border-b border-(--border) bg-(--bg)">
       <div class="mx-auto max-w-5xl px-6 py-4 flex items-center justify-between">
-        <router-link to="/" class="flex items-center gap-3 no-underline">
+        <router-link to="/" class="flex items-center gap-2 no-underline">
           <EmberLogo base="NoBG_OrangeGlow" blink-base="NoBG_OrangeGlow_Blink" :pixel-size="64" size="h-8 w-8 rounded-lg" />
           <span class="text-lg font-bold">Ember</span>
         </router-link>
@@ -38,7 +38,7 @@ const { t } = useI18n()
 
     <!-- Footer -->
     <footer class="border-t border-(--border) bg-(--bg)">
-      <div class="mx-auto max-w-5xl px-6 py-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-(--text-muted)">
+      <div class="mx-auto max-w-5xl px-6 py-6 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-(--text-muted)">
         <span>{{ t('footer.copyright') }}</span>
         <div class="flex items-center gap-4">
           <router-link to="/privacy" class="hover:text-(--text) transition-colors no-underline text-(--text-muted)">{{ t('footer.privacy') }}</router-link>

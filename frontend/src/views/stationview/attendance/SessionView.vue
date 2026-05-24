@@ -8,12 +8,8 @@ import {computed, onMounted, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRoute, useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
-import PrimaryButton from '@/components/button/PrimaryButton.vue'
-import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import SelectInput from '@/components/input/select/SelectInput.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
-import SubHeader from '@/components/typography/SubHeader.vue'
 import type {
   AttendanceEntry,
   AttendanceSession,
@@ -26,16 +22,20 @@ import type {
 } from '@/api/types'
 import {attendance, memberGroups, stationMembers} from '@/api'
 import {useSession} from '@/composables/useSession'
+import {useSessionMeta} from './sessionview/useSessionMeta'
+import {useCheckMode} from './sessionview/useCheckMode'
+import {useSessionFields} from './sessionview/useSessionFields'
+import SessionToolbar from './sessionview/SessionToolbar.vue'
+import SessionHeader from './sessionview/SessionHeader.vue'
 import CheckModePanel from './sessionview/CheckModePanel.vue'
 import SessionFieldsPanel from './sessionview/SessionFieldsPanel.vue'
-import MemberEntry from './sessionview/MemberEntry.vue'
-import SessionHeader from './sessionview/SessionHeader.vue'
+import AttendanceSummary from './sessionview/AttendanceSummary.vue'
+import MemberListPanel from './sessionview/MemberListPanel.vue'
 
 const {t} = useI18n()
 const route = useRoute()
 const router = useRouter()
 const {loaded} = useSession()
-
 
 const sessionId = computed(() => Number(route.params.id))
 
@@ -50,27 +50,11 @@ const groupMembers = ref<Map<number, StationMember[]>>(new Map())
 const loading = ref(true)
 const error = ref('')
 
-// Field editing
-const fieldValues = ref<Map<number, string>>(new Map())
-
-// Check mode
-const checkMode = ref(false)
-const checkIndex = ref(0)
-
-// Add member
 const selectedMemberId = ref('')
 
-const uncheckedEntries = computed(() => entries.value.filter(e => e.status === 'UNCONFIRMED'))
-
-const currentCheckEntry = computed(() => {
-  if (!checkMode.value || checkIndex.value >= uncheckedEntries.value.length) return null
-  return uncheckedEntries.value[checkIndex.value]
-})
-
-const membersNotInSession = computed(() => {
-  const entryMemberIds = new Set(entries.value.map(e => e.memberId))
-  return allMembers.value.filter(m => !entryMemberIds.has(m.id))
-})
+const {setSessionStartTime, setSessionEndTime, setSessionTitle} = useSessionMeta(sessionId, session, error)
+const {checkMode, checkIndex, uncheckedEntries, currentCheckEntry, startCheckMode, checkSetStatus, skipCheck} = useCheckMode(entries, setStatus)
+const {fieldValues, parseFieldConfig, onFieldUpdate, setFieldMemberIds, initFieldValues} = useSessionFields(sessionId, templateFields, entries, error)
 
 interface MemberSection {
   group: MemberGroup | null
@@ -108,51 +92,6 @@ const memberSections = computed((): MemberSection[] => {
 function getMemberName(memberId: number): string {
   const m = allMembers.value.find(mm => mm.id === memberId)
   return m?.name ?? m?.email ?? `#${memberId}`
-}
-
-function getEntry(memberId: number): AttendanceEntry | undefined {
-  return entries.value.find(e => e.memberId === memberId)
-}
-
-function getFieldValue(fieldId: number): string {
-  return fieldValues.value.get(fieldId) ?? ''
-}
-
-function setFieldValue(fieldId: number, val: string) {
-  fieldValues.value = new Map([...fieldValues.value, [fieldId, val]])
-}
-
-function parseFieldConfig(configStr?: string): { options?: string[]; groupId?: number; autoAttend?: boolean } {
-  if (!configStr) return {}
-  try {
-    return JSON.parse(configStr)
-  } catch {
-    return {}
-  }
-}
-
-async function setFieldMemberIds(fieldId: number, ids: string[]) {
-  const val = ids.length === 0 ? '' : ids.length === 1 ? ids[0] : JSON.stringify(ids)
-  setFieldValue(fieldId, val)
-  await saveField(fieldId)
-
-  const field = templateFields.value.find(f => f.id === fieldId)
-  if (field && parseFieldConfig(field.config).autoAttend) {
-    const entryMemberIds = new Set(entries.value.map(e => e.memberId))
-    for (const id of ids) {
-      const mid = Number(id)
-      if (!entryMemberIds.has(mid)) {
-        entries.value = await attendance.createEntry(sessionId.value, {memberId: mid, source: 'EXTRA'})
-        entryMemberIds.add(mid)
-      }
-      const entry = entries.value.find(e => e.memberId === mid)
-      if (entry && entry.status !== 'PRESENT') {
-        await attendance.updateEntryStatus(entry.id, 'PRESENT')
-      }
-    }
-    const detail = await attendance.getSession(sessionId.value)
-    entries.value = detail.entries ?? []
-  }
 }
 
 async function loadData() {
@@ -206,42 +145,11 @@ async function loadData() {
       }
     }
 
-    const fv = new Map<number, string>()
-    for (const sf of sessionFields.value) {
-      let val = sf.value ?? ''
-      try {
-        val = JSON.parse(val)
-      } catch { /* use as-is */ }
-      fv.set(sf.fieldId, typeof val === 'string' ? val : String(val))
-    }
-    fieldValues.value = fv
+    initFieldValues(sessionFields.value)
   } catch {
     error.value = t('common.error')
   } finally {
     loading.value = false
-  }
-}
-
-async function saveField(fieldId: number) {
-  try {
-    await attendance.setSessionFields(sessionId.value, {
-      fields: [{fieldId, value: JSON.stringify(getFieldValue(fieldId))}],
-    })
-  } catch {
-    error.value = t('common.error')
-  }
-}
-
-const fieldSaveTimers = new Map<number, ReturnType<typeof setTimeout>>()
-
-function onFieldUpdate(fieldId: number, value: string, immediate: boolean) {
-  setFieldValue(fieldId, value)
-  const existing = fieldSaveTimers.get(fieldId)
-  if (existing) clearTimeout(existing)
-  if (immediate) {
-    saveField(fieldId)
-  } else {
-    fieldSaveTimers.set(fieldId, setTimeout(() => saveField(fieldId), 500))
   }
 }
 
@@ -334,68 +242,6 @@ async function exportPdf() {
   }
 }
 
-function startCheckMode() {
-  checkIndex.value = 0
-  checkMode.value = true
-}
-
-async function checkSetStatus(status: AttendanceStatus) {
-  if (!currentCheckEntry.value) return
-  await setStatus(currentCheckEntry.value.id, status)
-  if (checkIndex.value >= uncheckedEntries.value.length) {
-    checkMode.value = false
-  }
-}
-
-function skipCheck() {
-  checkIndex.value++
-  if (checkIndex.value >= uncheckedEntries.value.length) {
-    checkMode.value = false
-  }
-}
-
-let sessionSaveTimer: ReturnType<typeof setTimeout> | null = null
-
-function saveSessionDebounced() {
-  if (sessionSaveTimer) clearTimeout(sessionSaveTimer)
-  sessionSaveTimer = setTimeout(saveSessionMeta, 500)
-}
-
-async function saveSessionMeta() {
-  if (!session.value) return
-  error.value = ''
-  try {
-    const s = session.value
-    await attendance.updateSession(sessionId.value, {
-      startTime: s.startTime,
-      endTime: s.endTime,
-      title: s.title,
-    })
-  } catch {
-    error.value = t('common.error')
-  }
-}
-
-function setSessionStartTime(time: string) {
-  if (!session.value || !time) return
-  const today = new Date().toISOString().slice(0, 10)
-  session.value = {...session.value, startTime: new Date(`${today}T${time}:00`).toISOString()}
-  saveSessionMeta()
-}
-
-function setSessionEndTime(time: string) {
-  if (!session.value || !time) return
-  const today = new Date().toISOString().slice(0, 10)
-  session.value = {...session.value, endTime: new Date(`${today}T${time}:00`).toISOString()}
-  saveSessionMeta()
-}
-
-function setSessionTitle(title: string) {
-  if (!session.value) return
-  session.value = {...session.value, title}
-  saveSessionDebounced()
-}
-
 function goBack() {
   router.push({name: 'attendance-past'})
 }
@@ -412,26 +258,14 @@ watch(loaded, (isLoaded) => {
 <template>
   <ViewContent>
     <div class="space-y-6">
-      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-        <SecondaryButton @click="goBack">
-          <font-awesome-icon :icon="['fas', 'chevron-left']" class="mr-2"/>
-          {{ t('attendanceSession.back') }}
-        </SecondaryButton>
-        <div class="grid grid-cols-2 sm:flex sm:items-center gap-2">
-          <SecondaryButton @click="exportPdf">
-            <font-awesome-icon :icon="['fas', 'download']" class="mr-1"/>
-            {{ t('attendanceSession.export') }}
-          </SecondaryButton>
-          <SecondaryButton @click="syncFromEvent">
-            <font-awesome-icon :icon="['fas', 'clipboard-check']" class="mr-1"/>
-            {{ t('attendanceSession.sync') }}
-          </SecondaryButton>
-          <PrimaryButton v-if="!checkMode && uncheckedEntries.length > 0" class="col-span-2" @click="startCheckMode">
-            <font-awesome-icon :icon="['fas', 'clipboard-user']" class="mr-1"/>
-            {{ t('attendanceSession.checkMode') }} ({{ uncheckedEntries.length }})
-          </PrimaryButton>
-        </div>
-      </div>
+      <SessionToolbar
+          :check-mode="checkMode"
+          :unchecked-count="uncheckedEntries.length"
+          @back="goBack"
+          @export="exportPdf"
+          @sync="syncFromEvent"
+          @start-check-mode="startCheckMode"
+      />
 
       <Spinner v-if="loading" size="lg"/>
       <Alert v-if="error" variant="error">{{ error }}</Alert>
@@ -444,7 +278,6 @@ watch(loaded, (isLoaded) => {
             @update-end-time="setSessionEndTime"
         />
 
-        <!-- Check mode -->
         <CheckModePanel
             v-if="checkMode"
             :current-entry="currentCheckEntry"
@@ -457,7 +290,6 @@ watch(loaded, (isLoaded) => {
         />
 
         <template v-if="!checkMode">
-          <!-- Template fields -->
           <SessionFieldsPanel
               :template-fields="templateFields"
               :field-values="fieldValues"
@@ -467,47 +299,20 @@ watch(loaded, (isLoaded) => {
               @field-member-ids="setFieldMemberIds"
           />
 
-          <!-- Summary -->
-          <div class="flex gap-3 text-sm flex-wrap">
-            <SecondaryBadge v-if="entries.filter(e => e.status === 'UNCONFIRMED').length > 0">
-              {{ entries.filter(e => e.status === 'UNCONFIRMED').length }} {{ t('attendanceSession.unconfirmed') }}
-            </SecondaryBadge>
-            <SuccessBadge>{{ entries.filter(e => e.status === 'PRESENT').length }} {{ t('attendanceSession.present') }}</SuccessBadge>
-            <ErrorBadge>{{ entries.filter(e => e.status === 'ABSENT').length }} {{ t('attendanceSession.absent') }}</ErrorBadge>
-            <InfoBadge>{{ entries.filter(e => e.status === 'DECLINED').length }} {{ t('attendanceSession.declined') }}</InfoBadge>
-          </div>
+          <AttendanceSummary :entries="entries"/>
 
-          <!-- Members by group -->
-          <div v-for="section in memberSections" :key="section.group?.id ?? 'ungrouped'" class="space-y-2">
-            <SubHeader>{{ section.group?.name ?? t('attendanceSession.otherMembers') }}</SubHeader>
-            <div class="space-y-1">
-              <MemberEntry
-                  v-for="member in section.members"
-                  :key="member.id"
-                  :member="member"
-                  :entry="getEntry(member.id)"
-                  :member-name="getMemberName(member.id)"
-                  @set-status="setStatus"
-                  @check-in="setCheckIn"
-                  @check-out="setCheckOut"
-                  @reset-times="resetEntryTimes"
-              />
-            </div>
-          </div>
-
-          <!-- Add member -->
-          <div v-if="membersNotInSession.length > 0" class="flex items-center gap-2">
-            <SelectInput v-model="selectedMemberId" class="flex-1">
-              <option disabled value="">{{ t('attendanceSession.addMember') }}</option>
-              <option v-for="m in membersNotInSession" :key="m.id" :value="String(m.id)">
-                {{ m.name ?? m.email }}
-              </option>
-            </SelectInput>
-            <PrimaryButton :disabled="!selectedMemberId" @click="addMember">
-              <font-awesome-icon :icon="['fas', 'plus']" class="mr-1"/>
-              {{ t('attendanceSession.add') }}
-            </PrimaryButton>
-          </div>
+          <MemberListPanel
+              :entries="entries"
+              :all-members="allMembers"
+              :member-sections="memberSections"
+              :selected-member-id="selectedMemberId"
+              @set-status="setStatus"
+              @check-in="setCheckIn"
+              @check-out="setCheckOut"
+              @reset-times="resetEntryTimes"
+              @add-member="addMember"
+              @update:selected-member-id="selectedMemberId = $event"
+          />
         </template>
       </template>
     </div>

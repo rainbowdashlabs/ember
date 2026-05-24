@@ -51,8 +51,7 @@ const {t} = useI18n()
     <div class="space-y-3">
       <div class="flex items-center justify-between flex-wrap gap-2">
         <SectionHeader>{{ t('inventoryMembers.title') }}</SectionHeader>
-        <PrimaryButton>
-          <font-awesome-icon :icon="['fas', 'file-export']" class="mr-1" />
+        <PrimaryButton :icon="['fas', 'file-export']">
           {{ t('inventoryMembers.export') }}
         </PrimaryButton>
       </div>

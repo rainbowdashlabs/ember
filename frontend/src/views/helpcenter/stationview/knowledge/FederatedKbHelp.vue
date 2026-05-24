@@ -73,7 +73,7 @@ const showFederated = ref(true)
 
     <!-- Dummy: Copy action -->
     <NeutralContainer>
-      <div class="flex items-center gap-3">
+      <div class="flex items-center gap-2">
         <font-awesome-icon :icon="['fas', 'file-lines']" class="text-xl text-primary" />
         <div class="flex-1 min-w-0">
           <div class="flex items-center gap-2">

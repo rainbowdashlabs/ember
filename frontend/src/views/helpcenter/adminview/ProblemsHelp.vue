@@ -11,6 +11,7 @@ import HelpTip from '@/components/helpcenter/HelpTip.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
+import MutedText from '@/components/typography/MutedText.vue'
 
 const {t} = useI18n()
 </script>
@@ -32,7 +33,7 @@ const {t} = useI18n()
         <div class="min-w-0">
           <div class="text-sm font-medium">E-Mail konnte nicht gesendet werden</div>
           <div class="text-xs text-(--text-muted)">12. Mai 2026, 14:32 · 3-mal aufgetreten</div>
-          <div class="font-mono text-xs text-(--text-muted) mt-1 truncate">MailService: Connection refused to smtp.example.com:587</div>
+          <MutedText tag="div" class="mt-1 font-mono truncate">MailService: Connection refused to smtp.example.com:587</MutedText>
         </div>
       </div>
       <div class="flex items-start gap-3 p-3 rounded bg-[var(--bg)] border border-[var(--border)]">
@@ -40,7 +41,7 @@ const {t} = useI18n()
         <div class="min-w-0">
           <div class="text-sm font-medium">Langsame Datenbankabfrage</div>
           <div class="text-xs text-(--text-muted)">12. Mai 2026, 11:15 · 1-mal aufgetreten</div>
-          <div class="font-mono text-xs text-(--text-muted) mt-1 truncate">KbRepository.search: 2 340 ms (Schwellwert: 500 ms)</div>
+          <MutedText tag="div" class="mt-1 font-mono truncate">KbRepository.search: 2 340 ms (Schwellwert: 500 ms)</MutedText>
         </div>
       </div>
       <div class="flex items-start gap-3 p-3 rounded bg-[var(--bg)] border border-[var(--border)]">
@@ -48,7 +49,7 @@ const {t} = useI18n()
         <div class="min-w-0">
           <div class="text-sm font-medium">Unbekannter Fehler beim PDF-Export</div>
           <div class="text-xs text-(--text-muted)">11. Mai 2026, 09:04 · 1-mal aufgetreten</div>
-          <div class="font-mono text-xs text-(--text-muted) mt-1 truncate">TypstCompiler: Process exited with code 1</div>
+          <MutedText tag="div" class="mt-1 font-mono truncate">TypstCompiler: Process exited with code 1</MutedText>
         </div>
       </div>
     </NeutralContainer>

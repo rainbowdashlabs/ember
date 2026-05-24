@@ -25,6 +25,7 @@ import type { ProfileField } from '@/api/types'
 import { Roles, hasTeamRole } from '@/api/types'
 import { profileFields, auth, members, session as sessionApi } from '@/api'
 import { useSession } from '@/composables/useSession'
+import MutedText from '@/components/typography/MutedText.vue'
 
 function getUserScopes(roles: string[]): string[] {
   const scopes: string[] = []
@@ -328,7 +329,7 @@ onMounted(loadProfile)
             <FieldLabel>
               {{ field.name }}
               <span v-if="parseFieldConfig(field.config).required" class="text-error">*</span>
-              <span v-if="parseFieldConfig(field.config).readonly" class="text-xs text-(--text-muted) ml-1">({{ t('profile.readonlyHint') }})</span>
+              <MutedText class="ml-1" v-if="parseFieldConfig(field.config).readonly">({{ t('profile.readonlyHint') }})</MutedText>
             </FieldLabel>
 
             <ProfileFieldInput

@@ -56,7 +56,7 @@ async function switchStation(stationId: string) {
 
     <Modal v-model="showModal">
       <div class="space-y-4">
-        <SubHeader class="text-lg font-semibold">{{ t('stationSwitcher.title') }}</SubHeader>
+        <SubHeader>{{ t('stationSwitcher.title') }}</SubHeader>
         <div class="space-y-2">
           <NeutralContainer
               v-for="station in stationList"

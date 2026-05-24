@@ -19,6 +19,7 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import FieldHint from '@/components/typography/FieldHint.vue'
 import { ai } from '@/api'
 import type { AiModel, AiSettings } from '@/api/ai'
+import FieldLabel from '@/components/typography/FieldLabel.vue'
 
 const { t } = useI18n()
 
@@ -145,8 +146,7 @@ async function generateWrongAnswers() {
     </div>
     <div class="flex flex-wrap gap-2">
       <SecondaryButton @click="addMcOption"><font-awesome-icon :icon="['fas', 'plus']" class="mr-1" />{{ t('quiz.questions.config.addOption') }}</SecondaryButton>
-      <SecondaryButton @click="() => { showAiPanel = !showAiPanel; if (showAiPanel && !aiSettings) loadAiSettings() }">
-        <font-awesome-icon :icon="['fas', 'brain']" class="mr-1" />
+      <SecondaryButton :icon="['fas', 'brain']" @click="() => { showAiPanel = !showAiPanel; if (showAiPanel && !aiSettings) loadAiSettings() }">
         {{ t('quiz.ai.generate') }}
       </SecondaryButton>
     </div>
@@ -154,13 +154,13 @@ async function generateWrongAnswers() {
 
   <!-- AI Generation Panel -->
   <div v-if="showAiPanel" class="rounded-lg border border-bg-light-accent dark:border-bg-dark-accent p-4 space-y-3">
-    <div class="flex items-center gap-2 text-sm font-medium">
+    <div class="flex items-center gap-2 text-xs font-medium">
       <font-awesome-icon :icon="['fas', 'brain']" class="text-primary" />
       {{ t('quiz.ai.title') }}
     </div>
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
       <div>
-        <label class="text-xs text-(--text-muted) block mb-1">{{ t('quiz.ai.provider') }}</label>
+        <FieldLabel hint class="mb-1">{{ t('quiz.ai.provider') }}</FieldLabel>
         <SelectInput v-model="aiProvider">
           <option value="openai">{{ t('quiz.ai.providers.openai') }}</option>
           <option value="gemini">{{ t('quiz.ai.providers.gemini') }}</option>
@@ -168,14 +168,14 @@ async function generateWrongAnswers() {
         </SelectInput>
       </div>
       <div>
-        <label class="text-xs text-(--text-muted) block mb-1">
+        <FieldLabel hint class="mb-1">
           {{ t('quiz.ai.apiKey') }}
           <span v-if="hasStoredKey(aiProvider)" class="text-success ml-1">{{ t('quiz.ai.keyStored') }}</span>
-        </label>
+        </FieldLabel>
         <TextInput v-model="aiTransientKey" type="password" :placeholder="hasStoredKey(aiProvider) ? t('quiz.ai.keyStoredPlaceholder') : 'sk-...'" />
       </div>
       <div>
-        <label class="text-xs text-(--text-muted) block mb-1">{{ t('quiz.ai.model') }}</label>
+        <FieldLabel hint class="mb-1">{{ t('quiz.ai.model') }}</FieldLabel>
         <div class="flex gap-1">
           <SelectInput v-if="aiModels.length > 0" v-model="aiSelectedModel" class="flex-1">
             <option value="">{{ t('quiz.ai.defaultModel') }}</option>
@@ -189,7 +189,7 @@ async function generateWrongAnswers() {
         </div>
       </div>
     </div>
-    <div class="flex items-center gap-3">
+    <div class="flex items-center gap-2">
       <div class="flex items-center gap-2">
         <FieldHint>{{ t('quiz.ai.count') }}</FieldHint>
         <NumberInput v-model="aiCount" class="w-16" />

@@ -11,6 +11,7 @@ import TextInput from '@/components/input/text/TextInput.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
+import FieldLabel from '@/components/typography/FieldLabel.vue'
 
 const { t } = useI18n()
 
@@ -86,9 +87,9 @@ function updateDistractor(idx: number, value: string) {
     </div>
     <SecondaryButton @click="addDistractor"><font-awesome-icon :icon="['fas', 'plus']" class="mr-1" />{{ t('quiz.questions.config.addDistractor') }}</SecondaryButton>
   </div>
-  <label class="flex items-center gap-2 text-sm mt-3">
+  <FieldLabel inline class="mt-3">
     <ToggleInput :model-value="(config.useDropdown as boolean) ?? false" @update:model-value="(v: boolean) => updateConfig({ useDropdown: v })" />
     {{ t('quiz.questions.config.useDropdown') }}
-  </label>
+  </FieldLabel>
   <p class="text-xs text-(--text-muted)">{{ t('quiz.questions.config.useDropdownHint') }}</p>
 </template>

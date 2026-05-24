@@ -78,8 +78,7 @@ async function submitCreate() {
         <TextInput v-model="newLastName" :placeholder="t('membersCreate.lastName')"/>
         <TextInput v-model="newEmail" :placeholder="t('membersCreate.email')"/>
       </div>
-      <SecondaryButton :disabled="!newEmail || !newFirstName || !newLastName || creating" @click="submitCreate">
-        <font-awesome-icon :icon="['fas', 'plus']" class="mr-1"/>
+      <SecondaryButton :icon="['fas', 'plus']" :disabled="!newEmail || !newFirstName || !newLastName || creating" @click="submitCreate">
         {{ creating ? t('common.loading') : t('membersCreate.addManager') }}
       </SecondaryButton>
 

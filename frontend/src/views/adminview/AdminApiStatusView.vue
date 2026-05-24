@@ -6,6 +6,7 @@
 <script setup lang="ts">
 import {ref, onMounted, computed} from 'vue'
 import {useI18n} from 'vue-i18n'
+import {useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
@@ -26,6 +27,10 @@ import type {EndpointStats, HourlyStats, StatusBreakdown} from '@/api/apiStatus'
 use([CanvasRenderer, BarChart, LineChart, GridComponent, TooltipComponent, LegendComponent, DataZoomComponent])
 
 const {t} = useI18n()
+const router = useRouter()
+
+const isDark = computed(() => document.documentElement.classList.contains('dark'))
+const textColor = computed(() => isDark.value ? '#ccc' : '#333')
 
 const loading = ref(true)
 const activeTab = ref<'overview' | 'slowest' | 'fastest' | 'failing'>('overview')
@@ -68,31 +73,35 @@ const avgResponseTime = computed(() => {
 
 const requestVolumeOption = computed(() => ({
     tooltip: {trigger: 'axis'},
-    legend: {data: [t('apiStatus.requests'), t('apiStatus.errors')]},
-    grid: {left: 60, right: 20, bottom: 40},
-    xAxis: {type: 'category', data: hourly.value.map(h => h.hour.substring(11))},
-    yAxis: {type: 'value', name: t('apiStatus.count')},
+    legend: {data: [t('apiStatus.requests'), t('apiStatus.errors')], textStyle: {color: textColor.value}},
+    grid: {left: 60, right: 20, bottom: 60},
+    xAxis: {type: 'category', data: hourly.value.map(h => h.hour.substring(11)), axisLabel: {color: textColor.value, rotate: 45}},
+    yAxis: {type: 'value', name: t('apiStatus.count'), nameTextStyle: {color: textColor.value}, axisLabel: {color: textColor.value}},
     series: [
         {
             name: t('apiStatus.requests'),
-            type: 'bar',
+            type: 'line',
             data: hourly.value.map(h => h.requestCount),
             itemStyle: {color: '#73CEFF'},
+            areaStyle: {color: 'rgba(115,206,255,0.15)'},
+            smooth: true,
         },
         {
             name: t('apiStatus.errors'),
-            type: 'bar',
+            type: 'line',
             data: hourly.value.map(h => h.errorCount),
             itemStyle: {color: '#ec2929'},
+            areaStyle: {color: 'rgba(236,41,41,0.1)'},
+            smooth: true,
         },
     ],
 }))
 
 const responseTimeOption = computed(() => ({
     tooltip: {trigger: 'axis'},
-    grid: {left: 60, right: 20, bottom: 40},
-    xAxis: {type: 'category', data: hourly.value.map(h => h.hour.substring(11))},
-    yAxis: {type: 'value', name: 'ms'},
+    grid: {left: 60, right: 20, bottom: 60},
+    xAxis: {type: 'category', data: hourly.value.map(h => h.hour.substring(11)), axisLabel: {color: textColor.value, rotate: 45}},
+    yAxis: {type: 'value', name: 'ms', nameTextStyle: {color: textColor.value}, axisLabel: {color: textColor.value}},
     series: [
         {
             name: t('apiStatus.avgResponseTime'),
@@ -112,8 +121,9 @@ const statusChartOption = computed(() => {
     }
     return {
         tooltip: {trigger: 'axis'},
-        xAxis: {type: 'category', data: Object.keys(grouped)},
-        yAxis: {type: 'value'},
+        grid: {left: 60, right: 20, bottom: 30},
+        xAxis: {type: 'category', data: Object.keys(grouped), axisLabel: {color: textColor.value}},
+        yAxis: {type: 'value', axisLabel: {color: textColor.value}},
         series: [{
             type: 'bar',
             data: Object.entries(grouped).map(([cat, count]) => ({
@@ -142,6 +152,10 @@ function methodColor(method: string): string {
     }
 }
 
+function openDetail(ep: EndpointStats) {
+    router.push({name: 'admin-api-status-detail', query: {method: ep.method, path: ep.path}})
+}
+
 onMounted(loadData)
 </script>
 
@@ -152,8 +166,7 @@ onMounted(loadData)
                 <font-awesome-icon :icon="['fas', 'chart-line']" class="mr-2"/>
                 {{ t('apiStatus.title') }}
             </PageHeader>
-            <SecondaryButton @click="loadData">
-                <font-awesome-icon :icon="['fas', 'rotate']" class="mr-1"/>
+            <SecondaryButton :icon="['fas', 'rotate']" @click="loadData">
                 {{ t('common.refresh') }}
             </SecondaryButton>
         </div>
@@ -224,7 +237,8 @@ onMounted(loadData)
                     <tbody>
                         <tr v-for="(ep, idx) in (activeTab === 'slowest' ? slowest : activeTab === 'fastest' ? fastest : failing)"
                             :key="idx"
-                            class="border-b border-[var(--border)] last:border-0">
+                            class="border-b border-[var(--border)] last:border-0 cursor-pointer hover:bg-[var(--bg-accent)]/10 transition-colors"
+                            @click="openDetail(ep)">
                             <td class="py-2 pr-3 font-mono text-xs">
                                 <span :class="methodColor(ep.method)" class="font-semibold mr-1">{{ ep.method }}</span>
                                 {{ ep.path }}

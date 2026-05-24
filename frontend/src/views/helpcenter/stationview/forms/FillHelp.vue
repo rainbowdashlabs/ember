@@ -14,6 +14,7 @@ import TextInput from '@/components/input/text/TextInput.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import FieldHint from '@/components/typography/FieldHint.vue'
+import BulletList from '@/components/typography/BulletList.vue'
 
 const {t} = useI18n()
 </script>
@@ -49,22 +50,21 @@ const {t} = useI18n()
     </NeutralContainer>
 
     <div class="flex justify-end mt-4">
-      <PrimaryButton disabled>
-        <font-awesome-icon :icon="['fas', 'paper-plane']" class="mr-2"/>
+      <PrimaryButton :icon="['fas', 'paper-plane']" disabled>
         {{ t('forms.submit') }}
       </PrimaryButton>
     </div>
 
     <HelpSection :title="t('helpCenter.formsFill.questionsTitle')">
       <p>{{ t('helpCenter.formsFill.questionsText') }}</p>
-      <ul class="list-disc pl-5 space-y-1 mt-2 text-sm">
+      <BulletList class="mt-2">
         <li>{{ t('helpCenter.formsFill.typeChoice') }}</li>
         <li>{{ t('helpCenter.formsFill.typeText') }}</li>
         <li>{{ t('helpCenter.formsFill.typeRating') }}</li>
         <li>{{ t('helpCenter.formsFill.typeDate') }}</li>
         <li>{{ t('helpCenter.formsFill.typeRanking') }}</li>
         <li>{{ t('helpCenter.formsFill.typeLikert') }}</li>
-      </ul>
+      </BulletList>
     </HelpSection>
 
     <HelpSection :title="t('helpCenter.formsFill.memberManagerTitle')">

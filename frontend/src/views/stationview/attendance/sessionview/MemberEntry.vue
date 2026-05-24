@@ -49,7 +49,7 @@ function formatTime(iso?: string): string {
       class="rounded-lg px-4 py-3 border-l-4 transition-all"
   >
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-      <div class="flex items-center gap-3 min-w-0">
+      <div class="flex items-center gap-2 min-w-0">
         <font-awesome-icon
             v-if="entry?.status === 'PRESENT'"
             :icon="['fas', 'check']" class="h-4 w-4 text-success shrink-0"

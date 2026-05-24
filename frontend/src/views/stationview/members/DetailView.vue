@@ -27,6 +27,7 @@ import type { MyInventoryItem } from '@/api/inventory'
 import type { ExchangeRequestEntry } from '@/api/types'
 import { profileFields, profileFieldChanges, stationMembers, members, inventory, exchanges } from '@/api'
 import { useSession } from '@/composables/useSession'
+import MutedText from '@/components/typography/MutedText.vue'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -306,21 +307,17 @@ onMounted(loadData)
   <ViewContent>
     <div class="space-y-6">
       <div class="flex items-center justify-between">
-        <SecondaryButton @click="router.push({ name: 'members-list' })">
-          <font-awesome-icon :icon="['fas', 'chevron-left']" class="mr-2" />
+        <SecondaryButton :icon="['fas', 'chevron-left']" @click="router.push({ name: 'members-list' })">
           {{ t('memberDetail.back') }}
         </SecondaryButton>
         <div class="flex items-center gap-2">
-          <ErrorButton v-if="canManageMembers() && !formerSuccess && !deleteSuccess" @click="modalsRef?.openFormerModal()">
-            <font-awesome-icon :icon="['fas', 'user-slash']" class="mr-1" />
+          <ErrorButton :icon="['fas', 'user-slash']" v-if="canManageMembers() && !formerSuccess && !deleteSuccess" @click="modalsRef?.openFormerModal()">
             {{ t('memberDetail.markFormer') }}
           </ErrorButton>
-          <ErrorButton v-if="canManageMembers() && !deleteSuccess && !formerSuccess" @click="modalsRef?.openDeleteModal()">
-            <font-awesome-icon :icon="['fas', 'trash']" class="mr-1" />
+          <ErrorButton :icon="['fas', 'trash']" v-if="canManageMembers() && !deleteSuccess && !formerSuccess" @click="modalsRef?.openDeleteModal()">
             {{ t('memberDetail.deleteData') }}
           </ErrorButton>
-          <PrimaryButton @click="router.push({ name: 'members-edit', params: { id: memberId } })">
-            <font-awesome-icon :icon="['fas', 'pen']" class="mr-2" />
+          <PrimaryButton :icon="['fas', 'pen']" @click="router.push({ name: 'members-edit', params: { id: memberId } })">
             {{ t('memberDetail.edit') }}
           </PrimaryButton>
         </div>
@@ -335,10 +332,10 @@ onMounted(loadData)
 
         <!-- Profile fields -->
         <NeutralContainer class="space-y-3">
-          <SubHeader class="text-sm font-semibold">{{ t('memberDetail.fields') }}</SubHeader>
-          <div v-if="applicableFields.length === 0" class="text-(--text-muted) text-sm py-2">
+          <SubHeader class="text-sm">{{ t('memberDetail.fields') }}</SubHeader>
+          <MutedText tag="div" size="sm" class="py-2" v-if="applicableFields.length === 0">
             {{ t('memberDetail.noFields') }}
-          </div>
+          </MutedText>
           <div class="grid gap-2 sm:grid-cols-2">
             <div v-for="field in applicableFields" :key="field.id" class="text-sm">
               <span class="text-(--text-muted)">{{ field.name }}:</span>

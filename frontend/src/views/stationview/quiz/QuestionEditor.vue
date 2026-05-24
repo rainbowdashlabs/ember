@@ -24,6 +24,7 @@ import FreeAnswerConfigEditor from './FreeAnswerConfigEditor.vue'
 import ConnectConfigEditor from './ConnectConfigEditor.vue'
 import OrderingConfigEditor from './OrderingConfigEditor.vue'
 import ImageTextConfigEditor from './ImageTextConfigEditor.vue'
+import FieldLabel from '@/components/typography/FieldLabel.vue'
 
 const { t } = useI18n()
 
@@ -117,13 +118,13 @@ function onTypeChange(val: QuizQuestionTypeName | string | undefined) {
     <TextAreaInput :model-value="description" :placeholder="t('quiz.questions.description')" @update:model-value="(v: string | undefined) => emit('update:description', v ?? '')" />
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
       <div>
-        <label class="text-xs text-(--text-muted) block mb-1">{{ t('quiz.questions.type') }}</label>
+        <FieldLabel hint class="mb-1">{{ t('quiz.questions.type') }}</FieldLabel>
         <SelectInput :model-value="questionType" :disabled="isEditing" @update:model-value="onTypeChange">
           <option v-for="qt in allQuestionTypes" :key="qt" :value="qt">{{ t(`quiz.questionTypes.${qt}`) }}</option>
         </SelectInput>
       </div>
       <div>
-        <label class="text-xs text-(--text-muted) block mb-1">{{ t('quiz.questions.category') }}</label>
+        <FieldLabel hint class="mb-1">{{ t('quiz.questions.category') }}</FieldLabel>
         <SelectInput v-model="categoryIdStr">
           <option value="">{{ t('quiz.questions.noCategory') }}</option>
           <option v-for="cat in categories" :key="cat.id" :value="String(cat.id)">{{ cat.name }}</option>
@@ -131,10 +132,10 @@ function onTypeChange(val: QuizQuestionTypeName | string | undefined) {
       </div>
     </div>
     <div class="flex items-center gap-4 flex-wrap">
-      <label class="flex items-center gap-2 text-sm">
+      <FieldLabel inline>
         <ToggleInput :model-value="autoPoints" @update:model-value="(v: boolean) => emit('update:autoPoints', v)" />
         {{ t('quiz.questions.autoPoints') }}
-      </label>
+      </FieldLabel>
       <span v-if="autoPoints" class="text-sm text-(--text-muted)">= {{ calculatedPoints }} {{ t('quiz.points') }}</span>
       <div v-else class="flex items-center gap-2">
         <FieldHint>{{ t('quiz.questions.points') }}</FieldHint>

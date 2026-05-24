@@ -35,8 +35,7 @@ const {t} = useI18n()
     <div class="space-y-3">
       <div class="flex items-center justify-between">
         <SectionHeader>{{ t('procurement.title') }}</SectionHeader>
-        <PrimaryButton>
-          <font-awesome-icon :icon="['fas', 'plus']" class="mr-2" />
+        <PrimaryButton :icon="['fas', 'plus']">
           {{ t('procurement.create') }}
         </PrimaryButton>
       </div>
@@ -53,8 +52,7 @@ const {t} = useI18n()
             <div class="text-sm">Alter Helm gerissen</div>
           </div>
           <div class="flex items-center gap-2 shrink-0">
-            <PrimaryButton>
-              <font-awesome-icon :icon="['fas', 'check']" class="mr-1" />
+            <PrimaryButton :icon="['fas', 'check']">
               {{ t('procurement.markFulfilled') }}
             </PrimaryButton>
             <DeleteButton />

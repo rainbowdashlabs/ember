@@ -24,6 +24,7 @@ import type { QuestionDraft } from './builderview/types'
 import type { FormQuestionRequest, QuestionType, Role, MemberGroup, UserTag } from '@/api/types'
 import { QuestionTypes } from '@/api/types'
 import { forms, stationMembers, memberGroups, userTags } from '@/api'
+import FieldLabel from '@/components/typography/FieldLabel.vue'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -197,23 +198,23 @@ onMounted(loadForm)
             <TextAreaInput v-model="description" :placeholder="t('forms.description')" />
             <div class="grid grid-cols-2 gap-4">
               <div>
-                <label class="text-xs text-(--text-muted) block mb-1">{{ t('forms.startAt') }}</label>
+                <FieldLabel hint class="mb-1">{{ t('forms.startAt') }}</FieldLabel>
                 <DateTimeInput v-model="startAt" />
               </div>
               <div>
-                <label class="text-xs text-(--text-muted) block mb-1">{{ t('forms.endAt') }}</label>
+                <FieldLabel hint class="mb-1">{{ t('forms.endAt') }}</FieldLabel>
                 <DateTimeInput v-model="endAt" />
               </div>
             </div>
             <div class="flex gap-6">
-              <label class="flex items-center gap-2 text-sm">
+              <FieldLabel inline>
                 <ToggleInput v-model="shuffleQuestions" />
                 {{ t('forms.shuffleQuestions') }}
-              </label>
-              <label class="flex items-center gap-2 text-sm">
+              </FieldLabel>
+              <FieldLabel inline>
                 <ToggleInput v-model="allowEdit" />
                 {{ t('forms.allowEdit') }}
-              </label>
+              </FieldLabel>
             </div>
           </div>
         </NeutralContainer>
@@ -245,8 +246,7 @@ onMounted(loadForm)
 
         <!-- Add Question -->
         <div class="flex flex-wrap gap-2">
-          <SecondaryButton v-for="type in questionTypes" :key="type" @click="addQuestion(type)">
-            <font-awesome-icon :icon="['fas', 'plus']" class="mr-1" />
+          <SecondaryButton :icon="['fas', 'plus']" v-for="type in questionTypes" :key="type" @click="addQuestion(type)">
             {{ t(`forms.questionTypes.${type}`) }}
           </SecondaryButton>
         </div>

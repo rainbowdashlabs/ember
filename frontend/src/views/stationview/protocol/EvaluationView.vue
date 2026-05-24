@@ -17,6 +17,7 @@ import { useSession } from '@/composables/useSession'
 import { protocol, stationMembers } from '@/api'
 import type { EvaluationResponse, TestProtocolSection } from '@/api/protocol'
 import type { StationMember } from '@/api/types'
+import MutedText from '@/components/typography/MutedText.vue'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -113,7 +114,7 @@ onMounted(() => { if (loaded.value) loadData() })
 
 <template>
   <ViewContent>
-    <div class="flex items-center gap-3 mb-4">
+    <div class="flex items-center gap-2 mb-4">
       <SecondaryButton @click="router.push({ name: 'protocol-run-detail', params: { id: runId } })">
         <font-awesome-icon :icon="['fas', 'chevron-left']" />
       </SecondaryButton>
@@ -132,10 +133,10 @@ onMounted(() => { if (loaded.value) loadData() })
     <Alert v-if="error" variant="error">{{ error }}</Alert>
 
     <template v-if="!loading && evalData">
-      <p class="text-sm text-[var(--text-muted)] mb-4">
+      <MutedText tag="p" size="sm">
         {{ evalData.protocolName }} — {{ new Date(evalData.testDate).toLocaleDateString('de-DE') }}
         <template v-if="evalData.passThreshold"> — {{ t('protocol.threshold') }}: {{ evalData.passThreshold }}P</template>
-      </p>
+      </MutedText>
 
       <div class="overflow-x-auto">
         <table class="eval-table text-xs w-full" style="border-collapse: separate; border-spacing: 0">

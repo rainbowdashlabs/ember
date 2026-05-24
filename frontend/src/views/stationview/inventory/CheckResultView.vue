@@ -17,6 +17,7 @@ import SectionHeader from '@/components/typography/SectionHeader.vue'
 import type { CheckDetail } from '@/api/types'
 import { inventoryCheck } from '@/api'
 import SizeBadge from '@/components/badge/SizeBadge.vue'
+import MutedText from '@/components/typography/MutedText.vue'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -80,8 +81,7 @@ onMounted(loadData)
           <SectionHeader>{{ memberName || t('inventory.check.lastResult') }}</SectionHeader>
           <p v-if="memberName" class="text-sm text-(--text-muted)">{{ t('inventory.check.lastResult') }}</p>
         </div>
-        <SecondaryButton @click="goBack">
-          <font-awesome-icon :icon="['fas', 'chevron-left']" class="mr-1" />
+        <SecondaryButton :icon="['fas', 'chevron-left']" @click="goBack">
           {{ t('inventory.check.backToOverview') }}
         </SecondaryButton>
       </div>
@@ -128,7 +128,7 @@ onMounted(loadData)
                 {{ resultLabel(item.result) }}
               </span>
             </div>
-            <p v-if="item.note" class="text-sm text-(--text-muted) mt-1">{{ item.note }}</p>
+            <MutedText tag="p" size="sm" class="mt-1" v-if="item.note">{{ item.note }}</MutedText>
           </NeutralContainer>
         </div>
       </template>

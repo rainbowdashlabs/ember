@@ -424,13 +424,11 @@ onUnmounted(() => {
 
         <!-- Navigation buttons -->
         <div class="flex items-center justify-between">
-          <SecondaryButton :disabled="isFirstQuestion" @click="goPrev">
-            <font-awesome-icon :icon="['fas', 'chevron-left']" class="mr-1" />
+          <SecondaryButton :icon="['fas', 'chevron-left']" :disabled="isFirstQuestion" @click="goPrev">
             {{ t('quiz.attempt.prev') }}
           </SecondaryButton>
 
-          <SuccessButton @click="confirmSubmit">
-            <font-awesome-icon :icon="['fas', 'paper-plane']" class="mr-1" />
+          <SuccessButton :icon="['fas', 'paper-plane']" @click="confirmSubmit">
             {{ t('quiz.attempt.submit') }}
           </SuccessButton>
 

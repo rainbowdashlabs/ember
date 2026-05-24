@@ -254,8 +254,7 @@ onMounted(loadData)
         <!-- Export Button -->
         <NeutralContainer class="flex items-center justify-between">
           <SectionHeader>{{ t('events.export') }}</SectionHeader>
-          <PrimaryButton @click="showExportModal = true">
-            <font-awesome-icon :icon="['fas', 'file-export']" class="mr-1"/>
+          <PrimaryButton :icon="['fas', 'file-export']" @click="showExportModal = true">
             {{ t('events.exportPdf') }}
           </PrimaryButton>
         </NeutralContainer>

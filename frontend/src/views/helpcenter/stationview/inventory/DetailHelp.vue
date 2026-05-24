@@ -10,6 +10,7 @@ import HelpSection from '@/components/helpcenter/HelpSection.vue'
 import HelpTip from '@/components/helpcenter/HelpTip.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
+import StatValue from '@/components/typography/StatValue.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import Th from '@/components/table/Th.vue'
@@ -37,15 +38,15 @@ const {t} = useI18n()
         <div class="text-xs text-(--text-muted)">{{ t('inventory.detail.total') }}</div>
       </NeutralContainer>
       <NeutralContainer class="text-center">
-        <div class="text-2xl font-bold text-success">8</div>
+        <StatValue color="success">8</StatValue>
         <div class="text-xs text-(--text-muted)">{{ t('inventory.detail.free') }}</div>
       </NeutralContainer>
       <NeutralContainer class="text-center">
-        <div class="text-2xl font-bold text-primary">15</div>
+        <StatValue>15</StatValue>
         <div class="text-xs text-(--text-muted)">{{ t('inventory.detail.assigned') }}</div>
       </NeutralContainer>
       <NeutralContainer class="text-center">
-        <div class="text-2xl font-bold text-error">1</div>
+        <StatValue color="error">1</StatValue>
         <div class="text-xs text-(--text-muted)">{{ t('inventory.detail.lost') }}</div>
       </NeutralContainer>
     </div>

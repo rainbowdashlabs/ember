@@ -182,7 +182,7 @@ onMounted(() => { if (loaded.value) loadData() })
       <NeutralContainer
         v-for="p in filteredProtocols"
         :key="'local-' + p.id"
-        class="flex items-center gap-3 cursor-pointer hover:border-[var(--primary)] transition-colors group"
+        class="flex items-center gap-2 cursor-pointer hover:border-[var(--primary)] transition-colors group"
         @click="router.push({ name: 'protocol-detail', params: { id: p.id } })"
       >
         <div class="flex-1 min-w-0">
@@ -200,7 +200,7 @@ onMounted(() => { if (loaded.value) loadData() })
       <NeutralContainer
         v-for="s in filteredShared"
         :key="'shared-' + s.protocol.id + '-' + s.sourceStationId"
-        class="flex items-center gap-3 cursor-pointer hover:border-[var(--primary)] transition-colors group"
+        class="flex items-center gap-2 cursor-pointer hover:border-[var(--primary)] transition-colors group"
         @click="router.push({ name: 'protocol-detail', params: { id: s.protocol.id } })"
       >
         <div class="flex-1 min-w-0">
@@ -223,7 +223,7 @@ onMounted(() => { if (loaded.value) loadData() })
 
     <!-- Create Modal -->
     <Modal v-model="showCreateModal">
-      <SubHeader class="font-semibold mb-3">{{ t('protocol.create') }}</SubHeader>
+      <SubHeader class="mb-3">{{ t('protocol.create') }}</SubHeader>
       <form @submit.prevent="handleCreate" class="space-y-3">
         <TextInput v-model="newName" :placeholder="t('protocol.name')" required />
         <TextAreaInput v-model="newDescription" :placeholder="t('protocol.description')" />
@@ -239,7 +239,7 @@ onMounted(() => { if (loaded.value) loadData() })
 
     <!-- Delete Modal -->
     <Modal v-model="showDeleteModal">
-      <SubHeader class="font-semibold mb-3">{{ t('protocol.deleteConfirm') }}</SubHeader>
+      <SubHeader class="mb-3">{{ t('protocol.deleteConfirm') }}</SubHeader>
       <p class="mb-4">{{ deleteTarget?.name }}</p>
       <div class="flex gap-2 justify-end">
         <PrimaryButton @click="handleDelete">{{ t('common.delete') }}</PrimaryButton>

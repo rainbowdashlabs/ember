@@ -56,7 +56,7 @@ function formatDate(dateStr: string | undefined | null): string {
         :key="item.entry.id"
         class="flex items-center justify-between gap-2 px-3 py-2 rounded-lg bg-bg-light-accent/20 dark:bg-bg-dark-accent/20"
       >
-        <div class="flex items-center gap-3">
+        <div class="flex items-center gap-2">
           <span class="font-medium text-primary hover:underline cursor-pointer" role="link" tabindex="0" @click="emit('navigateToEntry', item.entry.id)" @keydown.enter="emit('navigateToEntry', item.entry.id)">
             {{ entryFullName(item) }}
           </span>

@@ -111,15 +111,14 @@ function timeAgo(dateStr?: string): string {
   <NeutralContainer class="space-y-4">
     <div class="flex items-center justify-between">
       <SubHeader>{{ t('userSettings.sessions') }}</SubHeader>
-      <ErrorButton @click="emit('invalidateAll')">
-        <font-awesome-icon :icon="['fas', 'trash']" class="mr-1"/>
+      <ErrorButton :icon="['fas', 'trash']" @click="emit('invalidateAll')">
         {{ t('userSettings.invalidateAll') }}
       </ErrorButton>
     </div>
 
     <div class="space-y-2">
       <NeutralContainer v-for="sess in sessions" :key="sess.id" class="flex items-center justify-between">
-        <div class="flex items-center gap-3">
+        <div class="flex items-center gap-2">
           <div class="flex items-center gap-2">
             <font-awesome-icon :icon="osIcon(sess.userAgent)" class="h-5 w-5 text-(--text-muted)"/>
             <font-awesome-icon :icon="browserIcon(sess.userAgent)" class="h-5 w-5 text-(--text-muted)"/>

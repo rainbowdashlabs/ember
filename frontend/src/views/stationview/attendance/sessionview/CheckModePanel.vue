@@ -41,16 +41,13 @@ const emit = defineEmits<{
       </p>
       <p class="text-sm text-(--text-muted)">{{ checkIndex + 1 }} / {{ totalUnchecked }}</p>
       <div class="flex flex-col sm:flex-row justify-center gap-3 sm:gap-4">
-        <SuccessButton :full-width="isMobile" @click="emit('setStatus', 'PRESENT')">
-          <font-awesome-icon :icon="['fas', 'check']" class="mr-2"/>
+        <SuccessButton :icon="['fas', 'check']" :full-width="isMobile" @click="emit('setStatus', 'PRESENT')">
           {{ t('attendanceSession.present') }}
         </SuccessButton>
-        <ErrorButton :full-width="isMobile" @click="emit('setStatus', 'ABSENT')">
-          <font-awesome-icon :icon="['fas', 'xmark']" class="mr-2"/>
+        <ErrorButton :icon="['fas', 'xmark']" :full-width="isMobile" @click="emit('setStatus', 'ABSENT')">
           {{ t('attendanceSession.absent') }}
         </ErrorButton>
-        <InfoButton :full-width="isMobile" @click="emit('setStatus', 'DECLINED')">
-          <font-awesome-icon :icon="['fas', 'ban']" class="mr-2"/>
+        <InfoButton :icon="['fas', 'ban']" :full-width="isMobile" @click="emit('setStatus', 'DECLINED')">
           {{ t('attendanceSession.declined') }}
         </InfoButton>
       </div>

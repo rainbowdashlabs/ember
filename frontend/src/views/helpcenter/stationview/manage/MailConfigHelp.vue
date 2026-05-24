@@ -180,8 +180,7 @@ const {t} = useI18n()
     <NeutralContainer class="space-y-4">
       <div class="flex items-center gap-2">
         <PrimaryButton disabled>{{ t('stationManage.save') }}</PrimaryButton>
-        <SuccessButton disabled>
-          <font-awesome-icon :icon="['fas', 'plug']" class="mr-1"/>
+        <SuccessButton :icon="['fas', 'plug']" disabled>
           {{ t('stationManage.mailTest') }}
         </SuccessButton>
       </div>

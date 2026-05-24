@@ -20,7 +20,7 @@ const themeState = useTheme()
   <NeutralContainer class="space-y-4">
     <SubHeader>{{ t('theme.title') }}</SubHeader>
     <div class="space-y-3">
-      <div class="flex items-center gap-3">
+      <div class="flex items-center gap-2">
         <span class="text-sm font-medium">{{ t('theme.darkMode') }}</span>
         <div class="flex gap-1">
           <SelectionToggleButton

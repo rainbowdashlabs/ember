@@ -11,6 +11,8 @@ import HelpTip from '@/components/helpcenter/HelpTip.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import PrimaryBadge from '@/components/badge/PrimaryBadge.vue'
+import BulletList from '@/components/typography/BulletList.vue'
+import MutedText from '@/components/typography/MutedText.vue'
 
 const {t} = useI18n()
 </script>
@@ -34,13 +36,13 @@ const {t} = useI18n()
             <span class="font-semibold text-base">Grundlagen der Ersten Hilfe</span>
             <PrimaryBadge>Markdown</PrimaryBadge>
           </div>
-          <div class="text-xs text-(--text-muted) mt-1">Zuletzt geändert: 12. Mai 2026 · Max Mustermann</div>
+          <MutedText tag="div" class="mt-1">Zuletzt geändert: 12. Mai 2026 · Max Mustermann</MutedText>
         </div>
         <div class="flex gap-2 flex-shrink-0">
-          <SecondaryButton class="!text-xs !py-1 !px-2" disabled>
+          <SecondaryButton compact disabled>
             <font-awesome-icon :icon="['fas', 'pen']" class="mr-1" /> Bearbeiten
           </SecondaryButton>
-          <SecondaryButton class="!text-xs !py-1 !px-2" disabled>
+          <SecondaryButton compact disabled>
             <font-awesome-icon :icon="['fas', 'clock-rotate-left']" class="mr-1" /> Versionen
           </SecondaryButton>
         </div>
@@ -48,11 +50,11 @@ const {t} = useI18n()
       <div class="border-t border-[var(--border)] pt-3 text-sm space-y-2">
         <p class="font-semibold text-base">Was ist Erste Hilfe?</p>
         <p class="text-sm">Erste Hilfe bedeutet, einer verletzten oder erkrankten Person sofort zu helfen — noch bevor der Rettungsdienst eintrifft. Das kann Leben retten.</p>
-        <ul class="list-disc pl-5 text-sm space-y-1">
+        <BulletList>
           <li>Notruf absetzen (112)</li>
           <li>Stabile Seitenlage bei Bewusstlosigkeit</li>
           <li>Herzdruckmassage bei Herzstillstand</li>
-        </ul>
+        </BulletList>
       </div>
     </NeutralContainer>
 

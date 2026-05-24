@@ -188,6 +188,11 @@ const router = createRouter({
                     component: () => import('@/views/stationview/manage/FederationPartnerView.vue'),
                 },
                 {
+                    path: 'manage/discovery',
+                    name: 'station-discovery',
+                    component: () => import('@/views/stationview/manage/DiscoveryView.vue'),
+                },
+                {
                     path: 'members/create',
                     name: 'members-create',
                     component: MembersCreateView,
@@ -326,6 +331,11 @@ const router = createRouter({
                     path: 'inventory/lending/blocks',
                     name: 'inventory-lending-blocks',
                     component: () => import('@/views/stationview/inventory/LendingBlocksView.vue'),
+                },
+                {
+                    path: 'inventory/lending/blocks/create',
+                    name: 'inventory-lending-blocks-create',
+                    component: () => import('@/views/stationview/inventory/LendingBlocksCreateView.vue'),
                 },
                 {
                     path: 'inventory/lending/browse',
@@ -610,6 +620,11 @@ const router = createRouter({
                     name: 'admin-api-status',
                     component: () => import('@/views/adminview/AdminApiStatusView.vue'),
                 },
+                {
+                    path: 'api-status/detail',
+                    name: 'admin-api-status-detail',
+                    component: () => import('@/views/adminview/AdminApiStatusDetailView.vue'),
+                },
             ],
         },
         {
@@ -752,6 +767,11 @@ const router = createRouter({
                     name: 'help-station-federation-partner',
                     component: () => import('@/views/helpcenter/stationview/manage/FederationPartnerHelp.vue')
                 },
+                {
+                    path: 'manage/discovery',
+                    name: 'help-station-discovery',
+                    component: () => import('@/views/helpcenter/stationview/manage/DiscoveryHelp.vue')
+                },
                 // Members
                 {
                     path: 'members',
@@ -893,6 +913,11 @@ const router = createRouter({
                     path: 'inventory/lending/blocks',
                     name: 'help-inventory-lending-blocks',
                     component: () => import('@/views/helpcenter/stationview/inventory/LendingBlocksHelp.vue')
+                },
+                {
+                    path: 'inventory/lending/blocks/create',
+                    name: 'help-inventory-lending-blocks-create',
+                    component: () => import('@/views/helpcenter/stationview/inventory/LendingBlocksCreateHelp.vue')
                 },
                 {
                     path: 'inventory/lending/browse',
@@ -1189,6 +1214,11 @@ const router = createRouter({
                     component: () => import('@/views/helpcenter/adminview/ApiStatusHelp.vue')
                 },
                 {
+                    path: 'api-status/detail',
+                    name: 'help-admin-api-status-detail',
+                    component: () => import('@/views/helpcenter/adminview/ApiStatusDetailHelp.vue')
+                },
+                {
                     path: 'problems',
                     name: 'help-admin-problems',
                     component: () => import('@/views/helpcenter/adminview/ProblemsHelp.vue')
@@ -1210,6 +1240,12 @@ const router = createRouter({
             path: '/public/kb/:stationUid/file/:id',
             name: 'public-kb-file',
             component: () => import('@/views/public/PublicKbFileView.vue'),
+            meta: {public: true},
+        },
+        {
+            path: '/discovery',
+            name: 'public-discovery',
+            component: () => import('@/views/public/PublicDiscoveryView.vue'),
             meta: {public: true},
         },
         {

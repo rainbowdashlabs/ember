@@ -16,6 +16,8 @@ import SelectInput from '@/components/input/select/SelectInput.vue'
 import NumberInput from '@/components/input/number/NumberInput.vue'
 import { QuestionTypes } from '@/api/types'
 import type { QuestionDraft } from './types'
+import SectionLabel from '@/components/typography/SectionLabel.vue'
+import FieldLabel from '@/components/typography/FieldLabel.vue'
 
 const { t } = useI18n()
 
@@ -110,9 +112,9 @@ function moveStatement(index: number, direction: -1 | 1) {
   <NeutralContainer>
     <div class="space-y-3">
       <div class="flex items-center justify-between">
-        <span class="text-xs font-semibold text-(--text-muted) uppercase">
+        <SectionLabel>
           {{ index + 1 }}. {{ t(`forms.questionTypes.${q.questionType}`) }}
-        </span>
+        </SectionLabel>
         <div class="flex gap-1">
           <IconButton :icon="['fas', 'chevron-up']" label="Up" :disabled="index === 0" class="text-(--text-muted) hover:text-primary" @click="emit('move', index, -1)" />
           <IconButton :icon="['fas', 'chevron-down']" label="Down" :disabled="index === totalQuestions - 1" class="text-(--text-muted) hover:text-primary" @click="emit('move', index, 1)" />
@@ -124,12 +126,12 @@ function moveStatement(index: number, direction: -1 | 1) {
       <TextInput v-model="q.description" :placeholder="t('forms.questionDescription')" />
 
       <div class="flex gap-4">
-        <label class="flex items-center gap-2 text-sm">
+        <FieldLabel inline>
           <ToggleInput v-model="q.required" />
           {{ t('forms.questionRequired') }}
-        </label>
+        </FieldLabel>
         <label v-if="q.questionType === QuestionTypes.CHOICE || q.questionType === QuestionTypes.RANKING || q.questionType === QuestionTypes.LIKERT"
-               class="flex items-center gap-2 text-sm">
+               class="flex items-center gap-2 text-xs">
           <ToggleInput v-model="q.shuffle" />
           {{ t('forms.questionShuffle') }}
         </label>
@@ -138,18 +140,18 @@ function moveStatement(index: number, direction: -1 | 1) {
       <!-- CHOICE -->
       <template v-if="q.questionType === QuestionTypes.CHOICE">
         <div class="flex gap-4 flex-wrap">
-          <label class="flex items-center gap-2 text-sm">
+          <FieldLabel inline>
             <ToggleInput :model-value="!!q.config.multiSelect" @update:model-value="setMultiSelect($event)" />
             {{ t('forms.choice.multiSelect') }}
-          </label>
-          <label class="flex items-center gap-2 text-sm">
+          </FieldLabel>
+          <FieldLabel inline>
             <ToggleInput :model-value="!!q.config.dropdown" @update:model-value="setDropdown($event)" />
             {{ t('forms.choice.dropdown') }}
-          </label>
-          <label class="flex items-center gap-2 text-sm">
+          </FieldLabel>
+          <FieldLabel inline>
             <ToggleInput v-model="(q.config.allowOther as boolean)" />
             {{ t('forms.choice.allowOther') }}
-          </label>
+          </FieldLabel>
         </div>
         <div v-if="q.config.multiSelect" class="flex gap-4 items-center">
           <SelectInput v-model="(q.config.multiLimitType as string)" class="w-40">
@@ -174,10 +176,10 @@ function moveStatement(index: number, direction: -1 | 1) {
 
       <!-- TEXT -->
       <template v-if="q.questionType === QuestionTypes.TEXT">
-        <label class="flex items-center gap-2 text-sm">
+        <FieldLabel inline>
           <ToggleInput v-model="(q.config.longAnswer as boolean)" />
           {{ t('forms.text.longAnswer') }}
-        </label>
+        </FieldLabel>
       </template>
 
       <!-- RATING -->

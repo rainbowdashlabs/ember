@@ -12,6 +12,7 @@ import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.mail.service.EmailService;
+import dev.chojo.ember.feature.station.entity.DiscoveryVisibility;
 import dev.chojo.ember.feature.station.entity.MailProviderType;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.entity.StationMailConfig;
@@ -84,6 +85,7 @@ public class StationManageRoutes implements Routes {
         routes.post(prefix + "/station/manage/logo", this::uploadLogo, Roles.MANAGER);
         routes.get(prefix + "/station/manage/logo", this::getLogo, Roles.LOGIN);
         routes.get(prefix + "/stations/{stationId}/logo", this::getLogoByStation, Roles.LOGIN);
+        routes.get(prefix + "/public/stations/{stationId}/logo", this::getLogoByStation);
         routes.delete(prefix + "/station/manage/logo", this::deleteLogo, Roles.MANAGER);
         routes.get(prefix + "/station/manage/mail", this::getMailConfig, Roles.MANAGER);
         routes.put(prefix + "/station/manage/mail", this::updateMailConfig, Roles.MANAGER);
@@ -131,7 +133,10 @@ public class StationManageRoutes implements Routes {
                 station.defaultTheme(),
                 station.allowUserTheme(),
                 station.customThemeColors(),
-                station.publicKbMode().name());
+                station.publicKbMode().name(),
+                station.discoveryVisibility(),
+                station.discoveryDescription(),
+                station.discoveryShowKb());
     }
 
     @OpenApi(
@@ -172,6 +177,13 @@ public class StationManageRoutes implements Routes {
         }
         if (request.publicKbMode() != null) {
             stationService.updatePublicKbMode(session.stationId(), request.publicKbMode());
+        }
+        if (request.discoveryVisibility() != null) {
+            stationService.updateDiscoverySettings(
+                    session.stationId(),
+                    request.discoveryVisibility(),
+                    request.discoveryDescription(),
+                    request.discoveryShowKb() != null ? request.discoveryShowKb() : false);
         }
         stationService
                 .update(session.stationId(), request.name())
@@ -514,7 +526,10 @@ public class StationManageRoutes implements Routes {
             String defaultTheme,
             Boolean allowUserTheme,
             String customThemeColors,
-            String publicKbMode) {}
+            String publicKbMode,
+            DiscoveryVisibility discoveryVisibility,
+            String discoveryDescription,
+            Boolean discoveryShowKb) {}
 
     // -- Station deletion --
 
@@ -540,7 +555,10 @@ public class StationManageRoutes implements Routes {
             String defaultTheme,
             boolean allowUserTheme,
             String customThemeColors,
-            String publicKbMode) {}
+            String publicKbMode,
+            DiscoveryVisibility discoveryVisibility,
+            String discoveryDescription,
+            boolean discoveryShowKb) {}
 
     /**
      * Response containing the station's mail configuration and current usage statistics.

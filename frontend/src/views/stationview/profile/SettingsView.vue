@@ -222,7 +222,7 @@ onMounted(loadData)
       <!-- Invalidate All Modal -->
       <Modal v-model="showInvalidateAllModal">
         <div class="space-y-4 p-4">
-          <SubHeader class="text-lg font-semibold">{{ t('userSettings.invalidateAllTitle') }}</SubHeader>
+          <SubHeader>{{ t('userSettings.invalidateAllTitle') }}</SubHeader>
           <ErrorContainer>
             <p class="text-sm">{{ t('userSettings.invalidateAllWarning') }}</p>
           </ErrorContainer>
@@ -235,7 +235,7 @@ onMounted(loadData)
       <!-- Delete Account Modal -->
       <Modal v-model="showDeleteAccountModal">
         <div class="space-y-4 p-4">
-          <SubHeader class="text-lg font-semibold">{{ t('userSettings.deleteTitle') }}</SubHeader>
+          <SubHeader>{{ t('userSettings.deleteTitle') }}</SubHeader>
           <ErrorContainer>
             <p class="text-sm">{{ t('userSettings.deleteConfirmWarning') }}</p>
           </ErrorContainer>

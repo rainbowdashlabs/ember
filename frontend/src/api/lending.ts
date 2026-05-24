@@ -93,6 +93,9 @@ export interface InventoryBlock {
     blockFrom: string
     blockTo: string
     reason: string
+    inventoryName: string | null
+    itemName: string | null
+    itemInternalId: string | null
 }
 
 export interface CreateLendingRequestPayload {

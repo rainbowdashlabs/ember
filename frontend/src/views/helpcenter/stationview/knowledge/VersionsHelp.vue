@@ -26,39 +26,39 @@ const {t} = useI18n()
 
     <!-- Dummy: version list -->
     <NeutralContainer class="space-y-2">
-      <div class="flex items-center justify-between gap-3 p-2 rounded bg-[var(--bg)] border border-[var(--border)]">
+      <div class="flex items-center justify-between gap-2 p-2 rounded bg-[var(--bg)] border border-[var(--border)]">
         <div>
           <div class="text-sm font-medium">Version 4 <span class="text-xs text-(--text-muted)">(aktuell)</span></div>
           <div class="text-xs text-(--text-muted)">12. Mai 2026 · Max Mustermann</div>
         </div>
-        <SecondaryButton class="!text-xs !py-1 !px-2" disabled>
+        <SecondaryButton compact disabled>
           <font-awesome-icon :icon="['fas', 'eye']" class="mr-1" /> Anzeigen
         </SecondaryButton>
       </div>
-      <div class="flex items-center justify-between gap-3 p-2 rounded bg-[var(--bg)] border border-[var(--border)]">
+      <div class="flex items-center justify-between gap-2 p-2 rounded bg-[var(--bg)] border border-[var(--border)]">
         <div>
           <div class="text-sm font-medium">Version 3</div>
           <div class="text-xs text-(--text-muted)">8. Mai 2026 · Anna Beispiel</div>
         </div>
         <div class="flex gap-2">
-          <SecondaryButton class="!text-xs !py-1 !px-2" disabled>
+          <SecondaryButton compact disabled>
             <font-awesome-icon :icon="['fas', 'eye']" class="mr-1" /> Anzeigen
           </SecondaryButton>
-          <SecondaryButton class="!text-xs !py-1 !px-2" disabled>
+          <SecondaryButton compact disabled>
             <font-awesome-icon :icon="['fas', 'code-compare']" class="mr-1" /> Unterschied
           </SecondaryButton>
         </div>
       </div>
-      <div class="flex items-center justify-between gap-3 p-2 rounded bg-[var(--bg)] border border-[var(--border)]">
+      <div class="flex items-center justify-between gap-2 p-2 rounded bg-[var(--bg)] border border-[var(--border)]">
         <div>
           <div class="text-sm font-medium">Version 2</div>
           <div class="text-xs text-(--text-muted)">3. Mai 2026 · Max Mustermann</div>
         </div>
         <div class="flex gap-2">
-          <SecondaryButton class="!text-xs !py-1 !px-2" disabled>
+          <SecondaryButton compact disabled>
             <font-awesome-icon :icon="['fas', 'eye']" class="mr-1" /> Anzeigen
           </SecondaryButton>
-          <SecondaryButton class="!text-xs !py-1 !px-2" disabled>
+          <SecondaryButton compact disabled>
             <font-awesome-icon :icon="['fas', 'code-compare']" class="mr-1" /> Unterschied
           </SecondaryButton>
         </div>

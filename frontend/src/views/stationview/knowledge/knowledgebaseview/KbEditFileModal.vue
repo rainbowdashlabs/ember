@@ -13,10 +13,14 @@ import IconButton from '@/components/button/IconButton.vue'
 import RestrictionPicker from '@/components/input/RestrictionPicker.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
+import SelectInput from '@/components/input/select/SelectInput.vue'
 import {knowledgeBase, stationMembers, memberGroups, userTags} from '@/api'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import type {KbFile} from '@/api/knowledgeBase'
 import type {Role, MemberGroup, UserTag} from '@/api/types'
+import {useSession} from '@/composables/useSession'
+
+const {isKbPublic} = useSession()
 
 const {t} = useI18n()
 
@@ -37,6 +41,7 @@ const groupIds = ref<number[]>([])
 const tagIds = ref<number[]>([])
 const tags = ref<string[]>([])
 const newTag = ref('')
+const publicVisibility = ref<string>('default')
 const allRoles = ref<Role[]>([])
 const allGroups = ref<MemberGroup[]>([])
 const allTags = ref<UserTag[]>([])
@@ -62,6 +67,7 @@ watch(() => props.show, async (visible) => {
         tagIds.value = []
         tags.value = []
         newTag.value = ''
+        publicVisibility.value = 'default'
         error.value = ''
 
         try {
@@ -78,14 +84,16 @@ watch(() => props.show, async (visible) => {
         }
 
         try {
-            const [r, fileTags] = await Promise.all([
+            const [r, fileTags, vis] = await Promise.all([
                 knowledgeBase.getFileRestrictions(props.file.id),
                 knowledgeBase.getFileTags(props.file.id),
+                knowledgeBase.getPublicVisibility('files', props.file.id),
             ])
             roleIds.value = r.roleIds
             groupIds.value = r.groupIds
             tagIds.value = r.tagIds
             tags.value = fileTags.map(t => t.name)
+            publicVisibility.value = vis.visible === true ? 'public' : vis.visible === false ? 'hidden' : 'default'
         } catch {
             // ignore
         }
@@ -95,6 +103,7 @@ watch(() => props.show, async (visible) => {
 async function handleSave() {
     if (!props.file || !editName.value.trim()) return
     try {
+        const visValue = publicVisibility.value === 'public' ? true : publicVisibility.value === 'hidden' ? false : null
         await Promise.all([
             knowledgeBase.updateFile(props.file.id, {
                 name: editName.value.trim(),
@@ -107,6 +116,7 @@ async function handleSave() {
                 memberIds: [],
             }),
             knowledgeBase.setFileTags(props.file.id, tags.value),
+            knowledgeBase.setPublicVisibility('files', props.file.id, visValue),
         ])
         emit('update:show', false)
         emit('saved')
@@ -118,14 +128,14 @@ async function handleSave() {
 
 <template>
     <Modal :model-value="show" @update:model-value="emit('update:show', $event)">
-        <SubHeader class="text-lg font-semibold mb-3">{{ t('kb.editFile') }}</SubHeader>
+        <SubHeader class="mb-3">{{ t('kb.editFile') }}</SubHeader>
         <form @submit.prevent="handleSave" class="flex flex-col gap-3">
             <TextInput v-model="editName" :placeholder="t('kb.fileName')" required/>
             <TextAreaInput v-model="editDescription" :placeholder="t('kb.description')"/>
 
             <!-- Restrictions -->
             <div class="space-y-3 border-t border-bg-light-accent dark:border-bg-dark-accent pt-3">
-                <SubHeader class="text-sm font-semibold">{{ t('kb.restrictions') }}</SubHeader>
+                <SubHeader class="text-sm">{{ t('kb.restrictions') }}</SubHeader>
                 <RestrictionPicker
                     :roles="allRoles"
                     :groups="allGroups"
@@ -137,6 +147,16 @@ async function handleSave() {
                     @update:selected-group-ids="groupIds = $event"
                     @update:selected-tag-ids="tagIds = $event"
                 />
+            </div>
+
+            <!-- Public visibility override -->
+            <div v-if="isKbPublic()" class="space-y-2 border-t border-bg-light-accent dark:border-bg-dark-accent pt-3">
+                <SubHeader class="text-sm">{{ t('kb.publicVisibility') }}</SubHeader>
+                <SelectInput v-model="publicVisibility">
+                    <option value="default">{{ t('kb.publicVisibilityDefault') }}</option>
+                    <option value="public">{{ t('kb.publicVisibilityPublic') }}</option>
+                    <option value="hidden">{{ t('kb.publicVisibilityHidden') }}</option>
+                </SelectInput>
             </div>
 
             <!-- Tags -->

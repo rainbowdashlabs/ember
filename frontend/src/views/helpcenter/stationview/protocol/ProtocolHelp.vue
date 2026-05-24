@@ -9,6 +9,7 @@ import HelpArticle from '@/components/helpcenter/HelpArticle.vue'
 import HelpSection from '@/components/helpcenter/HelpSection.vue'
 import HelpTip from '@/components/helpcenter/HelpTip.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
+import MutedText from '@/components/typography/MutedText.vue'
 
 const { t } = useI18n()
 </script>
@@ -31,7 +32,7 @@ const { t } = useI18n()
           <div class="flex items-center gap-2">
             <font-awesome-icon :icon="['fas', 'folder']" class="w-3 h-3 text-[var(--primary)]" />
             <span>Notruf</span>
-            <span class="text-xs text-[var(--text-muted)] ml-auto">8P</span>
+            <MutedText class="ml-auto">8P</MutedText>
           </div>
           <div class="ml-6 space-y-0.5 text-xs text-[var(--text-muted)]">
             <div>5 W-Fragen (5P) — Wo?, Was?, Wie viele?, Wer?, Warten?</div>
@@ -40,12 +41,12 @@ const { t } = useI18n()
           <div class="flex items-center gap-2">
             <font-awesome-icon :icon="['fas', 'folder']" class="w-3 h-3 text-[var(--primary)]" />
             <span>Knoten und Stiche</span>
-            <span class="text-xs text-[var(--text-muted)] ml-auto">11P</span>
+            <MutedText class="ml-auto">11P</MutedText>
           </div>
           <div class="flex items-center gap-2">
             <font-awesome-icon :icon="['fas', 'folder']" class="w-3 h-3 text-[var(--primary)]" />
             <span>Schläuche</span>
-            <span class="text-xs text-[var(--text-muted)] ml-auto">15P</span>
+            <MutedText class="ml-auto">15P</MutedText>
           </div>
         </div>
       </div>
@@ -62,15 +63,15 @@ const { t } = useI18n()
     <!-- Demo grading -->
     <NeutralContainer>
       <div class="space-y-2">
-        <div class="flex items-center gap-3 p-2 rounded-lg border-2 border-[var(--success)]" style="background: color-mix(in srgb, var(--success) 10%, transparent)">
+        <div class="flex items-center gap-2 p-2 rounded-lg border-2 border-[var(--success)]" style="background: color-mix(in srgb, var(--success) 10%, transparent)">
           <font-awesome-icon :icon="['fas', 'square-check']" class="w-5 h-5 text-[var(--success)]" />
           <span class="text-sm">Wo?</span>
-          <span class="text-xs text-[var(--text-muted)] ml-auto">1P</span>
+          <MutedText class="ml-auto">1P</MutedText>
         </div>
-        <div class="flex items-center gap-3 p-2 rounded-lg border-2 border-[var(--border)]">
+        <div class="flex items-center gap-2 p-2 rounded-lg border-2 border-[var(--border)]">
           <font-awesome-icon :icon="['fas', 'square']" class="w-5 h-5 text-[var(--text-muted)]" />
           <span class="text-sm">Was?</span>
-          <span class="text-xs text-[var(--text-muted)] ml-auto">1P</span>
+          <MutedText class="ml-auto">1P</MutedText>
         </div>
       </div>
     </NeutralContainer>

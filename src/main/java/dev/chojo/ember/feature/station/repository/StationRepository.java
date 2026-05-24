@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.station.repository;
 import de.chojo.sadu.queries.api.call.Call;
 import de.chojo.sadu.queries.api.query.Query;
 import de.chojo.sadu.queries.converter.StandardValueConverter;
+import dev.chojo.ember.feature.station.entity.DiscoveryVisibility;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.entity.StationModule;
 import jakarta.inject.Singleton;
@@ -24,7 +25,7 @@ import java.util.UUID;
 public class StationRepository {
 
     private static final String STATION_COLUMNS =
-            "id, uid, name, timezone, locale, owner_member_id, default_theme, allow_user_theme, custom_theme_colors, public_kb_mode, federation_private_key";
+            "id, uid, name, timezone, locale, owner_member_id, default_theme, allow_user_theme, custom_theme_colors, public_kb_mode, federation_private_key, discovery_visibility, discovery_description, discovery_show_kb";
 
     /**
      * Finds a station by its ID.
@@ -245,6 +246,37 @@ public class StationRepository {
                     .single(Call.of().bind("station_id", stationId).bind("module", module))
                     .insert();
         }
+    }
+
+    /**
+     * Updates the discovery settings for a station.
+     */
+    public boolean updateDiscoverySettings(int id, DiscoveryVisibility visibility, String description, boolean showKb) {
+        return Query.query("""
+                        UPDATE station SET discovery_visibility = :visibility, discovery_description = :description,
+                        discovery_show_kb = :show_kb WHERE id = :id;""")
+                .single(Call.of()
+                        .bind("id", id)
+                        .bind("visibility", visibility)
+                        .bind("description", description)
+                        .bind("show_kb", showKb))
+                .update()
+                .changed();
+    }
+
+    /**
+     * Finds all stations visible to the given visibility levels, excluding the given station.
+     */
+    public List<Station> findDiscoverable(int excludeStationId, DiscoveryVisibility visA, DiscoveryVisibility visB) {
+        return Query.query(
+                        "SELECT " + STATION_COLUMNS
+                                + " FROM station WHERE id != :exclude_id AND discovery_visibility IN (:vis_a, :vis_b) ORDER BY name;")
+                .single(Call.of()
+                        .bind("exclude_id", excludeStationId)
+                        .bind("vis_a", visA)
+                        .bind("vis_b", visB))
+                .map(Station.map())
+                .all();
     }
 
     /**

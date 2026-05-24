@@ -56,8 +56,7 @@ const {t} = useI18n()
   <ErrorContainer class="space-y-3">
     <SubHeader>{{ t('userSettings.deleteTitle') }}</SubHeader>
     <p class="text-sm">{{ t('userSettings.deleteWarning') }}</p>
-    <ErrorButton @click="emit('showDeleteModal')">
-      <font-awesome-icon :icon="['fas', 'trash']" class="mr-1"/>
+    <ErrorButton :icon="['fas', 'trash']" @click="emit('showDeleteModal')">
       {{ t('userSettings.deleteAccount') }}
     </ErrorButton>
   </ErrorContainer>
@@ -66,8 +65,7 @@ const {t} = useI18n()
   <NeutralContainer class="space-y-2">
     <SubHeader>{{ t('tour.restartButton') }}</SubHeader>
     <p class="text-sm text-(--text-muted)">{{ t('tour.restartHint') }}</p>
-    <SecondaryButton @click="emit('restartTour')">
-      <font-awesome-icon :icon="['fas', 'rotate']" class="mr-1"/>
+    <SecondaryButton :icon="['fas', 'rotate']" @click="emit('restartTour')">
       {{ t('tour.restartButton') }}
     </SecondaryButton>
   </NeutralContainer>

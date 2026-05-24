@@ -65,7 +65,7 @@ function getToggle(type: string): NotificationToggle {
 
   <!-- Master email toggle -->
   <NeutralContainer class="space-y-4">
-    <SubHeader class="font-semibold text-sm">{{ t('userSettings.emailTitle') }}</SubHeader>
+    <SubHeader class="text-sm">{{ t('userSettings.emailTitle') }}</SubHeader>
     <div class="flex items-center justify-between">
       <div>
         <span class="text-sm font-medium">{{ t('userSettings.emailEnabled') }}</span>
@@ -81,7 +81,7 @@ function getToggle(type: string): NotificationToggle {
 
   <!-- Per-type notification toggles -->
   <NeutralContainer class="space-y-4">
-    <SubHeader class="font-semibold text-sm">{{ t('userSettings.notifications') }}</SubHeader>
+    <SubHeader class="text-sm">{{ t('userSettings.notifications') }}</SubHeader>
     <p class="text-xs text-(--text-muted)">{{ t('userSettings.notificationsHint') }}</p>
 
     <!-- Header row -->

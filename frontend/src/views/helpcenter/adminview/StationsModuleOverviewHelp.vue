@@ -33,7 +33,7 @@ const {t} = useI18n()
     <NeutralContainer class="space-y-3">
       <SectionHeader>{{ t('helpCenter.adminStationsOverview.dummyTitle') }}</SectionHeader>
       <div class="grid gap-4 sm:grid-cols-2">
-        <PrimaryContainer class="flex flex-col items-center justify-center gap-3 cursor-pointer py-6 border-dashed">
+        <PrimaryContainer class="flex flex-col items-center justify-center gap-2 cursor-pointer py-6 border-dashed">
           <font-awesome-icon :icon="['fas', 'plus']" class="text-2xl"/>
           <span class="font-medium">{{ t('helpCenter.adminStationsOverview.dummyCreate') }}</span>
         </PrimaryContainer>

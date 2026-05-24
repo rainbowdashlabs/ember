@@ -24,8 +24,7 @@ const emit = defineEmits<{
     <label class="text-xs text-(--text-muted) block">{{ t('quiz.questions.image') }}</label>
     <div v-if="imagePreview" class="flex items-start gap-3">
       <img :src="imagePreview" alt="" class="h-24 w-24 object-cover rounded border border-bg-light-accent dark:border-bg-dark-accent" />
-      <ErrorButton @click="emit('removeImage')">
-        <font-awesome-icon :icon="['fas', 'trash']" class="mr-1" />
+      <ErrorButton :icon="['fas', 'trash']" @click="emit('removeImage')">
         {{ t('common.delete') }}
       </ErrorButton>
     </div>

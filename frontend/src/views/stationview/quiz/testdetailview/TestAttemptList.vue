@@ -85,7 +85,7 @@ function attemptStatusLabel(status: string): string {
         @click="router.push({name: 'quiz-test-evaluate', params: {id: testId, attemptId: attempt.id}})"
       >
         <div class="flex items-center justify-between gap-4">
-          <div class="flex items-center gap-3 flex-1">
+          <div class="flex items-center gap-2 flex-1">
             <span class="font-medium text-sm">{{ memberName(attempt.memberId) }}</span>
             <SuccessBadge v-if="attempt.status === QuizAttemptStatus.GRADED">{{ attemptStatusLabel(attempt.status) }}</SuccessBadge>
             <InfoBadge v-else-if="attempt.status === QuizAttemptStatus.SUBMITTED">{{ attemptStatusLabel(attempt.status) }}</InfoBadge>

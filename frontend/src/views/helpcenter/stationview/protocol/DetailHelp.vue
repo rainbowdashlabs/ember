@@ -9,6 +9,7 @@ import HelpArticle from '@/components/helpcenter/HelpArticle.vue'
 import HelpSection from '@/components/helpcenter/HelpSection.vue'
 import HelpTip from '@/components/helpcenter/HelpTip.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
+import MutedText from '@/components/typography/MutedText.vue'
 
 const { t } = useI18n()
 </script>
@@ -32,7 +33,7 @@ const { t } = useI18n()
             <div class="flex items-center gap-2 font-medium">
               <font-awesome-icon :icon="['fas', 'folder']" class="w-3 h-3 text-[var(--primary)]" />
               <span>Notruf</span>
-              <span class="text-xs text-[var(--text-muted)] ml-auto">8 Punkte</span>
+              <MutedText class="ml-auto">8 Punkte</MutedText>
             </div>
             <div class="ml-5 mt-1 space-y-0.5 text-xs text-[var(--text-muted)]">
               <div class="flex justify-between"><span>5 W-Fragen nennen</span><span>5P</span></div>
@@ -44,14 +45,14 @@ const { t } = useI18n()
             <div class="flex items-center gap-2 font-medium">
               <font-awesome-icon :icon="['fas', 'folder']" class="w-3 h-3 text-[var(--primary)]" />
               <span>Knoten und Stiche</span>
-              <span class="text-xs text-[var(--text-muted)] ml-auto">11 Punkte</span>
+              <MutedText class="ml-auto">11 Punkte</MutedText>
             </div>
           </div>
           <div>
             <div class="flex items-center gap-2 font-medium">
               <font-awesome-icon :icon="['fas', 'folder']" class="w-3 h-3 text-[var(--primary)]" />
               <span>Schläuche</span>
-              <span class="text-xs text-[var(--text-muted)] ml-auto">15 Punkte</span>
+              <MutedText class="ml-auto">15 Punkte</MutedText>
             </div>
           </div>
         </div>
@@ -64,7 +65,7 @@ const { t } = useI18n()
 
     <!-- Dummy: Pass threshold display -->
     <NeutralContainer>
-      <div class="flex items-center gap-3 text-sm">
+      <div class="flex items-center gap-2 text-xs">
         <font-awesome-icon :icon="['fas', 'trophy']" class="text-[var(--primary)]" />
         <span>{{ t('helpCenter.protocolDetail.thresholdLabel') }}</span>
         <span class="font-bold ml-auto">75 %</span>

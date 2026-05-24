@@ -10,6 +10,10 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
+import THead from '@/components/table/THead.vue'
+import TRow from '@/components/table/TRow.vue'
+import Th from '@/components/table/Th.vue'
+import Td from '@/components/table/Td.vue'
 
 export interface ContactPreview {
   name: string
@@ -52,30 +56,30 @@ const emit = defineEmits<{
     <div class="overflow-x-auto">
       <table class="w-full text-sm">
         <thead>
-          <tr class="border-b border-bg-light-accent dark:border-bg-dark-accent">
-            <th class="text-left py-2 px-2">{{ t('memberImport.name') }}</th>
-            <th class="text-left py-2 px-2">{{ t('memberImport.email') }}</th>
-            <th class="text-left py-2 px-2">{{ t('memberImport.group') }}</th>
-            <th class="text-left py-2 px-2">{{ t('memberImport.fields') }}</th>
-            <th class="text-left py-2 px-2">{{ t('memberImport.contacts') }}</th>
-          </tr>
+          <THead>
+            <Th>{{ t('memberImport.name') }}</th>
+            <Th>{{ t('memberImport.email') }}</th>
+            <Th>{{ t('memberImport.group') }}</th>
+            <Th>{{ t('memberImport.fields') }}</th>
+            <Th>{{ t('memberImport.contacts') }}</th>
+          </THead>
         </thead>
         <tbody>
-          <tr v-for="(m, i) in preview.members" :key="i" class="border-b border-bg-light-accent/50 dark:border-bg-dark-accent/50">
+          <TRow v-for="(m, i) in preview.members" :key="i">
             <td class="py-2 px-2 font-medium">{{ m.firstName }} {{ m.lastName }}</td>
-            <td class="py-2 px-2 text-xs">{{ m.email }}</td>
-            <td class="py-2 px-2">{{ m.group }}</td>
-            <td class="py-2 px-2 text-xs">
+            <Td class="!px-2 text-xs">{{ m.email }}</td>
+            <td class="py-2 px-2">{{ m.group }}</Td>
+            <Td class="!px-2 text-xs">
               <span v-for="(v, k) in m.profileFields" :key="String(k)" class="inline-block mr-2">
                 <span class="text-(--text-muted)">{{ k }}:</span> {{ v }}
               </span>
-            </td>
-            <td class="py-2 px-2 text-xs">
+            </Td>
+            <Td class="!px-2 text-xs">
               <div v-for="c in m.contacts" :key="c.name">
                 {{ c.name }} <span v-if="c.email" class="text-(--text-muted)">({{ c.email }})</span>
               </div>
-            </td>
-          </tr>
+            </Td>
+          </TRow>
         </tbody>
       </table>
     </div>
@@ -83,8 +87,7 @@ const emit = defineEmits<{
 
   <div class="flex justify-between">
     <SecondaryButton @click="emit('back')">{{ t('common.back') }}</SecondaryButton>
-    <PrimaryButton :disabled="loading" @click="emit('import')">
-      <font-awesome-icon :icon="['fas', 'download']" class="mr-1" />
+    <PrimaryButton :icon="['fas', 'download']" :disabled="loading" @click="emit('import')">
       {{ loading ? t('common.loading') : t('memberImport.import') }}
     </PrimaryButton>
   </div>

@@ -261,10 +261,10 @@ onMounted(() => { if (loaded.value) loadData() })
           </SectionHeader>
           <div class="flex items-center gap-2">
             <SuccessBadge>{{ currentSectionScore }} / {{ currentSectionMaxPoints }}P</SuccessBadge>
-            <SuccessButton v-if="!doneSections.has(currentSection.id)" class="!text-xs !py-1 !px-2" @click="toggleSectionDone(currentSection.id)">
+            <SuccessButton compact v-if="!doneSections.has(currentSection.id)" @click="toggleSectionDone(currentSection.id)">
               <font-awesome-icon :icon="['fas', 'check']" class="mr-1" /> {{ t('protocol.markDone') }}
             </SuccessButton>
-            <SecondaryButton v-else class="!text-xs !py-1 !px-2" @click="toggleSectionDone(currentSection.id)">
+            <SecondaryButton compact v-else @click="toggleSectionDone(currentSection.id)">
               <font-awesome-icon :icon="['fas', 'xmark']" class="mr-1" /> {{ t('protocol.unmarkDone') }}
             </SecondaryButton>
           </div>
@@ -274,7 +274,7 @@ onMounted(() => { if (loaded.value) loadData() })
         <div v-for="item in sectionItems(currentSection.id)" :key="item.id">
           <button
             type="button"
-            class="w-full flex items-center gap-3 p-3 rounded-lg border-2 transition-all text-left cursor-pointer"
+            class="w-full flex items-center gap-2 p-3 rounded-lg border-2 transition-all text-left cursor-pointer"
             :class="checks.get(item.id)
               ? 'border-[var(--success)] bg-[color-mix(in_srgb,var(--success)_10%,transparent)]'
               : 'border-[var(--border)] hover:border-[var(--text-muted)]'"
@@ -298,7 +298,7 @@ onMounted(() => { if (loaded.value) loadData() })
                 v-for="item in sectionItems(sub.id)"
                 :key="item.id"
                 type="button"
-                class="w-full flex items-center gap-3 p-3 rounded-lg border-2 transition-all text-left cursor-pointer"
+                class="w-full flex items-center gap-2 p-3 rounded-lg border-2 transition-all text-left cursor-pointer"
                 :class="checks.get(item.id)
                   ? 'border-[var(--success)] bg-[color-mix(in_srgb,var(--success)_10%,transparent)]'
                   : 'border-[var(--border)] hover:border-[var(--text-muted)]'"
@@ -317,7 +317,7 @@ onMounted(() => { if (loaded.value) loadData() })
       </NeutralContainer>
 
       <!-- Navigation -->
-      <div class="flex items-center gap-3">
+      <div class="flex items-center gap-2">
         <SecondaryButton v-if="currentSectionIndex > 0" @click="savePrev" :disabled="saving">
           <font-awesome-icon :icon="['fas', 'chevron-left']" class="mr-1" /> {{ t('protocol.prevSection') }}
         </SecondaryButton>

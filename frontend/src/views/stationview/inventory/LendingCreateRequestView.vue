@@ -20,6 +20,7 @@ import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import StationBadge from '@/components/badge/StationBadge.vue'
 import * as lending from '@/api/lending'
 import {useSession} from '@/composables/useSession'
+import FieldLabel from '@/components/typography/FieldLabel.vue'
 
 const {t} = useI18n()
 const route = useRoute()
@@ -92,8 +93,7 @@ watch(loaded, (v) => {
 
 <template>
   <ViewContent>
-    <SecondaryButton class="mb-4" @click="router.push({name: 'inventory-lending'})">
-      <font-awesome-icon :icon="['fas', 'chevron-left']" class="mr-1"/>
+    <SecondaryButton :icon="['fas', 'chevron-left']" class="mb-4" @click="router.push({name: 'inventory-lending'})">
       {{ t('lending.backToList') }}
     </SecondaryButton>
 
@@ -120,24 +120,24 @@ watch(loaded, (v) => {
         <!-- Date range -->
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
-            <label class="text-sm font-medium mb-1 block">{{ t('lending.dateFrom') }}</label>
+            <FieldLabel class="mb-1">{{ t('lending.dateFrom') }}</FieldLabel>
             <DateInput v-model="dateFrom"/>
           </div>
           <div>
-            <label class="text-sm font-medium mb-1 block">{{ t('lending.dateTo') }}</label>
+            <FieldLabel class="mb-1">{{ t('lending.dateTo') }}</FieldLabel>
             <DateInput v-model="dateTo"/>
           </div>
         </div>
 
         <!-- Quantity -->
         <div>
-          <label class="text-sm font-medium mb-1 block">{{ t('lending.quantity') }}</label>
+          <FieldLabel class="mb-1">{{ t('lending.quantity') }}</FieldLabel>
           <NumberInput v-model="quantity" :min="1" :max="maxQuantity"/>
         </div>
 
         <!-- Note -->
         <div>
-          <label class="text-sm font-medium mb-1 block">{{ t('lending.note') }}</label>
+          <FieldLabel class="mb-1">{{ t('lending.note') }}</FieldLabel>
           <TextAreaInput v-model="note" :placeholder="t('lending.notePlaceholder')" :rows="3"/>
         </div>
 
@@ -146,8 +146,7 @@ watch(loaded, (v) => {
           <SecondaryButton @click="router.push({name: 'inventory-lending'})">
             {{ t('common.cancel') }}
           </SecondaryButton>
-          <PrimaryButton :disabled="submitting || !dateFrom" @click="handleSubmit">
-            <font-awesome-icon :icon="['fas', 'paper-plane']" class="mr-1"/>
+          <PrimaryButton :icon="['fas', 'paper-plane']" :disabled="submitting || !dateFrom" @click="handleSubmit">
             {{ t('lending.sendRequest') }}
           </PrimaryButton>
         </div>

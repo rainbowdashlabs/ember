@@ -17,6 +17,7 @@ import ErrorButton from '@/components/button/ErrorButton.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import IconButton from '@/components/button/IconButton.vue'
+import MutedText from '@/components/typography/MutedText.vue'
 
 const {t} = useI18n()
 </script>
@@ -29,21 +30,17 @@ const {t} = useI18n()
 
     <!-- Dummy: Member header -->
     <div class="flex items-center justify-between">
-      <SecondaryButton>
-        <font-awesome-icon :icon="['fas', 'chevron-left']" class="mr-2"/>
+      <SecondaryButton :icon="['fas', 'chevron-left']">
         {{ t('memberDetail.back') }}
       </SecondaryButton>
       <div class="flex items-center gap-2">
-        <ErrorButton>
-          <font-awesome-icon :icon="['fas', 'user-slash']" class="mr-1"/>
+        <ErrorButton :icon="['fas', 'user-slash']">
           {{ t('memberDetail.markFormer') }}
         </ErrorButton>
-        <ErrorButton>
-          <font-awesome-icon :icon="['fas', 'trash']" class="mr-1"/>
+        <ErrorButton :icon="['fas', 'trash']">
           {{ t('memberDetail.deleteData') }}
         </ErrorButton>
-        <PrimaryButton>
-          <font-awesome-icon :icon="['fas', 'pen']" class="mr-2"/>
+        <PrimaryButton :icon="['fas', 'pen']">
           {{ t('memberDetail.edit') }}
         </PrimaryButton>
       </div>
@@ -58,7 +55,7 @@ const {t} = useI18n()
 
     <!-- Dummy: Profile fields -->
     <NeutralContainer class="space-y-3">
-      <SubHeader class="text-sm font-semibold">{{ t('memberDetail.fields') }}</SubHeader>
+      <SubHeader class="text-sm">{{ t('memberDetail.fields') }}</SubHeader>
       <div class="grid gap-2 sm:grid-cols-2">
         <div class="text-sm">
           <span class="text-(--text-muted)">{{ t('helpCenter.exampleFields.phone') }}:</span>
@@ -86,14 +83,12 @@ const {t} = useI18n()
     <!-- Dummy: Managers -->
     <NeutralContainer class="space-y-4">
       <div class="flex items-center justify-between">
-        <SubHeader class="text-sm font-semibold">{{ t('memberDetail.managers') }}</SubHeader>
+        <SubHeader class="text-sm">{{ t('memberDetail.managers') }}</SubHeader>
         <div class="flex items-center gap-2">
-          <SecondaryButton>
-            <font-awesome-icon :icon="['fas', 'link']" class="mr-1"/>
+          <SecondaryButton :icon="['fas', 'link']">
             {{ t('memberDetail.linkManager') }}
           </SecondaryButton>
-          <SecondaryButton>
-            <font-awesome-icon :icon="['fas', 'plus']" class="mr-1"/>
+          <SecondaryButton :icon="['fas', 'plus']">
             {{ t('memberDetail.createManager') }}
           </SecondaryButton>
         </div>
@@ -102,7 +97,7 @@ const {t} = useI18n()
         <div class="flex items-center justify-between">
           <div>
             <span class="font-semibold">Petra Mustermann</span>
-            <span class="ml-2 text-xs text-(--text-muted)">petra@example.com</span>
+            <MutedText class="ml-2">petra@example.com</MutedText>
           </div>
           <div class="flex items-center gap-2">
             <EditButton/>
@@ -130,8 +125,7 @@ const {t} = useI18n()
     <NeutralContainer class="space-y-3">
       <div class="flex items-center justify-between">
         <SubHeader>{{ t('memberDetail.inventory') }}</SubHeader>
-        <PrimaryButton disabled>
-          <font-awesome-icon :icon="['fas', 'plus']" class="mr-1"/>
+        <PrimaryButton :icon="['fas', 'plus']" disabled>
           {{ t('memberDetail.assignItem') }}
         </PrimaryButton>
       </div>

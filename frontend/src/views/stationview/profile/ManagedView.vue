@@ -19,6 +19,7 @@ import FieldLabel from '@/components/typography/FieldLabel.vue'
 import type { ProfileField } from '@/api/types'
 import { managedMembers } from '@/api'
 import type { ManagedMember } from '@/api/managedMembers'
+import MutedText from '@/components/typography/MutedText.vue'
 
 const { t } = useI18n()
 
@@ -157,7 +158,7 @@ onMounted(loadData)
             <FieldLabel>
               {{ field.name }}
               <span v-if="parseFieldConfig(field.config).required" class="text-error">*</span>
-              <span v-if="isReadonly(field)" class="text-xs text-(--text-muted) ml-1">({{ t('profile.readonlyHint') }})</span>
+              <MutedText class="ml-1" v-if="isReadonly(field)">({{ t('profile.readonlyHint') }})</MutedText>
             </FieldLabel>
 
             <ProfileFieldInput

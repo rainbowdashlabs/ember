@@ -323,17 +323,14 @@ onMounted(loadData)
   <ViewContent>
     <div class="space-y-6">
       <div class="flex flex-wrap items-center justify-between gap-2">
-        <SecondaryButton @click="goBack">
-          <font-awesome-icon :icon="['fas', 'chevron-left']" class="mr-2" />
+        <SecondaryButton :icon="['fas', 'chevron-left']" @click="goBack">
           {{ t('waitingList.back') }}
         </SecondaryButton>
         <div class="flex items-center gap-2 w-full sm:w-auto">
-          <SecondaryButton :full-width="isMobile" class="flex-1 sm:flex-initial" @click="navigateToFields">
-            <font-awesome-icon :icon="['fas', 'sliders']" class="mr-2" />
+          <SecondaryButton :icon="['fas', 'sliders']" :full-width="isMobile" class="flex-1 sm:flex-initial" @click="navigateToFields">
             {{ t('waitingList.manageFields') }}
           </SecondaryButton>
-          <ErrorButton :full-width="isMobile" class="flex-1 sm:flex-initial" @click="showDeleteModal = true">
-            <font-awesome-icon :icon="['fas', 'trash']" class="mr-2" />
+          <ErrorButton :icon="['fas', 'trash']" :full-width="isMobile" class="flex-1 sm:flex-initial" @click="showDeleteModal = true">
             {{ t('waitingList.deleteList') }}
           </ErrorButton>
         </div>

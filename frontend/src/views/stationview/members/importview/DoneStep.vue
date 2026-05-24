@@ -29,7 +29,7 @@ const { t } = useI18n()
 
 <template>
   <SuccessContainer class="space-y-4">
-    <div class="flex items-center gap-3">
+    <div class="flex items-center gap-2">
       <font-awesome-icon :icon="['fas', 'check-circle']" class="text-2xl text-success" />
       <span class="text-lg font-semibold">{{ t('memberImport.doneTitle') }}</span>
     </div>
@@ -41,12 +41,10 @@ const { t } = useI18n()
       </ul>
     </div>
     <div class="flex gap-3">
-      <PrimaryButton @click="emit('toList')">
-        <font-awesome-icon :icon="['fas', 'users']" class="mr-1" />
+      <PrimaryButton :icon="['fas', 'users']" @click="emit('toList')">
         {{ t('memberImport.doneGoToList') }}
       </PrimaryButton>
-      <SecondaryButton @click="emit('startOver')">
-        <font-awesome-icon :icon="['fas', 'rotate']" class="mr-1" />
+      <SecondaryButton :icon="['fas', 'rotate']" @click="emit('startOver')">
         {{ t('memberImport.doneStartOver') }}
       </SecondaryButton>
     </div>

@@ -15,6 +15,11 @@ import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import {ref} from 'vue'
+import THead from '@/components/table/THead.vue'
+import TRow from '@/components/table/TRow.vue'
+import Td from '@/components/table/Td.vue'
+import Th from '@/components/table/Th.vue'
+import BulletList from '@/components/typography/BulletList.vue'
 
 const {t} = useI18n()
 
@@ -42,33 +47,33 @@ const dummyInventoryExport = ref(false)
     <!-- Dummy: Partner list -->
     <NeutralContainer>
       <div class="space-y-2">
-        <div class="flex items-center gap-3">
+        <div class="flex items-center gap-2">
           <div class="flex-1 min-w-0">
             <div class="font-medium text-sm">JF Musterstadt</div>
             <div class="text-xs text-(--text-muted)">v1</div>
           </div>
           <SuccessBadge>{{ t('federation.active') }}</SuccessBadge>
-          <PrimaryButton class="!text-xs !py-1 !px-2" disabled>
+          <PrimaryButton compact disabled>
             <font-awesome-icon :icon="['fas', 'sliders']" class="mr-1" /> {{ t('federation.manage') }}
           </PrimaryButton>
         </div>
-        <div class="flex items-center gap-3">
+        <div class="flex items-center gap-2">
           <div class="flex-1 min-w-0">
             <div class="font-medium text-sm">JF Beispieldorf</div>
             <div class="text-xs text-(--text-muted)">v1</div>
           </div>
           <SecondaryBadge>{{ t('federation.pending') }}</SecondaryBadge>
-          <PrimaryButton class="!text-xs !py-1 !px-2" disabled>
+          <PrimaryButton compact disabled>
             <font-awesome-icon :icon="['fas', 'sliders']" class="mr-1" /> {{ t('federation.manage') }}
           </PrimaryButton>
         </div>
-        <div class="flex items-center gap-3">
+        <div class="flex items-center gap-2">
           <div class="flex-1 min-w-0">
             <div class="font-medium text-sm">JF Altenburg</div>
             <div class="text-xs text-(--text-muted)">v1</div>
           </div>
           <ErrorBadge>{{ t('federation.suspended') }}</ErrorBadge>
-          <PrimaryButton class="!text-xs !py-1 !px-2" disabled>
+          <PrimaryButton compact disabled>
             <font-awesome-icon :icon="['fas', 'sliders']" class="mr-1" /> {{ t('federation.manage') }}
           </PrimaryButton>
         </div>
@@ -76,11 +81,11 @@ const dummyInventoryExport = ref(false)
     </NeutralContainer>
 
     <HelpSection :title="t('helpCenter.federation.statusTitle')">
-      <ul class="list-disc pl-5 space-y-1 text-sm">
+      <BulletList>
         <li><SuccessBadge>{{ t('federation.active') }}</SuccessBadge> — {{ t('helpCenter.federation.statusActive') }}</li>
         <li><SecondaryBadge>{{ t('federation.pending') }}</SecondaryBadge> — {{ t('helpCenter.federation.statusPending') }}</li>
         <li><ErrorBadge>{{ t('federation.suspended') }}</ErrorBadge> — {{ t('helpCenter.federation.statusSuspended') }}</li>
-      </ul>
+      </BulletList>
     </HelpSection>
 
     <HelpSection :title="t('helpCenter.federation.addPartnerTitle')">
@@ -119,32 +124,32 @@ const dummyInventoryExport = ref(false)
     <NeutralContainer>
       <table class="w-full text-sm">
         <thead>
-          <tr class="border-b border-bg-light-accent dark:border-bg-dark-accent">
+          <THead>
             <th class="text-left py-2 px-3 font-medium">{{ t('federation.feature') }}</th>
-            <th class="text-center py-2 px-3 font-medium w-32">{{ t('federation.receive') }}</th>
-            <th class="text-center py-2 px-3 font-medium w-32">{{ t('federation.send') }}</th>
-          </tr>
+            <Th align="center" class="font-medium w-32">{{ t('federation.receive') }}</th>
+            <Th align="center" class="font-medium w-32">{{ t('federation.send') }}</th>
+          </THead>
         </thead>
         <tbody>
-          <tr class="border-b border-bg-light-accent dark:border-bg-dark-accent">
-            <td class="py-2 px-3">{{ t('federation.cap.kb') }}</td>
-            <td class="py-2 px-3 text-center"><ToggleInput v-model="dummyKbImport" /></td>
-            <td class="py-2 px-3 text-center"><ToggleInput v-model="dummyKbExport" /></td>
-          </tr>
-          <tr class="border-b border-bg-light-accent dark:border-bg-dark-accent">
-            <td class="py-2 px-3">{{ t('federation.cap.quiz') }}</td>
-            <td class="py-2 px-3 text-center"><ToggleInput v-model="dummyQuizImport" /></td>
-            <td class="py-2 px-3 text-center"><ToggleInput v-model="dummyQuizExport" /></td>
-          </tr>
-          <tr class="border-b border-bg-light-accent dark:border-bg-dark-accent">
-            <td class="py-2 px-3">{{ t('federation.cap.protocol') }}</td>
-            <td class="py-2 px-3 text-center"><ToggleInput v-model="dummyProtocolImport" /></td>
-            <td class="py-2 px-3 text-center"><ToggleInput v-model="dummyProtocolExport" /></td>
-          </tr>
+          <TRow>
+            <Td>{{ t('federation.cap.kb') }}</Td>
+            <Td align="center"><ToggleInput v-model="dummyKbImport" /></Td>
+            <Td align="center"><ToggleInput v-model="dummyKbExport" /></Td>
+          </TRow>
+          <TRow>
+            <Td>{{ t('federation.cap.quiz') }}</Td>
+            <Td align="center"><ToggleInput v-model="dummyQuizImport" /></Td>
+            <Td align="center"><ToggleInput v-model="dummyQuizExport" /></Td>
+          </TRow>
+          <TRow>
+            <Td>{{ t('federation.cap.protocol') }}</Td>
+            <Td align="center"><ToggleInput v-model="dummyProtocolImport" /></Td>
+            <Td align="center"><ToggleInput v-model="dummyProtocolExport" /></Td>
+          </TRow>
           <tr>
-            <td class="py-2 px-3">{{ t('federation.cap.inventory') }}</td>
-            <td class="py-2 px-3 text-center"><ToggleInput v-model="dummyInventoryImport" /></td>
-            <td class="py-2 px-3 text-center"><ToggleInput v-model="dummyInventoryExport" /></td>
+            <Td>{{ t('federation.cap.inventory') }}</Td>
+            <Td align="center"><ToggleInput v-model="dummyInventoryImport" /></Td>
+            <Td align="center"><ToggleInput v-model="dummyInventoryExport" /></Td>
           </tr>
         </tbody>
       </table>

@@ -14,6 +14,7 @@ import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
+import io.javalin.http.ForbiddenResponse;
 import io.javalin.http.HttpStatus;
 import io.javalin.http.NotFoundResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
@@ -21,7 +22,6 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 @Singleton
 public class FederationRoutes implements Routes {
@@ -29,11 +29,6 @@ public class FederationRoutes implements Routes {
     private final FederationService service;
     private final FederatedContentService contentService;
     private final StationRepository stationRepository;
-
-    // In-memory pending invites (invite code -> {stationId, publicKey})
-    private final Map<String, PendingInvite> pendingInvites = new ConcurrentHashMap<>();
-
-    private record PendingInvite(int stationId, String publicKey) {}
 
     @Inject
     public FederationRoutes(
@@ -50,6 +45,9 @@ public class FederationRoutes implements Routes {
         routes.post(prefix + "/federation/invite", this::createInvite, Roles.FEDERATION_MANAGER);
         routes.post(prefix + "/federation/accept", this::acceptInvite, Roles.FEDERATION_MANAGER);
         routes.get(prefix + "/federation/partners/{id}", this::getPartner, Roles.FEDERATION_MANAGER);
+        routes.get(prefix + "/federation/requests", this::listPendingRequests, Roles.FEDERATION_MANAGER);
+        routes.post(prefix + "/federation/requests/{id}/accept", this::acceptPairRequest, Roles.FEDERATION_MANAGER);
+        routes.post(prefix + "/federation/requests/{id}/decline", this::declinePairRequest, Roles.FEDERATION_MANAGER);
         routes.post(prefix + "/federation/partners/{id}/suspend", this::suspendPartner, Roles.FEDERATION_MANAGER);
         routes.post(prefix + "/federation/partners/{id}/resume", this::resumePartner, Roles.FEDERATION_MANAGER);
         routes.delete(prefix + "/federation/partners/{id}", this::endFederation, Roles.FEDERATION_MANAGER);
@@ -102,9 +100,10 @@ public class FederationRoutes implements Routes {
 
     private void createInvite(Context ctx) {
         var session = UserSession.from(ctx);
-        var invite = service.createInvite(session.stationId());
-        pendingInvites.put(invite.inviteCode(), new PendingInvite(session.stationId(), invite.publicKey()));
-        ctx.json(Map.of("inviteCode", invite.inviteCode()));
+        var station = stationRepository.findById(session.stationId()).orElseThrow(NotFoundResponse::new);
+        // Station invite — includes token proving consent, auto-activates on accept
+        var code = service.generateStationInvite(station.id(), station.uid());
+        ctx.json(Map.of("inviteCode", code));
     }
 
     private void acceptInvite(Context ctx) {
@@ -116,29 +115,88 @@ public class FederationRoutes implements Routes {
 
         String code = req.inviteCode().trim();
 
-        // Parse the invite code to validate format and extract host
-        var parts = service.parseInviteCode(code);
+        // Parse the code to extract station UID, host, and optional token
+        var parts = service.parsePairingCode(code);
         if (parts.isEmpty()) {
-            throw new BadRequestResponse("Invalid invite code format");
+            throw new BadRequestResponse("Invalid code format");
         }
 
-        // Check if the invite is for this instance
+        // Check if the code is for this instance
         if (!parts.get().host().equalsIgnoreCase(service.getInstanceHost())) {
-            throw new BadRequestResponse("This invite code is for a different instance: "
-                    + parts.get().host());
+            throw new BadRequestResponse(
+                    "This code is for a different instance: " + parts.get().host());
         }
 
-        var pending = pendingInvites.remove(code);
-        if (pending == null) {
-            throw new BadRequestResponse("Invalid or expired invite code");
-        }
-        if (pending.stationId() == session.stationId()) {
+        // Find the target station by UID
+        var targetStation = stationRepository
+                .findByUid(parts.get().stationUid())
+                .orElseThrow(() -> new BadRequestResponse("Station not found"));
+        if (targetStation.id() == session.stationId()) {
             throw new BadRequestResponse("Cannot federate with yourself");
         }
 
-        // Same-instance accept — both stations are local (null remote host)
-        var partner = service.acceptInvite(session.stationId(), pending.stationId(), pending.publicKey(), null, null);
-        ctx.status(HttpStatus.CREATED).json(partner);
+        // Check not already federated
+        var existingPartners = service.findPartners(session.stationId());
+        if (existingPartners.stream().anyMatch(p -> p.partnerStationId() == targetStation.id())) {
+            throw new BadRequestResponse("Already federated with this station");
+        }
+
+        if (parts.get().isStationInvite()) {
+            // Station invite (with token) — validate token and auto-activate
+            if (!service.consumeInviteToken(targetStation.id(), parts.get().token())) {
+                throw new BadRequestResponse("Invalid or already used invite code");
+            }
+            var keyPair = service.generateKeyPair();
+            var partner = service.acceptInvite(
+                    session.stationId(), targetStation.id(), service.encodePublicKey(keyPair), null, null);
+            ctx.status(HttpStatus.CREATED).json(partner);
+        } else {
+            // Discovery code (no token) — create pending request
+            var pendingRequests = service.findPendingRequests(targetStation.id());
+            if (pendingRequests.stream().anyMatch(p -> p.stationId() == session.stationId())) {
+                throw new BadRequestResponse("Request already pending");
+            }
+            var partner = service.createPairRequest(session.stationId(), targetStation.id());
+            ctx.status(HttpStatus.CREATED).json(partner);
+        }
+    }
+
+    private void listPendingRequests(Context ctx) {
+        var session = UserSession.from(ctx);
+        var requests = service.findPendingRequests(session.stationId());
+        ctx.json(requests.stream()
+                .map(p -> {
+                    String requesterName = stationRepository
+                            .findById(p.stationId())
+                            .map(s -> s.name())
+                            .orElse("Unknown");
+                    return new PairRequestResponse(
+                            p.id(), requesterName, p.createdAt().toString());
+                })
+                .toList());
+    }
+
+    private void acceptPairRequest(Context ctx) {
+        var session = UserSession.from(ctx);
+        int requestId = ctx.pathParamAsClass("id", Integer.class).get();
+        // Verify the request targets this station
+        var partner = service.findPartner(requestId).orElseThrow(NotFoundResponse::new);
+        if (partner.partnerStationId() != session.stationId()) {
+            throw new ForbiddenResponse("This request is not for your station");
+        }
+        var result = service.acceptPairRequest(requestId);
+        ctx.json(result);
+    }
+
+    private void declinePairRequest(Context ctx) {
+        var session = UserSession.from(ctx);
+        int requestId = ctx.pathParamAsClass("id", Integer.class).get();
+        var partner = service.findPartner(requestId).orElseThrow(NotFoundResponse::new);
+        if (partner.partnerStationId() != session.stationId()) {
+            throw new ForbiddenResponse("This request is not for your station");
+        }
+        service.declinePairRequest(requestId);
+        ctx.json(Map.of("message", "Request declined"));
     }
 
     private void getPartner(Context ctx) {
@@ -359,6 +417,8 @@ public class FederationRoutes implements Routes {
     public record ProtocolShareRequest(int protocolId, String shareScope) {}
 
     public record PartnerResponse(FederationPartner partner, String partnerStationName) {}
+
+    public record PairRequestResponse(int id, String stationName, String createdAt) {}
 
     public record SharedContentItem(
             int remoteId, String title, String description, String stationName, int stationId, int partnerId) {}

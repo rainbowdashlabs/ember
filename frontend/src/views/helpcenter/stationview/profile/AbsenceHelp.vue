@@ -22,6 +22,7 @@ import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
+import MutedText from '@/components/typography/MutedText.vue'
 
 const {t} = useI18n()
 
@@ -101,7 +102,7 @@ const activeRole = ref('')
         <div class="flex items-center justify-between flex-wrap gap-2">
           <div>
             <span class="text-sm">01.06.2026 – 14.06.2026</span>
-            <span class="ml-3 text-sm text-(--text-muted)">Sommerurlaub</span>
+            <MutedText size="sm" class="ml-3">Sommerurlaub</MutedText>
           </div>
           <div class="flex items-center gap-2">
             <InfoBadge>{{ t('profile.absenceUpcoming') }}</InfoBadge>
@@ -113,7 +114,7 @@ const activeRole = ref('')
         <div class="flex items-center justify-between flex-wrap gap-2">
           <div>
             <span class="text-sm">10.05.2026 – 16.05.2026</span>
-            <span class="ml-3 text-sm text-(--text-muted)">Klassenfahrt</span>
+            <MutedText size="sm" class="ml-3">Klassenfahrt</MutedText>
           </div>
           <div class="flex items-center gap-2">
             <SuccessBadge>{{ t('profile.absenceActive') }}</SuccessBadge>
@@ -125,7 +126,7 @@ const activeRole = ref('')
         <div class="flex items-center justify-between flex-wrap gap-2">
           <div>
             <span class="text-sm">01.04.2026 – 05.04.2026</span>
-            <span class="ml-3 text-sm text-(--text-muted)">Krank</span>
+            <MutedText size="sm" class="ml-3">Krank</MutedText>
           </div>
           <div class="flex items-center gap-2">
             <ErrorBadge>{{ t('profile.absenceExpired') }}</ErrorBadge>

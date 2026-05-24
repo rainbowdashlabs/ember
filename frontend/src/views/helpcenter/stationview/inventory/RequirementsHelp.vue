@@ -14,6 +14,7 @@ import SectionHeader from '@/components/typography/SectionHeader.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
+import MutedIcon from '@/components/display/MutedIcon.vue'
 
 const {t} = useI18n()
 </script>
@@ -34,8 +35,7 @@ const {t} = useI18n()
     <div class="space-y-4">
       <div class="flex items-center justify-between">
         <SectionHeader>{{ t('inventory.requirements.title') }}</SectionHeader>
-        <PrimaryButton>
-          <font-awesome-icon :icon="['fas', 'plus']" class="mr-2" />
+        <PrimaryButton :icon="['fas', 'plus']">
           {{ t('inventory.requirements.add') }}
         </PrimaryButton>
       </div>
@@ -46,19 +46,18 @@ const {t} = useI18n()
             <span class="text-xs uppercase tracking-wide text-(--text-muted) mr-2">{{ t('inventory.requirements.role') }}</span>
             {{ t('membersCreate.roleMember') }}
           </SubHeader>
-          <SecondaryButton>
-            <font-awesome-icon :icon="['fas', 'plus']" class="mr-1" />
+          <SecondaryButton :icon="['fas', 'plus']">
             {{ t('inventory.requirements.addItem') }}
           </SecondaryButton>
         </div>
         <div class="grid grid-cols-[auto_1fr_6rem_2.5rem] gap-2 items-center px-3 py-2 border-b border-bg-light-accent/50 dark:border-bg-dark-accent/50">
-          <font-awesome-icon :icon="['fas', 'grip-vertical']" class="text-(--text-muted) h-3.5 w-3.5" />
+          <MutedIcon size="md" :icon="['fas', 'grip-vertical']" />
           <div class="text-sm">Helme</div>
           <div class="text-sm text-center font-medium">1</div>
           <DeleteButton />
         </div>
         <div class="grid grid-cols-[auto_1fr_6rem_2.5rem] gap-2 items-center px-3 py-2 border-b border-bg-light-accent/50 dark:border-bg-dark-accent/50">
-          <font-awesome-icon :icon="['fas', 'grip-vertical']" class="text-(--text-muted) h-3.5 w-3.5" />
+          <MutedIcon size="md" :icon="['fas', 'grip-vertical']" />
           <div class="text-sm">Jacken</div>
           <div class="text-sm text-center font-medium">1</div>
           <DeleteButton />
@@ -71,13 +70,12 @@ const {t} = useI18n()
             <span class="text-xs uppercase tracking-wide text-(--text-muted) mr-2">{{ t('inventory.requirements.group') }}</span>
             Anfänger
           </SubHeader>
-          <SecondaryButton>
-            <font-awesome-icon :icon="['fas', 'plus']" class="mr-1" />
+          <SecondaryButton :icon="['fas', 'plus']">
             {{ t('inventory.requirements.addItem') }}
           </SecondaryButton>
         </div>
         <div class="grid grid-cols-[auto_1fr_6rem_2.5rem] gap-2 items-center px-3 py-2 border-b border-bg-light-accent/50 dark:border-bg-dark-accent/50">
-          <font-awesome-icon :icon="['fas', 'grip-vertical']" class="text-(--text-muted) h-3.5 w-3.5" />
+          <MutedIcon size="md" :icon="['fas', 'grip-vertical']" />
           <div class="text-sm">Stiefel</div>
           <div class="text-sm text-center font-medium">1</div>
           <DeleteButton />

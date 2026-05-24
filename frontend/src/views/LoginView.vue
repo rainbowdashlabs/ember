@@ -32,6 +32,7 @@ import {acceptStorage, denyStorage, getConsent, getStoredLegalVersions, getItem}
 import {useStations} from '@/composables/useStations'
 import {useConsentGuard} from '@/composables/useConsentGuard'
 import {Roles} from '@/api/types'
+import MutedText from '@/components/typography/MutedText.vue'
 
 const {t} = useI18n()
 const route = useRoute()
@@ -335,7 +336,7 @@ function topRoleLabel(account: DemoAccount): string {
         <div class="text-center">
           <font-awesome-icon :icon="['fas', 'fire']" class="text-4xl text-primary mb-3"/>
           <PageHeader class="text-2xl font-bold">{{ t('demo.title') }}</PageHeader>
-          <p class="text-sm text-(--text-muted) mt-1">{{ t('demo.loginHint') }}</p>
+          <MutedText tag="p" size="sm" class="mt-1">{{ t('demo.loginHint') }}</MutedText>
         </div>
         <Alert v-if="error" variant="error">{{ error }}</Alert>
 
@@ -400,7 +401,7 @@ function topRoleLabel(account: DemoAccount): string {
         <!-- Privacy Policy Modal -->
         <Modal v-model="showPrivacyPolicy">
           <div class="space-y-4 p-4">
-            <SubHeader class="text-lg font-semibold">{{ t('storageConsent.privacyPolicyTitle') }}</SubHeader>
+            <SubHeader>{{ t('storageConsent.privacyPolicyTitle') }}</SubHeader>
             <Spinner v-if="privacyPolicyLoading" size="sm"/>
             <div v-else-if="privacyPolicyHtml" class="legal-content max-h-[70vh] overflow-y-auto" v-html="privacyPolicyHtml"/>
             <div class="flex justify-end">
@@ -412,7 +413,7 @@ function topRoleLabel(account: DemoAccount): string {
         <!-- Terms of Service Modal -->
         <Modal v-model="showTos">
           <div class="space-y-4 p-4">
-            <SubHeader class="text-lg font-semibold">{{ t('storageConsent.tosTitle') }}</SubHeader>
+            <SubHeader>{{ t('storageConsent.tosTitle') }}</SubHeader>
             <Spinner v-if="tosLoading" size="sm"/>
             <div v-else-if="tosHtml" class="legal-content max-h-[70vh] overflow-y-auto" v-html="tosHtml"/>
             <div class="flex justify-end">

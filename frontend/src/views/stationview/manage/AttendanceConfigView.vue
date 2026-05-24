@@ -103,8 +103,7 @@ onMounted(loadTemplates)
   <ViewContent>
     <div class="space-y-6">
       <div class="flex items-center justify-between">
-        <PrimaryButton @click="navigateToCreate">
-          <font-awesome-icon :icon="['fas', 'plus']" class="mr-2"/>
+        <PrimaryButton :icon="['fas', 'plus']" @click="navigateToCreate">
           {{ t('attendanceConfig.create') }}
         </PrimaryButton>
       </div>

@@ -276,8 +276,7 @@ onMounted(loadMailConfig)
       <PrimaryButton :disabled="mailSaving" @click="saveMailConfig">
         {{ mailSaving ? t('common.loading') : t('stationManage.save') }}
       </PrimaryButton>
-      <SuccessButton v-if="mailProvider !== 'NONE'" :disabled="mailTesting" @click="testMail">
-        <font-awesome-icon :icon="['fas', 'plug']" class="mr-1" />
+      <SuccessButton :icon="['fas', 'plug']" v-if="mailProvider !== 'NONE'" :disabled="mailTesting" @click="testMail">
         {{ mailTesting ? t('common.loading') : t('stationManage.mailTest') }}
       </SuccessButton>
     </div>

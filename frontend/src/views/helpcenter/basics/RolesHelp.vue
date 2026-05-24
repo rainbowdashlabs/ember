@@ -14,6 +14,8 @@ import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
+import BulletList from '@/components/typography/BulletList.vue'
+import MutedText from '@/components/typography/MutedText.vue'
 
 const {t} = useI18n()
 
@@ -53,7 +55,7 @@ const managementRoles = [
               <component :is="r.badge">{{ t(`helpCenter.basics.roles.role.${r.key}.name`) }}</component>
             </div>
             <p class="text-sm">{{ t(`helpCenter.basics.roles.role.${r.key}.desc`) }}</p>
-            <p class="text-xs text-(--text-muted) mt-1">{{ t(`helpCenter.basics.roles.role.${r.key}.example`) }}</p>
+            <MutedText tag="p" class="mt-1">{{ t(`helpCenter.basics.roles.role.${r.key}.example`) }}</MutedText>
           </div>
         </NeutralContainer>
       </div>
@@ -95,11 +97,11 @@ const managementRoles = [
 
     <HelpSection :title="t('helpCenter.basics.roles.owner')">
       <p>{{ t('helpCenter.basics.roles.ownerText') }}</p>
-      <ul class="list-disc pl-5 space-y-1">
+      <BulletList>
         <li>{{ t('helpCenter.basics.roles.owner1') }}</li>
         <li>{{ t('helpCenter.basics.roles.owner2') }}</li>
         <li>{{ t('helpCenter.basics.roles.owner3') }}</li>
-      </ul>
+      </BulletList>
     </HelpSection>
 
     <HelpTip>{{ t('helpCenter.basics.roles.tip') }}</HelpTip>

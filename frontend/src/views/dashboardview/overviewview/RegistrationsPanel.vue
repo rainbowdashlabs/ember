@@ -71,7 +71,7 @@ onMounted(loadData)
       <EmptyState compact v-if="activeRegistrations.length === 0">{{ t('dashboard.noRegistrations') }}</EmptyState>
       <template v-else>
         <NeutralContainer v-for="reg in activeRegistrations" :key="reg.id"
-                          class="flex items-center justify-between gap-3 py-2 px-3 cursor-pointer hover:bg-(--bg-accent)"
+                          class="flex items-center justify-between gap-2 py-2 px-3 cursor-pointer hover:bg-(--bg-accent)"
                           @click="router.push({ name: 'events-upcoming' })">
           <div>
             <MemberName v-if="isOtherMember(reg.memberId)" :name="reg.memberName"

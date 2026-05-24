@@ -46,8 +46,7 @@ const {isActive, currentStep, currentStepData, totalSteps, nextStep, prevStep, s
 
             <!-- Actions -->
             <div class="flex items-center gap-2 shrink-0">
-              <SecondaryButton v-if="currentStep > 0" class="text-xs" @click="prevStep">
-                <font-awesome-icon :icon="['fas', 'chevron-left']" class="mr-1"/>
+              <SecondaryButton :icon="['fas', 'chevron-left']" v-if="currentStep > 0" class="text-xs" @click="prevStep">
                 {{ t('tour.back') }}
               </SecondaryButton>
               <PrimaryButton @click="nextStep">

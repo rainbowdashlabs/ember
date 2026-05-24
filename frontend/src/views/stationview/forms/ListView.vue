@@ -24,6 +24,7 @@ import type { Form, FormListEntry } from '@/api/types'
 import { forms } from '@/api'
 import { useSession } from '@/composables/useSession'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
+import MutedIcon from '@/components/display/MutedIcon.vue'
 
 const { t } = useI18n()
 const router = useRouter()
@@ -114,8 +115,7 @@ watch(loaded, (isLoaded) => {
         <div v-if="canManagePolls()" class="space-y-4">
           <div class="flex items-center justify-between">
             <SectionHeader>{{ t('forms.title') }}</SectionHeader>
-            <PrimaryButton @click="router.push({ name: 'forms-create' })">
-              <font-awesome-icon :icon="['fas', 'plus']" class="mr-1" />
+            <PrimaryButton :icon="['fas', 'plus']" @click="router.push({ name: 'forms-create' })">
               {{ t('forms.create') }}
             </PrimaryButton>
           </div>
@@ -128,7 +128,7 @@ watch(loaded, (isLoaded) => {
                 <div class="space-y-1">
                   <div class="flex items-center gap-2 flex-wrap">
                     <span class="font-medium">{{ form.title }}</span>
-                    <font-awesome-icon v-if="form.restricted" :icon="['fas', 'lock']" class="ml-1 h-3 w-3 text-[var(--text-muted)]"/>
+                    <MutedIcon v-if="form.restricted" :icon="['fas', 'lock']" class="ml-1"/>
                     <SuccessBadge v-if="form.status === FormStatus.OPEN">{{ statusLabel(form.status) }}</SuccessBadge>
                     <ErrorBadge v-else-if="form.status === FormStatus.CLOSED">{{ statusLabel(form.status) }}</ErrorBadge>
                     <InfoBadge v-else>{{ statusLabel(form.status) }}</InfoBadge>
@@ -170,7 +170,7 @@ watch(loaded, (isLoaded) => {
               <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                 <div class="space-y-1">
                   <span class="font-medium">{{ form.title }}</span>
-                  <font-awesome-icon v-if="form.restricted" :icon="['fas', 'lock']" class="ml-1 h-3 w-3 text-[var(--text-muted)]"/>
+                  <MutedIcon v-if="form.restricted" :icon="['fas', 'lock']" class="ml-1"/>
                   <p v-if="form.description" class="text-xs text-(--text-muted)">{{ form.description }}</p>
                   <p class="text-xs text-(--text-muted)">{{ form.responseCount }} {{ t('forms.responses') }}</p>
                 </div>

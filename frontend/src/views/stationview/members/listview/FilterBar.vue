@@ -14,6 +14,7 @@ import MemberFilterBar from '@/components/input/filter/MemberFilterBar.vue'
 import type { FilterOption, FilterCriteria } from '@/components/input/filter/MemberFilterBar.vue'
 import type { ProfileField } from '@/api/types'
 import { useBreakpoint } from '@/composables/useBreakpoint'
+import FieldLabel from '@/components/typography/FieldLabel.vue'
 
 const { t } = useI18n()
 const { isMobile } = useBreakpoint()
@@ -88,29 +89,25 @@ function submitSaveFilter() {
     <TextInput :model-value="filterText" :placeholder="t('membersList.filter')" class="w-full" @update:model-value="(v: string | undefined) => emit('update:filterText', v ?? '')" />
     <div class="grid grid-cols-2 sm:flex sm:flex-wrap sm:items-center gap-2">
       <div class="relative">
-        <SecondaryButton :full-width="isMobile" @click="showColumnPicker = !showColumnPicker">
-          <font-awesome-icon :icon="['fas', 'table-columns']" class="mr-1" />
+        <SecondaryButton :icon="['fas', 'table-columns']" :full-width="isMobile" @click="showColumnPicker = !showColumnPicker">
           {{ t('membersList.columns') }}
         </SecondaryButton>
         <div v-if="showColumnPicker" class="absolute right-0 top-full mt-1 z-10 rounded-lg border border-bg-light-accent dark:border-bg-dark-accent bg-bg-light dark:bg-bg-dark shadow-lg p-3 min-w-48 space-y-1">
           <p class="text-xs font-semibold text-(--text-muted) mb-2">{{ t('membersList.extraColumns') }}</p>
           <div v-if="nonOverviewFields.length === 0" class="text-xs text-(--text-muted)">{{ t('membersList.noExtraColumns') }}</div>
-          <label v-for="field in nonOverviewFields" :key="field.id" class="flex items-center gap-2 cursor-pointer text-sm py-0.5">
+          <FieldLabel inline v-for="field in nonOverviewFields" :key="field.id" class="cursor-pointer py-0.5">
             <CheckboxInput :model-value="extraColumnIds.has(field.id)" @update:model-value="emit('toggleColumn', field.id)" />
             {{ field.name }}
-          </label>
+          </FieldLabel>
         </div>
       </div>
-      <SecondaryButton :full-width="isMobile" @click="emit('clearFilters')">
-        <font-awesome-icon :icon="['fas', 'xmark']" class="mr-1" />
+      <SecondaryButton :icon="['fas', 'xmark']" :full-width="isMobile" @click="emit('clearFilters')">
         {{ t('membersList.clearFilters') }}
       </SecondaryButton>
-      <SecondaryButton :full-width="isMobile" @click="showSaveFilter = !showSaveFilter">
-        <font-awesome-icon :icon="['fas', 'star']" class="mr-1" />
+      <SecondaryButton :icon="['fas', 'star']" :full-width="isMobile" @click="showSaveFilter = !showSaveFilter">
         {{ t('membersList.saveFilter') }}
       </SecondaryButton>
-      <SecondaryButton :full-width="isMobile" @click="emit('toggleExport')">
-        <font-awesome-icon :icon="['fas', 'file-export']" class="mr-1" />
+      <SecondaryButton :icon="['fas', 'file-export']" :full-width="isMobile" @click="emit('toggleExport')">
         {{ exportMode ? t('membersList.export.cancel') : t('membersList.export.button') }}
       </SecondaryButton>
       <template v-if="exportMode">

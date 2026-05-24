@@ -58,7 +58,7 @@ onMounted(loadData)
       <EmptyState compact v-if="openExchanges.length === 0">{{ t('dashboard.noExchanges') }}</EmptyState>
       <template v-else>
         <NeutralContainer v-for="ex in openExchanges" :key="ex.id"
-                          class="flex items-center justify-between gap-3 py-2 px-3 cursor-pointer hover:bg-(--bg-accent)"
+                          class="flex items-center justify-between gap-2 py-2 px-3 cursor-pointer hover:bg-(--bg-accent)"
                           @click="router.push({ name: 'inventory-exchanges' })">
           <div>
             <MemberName v-if="isOtherMember(ex.memberId)" :name="ex.memberName"

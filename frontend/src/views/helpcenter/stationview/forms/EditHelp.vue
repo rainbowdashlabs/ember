@@ -28,44 +28,43 @@ const {t} = useI18n()
 
     <!-- Dummy: question list -->
     <NeutralContainer class="space-y-3">
-      <div class="flex items-center justify-between gap-3 p-3 rounded bg-[var(--bg)] border border-[var(--border)]">
+      <div class="flex items-center justify-between gap-2 p-3 rounded bg-[var(--bg)] border border-[var(--border)]">
         <div>
           <div class="text-sm font-medium">Wie gefällt dir das Training?</div>
           <div class="text-xs text-(--text-muted)">Bewertung (1–5)</div>
         </div>
         <div class="flex items-center gap-2">
-          <SecondaryButton class="!text-xs !py-1 !px-2" disabled>
+          <SecondaryButton compact disabled>
             <font-awesome-icon :icon="['fas', 'pen']" />
           </SecondaryButton>
           <DeleteButton disabled />
         </div>
       </div>
-      <div class="flex items-center justify-between gap-3 p-3 rounded bg-[var(--bg)] border border-[var(--border)]">
+      <div class="flex items-center justify-between gap-2 p-3 rounded bg-[var(--bg)] border border-[var(--border)]">
         <div>
           <div class="text-sm font-medium">Was hat dir besonders gut gefallen?</div>
           <div class="text-xs text-(--text-muted)">Freitext</div>
         </div>
         <div class="flex items-center gap-2">
-          <SecondaryButton class="!text-xs !py-1 !px-2" disabled>
+          <SecondaryButton compact disabled>
             <font-awesome-icon :icon="['fas', 'pen']" />
           </SecondaryButton>
           <DeleteButton disabled />
         </div>
       </div>
-      <div class="flex items-center justify-between gap-3 p-3 rounded bg-[var(--bg)] border border-[var(--border)]">
+      <div class="flex items-center justify-between gap-2 p-3 rounded bg-[var(--bg)] border border-[var(--border)]">
         <div>
           <div class="text-sm font-medium">Welche Themen soll das nächste Training behandeln?</div>
           <div class="text-xs text-(--text-muted)">Multiple Choice</div>
         </div>
         <div class="flex items-center gap-2">
-          <SecondaryButton class="!text-xs !py-1 !px-2" disabled>
+          <SecondaryButton compact disabled>
             <font-awesome-icon :icon="['fas', 'pen']" />
           </SecondaryButton>
           <DeleteButton disabled />
         </div>
       </div>
-      <PrimaryButton class="!text-xs" disabled>
-        <font-awesome-icon :icon="['fas', 'plus']" class="mr-1" />
+      <PrimaryButton :icon="['fas', 'plus']" class="!text-xs" disabled>
         {{ t('helpCenter.formsEdit.addQuestion') }}
       </PrimaryButton>
     </NeutralContainer>

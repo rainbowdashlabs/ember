@@ -178,6 +178,10 @@ async function handleLogout() {
                      @navigate="close">
           {{ t('sidebar.federation') }}
         </SidebarLink>
+        <SidebarLink :icon="['fas', 'compass']" name="station-discovery" to="/station/manage/discovery"
+                     @navigate="close">
+          {{ t('sidebar.discovery') }}
+        </SidebarLink>
       </SidebarGroup>
 
       <SidebarGroup :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => openGroup = v" v-if="canManageMembers()" :badge="pendingChangesCount" :icon="['fas', 'users']"

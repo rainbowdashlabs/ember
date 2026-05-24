@@ -26,6 +26,7 @@ import {ExchangeStatus} from '@/api/types'
 import type {MyInventoryItem, MyRequirement} from '@/api/inventory'
 import type {ManagedMember} from '@/api/managedMembers'
 import {useSession} from '@/composables/useSession'
+import MutedText from '@/components/typography/MutedText.vue'
 
 const {t} = useI18n()
 const {isGuardian, sessionInfo} = useSession()
@@ -185,7 +186,7 @@ async function submitExchange() {
 <template>
   <ViewContent>
     <div class="space-y-6">
-      <div class="flex items-center justify-between flex-wrap gap-3">
+      <div class="flex items-center justify-between flex-wrap gap-2">
         <SectionHeader>
           {{ viewingMemberName ? `${t('profile.inventory')} — ${viewingMemberName}` : t('profile.inventory') }}
         </SectionHeader>
@@ -213,9 +214,9 @@ async function submitExchange() {
               </span>
             </div>
 
-            <div v-if="group.items.length === 0" class="text-sm text-(--text-muted) py-2">
+            <MutedText tag="div" size="sm" class="py-2" v-if="group.items.length === 0">
               {{ t('profile.noInventory') }}
-            </div>
+            </MutedText>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
               <InventoryItemCard

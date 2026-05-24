@@ -15,6 +15,8 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
+import MutedText from '@/components/typography/MutedText.vue'
+import CodeSnippet from '@/components/display/CodeSnippet.vue'
 
 const { t } = useI18n()
 </script>
@@ -52,7 +54,7 @@ const { t } = useI18n()
         <NeutralContainer class="flex items-center justify-between">
           <div>
             <span class="font-medium">Max Müller</span>
-            <span class="text-sm text-(--text-muted) ml-2">Sabine Müller</span>
+            <MutedText size="sm" class="ml-2">Sabine Müller</MutedText>
           </div>
           <div class="flex items-center gap-2">
             <span class="text-sm font-mono">9.6</span>
@@ -62,7 +64,7 @@ const { t } = useI18n()
         <NeutralContainer class="flex items-center justify-between">
           <div>
             <span class="font-medium">Sophie Wagner</span>
-            <span class="text-sm text-(--text-muted) ml-2">Klaus Wagner</span>
+            <MutedText size="sm" class="ml-2">Klaus Wagner</MutedText>
           </div>
           <div class="flex items-center gap-2">
             <span class="text-sm font-mono">7.2</span>
@@ -98,19 +100,19 @@ const { t } = useI18n()
         <div>
           <span class="font-medium">{{ t('helpCenter.waitingList.fieldRef') }}</span>
           <p class="text-(--text-muted)">{{ t('helpCenter.waitingList.fieldRefText') }}</p>
-          <code class="block mt-1 px-3 py-2 bg-(--bg-accent)/20 rounded text-xs">[Alter]</code>
+          <CodeSnippet block class="mt-1">[Alter]</CodeSnippet>
         </div>
 
         <div>
           <span class="font-medium">{{ t('helpCenter.waitingList.operators') }}</span>
           <div class="mt-1 grid grid-cols-2 gap-1 text-xs">
-            <code class="px-2 py-1 bg-(--bg-accent)/20 rounded">+ - * /</code>
+            <CodeSnippet>+ - * /</CodeSnippet>
             <span class="text-(--text-muted)">{{ t('helpCenter.waitingList.arithmetic') }}</span>
-            <code class="px-2 py-1 bg-(--bg-accent)/20 rounded">== !=</code>
+            <CodeSnippet>== !=</CodeSnippet>
             <span class="text-(--text-muted)">{{ t('helpCenter.waitingList.equality') }}</span>
-            <code class="px-2 py-1 bg-(--bg-accent)/20 rounded">&gt; &lt; &gt;= &lt;=</code>
+            <CodeSnippet>&gt; &lt; &gt;= &lt;=</CodeSnippet>
             <span class="text-(--text-muted)">{{ t('helpCenter.waitingList.comparison') }}</span>
-            <code class="px-2 py-1 bg-(--bg-accent)/20 rounded">? :</code>
+            <CodeSnippet>? :</CodeSnippet>
             <span class="text-(--text-muted)">{{ t('helpCenter.waitingList.ternary') }}</span>
           </div>
         </div>
@@ -119,16 +121,16 @@ const { t } = useI18n()
           <span class="font-medium">{{ t('helpCenter.waitingList.examples') }}</span>
           <div class="mt-1 space-y-2">
             <div>
-              <code class="block px-3 py-2 bg-(--bg-accent)/20 rounded text-xs">[Alter] * 2</code>
-              <p class="text-xs text-(--text-muted) mt-1">{{ t('helpCenter.waitingList.example1') }}</p>
+              <CodeSnippet block>[Alter] * 2</CodeSnippet>
+              <MutedText tag="p" class="mt-1">{{ t('helpCenter.waitingList.example1') }}</MutedText>
             </div>
             <div>
-              <code class="block px-3 py-2 bg-(--bg-accent)/20 rounded text-xs">("[Erfahrung]" == "fortgeschritten") * 10 + [Alter]</code>
-              <p class="text-xs text-(--text-muted) mt-1">{{ t('helpCenter.waitingList.example2') }}</p>
+              <CodeSnippet block>("[Erfahrung]" == "fortgeschritten") * 10 + [Alter]</CodeSnippet>
+              <MutedText tag="p" class="mt-1">{{ t('helpCenter.waitingList.example2') }}</MutedText>
             </div>
             <div>
-              <code class="block px-3 py-2 bg-(--bg-accent)/20 rounded text-xs">[Alter] &gt; 8 ? [Alter] * 2 : [Alter]</code>
-              <p class="text-xs text-(--text-muted) mt-1">{{ t('helpCenter.waitingList.example3') }}</p>
+              <CodeSnippet block>[Alter] &gt; 8 ? [Alter] * 2 : [Alter]</CodeSnippet>
+              <MutedText tag="p" class="mt-1">{{ t('helpCenter.waitingList.example3') }}</MutedText>
             </div>
           </div>
         </div>
@@ -137,23 +139,23 @@ const { t } = useI18n()
           <p class="text-(--text-muted)">{{ t('helpCenter.waitingList.generatedFieldsText') }}</p>
           <div class="mt-1 space-y-1 text-xs">
             <div class="flex items-center gap-2">
-              <code class="px-2 py-1 bg-(--bg-accent)/20 rounded">[wartezeit_tage]</code>
+              <CodeSnippet>[wartezeit_tage]</CodeSnippet>
               <span class="text-(--text-muted)">{{ t('helpCenter.waitingList.waitDays') }}</span>
             </div>
             <div class="flex items-center gap-2">
-              <code class="px-2 py-1 bg-(--bg-accent)/20 rounded">[wartezeit_monate]</code>
+              <CodeSnippet>[wartezeit_monate]</CodeSnippet>
               <span class="text-(--text-muted)">{{ t('helpCenter.waitingList.waitMonths') }}</span>
             </div>
             <div class="flex items-center gap-2">
-              <code class="px-2 py-1 bg-(--bg-accent)/20 rounded">[wartezeit_quartale]</code>
+              <CodeSnippet>[wartezeit_quartale]</CodeSnippet>
               <span class="text-(--text-muted)">{{ t('helpCenter.waitingList.waitQuarters') }}</span>
             </div>
             <div class="flex items-center gap-2">
-              <code class="px-2 py-1 bg-(--bg-accent)/20 rounded">[wartezeit_jahre]</code>
+              <CodeSnippet>[wartezeit_jahre]</CodeSnippet>
               <span class="text-(--text-muted)">{{ t('helpCenter.waitingList.waitYears') }}</span>
             </div>
             <div class="flex items-center gap-2">
-              <code class="px-2 py-1 bg-(--bg-accent)/20 rounded">[alter_Geburtstag]</code>
+              <CodeSnippet>[alter_Geburtstag]</CodeSnippet>
               <span class="text-(--text-muted)">{{ t('helpCenter.waitingList.ageField') }}</span>
             </div>
           </div>

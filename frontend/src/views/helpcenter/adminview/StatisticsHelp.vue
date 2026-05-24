@@ -9,6 +9,7 @@ import HelpArticle from '@/components/helpcenter/HelpArticle.vue'
 import HelpSection from '@/components/helpcenter/HelpSection.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
+import StatValue from '@/components/typography/StatValue.vue'
 
 const {t} = useI18n()
 </script>
@@ -26,7 +27,7 @@ const {t} = useI18n()
     <SubHeader>{{ t('adminStats.emailSection') }}</SubHeader>
     <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
       <NeutralContainer class="text-center">
-        <p class="text-2xl font-bold text-success">12</p>
+        <StatValue color="success">12</StatValue>
         <p class="text-sm text-(--text-muted)">{{ t('adminStats.sentToday') }}</p>
       </NeutralContainer>
       <NeutralContainer class="text-center">
@@ -63,23 +64,23 @@ const {t} = useI18n()
     <SubHeader>{{ t('adminStats.platformSection') }}</SubHeader>
     <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-4">
       <NeutralContainer class="text-center">
-        <p class="text-2xl font-bold text-primary">3</p>
+        <StatValue>3</StatValue>
         <p class="text-sm text-(--text-muted)">{{ t('adminStats.stations') }}</p>
       </NeutralContainer>
       <NeutralContainer class="text-center">
-        <p class="text-2xl font-bold text-primary">45</p>
+        <StatValue>45</StatValue>
         <p class="text-sm text-(--text-muted)">{{ t('adminStats.accounts') }}</p>
       </NeutralContainer>
       <NeutralContainer class="text-center">
-        <p class="text-2xl font-bold text-primary">82</p>
+        <StatValue>82</StatValue>
         <p class="text-sm text-(--text-muted)">{{ t('adminStats.members') }}</p>
       </NeutralContainer>
       <NeutralContainer class="text-center">
-        <p class="text-2xl font-bold text-primary">7</p>
+        <StatValue>7</StatValue>
         <p class="text-sm text-(--text-muted)">{{ t('adminStats.activeSessions') }}</p>
       </NeutralContainer>
       <NeutralContainer class="text-center">
-        <p class="text-2xl font-bold text-primary">12</p>
+        <StatValue>12</StatValue>
         <p class="text-sm text-(--text-muted)">{{ t('adminStats.groups') }}</p>
       </NeutralContainer>
     </div>
@@ -88,23 +89,23 @@ const {t} = useI18n()
     <SubHeader>{{ t('adminStats.dataSection') }}</SubHeader>
     <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-4">
       <NeutralContainer class="text-center">
-        <p class="text-2xl font-bold text-primary">18</p>
+        <StatValue>18</StatValue>
         <p class="text-sm text-(--text-muted)">{{ t('adminStats.events') }}</p>
       </NeutralContainer>
       <NeutralContainer class="text-center">
-        <p class="text-2xl font-bold text-primary">64</p>
+        <StatValue>64</StatValue>
         <p class="text-sm text-(--text-muted)">{{ t('adminStats.attendanceSessions') }}</p>
       </NeutralContainer>
       <NeutralContainer class="text-center">
-        <p class="text-2xl font-bold text-primary">1280</p>
+        <StatValue>1280</StatValue>
         <p class="text-sm text-(--text-muted)">{{ t('adminStats.attendanceEntries') }}</p>
       </NeutralContainer>
       <NeutralContainer class="text-center">
-        <p class="text-2xl font-bold text-primary">96</p>
+        <StatValue>96</StatValue>
         <p class="text-sm text-(--text-muted)">{{ t('adminStats.inventoryItems') }}</p>
       </NeutralContainer>
       <NeutralContainer class="text-center">
-        <p class="text-2xl font-bold text-primary">24</p>
+        <StatValue>24</StatValue>
         <p class="text-sm text-(--text-muted)">{{ t('adminStats.profileFields') }}</p>
       </NeutralContainer>
     </div>

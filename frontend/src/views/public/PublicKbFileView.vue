@@ -18,6 +18,7 @@ import * as publicKb from '@/api/publicKb'
 import type {PublicStationInfo} from '@/api/publicKb'
 import type {KbFile} from '@/api/knowledgeBase'
 import {KbFileType} from '@/api/knowledgeBase'
+import MutedText from '@/components/typography/MutedText.vue'
 
 const {t} = useI18n()
 const router = useRouter()
@@ -121,7 +122,7 @@ onMounted(() => {
 
             <template v-else-if="file">
                 <!-- Header -->
-                <div class="flex flex-wrap items-center gap-3 mb-4">
+                <div class="flex flex-wrap items-center gap-2 mb-4">
                     <SecondaryButton @click="goBack">
                         <font-awesome-icon :icon="['fas', 'chevron-left']"/>
                         {{ t('publicKb.backToBrowse') }}
@@ -131,9 +132,9 @@ onMounted(() => {
                 </div>
 
                 <!-- Description -->
-                <p v-if="file.description" class="text-sm text-[var(--text-muted)] mb-4">
+                <MutedText tag="p" size="sm" v-if="file.description">
                     {{ file.description }}
-                </p>
+                </MutedText>
 
                 <!-- Last edited -->
                 <p v-if="file.updatedAt" class="text-xs text-[var(--text-muted)] mb-4">

@@ -18,6 +18,7 @@ import ErrorButton from '@/components/button/ErrorButton.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
+import MutedText from '@/components/typography/MutedText.vue'
 
 const {t} = useI18n()
 
@@ -63,8 +64,8 @@ const activeRole = ref('')
         <div class="flex items-center justify-between flex-wrap gap-2">
           <div>
             <span class="font-medium">Wettkampf Vorbereitung</span>
-            <span class="ml-2 text-sm text-(--text-muted)">Samstag, 2026-05-25</span>
-            <span class="ml-2 text-xs text-(--text-muted)">14:00 – 17:00</span>
+            <MutedText size="sm" class="ml-2">Samstag, 2026-05-25</MutedText>
+            <MutedText class="ml-2">14:00 – 17:00</MutedText>
           </div>
           <div class="flex items-center gap-2 text-xs">
             <SuccessBadge>5 {{ t('eventsUpcoming.accepted') }}</SuccessBadge>
@@ -72,12 +73,10 @@ const activeRole = ref('')
           </div>
         </div>
         <div class="flex items-center gap-2">
-          <PrimaryButton>
-            <font-awesome-icon :icon="['fas', 'check']" class="mr-1"/>
+          <PrimaryButton :icon="['fas', 'check']">
             {{ t('eventsUpcoming.register') }}
           </PrimaryButton>
-          <ErrorButton>
-            <font-awesome-icon :icon="['fas', 'ban']" class="mr-1"/>
+          <ErrorButton :icon="['fas', 'ban']">
             {{ t('eventsUpcoming.decline') }}
           </ErrorButton>
         </div>
@@ -86,8 +85,8 @@ const activeRole = ref('')
         <div class="flex items-center justify-between flex-wrap gap-2">
           <div>
             <span class="font-medium">Übungsabend</span>
-            <span class="ml-2 text-sm text-(--text-muted)">Dienstag, 2026-05-19</span>
-            <span class="ml-2 text-xs text-(--text-muted)">18:00 – 20:00</span>
+            <MutedText size="sm" class="ml-2">Dienstag, 2026-05-19</MutedText>
+            <MutedText class="ml-2">18:00 – 20:00</MutedText>
           </div>
         </div>
         <div class="flex items-center gap-1">

@@ -235,8 +235,7 @@ onMounted(loadData)
   <ViewContent>
     <div class="space-y-6">
       <div class="flex justify-end">
-        <SecondaryButton @click="router.push({ name: 'members-import' })">
-          <font-awesome-icon :icon="['fas', 'upload']" class="mr-1"/>
+        <SecondaryButton :icon="['fas', 'upload']" @click="router.push({ name: 'members-import' })">
           {{ t('memberImport.linkFromCreate') }}
         </SecondaryButton>
       </div>

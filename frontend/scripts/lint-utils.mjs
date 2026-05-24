@@ -102,30 +102,40 @@ export function createReporter() {
     const warnings = []
 
     return {
-        error(file, line, msg) {
-            errors.push({file: typeof file === 'string' && file.startsWith('/') ? rel(file) : file, line, msg})
+        error(file, line, msg, category = '') {
+            errors.push({file: typeof file === 'string' && file.startsWith('/') ? rel(file) : file, line, msg, category})
         },
-        warn(file, line, msg) {
-            warnings.push({file: typeof file === 'string' && file.startsWith('/') ? rel(file) : file, line, msg})
+        warn(file, line, msg, category = '') {
+            warnings.push({file: typeof file === 'string' && file.startsWith('/') ? rel(file) : file, line, msg, category})
         },
         get errors() { return errors },
         get warnings() { return warnings },
 
         print() {
-            if (warnings.length > 0) {
-                console.log(`\n${YELLOW}${BOLD}Warnings (${warnings.length}):${RESET}`)
-                for (const w of warnings) {
-                    const loc = w.line > 0 ? `:${w.line}` : ''
-                    console.log(`  ${YELLOW}warning${RESET} ${w.file}${loc}: ${w.msg}`)
+            const printGroup = (items, color, label) => {
+                if (items.length === 0) return
+                console.log(`\n${color}${BOLD}${label} (${items.length}):${RESET}`)
+                // Group by category
+                const groups = new Map()
+                for (const item of items) {
+                    const cat = item.category || 'Other'
+                    if (!groups.has(cat)) groups.set(cat, [])
+                    groups.get(cat).push(item)
+                }
+                for (const [cat, entries] of groups) {
+                    if (groups.size > 1) console.log(`\n  ${BOLD}${cat}${RESET}`)
+                    for (const e of entries) {
+                        if (e.file) {
+                            const loc = e.line > 0 ? `:${e.line}` : ''
+                            console.log(`    ${color}${label.toLowerCase().slice(0, -1)}${RESET} ${e.file}${loc}: ${e.msg}`)
+                        } else {
+                            console.log(`    ${color}${label.toLowerCase().slice(0, -1)}${RESET} ${e.msg}`)
+                        }
+                    }
                 }
             }
-            if (errors.length > 0) {
-                console.log(`\n${RED}${BOLD}Errors (${errors.length}):${RESET}`)
-                for (const e of errors) {
-                    const loc = e.line > 0 ? `:${e.line}` : ''
-                    console.log(`  ${RED}error${RESET} ${e.file}${loc}: ${e.msg}`)
-                }
-            }
+            printGroup(warnings, YELLOW, 'Warnings')
+            printGroup(errors, RED, 'Errors')
         },
 
         exit() {

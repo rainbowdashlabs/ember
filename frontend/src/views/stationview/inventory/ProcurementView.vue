@@ -152,8 +152,7 @@ onMounted(loadData)
     <div class="space-y-6">
       <div class="flex items-center justify-between">
         <SectionHeader>{{ t('procurement.title') }}</SectionHeader>
-        <PrimaryButton @click="openCreateModal">
-          <font-awesome-icon :icon="['fas', 'plus']" class="mr-2" />
+        <PrimaryButton :icon="['fas', 'plus']" @click="openCreateModal">
           {{ t('procurement.create') }}
         </PrimaryButton>
       </div>
@@ -183,8 +182,7 @@ onMounted(loadData)
             </div>
 
             <div class="flex items-center gap-2 shrink-0">
-              <PrimaryButton v-if="!entry.fulfilledAt" @click="fulfillEntry(entry.id)">
-                <font-awesome-icon :icon="['fas', 'check']" class="mr-1" />
+              <PrimaryButton :icon="['fas', 'check']" v-if="!entry.fulfilledAt" @click="fulfillEntry(entry.id)">
                 {{ t('procurement.markFulfilled') }}
               </PrimaryButton>
               <DeleteButton @click="deleteEntry(entry.id)" />

@@ -60,12 +60,10 @@ const {t} = useI18n()
         </NeutralContainer>
       </div>
       <div class="flex flex-wrap gap-2">
-        <PrimaryButton>
-          <font-awesome-icon :icon="['fas', 'check']" class="mr-1" />
+        <PrimaryButton :icon="['fas', 'check']">
           {{ t('helpCenter.inventoryLendingRequest.dummyMarkLent') }}
         </PrimaryButton>
-        <SecondaryButton>
-          <font-awesome-icon :icon="['fas', 'rotate-left']" class="mr-1" />
+        <SecondaryButton :icon="['fas', 'rotate-left']">
           {{ t('helpCenter.inventoryLendingRequest.dummyMarkReturned') }}
         </SecondaryButton>
       </div>

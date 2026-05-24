@@ -96,10 +96,10 @@ function selectResult(result: SearchResult) {
     </div>
 
     <div class="flex items-center gap-2">
-      <PrimaryButton class="!text-xs !py-1 !px-2" :disabled="!linkUrl" @click="$emit('apply', linkUrl, linkText)">
+      <PrimaryButton compact :disabled="!linkUrl" @click="$emit('apply', linkUrl, linkText)">
         <font-awesome-icon :icon="['fas', 'check']" class="mr-1" /> Einfügen
       </PrimaryButton>
-      <SecondaryButton class="!text-xs !py-1 !px-2" @click="$emit('cancel')">Abbrechen</SecondaryButton>
+      <SecondaryButton compact @click="$emit('cancel')">Abbrechen</SecondaryButton>
       <button v-if="isEditing" type="button" class="text-xs text-red-500 hover:underline cursor-pointer ml-auto" @click="$emit('remove')">
         <font-awesome-icon :icon="['fas', 'link-slash']" class="mr-0.5" /> Entfernen
       </button>

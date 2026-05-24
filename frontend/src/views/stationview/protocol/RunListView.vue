@@ -106,7 +106,7 @@ onMounted(() => { if (loaded.value) loadData() })
       <NeutralContainer
         v-for="run in runs"
         :key="run.id"
-        class="flex items-center gap-3 cursor-pointer hover:border-[var(--primary)] transition-colors"
+        class="flex items-center gap-2 cursor-pointer hover:border-[var(--primary)] transition-colors"
         @click="router.push({ name: 'protocol-run-detail', params: { id: run.id } })"
       >
         <div class="flex-1 min-w-0">
@@ -120,7 +120,7 @@ onMounted(() => { if (loaded.value) loadData() })
 
     <!-- Create Run Modal -->
     <Modal v-model="showCreateModal">
-      <SubHeader class="font-semibold mb-3">{{ t('protocol.createRun') }}</SubHeader>
+      <SubHeader class="mb-3">{{ t('protocol.createRun') }}</SubHeader>
       <form @submit.prevent="handleCreate" class="space-y-3">
         <div>
           <FieldLabel class="mb-1">{{ t('protocol.selectProtocol') }}</FieldLabel>
@@ -135,10 +135,10 @@ onMounted(() => { if (loaded.value) loadData() })
         <div>
           <FieldLabel class="mb-1">{{ t('protocol.selectMembers') }}</FieldLabel>
           <div class="max-h-40 overflow-y-auto border border-[var(--border)] rounded p-2 space-y-1">
-            <label v-for="m in members" :key="m.id" class="flex items-center gap-2 text-sm cursor-pointer">
+            <FieldLabel inline v-for="m in members" :key="m.id" class="cursor-pointer">
               <ToggleInput :model-value="selectedMemberIds.includes(m.id)" @update:model-value="toggleMember(m.id)" />
               {{ m.name || m.email || `#${m.id}` }}
-            </label>
+            </FieldLabel>
           </div>
         </div>
 

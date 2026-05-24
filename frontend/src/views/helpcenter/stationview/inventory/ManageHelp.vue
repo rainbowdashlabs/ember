@@ -13,6 +13,7 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import EditButton from '@/components/button/EditButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
+import MutedText from '@/components/typography/MutedText.vue'
 
 const {t} = useI18n()
 </script>
@@ -33,17 +34,16 @@ const {t} = useI18n()
     <div class="space-y-3">
       <div class="flex items-center justify-between">
         <SectionHeader>{{ t('inventory.manage.title') }}</SectionHeader>
-        <PrimaryButton>
-          <font-awesome-icon :icon="['fas', 'plus']" class="mr-2" />
+        <PrimaryButton :icon="['fas', 'plus']">
           {{ t('inventory.manage.create') }}
         </PrimaryButton>
       </div>
 
-      <NeutralContainer class="cursor-pointer hover:ring-1 hover:ring-primary/30 transition-all">
+      <NeutralContainer clickable>
         <div class="flex items-center justify-between">
           <div>
             <span class="font-medium">Helme</span>
-            <span class="ml-2 text-xs text-(--text-muted)">{{ t('inventory.manage.type.INTERNAL') }}</span>
+            <MutedText class="ml-2">{{ t('inventory.manage.type.INTERNAL') }}</MutedText>
             <span class="ml-2 text-xs text-secondary-accent dark:text-secondary">{{ t('inventory.manage.withSizes') }}</span>
           </div>
           <div class="flex items-center gap-2">
@@ -51,34 +51,34 @@ const {t} = useI18n()
             <DeleteButton />
           </div>
         </div>
-        <div class="text-xs text-(--text-muted) mt-1">
+        <MutedText tag="div" class="mt-1">
           {{ t('inventory.manage.itemCount', { count: 24 }) }}
           &middot; <span class="text-error">{{ t('inventory.manage.lostCount', { count: 1 }) }}</span>
-        </div>
+        </MutedText>
       </NeutralContainer>
 
-      <NeutralContainer class="cursor-pointer hover:ring-1 hover:ring-primary/30 transition-all">
+      <NeutralContainer clickable>
         <div class="flex items-center justify-between">
           <div>
             <span class="font-medium">Jacken</span>
-            <span class="ml-2 text-xs text-(--text-muted)">{{ t('inventory.manage.type.EXTERNAL') }}</span>
+            <MutedText class="ml-2">{{ t('inventory.manage.type.EXTERNAL') }}</MutedText>
           </div>
           <div class="flex items-center gap-2">
             <EditButton />
             <DeleteButton />
           </div>
         </div>
-        <div class="text-xs text-(--text-muted) mt-1">
+        <MutedText tag="div" class="mt-1">
           {{ t('inventory.manage.itemCount', { count: 18 }) }}
           &middot; <span class="text-info-accent dark:text-info">{{ t('inventory.manage.procurementCount', { count: 2 }) }}</span>
-        </div>
+        </MutedText>
       </NeutralContainer>
 
-      <NeutralContainer class="cursor-pointer hover:ring-1 hover:ring-primary/30 transition-all">
+      <NeutralContainer clickable>
         <div class="flex items-center justify-between">
           <div>
             <span class="font-medium">Stiefel</span>
-            <span class="ml-2 text-xs text-(--text-muted)">{{ t('inventory.manage.type.MIXED') }}</span>
+            <MutedText class="ml-2">{{ t('inventory.manage.type.MIXED') }}</MutedText>
             <span class="ml-2 text-xs text-secondary-accent dark:text-secondary">{{ t('inventory.manage.withSizes') }}</span>
           </div>
           <div class="flex items-center gap-2">
@@ -86,9 +86,9 @@ const {t} = useI18n()
             <DeleteButton />
           </div>
         </div>
-        <div class="text-xs text-(--text-muted) mt-1">
+        <MutedText tag="div" class="mt-1">
           {{ t('inventory.manage.itemCount', { count: 30 }) }}
-        </div>
+        </MutedText>
       </NeutralContainer>
     </div>
 

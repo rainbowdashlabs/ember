@@ -313,8 +313,7 @@ onMounted(loadFields)
         <NeutralContainer v-if="activeTab !== 'GROUP' || selectedGroupId" class="space-y-4">
           <div class="flex items-center justify-between">
             <SectionHeader>{{ t('membersConfig.fields') }}</SectionHeader>
-            <PrimaryButton @click="openAddField">
-              <font-awesome-icon :icon="['fas', 'plus']" class="mr-2"/>
+            <PrimaryButton :icon="['fas', 'plus']" @click="openAddField">
               {{ t('membersConfig.addField') }}
             </PrimaryButton>
           </div>
@@ -331,9 +330,8 @@ onMounted(loadFields)
             <div class="space-y-2">
               <FieldLabel>{{ t('membersConfig.templates') }}</FieldLabel>
               <div class="flex flex-wrap gap-2">
-                <SecondaryButton v-for="tpl in fieldTemplates" :key="tpl.name"
+                <SecondaryButton :icon="['fas', tpl.icon]" v-for="tpl in fieldTemplates" :key="tpl.name"
                                  @click="applyTemplate(tpl)">
-                  <font-awesome-icon :icon="['fas', tpl.icon]" class="mr-1"/>
                   {{ tpl.name }}
                 </SecondaryButton>
               </div>
@@ -352,11 +350,10 @@ onMounted(loadFields)
 
           <!-- Templates when fields exist -->
           <div v-if="currentFields.length > 0" class="pt-2 border-t border-bg-light-accent dark:border-bg-dark-accent">
-            <label class="block text-xs font-medium text-(--text-muted) mb-2">{{ t('membersConfig.templates') }}</label>
+            <FieldLabel hint class="mb-2">{{ t('membersConfig.templates') }}</FieldLabel>
             <div class="flex flex-wrap gap-2">
-              <SecondaryButton v-for="tpl in fieldTemplates" :key="tpl.name"
+              <SecondaryButton :icon="['fas', tpl.icon]" v-for="tpl in fieldTemplates" :key="tpl.name"
                                @click="applyTemplate(tpl)">
-                <font-awesome-icon :icon="['fas', tpl.icon]" class="mr-1"/>
                 {{ tpl.name }}
               </SecondaryButton>
             </div>

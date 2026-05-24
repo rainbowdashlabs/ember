@@ -59,12 +59,10 @@ function entryFullName(item: WaitingListEntryWithScore): string {
             {{ t('waitingList.attendanceCount') }}: <span class="font-mono font-medium" :class="{ 'text-success': item.entry.attendanceCount >= attendanceThreshold }">{{ item.entry.attendanceCount }} / {{ attendanceThreshold }}</span>
           </span>
           <div class="flex items-center gap-1">
-            <SuccessButton @click="emit('moveToJoined', item.entry.id)">
-              <font-awesome-icon :icon="['fas', 'check']" class="mr-1" />
+            <SuccessButton :icon="['fas', 'check']" @click="emit('moveToJoined', item.entry.id)">
               {{ t('waitingList.join') }}
             </SuccessButton>
-            <ErrorButton @click="emit('withdraw', item.entry.id)">
-              <font-awesome-icon :icon="['fas', 'xmark']" class="mr-1" />
+            <ErrorButton :icon="['fas', 'xmark']" @click="emit('withdraw', item.entry.id)">
               {{ t('waitingList.withdraw') }}
             </ErrorButton>
           </div>

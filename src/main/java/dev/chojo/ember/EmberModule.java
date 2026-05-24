@@ -56,6 +56,7 @@ import dev.chojo.ember.feature.notifications.route.NotificationRoutes;
 import dev.chojo.ember.feature.protocol.route.TestProtocolRoutes;
 import dev.chojo.ember.feature.quiz.route.AiRoutes;
 import dev.chojo.ember.feature.quiz.route.QuizRoutes;
+import dev.chojo.ember.feature.station.route.DiscoveryRoutes;
 import dev.chojo.ember.feature.station.route.StationApplicationRoutes;
 import dev.chojo.ember.feature.station.route.StationManageRoutes;
 import dev.chojo.ember.feature.station.route.StationRoutes;
@@ -137,6 +138,7 @@ public class EmberModule extends AbstractModule {
         routesBinder.addBinding().to(FederationRoutes.class);
         routesBinder.addBinding().to(FederationRemoteRoutes.class);
         routesBinder.addBinding().to(LendingRoutes.class);
+        routesBinder.addBinding().to(DiscoveryRoutes.class);
     }
 
     @Provides

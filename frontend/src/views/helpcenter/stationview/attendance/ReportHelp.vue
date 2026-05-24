@@ -13,6 +13,10 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
+import THead from '@/components/table/THead.vue'
+import TRow from '@/components/table/TRow.vue'
+import Td from '@/components/table/Td.vue'
+import Th from '@/components/table/Th.vue'
 
 const {t} = useI18n()
 </script>
@@ -52,13 +56,11 @@ const {t} = useI18n()
           </div>
         </div>
       </div>
-      <div class="flex items-center gap-3 flex-wrap">
-        <PrimaryButton>
-          <font-awesome-icon :icon="['fas', 'eye']" class="mr-1"/>
+      <div class="flex items-center gap-2 flex-wrap">
+        <PrimaryButton :icon="['fas', 'eye']">
           {{ t('attendanceReport.preview') }}
         </PrimaryButton>
-        <SecondaryButton>
-          <font-awesome-icon :icon="['fas', 'copy']" class="mr-1"/>
+        <SecondaryButton :icon="['fas', 'copy']">
           {{ t('attendanceReport.savePreset') }}
         </SecondaryButton>
       </div>
@@ -75,34 +77,33 @@ const {t} = useI18n()
       <div class="overflow-x-auto">
         <table class="w-full text-sm">
           <thead>
-          <tr class="border-b border-bg-light-accent dark:border-bg-dark-accent">
+          <THead>
             <th class="text-left py-2 px-3">{{ t('attendanceReport.name') }}</th>
-            <th class="text-center py-2 px-3">{{ t('attendanceReport.sessions') }}</th>
-            <th class="text-center py-2 px-3">{{ t('attendanceReport.present') }}</th>
-            <th class="text-right py-2 px-3">{{ t('attendanceReport.hours') }}</th>
-          </tr>
+            <Th align="center">{{ t('attendanceReport.sessions') }}</th>
+            <Th align="center">{{ t('attendanceReport.present') }}</th>
+            <th class="text-right py-2 px-3">{{ t('attendanceReport.hours') }}</Th>
+          </THead>
           </thead>
           <tbody>
-          <tr class="border-b border-bg-light-accent/50 dark:border-bg-dark-accent/50">
-            <td class="py-2 px-3">Max Mustermann</td>
-            <td class="text-center py-2 px-3">8</td>
-            <td class="text-center py-2 px-3">7</td>
-            <td class="text-right py-2 px-3 font-mono">14.0</td>
-          </tr>
-          <tr class="border-b border-bg-light-accent/50 dark:border-bg-dark-accent/50">
-            <td class="py-2 px-3">Erika Muster</td>
-            <td class="text-center py-2 px-3">8</td>
-            <td class="text-center py-2 px-3">6</td>
-            <td class="text-right py-2 px-3 font-mono">12.5</td>
-          </tr>
+          <TRow>
+            <Td>Max Mustermann</Td>
+            <Td align="center">8</Td>
+            <Td align="center">7</Td>
+            <Td align="right" class="font-mono">14.0</Td>
+          </TRow>
+          <TRow>
+            <Td>Erika Muster</Td>
+            <Td align="center">8</Td>
+            <Td align="center">6</Td>
+            <Td align="right" class="font-mono">12.5</Td>
+          </TRow>
           </tbody>
         </table>
       </div>
     </NeutralContainer>
 
     <div class="flex justify-end">
-      <PrimaryButton>
-        <font-awesome-icon :icon="['fas', 'download']" class="mr-1"/>
+      <PrimaryButton :icon="['fas', 'download']">
         {{ t('attendanceReport.exportPdf') }}
       </PrimaryButton>
     </div>

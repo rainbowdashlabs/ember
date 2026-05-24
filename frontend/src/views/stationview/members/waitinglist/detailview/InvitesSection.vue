@@ -40,8 +40,7 @@ function formatDateTime(dateStr: string | undefined | null): string {
   <NeutralContainer class="space-y-4">
     <div class="flex items-center justify-between">
       <SubHeader>{{ t('waitingList.invites') }}</SubHeader>
-      <PrimaryButton @click="emit('createInvite')">
-        <font-awesome-icon :icon="['fas', 'plus']" class="mr-2" />
+      <PrimaryButton :icon="['fas', 'plus']" @click="emit('createInvite')">
         {{ t('waitingList.createInvite') }}
       </PrimaryButton>
     </div>

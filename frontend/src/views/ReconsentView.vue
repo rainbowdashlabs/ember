@@ -99,7 +99,7 @@ async function handleAccept() {
       <template v-if="changes && !loading">
         <!-- Privacy policy changes -->
         <NeutralContainer v-if="changes.privacyChanged" class="space-y-3">
-          <SubHeader class="font-semibold">{{ t('reconsent.privacyChanged') }}</SubHeader>
+          <SubHeader>{{ t('reconsent.privacyChanged') }}</SubHeader>
 
           <template v-if="changes.privacyDiff">
             <div class="text-xs text-(--text-muted) mb-1">{{ t('reconsent.whatChanged') }}</div>
@@ -121,7 +121,7 @@ async function handleAccept() {
 
         <!-- ToS changes -->
         <NeutralContainer v-if="changes.tosChanged" class="space-y-3">
-          <SubHeader class="font-semibold">{{ t('reconsent.tosChanged') }}</SubHeader>
+          <SubHeader>{{ t('reconsent.tosChanged') }}</SubHeader>
 
           <template v-if="changes.tosDiff">
             <div class="text-xs text-(--text-muted) mb-1">{{ t('reconsent.whatChanged') }}</div>

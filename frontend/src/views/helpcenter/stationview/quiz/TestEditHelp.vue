@@ -28,11 +28,11 @@ const { t } = useI18n()
     <!-- Dummy: Basic test settings -->
     <NeutralContainer class="space-y-3">
       <TextInput model-value="Jugendflamme Stufe 1 — Theorieteil" disabled :placeholder="t('helpCenter.quizTestEdit.nameLabel')" />
-      <div class="flex items-center gap-3 text-sm">
+      <div class="flex items-center gap-2 text-xs">
         <ToggleInput :model-value="true" disabled />
         <span>{{ t('helpCenter.quizTestEdit.shuffleLabel') }}</span>
       </div>
-      <div class="flex items-center gap-3 text-sm">
+      <div class="flex items-center gap-2 text-xs">
         <ToggleInput :model-value="false" disabled />
         <span>{{ t('helpCenter.quizTestEdit.timeLimitLabel') }}</span>
       </div>

@@ -231,7 +231,7 @@ defineExpose({
 <template>
     <!-- Create Folder Modal -->
     <Modal v-model="showCreateFolderModal">
-        <SubHeader class="text-lg font-semibold mb-3">{{ t('kb.newFolder') }}</SubHeader>
+        <SubHeader class="mb-3">{{ t('kb.newFolder') }}</SubHeader>
         <form @submit.prevent="handleCreateFolder" class="flex flex-col gap-3">
             <TextInput v-model="newFolderName" :placeholder="t('kb.folderName')" required/>
             <TextAreaInput v-model="newFolderDescription" :placeholder="t('kb.description')"/>
@@ -241,7 +241,7 @@ defineExpose({
 
     <!-- Create File Modal -->
     <Modal v-model="showCreateFileModal">
-        <SubHeader class="text-lg font-semibold mb-3">{{ t('kb.newFile') }}</SubHeader>
+        <SubHeader class="mb-3">{{ t('kb.newFile') }}</SubHeader>
         <form @submit.prevent="handleCreateFile" class="flex flex-col gap-3">
             <TextInput v-model="newFileName" :placeholder="t('kb.fileName')" required/>
             <TextAreaInput v-model="newFileDescription" :placeholder="t('kb.description')"/>
@@ -251,7 +251,7 @@ defineExpose({
 
     <!-- Upload File Modal -->
     <Modal v-model="showUploadModal">
-        <SubHeader class="text-lg font-semibold mb-3">{{ t('kb.uploadFile') }}</SubHeader>
+        <SubHeader class="mb-3">{{ t('kb.uploadFile') }}</SubHeader>
         <form @submit.prevent="handleUploadFile" class="flex flex-col gap-3">
             <input
                 type="file"
@@ -266,7 +266,7 @@ defineExpose({
 
     <!-- Import Document Modal -->
     <Modal v-model="showImportModal">
-        <SubHeader class="text-lg font-semibold mb-3">{{ t('kb.importDocument') }}</SubHeader>
+        <SubHeader class="mb-3">{{ t('kb.importDocument') }}</SubHeader>
         <p class="text-sm text-[var(--text-muted)] mb-3">{{ t('kb.importDocumentHint') }}</p>
         <form @submit.prevent="handleImportDocument" class="flex flex-col gap-3">
             <input type="file" accept=".docx,.odt,.rtf,.html,.htm,.epub,.tex" @change="onImportFileSelect" />
@@ -281,7 +281,7 @@ defineExpose({
 
     <!-- YouTube Modal -->
     <Modal v-model="showYoutubeModal">
-        <SubHeader class="text-lg font-semibold mb-3">{{ t('kb.addYoutube') }}</SubHeader>
+        <SubHeader class="mb-3">{{ t('kb.addYoutube') }}</SubHeader>
         <form @submit.prevent="handleCreateYoutube" class="flex flex-col gap-3">
             <TextInput v-model="youtubeName" :placeholder="t('kb.fileName')" required/>
             <TextInput v-model="youtubeUrl" :placeholder="t('kb.youtubeUrl')" required/>
@@ -292,7 +292,7 @@ defineExpose({
 
     <!-- Link Modal -->
     <Modal v-model="showLinkModal">
-        <SubHeader class="text-lg font-semibold mb-3">{{ t('kb.addLink') }}</SubHeader>
+        <SubHeader class="mb-3">{{ t('kb.addLink') }}</SubHeader>
         <form @submit.prevent="handleCreateLink" class="flex flex-col gap-3">
             <TextInput v-model="linkUrl" :placeholder="t('kb.linkUrl')" required/>
             <p class="text-xs text-[var(--text-muted)]">{{ t('kb.linkAutoFetch') }}</p>

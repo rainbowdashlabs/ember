@@ -26,6 +26,8 @@ import {EventTypes, RegistrationStatus, isRecurringEvent} from '@/api/types'
 import {events, managedMembers as managedMembersApi} from '@/api'
 import type {EventRegistrationEntry, RegistrationCount} from '@/api/events'
 import {useSession} from '@/composables/useSession'
+import MutedText from '@/components/typography/MutedText.vue'
+import MutedIcon from '@/components/display/MutedIcon.vue'
 
 const {t} = useI18n()
 const router = useRouter()
@@ -328,14 +330,13 @@ watch(loaded, (isLoaded) => {
             <PrimaryContainer v-for="ev in filteredTodayEvents" :key="ev.id" class="space-y-2">
               <div class="flex items-center justify-between">
                 <router-link :to="{ name: 'event-detail', params: { id: ev.id } }" class="font-semibold text-primary hover:underline">{{ ev.name }}</router-link>
-                <font-awesome-icon v-if="ev.restricted" :icon="['fas', 'lock']" class="ml-1 h-3 w-3 text-[var(--text-muted)]"/>
+                <MutedIcon v-if="ev.restricted" :icon="['fas', 'lock']" class="ml-1"/>
                 <span class="text-sm">{{ formatTime(ev.startTime) }} – {{ formatTime(ev.endTime) }}</span>
               </div>
               <p v-if="ev.description" class="text-sm text-(--text-muted)">{{ ev.description }}</p>
               <div class="flex gap-2">
-                <PrimaryButton v-if="ev.templateId && canManageAttendance()"
+                <PrimaryButton :icon="['fas', 'clipboard-user']" v-if="ev.templateId && canManageAttendance()"
                                @click="goToAttendance(ev)">
-                  <font-awesome-icon :icon="['fas', 'clipboard-user']" class="mr-1"/>
                   {{ t('eventsUpcoming.attendance') }}
                 </PrimaryButton>
               </div>
@@ -353,15 +354,15 @@ watch(loaded, (isLoaded) => {
               <div class="flex items-center justify-between flex-wrap gap-2">
                 <div>
                   <router-link :to="{ name: 'event-detail', params: { id: item.event.id } }" class="font-medium text-primary hover:underline">{{ item.event.name }}</router-link>
-                  <font-awesome-icon v-if="item.event.restricted" :icon="['fas', 'lock']" class="ml-1 h-3 w-3 text-[var(--text-muted)]"/>
-                  <span class="ml-2 text-sm text-(--text-muted)">{{ item.dayLabel }}, {{ item.date }}</span>
-                  <span class="ml-2 text-xs text-(--text-muted)">{{
+                  <MutedIcon v-if="item.event.restricted" :icon="['fas', 'lock']" class="ml-1"/>
+                  <MutedText size="sm" class="ml-2">{{ item.dayLabel }}, {{ item.date }}</MutedText>
+                  <MutedText class="ml-2">{{
                       formatTime(item.event.startTime)
-                    }} – {{ formatTime(item.event.endTime) }}</span>
-                  <span v-if="item.event.requiresRegistration && item.event.registrationDeadline"
+                    }} – {{ formatTime(item.event.endTime) }}</MutedText>
+                  <MutedText v-if="item.event.requiresRegistration && item.event.registrationDeadline"
                         class="ml-2 text-xs text-(--text-muted)">
                     ({{ t('eventsUpcoming.deadline') }}: {{ formatDeadline(item.event.registrationDeadline) }})
-                  </span>
+                  </MutedText>
                   <p v-if="item.event.description" class="text-sm text-(--text-muted) mt-0.5">{{ item.event.description }}</p>
                 </div>
                 <!-- Registration counts -->

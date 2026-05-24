@@ -39,8 +39,7 @@ const tabs = [
         <p class="text-(--text-muted) text-sm">{{ t('forms.analytics.totalResponses') }}: 12</p>
       </div>
       <div class="flex gap-2">
-        <SecondaryButton disabled>
-          <font-awesome-icon :icon="['fas', 'file-export']" class="mr-1"/>
+        <SecondaryButton :icon="['fas', 'file-export']" disabled>
           {{ t('forms.analytics.export') }}
         </SecondaryButton>
         <SecondaryButton disabled>{{ t('common.back') }}</SecondaryButton>

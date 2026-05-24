@@ -50,8 +50,7 @@ const {t} = useI18n()
             <Td class="font-medium text-(--text-muted)">Jan Müller</Td>
             <Td muted>jan@example.com</Td>
             <Td align="right">
-              <PrimaryButton>
-                <font-awesome-icon :icon="['fas', 'user-check']" class="mr-1"/>
+              <PrimaryButton :icon="['fas', 'user-check']">
                 {{ t('formerMembers.reactivate') }}
               </PrimaryButton>
             </Td>
@@ -60,8 +59,7 @@ const {t} = useI18n()
             <Td class="font-medium text-(--text-muted)">Sara Klein</Td>
             <Td muted>sara@example.com</Td>
             <Td align="right">
-              <PrimaryButton>
-                <font-awesome-icon :icon="['fas', 'user-check']" class="mr-1"/>
+              <PrimaryButton :icon="['fas', 'user-check']">
                 {{ t('formerMembers.reactivate') }}
               </PrimaryButton>
             </Td>

@@ -25,6 +25,7 @@ import { quiz } from '@/api'
 import { useSession } from '@/composables/useSession'
 import { useBreakpoint } from '@/composables/useBreakpoint'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
+import MutedIcon from '@/components/display/MutedIcon.vue'
 
 const { t } = useI18n()
 const router = useRouter()
@@ -111,8 +112,7 @@ watch(loaded, (isLoaded) => {
       <template v-if="!loading">
         <div class="flex items-center justify-between">
           <SectionHeader>{{ t('quiz.tests.title') }}</SectionHeader>
-          <PrimaryButton v-if="canManageQuiz()" @click="router.push({ name: 'quiz-test-create' })">
-            <font-awesome-icon :icon="['fas', 'plus']" class="mr-1" />
+          <PrimaryButton :icon="['fas', 'plus']" v-if="canManageQuiz()" @click="router.push({ name: 'quiz-test-create' })">
             {{ t('quiz.tests.create') }}
           </PrimaryButton>
         </div>
@@ -130,7 +130,7 @@ watch(loaded, (isLoaded) => {
             <div class="space-y-2">
               <div class="flex items-center justify-between">
                 <span class="font-medium">{{ test.title }}</span>
-                <font-awesome-icon v-if="test.restricted" :icon="['fas', 'lock']" class="ml-1 h-3 w-3 text-[var(--text-muted)]"/>
+                <MutedIcon v-if="test.restricted" :icon="['fas', 'lock']" class="ml-1"/>
                 <SuccessBadge v-if="test.status === QuizTestStatus.ACTIVE">{{ t('quiz.tests.statusActive') }}</SuccessBadge>
                 <ErrorBadge v-else-if="test.status === QuizTestStatus.CLOSED">{{ t('quiz.tests.statusClosed') }}</ErrorBadge>
                 <SecondaryBadge v-else>{{ t('quiz.tests.statusDraft') }}</SecondaryBadge>
@@ -170,7 +170,7 @@ watch(loaded, (isLoaded) => {
               <div class="flex-1 space-y-1">
                 <div class="flex items-center gap-2 flex-wrap">
                   <span class="font-medium">{{ test.title }}</span>
-                  <font-awesome-icon v-if="test.restricted" :icon="['fas', 'lock']" class="ml-1 h-3 w-3 text-[var(--text-muted)]"/>
+                  <MutedIcon v-if="test.restricted" :icon="['fas', 'lock']" class="ml-1"/>
                   <SuccessBadge v-if="test.status === QuizTestStatus.ACTIVE">{{ t('quiz.tests.statusActive') }}</SuccessBadge>
                   <ErrorBadge v-else-if="test.status === QuizTestStatus.CLOSED">{{ t('quiz.tests.statusClosed') }}</ErrorBadge>
                   <SecondaryBadge v-else>{{ t('quiz.tests.statusDraft') }}</SecondaryBadge>

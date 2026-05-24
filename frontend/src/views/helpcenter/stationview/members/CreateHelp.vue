@@ -70,8 +70,7 @@ const {t} = useI18n()
     <!-- Dummy: Link to import -->
     <NeutralContainer class="flex items-center justify-between">
       <p class="text-sm">{{ t('memberImport.linkFromCreate') }}</p>
-      <SecondaryButton>
-        <font-awesome-icon :icon="['fas', 'upload']" class="mr-1"/>
+      <SecondaryButton :icon="['fas', 'upload']">
         {{ t('memberImport.linkFromCreate') }}
       </SecondaryButton>
     </NeutralContainer>
