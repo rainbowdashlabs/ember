@@ -246,8 +246,8 @@ public class EventService {
      * @param position the new position
      * @return true if the category was updated
      */
-    public boolean updateCategory(int id, String name, int position) {
-        return eventRepository.updateCategory(id, name, position);
+    public boolean updateCategory(int id, String name, int position, Integer maxShownEvents) {
+        return eventRepository.updateCategory(id, name, position, maxShownEvents);
     }
 
     /**

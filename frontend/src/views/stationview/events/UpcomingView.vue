@@ -21,13 +21,15 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
-import type {EventBreak, StationEvent, StationMember} from '@/api/types'
+import EventFilterBar from './upcomingview/EventFilterBar.vue'
+import type {EventBreak, EventCategory, EventField, StationEvent, StationMember} from '@/api/types'
 import {EventTypes, RegistrationStatus, isRecurringEvent} from '@/api/types'
 import {events, managedMembers as managedMembersApi} from '@/api'
 import type {EventRegistrationEntry, RegistrationCount} from '@/api/events'
 import {useSession} from '@/composables/useSession'
 import MutedText from '@/components/typography/MutedText.vue'
 import MutedIcon from '@/components/display/MutedIcon.vue'
+import EventFieldValue from '@/components/display/EventFieldValue.vue'
 
 const {t} = useI18n()
 const router = useRouter()
@@ -42,6 +44,11 @@ const myRegistrations = ref<EventRegistrationEntry[]>([])
 const eligibleMembers = ref<Record<number, number[]>>({})
 const managedMembers = ref<StationMember[]>([])
 const registrationCounts = ref<RegistrationCount[]>([])
+const overviewFields = ref<Record<number, EventField[]>>({})
+const categories = ref<EventCategory[]>([])
+const selectedCategoryId = ref('')
+const searchQuery = ref('')
+const showNeedsAction = ref(false)
 const loading = ref(true)
 const error = ref('')
 const registering = ref<string | null>(null)
@@ -64,14 +71,34 @@ function isEventRelevant(eventId: number): boolean {
   return eligible.length > 0
 }
 
+const pad2 = (n: number) => String(n).padStart(2, '0')
+
 function formatTime(iso?: string): string {
   if (!iso) return ''
   const d = new Date(iso)
-  const pad = (n: number) => String(n).padStart(2, '0')
-  return `${pad(d.getHours())}:${pad(d.getMinutes())}`
+  return `${pad2(d.getHours())}:${pad2(d.getMinutes())}`
 }
 
-const filteredTodayEvents = computed(() => todayEvents.value.filter(ev => isEventRelevant(ev.id)))
+function matchesFilter(ev: StationEvent): boolean {
+  if (selectedCategoryId.value && String(ev.categoryId) !== selectedCategoryId.value) return false
+  if (showNeedsAction.value) {
+    if (!ev.requiresRegistration) return false
+    const relevantIds = [currentMemberId.value, ...managedMembers.value.map(m => m.id)]
+    const allRegistered = relevantIds.every(mid =>
+        myRegistrations.value.some(r => r.eventId === ev.id && r.memberId === mid))
+    if (allRegistered) return false
+  }
+  if (searchQuery.value) {
+    const q = searchQuery.value.toLowerCase()
+    if (!ev.name?.toLowerCase().includes(q) && !ev.description?.toLowerCase().includes(q)
+        && !overviewFields.value[ev.id]?.some(f => f.name?.toLowerCase().includes(q) || f.value?.toLowerCase().includes(q)))
+      return false
+  }
+  return true
+}
+
+const filteredTodayEvents = computed(() =>
+    todayEvents.value.filter(ev => isEventRelevant(ev.id) && matchesFilter(ev)))
 
 const upcomingEvents = computed((): UpcomingEvent[] => {
   const today = new Date()
@@ -81,7 +108,7 @@ const upcomingEvents = computed((): UpcomingEvent[] => {
 
   // All future one-time events
   for (const ev of allEvents.value) {
-    if (!isEventRelevant(ev.id)) continue
+    if (!isEventRelevant(ev.id) || !matchesFilter(ev)) continue
     if (ev.eventType === EventTypes.ONE_TIME && ev.startTime) {
       const eventDateStr = new Date(ev.startTime).toISOString().slice(0, 10)
       if (eventDateStr >= todayStr) {
@@ -106,7 +133,7 @@ const upcomingEvents = computed((): UpcomingEvent[] => {
 
     for (const ev of allEvents.value) {
       if (!isRecurringEvent(ev.eventType)) continue
-      if (!isEventRelevant(ev.id)) continue
+      if (!isEventRelevant(ev.id) || !matchesFilter(ev)) continue
       if (!ev.dayOfWeek || ev.dayOfWeek !== dow) continue
 
       if (ev.eventType === EventTypes.RECURRING) {
@@ -157,22 +184,14 @@ function getEligibleMembers(eventId: number): { id: number; name: string }[] {
   return result
 }
 
-function getRegistrationSummary(eventId: number, date: string): {
-  accepted: number;
-  pending: number;
-  declined: number
-} {
+function getRegistrationSummary(eventId: number, date: string) {
   const counts = registrationCounts.value.filter(c => c.eventId === eventId && c.eventDate === date)
-  return {
-    accepted: counts.find(c => c.status === RegistrationStatus.ACCEPTED)?.count ?? 0,
-    pending: counts.find(c => c.status === RegistrationStatus.PENDING)?.count ?? 0,
-    declined: counts.find(c => c.status === RegistrationStatus.DECLINED)?.count ?? 0,
-  }
+  const accepted = counts.find(c => c.status === RegistrationStatus.ACCEPTED)?.count ?? 0
+  const pending = counts.find(c => c.status === RegistrationStatus.PENDING)?.count ?? 0
+  const declined = counts.find(c => c.status === RegistrationStatus.DECLINED)?.count ?? 0
+  return {accepted, pending, declined, total: accepted + pending + declined}
 }
 
-/**
- * Members who have no registration at all (can register or decline).
- */
 function getMembersWithoutRegistration(eventId: number, date: string): { id: number; name: string }[] {
   return getEligibleMembers(eventId).filter(m => !getRegistration(eventId, date, m.id))
 }
@@ -187,21 +206,22 @@ function getSelectedMemberId(eventId: number, date: string): number | null {
 
 function formatDeadline(iso: string): string {
   const d = new Date(iso)
-  const pad = (n: number) => String(n).padStart(2, '0')
-  return `${pad(d.getDate())}.${pad(d.getMonth() + 1)}.${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`
+  return `${pad2(d.getDate())}.${pad2(d.getMonth() + 1)}.${d.getFullYear()} ${pad2(d.getHours())}:${pad2(d.getMinutes())}`
 }
 
 async function loadData() {
   loading.value = true
   error.value = ''
   try {
-    const [ev, today, br, regs, elig, counts] = await Promise.all([
+    const [ev, today, br, regs, elig, counts, ovFields, cats] = await Promise.all([
       events.listEvents(),
       events.listTodayEvents(),
       events.listBreaks(),
       events.listMyRegistrations(),
       events.listEligibleMembers(),
       events.listRegistrationCounts(),
+      events.getOverviewFields(),
+      events.listCategories(),
     ])
     allEvents.value = ev
     todayEvents.value = today
@@ -209,6 +229,8 @@ async function loadData() {
     myRegistrations.value = regs
     eligibleMembers.value = elig
     registrationCounts.value = counts
+    overviewFields.value = ovFields
+    categories.value = cats
 
     if (isGuardian()) {
       const managed = await managedMembersApi.listManaged()
@@ -323,6 +345,14 @@ watch(loaded, (isLoaded) => {
       <Alert v-if="error" variant="error">{{ error }}</Alert>
 
       <template v-if="!loading">
+        <!-- Filters -->
+        <EventFilterBar
+            v-model:search="searchQuery"
+            v-model:category-id="selectedCategoryId"
+            v-model:needs-action="showNeedsAction"
+            :categories="categories"
+        />
+
         <!-- Today -->
         <div v-if="filteredTodayEvents.length > 0" class="space-y-3">
           <SectionHeader>{{ t('eventsUpcoming.today') }}</SectionHeader>
@@ -334,6 +364,12 @@ watch(loaded, (isLoaded) => {
                 <span class="text-sm">{{ formatTime(ev.startTime) }} – {{ formatTime(ev.endTime) }}</span>
               </div>
               <p v-if="ev.description" class="text-sm text-(--text-muted)">{{ ev.description }}</p>
+              <div v-if="overviewFields[ev.id]?.length" class="flex flex-wrap gap-3 text-xs">
+                <span v-for="f in overviewFields[ev.id]" :key="f.id" class="text-(--text-muted)">
+                  <span class="font-medium">{{ f.name }}:</span>
+                  <EventFieldValue :field-type="f.fieldType" :value="f.value"/>
+                </span>
+              </div>
               <div class="flex gap-2">
                 <PrimaryButton :icon="['fas', 'clipboard-user']" v-if="ev.templateId && canManageAttendance()"
                                @click="goToAttendance(ev)">
@@ -356,32 +392,18 @@ watch(loaded, (isLoaded) => {
                   <router-link :to="{ name: 'event-detail', params: { id: item.event.id } }" class="font-medium text-primary hover:underline">{{ item.event.name }}</router-link>
                   <MutedIcon v-if="item.event.restricted" :icon="['fas', 'lock']" class="ml-1"/>
                   <MutedText size="sm" class="ml-2">{{ item.dayLabel }}, {{ item.date }}</MutedText>
-                  <MutedText class="ml-2">{{
-                      formatTime(item.event.startTime)
-                    }} – {{ formatTime(item.event.endTime) }}</MutedText>
-                  <MutedText v-if="item.event.requiresRegistration && item.event.registrationDeadline"
-                        class="ml-2 text-xs text-(--text-muted)">
-                    ({{ t('eventsUpcoming.deadline') }}: {{ formatDeadline(item.event.registrationDeadline) }})
-                  </MutedText>
+                  <MutedText class="ml-2">{{ formatTime(item.event.startTime) }} – {{ formatTime(item.event.endTime) }}</MutedText>
+                  <MutedText v-if="item.event.requiresRegistration && item.event.registrationDeadline" class="ml-2 text-xs text-(--text-muted)">({{ t('eventsUpcoming.deadline') }}: {{ formatDeadline(item.event.registrationDeadline) }})</MutedText>
                   <p v-if="item.event.description" class="text-sm text-(--text-muted) mt-0.5">{{ item.event.description }}</p>
+                  <div v-if="overviewFields[item.event.id]?.length" class="flex flex-wrap gap-3 text-xs mt-1">
+                    <span v-for="f in overviewFields[item.event.id]" :key="f.id" class="text-(--text-muted)"><span class="font-medium">{{ f.name }}:</span> <EventFieldValue :field-type="f.fieldType" :value="f.value"/></span>
+                  </div>
                 </div>
                 <!-- Registration counts -->
-                <div
-                    v-if="getRegistrationSummary(item.event.id, item.date).accepted > 0 || getRegistrationSummary(item.event.id, item.date).pending > 0 || getRegistrationSummary(item.event.id, item.date).declined > 0"
-                    class="flex items-center gap-2 text-xs">
-                  <SuccessBadge v-if="getRegistrationSummary(item.event.id, item.date).accepted > 0">
-                    {{ getRegistrationSummary(item.event.id, item.date).accepted }} {{ t('eventsUpcoming.accepted') }}
-                  </SuccessBadge>
-                  <InfoBadge v-if="getRegistrationSummary(item.event.id, item.date).pending > 0">
-                    {{ getRegistrationSummary(item.event.id, item.date).pending }} {{
-                      t('eventsUpcoming.pendingCount')
-                    }}
-                  </InfoBadge>
-                  <ErrorBadge v-if="getRegistrationSummary(item.event.id, item.date).declined > 0">
-                    {{ getRegistrationSummary(item.event.id, item.date).declined }} {{
-                      t('eventsUpcoming.declinedCount')
-                    }}
-                  </ErrorBadge>
+                <div v-if="getRegistrationSummary(item.event.id, item.date).total > 0" class="flex items-center gap-2 text-xs">
+                  <SuccessBadge v-if="getRegistrationSummary(item.event.id, item.date).accepted">{{ getRegistrationSummary(item.event.id, item.date).accepted }} {{ t('eventsUpcoming.accepted') }}</SuccessBadge>
+                  <InfoBadge v-if="getRegistrationSummary(item.event.id, item.date).pending">{{ getRegistrationSummary(item.event.id, item.date).pending }} {{ t('eventsUpcoming.pendingCount') }}</InfoBadge>
+                  <ErrorBadge v-if="getRegistrationSummary(item.event.id, item.date).declined">{{ getRegistrationSummary(item.event.id, item.date).declined }} {{ t('eventsUpcoming.declinedCount') }}</ErrorBadge>
                 </div>
               </div>
               <div class="flex items-center gap-2 flex-wrap">

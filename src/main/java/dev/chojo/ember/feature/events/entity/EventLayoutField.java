@@ -7,25 +7,23 @@ package dev.chojo.ember.feature.events.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
 
-public record EventField(
+public record EventLayoutField(
         int id,
-        int eventId,
+        int layoutId,
         String name,
         String fieldType,
         String config,
-        String value,
         int position,
         boolean overview,
         Integer attendanceFieldId) {
 
-    public static RowMapping<EventField> map() {
-        return row -> new EventField(
+    public static RowMapping<EventLayoutField> map() {
+        return row -> new EventLayoutField(
                 row.getInt("id"),
-                row.getInt("event_id"),
+                row.getInt("layout_id"),
                 row.getString("name"),
                 row.getString("field_type"),
                 row.getString("config"),
-                row.getString("value"),
                 row.getInt("position"),
                 row.getBoolean("overview"),
                 row.getObject("attendance_field_id", Integer.class));

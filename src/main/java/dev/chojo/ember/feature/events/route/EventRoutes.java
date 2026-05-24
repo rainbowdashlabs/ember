@@ -16,11 +16,15 @@ import dev.chojo.ember.feature.events.entity.EventBreak;
 import dev.chojo.ember.feature.events.entity.EventCategory;
 import dev.chojo.ember.feature.events.entity.EventField;
 import dev.chojo.ember.feature.events.entity.EventFieldDefault;
+import dev.chojo.ember.feature.events.entity.EventLayoutField;
 import dev.chojo.ember.feature.events.entity.EventRegistration;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventFieldRepository;
+import dev.chojo.ember.feature.events.repository.EventLayoutRepository;
+import dev.chojo.ember.feature.events.service.BatchEventService;
 import dev.chojo.ember.feature.events.service.EventExportService;
 import dev.chojo.ember.feature.events.service.EventFieldService;
+import dev.chojo.ember.feature.events.service.EventLayoutService;
 import dev.chojo.ember.feature.events.service.EventService;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
@@ -49,6 +53,7 @@ import jakarta.inject.Singleton;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -64,6 +69,8 @@ import java.util.Map;
 public class EventRoutes implements Routes {
     private final EventService eventService;
     private final EventFieldService eventFieldService;
+    private final EventLayoutService eventLayoutService;
+    private final BatchEventService batchEventService;
     private final StationMemberService stationMemberService;
     private final NotificationService notificationService;
     private final StationMemberRepository stationMemberRepository;
@@ -75,6 +82,8 @@ public class EventRoutes implements Routes {
     public EventRoutes(
             EventService eventService,
             EventFieldService eventFieldService,
+            EventLayoutService eventLayoutService,
+            BatchEventService batchEventService,
             StationMemberService stationMemberService,
             NotificationService notificationService,
             StationMemberRepository stationMemberRepository,
@@ -83,6 +92,8 @@ public class EventRoutes implements Routes {
             EventExportService eventExportService) {
         this.eventService = eventService;
         this.eventFieldService = eventFieldService;
+        this.eventLayoutService = eventLayoutService;
+        this.batchEventService = batchEventService;
         this.stationMemberService = stationMemberService;
         this.notificationService = notificationService;
         this.stationMemberRepository = stationMemberRepository;
@@ -118,6 +129,22 @@ public class EventRoutes implements Routes {
 
         routes.get(prefix + "/events/restrictions", this::listAllRestrictions, Roles.USER);
         routes.get(prefix + "/events/eligible-members", this::listEligibleMembers, Roles.USER);
+
+        // Overview fields
+        routes.get(prefix + "/events/overview-fields", this::getOverviewFields, Roles.USER);
+
+        // Layouts
+        routes.get(prefix + "/events/layouts", this::listLayouts, Roles.EVENT_MANAGER);
+        routes.post(prefix + "/events/layouts", this::createLayout, Roles.EVENT_MANAGER);
+        routes.get(prefix + "/events/layouts/{id}", this::getLayout, Roles.EVENT_MANAGER);
+        routes.put(prefix + "/events/layouts/{id}", this::updateLayout, Roles.EVENT_MANAGER);
+        routes.delete(prefix + "/events/layouts/{id}", this::deleteLayout, Roles.EVENT_MANAGER);
+        routes.get(prefix + "/events/layouts/{id}/fields", this::getLayoutFields, Roles.EVENT_MANAGER);
+        routes.put(prefix + "/events/layouts/{id}/fields", this::setLayoutFields, Roles.EVENT_MANAGER);
+
+        // Batch creation
+        routes.post(prefix + "/events/batch", this::batchCreate, Roles.EVENT_MANAGER);
+        routes.post(prefix + "/events/batch/generate-dates", this::generateDates, Roles.EVENT_MANAGER);
 
         routes.get(prefix + "/events/{eventId}/registrations", this::listRegistrations, Roles.USER);
         routes.post(prefix + "/events/{eventId}/register", this::register, Roles.USER);
@@ -716,7 +743,7 @@ public class EventRoutes implements Routes {
     private void updateCategory(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
         var req = ctx.bodyAsClass(CategoryRequest.class);
-        if (!eventService.updateCategory(id, req.name(), req.position())) {
+        if (!eventService.updateCategory(id, req.name(), req.position(), req.maxShownEvents())) {
             throw new NotFoundResponse();
         }
         ctx.status(HttpStatus.OK).json(new MessageResponse("Updated"));
@@ -910,9 +937,143 @@ public class EventRoutes implements Routes {
         eventFieldService.replaceFields(
                 id,
                 req.fields().stream()
-                        .map(e -> new EventFieldRepository.FieldEntry(e.name(), e.value() != null ? e.value() : ""))
+                        .map(e -> new EventFieldRepository.FieldEntry(
+                                e.name(),
+                                e.fieldType(),
+                                e.config(),
+                                e.value() != null ? e.value() : "",
+                                e.overview() != null && e.overview(),
+                                e.attendanceFieldId()))
                         .toList());
         ctx.json(eventFieldService.findByEvent(id));
+    }
+
+    // -- Overview Fields --
+
+    private void getOverviewFields(Context ctx) {
+        var session = UserSession.from(ctx);
+        var eventIds = eventService.findByStation(session.stationId()).stream()
+                .map(StationEvent::id)
+                .toList();
+        ctx.json(eventFieldService.findOverviewFieldsByEvents(eventIds));
+    }
+
+    // -- Layouts --
+
+    private void listLayouts(Context ctx) {
+        var session = UserSession.from(ctx);
+        ctx.json(eventLayoutService.findByStation(session.stationId()));
+    }
+
+    private void createLayout(Context ctx) {
+        var session = UserSession.from(ctx);
+        var req = ctx.bodyAsClass(LayoutRequest.class);
+        if (req.name() == null || req.name().isBlank()) {
+            throw new BadRequestResponse("name is required");
+        }
+        ctx.json(eventLayoutService.create(session.stationId(), req.name()));
+    }
+
+    private void getLayout(Context ctx) {
+        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        var layout = eventLayoutService.findById(id).orElseThrow(NotFoundResponse::new);
+        ctx.json(layout);
+    }
+
+    private void updateLayout(Context ctx) {
+        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        var req = ctx.bodyAsClass(LayoutRequest.class);
+        if (!eventLayoutService.update(id, req.name())) {
+            throw new NotFoundResponse();
+        }
+        ctx.json(eventLayoutService.findById(id).orElseThrow());
+    }
+
+    private void deleteLayout(Context ctx) {
+        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        if (!eventLayoutService.delete(id)) {
+            throw new NotFoundResponse();
+        }
+        ctx.status(HttpStatus.NO_CONTENT);
+    }
+
+    private void getLayoutFields(Context ctx) {
+        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        ctx.json(eventLayoutService.findFieldsByLayout(id));
+    }
+
+    private void setLayoutFields(Context ctx) {
+        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        var req = ctx.bodyAsClass(SetLayoutFieldsRequest.class);
+        eventLayoutService.replaceLayoutFields(
+                id,
+                req.fields().stream()
+                        .map(f -> new EventLayoutRepository.LayoutFieldEntry(
+                                f.name(),
+                                f.fieldType(),
+                                f.config(),
+                                f.overview() != null && f.overview(),
+                                f.attendanceFieldId()))
+                        .toList());
+        ctx.json(eventLayoutService.findFieldsByLayout(id));
+    }
+
+    // -- Batch Creation --
+
+    private void generateDates(Context ctx) {
+        var session = UserSession.from(ctx);
+        var req = ctx.bodyAsClass(GenerateDatesRequest.class);
+        var interval = new BatchEventService.IntervalConfig(
+                req.intervalType(),
+                req.dayOfWeek() != null ? req.dayOfWeek() : 1,
+                LocalDate.parse(req.startDate()),
+                LocalDate.parse(req.endDate()),
+                req.startTime() != null ? LocalTime.parse(req.startTime()) : null,
+                req.endTime() != null ? LocalTime.parse(req.endTime()) : null);
+        var rows = batchEventService.generateDates(
+                session.stationId(), interval, req.ignoreBreaks() != null && req.ignoreBreaks());
+        ctx.json(rows);
+    }
+
+    private void batchCreate(Context ctx) {
+        var session = UserSession.from(ctx);
+        var req = ctx.bodyAsClass(BatchCreateRequest.class);
+        if (req.rows() == null || req.rows().isEmpty()) {
+            throw new BadRequestResponse("rows are required");
+        }
+        List<EventLayoutField> inlineFields = req.inlineFields() != null
+                ? req.inlineFields().stream()
+                        .map(f -> new EventLayoutField(
+                                0,
+                                0,
+                                f.name(),
+                                f.fieldType() != null ? f.fieldType() : "string",
+                                f.config() != null ? f.config() : "{}",
+                                0,
+                                f.overview() != null && f.overview(),
+                                f.attendanceFieldId()))
+                        .toList()
+                : null;
+        var batchRows = req.rows().stream()
+                .map(r -> new BatchEventService.BatchRow(
+                        r.name(), r.startTime(), r.endTime(), r.fieldValues() != null ? r.fieldValues() : Map.of()))
+                .toList();
+        var batchReq = new BatchEventService.BatchRequest(
+                req.name(),
+                req.description(),
+                req.templateId(),
+                req.categoryId(),
+                req.layoutId(),
+                inlineFields,
+                batchRows,
+                req.requiresRegistration(),
+                req.requiresConfirmation(),
+                req.registrationDeadline(),
+                req.restrictedRoleIds(),
+                req.restrictedGroupIds(),
+                req.restrictedTagIds());
+        var created = batchEventService.createBatch(session.stationId(), batchReq);
+        ctx.json(created);
     }
 
     @OpenApi(
@@ -1012,7 +1173,7 @@ public class EventRoutes implements Routes {
 
     public record BreakRequest(String name, String startDate, String endDate) {}
 
-    public record CategoryRequest(String name, int position) {}
+    public record CategoryRequest(String name, int position, Integer maxShownEvents) {}
 
     // -- Event Fields (per-event) --
 
@@ -1042,5 +1203,39 @@ public class EventRoutes implements Routes {
     public record SetEventFieldsRequest(List<EventFieldEntry> fields) {}
 
     @OpenApiName("EventFieldEntry")
-    public record EventFieldEntry(String name, String value) {}
+    public record EventFieldEntry(
+            String name, String fieldType, String config, String value, Boolean overview, Integer attendanceFieldId) {}
+
+    public record LayoutRequest(String name) {}
+
+    public record LayoutFieldEntry(
+            String name, String fieldType, String config, Boolean overview, Integer attendanceFieldId) {}
+
+    public record SetLayoutFieldsRequest(List<LayoutFieldEntry> fields) {}
+
+    public record GenerateDatesRequest(
+            String intervalType,
+            Integer dayOfWeek,
+            String startDate,
+            String endDate,
+            String startTime,
+            String endTime,
+            Boolean ignoreBreaks) {}
+
+    public record BatchCreateRequest(
+            String name,
+            String description,
+            Integer templateId,
+            Integer categoryId,
+            Integer layoutId,
+            List<LayoutFieldEntry> inlineFields,
+            List<BatchRowEntry> rows,
+            Boolean requiresRegistration,
+            Boolean requiresConfirmation,
+            Instant registrationDeadline,
+            List<Integer> restrictedRoleIds,
+            List<Integer> restrictedGroupIds,
+            List<Integer> restrictedTagIds) {}
+
+    public record BatchRowEntry(String name, Instant startTime, Instant endTime, Map<String, String> fieldValues) {}
 }

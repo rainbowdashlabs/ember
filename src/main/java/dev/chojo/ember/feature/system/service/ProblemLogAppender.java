@@ -15,7 +15,6 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -213,22 +212,6 @@ public class ProblemLogAppender extends AppenderBase<ILoggingEvent> {
             return logger;
         }
 
-        public String stacktrace() {
-            return stacktrace;
-        }
-
-        public String exceptionClass() {
-            return exceptionClass;
-        }
-
-        public String exceptionMessage() {
-            return exceptionMessage;
-        }
-
-        public Instant firstOccurrence() {
-            return firstOccurrence;
-        }
-
         public Instant lastOccurrence() {
             return lastOccurrence;
         }
@@ -239,26 +222,6 @@ public class ProblemLogAppender extends AppenderBase<ILoggingEvent> {
 
         public boolean acknowledged() {
             return acknowledged;
-        }
-
-        public List<String> distinctMessages() {
-            return List.copyOf(distinctMessages);
-        }
-
-        public Map<String, Object> toMap() {
-            var map = new LinkedHashMap<String, Object>();
-            map.put("id", id);
-            map.put("level", level);
-            map.put("logger", logger);
-            map.put("exceptionClass", exceptionClass);
-            map.put("exceptionMessage", exceptionMessage);
-            map.put("stacktrace", stacktrace);
-            map.put("firstOccurrence", firstOccurrence.toString());
-            map.put("lastOccurrence", lastOccurrence.toString());
-            map.put("count", count);
-            map.put("acknowledged", acknowledged);
-            map.put("distinctMessages", distinctMessages());
-            return map;
         }
     }
 }

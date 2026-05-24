@@ -584,3 +584,42 @@ ALTER TABLE ember_schema.quiz_question ALTER COLUMN points TYPE NUMERIC USING po
 ALTER TABLE ember_schema.quiz_test_attempt ALTER COLUMN total_points TYPE NUMERIC USING total_points::numeric;
 ALTER TABLE ember_schema.quiz_test_attempt ALTER COLUMN max_points TYPE NUMERIC USING max_points::numeric;
 ALTER TABLE ember_schema.quiz_test_answer ALTER COLUMN points TYPE NUMERIC USING points::numeric;
+
+-- ============================================================
+-- Typed event fields: add type info + attendance field link
+-- ============================================================
+ALTER TABLE ember_schema.event_field
+    ADD COLUMN field_type          TEXT    NOT NULL DEFAULT 'string',
+    ADD COLUMN config              JSONB   NOT NULL DEFAULT '{}',
+    ADD COLUMN overview            BOOLEAN NOT NULL DEFAULT FALSE,
+    ADD COLUMN attendance_field_id INTEGER REFERENCES ember_schema.attendance_template_field (id) ON DELETE SET NULL;
+
+-- ============================================================
+-- Event layout templates (reusable field definitions for batch creation)
+-- ============================================================
+CREATE TABLE ember_schema.event_layout
+(
+    id         SERIAL PRIMARY KEY,
+    station_id INTEGER NOT NULL REFERENCES ember_schema.station (id) ON DELETE CASCADE,
+    name       TEXT    NOT NULL,
+    UNIQUE (station_id, name)
+);
+
+CREATE INDEX idx_event_layout_station ON ember_schema.event_layout (station_id);
+
+CREATE TABLE ember_schema.event_layout_field
+(
+    id                  SERIAL PRIMARY KEY,
+    layout_id           INTEGER NOT NULL REFERENCES ember_schema.event_layout (id) ON DELETE CASCADE,
+    name                TEXT    NOT NULL,
+    field_type          TEXT    NOT NULL DEFAULT 'string',
+    config              JSONB   NOT NULL DEFAULT '{}',
+    position            INTEGER NOT NULL DEFAULT 0,
+    overview            BOOLEAN NOT NULL DEFAULT FALSE,
+    attendance_field_id INTEGER REFERENCES ember_schema.attendance_template_field (id) ON DELETE SET NULL
+);
+
+CREATE INDEX idx_event_layout_field_layout ON ember_schema.event_layout_field (layout_id);
+
+-- Max shown events per category (NULL = show all)
+ALTER TABLE ember_schema.event_category ADD COLUMN max_shown_events INTEGER;

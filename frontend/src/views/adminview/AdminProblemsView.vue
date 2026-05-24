@@ -118,8 +118,8 @@ onMounted(loadData)
                 :class="{'opacity-50': entry.acknowledged}"
                 @click="toggleExpand(entry.id)"
             >
-                <div class="flex items-start justify-between gap-3">
-                    <div class="flex-1 min-w-0">
+                <div class="flex items-start justify-between gap-3 overflow-hidden">
+                    <div class="flex-1 min-w-0 overflow-hidden">
                         <div class="flex items-center gap-2 mb-1">
                             <span class="text-xs font-mono px-1.5 py-0.5 rounded"
                                   :class="entry.level === 'ERROR' ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400' : 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400'">
@@ -130,7 +130,7 @@ onMounted(loadData)
                                 {{ entry.count }}x
                             </span>
                         </div>
-                        <p class="text-sm font-medium truncate">
+                        <p class="text-sm font-medium truncate max-w-full">
                             {{ entry.exceptionClass ? `${entry.exceptionClass}: ${entry.exceptionMessage}` : entry.distinctMessages[0] }}
                         </p>
                         <p class="text-xs text-[var(--text-muted)]">
@@ -172,7 +172,7 @@ onMounted(loadData)
                     <div v-if="entry.distinctMessages.length > 1">
                         <SectionHeader class="!text-xs !mb-1">{{ t('adminProblems.messages') }} ({{ entry.distinctMessages.length }})</SectionHeader>
                         <ul class="text-xs space-y-1">
-                            <li v-for="(msg, idx) in entry.distinctMessages" :key="idx" class="font-mono bg-[var(--bg)] rounded px-2 py-1">
+                            <li v-for="(msg, idx) in entry.distinctMessages" :key="idx" class="font-mono bg-[var(--bg)] rounded px-2 py-1 truncate" :title="msg">
                                 {{ msg }}
                             </li>
                         </ul>

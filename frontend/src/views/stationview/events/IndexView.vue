@@ -21,7 +21,7 @@ import BreakModal from './indexview/BreakModal.vue'
 import HolidayImportModal from './indexview/HolidayImportModal.vue'
 import CategoryModal from './indexview/CategoryModal.vue'
 import ExportModal from './indexview/ExportModal.vue'
-import type {AttendanceTemplate, EventBreak, EventCategory, StationEvent} from '@/api/types'
+import type {AttendanceTemplate, EventBreak, EventCategory, EventField, StationEvent} from '@/api/types'
 import {attendance, events} from '@/api'
 
 const {t} = useI18n()
@@ -31,6 +31,7 @@ const todayEvents = ref<StationEvent[]>([])
 const breaks = ref<EventBreak[]>([])
 const categories = ref<EventCategory[]>([])
 const templates = ref<AttendanceTemplate[]>([])
+const overviewFields = ref<Record<number, EventField[]>>({})
 const loading = ref(true)
 const error = ref('')
 
@@ -43,14 +44,17 @@ const eventsByCategory = computed((): CategoryGroup[] => {
   const groups: CategoryGroup[] = []
   const sorted = [...categories.value].sort((a, b) => a.position - b.position)
 
+  const sortByStart = (a: StationEvent, b: StationEvent) =>
+      (a.startTime ?? '').localeCompare(b.startTime ?? '')
+
   for (const cat of sorted) {
-    const catEvents = allEvents.value.filter(e => e.categoryId === cat.id)
+    const catEvents = allEvents.value.filter(e => e.categoryId === cat.id).sort(sortByStart)
     if (catEvents.length > 0) {
       groups.push({category: cat, events: catEvents})
     }
   }
 
-  const uncategorized = allEvents.value.filter(e => !e.categoryId)
+  const uncategorized = allEvents.value.filter(e => !e.categoryId).sort(sortByStart)
   if (uncategorized.length > 0) {
     groups.push({category: null, events: uncategorized})
   }
@@ -73,18 +77,20 @@ async function loadData() {
   loading.value = true
   error.value = ''
   try {
-    const [ev, today, br, cats, tpl] = await Promise.all([
+    const [ev, today, br, cats, tpl, ovFields] = await Promise.all([
       events.listEvents(),
       events.listTodayEvents(),
       events.listBreaks(),
       events.listCategories(),
       attendance.listTemplates(),
+      events.getOverviewFields(),
     ])
     allEvents.value = ev
     todayEvents.value = today
     breaks.value = br
     categories.value = cats
     templates.value = tpl
+    overviewFields.value = ovFields
   } catch {
     error.value = t('common.error')
   } finally {
@@ -236,6 +242,7 @@ onMounted(loadData)
             :groups="eventsByCategory"
             :has-events="allEvents.length > 0"
             :templates="templates"
+            :overview-fields="overviewFields"
             @add-event="openAddEvent"
             @edit-event="openEditEvent"
             @delete-event="requestDeleteEvent"

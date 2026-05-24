@@ -298,7 +298,7 @@ public class EventRepository {
      */
     public List<EventCategory> findCategoriesByStation(int stationId) {
         return Query.query(
-                        "SELECT id, station_id, name, position FROM event_category WHERE station_id = :station_id ORDER BY position;")
+                        "SELECT id, station_id, name, position, max_shown_events FROM event_category WHERE station_id = :station_id ORDER BY position;")
                 .single(Call.of().bind("station_id", stationId))
                 .map(EventCategory.map())
                 .all();
@@ -314,7 +314,7 @@ public class EventRepository {
      */
     public EventCategory createCategory(int stationId, String name, int position) {
         return Query.query(
-                        "INSERT INTO event_category(station_id, name, position) VALUES(:station_id, :name, :position) RETURNING id, station_id, name, position;")
+                        "INSERT INTO event_category(station_id, name, position) VALUES(:station_id, :name, :position) RETURNING id, station_id, name, position, max_shown_events;")
                 .single(Call.of()
                         .bind("station_id", stationId)
                         .bind("name", name)
@@ -332,9 +332,14 @@ public class EventRepository {
      * @param position the new display order position
      * @return true if a row was updated
      */
-    public boolean updateCategory(int id, String name, int position) {
-        return Query.query("UPDATE event_category SET name = :name, position = :position WHERE id = :id;")
-                .single(Call.of().bind("name", name).bind("position", position).bind("id", id))
+    public boolean updateCategory(int id, String name, int position, Integer maxShownEvents) {
+        return Query.query(
+                        "UPDATE event_category SET name = :name, position = :position, max_shown_events = :max_shown_events WHERE id = :id;")
+                .single(Call.of()
+                        .bind("name", name)
+                        .bind("position", position)
+                        .bind("max_shown_events", maxShownEvents)
+                        .bind("id", id))
                 .update()
                 .changed();
     }

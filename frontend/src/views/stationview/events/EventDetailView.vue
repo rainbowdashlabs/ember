@@ -21,6 +21,7 @@ import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import PrimaryBadge from '@/components/badge/PrimaryBadge.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
+import EventFieldValue from '@/components/display/EventFieldValue.vue'
 import type {AttendanceTemplate, EventCategory, EventField, StationEvent} from '@/api/types'
 import {EventTypes, RegistrationStatus, isRecurringEvent} from '@/api/types'
 import type {AbsentMember, EventRegistrationEntry} from '@/api/events'
@@ -278,7 +279,16 @@ onMounted(loadData)
           </div>
         </div>
 
-        <!-- Event Info -->
+        <!-- Registration info (shown prominently below title) -->
+        <div v-if="event.requiresRegistration" class="flex flex-wrap gap-3 text-sm">
+          <SuccessBadge>{{ t('events.requiresRegistration') }}</SuccessBadge>
+          <InfoBadge v-if="event.requiresConfirmation">{{ t('events.requiresConfirmation') }}</InfoBadge>
+          <span v-if="event.registrationDeadline" class="text-(--text-muted)">
+            {{ t('events.registrationDeadline') }}: {{ formatDatetime(event.registrationDeadline) }}
+          </span>
+        </div>
+
+        <!-- Event Info + Fields -->
         <NeutralContainer class="space-y-3">
           <SubHeader>{{ t('events.general') }}</SubHeader>
 
@@ -307,6 +317,13 @@ onMounted(loadData)
               <span class="text-xs font-medium text-(--text-muted) uppercase">{{ t('events.template') }}</span>
               <p class="text-sm">{{ templateName(event.templateId) }}</p>
             </div>
+            <!-- Event Fields inline -->
+            <div v-for="field in fields" :key="field.id">
+              <span class="text-xs font-medium text-(--text-muted) uppercase">{{ field.name }}</span>
+              <p class="text-sm">
+                <EventFieldValue :field-type="field.fieldType" :value="field.value"/>
+              </p>
+            </div>
           </div>
         </NeutralContainer>
 
@@ -327,29 +344,6 @@ onMounted(loadData)
             </div>
           </div>
           <p v-else class="text-sm text-(--text-muted)">{{ t('eventDetail.noAbsences') }}</p>
-        </NeutralContainer>
-
-        <!-- Event Fields -->
-        <NeutralContainer v-if="fields.length > 0" class="space-y-3">
-          <SubHeader>{{ t('eventDetail.fields') }}</SubHeader>
-          <div class="grid gap-3 sm:grid-cols-2">
-            <div v-for="field in fields" :key="field.id">
-              <span class="text-xs font-medium text-(--text-muted) uppercase">{{ field.name }}</span>
-              <p class="text-sm">{{ field.value || '–' }}</p>
-            </div>
-          </div>
-        </NeutralContainer>
-
-        <!-- Registration Settings -->
-        <NeutralContainer v-if="event.requiresRegistration" class="space-y-3">
-          <SubHeader>{{ t('events.registration') }}</SubHeader>
-          <div class="flex flex-wrap gap-3 text-sm">
-            <SuccessBadge>{{ t('events.requiresRegistration') }}</SuccessBadge>
-            <InfoBadge v-if="event.requiresConfirmation">{{ t('events.requiresConfirmation') }}</InfoBadge>
-            <span v-if="event.registrationDeadline" class="text-(--text-muted)">
-              {{ t('events.registrationDeadline') }}: {{ formatDatetime(event.registrationDeadline) }}
-            </span>
-          </div>
         </NeutralContainer>
 
         <!-- Self-registration for members -->

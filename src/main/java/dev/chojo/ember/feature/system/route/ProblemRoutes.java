@@ -37,9 +37,7 @@ public class ProblemRoutes implements Routes {
             ctx.json(List.of());
             return;
         }
-        ctx.json(appender.getProblems(includeAcknowledged).stream()
-                .map(ProblemLogAppender.ProblemEntry::toMap)
-                .toList());
+        ctx.json(appender.getProblems(includeAcknowledged).stream().toList());
     }
 
     private void acknowledge(Context ctx) {

@@ -12,7 +12,13 @@ import java.time.Instant;
 import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIMESTAMP;
 
 public record FederationMetadataCache(
-        int id, int partnerId, ContentType contentType, int remoteId, String title, String description, Instant cachedAt) {
+        int id,
+        int partnerId,
+        ContentType contentType,
+        int remoteId,
+        String title,
+        String description,
+        Instant cachedAt) {
 
     public static RowMapping<FederationMetadataCache> map() {
         return row -> new FederationMetadataCache(

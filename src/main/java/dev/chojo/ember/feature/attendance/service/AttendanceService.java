@@ -13,6 +13,7 @@ import dev.chojo.ember.feature.attendance.entity.AttendanceTemplate;
 import dev.chojo.ember.feature.attendance.entity.AttendanceTemplateField;
 import dev.chojo.ember.feature.attendance.repository.AttendanceRepository;
 import dev.chojo.ember.feature.attendance.repository.AttendanceRepository.TemplateGroup;
+import dev.chojo.ember.feature.events.repository.EventFieldRepository;
 import dev.chojo.ember.feature.events.repository.EventRepository;
 import dev.chojo.ember.feature.members.entity.MemberAbsence;
 import dev.chojo.ember.feature.members.entity.StationMember;
@@ -36,15 +37,18 @@ import java.util.stream.Collectors;
 public class AttendanceService {
     private final AttendanceRepository attendanceRepository;
     private final EventRepository eventRepository;
+    private final EventFieldRepository eventFieldRepository;
     private final StationMemberRepository stationMemberRepository;
 
     @Inject
     public AttendanceService(
             AttendanceRepository attendanceRepository,
             EventRepository eventRepository,
+            EventFieldRepository eventFieldRepository,
             StationMemberRepository stationMemberRepository) {
         this.attendanceRepository = attendanceRepository;
         this.eventRepository = eventRepository;
+        this.eventFieldRepository = eventFieldRepository;
         this.stationMemberRepository = stationMemberRepository;
     }
 
@@ -210,6 +214,17 @@ public class AttendanceService {
                             attendanceRepository.setSessionField(session.id(), def.fieldId(), resolved);
                         }
                     }
+                }
+            }
+        }
+        // Auto-populate from linked event fields (event field value → attendance session field)
+        if (eventId != null) {
+            var eventFields = eventFieldRepository.findByEvent(eventId);
+            for (var ef : eventFields) {
+                if (ef.attendanceFieldId() != null
+                        && ef.value() != null
+                        && !ef.value().isBlank()) {
+                    attendanceRepository.setSessionField(session.id(), ef.attendanceFieldId(), ef.value());
                 }
             }
         }

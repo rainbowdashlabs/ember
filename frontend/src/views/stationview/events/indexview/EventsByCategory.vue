@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
+import {reactive} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRouter} from 'vue-router'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
@@ -15,9 +16,10 @@ import EmptyState from '@/components/feedback/EmptyState.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
-import type {AttendanceTemplate, EventCategory, StationEvent} from '@/api/types'
+import type {AttendanceTemplate, EventCategory, EventField, StationEvent} from '@/api/types'
 import {EventTypes, isRecurringEvent} from '@/api/types'
 import MutedIcon from '@/components/display/MutedIcon.vue'
+import EventFieldValue from '@/components/display/EventFieldValue.vue'
 
 const {t} = useI18n()
 const router = useRouter()
@@ -31,6 +33,7 @@ defineProps<{
   groups: CategoryGroup[]
   templates: AttendanceTemplate[]
   hasEvents: boolean
+  overviewFields?: Record<number, EventField[]>
 }>()
 
 const emit = defineEmits<{
@@ -41,6 +44,29 @@ const emit = defineEmits<{
   editCategory: [category: EventCategory]
   deleteCategory: [id: number]
 }>()
+
+// Track which categories are expanded beyond their maxShownEvents limit
+const expandedCategories = reactive(new Set<number | 'none'>())
+
+function visibleEvents(group: CategoryGroup) {
+  const max = group.category?.maxShownEvents
+  const key = group.category?.id ?? 'none'
+  if (!max || expandedCategories.has(key)) return group.events
+  return group.events.slice(0, max)
+}
+
+function hasMore(group: CategoryGroup): boolean {
+  const max = group.category?.maxShownEvents
+  const key = group.category?.id ?? 'none'
+  if (!max || expandedCategories.has(key)) return false
+  return group.events.length > max
+}
+
+function toggleExpand(group: CategoryGroup) {
+  const key = group.category?.id ?? 'none'
+  if (expandedCategories.has(key)) expandedCategories.delete(key)
+  else expandedCategories.add(key)
+}
 
 const dayNames = ['', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag']
 
@@ -82,6 +108,12 @@ function formatDate(iso?: string): string {
         <SecondaryButton :icon="['fas', 'folder-plus']" @click="emit('addCategory')">
           {{ t('events.addCategory') }}
         </SecondaryButton>
+        <SecondaryButton :icon="['fas', 'layer-group']" @click="router.push({name: 'event-layouts'})">
+          {{ t('sidebar.eventLayouts') }}
+        </SecondaryButton>
+        <SecondaryButton :icon="['fas', 'calendar-plus']" @click="router.push({name: 'event-batch'})">
+          {{ t('sidebar.eventBatch') }}
+        </SecondaryButton>
         <PrimaryButton :icon="['fas', 'plus']" @click="emit('addEvent')">
           {{ t('events.addEvent') }}
         </PrimaryButton>
@@ -100,7 +132,7 @@ function formatDate(iso?: string): string {
       </div>
       <SubHeader v-else class="text-sm font-semibold uppercase text-(--text-muted) pt-2">{{ t('events.uncategorized') }}</SubHeader>
 
-      <NeutralContainer v-for="ev in group.events" :key="ev.id" class="flex items-center justify-between cursor-pointer hover:bg-(--bg-accent) transition-colors"
+      <NeutralContainer v-for="ev in visibleEvents(group)" :key="ev.id" class="flex items-center justify-between cursor-pointer hover:bg-(--bg-accent) transition-colors"
                         @click="router.push({ name: 'event-detail', params: { id: ev.id } })">
         <div class="flex items-center gap-2 flex-wrap">
           <SecondaryBadge v-if="isRecurringEvent(ev.eventType)">
@@ -116,12 +148,21 @@ function formatDate(iso?: string): string {
               formatTime(ev.startTime)
             }} – {{ formatTime(ev.endTime) }}</span>
           <span v-if="ev.templateId" class="text-xs text-primary">{{ templateName(ev.templateId, templates) }}</span>
+          <template v-if="overviewFields?.[ev.id]?.length">
+            <span v-for="f in overviewFields[ev.id]" :key="f.id" class="text-xs text-(--text-muted)">
+              {{ f.name }}: <EventFieldValue :field-type="f.fieldType" :value="f.value"/>
+            </span>
+          </template>
         </div>
         <div class="flex items-center gap-2">
           <EditButton @click.stop="emit('editEvent', ev)"/>
           <DeleteButton @click.stop="emit('deleteEvent', ev)"/>
         </div>
       </NeutralContainer>
+
+      <SecondaryButton v-if="hasMore(group)" class="w-full" @click="toggleExpand(group)">
+        {{ t('events.loadMore', {count: group.events.length - (group.category?.maxShownEvents ?? 0)}) }}
+      </SecondaryButton>
     </div>
   </NeutralContainer>
 </template>

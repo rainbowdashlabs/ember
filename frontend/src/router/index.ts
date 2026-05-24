@@ -388,6 +388,16 @@ const router = createRouter({
                     component: () => import('@/views/stationview/events/EventEditView.vue'),
                 },
                 {
+                    path: 'events/layouts',
+                    name: 'event-layouts',
+                    component: () => import('@/views/stationview/events/LayoutManageView.vue'),
+                },
+                {
+                    path: 'events/batch',
+                    name: 'event-batch',
+                    component: () => import('@/views/stationview/events/BatchCreateView.vue'),
+                },
+                {
                     path: 'forms',
                     name: 'forms-list',
                     component: () => import('@/views/stationview/forms/ListView.vue'),
@@ -1000,6 +1010,16 @@ const router = createRouter({
                     path: 'events/:id',
                     name: 'help-event-detail',
                     component: () => import('@/views/helpcenter/stationview/events/EventDetailHelp.vue')
+                },
+                {
+                    path: 'events/layouts',
+                    name: 'help-event-layouts',
+                    component: () => import('@/views/helpcenter/stationview/events/LayoutsHelp.vue')
+                },
+                {
+                    path: 'events/batch',
+                    name: 'help-event-batch',
+                    component: () => import('@/views/helpcenter/stationview/events/BatchHelp.vue')
                 },
                 // Forms
                 {

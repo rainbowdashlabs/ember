@@ -161,7 +161,7 @@ public class DemoFederationSeeder {
                 null,
                 1,
                 true,
-                "{\"options\":[\"Retten, Löschen, Bergen, Schützen\",\"Räumen, Löschen, Bauen, Sichern\",\"Retten, Leiten, Bergen, Senden\"],\"correctIndices\":[0]}",
+                "{\"options\":[{\"text\":\"Retten, Löschen, Bergen, Schützen\",\"correct\":true},{\"text\":\"Räumen, Löschen, Bauen, Sichern\",\"correct\":false},{\"text\":\"Retten, Leiten, Bergen, Senden\",\"correct\":false}],\"pointsPerCorrect\":1}",
                 0);
         quizService.createQuestion(
                 partnerCatalog.id(),

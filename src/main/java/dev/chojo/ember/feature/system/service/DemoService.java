@@ -950,24 +950,128 @@ public class DemoService {
                     null);
         }
 
+        // -- Öffentlichkeitsarbeit events --
+        var catOeffentlichkeit = eventRepository.createCategory(station.id(), "Öffentlichkeitsarbeit", 3);
+        var allMembers = new ArrayList<StationMember>();
+        allMembers.addAll(anfaengerMembers);
+        allMembers.addAll(fortgeschrittenMembers);
+
+        // Past events (completed)
+        String[] oeNames = {
+            "Feuerwehrfest Sommerfest",
+            "Brandschutztag Grundschule",
+            "Infostand Stadtfest",
+            "Laternenumzug St. Martin",
+            "Weihnachtsmarkt Standdienst"
+        };
+        String[] oeOrte = {
+            "Feuerwehrgerätehaus",
+            "Grundschule am Park",
+            "Marktplatz Musterstadt",
+            "Treffpunkt Rathaus",
+            "Weihnachtsmarkt Innenstadt"
+        };
+        int[] oeMemberCounts = {15, 12, 14, 16, 18};
+
+        for (int e = 0; e < oeNames.length; e++) {
+            LocalDate eventDate = LocalDate.now().minusWeeks(oeNames.length - e);
+            Instant oeStart = eventDate.atTime(10, 0).toInstant(ZoneOffset.UTC);
+            Instant oeEnd = eventDate.atTime(16, 0).toInstant(ZoneOffset.UTC);
+            var oeEvent = eventRepository.create(
+                    station.id(),
+                    oeNames[e],
+                    "Öffentlichkeitsarbeit der Jugendfeuerwehr",
+                    StationEvent.EventType.ONE_TIME,
+                    null,
+                    oeStart,
+                    oeEnd,
+                    null,
+                    true,
+                    null,
+                    true,
+                    catOeffentlichkeit.id());
+            eventFieldRepository.create(oeEvent.id(), "Ort", "string", "{}", oeOrte[e], 0, true, null);
+            eventFieldRepository.create(
+                    oeEvent.id(), "Treffpunkt", "string", "{}", "Feuerwehrgerätehaus", 1, true, null);
+            // Create registrations: 6 accepted, rest denied
+            int count = Math.min(oeMemberCounts[e], allMembers.size());
+            for (int i = 0; i < count; i++) {
+                var status = i < 6
+                        ? EventRegistration.RegistrationStatus.ACCEPTED
+                        : EventRegistration.RegistrationStatus.DENIED;
+                eventRepository.createRegistration(
+                        oeEvent.id(), allMembers.get(i).id(), eventDate, status, null);
+            }
+        }
+
+        // One open event with pending (unconfirmed) registrations
+        LocalDate openDate = LocalDate.now().plusWeeks(1);
+        Instant openStart = openDate.atTime(9, 0).toInstant(ZoneOffset.UTC);
+        Instant openEnd = openDate.atTime(15, 0).toInstant(ZoneOffset.UTC);
+        Instant openDeadline = LocalDate.now().plusDays(3).atTime(23, 59).toInstant(ZoneOffset.UTC);
+        var oeOpen = eventRepository.create(
+                station.id(),
+                "Blaulichtmeile Bürgerfest",
+                "Öffentlichkeitsarbeit — Anmeldung offen",
+                StationEvent.EventType.ONE_TIME,
+                null,
+                openStart,
+                openEnd,
+                null,
+                true,
+                openDeadline,
+                true,
+                catOeffentlichkeit.id());
+        eventFieldRepository.create(oeOpen.id(), "Ort", "string", "{}", "Rathausplatz Musterstadt", 0, true, null);
+        eventFieldRepository.create(
+                oeOpen.id(), "Treffpunkt", "string", "{}", "Feuerwehrgerätehaus 08:30", 1, true, null);
+        eventFieldRepository.create(
+                oeOpen.id(), "Hinweis", "string", "{}", "Dienstkleidung und Ausrüstung mitbringen", 2, false, null);
+        // 14 registrations: 6 accepted, 8 pending (not yet confirmed)
+        int openCount = Math.min(14, allMembers.size());
+        for (int i = 0; i < openCount; i++) {
+            var status = i < 6
+                    ? EventRegistration.RegistrationStatus.ACCEPTED
+                    : EventRegistration.RegistrationStatus.PENDING;
+            eventRepository.createRegistration(oeOpen.id(), allMembers.get(i).id(), openDate, status, null);
+        }
+
         // -- Event Fields --
         // Per-event fields
-        eventFieldRepository.create(tagDerOffenenTuer.id(), "Ort", "Feuerwehrhaus Musterstadt", 0);
-        eventFieldRepository.create(tagDerOffenenTuer.id(), "Treffpunkt", "Haupteingang", 1);
-        eventFieldRepository.create(tagDerOffenenTuer.id(), "Hinweis", "Dienstkleidung tragen", 2);
-        eventFieldRepository.create(stadtfest.id(), "Ort", "Marktplatz Musterstadt", 0);
-        eventFieldRepository.create(stadtfest.id(), "Treffpunkt", "Stand der Jugendfeuerwehr", 1);
-        eventFieldRepository.create(kreisWettbewerb.id(), "Ort", "Sportplatz Nachbarstadt", 0);
-        eventFieldRepository.create(kreisWettbewerb.id(), "Hinweis", "Wettkampfkleidung und Ausrüstung mitbringen", 1);
+        eventFieldRepository.create(
+                tagDerOffenenTuer.id(), "Ort", "string", "{}", "Feuerwehrhaus Musterstadt", 0, true, null);
+        eventFieldRepository.create(
+                tagDerOffenenTuer.id(), "Treffpunkt", "string", "{}", "Haupteingang", 1, true, null);
+        eventFieldRepository.create(
+                tagDerOffenenTuer.id(), "Hinweis", "string", "{}", "Dienstkleidung tragen", 2, false, null);
+        eventFieldRepository.create(stadtfest.id(), "Ort", "string", "{}", "Marktplatz Musterstadt", 0, true, null);
+        eventFieldRepository.create(
+                stadtfest.id(), "Treffpunkt", "string", "{}", "Stand der Jugendfeuerwehr", 1, true, null);
+        eventFieldRepository.create(
+                kreisWettbewerb.id(), "Ort", "string", "{}", "Sportplatz Nachbarstadt", 0, true, null);
+        eventFieldRepository.create(
+                kreisWettbewerb.id(),
+                "Hinweis",
+                "string",
+                "{}",
+                "Wettkampfkleidung und Ausrüstung mitbringen",
+                1,
+                false,
+                null);
         // Recurring event fields
-        eventFieldRepository.create(evAnfaenger.id(), "Ort", "Feuerwehrhaus Musterstadt", 0);
-        eventFieldRepository.create(evAnfaenger.id(), "Hinweis", "Sportkleidung mitbringen", 1);
-        eventFieldRepository.create(evFort.id(), "Ort", "Feuerwehrhaus Musterstadt", 0);
-        eventFieldRepository.create(evFort.id(), "Hinweis", "Schutzausrüstung wird gestellt", 1);
-        eventFieldRepository.create(evGesamt.id(), "Ort", "Feuerwehrhaus Musterstadt", 0);
-        eventFieldRepository.create(evGesamt.id(), "Treffpunkt", "Fahrzeughalle", 1);
-        eventFieldRepository.create(theorieabend.id(), "Ort", "Schulungsraum Feuerwehrhaus", 0);
-        eventFieldRepository.create(theorieabend.id(), "Hinweis", "Schreibzeug mitbringen", 1);
+        eventFieldRepository.create(
+                evAnfaenger.id(), "Ort", "string", "{}", "Feuerwehrhaus Musterstadt", 0, true, null);
+        eventFieldRepository.create(
+                evAnfaenger.id(), "Hinweis", "string", "{}", "Sportkleidung mitbringen", 1, false, null);
+        eventFieldRepository.create(evFort.id(), "Ort", "string", "{}", "Feuerwehrhaus Musterstadt", 0, true, null);
+        eventFieldRepository.create(
+                evFort.id(), "Hinweis", "string", "{}", "Schutzausrüstung wird gestellt", 1, false, null);
+        eventFieldRepository.create(evGesamt.id(), "Ort", "string", "{}", "Feuerwehrhaus Musterstadt", 0, true, null);
+        eventFieldRepository.create(evGesamt.id(), "Treffpunkt", "string", "{}", "Fahrzeughalle", 1, true, null);
+        eventFieldRepository.create(
+                theorieabend.id(), "Ort", "string", "{}", "Schulungsraum Feuerwehrhaus", 0, true, null);
+        eventFieldRepository.create(
+                theorieabend.id(), "Hinweis", "string", "{}", "Schreibzeug mitbringen", 1, false, null);
 
         // -- News --
         var news1 = newsRepository.create(

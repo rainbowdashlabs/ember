@@ -52,7 +52,7 @@ public enum QuestionType {
         try {
             return MAPPER.readValue(configStr, configClass);
         } catch (Exception e) {
-            log.error("Failed to parse config {} for type {}: {}", this, configClass, e.getMessage());
+            log.error("Failed to parse config {} for type {}: {}", this, configClass, e.getMessage(), e);
             return new QuestionConfig.Unknown();
         }
     }

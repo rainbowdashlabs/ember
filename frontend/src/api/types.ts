@@ -226,11 +226,13 @@ export interface EventCategory {
     stationId: string
     name?: string
     position: number
+    maxShownEvents?: number | null
 }
 
 export interface CategoryRequest {
     name?: string
     position: number
+    maxShownEvents?: number | null
 }
 
 export interface StationEvent {
@@ -296,16 +298,70 @@ export interface BreakRequest {
 
 // -- Event Fields --
 
+export const EventFieldTypes = {
+    STRING: 'string',
+    TIME: 'time',
+    DATE: 'date',
+    BOOLEAN: 'boolean',
+    ENUM: 'enum',
+    MEMBER: 'member',
+    MEMBER_LIST: 'member_list',
+    MEMBER_OF_GROUP: 'member_of_group',
+    MEMBER_LIST_OF_GROUP: 'member_list_of_group',
+} as const
+
+export type EventFieldTypeName = (typeof EventFieldTypes)[keyof typeof EventFieldTypes]
+
 export interface EventField {
     id: number
     eventId: number
     name?: string
+    fieldType?: string
+    config?: string
     value?: string
     position: number
+    overview?: boolean
+    attendanceFieldId?: number | null
+}
+
+export interface EventFieldEntry {
+    name: string
+    fieldType?: string
+    config?: string
+    value?: string
+    overview?: boolean
+    attendanceFieldId?: number | null
 }
 
 export interface SetEventFieldsRequest {
-    fields: { name: string; value?: string }[]
+    fields: EventFieldEntry[]
+}
+
+// -- Event Layouts --
+
+export interface EventLayout {
+    id: number
+    stationId: string
+    name: string
+}
+
+export interface EventLayoutField {
+    id: number
+    layoutId: number
+    name: string
+    fieldType: string
+    config: string
+    position: number
+    overview: boolean
+    attendanceFieldId?: number | null
+}
+
+export interface LayoutFieldEntry {
+    name: string
+    fieldType?: string
+    config?: string
+    overview?: boolean
+    attendanceFieldId?: number | null
 }
 
 // -- Forms --
