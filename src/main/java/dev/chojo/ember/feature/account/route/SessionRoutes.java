@@ -402,10 +402,11 @@ public class SessionRoutes implements Routes {
             responses = @OpenApiResponse(status = "200"))
     private void gdprExport(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        var data = gdprExportService.exportAccountData(session.accountId());
-        ctx.contentType("application/json");
-        ctx.header("Content-Disposition", "attachment; filename=\"gdpr-export.json\"");
-        ctx.json(data);
+        String locale = ctx.queryParam("locale");
+        byte[] zipData = gdprExportService.exportAccountDataAsZip(session.accountId(), locale);
+        ctx.contentType("application/zip");
+        ctx.header("Content-Disposition", "attachment; filename=\"gdpr-export.zip\"");
+        ctx.result(zipData);
     }
 
     /**

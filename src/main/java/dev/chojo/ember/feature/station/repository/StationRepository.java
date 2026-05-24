@@ -249,6 +249,17 @@ public class StationRepository {
     }
 
     /**
+     * Updates the UUID of a station (used during import to preserve the original UUID).
+     */
+    public void updateUid(int id, UUID uid) {
+        Query.query("UPDATE station SET uid = :uid::uuid WHERE id = :id;")
+                .single(Call.of()
+                        .bind("uid", uid, StandardValueConverter.UUID_STRING)
+                        .bind("id", id))
+                .update();
+    }
+
+    /**
      * Updates the discovery settings for a station.
      */
     public boolean updateDiscoverySettings(int id, DiscoveryVisibility visibility, String description, boolean showKb) {

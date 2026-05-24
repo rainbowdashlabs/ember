@@ -7,7 +7,6 @@ on:
   push:
     branches:
       - main
-      - dev
       - 'feature/**'
 
 jobs:
@@ -34,13 +33,8 @@ jobs:
       - name: Push image
         run: |
           docker push ghcr.io/rainbowdashlabs/ember:${{ github.sha }}
-      - name: Tag & Push latest image
-        if: github.ref_name == 'main'
-        run: |
-          docker image tag ghcr.io/rainbowdashlabs/ember:${{ github.sha }} ghcr.io/rainbowdashlabs/ember:latest
-          docker push ghcr.io/rainbowdashlabs/ember:latest
       - name: Tag & Push dev image
-        if: github.ref_name == 'dev'
+        if: github.ref_name == 'main' && github.event_name == 'push'
         run: |
           docker image tag ghcr.io/rainbowdashlabs/ember:${{ github.sha }} ghcr.io/rainbowdashlabs/ember:dev
           docker push ghcr.io/rainbowdashlabs/ember:dev
@@ -53,7 +47,7 @@ jobs:
           docker image tag "$IMAGE:${{ github.sha }}" "$IMAGE:$BRANCH_TAG"
           docker push "$IMAGE:snapshot"
           docker push "$IMAGE:$BRANCH_TAG"
-      - name: Tag & Push version images
+      - name: Tag & Push release images
         if: github.event_name == 'release'
         run: |
           VERSION="${{ github.ref_name }}"
@@ -62,9 +56,11 @@ jobs:
           MINOR="${VERSION#*.}"
           MINOR="${MINOR%%.*}"
           IMAGE="ghcr.io/rainbowdashlabs/ember"
+          docker image tag "$IMAGE:${{ github.sha }}" "$IMAGE:latest"
           docker image tag "$IMAGE:${{ github.sha }}" "$IMAGE:v$MAJOR"
           docker image tag "$IMAGE:${{ github.sha }}" "$IMAGE:v$MAJOR.$MINOR"
           docker image tag "$IMAGE:${{ github.sha }}" "$IMAGE:v$VERSION"
+          docker push "$IMAGE:latest"
           docker push "$IMAGE:v$MAJOR"
           docker push "$IMAGE:v$MAJOR.$MINOR"
           docker push "$IMAGE:v$VERSION"

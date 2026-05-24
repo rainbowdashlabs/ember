@@ -35,6 +35,7 @@ public class StationExportService {
      */
     public static final List<String> TABLE_ORDER = List.of(
             "station",
+            "logo",
             "disabledModules",
             "members",
             "memberRoles",
@@ -53,7 +54,11 @@ public class StationExportService {
             "inventorySizes",
             "inventoryItems",
             "forms",
-            "formQuestions");
+            "formQuestions",
+            "kbFolders",
+            "kbFiles",
+            "kbFileContent",
+            "kbFileVersions");
 
     private static final SecureRandom RANDOM = new SecureRandom();
     private final StationRepository stationRepository;
@@ -135,6 +140,7 @@ public class StationExportService {
             case "station" ->
                 stationRepository.findById(stationId).ifPresent(station -> {
                     var s = new LinkedHashMap<String, Object>();
+                    s.put("uid", station.uid().toString());
                     s.put("name", station.name());
                     s.put("timezone", station.timezone());
                     s.put("locale", station.locale());
@@ -280,6 +286,45 @@ public class StationExportService {
                         "formQuestions",
                         queryRows(
                                 "SELECT fq.id, fq.form_id, fq.position, fq.question_type, fq.title, fq.description, fq.required, fq.shuffle, fq.config FROM form_question fq JOIN form f ON f.id = fq.form_id WHERE f.station_id = :id ORDER BY fq.position",
+                                stationId,
+                                offset,
+                                limit));
+            case "logo" ->
+                stationRepository.findLogo(stationId).ifPresent(logo -> {
+                    var l = new LinkedHashMap<String, Object>();
+                    l.put("data", Base64.getEncoder().encodeToString(logo.data()));
+                    l.put("contentType", logo.contentType());
+                    data.put("logo", l);
+                });
+            case "kbFolders" ->
+                data.put(
+                        "kbFolders",
+                        queryRows(
+                                "SELECT id, parent_id, name, description, position, restricted, restriction_mode FROM kb_folder WHERE station_id = :id ORDER BY position",
+                                stationId,
+                                offset,
+                                limit));
+            case "kbFiles" ->
+                data.put(
+                        "kbFiles",
+                        queryRows(
+                                "SELECT id, folder_id, name, description, file_type, position, restricted, restriction_mode FROM kb_file WHERE station_id = :id ORDER BY position",
+                                stationId,
+                                offset,
+                                limit));
+            case "kbFileContent" ->
+                data.put(
+                        "kbFileContent",
+                        queryRows(
+                                "SELECT kfc.file_id, kfc.text_content FROM kb_file_content kfc JOIN kb_file kf ON kf.id = kfc.file_id WHERE kf.station_id = :id",
+                                stationId,
+                                offset,
+                                limit));
+            case "kbFileVersions" ->
+                data.put(
+                        "kbFileVersions",
+                        queryRows(
+                                "SELECT kfv.file_id, kfv.patch, kfv.is_full, kfv.version, kfv.created_at FROM kb_file_version kfv JOIN kb_file kf ON kf.id = kfv.file_id WHERE kf.station_id = :id ORDER BY kfv.file_id, kfv.version",
                                 stationId,
                                 offset,
                                 limit));

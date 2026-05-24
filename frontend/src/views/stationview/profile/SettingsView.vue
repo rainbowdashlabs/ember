@@ -62,7 +62,7 @@ async function exportOwnData() {
   error.value = ''
   try {
     const blob = await sessionApi.gdprExport()
-    downloadBlob(blob, 'gdpr-export.json')
+    downloadBlob(blob, 'gdpr-export.zip')
   } catch {
     error.value = t('common.error')
   } finally {
@@ -75,7 +75,7 @@ async function exportManagedMemberData(memberId: number) {
   error.value = ''
   try {
     const blob = await sessionApi.gdprExportManagedMember(memberId)
-    downloadBlob(blob, `gdpr-export-member-${memberId}.json`)
+    downloadBlob(blob, `gdpr-export-member-${memberId}.zip`)
   } catch {
     error.value = t('common.error')
   } finally {

@@ -136,6 +136,14 @@ public class StationImportService {
         if (stationData.containsKey("locale")) {
             stationRepository.updateLocale(stationId, str(stationData, "locale", "de-DE"));
         }
+        // Preserve the original station UUID so federation pairing codes still work
+        if (stationData.containsKey("uid")) {
+            try {
+                stationRepository.updateUid(stationId, java.util.UUID.fromString(str(stationData, "uid", "")));
+            } catch (IllegalArgumentException e) {
+                log.warn("Invalid station UID in import data, skipping UUID preservation");
+            }
+        }
 
         var progress = new ImportProgress(stationId, stationName, IMPORT_TABLES.size());
         activeImports.put(stationId, progress);
@@ -335,6 +343,11 @@ public class StationImportService {
             case "inventoryItems" -> importInventoryItems(data, idMap);
             case "forms" -> importForms(stationId, data, idMap);
             case "formQuestions" -> importFormQuestions(data, idMap);
+            case "logo" -> importLogo(stationId, data);
+            case "kbFolders" -> importKbFolders(stationId, data, idMap);
+            case "kbFiles" -> importKbFiles(stationId, data, idMap);
+            case "kbFileContent" -> importKbFileContent(data, idMap);
+            case "kbFileVersions" -> importKbFileVersions(data, idMap);
             default -> {
                 log.warn("Unknown table for import: {}", tableName);
                 yield 0;
@@ -832,6 +845,102 @@ public class StationImportService {
             this.status = "FAILED";
             this.error = error;
         }
+    }
+
+    // -- KB + Logo import methods --
+
+    @SuppressWarnings("unchecked")
+    private int importLogo(int stationId, Map<String, Object> data) {
+        var logo = (Map<String, Object>) data.get("logo");
+        if (logo == null) return 0;
+        String b64 = (String) logo.get("data");
+        String contentType = (String) logo.get("contentType");
+        if (b64 != null && contentType != null) {
+            byte[] bytes = java.util.Base64.getDecoder().decode(b64);
+            stationRepository.updateLogo(stationId, bytes, contentType);
+            return 1;
+        }
+        return 0;
+    }
+
+    @SuppressWarnings("unchecked")
+    private int importKbFolders(int stationId, Map<String, Object> data, IdRemapper idMap) {
+        var folders = (List<Map<String, Object>>) data.getOrDefault("kbFolders", List.of());
+        for (var folder : folders) {
+            int oldId = intVal(folder, "id");
+            Integer oldParentId = folder.get("parent_id") != null ? intVal(folder, "parent_id") : null;
+            Integer parentId = oldParentId != null ? idMap.get("kbFolder", oldParentId) : null;
+            int newId = insertReturningId(
+                    "INSERT INTO kb_folder(station_id, parent_id, name, description, position, restricted, restriction_mode) VALUES(:station_id, :parent_id, :name, :description, :position, :restricted, :restriction_mode) RETURNING id;",
+                    Call.of()
+                            .bind("station_id", stationId)
+                            .bind("parent_id", parentId)
+                            .bind("name", str(folder, "name", ""))
+                            .bind("description", str(folder, "description", ""))
+                            .bind("position", intVal(folder, "position"))
+                            .bind("restricted", boolVal(folder, "restricted"))
+                            .bind("restriction_mode", str(folder, "restriction_mode", "AND")));
+            idMap.put("kbFolder", oldId, newId);
+        }
+        return folders.size();
+    }
+
+    @SuppressWarnings("unchecked")
+    private int importKbFiles(int stationId, Map<String, Object> data, IdRemapper idMap) {
+        var files = (List<Map<String, Object>>) data.getOrDefault("kbFiles", List.of());
+        for (var file : files) {
+            int oldId = intVal(file, "id");
+            Integer oldFolderId = file.get("folder_id") != null ? intVal(file, "folder_id") : null;
+            Integer folderId = oldFolderId != null ? idMap.get("kbFolder", oldFolderId) : null;
+            int newId = insertReturningId(
+                    "INSERT INTO kb_file(station_id, folder_id, name, description, file_type, position, restricted, restriction_mode) VALUES(:station_id, :folder_id, :name, :description, :file_type, :position, :restricted, :restriction_mode) RETURNING id;",
+                    Call.of()
+                            .bind("station_id", stationId)
+                            .bind("folder_id", folderId)
+                            .bind("name", str(file, "name", ""))
+                            .bind("description", str(file, "description", ""))
+                            .bind("file_type", str(file, "file_type", "MARKDOWN"))
+                            .bind("position", intVal(file, "position"))
+                            .bind("restricted", boolVal(file, "restricted"))
+                            .bind("restriction_mode", str(file, "restriction_mode", "AND")));
+            idMap.put("kbFile", oldId, newId);
+        }
+        return files.size();
+    }
+
+    @SuppressWarnings("unchecked")
+    private int importKbFileContent(Map<String, Object> data, IdRemapper idMap) {
+        var contents = (List<Map<String, Object>>) data.getOrDefault("kbFileContent", List.of());
+        for (var content : contents) {
+            int oldFileId = intVal(content, "file_id");
+            Integer newFileId = idMap.get("kbFile", oldFileId);
+            if (newFileId == null) continue;
+            String text = (String) content.get("text_content");
+            Query.query(
+                            "INSERT INTO kb_file_content(file_id, text_content) VALUES(:file_id, :text_content) ON CONFLICT(file_id) DO UPDATE SET text_content = :text_content;")
+                    .single(Call.of().bind("file_id", newFileId).bind("text_content", text))
+                    .insert();
+        }
+        return contents.size();
+    }
+
+    @SuppressWarnings("unchecked")
+    private int importKbFileVersions(Map<String, Object> data, IdRemapper idMap) {
+        var versions = (List<Map<String, Object>>) data.getOrDefault("kbFileVersions", List.of());
+        for (var version : versions) {
+            int oldFileId = intVal(version, "file_id");
+            Integer newFileId = idMap.get("kbFile", oldFileId);
+            if (newFileId == null) continue;
+            Query.query(
+                            "INSERT INTO kb_file_version(file_id, patch, is_full, version, created_at) VALUES(:file_id, :patch, :is_full, :version, now());")
+                    .single(Call.of()
+                            .bind("file_id", newFileId)
+                            .bind("patch", (String) version.get("patch"))
+                            .bind("is_full", boolVal(version, "is_full"))
+                            .bind("version", intVal(version, "version")))
+                    .insert();
+        }
+        return versions.size();
     }
 
     /**
