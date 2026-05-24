@@ -128,6 +128,7 @@ watch(loaded, (isLoaded) => {
                 <div class="space-y-1">
                   <div class="flex items-center gap-2 flex-wrap">
                     <span class="font-medium">{{ form.title }}</span>
+                    <font-awesome-icon v-if="form.restricted" :icon="['fas', 'lock']" class="ml-1 h-3 w-3 text-[var(--text-muted)]"/>
                     <SuccessBadge v-if="form.status === FormStatus.OPEN">{{ statusLabel(form.status) }}</SuccessBadge>
                     <ErrorBadge v-else-if="form.status === FormStatus.CLOSED">{{ statusLabel(form.status) }}</ErrorBadge>
                     <InfoBadge v-else>{{ statusLabel(form.status) }}</InfoBadge>
@@ -171,6 +172,7 @@ watch(loaded, (isLoaded) => {
               <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                 <div class="space-y-1">
                   <span class="font-medium">{{ form.title }}</span>
+                  <font-awesome-icon v-if="form.restricted" :icon="['fas', 'lock']" class="ml-1 h-3 w-3 text-[var(--text-muted)]"/>
                   <p v-if="form.description" class="text-xs text-(--text-muted)">{{ form.description }}</p>
                   <p class="text-xs text-(--text-muted)">{{ form.responseCount }} {{ t('forms.responses') }}</p>
                 </div>

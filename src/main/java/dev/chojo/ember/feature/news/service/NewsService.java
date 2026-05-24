@@ -8,6 +8,10 @@ package dev.chojo.ember.feature.news.service;
 import dev.chojo.ember.feature.news.entity.News;
 import dev.chojo.ember.feature.news.entity.NewsComment;
 import dev.chojo.ember.feature.news.repository.NewsRepository;
+import dev.chojo.ember.feature.restriction.RestrictionMode;
+import dev.chojo.ember.feature.restriction.RestrictionRepository;
+import dev.chojo.ember.feature.restriction.RestrictionSet;
+import dev.chojo.ember.feature.restriction.RestrictionType;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
@@ -21,10 +25,12 @@ import java.util.Optional;
 @Singleton
 public class NewsService {
     private final NewsRepository newsRepository;
+    private final RestrictionRepository restrictionRepository;
 
     @Inject
-    public NewsService(NewsRepository newsRepository) {
+    public NewsService(NewsRepository newsRepository, RestrictionRepository restrictionRepository) {
         this.newsRepository = newsRepository;
+        this.restrictionRepository = restrictionRepository;
     }
 
     /**
@@ -44,11 +50,12 @@ public class NewsService {
             String contentMarkdown,
             String contentHtml,
             int authorId,
-            List<Integer> groupIds) {
+            List<Integer> roleIds,
+            List<Integer> groupIds,
+            List<Integer> tagIds,
+            List<Integer> memberIds) {
         var news = newsRepository.create(stationId, title, contentMarkdown, contentHtml, authorId);
-        if (!groupIds.isEmpty()) {
-            newsRepository.setGroupRestrictions(news.id(), groupIds);
-        }
+        setRestrictions(news.id(), roleIds, groupIds, tagIds, memberIds);
         return news;
     }
 
@@ -98,9 +105,16 @@ public class NewsService {
      * @return the updated news article, or empty if the article was not found
      */
     public Optional<News> update(
-            int id, String title, String contentMarkdown, String contentHtml, List<Integer> groupIds) {
+            int id,
+            String title,
+            String contentMarkdown,
+            String contentHtml,
+            List<Integer> roleIds,
+            List<Integer> groupIds,
+            List<Integer> tagIds,
+            List<Integer> memberIds) {
         if (newsRepository.update(id, title, contentMarkdown, contentHtml)) {
-            newsRepository.setGroupRestrictions(id, groupIds);
+            setRestrictions(id, roleIds, groupIds, tagIds, memberIds);
             return newsRepository.findById(id);
         }
         return Optional.empty();
@@ -117,13 +131,28 @@ public class NewsService {
     }
 
     /**
-     * Retrieves the group IDs that restrict visibility of a news article.
-     *
-     * @param newsId the news article ID
-     * @return list of restricting group IDs
+     * Retrieves the restriction set for a news article.
      */
-    public List<Integer> findGroupRestrictions(int newsId) {
-        return newsRepository.findGroupRestrictions(newsId);
+    public RestrictionSet findRestrictions(int newsId) {
+        var news = newsRepository.findById(newsId).orElse(null);
+        RestrictionMode mode = news != null ? news.restrictionMode() : RestrictionMode.AND;
+        return restrictionRepository.findRestrictionSet(
+                RestrictionType.NEWS.table(), RestrictionType.NEWS.fkColumn(), newsId, mode);
+    }
+
+    /**
+     * Sets all restrictions for a news article.
+     */
+    public void setRestrictions(
+            int newsId, List<Integer> roleIds, List<Integer> groupIds, List<Integer> tagIds, List<Integer> memberIds) {
+        restrictionRepository.setRestrictions(
+                RestrictionType.NEWS.table(),
+                RestrictionType.NEWS.fkColumn(),
+                newsId,
+                roleIds != null ? roleIds : List.of(),
+                groupIds != null ? groupIds : List.of(),
+                tagIds != null ? tagIds : List.of(),
+                memberIds != null ? memberIds : List.of());
     }
 
     // -- Comments --

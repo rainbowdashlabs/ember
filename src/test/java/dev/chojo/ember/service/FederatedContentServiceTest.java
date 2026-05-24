@@ -23,6 +23,7 @@ import dev.chojo.ember.feature.quiz.entity.QuizCatalog;
 import dev.chojo.ember.feature.quiz.entity.QuizCategory;
 import dev.chojo.ember.feature.quiz.repository.QuizCatalogRepository;
 import dev.chojo.ember.feature.quiz.service.QuizService;
+import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.AfterAll;
@@ -141,7 +142,9 @@ class FederatedContentServiceTest extends RepositoryTestBase {
                 now,
                 now,
                 null,
-                null);
+                null,
+                RestrictionMode.AND,
+                false);
         when(kbService.findFile(realKbFileId)).thenReturn(Optional.of(kbFile));
         when(kbService.getMarkdownContent(realKbFileId)).thenReturn(Optional.of("# Shared Content"));
         var copiedFile = new KbFile(
@@ -161,7 +164,9 @@ class FederatedContentServiceTest extends RepositoryTestBase {
                 now,
                 now,
                 realKbFileId,
-                stationB.id());
+                stationB.id(),
+                RestrictionMode.AND,
+                false);
         when(kbService.createMarkdownFile(anyInt(), any(), anyString(), anyString(), anyString(), anyInt()))
                 .thenReturn(copiedFile);
         when(kbService.findFile(9999)).thenReturn(Optional.of(copiedFile));

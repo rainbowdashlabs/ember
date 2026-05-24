@@ -138,7 +138,10 @@ public class NewsRoutes implements Routes {
                 request.contentMarkdown(),
                 request.contentHtml() != null ? request.contentHtml() : "",
                 session.member().id(),
-                request.groupIds() != null ? request.groupIds() : List.of());
+                request.roleIds() != null ? request.roleIds() : List.of(),
+                request.groupIds() != null ? request.groupIds() : List.of(),
+                request.tagIds() != null ? request.tagIds() : List.of(),
+                request.memberIds() != null ? request.memberIds() : List.of());
         String authorName = session.account().fullName().trim();
         String preview = request.contentMarkdown().length() > 100
                 ? request.contentMarkdown().substring(0, 100) + "..."
@@ -173,7 +176,10 @@ public class NewsRoutes implements Routes {
                         request.title(),
                         request.contentMarkdown(),
                         request.contentHtml() != null ? request.contentHtml() : "",
-                        request.groupIds() != null ? request.groupIds() : List.of())
+                        request.roleIds() != null ? request.roleIds() : List.of(),
+                        request.groupIds() != null ? request.groupIds() : List.of(),
+                        request.tagIds() != null ? request.tagIds() : List.of(),
+                        request.memberIds() != null ? request.memberIds() : List.of())
                 .ifPresentOrElse(news -> ctx.json(toResponse(news, true)), () -> {
                     throw new NotFoundResponse();
                 });
@@ -222,7 +228,17 @@ public class NewsRoutes implements Routes {
                 .flatMap(m -> accountRepository.findById(m.accountId()))
                 .map(a -> (a.firstName() + " " + a.lastName()).trim())
                 .orElse("");
-        List<Integer> groupIds = includeRestrictions ? newsService.findGroupRestrictions(news.id()) : List.of();
+        List<Integer> roleIds = List.of();
+        List<Integer> groupIds = List.of();
+        List<Integer> tagIds = List.of();
+        List<Integer> memberIds = List.of();
+        if (includeRestrictions) {
+            var restrictions = newsService.findRestrictions(news.id());
+            roleIds = restrictions.roleIds();
+            groupIds = restrictions.groupIds();
+            tagIds = restrictions.tagIds();
+            memberIds = restrictions.memberIds();
+        }
         int commentCount = newsService.countComments(news.id());
         return new NewsResponse(
                 news.id(),
@@ -235,7 +251,10 @@ public class NewsRoutes implements Routes {
                 authorName,
                 news.publishedAt(),
                 news.createdAt(),
+                roleIds,
                 groupIds,
+                tagIds,
+                memberIds,
                 commentCount);
     }
 
@@ -401,7 +420,14 @@ public class NewsRoutes implements Routes {
      * @param contentHtml     article body as HTML
      * @param groupIds        group IDs to restrict visibility to
      */
-    public record NewsRequest(String title, String contentMarkdown, String contentHtml, List<Integer> groupIds) {}
+    public record NewsRequest(
+            String title,
+            String contentMarkdown,
+            String contentHtml,
+            List<Integer> roleIds,
+            List<Integer> groupIds,
+            List<Integer> tagIds,
+            List<Integer> memberIds) {}
 
     /**
      * API response representing a news article with resolved author information.
@@ -430,7 +456,10 @@ public class NewsRoutes implements Routes {
             String authorName,
             Instant publishedAt,
             Instant createdAt,
+            List<Integer> roleIds,
             List<Integer> groupIds,
+            List<Integer> tagIds,
+            List<Integer> memberIds,
             int commentCount) {}
 
     /**

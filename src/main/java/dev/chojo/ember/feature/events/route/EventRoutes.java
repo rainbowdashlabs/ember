@@ -5,7 +5,6 @@
  */
 package dev.chojo.ember.feature.events.route;
 
-import dev.chojo.ember.api.AccessManager;
 import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.MessageResponse;
 import dev.chojo.ember.api.Roles;
@@ -23,9 +22,7 @@ import dev.chojo.ember.feature.events.repository.EventFieldRepository;
 import dev.chojo.ember.feature.events.service.EventExportService;
 import dev.chojo.ember.feature.events.service.EventFieldService;
 import dev.chojo.ember.feature.events.service.EventService;
-import dev.chojo.ember.feature.members.entity.MemberGroup;
 import dev.chojo.ember.feature.members.entity.StationMember;
-import dev.chojo.ember.feature.members.entity.UserTag;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.MemberGroupService;
 import dev.chojo.ember.feature.members.service.StationMemberService;
@@ -34,6 +31,7 @@ import dev.chojo.ember.feature.notifications.entity.NotificationData;
 import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
 import dev.chojo.ember.feature.notifications.service.NotificationService;
+import dev.chojo.ember.feature.restriction.RestrictionMode;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.ForbiddenResponse;
@@ -59,7 +57,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 /**
  * Routes for event management including CRUD operations on events, categories, breaks,
@@ -70,7 +67,6 @@ public class EventRoutes implements Routes {
     private final EventService eventService;
     private final EventFieldService eventFieldService;
     private final StationMemberService stationMemberService;
-    private final AccessManager accessManager;
     private final MemberGroupService memberGroupService;
     private final NotificationService notificationService;
     private final StationMemberRepository stationMemberRepository;
@@ -84,7 +80,6 @@ public class EventRoutes implements Routes {
             EventService eventService,
             EventFieldService eventFieldService,
             StationMemberService stationMemberService,
-            AccessManager accessManager,
             MemberGroupService memberGroupService,
             NotificationService notificationService,
             StationMemberRepository stationMemberRepository,
@@ -95,7 +90,6 @@ public class EventRoutes implements Routes {
         this.eventService = eventService;
         this.eventFieldService = eventFieldService;
         this.stationMemberService = stationMemberService;
-        this.accessManager = accessManager;
         this.memberGroupService = memberGroupService;
         this.notificationService = notificationService;
         this.stationMemberRepository = stationMemberRepository;
@@ -153,25 +147,6 @@ public class EventRoutes implements Routes {
         routes.get(prefix + "/events/{id}/absences", this::listAbsencesForDate, Roles.EVENT_MANAGER);
     }
 
-    private Set<Roles> resolveRolesForMember(UserSession session, int memberId) {
-        if (session.member() != null && session.member().id() == memberId) {
-            return session.roles();
-        }
-        return accessManager.resolveExpandedMemberRoles(memberId);
-    }
-
-    private List<Integer> resolveGroupIdsForMember(int memberId) {
-        return memberGroupService.findGroupsForMember(memberId).stream()
-                .map(MemberGroup::id)
-                .toList();
-    }
-
-    private List<Integer> resolveTagIdsForMember(int memberId) {
-        return userTagService.findTagsForMember(memberId).stream()
-                .map(UserTag::id)
-                .toList();
-    }
-
     private String resolveCreatedByName(Integer createdBy) {
         if (createdBy == null) return null;
         return stationMemberRepository
@@ -191,7 +166,14 @@ public class EventRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = StationEvent[].class)))
     private void list(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        ctx.json(eventService.findByStation(session.stationId()));
+        if (session.hasRole(Roles.EVENT_MANAGER)) {
+            ctx.json(eventService.findByStation(session.stationId()));
+        } else if (session.member() != null) {
+            ctx.json(eventService.findByStationForMember(
+                    session.stationId(), session.member().id()));
+        } else {
+            ctx.json(java.util.List.of());
+        }
     }
 
     @OpenApi(
@@ -234,7 +216,7 @@ public class EventRoutes implements Routes {
                 req.requiresConfirmation() != null && req.requiresConfirmation(),
                 req.categoryId());
         eventService.setRestrictions(
-                event.id(), req.restrictedRoleIds(), req.restrictedGroupIds(), req.restrictedTagIds());
+                event.id(), req.restrictedRoleIds(), req.restrictedGroupIds(), req.restrictedTagIds(), List.of());
 
         // Notify station members about new event
         String eventDescription = "";
@@ -302,7 +284,11 @@ public class EventRoutes implements Routes {
                 .ifPresentOrElse(
                         event -> {
                             eventService.setRestrictions(
-                                    id, req.restrictedRoleIds(), req.restrictedGroupIds(), req.restrictedTagIds());
+                                    id,
+                                    req.restrictedRoleIds(),
+                                    req.restrictedGroupIds(),
+                                    req.restrictedTagIds(),
+                                    List.of());
                             ctx.json(event);
                         },
                         () -> {
@@ -553,11 +539,8 @@ public class EventRoutes implements Routes {
             memberId = session.member().id();
         }
 
-        // Check eligibility using expanded roles
-        var memberRoles = resolveRolesForMember(session, memberId);
-        var memberGroupIds = resolveGroupIdsForMember(memberId);
-        var memberTagIds = resolveTagIdsForMember(memberId);
-        if (!eventService.isMemberEligible(eventId, memberRoles, memberGroupIds, memberTagIds)) {
+        // Check eligibility using restrictions (DB resolves roles/groups/tags + manager bypass)
+        if (!eventService.isMemberEligible(eventId, memberId)) {
             throw new BadRequestResponse("Member is not eligible for this event");
         }
 
@@ -791,33 +774,19 @@ public class EventRoutes implements Routes {
             stationMemberService.findManaged(session.member().id()).forEach(m -> memberIds.add(m.id()));
         }
 
-        // Pre-resolve roles, groups, and tags for each member
-        var memberRolesMap = new HashMap<Integer, Set<Roles>>();
-        var memberGroupsMap = new HashMap<Integer, List<Integer>>();
-        var memberTagsMap = new HashMap<Integer, List<Integer>>();
-        for (int mid : memberIds) {
-            memberRolesMap.put(mid, resolveRolesForMember(session, mid));
-            memberGroupsMap.put(mid, resolveGroupIdsForMember(mid));
-            memberTagsMap.put(mid, resolveTagIdsForMember(mid));
-        }
-
         var allEvents = eventService.findByStation(session.stationId());
         var result = new HashMap<Integer, List<Integer>>();
 
         for (var event : allEvents) {
-            var roleRes = eventService.findRoleRestrictions(event.id());
-            var groupRes = eventService.findGroupRestrictions(event.id());
-            var tagRes = eventService.findTagRestrictions(event.id());
-            if (roleRes.isEmpty() && groupRes.isEmpty() && tagRes.isEmpty()) continue;
-
             var eligible = new ArrayList<Integer>();
             for (int mid : memberIds) {
-                if (eventService.isMemberEligible(
-                        event.id(), memberRolesMap.get(mid), memberGroupsMap.get(mid), memberTagsMap.get(mid))) {
+                if (eventService.isMemberEligible(event.id(), mid)) {
                     eligible.add(mid);
                 }
             }
-            result.put(event.id(), eligible);
+            if (!eligible.isEmpty()) {
+                result.put(event.id(), eligible);
+            }
         }
         ctx.json(result);
     }
@@ -833,12 +802,14 @@ public class EventRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = EventRestrictions.class)))
     private void getRestrictions(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
-        var event = eventService.findById(id).orElseThrow(NotFoundResponse::new);
+        eventService.findById(id).orElseThrow(NotFoundResponse::new);
+        var restrictions = eventService.findRestrictions(id);
         ctx.json(new EventRestrictions(
-                eventService.findRoleRestrictions(id),
-                eventService.findGroupRestrictions(id),
-                eventService.findTagRestrictions(id),
-                event.restrictionMode()));
+                restrictions.roleIds(),
+                restrictions.groupIds(),
+                restrictions.tagIds(),
+                restrictions.memberIds(),
+                restrictions.mode()));
     }
 
     // -- Restrictions --
@@ -854,7 +825,7 @@ public class EventRoutes implements Routes {
     private void setRestrictions(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
         var req = ctx.bodyAsClass(EventRestrictions.class);
-        eventService.setRestrictions(id, req.roleIds(), req.groupIds(), req.tagIds());
+        eventService.setRestrictions(id, req.roleIds(), req.groupIds(), req.tagIds(), req.memberIds());
         if (req.mode() != null) {
             eventService.updateRestrictionMode(id, req.mode());
         }
@@ -898,13 +869,25 @@ public class EventRoutes implements Routes {
             methods = HttpMethod.GET,
             summary = "List all event restrictions",
             tags = {"Events"},
-            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = AllEventRestrictions.class)))
+            responses = @OpenApiResponse(status = "200"))
     private void listAllRestrictions(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        ctx.json(new AllEventRestrictions(
-                eventService.findAllRoleRestrictionsByStation(session.stationId()),
-                eventService.findAllGroupRestrictionsByStation(session.stationId()),
-                eventService.findAllTagRestrictionsByStation(session.stationId())));
+        var events = eventService.findByStation(session.stationId());
+        var restrictionsMap = new HashMap<Integer, EventRestrictions>();
+        for (var event : events) {
+            var restrictions = eventService.findRestrictions(event.id());
+            if (restrictions.hasRestrictions()) {
+                restrictionsMap.put(
+                        event.id(),
+                        new EventRestrictions(
+                                restrictions.roleIds(),
+                                restrictions.groupIds(),
+                                restrictions.tagIds(),
+                                restrictions.memberIds(),
+                                restrictions.mode()));
+            }
+        }
+        ctx.json(restrictionsMap);
     }
 
     @OpenApi(
@@ -1046,12 +1029,12 @@ public class EventRoutes implements Routes {
 
     public record StatusUpdateRequest(String status) {}
 
-    public record EventRestrictions(List<Integer> roleIds, List<Integer> groupIds, List<Integer> tagIds, String mode) {}
-
-    public record AllEventRestrictions(
-            Map<Integer, List<Integer>> roleRestrictions,
-            Map<Integer, List<Integer>> groupRestrictions,
-            Map<Integer, List<Integer>> tagRestrictions) {}
+    public record EventRestrictions(
+            List<Integer> roleIds,
+            List<Integer> groupIds,
+            List<Integer> tagIds,
+            List<Integer> memberIds,
+            RestrictionMode mode) {}
 
     public record FieldDefaultEntry(int fieldId, String source, String value) {}
 

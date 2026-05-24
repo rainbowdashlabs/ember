@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.news.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
+import dev.chojo.ember.feature.restriction.RestrictionMode;
 
 import java.time.Instant;
 
@@ -31,7 +32,9 @@ public record News(
         String contentHtml,
         int authorId,
         Instant publishedAt,
-        Instant createdAt) {
+        Instant createdAt,
+        RestrictionMode restrictionMode,
+        boolean restricted) {
     /**
      * Creates a row mapping for database result set conversion.
      */
@@ -44,6 +47,8 @@ public record News(
                 row.getString("content_html"),
                 row.getInt("author_id"),
                 row.get("published_at", INSTANT_TIMESTAMP),
-                row.get("created_at", INSTANT_TIMESTAMP));
+                row.get("created_at", INSTANT_TIMESTAMP),
+                RestrictionMode.valueOf(row.getString("restriction_mode")),
+                row.getBoolean("restricted"));
     }
 }

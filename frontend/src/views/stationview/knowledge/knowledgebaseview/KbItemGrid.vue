@@ -90,7 +90,10 @@ function fileIcon(file: KbFile): string[] {
                 />
                 <font-awesome-icon v-else :icon="['fas', 'folder']"
                                    class="text-2xl text-[var(--accent)]"/>
-                <span class="text-sm font-medium truncate w-full">{{ folder.name }}</span>
+                <div class="flex items-center justify-center gap-1 w-full">
+                    <span class="text-sm font-medium truncate">{{ folder.name }}</span>
+                    <font-awesome-icon v-if="folder.restricted" :icon="['fas', 'lock']" class="ml-1 h-3 w-3 text-[var(--text-muted)] flex-shrink-0"/>
+                </div>
                 <span v-if="folder.description"
                       class="text-xs text-[var(--text-muted)] truncate w-full">
                     {{ folder.description }}
@@ -118,7 +121,10 @@ function fileIcon(file: KbFile): string[] {
         >
             <div class="flex flex-col items-center gap-2 p-2 text-center">
                 <font-awesome-icon :icon="fileIcon(file)" class="text-2xl text-[var(--primary)]"/>
-                <span class="text-sm font-medium truncate w-full">{{ file.name }}</span>
+                <div class="flex items-center justify-center gap-1 w-full">
+                    <span class="text-sm font-medium truncate">{{ file.name }}</span>
+                    <font-awesome-icon v-if="file.restricted" :icon="['fas', 'lock']" class="ml-1 h-3 w-3 text-[var(--text-muted)] flex-shrink-0"/>
+                </div>
                 <span v-if="file.description"
                       class="text-xs text-[var(--text-muted)] truncate w-full">
                     {{ file.description }}

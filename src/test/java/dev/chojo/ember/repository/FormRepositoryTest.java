@@ -186,40 +186,22 @@ class FormRepositoryTest extends RepositoryTestBase {
         assertEquals(1, answers.size());
     }
 
-    // -- Restrictions --
+    // -- Restrictions (now handled by RestrictionRepository) --
 
     @Test
     @Order(40)
-    void setAndFindRoleRestrictions() {
-        formRepo.setRoleRestrictions(formId, List.of(1, 2));
-        var roles = formRepo.findRoleRestrictions(formId);
-        assertEquals(2, roles.size());
+    void setAndFindRestrictions() {
+        var restrictionRepo = new dev.chojo.ember.feature.restriction.RestrictionRepository();
+        restrictionRepo.setRestrictions(
+                "form_restriction", "form_id", formId, List.of(1, 2), List.of(), List.of(), List.of());
+        var restrictions = restrictionRepo.findRestrictions("form_restriction", "form_id", formId);
+        assertEquals(2, restrictions.size());
         // Clear
-        formRepo.setRoleRestrictions(formId, List.of());
-        assertTrue(formRepo.findRoleRestrictions(formId).isEmpty());
-    }
-
-    @Test
-    @Order(41)
-    void findAllRoleRestrictionsByStation() {
-        formRepo.setRoleRestrictions(formId, List.of(1));
-        var map = formRepo.findAllRoleRestrictionsByStation(station.id());
-        assertTrue(map.containsKey(formId));
-        formRepo.setRoleRestrictions(formId, List.of());
-    }
-
-    @Test
-    @Order(42)
-    void findAllGroupRestrictionsByStation() {
-        var map = formRepo.findAllGroupRestrictionsByStation(station.id());
-        assertNotNull(map);
-    }
-
-    @Test
-    @Order(43)
-    void findAllTagRestrictionsByStation() {
-        var map = formRepo.findAllTagRestrictionsByStation(station.id());
-        assertNotNull(map);
+        restrictionRepo.setRestrictions(
+                "form_restriction", "form_id", formId, List.of(), List.of(), List.of(), List.of());
+        assertTrue(restrictionRepo
+                .findRestrictions("form_restriction", "form_id", formId)
+                .isEmpty());
     }
 
     // -- Cleanup --

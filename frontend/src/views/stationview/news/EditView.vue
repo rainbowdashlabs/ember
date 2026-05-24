@@ -19,8 +19,8 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import RestrictionPicker from '@/components/input/RestrictionPicker.vue'
-import type { MemberGroup } from '@/api/types'
-import { news, memberGroups } from '@/api'
+import type { MemberGroup, Role, UserTag } from '@/api/types'
+import { news, memberGroups, stationMembers, userTags } from '@/api'
 
 const { t } = useI18n()
 const router = useRouter()
@@ -31,8 +31,12 @@ const newsId = computed(() => isEdit.value ? Number(route.params.id) : null)
 
 const title = ref('')
 const contentMarkdown = ref('')
+const selectedRoleIds = ref<number[]>([])
 const selectedGroupIds = ref<number[]>([])
+const selectedTagIds = ref<number[]>([])
+const roles = ref<Role[]>([])
 const groups = ref<MemberGroup[]>([])
+const tags = ref<UserTag[]>([])
 const loading = ref(false)
 const saving = ref(false)
 const error = ref('')
@@ -49,12 +53,21 @@ const contentHtml = computed(() => {
 async function loadData() {
   loading.value = true
   try {
-    groups.value = await memberGroups.listGroups()
+    const [groupList, roleList, tagList] = await Promise.all([
+      memberGroups.listGroups(),
+      stationMembers.listAllRoles(),
+      userTags.listTags(),
+    ])
+    groups.value = groupList
+    roles.value = roleList
+    tags.value = tagList
     if (newsId.value) {
       const entry = await news.getNews(newsId.value)
       title.value = entry.title
       contentMarkdown.value = entry.contentMarkdown
+      selectedRoleIds.value = entry.roleIds ?? []
       selectedGroupIds.value = entry.groupIds ?? []
+      selectedTagIds.value = entry.tagIds ?? []
     }
   } catch {
     error.value = t('common.error')
@@ -72,7 +85,10 @@ async function save() {
       title: title.value,
       contentMarkdown: contentMarkdown.value,
       contentHtml: contentHtml.value,
+      roleIds: selectedRoleIds.value,
       groupIds: selectedGroupIds.value,
+      tagIds: selectedTagIds.value,
+      memberIds: [] as number[],
     }
     if (newsId.value) {
       await news.updateNews(newsId.value, data)
@@ -132,18 +148,19 @@ onMounted(loadData)
           </div>
         </NeutralContainer>
 
-        <NeutralContainer v-if="groups.length > 0" class="space-y-3">
+        <NeutralContainer class="space-y-3">
           <SubHeader>{{ t('news.restrictToGroups') }}</SubHeader>
           <p class="text-xs text-(--text-muted)">{{ t('news.restrictHint') }}</p>
           <RestrictionPicker
+              :roles="roles"
               :groups="groups"
-              :selected-role-ids="[]"
+              :tags="tags"
+              :selected-role-ids="selectedRoleIds"
               :selected-group-ids="selectedGroupIds"
-              :selected-tag-ids="[]"
-              :show-roles="false"
-              :show-tags="false"
-              :show-mode="false"
+              :selected-tag-ids="selectedTagIds"
+              @update:selected-role-ids="v => selectedRoleIds = v"
               @update:selected-group-ids="v => selectedGroupIds = v"
+              @update:selected-tag-ids="v => selectedTagIds = v"
           />
         </NeutralContainer>
 

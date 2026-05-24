@@ -418,7 +418,6 @@ watch(loaded, (isLoaded) => {
               :selected-role-ids="selectedRoleIds"
               :selected-group-ids="selectedGroupIds"
               :selected-tag-ids="selectedTagIds"
-              :show-mode="true"
               @update:selected-role-ids="v => selectedRoleIds = v"
               @update:selected-group-ids="v => selectedGroupIds = v"
               @update:selected-tag-ids="v => selectedTagIds = v"

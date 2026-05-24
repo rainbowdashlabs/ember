@@ -302,7 +302,6 @@ onMounted(loadData)
               :selected-role-ids="selectedRoleIds"
               :selected-group-ids="selectedGroupIds"
               :selected-tag-ids="selectedTagIds"
-              :show-mode="false"
               @update:selected-role-ids="v => selectedRoleIds = v"
               @update:selected-group-ids="v => selectedGroupIds = v"
               @update:selected-tag-ids="v => selectedTagIds = v"

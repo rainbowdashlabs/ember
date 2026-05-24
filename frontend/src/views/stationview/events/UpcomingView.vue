@@ -327,6 +327,7 @@ watch(loaded, (isLoaded) => {
             <PrimaryContainer v-for="ev in filteredTodayEvents" :key="ev.id" class="space-y-2">
               <div class="flex items-center justify-between">
                 <router-link :to="{ name: 'event-detail', params: { id: ev.id } }" class="font-semibold text-primary hover:underline">{{ ev.name }}</router-link>
+                <font-awesome-icon v-if="ev.restricted" :icon="['fas', 'lock']" class="ml-1 h-3 w-3 text-[var(--text-muted)]"/>
                 <span class="text-sm">{{ formatTime(ev.startTime) }} – {{ formatTime(ev.endTime) }}</span>
               </div>
               <p v-if="ev.description" class="text-sm text-(--text-muted)">{{ ev.description }}</p>
@@ -353,6 +354,7 @@ watch(loaded, (isLoaded) => {
               <div class="flex items-center justify-between flex-wrap gap-2">
                 <div>
                   <router-link :to="{ name: 'event-detail', params: { id: item.event.id } }" class="font-medium text-primary hover:underline">{{ item.event.name }}</router-link>
+                  <font-awesome-icon v-if="item.event.restricted" :icon="['fas', 'lock']" class="ml-1 h-3 w-3 text-[var(--text-muted)]"/>
                   <span class="ml-2 text-sm text-(--text-muted)">{{ item.dayLabel }}, {{ item.date }}</span>
                   <span class="ml-2 text-xs text-(--text-muted)">{{
                       formatTime(item.event.startTime)

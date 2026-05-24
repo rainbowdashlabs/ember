@@ -12,9 +12,6 @@ import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.federation.service.FederatedContentService;
 import dev.chojo.ember.feature.media.service.ImageCategory;
 import dev.chojo.ember.feature.media.service.ImageService;
-import dev.chojo.ember.feature.members.entity.MemberGroup;
-import dev.chojo.ember.feature.members.entity.Role;
-import dev.chojo.ember.feature.members.entity.UserTag;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.repository.UserTagRepository;
@@ -31,6 +28,7 @@ import dev.chojo.ember.feature.quiz.entity.QuizTestSectionSource;
 import dev.chojo.ember.feature.quiz.entity.TestStatus;
 import dev.chojo.ember.feature.quiz.service.QuizPdfService;
 import dev.chojo.ember.feature.quiz.service.QuizService;
+import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.util.CsvParser;
 import io.javalin.http.BadRequestResponse;
@@ -467,7 +465,14 @@ public class QuizRoutes implements Routes {
 
     private void listTests(Context ctx) {
         var session = UserSession.from(ctx);
-        var tests = quizService.findTests(session.stationId());
+        // QUIZ_MANAGER sees all tests; regular members see only restriction-permitted tests
+        List<QuizTest> tests;
+        if (session.member() != null && !session.roles().contains(Roles.QUIZ_MANAGER)) {
+            tests = quizService.findTestsForMember(
+                    session.stationId(), session.member().id());
+        } else {
+            tests = quizService.findTests(session.stationId());
+        }
         var result = tests.stream()
                 .map(t -> new TestSummary(t, quizService.countAttempts(t.id())))
                 .toList();
@@ -481,18 +486,9 @@ public class QuizRoutes implements Routes {
             return;
         }
         int memberId = session.member().id();
-        var memberRoleIds = stationMemberRepository.findRoles(memberId).stream()
-                .map(Role::id)
-                .toList();
-        var memberGroupIds = memberGroupRepository.findGroupsForMember(memberId).stream()
-                .map(MemberGroup::id)
-                .toList();
-        var memberTagIds = userTagRepository.findTagsForMember(memberId).stream()
-                .map(UserTag::id)
-                .toList();
-        var tests = quizService.findTests(session.stationId()).stream()
+        // findTestsForMember already handles restriction filtering + manager bypass via DB function
+        var tests = quizService.findTestsForMember(session.stationId(), memberId).stream()
                 .filter(t -> t.status() == TestStatus.ACTIVE)
-                .filter(t -> quizService.canMemberAccess(t.id(), memberRoleIds, memberGroupIds, memberTagIds))
                 .toList();
         ctx.json(tests);
     }
@@ -666,16 +662,7 @@ public class QuizRoutes implements Routes {
         if (session.member() == null) throw new BadRequestResponse("Not a station member");
         var test = quizService.findTest(testId).orElseThrow(NotFoundResponse::new);
         int memberId = session.member().id();
-        var memberRoleIds = stationMemberRepository.findRoles(memberId).stream()
-                .map(Role::id)
-                .toList();
-        var memberGroupIds = memberGroupRepository.findGroupsForMember(memberId).stream()
-                .map(MemberGroup::id)
-                .toList();
-        var memberTagIds = userTagRepository.findTagsForMember(memberId).stream()
-                .map(UserTag::id)
-                .toList();
-        if (!quizService.isTestAccessible(test, memberId, memberRoleIds, memberGroupIds, memberTagIds)) {
+        if (!quizService.isTestAccessible(test, memberId)) {
             throw new ForbiddenResponse("Test is not currently accessible");
         }
         var existing = quizService.findAttempt(testId, session.member().id());
@@ -768,18 +755,21 @@ public class QuizRoutes implements Routes {
 
     private void getRestrictions(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
-        var test = quizService.findTest(id).orElseThrow(NotFoundResponse::new);
+        quizService.findTest(id).orElseThrow(NotFoundResponse::new);
+        var restrictions = quizService.findRestrictions(id);
         ctx.json(new TestRestrictions(
-                quizService.findRoleRestrictions(id),
-                quizService.findGroupRestrictions(id),
-                quizService.findTagRestrictions(id),
-                test.restrictionMode()));
+                restrictions.roleIds(),
+                restrictions.groupIds(),
+                restrictions.tagIds(),
+                restrictions.memberIds(),
+                restrictions.mode()));
     }
 
     private void setRestrictions(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
         var req = ctx.bodyAsClass(TestRestrictions.class);
-        quizService.setRestrictions(id, req.roleIds(), req.groupIds(), req.tagIds());
+        quizService.setRestrictions(
+                id, req.roleIds(), req.groupIds(), req.tagIds(), req.memberIds() != null ? req.memberIds() : List.of());
         if (req.mode() != null) {
             quizService.updateRestrictionMode(id, req.mode());
         }
@@ -1184,7 +1174,12 @@ public class QuizRoutes implements Routes {
 
     public record AccessRequest(Integer memberId, Instant closesAt) {}
 
-    public record TestRestrictions(List<Integer> roleIds, List<Integer> groupIds, List<Integer> tagIds, String mode) {}
+    public record TestRestrictions(
+            List<Integer> roleIds,
+            List<Integer> groupIds,
+            List<Integer> tagIds,
+            List<Integer> memberIds,
+            RestrictionMode mode) {}
 
     public record CatalogDetail(
             int id,

@@ -149,12 +149,9 @@ public class TestProtocolRoutes implements Routes {
         ctx.json(new ProtocolListResponse(protocols, shared));
     }
 
-    private record ProtocolListResponse(
-            List<TestProtocol> protocols,
-            List<SharedProtocolItem> shared) {}
+    private record ProtocolListResponse(List<TestProtocol> protocols, List<SharedProtocolItem> shared) {}
 
-    private record SharedProtocolItem(
-            TestProtocol protocol, String stationName, int sourceStationId) {}
+    private record SharedProtocolItem(TestProtocol protocol, String stationName, int sourceStationId) {}
 
     private void createProtocol(Context ctx) {
         var session = UserSession.from(ctx);

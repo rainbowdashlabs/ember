@@ -22,6 +22,7 @@ import dev.chojo.ember.feature.notifications.entity.NotificationData;
 import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
 import dev.chojo.ember.feature.notifications.service.NotificationService;
+import dev.chojo.ember.feature.restriction.RestrictionMode;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.ForbiddenResponse;
@@ -134,18 +135,36 @@ public class FormRoutes implements Routes {
             return;
         }
         int memberId = session.member().id();
-        var openForms = formService.findByStation(session.stationId()).stream()
+
+        // findByStationForMember uses DB restriction check (manager bypass + role inheritance)
+        var accessibleForms = formService.findByStationForMember(session.stationId(), memberId).stream()
                 .filter(f -> f.status() == Form.FormStatus.OPEN)
                 .filter(formService::isAcceptingResponses)
                 .toList();
 
-        // Include forms accessible by self OR any managed member
+        // Also include forms where a managed member has access but the current member does not
         var managed = stationMemberService.findManaged(memberId);
-        var result = openForms.stream()
-                .filter(f -> {
-                    if (formService.canMemberAccess(f.id(), memberId)) return true;
-                    return managed.stream().anyMatch(m -> formService.canMemberAccess(f.id(), m.id()));
-                })
+        var managedAccessible = managed.isEmpty()
+                ? java.util.Set.<Integer>of()
+                : managed.stream()
+                        .flatMap(m -> formService.findByStationForMember(session.stationId(), m.id()).stream())
+                        .filter(f -> f.status() == Form.FormStatus.OPEN)
+                        .filter(formService::isAcceptingResponses)
+                        .map(f -> f.id())
+                        .collect(java.util.stream.Collectors.toSet());
+
+        var seen = new java.util.HashSet<Integer>();
+        var combined = new java.util.ArrayList<>(accessibleForms);
+        accessibleForms.forEach(f -> seen.add(f.id()));
+        if (!managedAccessible.isEmpty()) {
+            formService.findByStation(session.stationId()).stream()
+                    .filter(f -> managedAccessible.contains(f.id()) && !seen.contains(f.id()))
+                    .filter(f -> f.status() == Form.FormStatus.OPEN)
+                    .filter(formService::isAcceptingResponses)
+                    .forEach(combined::add);
+        }
+
+        var result = combined.stream()
                 .map(f -> new FormListEntry(
                         f.id(),
                         f.stationId(),
@@ -351,12 +370,14 @@ public class FormRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = FormRestrictions.class)))
     private void getRestrictions(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
-        var form = formService.findById(id).orElseThrow(NotFoundResponse::new);
+        formService.findById(id).orElseThrow(NotFoundResponse::new);
+        var restrictions = formService.findRestrictions(id);
         ctx.json(new FormRestrictions(
-                formService.findRoleRestrictions(id),
-                formService.findGroupRestrictions(id),
-                formService.findTagRestrictions(id),
-                form.restrictionMode()));
+                restrictions.roleIds(),
+                restrictions.groupIds(),
+                restrictions.tagIds(),
+                restrictions.memberIds(),
+                restrictions.mode()));
     }
 
     @OpenApi(
@@ -370,7 +391,8 @@ public class FormRoutes implements Routes {
     private void setRestrictions(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
         var req = ctx.bodyAsClass(FormRestrictions.class);
-        formService.setRestrictions(id, req.roleIds(), req.groupIds(), req.tagIds());
+        formService.setRestrictions(
+                id, req.roleIds(), req.groupIds(), req.tagIds(), req.memberIds() != null ? req.memberIds() : List.of());
         if (req.mode() != null) {
             formService.updateRestrictionMode(id, req.mode());
         }
@@ -688,7 +710,12 @@ public class FormRoutes implements Routes {
      * @param groupIds list of group IDs that grant access
      * @param tagIds   list of tag IDs that grant access
      */
-    public record FormRestrictions(List<Integer> roleIds, List<Integer> groupIds, List<Integer> tagIds, String mode) {}
+    public record FormRestrictions(
+            List<Integer> roleIds,
+            List<Integer> groupIds,
+            List<Integer> tagIds,
+            List<Integer> memberIds,
+            RestrictionMode mode) {}
 
     /**
      * Request body for submitting or updating a form response.

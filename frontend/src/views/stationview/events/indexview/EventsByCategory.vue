@@ -109,6 +109,7 @@ function formatDate(iso?: string): string {
             {{ eventTypeLabel(ev.eventType) }}
           </SecondaryBadge>
           <span class="font-medium text-primary">{{ ev.name }}</span>
+          <font-awesome-icon v-if="ev.restricted" :icon="['fas', 'lock']" class="ml-1 h-3 w-3 text-[var(--text-muted)]"/>
           <span v-if="isRecurringEvent(ev.eventType)" class="text-sm text-(--text-muted)">{{
               dayName(ev.dayOfWeek)
             }}, {{ formatTime(ev.startTime) }} – {{ formatTime(ev.endTime) }}</span>

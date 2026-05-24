@@ -154,7 +154,6 @@ async function handleSave() {
                     :selected-role-ids="roleIds"
                     :selected-group-ids="groupIds"
                     :selected-tag-ids="tagIds"
-                    :show-mode="false"
                     @update:selected-role-ids="roleIds = $event"
                     @update:selected-group-ids="groupIds = $event"
                     @update:selected-tag-ids="tagIds = $event"

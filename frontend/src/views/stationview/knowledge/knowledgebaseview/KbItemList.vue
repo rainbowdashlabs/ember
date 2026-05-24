@@ -117,6 +117,7 @@ function formatDate(dateStr: string): string {
                                    class="text-sm text-[var(--accent)]"/>
             </div>
             <span class="text-sm font-medium truncate min-w-0 flex-1">{{ folder.name }}</span>
+            <font-awesome-icon v-if="folder.restricted" :icon="['fas', 'lock']" class="ml-1 h-3 w-3 text-[var(--text-muted)] flex-shrink-0"/>
             <span v-if="folder.description"
                   class="hidden sm:block text-xs text-[var(--text-muted)] truncate max-w-48">
                 {{ folder.description }}
@@ -154,6 +155,7 @@ function formatDate(dateStr: string): string {
                 class="text-xs text-yellow-500 flex-shrink-0"
             />
             <span class="text-sm font-medium truncate min-w-0 flex-1">{{ file.name }}</span>
+            <font-awesome-icon v-if="file.restricted" :icon="['fas', 'lock']" class="ml-1 h-3 w-3 text-[var(--text-muted)] flex-shrink-0"/>
             <span v-if="file.description"
                   class="hidden sm:block text-xs text-[var(--text-muted)] truncate max-w-48">
                 {{ file.description }}

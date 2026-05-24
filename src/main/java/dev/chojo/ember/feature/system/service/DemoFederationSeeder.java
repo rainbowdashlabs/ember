@@ -129,6 +129,12 @@ public class DemoFederationSeeder {
             federationService.createKbShare(partnerStation.id(), file.id(), null, "ALL_PARTNERS");
         }
 
+        // Share the primary station's KB with the partner station
+        var primaryKbFiles = kbService.findFiles(primaryStationId, null);
+        for (var file : primaryKbFiles) {
+            federationService.createKbShare(primaryStationId, file.id(), null, "ALL_PARTNERS");
+        }
+
         // Create and share a quiz catalog on the partner station
         var partnerCatalog = quizService.createCatalog(
                 partnerStation.id(), "Grundwissen Feuerwehr", "Quiz zur Grundausbildung der Partnerwache", true);

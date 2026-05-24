@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.quiz.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
+import dev.chojo.ember.feature.restriction.RestrictionMode;
 
 import java.time.Instant;
 
@@ -24,7 +25,8 @@ public record QuizTest(
         int createdBy,
         Instant createdAt,
         Instant updatedAt,
-        String restrictionMode) {
+        RestrictionMode restrictionMode,
+        boolean restricted) {
 
     public static RowMapping<QuizTest> map() {
         return row -> new QuizTest(
@@ -40,6 +42,7 @@ public record QuizTest(
                 row.getInt("created_by"),
                 row.get("created_at", INSTANT_TIMESTAMP),
                 row.get("updated_at", INSTANT_TIMESTAMP),
-                row.getString("restriction_mode"));
+                RestrictionMode.valueOf(row.getString("restriction_mode")),
+                row.getBoolean("restricted"));
     }
 }

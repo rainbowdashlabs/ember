@@ -15,6 +15,8 @@ import dev.chojo.ember.feature.protocol.entity.TestProtocol;
 import dev.chojo.ember.feature.protocol.service.TestProtocolService;
 import dev.chojo.ember.feature.quiz.entity.QuizCatalog;
 import dev.chojo.ember.feature.quiz.service.QuizService;
+import dev.chojo.ember.feature.restriction.RestrictionMode;
+import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -64,7 +66,7 @@ public class FederatedContentService {
     private String getPrivateKey(int stationId) {
         return stationRepository
                 .findById(stationId)
-                .map(s -> s.federationPrivateKey())
+                .map(Station::federationPrivateKey)
                 .orElse(null);
     }
 
@@ -139,7 +141,9 @@ public class FederatedContentService {
                     Instant.now(),
                     Instant.now(),
                     null,
-                    null);
+                    null,
+                    RestrictionMode.AND,
+                    false);
             result.add(new SharedKbItem(file, null, remoteStationId, partner.id()));
             federationRepository.upsertMetadataCache(
                     partner.id(), "KB", remoteFile.id(), remoteFile.name(), remoteFile.description());

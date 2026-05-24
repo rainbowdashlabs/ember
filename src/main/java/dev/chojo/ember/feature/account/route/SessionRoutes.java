@@ -144,9 +144,7 @@ public class SessionRoutes implements Routes {
                     .map(Role::id)
                     .toList();
             groupIds = groups.stream().map(MemberGroup::id).toList();
-            tagIds = tags.stream()
-                    .map(UserTag::id)
-                    .toList();
+            tagIds = tags.stream().map(UserTag::id).toList();
             memberInfo = new MemberInfo(
                     session.member().id(),
                     session.stationUid() != null ? session.stationUid().toString() : null,

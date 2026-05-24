@@ -11,13 +11,11 @@ import dev.chojo.ember.feature.form.entity.Form;
 import dev.chojo.ember.feature.form.entity.FormAnswer;
 import dev.chojo.ember.feature.form.entity.FormQuestion;
 import dev.chojo.ember.feature.form.entity.FormResponse;
+import dev.chojo.ember.feature.restriction.RestrictionMode;
 import jakarta.inject.Singleton;
 
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIMESTAMP;
@@ -28,6 +26,11 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
 @Singleton
 public class FormRepository {
 
+    private static final String FORM_COLUMNS =
+            "f.id, f.station_id, f.title, f.description, f.status, f.shuffle_questions, f.allow_edit, f.start_at, f.end_at, f.closed_at, f.created_by, f.created_at, f.updated_at, f.restriction_mode, EXISTS(SELECT 1 FROM form_restriction r WHERE r.form_id = f.id) AS restricted";
+    private static final String FORM_COLUMNS_BARE =
+            "id, station_id, title, description, status, shuffle_questions, allow_edit, start_at, end_at, closed_at, created_by, created_at, updated_at, restriction_mode, EXISTS(SELECT 1 FROM form_restriction r WHERE r.form_id = id) AS restricted";
+
     // -- Forms --
 
     /**
@@ -37,8 +40,27 @@ public class FormRepository {
      * @return list of forms belonging to the station
      */
     public List<Form> findByStation(int stationId) {
-        return Query.query("SELECT * FROM form WHERE station_id = :station_id ORDER BY created_at DESC;")
+        return Query.query("SELECT " + FORM_COLUMNS
+                        + " FROM form f WHERE f.station_id = :station_id ORDER BY f.created_at DESC;")
                 .single(Call.of().bind("station_id", stationId))
+                .map(Form.map())
+                .all();
+    }
+
+    /**
+     * Retrieves forms for a station that the given member is allowed to see.
+     * Uses the DB restriction check function which resolves role inheritance, mode, and manager bypass.
+     *
+     * @param stationId the station ID
+     * @param memberId  the requesting member ID
+     * @return the filtered list of forms
+     */
+    public List<Form> findByStationForMember(int stationId, int memberId) {
+        return Query.query("SELECT " + FORM_COLUMNS + " FROM form f"
+                        + " WHERE f.station_id = :station_id"
+                        + " AND check_restriction('form_restriction', 'form_id', 'form', 'id', f.id, :member_id, 'POLL_MANAGER')"
+                        + " ORDER BY f.created_at DESC;")
+                .single(Call.of().bind("station_id", stationId).bind("member_id", memberId))
                 .map(Form.map())
                 .all();
     }
@@ -50,7 +72,7 @@ public class FormRepository {
      * @return the form, or empty if not found
      */
     public Optional<Form> findById(int id) {
-        return Query.query("SELECT * FROM form WHERE id = :id;")
+        return Query.query("SELECT " + FORM_COLUMNS + " FROM form f WHERE f.id = :id;")
                 .single(Call.of().bind("id", id))
                 .map(Form.map())
                 .first();
@@ -81,7 +103,7 @@ public class FormRepository {
         return Query.query("""
                             INSERT INTO form(station_id, title, description, shuffle_questions, allow_edit, start_at, end_at, created_by)
                             VALUES (:station_id, :title, :description, :shuffle_questions, :allow_edit, :start_at, :end_at, :created_by)
-                            RETURNING *;""")
+                            RETURNING\s""" + FORM_COLUMNS_BARE + ";")
                 .single(Call.of()
                         .bind("station_id", stationId)
                         .bind("title", title)
@@ -419,166 +441,13 @@ public class FormRepository {
      * Updates the restriction mode for a form.
      *
      * @param formId the form ID
-     * @param mode   the restriction mode ("AND" or "OR")
+     * @param mode   the restriction mode
      * @return {@code true} if a row was updated
      */
-    public boolean updateRestrictionMode(int formId, String mode) {
+    public boolean updateRestrictionMode(int formId, RestrictionMode mode) {
         return Query.query("UPDATE form SET restriction_mode = :mode WHERE id = :id;")
-                .single(Call.of().bind("mode", mode).bind("id", formId))
+                .single(Call.of().bind("mode", mode.name()).bind("id", formId))
                 .update()
                 .changed();
-    }
-
-    /**
-     * Retrieves the role IDs that restrict access to a form.
-     *
-     * @param formId the form ID
-     * @return list of role IDs, empty if no role restrictions
-     */
-    public List<Integer> findRoleRestrictions(int formId) {
-        return Query.query("SELECT role_id FROM form_role_restriction WHERE form_id = :form_id;")
-                .single(Call.of().bind("form_id", formId))
-                .map(row -> row.getInt("role_id"))
-                .all();
-    }
-
-    /**
-     * Retrieves the group IDs that restrict access to a form.
-     *
-     * @param formId the form ID
-     * @return list of group IDs, empty if no group restrictions
-     */
-    public List<Integer> findGroupRestrictions(int formId) {
-        return Query.query("SELECT group_id FROM form_group_restriction WHERE form_id = :form_id;")
-                .single(Call.of().bind("form_id", formId))
-                .map(row -> row.getInt("group_id"))
-                .all();
-    }
-
-    /**
-     * Retrieves the tag IDs that restrict access to a form.
-     *
-     * @param formId the form ID
-     * @return list of tag IDs, empty if no tag restrictions
-     */
-    public List<Integer> findTagRestrictions(int formId) {
-        return Query.query("SELECT tag_id FROM form_tag_restriction WHERE form_id = :form_id;")
-                .single(Call.of().bind("form_id", formId))
-                .map(row -> row.getInt("tag_id"))
-                .all();
-    }
-
-    /**
-     * Replaces all role restrictions for a form. Deletes existing restrictions first, then inserts new ones.
-     *
-     * @param formId  the form ID
-     * @param roleIds the new set of role IDs to restrict access to
-     */
-    public void setRoleRestrictions(int formId, List<Integer> roleIds) {
-        Query.query("DELETE FROM form_role_restriction WHERE form_id = :form_id;")
-                .single(Call.of().bind("form_id", formId))
-                .delete();
-        for (int roleId : roleIds) {
-            Query.query("INSERT INTO form_role_restriction(form_id, role_id) VALUES(:form_id, :role_id);")
-                    .single(Call.of().bind("form_id", formId).bind("role_id", roleId))
-                    .insert();
-        }
-    }
-
-    /**
-     * Replaces all group restrictions for a form. Deletes existing restrictions first, then inserts new ones.
-     *
-     * @param formId   the form ID
-     * @param groupIds the new set of group IDs to restrict access to
-     */
-    public void setGroupRestrictions(int formId, List<Integer> groupIds) {
-        Query.query("DELETE FROM form_group_restriction WHERE form_id = :form_id;")
-                .single(Call.of().bind("form_id", formId))
-                .delete();
-        for (int groupId : groupIds) {
-            Query.query("INSERT INTO form_group_restriction(form_id, group_id) VALUES(:form_id, :group_id);")
-                    .single(Call.of().bind("form_id", formId).bind("group_id", groupId))
-                    .insert();
-        }
-    }
-
-    /**
-     * Replaces all tag restrictions for a form. Deletes existing restrictions first, then inserts new ones.
-     *
-     * @param formId the form ID
-     * @param tagIds the new set of tag IDs to restrict access to
-     */
-    public void setTagRestrictions(int formId, List<Integer> tagIds) {
-        Query.query("DELETE FROM form_tag_restriction WHERE form_id = :form_id;")
-                .single(Call.of().bind("form_id", formId))
-                .delete();
-        for (int tagId : tagIds) {
-            Query.query("INSERT INTO form_tag_restriction(form_id, tag_id) VALUES(:form_id, :tag_id);")
-                    .single(Call.of().bind("form_id", formId).bind("tag_id", tagId))
-                    .insert();
-        }
-    }
-
-    /**
-     * Retrieves all role restrictions for all forms in a station, grouped by form ID.
-     *
-     * @param stationId the station ID
-     * @return map of form ID to list of restricted role IDs
-     */
-    public Map<Integer, List<Integer>> findAllRoleRestrictionsByStation(int stationId) {
-        var result = new HashMap<Integer, List<Integer>>();
-        Query.query("""
-                     SELECT frr.form_id, frr.role_id
-                     FROM form_role_restriction frr
-                     JOIN form f ON f.id = frr.form_id
-                     WHERE f.station_id = :station_id;""")
-                .single(Call.of().bind("station_id", stationId))
-                .map(row -> new int[] {row.getInt("form_id"), row.getInt("role_id")})
-                .all()
-                .forEach(pair ->
-                        result.computeIfAbsent(pair[0], k -> new ArrayList<>()).add(pair[1]));
-        return result;
-    }
-
-    /**
-     * Retrieves all group restrictions for all forms in a station, grouped by form ID.
-     *
-     * @param stationId the station ID
-     * @return map of form ID to list of restricted group IDs
-     */
-    public Map<Integer, List<Integer>> findAllGroupRestrictionsByStation(int stationId) {
-        var result = new HashMap<Integer, List<Integer>>();
-        Query.query("""
-                     SELECT fgr.form_id, fgr.group_id
-                     FROM form_group_restriction fgr
-                     JOIN form f ON f.id = fgr.form_id
-                     WHERE f.station_id = :station_id;""")
-                .single(Call.of().bind("station_id", stationId))
-                .map(row -> new int[] {row.getInt("form_id"), row.getInt("group_id")})
-                .all()
-                .forEach(pair ->
-                        result.computeIfAbsent(pair[0], k -> new ArrayList<>()).add(pair[1]));
-        return result;
-    }
-
-    /**
-     * Retrieves all tag restrictions for all forms in a station, grouped by form ID.
-     *
-     * @param stationId the station ID
-     * @return map of form ID to list of restricted tag IDs
-     */
-    public Map<Integer, List<Integer>> findAllTagRestrictionsByStation(int stationId) {
-        var result = new HashMap<Integer, List<Integer>>();
-        Query.query("""
-                     SELECT ftr.form_id, ftr.tag_id
-                     FROM form_tag_restriction ftr
-                     JOIN form f ON f.id = ftr.form_id
-                     WHERE f.station_id = :station_id;""")
-                .single(Call.of().bind("station_id", stationId))
-                .map(row -> new int[] {row.getInt("form_id"), row.getInt("tag_id")})
-                .all()
-                .forEach(pair ->
-                        result.computeIfAbsent(pair[0], k -> new ArrayList<>()).add(pair[1]));
-        return result;
     }
 }

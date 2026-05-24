@@ -130,6 +130,7 @@ watch(loaded, (isLoaded) => {
             <div class="space-y-2">
               <div class="flex items-center justify-between">
                 <span class="font-medium">{{ test.title }}</span>
+                <font-awesome-icon v-if="test.restricted" :icon="['fas', 'lock']" class="ml-1 h-3 w-3 text-[var(--text-muted)]"/>
                 <SuccessBadge v-if="test.status === QuizTestStatus.ACTIVE">{{ t('quiz.tests.statusActive') }}</SuccessBadge>
                 <ErrorBadge v-else-if="test.status === QuizTestStatus.CLOSED">{{ t('quiz.tests.statusClosed') }}</ErrorBadge>
                 <SecondaryBadge v-else>{{ t('quiz.tests.statusDraft') }}</SecondaryBadge>
@@ -169,6 +170,7 @@ watch(loaded, (isLoaded) => {
               <div class="flex-1 space-y-1">
                 <div class="flex items-center gap-2 flex-wrap">
                   <span class="font-medium">{{ test.title }}</span>
+                  <font-awesome-icon v-if="test.restricted" :icon="['fas', 'lock']" class="ml-1 h-3 w-3 text-[var(--text-muted)]"/>
                   <SuccessBadge v-if="test.status === QuizTestStatus.ACTIVE">{{ t('quiz.tests.statusActive') }}</SuccessBadge>
                   <ErrorBadge v-else-if="test.status === QuizTestStatus.CLOSED">{{ t('quiz.tests.statusClosed') }}</ErrorBadge>
                   <SecondaryBadge v-else>{{ t('quiz.tests.statusDraft') }}</SecondaryBadge>

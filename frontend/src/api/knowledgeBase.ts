@@ -17,6 +17,7 @@ export interface KbFolder {
     createdBy: number
     createdAt: string
     updatedAt: string
+    restricted?: boolean
 }
 
 export interface KbFile {
@@ -37,6 +38,7 @@ export interface KbFile {
     updatedAt: string
     sourceFileId: number | null
     sourceStationId: string | null
+    restricted?: boolean
 }
 
 export interface KbFileVersion {

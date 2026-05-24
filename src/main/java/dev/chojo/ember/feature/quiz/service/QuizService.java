@@ -19,6 +19,10 @@ import dev.chojo.ember.feature.quiz.entity.QuizTestSectionSource;
 import dev.chojo.ember.feature.quiz.entity.TestStatus;
 import dev.chojo.ember.feature.quiz.repository.QuizCatalogRepository;
 import dev.chojo.ember.feature.quiz.repository.QuizTestRepository;
+import dev.chojo.ember.feature.restriction.RestrictionMode;
+import dev.chojo.ember.feature.restriction.RestrictionRepository;
+import dev.chojo.ember.feature.restriction.RestrictionSet;
+import dev.chojo.ember.feature.restriction.RestrictionType;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import tools.jackson.databind.JsonNode;
@@ -37,11 +41,16 @@ import java.util.stream.Collectors;
 public class QuizService {
     private final QuizCatalogRepository catalogRepository;
     private final QuizTestRepository testRepository;
+    private final RestrictionRepository restrictionRepository;
 
     @Inject
-    public QuizService(QuizCatalogRepository catalogRepository, QuizTestRepository testRepository) {
+    public QuizService(
+            QuizCatalogRepository catalogRepository,
+            QuizTestRepository testRepository,
+            RestrictionRepository restrictionRepository) {
         this.catalogRepository = catalogRepository;
         this.testRepository = testRepository;
+        this.restrictionRepository = restrictionRepository;
     }
 
     // -- Catalogs --
@@ -148,6 +157,10 @@ public class QuizService {
 
     public List<QuizTest> findTests(int stationId) {
         return testRepository.findByStation(stationId);
+    }
+
+    public List<QuizTest> findTestsForMember(int stationId, int memberId) {
+        return testRepository.findByStationForMember(stationId, memberId);
     }
 
     public int countAttempts(int testId) {
@@ -293,20 +306,15 @@ public class QuizService {
         return testRepository.delete(id);
     }
 
-    public boolean isTestAccessible(
-            QuizTest test,
-            int memberId,
-            List<Integer> memberRoleIds,
-            List<Integer> memberGroupIds,
-            List<Integer> memberTagIds) {
+    public boolean isTestAccessible(QuizTest test, int memberId) {
         if (test.status() != TestStatus.ACTIVE) return false;
         Instant now = Instant.now();
         if (test.startAt() != null && now.isBefore(test.startAt())) return false;
         if (test.endAt() != null && now.isAfter(test.endAt())) return false;
         // Check per-member override (grants access regardless of restrictions)
         if (testRepository.hasMemberAccess(test.id(), memberId)) return true;
-        // Check role/group/tag restrictions
-        return canMemberAccess(test.id(), memberRoleIds, memberGroupIds, memberTagIds);
+        // Check role/group/tag restrictions (DB resolves roles with inheritance + manager bypass)
+        return canMemberAccess(test.id(), memberId);
     }
 
     // -- Sections --
@@ -661,59 +669,38 @@ public class QuizService {
 
     // -- Restrictions --
 
-    public List<Integer> findRoleRestrictions(int testId) {
-        return testRepository.findRoleRestrictions(testId);
+    /**
+     * Retrieves the restriction set for a test.
+     */
+    public RestrictionSet findRestrictions(int testId) {
+        var test = testRepository.findById(testId).orElse(null);
+        RestrictionMode mode = test != null ? test.restrictionMode() : RestrictionMode.OR;
+        return restrictionRepository.findRestrictionSet(
+                RestrictionType.QUIZ_TEST.table(), RestrictionType.QUIZ_TEST.fkColumn(), testId, mode);
     }
 
-    public List<Integer> findGroupRestrictions(int testId) {
-        return testRepository.findGroupRestrictions(testId);
+    public void setRestrictions(
+            int testId, List<Integer> roleIds, List<Integer> groupIds, List<Integer> tagIds, List<Integer> memberIds) {
+        restrictionRepository.setRestrictions(
+                RestrictionType.QUIZ_TEST.table(),
+                RestrictionType.QUIZ_TEST.fkColumn(),
+                testId,
+                roleIds != null ? roleIds : List.of(),
+                groupIds != null ? groupIds : List.of(),
+                tagIds != null ? tagIds : List.of(),
+                memberIds != null ? memberIds : List.of());
     }
 
-    public List<Integer> findTagRestrictions(int testId) {
-        return testRepository.findTagRestrictions(testId);
-    }
-
-    public void setRestrictions(int testId, List<Integer> roleIds, List<Integer> groupIds, List<Integer> tagIds) {
-        testRepository.setRoleRestrictions(testId, roleIds);
-        testRepository.setGroupRestrictions(testId, groupIds);
-        testRepository.setTagRestrictions(testId, tagIds);
-    }
-
-    public void updateRestrictionMode(int testId, String mode) {
+    public void updateRestrictionMode(int testId, RestrictionMode mode) {
         testRepository.updateRestrictionMode(testId, mode);
     }
 
-    public boolean canMemberAccess(
-            int testId, List<Integer> memberRoleIds, List<Integer> memberGroupIds, List<Integer> memberTagIds) {
-        var roleRestrictions = testRepository.findRoleRestrictions(testId);
-        var groupRestrictions = testRepository.findGroupRestrictions(testId);
-        var tagRestrictions = testRepository.findTagRestrictions(testId);
-        // No restrictions = open to all
-        if (roleRestrictions.isEmpty() && groupRestrictions.isEmpty() && tagRestrictions.isEmpty()) return true;
-
-        var test = testRepository.findById(testId).orElse(null);
-        String mode = test != null && "AND".equals(test.restrictionMode()) ? "AND" : "OR";
-
-        if ("OR".equals(mode)) {
-            // Any match across any type returns true
-            for (int rId : roleRestrictions) {
-                if (memberRoleIds.contains(rId)) return true;
-            }
-            for (int gId : groupRestrictions) {
-                if (memberGroupIds.contains(gId)) return true;
-            }
-            for (int tId : tagRestrictions) {
-                if (memberTagIds.contains(tId)) return true;
-            }
-            return false;
-        }
-
-        // AND: each non-empty type must have at least one match
-        if (!roleRestrictions.isEmpty() && roleRestrictions.stream().noneMatch(memberRoleIds::contains)) return false;
-        if (!groupRestrictions.isEmpty() && groupRestrictions.stream().noneMatch(memberGroupIds::contains))
-            return false;
-        if (!tagRestrictions.isEmpty() && tagRestrictions.stream().noneMatch(memberTagIds::contains)) return false;
-        return true;
+    /**
+     * Checks if a member can access a quiz test based on its restrictions.
+     * Delegates to the DB function which resolves the member's identity internally.
+     */
+    public boolean canMemberAccess(int testId, int memberId) {
+        return restrictionRepository.checkRestriction(RestrictionType.QUIZ_TEST, testId, memberId);
     }
 
     // -- Records --

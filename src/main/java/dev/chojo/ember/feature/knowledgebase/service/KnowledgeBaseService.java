@@ -13,6 +13,9 @@ import dev.chojo.ember.feature.knowledgebase.entity.KbFolder;
 import dev.chojo.ember.feature.knowledgebase.entity.KbTag;
 import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
 import dev.chojo.ember.feature.knowledgebase.repository.KnowledgeBaseRepository;
+import dev.chojo.ember.feature.restriction.Restriction;
+import dev.chojo.ember.feature.restriction.RestrictionMode;
+import dev.chojo.ember.feature.restriction.RestrictionSet;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.util.TextDiff;
 import jakarta.inject.Inject;
@@ -311,17 +314,22 @@ public class KnowledgeBaseService {
             List<Integer> memberGroupIds,
             List<Integer> memberTagIds) {
         // Check file/folder restrictions
-        var restrictions =
+        var rawRestrictions =
                 repository.findRestrictions(folderId != null ? folderId : null, fileId != null ? fileId : null);
-        if (!restrictions.isEmpty()) {
-            boolean matched = restrictions.stream().anyMatch(r -> {
-                if (r.roleId() != null) return memberRoleIds.contains(r.roleId());
-                if (r.groupId() != null) return memberGroupIds.contains(r.groupId());
-                if (r.tagId() != null) return memberTagIds.contains(r.tagId());
-                if (r.memberId() != null) return r.memberId() == memberId;
-                return false;
-            });
-            if (!matched) return false;
+        if (!rawRestrictions.isEmpty()) {
+            // Determine restriction mode from the entity
+            RestrictionMode mode = RestrictionMode.AND;
+            if (fileId != null) {
+                var file = repository.findFileById(fileId);
+                if (file.isPresent() && file.get().restrictionMode() != null)
+                    mode = file.get().restrictionMode();
+            } else if (folderId != null) {
+                var folder = repository.findFolderById(folderId);
+                if (folder.isPresent() && folder.get().restrictionMode() != null)
+                    mode = folder.get().restrictionMode();
+            }
+            var restrictions = toRestrictionSet(rawRestrictions, mode);
+            if (!restrictions.matches(memberRoleIds, memberGroupIds, memberTagIds, memberId)) return false;
         }
 
         // For files, also check parent folder restrictions (inherited)
@@ -349,16 +357,12 @@ public class KnowledgeBaseService {
         var folder = repository.findFolderById(folderId);
         if (folder.isEmpty()) return true;
 
-        var restrictions = repository.findRestrictions(folderId, null);
-        if (!restrictions.isEmpty()) {
-            boolean matched = restrictions.stream().anyMatch(r -> {
-                if (r.roleId() != null) return memberRoleIds.contains(r.roleId());
-                if (r.groupId() != null) return memberGroupIds.contains(r.groupId());
-                if (r.tagId() != null) return memberTagIds.contains(r.tagId());
-                if (r.memberId() != null) return r.memberId() == memberId;
-                return false;
-            });
-            if (!matched) return false;
+        var rawRestrictions = repository.findRestrictions(folderId, null);
+        if (!rawRestrictions.isEmpty()) {
+            RestrictionMode mode =
+                    folder.get().restrictionMode() != null ? folder.get().restrictionMode() : RestrictionMode.AND;
+            var restrictions = toRestrictionSet(rawRestrictions, mode);
+            if (!restrictions.matches(memberRoleIds, memberGroupIds, memberTagIds, memberId)) return false;
         }
 
         // Check parent folder
@@ -367,6 +371,13 @@ public class KnowledgeBaseService {
         }
 
         return true;
+    }
+
+    private RestrictionSet toRestrictionSet(List<KbAccessRestriction> kbRestrictions, RestrictionMode mode) {
+        var restrictions = kbRestrictions.stream()
+                .map(r -> new Restriction(r.id(), r.roleId(), r.groupId(), r.tagId(), r.memberId()))
+                .toList();
+        return new RestrictionSet(restrictions, mode);
     }
 
     public boolean updateFile(int id, String name, String description, String iconUrl, int position) {

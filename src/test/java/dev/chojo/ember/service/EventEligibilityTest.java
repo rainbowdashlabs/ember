@@ -9,13 +9,13 @@ import dev.chojo.ember.api.Roles;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.service.EventService;
 import dev.chojo.ember.feature.members.entity.Role;
+import dev.chojo.ember.feature.restriction.RestrictionRepository;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
-import java.util.EnumSet;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -30,7 +30,7 @@ class EventEligibilityTest extends RepositoryTestBase {
 
     @BeforeAll
     static void setup() {
-        service = new EventService(eventRepo);
+        service = new EventService(eventRepo, new RestrictionRepository());
         station = stationRepo.create("EligibilityStation");
 
         var memberRole = stationMemberRepo.findRoleByName(Roles.MEMBER);
@@ -67,81 +67,79 @@ class EventEligibilityTest extends RepositoryTestBase {
     @Test
     void noRestrictionsAllowsAll() {
         int eventId = createEvent();
-        assertTrue(service.isMemberEligible(eventId, EnumSet.of(Roles.MEMBER), List.of(), List.of()));
+        assertTrue(service.isMemberEligible(eventId, 1, List.of(memberRoleId), List.of(), List.of()));
     }
 
     @Test
     void roleRestrictionMatchesWhenMemberHasRole() {
         int eventId = createEvent();
-        service.setRestrictions(eventId, List.of(memberRoleId), List.of(), List.of());
-        assertTrue(service.isMemberEligible(eventId, EnumSet.of(Roles.MEMBER, Roles.USER), List.of(), List.of()));
+        service.setRestrictions(eventId, List.of(memberRoleId), List.of(), List.of(), List.of());
+        assertTrue(service.isMemberEligible(eventId, 1, List.of(memberRoleId), List.of(), List.of()));
     }
 
     @Test
     void roleRestrictionRejectsWhenMemberLacksRole() {
         int eventId = createEvent();
-        service.setRestrictions(eventId, List.of(teamRoleId), List.of(), List.of());
-        assertFalse(service.isMemberEligible(eventId, EnumSet.of(Roles.MEMBER, Roles.USER), List.of(), List.of()));
+        service.setRestrictions(eventId, List.of(teamRoleId), List.of(), List.of(), List.of());
+        assertFalse(service.isMemberEligible(eventId, 1, List.of(memberRoleId), List.of(), List.of()));
     }
 
     @Test
     void groupRestrictionMatchesWhenMemberInGroup() {
         int eventId = createEvent();
-        service.setRestrictions(eventId, List.of(), List.of(groupId), List.of());
-        assertTrue(service.isMemberEligible(eventId, EnumSet.of(Roles.MEMBER), List.of(groupId), List.of()));
+        service.setRestrictions(eventId, List.of(), List.of(groupId), List.of(), List.of());
+        assertTrue(service.isMemberEligible(eventId, 1, List.of(memberRoleId), List.of(groupId), List.of()));
     }
 
     @Test
     void groupRestrictionRejectsWhenMemberNotInGroup() {
         int eventId = createEvent();
-        service.setRestrictions(eventId, List.of(), List.of(groupId), List.of());
-        assertFalse(service.isMemberEligible(eventId, EnumSet.of(Roles.MEMBER), List.of(), List.of()));
+        service.setRestrictions(eventId, List.of(), List.of(groupId), List.of(), List.of());
+        assertFalse(service.isMemberEligible(eventId, 1, List.of(memberRoleId), List.of(), List.of()));
     }
 
     @Test
     void tagRestrictionMatchesWhenMemberHasTag() {
         int eventId = createEvent();
-        service.setRestrictions(eventId, List.of(), List.of(), List.of(tagId));
-        assertTrue(service.isMemberEligible(eventId, EnumSet.of(Roles.MEMBER), List.of(), List.of(tagId)));
+        service.setRestrictions(eventId, List.of(), List.of(), List.of(tagId), List.of());
+        assertTrue(service.isMemberEligible(eventId, 1, List.of(memberRoleId), List.of(), List.of(tagId)));
     }
 
     @Test
     void tagRestrictionRejectsWhenMemberLacksTag() {
         int eventId = createEvent();
-        service.setRestrictions(eventId, List.of(), List.of(), List.of(tagId));
-        assertFalse(service.isMemberEligible(eventId, EnumSet.of(Roles.MEMBER), List.of(), List.of()));
+        service.setRestrictions(eventId, List.of(), List.of(), List.of(tagId), List.of());
+        assertFalse(service.isMemberEligible(eventId, 1, List.of(memberRoleId), List.of(), List.of()));
     }
 
     @Test
     void combinedRestrictionsRequireAllToMatch() {
         int eventId = createEvent();
-        service.setRestrictions(eventId, List.of(memberRoleId), List.of(groupId), List.of(tagId));
+        service.setRestrictions(eventId, List.of(memberRoleId), List.of(groupId), List.of(tagId), List.of());
 
         // Has role + group + tag => eligible
-        assertTrue(service.isMemberEligible(
-                eventId, EnumSet.of(Roles.MEMBER, Roles.USER), List.of(groupId), List.of(tagId)));
+        assertTrue(service.isMemberEligible(eventId, 1, List.of(memberRoleId), List.of(groupId), List.of(tagId)));
 
         // Has role + group but NOT tag => not eligible
-        assertFalse(
-                service.isMemberEligible(eventId, EnumSet.of(Roles.MEMBER, Roles.USER), List.of(groupId), List.of()));
+        assertFalse(service.isMemberEligible(eventId, 1, List.of(memberRoleId), List.of(groupId), List.of()));
 
         // Has role + tag but NOT group => not eligible
-        assertFalse(service.isMemberEligible(eventId, EnumSet.of(Roles.MEMBER, Roles.USER), List.of(), List.of(tagId)));
+        assertFalse(service.isMemberEligible(eventId, 1, List.of(memberRoleId), List.of(), List.of(tagId)));
 
         // Has group + tag but NOT role => not eligible
-        assertFalse(service.isMemberEligible(eventId, EnumSet.of(Roles.GUARDIAN), List.of(groupId), List.of(tagId)));
+        assertFalse(service.isMemberEligible(eventId, 1, List.of(), List.of(groupId), List.of(tagId)));
     }
 
     @Test
     void partialRestrictionsUseAndLogic() {
         int eventId = createEvent();
         // Only role + tag restrictions (no group)
-        service.setRestrictions(eventId, List.of(memberRoleId), List.of(), List.of(tagId));
+        service.setRestrictions(eventId, List.of(memberRoleId), List.of(), List.of(tagId), List.of());
 
         // Has role + tag => eligible (group not restricted)
-        assertTrue(service.isMemberEligible(eventId, EnumSet.of(Roles.MEMBER, Roles.USER), List.of(), List.of(tagId)));
+        assertTrue(service.isMemberEligible(eventId, 1, List.of(memberRoleId), List.of(), List.of(tagId)));
 
         // Has role but NOT tag => not eligible
-        assertFalse(service.isMemberEligible(eventId, EnumSet.of(Roles.MEMBER, Roles.USER), List.of(), List.of()));
+        assertFalse(service.isMemberEligible(eventId, 1, List.of(memberRoleId), List.of(), List.of()));
     }
 }

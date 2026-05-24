@@ -35,7 +35,7 @@ class EventServiceTest extends RepositoryTestBase {
 
     @BeforeAll
     static void setup() {
-        service = new EventService(eventRepo);
+        service = new EventService(eventRepo, new dev.chojo.ember.feature.restriction.RestrictionRepository());
         station = stationRepo.create("EventStation");
         account = accountRepo.create("event-svc@test.com", "Event", "Tester");
         member = stationMemberRepo.create(station.id(), account.id());

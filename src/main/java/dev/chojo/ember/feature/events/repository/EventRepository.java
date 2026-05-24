@@ -12,14 +12,12 @@ import dev.chojo.ember.feature.events.entity.EventCategory;
 import dev.chojo.ember.feature.events.entity.EventFieldDefault;
 import dev.chojo.ember.feature.events.entity.EventRegistration;
 import dev.chojo.ember.feature.events.entity.StationEvent;
+import dev.chojo.ember.feature.restriction.RestrictionMode;
 import jakarta.inject.Singleton;
 
 import java.time.Instant;
 import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIMESTAMP;
@@ -31,20 +29,41 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
 public class EventRepository {
 
     private static final String EVENT_COLUMNS =
-            "id, station_id, name, description, event_type, day_of_week, start_time, end_time, template_id, requires_registration, registration_deadline, requires_confirmation, category_id, restriction_mode";
+            "e.id, e.station_id, e.name, e.description, e.event_type, e.day_of_week, e.start_time, e.end_time, e.template_id, e.requires_registration, e.registration_deadline, e.requires_confirmation, e.category_id, e.restriction_mode, EXISTS(SELECT 1 FROM event_restriction r WHERE r.event_id = e.id) AS restricted";
+    private static final String EVENT_COLUMNS_BARE =
+            "id, station_id, name, description, event_type, day_of_week, start_time, end_time, template_id, requires_registration, registration_deadline, requires_confirmation, category_id, restriction_mode, EXISTS(SELECT 1 FROM event_restriction r WHERE r.event_id = id) AS restricted";
 
     // -- Events --
 
     /**
      * Retrieves all events for a station, ordered by event type and name.
+     * No restriction filtering — used internally and for managers.
      *
      * @param stationId the station ID
      * @return the list of station events
      */
     public List<StationEvent> findByStation(int stationId) {
         return Query.query("SELECT " + EVENT_COLUMNS
-                        + " FROM station_event WHERE station_id = :station_id ORDER BY event_type, name;")
+                        + " FROM station_event e WHERE e.station_id = :station_id ORDER BY e.event_type, e.name;")
                 .single(Call.of().bind("station_id", stationId))
+                .map(StationEvent.map())
+                .all();
+    }
+
+    /**
+     * Retrieves events for a station that the given member is allowed to see.
+     * Uses the DB restriction check function which resolves role inheritance, mode, and manager bypass.
+     *
+     * @param stationId the station ID
+     * @param memberId  the requesting member ID
+     * @return the filtered list of station events
+     */
+    public List<StationEvent> findByStationForMember(int stationId, int memberId) {
+        return Query.query("SELECT " + EVENT_COLUMNS + " FROM station_event e"
+                        + " WHERE e.station_id = :station_id"
+                        + " AND check_restriction('event_restriction', 'event_id', 'station_event', 'id', e.id, :member_id, 'EVENT_MANAGER')"
+                        + " ORDER BY e.event_type, e.name;")
+                .single(Call.of().bind("station_id", stationId).bind("member_id", memberId))
                 .map(StationEvent.map())
                 .all();
     }
@@ -56,7 +75,7 @@ public class EventRepository {
      * @return the event, if found
      */
     public Optional<StationEvent> findById(int id) {
-        return Query.query("SELECT " + EVENT_COLUMNS + " FROM station_event WHERE id = :id;")
+        return Query.query("SELECT " + EVENT_COLUMNS + " FROM station_event e WHERE e.id = :id;")
                 .single(Call.of().bind("id", id))
                 .map(StationEvent.map())
                 .first();
@@ -95,7 +114,7 @@ public class EventRepository {
         return Query.query("""
                             INSERT INTO station_event(station_id, name, description, event_type, day_of_week, start_time, end_time, template_id, requires_registration, registration_deadline, requires_confirmation, category_id)
                             VALUES (:station_id, :name, :description, :event_type, :day_of_week, :start_time, :end_time, :template_id, :requires_registration, :registration_deadline, :requires_confirmation, :category_id)
-                            RETURNING\s""" + EVENT_COLUMNS + ";")
+                            RETURNING\s""" + EVENT_COLUMNS_BARE + ";")
                 .single(Call.of()
                         .bind("station_id", stationId)
                         .bind("name", name)
@@ -355,165 +374,14 @@ public class EventRepository {
      * Updates the restriction mode for an event.
      *
      * @param eventId the event ID
-     * @param mode    the restriction mode ("AND" or "OR")
+     * @param mode    the restriction mode
      * @return true if a row was updated
      */
-    public boolean updateRestrictionMode(int eventId, String mode) {
+    public boolean updateRestrictionMode(int eventId, RestrictionMode mode) {
         return Query.query("UPDATE station_event SET restriction_mode = :mode WHERE id = :id;")
-                .single(Call.of().bind("mode", mode).bind("id", eventId))
+                .single(Call.of().bind("mode", mode.name()).bind("id", eventId))
                 .update()
                 .changed();
-    }
-
-    /**
-     * Retrieves the role IDs restricting access to an event.
-     *
-     * @param eventId the event ID
-     * @return the list of role IDs
-     */
-    public List<Integer> findRoleRestrictions(int eventId) {
-        return Query.query("SELECT role_id FROM event_role_restriction WHERE event_id = :event_id;")
-                .single(Call.of().bind("event_id", eventId))
-                .map(row -> row.getInt("role_id"))
-                .all();
-    }
-
-    /**
-     * Retrieves the role names restricting access to an event.
-     *
-     * @param eventId the event ID
-     * @return the list of role names
-     */
-    public List<String> findRoleRestrictionNames(int eventId) {
-        return Query.query("""
-                            SELECT r.name FROM event_role_restriction err
-                            JOIN role r ON r.id = err.role_id
-                            WHERE err.event_id = :event_id;""")
-                .single(Call.of().bind("event_id", eventId))
-                .map(row -> row.getString("name"))
-                .all();
-    }
-
-    /**
-     * Retrieves the group IDs restricting access to an event.
-     *
-     * @param eventId the event ID
-     * @return the list of group IDs
-     */
-    public List<Integer> findGroupRestrictions(int eventId) {
-        return Query.query("SELECT group_id FROM event_group_restriction WHERE event_id = :event_id;")
-                .single(Call.of().bind("event_id", eventId))
-                .map(row -> row.getInt("group_id"))
-                .all();
-    }
-
-    /**
-     * Replaces all role restrictions for an event by deleting existing ones and inserting the given role IDs.
-     *
-     * @param eventId the event ID
-     * @param roleIds the new role IDs to restrict access to
-     */
-    public void setRoleRestrictions(int eventId, List<Integer> roleIds) {
-        Query.query("DELETE FROM event_role_restriction WHERE event_id = :event_id;")
-                .single(Call.of().bind("event_id", eventId))
-                .delete();
-        for (int roleId : roleIds) {
-            Query.query("INSERT INTO event_role_restriction(event_id, role_id) VALUES(:event_id, :role_id);")
-                    .single(Call.of().bind("event_id", eventId).bind("role_id", roleId))
-                    .insert();
-        }
-    }
-
-    /**
-     * Replaces all group restrictions for an event by deleting existing ones and inserting the given group IDs.
-     *
-     * @param eventId  the event ID
-     * @param groupIds the new group IDs to restrict access to
-     */
-    public void setGroupRestrictions(int eventId, List<Integer> groupIds) {
-        Query.query("DELETE FROM event_group_restriction WHERE event_id = :event_id;")
-                .single(Call.of().bind("event_id", eventId))
-                .delete();
-        for (int groupId : groupIds) {
-            Query.query("INSERT INTO event_group_restriction(event_id, group_id) VALUES(:event_id, :group_id);")
-                    .single(Call.of().bind("event_id", eventId).bind("group_id", groupId))
-                    .insert();
-        }
-    }
-
-    /**
-     * Finds all role restrictions for events in a station, grouped by event ID.
-     *
-     * @param stationId the station ID
-     * @return a map of event ID to list of restricted role IDs
-     */
-    public Map<Integer, List<Integer>> findAllRoleRestrictionsByStation(int stationId) {
-        var result = new HashMap<Integer, List<Integer>>();
-        Query.query("""
-                     SELECT err.event_id, err.role_id
-                     FROM event_role_restriction err
-                     JOIN station_event se ON se.id = err.event_id
-                     WHERE se.station_id = :station_id;""")
-                .single(Call.of().bind("station_id", stationId))
-                .map(row -> new int[] {row.getInt("event_id"), row.getInt("role_id")})
-                .all()
-                .forEach(r ->
-                        result.computeIfAbsent(r[0], k -> new ArrayList<>()).add(r[1]));
-        return result;
-    }
-
-    /**
-     * Finds all group restrictions for events in a station, grouped by event ID.
-     *
-     * @param stationId the station ID
-     * @return a map of event ID to list of restricted group IDs
-     */
-    public Map<Integer, List<Integer>> findAllGroupRestrictionsByStation(int stationId) {
-        var result = new HashMap<Integer, List<Integer>>();
-        Query.query("""
-                     SELECT egr.event_id, egr.group_id
-                     FROM event_group_restriction egr
-                     JOIN station_event se ON se.id = egr.event_id
-                     WHERE se.station_id = :station_id;""")
-                .single(Call.of().bind("station_id", stationId))
-                .map(row -> new int[] {row.getInt("event_id"), row.getInt("group_id")})
-                .all()
-                .forEach(r ->
-                        result.computeIfAbsent(r[0], k -> new ArrayList<>()).add(r[1]));
-        return result;
-    }
-
-    public List<Integer> findTagRestrictions(int eventId) {
-        return Query.query("SELECT tag_id FROM event_tag_restriction WHERE event_id = :event_id;")
-                .single(Call.of().bind("event_id", eventId))
-                .map(row -> row.getInt("tag_id"))
-                .all();
-    }
-
-    public void setTagRestrictions(int eventId, List<Integer> tagIds) {
-        Query.query("DELETE FROM event_tag_restriction WHERE event_id = :event_id;")
-                .single(Call.of().bind("event_id", eventId))
-                .delete();
-        for (int tagId : tagIds) {
-            Query.query("INSERT INTO event_tag_restriction(event_id, tag_id) VALUES(:event_id, :tag_id);")
-                    .single(Call.of().bind("event_id", eventId).bind("tag_id", tagId))
-                    .insert();
-        }
-    }
-
-    public Map<Integer, List<Integer>> findAllTagRestrictionsByStation(int stationId) {
-        var result = new HashMap<Integer, List<Integer>>();
-        Query.query("""
-                     SELECT etr.event_id, etr.tag_id
-                     FROM event_tag_restriction etr
-                     JOIN station_event se ON se.id = etr.event_id
-                     WHERE se.station_id = :station_id;""")
-                .single(Call.of().bind("station_id", stationId))
-                .map(row -> new int[] {row.getInt("event_id"), row.getInt("tag_id")})
-                .all()
-                .forEach(r ->
-                        result.computeIfAbsent(r[0], k -> new ArrayList<>()).add(r[1]));
-        return result;
     }
 
     // -- Field Defaults --

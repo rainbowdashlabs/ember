@@ -112,7 +112,8 @@ public class ProblemLogAppender extends AppenderBase<ILoggingEvent> {
         // Cap at MAX_ENTRIES
         if (problems.size() > MAX_ENTRIES) {
             var sorted = new ArrayList<>(problems.entrySet());
-            sorted.sort(Comparator.comparingLong(a -> a.getValue().lastOccurrence().toEpochMilli()));
+            sorted.sort(
+                    Comparator.comparingLong(a -> a.getValue().lastOccurrence().toEpochMilli()));
             int toRemove = sorted.size() - MAX_ENTRIES;
             for (int i = 0; i < toRemove; i++) {
                 problems.remove(sorted.get(i).getKey());

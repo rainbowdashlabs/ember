@@ -35,6 +35,7 @@ function formatTime(iso?: string): string {
       <PrimaryContainer v-for="ev in events" :key="ev.id" class="space-y-2">
         <div class="flex items-center justify-between">
           <span class="font-semibold">{{ ev.name }}</span>
+          <font-awesome-icon v-if="ev.restricted" :icon="['fas', 'lock']" class="ml-1 h-3 w-3 text-[var(--text-muted)]"/>
           <span class="text-sm">{{ formatTime(ev.startTime) }} – {{ formatTime(ev.endTime) }}</span>
         </div>
         <p v-if="ev.description" class="text-sm text-(--text-muted)">{{ ev.description }}</p>

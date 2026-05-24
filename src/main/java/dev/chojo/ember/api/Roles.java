@@ -34,7 +34,7 @@ public enum Roles implements RouteRole {
     /**
      * General access to edit own data
      */
-    MEMBER(STATION_USER),
+    MEMBER(STATION_USER, USER),
     /**
      * Trial member with limited access
      */

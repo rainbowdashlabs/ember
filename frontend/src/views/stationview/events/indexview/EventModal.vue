@@ -15,7 +15,7 @@ import DateTimeInput from '@/components/input/datetime/DateTimeInput.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import RestrictionPicker from '@/components/input/RestrictionPicker.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
-import type { StationEvent, EventCategory, AttendanceTemplate, AttendanceTemplateField, Role, MemberGroup } from '@/api/types'
+import type { StationEvent, EventCategory, AttendanceTemplate, AttendanceTemplateField, Role, MemberGroup, UserTag } from '@/api/types'
 import { EventTypes } from '@/api/types'
 import type { EventFieldDefault } from '@/api/events'
 
@@ -28,8 +28,10 @@ const props = defineProps<{
   templates: AttendanceTemplate[]
   roles: Role[]
   groups: MemberGroup[]
+  tags: UserTag[]
   eventRoleIds: number[]
   eventGroupIds: number[]
+  eventTagIds: number[]
   templateFields: AttendanceTemplateField[]
   eventFieldDefaults: EventFieldDefault[]
 }>()
@@ -53,6 +55,7 @@ const eventRegistrationDeadline = ref('')
 const eventRequiresConfirmation = ref(false)
 const selectedRoleIds = ref<number[]>([])
 const selectedGroupIds = ref<number[]>([])
+const selectedTagIds = ref<number[]>([])
 // field defaults: fieldId -> { source, value }
 const fieldDefaults = ref<Map<number, { source: string; value: string }>>(new Map())
 const saving = ref(false)
@@ -81,6 +84,7 @@ watch(() => props.modelValue, (open) => {
     eventRequiresConfirmation.value = ev.requiresConfirmation ?? false
     selectedRoleIds.value = [...props.eventRoleIds]
     selectedGroupIds.value = [...props.eventGroupIds]
+    selectedTagIds.value = [...props.eventTagIds]
     const fdMap = new Map<number, { source: string; value: string }>()
     for (const fd of props.eventFieldDefaults) {
       fdMap.set(fd.fieldId, { source: fd.source, value: fd.value ?? '' })
@@ -101,6 +105,7 @@ watch(() => props.modelValue, (open) => {
     eventRequiresConfirmation.value = false
     selectedRoleIds.value = []
     selectedGroupIds.value = []
+    selectedTagIds.value = []
     fieldDefaults.value = new Map()
   }
 })
@@ -156,6 +161,7 @@ function submit() {
     requiresConfirmation: eventRequiresConfirmation.value,
     restrictedRoleIds: selectedRoleIds.value,
     restrictedGroupIds: selectedGroupIds.value,
+    restrictedTagIds: selectedTagIds.value,
     fieldDefaults: [...fieldDefaults.value.entries()]
       .filter(([, v]) => v.source)
       .map(([fieldId, v]) => ({ fieldId, source: v.source, value: v.value || undefined })),
@@ -285,14 +291,13 @@ function submit() {
         <RestrictionPicker
           :roles="roles"
           :groups="groups"
+          :tags="tags"
           :selected-role-ids="selectedRoleIds"
           :selected-group-ids="selectedGroupIds"
-          :selected-tag-ids="[]"
-          :show-tags="false"
-          :show-mode="false"
+          :selected-tag-ids="selectedTagIds"
           @update:selected-role-ids="selectedRoleIds = $event"
           @update:selected-group-ids="selectedGroupIds = $event"
-          @update:selected-tag-ids="() => {}"
+          @update:selected-tag-ids="selectedTagIds = $event"
         />
       </div>
 

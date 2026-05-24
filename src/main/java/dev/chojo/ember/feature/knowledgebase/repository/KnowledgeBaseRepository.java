@@ -24,25 +24,36 @@ import java.util.stream.Collectors;
 @Singleton
 public class KnowledgeBaseRepository {
 
+    private static final String FOLDER_COLUMNS =
+            "fo.id, fo.station_id, fo.parent_id, fo.name, fo.description, fo.icon_url, fo.position, fo.created_by, fo.created_at, fo.updated_at, fo.restriction_mode, EXISTS(SELECT 1 FROM kb_access_restriction r WHERE r.folder_id = fo.id) AS restricted";
+    private static final String FOLDER_COLUMNS_BARE =
+            "id, station_id, parent_id, name, description, icon_url, position, created_by, created_at, updated_at, restriction_mode, EXISTS(SELECT 1 FROM kb_access_restriction r WHERE r.folder_id = id) AS restricted";
+    private static final String FILE_COLUMNS =
+            "f.id, f.station_id, f.folder_id, f.name, f.description, f.file_type, f.mime_type, f.file_size, f.icon_url, f.youtube_url, f.link_url, f.position, f.created_by, f.created_at, f.updated_at, f.source_file_id, f.source_station_id, f.restriction_mode, EXISTS(SELECT 1 FROM kb_access_restriction r WHERE r.file_id = f.id) AS restricted";
+    private static final String FILE_COLUMNS_BARE =
+            "id, station_id, folder_id, name, description, file_type, mime_type, file_size, icon_url, youtube_url, link_url, position, created_by, created_at, updated_at, source_file_id, source_station_id, restriction_mode, EXISTS(SELECT 1 FROM kb_access_restriction r WHERE r.file_id = id) AS restricted";
+
     // -- Folders --
 
     public List<KbFolder> findFolders(int stationId, Integer parentId) {
         if (parentId == null) {
             return Query.query(
-                            "SELECT * FROM kb_folder WHERE station_id = :station_id AND parent_id IS NULL ORDER BY position, name;")
+                            "SELECT " + FOLDER_COLUMNS
+                                    + " FROM kb_folder fo WHERE fo.station_id = :station_id AND fo.parent_id IS NULL ORDER BY fo.position, fo.name;")
                     .single(Call.of().bind("station_id", stationId))
                     .map(KbFolder.map())
                     .all();
         }
         return Query.query(
-                        "SELECT * FROM kb_folder WHERE station_id = :station_id AND parent_id = :parent_id ORDER BY position, name;")
+                        "SELECT " + FOLDER_COLUMNS
+                                + " FROM kb_folder fo WHERE fo.station_id = :station_id AND fo.parent_id = :parent_id ORDER BY fo.position, fo.name;")
                 .single(Call.of().bind("station_id", stationId).bind("parent_id", parentId))
                 .map(KbFolder.map())
                 .all();
     }
 
     public Optional<KbFolder> findFolderById(int id) {
-        return Query.query("SELECT * FROM kb_folder WHERE id = :id;")
+        return Query.query("SELECT " + FOLDER_COLUMNS + " FROM kb_folder fo WHERE fo.id = :id;")
                 .single(Call.of().bind("id", id))
                 .map(KbFolder.map())
                 .first();
@@ -52,7 +63,7 @@ public class KnowledgeBaseRepository {
         return Query.query("""
                         INSERT INTO kb_folder(station_id, parent_id, name, description, created_by)
                         VALUES (:station_id, :parent_id, :name, :description, :created_by)
-                        RETURNING *;""")
+                        RETURNING\s""" + FOLDER_COLUMNS_BARE + ";")
                 .single(Call.of()
                         .bind("station_id", stationId)
                         .bind("parent_id", parentId)
@@ -90,20 +101,22 @@ public class KnowledgeBaseRepository {
     public List<KbFile> findFiles(int stationId, Integer folderId) {
         if (folderId == null) {
             return Query.query(
-                            "SELECT * FROM kb_file WHERE station_id = :station_id AND folder_id IS NULL ORDER BY position, name;")
+                            "SELECT " + FILE_COLUMNS
+                                    + " FROM kb_file f WHERE f.station_id = :station_id AND f.folder_id IS NULL ORDER BY f.position, f.name;")
                     .single(Call.of().bind("station_id", stationId))
                     .map(KbFile.map())
                     .all();
         }
         return Query.query(
-                        "SELECT * FROM kb_file WHERE station_id = :station_id AND folder_id = :folder_id ORDER BY position, name;")
+                        "SELECT " + FILE_COLUMNS
+                                + " FROM kb_file f WHERE f.station_id = :station_id AND f.folder_id = :folder_id ORDER BY f.position, f.name;")
                 .single(Call.of().bind("station_id", stationId).bind("folder_id", folderId))
                 .map(KbFile.map())
                 .all();
     }
 
     public Optional<KbFile> findFileById(int id) {
-        return Query.query("SELECT * FROM kb_file WHERE id = :id;")
+        return Query.query("SELECT " + FILE_COLUMNS + " FROM kb_file f WHERE f.id = :id;")
                 .single(Call.of().bind("id", id))
                 .map(KbFile.map())
                 .first();
@@ -137,7 +150,7 @@ public class KnowledgeBaseRepository {
         return Query.query("""
                         INSERT INTO kb_file(station_id, folder_id, name, description, file_type, mime_type, file_size, youtube_url, link_url, created_by)
                         VALUES (:station_id, :folder_id, :name, :description, :file_type, :mime_type, :file_size, :youtube_url, :link_url, :created_by)
-                        RETURNING *;""")
+                        RETURNING\s""" + FILE_COLUMNS_BARE + ";")
                 .single(Call.of()
                         .bind("station_id", stationId)
                         .bind("folder_id", folderId)
@@ -275,7 +288,7 @@ public class KnowledgeBaseRepository {
     public List<KbFile> search(int stationId, String query, String tsConfig) {
         String cfg = sanitizeTsConfig(tsConfig);
         String tsq = buildPrefixTsQuery(cfg, query);
-        return Query.query("SELECT f.* FROM kb_file f JOIN kb_search_index si ON si.file_id = f.id"
+        return Query.query("SELECT " + FILE_COLUMNS + " FROM kb_file f JOIN kb_search_index si ON si.file_id = f.id"
                         + " WHERE f.station_id = :station_id AND si.search_text @@ " + tsq
                         + " ORDER BY ts_rank(si.search_text, " + tsq + ") DESC LIMIT 50;")
                 .single(Call.of().bind("station_id", stationId).bind("tsquery", preparePrefixQuery(query)))
@@ -293,7 +306,7 @@ public class KnowledgeBaseRepository {
                 + "COALESCE(fc.text_content, f.name || ' ' || COALESCE(f.description, ''))"
                 + ", '<[^>]+>', ' ', 'g')" // strip HTML tags
                 + ", '[#*_~`>\\[\\]()!|]', '', 'g')"; // strip markdown syntax
-        return Query.query("SELECT f.*, ts_headline('" + cfg
+        return Query.query("SELECT " + FILE_COLUMNS + ", ts_headline('" + cfg
                         + "', " + cleanText + ", "
                         + tsq
                         + ", 'MaxWords=30, MinWords=10, StartSel=<mark>, StopSel=</mark>') as snippet"
@@ -401,7 +414,8 @@ public class KnowledgeBaseRepository {
 
     public List<KbFile> findFilesByTag(int stationId, String tagName) {
         return Query.query(
-                        "SELECT f.* FROM kb_file f JOIN kb_file_tag ft ON ft.file_id = f.id JOIN kb_tag t ON t.id = ft.tag_id WHERE f.station_id = :station_id AND lower(t.name) = lower(:tag_name) ORDER BY f.name;")
+                        "SELECT " + FILE_COLUMNS
+                                + " FROM kb_file f JOIN kb_file_tag ft ON ft.file_id = f.id JOIN kb_tag t ON t.id = ft.tag_id WHERE f.station_id = :station_id AND lower(t.name) = lower(:tag_name) ORDER BY f.name;")
                 .single(Call.of().bind("station_id", stationId).bind("tag_name", tagName))
                 .map(KbFile.map())
                 .all();
@@ -453,7 +467,8 @@ public class KnowledgeBaseRepository {
 
     public List<KbFile> findRelatedFiles(int fileId) {
         return Query.query(
-                        "SELECT f.* FROM kb_file f JOIN kb_related_file r ON r.target_file_id = f.id WHERE r.source_file_id = :file_id ORDER BY r.position, f.name;")
+                        "SELECT " + FILE_COLUMNS
+                                + " FROM kb_file f JOIN kb_related_file r ON r.target_file_id = f.id WHERE r.source_file_id = :file_id ORDER BY r.position, f.name;")
                 .single(Call.of().bind("file_id", fileId))
                 .map(KbFile.map())
                 .all();
@@ -493,7 +508,8 @@ public class KnowledgeBaseRepository {
 
     public List<KbFile> findFavourites(int memberId) {
         return Query.query(
-                        "SELECT f.* FROM kb_file f JOIN kb_favourite fav ON fav.file_id = f.id WHERE fav.member_id = :member_id ORDER BY fav.created_at DESC;")
+                        "SELECT " + FILE_COLUMNS
+                                + " FROM kb_file f JOIN kb_favourite fav ON fav.file_id = f.id WHERE fav.member_id = :member_id ORDER BY fav.created_at DESC;")
                 .single(Call.of().bind("member_id", memberId))
                 .map(KbFile.map())
                 .all();

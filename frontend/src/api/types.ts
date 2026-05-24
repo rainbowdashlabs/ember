@@ -247,6 +247,8 @@ export interface StationEvent {
     registrationDeadline?: string | null
     requiresConfirmation?: boolean
     categoryId?: number | null
+    restrictionMode?: string
+    restricted?: boolean
 }
 
 export interface EventRequest {
@@ -343,6 +345,8 @@ export interface Form {
     createdBy: number
     createdAt: string
     updatedAt: string
+    restrictionMode?: string
+    restricted?: boolean
 }
 
 export interface FormListEntry {
@@ -355,6 +359,7 @@ export interface FormListEntry {
     endAt?: string | null
     responseCount: number
     hasResponded: boolean
+    restricted?: boolean
 }
 
 export interface FormQuestion {
@@ -1017,15 +1022,22 @@ export interface NewsEntry {
     authorName: string
     publishedAt?: string
     createdAt?: string
+    roleIds: number[]
     groupIds: number[]
+    tagIds: number[]
+    memberIds: number[]
     commentCount: number
+    restricted?: boolean
 }
 
 export interface NewsRequest {
     title: string
     contentMarkdown: string
     contentHtml: string
+    roleIds: number[]
     groupIds: number[]
+    tagIds: number[]
+    memberIds: number[]
 }
 
 export interface NewsComment {
@@ -1403,6 +1415,8 @@ export interface QuizTest {
     createdBy: number
     createdAt: string
     updatedAt: string
+    restrictionMode?: string
+    restricted?: boolean
 }
 
 export interface QuizTestSummary {

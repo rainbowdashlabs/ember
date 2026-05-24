@@ -42,7 +42,6 @@ const {t} = useI18n()
           :selected-role-ids="selectedRoleIds"
           :selected-group-ids="selectedGroupIds"
           :selected-tag-ids="selectedTagIds"
-          :show-mode="false"
           @update:selected-role-ids="ids => emit('update:selectedRoleIds', ids)"
           @update:selected-group-ids="ids => emit('update:selectedGroupIds', ids)"
           @update:selected-tag-ids="ids => emit('update:selectedTagIds', ids)"

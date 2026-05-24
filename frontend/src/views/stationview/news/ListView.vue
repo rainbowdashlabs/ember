@@ -210,7 +210,7 @@ onUnmounted(() => {
             <div class="flex items-center gap-2">
               <UserAvatar :member-id="entry.authorId" :name="entry.authorName" size="md"/>
               <div>
-                <h3 class="font-semibold text-lg">{{ entry.title }}</h3>
+                <h3 class="font-semibold text-lg flex items-center gap-1">{{ entry.title }}<font-awesome-icon v-if="entry.restricted" :icon="['fas', 'lock']" class="ml-1 h-3 w-3 text-[var(--text-muted)]"/></h3>
                 <p class="text-xs text-(--text-muted)">
                   {{ entry.authorName }} &middot; {{ formatDate(entry.publishedAt) }}
                 </p>
