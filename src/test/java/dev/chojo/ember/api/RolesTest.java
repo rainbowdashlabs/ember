@@ -50,14 +50,13 @@ class RolesTest {
     @Test
     void managementRolesDoNotIncludeTeam() {
         // Individual management roles have no children
-        for (var role : new Roles[]{
-                Roles.ATTENDANCE_MANAGER, Roles.INVENTORY_MANAGER,
-                Roles.EVENT_MANAGER, Roles.MEMBER_MANAGER}) {
+        for (var role : new Roles[] {
+            Roles.ATTENDANCE_MANAGER, Roles.INVENTORY_MANAGER,
+            Roles.EVENT_MANAGER, Roles.MEMBER_MANAGER
+        }) {
             Set<Roles> expanded = Roles.expand(EnumSet.of(role));
-            assertFalse(expanded.contains(Roles.TEAM),
-                    role + " should NOT include TEAM");
-            assertEquals(1, expanded.size(),
-                    role + " should only contain itself");
+            assertFalse(expanded.contains(Roles.TEAM), role + " should NOT include TEAM");
+            assertEquals(1, expanded.size(), role + " should only contain itself");
         }
     }
 
