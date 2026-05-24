@@ -12,6 +12,8 @@ import IconButton from '@/components/button/IconButton.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
+import PageHeader from '@/components/typography/PageHeader.vue'
+import SectionHeader from '@/components/typography/SectionHeader.vue'
 import * as publicKb from '@/api/publicKb'
 import type {PublicStationInfo, PublicBrowseResponse, PublicSearchResult} from '@/api/publicKb'
 import type {KbFile, KbFolder} from '@/api/knowledgeBase'
@@ -140,9 +142,9 @@ onMounted(() => {
     <div class="py-8">
         <div class="max-w-5xl mx-auto px-4 py-8">
             <!-- Station name header -->
-            <h1 v-if="stationInfo" class="text-2xl font-bold mb-6">
+            <PageHeader v-if="stationInfo" class="text-2xl font-bold mb-6">
                 {{ stationInfo.stationName }}
-            </h1>
+            </PageHeader>
 
             <Alert v-if="error" variant="error" class="mb-4">{{ error }}</Alert>
 
@@ -180,7 +182,7 @@ onMounted(() => {
 
             <!-- Search Results -->
             <div v-if="isSearching">
-                <h2 class="text-lg font-semibold mb-3">{{ t('publicKb.searchResults') }}</h2>
+                <SectionHeader class="text-lg font-semibold mb-3">{{ t('publicKb.searchResults') }}</SectionHeader>
                 <Spinner v-if="searching"/>
                 <p v-else-if="searchResults.length === 0" class="text-[var(--text-muted)]">
                     {{ t('publicKb.noResults') }}

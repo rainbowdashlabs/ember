@@ -17,6 +17,7 @@ import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
 import { useSession } from '@/composables/useSession'
 import { protocol, stationMembers } from '@/api'
 import type { TestProtocolSection, TestProtocolItem } from '@/api/protocol'
@@ -254,10 +255,10 @@ onMounted(() => { if (loaded.value) loadData() })
       <!-- Current section -->
       <NeutralContainer class="space-y-3 mb-4">
         <div class="flex items-center justify-between">
-          <h2 class="text-lg font-bold">
+          <SectionHeader class="font-bold">
             <font-awesome-icon v-if="doneSections.has(currentSection.id)" :icon="['fas', 'circle-check']" class="w-4 h-4 text-[var(--success)] mr-1" />
             {{ currentSection.name }}
-          </h2>
+          </SectionHeader>
           <div class="flex items-center gap-2">
             <SuccessBadge>{{ currentSectionScore }} / {{ currentSectionMaxPoints }}P</SuccessBadge>
             <SuccessButton v-if="!doneSections.has(currentSection.id)" class="!text-xs !py-1 !px-2" @click="toggleSectionDone(currentSection.id)">
@@ -291,7 +292,7 @@ onMounted(() => { if (loaded.value) loadData() })
         <!-- Subsections -->
         <template v-for="sub in childSections(currentSection.id)" :key="sub.id">
           <div class="border-t border-[var(--border)] pt-3 mt-3">
-            <h3 class="font-medium text-sm mb-2">{{ sub.name }}</h3>
+            <SubHeader class="text-sm mb-2">{{ sub.name }}</SubHeader>
             <div class="space-y-2">
               <button
                 v-for="item in sectionItems(sub.id)"

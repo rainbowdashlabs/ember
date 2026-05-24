@@ -21,6 +21,7 @@ import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
+import FieldLabel from '@/components/typography/FieldLabel.vue'
 
 const {t} = useI18n()
 
@@ -51,15 +52,15 @@ const activeRole = ref('')
     <NeutralContainer class="space-y-4">
       <div class="grid gap-4 sm:grid-cols-3">
         <div class="space-y-1">
-          <label class="block text-sm font-medium">{{ t('profile.absenceFrom') }}</label>
+          <FieldLabel>{{ t('profile.absenceFrom') }}</FieldLabel>
           <DateInput model-value="2026-06-01"/>
         </div>
         <div class="space-y-1">
-          <label class="block text-sm font-medium">{{ t('profile.absenceUntil') }}</label>
+          <FieldLabel>{{ t('profile.absenceUntil') }}</FieldLabel>
           <DateInput model-value="2026-06-14"/>
         </div>
         <div class="space-y-1">
-          <label class="block text-sm font-medium">{{ t('profile.absenceReason') }}</label>
+          <FieldLabel>{{ t('profile.absenceReason') }}</FieldLabel>
           <TextAreaInput model-value="Sommerurlaub" :placeholder="t('profile.absenceReasonPlaceholder')"/>
         </div>
       </div>
@@ -67,7 +68,7 @@ const activeRole = ref('')
       <!-- Dummy: Member selection for managers -->
       <template v-if="activeRole === 'memberManager'">
         <div class="space-y-2">
-          <label class="block text-sm font-medium">{{ t('profile.absenceFor') }}</label>
+          <FieldLabel>{{ t('profile.absenceFor') }}</FieldLabel>
           <div class="flex flex-wrap gap-2">
             <SelectionToggleButton :selected="true" size="md">
               {{ t('profile.absenceMyself') }}

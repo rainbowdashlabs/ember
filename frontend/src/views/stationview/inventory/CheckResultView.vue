@@ -12,6 +12,7 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
+import EmptyState from '@/components/feedback/EmptyState.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import type { CheckDetail } from '@/api/types'
 import { inventoryCheck } from '@/api'
@@ -96,9 +97,7 @@ onMounted(loadData)
           </div>
         </NeutralContainer>
 
-        <div v-if="detail.items.length === 0" class="text-center text-(--text-muted) py-8">
-          {{ t('inventory.check.noLastCheck') }}
-        </div>
+        <EmptyState v-if="detail.items.length === 0">{{ t('inventory.check.noLastCheck') }}</EmptyState>
 
         <!-- Card layout for mobile, works well on desktop too -->
         <div class="space-y-2">
@@ -134,9 +133,7 @@ onMounted(loadData)
         </div>
       </template>
 
-      <div v-if="!loading && !detail && !error" class="text-center text-(--text-muted) py-8">
-        {{ t('inventory.check.noLastCheck') }}
-      </div>
+      <EmptyState v-if="!loading && !detail && !error">{{ t('inventory.check.noLastCheck') }}</EmptyState>
     </div>
   </ViewContent>
 </template>

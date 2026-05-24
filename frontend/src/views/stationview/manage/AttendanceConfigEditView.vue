@@ -17,6 +17,7 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
+import FieldLabel from '@/components/typography/FieldLabel.vue'
 import AttendanceGroupsEditor from './attendanceconfigedit/GroupsEditor.vue'
 import AttendanceFieldsList from './attendanceconfigedit/FieldsList.vue'
 import AttendanceFieldModal from './attendanceconfigedit/FieldModal.vue'
@@ -222,7 +223,7 @@ onMounted(loadTemplate)
             }}
           </SectionHeader>
           <div class="space-y-1">
-            <label class="block text-sm font-medium">{{ t('attendanceConfig.name') }}</label>
+            <FieldLabel>{{ t('attendanceConfig.name') }}</FieldLabel>
             <TextInput v-model="name" :placeholder="t('attendanceConfig.namePlaceholder')"/>
           </div>
           <PrimaryButton :disabled="saving || !name" @click="saveTemplate">

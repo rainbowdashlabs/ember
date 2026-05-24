@@ -10,6 +10,7 @@ import { useRoute, useRouter } from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
+import FieldHint from '@/components/typography/FieldHint.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
@@ -372,7 +373,7 @@ watch(loaded, (isLoaded) => {
                 <p class="text-xs text-(--text-muted)">{{ t('quiz.ai.batchHint') }}</p>
                 <div class="flex items-center gap-3">
                   <div class="flex items-center gap-2">
-                    <label class="text-xs text-(--text-muted)">{{ t('quiz.ai.batchTarget') }}</label>
+                    <FieldHint>{{ t('quiz.ai.batchTarget') }}</FieldHint>
                     <NumberInput v-model="aiBatchTarget" class="w-16" />
                   </div>
                   <PrimaryButton :disabled="aiBatchGenerating" @click="batchGenerate">

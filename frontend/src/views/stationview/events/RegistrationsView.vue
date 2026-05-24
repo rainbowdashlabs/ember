@@ -12,6 +12,7 @@ import ErrorButton from '@/components/button/ErrorButton.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
+import EmptyState from '@/components/feedback/EmptyState.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import {events, stationMembers} from '@/api'
 import type {StationEvent, StationMember} from '@/api/types'
@@ -96,9 +97,7 @@ onMounted(loadData)
       <template v-if="!loading">
         <SectionHeader>{{ t('eventsRegistrations.title') }}</SectionHeader>
 
-        <div v-if="registrations.length === 0" class="text-center text-(--text-muted) py-8">
-          {{ t('eventsRegistrations.empty') }}
-        </div>
+        <EmptyState v-if="registrations.length === 0">{{ t('eventsRegistrations.empty') }}</EmptyState>
 
         <div class="space-y-3">
           <NeutralContainer v-for="reg in registrations" :key="reg.id" class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">

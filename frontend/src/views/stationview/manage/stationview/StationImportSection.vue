@@ -8,6 +8,7 @@ import {ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
+import FieldLabel from '@/components/typography/FieldLabel.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
@@ -74,11 +75,11 @@ function pollStationImport() {
     <p class="text-sm text-(--text-muted)">{{ t('stationManage.importHint') }}</p>
     <div class="grid gap-4 sm:grid-cols-2">
       <div class="space-y-1">
-        <label class="block text-sm font-medium">{{ t('stationManage.importSourceUrl') }}</label>
+        <FieldLabel>{{ t('stationManage.importSourceUrl') }}</FieldLabel>
         <TextInput v-model="importSourceUrl" :placeholder="t('stationManage.importSourceUrlPlaceholder')" />
       </div>
       <div class="space-y-1">
-        <label class="block text-sm font-medium">{{ t('stationManage.importToken') }}</label>
+        <FieldLabel>{{ t('stationManage.importToken') }}</FieldLabel>
         <TextInput v-model="importTokenInput" :placeholder="t('stationManage.importTokenPlaceholder')" />
       </div>
     </div>

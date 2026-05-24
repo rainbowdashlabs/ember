@@ -18,8 +18,10 @@ import TextInput from '@/components/input/text/TextInput.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
+import EmptyState from '@/components/feedback/EmptyState.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
+import FieldLabel from '@/components/typography/FieldLabel.vue'
 import RoleSelector from '@/components/input/RoleSelector.vue'
 import type {MemberGroup, Role, StationMember} from '@/api/types'
 import {memberGroups, stationMembers} from '@/api'
@@ -240,9 +242,7 @@ onMounted(loadData)
             </PrimaryButton>
           </div>
 
-          <div v-if="groups.length === 0" class="text-center text-(--text-muted) py-8">
-            {{ t('memberGroups.empty') }}
-          </div>
+          <EmptyState v-if="groups.length === 0">{{ t('memberGroups.empty') }}</EmptyState>
 
           <div class="space-y-2">
             <NeutralContainer
@@ -271,16 +271,16 @@ onMounted(loadData)
           <template v-if="!groupLoading">
             <!-- Group roles -->
             <div v-if="canEditRoles" class="space-y-2">
-              <label class="block text-sm font-medium text-(--text-muted)">{{ t('memberGroups.roles') }}</label>
+              <FieldLabel class="text-(--text-muted)">{{ t('memberGroups.roles') }}</FieldLabel>
               <RoleSelector v-model="groupRoleIds" :all-roles="allRoles" class="max-w-md" />
               <p v-if="groupRoles.length === 0" class="text-xs text-(--text-muted)">{{ t('memberGroups.noRoles') }}</p>
             </div>
 
             <!-- Current members -->
             <div class="space-y-1">
-              <label class="block text-sm font-medium text-(--text-muted)">{{
+              <FieldLabel class="text-(--text-muted)">{{
                   t('memberGroups.currentMembers')
-                }}</label>
+                }}</FieldLabel>
               <div v-if="groupMembers.length === 0" class="text-sm text-(--text-muted) py-2">
                 {{ t('memberGroups.noMembers') }}
               </div>
@@ -300,7 +300,7 @@ onMounted(loadData)
 
             <!-- Available members to add -->
             <div class="space-y-1">
-              <label class="block text-sm font-medium text-(--text-muted)">{{ t('memberGroups.addMembers') }}</label>
+              <FieldLabel class="text-(--text-muted)">{{ t('memberGroups.addMembers') }}</FieldLabel>
               <div v-if="availableMembers.length === 0" class="text-sm text-(--text-muted) py-2">
                 {{ t('memberGroups.allAdded') }}
               </div>
@@ -337,7 +337,7 @@ onMounted(loadData)
             }}
           </SectionHeader>
           <div class="space-y-1">
-            <label class="block text-sm font-medium">{{ t('memberGroups.name') }}</label>
+            <FieldLabel>{{ t('memberGroups.name') }}</FieldLabel>
             <TextInput v-model="groupName" :placeholder="t('memberGroups.namePlaceholder')"/>
           </div>
           <div class="flex justify-end gap-3">

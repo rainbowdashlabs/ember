@@ -10,6 +10,7 @@ import DeleteButton from '@/components/button/DeleteButton.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import NumberInput from '@/components/input/number/NumberInput.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
+import FieldHint from '@/components/typography/FieldHint.vue'
 
 const { t } = useI18n()
 
@@ -47,7 +48,7 @@ function updateFreeAnswerItem(idx: number, value: string) {
 
 <template>
   <div class="flex items-center gap-2">
-    <label class="text-xs text-(--text-muted)">{{ t('quiz.questions.config.lines') }}</label>
+    <FieldHint>{{ t('quiz.questions.config.lines') }}</FieldHint>
     <NumberInput :model-value="(config.lines as number)" class="w-20" @update:model-value="(v: number | undefined) => updateConfig({ lines: v ?? 3 })" />
   </div>
   <SubHeader>{{ t('quiz.questions.config.enumerationAnswers') }}</SubHeader>

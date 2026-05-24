@@ -19,6 +19,7 @@ import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
+import EmptyState from '@/components/feedback/EmptyState.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import type {EventBreak, StationEvent, StationMember} from '@/api/types'
 import {EventTypes, RegistrationStatus, isRecurringEvent} from '@/api/types'
@@ -342,9 +343,7 @@ watch(loaded, (isLoaded) => {
           </div>
         </div>
 
-        <div v-if="filteredTodayEvents.length === 0" class="text-center text-(--text-muted) py-4">
-          {{ t('eventsUpcoming.noToday') }}
-        </div>
+        <EmptyState compact v-if="filteredTodayEvents.length === 0">{{ t('eventsUpcoming.noToday') }}</EmptyState>
 
         <!-- Upcoming -->
         <div v-if="upcomingEvents.length > 0" class="space-y-3">

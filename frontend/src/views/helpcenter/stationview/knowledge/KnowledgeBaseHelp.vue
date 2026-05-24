@@ -10,6 +10,7 @@ import HelpSection from '@/components/helpcenter/HelpSection.vue'
 import HelpTip from '@/components/helpcenter/HelpTip.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
 
 const { t } = useI18n()
 </script>
@@ -74,7 +75,7 @@ Text mit **fett** und *kursiv*.
         <div class="space-y-1">
           <span class="text-xs text-(--text-muted)">Vorschau</span>
           <div class="text-xs p-2 rounded border border-bg-light-accent dark:border-bg-dark-accent">
-            <h3 class="font-bold">Überschrift</h3>
+            <SubHeader class="font-bold">Überschrift</SubHeader>
             <p>Text mit <strong>fett</strong> und <em>kursiv</em>.</p>
             <ul class="list-disc pl-4"><li>Punkt 1</li><li>Punkt 2</li></ul>
           </div>

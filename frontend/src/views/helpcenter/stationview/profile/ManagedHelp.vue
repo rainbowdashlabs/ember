@@ -10,6 +10,7 @@ import HelpSection from '@/components/helpcenter/HelpSection.vue'
 import HelpTip from '@/components/helpcenter/HelpTip.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
+import FieldLabel from '@/components/typography/FieldLabel.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
@@ -33,7 +34,7 @@ const {t} = useI18n()
     <NeutralContainer class="space-y-4">
       <SectionHeader>{{ t('profileManaged.title') }}</SectionHeader>
       <div class="space-y-1">
-        <label class="block text-sm font-medium">{{ t('profileManaged.selectMember') }}</label>
+        <FieldLabel>{{ t('profileManaged.selectMember') }}</FieldLabel>
         <SelectInput model-value="1">
           <option value="" disabled>{{ t('profileManaged.selectMemberPlaceholder') }}</option>
           <option value="1">Lena Mustermann</option>
@@ -46,27 +47,27 @@ const {t} = useI18n()
     <NeutralContainer class="space-y-4">
       <SectionHeader>{{ t('profileManaged.fields') }}</SectionHeader>
       <div class="space-y-1">
-        <label class="block text-sm font-medium">
+        <FieldLabel>
           Telefonnummer <span class="text-error">*</span>
-        </label>
+        </FieldLabel>
         <TextInput model-value="0170 1234567"/>
       </div>
       <div class="space-y-1">
-        <label class="block text-sm font-medium">
+        <FieldLabel>
           Geburtstag <span class="text-error">*</span>
-        </label>
+        </FieldLabel>
         <TextInput model-value="22.07.2015"/>
       </div>
       <div class="space-y-1">
-        <label class="block text-sm font-medium">
+        <FieldLabel>
           Kleidergröße
-        </label>
+        </FieldLabel>
         <TextInput model-value="140"/>
       </div>
       <div class="space-y-1">
-        <label class="block text-sm font-medium">
+        <FieldLabel>
           Alter <span class="text-xs text-(--text-muted) ml-1">({{ t('profile.readonlyHint') }})</span>
-        </label>
+        </FieldLabel>
         <TextInput model-value="10" disabled/>
       </div>
       <PrimaryButton>{{ t('profile.save') }}</PrimaryButton>

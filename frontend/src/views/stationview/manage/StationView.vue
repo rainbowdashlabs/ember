@@ -17,6 +17,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
+import FieldLabel from '@/components/typography/FieldLabel.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import {stationManage} from '@/api'
 import client from '@/api/client'
@@ -299,15 +300,15 @@ onMounted(async () => {
       <NeutralContainer v-if="!loading" class="space-y-4">
         <SectionHeader>{{ t('stationManage.nameTitle') }}</SectionHeader>
         <div class="space-y-1">
-          <label class="block text-sm font-medium">{{ t('stationManage.name') }}</label>
+          <FieldLabel>{{ t('stationManage.name') }}</FieldLabel>
           <TextInput v-model="name" :placeholder="t('stationManage.namePlaceholder')"/>
         </div>
         <div class="space-y-1">
-          <label class="block text-sm font-medium">{{ t('stationManage.timezone') }}</label>
+          <FieldLabel>{{ t('stationManage.timezone') }}</FieldLabel>
           <SearchSelectInput v-model="timezone" :options="timezoneOptions" :placeholder="t('stationManage.timezone')"/>
         </div>
         <div class="space-y-1">
-          <label class="block text-sm font-medium">{{ t('stationManage.locale') }}</label>
+          <FieldLabel>{{ t('stationManage.locale') }}</FieldLabel>
           <SelectInput v-model="locale">
             <option v-for="opt in localeOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
           </SelectInput>
@@ -372,14 +373,14 @@ onMounted(async () => {
         </div>
         <div v-if="publicKbEnabled" class="space-y-3">
           <div class="space-y-1">
-            <label class="block text-sm font-medium">{{ t('stationManage.publicKb.mode') }}</label>
+            <FieldLabel>{{ t('stationManage.publicKb.mode') }}</FieldLabel>
             <SelectInput :model-value="publicKbModeValue" @update:model-value="changePublicKbMode">
               <option value="ALLOW_ALL">{{ t('stationManage.publicKb.modeAllowAll') }}</option>
               <option value="DENY_ALL">{{ t('stationManage.publicKb.modeDenyAll') }}</option>
             </SelectInput>
           </div>
           <div class="space-y-1">
-            <label class="block text-sm font-medium">{{ t('stationManage.publicKb.publicUrl') }}</label>
+            <FieldLabel>{{ t('stationManage.publicKb.publicUrl') }}</FieldLabel>
             <code class="block rounded bg-bg-light-accent dark:bg-bg-dark-accent px-3 py-2 text-sm break-all select-all">{{ publicKbUrl }}</code>
           </div>
         </div>
@@ -394,7 +395,7 @@ onMounted(async () => {
           </router-link>
         </div>
         <div class="space-y-1">
-          <label class="block text-sm font-medium">{{ t('theme.stationDefaultTheme') }}</label>
+          <FieldLabel>{{ t('theme.stationDefaultTheme') }}</FieldLabel>
           <SelectInput v-model="defaultTheme">
             <option v-for="opt in themeOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
           </SelectInput>

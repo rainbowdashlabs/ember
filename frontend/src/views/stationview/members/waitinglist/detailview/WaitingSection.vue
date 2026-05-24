@@ -11,6 +11,7 @@ import IconButton from '@/components/button/IconButton.vue'
 import EditButton from '@/components/button/EditButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
+import EmptyState from '@/components/feedback/EmptyState.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
@@ -85,9 +86,7 @@ function statusBadgeComponent(status: string) {
       </div>
     </div>
 
-    <div v-if="entries.length === 0" class="text-center text-(--text-muted) py-4">
-      {{ t('waitingList.noEntries') }}
-    </div>
+    <EmptyState compact v-if="entries.length === 0">{{ t('waitingList.noEntries') }}</EmptyState>
 
     <!-- Desktop table -->
     <div v-if="!isMobile && entries.length > 0" class="overflow-x-auto">

@@ -11,6 +11,7 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
+import FieldLabel from '@/components/typography/FieldLabel.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import type {
@@ -180,7 +181,7 @@ async function submitCreate() {
       <!-- Step 1: Select member -->
       <template v-if="createStep === 1">
         <div class="space-y-1">
-          <label class="block text-sm font-medium">{{ t('exchanges.member') }}</label>
+          <FieldLabel>{{ t('exchanges.member') }}</FieldLabel>
           <SelectInput v-if="canManageInventory()" v-model="createMemberId">
             <option value="" disabled>{{ t('exchanges.selectMember') }}</option>
             <option v-for="m in membersWithItemsList" :key="m.id" :value="String(m.id)">
@@ -210,7 +211,7 @@ async function submitCreate() {
             {{ t('exchanges.noItemsForMember') }}
           </div>
           <div v-else class="space-y-1">
-            <label class="block text-sm font-medium">{{ t('exchanges.selectItem') }}</label>
+            <FieldLabel>{{ t('exchanges.selectItem') }}</FieldLabel>
             <SelectInput v-model="createItemId">
               <option value="" disabled>{{ t('exchanges.selectItem') }}</option>
               <option v-for="item in createMemberItems" :key="item.id" :value="String(item.id)">
@@ -236,7 +237,7 @@ async function submitCreate() {
           <span class="text-(--text-muted)">{{ selectedCreateItem.sizeName ?? t('common.unisize') }}</span>
         </p>
         <div class="space-y-1">
-          <label class="block text-sm font-medium">{{ t('exchanges.newSize') }}</label>
+          <FieldLabel>{{ t('exchanges.newSize') }}</FieldLabel>
           <SelectInput v-model="createNewSizeId">
             <option value="" disabled>{{ t('exchanges.noSize') }}</option>
             <option v-for="size in createItemSizes" :key="size.id" :value="String(size.id)">{{ size.label }}</option>
@@ -260,7 +261,7 @@ async function submitCreate() {
           </template>
         </p>
         <div class="space-y-1">
-          <label class="block text-sm font-medium">{{ t('exchanges.reason') }}</label>
+          <FieldLabel>{{ t('exchanges.reason') }}</FieldLabel>
           <TextAreaInput v-model="createReason" :placeholder="t('exchanges.reasonPlaceholder')" />
         </div>
         <div class="flex justify-between">

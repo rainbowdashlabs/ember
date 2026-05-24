@@ -15,6 +15,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldValueDisplay from '@/components/display/FieldValueDisplay.vue'
 import ChangeHistory from './detailview/ChangeHistory.vue'
 import ManagerSection from './detailview/ManagerSection.vue'
@@ -334,7 +335,7 @@ onMounted(loadData)
 
         <!-- Profile fields -->
         <NeutralContainer class="space-y-3">
-          <h3 class="text-sm font-semibold">{{ t('memberDetail.fields') }}</h3>
+          <SubHeader class="text-sm font-semibold">{{ t('memberDetail.fields') }}</SubHeader>
           <div v-if="applicableFields.length === 0" class="text-(--text-muted) text-sm py-2">
             {{ t('memberDetail.noFields') }}
           </div>

@@ -21,6 +21,8 @@ import DateInput from '@/components/input/datetime/DateInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
+import FieldLabel from '@/components/typography/FieldLabel.vue'
 import { useSession } from '@/composables/useSession'
 import { protocol, stationMembers } from '@/api'
 import type { TestProtocol, TestProtocolRun } from '@/api/protocol'
@@ -118,10 +120,10 @@ onMounted(() => { if (loaded.value) loadData() })
 
     <!-- Create Run Modal -->
     <Modal v-model="showCreateModal">
-      <h3 class="text-lg font-semibold mb-3">{{ t('protocol.createRun') }}</h3>
+      <SubHeader class="font-semibold mb-3">{{ t('protocol.createRun') }}</SubHeader>
       <form @submit.prevent="handleCreate" class="space-y-3">
         <div>
-          <label class="block text-sm font-medium mb-1">{{ t('protocol.selectProtocol') }}</label>
+          <FieldLabel class="mb-1">{{ t('protocol.selectProtocol') }}</FieldLabel>
           <SelectInput v-model="newProtocolId">
             <option value="" disabled>{{ t('protocol.selectProtocol') }}</option>
             <option v-for="p in protocols" :key="p.id" :value="p.id">{{ p.name }}</option>
@@ -131,7 +133,7 @@ onMounted(() => { if (loaded.value) loadData() })
         <DateInput v-model="newDate" />
 
         <div>
-          <label class="block text-sm font-medium mb-1">{{ t('protocol.selectMembers') }}</label>
+          <FieldLabel class="mb-1">{{ t('protocol.selectMembers') }}</FieldLabel>
           <div class="max-h-40 overflow-y-auto border border-[var(--border)] rounded p-2 space-y-1">
             <label v-for="m in members" :key="m.id" class="flex items-center gap-2 text-sm cursor-pointer">
               <ToggleInput :model-value="selectedMemberIds.includes(m.id)" @update:model-value="toggleMember(m.id)" />

@@ -16,6 +16,8 @@ import TrainingQuestionCard from './trainingview/TrainingQuestionCard.vue'
 import type { QuizCatalog, QuizQuestion } from '@/api/types'
 import { QuizQuestionTypes } from '@/api/types'
 import { quiz } from '@/api'
+import SectionHeader from '@/components/typography/SectionHeader.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
 
 const { t } = useI18n()
 
@@ -174,7 +176,7 @@ onMounted(loadCatalogs)
 <template>
   <ViewContent>
     <div class="space-y-6 max-w-3xl">
-      <h2 class="text-xl font-semibold">{{ t('quiz.training.title') }}</h2>
+      <SectionHeader>{{ t('quiz.training.title') }}</SectionHeader>
 
       <Spinner v-if="loading" size="lg" />
       <Alert v-if="error" variant="error">{{ error }}</Alert>
@@ -271,7 +273,7 @@ onMounted(loadCatalogs)
         <SuccessContainer>
           <div class="text-center space-y-4 py-4">
             <font-awesome-icon :icon="['fas', 'check']" class="text-4xl" />
-            <h3 class="text-lg font-semibold">{{ t('quiz.training.finished') }}</h3>
+            <SubHeader>{{ t('quiz.training.finished') }}</SubHeader>
             <div class="flex justify-center">
               <SecondaryButton @click="restart">
                 <font-awesome-icon :icon="['fas', 'rotate']" class="mr-1" />

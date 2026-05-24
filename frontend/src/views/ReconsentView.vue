@@ -18,6 +18,7 @@ import Alert from '@/components/feedback/Alert.vue'
 import SuccessButton from '@/components/button/SuccessButton.vue'
 import LinkButton from '@/components/button/LinkButton.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
 
 const {t} = useI18n()
 const router = useRouter()
@@ -98,7 +99,7 @@ async function handleAccept() {
       <template v-if="changes && !loading">
         <!-- Privacy policy changes -->
         <NeutralContainer v-if="changes.privacyChanged" class="space-y-3">
-          <h3 class="font-semibold">{{ t('reconsent.privacyChanged') }}</h3>
+          <SubHeader class="font-semibold">{{ t('reconsent.privacyChanged') }}</SubHeader>
 
           <template v-if="changes.privacyDiff">
             <div class="text-xs text-(--text-muted) mb-1">{{ t('reconsent.whatChanged') }}</div>
@@ -120,7 +121,7 @@ async function handleAccept() {
 
         <!-- ToS changes -->
         <NeutralContainer v-if="changes.tosChanged" class="space-y-3">
-          <h3 class="font-semibold">{{ t('reconsent.tosChanged') }}</h3>
+          <SubHeader class="font-semibold">{{ t('reconsent.tosChanged') }}</SubHeader>
 
           <template v-if="changes.tosDiff">
             <div class="text-xs text-(--text-muted) mb-1">{{ t('reconsent.whatChanged') }}</div>

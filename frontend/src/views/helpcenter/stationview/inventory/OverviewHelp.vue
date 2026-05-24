@@ -13,6 +13,10 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
+import Th from '@/components/table/Th.vue'
+import Td from '@/components/table/Td.vue'
+import THead from '@/components/table/THead.vue'
+import TRow from '@/components/table/TRow.vue'
 
 const {t} = useI18n()
 </script>
@@ -35,23 +39,23 @@ const {t} = useI18n()
       <NeutralContainer class="overflow-x-auto">
         <table class="w-full text-sm">
           <thead>
-            <tr class="border-b border-bg-light-accent dark:border-bg-dark-accent text-left">
-              <th class="px-3 py-2 font-medium">{{ t('inventory.overview.colItem') }}</th>
-              <th class="px-3 py-2 font-medium">{{ t('inventory.overview.colOwner') }}</th>
-              <th class="px-3 py-2 font-medium">{{ t('inventory.overview.colStatus') }}</th>
-            </tr>
+            <THead>
+              <Th>{{ t('inventory.overview.colItem') }}</Th>
+              <Th>{{ t('inventory.overview.colOwner') }}</Th>
+              <Th>{{ t('inventory.overview.colStatus') }}</Th>
+            </THead>
           </thead>
           <tbody>
-            <tr class="border-b border-bg-light-accent/50 dark:border-bg-dark-accent/50">
-              <td class="px-3 py-2.5">Helme <span class="text-(--text-muted)">[M &rarr; L]</span></td>
-              <td class="px-3 py-2.5">Max Mustermann</td>
-              <td class="px-3 py-2.5"><InfoBadge>{{ t('exchanges.status.ANNOUNCED') }}</InfoBadge></td>
-            </tr>
-            <tr class="border-b border-bg-light-accent/50 dark:border-bg-dark-accent/50">
-              <td class="px-3 py-2.5">Jacken <span class="text-(--text-muted)">[S &rarr; M]</span></td>
-              <td class="px-3 py-2.5">Erika Musterfrau</td>
-              <td class="px-3 py-2.5"><SecondaryBadge>{{ t('exchanges.status.RECEIVED') }}</SecondaryBadge></td>
-            </tr>
+            <TRow>
+              <Td>Helme <span class="text-(--text-muted)">[M &rarr; L]</span></Td>
+              <Td>Max Mustermann</Td>
+              <Td><InfoBadge>{{ t('exchanges.status.ANNOUNCED') }}</InfoBadge></Td>
+            </TRow>
+            <TRow>
+              <Td>Jacken <span class="text-(--text-muted)">[S &rarr; M]</span></Td>
+              <Td>Erika Musterfrau</Td>
+              <Td><SecondaryBadge>{{ t('exchanges.status.RECEIVED') }}</SecondaryBadge></Td>
+            </TRow>
           </tbody>
         </table>
       </NeutralContainer>
@@ -66,18 +70,18 @@ const {t} = useI18n()
       <NeutralContainer class="overflow-x-auto">
         <table class="w-full text-sm">
           <thead>
-            <tr class="border-b border-bg-light-accent dark:border-bg-dark-accent text-left">
-              <th class="px-3 py-2 font-medium">{{ t('inventory.overview.colItem') }}</th>
-              <th class="px-3 py-2 font-medium">{{ t('inventory.overview.colOwner') }}</th>
-              <th class="px-3 py-2 font-medium">{{ t('inventory.overview.colNotes') }}</th>
-            </tr>
+            <THead>
+              <Th>{{ t('inventory.overview.colItem') }}</Th>
+              <Th>{{ t('inventory.overview.colOwner') }}</Th>
+              <Th>{{ t('inventory.overview.colNotes') }}</Th>
+            </THead>
           </thead>
           <tbody>
-            <tr class="border-b border-bg-light-accent/50 dark:border-bg-dark-accent/50">
-              <td class="px-3 py-2.5">Stiefel <span class="text-(--text-muted)">[42]</span></td>
-              <td class="px-3 py-2.5">Max Mustermann</td>
-              <td class="px-3 py-2.5 text-(--text-muted)">Alter Stiefel gerissen</td>
-            </tr>
+            <TRow>
+              <Td>Stiefel <span class="text-(--text-muted)">[42]</span></Td>
+              <Td>Max Mustermann</Td>
+              <Td muted>Alter Stiefel gerissen</Td>
+            </TRow>
           </tbody>
         </table>
       </NeutralContainer>
@@ -89,21 +93,21 @@ const {t} = useI18n()
       <NeutralContainer class="overflow-x-auto">
         <table class="w-full text-sm">
           <thead>
-            <tr class="border-b border-bg-light-accent dark:border-bg-dark-accent text-left">
-              <th class="px-3 py-2 font-medium">{{ t('inventory.overview.colItem') }}</th>
-              <th class="px-3 py-2 font-medium">{{ t('inventory.overview.colOwner') }}</th>
-              <th class="px-3 py-2 font-medium">{{ t('inventory.overview.colLostSince') }}</th>
-            </tr>
+            <THead>
+              <Th>{{ t('inventory.overview.colItem') }}</Th>
+              <Th>{{ t('inventory.overview.colOwner') }}</Th>
+              <Th>{{ t('inventory.overview.colLostSince') }}</Th>
+            </THead>
           </thead>
           <tbody>
-            <tr class="border-b border-bg-light-accent/50 dark:border-bg-dark-accent/50">
-              <td class="px-3 py-2.5">
+            <TRow>
+              <Td>
                 <div class="font-medium">Helm <span class="font-normal text-(--text-muted)">[M]</span></div>
                 <div class="text-xs text-(--text-muted)">INV-0042</div>
-              </td>
-              <td class="px-3 py-2.5">Erika Musterfrau</td>
-              <td class="px-3 py-2.5"><ErrorBadge>01.05.2026</ErrorBadge></td>
-            </tr>
+              </Td>
+              <Td>Erika Musterfrau</Td>
+              <Td><ErrorBadge>01.05.2026</ErrorBadge></Td>
+            </TRow>
           </tbody>
         </table>
       </NeutralContainer>

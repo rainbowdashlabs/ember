@@ -12,6 +12,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
 
 const { t } = useI18n()
 </script>
@@ -29,7 +30,7 @@ const { t } = useI18n()
     <!-- Dummy: Catalog list -->
     <div class="space-y-3">
       <div class="flex items-center justify-between">
-        <h3 class="font-semibold">{{ t('quiz.catalogs') }}</h3>
+        <SubHeader class="font-semibold">{{ t('quiz.catalogs') }}</SubHeader>
         <PrimaryButton disabled>
           <font-awesome-icon :icon="['fas', 'plus']" class="mr-1" />
           {{ t('quiz.createCatalog') }}

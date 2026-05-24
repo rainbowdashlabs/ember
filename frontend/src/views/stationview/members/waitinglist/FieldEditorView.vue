@@ -19,8 +19,10 @@ import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
+import EmptyState from '@/components/feedback/EmptyState.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
+import FieldLabel from '@/components/typography/FieldLabel.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import type { WaitingList, WaitingListField } from '@/api/types'
 import { waitingList } from '@/api'
@@ -226,9 +228,7 @@ onMounted(loadData)
 
           <p class="text-sm text-(--text-muted)">{{ t('waitingList.fieldsHint') }}</p>
 
-          <div v-if="sortedFields.length === 0" class="text-center text-(--text-muted) py-4">
-            {{ t('waitingList.noFields') }}
-          </div>
+          <EmptyState compact v-if="sortedFields.length === 0">{{ t('waitingList.noFields') }}</EmptyState>
 
           <div class="space-y-2">
             <div
@@ -276,17 +276,17 @@ onMounted(loadData)
         <div class="space-y-4">
           <SectionHeader>{{ editingField ? t('waitingList.editField') : t('waitingList.addField') }}</SectionHeader>
           <div class="space-y-1">
-            <label class="block text-sm font-medium">{{ t('waitingList.fieldName') }}</label>
+            <FieldLabel>{{ t('waitingList.fieldName') }}</FieldLabel>
             <TextInput v-model="fieldName" :placeholder="t('waitingList.fieldNamePlaceholder')" />
           </div>
           <div class="space-y-1">
-            <label class="block text-sm font-medium">{{ t('waitingList.fieldType') }}</label>
+            <FieldLabel>{{ t('waitingList.fieldType') }}</FieldLabel>
             <SelectInput v-model="fieldType">
               <option v-for="ft in fieldTypes" :key="ft" :value="ft">{{ fieldTypeLabel(ft) }}</option>
             </SelectInput>
           </div>
           <div v-if="fieldType === 'ENUM'" class="space-y-1">
-            <label class="block text-sm font-medium">{{ t('waitingList.enumOptions') }}</label>
+            <FieldLabel>{{ t('waitingList.enumOptions') }}</FieldLabel>
             <TextInput v-model="fieldEnumOptions" :placeholder="t('waitingList.enumOptionsPlaceholder')" />
             <p class="text-xs text-(--text-muted)">{{ t('waitingList.enumOptionsHint') }}</p>
           </div>

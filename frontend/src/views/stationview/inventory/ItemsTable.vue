@@ -21,6 +21,10 @@ import type { LentOutItem } from '@/api/lending'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import MemberName from '@/components/avatar/MemberName.vue'
 import { useBreakpoint } from '@/composables/useBreakpoint'
+import Th from '@/components/table/Th.vue'
+import Td from '@/components/table/Td.vue'
+import THead from '@/components/table/THead.vue'
+import TRow from '@/components/table/TRow.vue'
 
 const { isMobile } = useBreakpoint()
 
@@ -124,20 +128,19 @@ function formatDate(iso: string | null | undefined): string {
   <NeutralContainer v-else-if="items.length > 0" class="overflow-x-auto">
     <table class="w-full text-sm">
       <thead>
-        <tr class="border-b border-bg-light-accent dark:border-bg-dark-accent text-left">
-          <th class="px-3 py-2 font-medium">{{ t('inventory.edit.colName') }}</th>
-          <th class="px-3 py-2 font-medium">{{ t('inventory.edit.colId') }}</th>
-          <th v-if="hasSizes" class="px-3 py-2 font-medium">{{ t('inventory.edit.colSize') }}</th>
-          <th v-if="isMixed" class="px-3 py-2 font-medium">{{ t('inventory.edit.colSource') }}</th>
-          <th class="px-3 py-2 font-medium">{{ t('inventory.edit.colAssigned') }}</th>
+        <THead>
+          <Th>{{ t('inventory.edit.colName') }}</Th>
+          <Th>{{ t('inventory.edit.colId') }}</Th>
+          <Th v-if="hasSizes">{{ t('inventory.edit.colSize') }}</Th>
+          <Th v-if="isMixed">{{ t('inventory.edit.colSource') }}</Th>
+          <Th>{{ t('inventory.edit.colAssigned') }}</Th>
           <th v-if="showActions" class="px-3 py-2"></th>
-        </tr>
+        </THead>
       </thead>
       <tbody>
-        <tr v-for="item in items" :key="item.id"
-            :class="item.lostAt ? 'opacity-60' : ''"
-            class="border-b border-bg-light-accent/50 dark:border-bg-dark-accent/50">
-          <td class="px-3 py-2.5 font-medium">
+        <TRow v-for="item in items" :key="item.id"
+            :class="item.lostAt ? 'opacity-60' : ''">
+          <Td class="font-medium">
             {{ item.name }}
             <span v-if="item.lostAt" class="ml-2 text-xs text-error font-normal">
               {{ t('inventory.edit.lost') }} ({{ formatDate(item.lostAt) }})
@@ -151,19 +154,19 @@ function formatDate(iso: string | null | undefined): string {
                 </InfoBadge>
               </router-link>
             </template>
-          </td>
-          <td class="px-3 py-2.5 text-(--text-muted)">{{ item.internalId || '–' }}</td>
-          <td v-if="hasSizes" class="px-3 py-2.5"><SizeBadge :lost="!!item.lostAt">{{ getSizeLabel(item.sizeId) }}</SizeBadge></td>
-          <td v-if="isMixed" class="px-3 py-2.5">
+          </Td>
+          <Td muted>{{ item.internalId || '–' }}</Td>
+          <Td v-if="hasSizes"><SizeBadge :lost="!!item.lostAt">{{ getSizeLabel(item.sizeId) }}</SizeBadge></Td>
+          <Td v-if="isMixed">
             <PrimaryBadge v-if="item.itemSource === ItemSource.INTERNAL">{{ t('inventory.edit.sourceInternal') }}</PrimaryBadge>
             <SecondaryBadge v-else-if="item.itemSource === ItemSource.EXTERNAL">{{ t('inventory.edit.sourceExternal') }}</SecondaryBadge>
             <span v-else class="text-(--text-muted)">–</span>
-          </td>
-          <td class="px-3 py-2.5">
+          </Td>
+          <Td>
             <SecondaryButton v-if="item.assignedTo" class="!bg-transparent !p-0 text-primary font-medium hover:underline" @click.stop="router.push({ name: 'inventory-member', params: { memberId: item.assignedTo } })"><MemberName :name="getMemberName(item.assignedTo)" :member-id="item.assignedTo"/></SecondaryButton>
             <span v-else class="text-(--text-muted)">–</span>
-          </td>
-          <td v-if="showActions" class="px-3 py-2.5 text-right">
+          </Td>
+          <Td v-if="showActions" align="right">
             <div class="flex items-center justify-end gap-0.5">
               <IconButton v-if="!item.lostAt" :icon="['fas', 'user']"
                           :label="item.assignedTo ? t('inventory.edit.reassign') : t('inventory.edit.assign')"
@@ -183,8 +186,8 @@ function formatDate(iso: string | null | undefined): string {
               <EditButton @click="emit('edit', item)" />
               <DeleteButton @click="emit('delete', item)" />
             </div>
-          </td>
-        </tr>
+          </Td>
+        </TRow>
       </tbody>
     </table>
   </NeutralContainer>

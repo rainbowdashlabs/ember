@@ -11,6 +11,7 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
+import FieldLabel from '@/components/typography/FieldLabel.vue'
 import type {EventCategory} from '@/api/types'
 
 const {t} = useI18n()
@@ -45,7 +46,7 @@ function submit() {
     <div class="space-y-4">
       <SectionHeader>{{ category ? t('events.editCategory') : t('events.addCategory') }}</SectionHeader>
       <div class="space-y-1">
-        <label class="block text-sm font-medium">{{ t('events.categoryName') }}</label>
+        <FieldLabel>{{ t('events.categoryName') }}</FieldLabel>
         <TextInput v-model="categoryName" :placeholder="t('events.categoryNamePlaceholder')"/>
       </div>
       <div class="flex justify-end gap-3">

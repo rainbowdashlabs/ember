@@ -19,9 +19,11 @@ import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
+import EmptyState from '@/components/feedback/EmptyState.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
+import FieldLabel from '@/components/typography/FieldLabel.vue'
 import type { Inventory, InventoryItem, ProcurementEntry } from '@/api/types'
 import { InventoryTypes } from '@/api/types'
 import { inventory, procurement } from '@/api'
@@ -177,9 +179,7 @@ onMounted(loadData)
           </PrimaryButton>
         </div>
 
-        <div v-if="inventories.length === 0" class="text-center text-(--text-muted) py-8">
-          {{ t('inventory.manage.empty') }}
-        </div>
+        <EmptyState v-if="inventories.length === 0">{{ t('inventory.manage.empty') }}</EmptyState>
 
         <div class="space-y-3">
           <NeutralContainer v-for="inv in inventories" :key="inv.id" class="cursor-pointer hover:ring-1 hover:ring-primary/30 transition-all" @click="viewDetail(inv)">
@@ -214,12 +214,12 @@ onMounted(loadData)
 
           <template v-if="createStep === 'basic'">
             <div class="space-y-1">
-              <label class="block text-sm font-medium">{{ t('inventory.manage.name') }}</label>
+              <FieldLabel>{{ t('inventory.manage.name') }}</FieldLabel>
               <TextInput v-model="createName" :placeholder="t('inventory.manage.namePlaceholder')" />
             </div>
 
             <div class="space-y-1">
-              <label class="block text-sm font-medium">{{ t('inventory.manage.typeLabel') }}</label>
+              <FieldLabel>{{ t('inventory.manage.typeLabel') }}</FieldLabel>
               <SelectInput v-model="createType">
                 <option :value="InventoryTypes.INTERNAL">{{ t('inventory.manage.type.INTERNAL') }}</option>
                 <option :value="InventoryTypes.EXTERNAL">{{ t('inventory.manage.type.EXTERNAL') }}</option>

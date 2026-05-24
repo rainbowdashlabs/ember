@@ -9,6 +9,7 @@ import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import ErrorContainer from '@/components/container/ErrorContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
+import FieldLabel from '@/components/typography/FieldLabel.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
@@ -115,7 +116,7 @@ onMounted(loadManagers)
       {{ creatingToken ? t('stationManage.transferCreating') : t('stationManage.transferCreate') }}
     </PrimaryButton>
     <div v-if="transferToken" class="space-y-2">
-      <label class="block text-sm font-medium">{{ t('stationManage.transferTokenLabel') }}</label>
+      <FieldLabel>{{ t('stationManage.transferTokenLabel') }}</FieldLabel>
       <div class="flex items-center gap-2">
         <code class="flex-1 rounded bg-bg-light-accent dark:bg-bg-dark-accent px-3 py-2 text-sm break-all select-all">{{ transferToken }}</code>
         <SecondaryButton @click="copyToken">

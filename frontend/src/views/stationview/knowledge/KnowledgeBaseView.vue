@@ -27,6 +27,7 @@ import KbSearchResults from './knowledgebaseview/KbSearchResults.vue'
 import {useSession} from '@/composables/useSession'
 import {getItem} from '@/api/storage'
 import {knowledgeBase, federation} from '@/api'
+import SubHeader from '@/components/typography/SubHeader.vue'
 import type {KbFolder, KbFile, SharedFileEntry} from '@/api/knowledgeBase'
 
 const {t} = useI18n()
@@ -452,7 +453,7 @@ function navigateToFavourites() {
 
         <!-- Delete Folder Confirmation -->
         <Modal v-model="showDeleteFolderModal">
-            <h3 class="text-lg font-semibold mb-3">{{ t('kb.deleteFolder') }}</h3>
+            <SubHeader class="text-lg font-semibold mb-3">{{ t('kb.deleteFolder') }}</SubHeader>
             <p class="mb-4">{{ t('kb.deleteFolderConfirm') }}</p>
             <div class="flex gap-2 justify-end">
                 <SecondaryButton @click="showDeleteFolderModal = false">{{ t('common.cancel') }}</SecondaryButton>
@@ -464,7 +465,7 @@ function navigateToFavourites() {
 
         <!-- Delete File Confirmation -->
         <Modal v-model="showDeleteFileModal">
-            <h3 class="text-lg font-semibold mb-3">{{ t('kb.deleteFile') }}</h3>
+            <SubHeader class="text-lg font-semibold mb-3">{{ t('kb.deleteFile') }}</SubHeader>
             <p class="mb-4">{{ t('kb.deleteFileConfirm') }}</p>
             <div class="flex gap-2 justify-end">
                 <SecondaryButton @click="showDeleteFileModal = false">{{ t('common.cancel') }}</SecondaryButton>

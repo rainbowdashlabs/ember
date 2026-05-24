@@ -11,6 +11,8 @@ import PasswordInput from '@/components/input/text/PasswordInput.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import {auth} from '@/api'
+import FieldLabel from '@/components/typography/FieldLabel.vue'
+import PageHeader from '@/components/typography/PageHeader.vue'
 
 const {t} = useI18n()
 const route = useRoute()
@@ -58,14 +60,14 @@ async function handleSetPassword() {
     <div class="w-full max-w-sm space-y-6">
       <div class="text-center">
         <font-awesome-icon :icon="['fas', 'lock']" class="text-4xl text-primary mb-3"/>
-        <h1 class="text-2xl font-bold">{{ t('setPassword.title') }}</h1>
+        <PageHeader class="text-2xl font-bold">{{ t('setPassword.title') }}</PageHeader>
       </div>
 
       <form class="space-y-4" @submit.prevent="handleSetPassword">
         <Alert v-if="error" variant="error">{{ error }}</Alert>
 
         <div class="space-y-1">
-          <label class="block text-sm font-medium">{{ t('setPassword.newPassword') }}</label>
+          <FieldLabel>{{ t('setPassword.newPassword') }}</FieldLabel>
           <PasswordInput
               v-model="newPassword"
               :disabled="loading"
@@ -74,7 +76,7 @@ async function handleSetPassword() {
         </div>
 
         <div class="space-y-1">
-          <label class="block text-sm font-medium">{{ t('setPassword.confirmPassword') }}</label>
+          <FieldLabel>{{ t('setPassword.confirmPassword') }}</FieldLabel>
           <PasswordInput
               v-model="confirmPassword"
               :disabled="loading"

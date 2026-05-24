@@ -8,6 +8,7 @@ import { useI18n } from 'vue-i18n'
 import SuccessButton from '@/components/button/SuccessButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
+import EmptyState from '@/components/feedback/EmptyState.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import PrimaryBadge from '@/components/badge/PrimaryBadge.vue'
 import type { WaitingListEntryWithScore } from '@/api/types'
@@ -35,9 +36,7 @@ function entryFullName(item: WaitingListEntryWithScore): string {
   <NeutralContainer class="space-y-4">
     <SubHeader>{{ t('waitingList.sectionTesting') }} ({{ entries.length }})</SubHeader>
 
-    <div v-if="entries.length === 0" class="text-center text-(--text-muted) py-4">
-      {{ t('waitingList.noTestingEntries') }}
-    </div>
+    <EmptyState compact v-if="entries.length === 0">{{ t('waitingList.noTestingEntries') }}</EmptyState>
 
     <div v-if="entries.length > 0" class="space-y-3">
       <NeutralContainer

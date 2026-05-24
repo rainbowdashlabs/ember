@@ -6,6 +6,7 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
+import FieldHint from '@/components/typography/FieldHint.vue'
 import IconButton from '@/components/button/IconButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
@@ -160,7 +161,7 @@ function moveStatement(index: number, direction: -1 | 1) {
           <NumberInput v-if="q.config.multiLimitType !== 'NONE'" v-model="(q.config.multiLimit as number)" :placeholder="t('forms.choice.limitValue')" class="w-24" />
         </div>
         <div class="space-y-1">
-          <label class="text-xs text-(--text-muted)">{{ t('forms.choice.options') }}</label>
+          <FieldHint>{{ t('forms.choice.options') }}</FieldHint>
           <div v-for="(opt, oi) in (q.config.options as string[])" :key="oi" class="flex gap-2 items-center">
             <TextInput :model-value="opt" class="flex-1" @update:model-value="(v: string | undefined) => updateOption(oi, v ?? '')" />
             <IconButton :icon="['fas', 'chevron-up']" label="Up" class="text-(--text-muted) hover:text-primary" @click="moveOption(oi, -1)" />
@@ -196,7 +197,7 @@ function moveStatement(index: number, direction: -1 | 1) {
       <!-- RANKING -->
       <template v-if="q.questionType === QuestionTypes.RANKING">
         <div class="space-y-1">
-          <label class="text-xs text-(--text-muted)">{{ t('forms.ranking.options') }}</label>
+          <FieldHint>{{ t('forms.ranking.options') }}</FieldHint>
           <div v-for="(opt, oi) in (q.config.options as string[])" :key="oi" class="flex gap-2 items-center">
             <TextInput :model-value="opt" class="flex-1" @update:model-value="(v: string | undefined) => updateOption(oi, v ?? '')" />
             <IconButton :icon="['fas', 'chevron-up']" label="Up" class="text-(--text-muted) hover:text-primary" @click="moveOption(oi, -1)" />
@@ -216,7 +217,7 @@ function moveStatement(index: number, direction: -1 | 1) {
           <NumberInput v-model="(q.config.scaleMax as number)" class="w-20" />
         </div>
         <div class="space-y-1">
-          <label class="text-xs text-(--text-muted)">{{ t('forms.likert.statements') }}</label>
+          <FieldHint>{{ t('forms.likert.statements') }}</FieldHint>
           <div v-for="(stmt, si) in (q.config.statements as string[])" :key="si" class="flex gap-2 items-center">
             <TextInput :model-value="stmt" class="flex-1" @update:model-value="(v: string | undefined) => updateStatement(si, v ?? '')" />
             <IconButton :icon="['fas', 'chevron-up']" label="Up" class="text-(--text-muted) hover:text-primary" @click="moveStatement(si, -1)" />

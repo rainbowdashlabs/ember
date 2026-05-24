@@ -12,10 +12,12 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
+import EmptyState from '@/components/feedback/EmptyState.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import SizeBadge from '@/components/badge/SizeBadge.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
+import FieldLabel from '@/components/typography/FieldLabel.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
@@ -30,6 +32,10 @@ import { getLentOutByInventory, type LentOutItem } from '@/api/lending'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import { useStations } from '@/composables/useStations'
 import MemberName from '@/components/avatar/MemberName.vue'
+import Th from '@/components/table/Th.vue'
+import Td from '@/components/table/Td.vue'
+import THead from '@/components/table/THead.vue'
+import TRow from '@/components/table/TRow.vue'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -351,22 +357,22 @@ onMounted(loadData)
           <NeutralContainer class="overflow-x-auto">
             <table class="w-full text-sm">
               <thead>
-                <tr class="border-b border-bg-light-accent dark:border-bg-dark-accent text-left">
-                  <th class="px-3 py-2 font-medium">{{ t('inventory.detail.size') }}</th>
-                  <th class="px-3 py-2 font-medium text-center">{{ t('inventory.detail.total') }}</th>
-                  <th class="px-3 py-2 font-medium text-center">{{ t('inventory.detail.free') }}</th>
-                  <th class="px-3 py-2 font-medium text-center">{{ t('inventory.detail.assigned') }}</th>
-                  <th class="px-3 py-2 font-medium text-center">{{ t('inventory.detail.lost') }}</th>
-                </tr>
+                <THead>
+                  <Th>{{ t('inventory.detail.size') }}</Th>
+                  <Th align="center">{{ t('inventory.detail.total') }}</Th>
+                  <Th align="center">{{ t('inventory.detail.free') }}</Th>
+                  <Th align="center">{{ t('inventory.detail.assigned') }}</Th>
+                  <Th align="center">{{ t('inventory.detail.lost') }}</Th>
+                </THead>
               </thead>
               <tbody>
-                <tr v-for="row in allSizeStats" :key="row.size?.id ?? 'none'" class="border-b border-bg-light-accent/50 dark:border-bg-dark-accent/50">
-                  <td class="px-3 py-2.5 font-medium">{{ row.size?.label ?? t('inventory.detail.noSize') }}</td>
-                  <td class="px-3 py-2.5 text-center">{{ row.total }}</td>
-                  <td class="px-3 py-2.5 text-center text-success">{{ row.free }}</td>
-                  <td class="px-3 py-2.5 text-center text-primary">{{ row.assigned }}</td>
-                  <td class="px-3 py-2.5 text-center text-error">{{ row.lost }}</td>
-                </tr>
+                <TRow v-for="row in allSizeStats" :key="row.size?.id ?? 'none'">
+                  <Td class="font-medium">{{ row.size?.label ?? t('inventory.detail.noSize') }}</Td>
+                  <Td align="center">{{ row.total }}</Td>
+                  <Td align="center" class="text-success">{{ row.free }}</Td>
+                  <Td align="center" class="text-primary">{{ row.assigned }}</Td>
+                  <Td align="center" class="text-error">{{ row.lost }}</Td>
+                </TRow>
               </tbody>
             </table>
           </NeutralContainer>
@@ -381,25 +387,25 @@ onMounted(loadData)
           <NeutralContainer class="overflow-x-auto">
             <table class="w-full text-sm">
               <thead>
-                <tr class="border-b border-bg-light-accent dark:border-bg-dark-accent text-left">
-                  <th class="px-3 py-2 font-medium">{{ t('inventory.detail.owner') }}</th>
-                  <th class="px-3 py-2 font-medium">{{ t('inventory.detail.size') }}</th>
-                  <th class="px-3 py-2 font-medium">{{ t('inventory.detail.notes') }}</th>
+                <THead>
+                  <Th>{{ t('inventory.detail.owner') }}</Th>
+                  <Th>{{ t('inventory.detail.size') }}</Th>
+                  <Th>{{ t('inventory.detail.notes') }}</Th>
                   <th class="px-3 py-2"></th>
-                </tr>
+                </THead>
               </thead>
               <tbody>
-                <tr v-for="p in openProcurement" :key="p.id" class="border-b border-bg-light-accent/50 dark:border-bg-dark-accent/50">
-                  <td class="px-3 py-2.5"><MemberName :name="p.memberName" :member-id="p.memberId"/></td>
-                  <td class="px-3 py-2.5"><SizeBadge>{{ p.sizeLabel || t('common.unisize') }}</SizeBadge></td>
-                  <td class="px-3 py-2.5 text-(--text-muted)">{{ p.notes || '-' }}</td>
-                  <td class="px-3 py-2.5 text-right">
+                <TRow v-for="p in openProcurement" :key="p.id">
+                  <Td><MemberName :name="p.memberName" :member-id="p.memberId"/></Td>
+                  <Td><SizeBadge>{{ p.sizeLabel || t('common.unisize') }}</SizeBadge></Td>
+                  <Td muted>{{ p.notes || '-' }}</Td>
+                  <Td align="right">
                     <PrimaryButton @click="fulfillProcurement(p.id)">
                       <font-awesome-icon :icon="['fas', 'check']" class="mr-1" />
                       {{ t('procurement.markFulfilled') }}
                     </PrimaryButton>
-                  </td>
-                </tr>
+                  </Td>
+                </TRow>
               </tbody>
             </table>
           </NeutralContainer>
@@ -414,34 +420,34 @@ onMounted(loadData)
           <NeutralContainer class="overflow-x-auto">
             <table class="w-full text-sm">
               <thead>
-                <tr class="border-b border-bg-light-accent dark:border-bg-dark-accent text-left">
-                  <th class="px-3 py-2 font-medium">{{ t('inventory.detail.lentToStation') }}</th>
-                  <th class="px-3 py-2 font-medium text-center">{{ t('inventory.detail.lentQuantity') }}</th>
-                  <th class="px-3 py-2 font-medium">{{ t('inventory.detail.lentUntil') }}</th>
-                  <th class="px-3 py-2 font-medium">{{ t('inventory.detail.lentStatus') }}</th>
+                <THead>
+                  <Th>{{ t('inventory.detail.lentToStation') }}</Th>
+                  <Th align="center">{{ t('inventory.detail.lentQuantity') }}</Th>
+                  <Th>{{ t('inventory.detail.lentUntil') }}</Th>
+                  <Th>{{ t('inventory.detail.lentStatus') }}</Th>
                   <th class="px-3 py-2"></th>
-                </tr>
+                </THead>
               </thead>
               <tbody>
-                <tr v-for="lent in lentOutItems" :key="lent.requestItemId" class="border-b border-bg-light-accent/50 dark:border-bg-dark-accent/50">
-                  <td class="px-3 py-2.5 font-medium">{{ lent.requestingStationName }}</td>
-                  <td class="px-3 py-2.5 text-center">{{ lent.quantity }}</td>
-                  <td class="px-3 py-2.5">
+                <TRow v-for="lent in lentOutItems" :key="lent.requestItemId">
+                  <Td class="font-medium">{{ lent.requestingStationName }}</Td>
+                  <Td align="center">{{ lent.quantity }}</Td>
+                  <Td>
                     <template v-if="lent.dateTo">{{ formatDate(lent.dateTo) }}</template>
                     <span v-else class="text-(--text-muted)">–</span>
-                  </td>
-                  <td class="px-3 py-2.5">
+                  </Td>
+                  <Td>
                     <InfoBadge>{{ lent.status === 'LENT' ? t('inventory.detail.statusLent') : t('inventory.detail.statusApproved') }}</InfoBadge>
-                  </td>
-                  <td class="px-3 py-2.5 text-right">
+                  </Td>
+                  <Td align="right">
                     <router-link :to="{ name: 'inventory-lending-request', params: { id: lent.requestId } }">
                       <SecondaryButton>
                         <font-awesome-icon :icon="['fas', 'eye']" class="mr-1" />
                         {{ t('inventory.detail.viewRequest') }}
                       </SecondaryButton>
                     </router-link>
-                  </td>
-                </tr>
+                  </Td>
+                </TRow>
               </tbody>
             </table>
           </NeutralContainer>
@@ -501,26 +507,26 @@ onMounted(loadData)
           <NeutralContainer class="overflow-x-auto">
             <table class="w-full text-sm">
               <thead>
-                <tr class="border-b border-bg-light-accent dark:border-bg-dark-accent text-left">
-                  <th class="px-3 py-2 font-medium">{{ t('inventory.detail.item') }}</th>
-                  <th class="px-3 py-2 font-medium">{{ t('inventory.detail.owner') }}</th>
-                  <th class="px-3 py-2 font-medium">{{ t('inventory.detail.lostSince') }}</th>
-                </tr>
+                <THead>
+                  <Th>{{ t('inventory.detail.item') }}</Th>
+                  <Th>{{ t('inventory.detail.owner') }}</Th>
+                  <Th>{{ t('inventory.detail.lostSince') }}</Th>
+                </THead>
               </thead>
               <tbody>
-                <tr v-for="item in lostItems" :key="item.id" class="border-b border-bg-light-accent/50 dark:border-bg-dark-accent/50">
-                  <td class="px-3 py-2.5">
+                <TRow v-for="item in lostItems" :key="item.id">
+                  <Td>
                     <div class="font-medium">
                       {{ item.name }}
                       <SizeBadge v-if="sizeName(item.sizeId)" lost>{{ sizeName(item.sizeId) }}</SizeBadge>
                     </div>
                     <div v-if="item.internalId" class="text-xs text-(--text-muted)">{{ item.internalId }}</div>
-                  </td>
-                  <td class="px-3 py-2.5"><MemberName :name="ownerName(item.assignedTo)" :member-id="item.assignedTo"/></td>
-                  <td class="px-3 py-2.5">
+                  </Td>
+                  <Td><MemberName :name="ownerName(item.assignedTo)" :member-id="item.assignedTo"/></Td>
+                  <Td>
                     <ErrorBadge>{{ formatDate(item.lostAt) }}</ErrorBadge>
-                  </td>
-                </tr>
+                  </Td>
+                </TRow>
               </tbody>
             </table>
           </NeutralContainer>
@@ -574,15 +580,15 @@ onMounted(loadData)
         <div class="space-y-4">
           <SectionHeader>{{ t('inventory.edit.editItem') }}</SectionHeader>
           <div class="space-y-1">
-            <label class="block text-sm font-medium">{{ t('inventory.edit.itemName') }}</label>
+            <FieldLabel>{{ t('inventory.edit.itemName') }}</FieldLabel>
             <TextInput v-model="editItemName" :placeholder="t('inventory.edit.itemNamePlaceholder')" />
           </div>
           <div class="space-y-1">
-            <label class="block text-sm font-medium">{{ t('inventory.edit.itemInternalId') }}</label>
+            <FieldLabel>{{ t('inventory.edit.itemInternalId') }}</FieldLabel>
             <TextInput v-model="editItemInternalId" :placeholder="t('inventory.edit.itemInternalIdPlaceholder')" />
           </div>
           <div v-if="detail?.hasSizes" class="space-y-1">
-            <label class="block text-sm font-medium">{{ t('inventory.edit.itemSize') }}</label>
+            <FieldLabel>{{ t('inventory.edit.itemSize') }}</FieldLabel>
             <SelectInput v-model="editItemSizeId">
               <option value="">–</option>
               <option v-for="size in detail?.sizes ?? []" :key="size.id" :value="String(size.id)">{{ size.label }}</option>
@@ -603,9 +609,7 @@ onMounted(loadData)
           <SectionHeader>{{ t('inventory.edit.historyTitle') }}</SectionHeader>
           <p class="text-sm text-(--text-muted)">{{ historyTarget?.name }}</p>
           <Spinner v-if="historyLoading" size="md" />
-          <div v-if="!historyLoading && historyEntries.length === 0" class="text-center text-(--text-muted) py-4">
-            {{ t('inventory.edit.noHistory') }}
-          </div>
+          <EmptyState compact v-if="!historyLoading && historyEntries.length === 0">{{ t('inventory.edit.noHistory') }}</EmptyState>
           <div v-if="!historyLoading && historyEntries.length > 0" class="space-y-2 max-h-80 overflow-y-auto">
             <div v-for="entry in historyEntries" :key="entry.id"
                  class="flex items-center justify-between rounded-lg px-3 py-2 border border-bg-light-accent dark:border-bg-dark-accent">

@@ -18,7 +18,7 @@ public class Demo {
     private boolean dev = false;
 
     @Overwrite(env = @Env)
-    private int resetIntervalHours = 1;
+    private int idleResetMinutes = 15;
 
     @Overwrite(env = @Env)
     private boolean enabled = false;
@@ -34,8 +34,12 @@ public class Demo {
         return dev;
     }
 
-    public int resetIntervalHours() {
-        return resetIntervalHours;
+    /**
+     * Minutes of inactivity (no authenticated requests) before the demo data is reset.
+     * Default: 15 minutes.
+     */
+    public int idleResetMinutes() {
+        return idleResetMinutes;
     }
 
     /**
@@ -48,7 +52,7 @@ public class Demo {
 
     @Override
     public String toString() {
-        return "Demo{" + "dev=" + dev + ", resetIntervalHours=" + resetIntervalHours + ", enabled=" + enabled
+        return "Demo{" + "dev=" + dev + ", idleResetMinutes=" + idleResetMinutes + ", enabled=" + enabled
                 + ", federationForceHttp=" + federationForceHttp + '}';
     }
 }

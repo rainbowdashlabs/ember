@@ -58,7 +58,7 @@ const {t} = useI18n()
 
     <!-- Dummy: Profile fields -->
     <NeutralContainer class="space-y-3">
-      <h3 class="text-sm font-semibold">{{ t('memberDetail.fields') }}</h3>
+      <SubHeader class="text-sm font-semibold">{{ t('memberDetail.fields') }}</SubHeader>
       <div class="grid gap-2 sm:grid-cols-2">
         <div class="text-sm">
           <span class="text-(--text-muted)">{{ t('helpCenter.exampleFields.phone') }}:</span>
@@ -86,7 +86,7 @@ const {t} = useI18n()
     <!-- Dummy: Managers -->
     <NeutralContainer class="space-y-4">
       <div class="flex items-center justify-between">
-        <h3 class="text-sm font-semibold">{{ t('memberDetail.managers') }}</h3>
+        <SubHeader class="text-sm font-semibold">{{ t('memberDetail.managers') }}</SubHeader>
         <div class="flex items-center gap-2">
           <SecondaryButton>
             <font-awesome-icon :icon="['fas', 'link']" class="mr-1"/>

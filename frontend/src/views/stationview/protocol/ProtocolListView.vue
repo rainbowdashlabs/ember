@@ -23,6 +23,8 @@ import TextInput from '@/components/input/text/TextInput.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import NumberInput from '@/components/input/number/NumberInput.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
+import FieldLabel from '@/components/typography/FieldLabel.vue'
 import { useSession } from '@/composables/useSession'
 import { protocol, federation } from '@/api'
 import type { TestProtocol, SharedProtocolEntry } from '@/api/protocol'
@@ -221,12 +223,12 @@ onMounted(() => { if (loaded.value) loadData() })
 
     <!-- Create Modal -->
     <Modal v-model="showCreateModal">
-      <h3 class="text-lg font-semibold mb-3">{{ t('protocol.create') }}</h3>
+      <SubHeader class="font-semibold mb-3">{{ t('protocol.create') }}</SubHeader>
       <form @submit.prevent="handleCreate" class="space-y-3">
         <TextInput v-model="newName" :placeholder="t('protocol.name')" required />
         <TextAreaInput v-model="newDescription" :placeholder="t('protocol.description')" />
         <div>
-          <label class="block text-sm font-medium mb-1">{{ t('protocol.passThreshold') }}</label>
+          <FieldLabel class="mb-1">{{ t('protocol.passThreshold') }}</FieldLabel>
           <NumberInput v-model="newPassThreshold" :placeholder="t('protocol.passThresholdHint')" />
         </div>
         <div class="flex gap-2 justify-end">
@@ -237,7 +239,7 @@ onMounted(() => { if (loaded.value) loadData() })
 
     <!-- Delete Modal -->
     <Modal v-model="showDeleteModal">
-      <h3 class="text-lg font-semibold mb-3">{{ t('protocol.deleteConfirm') }}</h3>
+      <SubHeader class="font-semibold mb-3">{{ t('protocol.deleteConfirm') }}</SubHeader>
       <p class="mb-4">{{ deleteTarget?.name }}</p>
       <div class="flex gap-2 justify-end">
         <PrimaryButton @click="handleDelete">{{ t('common.delete') }}</PrimaryButton>

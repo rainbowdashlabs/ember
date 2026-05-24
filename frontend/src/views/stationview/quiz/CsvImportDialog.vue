@@ -8,6 +8,8 @@ import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import Modal from '@/components/feedback/Modal.vue'
 import Alert from '@/components/feedback/Alert.vue'
+import FieldHint from '@/components/typography/FieldHint.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
@@ -142,7 +144,7 @@ const previewRows = computed(() => rows.value.slice(0, 5))
 <template>
   <Modal :model-value="show" @update:model-value="(v: boolean) => { if (!v) close() }">
     <div class="space-y-4 max-h-[70vh] overflow-y-auto">
-      <h3 class="text-lg font-semibold">{{ t('quiz.csv.import') }}</h3>
+      <SubHeader class="text-lg font-semibold">{{ t('quiz.csv.import') }}</SubHeader>
 
       <Alert v-if="successCount !== null" variant="success">
         {{ t('quiz.csv.importSuccess', { count: successCount }) }}
@@ -157,7 +159,7 @@ const previewRows = computed(() => rows.value.slice(0, 5))
           <input type="file" accept=".csv,.tsv,.txt" class="hidden" @change="onFileSelected" />
         </label>
         <div class="flex items-center gap-2">
-          <label class="text-xs text-(--text-muted)">{{ t('quiz.csv.separator') }}</label>
+          <FieldHint>{{ t('quiz.csv.separator') }}</FieldHint>
           <SelectInput v-model="separator" class="w-24" @update:model-value="onSeparatorChange">
             <option value=",">,</option>
             <option value=";">;</option>
@@ -217,7 +219,7 @@ const previewRows = computed(() => rows.value.slice(0, 5))
         </div>
 
         <div class="flex items-center gap-2">
-          <label class="text-xs text-(--text-muted)">{{ t('quiz.csv.answerSeparator') }}</label>
+          <FieldHint>{{ t('quiz.csv.answerSeparator') }}</FieldHint>
           <TextInput v-model="answerSeparator" class="w-16" />
         </div>
 

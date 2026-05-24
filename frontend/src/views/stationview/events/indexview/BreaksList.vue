@@ -10,6 +10,7 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import EditButton from '@/components/button/EditButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
+import EmptyState from '@/components/feedback/EmptyState.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import type {EventBreak} from '@/api/types'
 
@@ -43,9 +44,7 @@ const emit = defineEmits<{
       </div>
     </div>
 
-    <div v-if="breaks.length === 0" class="text-center text-(--text-muted) py-4">
-      {{ t('events.noBreaks') }}
-    </div>
+    <EmptyState compact v-if="breaks.length === 0">{{ t('events.noBreaks') }}</EmptyState>
 
     <div class="space-y-2">
       <NeutralContainer v-for="br in breaks" :key="br.id" class="flex items-center justify-between flex-wrap gap-2">

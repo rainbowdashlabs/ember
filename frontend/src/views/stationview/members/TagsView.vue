@@ -17,8 +17,10 @@ import TextInput from '@/components/input/text/TextInput.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
+import EmptyState from '@/components/feedback/EmptyState.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
+import FieldLabel from '@/components/typography/FieldLabel.vue'
 import type {UserTag, StationMember} from '@/api/types'
 import {userTags, stationMembers} from '@/api'
 
@@ -204,9 +206,7 @@ onMounted(loadData)
             </PrimaryButton>
           </div>
 
-          <div v-if="tags.length === 0" class="text-center text-(--text-muted) py-8">
-            Keine Tags vorhanden.
-          </div>
+          <EmptyState v-if="tags.length === 0">Keine Tags vorhanden.</EmptyState>
 
           <div class="space-y-2">
             <NeutralContainer
@@ -238,7 +238,7 @@ onMounted(loadData)
           <template v-if="!tagLoading">
             <!-- Current members -->
             <div class="space-y-1">
-              <label class="block text-sm font-medium text-(--text-muted)">Mitglieder</label>
+              <FieldLabel class="text-(--text-muted)">Mitglieder</FieldLabel>
               <div v-if="tagMembers.length === 0" class="text-sm text-(--text-muted) py-2">
                 Keine Mitglieder in diesem Tag.
               </div>
@@ -256,7 +256,7 @@ onMounted(loadData)
 
             <!-- Available members to add -->
             <div class="space-y-1">
-              <label class="block text-sm font-medium text-(--text-muted)">Mitglied hinzufügen</label>
+              <FieldLabel class="text-(--text-muted)">Mitglied hinzufügen</FieldLabel>
               <div v-if="availableMembers.length === 0" class="text-sm text-(--text-muted) py-2">
                 Alle Mitglieder sind bereits zugewiesen.
               </div>
@@ -291,7 +291,7 @@ onMounted(loadData)
             }}
           </SectionHeader>
           <div class="space-y-1">
-            <label class="block text-sm font-medium">Name</label>
+            <FieldLabel>Name</FieldLabel>
             <TextInput v-model="tagName" placeholder="Tag-Name"/>
           </div>
           <div class="flex justify-end gap-3">

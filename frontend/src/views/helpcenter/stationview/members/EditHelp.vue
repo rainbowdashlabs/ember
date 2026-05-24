@@ -14,6 +14,10 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import {ref} from 'vue'
+import Th from '@/components/table/Th.vue'
+import Td from '@/components/table/Td.vue'
+import THead from '@/components/table/THead.vue'
+import TRow from '@/components/table/TRow.vue'
 
 const {t} = useI18n()
 
@@ -41,7 +45,7 @@ const dummyEmail = ref('max@example.com')
 
     <!-- Dummy: Base fields -->
     <NeutralContainer class="space-y-4">
-      <h3 class="text-sm font-semibold">{{ t('memberEdit.baseFields') }}</h3>
+      <SubHeader class="text-sm font-semibold">{{ t('memberEdit.baseFields') }}</SubHeader>
       <div class="grid gap-4 sm:grid-cols-3">
         <div class="space-y-1">
           <label class="block text-xs font-medium text-(--text-muted)">{{ t('memberEdit.firstName') }}</label>
@@ -64,7 +68,7 @@ const dummyEmail = ref('max@example.com')
 
     <!-- Dummy: Role cards -->
     <NeutralContainer class="space-y-3">
-      <h3 class="text-sm font-semibold">{{ t('memberEdit.roles') }}</h3>
+      <SubHeader class="text-sm font-semibold">{{ t('memberEdit.roles') }}</SubHeader>
       <div class="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
         <div class="flex items-center justify-between rounded-lg px-3 py-2.5 border border-primary bg-primary/10 ring-2 ring-primary/30">
           <span class="text-sm font-medium">{{ t('membersCreate.roleMember') }}</span>
@@ -92,28 +96,28 @@ const dummyEmail = ref('max@example.com')
 
     <!-- Dummy: Profile fields table -->
     <NeutralContainer class="space-y-4">
-      <h3 class="text-sm font-semibold">{{ t('memberEdit.fields') }}</h3>
+      <SubHeader class="text-sm font-semibold">{{ t('memberEdit.fields') }}</SubHeader>
       <div class="overflow-x-auto">
         <table class="w-full text-sm">
           <thead>
-            <tr class="border-b border-bg-light-accent dark:border-bg-dark-accent text-left">
-              <th class="px-3 py-2 font-medium text-(--text-muted)">{{ t('memberEdit.fieldName') }}</th>
-              <th class="px-3 py-2 font-medium text-(--text-muted)">{{ t('memberEdit.fieldValue') }}</th>
-            </tr>
+            <THead>
+              <Th class="text-(--text-muted)">{{ t('memberEdit.fieldName') }}</Th>
+              <Th class="text-(--text-muted)">{{ t('memberEdit.fieldValue') }}</Th>
+            </THead>
           </thead>
           <tbody>
-            <tr class="border-b border-bg-light-accent/50 dark:border-bg-dark-accent/50">
-              <td class="px-3 py-2.5 font-medium whitespace-nowrap">Telefon</td>
-              <td class="px-3 py-2.5">0170 1234567</td>
-            </tr>
-            <tr class="border-b border-bg-light-accent/50 dark:border-bg-dark-accent/50">
-              <td class="px-3 py-2.5 font-medium whitespace-nowrap">Geburtstag</td>
-              <td class="px-3 py-2.5">2010-03-15</td>
-            </tr>
-            <tr class="border-b border-bg-light-accent/50 dark:border-bg-dark-accent/50">
-              <td class="px-3 py-2.5 font-medium whitespace-nowrap">Kleidergröße</td>
-              <td class="px-3 py-2.5">M</td>
-            </tr>
+            <TRow>
+              <Td class="font-medium whitespace-nowrap">Telefon</Td>
+              <Td>0170 1234567</Td>
+            </TRow>
+            <TRow>
+              <Td class="font-medium whitespace-nowrap">Geburtstag</Td>
+              <Td>2010-03-15</Td>
+            </TRow>
+            <TRow>
+              <Td class="font-medium whitespace-nowrap">Kleidergröße</Td>
+              <Td>M</Td>
+            </TRow>
           </tbody>
         </table>
       </div>

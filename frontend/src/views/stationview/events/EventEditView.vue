@@ -18,6 +18,7 @@ import DateTimeInput from '@/components/input/datetime/DateTimeInput.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
+import FieldLabel from '@/components/typography/FieldLabel.vue'
 import RestrictionPicker from '@/components/input/RestrictionPicker.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
@@ -266,17 +267,17 @@ watch(loaded, (isLoaded) => {
           <SubHeader>{{ t('events.general') }}</SubHeader>
 
           <div class="space-y-1">
-            <label class="block text-sm font-medium">{{ t('events.name') }}</label>
+            <FieldLabel>{{ t('events.name') }}</FieldLabel>
             <TextInput v-model="eventName" :placeholder="t('events.namePlaceholder')"/>
           </div>
 
           <div class="space-y-1">
-            <label class="block text-sm font-medium">{{ t('events.description') }}</label>
+            <FieldLabel>{{ t('events.description') }}</FieldLabel>
             <TextInput v-model="eventDescription" :placeholder="t('events.descriptionPlaceholder')"/>
           </div>
 
           <div class="space-y-1">
-            <label class="block text-sm font-medium">{{ t('events.type') }}</label>
+            <FieldLabel>{{ t('events.type') }}</FieldLabel>
             <SelectInput v-model="eventType">
               <option :value="EventTypes.RECURRING">{{ t('events.typeRecurring') }}</option>
               <option :value="EventTypes.MONTHLY_FIRST">{{ t('events.typeMonthlyFirst') }}</option>
@@ -287,7 +288,7 @@ watch(loaded, (isLoaded) => {
           </div>
 
           <div v-if="needsDayOfWeek(eventType)" class="space-y-1">
-            <label class="block text-sm font-medium">{{ t('events.dayOfWeek') }}</label>
+            <FieldLabel>{{ t('events.dayOfWeek') }}</FieldLabel>
             <SelectInput v-model="eventDayOfWeek">
               <option value="1">Montag</option>
               <option value="2">Dienstag</option>
@@ -301,17 +302,17 @@ watch(loaded, (isLoaded) => {
 
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div class="space-y-1">
-              <label class="block text-sm font-medium">{{ t('events.startTime') }}</label>
+              <FieldLabel>{{ t('events.startTime') }}</FieldLabel>
               <DateTimeInput v-model="eventStartTime"/>
             </div>
             <div class="space-y-1">
-              <label class="block text-sm font-medium">{{ t('events.endTime') }}</label>
+              <FieldLabel>{{ t('events.endTime') }}</FieldLabel>
               <DateTimeInput v-model="eventEndTime"/>
             </div>
           </div>
 
           <div class="space-y-1">
-            <label class="block text-sm font-medium">{{ t('events.category') }}</label>
+            <FieldLabel>{{ t('events.category') }}</FieldLabel>
             <SelectInput v-model="eventCategoryId">
               <option value="">{{ t('events.noCategory') }}</option>
               <option v-for="cat in categories" :key="cat.id" :value="String(cat.id)">{{ cat.name }}</option>
@@ -353,7 +354,7 @@ watch(loaded, (isLoaded) => {
           </div>
 
           <div v-if="currentTemplateFields.length > 0" class="space-y-3">
-            <label class="block text-sm font-medium">{{ t('events.fieldDefaults') }}</label>
+            <FieldLabel>{{ t('events.fieldDefaults') }}</FieldLabel>
             <p class="text-xs text-(--text-muted)">{{ t('events.fieldDefaultsHint') }}</p>
             <div class="space-y-2">
               <div v-for="field in currentTemplateFields" :key="field.id"
@@ -402,7 +403,7 @@ watch(loaded, (isLoaded) => {
             </div>
 
             <div v-if="eventHasDeadline" class="space-y-1">
-              <label class="block text-sm font-medium">{{ t('events.registrationDeadline') }}</label>
+              <FieldLabel>{{ t('events.registrationDeadline') }}</FieldLabel>
               <DateTimeInput v-model="eventRegistrationDeadline"/>
             </div>
           </template>

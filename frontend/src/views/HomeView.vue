@@ -12,6 +12,9 @@ import InfoButton from '@/components/button/InfoButton.vue'
 import client from '@/api/client'
 import {adminSettings} from '@/api'
 import EmberLogo from '@/components/display/EmberLogo.vue'
+import PageHeader from '@/components/typography/PageHeader.vue'
+import SectionHeader from '@/components/typography/SectionHeader.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
 
 const {t} = useI18n()
 const demoUrl = ref('')
@@ -84,9 +87,9 @@ const highlights = [
       <div class="absolute inset-0 bg-gradient-to-b from-primary/10 via-secondary/5 to-transparent"/>
       <div class="relative mx-auto max-w-5xl px-6 py-20 sm:py-28 text-center">
         <EmberLogo base="NoBG_OrangeGlow" blink-base="NoBG_OrangeGlow_Blink" :pixel-size="256" size="h-20 w-20 rounded-2xl mb-6 mx-auto" :blink="true" />
-        <h1 class="text-4xl sm:text-5xl font-extrabold tracking-tight mb-4">
+        <PageHeader class="text-4xl sm:text-5xl font-extrabold tracking-tight mb-4">
           {{ t('landing.heroTitle') }}
-        </h1>
+        </PageHeader>
         <p class="text-lg sm:text-xl text-(--text-muted) max-w-2xl mx-auto mb-8 leading-relaxed">
           {{ t('landing.heroSubtitle') }}
         </p>
@@ -120,9 +123,9 @@ const highlights = [
 
     <!-- Features Grid -->
     <section aria-label="Funktionen" class="mx-auto max-w-5xl px-6 py-16">
-      <h2 class="text-2xl sm:text-3xl font-bold text-center mb-3">
+      <SectionHeader class="text-2xl sm:text-3xl font-bold text-center mb-3">
         {{ t('landing.featuresTitle') }}
-      </h2>
+      </SectionHeader>
       <p class="text-center text-(--text-muted) mb-12 max-w-xl mx-auto">
         {{ t('landing.featuresSubtitle') }}
       </p>
@@ -136,7 +139,7 @@ const highlights = [
           <div class="flex items-center justify-center h-12 w-12 rounded-lg bg-primary/10 mb-4">
             <font-awesome-icon :icon="feature.icon" class="h-6 w-6 text-primary"/>
           </div>
-          <h3 class="font-bold text-lg mb-2">{{ t(`landing.feature.${feature.key}.title`) }}</h3>
+          <SubHeader class="font-bold text-lg mb-2">{{ t(`landing.feature.${feature.key}.title`) }}</SubHeader>
           <p class="text-sm text-(--text-muted) leading-relaxed">{{ t(`landing.feature.${feature.key}.desc`) }}</p>
         </router-link>
       </div>
@@ -145,9 +148,9 @@ const highlights = [
     <!-- Highlights / Why Ember -->
     <section aria-label="Vorteile" class="bg-(--bg-accent) py-16">
       <div class="mx-auto max-w-5xl px-6">
-        <h2 class="text-2xl sm:text-3xl font-bold text-center mb-3">
+        <SectionHeader class="text-2xl sm:text-3xl font-bold text-center mb-3">
           {{ t('landing.highlightsTitle') }}
-        </h2>
+        </SectionHeader>
         <p class="text-center text-(--text-muted) mb-12 max-w-xl mx-auto">
           {{ t('landing.highlightsSubtitle') }}
         </p>
@@ -159,7 +162,7 @@ const highlights = [
           >
             <font-awesome-icon :icon="h.icon" class="h-5 w-5 text-secondary mt-0.5 shrink-0"/>
             <div>
-              <h4 class="font-semibold text-sm mb-1">{{ t(`landing.highlight.${h.key}.title`) }}</h4>
+              <SubHeader class="font-semibold text-sm mb-1">{{ t(`landing.highlight.${h.key}.title`) }}</SubHeader>
               <p class="text-xs text-(--text-muted) leading-relaxed">{{ t(`landing.highlight.${h.key}.desc`) }}</p>
             </div>
           </div>
@@ -171,7 +174,7 @@ const highlights = [
     <section aria-label="Zielgruppe" class="mx-auto max-w-5xl px-6 py-16">
       <div class="rounded-2xl border border-(--border) bg-(--bg) p-8 sm:p-12 text-center">
         <EmberLogo base="NoBG_OrangeGlow" blink-base="NoBG_OrangeGlow_Blink" :pixel-size="128" size="h-12 w-12 rounded-xl mx-auto mb-4" />
-        <h2 class="text-2xl font-bold mb-3">{{ t('landing.audienceTitle') }}</h2>
+        <SectionHeader class="text-2xl font-bold mb-3">{{ t('landing.audienceTitle') }}</SectionHeader>
         <p class="text-(--text-muted) max-w-2xl mx-auto mb-6 leading-relaxed">
           {{ t('landing.audienceText') }}
         </p>
@@ -187,7 +190,7 @@ const highlights = [
     <!-- CTA Section -->
     <section aria-label="Jetzt starten" class="bg-primary/5 py-16">
       <div class="mx-auto max-w-3xl px-6 text-center">
-        <h2 class="text-2xl sm:text-3xl font-bold mb-3">{{ registrationEnabled ? t('landing.ctaTitle') : t('landing.ctaTitleSelfHost') }}</h2>
+        <SectionHeader class="text-2xl sm:text-3xl font-bold mb-3">{{ registrationEnabled ? t('landing.ctaTitle') : t('landing.ctaTitleSelfHost') }}</SectionHeader>
         <p class="text-(--text-muted) mb-8 max-w-xl mx-auto">
           {{ registrationEnabled ? t('landing.ctaText') : t('landing.ctaTextSelfHost') }}
         </p>

@@ -10,7 +10,9 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import IconButton from '@/components/button/IconButton.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
+import EmptyState from '@/components/feedback/EmptyState.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
+import FieldLabel from '@/components/typography/FieldLabel.vue'
 import type {MemberGroup, TemplateGroupEntry} from '@/api/types'
 
 const props = defineProps<{
@@ -42,9 +44,7 @@ const unselectedGroups = computed(() => {
     <SectionHeader>{{ t('attendanceConfig.groups') }}</SectionHeader>
     <p class="text-sm text-(--text-muted)">{{ t('attendanceConfig.groupsHint') }}</p>
 
-    <div v-if="groups.length === 0" class="text-center text-(--text-muted) py-4">
-      {{ t('attendanceConfig.noGroups') }}
-    </div>
+    <EmptyState compact v-if="groups.length === 0">{{ t('attendanceConfig.noGroups') }}</EmptyState>
 
     <div class="space-y-2">
       <NeutralContainer v-for="(group, index) in groups" :key="group.groupId" class="flex items-center justify-between">
@@ -63,7 +63,7 @@ const unselectedGroups = computed(() => {
     </div>
 
     <div v-if="unselectedGroups.length > 0" class="pt-2">
-      <label class="block text-sm font-medium mb-1">{{ t('attendanceConfig.addGroup') }}</label>
+      <FieldLabel class="mb-1">{{ t('attendanceConfig.addGroup') }}</FieldLabel>
       <div class="flex flex-wrap gap-2">
         <SecondaryButton v-for="group in unselectedGroups" :key="group.id"
                          @click="emit('add', group.id)">

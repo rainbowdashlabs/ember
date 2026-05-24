@@ -12,6 +12,7 @@ import TextInput from '@/components/input/text/TextInput.vue'
 import DateInput from '@/components/input/datetime/DateInput.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
+import FieldLabel from '@/components/typography/FieldLabel.vue'
 import type {EventBreak} from '@/api/types'
 
 const {t} = useI18n()
@@ -58,17 +59,17 @@ function submit() {
       <SectionHeader>{{ eventBreak ? t('events.editBreak') : t('events.addBreak') }}</SectionHeader>
 
       <div class="space-y-1">
-        <label class="block text-sm font-medium">{{ t('events.breakName') }}</label>
+        <FieldLabel>{{ t('events.breakName') }}</FieldLabel>
         <TextInput v-model="breakName" :placeholder="t('events.breakNamePlaceholder')"/>
       </div>
 
       <div class="grid grid-cols-2 gap-3">
         <div class="space-y-1">
-          <label class="block text-sm font-medium">{{ t('events.breakStart') }}</label>
+          <FieldLabel>{{ t('events.breakStart') }}</FieldLabel>
           <DateInput v-model="breakStartDate"/>
         </div>
         <div class="space-y-1">
-          <label class="block text-sm font-medium">{{ t('events.breakEnd') }}</label>
+          <FieldLabel>{{ t('events.breakEnd') }}</FieldLabel>
           <DateInput v-model="breakEndDate"/>
         </div>
       </div>

@@ -14,6 +14,7 @@ import NumberInput from '@/components/input/number/NumberInput.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
+import FieldLabel from '@/components/typography/FieldLabel.vue'
 import type {AttendanceTemplateField, MemberGroup} from '@/api/types'
 
 const props = defineProps<{
@@ -167,12 +168,12 @@ function handleSave() {
       <SectionHeader>{{ isEditing ? t('attendanceConfig.editField') : t('attendanceConfig.addField') }}</SectionHeader>
 
       <div class="space-y-1">
-        <label class="block text-sm font-medium">{{ t('attendanceConfig.fieldName') }}</label>
+        <FieldLabel>{{ t('attendanceConfig.fieldName') }}</FieldLabel>
         <TextInput v-model="fieldName" :placeholder="t('attendanceConfig.fieldNamePlaceholder')"/>
       </div>
 
       <div class="space-y-1">
-        <label class="block text-sm font-medium">{{ t('attendanceConfig.fieldType') }}</label>
+        <FieldLabel>{{ t('attendanceConfig.fieldType') }}</FieldLabel>
         <SelectInput v-model="fieldType">
           <option v-for="ft in fieldTypeOptions" :key="ft.value" :value="ft.value">{{ ft.label }}</option>
         </SelectInput>
@@ -181,7 +182,7 @@ function handleSave() {
 
       <!-- Group selector for group-based types -->
       <div v-if="fieldTypeNeedsGroup(fieldType)" class="space-y-1">
-        <label class="block text-sm font-medium">{{ t('attendanceConfig.fieldGroup') }}</label>
+        <FieldLabel>{{ t('attendanceConfig.fieldGroup') }}</FieldLabel>
         <SelectInput v-model="fieldConfigGroupId">
           <option disabled value="">{{ t('attendanceConfig.fieldGroupPlaceholder') }}</option>
           <option v-for="group in availableGroups" :key="group.id" :value="String(group.id)">{{ group.name }}</option>
@@ -190,7 +191,7 @@ function handleSave() {
 
       <!-- Enum options -->
       <div v-if="fieldType === 'enum'" class="space-y-1">
-        <label class="block text-sm font-medium">{{ t('attendanceConfig.fieldEnumOptions') }}</label>
+        <FieldLabel>{{ t('attendanceConfig.fieldEnumOptions') }}</FieldLabel>
         <TextInput v-model="fieldEnumOptions" :placeholder="t('attendanceConfig.fieldEnumOptionsPlaceholder')"/>
         <p class="text-xs text-(--text-muted)">{{ t('attendanceConfig.fieldEnumOptionsHint') }}</p>
       </div>
@@ -240,7 +241,7 @@ function handleSave() {
       </div>
 
       <div class="space-y-1">
-        <label class="block text-sm font-medium">{{ t('attendanceConfig.fieldPosition') }}</label>
+        <FieldLabel>{{ t('attendanceConfig.fieldPosition') }}</FieldLabel>
         <NumberInput v-model="fieldPosition"/>
       </div>
 

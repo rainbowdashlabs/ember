@@ -10,6 +10,7 @@ import { useRoute, useRouter } from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
+import EmptyState from '@/components/feedback/EmptyState.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
@@ -368,9 +369,7 @@ watch(loaded, (isLoaded) => { if (isLoaded && loading.value) loadData() })
                 {{ frozenQuestions.length > 0 ? t('quiz.frozenQuestions.regenerate') : t('quiz.frozenQuestions.generate') }}
               </SecondaryButton>
             </div>
-            <div v-if="frozenQuestions.length === 0" class="text-center text-(--text-muted) py-4">
-              {{ t('quiz.frozenQuestions.empty') }}
-            </div>
+            <EmptyState compact v-if="frozenQuestions.length === 0">{{ t('quiz.frozenQuestions.empty') }}</EmptyState>
             <NeutralContainer v-for="fq in frozenQuestions" :key="fq.position">
               <div v-if="fq.question" class="flex items-start gap-3">
                 <span class="text-xs text-(--text-muted) w-6 shrink-0 pt-0.5">{{ fq.position + 1 }}.</span>

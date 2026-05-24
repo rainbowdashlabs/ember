@@ -14,6 +14,8 @@ import DeleteButton from '@/components/button/DeleteButton.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import FieldValueDisplay from '@/components/display/FieldValueDisplay.vue'
+import FieldLabel from '@/components/typography/FieldLabel.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
 import type { ProfileField, StationMember } from '@/api/types'
 
 const { t } = useI18n()
@@ -71,7 +73,7 @@ async function doCreateManager() {
 <template>
   <NeutralContainer class="space-y-4">
     <div class="flex items-center justify-between">
-      <h3 class="text-sm font-semibold">{{ t('memberDetail.managers') }}</h3>
+      <SubHeader class="text-sm font-semibold">{{ t('memberDetail.managers') }}</SubHeader>
       <div class="flex items-center gap-2">
         <SecondaryButton @click="showLinkManager = !showLinkManager">
           <font-awesome-icon :icon="['fas', 'link']" class="mr-1" />
@@ -111,7 +113,7 @@ async function doCreateManager() {
 
     <!-- Link existing manager -->
     <div v-if="showLinkManager" class="space-y-2 pt-2 border-t border-bg-light-accent dark:border-bg-dark-accent">
-      <label class="block text-sm font-medium">{{ t('memberDetail.selectManager') }}</label>
+      <FieldLabel>{{ t('memberDetail.selectManager') }}</FieldLabel>
       <div class="flex gap-2">
         <SelectInput v-model="selectedManagerId" class="flex-1">
           <option value="" disabled>{{ t('memberDetail.selectManagerPlaceholder') }}</option>
@@ -125,7 +127,7 @@ async function doCreateManager() {
 
     <!-- Create new manager -->
     <div v-if="showCreateManager" class="space-y-3 pt-2 border-t border-bg-light-accent dark:border-bg-dark-accent">
-      <label class="block text-sm font-medium">{{ t('memberDetail.createManagerTitle') }}</label>
+      <FieldLabel>{{ t('memberDetail.createManagerTitle') }}</FieldLabel>
       <div class="grid gap-3 sm:grid-cols-3">
         <TextInput v-model="newMgrFirstName" :placeholder="t('memberDetail.firstName')" />
         <TextInput v-model="newMgrLastName" :placeholder="t('memberDetail.lastName')" />

@@ -14,6 +14,7 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import CheckboxInput from '@/components/input/toggle/CheckboxInput.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
+import EmptyState from '@/components/feedback/EmptyState.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import MemberListFilters from './memberlistview/MemberListFilters.vue'
 import MemberListTable from './memberlistview/MemberListTable.vue'
@@ -370,9 +371,7 @@ onMounted(loadData)
           </div>
         </NeutralContainer>
 
-        <div v-if="filteredMembers.length === 0" class="text-center text-(--text-muted) py-8">
-          {{ t('inventoryMembers.empty') }}
-        </div>
+        <EmptyState v-if="filteredMembers.length === 0">{{ t('inventoryMembers.empty') }}</EmptyState>
 
         <MemberListTable
           v-if="filteredMembers.length > 0"

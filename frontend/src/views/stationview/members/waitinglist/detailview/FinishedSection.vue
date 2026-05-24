@@ -6,6 +6,7 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
+import EmptyState from '@/components/feedback/EmptyState.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
@@ -47,9 +48,7 @@ function formatDate(dateStr: string | undefined | null): string {
   <NeutralContainer class="space-y-4">
     <SubHeader>{{ t('waitingList.sectionFinished') }} ({{ entries.length }})</SubHeader>
 
-    <div v-if="entries.length === 0" class="text-center text-(--text-muted) py-4">
-      {{ t('waitingList.noFinishedEntries') }}
-    </div>
+    <EmptyState compact v-if="entries.length === 0">{{ t('waitingList.noFinishedEntries') }}</EmptyState>
 
     <div v-if="entries.length > 0" class="space-y-2">
       <div

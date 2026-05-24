@@ -14,6 +14,7 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
 
 const { t } = useI18n()
 </script>
@@ -31,7 +32,7 @@ const { t } = useI18n()
     <!-- Dummy: Test list -->
     <div class="space-y-3">
       <div class="flex items-center justify-between">
-        <h3 class="font-semibold">{{ t('quiz.tests') }}</h3>
+        <SubHeader class="font-semibold">{{ t('quiz.tests') }}</SubHeader>
         <PrimaryButton disabled>
           <font-awesome-icon :icon="['fas', 'plus']" class="mr-1" />
           {{ t('quiz.createTest') }}

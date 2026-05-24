@@ -19,6 +19,10 @@ import DeleteButton from '@/components/button/DeleteButton.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import PrimaryBadge from '@/components/badge/PrimaryBadge.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
+import Th from '@/components/table/Th.vue'
+import Td from '@/components/table/Td.vue'
+import THead from '@/components/table/THead.vue'
+import TRow from '@/components/table/TRow.vue'
 
 const {t} = useI18n()
 
@@ -55,27 +59,27 @@ const activeRole = ref('')
       <NeutralContainer class="overflow-x-auto">
         <table class="w-full text-sm">
           <thead>
-            <tr class="border-b border-bg-light-accent dark:border-bg-dark-accent text-left">
-              <th v-if="activeRole === 'manager'" class="px-3 py-2 font-medium">{{ t('exchanges.colMember') }}</th>
-              <th class="px-3 py-2 font-medium">{{ t('exchanges.colInventory') }}</th>
-              <th class="px-3 py-2 font-medium">{{ t('exchanges.colOldSize') }}</th>
-              <th class="px-3 py-2 font-medium">{{ t('exchanges.colNewSize') }}</th>
-              <th class="px-3 py-2 font-medium">{{ t('exchanges.colStatus') }}</th>
-              <th class="px-3 py-2 font-medium">{{ t('exchanges.colReason') }}</th>
-              <th class="px-3 py-2 font-medium">{{ t('exchanges.colDate') }}</th>
+            <THead>
+              <Th v-if="activeRole === 'manager'">{{ t('exchanges.colMember') }}</Th>
+              <Th>{{ t('exchanges.colInventory') }}</Th>
+              <Th>{{ t('exchanges.colOldSize') }}</Th>
+              <Th>{{ t('exchanges.colNewSize') }}</Th>
+              <Th>{{ t('exchanges.colStatus') }}</Th>
+              <Th>{{ t('exchanges.colReason') }}</Th>
+              <Th>{{ t('exchanges.colDate') }}</Th>
               <th class="px-3 py-2"></th>
-            </tr>
+            </THead>
           </thead>
           <tbody>
-            <tr class="border-b border-bg-light-accent/50 dark:border-bg-dark-accent/50">
-              <td v-if="activeRole === 'manager'" class="px-3 py-2.5 text-primary">Max Mustermann</td>
-              <td class="px-3 py-2.5 font-medium">Helme</td>
-              <td class="px-3 py-2.5">M</td>
-              <td class="px-3 py-2.5">L</td>
-              <td class="px-3 py-2.5"><InfoBadge>{{ t('exchanges.status.ANNOUNCED') }}</InfoBadge></td>
-              <td class="px-3 py-2.5 text-(--text-muted)">Helm passt nicht mehr</td>
-              <td class="px-3 py-2.5 text-(--text-muted)">14.05.2026</td>
-              <td class="px-3 py-2.5 text-right">
+            <TRow>
+              <Td v-if="activeRole === 'manager'" class="text-primary">Max Mustermann</Td>
+              <Td class="font-medium">Helme</Td>
+              <Td>M</Td>
+              <Td>L</Td>
+              <Td><InfoBadge>{{ t('exchanges.status.ANNOUNCED') }}</InfoBadge></Td>
+              <Td muted>Helm passt nicht mehr</Td>
+              <Td muted>14.05.2026</Td>
+              <Td align="right">
                 <div class="flex items-center justify-end gap-1">
                   <SecondaryButton><font-awesome-icon :icon="['fas', 'clock-rotate-left']" /></SecondaryButton>
                   <template v-if="activeRole === 'manager'">
@@ -83,17 +87,17 @@ const activeRole = ref('')
                     <DeleteButton />
                   </template>
                 </div>
-              </td>
-            </tr>
-            <tr class="border-b border-bg-light-accent/50 dark:border-bg-dark-accent/50">
-              <td v-if="activeRole === 'manager'" class="px-3 py-2.5 text-primary">Erika Musterfrau</td>
-              <td class="px-3 py-2.5 font-medium">Jacken</td>
-              <td class="px-3 py-2.5">S</td>
-              <td class="px-3 py-2.5">M</td>
-              <td class="px-3 py-2.5"><PrimaryBadge>{{ t('exchanges.status.RECEIVED') }}</PrimaryBadge></td>
-              <td class="px-3 py-2.5 text-(--text-muted)">Neue Jacke benötigt</td>
-              <td class="px-3 py-2.5 text-(--text-muted)">10.05.2026</td>
-              <td class="px-3 py-2.5 text-right">
+              </Td>
+            </TRow>
+            <TRow>
+              <Td v-if="activeRole === 'manager'" class="text-primary">Erika Musterfrau</Td>
+              <Td class="font-medium">Jacken</Td>
+              <Td>S</Td>
+              <Td>M</Td>
+              <Td><PrimaryBadge>{{ t('exchanges.status.RECEIVED') }}</PrimaryBadge></Td>
+              <Td muted>Neue Jacke benötigt</Td>
+              <Td muted>10.05.2026</Td>
+              <Td align="right">
                 <div class="flex items-center justify-end gap-1">
                   <SecondaryButton><font-awesome-icon :icon="['fas', 'clock-rotate-left']" /></SecondaryButton>
                   <template v-if="activeRole === 'manager'">
@@ -101,25 +105,25 @@ const activeRole = ref('')
                     <DeleteButton />
                   </template>
                 </div>
-              </td>
-            </tr>
-            <tr class="border-b border-bg-light-accent/50 dark:border-bg-dark-accent/50">
-              <td v-if="activeRole === 'manager'" class="px-3 py-2.5 text-primary">Jan Schmidt</td>
-              <td class="px-3 py-2.5 font-medium">Stiefel</td>
-              <td class="px-3 py-2.5">42</td>
-              <td class="px-3 py-2.5">44</td>
-              <td class="px-3 py-2.5"><SuccessBadge>{{ t('exchanges.status.EXCHANGED') }}</SuccessBadge></td>
-              <td class="px-3 py-2.5 text-(--text-muted)">Gewachsen</td>
-              <td class="px-3 py-2.5 text-(--text-muted)">01.04.2026</td>
-              <td class="px-3 py-2.5 text-right">
+              </Td>
+            </TRow>
+            <TRow>
+              <Td v-if="activeRole === 'manager'" class="text-primary">Jan Schmidt</Td>
+              <Td class="font-medium">Stiefel</Td>
+              <Td>42</Td>
+              <Td>44</Td>
+              <Td><SuccessBadge>{{ t('exchanges.status.EXCHANGED') }}</SuccessBadge></Td>
+              <Td muted>Gewachsen</Td>
+              <Td muted>01.04.2026</Td>
+              <Td align="right">
                 <div class="flex items-center justify-end gap-1">
                   <SecondaryButton><font-awesome-icon :icon="['fas', 'clock-rotate-left']" /></SecondaryButton>
                   <template v-if="activeRole === 'manager'">
                     <DeleteButton />
                   </template>
                 </div>
-              </td>
-            </tr>
+              </Td>
+            </TRow>
           </tbody>
         </table>
       </NeutralContainer>

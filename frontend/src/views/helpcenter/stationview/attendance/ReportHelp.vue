@@ -12,6 +12,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
+import FieldLabel from '@/components/typography/FieldLabel.vue'
 
 const {t} = useI18n()
 </script>
@@ -33,19 +34,19 @@ const {t} = useI18n()
       <SubHeader>{{ t('attendanceReport.filters') }}</SubHeader>
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
         <div class="space-y-1">
-          <label class="block text-sm font-medium">{{ t('attendanceReport.filterBy') }}</label>
+          <FieldLabel>{{ t('attendanceReport.filterBy') }}</FieldLabel>
           <div class="rounded-lg border border-bg-light-accent dark:border-bg-dark-accent px-3 py-2 text-sm">
             {{ t('attendanceReport.byRole') }}
           </div>
         </div>
         <div class="space-y-1">
-          <label class="block text-sm font-medium">{{ t('attendanceReport.role') }}</label>
+          <FieldLabel>{{ t('attendanceReport.role') }}</FieldLabel>
           <div class="rounded-lg border border-bg-light-accent dark:border-bg-dark-accent px-3 py-2 text-sm">
             MEMBER
           </div>
         </div>
         <div class="space-y-1">
-          <label class="block text-sm font-medium">{{ t('attendanceReport.rounding') }}</label>
+          <FieldLabel>{{ t('attendanceReport.rounding') }}</FieldLabel>
           <div class="rounded-lg border border-bg-light-accent dark:border-bg-dark-accent px-3 py-2 text-sm">
             {{ t('attendanceReport.roundingExact') }}
           </div>

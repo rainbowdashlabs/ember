@@ -11,6 +11,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import LinkButton from '@/components/button/LinkButton.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
+import EmptyState from '@/components/feedback/EmptyState.vue'
 import {notifications} from '@/api'
 import type {NotificationEntry} from '@/api/types'
 
@@ -102,10 +103,10 @@ onMounted(loadData)
     </div>
 
     <div class="overflow-y-auto flex-1 space-y-2">
-      <div v-if="!loading && notifs.length === 0" class="text-center text-(--text-muted) py-4">
+      <EmptyState compact v-if="!loading && notifs.length === 0">
         <font-awesome-icon :icon="['fas', 'check-double']" class="text-2xl text-success mb-2"/>
         <p>{{ t('dashboard.noNotifications') }}</p>
-      </div>
+      </EmptyState>
 
       <template v-if="notifs.length > 0">
         <NeutralContainer v-for="n in notifs" :key="n.id" class="flex items-start justify-between gap-3 py-2 px-3"

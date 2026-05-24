@@ -13,6 +13,7 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import EditButton from '@/components/button/EditButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
+import FieldLabel from '@/components/typography/FieldLabel.vue'
 import IconButton from '@/components/button/IconButton.vue'
 import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
 
@@ -71,7 +72,7 @@ const {t} = useI18n()
       <div class="space-y-4">
         <SectionHeader>Anfänger</SectionHeader>
         <div class="space-y-1">
-          <label class="block text-sm font-medium text-(--text-muted)">{{ t('memberGroups.currentMembers') }}</label>
+          <FieldLabel class="text-(--text-muted)">{{ t('memberGroups.currentMembers') }}</FieldLabel>
           <div class="space-y-1">
             <div class="flex items-center justify-between rounded-lg px-3 py-2 bg-bg-light-accent dark:bg-bg-dark-accent">
               <span class="text-sm font-medium">Max Mustermann</span>
@@ -84,7 +85,7 @@ const {t} = useI18n()
           </div>
         </div>
         <div class="space-y-1">
-          <label class="block text-sm font-medium text-(--text-muted)">{{ t('memberGroups.addMembers') }}</label>
+          <FieldLabel class="text-(--text-muted)">{{ t('memberGroups.addMembers') }}</FieldLabel>
           <div class="space-y-1">
             <div class="flex items-center justify-between rounded-lg px-3 py-2 hover:bg-bg-light-accent dark:hover:bg-bg-dark-accent cursor-pointer">
               <span class="text-sm font-medium">Lisa Weber</span>
@@ -101,7 +102,7 @@ const {t} = useI18n()
 
     <!-- Dummy: Group roles -->
     <NeutralContainer class="space-y-2">
-      <label class="block text-sm font-medium text-(--text-muted)">{{ t('memberGroups.roles') }}</label>
+      <FieldLabel class="text-(--text-muted)">{{ t('memberGroups.roles') }}</FieldLabel>
       <div class="flex flex-wrap gap-2">
         <SelectionToggleButton :selected="true">
           Mitglied

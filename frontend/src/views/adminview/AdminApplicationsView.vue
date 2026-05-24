@@ -14,14 +14,20 @@ import TextInput from '@/components/input/text/TextInput.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
+import EmptyState from '@/components/feedback/EmptyState.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
+import FieldLabel from '@/components/typography/FieldLabel.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import {stationApplications} from '@/api'
 import type {StationApplication} from '@/api/stationApplications'
 import {useBreakpoint} from '@/composables/useBreakpoint'
+import Th from '@/components/table/Th.vue'
+import Td from '@/components/table/Td.vue'
+import THead from '@/components/table/THead.vue'
+import TRow from '@/components/table/TRow.vue'
 
 const {isMobile} = useBreakpoint()
 
@@ -127,9 +133,7 @@ onMounted(loadData)
           </button>
         </div>
 
-        <div v-if="filteredApplications.length === 0" class="text-center text-(--text-muted) py-8">
-          {{ t('adminApplications.empty') }}
-        </div>
+        <EmptyState v-if="filteredApplications.length === 0">{{ t('adminApplications.empty') }}</EmptyState>
 
         <!-- Mobile card layout -->
         <div v-if="isMobile && filteredApplications.length > 0" class="space-y-3">
@@ -158,33 +162,32 @@ onMounted(loadData)
         <NeutralContainer v-else-if="filteredApplications.length > 0" class="overflow-x-auto">
           <table class="w-full text-sm">
             <thead>
-            <tr class="border-b border-bg-light-accent dark:border-bg-dark-accent text-left">
-              <th class="px-3 py-2 font-medium">{{ t('adminApplications.name') }}</th>
-              <th class="px-3 py-2 font-medium">{{ t('adminApplications.email') }}</th>
-              <th class="px-3 py-2 font-medium">{{ t('adminApplications.station') }}</th>
-              <th class="px-3 py-2 font-medium">{{ t('adminApplications.date') }}</th>
-              <th class="px-3 py-2 font-medium">{{ t('adminApplications.status') }}</th>
+            <THead>
+              <Th>{{ t('adminApplications.name') }}</Th>
+              <Th>{{ t('adminApplications.email') }}</Th>
+              <Th>{{ t('adminApplications.station') }}</Th>
+              <Th>{{ t('adminApplications.date') }}</Th>
+              <Th>{{ t('adminApplications.status') }}</Th>
               <th class="px-3 py-2"></th>
-            </tr>
+            </THead>
             </thead>
             <tbody>
-            <tr v-for="app in filteredApplications" :key="app.id"
-                class="border-b border-bg-light-accent/50 dark:border-bg-dark-accent/50">
-              <td class="px-3 py-2.5">
+            <TRow v-for="app in filteredApplications" :key="app.id">
+              <Td>
                 <div class="font-medium">{{ app.firstName }} {{ app.lastName }}</div>
                 <div v-if="app.introduction" :title="app.introduction"
                      class="text-xs text-(--text-muted) mt-0.5 max-w-xs truncate">{{ app.introduction }}
                 </div>
-              </td>
-              <td class="px-3 py-2.5 text-(--text-muted)">{{ app.email }}</td>
-              <td class="px-3 py-2.5">{{ app.stationName }}</td>
-              <td class="px-3 py-2.5 text-(--text-muted)">{{ formatDate(app.createdAt) }}</td>
-              <td class="px-3 py-2.5">
+              </Td>
+              <Td muted>{{ app.email }}</Td>
+              <Td>{{ app.stationName }}</Td>
+              <Td muted>{{ formatDate(app.createdAt) }}</Td>
+              <Td>
                 <SuccessBadge v-if="app.status === 'accepted'">{{ t('adminApplications.accepted') }}</SuccessBadge>
                 <ErrorBadge v-else-if="app.status === 'denied'">{{ t('adminApplications.denied') }}</ErrorBadge>
                 <SecondaryBadge v-else>{{ t('adminApplications.pendingBadge') }}</SecondaryBadge>
-              </td>
-              <td class="px-3 py-2.5 text-right">
+              </Td>
+              <Td align="right">
                 <div v-if="app.status === 'pending'" class="flex items-center justify-end gap-1">
                   <PrimaryButton :disabled="processing" @click="acceptApplication(app)">
                     {{ t('adminApplications.accept') }}
@@ -196,8 +199,8 @@ onMounted(loadData)
                 <div v-else-if="app.status === 'denied' && app.denyReason" class="text-xs text-(--text-muted)">
                   {{ app.denyReason }}
                 </div>
-              </td>
-            </tr>
+              </Td>
+            </TRow>
             </tbody>
           </table>
         </NeutralContainer>
@@ -211,7 +214,7 @@ onMounted(loadData)
             {{ denyTarget?.firstName }} {{ denyTarget?.lastName }} — {{ denyTarget?.stationName }}
           </p>
           <div class="space-y-1">
-            <label class="block text-sm font-medium">{{ t('adminApplications.denyReasonLabel') }}</label>
+            <FieldLabel>{{ t('adminApplications.denyReasonLabel') }}</FieldLabel>
             <TextInput v-model="denyReason" :placeholder="t('adminApplications.denyReasonPlaceholder')"/>
           </div>
           <div class="flex justify-end gap-3">

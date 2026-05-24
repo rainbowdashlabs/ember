@@ -10,6 +10,8 @@ import TextInput from '@/components/input/text/TextInput.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import {auth} from '@/api'
+import FieldLabel from '@/components/typography/FieldLabel.vue'
+import PageHeader from '@/components/typography/PageHeader.vue'
 
 const {t} = useI18n()
 
@@ -38,7 +40,7 @@ async function handleReset() {
     <div class="w-full max-w-sm space-y-6">
       <div class="text-center">
         <font-awesome-icon :icon="['fas', 'lock']" class="text-4xl text-primary mb-3"/>
-        <h1 class="text-2xl font-bold">{{ t('forgotPassword.title') }}</h1>
+        <PageHeader class="text-2xl font-bold">{{ t('forgotPassword.title') }}</PageHeader>
         <p class="text-sm text-(--text-muted) mt-2">{{ t('forgotPassword.hint') }}</p>
       </div>
 
@@ -47,7 +49,7 @@ async function handleReset() {
         <Alert v-if="success" variant="success">{{ success }}</Alert>
 
         <div class="space-y-1">
-          <label class="block text-sm font-medium">{{ t('forgotPassword.email') }}</label>
+          <FieldLabel>{{ t('forgotPassword.email') }}</FieldLabel>
           <TextInput v-model="email" :placeholder="t('forgotPassword.email')"/>
         </div>
 

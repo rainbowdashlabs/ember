@@ -14,6 +14,7 @@ import TextInput from '@/components/input/text/TextInput.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
+import FieldLabel from '@/components/typography/FieldLabel.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import type {MemberGroup, Role} from '@/api/types'
@@ -265,16 +266,16 @@ watch(loaded, (isLoaded) => {
           <SubHeader>{{ t('attendanceReport.filters') }}</SubHeader>
           <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             <div class="space-y-1">
-              <label class="block text-sm font-medium">{{ t('attendanceReport.filterBy') }}</label>
+              <FieldLabel>{{ t('attendanceReport.filterBy') }}</FieldLabel>
               <SelectInput v-model="filterType">
                 <option value="role">{{ t('attendanceReport.byRole') }}</option>
                 <option value="group">{{ t('attendanceReport.byGroup') }}</option>
               </SelectInput>
             </div>
             <div class="space-y-1">
-              <label class="block text-sm font-medium">{{
+              <FieldLabel>{{
                   filterType === 'role' ? t('attendanceReport.role') : t('attendanceReport.group')
-                }}</label>
+                }}</FieldLabel>
               <SelectInput v-if="filterType === 'role'" v-model="selectedRole">
                 <option disabled value="">{{ t('attendanceReport.selectRole') }}</option>
                 <option v-for="role in roles" :key="role.id" :value="role.role">{{ role.role }}</option>
@@ -285,7 +286,7 @@ watch(loaded, (isLoaded) => {
               </SelectInput>
             </div>
             <div class="space-y-1">
-              <label class="block text-sm font-medium">{{ t('attendanceReport.rounding') }}</label>
+              <FieldLabel>{{ t('attendanceReport.rounding') }}</FieldLabel>
               <SelectInput v-model="selectedRounding">
                 <option v-for="opt in roundingOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
               </SelectInput>
@@ -294,25 +295,25 @@ watch(loaded, (isLoaded) => {
 
           <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             <div class="space-y-1">
-              <label class="block text-sm font-medium">{{ t('attendanceReport.period') }}</label>
+              <FieldLabel>{{ t('attendanceReport.period') }}</FieldLabel>
               <SelectInput v-model="selectedPeriod">
                 <option v-for="opt in periodOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
               </SelectInput>
             </div>
             <div class="space-y-1">
-              <label class="block text-sm font-medium">{{ t('attendanceReport.year') }}</label>
+              <FieldLabel>{{ t('attendanceReport.year') }}</FieldLabel>
               <SelectInput :model-value="String(selectedYear)" @update:model-value="selectedYear = Number($event)">
                 <option v-for="y in yearOptions" :key="y" :value="String(y)">{{ y }}</option>
               </SelectInput>
             </div>
             <div v-if="selectedPeriod === 'month'" class="space-y-1">
-              <label class="block text-sm font-medium">{{ t('attendanceReport.month') }}</label>
+              <FieldLabel>{{ t('attendanceReport.month') }}</FieldLabel>
               <SelectInput :model-value="String(selectedMonth)" @update:model-value="selectedMonth = Number($event)">
                 <option v-for="m in monthOptions" :key="m.value" :value="String(m.value)">{{ m.label }}</option>
               </SelectInput>
             </div>
             <div v-if="selectedPeriod === 'week'" class="space-y-1">
-              <label class="block text-sm font-medium">{{ t('attendanceReport.week') }}</label>
+              <FieldLabel>{{ t('attendanceReport.week') }}</FieldLabel>
               <SelectInput :model-value="String(selectedWeek)" @update:model-value="selectedWeek = Number($event)">
                 <option v-for="w in weekOptions" :key="w" :value="String(w)">KW {{ w }}</option>
               </SelectInput>

@@ -7,6 +7,7 @@
 import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import InfoContainer from '@/components/container/InfoContainer.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import type {UserSettings, NotificationToggle} from '@/api/types'
 
@@ -64,7 +65,7 @@ function getToggle(type: string): NotificationToggle {
 
   <!-- Master email toggle -->
   <NeutralContainer class="space-y-4">
-    <h3 class="font-semibold text-sm">{{ t('userSettings.emailTitle') }}</h3>
+    <SubHeader class="font-semibold text-sm">{{ t('userSettings.emailTitle') }}</SubHeader>
     <div class="flex items-center justify-between">
       <div>
         <span class="text-sm font-medium">{{ t('userSettings.emailEnabled') }}</span>
@@ -80,7 +81,7 @@ function getToggle(type: string): NotificationToggle {
 
   <!-- Per-type notification toggles -->
   <NeutralContainer class="space-y-4">
-    <h3 class="font-semibold text-sm">{{ t('userSettings.notifications') }}</h3>
+    <SubHeader class="font-semibold text-sm">{{ t('userSettings.notifications') }}</SubHeader>
     <p class="text-xs text-(--text-muted)">{{ t('userSettings.notificationsHint') }}</p>
 
     <!-- Header row -->

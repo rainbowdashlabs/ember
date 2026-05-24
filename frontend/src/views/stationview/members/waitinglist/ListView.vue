@@ -13,10 +13,13 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
+import FieldLabel from '@/components/typography/FieldLabel.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
+import EmptyState from '@/components/feedback/EmptyState.vue'
 import type { WaitingListWithCount } from '@/api/types'
 import { waitingList } from '@/api'
 
@@ -94,9 +97,7 @@ onMounted(loadData)
       <Alert v-if="error" variant="error">{{ error }}</Alert>
 
       <template v-if="!loading">
-        <div v-if="lists.length === 0" class="text-center text-(--text-muted) py-8">
-          {{ t('waitingList.noLists') }}
-        </div>
+        <EmptyState v-if="lists.length === 0">{{ t('waitingList.noLists') }}</EmptyState>
 
         <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <NeutralContainer
@@ -107,7 +108,7 @@ onMounted(loadData)
           >
             <div class="space-y-3">
               <div class="flex items-center justify-between">
-                <h3 class="font-semibold text-lg">{{ item.list.name }}</h3>
+                <SubHeader class="font-semibold text-lg">{{ item.list.name }}</SubHeader>
                 <span class="text-sm font-medium bg-primary/15 text-primary rounded-full px-3 py-0.5">
                   {{ item.entryCount }}
                 </span>
@@ -127,11 +128,11 @@ onMounted(loadData)
         <div class="space-y-4">
           <SectionHeader>{{ t('waitingList.createTitle') }}</SectionHeader>
           <div class="space-y-1">
-            <label class="block text-sm font-medium">{{ t('waitingList.name') }}</label>
+            <FieldLabel>{{ t('waitingList.name') }}</FieldLabel>
             <TextInput v-model="newName" :placeholder="t('waitingList.namePlaceholder')" />
           </div>
           <div class="space-y-1">
-            <label class="block text-sm font-medium">{{ t('waitingList.description') }}</label>
+            <FieldLabel>{{ t('waitingList.description') }}</FieldLabel>
             <TextAreaInput v-model="newDescription" :placeholder="t('waitingList.descriptionPlaceholder')" />
           </div>
           <div class="flex justify-end gap-2">

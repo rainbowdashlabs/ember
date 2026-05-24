@@ -13,7 +13,9 @@ import ProfileFieldInput from '@/components/input/ProfileFieldInput.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
+import EmptyState from '@/components/feedback/EmptyState.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
+import FieldLabel from '@/components/typography/FieldLabel.vue'
 import type { ProfileField } from '@/api/types'
 import { managedMembers } from '@/api'
 import type { ManagedMember } from '@/api/managedMembers'
@@ -133,12 +135,10 @@ onMounted(loadData)
         <NeutralContainer class="space-y-4">
           <SectionHeader>{{ t('profileManaged.title') }}</SectionHeader>
 
-          <div v-if="members.length === 0" class="text-center text-(--text-muted) py-4">
-            {{ t('profileManaged.noManaged') }}
-          </div>
+          <EmptyState compact v-if="members.length === 0">{{ t('profileManaged.noManaged') }}</EmptyState>
 
           <div v-else class="space-y-1">
-            <label class="block text-sm font-medium">{{ t('profileManaged.selectMember') }}</label>
+            <FieldLabel>{{ t('profileManaged.selectMember') }}</FieldLabel>
             <SelectInput v-model="selectedMemberId" @update:model-value="loadMemberProfile">
               <option value="" disabled>{{ t('profileManaged.selectMemberPlaceholder') }}</option>
               <option v-for="member in members" :key="member.id" :value="String(member.id)">
@@ -154,11 +154,11 @@ onMounted(loadData)
           <SectionHeader>{{ t('profileManaged.fields') }}</SectionHeader>
 
           <div v-for="field in editableFields" :key="field.id" class="space-y-1">
-            <label class="block text-sm font-medium">
+            <FieldLabel>
               {{ field.name }}
               <span v-if="parseFieldConfig(field.config).required" class="text-error">*</span>
               <span v-if="isReadonly(field)" class="text-xs text-(--text-muted) ml-1">({{ t('profile.readonlyHint') }})</span>
-            </label>
+            </FieldLabel>
 
             <ProfileFieldInput
               :field-type="field.fieldType ?? 'text'"

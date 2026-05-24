@@ -7,6 +7,7 @@
 import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
+import FieldLabel from '@/components/typography/FieldLabel.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import MultiSelectInput from '@/components/input/select/MultiSelectInput.vue'
 import ProfileFieldInput from '@/components/input/ProfileFieldInput.vue'
@@ -81,7 +82,7 @@ function getMemberOptions(field: AttendanceTemplateField): { value: string; labe
     <SectionHeader>{{ t('attendanceSession.fields') }}</SectionHeader>
     <div class="space-y-3">
       <div v-for="field in templateFields" :key="field.id" class="space-y-1">
-        <label class="block text-sm font-medium">{{ field.name }}</label>
+        <FieldLabel>{{ field.name }}</FieldLabel>
         <!-- Member list fields -->
         <template v-if="isMemberField(field.fieldType ?? '')">
           <MultiSelectInput

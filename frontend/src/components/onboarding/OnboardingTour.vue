@@ -7,6 +7,7 @@
 import {useI18n} from 'vue-i18n'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
 import {useOnboardingTour} from '@/composables/useOnboardingTour'
 
 const {t} = useI18n()
@@ -35,9 +36,9 @@ const {isActive, currentStep, currentStepData, totalSteps, nextStep, prevStep, s
 
             <!-- Content -->
             <div class="flex-1 min-w-0">
-              <h3 class="text-sm font-bold">
+              <SubHeader class="text-sm font-bold">
                 {{ t(`tour.steps.${currentStepData.id}.title`) }}
-              </h3>
+              </SubHeader>
               <p class="text-xs text-(--text-muted) mt-0.5 leading-relaxed">
                 {{ t(`tour.steps.${currentStepData.id}.body`) }}
               </p>

@@ -14,6 +14,7 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
 
 const { t } = useI18n()
 </script>
@@ -72,7 +73,7 @@ const { t } = useI18n()
       <NeutralContainer>
         <div class="space-y-3">
           <span class="text-xs font-semibold text-(--text-muted) uppercase">{{ t('quiz.questionTypes.FILL_IN_THE_BLANK') }}</span>
-          <h3 class="font-medium">Welche Nummer hat die Feuerwehr?</h3>
+          <SubHeader class="font-medium">Welche Nummer hat die Feuerwehr?</SubHeader>
           <TextInput model-value="112" disabled />
         </div>
       </NeutralContainer>

@@ -14,6 +14,8 @@ import TabBar from '@/components/navigation/TabBar.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import IconButton from '@/components/button/IconButton.vue'
 import MemberName from '@/components/avatar/MemberName.vue'
+import SectionHeader from '@/components/typography/SectionHeader.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
 
 const {t} = useI18n()
 
@@ -33,7 +35,7 @@ const tabs = [
     <!-- Dummy: Analytics header -->
     <div class="flex items-center justify-between mb-4">
       <div>
-        <h2 class="text-xl font-semibold">Zufriedenheitsumfrage</h2>
+        <SectionHeader class="text-xl font-semibold">Zufriedenheitsumfrage</SectionHeader>
         <p class="text-(--text-muted) text-sm">{{ t('forms.analytics.totalResponses') }}: 12</p>
       </div>
       <div class="flex gap-2">
@@ -52,7 +54,7 @@ const tabs = [
       <div v-if="activeTab === 'charts'" class="space-y-4">
         <NeutralContainer>
           <div class="space-y-3">
-            <h3 class="font-medium">Was hat dir zuletzt besonders gut gefallen?</h3>
+            <SubHeader class="font-medium">Was hat dir zuletzt besonders gut gefallen?</SubHeader>
             <p class="text-xs text-(--text-muted)">12 {{ t('forms.responses') }}</p>
             <!-- Placeholder pie chart -->
             <div class="flex items-center justify-center gap-6 py-4">
@@ -68,7 +70,7 @@ const tabs = [
 
         <NeutralContainer>
           <div class="space-y-3">
-            <h3 class="font-medium">Wie zufrieden bist du insgesamt?</h3>
+            <SubHeader class="font-medium">Wie zufrieden bist du insgesamt?</SubHeader>
             <p class="text-xs text-(--text-muted)">12 {{ t('forms.responses') }}</p>
             <!-- Placeholder bar chart -->
             <div class="flex items-end gap-3 h-24 px-2">

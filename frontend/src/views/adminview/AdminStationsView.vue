@@ -23,6 +23,7 @@ import {transfer} from '@/api'
 import type {ImportProgress} from '@/api/transfer'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
+import FieldLabel from '@/components/typography/FieldLabel.vue'
 
 const {t} = useI18n()
 const router = useRouter()
@@ -189,11 +190,11 @@ onMounted(loadStations)
         <div class="space-y-4">
           <p class="text-sm text-(--text-muted)">{{ t('adminStations.importHint') }}</p>
           <div class="space-y-1">
-            <label class="block text-sm font-medium">{{ t('adminStations.importSourceUrl') }}</label>
+            <FieldLabel>{{ t('adminStations.importSourceUrl') }}</FieldLabel>
             <TextInput v-model="importSourceUrl" :placeholder="t('adminStations.importSourceUrlPlaceholder')"/>
           </div>
           <div class="space-y-1">
-            <label class="block text-sm font-medium">{{ t('adminStations.importToken') }}</label>
+            <FieldLabel>{{ t('adminStations.importToken') }}</FieldLabel>
             <TextInput v-model="importToken" :placeholder="t('adminStations.importTokenPlaceholder')"/>
           </div>
           <div class="flex justify-end gap-3">

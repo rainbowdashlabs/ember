@@ -15,6 +15,7 @@ import SelectInput from '@/components/input/select/SelectInput.vue'
 import FormulaInput from '@/components/input/FormulaInput.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
+import FieldLabel from '@/components/typography/FieldLabel.vue'
 import type { WaitingList, WaitingListField, MemberGroup, Role } from '@/api/types'
 import { ref, computed } from 'vue'
 import { waitingList as waitingListApi } from '@/api'
@@ -147,47 +148,47 @@ function roleName(roleId: number | null | undefined): string {
     <template v-else>
       <div class="space-y-3">
         <div class="space-y-1">
-          <label class="block text-sm font-medium">{{ t('waitingList.name') }}</label>
+          <FieldLabel>{{ t('waitingList.name') }}</FieldLabel>
           <TextInput v-model="editName" />
         </div>
         <div class="space-y-1">
-          <label class="block text-sm font-medium">{{ t('waitingList.description') }}</label>
+          <FieldLabel>{{ t('waitingList.description') }}</FieldLabel>
           <TextAreaInput v-model="editDescription" />
         </div>
         <div class="space-y-1">
-          <label class="block text-sm font-medium">{{ t('waitingList.scoringFormula') }}</label>
+          <FieldLabel>{{ t('waitingList.scoringFormula') }}</FieldLabel>
           <FormulaInput v-model="editScoringFormula" :placeholder="t('waitingList.scoringFormulaPlaceholder')" :fields="fieldInfos" />
           <p class="text-xs text-(--text-muted)">{{ t('waitingList.scoringFormulaHint') }}</p>
         </div>
         <div class="space-y-1">
-          <label class="block text-sm font-medium">{{ t('waitingList.confirmInterval') }}</label>
+          <FieldLabel>{{ t('waitingList.confirmInterval') }}</FieldLabel>
           <NumberInput v-model="editConfirmInterval" />
           <p class="text-xs text-(--text-muted)">{{ t('waitingList.confirmIntervalHint') }}</p>
         </div>
         <div class="grid gap-3 sm:grid-cols-2">
           <div class="space-y-1">
-            <label class="block text-sm font-medium">{{ t('waitingList.testingGroup') }}</label>
+            <FieldLabel>{{ t('waitingList.testingGroup') }}</FieldLabel>
             <SelectInput :model-value="editTestingGroupId != null ? String(editTestingGroupId) : ''" @update:model-value="editTestingGroupId = $event ? Number($event) : null">
               <option value="">{{ t('waitingList.noGroup') }}</option>
               <option v-for="g in groups" :key="g.id" :value="String(g.id)">{{ g.name }}</option>
             </SelectInput>
           </div>
           <div class="space-y-1">
-            <label class="block text-sm font-medium">{{ t('waitingList.joinGroup') }}</label>
+            <FieldLabel>{{ t('waitingList.joinGroup') }}</FieldLabel>
             <SelectInput :model-value="editJoinGroupId != null ? String(editJoinGroupId) : ''" @update:model-value="editJoinGroupId = $event ? Number($event) : null">
               <option value="">{{ t('waitingList.noGroup') }}</option>
               <option v-for="g in groups" :key="g.id" :value="String(g.id)">{{ g.name }}</option>
             </SelectInput>
           </div>
           <div class="space-y-1">
-            <label class="block text-sm font-medium">{{ t('waitingList.joinRole') }}</label>
+            <FieldLabel>{{ t('waitingList.joinRole') }}</FieldLabel>
             <SelectInput :model-value="editJoinRoleId != null ? String(editJoinRoleId) : ''" @update:model-value="editJoinRoleId = $event ? Number($event) : null">
               <option value="">{{ t('waitingList.noRole') }}</option>
               <option v-for="r in roles" :key="r.id" :value="String(r.id)">{{ r.role }}</option>
             </SelectInput>
           </div>
           <div class="space-y-1">
-            <label class="block text-sm font-medium">{{ t('waitingList.attendanceThreshold') }}</label>
+            <FieldLabel>{{ t('waitingList.attendanceThreshold') }}</FieldLabel>
             <NumberInput v-model="editAttendanceThreshold" />
           </div>
         </div>

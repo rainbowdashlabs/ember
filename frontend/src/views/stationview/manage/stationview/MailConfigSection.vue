@@ -9,6 +9,7 @@ import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
+import FieldLabel from '@/components/typography/FieldLabel.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SuccessButton from '@/components/button/SuccessButton.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
@@ -137,7 +138,7 @@ onMounted(loadMailConfig)
     <p class="text-sm text-(--text-muted)">{{ t('stationManage.mailHint') }}</p>
 
     <div class="space-y-1">
-      <label class="block text-sm font-medium">{{ t('stationManage.mailProvider') }}</label>
+      <FieldLabel>{{ t('stationManage.mailProvider') }}</FieldLabel>
       <SelectInput v-model="mailProvider">
         <option value="NONE">{{ t('stationManage.mailProviderNone') }}</option>
         <option value="RAPIDMAIL">RapidMail</option>
@@ -151,11 +152,11 @@ onMounted(loadMailConfig)
     <template v-if="mailProvider !== 'NONE'">
       <div class="grid gap-4 sm:grid-cols-2">
         <div class="space-y-1">
-          <label class="block text-sm font-medium">{{ t('stationManage.mailSenderAddress') }}</label>
+          <FieldLabel>{{ t('stationManage.mailSenderAddress') }}</FieldLabel>
           <TextInput v-model="mailSenderAddress" placeholder="noreply@example.com" />
         </div>
         <div class="space-y-1">
-          <label class="block text-sm font-medium">{{ t('stationManage.mailSenderName') }}</label>
+          <FieldLabel>{{ t('stationManage.mailSenderName') }}</FieldLabel>
           <TextInput v-model="mailSenderName" placeholder="Ember" />
         </div>
       </div>
@@ -165,27 +166,27 @@ onMounted(loadMailConfig)
         <SubHeader>SMTP</SubHeader>
         <div class="grid gap-4 sm:grid-cols-2">
           <div class="space-y-1">
-            <label class="block text-sm font-medium">{{ t('stationManage.mailProviderName') }}</label>
+            <FieldLabel>{{ t('stationManage.mailProviderName') }}</FieldLabel>
             <TextInput v-model="mailProviderName" :placeholder="t('stationManage.mailProviderNamePlaceholder')" />
           </div>
           <div class="space-y-1">
-            <label class="block text-sm font-medium">{{ t('stationManage.mailProviderUrl') }}</label>
+            <FieldLabel>{{ t('stationManage.mailProviderUrl') }}</FieldLabel>
             <TextInput v-model="mailProviderUrl" placeholder="https://example.com/privacy" />
           </div>
           <div class="space-y-1">
-            <label class="block text-sm font-medium">{{ t('stationManage.mailSmtpHost') }}</label>
+            <FieldLabel>{{ t('stationManage.mailSmtpHost') }}</FieldLabel>
             <TextInput v-model="mailSmtpHost" placeholder="mail.example.com" />
           </div>
           <div class="space-y-1">
-            <label class="block text-sm font-medium">{{ t('stationManage.mailSmtpPort') }}</label>
+            <FieldLabel>{{ t('stationManage.mailSmtpPort') }}</FieldLabel>
             <NumberInput v-model="mailSmtpPort" :min="1" :max="65535" />
           </div>
           <div class="space-y-1">
-            <label class="block text-sm font-medium">{{ t('stationManage.mailSmtpUser') }}</label>
+            <FieldLabel>{{ t('stationManage.mailSmtpUser') }}</FieldLabel>
             <TextInput v-model="mailSmtpUser" placeholder="user@example.com" />
           </div>
           <div class="space-y-1">
-            <label class="block text-sm font-medium">{{ t('stationManage.mailSmtpPassword') }}</label>
+            <FieldLabel>{{ t('stationManage.mailSmtpPassword') }}</FieldLabel>
             <TextInput v-model="mailSmtpPassword" :placeholder="t('stationManage.mailPasswordPlaceholder')" type="password" />
           </div>
         </div>
@@ -201,11 +202,11 @@ onMounted(loadMailConfig)
         <p class="text-xs text-(--text-muted)">{{ t('stationManage.mailRapidmailHint') }}</p>
         <div class="grid gap-4 sm:grid-cols-2">
           <div class="space-y-1">
-            <label class="block text-sm font-medium">{{ t('stationManage.mailSmtpUser') }}</label>
+            <FieldLabel>{{ t('stationManage.mailSmtpUser') }}</FieldLabel>
             <TextInput v-model="mailSmtpUser" placeholder="user@example.com" />
           </div>
           <div class="space-y-1">
-            <label class="block text-sm font-medium">API Key</label>
+            <FieldLabel>API Key</FieldLabel>
             <TextInput v-model="mailApiKey" :placeholder="mailHasApiKey ? t('stationManage.mailApiKeyPlaceholder') : ''" type="password" />
           </div>
         </div>
@@ -217,11 +218,11 @@ onMounted(loadMailConfig)
         <p class="text-xs text-(--text-muted)">{{ t('stationManage.mailBrevoHint') }}</p>
         <div class="grid gap-4 sm:grid-cols-2">
           <div class="space-y-1">
-            <label class="block text-sm font-medium">{{ t('stationManage.mailSmtpUser') }}</label>
+            <FieldLabel>{{ t('stationManage.mailSmtpUser') }}</FieldLabel>
             <TextInput v-model="mailSmtpUser" placeholder="user@example.com" />
           </div>
           <div class="space-y-1">
-            <label class="block text-sm font-medium">API Key</label>
+            <FieldLabel>API Key</FieldLabel>
             <TextInput v-model="mailApiKey" :placeholder="mailHasApiKey ? t('stationManage.mailApiKeyPlaceholder') : ''" type="password" />
           </div>
         </div>
@@ -233,11 +234,11 @@ onMounted(loadMailConfig)
         <p class="text-xs text-(--text-muted)">{{ t('stationManage.mailSweegoHint') }}</p>
         <div class="grid gap-4 sm:grid-cols-2">
           <div class="space-y-1">
-            <label class="block text-sm font-medium">{{ t('stationManage.mailSmtpUser') }}</label>
+            <FieldLabel>{{ t('stationManage.mailSmtpUser') }}</FieldLabel>
             <TextInput v-model="mailSmtpUser" placeholder="user@example.com" />
           </div>
           <div class="space-y-1">
-            <label class="block text-sm font-medium">API Key</label>
+            <FieldLabel>API Key</FieldLabel>
             <TextInput v-model="mailApiKey" :placeholder="mailHasApiKey ? t('stationManage.mailApiKeyPlaceholder') : ''" type="password" />
           </div>
         </div>
@@ -248,7 +249,7 @@ onMounted(loadMailConfig)
         <SubHeader>Twilio</SubHeader>
         <p class="text-xs text-(--text-muted)">{{ t('stationManage.mailTwilioHint') }}</p>
         <div class="space-y-1">
-          <label class="block text-sm font-medium">API Key</label>
+          <FieldLabel>API Key</FieldLabel>
           <TextInput v-model="mailApiKey" :placeholder="mailHasApiKey ? t('stationManage.mailApiKeyPlaceholder') : 'SG.xxxxx'" type="password" />
         </div>
       </template>
@@ -259,12 +260,12 @@ onMounted(loadMailConfig)
       <SubHeader>{{ t('stationManage.mailLimits') }}</SubHeader>
       <div class="grid gap-4 sm:grid-cols-2">
         <div class="space-y-1">
-          <label class="block text-sm font-medium">{{ t('stationManage.mailDailyLimit') }}</label>
+          <FieldLabel>{{ t('stationManage.mailDailyLimit') }}</FieldLabel>
           <NumberInput v-model="mailDailyLimit" :min="1" :max="10000" />
           <p class="text-xs text-(--text-muted)">{{ t('stationManage.mailSentToday', {count: mailSentToday, limit: mailDailyLimit}) }}</p>
         </div>
         <div class="space-y-1">
-          <label class="block text-sm font-medium">{{ t('stationManage.mailMonthlyLimit') }}</label>
+          <FieldLabel>{{ t('stationManage.mailMonthlyLimit') }}</FieldLabel>
           <NumberInput v-model="mailMonthlyLimit" :min="1" :max="100000" />
           <p class="text-xs text-(--text-muted)">{{ t('stationManage.mailSentMonth', {count: mailSentThisMonth, limit: mailMonthlyLimit}) }}</p>
         </div>

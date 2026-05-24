@@ -14,6 +14,7 @@ import RestrictionPicker from '@/components/input/RestrictionPicker.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import {knowledgeBase, stationMembers, memberGroups, userTags} from '@/api'
+import SubHeader from '@/components/typography/SubHeader.vue'
 import type {KbFile} from '@/api/knowledgeBase'
 import type {Role, MemberGroup, UserTag} from '@/api/types'
 
@@ -117,14 +118,14 @@ async function handleSave() {
 
 <template>
     <Modal :model-value="show" @update:model-value="emit('update:show', $event)">
-        <h3 class="text-lg font-semibold mb-3">{{ t('kb.editFile') }}</h3>
+        <SubHeader class="text-lg font-semibold mb-3">{{ t('kb.editFile') }}</SubHeader>
         <form @submit.prevent="handleSave" class="flex flex-col gap-3">
             <TextInput v-model="editName" :placeholder="t('kb.fileName')" required/>
             <TextAreaInput v-model="editDescription" :placeholder="t('kb.description')"/>
 
             <!-- Restrictions -->
             <div class="space-y-3 border-t border-bg-light-accent dark:border-bg-dark-accent pt-3">
-                <h3 class="text-sm font-semibold">{{ t('kb.restrictions') }}</h3>
+                <SubHeader class="text-sm font-semibold">{{ t('kb.restrictions') }}</SubHeader>
                 <RestrictionPicker
                     :roles="allRoles"
                     :groups="allGroups"

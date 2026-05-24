@@ -8,6 +8,7 @@ import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import Modal from '@/components/feedback/Modal.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
+import FieldLabel from '@/components/typography/FieldLabel.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
@@ -205,14 +206,14 @@ defineExpose({
     <div class="space-y-4">
       <SectionHeader>{{ t('memberDetail.assignItem') }}</SectionHeader>
       <div class="space-y-1">
-        <label class="block text-sm font-medium">{{ t('memberDetail.selectInventory') }}</label>
+        <FieldLabel>{{ t('memberDetail.selectInventory') }}</FieldLabel>
         <SelectInput :model-value="assignInventoryId" @update:model-value="onAssignInventoryChange">
           <option value="" disabled>{{ t('memberDetail.selectInventoryPlaceholder') }}</option>
           <option v-for="inv in inventories" :key="inv.id" :value="String(inv.id)">{{ inv.name }}</option>
         </SelectInput>
       </div>
       <div v-if="assignInventoryId" class="space-y-1">
-        <label class="block text-sm font-medium">{{ t('memberDetail.selectItem') }}</label>
+        <FieldLabel>{{ t('memberDetail.selectItem') }}</FieldLabel>
         <SelectInput v-model="assignItemId">
           <option value="" disabled>{{ t('memberDetail.selectItemPlaceholder') }}</option>
           <option v-for="item in assignItems" :key="item.id" :value="String(item.id)">
@@ -239,7 +240,7 @@ defineExpose({
         <SizeBadge>{{ reassignItemRef.sizeName ?? t('common.unisize') }}</SizeBadge>
       </p>
       <div class="space-y-1">
-        <label class="block text-sm font-medium">{{ t('memberDetail.selectTargetMember') }}</label>
+        <FieldLabel>{{ t('memberDetail.selectTargetMember') }}</FieldLabel>
         <SelectInput v-model="reassignTargetId">
           <option value="" disabled>{{ t('memberDetail.selectTargetPlaceholder') }}</option>
           <option v-for="m in reassignTargets" :key="m.id" :value="String(m.id)">{{ memberDisplayNameFn(m) }}</option>
@@ -270,14 +271,14 @@ defineExpose({
           <SizeBadge>{{ exchangeItem.sizeName ?? t('common.unisize') }}</SizeBadge>
         </p>
         <div v-if="exchangeSizes.length > 0" class="space-y-1">
-          <label class="block text-sm font-medium">{{ t('exchanges.newSize') }}</label>
+          <FieldLabel>{{ t('exchanges.newSize') }}</FieldLabel>
           <SelectInput v-model="exchangeNewSizeId">
             <option value="" disabled>{{ t('exchanges.selectNewSize') }}</option>
             <option v-for="size in exchangeSizes" :key="size.id" :value="String(size.id)">{{ size.label }}</option>
           </SelectInput>
         </div>
         <div class="space-y-1">
-          <label class="block text-sm font-medium">{{ t('exchanges.reason') }}</label>
+          <FieldLabel>{{ t('exchanges.reason') }}</FieldLabel>
           <TextAreaInput v-model="exchangeReason" :placeholder="t('exchanges.reasonPlaceholder')" :rows="3" />
         </div>
         <div class="flex justify-end gap-2">

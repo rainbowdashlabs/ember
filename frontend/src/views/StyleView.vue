@@ -56,6 +56,8 @@ import ProgressBar from '@/components/feedback/ProgressBar.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import Modal from '@/components/feedback/Modal.vue'
+import EmptyState from '@/components/feedback/EmptyState.vue'
+import FieldHint from '@/components/typography/FieldHint.vue'
 
 const textValue = ref('')
 const textAreaValue = ref('')
@@ -326,6 +328,19 @@ const toggleStates = ref(new Set([1, 3]))
           <span class="text-sm">Large</span>
         </div>
       </div>
+    </section>
+
+    <!-- Empty State -->
+    <section class="space-y-4">
+      <SectionHeader>Empty State</SectionHeader>
+      <EmptyState>No items found.</EmptyState>
+      <EmptyState compact>No items (compact).</EmptyState>
+    </section>
+
+    <!-- Field Hint -->
+    <section class="space-y-4">
+      <SectionHeader>Field Hint</SectionHeader>
+      <FieldHint>This is a field hint below an input.</FieldHint>
     </section>
 
     <!-- Modal -->

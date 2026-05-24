@@ -12,6 +12,7 @@ import Modal from '@/components/feedback/Modal.vue'
 import CheckboxInput from '@/components/input/toggle/CheckboxInput.vue'
 import RadioInput from '@/components/input/toggle/RadioInput.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
+import FieldLabel from '@/components/typography/FieldLabel.vue'
 import type {ProfileField} from '@/api/types'
 
 const {t} = useI18n()
@@ -85,7 +86,7 @@ function submit() {
       <!-- Column selection -->
       <div class="space-y-2">
         <div class="flex items-center justify-between">
-          <label class="block text-sm font-medium">{{ t('membersList.export.selectColumns') }}</label>
+          <FieldLabel>{{ t('membersList.export.selectColumns') }}</FieldLabel>
           <div class="flex items-center gap-2">
             <SecondaryButton @click="selectAll">{{ t('membersList.export.selectAll') }}</SecondaryButton>
             <SecondaryButton @click="selectNone">{{ t('membersList.export.selectNone') }}</SecondaryButton>
@@ -102,7 +103,7 @@ function submit() {
 
       <!-- Format -->
       <div class="space-y-2">
-        <label class="block text-sm font-medium">{{ t('membersList.export.format') }}</label>
+        <FieldLabel>{{ t('membersList.export.format') }}</FieldLabel>
         <div class="flex items-center gap-4">
           <label class="flex items-center gap-2 cursor-pointer text-sm">
             <RadioInput v-model="format" value="csv"/>

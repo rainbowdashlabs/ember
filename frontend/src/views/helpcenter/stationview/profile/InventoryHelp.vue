@@ -14,6 +14,7 @@ import type {HelpRole} from '@/components/helpcenter/HelpRoleToggle.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
+import FieldLabel from '@/components/typography/FieldLabel.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
@@ -134,7 +135,7 @@ const activeRole = ref('')
         Helme — Helm #12 <span class="text-(--text-muted)">[M]</span>
       </p>
       <div class="space-y-1">
-        <label class="block text-sm font-medium">Neue Größe</label>
+        <FieldLabel>Neue Größe</FieldLabel>
         <SelectInput model-value="">
           <option value="" disabled>Größe wählen...</option>
           <option value="1">S</option>

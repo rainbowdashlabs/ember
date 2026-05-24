@@ -13,6 +13,7 @@ import SectionHeader from '@/components/typography/SectionHeader.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
+import FieldHint from '@/components/typography/FieldHint.vue'
 
 const {t} = useI18n()
 </script>
@@ -30,7 +31,7 @@ const {t} = useI18n()
     <!-- Member selector for member managers -->
     <NeutralContainer class="mb-4">
       <div class="space-y-2">
-        <label class="text-xs text-(--text-muted)">{{ t('forms.fillForWhom') }}</label>
+        <FieldHint>{{ t('forms.fillForWhom') }}</FieldHint>
         <SelectInput model-value="self" disabled>
           <option value="self">{{ t('forms.fillForSelfDefault') }}</option>
           <option value="max">Max Mustermann</option>

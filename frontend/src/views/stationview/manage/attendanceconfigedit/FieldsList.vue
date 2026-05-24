@@ -11,6 +11,7 @@ import EditButton from '@/components/button/EditButton.vue'
 import DragList from '@/components/input/DragList.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
+import EmptyState from '@/components/feedback/EmptyState.vue'
 import type {AttendanceTemplateField, MemberGroup} from '@/api/types'
 
 const props = defineProps<{
@@ -67,9 +68,7 @@ function groupName(groupId: number): string {
       </PrimaryButton>
     </div>
 
-    <div v-if="fields.length === 0" class="text-center text-(--text-muted) py-8">
-      {{ t('attendanceConfig.noFields') }}
-    </div>
+    <EmptyState v-if="fields.length === 0">{{ t('attendanceConfig.noFields') }}</EmptyState>
 
     <DragList :items="fields" :key-fn="(f) => f.id" @reorder="(from, to) => emit('reorder', from, to)">
       <template #default="{ item: field }">

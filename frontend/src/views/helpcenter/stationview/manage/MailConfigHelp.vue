@@ -10,6 +10,7 @@ import HelpSection from '@/components/helpcenter/HelpSection.vue'
 import HelpTip from '@/components/helpcenter/HelpTip.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
+import FieldLabel from '@/components/typography/FieldLabel.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
@@ -66,7 +67,7 @@ const {t} = useI18n()
       <p class="text-sm text-(--text-muted)">{{ t('stationManage.mailHint') }}</p>
 
       <div class="space-y-1">
-        <label class="block text-sm font-medium">{{ t('stationManage.mailProvider') }}</label>
+        <FieldLabel>{{ t('stationManage.mailProvider') }}</FieldLabel>
         <SelectInput model-value="BREVO" disabled>
           <option value="NONE">{{ t('stationManage.mailProviderNone') }}</option>
           <option value="RAPIDMAIL">RapidMail</option>
@@ -79,11 +80,11 @@ const {t} = useI18n()
 
       <div class="grid gap-4 sm:grid-cols-2">
         <div class="space-y-1">
-          <label class="block text-sm font-medium">{{ t('stationManage.mailSenderAddress') }}</label>
+          <FieldLabel>{{ t('stationManage.mailSenderAddress') }}</FieldLabel>
           <TextInput model-value="noreply@jugendfeuerwehr.de" disabled/>
         </div>
         <div class="space-y-1">
-          <label class="block text-sm font-medium">{{ t('stationManage.mailSenderName') }}</label>
+          <FieldLabel>{{ t('stationManage.mailSenderName') }}</FieldLabel>
           <TextInput model-value="Jugendfeuerwehr Musterstadt" disabled/>
         </div>
       </div>
@@ -92,11 +93,11 @@ const {t} = useI18n()
       <p class="text-xs text-(--text-muted)">{{ t('stationManage.mailBrevoHint') }}</p>
       <div class="grid gap-4 sm:grid-cols-2">
         <div class="space-y-1">
-          <label class="block text-sm font-medium">{{ t('stationManage.mailSmtpUser') }}</label>
+          <FieldLabel>{{ t('stationManage.mailSmtpUser') }}</FieldLabel>
           <TextInput model-value="user@example.com" disabled/>
         </div>
         <div class="space-y-1">
-          <label class="block text-sm font-medium">API Key</label>
+          <FieldLabel>API Key</FieldLabel>
           <TextInput model-value="" :placeholder="t('stationManage.mailApiKeyPlaceholder')" type="password" disabled/>
         </div>
       </div>
@@ -117,27 +118,27 @@ const {t} = useI18n()
       <SubHeader>SMTP</SubHeader>
       <div class="grid gap-4 sm:grid-cols-2">
         <div class="space-y-1">
-          <label class="block text-sm font-medium">{{ t('stationManage.mailProviderName') }}</label>
+          <FieldLabel>{{ t('stationManage.mailProviderName') }}</FieldLabel>
           <TextInput model-value="Eigener Server" disabled/>
         </div>
         <div class="space-y-1">
-          <label class="block text-sm font-medium">{{ t('stationManage.mailProviderUrl') }}</label>
+          <FieldLabel>{{ t('stationManage.mailProviderUrl') }}</FieldLabel>
           <TextInput model-value="https://example.com/privacy" disabled/>
         </div>
         <div class="space-y-1">
-          <label class="block text-sm font-medium">{{ t('stationManage.mailSmtpHost') }}</label>
+          <FieldLabel>{{ t('stationManage.mailSmtpHost') }}</FieldLabel>
           <TextInput model-value="mail.example.com" disabled/>
         </div>
         <div class="space-y-1">
-          <label class="block text-sm font-medium">{{ t('stationManage.mailSmtpPort') }}</label>
+          <FieldLabel>{{ t('stationManage.mailSmtpPort') }}</FieldLabel>
           <NumberInput :model-value="587" :min="1" :max="65535" disabled/>
         </div>
         <div class="space-y-1">
-          <label class="block text-sm font-medium">{{ t('stationManage.mailSmtpUser') }}</label>
+          <FieldLabel>{{ t('stationManage.mailSmtpUser') }}</FieldLabel>
           <TextInput model-value="user@example.com" disabled/>
         </div>
         <div class="space-y-1">
-          <label class="block text-sm font-medium">{{ t('stationManage.mailSmtpPassword') }}</label>
+          <FieldLabel>{{ t('stationManage.mailSmtpPassword') }}</FieldLabel>
           <TextInput model-value="" :placeholder="t('stationManage.mailPasswordPlaceholder')" type="password" disabled/>
         </div>
       </div>
@@ -159,12 +160,12 @@ const {t} = useI18n()
       <SubHeader>{{ t('stationManage.mailLimits') }}</SubHeader>
       <div class="grid gap-4 sm:grid-cols-2">
         <div class="space-y-1">
-          <label class="block text-sm font-medium">{{ t('stationManage.mailDailyLimit') }}</label>
+          <FieldLabel>{{ t('stationManage.mailDailyLimit') }}</FieldLabel>
           <NumberInput :model-value="300" :min="1" :max="10000" disabled/>
           <p class="text-xs text-(--text-muted)">{{ t('stationManage.mailSentToday', {count: 12, limit: 300}) }}</p>
         </div>
         <div class="space-y-1">
-          <label class="block text-sm font-medium">{{ t('stationManage.mailMonthlyLimit') }}</label>
+          <FieldLabel>{{ t('stationManage.mailMonthlyLimit') }}</FieldLabel>
           <NumberInput :model-value="9000" :min="1" :max="100000" disabled/>
           <p class="text-xs text-(--text-muted)">{{ t('stationManage.mailSentMonth', {count: 247, limit: 9000}) }}</p>
         </div>

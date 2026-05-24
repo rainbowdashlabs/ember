@@ -14,6 +14,7 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import EditButton from '@/components/button/EditButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
+import FieldLabel from '@/components/typography/FieldLabel.vue'
 import IconButton from '@/components/button/IconButton.vue'
 
 const {t} = useI18n()
@@ -70,7 +71,7 @@ const {t} = useI18n()
       <div class="space-y-4">
         <SectionHeader>Ersthelfer</SectionHeader>
         <div class="space-y-1">
-          <label class="block text-sm font-medium text-(--text-muted)">Mitglieder</label>
+          <FieldLabel class="text-(--text-muted)">Mitglieder</FieldLabel>
           <div class="space-y-1">
             <div class="flex items-center justify-between rounded-lg px-3 py-2 bg-bg-light-accent dark:bg-bg-dark-accent">
               <span class="text-sm font-medium">Max Mustermann</span>
@@ -79,7 +80,7 @@ const {t} = useI18n()
           </div>
         </div>
         <div class="space-y-1">
-          <label class="block text-sm font-medium text-(--text-muted)">Mitglied hinzufügen</label>
+          <FieldLabel class="text-(--text-muted)">Mitglied hinzufügen</FieldLabel>
           <div class="space-y-1">
             <div class="flex items-center justify-between rounded-lg px-3 py-2 hover:bg-bg-light-accent dark:hover:bg-bg-dark-accent cursor-pointer">
               <span class="text-sm font-medium">Anna Schmidt</span>

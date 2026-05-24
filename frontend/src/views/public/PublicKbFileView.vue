@@ -12,6 +12,8 @@ import Alert from '@/components/feedback/Alert.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import PageHeader from '@/components/typography/PageHeader.vue'
+import SectionHeader from '@/components/typography/SectionHeader.vue'
 import * as publicKb from '@/api/publicKb'
 import type {PublicStationInfo} from '@/api/publicKb'
 import type {KbFile} from '@/api/knowledgeBase'
@@ -110,9 +112,9 @@ onMounted(() => {
     <div class="py-8">
         <div class="max-w-5xl mx-auto px-4 py-8">
             <!-- Station name header -->
-            <h1 v-if="stationInfo" class="text-2xl font-bold mb-6">
+            <PageHeader v-if="stationInfo" class="text-2xl font-bold mb-6">
                 {{ stationInfo.stationName }}
-            </h1>
+            </PageHeader>
 
             <Alert v-if="error" variant="error" class="mb-4">{{ error }}</Alert>
             <Spinner v-if="loading"/>
@@ -125,7 +127,7 @@ onMounted(() => {
                         {{ t('publicKb.backToBrowse') }}
                     </SecondaryButton>
 
-                    <h2 class="text-xl font-bold flex-1">{{ file.name }}</h2>
+                    <SectionHeader class="text-xl font-bold flex-1">{{ file.name }}</SectionHeader>
                 </div>
 
                 <!-- Description -->

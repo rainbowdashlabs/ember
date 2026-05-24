@@ -10,6 +10,7 @@ import HelpSection from '@/components/helpcenter/HelpSection.vue'
 import HelpTip from '@/components/helpcenter/HelpTip.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
+import FieldLabel from '@/components/typography/FieldLabel.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
@@ -32,7 +33,7 @@ const {t} = useI18n()
     <NeutralContainer class="space-y-4">
       <SectionHeader>{{ t('attendanceConfig.editTitle') }}</SectionHeader>
       <div class="space-y-1">
-        <label class="block text-sm font-medium">{{ t('attendanceConfig.name') }}</label>
+        <FieldLabel>{{ t('attendanceConfig.name') }}</FieldLabel>
         <TextInput model-value="Übungsabend" :placeholder="t('attendanceConfig.namePlaceholder')" disabled/>
       </div>
       <PrimaryButton disabled>{{ t('attendanceConfig.save') }}</PrimaryButton>

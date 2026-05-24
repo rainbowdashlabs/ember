@@ -10,6 +10,7 @@ import { useRoute, useRouter } from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
+import EmptyState from '@/components/feedback/EmptyState.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
@@ -449,9 +450,7 @@ watch(loaded, (isLoaded) => {
               {{ t('quiz.categories.create') }}
             </SecondaryButton>
           </div>
-          <div v-if="catalog.categories.length === 0" class="text-center text-(--text-muted) py-4">
-            {{ t('quiz.categories.noCategories') }}
-          </div>
+          <EmptyState compact v-if="catalog.categories.length === 0">{{ t('quiz.categories.noCategories') }}</EmptyState>
           <div class="flex flex-wrap gap-2">
             <NeutralContainer v-for="category in catalog.categories" :key="category.id" class="!p-2">
               <div class="flex items-center gap-2">
@@ -520,9 +519,7 @@ watch(loaded, (isLoaded) => {
             </div>
           </NeutralContainer>
 
-          <div v-if="questions.length === 0 && expandedQuestion !== 'new'" class="text-center text-(--text-muted) py-4">
-            {{ t('quiz.questions.noQuestions') }}
-          </div>
+          <EmptyState compact v-if="questions.length === 0 && expandedQuestion !== 'new'">{{ t('quiz.questions.noQuestions') }}</EmptyState>
 
           <!-- Question list with inline expand -->
           <div class="space-y-2">
@@ -625,7 +622,7 @@ watch(loaded, (isLoaded) => {
       <!-- Category Create Modal -->
       <Modal v-model="showCategoryModal">
         <div class="space-y-4">
-          <h3 class="text-lg font-semibold">{{ t('quiz.categories.create') }}</h3>
+          <SubHeader>{{ t('quiz.categories.create') }}</SubHeader>
           <TextInput v-model="newCategoryName" :placeholder="t('quiz.categories.name')" />
           <TextAreaInput v-model="newCategoryDescription" :placeholder="t('quiz.categories.description')" />
           <div class="flex justify-end gap-3">
@@ -638,7 +635,7 @@ watch(loaded, (isLoaded) => {
       <!-- Category Edit Modal -->
       <Modal v-model="showEditCategoryModal">
         <div class="space-y-4">
-          <h3 class="text-lg font-semibold">{{ t('quiz.categories.edit') }}</h3>
+          <SubHeader>{{ t('quiz.categories.edit') }}</SubHeader>
           <TextInput v-model="editCategoryName" :placeholder="t('quiz.categories.name')" />
           <TextAreaInput v-model="editCategoryDescription" :placeholder="t('quiz.categories.description')" />
           <div class="flex justify-end gap-3">
@@ -651,7 +648,7 @@ watch(loaded, (isLoaded) => {
       <!-- Category Delete Modal -->
       <Modal v-model="showDeleteCategoryModal">
         <div class="space-y-4">
-          <h3 class="text-lg font-semibold">{{ t('common.delete') }}</h3>
+          <SubHeader>{{ t('common.delete') }}</SubHeader>
           <p class="text-sm">{{ t('quiz.categories.deleteConfirm') }}</p>
           <div class="flex justify-end gap-3">
             <SecondaryButton @click="showDeleteCategoryModal = false">{{ t('common.cancel') }}</SecondaryButton>
@@ -663,7 +660,7 @@ watch(loaded, (isLoaded) => {
       <!-- Question Delete Modal -->
       <Modal v-model="showDeleteQuestionModal">
         <div class="space-y-4">
-          <h3 class="text-lg font-semibold">{{ t('common.delete') }}</h3>
+          <SubHeader>{{ t('common.delete') }}</SubHeader>
           <p class="text-sm">{{ t('quiz.questions.deleteConfirm') }}</p>
           <div class="flex justify-end gap-3">
             <SecondaryButton @click="showDeleteQuestionModal = false">{{ t('common.cancel') }}</SecondaryButton>

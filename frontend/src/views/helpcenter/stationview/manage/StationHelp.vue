@@ -10,6 +10,7 @@ import HelpSection from '@/components/helpcenter/HelpSection.vue'
 import HelpTip from '@/components/helpcenter/HelpTip.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
+import FieldLabel from '@/components/typography/FieldLabel.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
@@ -32,17 +33,17 @@ const {t} = useI18n()
     <NeutralContainer class="space-y-4">
       <SectionHeader>{{ t('stationManage.nameTitle') }}</SectionHeader>
       <div class="space-y-1">
-        <label class="block text-sm font-medium">{{ t('stationManage.name') }}</label>
+        <FieldLabel>{{ t('stationManage.name') }}</FieldLabel>
         <TextInput model-value="Jugendfeuerwehr Musterstadt" :placeholder="t('stationManage.namePlaceholder')" disabled/>
       </div>
       <div class="space-y-1">
-        <label class="block text-sm font-medium">{{ t('stationManage.timezone') }}</label>
+        <FieldLabel>{{ t('stationManage.timezone') }}</FieldLabel>
         <SelectInput model-value="Europe/Berlin" disabled>
           <option value="Europe/Berlin">Europe/Berlin</option>
         </SelectInput>
       </div>
       <div class="space-y-1">
-        <label class="block text-sm font-medium">{{ t('stationManage.locale') }}</label>
+        <FieldLabel>{{ t('stationManage.locale') }}</FieldLabel>
         <SelectInput model-value="de-DE" disabled>
           <option value="de-DE">Deutsch</option>
         </SelectInput>

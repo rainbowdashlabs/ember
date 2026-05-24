@@ -13,6 +13,10 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import EditButton from '@/components/button/EditButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
+import Th from '@/components/table/Th.vue'
+import Td from '@/components/table/Td.vue'
+import THead from '@/components/table/THead.vue'
+import TRow from '@/components/table/TRow.vue'
 
 const {t} = useI18n()
 </script>
@@ -47,53 +51,53 @@ const {t} = useI18n()
       <div class="overflow-x-auto">
         <table class="w-full text-sm">
           <thead>
-            <tr class="border-b border-bg-light-accent dark:border-bg-dark-accent text-left">
-              <th class="px-3 py-2 font-medium">{{ t('inventory.edit.colName') }}</th>
-              <th class="px-3 py-2 font-medium">{{ t('inventory.edit.colId') }}</th>
-              <th class="px-3 py-2 font-medium">{{ t('inventory.edit.colSize') }}</th>
-              <th class="px-3 py-2 font-medium">{{ t('inventory.edit.colAssigned') }}</th>
+            <THead>
+              <Th>{{ t('inventory.edit.colName') }}</Th>
+              <Th>{{ t('inventory.edit.colId') }}</Th>
+              <Th>{{ t('inventory.edit.colSize') }}</Th>
+              <Th>{{ t('inventory.edit.colAssigned') }}</Th>
               <th class="px-3 py-2"></th>
-            </tr>
+            </THead>
           </thead>
           <tbody>
-            <tr class="border-b border-bg-light-accent/50 dark:border-bg-dark-accent/50">
-              <td class="px-3 py-2.5 font-medium">Helm</td>
-              <td class="px-3 py-2.5 text-(--text-muted)">INV-0001</td>
-              <td class="px-3 py-2.5 text-(--text-muted)">M</td>
-              <td class="px-3 py-2.5"><span class="text-primary font-medium">Max Mustermann</span></td>
-              <td class="px-3 py-2.5 text-right">
+            <TRow>
+              <Td class="font-medium">Helm</Td>
+              <Td muted>INV-0001</Td>
+              <Td muted>M</Td>
+              <Td><span class="text-primary font-medium">Max Mustermann</span></Td>
+              <Td align="right">
                 <div class="flex items-center justify-end gap-0.5">
                   <EditButton />
                   <DeleteButton />
                 </div>
-              </td>
-            </tr>
-            <tr class="border-b border-bg-light-accent/50 dark:border-bg-dark-accent/50">
-              <td class="px-3 py-2.5 font-medium">Helm</td>
-              <td class="px-3 py-2.5 text-(--text-muted)">INV-0002</td>
-              <td class="px-3 py-2.5 text-(--text-muted)">L</td>
-              <td class="px-3 py-2.5"><span class="text-(--text-muted)">&ndash;</span></td>
-              <td class="px-3 py-2.5 text-right">
+              </Td>
+            </TRow>
+            <TRow>
+              <Td class="font-medium">Helm</Td>
+              <Td muted>INV-0002</Td>
+              <Td muted>L</Td>
+              <Td><span class="text-(--text-muted)">&ndash;</span></Td>
+              <Td align="right">
                 <div class="flex items-center justify-end gap-0.5">
                   <EditButton />
                   <DeleteButton />
                 </div>
-              </td>
-            </tr>
-            <tr class="border-b border-bg-light-accent/50 dark:border-bg-dark-accent/50 opacity-60">
-              <td class="px-3 py-2.5 font-medium">
+              </Td>
+            </TRow>
+            <TRow class="opacity-60">
+              <Td class="font-medium">
                 Helm <span class="ml-2 text-xs text-error font-normal">{{ t('inventory.edit.lost') }} (01.05.2026)</span>
-              </td>
-              <td class="px-3 py-2.5 text-(--text-muted)">INV-0003</td>
-              <td class="px-3 py-2.5 text-(--text-muted)">S</td>
-              <td class="px-3 py-2.5"><span class="text-primary font-medium">Erika Musterfrau</span></td>
-              <td class="px-3 py-2.5 text-right">
+              </Td>
+              <Td muted>INV-0003</Td>
+              <Td muted>S</Td>
+              <Td><span class="text-primary font-medium">Erika Musterfrau</span></Td>
+              <Td align="right">
                 <div class="flex items-center justify-end gap-0.5">
                   <EditButton />
                   <DeleteButton />
                 </div>
-              </td>
-            </tr>
+              </Td>
+            </TRow>
           </tbody>
         </table>
       </div>

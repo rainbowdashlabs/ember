@@ -12,6 +12,10 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import Th from '@/components/table/Th.vue'
+import Td from '@/components/table/Td.vue'
+import THead from '@/components/table/THead.vue'
+import TRow from '@/components/table/TRow.vue'
 
 const {t} = useI18n()
 </script>
@@ -51,36 +55,36 @@ const {t} = useI18n()
     <NeutralContainer class="overflow-x-auto">
       <table class="w-full text-sm">
         <thead>
-          <tr class="border-b border-bg-light-accent dark:border-bg-dark-accent text-left">
-            <th class="px-3 py-2 font-medium">{{ t('inventory.detail.size') }}</th>
-            <th class="px-3 py-2 font-medium text-center">{{ t('inventory.detail.total') }}</th>
-            <th class="px-3 py-2 font-medium text-center">{{ t('inventory.detail.free') }}</th>
-            <th class="px-3 py-2 font-medium text-center">{{ t('inventory.detail.assigned') }}</th>
-            <th class="px-3 py-2 font-medium text-center">{{ t('inventory.detail.lost') }}</th>
-          </tr>
+          <THead>
+            <Th>{{ t('inventory.detail.size') }}</Th>
+            <Th align="center">{{ t('inventory.detail.total') }}</Th>
+            <Th align="center">{{ t('inventory.detail.free') }}</Th>
+            <Th align="center">{{ t('inventory.detail.assigned') }}</Th>
+            <Th align="center">{{ t('inventory.detail.lost') }}</Th>
+          </THead>
         </thead>
         <tbody>
-          <tr class="border-b border-bg-light-accent/50 dark:border-bg-dark-accent/50">
-            <td class="px-3 py-2.5 font-medium">S</td>
-            <td class="px-3 py-2.5 text-center">6</td>
-            <td class="px-3 py-2.5 text-center text-success">2</td>
-            <td class="px-3 py-2.5 text-center text-primary">3</td>
-            <td class="px-3 py-2.5 text-center text-error">1</td>
-          </tr>
-          <tr class="border-b border-bg-light-accent/50 dark:border-bg-dark-accent/50">
-            <td class="px-3 py-2.5 font-medium">M</td>
-            <td class="px-3 py-2.5 text-center">10</td>
-            <td class="px-3 py-2.5 text-center text-success">3</td>
-            <td class="px-3 py-2.5 text-center text-primary">7</td>
-            <td class="px-3 py-2.5 text-center text-error">0</td>
-          </tr>
-          <tr class="border-b border-bg-light-accent/50 dark:border-bg-dark-accent/50">
-            <td class="px-3 py-2.5 font-medium">L</td>
-            <td class="px-3 py-2.5 text-center">8</td>
-            <td class="px-3 py-2.5 text-center text-success">3</td>
-            <td class="px-3 py-2.5 text-center text-primary">5</td>
-            <td class="px-3 py-2.5 text-center text-error">0</td>
-          </tr>
+          <TRow>
+            <Td class="font-medium">S</Td>
+            <Td align="center">6</Td>
+            <Td align="center" class="text-success">2</Td>
+            <Td align="center" class="text-primary">3</Td>
+            <Td align="center" class="text-error">1</Td>
+          </TRow>
+          <TRow>
+            <Td class="font-medium">M</Td>
+            <Td align="center">10</Td>
+            <Td align="center" class="text-success">3</Td>
+            <Td align="center" class="text-primary">7</Td>
+            <Td align="center" class="text-error">0</Td>
+          </TRow>
+          <TRow>
+            <Td class="font-medium">L</Td>
+            <Td align="center">8</Td>
+            <Td align="center" class="text-success">3</Td>
+            <Td align="center" class="text-primary">5</Td>
+            <Td align="center" class="text-error">0</Td>
+          </TRow>
         </tbody>
       </table>
     </NeutralContainer>
@@ -93,21 +97,21 @@ const {t} = useI18n()
     <NeutralContainer class="overflow-x-auto">
       <table class="w-full text-sm">
         <thead>
-          <tr class="border-b border-bg-light-accent dark:border-bg-dark-accent text-left">
-            <th class="px-3 py-2 font-medium">{{ t('inventory.detail.item') }}</th>
-            <th class="px-3 py-2 font-medium">{{ t('inventory.detail.owner') }}</th>
-            <th class="px-3 py-2 font-medium">{{ t('inventory.detail.lostSince') }}</th>
-          </tr>
+          <THead>
+            <Th>{{ t('inventory.detail.item') }}</Th>
+            <Th>{{ t('inventory.detail.owner') }}</Th>
+            <Th>{{ t('inventory.detail.lostSince') }}</Th>
+          </THead>
         </thead>
         <tbody>
-          <tr class="border-b border-bg-light-accent/50 dark:border-bg-dark-accent/50">
-            <td class="px-3 py-2.5">
+          <TRow>
+            <Td>
               <div class="font-medium">Helm <span class="font-normal text-(--text-muted)">[S]</span></div>
               <div class="text-xs text-(--text-muted)">INV-0003</div>
-            </td>
-            <td class="px-3 py-2.5">Erika Musterfrau</td>
-            <td class="px-3 py-2.5"><ErrorBadge>01.05.2026</ErrorBadge></td>
-          </tr>
+            </Td>
+            <Td>Erika Musterfrau</Td>
+            <Td><ErrorBadge>01.05.2026</ErrorBadge></Td>
+          </TRow>
         </tbody>
       </table>
     </NeutralContainer>

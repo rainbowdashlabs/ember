@@ -10,6 +10,7 @@ import { useRouter } from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
+import EmptyState from '@/components/feedback/EmptyState.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
@@ -23,6 +24,7 @@ import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import StationBadge from '@/components/badge/StationBadge.vue'
 import PageHeader from '@/components/typography/PageHeader.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import type { QuizCatalog, QuizCatalogExport } from '@/api/types'
 import type { SharedCatalogEntry } from '@/api/quiz'
@@ -267,9 +269,7 @@ watch(loaded, (isLoaded) => {
       <Alert v-if="error" variant="error">{{ error }}</Alert>
 
       <template v-if="!loading">
-        <div v-if="filteredCatalogs.length === 0 && filteredSharedCatalogs.length === 0" class="text-center text-(--text-muted) py-8">
-          {{ t('quiz.catalogs.noCatalogs') }}
-        </div>
+        <EmptyState v-if="filteredCatalogs.length === 0 && filteredSharedCatalogs.length === 0">{{ t('quiz.catalogs.noCatalogs') }}</EmptyState>
 
         <div class="space-y-2">
           <!-- Local catalogs -->
@@ -357,7 +357,7 @@ watch(loaded, (isLoaded) => {
       <!-- Create Modal -->
       <Modal v-model="showCreateModal">
         <div class="space-y-4">
-          <h3 class="text-lg font-semibold">{{ t('quiz.catalogs.create') }}</h3>
+          <SubHeader>{{ t('quiz.catalogs.create') }}</SubHeader>
           <TextInput v-model="createName" :placeholder="t('quiz.catalogs.name')" />
           <TextAreaInput v-model="createDescription" :placeholder="t('quiz.catalogs.description')" />
           <label class="flex items-center gap-2 text-sm">
@@ -374,7 +374,7 @@ watch(loaded, (isLoaded) => {
       <!-- Delete Confirmation Modal -->
       <Modal v-model="showDeleteModal">
         <div class="space-y-4">
-          <h3 class="text-lg font-semibold">{{ t('quiz.catalogs.deleteCatalog') }}</h3>
+          <SubHeader>{{ t('quiz.catalogs.deleteCatalog') }}</SubHeader>
           <p class="text-sm">{{ t('quiz.catalogs.deleteConfirm') }}</p>
           <div class="flex justify-end gap-3">
             <SecondaryButton @click="showDeleteModal = false">{{ t('common.cancel') }}</SecondaryButton>

@@ -10,6 +10,7 @@ import { useRouter } from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
+import EmptyState from '@/components/feedback/EmptyState.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
@@ -23,6 +24,7 @@ import type { QuizTest, QuizTestSummary } from '@/api/types'
 import { quiz } from '@/api'
 import { useSession } from '@/composables/useSession'
 import { useBreakpoint } from '@/composables/useBreakpoint'
+import SectionHeader from '@/components/typography/SectionHeader.vue'
 
 const { t } = useI18n()
 const router = useRouter()
@@ -108,16 +110,14 @@ watch(loaded, (isLoaded) => {
 
       <template v-if="!loading">
         <div class="flex items-center justify-between">
-          <h2 class="text-lg font-semibold">{{ t('quiz.tests.title') }}</h2>
+          <SectionHeader>{{ t('quiz.tests.title') }}</SectionHeader>
           <PrimaryButton v-if="canManageQuiz()" @click="router.push({ name: 'quiz-test-create' })">
             <font-awesome-icon :icon="['fas', 'plus']" class="mr-1" />
             {{ t('quiz.tests.create') }}
           </PrimaryButton>
         </div>
 
-        <div v-if="tests.length === 0" class="text-center text-(--text-muted) py-8">
-          {{ t('quiz.tests.noTests') }}
-        </div>
+        <EmptyState v-if="tests.length === 0">{{ t('quiz.tests.noTests') }}</EmptyState>
 
         <!-- Mobile card layout -->
         <div v-if="isMobile" class="space-y-2">

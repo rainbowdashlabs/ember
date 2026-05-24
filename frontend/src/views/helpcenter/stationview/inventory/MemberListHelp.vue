@@ -13,6 +13,10 @@ import SectionHeader from '@/components/typography/SectionHeader.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
+import Th from '@/components/table/Th.vue'
+import Td from '@/components/table/Td.vue'
+import THead from '@/components/table/THead.vue'
+import TRow from '@/components/table/TRow.vue'
 
 const {t} = useI18n()
 </script>
@@ -56,32 +60,32 @@ const {t} = useI18n()
       <NeutralContainer class="overflow-x-auto">
         <table class="w-full text-sm">
           <thead>
-            <tr class="border-b border-bg-light-accent dark:border-bg-dark-accent text-left">
-              <th class="px-3 py-2 font-medium">{{ t('membersList.colName') }}</th>
-              <th class="px-3 py-2 font-medium">Helme</th>
-              <th class="px-3 py-2 font-medium">Jacken</th>
-              <th class="px-3 py-2 font-medium">Stiefel</th>
-            </tr>
+            <THead>
+              <Th>{{ t('membersList.colName') }}</Th>
+              <Th>Helme</Th>
+              <Th>Jacken</Th>
+              <Th>Stiefel</Th>
+            </THead>
           </thead>
           <tbody>
-            <tr class="border-b border-bg-light-accent/50 dark:border-bg-dark-accent/50 hover:bg-(--bg-accent)/30 cursor-pointer">
-              <td class="px-3 py-2.5 font-medium text-primary">Max Mustermann</td>
-              <td class="px-3 py-2.5"><span class="text-xs">Helm [M]</span></td>
-              <td class="px-3 py-2.5"><span class="text-xs">Jacke [L]</span></td>
-              <td class="px-3 py-2.5"><span class="text-xs">Stiefel [42]</span></td>
-            </tr>
-            <tr class="border-b border-bg-light-accent/50 dark:border-bg-dark-accent/50 hover:bg-(--bg-accent)/30 cursor-pointer">
-              <td class="px-3 py-2.5 font-medium text-primary">Erika Musterfrau</td>
-              <td class="px-3 py-2.5"><span class="text-xs text-error">Helm [S] ({{ t('inventoryMembers.lost') }})</span></td>
-              <td class="px-3 py-2.5"><span class="text-xs">Jacke [M]</span></td>
-              <td class="px-3 py-2.5"><span class="text-(--text-muted)">&mdash;</span></td>
-            </tr>
-            <tr class="border-b border-bg-light-accent/50 dark:border-bg-dark-accent/50 hover:bg-(--bg-accent)/30 cursor-pointer">
-              <td class="px-3 py-2.5 font-medium text-primary">Jan Schmidt</td>
-              <td class="px-3 py-2.5"><span class="text-xs">Helm [L]</span></td>
-              <td class="px-3 py-2.5"><span class="text-(--text-muted)">&mdash;</span></td>
-              <td class="px-3 py-2.5"><span class="text-xs">Stiefel [44]</span></td>
-            </tr>
+            <TRow class="hover:bg-(--bg-accent)/30 cursor-pointer">
+              <Td class="font-medium text-primary">Max Mustermann</Td>
+              <Td><span class="text-xs">Helm [M]</span></Td>
+              <Td><span class="text-xs">Jacke [L]</span></Td>
+              <Td><span class="text-xs">Stiefel [42]</span></Td>
+            </TRow>
+            <TRow class="hover:bg-(--bg-accent)/30 cursor-pointer">
+              <Td class="font-medium text-primary">Erika Musterfrau</Td>
+              <Td><span class="text-xs text-error">Helm [S] ({{ t('inventoryMembers.lost') }})</span></Td>
+              <Td><span class="text-xs">Jacke [M]</span></Td>
+              <Td><span class="text-(--text-muted)">&mdash;</span></Td>
+            </TRow>
+            <TRow class="hover:bg-(--bg-accent)/30 cursor-pointer">
+              <Td class="font-medium text-primary">Jan Schmidt</Td>
+              <Td><span class="text-xs">Helm [L]</span></Td>
+              <Td><span class="text-(--text-muted)">&mdash;</span></Td>
+              <Td><span class="text-xs">Stiefel [44]</span></Td>
+            </TRow>
           </tbody>
         </table>
       </NeutralContainer>

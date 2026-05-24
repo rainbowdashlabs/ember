@@ -15,6 +15,7 @@ import DateTimeInput from '@/components/input/datetime/DateTimeInput.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import RestrictionPicker from '@/components/input/RestrictionPicker.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
+import FieldLabel from '@/components/typography/FieldLabel.vue'
 import type { StationEvent, EventCategory, AttendanceTemplate, AttendanceTemplateField, Role, MemberGroup, UserTag } from '@/api/types'
 import { EventTypes } from '@/api/types'
 import type { EventFieldDefault } from '@/api/events'
@@ -176,17 +177,17 @@ function submit() {
       <SectionHeader>{{ event ? t('events.editEvent') : t('events.addEvent') }}</SectionHeader>
 
       <div class="space-y-1">
-        <label class="block text-sm font-medium">{{ t('events.name') }}</label>
+        <FieldLabel>{{ t('events.name') }}</FieldLabel>
         <TextInput v-model="eventName" :placeholder="t('events.namePlaceholder')" />
       </div>
 
       <div class="space-y-1">
-        <label class="block text-sm font-medium">{{ t('events.description') }}</label>
+        <FieldLabel>{{ t('events.description') }}</FieldLabel>
         <TextInput v-model="eventDescription" :placeholder="t('events.descriptionPlaceholder')" />
       </div>
 
       <div class="space-y-1">
-        <label class="block text-sm font-medium">{{ t('events.type') }}</label>
+        <FieldLabel>{{ t('events.type') }}</FieldLabel>
         <SelectInput v-model="eventType">
           <option :value="EventTypes.RECURRING">{{ t('events.typeRecurring') }}</option>
           <option :value="EventTypes.ONE_TIME">{{ t('events.typeOneTime') }}</option>
@@ -194,7 +195,7 @@ function submit() {
       </div>
 
       <div v-if="eventType === EventTypes.RECURRING" class="space-y-1">
-        <label class="block text-sm font-medium">{{ t('events.dayOfWeek') }}</label>
+        <FieldLabel>{{ t('events.dayOfWeek') }}</FieldLabel>
         <SelectInput v-model="eventDayOfWeek">
           <option value="1">Montag</option>
           <option value="2">Dienstag</option>
@@ -208,17 +209,17 @@ function submit() {
 
       <div class="grid grid-cols-2 gap-3">
         <div class="space-y-1">
-          <label class="block text-sm font-medium">{{ t('events.startTime') }}</label>
+          <FieldLabel>{{ t('events.startTime') }}</FieldLabel>
           <DateTimeInput v-model="eventStartTime" />
         </div>
         <div class="space-y-1">
-          <label class="block text-sm font-medium">{{ t('events.endTime') }}</label>
+          <FieldLabel>{{ t('events.endTime') }}</FieldLabel>
           <DateTimeInput v-model="eventEndTime" />
         </div>
       </div>
 
       <div class="space-y-1">
-        <label class="block text-sm font-medium">{{ t('events.template') }}</label>
+        <FieldLabel>{{ t('events.template') }}</FieldLabel>
         <SelectInput v-model="eventTemplateId">
           <option value="">{{ t('events.noTemplate') }}</option>
           <option v-for="tpl in templates" :key="tpl.id" :value="String(tpl.id)">{{ tpl.name }}</option>
@@ -228,7 +229,7 @@ function submit() {
 
       <!-- Field defaults for template -->
       <div v-if="currentTemplateFields.length > 0" class="space-y-3">
-        <label class="block text-sm font-medium">{{ t('events.fieldDefaults') }}</label>
+        <FieldLabel>{{ t('events.fieldDefaults') }}</FieldLabel>
         <p class="text-xs text-(--text-muted)">{{ t('events.fieldDefaultsHint') }}</p>
         <div class="space-y-2">
           <div v-for="field in currentTemplateFields" :key="field.id" class="rounded-lg px-3 py-2 bg-bg-light-accent/20 dark:bg-bg-dark-accent/20 space-y-2">
@@ -254,7 +255,7 @@ function submit() {
       </div>
 
       <div class="space-y-1">
-        <label class="block text-sm font-medium">{{ t('events.category') }}</label>
+        <FieldLabel>{{ t('events.category') }}</FieldLabel>
         <SelectInput v-model="eventCategoryId">
           <option value="">{{ t('events.noCategory') }}</option>
           <option v-for="cat in categories" :key="cat.id" :value="String(cat.id)">{{ cat.name }}</option>
@@ -279,14 +280,14 @@ function submit() {
         </div>
 
         <div v-if="eventHasDeadline" class="space-y-1">
-          <label class="block text-sm font-medium">{{ t('events.registrationDeadline') }}</label>
+          <FieldLabel>{{ t('events.registrationDeadline') }}</FieldLabel>
           <DateTimeInput v-model="eventRegistrationDeadline" />
         </div>
       </template>
 
       <!-- Restrictions -->
       <div class="space-y-2">
-        <label class="block text-sm font-medium">{{ t('events.restrictToRoles') }}</label>
+        <FieldLabel>{{ t('events.restrictToRoles') }}</FieldLabel>
         <p class="text-xs text-(--text-muted)">{{ t('events.restrictToRolesHint') }}</p>
         <RestrictionPicker
           :roles="roles"

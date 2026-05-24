@@ -15,6 +15,7 @@ import VChart from 'vue-echarts'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
+import EmptyState from '@/components/feedback/EmptyState.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
@@ -26,6 +27,8 @@ import type { Form, FormAnalytics, FormQuestionAnalytics, FormResponse, FormAnsw
 import { QuestionTypes } from '@/api/types'
 import { forms, profileFields, stationMembers } from '@/api'
 import MemberName from '@/components/avatar/MemberName.vue'
+import SectionHeader from '@/components/typography/SectionHeader.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
 
 use([CanvasRenderer, BarChart, PieChart, TitleComponent, TooltipComponent, LegendComponent, GridComponent])
 
@@ -343,7 +346,7 @@ onMounted(loadData)
       <template v-if="!loading && form && analytics">
         <div class="flex items-center justify-between">
           <div>
-            <h2 class="text-xl font-semibold">{{ form.title }}</h2>
+            <SectionHeader>{{ form.title }}</SectionHeader>
             <p class="text-(--text-muted) text-sm">
               {{ t('forms.analytics.totalResponses') }}: {{ analytics.totalResponses }}
             </p>
@@ -357,9 +360,7 @@ onMounted(loadData)
           </div>
         </div>
 
-        <div v-if="analytics.totalResponses === 0" class="text-center text-(--text-muted) py-8">
-          {{ t('forms.analytics.noResponses') }}
-        </div>
+        <EmptyState v-if="analytics.totalResponses === 0">{{ t('forms.analytics.noResponses') }}</EmptyState>
 
         <template v-else>
           <TabBar v-model="activeTab" :tabs="tabs" />
@@ -368,7 +369,7 @@ onMounted(loadData)
           <div v-if="activeTab === 'charts'" class="space-y-6">
             <NeutralContainer v-for="q in analytics.questions" :key="q.questionId">
               <div class="space-y-3">
-                <h3 class="font-medium">{{ q.title }}</h3>
+                <SubHeader class="font-medium">{{ q.title }}</SubHeader>
                 <p class="text-xs text-(--text-muted)">{{ q.values.length }} {{ t('forms.responses') }}</p>
                 <VChart v-if="q.questionType === QuestionTypes.CHOICE" :option="buildChoiceChart(q)" autoresize style="height: 250px" />
                 <VChart v-if="q.questionType === QuestionTypes.RATING" :option="buildRatingChart(q)" autoresize style="height: 200px" />
@@ -426,7 +427,7 @@ onMounted(loadData)
       <!-- Export Modal -->
       <Modal v-model="showExportModal">
         <div class="space-y-4">
-          <h3 class="text-lg font-semibold">{{ t('forms.analytics.export') }}</h3>
+          <SubHeader class="text-lg font-semibold">{{ t('forms.analytics.export') }}</SubHeader>
 
           <!-- Question selection -->
           <div class="space-y-2">

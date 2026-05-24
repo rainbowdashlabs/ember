@@ -16,6 +16,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SuccessContainer from '@/components/container/SuccessContainer.vue'
 import NumberInput from '@/components/input/number/NumberInput.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
+import SectionHeader from '@/components/typography/SectionHeader.vue'
 import type { QuizAttemptDetail, QuizQuestion, QuizTestAnswer, StationMember } from '@/api/types'
 import { QuizQuestionTypes } from '@/api/types'
 import { quiz, stationMembers } from '@/api'
@@ -153,7 +154,7 @@ onMounted(loadData)
       <template v-if="!loading && attemptDetail">
         <div class="flex items-center justify-between flex-wrap gap-4">
           <div>
-            <h2 class="text-xl font-semibold">{{ t('quiz.evaluate.title') }}</h2>
+            <SectionHeader>{{ t('quiz.evaluate.title') }}</SectionHeader>
             <p class="text-(--text-muted) text-sm mt-1">
               {{ member?.name ?? member?.email ?? `#${attemptDetail.attempt.memberId}` }}
             </p>

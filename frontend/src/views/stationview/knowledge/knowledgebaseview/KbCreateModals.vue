@@ -13,6 +13,7 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import {knowledgeBase} from '@/api'
+import SubHeader from '@/components/typography/SubHeader.vue'
 
 const {t} = useI18n()
 const router = useRouter()
@@ -230,7 +231,7 @@ defineExpose({
 <template>
     <!-- Create Folder Modal -->
     <Modal v-model="showCreateFolderModal">
-        <h3 class="text-lg font-semibold mb-3">{{ t('kb.newFolder') }}</h3>
+        <SubHeader class="text-lg font-semibold mb-3">{{ t('kb.newFolder') }}</SubHeader>
         <form @submit.prevent="handleCreateFolder" class="flex flex-col gap-3">
             <TextInput v-model="newFolderName" :placeholder="t('kb.folderName')" required/>
             <TextAreaInput v-model="newFolderDescription" :placeholder="t('kb.description')"/>
@@ -240,7 +241,7 @@ defineExpose({
 
     <!-- Create File Modal -->
     <Modal v-model="showCreateFileModal">
-        <h3 class="text-lg font-semibold mb-3">{{ t('kb.newFile') }}</h3>
+        <SubHeader class="text-lg font-semibold mb-3">{{ t('kb.newFile') }}</SubHeader>
         <form @submit.prevent="handleCreateFile" class="flex flex-col gap-3">
             <TextInput v-model="newFileName" :placeholder="t('kb.fileName')" required/>
             <TextAreaInput v-model="newFileDescription" :placeholder="t('kb.description')"/>
@@ -250,7 +251,7 @@ defineExpose({
 
     <!-- Upload File Modal -->
     <Modal v-model="showUploadModal">
-        <h3 class="text-lg font-semibold mb-3">{{ t('kb.uploadFile') }}</h3>
+        <SubHeader class="text-lg font-semibold mb-3">{{ t('kb.uploadFile') }}</SubHeader>
         <form @submit.prevent="handleUploadFile" class="flex flex-col gap-3">
             <input
                 type="file"
@@ -265,7 +266,7 @@ defineExpose({
 
     <!-- Import Document Modal -->
     <Modal v-model="showImportModal">
-        <h3 class="text-lg font-semibold mb-3">{{ t('kb.importDocument') }}</h3>
+        <SubHeader class="text-lg font-semibold mb-3">{{ t('kb.importDocument') }}</SubHeader>
         <p class="text-sm text-[var(--text-muted)] mb-3">{{ t('kb.importDocumentHint') }}</p>
         <form @submit.prevent="handleImportDocument" class="flex flex-col gap-3">
             <input type="file" accept=".docx,.odt,.rtf,.html,.htm,.epub,.tex" @change="onImportFileSelect" />
@@ -280,7 +281,7 @@ defineExpose({
 
     <!-- YouTube Modal -->
     <Modal v-model="showYoutubeModal">
-        <h3 class="text-lg font-semibold mb-3">{{ t('kb.addYoutube') }}</h3>
+        <SubHeader class="text-lg font-semibold mb-3">{{ t('kb.addYoutube') }}</SubHeader>
         <form @submit.prevent="handleCreateYoutube" class="flex flex-col gap-3">
             <TextInput v-model="youtubeName" :placeholder="t('kb.fileName')" required/>
             <TextInput v-model="youtubeUrl" :placeholder="t('kb.youtubeUrl')" required/>
@@ -291,7 +292,7 @@ defineExpose({
 
     <!-- Link Modal -->
     <Modal v-model="showLinkModal">
-        <h3 class="text-lg font-semibold mb-3">{{ t('kb.addLink') }}</h3>
+        <SubHeader class="text-lg font-semibold mb-3">{{ t('kb.addLink') }}</SubHeader>
         <form @submit.prevent="handleCreateLink" class="flex flex-col gap-3">
             <TextInput v-model="linkUrl" :placeholder="t('kb.linkUrl')" required/>
             <p class="text-xs text-[var(--text-muted)]">{{ t('kb.linkAutoFetch') }}</p>

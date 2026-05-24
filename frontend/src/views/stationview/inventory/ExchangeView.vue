@@ -14,6 +14,7 @@ import DeleteButton from '@/components/button/DeleteButton.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
+import EmptyState from '@/components/feedback/EmptyState.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import CheckboxInput from '@/components/input/toggle/CheckboxInput.vue'
 import MemberName from '@/components/avatar/MemberName.vue'
@@ -22,6 +23,10 @@ import ExchangeStatusUpdatePanel from './exchangeview/ExchangeStatusUpdatePanel.
 import ExchangeCreateModal from './exchangeview/ExchangeCreateModal.vue'
 import ExchangeLogModal from './exchangeview/ExchangeLogModal.vue'
 import ExchangeExportFieldPicker from './exchangeview/ExchangeExportFieldPicker.vue'
+import Th from '@/components/table/Th.vue'
+import Td from '@/components/table/Td.vue'
+import THead from '@/components/table/THead.vue'
+import TRow from '@/components/table/TRow.vue'
 import type {
   ExchangeRequestEntry,
   ExchangeStatusName,
@@ -253,9 +258,7 @@ onMounted(loadData)
         @toggle-field="toggleExportField"
       />
 
-      <div v-if="!loading && requests.length === 0" class="text-center text-(--text-muted) py-8">
-        {{ t('exchanges.empty') }}
-      </div>
+      <EmptyState v-if="!loading && requests.length === 0">{{ t('exchanges.empty') }}</EmptyState>
 
       <!-- Mobile cards -->
       <div v-if="!loading && requests.length > 0 && isMobile" class="space-y-3">
@@ -297,44 +300,44 @@ onMounted(loadData)
       <NeutralContainer v-else-if="!loading && requests.length > 0" class="overflow-x-auto">
         <table class="w-full text-sm">
           <thead>
-            <tr class="border-b border-bg-light-accent dark:border-bg-dark-accent text-left">
+            <THead>
               <th v-if="exportMode" class="px-1 py-2 w-8">
                 <CheckboxInput :model-value="selectedForExport.size === requests.length && requests.length > 0" @update:model-value="toggleSelectAll" />
               </th>
-              <th v-if="showMemberColumn" class="px-3 py-2 font-medium">{{ t('exchanges.colMember') }}</th>
-              <th class="px-3 py-2 font-medium">{{ t('exchanges.colInventory') }}</th>
-              <th class="px-3 py-2 font-medium">{{ t('exchanges.colOldSize') }}</th>
-              <th class="px-3 py-2 font-medium">{{ t('exchanges.colNewSize') }}</th>
-              <th class="px-3 py-2 font-medium">{{ t('exchanges.colStatus') }}</th>
-              <th class="px-3 py-2 font-medium">{{ t('exchanges.colReason') }}</th>
-              <th class="px-3 py-2 font-medium">{{ t('exchanges.colDate') }}</th>
+              <Th v-if="showMemberColumn">{{ t('exchanges.colMember') }}</Th>
+              <Th>{{ t('exchanges.colInventory') }}</Th>
+              <Th>{{ t('exchanges.colOldSize') }}</Th>
+              <Th>{{ t('exchanges.colNewSize') }}</Th>
+              <Th>{{ t('exchanges.colStatus') }}</Th>
+              <Th>{{ t('exchanges.colReason') }}</Th>
+              <Th>{{ t('exchanges.colDate') }}</Th>
               <th class="px-3 py-2"></th>
-            </tr>
+            </THead>
           </thead>
           <tbody>
             <template v-for="req in requests" :key="req.id">
-              <tr class="border-b border-bg-light-accent/50 dark:border-bg-dark-accent/50">
+              <TRow>
                 <td v-if="exportMode" class="px-1 py-2.5 w-8">
                   <CheckboxInput :model-value="selectedForExport.has(req.id)" @update:model-value="toggleExportSelection(req.id)" />
                 </td>
-                <td v-if="showMemberColumn" class="px-3 py-2.5">
+                <Td v-if="showMemberColumn">
                   <button
                     v-if="canManageInventory()"
                     class="text-primary hover:underline cursor-pointer"
                     @click="router.push({ name: 'inventory-member', params: { memberId: req.memberId } })"
                   ><MemberName :name="req.memberName" :member-id="req.memberId"/></button>
                   <MemberName v-else :name="req.memberName"/>
-                </td>
-                <td class="px-3 py-2.5 font-medium">{{ req.inventoryName }}</td>
-                <td class="px-3 py-2.5">{{ req.oldSizeLabel ?? t('common.unisize') }}</td>
-                <td class="px-3 py-2.5">{{ req.newSizeLabel ?? t('common.unisize') }}</td>
-                <td class="px-3 py-2.5"><ExchangeStatusBadge :status="req.status" /></td>
-                <td class="px-3 py-2.5 text-(--text-muted) max-w-48 truncate">{{ req.reason }}</td>
-                <td class="px-3 py-2.5 text-(--text-muted)">
+                </Td>
+                <Td class="font-medium">{{ req.inventoryName }}</Td>
+                <Td>{{ req.oldSizeLabel ?? t('common.unisize') }}</Td>
+                <Td>{{ req.newSizeLabel ?? t('common.unisize') }}</Td>
+                <Td><ExchangeStatusBadge :status="req.status" /></Td>
+                <Td class="text-(--text-muted) max-w-48 truncate">{{ req.reason }}</Td>
+                <Td muted>
                   {{ formatDate(req.createdAt) }}
                   <span v-if="req.createdByName" class="block text-xs italic">{{ t('common.createdBy', { name: req.createdByName }) }}</span>
-                </td>
-                <td class="px-3 py-2.5 text-right">
+                </Td>
+                <Td align="right">
                   <div class="flex items-center justify-end gap-1">
                     <SecondaryButton @click="openLog(req.id)">
                       <font-awesome-icon :icon="['fas', 'clock-rotate-left']" />
@@ -344,8 +347,8 @@ onMounted(loadData)
                     </SecondaryButton>
                     <DeleteButton v-if="canManageInventory()" @click="deleteRequest(req.id)" />
                   </div>
-                </td>
-              </tr>
+                </Td>
+              </TRow>
               <tr v-if="updatingId === req.id" class="bg-(--bg-accent)/30">
                 <td :colspan="(showMemberColumn ? 8 : 7) + (exportMode ? 1 : 0)" class="px-3 py-3">
                   <ExchangeStatusUpdatePanel

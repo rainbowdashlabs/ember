@@ -14,6 +14,8 @@ import DeleteButton from '@/components/button/DeleteButton.vue'
 import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
+import FieldLabel from '@/components/typography/FieldLabel.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
 import type {EventCategory} from '@/api/types'
 import {events} from '@/api'
 
@@ -158,11 +160,11 @@ async function doExport() {
 <template>
   <Modal v-model="modelValue">
     <div class="space-y-5 p-4 max-h-[80vh] overflow-y-auto">
-      <h3 class="text-lg font-semibold">{{ t('events.exportPdf') }}</h3>
+      <SubHeader class="text-lg font-semibold">{{ t('events.exportPdf') }}</SubHeader>
 
       <!-- Time range -->
       <div class="space-y-2">
-        <label class="block text-sm font-medium">{{ t('events.exportPeriod') }}</label>
+        <FieldLabel>{{ t('events.exportPeriod') }}</FieldLabel>
         <div class="flex items-center gap-3 flex-wrap">
           <SelectInput v-model="exportMode" class="w-32">
             <option value="year">{{ t('events.exportYear') }}</option>
@@ -177,7 +179,7 @@ async function doExport() {
 
       <!-- Categories -->
       <div class="space-y-2">
-        <label class="block text-sm font-medium">{{ t('events.exportCategories') }}</label>
+        <FieldLabel>{{ t('events.exportCategories') }}</FieldLabel>
         <div class="flex flex-wrap gap-2">
           <SelectionToggleButton
               v-for="cat in categories"
@@ -192,7 +194,7 @@ async function doExport() {
 
       <!-- Columns (ordered) -->
       <div class="space-y-3">
-        <label class="block text-sm font-medium">{{ t('events.exportColumns') }}</label>
+        <FieldLabel>{{ t('events.exportColumns') }}</FieldLabel>
 
         <!-- Selected columns in order -->
         <div v-if="selectedColumns.length === 0" class="text-sm text-(--text-muted) py-2 text-center">

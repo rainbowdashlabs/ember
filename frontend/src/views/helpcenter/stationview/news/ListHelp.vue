@@ -53,7 +53,7 @@ const activeRole = ref('')
       <NeutralContainer class="space-y-3">
         <div class="flex items-start justify-between gap-3">
           <div>
-            <h3 class="font-semibold text-lg">Dienstplanänderung Mai</h3>
+            <SubHeader class="font-semibold text-lg">Dienstplanänderung Mai</SubHeader>
             <p class="text-xs text-(--text-muted)">Admin &middot; 14.05.2026, 10:30</p>
           </div>
           <div v-if="activeRole === 'manager'" class="flex items-center gap-1 shrink-0">
@@ -76,7 +76,7 @@ const activeRole = ref('')
       <NeutralContainer class="space-y-3">
         <div class="flex items-start justify-between gap-3">
           <div>
-            <h3 class="font-semibold text-lg">Neue Ausrüstung eingetroffen</h3>
+            <SubHeader class="font-semibold text-lg">Neue Ausrüstung eingetroffen</SubHeader>
             <p class="text-xs text-(--text-muted)">Admin &middot; 10.05.2026, 14:00</p>
           </div>
           <div v-if="activeRole === 'manager'" class="flex items-center gap-1 shrink-0">

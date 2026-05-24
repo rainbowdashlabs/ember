@@ -9,6 +9,7 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import IconButton from '@/components/button/IconButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
+import EmptyState from '@/components/feedback/EmptyState.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import type { WaitingListInvite } from '@/api/types'
 
@@ -45,9 +46,7 @@ function formatDateTime(dateStr: string | undefined | null): string {
       </PrimaryButton>
     </div>
 
-    <div v-if="invites.length === 0" class="text-center text-(--text-muted) py-4">
-      {{ t('waitingList.noInvites') }}
-    </div>
+    <EmptyState compact v-if="invites.length === 0">{{ t('waitingList.noInvites') }}</EmptyState>
 
     <div class="space-y-2">
       <div

@@ -13,6 +13,10 @@ import TabBar from '@/components/navigation/TabBar.vue'
 import PrimaryBadge from '@/components/badge/PrimaryBadge.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import {ref} from 'vue'
+import Th from '@/components/table/Th.vue'
+import Td from '@/components/table/Td.vue'
+import THead from '@/components/table/THead.vue'
+import TRow from '@/components/table/TRow.vue'
 
 const {t} = useI18n()
 
@@ -45,32 +49,32 @@ const tabs = [
     <NeutralContainer class="overflow-x-auto">
       <table class="w-full text-sm">
         <thead>
-          <tr class="border-b border-bg-light-accent dark:border-bg-dark-accent text-left">
-            <th class="px-3 py-2 font-medium">{{ t('membersList.colName') }}</th>
-            <th class="px-3 py-2 font-medium">{{ t('membersList.colEmail') }}</th>
-            <th class="px-3 py-2 font-medium">{{ t('memberGroups.title') }}</th>
-            <th class="px-3 py-2 font-medium">{{ t('helpCenter.exampleFields.phone') }}</th>
-          </tr>
+          <THead>
+            <Th>{{ t('membersList.colName') }}</Th>
+            <Th>{{ t('membersList.colEmail') }}</Th>
+            <Th>{{ t('memberGroups.title') }}</Th>
+            <Th>{{ t('helpCenter.exampleFields.phone') }}</Th>
+          </THead>
         </thead>
         <tbody>
-          <tr class="border-b border-bg-light-accent/50 dark:border-bg-dark-accent/50 cursor-pointer hover:bg-bg-light-accent/30 dark:hover:bg-bg-dark-accent/30">
-            <td class="px-3 py-2.5 font-medium">Max Mustermann</td>
-            <td class="px-3 py-2.5">max@example.com</td>
-            <td class="px-3 py-2.5"><PrimaryBadge>Anfänger</PrimaryBadge></td>
-            <td class="px-3 py-2.5">0170 1234567</td>
-          </tr>
-          <tr class="border-b border-bg-light-accent/50 dark:border-bg-dark-accent/50 cursor-pointer hover:bg-bg-light-accent/30 dark:hover:bg-bg-dark-accent/30">
-            <td class="px-3 py-2.5 font-medium">Anna Schmidt</td>
-            <td class="px-3 py-2.5">anna@example.com</td>
-            <td class="px-3 py-2.5"><SecondaryBadge>Fortgeschrittene</SecondaryBadge></td>
-            <td class="px-3 py-2.5">0171 7654321</td>
-          </tr>
-          <tr class="border-b border-bg-light-accent/50 dark:border-bg-dark-accent/50 cursor-pointer hover:bg-bg-light-accent/30 dark:hover:bg-bg-dark-accent/30">
-            <td class="px-3 py-2.5 font-medium">Lisa Weber</td>
-            <td class="px-3 py-2.5">lisa@example.com</td>
-            <td class="px-3 py-2.5"><PrimaryBadge>Betreuer</PrimaryBadge></td>
-            <td class="px-3 py-2.5">0172 9876543</td>
-          </tr>
+          <TRow class="cursor-pointer hover:bg-bg-light-accent/30 dark:hover:bg-bg-dark-accent/30">
+            <Td class="font-medium">Max Mustermann</Td>
+            <Td>max@example.com</Td>
+            <Td><PrimaryBadge>Anfänger</PrimaryBadge></Td>
+            <Td>0170 1234567</Td>
+          </TRow>
+          <TRow class="cursor-pointer hover:bg-bg-light-accent/30 dark:hover:bg-bg-dark-accent/30">
+            <Td class="font-medium">Anna Schmidt</Td>
+            <Td>anna@example.com</Td>
+            <Td><SecondaryBadge>Fortgeschrittene</SecondaryBadge></Td>
+            <Td>0171 7654321</Td>
+          </TRow>
+          <TRow class="cursor-pointer hover:bg-bg-light-accent/30 dark:hover:bg-bg-dark-accent/30">
+            <Td class="font-medium">Lisa Weber</Td>
+            <Td>lisa@example.com</Td>
+            <Td><PrimaryBadge>Betreuer</PrimaryBadge></Td>
+            <Td>0172 9876543</Td>
+          </TRow>
         </tbody>
       </table>
     </NeutralContainer>

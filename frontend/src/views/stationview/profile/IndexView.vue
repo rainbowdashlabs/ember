@@ -14,7 +14,9 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import ErrorContainer from '@/components/container/ErrorContainer.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
+import EmptyState from '@/components/feedback/EmptyState.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
+import FieldLabel from '@/components/typography/FieldLabel.vue'
 import PasswordInput from '@/components/input/text/PasswordInput.vue'
 import UserAvatar from '@/components/avatar/UserAvatar.vue'
 import FileUploadButton from '@/components/button/FileUploadButton.vue'
@@ -268,15 +270,15 @@ onMounted(loadProfile)
           <SectionHeader>{{ t('profile.accountTitle') }}</SectionHeader>
           <div class="grid gap-4 sm:grid-cols-3">
             <div class="space-y-1">
-              <label class="block text-sm font-medium">{{ t('profile.firstName') }}</label>
+              <FieldLabel>{{ t('profile.firstName') }}</FieldLabel>
               <TextInput v-model="editFirstName" />
             </div>
             <div class="space-y-1">
-              <label class="block text-sm font-medium">{{ t('profile.lastName') }}</label>
+              <FieldLabel>{{ t('profile.lastName') }}</FieldLabel>
               <TextInput v-model="editLastName" />
             </div>
             <div class="space-y-1">
-              <label class="block text-sm font-medium">{{ t('profile.email') }}</label>
+              <FieldLabel>{{ t('profile.email') }}</FieldLabel>
               <TextInput v-model="editEmail" />
             </div>
           </div>
@@ -290,15 +292,15 @@ onMounted(loadProfile)
           <SectionHeader>{{ t('profile.passwordTitle') }}</SectionHeader>
           <div class="grid gap-4 sm:grid-cols-3">
             <div class="space-y-1">
-              <label class="block text-sm font-medium">{{ t('profile.currentPassword') }}</label>
+              <FieldLabel>{{ t('profile.currentPassword') }}</FieldLabel>
               <PasswordInput v-model="currentPassword" :placeholder="t('profile.currentPassword')" />
             </div>
             <div class="space-y-1">
-              <label class="block text-sm font-medium">{{ t('profile.newPassword') }}</label>
+              <FieldLabel>{{ t('profile.newPassword') }}</FieldLabel>
               <PasswordInput v-model="newPassword" :placeholder="t('profile.newPassword')" />
             </div>
             <div class="space-y-1">
-              <label class="block text-sm font-medium">{{ t('profile.confirmPassword') }}</label>
+              <FieldLabel>{{ t('profile.confirmPassword') }}</FieldLabel>
               <PasswordInput v-model="confirmPassword" :placeholder="t('profile.confirmPassword')" />
             </div>
           </div>
@@ -320,16 +322,14 @@ onMounted(loadProfile)
         <NeutralContainer class="space-y-4">
           <SectionHeader>{{ t('profile.title') }}</SectionHeader>
 
-          <div v-if="editableFields.length === 0" class="text-center text-(--text-muted) py-4">
-            {{ t('profile.noFields') }}
-          </div>
+          <EmptyState compact v-if="editableFields.length === 0">{{ t('profile.noFields') }}</EmptyState>
 
           <div v-for="field in editableFields" :key="field.id" class="space-y-1">
-            <label class="block text-sm font-medium">
+            <FieldLabel>
               {{ field.name }}
               <span v-if="parseFieldConfig(field.config).required" class="text-error">*</span>
               <span v-if="parseFieldConfig(field.config).readonly" class="text-xs text-(--text-muted) ml-1">({{ t('profile.readonlyHint') }})</span>
-            </label>
+            </FieldLabel>
 
             <ProfileFieldInput
               :field-type="field.fieldType ?? 'text'"

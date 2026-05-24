@@ -16,6 +16,7 @@ import NumberInput from '@/components/input/number/NumberInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
+import FieldHint from '@/components/typography/FieldHint.vue'
 import { ai } from '@/api'
 import type { AiModel, AiSettings } from '@/api/ai'
 
@@ -127,7 +128,7 @@ async function generateWrongAnswers() {
 <template>
   <SubHeader>{{ t('quiz.questions.config.options') }}</SubHeader>
   <div class="flex items-center gap-2">
-    <label class="text-xs text-(--text-muted)">{{ t('quiz.questions.config.pointsPerCorrect') }}</label>
+    <FieldHint>{{ t('quiz.questions.config.pointsPerCorrect') }}</FieldHint>
     <DecimalInput :model-value="(config.pointsPerCorrect as number)" step="0.5" class="w-20" @update:model-value="(v: number | undefined) => updateConfig({ pointsPerCorrect: v ?? 0.5 })" />
   </div>
   <p class="text-xs text-(--text-muted)">{{ t('quiz.questions.config.mcScoringHint') }}</p>
@@ -190,7 +191,7 @@ async function generateWrongAnswers() {
     </div>
     <div class="flex items-center gap-3">
       <div class="flex items-center gap-2">
-        <label class="text-xs text-(--text-muted)">{{ t('quiz.ai.count') }}</label>
+        <FieldHint>{{ t('quiz.ai.count') }}</FieldHint>
         <NumberInput v-model="aiCount" class="w-16" />
       </div>
       <PrimaryButton :disabled="aiGenerating" @click="generateWrongAnswers">

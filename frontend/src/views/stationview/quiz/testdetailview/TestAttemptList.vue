@@ -7,6 +7,7 @@
 import {useI18n} from 'vue-i18n'
 import {useRouter} from 'vue-router'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
+import EmptyState from '@/components/feedback/EmptyState.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
@@ -48,9 +49,7 @@ function attemptStatusLabel(status: string): string {
   <div class="space-y-3">
     <SectionHeader>{{ t('quiz.attempt.title') }} ({{ attempts.length }})</SectionHeader>
 
-    <div v-if="attempts.length === 0" class="text-center text-(--text-muted) py-4">
-      {{ t('quiz.attempt.noAttempts') }}
-    </div>
+    <EmptyState compact v-if="attempts.length === 0">{{ t('quiz.attempt.noAttempts') }}</EmptyState>
 
     <!-- Mobile cards -->
     <template v-if="isMobile">

@@ -12,6 +12,7 @@ import HelpTip from '@/components/helpcenter/HelpTip.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import InfoContainer from '@/components/container/InfoContainer.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
 
 const {t} = useI18n()
 
@@ -41,7 +42,7 @@ const dummyNotifyEventStatus = ref(true)
 
     <!-- Dummy: Email settings -->
     <NeutralContainer class="space-y-4">
-      <h3 class="font-semibold text-sm">{{ t('userSettings.emailTitle') }}</h3>
+      <SubHeader class="font-semibold text-sm">{{ t('userSettings.emailTitle') }}</SubHeader>
 
       <!-- Master email toggle -->
       <div class="flex items-center justify-between">
@@ -56,7 +57,7 @@ const dummyNotifyEventStatus = ref(true)
       </div>
 
       <template v-if="dummyEmailEnabled">
-        <h3 class="font-semibold text-sm pt-2">{{ t('userSettings.notifications') }}</h3>
+        <SubHeader class="font-semibold text-sm pt-2">{{ t('userSettings.notifications') }}</SubHeader>
         <p class="text-xs text-(--text-muted)">{{ t('userSettings.notificationsHint') }}</p>
 
         <div class="space-y-3">

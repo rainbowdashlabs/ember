@@ -25,6 +25,7 @@ import { QuestionTypes } from '@/api/types'
 import { forms } from '@/api'
 import type { EligibleMembers } from '@/api/forms'
 import { useSession } from '@/composables/useSession'
+import SectionHeader from '@/components/typography/SectionHeader.vue'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -247,7 +248,7 @@ watch(loaded, (isLoaded) => {
 
       <template v-if="!loading && form">
         <div>
-          <h2 class="text-xl font-semibold">{{ form.title }}</h2>
+          <SectionHeader class="text-xl font-semibold">{{ form.title }}</SectionHeader>
           <p v-if="form.description" class="text-(--text-muted) mt-1">{{ form.description }}</p>
         </div>
 

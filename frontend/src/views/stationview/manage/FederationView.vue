@@ -102,7 +102,7 @@ onMounted(() => { if (loaded.value) loadData() })
 
     <!-- Invite / Accept Modal -->
     <Modal v-model="showInviteModal">
-      <h3 class="text-lg font-semibold mb-3">{{ t('federation.addPartner') }}</h3>
+      <SubHeader class="text-lg font-semibold mb-3">{{ t('federation.addPartner') }}</SubHeader>
       <div class="space-y-4">
         <div>
           <SubHeader>{{ t('federation.createInvite') }}</SubHeader>

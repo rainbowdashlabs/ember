@@ -14,6 +14,7 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import EditButton from '@/components/button/EditButton.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
+import FieldLabel from '@/components/typography/FieldLabel.vue'
 
 const {t} = useI18n()
 </script>
@@ -37,14 +38,14 @@ const {t} = useI18n()
       <SectionHeader>{{ t('adminStations.editTitle') }}</SectionHeader>
 
       <div class="space-y-1">
-        <label class="block text-sm font-medium">{{ t('adminStations.name') }}</label>
+        <FieldLabel>{{ t('adminStations.name') }}</FieldLabel>
         <div class="rounded-lg border border-bg-light-accent dark:border-bg-dark-accent px-3 py-2 text-sm">
           DLRG Musterstadt
         </div>
       </div>
 
       <div class="space-y-2">
-        <label class="block text-sm font-medium">{{ t('adminStations.managerEmail') }}</label>
+        <FieldLabel>{{ t('adminStations.managerEmail') }}</FieldLabel>
         <SuccessContainer class="flex items-center justify-between">
           <div>
             <div class="font-medium">Max Mustermann</div>

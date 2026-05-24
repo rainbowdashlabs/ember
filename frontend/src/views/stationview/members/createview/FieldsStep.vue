@@ -10,7 +10,10 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ProfileFieldInput from '@/components/input/ProfileFieldInput.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
+import EmptyState from '@/components/feedback/EmptyState.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
+import FieldLabel from '@/components/typography/FieldLabel.vue'
 import type {ProfileField} from '@/api/types'
 
 const {t} = useI18n()
@@ -47,14 +50,12 @@ function getValue(fieldId: number): string {
   <NeutralContainer class="space-y-4">
     <SectionHeader>{{ t('membersCreate.stepFields') }}</SectionHeader>
 
-    <div v-if="fields.length === 0" class="text-center text-(--text-muted) py-4">
-      {{ t('membersCreate.noFields') }}
-    </div>
+    <EmptyState compact v-if="fields.length === 0">{{ t('membersCreate.noFields') }}</EmptyState>
 
     <template v-if="requiredFields.length > 0">
-      <h3 class="text-sm font-semibold uppercase text-(--text-muted)">{{ t('membersCreate.requiredFields') }}</h3>
+      <SubHeader class="text-sm font-semibold uppercase text-(--text-muted)">{{ t('membersCreate.requiredFields') }}</SubHeader>
       <div v-for="field in requiredFields" :key="field.id" class="space-y-1">
-        <label class="block text-sm font-medium">{{ field.name }} <span class="text-error">*</span></label>
+        <FieldLabel>{{ field.name }} <span class="text-error">*</span></FieldLabel>
         <ProfileFieldInput
             :field-type="field.fieldType ?? 'text'"
             :model-value="getValue(field.id)"
@@ -65,9 +66,9 @@ function getValue(fieldId: number): string {
     </template>
 
     <template v-if="optionalFields.length > 0">
-      <h3 class="text-sm font-semibold uppercase text-(--text-muted) pt-2">{{ t('membersCreate.optionalFields') }}</h3>
+      <SubHeader class="text-sm font-semibold uppercase text-(--text-muted) pt-2">{{ t('membersCreate.optionalFields') }}</SubHeader>
       <div v-for="field in optionalFields" :key="field.id" class="space-y-1">
-        <label class="block text-sm font-medium">{{ field.name }}</label>
+        <FieldLabel>{{ field.name }}</FieldLabel>
         <ProfileFieldInput
             :field-type="field.fieldType ?? 'text'"
             :model-value="getValue(field.id)"

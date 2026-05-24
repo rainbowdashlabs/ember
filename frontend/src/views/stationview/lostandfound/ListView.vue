@@ -15,9 +15,13 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import DateInput from '@/components/input/datetime/DateInput.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
+import IconButton from '@/components/button/IconButton.vue'
+import FieldLabel from '@/components/typography/FieldLabel.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
+import EmptyState from '@/components/feedback/EmptyState.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import {lostAndFound} from '@/api'
 import client from '@/api/client'
@@ -193,9 +197,7 @@ onMounted(loadItems)
       <Alert v-if="error" variant="error">{{ error }}</Alert>
       <Spinner v-if="loading" size="lg"/>
 
-      <div v-if="!loading && items.length === 0" class="text-center text-(--text-muted) py-8">
-        {{ t('lostAndFound.empty') }}
-      </div>
+      <EmptyState v-if="!loading && items.length === 0">{{ t('lostAndFound.empty') }}</EmptyState>
 
       <div v-if="!loading" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <NeutralContainer v-for="item in items" :key="item.id" class="space-y-3"
@@ -246,7 +248,7 @@ onMounted(loadItems)
       <!-- Claim confirmation modal -->
       <Modal v-model="showClaimConfirm">
         <div class="space-y-4 p-4">
-          <h3 class="text-lg font-semibold">{{ t('lostAndFound.claimConfirmTitle') }}</h3>
+          <SubHeader class="text-lg font-semibold">{{ t('lostAndFound.claimConfirmTitle') }}</SubHeader>
           <p class="text-sm text-(--text-muted)">{{ t('lostAndFound.claimConfirmMessage') }}</p>
           <div class="flex justify-end gap-2">
             <SecondaryButton @click="showClaimConfirm = false">{{ t('common.cancel') }}</SecondaryButton>
@@ -260,7 +262,7 @@ onMounted(loadItems)
       <!-- Provided confirmation modal -->
       <Modal v-model="showProvidedConfirm">
         <div class="space-y-4 p-4">
-          <h3 class="text-lg font-semibold">{{ t('lostAndFound.providedConfirmTitle') }}</h3>
+          <SubHeader class="text-lg font-semibold">{{ t('lostAndFound.providedConfirmTitle') }}</SubHeader>
           <p class="text-sm text-(--text-muted)">{{ t('lostAndFound.providedConfirmMessage') }}</p>
           <div class="flex justify-end gap-2">
             <SecondaryButton @click="showProvidedConfirm = false">{{ t('common.cancel') }}</SecondaryButton>
@@ -274,16 +276,18 @@ onMounted(loadItems)
       <!-- Create modal -->
       <Modal v-model="showCreate">
         <div class="space-y-4 p-4">
-          <h3 class="text-lg font-semibold">{{ t('lostAndFound.createTitle') }}</h3>
+          <SubHeader class="text-lg font-semibold">{{ t('lostAndFound.createTitle') }}</SubHeader>
 
           <div class="space-y-2">
-            <label class="block text-sm font-medium">{{ t('lostAndFound.image') }}</label>
+            <FieldLabel>{{ t('lostAndFound.image') }}</FieldLabel>
             <div v-if="newImagePreview" class="relative">
               <img :src="newImagePreview" alt="" class="w-full max-h-48 object-cover rounded-lg"/>
-              <button class="absolute top-2 right-2 bg-error text-white rounded-full h-6 w-6 flex items-center justify-center text-xs hover:bg-error/80"
-                      @click="clearNewImage">
-                <font-awesome-icon :icon="['fas', 'xmark']"/>
-              </button>
+              <IconButton
+                :icon="['fas', 'xmark']"
+                label="Remove image"
+                class="absolute top-2 right-2 bg-error text-white rounded-full h-6 w-6 hover:bg-error/80"
+                @click="clearNewImage"
+              />
             </div>
             <div v-else class="flex gap-2">
               <SecondaryButton class="flex-1" @click="fileInputRef?.click()">
@@ -302,11 +306,11 @@ onMounted(loadItems)
           </div>
 
           <div class="space-y-1">
-            <label class="block text-sm font-medium">{{ t('lostAndFound.description') }}</label>
+            <FieldLabel>{{ t('lostAndFound.description') }}</FieldLabel>
             <TextAreaInput v-model="newDescription" :placeholder="t('lostAndFound.descriptionPlaceholder')"/>
           </div>
           <div class="space-y-1">
-            <label class="block text-sm font-medium">{{ t('lostAndFound.foundAt') }}</label>
+            <FieldLabel>{{ t('lostAndFound.foundAt') }}</FieldLabel>
             <DateInput v-model="newFoundAt"/>
           </div>
           <div class="flex justify-end gap-2">

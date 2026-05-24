@@ -15,6 +15,10 @@ import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
+import Th from '@/components/table/Th.vue'
+import Td from '@/components/table/Td.vue'
+import THead from '@/components/table/THead.vue'
+import TRow from '@/components/table/TRow.vue'
 
 const {t} = useI18n()
 </script>
@@ -49,46 +53,46 @@ const {t} = useI18n()
     <NeutralContainer class="overflow-x-auto">
       <table class="w-full text-sm">
         <thead>
-        <tr class="border-b border-bg-light-accent dark:border-bg-dark-accent text-left">
-          <th class="px-3 py-2 font-medium">{{ t('adminApplications.name') }}</th>
-          <th class="px-3 py-2 font-medium">{{ t('adminApplications.email') }}</th>
-          <th class="px-3 py-2 font-medium">{{ t('adminApplications.station') }}</th>
-          <th class="px-3 py-2 font-medium">{{ t('adminApplications.date') }}</th>
-          <th class="px-3 py-2 font-medium">{{ t('adminApplications.status') }}</th>
+        <THead>
+          <Th>{{ t('adminApplications.name') }}</Th>
+          <Th>{{ t('adminApplications.email') }}</Th>
+          <Th>{{ t('adminApplications.station') }}</Th>
+          <Th>{{ t('adminApplications.date') }}</Th>
+          <Th>{{ t('adminApplications.status') }}</Th>
           <th class="px-3 py-2"></th>
-        </tr>
+        </THead>
         </thead>
         <tbody>
-        <tr class="border-b border-bg-light-accent/50 dark:border-bg-dark-accent/50">
-          <td class="px-3 py-2.5">
+        <TRow>
+          <Td>
             <div class="font-medium">Lisa Beispiel</div>
             <div class="text-xs text-(--text-muted) mt-0.5">Wir möchten unsere Wache digital verwalten.</div>
-          </td>
-          <td class="px-3 py-2.5 text-(--text-muted)">lisa@beispiel.de</td>
-          <td class="px-3 py-2.5">DLRG Neustadt</td>
-          <td class="px-3 py-2.5 text-(--text-muted)">12.05.2026</td>
-          <td class="px-3 py-2.5">
+          </Td>
+          <Td muted>lisa@beispiel.de</Td>
+          <Td>DLRG Neustadt</Td>
+          <Td muted>12.05.2026</Td>
+          <Td>
             <SecondaryBadge>{{ t('adminApplications.pendingBadge') }}</SecondaryBadge>
-          </td>
-          <td class="px-3 py-2.5 text-right">
+          </Td>
+          <Td align="right">
             <div class="flex items-center justify-end gap-1">
               <PrimaryButton>{{ t('adminApplications.accept') }}</PrimaryButton>
               <ErrorButton>{{ t('adminApplications.deny') }}</ErrorButton>
             </div>
-          </td>
-        </tr>
-        <tr class="border-b border-bg-light-accent/50 dark:border-bg-dark-accent/50">
-          <td class="px-3 py-2.5">
+          </Td>
+        </TRow>
+        <TRow>
+          <Td>
             <div class="font-medium">Tom Muster</div>
-          </td>
-          <td class="px-3 py-2.5 text-(--text-muted)">tom@muster.de</td>
-          <td class="px-3 py-2.5">DLRG Altstadt</td>
-          <td class="px-3 py-2.5 text-(--text-muted)">10.05.2026</td>
-          <td class="px-3 py-2.5">
+          </Td>
+          <Td muted>tom@muster.de</Td>
+          <Td>DLRG Altstadt</Td>
+          <Td muted>10.05.2026</Td>
+          <Td>
             <SuccessBadge>{{ t('adminApplications.accepted') }}</SuccessBadge>
-          </td>
-          <td class="px-3 py-2.5"></td>
-        </tr>
+          </Td>
+          <Td></Td>
+        </TRow>
         </tbody>
       </table>
     </NeutralContainer>

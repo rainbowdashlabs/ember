@@ -10,6 +10,7 @@ import ViewContent from '@/components/layout/ViewContent.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
+import FieldLabel from '@/components/typography/FieldLabel.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import NumberInput from '@/components/input/number/NumberInput.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
@@ -195,32 +196,32 @@ onMounted(async () => {
 
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label class="block text-sm font-medium mb-1">{{ t('adminSettings.auth.tokenBytes') }}</label>
+              <FieldLabel class="mb-1">{{ t('adminSettings.auth.tokenBytes') }}</FieldLabel>
               <NumberInput v-model="authConfig.tokenBytes" />
               <div class="text-xs text-(--text-muted) mt-1">{{ t('adminSettings.auth.tokenBytesHint') }}</div>
             </div>
             <div>
-              <label class="block text-sm font-medium mb-1">{{
+              <FieldLabel class="mb-1">{{
                 t('adminSettings.auth.verifyTokenHours')
-              }}</label>
+              }}</FieldLabel>
               <NumberInput v-model="authConfig.verifyTokenHours" />
               <div class="text-xs text-(--text-muted) mt-1">
                 {{ t('adminSettings.auth.verifyTokenHoursHint') }}
               </div>
             </div>
             <div>
-              <label class="block text-sm font-medium mb-1">{{
+              <FieldLabel class="mb-1">{{
                 t('adminSettings.auth.passwordTokenHours')
-              }}</label>
+              }}</FieldLabel>
               <NumberInput v-model="authConfig.passwordTokenHours" />
               <div class="text-xs text-(--text-muted) mt-1">
                 {{ t('adminSettings.auth.passwordTokenHoursHint') }}
               </div>
             </div>
             <div>
-              <label class="block text-sm font-medium mb-1">{{
+              <FieldLabel class="mb-1">{{
                 t('adminSettings.auth.sessionMinutes')
-              }}</label>
+              }}</FieldLabel>
               <NumberInput v-model="authConfig.sessionMinutes" />
               <div class="text-xs text-(--text-muted) mt-1">
                 {{ t('adminSettings.auth.sessionMinutesHint') }}
@@ -239,46 +240,46 @@ onMounted(async () => {
 
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label class="block text-sm font-medium mb-1">{{ t('adminSettings.mailing.provider') }}</label>
+              <FieldLabel class="mb-1">{{ t('adminSettings.mailing.provider') }}</FieldLabel>
               <SelectInput v-model="mailingConfig.provider">
                 <option v-for="p in mailProviders" :key="p" :value="p">{{ p }}</option>
               </SelectInput>
             </div>
             <div>
-              <label class="block text-sm font-medium mb-1">{{
+              <FieldLabel class="mb-1">{{
                 t('adminSettings.mailing.senderAddress')
-              }}</label>
+              }}</FieldLabel>
               <TextInput v-model="mailingConfig.senderAddress" />
             </div>
             <div>
-              <label class="block text-sm font-medium mb-1">{{ t('adminSettings.mailing.senderName') }}</label>
+              <FieldLabel class="mb-1">{{ t('adminSettings.mailing.senderName') }}</FieldLabel>
               <TextInput v-model="mailingConfig.senderName" />
             </div>
             <div>
-              <label class="block text-sm font-medium mb-1">{{ t('adminSettings.mailing.user') }}</label>
+              <FieldLabel class="mb-1">{{ t('adminSettings.mailing.user') }}</FieldLabel>
               <TextInput v-model="mailingConfig.user" />
             </div>
             <div>
-              <label class="block text-sm font-medium mb-1">{{ t('adminSettings.mailing.password') }}</label>
+              <FieldLabel class="mb-1">{{ t('adminSettings.mailing.password') }}</FieldLabel>
               <TextInput v-model="mailingConfig.password" />
             </div>
             <div>
-              <label class="block text-sm font-medium mb-1">{{ t('adminSettings.mailing.apiKey') }}</label>
+              <FieldLabel class="mb-1">{{ t('adminSettings.mailing.apiKey') }}</FieldLabel>
               <TextInput v-model="mailingConfig.apiKey" />
             </div>
             <div>
-              <label class="block text-sm font-medium mb-1">{{
+              <FieldLabel class="mb-1">{{
                 t('adminSettings.mailing.dailySendLimit')
-              }}</label>
+              }}</FieldLabel>
               <NumberInput v-model="mailingConfig.dailySendLimit" />
               <div class="text-xs text-(--text-muted) mt-1">
                 {{ t('adminSettings.mailing.dailySendLimitHint') }}
               </div>
             </div>
             <div>
-              <label class="block text-sm font-medium mb-1">{{
+              <FieldLabel class="mb-1">{{
                 t('adminSettings.mailing.notificationDigestIntervalMinutes')
-              }}</label>
+              }}</FieldLabel>
               <NumberInput v-model="mailingConfig.notificationDigestIntervalMinutes" />
               <div class="text-xs text-(--text-muted) mt-1">
                 {{ t('adminSettings.mailing.notificationDigestIntervalMinutesHint') }}
@@ -291,15 +292,15 @@ onMounted(async () => {
             <SubHeader>{{ t('adminSettings.mailing.smtp.title') }}</SubHeader>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-3">
               <div>
-                <label class="block text-sm font-medium mb-1">{{
+                <FieldLabel class="mb-1">{{
                   t('adminSettings.mailing.smtp.host')
-                }}</label>
+                }}</FieldLabel>
                 <TextInput v-model="mailingConfig.smtpHost" />
               </div>
               <div>
-                <label class="block text-sm font-medium mb-1">{{
+                <FieldLabel class="mb-1">{{
                   t('adminSettings.mailing.smtp.port')
-                }}</label>
+                }}</FieldLabel>
                 <NumberInput v-model="mailingConfig.smtpPort" />
               </div>
               <div class="flex items-center gap-2 pt-6">

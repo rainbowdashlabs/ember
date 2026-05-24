@@ -17,6 +17,7 @@ import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import type {ProfileFieldChange} from '@/api/types'
 import {profileFieldChanges} from '@/api'
 import {usePendingChanges} from '@/composables/usePendingChanges'
+import SubHeader from '@/components/typography/SubHeader.vue'
 
 const props = defineProps<{
   memberId: number
@@ -110,10 +111,10 @@ function toggleComment(changeId: number) {
 <template>
   <NeutralContainer class="space-y-4">
     <div class="flex items-center justify-between">
-      <h3 class="text-sm font-semibold">
+      <SubHeader class="text-sm font-semibold">
         <font-awesome-icon :icon="['fas', 'clock-rotate-left']" class="mr-2"/>
         {{ t('memberDetail.changeHistory') }}
-      </h3>
+      </SubHeader>
       <SuccessButton
           v-if="unacknowledgedCount > 0"
           :disabled="acknowledging"

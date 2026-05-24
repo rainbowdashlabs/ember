@@ -23,6 +23,7 @@ import NumberInput from '@/components/input/number/NumberInput.vue'
 import DecimalInput from '@/components/input/number/DecimalInput.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
+import FieldLabel from '@/components/typography/FieldLabel.vue'
 import StationBadge from '@/components/badge/StationBadge.vue'
 import { useSession } from '@/composables/useSession'
 import { protocol, federation } from '@/api'
@@ -309,7 +310,7 @@ onMounted(() => { if (loaded.value) loadData() })
 
     <!-- Section Modal -->
     <Modal v-model="showSectionModal">
-      <h3 class="text-lg font-semibold mb-3">{{ editSectionId ? t('protocol.editSection') : t('protocol.addSection') }}</h3>
+      <SubHeader class="font-semibold mb-3">{{ editSectionId ? t('protocol.editSection') : t('protocol.addSection') }}</SubHeader>
       <form @submit.prevent="handleSaveSection" class="space-y-3">
         <TextInput v-model="sectionName" :placeholder="t('protocol.sectionName')" required />
         <TextAreaInput v-model="sectionDescription" :placeholder="t('protocol.description')" />
@@ -329,7 +330,7 @@ onMounted(() => { if (loaded.value) loadData() })
 
     <!-- Item Modal -->
     <Modal v-model="showItemModal">
-      <h3 class="text-lg font-semibold mb-3">{{ editItemId ? t('protocol.editItem') : t('protocol.addItem') }}</h3>
+      <SubHeader class="font-semibold mb-3">{{ editItemId ? t('protocol.editItem') : t('protocol.addItem') }}</SubHeader>
       <form @submit.prevent="handleSaveItem" class="space-y-3">
         <TextInput v-model="itemLabel" :placeholder="t('protocol.itemLabel')" required />
         <TextAreaInput v-model="itemDescription" :placeholder="t('protocol.description')" />
@@ -345,12 +346,12 @@ onMounted(() => { if (loaded.value) loadData() })
 
     <!-- Edit Protocol Modal -->
     <Modal v-model="showEditProtocolModal">
-      <h3 class="text-lg font-semibold mb-3">{{ t('common.edit') }}</h3>
+      <SubHeader class="font-semibold mb-3">{{ t('common.edit') }}</SubHeader>
       <form @submit.prevent="handleSaveProtocol" class="space-y-3">
         <TextInput v-model="editProtoName" :placeholder="t('protocol.name')" required />
         <TextAreaInput v-model="editProtoDescription" :placeholder="t('protocol.description')" />
         <div>
-          <label class="block text-sm font-medium mb-1">{{ t('protocol.passThreshold') }}</label>
+          <FieldLabel class="mb-1">{{ t('protocol.passThreshold') }}</FieldLabel>
           <NumberInput v-model="editProtoPassThreshold" />
           <p class="text-xs text-[var(--text-muted)] mt-1">{{ t('protocol.passThresholdHint') }}</p>
         </div>

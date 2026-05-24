@@ -11,8 +11,10 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import EditButton from '@/components/button/EditButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
+import EmptyState from '@/components/feedback/EmptyState.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
 import type {AttendanceTemplate, EventCategory, StationEvent} from '@/api/types'
 import {EventTypes, isRecurringEvent} from '@/api/types'
 
@@ -87,19 +89,17 @@ function formatDate(iso?: string): string {
       </div>
     </div>
 
-    <div v-if="!hasEvents" class="text-center text-(--text-muted) py-4">
-      {{ t('events.noEvents') }}
-    </div>
+    <EmptyState compact v-if="!hasEvents">{{ t('events.noEvents') }}</EmptyState>
 
     <div v-for="group in groups" :key="group.category?.id ?? 'none'" class="space-y-2">
       <div v-if="group.category" class="flex items-center justify-between pt-2">
-        <h3 class="text-sm font-semibold uppercase text-(--text-muted)">{{ group.category.name }}</h3>
+        <SubHeader class="text-sm font-semibold uppercase text-(--text-muted)">{{ group.category.name }}</SubHeader>
         <div class="flex items-center gap-1">
           <EditButton @click="emit('editCategory', group.category!)"/>
           <DeleteButton @click="emit('deleteCategory', group.category!.id)"/>
         </div>
       </div>
-      <h3 v-else class="text-sm font-semibold uppercase text-(--text-muted) pt-2">{{ t('events.uncategorized') }}</h3>
+      <SubHeader v-else class="text-sm font-semibold uppercase text-(--text-muted) pt-2">{{ t('events.uncategorized') }}</SubHeader>
 
       <NeutralContainer v-for="ev in group.events" :key="ev.id" class="flex items-center justify-between cursor-pointer hover:bg-(--bg-accent) transition-colors"
                         @click="router.push({ name: 'event-detail', params: { id: ev.id } })">

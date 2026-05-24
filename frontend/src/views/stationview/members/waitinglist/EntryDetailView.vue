@@ -23,6 +23,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
+import FieldLabel from '@/components/typography/FieldLabel.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
@@ -241,24 +242,24 @@ onMounted(loadData)
           <SubHeader>{{ t('waitingList.entryDetails') }}</SubHeader>
           <div class="grid gap-4 sm:grid-cols-2">
             <div class="space-y-1">
-              <label class="block text-sm font-medium">{{ t('waitingList.firstname') }}</label>
+              <FieldLabel>{{ t('waitingList.firstname') }}</FieldLabel>
               <TextInput v-model="editFirstname" />
             </div>
             <div class="space-y-1">
-              <label class="block text-sm font-medium">{{ t('waitingList.lastname') }}</label>
+              <FieldLabel>{{ t('waitingList.lastname') }}</FieldLabel>
               <TextInput v-model="editLastname" />
             </div>
             <div class="space-y-1">
-              <label class="block text-sm font-medium">{{ t('waitingList.parentName') }}</label>
+              <FieldLabel>{{ t('waitingList.parentName') }}</FieldLabel>
               <TextInput v-model="editParentName" />
             </div>
             <div class="space-y-1">
-              <label class="block text-sm font-medium">{{ t('waitingList.email') }}</label>
+              <FieldLabel>{{ t('waitingList.email') }}</FieldLabel>
               <TextInput v-model="editEmail" />
             </div>
           </div>
           <div class="space-y-1">
-            <label class="block text-sm font-medium">{{ t('waitingList.notes') }}</label>
+            <FieldLabel>{{ t('waitingList.notes') }}</FieldLabel>
             <TextAreaInput v-model="editNotes" />
           </div>
         </NeutralContainer>
@@ -268,10 +269,10 @@ onMounted(loadData)
           <SubHeader>{{ t('waitingList.customFields') }}</SubHeader>
           <div class="grid gap-4 sm:grid-cols-2">
             <div v-for="field in fields" :key="field.id" class="space-y-1">
-              <label class="block text-sm font-medium">
+              <FieldLabel>
                 {{ field.name }}
                 <span v-if="field.required" class="text-error text-xs ml-1">*</span>
-              </label>
+              </FieldLabel>
 
               <TextInput
                 v-if="field.fieldType === 'TEXT'"

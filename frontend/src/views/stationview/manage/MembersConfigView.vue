@@ -13,9 +13,11 @@ import SelectInput from '@/components/input/select/SelectInput.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
+import EmptyState from '@/components/feedback/EmptyState.vue'
 import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import TabBar from '@/components/navigation/TabBar.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
+import FieldLabel from '@/components/typography/FieldLabel.vue'
 import ProfileFieldModal from './membersconfig/FieldModal.vue'
 import ProfileFieldTable from './membersconfig/FieldTable.vue'
 import type {MemberGroup, ProfileField} from '@/api/types'
@@ -300,7 +302,7 @@ onMounted(loadFields)
 
         <!-- Group selector for GROUP tab -->
         <div v-if="activeTab === 'GROUP'" class="space-y-2">
-          <label class="block text-sm font-medium">{{ t('membersConfig.selectGroup') }}</label>
+          <FieldLabel>{{ t('membersConfig.selectGroup') }}</FieldLabel>
           <SelectInput v-model="selectedGroupId">
             <option disabled value="">{{ t('membersConfig.selectGroupPlaceholder') }}</option>
             <option v-for="group in availableGroups" :key="group.id" :value="String(group.id)">{{ group.name }}</option>
@@ -325,9 +327,9 @@ onMounted(loadFields)
           </p>
 
           <div v-if="currentFields.length === 0" class="space-y-4">
-            <p class="text-center text-(--text-muted) py-4">{{ t('membersConfig.noFields') }}</p>
+            <EmptyState compact>{{ t('membersConfig.noFields') }}</EmptyState>
             <div class="space-y-2">
-              <label class="block text-sm font-medium">{{ t('membersConfig.templates') }}</label>
+              <FieldLabel>{{ t('membersConfig.templates') }}</FieldLabel>
               <div class="flex flex-wrap gap-2">
                 <SecondaryButton v-for="tpl in fieldTemplates" :key="tpl.name"
                                  @click="applyTemplate(tpl)">

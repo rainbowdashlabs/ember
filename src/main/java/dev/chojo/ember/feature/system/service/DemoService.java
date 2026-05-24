@@ -95,6 +95,8 @@ public class DemoService {
     private final DemoLendingSeeder lendingSeeder;
     private final ApplicationSettingRepository applicationSettingRepository;
     private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
+    private volatile Instant lastActivity = Instant.now();
+    private volatile boolean needsReset = false;
 
     @Inject
     public DemoService(
@@ -179,10 +181,29 @@ public class DemoService {
             return;
         }
         if (!demoConfig.enabled()) return;
-        log.info("Demo mode enabled. Reset interval: {} hours", demoConfig.resetIntervalHours());
+        log.info("Demo mode enabled. Idle reset after {} minutes of inactivity", demoConfig.idleResetMinutes());
         resetAndSeed();
-        scheduler.scheduleAtFixedRate(
-                this::resetAndSeed, demoConfig.resetIntervalHours(), demoConfig.resetIntervalHours(), TimeUnit.HOURS);
+        // Check every minute if idle timeout has been reached
+        scheduler.scheduleAtFixedRate(this::checkIdleReset, 1, 1, TimeUnit.MINUTES);
+    }
+
+    /**
+     * Records an authenticated request. Resets the idle timer and marks the data as dirty.
+     * Called from the API access handler on every authenticated request.
+     */
+    public void recordActivity() {
+        lastActivity = Instant.now();
+        needsReset = true;
+    }
+
+    private void checkIdleReset() {
+        if (!needsReset) return;
+        var idleMinutes = Duration.between(lastActivity, Instant.now()).toMinutes();
+        if (idleMinutes >= demoConfig.idleResetMinutes()) {
+            log.info("Demo: {} minutes idle, resetting data...", idleMinutes);
+            needsReset = false;
+            resetAndSeed();
+        }
     }
 
     public void resetAndSeed() {

@@ -13,6 +13,7 @@ import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import NumberInput from '@/components/input/number/NumberInput.vue'
+import FieldHint from '@/components/typography/FieldHint.vue'
 import ImageUploadField from './ImageUploadField.vue'
 import type { QuizCategory, QuizQuestionTypeName } from '@/api/types'
 import { QuizQuestionTypes } from '@/api/types'
@@ -136,7 +137,7 @@ function onTypeChange(val: QuizQuestionTypeName | string | undefined) {
       </label>
       <span v-if="autoPoints" class="text-sm text-(--text-muted)">= {{ calculatedPoints }} {{ t('quiz.points') }}</span>
       <div v-else class="flex items-center gap-2">
-        <label class="text-xs text-(--text-muted)">{{ t('quiz.questions.points') }}</label>
+        <FieldHint>{{ t('quiz.questions.points') }}</FieldHint>
         <NumberInput :model-value="points" class="w-20" @update:model-value="(v: number | undefined) => emit('update:points', v ?? 1)" />
       </div>
     </div>

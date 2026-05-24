@@ -16,8 +16,10 @@ import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import SizeBadge from '@/components/badge/SizeBadge.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
+import EmptyState from '@/components/feedback/EmptyState.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
+import FieldLabel from '@/components/typography/FieldLabel.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import type {
@@ -159,9 +161,7 @@ onMounted(loadData)
       <Spinner v-if="loading" size="lg" />
       <Alert v-if="error" variant="error">{{ error }}</Alert>
 
-      <div v-if="!loading && entries.length === 0" class="text-center text-(--text-muted) py-8">
-        {{ t('procurement.empty') }}
-      </div>
+      <EmptyState v-if="!loading && entries.length === 0">{{ t('procurement.empty') }}</EmptyState>
 
       <div v-if="!loading" class="space-y-3">
         <NeutralContainer v-for="entry in entries" :key="entry.id">
@@ -206,7 +206,7 @@ onMounted(loadData)
           </template>
           <template v-else>
             <div class="space-y-1">
-              <label class="block text-sm font-medium">{{ t('procurement.member') }}</label>
+              <FieldLabel>{{ t('procurement.member') }}</FieldLabel>
               <SelectInput v-model="createMemberId">
                 <option value="" disabled>{{ t('procurement.selectMember') }}</option>
                 <option v-for="m in members" :key="m.id" :value="String(m.id)">{{ memberDisplayName(m) }}</option>
@@ -214,7 +214,7 @@ onMounted(loadData)
             </div>
 
             <div class="space-y-1">
-              <label class="block text-sm font-medium">{{ t('procurement.inventory') }}</label>
+              <FieldLabel>{{ t('procurement.inventory') }}</FieldLabel>
               <SelectInput v-model="createInventoryId" @change="onInventorySelected">
                 <option value="" disabled>{{ t('procurement.selectInventory') }}</option>
                 <option v-for="inv in inventories" :key="inv.id" :value="String(inv.id)">{{ inv.name }}</option>
@@ -222,7 +222,7 @@ onMounted(loadData)
             </div>
 
             <div v-if="availableSizes.length > 0" class="space-y-1">
-              <label class="block text-sm font-medium">{{ t('procurement.size') }}</label>
+              <FieldLabel>{{ t('procurement.size') }}</FieldLabel>
               <SelectInput v-model="createSizeId">
                 <option value="">{{ t('procurement.noSize') }}</option>
                 <option v-for="size in availableSizes" :key="size.id" :value="String(size.id)">{{ size.label }}</option>
@@ -230,7 +230,7 @@ onMounted(loadData)
             </div>
 
             <div class="space-y-1">
-              <label class="block text-sm font-medium">{{ t('procurement.notes') }}</label>
+              <FieldLabel>{{ t('procurement.notes') }}</FieldLabel>
               <TextAreaInput v-model="createNotes" :placeholder="t('procurement.notesPlaceholder')" />
             </div>
 

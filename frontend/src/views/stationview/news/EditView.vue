@@ -15,6 +15,7 @@ import TextInput from '@/components/input/text/TextInput.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
+import FieldLabel from '@/components/typography/FieldLabel.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
@@ -123,13 +124,13 @@ onMounted(loadData)
       <template v-if="!loading">
         <NeutralContainer class="space-y-4">
           <div class="space-y-1">
-            <label class="block text-sm font-medium">{{ t('news.titleField') }}</label>
+            <FieldLabel>{{ t('news.titleField') }}</FieldLabel>
             <TextInput v-model="title" :placeholder="t('news.titlePlaceholder')" />
           </div>
 
           <div class="space-y-1">
             <div class="flex items-center justify-between">
-              <label class="block text-sm font-medium">{{ t('news.content') }}</label>
+              <FieldLabel>{{ t('news.content') }}</FieldLabel>
               <button
                 type="button"
                 class="text-xs text-primary hover:underline"

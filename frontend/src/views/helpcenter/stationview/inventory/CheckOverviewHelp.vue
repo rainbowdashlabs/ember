@@ -16,6 +16,10 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
+import Th from '@/components/table/Th.vue'
+import Td from '@/components/table/Td.vue'
+import THead from '@/components/table/THead.vue'
+import TRow from '@/components/table/TRow.vue'
 
 const {t} = useI18n()
 </script>
@@ -50,51 +54,51 @@ const {t} = useI18n()
       <NeutralContainer class="overflow-x-auto">
         <table class="w-full text-sm">
           <thead>
-            <tr class="border-b border-bg-light-accent dark:border-bg-dark-accent text-left">
-              <th class="px-3 py-2 font-medium">{{ t('inventory.check.member') }}</th>
-              <th class="px-3 py-2 font-medium">{{ t('inventory.check.lastChecked') }}</th>
-              <th class="px-3 py-2 font-medium">{{ t('inventory.check.checkedBy') }}</th>
-              <th class="px-3 py-2 font-medium">{{ t('inventory.check.status') }}</th>
+            <THead>
+              <Th>{{ t('inventory.check.member') }}</Th>
+              <Th>{{ t('inventory.check.lastChecked') }}</Th>
+              <Th>{{ t('inventory.check.checkedBy') }}</Th>
+              <Th>{{ t('inventory.check.status') }}</Th>
               <th class="px-3 py-2"></th>
-            </tr>
+            </THead>
           </thead>
           <tbody>
-            <tr class="border-b border-bg-light-accent/50 dark:border-bg-dark-accent/50">
-              <td class="px-3 py-2.5 font-medium">Max Mustermann</td>
-              <td class="px-3 py-2.5 text-(--text-muted)">10.05.2026, 14:30</td>
-              <td class="px-3 py-2.5 text-(--text-muted)">Admin User</td>
-              <td class="px-3 py-2.5"></td>
-              <td class="px-3 py-2.5 text-right">
+            <TRow>
+              <Td class="font-medium">Max Mustermann</Td>
+              <Td muted>10.05.2026, 14:30</Td>
+              <Td muted>Admin User</Td>
+              <Td></Td>
+              <Td align="right">
                 <PrimaryButton>{{ t('inventory.check.start') }}</PrimaryButton>
-              </td>
-            </tr>
-            <tr class="border-b border-bg-light-accent/50 dark:border-bg-dark-accent/50">
-              <td class="px-3 py-2.5 font-medium">Erika Musterfrau</td>
-              <td class="px-3 py-2.5 text-(--text-muted)">{{ t('inventory.check.neverChecked') }}</td>
-              <td class="px-3 py-2.5 text-(--text-muted)">-</td>
-              <td class="px-3 py-2.5"><SecondaryBadge>{{ t('inventory.check.neverChecked') }}</SecondaryBadge></td>
-              <td class="px-3 py-2.5 text-right">
+              </Td>
+            </TRow>
+            <TRow>
+              <Td class="font-medium">Erika Musterfrau</Td>
+              <Td muted>{{ t('inventory.check.neverChecked') }}</Td>
+              <Td muted>-</Td>
+              <Td><SecondaryBadge>{{ t('inventory.check.neverChecked') }}</SecondaryBadge></Td>
+              <Td align="right">
                 <PrimaryButton>{{ t('inventory.check.start') }}</PrimaryButton>
-              </td>
-            </tr>
-            <tr class="border-b border-bg-light-accent/50 dark:border-bg-dark-accent/50">
-              <td class="px-3 py-2.5 font-medium">Jan Schmidt</td>
-              <td class="px-3 py-2.5 text-(--text-muted)">12.05.2026, 09:00</td>
-              <td class="px-3 py-2.5 text-(--text-muted)">Admin User</td>
-              <td class="px-3 py-2.5"><InfoBadge>{{ t('inventory.check.lockedByMe') }}</InfoBadge></td>
-              <td class="px-3 py-2.5 text-right">
+              </Td>
+            </TRow>
+            <TRow>
+              <Td class="font-medium">Jan Schmidt</Td>
+              <Td muted>12.05.2026, 09:00</Td>
+              <Td muted>Admin User</Td>
+              <Td><InfoBadge>{{ t('inventory.check.lockedByMe') }}</InfoBadge></Td>
+              <Td align="right">
                 <SecondaryButton>{{ t('inventory.check.continue') }}</SecondaryButton>
-              </td>
-            </tr>
-            <tr class="border-b border-bg-light-accent/50 dark:border-bg-dark-accent/50">
-              <td class="px-3 py-2.5 font-medium">Lisa Müller</td>
-              <td class="px-3 py-2.5 text-(--text-muted)">05.05.2026, 16:00</td>
-              <td class="px-3 py-2.5 text-(--text-muted)">Betreuer A</td>
-              <td class="px-3 py-2.5"><ErrorBadge>{{ t('inventory.check.locked') }}: Betreuer B</ErrorBadge></td>
-              <td class="px-3 py-2.5 text-right">
+              </Td>
+            </TRow>
+            <TRow>
+              <Td class="font-medium">Lisa Müller</Td>
+              <Td muted>05.05.2026, 16:00</Td>
+              <Td muted>Betreuer A</Td>
+              <Td><ErrorBadge>{{ t('inventory.check.locked') }}: Betreuer B</ErrorBadge></Td>
+              <Td align="right">
                 <PrimaryButton disabled>{{ t('inventory.check.start') }}</PrimaryButton>
-              </td>
-            </tr>
+              </Td>
+            </TRow>
           </tbody>
         </table>
       </NeutralContainer>

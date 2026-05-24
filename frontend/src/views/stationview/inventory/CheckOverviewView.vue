@@ -15,6 +15,7 @@ import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
+import EmptyState from '@/components/feedback/EmptyState.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
@@ -24,6 +25,10 @@ import {Roles, hasTeamRole} from '@/api/types'
 import {inventoryCheck} from '@/api'
 import {useSession} from '@/composables/useSession'
 import MemberName from '@/components/avatar/MemberName.vue'
+import Th from '@/components/table/Th.vue'
+import Td from '@/components/table/Td.vue'
+import THead from '@/components/table/THead.vue'
+import TRow from '@/components/table/TRow.vue'
 
 const {t} = useI18n()
 const router = useRouter()
@@ -138,32 +143,29 @@ onMounted(loadData)
           <IconButton :icon="['fas', 'sort']" :label="sortBy === 'name' ? t('inventory.check.sortByLastChecked') : t('inventory.check.sortByName')" class="text-xs text-(--text-muted) hover:text-primary" @click="sortBy = sortBy === 'name' ? 'lastChecked' : 'name'"/>
         </div>
 
-        <div v-if="filteredMembers.length === 0" class="text-center text-(--text-muted) py-8">
-          {{ t('inventory.check.noMembers') }}
-        </div>
+        <EmptyState v-if="filteredMembers.length === 0">{{ t('inventory.check.noMembers') }}</EmptyState>
 
         <!-- Desktop table -->
         <NeutralContainer v-else class="hidden sm:block overflow-x-auto">
           <table class="w-full text-sm">
             <thead>
-            <tr class="border-b border-bg-light-accent dark:border-bg-dark-accent text-left">
-              <th class="px-3 py-2 font-medium">{{ t('inventory.check.member') }}</th>
-              <th class="px-3 py-2 font-medium">{{ t('inventory.check.lastChecked') }}</th>
-              <th class="px-3 py-2 font-medium">{{ t('inventory.check.checkedBy') }}</th>
-              <th class="px-3 py-2 font-medium">{{ t('inventory.check.status') }}</th>
+            <THead>
+              <Th>{{ t('inventory.check.member') }}</Th>
+              <Th>{{ t('inventory.check.lastChecked') }}</Th>
+              <Th>{{ t('inventory.check.checkedBy') }}</Th>
+              <Th>{{ t('inventory.check.status') }}</Th>
               <th class="px-3 py-2"></th>
-            </tr>
+            </THead>
             </thead>
             <tbody>
-            <tr
+            <TRow
                 v-for="member in filteredMembers"
                 :key="member.memberId"
-                class="border-b border-bg-light-accent/50 dark:border-bg-dark-accent/50"
             >
-              <td class="px-3 py-2.5 font-medium"><MemberName :name="memberName(member)" :member-id="member.memberId"/></td>
-              <td class="px-3 py-2.5 text-(--text-muted)">{{ formatDate(member.lastCheckedAt) }}</td>
-              <td class="px-3 py-2.5 text-(--text-muted)">{{ checkerName(member) }}</td>
-              <td class="px-3 py-2.5">
+              <Td class="font-medium"><MemberName :name="memberName(member)" :member-id="member.memberId"/></Td>
+              <Td muted>{{ formatDate(member.lastCheckedAt) }}</Td>
+              <Td muted>{{ checkerName(member) }}</Td>
+              <Td>
                 <ErrorBadge v-if="isLockedByOther(member)">
                   {{ t('inventory.check.locked') }}: {{ lockerName(member) }}
                 </ErrorBadge>
@@ -172,8 +174,8 @@ onMounted(loadData)
                     t('inventory.check.neverChecked')
                   }}
                 </SecondaryBadge>
-              </td>
-              <td class="px-3 py-2.5 text-right">
+              </Td>
+              <Td align="right">
                 <div class="flex items-center justify-end gap-1">
                   <IconButton
                       v-if="member.lastCheckedAt"
@@ -190,8 +192,8 @@ onMounted(loadData)
                     {{ t('inventory.check.start') }}
                   </PrimaryButton>
                 </div>
-              </td>
-            </tr>
+              </Td>
+            </TRow>
             </tbody>
           </table>
         </NeutralContainer>

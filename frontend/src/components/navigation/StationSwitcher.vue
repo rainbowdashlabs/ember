@@ -9,6 +9,7 @@ import {useI18n} from 'vue-i18n'
 import {useRouter} from 'vue-router'
 import Modal from '@/components/feedback/Modal.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
 import {useStations} from '@/composables/useStations'
 import {useSession} from '@/composables/useSession'
 
@@ -55,7 +56,7 @@ async function switchStation(stationId: string) {
 
     <Modal v-model="showModal">
       <div class="space-y-4">
-        <h3 class="text-lg font-semibold">{{ t('stationSwitcher.title') }}</h3>
+        <SubHeader class="text-lg font-semibold">{{ t('stationSwitcher.title') }}</SubHeader>
         <div class="space-y-2">
           <NeutralContainer
               v-for="station in stationList"

@@ -10,6 +10,7 @@ import { useRoute, useRouter } from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
+import EmptyState from '@/components/feedback/EmptyState.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import IconButton from '@/components/button/IconButton.vue'
@@ -318,9 +319,7 @@ onMounted(loadData)
             </SecondaryButton>
           </div>
 
-          <div v-if="sections.length === 0" class="text-center text-(--text-muted) py-4">
-            {{ t('quiz.sections.noSections') }}
-          </div>
+          <EmptyState compact v-if="sections.length === 0">{{ t('quiz.sections.noSections') }}</EmptyState>
 
           <NeutralContainer v-for="(section, sIdx) in sections" :key="section.key">
             <div class="space-y-4">

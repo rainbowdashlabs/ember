@@ -16,6 +16,8 @@ import DateTimeInput from '@/components/input/datetime/DateTimeInput.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import IconButton from '@/components/button/IconButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
+import FieldHint from '@/components/typography/FieldHint.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
 
 const {t} = useI18n()
 </script>
@@ -110,7 +112,7 @@ const {t} = useI18n()
           </label>
         </div>
         <div class="space-y-1 opacity-60">
-          <label class="text-xs text-(--text-muted)">{{ t('forms.choice.options') }}</label>
+          <FieldHint>{{ t('forms.choice.options') }}</FieldHint>
           <div class="flex gap-2 items-center">
             <TextInput model-value="Übungen" disabled class="flex-1" />
             <IconButton :icon="['fas', 'chevron-up']" label="Up" class="text-(--text-muted)" disabled />
@@ -217,23 +219,23 @@ const {t} = useI18n()
     <!-- Dummy: Restrictions -->
     <NeutralContainer>
       <div class="space-y-3">
-        <h3 class="text-sm font-semibold">{{ t('forms.restrictions.title') }}</h3>
+        <SubHeader class="text-sm font-semibold">{{ t('forms.restrictions.title') }}</SubHeader>
         <div class="space-y-2">
-          <label class="text-xs text-(--text-muted)">{{ t('forms.restrictions.roles') }}</label>
+          <FieldHint>{{ t('forms.restrictions.roles') }}</FieldHint>
           <div class="flex flex-wrap gap-2">
             <span class="px-2 py-1 text-xs rounded border border-primary bg-primary/15 text-primary">Mitglied</span>
             <span class="px-2 py-1 text-xs rounded border border-bg-light-accent dark:border-bg-dark-accent text-(--text-muted)">Team</span>
           </div>
         </div>
         <div class="space-y-2">
-          <label class="text-xs text-(--text-muted)">{{ t('forms.restrictions.groups') }}</label>
+          <FieldHint>{{ t('forms.restrictions.groups') }}</FieldHint>
           <div class="flex flex-wrap gap-2">
             <span class="px-2 py-1 text-xs rounded border border-primary bg-primary/15 text-primary">Anfänger</span>
             <span class="px-2 py-1 text-xs rounded border border-bg-light-accent dark:border-bg-dark-accent text-(--text-muted)">Fortgeschritten</span>
           </div>
         </div>
         <div class="space-y-2">
-          <label class="text-xs text-(--text-muted)">{{ t('forms.restrictions.tags') }}</label>
+          <FieldHint>{{ t('forms.restrictions.tags') }}</FieldHint>
           <div class="flex flex-wrap gap-2">
             <span class="px-2 py-1 text-xs rounded border border-bg-light-accent dark:border-bg-dark-accent text-(--text-muted)">Wettkampfgruppe</span>
           </div>

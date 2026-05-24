@@ -19,6 +19,8 @@ import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import {useSession} from '@/composables/useSession'
 import {knowledgeBase} from '@/api'
+import PageHeader from '@/components/typography/PageHeader.vue'
+import SectionHeader from '@/components/typography/SectionHeader.vue'
 import type {KbFile, KbFileVersion} from '@/api/knowledgeBase'
 
 const {t} = useI18n()
@@ -142,7 +144,7 @@ onMounted(() => {
                     <font-awesome-icon :icon="['fas', 'chevron-left']"/>
                     {{ t('common.back') }}
                 </SecondaryButton>
-                <h1 class="text-xl font-bold">{{ t('kb.versions') }} - {{ file?.name }}</h1>
+                <PageHeader class="text-xl font-bold">{{ t('kb.versions') }} - {{ file?.name }}</PageHeader>
             </div>
 
             <div v-if="versions.length === 0" class="text-[var(--text-muted)] text-center py-8">
@@ -177,9 +179,9 @@ onMounted(() => {
 
             <!-- Version content view -->
             <div v-if="selectedVersion" class="mt-6">
-                <h2 class="text-lg font-semibold mb-2">
+                <SectionHeader class="text-lg font-semibold mb-2">
                     {{ t('kb.version') }} {{ selectedVersion.version }} - {{ t('kb.content') }}
-                </h2>
+                </SectionHeader>
                 <Spinner v-if="loadingVersion"/>
 
                 <!-- First version: show full content -->

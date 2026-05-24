@@ -17,6 +17,7 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
 
 const {t} = useI18n()
 
@@ -38,7 +39,7 @@ const activeRole = ref('')
     <!-- Dummy: Form list -->
     <div class="space-y-3">
       <div class="flex items-center justify-between">
-        <h3 class="font-semibold">{{ t('forms.title') }}</h3>
+        <SubHeader class="font-semibold">{{ t('forms.title') }}</SubHeader>
         <PrimaryButton v-if="activeRole === 'manager'">
           <font-awesome-icon :icon="['fas', 'plus']" class="mr-1"/>
           {{ t('forms.create') }}

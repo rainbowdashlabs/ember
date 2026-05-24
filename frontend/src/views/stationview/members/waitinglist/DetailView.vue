@@ -19,6 +19,7 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
+import FieldLabel from '@/components/typography/FieldLabel.vue'
 import OverviewSection from './detailview/OverviewSection.vue'
 import WaitingSection from './detailview/WaitingSection.vue'
 import TestingSection from './detailview/TestingSection.vue'
@@ -395,12 +396,12 @@ onMounted(loadData)
         <div class="space-y-4">
           <SectionHeader>{{ t('waitingList.createInvite') }}</SectionHeader>
           <div class="space-y-1">
-            <label class="block text-sm font-medium">{{ t('waitingList.maxUses') }}</label>
+            <FieldLabel>{{ t('waitingList.maxUses') }}</FieldLabel>
             <NumberInput v-model="inviteMaxUses" :placeholder="t('waitingList.maxUsesPlaceholder')" />
             <p class="text-xs text-(--text-muted)">{{ t('waitingList.maxUsesHint') }}</p>
           </div>
           <div class="space-y-1">
-            <label class="block text-sm font-medium">{{ t('waitingList.expiresAt') }}</label>
+            <FieldLabel>{{ t('waitingList.expiresAt') }}</FieldLabel>
             <DateInput v-model="inviteExpiresAt" />
             <p class="text-xs text-(--text-muted)">{{ t('waitingList.expiresAtHint') }}</p>
           </div>
@@ -418,23 +419,23 @@ onMounted(loadData)
         <div class="space-y-4">
           <SectionHeader>{{ t('waitingList.addEntry') }}</SectionHeader>
           <div class="space-y-1">
-            <label class="block text-sm font-medium">{{ t('waitingList.firstname') }}</label>
+            <FieldLabel>{{ t('waitingList.firstname') }}</FieldLabel>
             <TextInput v-model="entryFirstname" :placeholder="t('waitingList.firstnamePlaceholder')" />
           </div>
           <div class="space-y-1">
-            <label class="block text-sm font-medium">{{ t('waitingList.lastname') }}</label>
+            <FieldLabel>{{ t('waitingList.lastname') }}</FieldLabel>
             <TextInput v-model="entryLastname" :placeholder="t('waitingList.lastnamePlaceholder')" />
           </div>
           <div class="space-y-1">
-            <label class="block text-sm font-medium">{{ t('waitingList.parentName') }}</label>
+            <FieldLabel>{{ t('waitingList.parentName') }}</FieldLabel>
             <TextInput v-model="entryParentName" :placeholder="t('waitingList.parentNamePlaceholder')" />
           </div>
           <div class="space-y-1">
-            <label class="block text-sm font-medium">{{ t('waitingList.email') }}</label>
+            <FieldLabel>{{ t('waitingList.email') }}</FieldLabel>
             <TextInput v-model="entryEmail" :placeholder="t('waitingList.emailPlaceholder')" />
           </div>
           <div class="space-y-1">
-            <label class="block text-sm font-medium">{{ t('waitingList.notes') }}</label>
+            <FieldLabel>{{ t('waitingList.notes') }}</FieldLabel>
             <TextAreaInput v-model="entryNotes" :placeholder="t('waitingList.notesPlaceholder')" />
           </div>
           <div class="flex justify-end gap-2">

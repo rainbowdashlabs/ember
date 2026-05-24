@@ -9,6 +9,7 @@ import { useI18n } from 'vue-i18n'
 import Modal from '@/components/feedback/Modal.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
 
 const { t } = useI18n()
 
@@ -66,7 +67,7 @@ function close() {
 <template>
   <Modal v-model="model">
     <div class="space-y-4">
-      <h3 class="text-lg font-semibold">{{ t('membersList.filterBy', { column: columnLabel }) }}</h3>
+      <SubHeader class="text-lg font-semibold">{{ t('membersList.filterBy', { column: columnLabel }) }}</SubHeader>
 
       <div class="flex gap-2 text-xs">
         <SecondaryButton @click="selectAll">{{ t('membersList.filterSelectAll') }}</SecondaryButton>

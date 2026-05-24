@@ -7,6 +7,7 @@
 import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
+import FieldLabel from '@/components/typography/FieldLabel.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import TimeShortInput from '@/components/input/datetime/TimeShortInput.vue'
 import type {AttendanceSession} from '@/api/types'
@@ -36,18 +37,18 @@ function formatTime(iso?: string): string {
   <NeutralContainer v-if="!session.eventId" class="space-y-3">
     <div class="grid gap-3 sm:grid-cols-3">
       <div class="space-y-1">
-        <label class="block text-sm font-medium">{{ t('attendanceSession.title') }}</label>
+        <FieldLabel>{{ t('attendanceSession.title') }}</FieldLabel>
         <TextInput :model-value="session.title ?? ''" @update:model-value="emit('updateTitle', ($event as string) ?? '')"/>
       </div>
       <div class="space-y-1">
-        <label class="block text-sm font-medium">{{ t('attendanceSession.startTime') }}</label>
+        <FieldLabel>{{ t('attendanceSession.startTime') }}</FieldLabel>
         <TimeShortInput
             :model-value="formatTime(session.startTime)"
             @change="emit('updateStartTime', ($event.target as HTMLInputElement).value)"
         />
       </div>
       <div class="space-y-1">
-        <label class="block text-sm font-medium">{{ t('attendanceSession.endTime') }}</label>
+        <FieldLabel>{{ t('attendanceSession.endTime') }}</FieldLabel>
         <TimeShortInput
             :model-value="formatTime(session.endTime)"
             @change="emit('updateEndTime', ($event.target as HTMLInputElement).value)"

@@ -82,6 +82,7 @@ public class ApiServer {
     private final MemberGroupRepository memberGroupRepository;
     private final UserTagRepository userTagRepository;
     private final ApiRequestLogger apiRequestLogger;
+    private final dev.chojo.ember.feature.system.service.DemoService demoService;
 
     @Inject
     public ApiServer(
@@ -95,7 +96,8 @@ public class ApiServer {
             ProfileFieldService profileFieldService,
             MemberGroupRepository memberGroupRepository,
             UserTagRepository userTagRepository,
-            ApiRequestLogger apiRequestLogger) {
+            ApiRequestLogger apiRequestLogger,
+            dev.chojo.ember.feature.system.service.DemoService demoService) {
         this.routes = routes;
         this.apiConfig = apiConfig;
         this.demoConfig = demoConfig;
@@ -107,6 +109,7 @@ public class ApiServer {
         this.memberGroupRepository = memberGroupRepository;
         this.userTagRepository = userTagRepository;
         this.apiRequestLogger = apiRequestLogger;
+        this.demoService = demoService;
         this.apiRequestLogger.start();
     }
 
@@ -364,6 +367,11 @@ public class ApiServer {
         String userAgent = ctx.userAgent();
         String location = ctx.header("CF-IPCountry");
         accountRepository.touchSession(token, userAgent, location);
+
+        // Track activity for demo idle reset
+        if (demoConfig.enabled()) {
+            demoService.recordActivity();
+        }
 
         // If route only requires LOGIN, authenticated is enough
         if (routeRoles.size() == 1 && routeRoles.contains(Roles.LOGIN)) {

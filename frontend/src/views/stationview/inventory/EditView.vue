@@ -20,6 +20,7 @@ import DragList from '@/components/input/DragList.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
+import EmptyState from '@/components/feedback/EmptyState.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
@@ -30,6 +31,10 @@ import type {InventoryDetail, InventoryItem, InventoryItemHistory, InventorySize
 import {InventoryTypes, ItemSource} from '@/api/types'
 import {inventory, stationMembers} from '@/api'
 import {useBreakpoint} from '@/composables/useBreakpoint'
+import Th from '@/components/table/Th.vue'
+import Td from '@/components/table/Td.vue'
+import THead from '@/components/table/THead.vue'
+import TRow from '@/components/table/TRow.vue'
 
 const {isMobile} = useBreakpoint()
 
@@ -412,11 +417,11 @@ onMounted(loadData)
           <SubHeader>{{ t('inventory.edit.settings') }}</SubHeader>
           <div class="grid gap-4 sm:grid-cols-2">
             <div class="space-y-1">
-              <label class="block text-sm font-medium">{{ t('inventory.manage.name') }}</label>
+              <FieldLabel>{{ t('inventory.manage.name') }}</FieldLabel>
               <TextInput v-model="editName"/>
             </div>
             <div class="space-y-1">
-              <label class="block text-sm font-medium">{{ t('inventory.manage.typeLabel') }}</label>
+              <FieldLabel>{{ t('inventory.manage.typeLabel') }}</FieldLabel>
               <SelectInput v-model="editType">
                 <option :value="InventoryTypes.INTERNAL">{{ t('inventory.manage.type.INTERNAL') }}</option>
                 <option :value="InventoryTypes.EXTERNAL">{{ t('inventory.manage.type.EXTERNAL') }}</option>
@@ -544,42 +549,41 @@ onMounted(loadData)
           <div v-if="filteredItems.length > 0 && !isMobile" class="overflow-x-auto">
             <table class="w-full text-sm">
               <thead>
-              <tr class="border-b border-bg-light-accent dark:border-bg-dark-accent text-left">
-                <th class="px-3 py-2 font-medium">{{ t('inventory.edit.colName') }}</th>
-                <th class="px-3 py-2 font-medium">{{ t('inventory.edit.colId') }}</th>
-                <th v-if="detail.hasSizes" class="px-3 py-2 font-medium">{{ t('inventory.edit.colSize') }}</th>
-                <th v-if="detail.inventoryType === InventoryTypes.MIXED" class="px-3 py-2 font-medium">{{ t('inventory.edit.colSource') }}</th>
-                <th class="px-3 py-2 font-medium">{{ t('inventory.edit.colAssigned') }}</th>
+              <THead>
+                <Th>{{ t('inventory.edit.colName') }}</Th>
+                <Th>{{ t('inventory.edit.colId') }}</Th>
+                <Th v-if="detail.hasSizes">{{ t('inventory.edit.colSize') }}</Th>
+                <Th v-if="detail.inventoryType === InventoryTypes.MIXED">{{ t('inventory.edit.colSource') }}</Th>
+                <Th>{{ t('inventory.edit.colAssigned') }}</Th>
                 <th class="px-3 py-2"></th>
-              </tr>
+              </THead>
               </thead>
               <tbody>
-              <tr v-for="item in filteredItems" :key="item.id"
-                  :class="item.lostAt ? 'opacity-60' : ''"
-                  class="border-b border-bg-light-accent/50 dark:border-bg-dark-accent/50">
-                <td class="px-3 py-2.5 font-medium">
+              <TRow v-for="item in filteredItems" :key="item.id"
+                  :class="item.lostAt ? 'opacity-60' : ''">
+                <Td class="font-medium">
                   {{ item.name }}
                   <span v-if="item.lostAt" class="ml-2 text-xs text-error font-normal">{{ t('inventory.edit.lost') }} ({{
                       formatDate(item.lostAt)
                     }})</span>
-                </td>
-                <td class="px-3 py-2.5 text-(--text-muted)">{{ item.internalId || '–' }}</td>
-                <td v-if="detail.hasSizes" class="px-3 py-2.5 text-(--text-muted)">{{
+                </Td>
+                <Td muted>{{ item.internalId || '–' }}</Td>
+                <Td v-if="detail.hasSizes" muted>{{
                     getSizeLabel(item.sizeId) || '–'
                   }}
-                </td>
-                <td v-if="detail.inventoryType === InventoryTypes.MIXED" class="px-3 py-2.5">
+                </Td>
+                <Td v-if="detail.inventoryType === InventoryTypes.MIXED">
                   <PrimaryBadge v-if="item.itemSource === ItemSource.INTERNAL">{{ t('inventory.edit.sourceInternal') }}</PrimaryBadge>
                   <SecondaryBadge v-else-if="item.itemSource === ItemSource.EXTERNAL">{{ t('inventory.edit.sourceExternal') }}</SecondaryBadge>
                   <span v-else class="text-(--text-muted)">–</span>
-                </td>
-                <td class="px-3 py-2.5">
+                </Td>
+                <Td>
                   <span v-if="item.assignedTo" class="text-primary font-medium">{{
                       getMemberName(item.assignedTo)
                     }}</span>
                   <span v-else class="text-(--text-muted)">–</span>
-                </td>
-                <td class="px-3 py-2.5 text-right">
+                </Td>
+                <Td align="right">
                   <div class="flex items-center justify-end gap-0.5">
                     <IconButton v-if="!item.lostAt" :icon="['fas', 'user']"
                                 :label="item.assignedTo ? t('inventory.edit.reassign') : t('inventory.edit.assign')"
@@ -599,8 +603,8 @@ onMounted(loadData)
                     <EditButton @click="openEditItem(item)"/>
                     <DeleteButton @click="requestDeleteItem(item)"/>
                   </div>
-                </td>
-              </tr>
+                </Td>
+              </TRow>
               </tbody>
             </table>
           </div>
@@ -612,11 +616,11 @@ onMounted(loadData)
         <div class="space-y-4">
           <SectionHeader>{{ editingSize ? t('inventory.edit.editSize') : t('inventory.edit.addSize') }}</SectionHeader>
           <div class="space-y-1">
-            <label class="block text-sm font-medium">{{ t('inventory.edit.sizeLabel') }}</label>
+            <FieldLabel>{{ t('inventory.edit.sizeLabel') }}</FieldLabel>
             <TextInput v-model="sizeLabel" :placeholder="t('inventory.manage.sizeLabel')"/>
           </div>
           <div class="space-y-1">
-            <label class="block text-sm font-medium">{{ t('inventory.edit.sizeNote') }}</label>
+            <FieldLabel>{{ t('inventory.edit.sizeNote') }}</FieldLabel>
             <TextInput v-model="sizeNote" :placeholder="t('inventory.edit.sizeNotePlaceholder')"/>
           </div>
           <div class="flex justify-end gap-3">
@@ -633,16 +637,16 @@ onMounted(loadData)
         <form class="space-y-4" @submit.prevent="saveItem">
           <SectionHeader>{{ editingItem ? t('inventory.edit.editItem') : t('inventory.edit.addItem') }}</SectionHeader>
           <div class="space-y-1">
-            <label class="block text-sm font-medium">{{ t('inventory.edit.itemInternalId') }}</label>
+            <FieldLabel>{{ t('inventory.edit.itemInternalId') }}</FieldLabel>
             <TextInput ref="itemInternalIdInput" v-model="itemInternalId"
                        :placeholder="t('inventory.edit.itemInternalIdPlaceholder')"/>
           </div>
           <div class="space-y-1">
-            <label class="block text-sm font-medium">{{ t('inventory.edit.itemName') }}</label>
+            <FieldLabel>{{ t('inventory.edit.itemName') }}</FieldLabel>
             <TextInput v-model="itemName" :placeholder="t('inventory.edit.itemNamePlaceholder')"/>
           </div>
           <div v-if="detail?.hasSizes" class="space-y-1">
-            <label class="block text-sm font-medium">{{ t('inventory.edit.itemSize') }}</label>
+            <FieldLabel>{{ t('inventory.edit.itemSize') }}</FieldLabel>
             <SelectInput v-model="itemSizeId">
               <option value="">–</option>
               <option v-for="size in detail?.sizes ?? []" :key="size.id" :value="String(size.id)">{{
@@ -652,7 +656,7 @@ onMounted(loadData)
             </SelectInput>
           </div>
           <div v-if="!editingItem" class="space-y-1">
-            <label class="block text-sm font-medium">{{ t('inventory.edit.itemQuantity') }}</label>
+            <FieldLabel>{{ t('inventory.edit.itemQuantity') }}</FieldLabel>
             <NumberInput v-model="itemQuantity" :max="100" :min="1"/>
             <p class="text-xs text-(--text-muted)">{{ t('inventory.edit.itemQuantityHint') }}</p>
           </div>
@@ -690,9 +694,7 @@ onMounted(loadData)
           <SectionHeader>{{ t('inventory.edit.historyTitle') }}</SectionHeader>
           <p class="text-sm text-(--text-muted)">{{ historyTarget?.name }}</p>
           <Spinner v-if="historyLoading" size="md"/>
-          <div v-if="!historyLoading && historyEntries.length === 0" class="text-center text-(--text-muted) py-4">
-            {{ t('inventory.edit.noHistory') }}
-          </div>
+          <EmptyState compact v-if="!historyLoading && historyEntries.length === 0">{{ t('inventory.edit.noHistory') }}</EmptyState>
           <div v-if="!historyLoading && historyEntries.length > 0" class="space-y-2 max-h-80 overflow-y-auto">
             <div v-for="entry in historyEntries" :key="entry.id"
                  class="flex items-center justify-between rounded-lg px-3 py-2 border border-bg-light-accent dark:border-bg-dark-accent">
@@ -720,7 +722,7 @@ onMounted(loadData)
             <option v-for="m in members" :key="m.id" :value="String(m.id)">{{ m.name || m.email }}</option>
           </SelectInput>
           <div v-if="detail?.hasSizes" class="space-y-1">
-            <label class="block text-sm font-medium">{{ t('inventory.edit.itemSize') }}</label>
+            <FieldLabel>{{ t('inventory.edit.itemSize') }}</FieldLabel>
             <SelectInput v-model="quickAssignSizeId">
               <option value="">–</option>
               <option v-for="size in detail?.sizes ?? []" :key="size.id" :value="String(size.id)">{{
