@@ -6,6 +6,8 @@
 package dev.chojo.ember.repository;
 
 import dev.chojo.ember.feature.account.entity.Account;
+import dev.chojo.ember.feature.federation.entity.ChangeType;
+import dev.chojo.ember.feature.federation.entity.ContentType;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFileType;
@@ -303,16 +305,21 @@ class FederationRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(60)
     void logAndFindChanges() {
-        Instant before = Instant.now().minusSeconds(1);
+        Instant before = Instant.EPOCH;
         federationRepo.logChange(stationA.id(), "KB", 1, "CREATED");
         federationRepo.logChange(stationA.id(), "QUIZ", 2, "UPDATED");
 
         var changes = federationRepo.findChangesSince(stationA.id(), before);
-        assertTrue(changes.size() >= 2);
-        assertTrue(changes.stream()
-                .anyMatch(c -> c.contentType().equals("KB") && c.changeType().equals("CREATED")));
-        assertTrue(changes.stream()
-                .anyMatch(c -> c.contentType().equals("QUIZ") && c.changeType().equals("UPDATED")));
+        assertTrue(changes.size() >= 2,
+                "Expected at least 2 changes, got " + changes.size() + ": " + changes);
+        assertTrue(
+                changes.stream()
+                        .anyMatch(c -> c.contentType() == ContentType.KB && c.changeType() == ChangeType.CREATED),
+                "No KB/CREATED entry found in: " + changes);
+        assertTrue(
+                changes.stream()
+                        .anyMatch(c -> c.contentType() == ContentType.QUIZ && c.changeType() == ChangeType.UPDATED),
+                "No QUIZ/UPDATED entry found in: " + changes);
     }
 
     @Test

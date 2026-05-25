@@ -6,6 +6,7 @@
 package dev.chojo.ember.service;
 
 import dev.chojo.ember.conf.file.elements.Api;
+import dev.chojo.ember.feature.federation.entity.ContentType;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.service.FederationService;
@@ -168,13 +169,13 @@ class FederationServiceTest extends RepositoryTestBase {
     @Test
     @Order(30)
     void logAndRetrieveChanges() {
-        Instant before = Instant.now().minusSeconds(1);
+        Instant before = Instant.EPOCH;
         service.logChange(stationA.id(), "KB", 42, "CREATED");
         service.logChange(stationA.id(), "QUIZ", 7, "UPDATED");
 
         var changes = service.getChangesSince(stationA.id(), before);
-        assertTrue(changes.size() >= 2);
-        assertTrue(changes.stream().anyMatch(c -> c.contentType().equals("KB") && c.contentId() == 42));
+        assertTrue(changes.size() >= 2, "Expected at least 2 changes, got " + changes.size());
+        assertTrue(changes.stream().anyMatch(c -> c.contentType() == ContentType.KB && c.contentId() == 42));
     }
 
     // -- Federation Version (tested via partner entity) --
