@@ -16,10 +16,6 @@ import dev.chojo.ember.feature.inventory.entity.Procurement;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
 import dev.chojo.ember.feature.inventory.service.ProcurementService;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
-import dev.chojo.ember.feature.notifications.entity.NotificationData;
-import dev.chojo.ember.feature.notifications.entity.NotificationParams;
-import dev.chojo.ember.feature.notifications.entity.NotificationType;
-import dev.chojo.ember.feature.notifications.service.NotificationService;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.http.NotFoundResponse;
@@ -45,20 +41,17 @@ public class ProcurementRoutes implements Routes {
     private final AccountRepository accountRepository;
     private final StationMemberRepository stationMemberRepository;
     private final InventoryRepository inventoryRepository;
-    private final NotificationService notificationService;
 
     @Inject
     public ProcurementRoutes(
             ProcurementService procurementService,
             AccountRepository accountRepository,
             StationMemberRepository stationMemberRepository,
-            InventoryRepository inventoryRepository,
-            NotificationService notificationService) {
+            InventoryRepository inventoryRepository) {
         this.procurementService = procurementService;
         this.accountRepository = accountRepository;
         this.stationMemberRepository = stationMemberRepository;
         this.inventoryRepository = inventoryRepository;
-        this.notificationService = notificationService;
     }
 
     @Override
@@ -107,18 +100,6 @@ public class ProcurementRoutes implements Routes {
         inventoryRepository.findById(request.inventoryId()).orElseThrow(NotFoundResponse::new);
         var procurement = procurementService.create(
                 session.stationId(), request.inventoryId(), request.memberId(), request.sizeId(), request.notes());
-
-        // Notify the member that a procurement was requested for them
-        Inventory inventory =
-                inventoryRepository.findById(request.inventoryId()).orElse(null);
-        String inventoryName = inventory != null ? inventory.name() : "?";
-        notificationService.notify(
-                request.memberId(),
-                NotificationType.PROCUREMENT_REQUESTED,
-                NotificationData.of(
-                        new NotificationParams.ProcurementRequested(inventoryName),
-                        new NotificationData.NotificationLink("dashboard-overview")));
-
         ctx.status(HttpStatus.CREATED).json(toResponse(procurement));
     }
 
@@ -136,16 +117,6 @@ public class ProcurementRoutes implements Routes {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
         var procurement = procurementService.findById(id).orElseThrow(NotFoundResponse::new);
         if (procurementService.fulfill(id)) {
-            // Notify the member that their procurement was fulfilled
-            Inventory inventory =
-                    inventoryRepository.findById(procurement.inventoryId()).orElse(null);
-            String inventoryName = inventory != null ? inventory.name() : "?";
-            notificationService.notify(
-                    procurement.memberId(),
-                    NotificationType.PROCUREMENT_FULFILLED,
-                    NotificationData.of(
-                            new NotificationParams.ProcurementFulfilled(inventoryName),
-                            new NotificationData.NotificationLink("dashboard-overview")));
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
             throw new NotFoundResponse();

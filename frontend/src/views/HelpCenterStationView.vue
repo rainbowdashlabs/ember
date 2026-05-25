@@ -136,10 +136,22 @@ const pageSubtitle = computed(() => t('helpCenter.title'))
                      to="/helpcenter/station/profile/inventory" @navigate="close">
           {{ t('sidebar.myInventory') }}
         </SidebarLink>
-        <SidebarLink :icon="['fas', 'gear']" name="help-profile-settings"
-                     to="/helpcenter/station/profile/settings" @navigate="close">
-          {{ t('sidebar.settings') }}
-        </SidebarLink>
+        <SidebarExpandableLink :icon="['fas', 'gear']" name="help-profile-settings"
+                     to="/helpcenter/station/profile/settings" prefix="/helpcenter/station/profile/settings" @navigate="close">
+          <template #label>{{ t('sidebar.settings') }}</template>
+          <SidebarLink :icon="['fas', 'palette']" name="help-profile-theming"
+                       to="/helpcenter/station/profile/settings/theming" @navigate="close">
+            {{ t('sidebar.theming') }}
+          </SidebarLink>
+          <SidebarLink :icon="['fas', 'desktop']" name="help-profile-sessions"
+                       to="/helpcenter/station/profile/settings/sessions" @navigate="close">
+            {{ t('sidebar.sessions') }}
+          </SidebarLink>
+          <SidebarLink :icon="['fas', 'bell']" name="help-profile-notifications"
+                       to="/helpcenter/station/profile/settings/notifications" @navigate="close">
+            {{ t('sidebar.notifications') }}
+          </SidebarLink>
+        </SidebarExpandableLink>
         <SidebarLink :icon="['fas', 'palette']" name="help-profile-theme"
                      to="/helpcenter/station/profile/theme" @navigate="close">
           {{ t('helpCenter.themeUser.sidebarLabel') }}

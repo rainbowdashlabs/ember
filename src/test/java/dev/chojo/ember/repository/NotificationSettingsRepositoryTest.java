@@ -43,7 +43,7 @@ class NotificationSettingsRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(1)
     void upsert() {
-        var setting = notificationSettingsRepo.upsert(member.id(), NotificationType.NEW_NEWS, true, true);
+        var setting = notificationSettingsRepo.upsert(member.id(), NotificationType.NEW_NEWS, true, true, true);
         assertNotNull(setting);
         assertEquals(member.id(), setting.memberId());
         assertEquals(NotificationType.NEW_NEWS, setting.notificationType());
@@ -54,7 +54,7 @@ class NotificationSettingsRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(2)
     void upsertUpdate() {
-        var setting = notificationSettingsRepo.upsert(member.id(), NotificationType.NEW_NEWS, false, false);
+        var setting = notificationSettingsRepo.upsert(member.id(), NotificationType.NEW_NEWS, false, false, true);
         assertFalse(setting.appEnabled());
         assertFalse(setting.emailEnabled());
     }
@@ -94,9 +94,9 @@ class NotificationSettingsRepositoryTest extends RepositoryTestBase {
     void upsertAll() {
         var settings = Map.of(
                 NotificationType.NEW_NEWS,
-                new NotificationSetting(member.id(), NotificationType.NEW_NEWS, true, true),
+                new NotificationSetting(member.id(), NotificationType.NEW_NEWS, true, true, true),
                 NotificationType.NEW_EVENT,
-                new NotificationSetting(member.id(), NotificationType.NEW_EVENT, true, false));
+                new NotificationSetting(member.id(), NotificationType.NEW_EVENT, true, false, true));
         notificationSettingsRepo.upsertAll(member.id(), settings);
         var map = notificationSettingsRepo.findByMemberAsMap(member.id());
         assertEquals(2, map.size());

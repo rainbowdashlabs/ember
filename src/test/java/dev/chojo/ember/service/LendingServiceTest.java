@@ -59,7 +59,13 @@ class LendingServiceTest extends RepositoryTestBase {
         federationRepo = new FederationRepository();
         federationService = new FederationService(federationRepo, stationRepo, new Api());
         httpClient = mock(FederationHttpClient.class);
-        service = new LendingService(lendingRepo, httpClient, federationService, stationRepo);
+        service = new LendingService(
+                lendingRepo,
+                httpClient,
+                federationService,
+                stationRepo,
+                inventoryRepo,
+                new dev.chojo.ember.event.DomainEventBus(java.util.Set.of()));
 
         stationA = stationRepo.create("LendSvcTestStationA");
         stationB = stationRepo.create("LendSvcTestStationB");
@@ -177,7 +183,7 @@ class LendingServiceTest extends RepositoryTestBase {
     @Test
     @Order(20)
     void sendMessage() {
-        var msg = service.sendMessage(requestId, stationA.id(), memberA.id(), "Test message from A");
+        var msg = service.sendMessage(requestId, stationA.id(), memberA.id(), "Tester A", "Test message from A");
         assertNotNull(msg);
         assertEquals("Test message from A", msg.message());
         assertFalse(msg.isSystem());
@@ -187,8 +193,8 @@ class LendingServiceTest extends RepositoryTestBase {
     @Order(21)
     void getMessagesForLocalPartner() {
         // Add messages from both sides
-        service.sendMessage(requestId, stationA.id(), memberA.id(), "Hello from A");
-        service.sendMessage(requestId, stationB.id(), memberB.id(), "Hello from B");
+        service.sendMessage(requestId, stationA.id(), memberA.id(), "Tester A", "Hello from A");
+        service.sendMessage(requestId, stationB.id(), memberB.id(), "Tester B", "Hello from B");
 
         // getMessages should merge both sides using direct DB (local partner)
         var messages = service.getMessages(requestId, stationA.id());
@@ -219,7 +225,7 @@ class LendingServiceTest extends RepositoryTestBase {
         // Create a request between A and C
         var req = service.createRequest(
                 stationC.id(), stationA.id(), LocalDate.now(), LocalDate.now().plusDays(3), memberC.id());
-        service.sendMessage(req.id(), stationA.id(), memberA.id(), "Local msg from A");
+        service.sendMessage(req.id(), stationA.id(), memberA.id(), "Tester A", "Local msg from A");
 
         // Mock remote messages from C
         var remoteMsg = new LendingMessage(

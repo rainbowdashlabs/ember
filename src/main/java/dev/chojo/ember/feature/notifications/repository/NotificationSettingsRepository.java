@@ -58,19 +58,22 @@ public class NotificationSettingsRepository {
      * @param emailEnabled whether email notifications are enabled
      * @return the persisted setting
      */
-    public NotificationSetting upsert(int memberId, NotificationType type, boolean appEnabled, boolean emailEnabled) {
+    public NotificationSetting upsert(
+            int memberId, NotificationType type, boolean appEnabled, boolean emailEnabled, boolean feedEnabled) {
         return Query.query("""
-                            INSERT INTO user_notification_settings(member_id, notification_type, app_enabled, email_enabled)
-                            VALUES(:member_id, :type, :app_enabled, :email_enabled)
+                            INSERT INTO user_notification_settings(member_id, notification_type, app_enabled, email_enabled, feed_enabled)
+                            VALUES(:member_id, :type, :app_enabled, :email_enabled, :feed_enabled)
                             ON CONFLICT (member_id, notification_type) DO UPDATE SET
                                 app_enabled = :app_enabled,
-                                email_enabled = :email_enabled
+                                email_enabled = :email_enabled,
+                                feed_enabled = :feed_enabled
                             RETURNING *;""")
                 .single(Call.of()
                         .bind("member_id", memberId)
                         .bind("type", type.name())
                         .bind("app_enabled", appEnabled)
-                        .bind("email_enabled", emailEnabled))
+                        .bind("email_enabled", emailEnabled)
+                        .bind("feed_enabled", feedEnabled))
                 .map(NotificationSetting.map())
                 .first()
                 .orElseThrow();
@@ -85,7 +88,7 @@ public class NotificationSettingsRepository {
     public void upsertAll(int memberId, Map<NotificationType, NotificationSetting> settings) {
         for (var entry : settings.entrySet()) {
             var s = entry.getValue();
-            upsert(memberId, entry.getKey(), s.appEnabled(), s.emailEnabled());
+            upsert(memberId, entry.getKey(), s.appEnabled(), s.emailEnabled(), s.feedEnabled());
         }
     }
 

@@ -15,10 +15,6 @@ import dev.chojo.ember.feature.members.entity.MemberGroup;
 import dev.chojo.ember.feature.members.entity.Role;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.service.MemberGroupService;
-import dev.chojo.ember.feature.notifications.entity.NotificationData;
-import dev.chojo.ember.feature.notifications.entity.NotificationParams;
-import dev.chojo.ember.feature.notifications.entity.NotificationType;
-import dev.chojo.ember.feature.notifications.service.NotificationService;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.ForbiddenResponse;
@@ -34,8 +30,6 @@ import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
-import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 
 /**
@@ -46,16 +40,11 @@ import java.util.List;
 public class MemberGroupRoutes implements Routes {
     private final MemberGroupService groupService;
     private final AccountRepository accountRepository;
-    private final NotificationService notificationService;
 
     @Inject
-    public MemberGroupRoutes(
-            MemberGroupService groupService,
-            AccountRepository accountRepository,
-            NotificationService notificationService) {
+    public MemberGroupRoutes(MemberGroupService groupService, AccountRepository accountRepository) {
         this.groupService = groupService;
         this.accountRepository = accountRepository;
-        this.notificationService = notificationService;
     }
 
     private static boolean isBlank(String s) {
@@ -232,26 +221,7 @@ public class MemberGroupRoutes implements Routes {
         List<Integer> memberIds = request.memberIds() != null ? request.memberIds() : List.of();
 
         // Determine which members are being added
-        var currentMemberIds = new HashSet<>(groupService.findMembers(groupId).stream()
-                .map(StationMember::id)
-                .toList());
-        var addedMemberIds = new ArrayList<Integer>();
-        for (int id : memberIds) {
-            if (!currentMemberIds.contains(id)) addedMemberIds.add(id);
-        }
-
         var result = groupService.setMembers(groupId, memberIds);
-
-        // Notify newly added members
-        if (!addedMemberIds.isEmpty()) {
-            groupService.findById(groupId).ifPresent(g -> {
-                var data = NotificationData.of(
-                        new NotificationParams.MemberAddedToGroup(g.name()),
-                        new NotificationData.NotificationLink("dashboard-overview"));
-                notificationService.notifyMembers(addedMemberIds, NotificationType.MEMBER_ADDED_TO_GROUP, data);
-            });
-        }
-
         ctx.json(result.stream().map(this::toMemberWithName).toList());
     }
 

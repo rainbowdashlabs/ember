@@ -32,7 +32,10 @@ class NewsServiceTest extends RepositoryTestBase {
 
     @BeforeAll
     static void setup() {
-        service = new NewsService(newsRepo, new dev.chojo.ember.feature.restriction.RestrictionRepository());
+        service = new NewsService(
+                newsRepo,
+                new dev.chojo.ember.feature.restriction.RestrictionRepository(),
+                new dev.chojo.ember.event.DomainEventBus(java.util.Set.of()));
         station = stationRepo.create("NewsStation");
         account = accountRepo.create("news-svc@test.com", "News", "Author");
         member = stationMemberRepo.create(station.id(), account.id());
@@ -94,7 +97,7 @@ class NewsServiceTest extends RepositoryTestBase {
     @Test
     @Order(20)
     void createComment() {
-        var comment = service.createComment(newsId, null, member.id(), "Great article!");
+        var comment = service.createComment(station.id(), newsId, null, member.id(), "News Author", "Great article!");
         assertNotNull(comment);
         commentId = comment.id();
     }
@@ -109,7 +112,7 @@ class NewsServiceTest extends RepositoryTestBase {
     @Test
     @Order(22)
     void deleteComment() {
-        assertTrue(service.deleteComment(commentId));
+        assertTrue(service.deleteComment(station.id(), commentId));
         var comments = service.findComments(newsId);
         assertFalse(comments.stream().anyMatch(c -> c.id() == commentId));
     }

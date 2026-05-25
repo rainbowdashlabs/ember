@@ -12,6 +12,7 @@ import Alert from '@/components/feedback/Alert.vue'
 import {userSettings} from '@/api'
 import type {UserSettings} from '@/api/types'
 import NotificationsSection from './settingsview/NotificationsSection.vue'
+import FeedSection from './settingsview/FeedSection.vue'
 
 const {t} = useI18n()
 
@@ -47,15 +48,22 @@ function toggleEmailEnabled() {
 
 function toggleApp(type: string) {
   if (!settings.value) return
-  const current = settings.value.notifications?.[type] ?? {app: true, email: false}
-  settings.value.notifications[type] = {app: !current.app, email: current.email}
+  const current = settings.value.notifications?.[type] ?? {app: true, email: false, feed: true}
+  settings.value.notifications[type] = {app: !current.app, email: current.email, feed: current.feed}
   save()
 }
 
 function toggleEmail(type: string) {
   if (!settings.value) return
-  const current = settings.value.notifications?.[type] ?? {app: true, email: false}
-  settings.value.notifications[type] = {app: current.app, email: !current.email}
+  const current = settings.value.notifications?.[type] ?? {app: true, email: false, feed: true}
+  settings.value.notifications[type] = {app: current.app, email: !current.email, feed: current.feed}
+  save()
+}
+
+function toggleFeed(type: string) {
+  if (!settings.value) return
+  const current = settings.value.notifications?.[type] ?? {app: true, email: false, feed: true}
+  settings.value.notifications[type] = {app: current.app, email: current.email, feed: !current.feed}
   save()
 }
 
@@ -75,7 +83,10 @@ onMounted(loadData)
           @toggle-email-enabled="toggleEmailEnabled"
           @toggle-app="toggleApp"
           @toggle-email="toggleEmail"
+          @toggle-feed="toggleFeed"
         />
+
+        <FeedSection />
       </template>
     </div>
   </ViewContent>

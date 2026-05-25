@@ -84,6 +84,9 @@ pdfbox = { group = "org.apache.pdfbox", name = "pdfbox", version = "3.0.5" }
 # iCal
 ical4j = { group = "org.mnode.ical4j", name = "ical4j", version = "4.2.5" }
 
+# RSS/Atom
+rome = { group = "com.rometools", name = "rome", version = "2.1.0" }
+
 # Diff
 java-diff-utils = { group = "io.github.java-diff-utils", name = "java-diff-utils", version = "4.15" }
 

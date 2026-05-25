@@ -376,6 +376,50 @@ export interface LayoutFieldEntry {
     attendanceFieldId?: number | null
 }
 
+// -- Event Templates --
+
+export interface EventTemplate {
+    id: number
+    stationId: string
+    name: string
+    title?: string | null
+    description?: string | null
+    categoryId?: number | null
+    eventType?: string | null
+    requiresRegistration?: boolean | null
+    registrationDeadlineOffset?: string | null
+    requiresConfirmation?: boolean | null
+    restrictionMode?: string | null
+}
+
+export interface EventTemplateField {
+    id: number
+    templateId: number
+    name: string
+    fieldType: string
+    config: string
+    position: number
+    overview: boolean
+    isPublic: boolean
+    attendanceFieldId?: number | null
+}
+
+export interface EventTemplateDetail {
+    template: EventTemplate
+    fields: EventTemplateField[]
+    restrictionRoleIds: number[]
+}
+
+export interface EventTemplateFieldEntry {
+    name: string
+    fieldType?: string
+    config?: string
+    position: number
+    overview?: boolean
+    isPublic?: boolean
+    attendanceFieldId?: number | null
+}
+
 // -- Forms --
 
 export const FormStatus = {
@@ -1141,6 +1185,7 @@ export interface CommentRequest {
 export interface NotificationToggle {
     app: boolean
     email: boolean
+    feed: boolean
 }
 
 export interface UserSettings {

@@ -17,7 +17,11 @@ import de.chojo.sadu.mapper.rowmapper.RowMapping;
  * @param emailEnabled     whether email digest notifications are enabled
  */
 public record NotificationSetting(
-        int memberId, NotificationType notificationType, boolean appEnabled, boolean emailEnabled) {
+        int memberId,
+        NotificationType notificationType,
+        boolean appEnabled,
+        boolean emailEnabled,
+        boolean feedEnabled) {
     /**
      * Creates a row mapping for database result set conversion.
      */
@@ -26,6 +30,7 @@ public record NotificationSetting(
                 row.getInt("member_id"),
                 NotificationType.valueOf(row.getString("notification_type")),
                 row.getBoolean("app_enabled"),
-                row.getBoolean("email_enabled"));
+                row.getBoolean("email_enabled"),
+                row.getBoolean("feed_enabled"));
     }
 }

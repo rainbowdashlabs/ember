@@ -19,10 +19,15 @@ import dev.chojo.ember.feature.events.entity.EventRegistration;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventFieldRepository;
 import dev.chojo.ember.feature.events.repository.EventRepository;
+import dev.chojo.ember.feature.events.repository.EventTemplateRepository;
+import dev.chojo.ember.feature.events.service.EventService;
+import dev.chojo.ember.feature.events.service.EventTemplateService;
+import dev.chojo.ember.feature.feed.service.FeedTokenService;
 import dev.chojo.ember.feature.inventory.entity.ExchangeStatus;
 import dev.chojo.ember.feature.inventory.repository.ExchangeRepository;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
-import dev.chojo.ember.feature.inventory.repository.ProcurementRepository;
+import dev.chojo.ember.feature.inventory.service.ExchangeService;
+import dev.chojo.ember.feature.inventory.service.ProcurementService;
 import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
 import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
 import dev.chojo.ember.feature.members.entity.StationMember;
@@ -31,7 +36,7 @@ import dev.chojo.ember.feature.members.repository.ProfileFieldChangeRepository;
 import dev.chojo.ember.feature.members.repository.ProfileFieldRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.repository.UserTagRepository;
-import dev.chojo.ember.feature.news.repository.NewsRepository;
+import dev.chojo.ember.feature.news.service.NewsService;
 import dev.chojo.ember.feature.station.entity.DiscoveryVisibility;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.system.repository.ApplicationSettingRepository;
@@ -76,9 +81,7 @@ public class DemoService {
     private final AttendanceRepository attendanceRepository;
     private final InventoryRepository inventoryRepository;
     private final ProfileFieldRepository profileFieldRepository;
-    private final NewsRepository newsRepository;
     private final ExchangeRepository exchangeRepository;
-    private final ProcurementRepository procurementRepository;
     private final UserTagRepository userTagRepository;
     private final ProfileFieldChangeRepository profileFieldChangeRepository;
     private final EventFieldRepository eventFieldRepository;
@@ -96,6 +99,12 @@ public class DemoService {
     private final DemoFederationSeeder federationSeeder;
     private final DemoLendingSeeder lendingSeeder;
     private final ApplicationSettingRepository applicationSettingRepository;
+    private final EventService eventService;
+    private final NewsService newsService;
+    private final ExchangeService exchangeService;
+    private final ProcurementService procurementService;
+    private final EventTemplateService eventTemplateService;
+    private final FeedTokenService feedTokenService;
     private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
     private volatile Instant lastActivity = Instant.now();
     private volatile boolean needsReset = false;
@@ -113,9 +122,7 @@ public class DemoService {
             AttendanceRepository attendanceRepository,
             InventoryRepository inventoryRepository,
             ProfileFieldRepository profileFieldRepository,
-            NewsRepository newsRepository,
             ExchangeRepository exchangeRepository,
-            ProcurementRepository procurementRepository,
             UserTagRepository userTagRepository,
             ProfileFieldChangeRepository profileFieldChangeRepository,
             EventFieldRepository eventFieldRepository,
@@ -131,7 +138,13 @@ public class DemoService {
             DemoProtocolSeeder protocolSeeder,
             DemoFederationSeeder federationSeeder,
             DemoLendingSeeder lendingSeeder,
-            ApplicationSettingRepository applicationSettingRepository) {
+            ApplicationSettingRepository applicationSettingRepository,
+            EventService eventService,
+            NewsService newsService,
+            ExchangeService exchangeService,
+            ProcurementService procurementService,
+            EventTemplateService eventTemplateService,
+            FeedTokenService feedTokenService) {
         this.demoConfig = demoConfig;
         this.databaseConfig = databaseConfig;
         this.dataSource = dataSource;
@@ -143,9 +156,7 @@ public class DemoService {
         this.attendanceRepository = attendanceRepository;
         this.inventoryRepository = inventoryRepository;
         this.profileFieldRepository = profileFieldRepository;
-        this.newsRepository = newsRepository;
         this.exchangeRepository = exchangeRepository;
-        this.procurementRepository = procurementRepository;
         this.userTagRepository = userTagRepository;
         this.profileFieldChangeRepository = profileFieldChangeRepository;
         this.eventFieldRepository = eventFieldRepository;
@@ -162,6 +173,12 @@ public class DemoService {
         this.federationSeeder = federationSeeder;
         this.lendingSeeder = lendingSeeder;
         this.applicationSettingRepository = applicationSettingRepository;
+        this.eventService = eventService;
+        this.newsService = newsService;
+        this.exchangeService = exchangeService;
+        this.procurementService = procurementService;
+        this.eventTemplateService = eventTemplateService;
+        this.feedTokenService = feedTokenService;
     }
 
     public boolean isEnabled() {
@@ -688,7 +705,7 @@ public class DemoService {
         Instant satStart = LocalDate.now().atTime(10, 0).toInstant(ZoneOffset.UTC);
         Instant satEnd = LocalDate.now().atTime(13, 0).toInstant(ZoneOffset.UTC);
 
-        var evAnfaenger = eventRepository.create(
+        var evAnfaenger = eventService.create(
                 station.id(),
                 "Übung Anfänger",
                 "Grundausbildung für Anfänger",
@@ -701,7 +718,7 @@ public class DemoService {
                 null,
                 false,
                 catUebung.id());
-        var evFort = eventRepository.create(
+        var evFort = eventService.create(
                 station.id(),
                 "Übung Fortgeschritten",
                 "Training für Fortgeschrittene",
@@ -714,7 +731,7 @@ public class DemoService {
                 null,
                 false,
                 catUebung.id());
-        var evGesamt = eventRepository.create(
+        var evGesamt = eventService.create(
                 station.id(),
                 "Gesamtübung",
                 "Gemeinsame Übung aller Gruppen",
@@ -729,7 +746,7 @@ public class DemoService {
                 catUebung.id());
 
         // Monthly: first Saturday = Elternabend
-        eventRepository.create(
+        eventService.create(
                 station.id(),
                 "Elternabend",
                 "Monatliches Treffen mit den Eltern",
@@ -744,7 +761,7 @@ public class DemoService {
                 catVeranstaltung.id());
 
         // Quarterly: first Saturday = Dienstbesprechung
-        eventRepository.create(
+        eventService.create(
                 station.id(),
                 "Dienstbesprechung",
                 "Vierteljährliche Besprechung aller Betreuer",
@@ -764,7 +781,7 @@ public class DemoService {
                 LocalDate.now().withMonth(9).withDayOfMonth(20).atTime(18, 0).toInstant(ZoneOffset.UTC);
         Instant jhvEnd =
                 LocalDate.now().withMonth(9).withDayOfMonth(20).atTime(21, 0).toInstant(ZoneOffset.UTC);
-        eventRepository.create(
+        eventService.create(
                 station.id(),
                 "Jahreshauptversammlung",
                 "Jährliche Versammlung mit Berichten und Wahlen",
@@ -812,7 +829,7 @@ public class DemoService {
                 List.of(
                         new AttendanceRepository.TemplateGroup(groupAnfaenger.id(), 0),
                         new AttendanceRepository.TemplateGroup(groupFortgeschritten.id(), 1)));
-        var theorieabend = eventRepository.create(
+        var theorieabend = eventService.create(
                 station.id(),
                 "Theorieabend",
                 "Theoretische Grundlagen und Fahrzeugkunde",
@@ -843,7 +860,7 @@ public class DemoService {
         Instant deadline =
                 LocalDate.now().plusMonths(1).withDayOfMonth(10).atTime(23, 59).toInstant(ZoneOffset.UTC);
 
-        var tagDerOffenenTuer = eventRepository.create(
+        var tagDerOffenenTuer = eventService.create(
                 station.id(),
                 "Tag der offenen Tür",
                 "Öffentlichkeitsarbeit: Vorführungen und Mitmach-Aktionen",
@@ -862,7 +879,7 @@ public class DemoService {
         Instant oeffentlichkeitDeadline =
                 LocalDate.now().plusWeeks(2).atTime(23, 59).toInstant(ZoneOffset.UTC);
 
-        var stadtfest = eventRepository.create(
+        var stadtfest = eventService.create(
                 station.id(),
                 "Stadtfest Musterstadt",
                 "Stand der Jugendfeuerwehr beim Stadtfest",
@@ -883,7 +900,7 @@ public class DemoService {
         Instant wettbewerbDeadline =
                 LocalDate.now().plusMonths(2).withDayOfMonth(1).atTime(23, 59).toInstant(ZoneOffset.UTC);
 
-        var kreisWettbewerb = eventRepository.create(
+        var kreisWettbewerb = eventService.create(
                 station.id(),
                 "Kreiswettbewerb",
                 "Jährlicher Kreiswettbewerb der Jugendfeuerwehren",
@@ -992,7 +1009,7 @@ public class DemoService {
             LocalDate eventDate = LocalDate.now().minusWeeks(oeNames.length - e);
             Instant oeStart = eventDate.atTime(10, 0).toInstant(ZoneOffset.UTC);
             Instant oeEnd = eventDate.atTime(16, 0).toInstant(ZoneOffset.UTC);
-            var oeEvent = eventRepository.create(
+            var oeEvent = eventService.create(
                     station.id(),
                     oeNames[e],
                     "Öffentlichkeitsarbeit der Jugendfeuerwehr",
@@ -1026,7 +1043,7 @@ public class DemoService {
         Instant openStart = openDate.atTime(9, 0).toInstant(ZoneOffset.UTC);
         Instant openEnd = openDate.atTime(15, 0).toInstant(ZoneOffset.UTC);
         Instant openDeadline = LocalDate.now().plusDays(3).atTime(23, 59).toInstant(ZoneOffset.UTC);
-        var oeOpen = eventRepository.create(
+        var oeOpen = eventService.create(
                 station.id(),
                 "Blaulichtmeile Bürgerfest",
                 "Öffentlichkeitsarbeit — Anmeldung offen",
@@ -1104,7 +1121,7 @@ public class DemoService {
                 theorieabend.id(), "Hinweis", "string", "{}", "Schreibzeug mitbringen", 1, false, null, false);
 
         // -- News --
-        var news1 = newsRepository.create(
+        var news1 = newsService.create(
                 station.id(),
                 "Willkommen bei der Jugendfeuerwehr!",
                 """
@@ -1130,8 +1147,12 @@ public class DemoService {
                 Wir freuen uns auf eine tolle Zeit! 🚒
                 """,
                 "<p>Herzlich willkommen auf unserer neuen Plattform! Hier findet ihr alle wichtigen Informationen rund um unsere <strong>Jugendfeuerwehr</strong>.</p><h2>Was ist neu?</h2><p>Wir haben viele neue Funktionen für euch:</p><ul><li><strong>Terminübersicht</strong> — Alle Übungen, Veranstaltungen und Wettbewerbe auf einen Blick</li><li><strong>Anwesenheitsverwaltung</strong> — Schnelles Ein- und Auschecken bei Übungen</li><li><strong>Inventarverwaltung</strong> — Eure Ausrüstung immer im Blick</li><li><strong>Wissensdatenbank</strong> — Lernmaterial und Protokolle</li></ul><h2>Erste Schritte</h2><ol><li>Prüft euer <strong>Profil</strong> und ergänzt fehlende Daten</li><li>Schaut euch die <strong>kommenden Termine</strong> an</li><li>Meldet euch für den nächsten <strong>Wettbewerb</strong> an</ol><blockquote><p><strong>Tipp:</strong> Bei Fragen könnt ihr jederzeit die Betreuer ansprechen oder die Hilfe-Seite nutzen.</p></blockquote><p>Wir freuen uns auf eine tolle Zeit! 🚒</p>",
-                adminMember.id());
-        var news2 = newsRepository.create(
+                adminMember.id(),
+                List.of(),
+                List.of(),
+                List.of(),
+                List.of());
+        var news2 = newsService.create(
                 station.id(),
                 "Kreiswettbewerb: Anmeldung geöffnet",
                 """
@@ -1157,23 +1178,57 @@ public class DemoService {
                 > *Teilnehmen dürfen alle Fortgeschrittenen.*
                 """,
                 "<p>Die Anmeldung zum <strong>Kreiswettbewerb</strong> am 20. des übernächsten Monats ist jetzt geöffnet!</p><h2>Wichtige Infos</h2><table><tr><td></td><td>Details</td></tr><tr><td><strong>Datum</strong></td><td>20. des übernächsten Monats</td></tr><tr><td><strong>Ort</strong></td><td>Sportplatz Nachbarstadt</td></tr><tr><td><strong>Treffpunkt</strong></td><td>Feuerwehrgerätehaus, 07:30 Uhr</td></tr></table><h3>Was wird bewertet?</h3><ul><li>Löschangriff</li><li>Staffellauf</li><li>Knotenkunde</li><li>Erste Hilfe</li></ul><p>Bitte meldet euch <strong>bis spätestens nächste Woche</strong> über die Terminseite an. Die Plätze sind begrenzt.</p><blockquote><p><em>Teilnehmen dürfen alle Fortgeschrittenen.</em></p></blockquote>",
-                betreuerMembers.getFirst().id());
+                betreuerMembers.getFirst().id(),
+                List.of(),
+                List.of(),
+                List.of(),
+                List.of());
 
         // Comments on news
-        var comment1 = newsRepository.createComment(
-                news1.id(), null, elternMembers.get(0).id(), "Super, endlich eine moderne Plattform!");
-        newsRepository.createComment(
-                news1.id(), comment1.id(), betreuerMembers.getFirst().id(), "Danke! Bei Fragen einfach melden.");
-        newsRepository.createComment(
-                news1.id(), null, elternMembers.get(1).id(), "Kann man hier auch Abwesenheiten eintragen?");
-        newsRepository.createComment(
-                news2.id(), null, fortgeschrittenMembers.get(0).id(), "Ich bin dabei! \uD83D\uDCAA");
-        var comment2 = newsRepository.createComment(
-                news2.id(), null, fortgeschrittenMembers.get(1).id(), "Wie viele Plätze gibt es?");
-        newsRepository.createComment(
-                news2.id(), comment2.id(), betreuerMembers.get(0).id(), "Wir haben 8 Plätze. Bitte schnell anmelden!");
+        var comment1 = newsService.createComment(
+                station.id(),
+                news1.id(),
+                null,
+                elternMembers.get(0).id(),
+                "Demo User",
+                "Super, endlich eine moderne Plattform!");
+        newsService.createComment(
+                station.id(),
+                news1.id(),
+                comment1.id(),
+                betreuerMembers.getFirst().id(),
+                "Demo User",
+                "Danke! Bei Fragen einfach melden.");
+        newsService.createComment(
+                station.id(),
+                news1.id(),
+                null,
+                elternMembers.get(1).id(),
+                "Demo User",
+                "Kann man hier auch Abwesenheiten eintragen?");
+        newsService.createComment(
+                station.id(),
+                news2.id(),
+                null,
+                fortgeschrittenMembers.get(0).id(),
+                "Demo User",
+                "Ich bin dabei! \uD83D\uDCAA");
+        var comment2 = newsService.createComment(
+                station.id(),
+                news2.id(),
+                null,
+                fortgeschrittenMembers.get(1).id(),
+                "Demo User",
+                "Wie viele Plätze gibt es?");
+        newsService.createComment(
+                station.id(),
+                news2.id(),
+                comment2.id(),
+                betreuerMembers.get(0).id(),
+                "Demo User",
+                "Wir haben 8 Plätze. Bitte schnell anmelden!");
 
-        var news3 = newsRepository.create(
+        var news3 = newsService.create(
                 station.id(),
                 "Neue Ausrüstung eingetroffen",
                 """
@@ -1190,9 +1245,13 @@ public class DemoService {
                 > Die neuen Helme entsprechen der aktuellen **DIN EN 443** Norm und bieten verbesserten Schutz.
                 """,
                 "<p>Die bestellten <strong>Helme und Handschuhe</strong> sind eingetroffen! 🎉</p><h2>Verteilung</h2><p>Die Verteilung findet bei der <strong>nächsten Übung</strong> statt. Bitte beachtet:</p><ol><li>Prüft eure <strong>Größen im Inventar</strong> vorab</li><li>Meldet euch bei Unstimmigkeiten bei den Betreuern</li><li>Bringt eure <strong>alten Helme</strong> zur Rückgabe mit</li></ol><blockquote><p>Die neuen Helme entsprechen der aktuellen <strong>DIN EN 443</strong> Norm und bieten verbesserten Schutz.</p></blockquote>",
-                betreuerMembers.get(1).id());
+                betreuerMembers.get(1).id(),
+                List.of(),
+                List.of(),
+                List.of(),
+                List.of());
 
-        newsRepository.create(
+        newsService.create(
                 station.id(),
                 "Sommerferien: Übungspause",
                 """
@@ -1211,12 +1270,26 @@ public class DemoService {
                 Wir wünschen allen **schöne und erholsame Ferien**! ☀️
                 """,
                 "<p>Während der <strong>Sommerferien</strong> finden keine regulären Übungen statt.</p><h2>Zeitraum</h2><p>Der Übungsbetrieb <strong>pausiert</strong> während der gesamten Schulferien. Wir starten wieder am <strong>ersten Montag nach den Ferien</strong>.</p><h3>Trotzdem aktiv bleiben?</h3><ul><li>Das <strong>Wissenscenter</strong> bleibt verfügbar — nutzt die Zeit zum Lernen</li><li>Prüft eure <strong>Ausrüstung</strong> und meldet Mängel vorab</li><li>Die <strong>Anmeldung</strong> für den Herbst-Wettbewerb öffnet in den Ferien</li></ul><p>Wir wünschen allen <strong>schöne und erholsame Ferien</strong>! ☀️</p>",
-                adminMember.id());
+                adminMember.id(),
+                List.of(),
+                List.of(),
+                List.of(),
+                List.of());
 
-        newsRepository.createComment(
-                news3.id(), null, elternMembers.get(2).id(), "Werden die alten Helme eingesammelt?");
-        newsRepository.createComment(
-                news3.id(), null, betreuerMembers.get(1).id(), "Ja, bitte zur nächsten Übung mitbringen.");
+        newsService.createComment(
+                station.id(),
+                news3.id(),
+                null,
+                elternMembers.get(2).id(),
+                "Demo User",
+                "Werden die alten Helme eingesammelt?");
+        newsService.createComment(
+                station.id(),
+                news3.id(),
+                null,
+                betreuerMembers.get(1).id(),
+                "Demo User",
+                "Ja, bitte zur nächsten Übung mitbringen.");
 
         // -- User Tags --
         var tagWettkampf = userTagRepository.create(station.id(), "Wettkampfgruppe");
@@ -1264,8 +1337,16 @@ public class DemoService {
                     newSizeId = sizes.get(rng.nextInt(sizes.size())).id();
                 }
             }
-            var exchange = exchangeRepository.create(
-                    station.id(), kid.id(), item.id(), item.inventoryId(), item.sizeId(), newSizeId, reason, null);
+            var exchange = exchangeService.create(
+                    station.id(),
+                    kid.id(),
+                    "Demo User",
+                    item.id(),
+                    item.inventoryId(),
+                    item.sizeId(),
+                    newSizeId,
+                    reason,
+                    null);
             // Progress some exchanges
             var targetStatus = exchangeStatuses.get(rng.nextInt(exchangeStatuses.size()));
             if (targetStatus != ExchangeStatus.ANNOUNCED) {
@@ -1290,7 +1371,7 @@ public class DemoService {
                     .findFirst();
             if (handschuheInv.isPresent()) {
                 var sizes = inventoryRepository.findSizes(handschuheInv.get().id());
-                procurementRepository.create(
+                procurementService.create(
                         station.id(),
                         handschuheInv.get().id(),
                         anfaengerMembers.get(2).id(),
@@ -1310,7 +1391,7 @@ public class DemoService {
                 boolean hasSporttasche = items.stream()
                         .anyMatch(i -> i.inventoryId() == sporttascheInv.get().id());
                 if (!hasSporttasche) {
-                    procurementRepository.create(
+                    procurementService.create(
                             station.id(), sporttascheInv.get().id(), kid.id(), null, "Sporttasche fehlt");
                 }
             }
@@ -1393,6 +1474,31 @@ public class DemoService {
         // -- Public Knowledge Base --
         stationRepository.updatePublicKbMode(station.id(), PublicKbMode.ALLOW_ALL);
         log.info("Demo: Enabled public knowledge base");
+
+        // -- Event Templates --
+        var tplStandard = eventTemplateService.create(station.id(), "Standard-Übung");
+        eventTemplateService.update(
+                tplStandard.id(), "Standard-Übung", "Übungsabend", null, null, "RECURRING", false, null, false, null);
+        eventTemplateService.replaceFields(
+                tplStandard.id(),
+                List.of(
+                        new EventTemplateRepository.EventTemplateFieldData("Ort", "string", "{}", 0, true, true, null),
+                        new EventTemplateRepository.EventTemplateFieldData(
+                                "Treffpunkt", "string", "{}", 1, true, true, null)));
+        var tplWettbewerb = eventTemplateService.create(station.id(), "Wettbewerb");
+        eventTemplateService.update(
+                tplWettbewerb.id(), "Wettbewerb", null, null, null, "ONE_TIME", true, null, true, null);
+        eventTemplateService.replaceFields(
+                tplWettbewerb.id(),
+                List.of(
+                        new EventTemplateRepository.EventTemplateFieldData("Ort", "string", "{}", 0, true, true, null),
+                        new EventTemplateRepository.EventTemplateFieldData(
+                                "Thema", "string", "{}", 1, true, false, null)));
+        log.info("Demo: Created event templates");
+
+        // -- Feed Tokens --
+        feedTokenService.getOrCreate(adminMember.id());
+        log.info("Demo: Created feed token for admin");
 
         // -- Settings --
         applicationSettingRepository.setBoolean("station_registration_enabled", false);

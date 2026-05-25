@@ -33,7 +33,11 @@ class ProcurementServiceTest extends RepositoryTestBase {
     @BeforeAll
     static void setup() {
         var inventoryService = new InventoryService(inventoryRepo);
-        service = new ProcurementService(procurementRepo, inventoryService);
+        service = new ProcurementService(
+                procurementRepo,
+                inventoryService,
+                inventoryRepo,
+                new dev.chojo.ember.event.DomainEventBus(java.util.Set.of()));
         station = stationRepo.create("ProcStation");
         account = accountRepo.create("proc-svc@test.com", "Proc", "Tester");
         member = stationMemberRepo.create(station.id(), account.id());

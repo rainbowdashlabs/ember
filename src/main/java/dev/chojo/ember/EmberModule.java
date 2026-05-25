@@ -24,18 +24,34 @@ import dev.chojo.ember.conf.file.elements.Database;
 import dev.chojo.ember.conf.file.elements.Demo;
 import dev.chojo.ember.conf.file.elements.Mailing;
 import dev.chojo.ember.event.DomainEventHandler;
+import dev.chojo.ember.event.handlers.CommentCreatedHandler;
+import dev.chojo.ember.event.handlers.CommentDeletedHandler;
 import dev.chojo.ember.event.handlers.EventCreatedHandler;
 import dev.chojo.ember.event.handlers.EventDeletedHandler;
 import dev.chojo.ember.event.handlers.EventRegistrationStatusHandler;
+import dev.chojo.ember.event.handlers.ExchangeRequestedHandler;
+import dev.chojo.ember.event.handlers.ExchangeStatusChangedHandler;
+import dev.chojo.ember.event.handlers.FormDeletedHandler;
+import dev.chojo.ember.event.handlers.FormPublishedHandler;
+import dev.chojo.ember.event.handlers.LendingMessageSentHandler;
+import dev.chojo.ember.event.handlers.LendingRequestedHandler;
+import dev.chojo.ember.event.handlers.LendingStatusChangedHandler;
+import dev.chojo.ember.event.handlers.MembersAddedToGroupHandler;
 import dev.chojo.ember.event.handlers.NewsCreatedHandler;
+import dev.chojo.ember.event.handlers.NewsDeletedHandler;
+import dev.chojo.ember.event.handlers.ProcurementCreatedHandler;
+import dev.chojo.ember.event.handlers.ProcurementFulfilledHandler;
 import dev.chojo.ember.feature.account.route.AuthRoutes;
 import dev.chojo.ember.feature.account.route.SessionRoutes;
 import dev.chojo.ember.feature.attendance.route.AttendanceRoutes;
 import dev.chojo.ember.feature.events.route.EventRoutes;
+import dev.chojo.ember.feature.events.route.EventTemplateRoutes;
 import dev.chojo.ember.feature.events.route.PublicEventRoutes;
 import dev.chojo.ember.feature.federation.route.FederationRemoteRoutes;
 import dev.chojo.ember.feature.federation.route.FederationRoutes;
 import dev.chojo.ember.feature.federation.route.LendingRoutes;
+import dev.chojo.ember.feature.feed.route.FeedTokenRoutes;
+import dev.chojo.ember.feature.feed.route.UserFeedRoutes;
 import dev.chojo.ember.feature.form.route.FormRoutes;
 import dev.chojo.ember.feature.inventory.route.ExchangeRoutes;
 import dev.chojo.ember.feature.inventory.route.InventoryCheckRoutes;
@@ -116,6 +132,7 @@ public class EmberModule extends AbstractModule {
         routesBinder.addBinding().to(RegistrationCodeRoutes.class);
         routesBinder.addBinding().to(StationManageRoutes.class);
         routesBinder.addBinding().to(EventRoutes.class);
+        routesBinder.addBinding().to(EventTemplateRoutes.class);
         routesBinder.addBinding().to(SavedFilterRoutes.class);
         routesBinder.addBinding().to(InventoryCheckRoutes.class);
         routesBinder.addBinding().to(ManagedMemberRoutes.class);
@@ -148,6 +165,8 @@ public class EmberModule extends AbstractModule {
         routesBinder.addBinding().to(FederationRemoteRoutes.class);
         routesBinder.addBinding().to(LendingRoutes.class);
         routesBinder.addBinding().to(DiscoveryRoutes.class);
+        routesBinder.addBinding().to(FeedTokenRoutes.class);
+        routesBinder.addBinding().to(UserFeedRoutes.class);
 
         // Domain event handlers
         Multibinder<DomainEventHandler<?>> eventBinder =
@@ -156,6 +175,19 @@ public class EmberModule extends AbstractModule {
         eventBinder.addBinding().to(EventDeletedHandler.class);
         eventBinder.addBinding().to(EventRegistrationStatusHandler.class);
         eventBinder.addBinding().to(NewsCreatedHandler.class);
+        eventBinder.addBinding().to(NewsDeletedHandler.class);
+        eventBinder.addBinding().to(CommentCreatedHandler.class);
+        eventBinder.addBinding().to(CommentDeletedHandler.class);
+        eventBinder.addBinding().to(ExchangeRequestedHandler.class);
+        eventBinder.addBinding().to(ExchangeStatusChangedHandler.class);
+        eventBinder.addBinding().to(FormPublishedHandler.class);
+        eventBinder.addBinding().to(FormDeletedHandler.class);
+        eventBinder.addBinding().to(ProcurementCreatedHandler.class);
+        eventBinder.addBinding().to(ProcurementFulfilledHandler.class);
+        eventBinder.addBinding().to(MembersAddedToGroupHandler.class);
+        eventBinder.addBinding().to(LendingRequestedHandler.class);
+        eventBinder.addBinding().to(LendingStatusChangedHandler.class);
+        eventBinder.addBinding().to(LendingMessageSentHandler.class);
     }
 
     @Provides

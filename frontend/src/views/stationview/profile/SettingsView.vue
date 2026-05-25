@@ -144,15 +144,15 @@ function toggleEmailEnabled() {
 
 function toggleApp(type: string) {
   if (!settings.value) return
-  const current = settings.value.notifications?.[type] ?? {app: true, email: false}
-  settings.value.notifications[type] = {app: !current.app, email: current.email}
+  const current = settings.value.notifications?.[type] ?? {app: true, email: false, feed: true}
+  settings.value.notifications[type] = {app: !current.app, email: current.email, feed: current.feed}
   save()
 }
 
 function toggleEmail(type: string) {
   if (!settings.value) return
-  const current = settings.value.notifications?.[type] ?? {app: true, email: false}
-  settings.value.notifications[type] = {app: current.app, email: !current.email}
+  const current = settings.value.notifications?.[type] ?? {app: true, email: false, feed: true}
+  settings.value.notifications[type] = {app: current.app, email: !current.email, feed: current.feed}
   save()
 }
 

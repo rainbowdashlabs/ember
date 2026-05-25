@@ -312,6 +312,10 @@ async function handleLogout() {
                      @navigate="close">
           {{ t('sidebar.eventCategories') }}
         </SidebarLink>
+        <SidebarLink v-if="canManageEvents()" :icon="['fas', 'clipboard-list']" name="event-templates" to="/station/events/templates"
+                     @navigate="close">
+          {{ t('sidebar.eventTemplates') }}
+        </SidebarLink>
       </SidebarGroup>
 
       <SidebarGroup :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => openGroup = v" v-if="isModuleEnabled(StationModules.FORMS)" :icon="['fas', 'square-poll-vertical']" :label="t('sidebar.forms')" prefix="/station/forms">

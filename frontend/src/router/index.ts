@@ -423,6 +423,11 @@ const router = createRouter({
                     component: () => import('@/views/stationview/events/LayoutManageView.vue'),
                 },
                 {
+                    path: 'events/templates',
+                    name: 'event-templates',
+                    component: () => import('@/views/stationview/events/TemplateManageView.vue'),
+                },
+                {
                     path: 'events/batch',
                     name: 'event-batch',
                     component: () => import('@/views/stationview/events/BatchCreateView.vue'),
@@ -807,6 +812,16 @@ const router = createRouter({
                     component: () => import('@/views/helpcenter/stationview/profile/NotificationsHelp.vue')
                 },
                 {
+                    path: 'profile/feeds/rss',
+                    name: 'help-profile-rss-feed',
+                    component: () => import('@/views/helpcenter/stationview/profile/RssFeedHelp.vue')
+                },
+                {
+                    path: 'profile/feeds/ical',
+                    name: 'help-profile-ical-feed',
+                    component: () => import('@/views/helpcenter/stationview/profile/IcalFeedHelp.vue')
+                },
+                {
                     path: 'profile/theme',
                     name: 'help-profile-theme',
                     component: () => import('@/views/helpcenter/stationview/profile/ThemeHelp.vue')
@@ -1105,6 +1120,11 @@ const router = createRouter({
                     path: 'events/categories',
                     name: 'help-event-categories',
                     component: () => import('@/views/helpcenter/stationview/events/CategoriesHelp.vue')
+                },
+                {
+                    path: 'events/templates',
+                    name: 'help-event-templates',
+                    redirect: { name: 'help-event-layouts' },
                 },
                 {
                     path: 'events/layouts',

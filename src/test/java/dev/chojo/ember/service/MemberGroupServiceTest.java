@@ -33,7 +33,11 @@ class MemberGroupServiceTest extends RepositoryTestBase {
 
     @BeforeAll
     static void setup() {
-        service = new MemberGroupService(memberGroupRepo, stationMemberRepo, userTagRepo);
+        service = new MemberGroupService(
+                memberGroupRepo,
+                stationMemberRepo,
+                userTagRepo,
+                new dev.chojo.ember.event.DomainEventBus(java.util.Set.of()));
         station = stationRepo.create("GroupStation");
         account = accountRepo.create("group-svc@test.com", "Group", "Tester");
         member = stationMemberRepo.create(station.id(), account.id());

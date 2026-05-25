@@ -19,6 +19,7 @@ const emit = defineEmits<{
   toggleEmailEnabled: []
   toggleApp: [type: string]
   toggleEmail: [type: string]
+  toggleFeed: [type: string]
 }>()
 
 const {t} = useI18n()
@@ -85,15 +86,16 @@ function getToggle(type: string): NotificationToggle {
     <p class="text-xs text-(--text-muted)">{{ t('userSettings.notificationsHint') }}</p>
 
     <!-- Header row -->
-    <div class="grid grid-cols-[1fr_auto_auto] gap-x-4 items-center text-xs font-semibold text-(--text-muted) border-b border-(--border) pb-2">
+    <div class="grid grid-cols-[1fr_auto_auto_auto] gap-x-4 items-center text-xs font-semibold text-(--text-muted) border-b border-(--border) pb-2">
       <span></span>
       <span class="w-12 text-center">{{ t('userSettings.columnApp') }}</span>
       <span class="w-12 text-center">{{ t('userSettings.columnEmail') }}</span>
+      <span class="w-12 text-center">{{ t('userSettings.columnFeed') }}</span>
     </div>
 
     <!-- Notification rows -->
     <div v-for="row in notifyRows" :key="row.type"
-         class="grid grid-cols-[1fr_auto_auto] gap-x-4 items-center py-1">
+         class="grid grid-cols-[1fr_auto_auto_auto] gap-x-4 items-center py-1">
       <div>
         <span class="text-sm font-medium">{{ t(`userSettings.${row.label}`) }}</span>
         <p class="text-xs text-(--text-muted)">{{ t(`userSettings.${row.hint}`) }}</p>
@@ -104,6 +106,9 @@ function getToggle(type: string): NotificationToggle {
       <div class="w-12 flex justify-center">
         <ToggleInput :model-value="getToggle(row.type).email" :disabled="!settings.emailEnabled"
                      @update:model-value="emit('toggleEmail', row.type)"/>
+      </div>
+      <div class="w-12 flex justify-center">
+        <ToggleInput :model-value="getToggle(row.type).feed" @update:model-value="emit('toggleFeed', row.type)"/>
       </div>
     </div>
   </NeutralContainer>

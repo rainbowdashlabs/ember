@@ -35,7 +35,11 @@ class ExchangeServiceTest extends RepositoryTestBase {
     @BeforeAll
     static void setup() {
         var inventoryService = new InventoryService(inventoryRepo);
-        service = new ExchangeService(exchangeRepo, inventoryRepo, inventoryService);
+        service = new ExchangeService(
+                exchangeRepo,
+                inventoryRepo,
+                inventoryService,
+                new dev.chojo.ember.event.DomainEventBus(java.util.Set.of()));
         station = stationRepo.create("ExchStation");
         account = accountRepo.create("exch-svc@test.com", "Exch", "Tester");
         member = stationMemberRepo.create(station.id(), account.id());
@@ -67,7 +71,15 @@ class ExchangeServiceTest extends RepositoryTestBase {
         var sizeM =
                 sizes.stream().filter(s -> "M".equals(s.label())).findFirst().orElseThrow();
         var exchange = service.create(
-                station.id(), member.id(), itemId, inventoryId, sizeM.id(), sizeL.id(), "Too small", null);
+                station.id(),
+                member.id(),
+                "Exch Tester",
+                itemId,
+                inventoryId,
+                sizeM.id(),
+                sizeL.id(),
+                "Too small",
+                null);
         assertNotNull(exchange);
         assertEquals(ExchangeStatus.ANNOUNCED, exchange.status());
         exchangeId = exchange.id();

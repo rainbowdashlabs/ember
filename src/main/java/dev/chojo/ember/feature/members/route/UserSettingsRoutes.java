@@ -97,7 +97,8 @@ public class UserSettingsRoutes implements Routes {
             for (var entry : request.notifications().entrySet()) {
                 var type = NotificationType.valueOf(entry.getKey());
                 var toggle = entry.getValue();
-                notifMap.put(type, new NotificationSetting(memberId, type, toggle.app(), toggle.email()));
+                notifMap.put(
+                        type, new NotificationSetting(memberId, type, toggle.app(), toggle.email(), toggle.feed()));
             }
         }
         settingsService.updateNotificationSettings(memberId, notifMap);
@@ -137,14 +138,15 @@ public class UserSettingsRoutes implements Routes {
             var setting = notifSettings.get(type);
             boolean app = setting == null || setting.appEnabled();
             boolean email = setting != null && setting.emailEnabled();
-            responseMap.put(type.name(), new NotificationToggle(app, email));
+            boolean feed = setting == null || setting.feedEnabled();
+            responseMap.put(type.name(), new NotificationToggle(app, email, feed));
         }
 
         return new SettingsResponse(
                 emailEnabled, theme, darkMode, feel, responseMap, mailConfigured, mailProviderName, mailProviderUrl);
     }
 
-    public record NotificationToggle(boolean app, boolean email) {}
+    public record NotificationToggle(boolean app, boolean email, boolean feed) {}
 
     public record SettingsRequest(
             Boolean emailEnabled,

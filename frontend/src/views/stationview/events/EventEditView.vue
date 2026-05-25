@@ -17,7 +17,7 @@ import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
-import type {AttendanceTemplate, AttendanceTemplateField, EventCategory, EventFieldEntry, MemberGroup, Role, StationMember, UserTag} from '@/api/types'
+import type {AttendanceTemplate, AttendanceTemplateField, EventCategory, EventFieldEntry, EventTemplate, MemberGroup, Role, StationMember, UserTag} from '@/api/types'
 import {EventTypes, needsDayOfWeek} from '@/api/types'
 import type {EventFieldDefault} from '@/api/events'
 import {attendance, events, memberGroups, stationMembers, userTags} from '@/api'
@@ -34,6 +34,7 @@ const isEdit = computed(() => eventId.value !== null)
 
 const categories = ref<EventCategory[]>([])
 const templates = ref<AttendanceTemplate[]>([])
+const eventTemplates = ref<EventTemplate[]>([])
 const roles = ref<Role[]>([])
 const groups = ref<MemberGroup[]>([])
 const tags = ref<UserTag[]>([])
@@ -49,6 +50,38 @@ const eventCustomFields = ref<EventFieldEntry[]>([])
 const loading = ref(true)
 const saving = ref(false)
 const error = ref('')
+const templateApplied = ref(false)
+
+async function applyEventTemplate(templateId: string | undefined) {
+  if (!templateId) return
+  try {
+    const detail = await events.getTemplate(Number(templateId))
+    const tpl = detail.template
+    if (tpl.title) eventName.value = tpl.title
+    if (tpl.description) eventDescription.value = tpl.description
+    if (tpl.categoryId) eventCategoryId.value = String(tpl.categoryId)
+    if (tpl.eventType) eventType.value = tpl.eventType
+    if (tpl.requiresRegistration != null) eventRequiresRegistration.value = tpl.requiresRegistration
+    if (tpl.requiresConfirmation != null) eventRequiresConfirmation.value = tpl.requiresConfirmation
+    if (detail.fields.length > 0) {
+      const newFields = detail.fields.map(f => ({
+        name: f.name,
+        fieldType: f.fieldType ?? 'string',
+        config: f.config ?? '{}',
+        value: '',
+        overview: f.overview ?? false,
+        attendanceFieldId: f.attendanceFieldId ?? null,
+        isPublic: f.isPublic ?? false,
+      }))
+      eventCustomFields.value = [...eventCustomFields.value, ...newFields]
+    }
+    if (detail.restrictionRoleIds.length > 0) {
+      selectedRoleIds.value = [...new Set([...selectedRoleIds.value, ...detail.restrictionRoleIds])]
+    }
+    templateApplied.value = true
+    setTimeout(() => { templateApplied.value = false }, 3000)
+  } catch { error.value = t('common.error') }
+}
 
 // Form state
 const eventName = ref('')
@@ -79,16 +112,18 @@ async function loadData() {
   loading.value = true
   error.value = ''
   try {
-    const [cats, tpl, allRoles, allGroups, allTags, members] = await Promise.all([
+    const [cats, tpl, allRoles, allGroups, allTags, members, evtTpls] = await Promise.all([
       events.listCategories(),
       attendance.listTemplates(),
       stationMembers.listAllRoles(),
       memberGroups.listGroups(),
       userTags.listTags(),
       stationMembers.listMembers(),
+      events.listTemplates(),
     ])
     categories.value = cats
     templates.value = tpl
+    eventTemplates.value = evtTpls
     roles.value = allRoles
     groups.value = allGroups
     tags.value = allTags
@@ -266,9 +301,18 @@ watch(loaded, (isLoaded) => {
 
       <Spinner v-if="loading" size="lg"/>
       <Alert v-if="error" variant="error">{{ error }}</Alert>
+      <Alert v-if="templateApplied" variant="success">{{ t('eventTemplates.applied') }}</Alert>
 
       <template v-if="!loading">
-        <SectionHeader>{{ isEdit ? t('events.editEvent') : t('events.addEvent') }}</SectionHeader>
+        <div class="flex items-center justify-between flex-wrap gap-2">
+          <SectionHeader>{{ isEdit ? t('events.editEvent') : t('events.addEvent') }}</SectionHeader>
+          <div v-if="eventTemplates.length > 0" class="flex items-center gap-2">
+            <SelectInput model-value="" class="w-48 text-sm" @update:model-value="applyEventTemplate">
+              <option value="" disabled>{{ t('eventTemplates.loadTemplate') }}</option>
+              <option v-for="et in eventTemplates" :key="et.id" :value="String(et.id)">{{ et.name }}</option>
+            </SelectInput>
+          </div>
+        </div>
 
         <NeutralContainer>
           <EventFormPanel

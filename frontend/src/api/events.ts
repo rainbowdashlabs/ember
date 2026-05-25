@@ -15,6 +15,9 @@ import type {
     EventLayoutField,
     EventRequest,
     EventRestrictions,
+    EventTemplate,
+    EventTemplateDetail,
+    EventTemplateFieldEntry,
     LayoutFieldEntry,
     SetEventFieldsRequest,
     StationEvent
@@ -295,6 +298,44 @@ export async function getLayoutFields(layoutId: number): Promise<EventLayoutFiel
 export async function setLayoutFields(layoutId: number, data: { fields: LayoutFieldEntry[] }): Promise<EventLayoutField[]> {
     const res = await client.put<EventLayoutField[]>(`/events/layouts/${layoutId}/fields`, data)
     return res.data
+}
+
+// -- Templates --
+
+export async function listTemplates(): Promise<EventTemplate[]> {
+    const res = await client.get<EventTemplate[]>('/event-templates')
+    return res.data
+}
+
+export async function createTemplate(data: { name: string }): Promise<EventTemplate> {
+    const res = await client.post<EventTemplate>('/event-templates', data)
+    return res.data
+}
+
+export async function getTemplate(id: number): Promise<EventTemplateDetail> {
+    const res = await client.get<EventTemplateDetail>(`/event-templates/${id}`)
+    return res.data
+}
+
+export async function updateTemplate(id: number, data: {
+    name?: string, title?: string | null, description?: string | null, categoryId?: number | null,
+    eventType?: string | null, requiresRegistration?: boolean | null,
+    registrationDeadlineOffset?: string | null, requiresConfirmation?: boolean | null,
+    restrictionMode?: string | null
+}): Promise<void> {
+    await client.put(`/event-templates/${id}`, data)
+}
+
+export async function deleteTemplate(id: number): Promise<void> {
+    await client.delete(`/event-templates/${id}`)
+}
+
+export async function setTemplateFields(id: number, data: { fields: EventTemplateFieldEntry[] }): Promise<void> {
+    await client.put(`/event-templates/${id}/fields`, data)
+}
+
+export async function setTemplateRestrictions(id: number, data: { roleIds: number[] }): Promise<void> {
+    await client.put(`/event-templates/${id}/restrictions`, data)
 }
 
 // -- Batch Creation --

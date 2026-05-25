@@ -40,6 +40,7 @@ export * as federation from './federation'
 export * as discovery from './discovery'
 export * as problems from './problems'
 export * as lending from './lending'
+export * as feedToken from './feedToken'
 export * as storage from './storage'
 export * as util from './util'
 

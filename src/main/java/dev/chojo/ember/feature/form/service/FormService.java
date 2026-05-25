@@ -5,6 +5,9 @@
  */
 package dev.chojo.ember.feature.form.service;
 
+import dev.chojo.ember.event.DomainEventBus;
+import dev.chojo.ember.event.events.FormDeleted;
+import dev.chojo.ember.event.events.FormPublished;
 import dev.chojo.ember.feature.form.entity.Form;
 import dev.chojo.ember.feature.form.entity.FormAnswer;
 import dev.chojo.ember.feature.form.entity.FormQuestion;
@@ -39,6 +42,7 @@ public class FormService {
     private final MemberGroupService groupService;
     private final UserTagService tagService;
     private final RestrictionRepository restrictionRepository;
+    private final DomainEventBus eventBus;
 
     @Inject
     public FormService(
@@ -46,12 +50,14 @@ public class FormService {
             StationMemberService memberService,
             MemberGroupService groupService,
             UserTagService tagService,
-            RestrictionRepository restrictionRepository) {
+            RestrictionRepository restrictionRepository,
+            DomainEventBus eventBus) {
         this.repository = repository;
         this.memberService = memberService;
         this.groupService = groupService;
         this.tagService = tagService;
         this.restrictionRepository = restrictionRepository;
+        this.eventBus = eventBus;
     }
 
     /**
@@ -181,7 +187,12 @@ public class FormService {
      * @return {@code true} if the form was deleted
      */
     public boolean delete(int id) {
-        return repository.delete(id);
+        var form = repository.findById(id).orElse(null);
+        boolean deleted = repository.delete(id);
+        if (deleted && form != null) {
+            eventBus.publish(new FormDeleted(form.stationId(), id));
+        }
+        return deleted;
     }
 
     /**
@@ -191,7 +202,12 @@ public class FormService {
      * @return {@code true} if the status was updated
      */
     public boolean publish(int id) {
-        return repository.updateStatus(id, Form.FormStatus.OPEN);
+        var form = repository.findById(id).orElse(null);
+        boolean updated = repository.updateStatus(id, Form.FormStatus.OPEN);
+        if (updated && form != null) {
+            eventBus.publish(new FormPublished(form.stationId(), id, form.title()));
+        }
+        return updated;
     }
 
     /**

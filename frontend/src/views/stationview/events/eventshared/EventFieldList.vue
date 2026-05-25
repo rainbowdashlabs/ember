@@ -27,16 +27,16 @@ const emit = defineEmits<{
 const {t} = useI18n()
 
 const quickFields = [
-  {name: 'Ort', fieldType: 'string', overview: true},
-  {name: 'Treffpunkt', fieldType: 'string', overview: true},
-  {name: 'Thema', fieldType: 'string', overview: true},
+  {name: 'Ort', fieldType: 'string', overview: true, isPublic: true},
+  {name: 'Treffpunkt', fieldType: 'string', overview: true, isPublic: true},
+  {name: 'Thema', fieldType: 'string', overview: true, isPublic: false},
 ]
 
 const existingNames = computed(() => new Set(props.fields.map(f => f.name.toLowerCase())))
 
 function addQuickField(qf: typeof quickFields[number]) {
   emit('update:fields', [...props.fields, {
-    name: qf.name, fieldType: qf.fieldType, config: '{}', value: '', overview: qf.overview, attendanceFieldId: null,
+    name: qf.name, fieldType: qf.fieldType, config: '{}', value: '', overview: qf.overview, attendanceFieldId: null, isPublic: qf.isPublic,
   }])
 }
 
