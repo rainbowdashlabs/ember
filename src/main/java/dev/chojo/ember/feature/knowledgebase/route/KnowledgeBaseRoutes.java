@@ -27,6 +27,7 @@ import dev.chojo.ember.util.PandocConverter;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.ContentType;
 import io.javalin.http.Context;
+import io.javalin.http.ForbiddenResponse;
 import io.javalin.http.HttpStatus;
 import io.javalin.http.InternalServerErrorResponse;
 import io.javalin.http.NotFoundResponse;
@@ -200,6 +201,11 @@ public class KnowledgeBaseRoutes implements Routes {
 
     private void updateFolder(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
+        var session = UserSession.from(ctx);
+        var folder = service.findFolder(id).orElseThrow(NotFoundResponse::new);
+        if (folder.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot access resources from another station");
+        }
         var req = ctx.bodyAsClass(FolderRequest.class);
         if (!service.updateFolder(
                 id,
@@ -216,6 +222,11 @@ public class KnowledgeBaseRoutes implements Routes {
 
     private void deleteFolder(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
+        var session = UserSession.from(ctx);
+        var folder = service.findFolder(id).orElseThrow(NotFoundResponse::new);
+        if (folder.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot access resources from another station");
+        }
         if (!service.deleteFolder(id)) throw new NotFoundResponse();
         ctx.status(204);
     }
@@ -240,6 +251,11 @@ public class KnowledgeBaseRoutes implements Routes {
 
     private void updateFile(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
+        var session = UserSession.from(ctx);
+        var file = service.findFile(id).orElseThrow(NotFoundResponse::new);
+        if (file.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot access resources from another station");
+        }
         var req = ctx.bodyAsClass(FileUpdateRequest.class);
         if (!service.updateFile(
                 id,
@@ -256,6 +272,11 @@ public class KnowledgeBaseRoutes implements Routes {
 
     private void deleteFile(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
+        var session = UserSession.from(ctx);
+        var file = service.findFile(id).orElseThrow(NotFoundResponse::new);
+        if (file.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot access resources from another station");
+        }
         if (!service.deleteFile(id)) throw new NotFoundResponse();
         ctx.status(204);
     }
@@ -425,6 +446,10 @@ public class KnowledgeBaseRoutes implements Routes {
     private void updateMarkdownContent(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
         var session = UserSession.from(ctx);
+        var file = service.findFile(id).orElseThrow(NotFoundResponse::new);
+        if (file.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot access resources from another station");
+        }
         var req = ctx.bodyAsClass(ContentUpdateRequest.class);
         service.updateMarkdownContent(
                 id, req.content() != null ? req.content() : "", session.member().id());
@@ -459,6 +484,10 @@ public class KnowledgeBaseRoutes implements Routes {
         int fileId = ctx.pathParamAsClass("id", Integer.class).get();
         int version = ctx.pathParamAsClass("version", Integer.class).get();
         var session = UserSession.from(ctx);
+        var file = service.findFile(fileId).orElseThrow(NotFoundResponse::new);
+        if (file.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot access resources from another station");
+        }
         service.revertToVersion(fileId, version, session.member().id());
         ctx.status(204);
     }
@@ -472,6 +501,11 @@ public class KnowledgeBaseRoutes implements Routes {
 
     private void setRelatedFiles(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
+        var session = UserSession.from(ctx);
+        var file = service.findFile(id).orElseThrow(NotFoundResponse::new);
+        if (file.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot access resources from another station");
+        }
         var req = ctx.bodyAsClass(RelatedFilesRequest.class);
         service.setRelatedFiles(id, req.fileIds() != null ? req.fileIds() : List.of());
         ctx.json(service.findRelatedFiles(id));
@@ -538,6 +572,11 @@ public class KnowledgeBaseRoutes implements Routes {
 
     private void setFolderRestrictions(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
+        var session = UserSession.from(ctx);
+        var folder = service.findFolder(id).orElseThrow(NotFoundResponse::new);
+        if (folder.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot access resources from another station");
+        }
         var req = ctx.bodyAsClass(RestrictionRequest.class);
         service.setRestrictions(
                 id,
@@ -557,6 +596,11 @@ public class KnowledgeBaseRoutes implements Routes {
 
     private void setFileRestrictions(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
+        var session = UserSession.from(ctx);
+        var file = service.findFile(id).orElseThrow(NotFoundResponse::new);
+        if (file.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot access resources from another station");
+        }
         var req = ctx.bodyAsClass(RestrictionRequest.class);
         service.setRestrictions(
                 null,
@@ -634,6 +678,11 @@ public class KnowledgeBaseRoutes implements Routes {
 
     private void uploadFolderIcon(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
+        var session = UserSession.from(ctx);
+        var folder = service.findFolder(id).orElseThrow(NotFoundResponse::new);
+        if (folder.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot access resources from another station");
+        }
         var file = ctx.uploadedFile("icon");
         if (file == null) throw new BadRequestResponse("No file uploaded");
         if (!ALLOWED_IMAGE_TYPES.contains(file.contentType())) {
@@ -643,7 +692,6 @@ public class KnowledgeBaseRoutes implements Routes {
             byte[] data = content.readAllBytes();
             imageService.store(ImageCategory.KB_ICONS, "folder-" + id, data, file.contentType(), 5 * 1024 * 1024);
             // Mark folder as having an icon so the frontend shows it
-            var folder = service.findFolder(id).orElseThrow(NotFoundResponse::new);
             service.updateFolder(id, folder.name(), folder.description(), "folder-" + id, folder.position());
             ctx.json(new MessageResponse("Icon updated"));
         } catch (IllegalArgumentException e) {
@@ -659,8 +707,11 @@ public class KnowledgeBaseRoutes implements Routes {
 
     private void uploadKbImage(Context ctx) {
         int fileId = ctx.pathParamAsClass("id", Integer.class).get();
-        // Verify the file exists
-        service.findFile(fileId).orElseThrow(NotFoundResponse::new);
+        var session = UserSession.from(ctx);
+        var kbFile = service.findFile(fileId).orElseThrow(NotFoundResponse::new);
+        if (kbFile.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot access resources from another station");
+        }
         var file = ctx.uploadedFile("image");
         if (file == null) throw new BadRequestResponse("No image uploaded");
         if (!ALLOWED_IMAGE_TYPES.contains(file.contentType())) {
@@ -709,6 +760,10 @@ public class KnowledgeBaseRoutes implements Routes {
     private void setFileTags(Context ctx) {
         var session = UserSession.from(ctx);
         int id = ctx.pathParamAsClass("id", Integer.class).get();
+        var file = service.findFile(id).orElseThrow(NotFoundResponse::new);
+        if (file.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot access resources from another station");
+        }
         var req = ctx.bodyAsClass(TagRequest.class);
         ctx.json(service.setFileTags(id, req.tags(), session.stationId()));
     }
@@ -721,6 +776,10 @@ public class KnowledgeBaseRoutes implements Routes {
     private void setFolderTags(Context ctx) {
         var session = UserSession.from(ctx);
         int id = ctx.pathParamAsClass("id", Integer.class).get();
+        var folder = service.findFolder(id).orElseThrow(NotFoundResponse::new);
+        if (folder.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot access resources from another station");
+        }
         var req = ctx.bodyAsClass(TagRequest.class);
         ctx.json(service.setFolderTags(id, req.tags(), session.stationId()));
     }

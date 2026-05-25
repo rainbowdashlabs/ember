@@ -7,18 +7,21 @@
 import {computed, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import TextInput from '@/components/input/text/TextInput.vue'
+import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import EventFieldValueInput from '@/components/input/EventFieldValueInput.vue'
-import type {AttendanceTemplateField, EventFieldEntry} from '@/api/types'
+import type {AttendanceTemplateField, EventFieldEntry, StationMember} from '@/api/types'
 import {EventFieldTypes} from '@/api/types'
 
 const props = defineProps<{
   modelValue: EventFieldEntry
   attendanceFields?: AttendanceTemplateField[]
   showValue?: boolean
+  allMembers?: StationMember[]
+  groupMembers?: Map<number, StationMember[]>
 }>()
 
 const emit = defineEmits<{
@@ -101,7 +104,7 @@ watch(entry, val => emit('update:modelValue', val), {deep: true})
 
       <div v-if="fieldType === 'enum'" class="w-48 space-y-1">
         <FieldLabel>{{ t('eventFields.enumOptions') }}</FieldLabel>
-        <TextInput v-model="enumOptions" :placeholder="t('eventFields.enumOptionsPlaceholder')"/>
+        <TextAreaInput v-model="enumOptions" :placeholder="t('eventFields.enumOptionsPlaceholder')" :rows="3"/>
       </div>
 
       <div class="space-y-1">
@@ -130,6 +133,8 @@ watch(entry, val => emit('update:modelValue', val), {deep: true})
           :field-type="fieldType"
           :config="configString"
           :model-value="fieldValue"
+          :all-members="allMembers"
+          :group-members="groupMembers"
           @update:model-value="fieldValue = $event"
       />
     </div>

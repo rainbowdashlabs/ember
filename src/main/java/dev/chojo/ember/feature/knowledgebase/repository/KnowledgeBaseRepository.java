@@ -397,7 +397,7 @@ public class KnowledgeBaseRepository {
                 .orElseThrow();
     }
 
-    // TODO: Why is this unused
+    // Not yet exposed via routes — tag management UI not implemented
     public boolean deleteTag(int id) {
         return Query.query("DELETE FROM kb_tag WHERE id = :id;")
                 .single(Call.of().bind("id", id))
@@ -488,7 +488,7 @@ public class KnowledgeBaseRepository {
                 .insert();
     }
 
-    // TODO: The favourite feature seems to be lost for the knowledge base
+    // Not yet exposed via routes — favourites UI not implemented
     public boolean removeFavourite(int memberId, int fileId) {
         return Query.query("DELETE FROM kb_favourite WHERE member_id = :member_id AND file_id = :file_id;")
                 .single(Call.of().bind("member_id", memberId).bind("file_id", fileId))

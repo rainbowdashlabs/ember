@@ -124,15 +124,4 @@ public class RestrictionRepository {
                 .first()
                 .orElse(true);
     }
-
-    /**
-     * Checks whether any restrictions exist for an entity.
-     */
-    public boolean hasRestrictions(String table, String fkColumn, int entityId) {
-        return Query.query("SELECT EXISTS(SELECT 1 FROM " + table + " WHERE " + fkColumn + " = :entity_id) AS has;")
-                .single(Call.of().bind("entity_id", entityId))
-                .map(row -> row.getBoolean("has"))
-                .first()
-                .orElse(false);
-    }
 }

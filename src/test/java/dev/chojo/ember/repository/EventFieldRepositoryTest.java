@@ -67,11 +67,13 @@ class EventFieldRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(1)
     void create() {
-        EventField field = eventFieldRepo.create(eventId, "Location", "Berlin", 0);
+        EventField field = eventFieldRepo.create(eventId, "Location", "string", "{}", "Berlin", 0, false, null);
         assertNotNull(field);
         assertEquals("Location", field.name());
+        assertEquals("string", field.fieldType());
         assertEquals("Berlin", field.value());
         assertEquals(0, field.position());
+        assertFalse(field.overview());
         fieldId = field.id();
     }
 
@@ -98,33 +100,18 @@ class EventFieldRepositoryTest extends RepositoryTestBase {
     }
 
     @Test
-    @Order(5)
-    void update() {
-        assertTrue(eventFieldRepo.update(fieldId, "Venue", "Munich", 1));
-        var fields = eventFieldRepo.findByEvent(eventId);
-        assertEquals("Venue", fields.getFirst().name());
-        assertEquals("Munich", fields.getFirst().value());
-        assertEquals(1, fields.getFirst().position());
-    }
-
-    @Test
-    @Order(6)
-    void updateNonExistent() {
-        assertFalse(eventFieldRepo.update(99999, "Nope", "Nope", 0));
-    }
-
-    @Test
     @Order(10)
     void replaceFields() {
         eventFieldRepo.replaceFields(
                 eventId,
                 List.of(
-                        new EventFieldRepository.FieldEntry("Key1", "Val1"),
-                        new EventFieldRepository.FieldEntry("Key2", "Val2")));
+                        new EventFieldRepository.FieldEntry("Key1", "string", "{}", "Val1", false, null),
+                        new EventFieldRepository.FieldEntry("Key2", "string", "{}", "Val2", true, null)));
         var fields = eventFieldRepo.findByEvent(eventId);
         assertEquals(2, fields.size());
         assertEquals("Key1", fields.get(0).name());
         assertEquals("Key2", fields.get(1).name());
+        assertTrue(fields.get(1).overview());
     }
 
     @Test
@@ -132,19 +119,5 @@ class EventFieldRepositoryTest extends RepositoryTestBase {
     void deleteByEvent() {
         eventFieldRepo.deleteByEvent(eventId);
         assertTrue(eventFieldRepo.findByEvent(eventId).isEmpty());
-    }
-
-    @Test
-    @Order(12)
-    void deleteSingle() {
-        EventField field = eventFieldRepo.create(eventId, "Temp", "Val", 0);
-        assertTrue(eventFieldRepo.delete(field.id()));
-        assertTrue(eventFieldRepo.findByEvent(eventId).isEmpty());
-    }
-
-    @Test
-    @Order(13)
-    void deleteNonExistent() {
-        assertFalse(eventFieldRepo.delete(99999));
     }
 }

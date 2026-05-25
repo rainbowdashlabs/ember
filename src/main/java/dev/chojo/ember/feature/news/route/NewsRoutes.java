@@ -169,7 +169,10 @@ public class NewsRoutes implements Routes {
     private void update(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
         UserSession session = UserSession.from(ctx);
-        // TODO: It is not checked whether the news actually belongs to the station.
+        var news = newsService.findById(id).orElseThrow(NotFoundResponse::new);
+        if (news.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot modify news from another station");
+        }
         var request = ctx.bodyAsClass(NewsRequest.class);
         newsService
                 .update(
@@ -181,7 +184,7 @@ public class NewsRoutes implements Routes {
                         request.groupIds() != null ? request.groupIds() : List.of(),
                         request.tagIds() != null ? request.tagIds() : List.of(),
                         request.memberIds() != null ? request.memberIds() : List.of())
-                .ifPresentOrElse(news -> ctx.json(toResponse(news, true)), () -> {
+                .ifPresentOrElse(updated -> ctx.json(toResponse(updated, true)), () -> {
                     throw new NotFoundResponse();
                 });
     }
@@ -198,7 +201,11 @@ public class NewsRoutes implements Routes {
             })
     private void delete(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
+        UserSession session = UserSession.from(ctx);
         var news = newsService.findById(id).orElseThrow(NotFoundResponse::new);
+        if (news.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot delete news from another station");
+        }
         if (newsService.delete(id)) {
             // Remove notifications for this news article and its comments
             notificationService.deleteByTypeContaining(

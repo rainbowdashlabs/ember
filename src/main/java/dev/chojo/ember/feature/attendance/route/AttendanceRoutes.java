@@ -80,6 +80,15 @@ public class AttendanceRoutes implements Routes {
         return s == null || s.isBlank();
     }
 
+    private void verifySessionOwnership(int sessionId, UserSession userSession) {
+        var attSession = attendanceService.findSessionById(sessionId).orElseThrow(NotFoundResponse::new);
+        var template =
+                attendanceService.findTemplateById(attSession.templateId()).orElseThrow(NotFoundResponse::new);
+        if (template.stationId() != userSession.stationId()) {
+            throw new ForbiddenResponse("Cannot access resources from another station");
+        }
+    }
+
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
         routes.get(prefix + "/attendance/templates", this::listTemplates, Roles.ATTENDANCE_MANAGER);
@@ -258,6 +267,11 @@ public class AttendanceRoutes implements Routes {
             })
     private void updateTemplate(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
+        UserSession session = UserSession.from(ctx);
+        var template = attendanceService.findTemplateById(id).orElseThrow(NotFoundResponse::new);
+        if (template.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot access resources from another station");
+        }
         var request = ctx.bodyAsClass(TemplateRequest.class);
         if (isBlank(request.name())) {
             throw new BadRequestResponse("name is required");
@@ -281,6 +295,11 @@ public class AttendanceRoutes implements Routes {
             })
     private void deleteTemplate(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
+        UserSession session = UserSession.from(ctx);
+        var template = attendanceService.findTemplateById(id).orElseThrow(NotFoundResponse::new);
+        if (template.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot access resources from another station");
+        }
         if (attendanceService.deleteTemplate(id)) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
@@ -300,6 +319,11 @@ public class AttendanceRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = TemplateGroupEntry[].class)))
     private void setTemplateGroups(Context ctx) {
         int templateId = ctx.pathParamAsClass("templateId", Integer.class).get();
+        UserSession session = UserSession.from(ctx);
+        var template = attendanceService.findTemplateById(templateId).orElseThrow(NotFoundResponse::new);
+        if (template.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot access resources from another station");
+        }
         var request = ctx.bodyAsClass(SetTemplateGroupsRequest.class);
         var groups = request.groups() != null
                 ? request.groups().stream()
@@ -337,6 +361,11 @@ public class AttendanceRoutes implements Routes {
                     @OpenApiResponse(status = "201", content = @OpenApiContent(from = AttendanceTemplateField[].class)))
     private void createTemplateField(Context ctx) {
         int templateId = ctx.pathParamAsClass("templateId", Integer.class).get();
+        UserSession session = UserSession.from(ctx);
+        var template = attendanceService.findTemplateById(templateId).orElseThrow(NotFoundResponse::new);
+        if (template.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot access resources from another station");
+        }
         var request = ctx.bodyAsClass(TemplateFieldRequest.class);
         if (isBlank(request.name()) || isBlank(request.fieldType())) {
             throw new BadRequestResponse("name and fieldType are required");
@@ -363,6 +392,11 @@ public class AttendanceRoutes implements Routes {
     private void updateTemplateField(Context ctx) {
         int templateId = ctx.pathParamAsClass("templateId", Integer.class).get();
         int fieldId = ctx.pathParamAsClass("fieldId", Integer.class).get();
+        UserSession session = UserSession.from(ctx);
+        var template = attendanceService.findTemplateById(templateId).orElseThrow(NotFoundResponse::new);
+        if (template.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot access resources from another station");
+        }
         var request = ctx.bodyAsClass(TemplateFieldRequest.class);
         if (isBlank(request.name()) || isBlank(request.fieldType())) {
             throw new BadRequestResponse("name and fieldType are required");
@@ -393,6 +427,11 @@ public class AttendanceRoutes implements Routes {
     private void deleteTemplateField(Context ctx) {
         int templateId = ctx.pathParamAsClass("templateId", Integer.class).get();
         int fieldId = ctx.pathParamAsClass("fieldId", Integer.class).get();
+        UserSession session = UserSession.from(ctx);
+        var template = attendanceService.findTemplateById(templateId).orElseThrow(NotFoundResponse::new);
+        if (template.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot access resources from another station");
+        }
         attendanceService.deleteTemplateField(templateId, fieldId).ifPresentOrElse(ctx::json, () -> {
             throw new NotFoundResponse();
         });
@@ -425,6 +464,11 @@ public class AttendanceRoutes implements Routes {
             responses = @OpenApiResponse(status = "201", content = @OpenApiContent(from = AttendanceSession.class)))
     private void createSession(Context ctx) {
         int templateId = ctx.pathParamAsClass("templateId", Integer.class).get();
+        UserSession session = UserSession.from(ctx);
+        var template = attendanceService.findTemplateById(templateId).orElseThrow(NotFoundResponse::new);
+        if (template.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot access resources from another station");
+        }
         var request = ctx.bodyAsClass(SessionRequest.class);
         ctx.status(HttpStatus.CREATED)
                 .json(attendanceService.createSession(
@@ -469,6 +513,13 @@ public class AttendanceRoutes implements Routes {
             })
     private void updateSession(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
+        UserSession userSession = UserSession.from(ctx);
+        var attSession = attendanceService.findSessionById(id).orElseThrow(NotFoundResponse::new);
+        var template =
+                attendanceService.findTemplateById(attSession.templateId()).orElseThrow(NotFoundResponse::new);
+        if (template.stationId() != userSession.stationId()) {
+            throw new ForbiddenResponse("Cannot access resources from another station");
+        }
         var request = ctx.bodyAsClass(SessionRequest.class);
         attendanceService
                 .updateSession(id, request.startTime(), request.endTime(), request.title())
@@ -491,6 +542,13 @@ public class AttendanceRoutes implements Routes {
             })
     private void deleteSession(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
+        UserSession userSession = UserSession.from(ctx);
+        var attSession = attendanceService.findSessionById(id).orElseThrow(NotFoundResponse::new);
+        var template =
+                attendanceService.findTemplateById(attSession.templateId()).orElseThrow(NotFoundResponse::new);
+        if (template.stationId() != userSession.stationId()) {
+            throw new ForbiddenResponse("Cannot access resources from another station");
+        }
         if (attendanceService.deleteSession(id)) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
@@ -525,6 +583,7 @@ public class AttendanceRoutes implements Routes {
                     @OpenApiResponse(status = "200", content = @OpenApiContent(from = AttendanceSessionField[].class)))
     private void setSessionFields(Context ctx) {
         int sessionId = ctx.pathParamAsClass("sessionId", Integer.class).get();
+        verifySessionOwnership(sessionId, UserSession.from(ctx));
         var request = ctx.bodyAsClass(SetSessionFieldsRequest.class);
         List<AttendanceService.FieldValueEntry> entries = request.fields() != null
                 ? request.fields().stream()
@@ -556,6 +615,7 @@ public class AttendanceRoutes implements Routes {
             responses = @OpenApiResponse(status = "201", content = @OpenApiContent(from = AttendanceEntry[].class)))
     private void createEntry(Context ctx) {
         int sessionId = ctx.pathParamAsClass("sessionId", Integer.class).get();
+        verifySessionOwnership(sessionId, UserSession.from(ctx));
         var request = ctx.bodyAsClass(CreateEntryRequest.class);
         if (request.memberId() == null) {
             throw new BadRequestResponse("memberId is required");
@@ -686,6 +746,7 @@ public class AttendanceRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = AttendanceEntry[].class)))
     private void syncFromEvent(Context ctx) {
         int sessionId = ctx.pathParamAsClass("sessionId", Integer.class).get();
+        verifySessionOwnership(sessionId, UserSession.from(ctx));
         ctx.json(attendanceService.syncFromEvent(sessionId));
     }
 
@@ -704,6 +765,7 @@ public class AttendanceRoutes implements Routes {
     private void exportPdf(Context ctx) {
         int sessionId = ctx.pathParamAsClass("sessionId", Integer.class).get();
         UserSession session = UserSession.from(ctx);
+        verifySessionOwnership(sessionId, session);
         String generatedBy =
                 (session.account().firstName() + " " + session.account().lastName()).trim();
         var pdf = exportService.exportSessionPdf(sessionId, generatedBy);

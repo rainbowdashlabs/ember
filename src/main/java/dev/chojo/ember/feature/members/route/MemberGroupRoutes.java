@@ -21,6 +21,7 @@ import dev.chojo.ember.feature.notifications.entity.NotificationType;
 import dev.chojo.ember.feature.notifications.service.NotificationService;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
+import io.javalin.http.ForbiddenResponse;
 import io.javalin.http.HttpStatus;
 import io.javalin.http.NotFoundResponse;
 import io.javalin.openapi.HttpMethod;
@@ -156,6 +157,11 @@ public class MemberGroupRoutes implements Routes {
             })
     private void update(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
+        UserSession session = UserSession.from(ctx);
+        var group = groupService.findById(id).orElseThrow(NotFoundResponse::new);
+        if (group.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot access resources from another station");
+        }
         var request = ctx.bodyAsClass(GroupRequest.class);
         if (isBlank(request.name())) {
             throw new BadRequestResponse("name is required");
@@ -177,6 +183,11 @@ public class MemberGroupRoutes implements Routes {
             })
     private void delete(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
+        UserSession session = UserSession.from(ctx);
+        var group = groupService.findById(id).orElseThrow(NotFoundResponse::new);
+        if (group.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot access resources from another station");
+        }
         if (groupService.delete(id)) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
@@ -212,6 +223,11 @@ public class MemberGroupRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MemberWithName[].class)))
     private void setMembers(Context ctx) {
         int groupId = ctx.pathParamAsClass("id", Integer.class).get();
+        UserSession session = UserSession.from(ctx);
+        var group = groupService.findById(groupId).orElseThrow(NotFoundResponse::new);
+        if (group.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot access resources from another station");
+        }
         var request = ctx.bodyAsClass(SetMembersRequest.class);
         List<Integer> memberIds = request.memberIds() != null ? request.memberIds() : List.of();
 
@@ -228,9 +244,9 @@ public class MemberGroupRoutes implements Routes {
 
         // Notify newly added members
         if (!addedMemberIds.isEmpty()) {
-            groupService.findById(groupId).ifPresent(group -> {
+            groupService.findById(groupId).ifPresent(g -> {
                 var data = NotificationData.of(
-                        new NotificationParams.MemberAddedToGroup(group.name()),
+                        new NotificationParams.MemberAddedToGroup(g.name()),
                         new NotificationData.NotificationLink("dashboard-overview"));
                 notificationService.notifyMembers(addedMemberIds, NotificationType.MEMBER_ADDED_TO_GROUP, data);
             });
@@ -283,6 +299,10 @@ public class MemberGroupRoutes implements Routes {
     private void setGroupRoles(Context ctx) {
         int groupId = ctx.pathParamAsClass("id", Integer.class).get();
         UserSession session = UserSession.from(ctx);
+        var group = groupService.findById(groupId).orElseThrow(NotFoundResponse::new);
+        if (group.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot access resources from another station");
+        }
         var request = ctx.bodyAsClass(SetGroupRolesRequest.class);
         List<Integer> roleIds = request.roleIds() != null ? request.roleIds() : List.of();
         ctx.json(groupService.setGroupRoles(groupId, roleIds, session.roles()));
@@ -300,10 +320,14 @@ public class MemberGroupRoutes implements Routes {
             })
     private void convertToTag(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
+        UserSession session = UserSession.from(ctx);
         groupService
                 .findById(id)
                 .ifPresentOrElse(
                         group -> {
+                            if (group.stationId() != session.stationId()) {
+                                throw new ForbiddenResponse("Cannot access resources from another station");
+                            }
                             groupService.convertToTag(id);
                             ctx.status(HttpStatus.NO_CONTENT);
                         },

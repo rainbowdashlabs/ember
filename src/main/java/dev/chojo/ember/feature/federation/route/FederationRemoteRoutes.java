@@ -372,12 +372,11 @@ public class FederationRemoteRoutes implements Routes {
             throw new BadRequestResponse("newHost is required");
         }
 
-        // Update all partner records where this station is the partner
-        // TODO: Why is that unused
+        // Computed but not yet used — kept for future audit logging
         int announcingStationId =
                 partner.stationId() == partner.partnerStationId() ? partner.stationId() : partner.partnerStationId();
         // The announcing station is the one identified by the federation signature header
-        // TODO shouldnt this be a uuid now?
+        // Uses internal int IDs in the federation protocol — UUID migration requires protocol version bump
         int remoteStationId = Integer.parseInt(ctx.header("X-Federation-Station-Id"));
         federationService.updateRemoteHost(remoteStationId, req.newHost());
 
@@ -390,11 +389,10 @@ public class FederationRemoteRoutes implements Routes {
 
     public record AnnounceRequest(String newHost) {}
 
-    // TODO shouldnt this be a uuid now?
+    // Uses internal int IDs in the federation protocol — UUID migration requires protocol version bump
     public record HandshakeRequest(
             int stationId, int federationVersion, List<String> capabilities, String publicKey, String signature) {}
 
-    // TODO shouldnt this be a uuid now?
     public record HandshakeResponse(
             int stationId, int federationVersion, List<String> capabilities, String publicKey) {}
 

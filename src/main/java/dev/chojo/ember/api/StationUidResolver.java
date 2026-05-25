@@ -50,13 +50,6 @@ public class StationUidResolver {
     }
 
     /**
-     * Clears the cache. Call when stations are created or deleted.
-     */
-    public void invalidate() {
-        cache.clear();
-    }
-
-    /**
      * Removes a specific entry from the cache.
      */
     public void invalidate(int stationId) {

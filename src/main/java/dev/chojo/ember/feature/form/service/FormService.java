@@ -242,7 +242,7 @@ public class FormService {
      * @param config       type-specific configuration as JSON
      * @return the newly created question
      */
-    // TODO: Why is this unused
+    // Individual CRUD — routes use replaceQuestions() instead, kept for programmatic use
     public FormQuestion createQuestion(
             int formId,
             int position,
@@ -267,7 +267,7 @@ public class FormService {
      * @param position    new display order position
      * @return {@code true} if the question was updated
      */
-    // TODO: Why is this unused
+    // Individual CRUD — routes use replaceQuestions() instead, kept for programmatic use
     public boolean updateQuestion(
             int id, String title, String description, boolean required, boolean shuffle, String config, int position) {
         return repository.updateQuestion(id, title, description, required, shuffle, config, position);
@@ -279,7 +279,7 @@ public class FormService {
      * @param id the question ID
      * @return {@code true} if the question was deleted
      */
-    // TODO: Why is this unused
+    // Individual CRUD — routes use replaceQuestions() instead, kept for programmatic use
     public boolean deleteQuestion(int id) {
         return repository.deleteQuestion(id);
     }

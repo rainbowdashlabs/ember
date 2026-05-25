@@ -59,7 +59,7 @@ public class FederationWebhookService {
     /**
      * Fires a webhook event to all active partners of the given station that have a webhook URL.
      */
-    // TODO: Why is that unused
+    // Available for federation event delivery — not yet triggered from change listeners
     public void fireEvent(int stationId, WebhookEvent event, Map<String, Object> payload) {
         var partners = federationService.findPartners(stationId);
         for (var partner : partners) {

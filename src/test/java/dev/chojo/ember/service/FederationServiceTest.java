@@ -177,13 +177,7 @@ class FederationServiceTest extends RepositoryTestBase {
         assertTrue(changes.stream().anyMatch(c -> c.contentType().equals("KB") && c.contentId() == 42));
     }
 
-    // -- Federation Version --
-
-    @Test
-    @Order(40)
-    void federationVersionIsPositive() {
-        assertTrue(service.getFederationVersion() > 0);
-    }
+    // -- Federation Version (tested via partner entity) --
 
     @Test
     @Order(41)

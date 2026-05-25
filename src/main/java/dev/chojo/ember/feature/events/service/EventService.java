@@ -9,6 +9,7 @@ import dev.chojo.ember.feature.events.entity.EventBreak;
 import dev.chojo.ember.feature.events.entity.EventCategory;
 import dev.chojo.ember.feature.events.entity.EventFieldDefault;
 import dev.chojo.ember.feature.events.entity.EventRegistration;
+import dev.chojo.ember.feature.events.entity.MemberRegistrationStats;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventRepository;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
@@ -222,6 +223,10 @@ public class EventService {
      * @param stationId the station ID
      * @return the list of categories
      */
+    public Optional<EventCategory> findCategoryById(int id) {
+        return eventRepository.findCategoryById(id);
+    }
+
     public List<EventCategory> findCategoriesByStation(int stationId) {
         return eventRepository.findCategoriesByStation(stationId);
     }
@@ -519,5 +524,9 @@ public class EventService {
 
     public List<Integer> findDeclinedMemberIds(int eventId, LocalDate eventDate) {
         return eventRepository.findDeclinedMemberIds(eventId, eventDate);
+    }
+
+    public List<MemberRegistrationStats> findRegistrationStats(int eventId, Integer categoryId, int months) {
+        return eventRepository.findRegistrationStatsByEvent(eventId, categoryId, months);
     }
 }

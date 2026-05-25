@@ -146,6 +146,7 @@ public class EventRoutes implements Routes {
         routes.post(prefix + "/events/batch", this::batchCreate, Roles.EVENT_MANAGER);
         routes.post(prefix + "/events/batch/generate-dates", this::generateDates, Roles.EVENT_MANAGER);
 
+        routes.get(prefix + "/events/{eventId}/registration-stats", this::getRegistrationStats, Roles.EVENT_MANAGER);
         routes.get(prefix + "/events/{eventId}/registrations", this::listRegistrations, Roles.USER);
         routes.post(prefix + "/events/{eventId}/register", this::register, Roles.USER);
         routes.post(prefix + "/events/{eventId}/decline", this::decline, Roles.USER);
@@ -264,10 +265,13 @@ public class EventRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void get(Context ctx) {
+        UserSession session = UserSession.from(ctx);
         int id = ctx.pathParamAsClass("id", Integer.class).get();
-        eventService.findById(id).ifPresentOrElse(ctx::json, () -> {
-            throw new NotFoundResponse();
-        });
+        var event = eventService.findById(id).orElseThrow(NotFoundResponse::new);
+        if (event.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot access resources from another station");
+        }
+        ctx.json(event);
     }
 
     @OpenApi(
@@ -282,7 +286,12 @@ public class EventRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void update(Context ctx) {
+        UserSession session = UserSession.from(ctx);
         int id = ctx.pathParamAsClass("id", Integer.class).get();
+        var existing = eventService.findById(id).orElseThrow(NotFoundResponse::new);
+        if (existing.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot access resources from another station");
+        }
         var req = ctx.bodyAsClass(EventRequest.class);
         validate(req);
         var eventType = StationEvent.EventType.valueOf(req.eventType());
@@ -326,8 +335,12 @@ public class EventRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void delete(Context ctx) {
+        UserSession session = UserSession.from(ctx);
         int id = ctx.pathParamAsClass("id", Integer.class).get();
         var event = eventService.findById(id).orElseThrow(NotFoundResponse::new);
+        if (event.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot access resources from another station");
+        }
         if (eventService.delete(id)) {
             // Remove notifications for this event
             notificationService.deleteByTypeContaining(
@@ -387,7 +400,12 @@ public class EventRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void updateBreak(Context ctx) {
+        UserSession session = UserSession.from(ctx);
         int id = ctx.pathParamAsClass("id", Integer.class).get();
+        var existing = eventService.findBreakById(id).orElseThrow(NotFoundResponse::new);
+        if (existing.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot access resources from another station");
+        }
         var req = ctx.bodyAsClass(BreakRequest.class);
         eventService
                 .updateBreak(id, req.name(), LocalDate.parse(req.startDate()), LocalDate.parse(req.endDate()))
@@ -407,7 +425,12 @@ public class EventRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void deleteBreak(Context ctx) {
+        UserSession session = UserSession.from(ctx);
         int id = ctx.pathParamAsClass("id", Integer.class).get();
+        var existing = eventService.findBreakById(id).orElseThrow(NotFoundResponse::new);
+        if (existing.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot access resources from another station");
+        }
         if (eventService.deleteBreak(id)) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
@@ -485,6 +508,46 @@ public class EventRoutes implements Routes {
             tags = {"Events"},
             pathParams = @OpenApiParam(name = "eventId", type = Integer.class, required = true),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = EventRegistration[].class)))
+    private void getRegistrationStats(Context ctx) {
+        int eventId = ctx.pathParamAsClass("eventId", Integer.class).get();
+        var event = eventService.findById(eventId).orElseThrow(NotFoundResponse::new);
+        String catParam = ctx.queryParam("categoryId");
+        Integer categoryId = catParam != null ? Integer.parseInt(catParam) : event.categoryId();
+        String monthsParam = ctx.queryParam("months");
+        int months = monthsParam != null ? Integer.parseInt(monthsParam) : 12;
+
+        var stats = eventService.findRegistrationStats(eventId, categoryId, months);
+        var result = stats.stream()
+                .map(s -> {
+                    String name = resolveCreatedByName(s.memberId());
+                    int decisions = s.accepted() + s.denied();
+                    double acceptRate = decisions > 0 ? (double) s.accepted() / decisions : 1.0;
+                    String priority;
+                    if (decisions == 0) priority = "NONE";
+                    else if (acceptRate < 0.5) priority = "HIGH";
+                    else if (acceptRate < 0.75) priority = "MEDIUM";
+                    else priority = "LOW";
+                    // Fairness score: higher = should be prioritized
+                    // Factors: denial ratio (0-1) + denied count bonus - accepted count penalty
+                    double denialRatio = decisions > 0 ? (double) s.denied() / decisions : 0;
+                    double fairnessScore =
+                            Math.round((denialRatio * 50 + s.denied() * 5 - s.accepted() * 2 + 50) * 10) / 10.0;
+                    return new RegistrationStatsResponse(
+                            s.memberId(),
+                            name != null ? name : "#" + s.memberId(),
+                            s.registered(),
+                            s.accepted(),
+                            s.denied(),
+                            s.declined(),
+                            Math.round(acceptRate * 100) / 100.0,
+                            s.lastDenied() != null ? s.lastDenied().toString() : null,
+                            priority,
+                            Math.max(0, fairnessScore));
+                })
+                .toList();
+        ctx.json(result);
+    }
+
     private void listRegistrations(Context ctx) {
         int eventId = ctx.pathParamAsClass("eventId", Integer.class).get();
         String dateStr = ctx.queryParam("date");
@@ -639,6 +702,10 @@ public class EventRoutes implements Routes {
             throw new BadRequestResponse("status must be ACCEPTED or DENIED");
         }
         var registration = eventService.findRegistrationById(id).orElseThrow(NotFoundResponse::new);
+        var regEvent = eventService.findById(registration.eventId()).orElseThrow(NotFoundResponse::new);
+        if (regEvent.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot access resources from another station");
+        }
         if (!eventService.updateRegistrationStatus(id, status)) {
             throw new NotFoundResponse();
         }
@@ -741,7 +808,12 @@ public class EventRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void updateCategory(Context ctx) {
+        UserSession session = UserSession.from(ctx);
         int id = ctx.pathParamAsClass("id", Integer.class).get();
+        var existing = eventService.findCategoryById(id).orElseThrow(NotFoundResponse::new);
+        if (existing.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot access resources from another station");
+        }
         var req = ctx.bodyAsClass(CategoryRequest.class);
         if (!eventService.updateCategory(id, req.name(), req.position(), req.maxShownEvents())) {
             throw new NotFoundResponse();
@@ -760,7 +832,12 @@ public class EventRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void deleteCategory(Context ctx) {
+        UserSession session = UserSession.from(ctx);
         int id = ctx.pathParamAsClass("id", Integer.class).get();
+        var existing = eventService.findCategoryById(id).orElseThrow(NotFoundResponse::new);
+        if (existing.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot access resources from another station");
+        }
         if (eventService.deleteCategory(id)) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
@@ -842,7 +919,12 @@ public class EventRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = EventRestrictions.class)),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = EventRestrictions.class)))
     private void setRestrictions(Context ctx) {
+        UserSession session = UserSession.from(ctx);
         int id = ctx.pathParamAsClass("id", Integer.class).get();
+        var event = eventService.findById(id).orElseThrow(NotFoundResponse::new);
+        if (event.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot access resources from another station");
+        }
         var req = ctx.bodyAsClass(EventRestrictions.class);
         eventService.setRestrictions(id, req.roleIds(), req.groupIds(), req.tagIds(), req.memberIds());
         if (req.mode() != null) {
@@ -874,7 +956,12 @@ public class EventRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = FieldDefaultEntry[].class)),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = EventFieldDefault[].class)))
     private void setFieldDefaults(Context ctx) {
+        UserSession session = UserSession.from(ctx);
         int id = ctx.pathParamAsClass("id", Integer.class).get();
+        var event = eventService.findById(id).orElseThrow(NotFoundResponse::new);
+        if (event.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot access resources from another station");
+        }
         var req = ctx.bodyAsClass(FieldDefaultEntry[].class);
         var defaults = Arrays.stream(req)
                 .map(e -> new EventFieldDefault(id, e.fieldId(), e.source(), e.value()))
@@ -932,7 +1019,12 @@ public class EventRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = SetEventFieldsRequest.class)),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = EventField[].class)))
     private void setFields(Context ctx) {
+        UserSession session = UserSession.from(ctx);
         int id = ctx.pathParamAsClass("id", Integer.class).get();
+        var event = eventService.findById(id).orElseThrow(NotFoundResponse::new);
+        if (event.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot access resources from another station");
+        }
         var req = ctx.bodyAsClass(SetEventFieldsRequest.class);
         eventFieldService.replaceFields(
                 id,
@@ -975,13 +1067,22 @@ public class EventRoutes implements Routes {
     }
 
     private void getLayout(Context ctx) {
+        var session = UserSession.from(ctx);
         int id = ctx.pathParamAsClass("id", Integer.class).get();
         var layout = eventLayoutService.findById(id).orElseThrow(NotFoundResponse::new);
+        if (layout.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot access resources from another station");
+        }
         ctx.json(layout);
     }
 
     private void updateLayout(Context ctx) {
+        var session = UserSession.from(ctx);
         int id = ctx.pathParamAsClass("id", Integer.class).get();
+        var layout = eventLayoutService.findById(id).orElseThrow(NotFoundResponse::new);
+        if (layout.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot access resources from another station");
+        }
         var req = ctx.bodyAsClass(LayoutRequest.class);
         if (!eventLayoutService.update(id, req.name())) {
             throw new NotFoundResponse();
@@ -990,7 +1091,12 @@ public class EventRoutes implements Routes {
     }
 
     private void deleteLayout(Context ctx) {
+        var session = UserSession.from(ctx);
         int id = ctx.pathParamAsClass("id", Integer.class).get();
+        var layout = eventLayoutService.findById(id).orElseThrow(NotFoundResponse::new);
+        if (layout.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot access resources from another station");
+        }
         if (!eventLayoutService.delete(id)) {
             throw new NotFoundResponse();
         }
@@ -1238,4 +1344,16 @@ public class EventRoutes implements Routes {
             List<Integer> restrictedTagIds) {}
 
     public record BatchRowEntry(String name, Instant startTime, Instant endTime, Map<String, String> fieldValues) {}
+
+    public record RegistrationStatsResponse(
+            int memberId,
+            String memberName,
+            int registered,
+            int accepted,
+            int denied,
+            int declined,
+            double acceptRate,
+            String lastDenied,
+            String priority,
+            double fairnessScore) {}
 }

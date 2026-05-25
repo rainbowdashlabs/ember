@@ -32,25 +32,5 @@ public enum TokenType {
     /**
      * Token sent to confirm station deletion, with the station ID stored as metadata.
      */
-    STATION_DELETE;
-
-    /**
-     * Parses a token type from its string representation (case-insensitive).
-     *
-     * @param value the string value to parse
-     * @return the matching {@link TokenType}
-     * @throws IllegalArgumentException if no matching type exists
-     */
-    public static TokenType fromValue(String value) {
-        return valueOf(value.toUpperCase());
-    }
-
-    /**
-     * Returns the lowercase string representation of this token type.
-     *
-     * @return the token type name in lowercase
-     */
-    public String value() {
-        return name().toLowerCase();
-    }
+    STATION_DELETE
 }

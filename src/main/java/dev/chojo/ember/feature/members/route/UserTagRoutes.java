@@ -17,6 +17,7 @@ import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.UserTagService;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
+import io.javalin.http.ForbiddenResponse;
 import io.javalin.http.HttpStatus;
 import io.javalin.http.NotFoundResponse;
 import io.javalin.openapi.HttpMethod;
@@ -122,6 +123,11 @@ public class UserTagRoutes implements Routes {
             })
     private void update(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
+        UserSession session = UserSession.from(ctx);
+        var tag = tagService.findById(id).orElseThrow(NotFoundResponse::new);
+        if (tag.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot access resources from another station");
+        }
         var request = ctx.bodyAsClass(TagRequest.class);
         if (isBlank(request.name())) {
             throw new BadRequestResponse("name is required");
@@ -145,6 +151,11 @@ public class UserTagRoutes implements Routes {
             })
     private void delete(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
+        UserSession session = UserSession.from(ctx);
+        var tag = tagService.findById(id).orElseThrow(NotFoundResponse::new);
+        if (tag.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot access resources from another station");
+        }
         if (tagService.delete(id)) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
@@ -176,6 +187,11 @@ public class UserTagRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MemberWithName[].class)))
     private void setMembers(Context ctx) {
         int tagId = ctx.pathParamAsClass("id", Integer.class).get();
+        UserSession session = UserSession.from(ctx);
+        var tag = tagService.findById(tagId).orElseThrow(NotFoundResponse::new);
+        if (tag.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot access resources from another station");
+        }
         var request = ctx.bodyAsClass(SetMembersRequest.class);
         List<Integer> memberIds = request.memberIds() != null ? request.memberIds() : List.of();
         tagService.setMembers(tagId, memberIds);
@@ -211,10 +227,14 @@ public class UserTagRoutes implements Routes {
             })
     private void convertToGroup(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
+        UserSession session = UserSession.from(ctx);
         tagService
                 .findById(id)
                 .ifPresentOrElse(
                         tag -> {
+                            if (tag.stationId() != session.stationId()) {
+                                throw new ForbiddenResponse("Cannot access resources from another station");
+                            }
                             tagService.convertToGroup(id);
                             ctx.status(HttpStatus.NO_CONTENT);
                         },

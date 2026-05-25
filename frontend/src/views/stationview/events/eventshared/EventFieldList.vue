@@ -9,12 +9,14 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import EventFieldEditor from '@/components/input/EventFieldEditor.vue'
-import type {AttendanceTemplateField, EventFieldEntry} from '@/api/types'
+import type {AttendanceTemplateField, EventFieldEntry, StationMember} from '@/api/types'
 
 const props = defineProps<{
   fields: EventFieldEntry[]
   attendanceFields?: AttendanceTemplateField[]
   showValue?: boolean
+  allMembers?: StationMember[]
+  groupMembers?: Map<number, StationMember[]>
 }>()
 
 const emit = defineEmits<{
@@ -56,6 +58,8 @@ function updateField(index: number, field: EventFieldEntry) {
       :model-value="field"
       :attendance-fields="attendanceFields"
       :show-value="showValue"
+      :all-members="allMembers"
+      :group-members="groupMembers"
       @update:model-value="updateField(index, $event)"
       @remove="removeField(index)"
   />

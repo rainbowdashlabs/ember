@@ -336,3 +336,26 @@ export async function createBatchEvents(data: BatchCreateRequest): Promise<Stati
     const res = await client.post<StationEvent[]>('/events/batch', data)
     return res.data
 }
+
+// -- Registration Stats --
+
+export interface MemberRegistrationStats {
+    memberId: number
+    memberName: string
+    registered: number
+    accepted: number
+    denied: number
+    declined: number
+    acceptRate: number
+    lastDenied?: string | null
+    priority: 'HIGH' | 'MEDIUM' | 'LOW' | 'NONE'
+    fairnessScore: number
+}
+
+export async function getRegistrationStats(eventId: number, categoryId?: number, months?: number): Promise<MemberRegistrationStats[]> {
+    const params: Record<string, string> = {}
+    if (categoryId != null) params.categoryId = String(categoryId)
+    if (months != null) params.months = String(months)
+    const res = await client.get<MemberRegistrationStats[]>(`/events/${eventId}/registration-stats`, {params})
+    return res.data
+}

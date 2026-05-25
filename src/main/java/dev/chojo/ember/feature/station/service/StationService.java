@@ -185,25 +185,6 @@ public class StationService {
     }
 
     /**
-     * Finds the account of the first member with the MANAGER role for a station.
-     *
-     * @param stationId the station ID
-     * @return the manager's account, or empty if no manager is found
-     */
-    public Optional<Account> findManager(int stationId) {
-        Role managerRole = memberRepository.findRoleByName(Roles.MANAGER).orElse(null);
-        if (managerRole == null) return Optional.empty();
-
-        for (StationMember member : memberRepository.findByStation(stationId)) {
-            List<Role> roles = memberRepository.findRoles(member.id());
-            if (roles.stream().anyMatch(r -> r.id() == managerRole.id())) {
-                return accountRepository.findById(member.accountId());
-            }
-        }
-        return Optional.empty();
-    }
-
-    /**
      * Finds detailed manager information for a station, including account readiness status.
      *
      * @param stationId the station ID

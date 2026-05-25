@@ -86,6 +86,10 @@ public class QuizService {
         return catalogRepository.findCategoriesByStation(stationId);
     }
 
+    public Optional<QuizCategory> findCategory(int id) {
+        return catalogRepository.findCategoryById(id);
+    }
+
     public QuizCategory createCategory(int stationId, String name, String description, int position) {
         return catalogRepository.createCategory(stationId, name, description, position);
     }
@@ -343,18 +347,6 @@ public class QuizService {
 
     public List<QuizTestSection> findSections(int testId) {
         return testRepository.findSections(testId);
-    }
-
-    public QuizTestSection createSection(int testId, String title, String description, int position) {
-        return testRepository.createSection(testId, title, description, position);
-    }
-
-    public boolean updateSection(int id, String title, String description, int position) {
-        return testRepository.updateSection(id, title, description, position);
-    }
-
-    public boolean deleteSection(int id) {
-        return testRepository.deleteSection(id);
     }
 
     public void replaceSections(int testId, List<SectionEntry> sections) {

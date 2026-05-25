@@ -80,6 +80,13 @@ public class QuizCatalogRepository {
                 .all();
     }
 
+    public Optional<QuizCategory> findCategoryById(int id) {
+        return Query.query("SELECT * FROM quiz_category WHERE id = :id;")
+                .single(Call.of().bind("id", id))
+                .map(QuizCategory.map())
+                .first();
+    }
+
     public QuizCategory createCategory(int stationId, String name, String description, int position) {
         return Query.query("""
                         INSERT INTO quiz_category(station_id, name, description, position)
@@ -209,15 +216,6 @@ public class QuizCatalogRepository {
     public int countQuestions(int catalogId) {
         return Query.query("SELECT count(*) AS cnt FROM quiz_question WHERE catalog_id = :catalog_id;")
                 .single(Call.of().bind("catalog_id", catalogId))
-                .map(row -> row.getInt("cnt"))
-                .first()
-                .orElse(0);
-    }
-
-    public int countQuestionsByCategory(int catalogId, int categoryId) {
-        return Query.query(
-                        "SELECT count(*) AS cnt FROM quiz_question WHERE catalog_id = :catalog_id AND category_id = :category_id;")
-                .single(Call.of().bind("catalog_id", catalogId).bind("category_id", categoryId))
                 .map(row -> row.getInt("cnt"))
                 .first()
                 .orElse(0);

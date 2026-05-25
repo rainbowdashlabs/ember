@@ -240,6 +240,11 @@ public class FormRoutes implements Routes {
             })
     private void update(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
+        UserSession session = UserSession.from(ctx);
+        var form = formService.findById(id).orElseThrow(NotFoundResponse::new);
+        if (form.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot access resources from another station");
+        }
         var req = ctx.bodyAsClass(FormRequest.class);
         if (!formService.update(
                 id,
@@ -268,6 +273,11 @@ public class FormRoutes implements Routes {
             })
     private void delete(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
+        UserSession session = UserSession.from(ctx);
+        var form = formService.findById(id).orElseThrow(NotFoundResponse::new);
+        if (form.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot access resources from another station");
+        }
         if (formService.delete(id)) {
             deleteFormNotifications(id);
             ctx.status(HttpStatus.NO_CONTENT);
@@ -290,6 +300,9 @@ public class FormRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         int id = ctx.pathParamAsClass("id", Integer.class).get();
         var form = formService.findById(id).orElseThrow(NotFoundResponse::new);
+        if (form.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot access resources from another station");
+        }
         if (form.status() != Form.FormStatus.DRAFT) throw new BadRequestResponse("Form is not in DRAFT status");
         formService.publish(id);
 
@@ -317,6 +330,11 @@ public class FormRoutes implements Routes {
             })
     private void close(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
+        UserSession session = UserSession.from(ctx);
+        var form = formService.findById(id).orElseThrow(NotFoundResponse::new);
+        if (form.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot access resources from another station");
+        }
         if (!formService.close(id)) throw new NotFoundResponse();
         deleteFormNotifications(id);
         formService.findById(id).ifPresentOrElse(ctx::json, () -> {
@@ -348,6 +366,11 @@ public class FormRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = FormQuestion[].class)))
     private void setQuestions(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
+        UserSession session = UserSession.from(ctx);
+        var form = formService.findById(id).orElseThrow(NotFoundResponse::new);
+        if (form.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot access resources from another station");
+        }
         var questions = ctx.bodyAsClass(QuestionRequest[].class);
         formService.replaceQuestions(
                 id,
@@ -394,6 +417,11 @@ public class FormRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = FormRestrictions.class)))
     private void setRestrictions(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
+        UserSession session = UserSession.from(ctx);
+        var form = formService.findById(id).orElseThrow(NotFoundResponse::new);
+        if (form.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot access resources from another station");
+        }
         var req = ctx.bodyAsClass(FormRestrictions.class);
         formService.setRestrictions(
                 id, req.roleIds(), req.groupIds(), req.tagIds(), req.memberIds() != null ? req.memberIds() : List.of());

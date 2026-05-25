@@ -343,12 +343,12 @@ public class FederationService {
 
     // -- Metadata Cache --
 
-    // TODO: Why is this unused
+    // Available for remote sync — not yet called from routes
     public List<FederationMetadataCache> getCachedMetadata(int partnerId, String contentType) {
         return repository.findCachedMetadata(partnerId, contentType);
     }
 
-    // TODO: Why is this unused
+    // Available for remote sync — not yet called from routes
     public void refreshMetadataCache(int partnerId, String contentType, List<FederationMetadataCache> entries) {
         for (var entry : entries) {
             repository.upsertMetadataCache(

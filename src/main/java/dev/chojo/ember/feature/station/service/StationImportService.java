@@ -788,7 +788,6 @@ public class StationImportService {
         private final int totalTables;
 
         private volatile String status = "IN_PROGRESS";
-        private volatile int currentTableIndex;
         private volatile String currentTable;
         private volatile int completedTables;
         private volatile String error;
@@ -828,7 +827,6 @@ public class StationImportService {
         }
 
         void startTable(int index, String table) {
-            this.currentTableIndex = index;
             this.currentTable = table;
         }
 

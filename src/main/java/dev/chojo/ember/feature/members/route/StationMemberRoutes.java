@@ -20,6 +20,7 @@ import dev.chojo.ember.feature.members.service.ProfileFieldService;
 import dev.chojo.ember.feature.members.service.StationMemberService;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
+import io.javalin.http.ForbiddenResponse;
 import io.javalin.http.HttpStatus;
 import io.javalin.http.NotFoundResponse;
 import io.javalin.openapi.HttpMethod;
@@ -152,14 +153,11 @@ public class StationMemberRoutes implements Routes {
             })
     private void delete(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
+        UserSession session = UserSession.from(ctx);
         var member = stationMemberRepository.findById(id).orElseThrow(NotFoundResponse::new);
-        // Check that the member is not a station owner
-        var station = member.stationId() > 0
-                ? stationMemberRepository.findByStation(member.stationId()).stream()
-                        .filter(m -> m.id() == id)
-                        .findFirst()
-                        .orElse(null)
-                : null;
+        if (member.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot delete a member from another station");
+        }
         gdprDeletionService.anonymizeMember(id);
         ctx.status(HttpStatus.NO_CONTENT);
     }

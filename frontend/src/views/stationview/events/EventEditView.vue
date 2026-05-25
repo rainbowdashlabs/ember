@@ -17,7 +17,7 @@ import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
-import type {AttendanceTemplate, AttendanceTemplateField, EventCategory, EventFieldEntry, MemberGroup, Role, UserTag} from '@/api/types'
+import type {AttendanceTemplate, AttendanceTemplateField, EventCategory, EventFieldEntry, MemberGroup, Role, StationMember, UserTag} from '@/api/types'
 import {EventTypes, needsDayOfWeek} from '@/api/types'
 import type {EventFieldDefault} from '@/api/events'
 import {attendance, events, memberGroups, stationMembers, userTags} from '@/api'
@@ -38,6 +38,8 @@ const roles = ref<Role[]>([])
 const groups = ref<MemberGroup[]>([])
 const tags = ref<UserTag[]>([])
 const allTemplateFields = ref<AttendanceTemplateField[]>([])
+const allMembers = ref<StationMember[]>([])
+const groupMembersMap = ref(new Map<number, StationMember[]>())
 const eventRoleIds = ref<number[]>([])
 const eventGroupIds = ref<number[]>([])
 const eventTagIds = ref<number[]>([])
@@ -77,18 +79,28 @@ async function loadData() {
   loading.value = true
   error.value = ''
   try {
-    const [cats, tpl, allRoles, allGroups, allTags] = await Promise.all([
+    const [cats, tpl, allRoles, allGroups, allTags, members] = await Promise.all([
       events.listCategories(),
       attendance.listTemplates(),
       stationMembers.listAllRoles(),
       memberGroups.listGroups(),
       userTags.listTags(),
+      stationMembers.listMembers(),
     ])
     categories.value = cats
     templates.value = tpl
     roles.value = allRoles
     groups.value = allGroups
     tags.value = allTags
+    allMembers.value = members
+
+    // Build group members map
+    const gMap = new Map<number, StationMember[]>()
+    for (const g of allGroups) {
+      const gMembers = await memberGroups.getGroupMembers(g.id)
+      gMap.set(g.id, gMembers)
+    }
+    groupMembersMap.value = gMap
 
     const fieldResults = await Promise.all(tpl.map(t => attendance.listTemplateFields(t.id)))
     allTemplateFields.value = fieldResults.flat()
@@ -282,6 +294,8 @@ watch(loaded, (isLoaded) => {
               :roles="roles"
               :groups="groups"
               :tags="tags"
+              :all-members="allMembers"
+              :group-members="groupMembersMap"
               show-schedule
               show-value
           />

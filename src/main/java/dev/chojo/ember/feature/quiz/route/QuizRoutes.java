@@ -12,9 +12,6 @@ import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.federation.service.FederatedContentService;
 import dev.chojo.ember.feature.media.service.ImageCategory;
 import dev.chojo.ember.feature.media.service.ImageService;
-import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
-import dev.chojo.ember.feature.members.repository.StationMemberRepository;
-import dev.chojo.ember.feature.members.repository.UserTagRepository;
 import dev.chojo.ember.feature.quiz.entity.AttemptStatus;
 import dev.chojo.ember.feature.quiz.entity.QuestionType;
 import dev.chojo.ember.feature.quiz.entity.QuizCatalog;
@@ -76,9 +73,6 @@ public class QuizRoutes implements Routes {
             QuizService quizService,
             QuizPdfService pdfService,
             ImageService imageService,
-            StationMemberRepository stationMemberRepository,
-            MemberGroupRepository memberGroupRepository,
-            UserTagRepository userTagRepository,
             FederatedContentService federatedContentService,
             StationRepository stationRepository,
             Api apiConfig) {
@@ -240,6 +234,11 @@ public class QuizRoutes implements Routes {
 
     private void updateCatalog(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
+        var session = UserSession.from(ctx);
+        var catalog = quizService.findCatalog(id).orElseThrow(NotFoundResponse::new);
+        if (catalog.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot modify a catalog from another station");
+        }
         var req = ctx.bodyAsClass(CatalogRequest.class);
         if (!quizService.updateCatalog(
                 id,
@@ -255,6 +254,11 @@ public class QuizRoutes implements Routes {
 
     private void deleteCatalog(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
+        var session = UserSession.from(ctx);
+        var catalog = quizService.findCatalog(id).orElseThrow(NotFoundResponse::new);
+        if (catalog.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot delete a catalog from another station");
+        }
         if (quizService.deleteCatalog(id)) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
@@ -283,6 +287,11 @@ public class QuizRoutes implements Routes {
 
     private void updateCategory(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
+        var session = UserSession.from(ctx);
+        var category = quizService.findCategory(id).orElseThrow(NotFoundResponse::new);
+        if (category.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot modify a category from another station");
+        }
         var req = ctx.bodyAsClass(CategoryRequest.class);
         if (!quizService.updateCategory(
                 id,
@@ -296,6 +305,11 @@ public class QuizRoutes implements Routes {
 
     private void deleteCategory(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
+        var session = UserSession.from(ctx);
+        var category = quizService.findCategory(id).orElseThrow(NotFoundResponse::new);
+        if (category.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot delete a category from another station");
+        }
         if (quizService.deleteCategory(id)) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
@@ -429,6 +443,12 @@ public class QuizRoutes implements Routes {
 
     private void updateQuestion(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
+        var session = UserSession.from(ctx);
+        var question = quizService.findQuestion(id).orElseThrow(NotFoundResponse::new);
+        var catalog = quizService.findCatalog(question.catalogId()).orElseThrow(NotFoundResponse::new);
+        if (catalog.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot modify a question from another station");
+        }
         var req = ctx.bodyAsClass(QuestionRequest.class);
         if (!quizService.updateQuestion(
                 id,
@@ -449,6 +469,12 @@ public class QuizRoutes implements Routes {
 
     private void deleteQuestion(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
+        var session = UserSession.from(ctx);
+        var question = quizService.findQuestion(id).orElseThrow(NotFoundResponse::new);
+        var catalog = quizService.findCatalog(question.catalogId()).orElseThrow(NotFoundResponse::new);
+        if (catalog.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot delete a question from another station");
+        }
         if (quizService.deleteQuestion(id)) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
@@ -519,6 +545,11 @@ public class QuizRoutes implements Routes {
 
     private void updateTest(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
+        var session = UserSession.from(ctx);
+        var test = quizService.findTest(id).orElseThrow(NotFoundResponse::new);
+        if (test.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot modify a test from another station");
+        }
         var req = ctx.bodyAsClass(TestRequest.class);
         if (!quizService.updateTest(
                 id,
@@ -537,6 +568,11 @@ public class QuizRoutes implements Routes {
 
     private void deleteTest(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
+        var session = UserSession.from(ctx);
+        var test = quizService.findTest(id).orElseThrow(NotFoundResponse::new);
+        if (test.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot delete a test from another station");
+        }
         if (quizService.deleteTest(id)) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
@@ -546,7 +582,11 @@ public class QuizRoutes implements Routes {
 
     private void activateTest(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
+        var session = UserSession.from(ctx);
         var test = quizService.findTest(id).orElseThrow(NotFoundResponse::new);
+        if (test.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot activate a test from another station");
+        }
         if (test.status() != TestStatus.DRAFT) throw new BadRequestResponse("Test is not in DRAFT status");
         quizService.activateTest(id);
         quizService.findTest(id).ifPresentOrElse(ctx::json, () -> {
@@ -556,6 +596,11 @@ public class QuizRoutes implements Routes {
 
     private void closeTest(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
+        var session = UserSession.from(ctx);
+        var test = quizService.findTest(id).orElseThrow(NotFoundResponse::new);
+        if (test.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot close a test from another station");
+        }
         if (!quizService.closeTest(id)) throw new NotFoundResponse();
         quizService.findTest(id).ifPresentOrElse(ctx::json, () -> {
             throw new NotFoundResponse();
@@ -566,7 +611,11 @@ public class QuizRoutes implements Routes {
 
     private void generateFrozenQuestions(Context ctx) {
         int testId = ctx.pathParamAsClass("id", Integer.class).get();
+        var session = UserSession.from(ctx);
         var test = quizService.findTest(testId).orElseThrow(NotFoundResponse::new);
+        if (test.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot generate questions for a test from another station");
+        }
         if (test.status() == TestStatus.ACTIVE) throw new BadRequestResponse("Cannot regenerate for active test");
         quizService.generateFrozenQuestions(testId);
         ctx.json(buildFrozenQuestionResponse(testId));
@@ -581,7 +630,11 @@ public class QuizRoutes implements Routes {
     private void replaceFrozenQuestion(Context ctx) {
         int testId = ctx.pathParamAsClass("id", Integer.class).get();
         int position = ctx.pathParamAsClass("position", Integer.class).get();
+        var session = UserSession.from(ctx);
         var test = quizService.findTest(testId).orElseThrow(NotFoundResponse::new);
+        if (test.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot modify a test from another station");
+        }
         if (test.status() == TestStatus.ACTIVE) throw new BadRequestResponse("Cannot modify active test");
         var req = ctx.bodyAsClass(ReplaceQuestionRequest.class);
         quizService.replaceFrozenQuestion(testId, position, req.questionId());
@@ -591,7 +644,11 @@ public class QuizRoutes implements Routes {
     private void randomReplaceFrozenQuestion(Context ctx) {
         int testId = ctx.pathParamAsClass("id", Integer.class).get();
         int position = ctx.pathParamAsClass("position", Integer.class).get();
+        var session = UserSession.from(ctx);
         var test = quizService.findTest(testId).orElseThrow(NotFoundResponse::new);
+        if (test.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot modify a test from another station");
+        }
         if (test.status() == TestStatus.ACTIVE) throw new BadRequestResponse("Cannot modify active test");
         quizService.replaceWithRandomQuestion(testId, position);
         ctx.json(buildFrozenQuestionResponse(testId));
@@ -762,6 +819,11 @@ public class QuizRoutes implements Routes {
 
     private void setRestrictions(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
+        var session = UserSession.from(ctx);
+        var test = quizService.findTest(id).orElseThrow(NotFoundResponse::new);
+        if (test.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot modify restrictions for a test from another station");
+        }
         var req = ctx.bodyAsClass(TestRestrictions.class);
         quizService.setRestrictions(
                 id, req.roleIds(), req.groupIds(), req.tagIds(), req.memberIds() != null ? req.memberIds() : List.of());
@@ -775,6 +837,11 @@ public class QuizRoutes implements Routes {
 
     private void grantAccess(Context ctx) {
         int testId = ctx.pathParamAsClass("id", Integer.class).get();
+        var session = UserSession.from(ctx);
+        var test = quizService.findTest(testId).orElseThrow(NotFoundResponse::new);
+        if (test.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot grant access to a test from another station");
+        }
         var req = ctx.bodyAsClass(AccessRequest.class);
         if (req.memberId() == null) throw new BadRequestResponse("memberId is required");
         quizService.grantMemberAccess(testId, req.memberId(), req.closesAt());
@@ -784,6 +851,11 @@ public class QuizRoutes implements Routes {
     private void revokeAccess(Context ctx) {
         int testId = ctx.pathParamAsClass("testId", Integer.class).get();
         int memberId = ctx.pathParamAsClass("memberId", Integer.class).get();
+        var session = UserSession.from(ctx);
+        var test = quizService.findTest(testId).orElseThrow(NotFoundResponse::new);
+        if (test.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot revoke access to a test from another station");
+        }
         quizService.revokeMemberAccess(testId, memberId);
         ctx.status(HttpStatus.NO_CONTENT);
     }
@@ -836,7 +908,11 @@ public class QuizRoutes implements Routes {
 
     private void exportCatalog(Context ctx) {
         int catalogId = ctx.pathParamAsClass("id", Integer.class).get();
+        var session = UserSession.from(ctx);
         var catalog = quizService.findCatalog(catalogId).orElseThrow(NotFoundResponse::new);
+        if (catalog.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot export a catalog from another station");
+        }
         var categories = quizService.findCategories(catalog.stationId());
         var questions = quizService.findQuestions(catalogId);
         ctx.json(new CatalogExport(
@@ -888,6 +964,9 @@ public class QuizRoutes implements Routes {
         int catalogId = ctx.pathParamAsClass("id", Integer.class).get();
         var session = UserSession.from(ctx);
         var catalog = quizService.findCatalog(catalogId).orElseThrow(NotFoundResponse::new);
+        if (catalog.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot import into a catalog from another station");
+        }
 
         var csvFile = ctx.uploadedFile("file");
         if (csvFile == null) throw new BadRequestResponse("No CSV file uploaded");

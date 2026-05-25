@@ -993,14 +993,16 @@ public class DemoService {
             eventFieldRepository.create(oeEvent.id(), "Ort", "string", "{}", oeOrte[e], 0, true, null);
             eventFieldRepository.create(
                     oeEvent.id(), "Treffpunkt", "string", "{}", "Feuerwehrgerätehaus", 1, true, null);
-            // Create registrations: 6 accepted, rest denied
+            // Create registrations with rotation: offset accepted members per event for variance
             int count = Math.min(oeMemberCounts[e], allMembers.size());
+            int acceptOffset = e * 3; // shift which members get accepted each event
             for (int i = 0; i < count; i++) {
+                int rotatedIdx = (i + acceptOffset) % allMembers.size();
                 var status = i < 6
                         ? EventRegistration.RegistrationStatus.ACCEPTED
                         : EventRegistration.RegistrationStatus.DENIED;
                 eventRepository.createRegistration(
-                        oeEvent.id(), allMembers.get(i).id(), eventDate, status, null);
+                        oeEvent.id(), allMembers.get(rotatedIdx).id(), eventDate, status, null);
             }
         }
 

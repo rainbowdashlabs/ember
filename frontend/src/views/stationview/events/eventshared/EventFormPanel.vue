@@ -14,7 +14,7 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import RestrictionPicker from '@/components/input/RestrictionPicker.vue'
 import EventFieldList from './EventFieldList.vue'
-import type {AttendanceTemplate, AttendanceTemplateField, EventCategory, EventFieldEntry, MemberGroup, Role, UserTag} from '@/api/types'
+import type {AttendanceTemplate, AttendanceTemplateField, EventCategory, EventFieldEntry, MemberGroup, Role, StationMember, UserTag} from '@/api/types'
 import {EventTypes, needsDayOfWeek} from '@/api/types'
 
 defineProps<{
@@ -26,6 +26,8 @@ defineProps<{
   tags?: UserTag[]
   showSchedule?: boolean
   showValue?: boolean
+  allMembers?: StationMember[]
+  groupMembers?: Map<number, StationMember[]>
 }>()
 
 const name = defineModel<string>('name', {required: true})
@@ -181,6 +183,8 @@ const {t} = useI18n()
         :fields="fields"
         :attendance-fields="attendanceFields"
         :show-value="showValue"
+        :all-members="allMembers"
+        :group-members="groupMembers"
         @update:fields="fields = $event"
     />
   </div>

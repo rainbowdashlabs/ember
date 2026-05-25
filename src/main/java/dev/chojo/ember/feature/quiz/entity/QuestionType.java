@@ -40,10 +40,6 @@ public enum QuestionType {
         return promptFile;
     }
 
-    public Class<? extends QuestionConfig> configClass() {
-        return configClass;
-    }
-
     /**
      * Parses a JSON config string into the typed config record for this question type.
      */

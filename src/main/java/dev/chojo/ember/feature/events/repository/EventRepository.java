@@ -11,6 +11,7 @@ import dev.chojo.ember.feature.events.entity.EventBreak;
 import dev.chojo.ember.feature.events.entity.EventCategory;
 import dev.chojo.ember.feature.events.entity.EventFieldDefault;
 import dev.chojo.ember.feature.events.entity.EventRegistration;
+import dev.chojo.ember.feature.events.entity.MemberRegistrationStats;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 import jakarta.inject.Singleton;
@@ -296,6 +297,14 @@ public class EventRepository {
      * @param stationId the station ID
      * @return the list of event categories
      */
+    public Optional<EventCategory> findCategoryById(int id) {
+        return Query.query(
+                        "SELECT id, station_id, name, position, max_shown_events FROM event_category WHERE id = :id;")
+                .single(Call.of().bind("id", id))
+                .map(EventCategory.map())
+                .first();
+    }
+
     public List<EventCategory> findCategoriesByStation(int stationId) {
         return Query.query(
                         "SELECT id, station_id, name, position, max_shown_events FROM event_category WHERE station_id = :station_id ORDER BY position;")
@@ -564,6 +573,29 @@ public class EventRepository {
                             WHERE event_id = :event_id AND event_date = :event_date AND status = 'DECLINED';""")
                 .single(Call.of().bind("event_id", eventId).bind("event_date", eventDate))
                 .map(row -> row.getInt("member_id"))
+                .all();
+    }
+
+    public List<MemberRegistrationStats> findRegistrationStatsByEvent(int eventId, Integer categoryId, int months) {
+        return Query.query("""
+                        SELECT er.member_id,
+                               count(*)                                              AS registered,
+                               count(*) FILTER (WHERE er.status = 'ACCEPTED')        AS accepted,
+                               count(*) FILTER (WHERE er.status = 'DENIED')          AS denied,
+                               count(*) FILTER (WHERE er.status = 'DECLINED')        AS declined,
+                               max(er.event_date) FILTER (WHERE er.status = 'DENIED') AS last_denied
+                        FROM event_registration er
+                        JOIN station_event se ON se.id = er.event_id
+                        WHERE se.station_id = (SELECT station_id FROM station_event WHERE id = :event_id)
+                          AND (:category_id IS NULL OR se.category_id = :category_id)
+                          AND er.event_date >= (current_date - make_interval(months => :months))
+                          AND er.member_id IN (SELECT member_id FROM event_registration WHERE event_id = :event_id)
+                        GROUP BY er.member_id;""")
+                .single(Call.of()
+                        .bind("event_id", eventId)
+                        .bind("category_id", categoryId)
+                        .bind("months", months))
+                .map(MemberRegistrationStats.map())
                 .all();
     }
 
