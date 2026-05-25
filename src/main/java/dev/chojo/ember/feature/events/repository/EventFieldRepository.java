@@ -17,7 +17,7 @@ import java.util.List;
 public class EventFieldRepository {
 
     private static final String ALL_COLUMNS =
-            "id, event_id, name, field_type, config, value, position, overview, attendance_field_id";
+            "id, event_id, name, field_type, config, value, position, overview, attendance_field_id, \"public\"";
 
     public List<EventField> findByEvent(int eventId) {
         return Query.query("SELECT " + ALL_COLUMNS + " FROM event_field WHERE event_id = :event_id ORDER BY position;")
@@ -56,10 +56,11 @@ public class EventFieldRepository {
             String value,
             int position,
             boolean overview,
-            Integer attendanceFieldId) {
+            Integer attendanceFieldId,
+            boolean isPublic) {
         return Query.query(
-                        "INSERT INTO event_field(event_id, name, field_type, config, value, position, overview, attendance_field_id)"
-                                + " VALUES (:event_id, :name, :field_type, :config::jsonb, :value, :position, :overview, :attendance_field_id)"
+                        "INSERT INTO event_field(event_id, name, field_type, config, value, position, overview, attendance_field_id, \"public\")"
+                                + " VALUES (:event_id, :name, :field_type, :config::jsonb, :value, :position, :overview, :attendance_field_id, :public)"
                                 + " RETURNING " + ALL_COLUMNS + ";")
                 .single(Call.of()
                         .bind("event_id", eventId)
@@ -69,7 +70,8 @@ public class EventFieldRepository {
                         .bind("value", value)
                         .bind("position", position)
                         .bind("overview", overview)
-                        .bind("attendance_field_id", attendanceFieldId))
+                        .bind("attendance_field_id", attendanceFieldId)
+                        .bind("public", isPublic))
                 .map(EventField.map())
                 .first()
                 .orElseThrow();
@@ -93,10 +95,17 @@ public class EventFieldRepository {
                     f.value() != null ? f.value() : "",
                     i,
                     f.overview(),
-                    f.attendanceFieldId());
+                    f.attendanceFieldId(),
+                    f.isPublic());
         }
     }
 
     public record FieldEntry(
-            String name, String fieldType, String config, String value, boolean overview, Integer attendanceFieldId) {}
+            String name,
+            String fieldType,
+            String config,
+            String value,
+            boolean overview,
+            Integer attendanceFieldId,
+            boolean isPublic) {}
 }

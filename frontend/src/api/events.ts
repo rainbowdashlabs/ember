@@ -72,6 +72,11 @@ export async function deleteCategory(id: number): Promise<void> {
     await client.delete(`/events/categories/${id}`)
 }
 
+export async function reorderCategories(orderedIds: number[]): Promise<EventCategory[]> {
+    const res = await client.put<EventCategory[]>('/events/categories/reorder', {orderedIds})
+    return res.data
+}
+
 // -- Registrations --
 
 export interface EventRegistrationEntry {

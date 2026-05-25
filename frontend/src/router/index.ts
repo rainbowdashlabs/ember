@@ -388,6 +388,11 @@ const router = createRouter({
                     component: () => import('@/views/stationview/events/EventEditView.vue'),
                 },
                 {
+                    path: 'events/categories',
+                    name: 'event-categories',
+                    component: () => import('@/views/stationview/events/CategoryManageView.vue'),
+                },
+                {
                     path: 'events/layouts',
                     name: 'event-layouts',
                     component: () => import('@/views/stationview/events/LayoutManageView.vue'),
@@ -1012,6 +1017,11 @@ const router = createRouter({
                     component: () => import('@/views/helpcenter/stationview/events/EventDetailHelp.vue')
                 },
                 {
+                    path: 'events/categories',
+                    name: 'help-event-categories',
+                    component: () => import('@/views/helpcenter/stationview/events/CategoriesHelp.vue')
+                },
+                {
                     path: 'events/layouts',
                     name: 'help-event-layouts',
                     component: () => import('@/views/helpcenter/stationview/events/LayoutsHelp.vue')
@@ -1261,16 +1271,31 @@ const router = createRouter({
             ],
         },
         {
-            path: '/public/kb/:stationUid',
-            name: 'public-kb',
-            component: () => import('@/views/public/PublicKnowledgeBaseView.vue'),
+            path: '/public/station/:stationUid',
+            component: () => import('@/views/public/PublicStationShell.vue'),
             meta: {public: true},
-        },
-        {
-            path: '/public/kb/:stationUid/file/:id',
-            name: 'public-kb-file',
-            component: () => import('@/views/public/PublicKbFileView.vue'),
-            meta: {public: true},
+            children: [
+                {
+                    path: '',
+                    name: 'public-station',
+                    redirect: to => ({name: 'public-station-calendar', params: to.params}),
+                },
+                {
+                    path: 'calendar',
+                    name: 'public-station-calendar',
+                    component: () => import('@/views/public/PublicStationCalendarView.vue'),
+                },
+                {
+                    path: 'knowledge',
+                    name: 'public-kb',
+                    component: () => import('@/views/public/PublicKnowledgeBaseView.vue'),
+                },
+                {
+                    path: 'knowledge/file/:id',
+                    name: 'public-kb-file',
+                    component: () => import('@/views/public/PublicKbFileView.vue'),
+                },
+            ],
         },
         {
             path: '/discovery',

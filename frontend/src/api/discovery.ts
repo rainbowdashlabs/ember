@@ -11,7 +11,23 @@ export interface DiscoveryEntry {
     description: string | null
     hasLogo: boolean
     hasPublicKb: boolean
+    hasPublicCalendar: boolean
     alreadyFederated: boolean
+    isOwnStation: boolean
+}
+
+export interface PublicStationInfo {
+    stationUid: string
+    name: string
+    description: string | null
+    hasLogo: boolean
+    hasPublicKb: boolean
+    hasPublicCalendar: boolean
+}
+
+export async function getPublicStationInfo(stationUid: string): Promise<PublicStationInfo> {
+    const res = await client.get<PublicStationInfo>(`/public/station/${stationUid}/info`)
+    return res.data
 }
 
 export async function listDiscoverable(): Promise<DiscoveryEntry[]> {

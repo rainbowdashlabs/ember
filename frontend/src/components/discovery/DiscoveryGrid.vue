@@ -10,6 +10,7 @@ import MutedText from '@/components/typography/MutedText.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
+import PrimaryBadge from '@/components/badge/PrimaryBadge.vue'
 import type {DiscoveryEntry} from '@/api/discovery'
 
 const {t} = useI18n()
@@ -29,9 +30,7 @@ function logoUrl(station: DiscoveryEntry): string {
   return `/api/v1/public/stations/${station.stationUid}/logo`
 }
 
-function kbUrl(station: DiscoveryEntry): string {
-  return `/public/kb/${station.stationUid}`
-}
+
 </script>
 
 <template>
@@ -50,18 +49,21 @@ function kbUrl(station: DiscoveryEntry): string {
       <MutedText v-if="station.description" size="sm">{{ station.description }}</MutedText>
 
       <div class="flex items-center gap-2 flex-wrap mt-auto pt-2">
-        <SuccessBadge v-if="station.alreadyFederated">{{ t('discovery.alreadyConnected') }}</SuccessBadge>
-        <PrimaryButton v-else-if="canConnect" compact @click="emit('connect', station)">
+        <PrimaryBadge v-if="station.isOwnStation">{{ t('discovery.ownStation') }}</PrimaryBadge>
+        <SuccessBadge v-else-if="station.alreadyFederated">{{ t('discovery.alreadyConnected') }}</SuccessBadge>
+        <PrimaryButton v-else-if="canConnect && !station.isOwnStation" compact @click="emit('connect', station)">
           <font-awesome-icon :icon="['fas', 'handshake']" class="mr-1"/>
           {{ t('discovery.connect') }}
         </PrimaryButton>
-        <SecondaryButton v-if="showInvite && !station.alreadyFederated" compact @click="emit('invite', station)">
+        <SecondaryButton v-if="showInvite && !station.alreadyFederated && !station.isOwnStation" compact @click="emit('invite', station)">
           <font-awesome-icon :icon="['fas', 'link']" class="mr-1"/>
           {{ t('discovery.getCode') }}
         </SecondaryButton>
-        <router-link v-if="station.hasPublicKb" :to="kbUrl(station)" class="text-sm text-[var(--link)] hover:underline flex items-center gap-1">
-          <font-awesome-icon :icon="['fas', 'book']"/>
-          {{ t('discovery.viewKb') }}
+        <router-link v-if="station.hasPublicKb || station.hasPublicCalendar"
+                     :to="{name: 'public-station', params: {stationUid: station.stationUid}}"
+                     class="text-sm text-[var(--link)] hover:underline flex items-center gap-1">
+          <font-awesome-icon :icon="['fas', 'globe']"/>
+          {{ t('discovery.viewStation') }}
         </router-link>
       </div>
     </NeutralContainer>

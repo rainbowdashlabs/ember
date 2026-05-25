@@ -30,9 +30,9 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
 public class EventRepository {
 
     private static final String EVENT_COLUMNS =
-            "e.id, e.station_id, e.name, e.description, e.event_type, e.day_of_week, e.start_time, e.end_time, e.template_id, e.requires_registration, e.registration_deadline, e.requires_confirmation, e.category_id, e.restriction_mode, EXISTS(SELECT 1 FROM event_restriction r WHERE r.event_id = e.id) AS restricted";
+            "e.id, e.station_id, e.name, e.description, e.event_type, e.day_of_week, e.start_time, e.end_time, e.template_id, e.requires_registration, e.registration_deadline, e.requires_confirmation, e.category_id, e.restriction_mode, EXISTS(SELECT 1 FROM event_restriction r WHERE r.event_id = e.id) AS restricted, e.\"public\"";
     private static final String EVENT_COLUMNS_BARE =
-            "id, station_id, name, description, event_type, day_of_week, start_time, end_time, template_id, requires_registration, registration_deadline, requires_confirmation, category_id, restriction_mode, EXISTS(SELECT 1 FROM event_restriction r WHERE r.event_id = id) AS restricted";
+            "id, station_id, name, description, event_type, day_of_week, start_time, end_time, template_id, requires_registration, registration_deadline, requires_confirmation, category_id, restriction_mode, EXISTS(SELECT 1 FROM event_restriction r WHERE r.event_id = id) AS restricted, \"public\"";
 
     // -- Events --
 
@@ -163,14 +163,16 @@ public class EventRepository {
             boolean requiresRegistration,
             Instant registrationDeadline,
             boolean requiresConfirmation,
-            Integer categoryId) {
+            Integer categoryId,
+            boolean isPublic) {
         return Query.query("""
                             UPDATE station_event SET
                                 name = :name, description = :description, event_type = :event_type,
                                 day_of_week = :day_of_week,
                                 start_time = :start_time, end_time = :end_time, template_id = :template_id,
                                 requires_registration = :requires_registration, registration_deadline = :registration_deadline,
-                                requires_confirmation = :requires_confirmation, category_id = :category_id
+                                requires_confirmation = :requires_confirmation, category_id = :category_id,
+                                "public" = :public
                             WHERE id = :id;""")
                 .single(Call.of()
                         .bind("name", name)
@@ -184,6 +186,7 @@ public class EventRepository {
                         .bind("registration_deadline", registrationDeadline, INSTANT_TIMESTAMP)
                         .bind("requires_confirmation", requiresConfirmation)
                         .bind("category_id", categoryId)
+                        .bind("public", isPublic)
                         .bind("id", id))
                 .update()
                 .changed();
@@ -299,7 +302,7 @@ public class EventRepository {
      */
     public Optional<EventCategory> findCategoryById(int id) {
         return Query.query(
-                        "SELECT id, station_id, name, position, max_shown_events FROM event_category WHERE id = :id;")
+                        "SELECT id, station_id, name, position, max_shown_events, \"public\" FROM event_category WHERE id = :id;")
                 .single(Call.of().bind("id", id))
                 .map(EventCategory.map())
                 .first();
@@ -307,7 +310,7 @@ public class EventRepository {
 
     public List<EventCategory> findCategoriesByStation(int stationId) {
         return Query.query(
-                        "SELECT id, station_id, name, position, max_shown_events FROM event_category WHERE station_id = :station_id ORDER BY position;")
+                        "SELECT id, station_id, name, position, max_shown_events, \"public\" FROM event_category WHERE station_id = :station_id ORDER BY position;")
                 .single(Call.of().bind("station_id", stationId))
                 .map(EventCategory.map())
                 .all();
@@ -323,7 +326,7 @@ public class EventRepository {
      */
     public EventCategory createCategory(int stationId, String name, int position) {
         return Query.query(
-                        "INSERT INTO event_category(station_id, name, position) VALUES(:station_id, :name, :position) RETURNING id, station_id, name, position, max_shown_events;")
+                        "INSERT INTO event_category(station_id, name, position) VALUES(:station_id, :name, :position) RETURNING id, station_id, name, position, max_shown_events, \"public\";")
                 .single(Call.of()
                         .bind("station_id", stationId)
                         .bind("name", name)
@@ -341,13 +344,14 @@ public class EventRepository {
      * @param position the new display order position
      * @return true if a row was updated
      */
-    public boolean updateCategory(int id, String name, int position, Integer maxShownEvents) {
+    public boolean updateCategory(int id, String name, int position, Integer maxShownEvents, boolean isPublic) {
         return Query.query(
-                        "UPDATE event_category SET name = :name, position = :position, max_shown_events = :max_shown_events WHERE id = :id;")
+                        "UPDATE event_category SET name = :name, position = :position, max_shown_events = :max_shown_events, \"public\" = :public WHERE id = :id;")
                 .single(Call.of()
                         .bind("name", name)
                         .bind("position", position)
                         .bind("max_shown_events", maxShownEvents)
+                        .bind("public", isPublic)
                         .bind("id", id))
                 .update()
                 .changed();
@@ -364,6 +368,14 @@ public class EventRepository {
                 .single(Call.of().bind("id", id))
                 .delete()
                 .changed();
+    }
+
+    public void reorderCategories(List<Integer> orderedIds) {
+        for (int i = 0; i < orderedIds.size(); i++) {
+            Query.query("UPDATE event_category SET position = :position WHERE id = :id;")
+                    .single(Call.of().bind("position", i).bind("id", orderedIds.get(i)))
+                    .update();
+        }
     }
 
     /**

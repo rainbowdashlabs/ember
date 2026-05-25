@@ -12,6 +12,7 @@ import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
+import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.service.StationService;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
@@ -20,6 +21,7 @@ import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -62,18 +64,27 @@ public class DiscoveryRoutes implements Routes {
                     existingPartners.stream().map(p -> p.partnerStationId()).toList());
         }
 
-        var stations = stationService.findDiscoverable(excludeStationId);
+        // Merge discoverable stations + stations with public content (deduplicated)
+        var discoverable = stationService.findDiscoverable(excludeStationId);
+        var publicStations = stationService.findWithPublicContent(excludeStationId);
+        var seen = new HashSet<Integer>();
         Set<Integer> finalPartnerStationIds = partnerStationIds;
 
-        List<DiscoveryEntry> entries = stations.stream()
-                .map(s -> new DiscoveryEntry(
-                        s.uid(),
-                        s.name(),
-                        s.discoveryDescription(),
-                        stationService.getLogo(s.id()).isPresent(),
-                        s.discoveryShowKb() && s.publicKbMode() != PublicKbMode.OFF,
-                        finalPartnerStationIds.contains(s.id())))
-                .toList();
+        List<DiscoveryEntry> entries = new ArrayList<>();
+        for (var s : discoverable) {
+            if (seen.add(s.id())) entries.add(toDiscoveryEntry(s, finalPartnerStationIds, false));
+        }
+        for (var s : publicStations) {
+            if (seen.add(s.id())) entries.add(toDiscoveryEntry(s, finalPartnerStationIds, false));
+        }
+
+        // Include own station at the top, marked as own
+        if (session != null && session.stationId() != null) {
+            stationService
+                    .findById(session.stationId())
+                    .ifPresent(own -> entries.addFirst(toDiscoveryEntry(own, finalPartnerStationIds, true)));
+        }
+
         ctx.json(entries);
     }
 
@@ -124,13 +135,27 @@ public class DiscoveryRoutes implements Routes {
         ctx.json(new MessageResponse("Federation request sent"));
     }
 
+    private DiscoveryEntry toDiscoveryEntry(Station s, Set<Integer> partnerIds, boolean isOwnStation) {
+        return new DiscoveryEntry(
+                s.uid(),
+                s.name(),
+                s.discoveryDescription(),
+                stationService.getLogo(s.id()).isPresent(),
+                s.discoveryShowKb() && s.publicKbMode() != PublicKbMode.OFF,
+                s.publicCalendarEnabled(),
+                partnerIds.contains(s.id()),
+                isOwnStation);
+    }
+
     public record DiscoveryEntry(
             UUID stationUid,
             String name,
             String description,
             boolean hasLogo,
             boolean hasPublicKb,
-            boolean alreadyFederated) {}
+            boolean hasPublicCalendar,
+            boolean alreadyFederated,
+            boolean isOwnStation) {}
 
     public record FederationRequestBody(UUID stationUid) {}
 

@@ -38,7 +38,8 @@ public record Station(
         String federationPrivateKey,
         DiscoveryVisibility discoveryVisibility,
         String discoveryDescription,
-        boolean discoveryShowKb) {
+        boolean discoveryShowKb,
+        boolean publicCalendarEnabled) {
     public static RowMapping<Station> map() {
         return row -> new Station(
                 row.getInt("id"),
@@ -54,6 +55,7 @@ public record Station(
                 row.getString("federation_private_key"),
                 DiscoveryVisibility.valueOf(row.getString("discovery_visibility")),
                 row.getString("discovery_description"),
-                row.getBoolean("discovery_show_kb"));
+                row.getBoolean("discovery_show_kb"),
+                row.getBoolean("public_calendar_enabled"));
     }
 }

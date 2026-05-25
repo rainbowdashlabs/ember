@@ -44,7 +44,8 @@ public record StationEvent(
         boolean requiresConfirmation,
         Integer categoryId,
         RestrictionMode restrictionMode,
-        boolean restricted) {
+        boolean restricted,
+        boolean isPublic) {
 
     /**
      * Creates a row mapping for database result set conversion.
@@ -65,7 +66,8 @@ public record StationEvent(
                 row.getBoolean("requires_confirmation"),
                 row.getObject("category_id", Integer.class),
                 RestrictionMode.valueOf(row.getString("restriction_mode")),
-                row.getBoolean("restricted"));
+                row.getBoolean("restricted"),
+                row.getBoolean("public"));
     }
 
     /**

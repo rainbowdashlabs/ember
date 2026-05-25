@@ -25,7 +25,7 @@ import java.util.UUID;
 public class StationRepository {
 
     private static final String STATION_COLUMNS =
-            "id, uid, name, timezone, locale, owner_member_id, default_theme, allow_user_theme, custom_theme_colors, public_kb_mode, federation_private_key, discovery_visibility, discovery_description, discovery_show_kb";
+            "id, uid, name, timezone, locale, owner_member_id, default_theme, allow_user_theme, custom_theme_colors, public_kb_mode, federation_private_key, discovery_visibility, discovery_description, discovery_show_kb, public_calendar_enabled";
 
     /**
      * Finds a station by its ID.
@@ -124,6 +124,13 @@ public class StationRepository {
     public boolean updatePublicKbMode(int id, String mode) {
         return Query.query("UPDATE station SET public_kb_mode = :mode WHERE id = :id;")
                 .single(Call.of().bind("mode", mode).bind("id", id))
+                .update()
+                .changed();
+    }
+
+    public boolean updatePublicCalendarEnabled(int id, boolean enabled) {
+        return Query.query("UPDATE station SET public_calendar_enabled = :enabled WHERE id = :id;")
+                .single(Call.of().bind("enabled", enabled).bind("id", id))
                 .update()
                 .changed();
     }
@@ -278,6 +285,15 @@ public class StationRepository {
     /**
      * Finds all stations visible to the given visibility levels, excluding the given station.
      */
+    public List<Station> findWithPublicContent(int excludeStationId) {
+        return Query.query(
+                        "SELECT " + STATION_COLUMNS
+                                + " FROM station WHERE id != :exclude_id AND (public_calendar_enabled = TRUE OR public_kb_mode != 'OFF') ORDER BY name;")
+                .single(Call.of().bind("exclude_id", excludeStationId))
+                .map(Station.map())
+                .all();
+    }
+
     public List<Station> findDiscoverable(int excludeStationId, DiscoveryVisibility visA, DiscoveryVisibility visB) {
         return Query.query(
                         "SELECT " + STATION_COLUMNS

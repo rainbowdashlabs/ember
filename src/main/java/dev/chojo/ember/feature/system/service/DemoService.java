@@ -31,6 +31,7 @@ import dev.chojo.ember.feature.members.repository.ProfileFieldRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.repository.UserTagRepository;
 import dev.chojo.ember.feature.news.repository.NewsRepository;
+import dev.chojo.ember.feature.station.entity.DiscoveryVisibility;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.system.repository.ApplicationSettingRepository;
 import jakarta.inject.Inject;
@@ -236,6 +237,13 @@ public class DemoService {
         var station = stationRepository.create("Jugendfeuerwehr Musterstadt");
         stationRepository.updateTimezone(station.id(), "Europe/Berlin");
         stationRepository.updateLocale(station.id(), "de-DE");
+        stationRepository.updatePublicCalendarEnabled(station.id(), true);
+        stationRepository.updatePublicKbMode(station.id(), "ALLOW_ALL");
+        stationRepository.updateDiscoverySettings(
+                station.id(),
+                DiscoveryVisibility.PUBLIC,
+                "Jugendfeuerwehr Musterstadt — Übungen, Wettbewerbe und mehr",
+                true);
         try {
             var logoBytes = Files.readAllBytes(Path.of("templates", "graphics", "logo.png"));
             stationRepository.updateLogo(station.id(), logoBytes, "image/png");
@@ -666,6 +674,9 @@ public class DemoService {
         var catUebung = eventRepository.createCategory(station.id(), "Übungen", 0);
         var catVeranstaltung = eventRepository.createCategory(station.id(), "Veranstaltungen", 1);
         var catWettbewerb = eventRepository.createCategory(station.id(), "Wettbewerbe", 2);
+        // Make Veranstaltungen public (all events in this category visible on public calendar)
+        eventRepository.updateCategory(
+                catVeranstaltung.id(), catVeranstaltung.name(), catVeranstaltung.position(), null, true);
 
         // -- Events --
         Instant monStart = LocalDate.now().atTime(17, 30).toInstant(ZoneOffset.UTC);
@@ -952,6 +963,8 @@ public class DemoService {
 
         // -- Öffentlichkeitsarbeit events --
         var catOeffentlichkeit = eventRepository.createCategory(station.id(), "Öffentlichkeitsarbeit", 3);
+        eventRepository.updateCategory(
+                catOeffentlichkeit.id(), catOeffentlichkeit.name(), catOeffentlichkeit.position(), null, true);
         var allMembers = new ArrayList<StationMember>();
         allMembers.addAll(anfaengerMembers);
         allMembers.addAll(fortgeschrittenMembers);
@@ -990,9 +1003,9 @@ public class DemoService {
                     null,
                     true,
                     catOeffentlichkeit.id());
-            eventFieldRepository.create(oeEvent.id(), "Ort", "string", "{}", oeOrte[e], 0, true, null);
+            eventFieldRepository.create(oeEvent.id(), "Ort", "string", "{}", oeOrte[e], 0, true, null, true);
             eventFieldRepository.create(
-                    oeEvent.id(), "Treffpunkt", "string", "{}", "Feuerwehrgerätehaus", 1, true, null);
+                    oeEvent.id(), "Treffpunkt", "string", "{}", "Feuerwehrgerätehaus", 1, true, null, true);
             // Create registrations with rotation: offset accepted members per event for variance
             int count = Math.min(oeMemberCounts[e], allMembers.size());
             int acceptOffset = e * 3; // shift which members get accepted each event
@@ -1024,11 +1037,20 @@ public class DemoService {
                 openDeadline,
                 true,
                 catOeffentlichkeit.id());
-        eventFieldRepository.create(oeOpen.id(), "Ort", "string", "{}", "Rathausplatz Musterstadt", 0, true, null);
         eventFieldRepository.create(
-                oeOpen.id(), "Treffpunkt", "string", "{}", "Feuerwehrgerätehaus 08:30", 1, true, null);
+                oeOpen.id(), "Ort", "string", "{}", "Rathausplatz Musterstadt", 0, true, null, true);
         eventFieldRepository.create(
-                oeOpen.id(), "Hinweis", "string", "{}", "Dienstkleidung und Ausrüstung mitbringen", 2, false, null);
+                oeOpen.id(), "Treffpunkt", "string", "{}", "Feuerwehrgerätehaus 08:30", 1, true, null, true);
+        eventFieldRepository.create(
+                oeOpen.id(),
+                "Hinweis",
+                "string",
+                "{}",
+                "Dienstkleidung und Ausrüstung mitbringen",
+                2,
+                false,
+                null,
+                false);
         // 14 registrations: 6 accepted, 8 pending (not yet confirmed)
         int openCount = Math.min(14, allMembers.size());
         for (int i = 0; i < openCount; i++) {
@@ -1041,16 +1063,17 @@ public class DemoService {
         // -- Event Fields --
         // Per-event fields
         eventFieldRepository.create(
-                tagDerOffenenTuer.id(), "Ort", "string", "{}", "Feuerwehrhaus Musterstadt", 0, true, null);
+                tagDerOffenenTuer.id(), "Ort", "string", "{}", "Feuerwehrhaus Musterstadt", 0, true, null, true);
         eventFieldRepository.create(
-                tagDerOffenenTuer.id(), "Treffpunkt", "string", "{}", "Haupteingang", 1, true, null);
+                tagDerOffenenTuer.id(), "Treffpunkt", "string", "{}", "Haupteingang", 1, true, null, true);
         eventFieldRepository.create(
-                tagDerOffenenTuer.id(), "Hinweis", "string", "{}", "Dienstkleidung tragen", 2, false, null);
-        eventFieldRepository.create(stadtfest.id(), "Ort", "string", "{}", "Marktplatz Musterstadt", 0, true, null);
+                tagDerOffenenTuer.id(), "Hinweis", "string", "{}", "Dienstkleidung tragen", 2, false, null, false);
         eventFieldRepository.create(
-                stadtfest.id(), "Treffpunkt", "string", "{}", "Stand der Jugendfeuerwehr", 1, true, null);
+                stadtfest.id(), "Ort", "string", "{}", "Marktplatz Musterstadt", 0, true, null, true);
         eventFieldRepository.create(
-                kreisWettbewerb.id(), "Ort", "string", "{}", "Sportplatz Nachbarstadt", 0, true, null);
+                stadtfest.id(), "Treffpunkt", "string", "{}", "Stand der Jugendfeuerwehr", 1, true, null, true);
+        eventFieldRepository.create(
+                kreisWettbewerb.id(), "Ort", "string", "{}", "Sportplatz Nachbarstadt", 0, true, null, true);
         eventFieldRepository.create(
                 kreisWettbewerb.id(),
                 "Hinweis",
@@ -1059,21 +1082,24 @@ public class DemoService {
                 "Wettkampfkleidung und Ausrüstung mitbringen",
                 1,
                 false,
-                null);
+                null,
+                false);
         // Recurring event fields
         eventFieldRepository.create(
-                evAnfaenger.id(), "Ort", "string", "{}", "Feuerwehrhaus Musterstadt", 0, true, null);
+                evAnfaenger.id(), "Ort", "string", "{}", "Feuerwehrhaus Musterstadt", 0, true, null, true);
         eventFieldRepository.create(
-                evAnfaenger.id(), "Hinweis", "string", "{}", "Sportkleidung mitbringen", 1, false, null);
-        eventFieldRepository.create(evFort.id(), "Ort", "string", "{}", "Feuerwehrhaus Musterstadt", 0, true, null);
+                evAnfaenger.id(), "Hinweis", "string", "{}", "Sportkleidung mitbringen", 1, false, null, false);
         eventFieldRepository.create(
-                evFort.id(), "Hinweis", "string", "{}", "Schutzausrüstung wird gestellt", 1, false, null);
-        eventFieldRepository.create(evGesamt.id(), "Ort", "string", "{}", "Feuerwehrhaus Musterstadt", 0, true, null);
-        eventFieldRepository.create(evGesamt.id(), "Treffpunkt", "string", "{}", "Fahrzeughalle", 1, true, null);
+                evFort.id(), "Ort", "string", "{}", "Feuerwehrhaus Musterstadt", 0, true, null, true);
         eventFieldRepository.create(
-                theorieabend.id(), "Ort", "string", "{}", "Schulungsraum Feuerwehrhaus", 0, true, null);
+                evFort.id(), "Hinweis", "string", "{}", "Schutzausrüstung wird gestellt", 1, false, null, false);
         eventFieldRepository.create(
-                theorieabend.id(), "Hinweis", "string", "{}", "Schreibzeug mitbringen", 1, false, null);
+                evGesamt.id(), "Ort", "string", "{}", "Feuerwehrhaus Musterstadt", 0, true, null, true);
+        eventFieldRepository.create(evGesamt.id(), "Treffpunkt", "string", "{}", "Fahrzeughalle", 1, true, null, true);
+        eventFieldRepository.create(
+                theorieabend.id(), "Ort", "string", "{}", "Schulungsraum Feuerwehrhaus", 0, true, null, true);
+        eventFieldRepository.create(
+                theorieabend.id(), "Hinweis", "string", "{}", "Schreibzeug mitbringen", 1, false, null, false);
 
         // -- News --
         var news1 = newsRepository.create(

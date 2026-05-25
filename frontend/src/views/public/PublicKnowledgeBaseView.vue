@@ -12,7 +12,7 @@ import IconButton from '@/components/button/IconButton.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
-import PageHeader from '@/components/typography/PageHeader.vue'
+import ViewContent from '@/components/layout/ViewContent.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import * as publicKb from '@/api/publicKb'
 import type {PublicStationInfo, PublicBrowseResponse, PublicSearchResult} from '@/api/publicKb'
@@ -140,13 +140,8 @@ onMounted(() => {
 </script>
 
 <template>
-    <div class="py-8">
-        <div class="max-w-5xl mx-auto px-4 py-8">
-            <!-- Station name header -->
-            <PageHeader v-if="stationInfo" class="text-2xl font-bold mb-6">
-                {{ stationInfo.stationName }}
-            </PageHeader>
-
+    <ViewContent>
+        <div class="space-y-6">
             <Alert v-if="error" variant="error" class="mb-4">{{ error }}</Alert>
 
             <!-- Search -->
@@ -271,5 +266,5 @@ onMounted(() => {
                 </template>
             </div>
         </div>
-    </div>
+    </ViewContent>
 </template>

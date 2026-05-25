@@ -16,7 +16,8 @@ public record EventField(
         String value,
         int position,
         boolean overview,
-        Integer attendanceFieldId) {
+        Integer attendanceFieldId,
+        boolean isPublic) {
 
     public static RowMapping<EventField> map() {
         return row -> new EventField(
@@ -28,6 +29,7 @@ public record EventField(
                 row.getString("value"),
                 row.getInt("position"),
                 row.getBoolean("overview"),
-                row.getObject("attendance_field_id", Integer.class));
+                row.getObject("attendance_field_id", Integer.class),
+                row.getBoolean("public"));
     }
 }

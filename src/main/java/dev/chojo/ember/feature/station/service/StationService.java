@@ -308,6 +308,10 @@ public class StationService {
     /**
      * Updates the discovery settings for a station.
      */
+    public void updatePublicCalendarEnabled(int stationId, boolean enabled) {
+        stationRepository.updatePublicCalendarEnabled(stationId, enabled);
+    }
+
     public void updateDiscoverySettings(
             int stationId, DiscoveryVisibility visibility, String description, boolean showKb) {
         stationRepository.updateDiscoverySettings(stationId, visibility, description, showKb);
@@ -316,6 +320,10 @@ public class StationService {
     /**
      * Finds all stations discoverable by the given station (instance-level visibility).
      */
+    public List<Station> findWithPublicContent(int excludeStationId) {
+        return stationRepository.findWithPublicContent(excludeStationId);
+    }
+
     public List<Station> findDiscoverable(int excludeStationId) {
         return stationRepository.findDiscoverable(
                 excludeStationId, DiscoveryVisibility.INSTANCE, DiscoveryVisibility.PUBLIC);

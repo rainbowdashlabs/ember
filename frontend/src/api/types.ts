@@ -227,12 +227,14 @@ export interface EventCategory {
     name?: string
     position: number
     maxShownEvents?: number | null
+    isPublic?: boolean
 }
 
 export interface CategoryRequest {
     name?: string
     position: number
     maxShownEvents?: number | null
+    isPublic?: boolean
 }
 
 export interface StationEvent {
@@ -251,6 +253,7 @@ export interface StationEvent {
     categoryId?: number | null
     restrictionMode?: string
     restricted?: boolean
+    isPublic?: boolean
 }
 
 export interface EventRequest {
@@ -267,6 +270,7 @@ export interface EventRequest {
     categoryId?: number | null
     restrictedRoleIds?: number[]
     restrictedGroupIds?: number[]
+    isPublic?: boolean
 }
 
 export interface EventRestrictions {
@@ -322,6 +326,7 @@ export interface EventField {
     position: number
     overview?: boolean
     attendanceFieldId?: number | null
+    isPublic?: boolean
 }
 
 export interface EventFieldEntry {
@@ -331,6 +336,7 @@ export interface EventFieldEntry {
     value?: string
     overview?: boolean
     attendanceFieldId?: number | null
+    isPublic?: boolean
 }
 
 export interface SetEventFieldsRequest {

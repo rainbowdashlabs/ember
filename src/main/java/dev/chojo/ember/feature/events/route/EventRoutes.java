@@ -113,6 +113,7 @@ public class EventRoutes implements Routes {
 
         routes.get(prefix + "/events/categories", this::listCategories, Roles.USER);
         routes.post(prefix + "/events/categories", this::createCategory, Roles.EVENT_MANAGER);
+        routes.put(prefix + "/events/categories/reorder", this::reorderCategories, Roles.EVENT_MANAGER);
         routes.put(prefix + "/events/categories/{id}", this::updateCategory, Roles.EVENT_MANAGER);
         routes.delete(prefix + "/events/categories/{id}", this::deleteCategory, Roles.EVENT_MANAGER);
 
@@ -308,7 +309,8 @@ public class EventRoutes implements Routes {
                         req.requiresRegistration() != null && req.requiresRegistration(),
                         req.registrationDeadline(),
                         req.requiresConfirmation() != null && req.requiresConfirmation(),
-                        req.categoryId())
+                        req.categoryId(),
+                        req.isPublic() != null && req.isPublic())
                 .ifPresentOrElse(
                         event -> {
                             eventService.setRestrictions(
@@ -815,7 +817,8 @@ public class EventRoutes implements Routes {
             throw new ForbiddenResponse("Cannot access resources from another station");
         }
         var req = ctx.bodyAsClass(CategoryRequest.class);
-        if (!eventService.updateCategory(id, req.name(), req.position(), req.maxShownEvents())) {
+        if (!eventService.updateCategory(
+                id, req.name(), req.position(), req.maxShownEvents(), req.isPublic() != null && req.isPublic())) {
             throw new NotFoundResponse();
         }
         ctx.status(HttpStatus.OK).json(new MessageResponse("Updated"));
@@ -831,6 +834,20 @@ public class EventRoutes implements Routes {
                 @OpenApiResponse(status = "204"),
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
+    private void reorderCategories(Context ctx) {
+        var session = UserSession.from(ctx);
+        var req = ctx.bodyAsClass(ReorderCategoriesRequest.class);
+        // Verify all categories belong to this station
+        for (int id : req.orderedIds()) {
+            var cat = eventService.findCategoryById(id).orElseThrow(NotFoundResponse::new);
+            if (cat.stationId() != session.stationId()) {
+                throw new ForbiddenResponse("Cannot reorder categories from another station");
+            }
+        }
+        eventService.reorderCategories(req.orderedIds());
+        ctx.json(eventService.findCategoriesByStation(session.stationId()));
+    }
+
     private void deleteCategory(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int id = ctx.pathParamAsClass("id", Integer.class).get();
@@ -1035,7 +1052,8 @@ public class EventRoutes implements Routes {
                                 e.config(),
                                 e.value() != null ? e.value() : "",
                                 e.overview() != null && e.overview(),
-                                e.attendanceFieldId()))
+                                e.attendanceFieldId(),
+                                e.isPublic() != null && e.isPublic()))
                         .toList());
         ctx.json(eventFieldService.findByEvent(id));
     }
@@ -1275,11 +1293,14 @@ public class EventRoutes implements Routes {
             Integer categoryId,
             List<Integer> restrictedRoleIds,
             List<Integer> restrictedGroupIds,
-            List<Integer> restrictedTagIds) {}
+            List<Integer> restrictedTagIds,
+            Boolean isPublic) {}
 
     public record BreakRequest(String name, String startDate, String endDate) {}
 
-    public record CategoryRequest(String name, int position, Integer maxShownEvents) {}
+    public record CategoryRequest(String name, int position, Integer maxShownEvents, Boolean isPublic) {}
+
+    public record ReorderCategoriesRequest(List<Integer> orderedIds) {}
 
     // -- Event Fields (per-event) --
 
@@ -1310,7 +1331,13 @@ public class EventRoutes implements Routes {
 
     @OpenApiName("EventFieldEntry")
     public record EventFieldEntry(
-            String name, String fieldType, String config, String value, Boolean overview, Integer attendanceFieldId) {}
+            String name,
+            String fieldType,
+            String config,
+            String value,
+            Boolean overview,
+            Integer attendanceFieldId,
+            Boolean isPublic) {}
 
     public record LayoutRequest(String name) {}
 

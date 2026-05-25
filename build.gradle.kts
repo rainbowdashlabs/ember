@@ -53,6 +53,7 @@ dependencies {
     implementation(libs.thumbnailator)
     implementation(libs.imageio.webp)
     implementation(libs.pdfbox)
+    implementation(libs.ical4j)
     implementation(libs.bundles.ai)
 
     testRuntimeOnly(libs.junit.platform)

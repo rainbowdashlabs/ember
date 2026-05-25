@@ -80,7 +80,8 @@ public class BatchEventService {
                             def.config(),
                             row.fieldValues() != null ? row.fieldValues().getOrDefault(def.name(), "") : "",
                             def.overview(),
-                            def.attendanceFieldId()))
+                            def.attendanceFieldId(),
+                            false))
                     .toList();
             eventFieldService.replaceFields(event.id(), fieldEntries);
             created.add(event);

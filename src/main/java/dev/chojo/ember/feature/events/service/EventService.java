@@ -149,7 +149,8 @@ public class EventService {
             boolean requiresRegistration,
             Instant registrationDeadline,
             boolean requiresConfirmation,
-            Integer categoryId) {
+            Integer categoryId,
+            boolean isPublic) {
         if (eventRepository.update(
                 id,
                 name,
@@ -162,7 +163,8 @@ public class EventService {
                 requiresRegistration,
                 registrationDeadline,
                 requiresConfirmation,
-                categoryId)) {
+                categoryId,
+                isPublic)) {
             return eventRepository.findById(id);
         }
         return Optional.empty();
@@ -251,8 +253,8 @@ public class EventService {
      * @param position the new position
      * @return true if the category was updated
      */
-    public boolean updateCategory(int id, String name, int position, Integer maxShownEvents) {
-        return eventRepository.updateCategory(id, name, position, maxShownEvents);
+    public boolean updateCategory(int id, String name, int position, Integer maxShownEvents, boolean isPublic) {
+        return eventRepository.updateCategory(id, name, position, maxShownEvents, isPublic);
     }
 
     /**
@@ -263,6 +265,10 @@ public class EventService {
      */
     public boolean deleteCategory(int id) {
         return eventRepository.deleteCategory(id);
+    }
+
+    public void reorderCategories(List<Integer> orderedIds) {
+        eventRepository.reorderCategories(orderedIds);
     }
 
     // -- Breaks --

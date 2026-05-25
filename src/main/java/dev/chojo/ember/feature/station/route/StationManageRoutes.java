@@ -136,7 +136,8 @@ public class StationManageRoutes implements Routes {
                 station.publicKbMode().name(),
                 station.discoveryVisibility(),
                 station.discoveryDescription(),
-                station.discoveryShowKb());
+                station.discoveryShowKb(),
+                station.publicCalendarEnabled());
     }
 
     @OpenApi(
@@ -184,6 +185,9 @@ public class StationManageRoutes implements Routes {
                     request.discoveryVisibility(),
                     request.discoveryDescription(),
                     request.discoveryShowKb() != null ? request.discoveryShowKb() : false);
+        }
+        if (request.publicCalendarEnabled() != null) {
+            stationService.updatePublicCalendarEnabled(session.stationId(), request.publicCalendarEnabled());
         }
         stationService
                 .update(session.stationId(), request.name())
@@ -529,7 +533,8 @@ public class StationManageRoutes implements Routes {
             String publicKbMode,
             DiscoveryVisibility discoveryVisibility,
             String discoveryDescription,
-            Boolean discoveryShowKb) {}
+            Boolean discoveryShowKb,
+            Boolean publicCalendarEnabled) {}
 
     // -- Station deletion --
 
@@ -558,7 +563,8 @@ public class StationManageRoutes implements Routes {
             String publicKbMode,
             DiscoveryVisibility discoveryVisibility,
             String discoveryDescription,
-            boolean discoveryShowKb) {}
+            boolean discoveryShowKb,
+            boolean publicCalendarEnabled) {}
 
     /**
      * Response containing the station's mail configuration and current usage statistics.

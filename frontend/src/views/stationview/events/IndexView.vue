@@ -19,7 +19,6 @@ import EventsByCategory from './indexview/EventsByCategory.vue'
 import BreaksList from './indexview/BreaksList.vue'
 import BreakModal from './indexview/BreakModal.vue'
 import HolidayImportModal from './indexview/HolidayImportModal.vue'
-import CategoryModal from './indexview/CategoryModal.vue'
 import ExportModal from './indexview/ExportModal.vue'
 import type {AttendanceTemplate, EventBreak, EventCategory, EventField, StationEvent} from '@/api/types'
 import {attendance, events} from '@/api'
@@ -66,8 +65,6 @@ const eventsByCategory = computed((): CategoryGroup[] => {
 const showBreakModal = ref(false)
 const editingBreak = ref<EventBreak | null>(null)
 const showHolidayModal = ref(false)
-const showCategoryModal = ref(false)
-const editingCategory = ref<EventCategory | null>(null)
 const showDeleteEventModal = ref(false)
 const deleteEventTarget = ref<StationEvent | null>(null)
 const showDeleteBreakModal = ref(false)
@@ -181,40 +178,7 @@ async function onImportHolidays(holidays: Array<{ name: string; startDate: strin
   }
 }
 
-// Categories
-function openAddCategory() {
-  editingCategory.value = null
-  showCategoryModal.value = true
-}
 
-function openEditCategory(cat: EventCategory) {
-  editingCategory.value = cat
-  showCategoryModal.value = true
-}
-
-async function saveCategory(name: string) {
-  error.value = ''
-  try {
-    if (editingCategory.value) {
-      await events.updateCategory(editingCategory.value.id, {name, position: editingCategory.value.position})
-    } else {
-      await events.createCategory({name, position: categories.value.length})
-    }
-    showCategoryModal.value = false
-    await loadData()
-  } catch {
-    error.value = t('common.error')
-  }
-}
-
-async function deleteCategory(id: number) {
-  try {
-    await events.deleteCategory(id)
-    await loadData()
-  } catch {
-    error.value = t('common.error')
-  }
-}
 
 // Attendance
 function goToAttendance(ev: StationEvent) {
@@ -246,9 +210,6 @@ onMounted(loadData)
             @add-event="openAddEvent"
             @edit-event="openEditEvent"
             @delete-event="requestDeleteEvent"
-            @add-category="openAddCategory"
-            @edit-category="openEditCategory"
-            @delete-category="deleteCategory"
         />
 
         <BreaksList
@@ -278,12 +239,6 @@ onMounted(loadData)
       <HolidayImportModal
           v-model="showHolidayModal"
           @import="onImportHolidays"
-      />
-
-      <CategoryModal
-          v-model="showCategoryModal"
-          :category="editingCategory"
-          @save="saveCategory"
       />
 
       <ConfirmDeleteModal

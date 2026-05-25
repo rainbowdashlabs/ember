@@ -118,7 +118,8 @@ class EventServiceTest extends RepositoryTestBase {
                 true,
                 null,
                 false,
-                categoryId);
+                categoryId,
+                false);
         assertTrue(result.isPresent());
         var updated = result.get();
         assertEquals("Updated Training", updated.name());
@@ -144,7 +145,8 @@ class EventServiceTest extends RepositoryTestBase {
                 true,
                 null,
                 false,
-                categoryId);
+                categoryId,
+                false);
 
         var reg = service.register(eventId, member.id(), LocalDate.of(2026, 6, 1), false, null);
         assertNotNull(reg);
