@@ -60,7 +60,8 @@ public class BatchEventService {
                     request.requiresRegistration() != null && request.requiresRegistration(),
                     request.registrationDeadline(),
                     request.requiresConfirmation() != null && request.requiresConfirmation(),
-                    request.categoryId());
+                    request.categoryId(),
+                    null);
 
             if (request.restrictedRoleIds() != null
                     || request.restrictedGroupIds() != null

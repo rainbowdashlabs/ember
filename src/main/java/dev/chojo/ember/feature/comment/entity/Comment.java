@@ -1,0 +1,37 @@
+/*
+ *     SPDX-License-Identifier: AGPL-3.0-only
+ *
+ *     Copyright (C) RainbowDashLabs and Contributor
+ */
+package dev.chojo.ember.feature.comment.entity;
+
+import de.chojo.sadu.mapper.rowmapper.RowMapping;
+
+import java.time.Instant;
+
+import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIMESTAMP;
+
+/**
+ * Represents a comment on an event, supporting threaded replies.
+ *
+ * @param id        unique identifier of the comment
+ * @param parentId  parent comment ID for threaded replies, or {@code null} for top-level comments
+ * @param authorId  member ID of the comment author
+ * @param content   text content of the comment
+ * @param createdAt timestamp when the comment was created
+ * @param updatedAt timestamp when the comment was last updated, or {@code null}
+ */
+public record Comment(int id, Integer parentId, int authorId, String content, Instant createdAt, Instant updatedAt) {
+    /**
+     * Creates a row mapping for database result set conversion.
+     */
+    public static RowMapping<Comment> map() {
+        return row -> new Comment(
+                row.getInt("id"),
+                row.getObject("parent_id", Integer.class),
+                row.getInt("author_id"),
+                row.getString("content"),
+                row.get("created_at", INSTANT_TIMESTAMP),
+                row.get("updated_at", INSTANT_TIMESTAMP));
+    }
+}

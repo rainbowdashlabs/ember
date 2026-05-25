@@ -83,6 +83,8 @@ public class Bootstrapper {
         injector.getInstance(QueryConfiguration.class);
         // Initialize domain event bus (registers all handlers)
         injector.getInstance(DomainEventBus.class);
+        // Start registration deadline checker (daemon thread)
+        injector.getInstance(dev.chojo.ember.feature.events.service.RegistrationDeadlineChecker.class);
 
         // Initialize data directory from templates if empty
         injector.getInstance(DataInitializer.class).initialize();

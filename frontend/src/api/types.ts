@@ -234,6 +234,7 @@ export interface EventCategory {
     position: number
     maxShownEvents?: number | null
     isPublic?: boolean
+    registrationLimit?: number | null
 }
 
 export interface CategoryRequest {
@@ -241,6 +242,7 @@ export interface CategoryRequest {
     position: number
     maxShownEvents?: number | null
     isPublic?: boolean
+    registrationLimit?: number | null
 }
 
 export interface StationEvent {
@@ -260,6 +262,7 @@ export interface StationEvent {
     restrictionMode?: string
     restricted?: boolean
     isPublic?: boolean
+    registrationLimit?: number | null
 }
 
 export interface EventRequest {
@@ -277,6 +280,7 @@ export interface EventRequest {
     restrictedRoleIds?: number[]
     restrictedGroupIds?: number[]
     isPublic?: boolean
+    registrationLimit?: number | null
 }
 
 export interface EventRestrictions {
@@ -333,6 +337,7 @@ export interface EventField {
     overview?: boolean
     attendanceFieldId?: number | null
     isPublic?: boolean
+    registrationLimit?: number | null
 }
 
 export interface EventFieldEntry {
@@ -343,6 +348,7 @@ export interface EventFieldEntry {
     overview?: boolean
     attendanceFieldId?: number | null
     isPublic?: boolean
+    registrationLimit?: number | null
 }
 
 export interface SetEventFieldsRequest {
@@ -390,6 +396,8 @@ export interface EventTemplate {
     registrationDeadlineOffset?: string | null
     requiresConfirmation?: boolean | null
     restrictionMode?: string | null
+    attendanceTemplateId?: number | null
+    registrationLimit?: number | null
 }
 
 export interface EventTemplateField {
@@ -417,6 +425,7 @@ export interface EventTemplateFieldEntry {
     position: number
     overview?: boolean
     isPublic?: boolean
+    registrationLimit?: number | null
     attendanceFieldId?: number | null
 }
 

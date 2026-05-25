@@ -18,7 +18,9 @@ public record EventTemplate(
         Boolean requiresRegistration,
         String registrationDeadlineOffset,
         Boolean requiresConfirmation,
-        String restrictionMode) {
+        String restrictionMode,
+        Integer attendanceTemplateId,
+        Integer registrationLimit) {
 
     public static RowMapping<EventTemplate> map() {
         return row -> new EventTemplate(
@@ -32,6 +34,8 @@ public record EventTemplate(
                 row.getObject("requires_registration", Boolean.class),
                 row.getString("registration_deadline_offset"),
                 row.getObject("requires_confirmation", Boolean.class),
-                row.getString("restriction_mode"));
+                row.getString("restriction_mode"),
+                row.getObject("attendance_template_id", Integer.class),
+                row.getObject("registration_limit", Integer.class));
     }
 }

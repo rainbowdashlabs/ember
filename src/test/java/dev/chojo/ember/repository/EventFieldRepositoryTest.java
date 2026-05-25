@@ -52,7 +52,8 @@ class EventFieldRepositoryTest extends RepositoryTestBase {
                 false,
                 null,
                 false,
-                categoryId);
+                categoryId,
+                null);
         eventId = event.id();
     }
 

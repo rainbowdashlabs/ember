@@ -364,7 +364,8 @@ public class FederationService {
                 FederationCapability.CapabilityType.KB_SHARE.name(),
                 FederationCapability.CapabilityType.QUIZ_SHARE.name(),
                 FederationCapability.CapabilityType.PROTOCOL_SHARE.name(),
-                FederationCapability.CapabilityType.INVENTORY_LEND.name());
+                FederationCapability.CapabilityType.INVENTORY_LEND.name(),
+                FederationCapability.CapabilityType.EVENT_SHARE.name());
     }
 
     // -- Change Tracking --

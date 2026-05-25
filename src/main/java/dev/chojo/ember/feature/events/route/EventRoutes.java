@@ -20,11 +20,10 @@ import dev.chojo.ember.feature.events.entity.EventLayoutField;
 import dev.chojo.ember.feature.events.entity.EventRegistration;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventFieldRepository;
-import dev.chojo.ember.feature.events.repository.EventLayoutRepository;
 import dev.chojo.ember.feature.events.service.BatchEventService;
 import dev.chojo.ember.feature.events.service.EventExportService;
+import dev.chojo.ember.feature.events.service.EventFederationService;
 import dev.chojo.ember.feature.events.service.EventFieldService;
-import dev.chojo.ember.feature.events.service.EventLayoutService;
 import dev.chojo.ember.feature.events.service.EventService;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.StationMemberService;
@@ -64,34 +63,34 @@ import java.util.Map;
 public class EventRoutes implements Routes {
     private final EventService eventService;
     private final EventFieldService eventFieldService;
-    private final EventLayoutService eventLayoutService;
     private final BatchEventService batchEventService;
     private final StationMemberService stationMemberService;
     private final StationMemberRepository stationMemberRepository;
     private final AccountRepository accountRepository;
     private final AttendanceService attendanceService;
     private final EventExportService eventExportService;
+    private final EventFederationService eventFederationService;
 
     @Inject
     public EventRoutes(
             EventService eventService,
             EventFieldService eventFieldService,
-            EventLayoutService eventLayoutService,
             BatchEventService batchEventService,
             StationMemberService stationMemberService,
             StationMemberRepository stationMemberRepository,
             AccountRepository accountRepository,
             AttendanceService attendanceService,
-            EventExportService eventExportService) {
+            EventExportService eventExportService,
+            EventFederationService eventFederationService) {
         this.eventService = eventService;
         this.eventFieldService = eventFieldService;
-        this.eventLayoutService = eventLayoutService;
         this.batchEventService = batchEventService;
         this.stationMemberService = stationMemberService;
         this.stationMemberRepository = stationMemberRepository;
         this.accountRepository = accountRepository;
         this.attendanceService = attendanceService;
         this.eventExportService = eventExportService;
+        this.eventFederationService = eventFederationService;
     }
 
     @Override
@@ -126,14 +125,14 @@ public class EventRoutes implements Routes {
         // Overview fields
         routes.get(prefix + "/events/overview-fields", this::getOverviewFields, Roles.USER);
 
-        // Layouts
-        routes.get(prefix + "/events/layouts", this::listLayouts, Roles.EVENT_MANAGER);
-        routes.post(prefix + "/events/layouts", this::createLayout, Roles.EVENT_MANAGER);
-        routes.get(prefix + "/events/layouts/{id}", this::getLayout, Roles.EVENT_MANAGER);
-        routes.put(prefix + "/events/layouts/{id}", this::updateLayout, Roles.EVENT_MANAGER);
-        routes.delete(prefix + "/events/layouts/{id}", this::deleteLayout, Roles.EVENT_MANAGER);
-        routes.get(prefix + "/events/layouts/{id}/fields", this::getLayoutFields, Roles.EVENT_MANAGER);
-        routes.put(prefix + "/events/layouts/{id}/fields", this::setLayoutFields, Roles.EVENT_MANAGER);
+        // Federation sharing
+        routes.get(prefix + "/events/{id}/federation", this::getFederationShare, Roles.EVENT_MANAGER);
+        routes.put(prefix + "/events/{id}/federation", this::setFederationShare, Roles.EVENT_MANAGER);
+        routes.delete(prefix + "/events/{id}/federation", this::removeFederationShare, Roles.EVENT_MANAGER);
+        routes.get(
+                prefix + "/events/{id}/federation-registrations",
+                this::listFederationRegistrations,
+                Roles.EVENT_MANAGER);
 
         // Batch creation
         routes.post(prefix + "/events/batch", this::batchCreate, Roles.EVENT_MANAGER);
@@ -227,7 +226,8 @@ public class EventRoutes implements Routes {
                 req.requiresRegistration() != null && req.requiresRegistration(),
                 req.registrationDeadline(),
                 req.requiresConfirmation() != null && req.requiresConfirmation(),
-                req.categoryId());
+                req.categoryId(),
+                req.registrationLimit());
         eventService.setRestrictions(
                 event.id(), req.restrictedRoleIds(), req.restrictedGroupIds(), req.restrictedTagIds(), List.of());
 
@@ -289,7 +289,8 @@ public class EventRoutes implements Routes {
                         req.registrationDeadline(),
                         req.requiresConfirmation() != null && req.requiresConfirmation(),
                         req.categoryId(),
-                        req.isPublic())
+                        req.isPublic(),
+                        req.registrationLimit())
                 .ifPresentOrElse(
                         event -> {
                             eventService.setRestrictions(
@@ -1021,80 +1022,6 @@ public class EventRoutes implements Routes {
         ctx.json(eventFieldService.findOverviewFieldsByEvents(eventIds));
     }
 
-    // -- Layouts --
-
-    private void listLayouts(Context ctx) {
-        var session = UserSession.from(ctx);
-        ctx.json(eventLayoutService.findByStation(session.stationId()));
-    }
-
-    private void createLayout(Context ctx) {
-        var session = UserSession.from(ctx);
-        var req = ctx.bodyAsClass(LayoutRequest.class);
-        if (req.name() == null || req.name().isBlank()) {
-            throw new BadRequestResponse("name is required");
-        }
-        ctx.json(eventLayoutService.create(session.stationId(), req.name()));
-    }
-
-    private void getLayout(Context ctx) {
-        var session = UserSession.from(ctx);
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
-        var layout = eventLayoutService.findById(id).orElseThrow(NotFoundResponse::new);
-        if (layout.stationId() != session.stationId()) {
-            throw new ForbiddenResponse("Cannot access resources from another station");
-        }
-        ctx.json(layout);
-    }
-
-    private void updateLayout(Context ctx) {
-        var session = UserSession.from(ctx);
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
-        var layout = eventLayoutService.findById(id).orElseThrow(NotFoundResponse::new);
-        if (layout.stationId() != session.stationId()) {
-            throw new ForbiddenResponse("Cannot access resources from another station");
-        }
-        var req = ctx.bodyAsClass(LayoutRequest.class);
-        if (!eventLayoutService.update(id, req.name())) {
-            throw new NotFoundResponse();
-        }
-        ctx.json(eventLayoutService.findById(id).orElseThrow());
-    }
-
-    private void deleteLayout(Context ctx) {
-        var session = UserSession.from(ctx);
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
-        var layout = eventLayoutService.findById(id).orElseThrow(NotFoundResponse::new);
-        if (layout.stationId() != session.stationId()) {
-            throw new ForbiddenResponse("Cannot access resources from another station");
-        }
-        if (!eventLayoutService.delete(id)) {
-            throw new NotFoundResponse();
-        }
-        ctx.status(HttpStatus.NO_CONTENT);
-    }
-
-    private void getLayoutFields(Context ctx) {
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
-        ctx.json(eventLayoutService.findFieldsByLayout(id));
-    }
-
-    private void setLayoutFields(Context ctx) {
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
-        var req = ctx.bodyAsClass(SetLayoutFieldsRequest.class);
-        eventLayoutService.replaceLayoutFields(
-                id,
-                req.fields().stream()
-                        .map(f -> new EventLayoutRepository.LayoutFieldEntry(
-                                f.name(),
-                                f.fieldType(),
-                                f.config(),
-                                f.overview() != null && f.overview(),
-                                f.attendanceFieldId()))
-                        .toList());
-        ctx.json(eventLayoutService.findFieldsByLayout(id));
-    }
-
     // -- Batch Creation --
 
     private void generateDates(Context ctx) {
@@ -1247,7 +1174,8 @@ public class EventRoutes implements Routes {
             List<Integer> restrictedRoleIds,
             List<Integer> restrictedGroupIds,
             List<Integer> restrictedTagIds,
-            Boolean isPublic) {}
+            Boolean isPublic,
+            Integer registrationLimit) {}
 
     public record BreakRequest(String name, String startDate, String endDate) {}
 
@@ -1336,4 +1264,63 @@ public class EventRoutes implements Routes {
             String lastDenied,
             String priority,
             double fairnessScore) {}
+
+    // -- Federation sharing --
+
+    private void getFederationShare(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        var event = eventService.findById(id).orElseThrow(NotFoundResponse::new);
+        if (event.stationId() != session.stationId()) throw new ForbiddenResponse();
+        var share = eventFederationService.findShareByEvent(id);
+        if (share.isEmpty()) {
+            ctx.json(Map.of("shared", false));
+            return;
+        }
+        var targets = eventFederationService.findShareTargets(share.get().id());
+        ctx.json(Map.of("shared", true, "scope", share.get().scope(), "partnerIds", targets));
+    }
+
+    private void setFederationShare(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        var event = eventService.findById(id).orElseThrow(NotFoundResponse::new);
+        if (event.stationId() != session.stationId()) throw new ForbiddenResponse();
+        var req = ctx.bodyAsClass(SetFederationShareRequest.class);
+        eventFederationService.setShare(id, req.scope(), req.partnerIds() != null ? req.partnerIds() : List.of());
+        ctx.json(Map.of("shared", true, "scope", req.scope()));
+    }
+
+    private void removeFederationShare(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        var event = eventService.findById(id).orElseThrow(NotFoundResponse::new);
+        if (event.stationId() != session.stationId()) throw new ForbiddenResponse();
+        eventFederationService.removeShare(id);
+        ctx.status(HttpStatus.NO_CONTENT);
+    }
+
+    private void listFederationRegistrations(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        var event = eventService.findById(id).orElseThrow(NotFoundResponse::new);
+        if (event.stationId() != session.stationId()) throw new ForbiddenResponse();
+        String dateParam = ctx.queryParam("date");
+        java.time.LocalDate date = dateParam != null ? java.time.LocalDate.parse(dateParam) : null;
+        var registrations = date != null
+                ? eventFederationService.findRegistrations(id, date)
+                : eventFederationService.findRegistrations(id, null);
+        // Enrich with cached names
+        var enriched = registrations.stream()
+                .map(r -> {
+                    String name = eventFederationService
+                            .getCachedName(r.partnerId(), r.remoteMemberId())
+                            .orElse("?");
+                    return Map.of("registration", r, "displayName", name);
+                })
+                .toList();
+        ctx.json(enriched);
+    }
+
+    public record SetFederationShareRequest(String scope, List<Integer> partnerIds) {}
 }

@@ -45,7 +45,8 @@ public record StationEvent(
         Integer categoryId,
         RestrictionMode restrictionMode,
         boolean restricted,
-        Boolean isPublic) {
+        Boolean isPublic,
+        Integer registrationLimit) {
 
     /**
      * Creates a row mapping for database result set conversion.
@@ -67,7 +68,8 @@ public record StationEvent(
                 row.getObject("category_id", Integer.class),
                 RestrictionMode.valueOf(row.getString("restriction_mode")),
                 row.getBoolean("restricted"),
-                row.getObject("public", Boolean.class));
+                row.getObject("public", Boolean.class),
+                row.getObject("registration_limit", Integer.class));
     }
 
     /**

@@ -149,6 +149,9 @@ public class FederationWebhookService {
         CONTENT_UPDATED,
         CONTENT_DELETED,
         SHARE_CHANGED,
-        FEDERATION_SUSPENDED
+        FEDERATION_SUSPENDED,
+        EVENT_REGISTRATION_ACCEPTED,
+        EVENT_REGISTRATION_DENIED,
+        MEMBER_NAME_CHANGED
     }
 }

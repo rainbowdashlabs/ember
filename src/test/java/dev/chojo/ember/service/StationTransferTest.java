@@ -168,7 +168,8 @@ class StationTransferTest extends RepositoryTestBase {
                 false,
                 null,
                 false,
-                catTraining.id());
+                catTraining.id(),
+                null);
         eventRepo.create(
                 sourceStationId,
                 "Donnerstags Training",
@@ -181,7 +182,8 @@ class StationTransferTest extends RepositoryTestBase {
                 true,
                 now.plusSeconds(86400),
                 true,
-                catTraining.id());
+                catTraining.id(),
+                null);
         eventRepo.create(
                 sourceStationId,
                 "Sommerfest",
@@ -194,7 +196,8 @@ class StationTransferTest extends RepositoryTestBase {
                 true,
                 now.plusSeconds(2505600),
                 false,
-                catSonder.id());
+                catSonder.id(),
+                null);
 
         // --- Inventories ---
         var invHelme = inventoryRepo.create(sourceStationId, "Helme", InventoryType.INTERNAL, true);

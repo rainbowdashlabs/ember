@@ -105,10 +105,7 @@ function formatDate(iso?: string): string {
         <SecondaryButton :icon="['fas', 'folder-plus']" @click="router.push({name: 'event-categories'})">
           {{ t('events.manageCategories') }}
         </SecondaryButton>
-        <SecondaryButton :icon="['fas', 'layer-group']" @click="router.push({name: 'event-layouts'})">
-          {{ t('sidebar.eventLayouts') }}
-        </SecondaryButton>
-        <SecondaryButton :icon="['fas', 'calendar-plus']" @click="router.push({name: 'event-batch'})">
+<SecondaryButton :icon="['fas', 'calendar-plus']" @click="router.push({name: 'event-batch'})">
           {{ t('sidebar.eventBatch') }}
         </SecondaryButton>
         <PrimaryButton :icon="['fas', 'plus']" @click="emit('addEvent')">

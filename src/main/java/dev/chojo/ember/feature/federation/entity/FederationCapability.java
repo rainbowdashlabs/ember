@@ -13,7 +13,8 @@ public record FederationCapability(int id, int partnerId, String capability, Str
         KB_SHARE,
         QUIZ_SHARE,
         PROTOCOL_SHARE,
-        INVENTORY_LEND
+        INVENTORY_LEND,
+        EVENT_SHARE
     }
 
     public enum Direction {

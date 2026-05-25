@@ -321,7 +321,7 @@ export async function updateTemplate(id: number, data: {
     name?: string, title?: string | null, description?: string | null, categoryId?: number | null,
     eventType?: string | null, requiresRegistration?: boolean | null,
     registrationDeadlineOffset?: string | null, requiresConfirmation?: boolean | null,
-    restrictionMode?: string | null
+    restrictionMode?: string | null, attendanceTemplateId?: number | null, registrationLimit?: number | null
 }): Promise<void> {
     await client.put(`/event-templates/${id}`, data)
 }

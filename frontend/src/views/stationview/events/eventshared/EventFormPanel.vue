@@ -7,6 +7,7 @@
 import {useI18n} from 'vue-i18n'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
+import NumberInput from '@/components/input/number/NumberInput.vue'
 import MarkdownEditor from '@/components/input/MarkdownEditor.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import ToggleSwitch from '@/components/input/toggle/ToggleSwitch.vue'
@@ -46,6 +47,7 @@ const requiresRegistration = defineModel<boolean>('requiresRegistration')
 const requiresConfirmation = defineModel<boolean>('requiresConfirmation')
 const hasDeadline = defineModel<boolean>('hasDeadline')
 const registrationDeadline = defineModel<string>('registrationDeadline')
+const registrationLimit = defineModel<number>('registrationLimit')
 
 const selectedRoleIds = defineModel<number[]>('selectedRoleIds')
 const selectedGroupIds = defineModel<number[]>('selectedGroupIds')
@@ -156,6 +158,12 @@ const {t} = useI18n()
         <div v-if="hasDeadline" class="space-y-1">
           <FieldLabel>{{ t('events.registrationDeadline') }}</FieldLabel>
           <DateTimeInput v-model="registrationDeadline"/>
+        </div>
+
+        <div class="space-y-1">
+          <FieldLabel>{{ t('events.registrationLimit') }}</FieldLabel>
+          <NumberInput v-model="registrationLimit" :placeholder="t('events.registrationLimitHint')"/>
+          <p class="text-xs text-(--text-muted)">{{ t('events.registrationLimitHint') }}</p>
         </div>
       </template>
     </template>

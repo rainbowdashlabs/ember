@@ -45,7 +45,9 @@ public class EventTemplateService {
             Boolean requiresRegistration,
             String registrationDeadlineOffset,
             Boolean requiresConfirmation,
-            String restrictionMode) {
+            String restrictionMode,
+            Integer attendanceTemplateId,
+            Integer registrationLimit) {
         return repository.update(
                 id,
                 name,
@@ -56,7 +58,9 @@ public class EventTemplateService {
                 requiresRegistration,
                 registrationDeadlineOffset,
                 requiresConfirmation,
-                restrictionMode);
+                restrictionMode,
+                attendanceTemplateId,
+                registrationLimit);
     }
 
     public boolean delete(int id) {

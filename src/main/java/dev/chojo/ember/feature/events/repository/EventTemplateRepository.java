@@ -19,7 +19,7 @@ public class EventTemplateRepository {
 
     public List<EventTemplate> findByStation(int stationId) {
         return Query.query("SELECT id, station_id, name, title, description, category_id, event_type,"
-                        + " requires_registration, registration_deadline_offset, requires_confirmation, restriction_mode"
+                        + " requires_registration, registration_deadline_offset, requires_confirmation, restriction_mode, attendance_template_id"
                         + " FROM event_template WHERE station_id = :station_id ORDER BY name;")
                 .single(Call.of().bind("station_id", stationId))
                 .map(EventTemplate.map())
@@ -28,7 +28,7 @@ public class EventTemplateRepository {
 
     public Optional<EventTemplate> findById(int id) {
         return Query.query("SELECT id, station_id, name, title, description, category_id, event_type,"
-                        + " requires_registration, registration_deadline_offset, requires_confirmation, restriction_mode"
+                        + " requires_registration, registration_deadline_offset, requires_confirmation, restriction_mode, attendance_template_id"
                         + " FROM event_template WHERE id = :id;")
                 .single(Call.of().bind("id", id))
                 .map(EventTemplate.map())
@@ -40,7 +40,7 @@ public class EventTemplateRepository {
                         "INSERT INTO event_template(station_id, name)"
                                 + " VALUES (:station_id, :name)"
                                 + " RETURNING id, station_id, name, title, description, category_id, event_type,"
-                                + " requires_registration, registration_deadline_offset, requires_confirmation, restriction_mode;")
+                                + " requires_registration, registration_deadline_offset, requires_confirmation, restriction_mode, attendance_template_id;")
                 .single(Call.of().bind("station_id", stationId).bind("name", name))
                 .map(EventTemplate.map())
                 .first()
@@ -57,7 +57,9 @@ public class EventTemplateRepository {
             Boolean requiresRegistration,
             String registrationDeadlineOffset,
             Boolean requiresConfirmation,
-            String restrictionMode) {
+            String restrictionMode,
+            Integer attendanceTemplateId,
+            Integer registrationLimit) {
         return Query.query("UPDATE event_template SET"
                         + " name = :name,"
                         + " title = :title,"
@@ -67,7 +69,9 @@ public class EventTemplateRepository {
                         + " requires_registration = :requires_registration,"
                         + " registration_deadline_offset = :registration_deadline_offset::interval,"
                         + " requires_confirmation = :requires_confirmation,"
-                        + " restriction_mode = :restriction_mode"
+                        + " restriction_mode = :restriction_mode,"
+                        + " attendance_template_id = :attendance_template_id,"
+                        + " registration_limit = :registration_limit"
                         + " WHERE id = :id;")
                 .single(Call.of()
                         .bind("id", id)
@@ -79,7 +83,9 @@ public class EventTemplateRepository {
                         .bind("requires_registration", requiresRegistration)
                         .bind("registration_deadline_offset", registrationDeadlineOffset)
                         .bind("requires_confirmation", requiresConfirmation)
-                        .bind("restriction_mode", restrictionMode))
+                        .bind("restriction_mode", restrictionMode)
+                        .bind("attendance_template_id", attendanceTemplateId)
+                        .bind("registration_limit", registrationLimit))
                 .update()
                 .changed();
     }

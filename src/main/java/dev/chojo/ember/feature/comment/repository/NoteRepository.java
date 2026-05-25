@@ -1,0 +1,95 @@
+/*
+ *     SPDX-License-Identifier: AGPL-3.0-only
+ *
+ *     Copyright (C) RainbowDashLabs and Contributor
+ */
+package dev.chojo.ember.feature.comment.repository;
+
+import de.chojo.sadu.queries.api.call.Call;
+import de.chojo.sadu.queries.api.query.Query;
+import dev.chojo.ember.feature.comment.entity.EntityNote;
+import dev.chojo.ember.feature.comment.entity.NoteVersion;
+import jakarta.inject.Singleton;
+
+import java.util.List;
+import java.util.Optional;
+
+/**
+ * Repository for managing entity notes and their version history.
+ */
+@Singleton
+public class NoteRepository {
+
+    /**
+     * Finds a note by entity type and entity ID.
+     *
+     * @param entityType the entity type (e.g. "event", "news")
+     * @param entityId   the entity ID
+     * @return the note, if found
+     */
+    public Optional<EntityNote> findNote(String entityType, int entityId) {
+        return Query.query("SELECT id, entity_type, entity_id, station_id, content, updated_by, updated_at"
+                        + " FROM entity_note WHERE entity_type = :entity_type AND entity_id = :entity_id;")
+                .single(Call.of().bind("entity_type", entityType).bind("entity_id", entityId))
+                .map(EntityNote.map())
+                .first();
+    }
+
+    /**
+     * Creates or updates a note for an entity. Uses INSERT ON CONFLICT DO UPDATE.
+     *
+     * @param entityType the entity type
+     * @param entityId   the entity ID
+     * @param stationId  the station ID
+     * @param content    the note content
+     * @param updatedBy  the member ID who is updating
+     * @return the created or updated note
+     */
+    public EntityNote createOrUpdate(String entityType, int entityId, int stationId, String content, int updatedBy) {
+        return Query.query("INSERT INTO entity_note (entity_type, entity_id, station_id, content, updated_by)"
+                        + " VALUES (:entity_type, :entity_id, :station_id, :content, :updated_by)"
+                        + " ON CONFLICT (entity_type, entity_id) DO UPDATE"
+                        + " SET content = :content, updated_by = :updated_by, updated_at = now()"
+                        + " RETURNING id, entity_type, entity_id, station_id, content, updated_by, updated_at;")
+                .single(Call.of()
+                        .bind("entity_type", entityType)
+                        .bind("entity_id", entityId)
+                        .bind("station_id", stationId)
+                        .bind("content", content)
+                        .bind("updated_by", updatedBy))
+                .map(EntityNote.map())
+                .first()
+                .orElseThrow();
+    }
+
+    /**
+     * Finds all versions for a note, ordered by creation time descending.
+     *
+     * @param noteId the note ID
+     * @return the list of note versions
+     */
+    public List<NoteVersion> findVersions(int noteId) {
+        return Query.query("SELECT id, note_id, diff_patch, author_id, created_at"
+                        + " FROM entity_note_version WHERE note_id = :note_id ORDER BY created_at DESC;")
+                .single(Call.of().bind("note_id", noteId))
+                .map(NoteVersion.map())
+                .all();
+    }
+
+    /**
+     * Creates a new version entry for a note.
+     *
+     * @param noteId    the note ID
+     * @param diffPatch the unified diff patch
+     * @param authorId  the member ID who made the change
+     */
+    public void createVersion(int noteId, String diffPatch, int authorId) {
+        Query.query("INSERT INTO entity_note_version (note_id, diff_patch, author_id)"
+                        + " VALUES (:note_id, :diff_patch, :author_id);")
+                .single(Call.of()
+                        .bind("note_id", noteId)
+                        .bind("diff_patch", diffPatch)
+                        .bind("author_id", authorId))
+                .update();
+    }
+}

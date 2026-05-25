@@ -96,6 +96,8 @@ const eventRequiresRegistration = ref(false)
 const eventHasDeadline = ref(false)
 const eventRegistrationDeadline = ref('')
 const eventRequiresConfirmation = ref(false)
+const eventRegistrationLimit = ref<number | undefined>(undefined)
+
 const selectedRoleIds = ref<number[]>([])
 const selectedGroupIds = ref<number[]>([])
 const selectedTagIds = ref<number[]>([])
@@ -169,6 +171,7 @@ async function loadData() {
       eventHasDeadline.value = !!ev.registrationDeadline
       eventRegistrationDeadline.value = ev.registrationDeadline ? toLocalDateTime(ev.registrationDeadline) : ''
       eventRequiresConfirmation.value = ev.requiresConfirmation ?? false
+      eventRegistrationLimit.value = ev.registrationLimit ?? undefined
 
       eventRoleIds.value = restrictions.roleIds ?? []
       eventGroupIds.value = restrictions.groupIds ?? []
@@ -248,6 +251,7 @@ async function submit() {
       registrationDeadline: eventHasDeadline.value && eventRegistrationDeadline.value
           ? new Date(eventRegistrationDeadline.value).toISOString() : undefined,
       requiresConfirmation: eventRequiresConfirmation.value,
+      registrationLimit: eventRegistrationLimit.value ?? undefined,
       restrictedRoleIds: selectedRoleIds.value,
       restrictedGroupIds: selectedGroupIds.value,
       restrictedTagIds: selectedTagIds.value,
@@ -328,6 +332,7 @@ watch(loaded, (isLoaded) => {
               v-model:requires-confirmation="eventRequiresConfirmation"
               v-model:has-deadline="eventHasDeadline"
               v-model:registration-deadline="eventRegistrationDeadline"
+              v-model:registration-limit="eventRegistrationLimit"
               v-model:selected-role-ids="selectedRoleIds"
               v-model:selected-group-ids="selectedGroupIds"
               v-model:selected-tag-ids="selectedTagIds"

@@ -418,14 +418,14 @@ const router = createRouter({
                     component: () => import('@/views/stationview/events/CategoryManageView.vue'),
                 },
                 {
-                    path: 'events/layouts',
-                    name: 'event-layouts',
-                    component: () => import('@/views/stationview/events/LayoutManageView.vue'),
-                },
-                {
                     path: 'events/templates',
                     name: 'event-templates',
                     component: () => import('@/views/stationview/events/TemplateManageView.vue'),
+                },
+                {
+                    path: 'events/templates/:id',
+                    name: 'event-template-edit',
+                    component: () => import('@/views/stationview/events/TemplateEditView.vue'),
                 },
                 {
                     path: 'events/batch',
@@ -1124,12 +1124,12 @@ const router = createRouter({
                 {
                     path: 'events/templates',
                     name: 'help-event-templates',
-                    redirect: { name: 'help-event-layouts' },
+                    redirect: { name: 'help-event-edit' },
                 },
                 {
-                    path: 'events/layouts',
-                    name: 'help-event-layouts',
-                    component: () => import('@/views/helpcenter/stationview/events/LayoutsHelp.vue')
+                    path: 'events/templates/:id',
+                    name: 'help-event-template-edit',
+                    redirect: { name: 'help-event-templates' },
                 },
                 {
                     path: 'events/batch',

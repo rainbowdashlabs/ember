@@ -87,7 +87,9 @@ public class EventTemplateRoutes implements Routes {
                 req.requiresRegistration(),
                 req.registrationDeadlineOffset(),
                 req.requiresConfirmation(),
-                req.restrictionMode())) {
+                req.restrictionMode(),
+                req.attendanceTemplateId(),
+                req.registrationLimit())) {
             throw new NotFoundResponse();
         }
         ctx.json(eventTemplateService.findById(id).orElseThrow());
@@ -142,7 +144,9 @@ public class EventTemplateRoutes implements Routes {
             Boolean requiresRegistration,
             String registrationDeadlineOffset,
             Boolean requiresConfirmation,
-            String restrictionMode) {}
+            String restrictionMode,
+            Integer attendanceTemplateId,
+            Integer registrationLimit) {}
 
     public record TemplateDetailResponse(
             EventTemplate template, List<EventTemplateField> fields, List<Integer> restrictionRoleIds) {}

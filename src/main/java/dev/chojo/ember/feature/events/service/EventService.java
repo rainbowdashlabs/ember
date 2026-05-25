@@ -111,7 +111,8 @@ public class EventService {
             boolean requiresRegistration,
             Instant registrationDeadline,
             boolean requiresConfirmation,
-            Integer categoryId) {
+            Integer categoryId,
+            Integer registrationLimit) {
         var event = eventRepository.create(
                 stationId,
                 name,
@@ -124,7 +125,8 @@ public class EventService {
                 requiresRegistration,
                 registrationDeadline,
                 requiresConfirmation,
-                categoryId);
+                categoryId,
+                registrationLimit);
         eventBus.publish(new EventCreated(stationId, event));
         return event;
     }
@@ -159,7 +161,8 @@ public class EventService {
             Instant registrationDeadline,
             boolean requiresConfirmation,
             Integer categoryId,
-            Boolean isPublic) {
+            Boolean isPublic,
+            Integer registrationLimit) {
         if (eventRepository.update(
                 id,
                 name,
@@ -173,7 +176,8 @@ public class EventService {
                 registrationDeadline,
                 requiresConfirmation,
                 categoryId,
-                isPublic)) {
+                isPublic,
+                registrationLimit)) {
             return eventRepository.findById(id);
         }
         return Optional.empty();

@@ -717,7 +717,8 @@ public class DemoService {
                 false,
                 null,
                 false,
-                catUebung.id());
+                catUebung.id(),
+                null);
         var evFort = eventService.create(
                 station.id(),
                 "Übung Fortgeschritten",
@@ -730,7 +731,8 @@ public class DemoService {
                 false,
                 null,
                 false,
-                catUebung.id());
+                catUebung.id(),
+                null);
         var evGesamt = eventService.create(
                 station.id(),
                 "Gesamtübung",
@@ -743,7 +745,8 @@ public class DemoService {
                 false,
                 null,
                 false,
-                catUebung.id());
+                catUebung.id(),
+                null);
 
         // Monthly: first Saturday = Elternabend
         eventService.create(
@@ -758,7 +761,8 @@ public class DemoService {
                 false,
                 null,
                 false,
-                catVeranstaltung.id());
+                catVeranstaltung.id(),
+                null);
 
         // Quarterly: first Saturday = Dienstbesprechung
         eventService.create(
@@ -773,7 +777,8 @@ public class DemoService {
                 false,
                 null,
                 false,
-                catVeranstaltung.id());
+                catVeranstaltung.id(),
+                null);
 
         // -- Past attendance sessions (full year + current year so far) --
         // Yearly: Jahreshauptversammlung on Sep 20
@@ -793,7 +798,8 @@ public class DemoService {
                 true,
                 null,
                 false,
-                catVeranstaltung.id());
+                catVeranstaltung.id(),
+                null);
 
         attendanceSeeder.seedAttendanceSessions(
                 rng,
@@ -841,7 +847,8 @@ public class DemoService {
                 true,
                 null,
                 false,
-                catUebung.id());
+                catUebung.id(),
+                null);
         LocalDate todayDate = LocalDate.now();
         for (int i = 0; i < 5 && i < anfaengerMembers.size(); i++) {
             eventRepository.createRegistration(
@@ -872,7 +879,8 @@ public class DemoService {
                 true,
                 deadline,
                 true,
-                catVeranstaltung.id());
+                catVeranstaltung.id(),
+                null);
 
         Instant oeffentlichkeit = LocalDate.now().plusWeeks(3).atTime(14, 0).toInstant(ZoneOffset.UTC);
         Instant oeffentlichkeitEnd = LocalDate.now().plusWeeks(3).atTime(17, 0).toInstant(ZoneOffset.UTC);
@@ -891,7 +899,8 @@ public class DemoService {
                 true,
                 oeffentlichkeitDeadline,
                 false,
-                catVeranstaltung.id());
+                catVeranstaltung.id(),
+                null);
 
         Instant wettbewerb =
                 LocalDate.now().plusMonths(2).withDayOfMonth(20).atTime(8, 0).toInstant(ZoneOffset.UTC);
@@ -912,7 +921,8 @@ public class DemoService {
                 true,
                 wettbewerbDeadline,
                 true,
-                catWettbewerb.id());
+                catWettbewerb.id(),
+                null);
 
         // Add some registrations
         LocalDate tagDate = LocalDate.now().plusMonths(1).withDayOfMonth(15);
@@ -1021,7 +1031,8 @@ public class DemoService {
                     true,
                     null,
                     true,
-                    catOeffentlichkeit.id());
+                    catOeffentlichkeit.id(),
+                    null);
             eventFieldRepository.create(oeEvent.id(), "Ort", "string", "{}", oeOrte[e], 0, true, null, true);
             eventFieldRepository.create(
                     oeEvent.id(), "Treffpunkt", "string", "{}", "Feuerwehrgerätehaus", 1, true, null, true);
@@ -1055,7 +1066,8 @@ public class DemoService {
                 true,
                 openDeadline,
                 true,
-                catOeffentlichkeit.id());
+                catOeffentlichkeit.id(),
+                null);
         eventFieldRepository.create(
                 oeOpen.id(), "Ort", "string", "{}", "Rathausplatz Musterstadt", 0, true, null, true);
         eventFieldRepository.create(
@@ -1478,7 +1490,18 @@ public class DemoService {
         // -- Event Templates --
         var tplStandard = eventTemplateService.create(station.id(), "Standard-Übung");
         eventTemplateService.update(
-                tplStandard.id(), "Standard-Übung", "Übungsabend", null, null, "RECURRING", false, null, false, null);
+                tplStandard.id(),
+                "Standard-Übung",
+                "Übungsabend",
+                null,
+                null,
+                "RECURRING",
+                false,
+                null,
+                false,
+                null,
+                null,
+                null);
         eventTemplateService.replaceFields(
                 tplStandard.id(),
                 List.of(
@@ -1487,7 +1510,7 @@ public class DemoService {
                                 "Treffpunkt", "string", "{}", 1, true, true, null)));
         var tplWettbewerb = eventTemplateService.create(station.id(), "Wettbewerb");
         eventTemplateService.update(
-                tplWettbewerb.id(), "Wettbewerb", null, null, null, "ONE_TIME", true, null, true, null);
+                tplWettbewerb.id(), "Wettbewerb", null, null, null, "ONE_TIME", true, null, true, null, null, null);
         eventTemplateService.replaceFields(
                 tplWettbewerb.id(),
                 List.of(

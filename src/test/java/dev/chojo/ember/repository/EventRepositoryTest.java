@@ -95,7 +95,8 @@ class EventRepositoryTest extends RepositoryTestBase {
                 false,
                 null,
                 false,
-                categoryId);
+                categoryId,
+                null);
         assertNotNull(event);
         assertEquals("Fire Drill", event.name());
         assertEquals(StationEvent.EventType.ONE_TIME, event.eventType());
@@ -142,7 +143,8 @@ class EventRepositoryTest extends RepositoryTestBase {
                 null,
                 true,
                 categoryId,
-                false));
+                false,
+                null));
         StationEvent updated = eventRepo.findById(eventId).orElseThrow();
         assertEquals("Updated Drill", updated.name());
         assertEquals("Updated desc", updated.description());
@@ -167,6 +169,7 @@ class EventRepositoryTest extends RepositoryTestBase {
                 false,
                 null,
                 false,
+                null,
                 null);
         assertNotNull(event);
         assertEquals(StationEvent.EventType.RECURRING, event.eventType());
