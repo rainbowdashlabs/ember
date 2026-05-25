@@ -7,6 +7,7 @@
 import {useI18n} from 'vue-i18n'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
+import MarkdownEditor from '@/components/input/MarkdownEditor.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import ToggleSwitch from '@/components/input/toggle/ToggleSwitch.vue'
 import DateTimeInput from '@/components/input/datetime/DateTimeInput.vue'
@@ -64,7 +65,7 @@ const {t} = useI18n()
 
     <div class="space-y-1">
       <FieldLabel>{{ t('events.description') }}</FieldLabel>
-      <TextInput v-model="description" :placeholder="t('events.descriptionPlaceholder')"/>
+      <MarkdownEditor v-model="description" :placeholder="t('events.descriptionPlaceholder')"/>
     </div>
 
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">

@@ -12,7 +12,7 @@ import ViewContent from '@/components/layout/ViewContent.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
-import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
+import MarkdownEditor from '@/components/input/MarkdownEditor.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
@@ -41,7 +41,6 @@ const tags = ref<UserTag[]>([])
 const loading = ref(false)
 const saving = ref(false)
 const error = ref('')
-const showPreview = ref(false)
 
 const contentHtml = computed(() => {
   try {
@@ -128,23 +127,8 @@ onMounted(loadData)
           </div>
 
           <div class="space-y-1">
-            <div class="flex items-center justify-between">
-              <FieldLabel>{{ t('news.content') }}</FieldLabel>
-              <button
-                type="button"
-                class="text-xs text-primary hover:underline"
-                @click="showPreview = !showPreview"
-              >
-                {{ showPreview ? t('news.hidePreview') : t('news.showPreview') }}
-              </button>
-            </div>
-            <TextAreaInput v-model="contentMarkdown" :placeholder="t('news.contentPlaceholder')" :rows="12" />
-            <p class="text-xs text-(--text-muted)">{{ t('news.markdownHint') }}</p>
-          </div>
-
-          <div v-if="showPreview && contentHtml" class="space-y-1">
-            <SubHeader>{{ t('news.preview') }}</SubHeader>
-            <NeutralContainer class="prose prose-sm dark:prose-invert max-w-none" v-html="contentHtml" />
+            <FieldLabel>{{ t('news.content') }}</FieldLabel>
+            <MarkdownEditor v-model="contentMarkdown" :placeholder="t('news.contentPlaceholder')" />
           </div>
         </NeutralContainer>
 

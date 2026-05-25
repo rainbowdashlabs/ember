@@ -1079,14 +1079,56 @@ public class DemoService {
         var news1 = newsRepository.create(
                 station.id(),
                 "Willkommen bei der Jugendfeuerwehr!",
-                "Herzlich willkommen auf unserer neuen Plattform! Hier findet ihr alle wichtigen Informationen rund um unsere **Jugendfeuerwehr**.\n\n## Was ist neu?\n\n- Übersicht über Termine und Anwesenheit\n- Inventarverwaltung für Ausrüstung\n- Profilverwaltung für alle Mitglieder\n\nBei Fragen wendet euch bitte an eure Betreuer.",
-                "<h1>Willkommen bei der Jugendfeuerwehr!</h1><p>Herzlich willkommen auf unserer neuen Plattform! Hier findet ihr alle wichtigen Informationen rund um unsere <strong>Jugendfeuerwehr</strong>.</p><h2>Was ist neu?</h2><ul><li>Übersicht über Termine und Anwesenheit</li><li>Inventarverwaltung für Ausrüstung</li><li>Profilverwaltung für alle Mitglieder</li></ul><p>Bei Fragen wendet euch bitte an eure Betreuer.</p>",
+                """
+                Herzlich willkommen auf unserer neuen Plattform! Hier findet ihr alle wichtigen Informationen rund um unsere **Jugendfeuerwehr**.
+
+                ## Was ist neu?
+
+                Wir haben viele neue Funktionen für euch:
+
+                - **Terminübersicht** — Alle Übungen, Veranstaltungen und Wettbewerbe auf einen Blick
+                - **Anwesenheitsverwaltung** — Schnelles Ein- und Auschecken bei Übungen
+                - **Inventarverwaltung** — Eure Ausrüstung immer im Blick
+                - **Wissensdatenbank** — Lernmaterial und Protokolle
+
+                ## Erste Schritte
+
+                1. Prüft euer **Profil** und ergänzt fehlende Daten
+                2. Schaut euch die **kommenden Termine** an
+                3. Meldet euch für den nächsten **Wettbewerb** an
+
+                > **Tipp:** Bei Fragen könnt ihr jederzeit die Betreuer ansprechen oder die Hilfe-Seite nutzen.
+
+                Wir freuen uns auf eine tolle Zeit! 🚒
+                """,
+                "<p>Herzlich willkommen auf unserer neuen Plattform! Hier findet ihr alle wichtigen Informationen rund um unsere <strong>Jugendfeuerwehr</strong>.</p><h2>Was ist neu?</h2><p>Wir haben viele neue Funktionen für euch:</p><ul><li><strong>Terminübersicht</strong> — Alle Übungen, Veranstaltungen und Wettbewerbe auf einen Blick</li><li><strong>Anwesenheitsverwaltung</strong> — Schnelles Ein- und Auschecken bei Übungen</li><li><strong>Inventarverwaltung</strong> — Eure Ausrüstung immer im Blick</li><li><strong>Wissensdatenbank</strong> — Lernmaterial und Protokolle</li></ul><h2>Erste Schritte</h2><ol><li>Prüft euer <strong>Profil</strong> und ergänzt fehlende Daten</li><li>Schaut euch die <strong>kommenden Termine</strong> an</li><li>Meldet euch für den nächsten <strong>Wettbewerb</strong> an</ol><blockquote><p><strong>Tipp:</strong> Bei Fragen könnt ihr jederzeit die Betreuer ansprechen oder die Hilfe-Seite nutzen.</p></blockquote><p>Wir freuen uns auf eine tolle Zeit! 🚒</p>",
                 adminMember.id());
         var news2 = newsRepository.create(
                 station.id(),
                 "Kreiswettbewerb: Anmeldung geöffnet",
-                "Die Anmeldung zum **Kreiswettbewerb** am 20. des übernächsten Monats ist jetzt geöffnet!\n\nBitte meldet euch über die Terminseite an. Die Plätze sind begrenzt.\n\n*Teilnehmen dürfen alle Fortgeschrittenen.*",
-                "<p>Die Anmeldung zum <strong>Kreiswettbewerb</strong> am 20. des übernächsten Monats ist jetzt geöffnet!</p><p>Bitte meldet euch über die Terminseite an. Die Plätze sind begrenzt.</p><p><em>Teilnehmen dürfen alle Fortgeschrittenen.</em></p>",
+                """
+                Die Anmeldung zum **Kreiswettbewerb** am 20. des übernächsten Monats ist jetzt geöffnet!
+
+                ## Wichtige Infos
+
+                | | Details |
+                |---|---|
+                | **Datum** | 20. des übernächsten Monats |
+                | **Ort** | Sportplatz Nachbarstadt |
+                | **Treffpunkt** | Feuerwehrgerätehaus, 07:30 Uhr |
+
+                ### Was wird bewertet?
+
+                - Löschangriff
+                - Staffellauf
+                - Knotenkunde
+                - Erste Hilfe
+
+                Bitte meldet euch **bis spätestens nächste Woche** über die Terminseite an. Die Plätze sind begrenzt.
+
+                > *Teilnehmen dürfen alle Fortgeschrittenen.*
+                """,
+                "<p>Die Anmeldung zum <strong>Kreiswettbewerb</strong> am 20. des übernächsten Monats ist jetzt geöffnet!</p><h2>Wichtige Infos</h2><table><tr><td></td><td>Details</td></tr><tr><td><strong>Datum</strong></td><td>20. des übernächsten Monats</td></tr><tr><td><strong>Ort</strong></td><td>Sportplatz Nachbarstadt</td></tr><tr><td><strong>Treffpunkt</strong></td><td>Feuerwehrgerätehaus, 07:30 Uhr</td></tr></table><h3>Was wird bewertet?</h3><ul><li>Löschangriff</li><li>Staffellauf</li><li>Knotenkunde</li><li>Erste Hilfe</li></ul><p>Bitte meldet euch <strong>bis spätestens nächste Woche</strong> über die Terminseite an. Die Plätze sind begrenzt.</p><blockquote><p><em>Teilnehmen dürfen alle Fortgeschrittenen.</em></p></blockquote>",
                 betreuerMembers.getFirst().id());
 
         // Comments on news
@@ -1106,15 +1148,41 @@ public class DemoService {
         var news3 = newsRepository.create(
                 station.id(),
                 "Neue Ausrüstung eingetroffen",
-                "Die bestellten **Helme und Handschuhe** sind eingetroffen! Die Verteilung findet bei der nächsten Übung statt.\n\nBitte prüft eure Größen im Inventar und meldet euch bei Unstimmigkeiten.",
-                "<p>Die bestellten <strong>Helme und Handschuhe</strong> sind eingetroffen! Die Verteilung findet bei der nächsten Übung statt.</p><p>Bitte prüft eure Größen im Inventar und meldet euch bei Unstimmigkeiten.</p>",
+                """
+                Die bestellten **Helme und Handschuhe** sind eingetroffen! 🎉
+
+                ## Verteilung
+
+                Die Verteilung findet bei der **nächsten Übung** statt. Bitte beachtet:
+
+                1. Prüft eure **Größen im Inventar** vorab
+                2. Meldet euch bei Unstimmigkeiten bei den Betreuern
+                3. Bringt eure **alten Helme** zur Rückgabe mit
+
+                > Die neuen Helme entsprechen der aktuellen **DIN EN 443** Norm und bieten verbesserten Schutz.
+                """,
+                "<p>Die bestellten <strong>Helme und Handschuhe</strong> sind eingetroffen! 🎉</p><h2>Verteilung</h2><p>Die Verteilung findet bei der <strong>nächsten Übung</strong> statt. Bitte beachtet:</p><ol><li>Prüft eure <strong>Größen im Inventar</strong> vorab</li><li>Meldet euch bei Unstimmigkeiten bei den Betreuern</li><li>Bringt eure <strong>alten Helme</strong> zur Rückgabe mit</li></ol><blockquote><p>Die neuen Helme entsprechen der aktuellen <strong>DIN EN 443</strong> Norm und bieten verbesserten Schutz.</p></blockquote>",
                 betreuerMembers.get(1).id());
 
         newsRepository.create(
                 station.id(),
                 "Sommerferien: Übungspause",
-                "Während der **Sommerferien** finden keine regulären Übungen statt. Der Übungsbetrieb startet wieder am ersten Montag nach den Ferien.\n\nWir wünschen allen schöne Ferien! ☀️",
-                "<p>Während der <strong>Sommerferien</strong> finden keine regulären Übungen statt. Der Übungsbetrieb startet wieder am ersten Montag nach den Ferien.</p><p>Wir wünschen allen schöne Ferien! ☀️</p>",
+                """
+                Während der **Sommerferien** finden keine regulären Übungen statt.
+
+                ## Zeitraum
+
+                Der Übungsbetrieb **pausiert** während der gesamten Schulferien. Wir starten wieder am **ersten Montag nach den Ferien**.
+
+                ### Trotzdem aktiv bleiben?
+
+                - Das **Wissenscenter** bleibt verfügbar — nutzt die Zeit zum Lernen
+                - Prüft eure **Ausrüstung** und meldet Mängel vorab
+                - Die **Anmeldung** für den Herbst-Wettbewerb öffnet in den Ferien
+
+                Wir wünschen allen **schöne und erholsame Ferien**! ☀️
+                """,
+                "<p>Während der <strong>Sommerferien</strong> finden keine regulären Übungen statt.</p><h2>Zeitraum</h2><p>Der Übungsbetrieb <strong>pausiert</strong> während der gesamten Schulferien. Wir starten wieder am <strong>ersten Montag nach den Ferien</strong>.</p><h3>Trotzdem aktiv bleiben?</h3><ul><li>Das <strong>Wissenscenter</strong> bleibt verfügbar — nutzt die Zeit zum Lernen</li><li>Prüft eure <strong>Ausrüstung</strong> und meldet Mängel vorab</li><li>Die <strong>Anmeldung</strong> für den Herbst-Wettbewerb öffnet in den Ferien</li></ul><p>Wir wünschen allen <strong>schöne und erholsame Ferien</strong>! ☀️</p>",
                 adminMember.id());
 
         newsRepository.createComment(

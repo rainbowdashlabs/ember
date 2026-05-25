@@ -294,7 +294,7 @@ public class EventRepository {
     /**
      * Retrieves all event categories for a station, ordered by position.
      *
-     * @param stationId the station ID
+     * @param id the station ID
      * @return the list of event categories
      */
     public Optional<EventCategory> findCategoryById(int id) {

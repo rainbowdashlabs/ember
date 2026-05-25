@@ -7,6 +7,7 @@
 import {computed, onMounted, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRoute, useRouter} from 'vue-router'
+import {marked} from 'marked'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
@@ -114,6 +115,14 @@ function statusLabel(status: string): string {
 
 function getStatsForMember(memberId: number): MemberRegistrationStats | undefined {
   return registrationStats.value.find(s => s.memberId === memberId)
+}
+
+function renderMarkdown(md: string): string {
+  try {
+    return marked.parse(md) as string
+  } catch {
+    return md
+  }
 }
 
 function categoryName(id: number | null | undefined): string {
@@ -311,9 +320,10 @@ onMounted(loadData)
           <SubHeader>{{ t('events.general') }}</SubHeader>
 
           <div class="grid gap-4 sm:grid-cols-2">
-            <div>
+            <div class="sm:col-span-2">
               <span class="text-xs font-medium text-(--text-muted) uppercase">{{ t('events.description') }}</span>
-              <p class="text-sm">{{ event.description || '–' }}</p>
+              <div v-if="event.description" class="prose prose-sm dark:prose-invert max-w-none mt-1" v-html="renderMarkdown(event.description)"/>
+              <p v-else class="text-sm">–</p>
             </div>
             <div>
               <span class="text-xs font-medium text-(--text-muted) uppercase">{{ t('events.category') }}</span>
