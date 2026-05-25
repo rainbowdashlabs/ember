@@ -25,6 +25,8 @@ import dev.chojo.ember.conf.file.elements.Demo;
 import dev.chojo.ember.conf.file.elements.Mailing;
 import dev.chojo.ember.event.DomainEventHandler;
 import dev.chojo.ember.event.handlers.EventCreatedHandler;
+import dev.chojo.ember.event.handlers.EventDeletedHandler;
+import dev.chojo.ember.event.handlers.EventRegistrationStatusHandler;
 import dev.chojo.ember.event.handlers.NewsCreatedHandler;
 import dev.chojo.ember.feature.account.route.AuthRoutes;
 import dev.chojo.ember.feature.account.route.SessionRoutes;
@@ -151,6 +153,8 @@ public class EmberModule extends AbstractModule {
         Multibinder<DomainEventHandler<?>> eventBinder =
                 Multibinder.newSetBinder(binder(), new com.google.inject.TypeLiteral<DomainEventHandler<?>>() {});
         eventBinder.addBinding().to(EventCreatedHandler.class);
+        eventBinder.addBinding().to(EventDeletedHandler.class);
+        eventBinder.addBinding().to(EventRegistrationStatusHandler.class);
         eventBinder.addBinding().to(NewsCreatedHandler.class);
     }
 

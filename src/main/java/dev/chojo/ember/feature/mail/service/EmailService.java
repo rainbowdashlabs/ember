@@ -11,7 +11,6 @@ import dev.chojo.ember.conf.file.elements.Mailing;
 import dev.chojo.ember.feature.mail.repository.EmailQueueRepository;
 import dev.chojo.ember.feature.mail.service.mail.MailProvider;
 import dev.chojo.ember.feature.mail.service.mail.SmtpMailProvider;
-import dev.chojo.ember.feature.station.entity.MailProviderType;
 import dev.chojo.ember.feature.station.repository.StationMailConfigRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -393,13 +392,8 @@ public class EmailService {
         if (mailing.senderAddress().isBlank()) {
             return null;
         }
-        MailProviderType type;
-        try {
-            type = MailProviderType.valueOf(mailing.provider());
-        } catch (IllegalArgumentException e) {
-            type = MailProviderType.SMTP;
-        }
-        return switch (type) {
+
+        return switch (mailing.provider()) {
             case SMTP ->
                 new SmtpMailProvider(
                         mailing.smtp().host(),

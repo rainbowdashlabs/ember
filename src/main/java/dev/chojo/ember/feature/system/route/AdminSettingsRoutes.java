@@ -16,6 +16,7 @@ import dev.chojo.ember.feature.legal.service.ConsentService;
 import dev.chojo.ember.feature.legal.service.LegalDocumentService;
 import dev.chojo.ember.feature.media.service.ImageCategory;
 import dev.chojo.ember.feature.media.service.ImageService;
+import dev.chojo.ember.feature.station.entity.MailProviderType;
 import dev.chojo.ember.feature.station.entity.ThemeFeel;
 import dev.chojo.ember.feature.system.repository.ApplicationSettingRepository;
 import io.javalin.http.Context;
@@ -343,7 +344,7 @@ public class AdminSettingsRoutes implements Routes {
     public record AuthConfigRequest(int tokenBytes, int verifyTokenHours, int passwordTokenHours, int sessionMinutes) {}
 
     public record MailingConfigResponse(
-            String provider,
+            MailProviderType provider,
             String senderAddress,
             String senderName,
             String user,
@@ -356,7 +357,7 @@ public class AdminSettingsRoutes implements Routes {
             int notificationDigestIntervalMinutes) {}
 
     public record MailingConfigRequest(
-            String provider,
+            MailProviderType provider,
             String senderAddress,
             String senderName,
             String user,

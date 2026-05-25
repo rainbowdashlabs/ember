@@ -1103,7 +1103,7 @@ volumes:
             freeRapidmail: 'RapidMail — Kein kostenloser Tarif. Bezahltes Abonnement erforderlich.',
             senderTitle: 'Absender-Einstellungen',
             senderText: 'Für jeden Anbieter musst du eine Absender-Adresse und einen Absender-Namen festlegen:',
-            senderAddress: 'Absender-Adresse — Die E-Mail-Adresse, von der die Nachrichten kommen (z.B. noreply@jugendfeuerwehr.de).',
+            senderAddress: "Absender-Adresse — Die E-Mail-Adresse, von der die Nachrichten kommen (z.B. noreply{'@'}jugendfeuerwehr.de).",
             senderName: 'Absender-Name — Der Name, der im Posteingang angezeigt wird (z.B. „Jugendfeuerwehr Musterstadt").',
             smtpTitle: 'Eigener SMTP-Server',
             smtpText: 'Wenn du einen eigenen SMTP-Server nutzt, musst du folgende Daten eingeben:',

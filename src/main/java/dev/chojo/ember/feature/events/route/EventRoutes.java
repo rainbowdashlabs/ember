@@ -26,13 +26,8 @@ import dev.chojo.ember.feature.events.service.EventExportService;
 import dev.chojo.ember.feature.events.service.EventFieldService;
 import dev.chojo.ember.feature.events.service.EventLayoutService;
 import dev.chojo.ember.feature.events.service.EventService;
-import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.StationMemberService;
-import dev.chojo.ember.feature.notifications.entity.NotificationData;
-import dev.chojo.ember.feature.notifications.entity.NotificationParams;
-import dev.chojo.ember.feature.notifications.entity.NotificationType;
-import dev.chojo.ember.feature.notifications.service.NotificationService;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
@@ -72,7 +67,6 @@ public class EventRoutes implements Routes {
     private final EventLayoutService eventLayoutService;
     private final BatchEventService batchEventService;
     private final StationMemberService stationMemberService;
-    private final NotificationService notificationService;
     private final StationMemberRepository stationMemberRepository;
     private final AccountRepository accountRepository;
     private final AttendanceService attendanceService;
@@ -85,7 +79,6 @@ public class EventRoutes implements Routes {
             EventLayoutService eventLayoutService,
             BatchEventService batchEventService,
             StationMemberService stationMemberService,
-            NotificationService notificationService,
             StationMemberRepository stationMemberRepository,
             AccountRepository accountRepository,
             AttendanceService attendanceService,
@@ -95,7 +88,6 @@ public class EventRoutes implements Routes {
         this.eventLayoutService = eventLayoutService;
         this.batchEventService = batchEventService;
         this.stationMemberService = stationMemberService;
-        this.notificationService = notificationService;
         this.stationMemberRepository = stationMemberRepository;
         this.accountRepository = accountRepository;
         this.attendanceService = attendanceService;
@@ -239,19 +231,6 @@ public class EventRoutes implements Routes {
         eventService.setRestrictions(
                 event.id(), req.restrictedRoleIds(), req.restrictedGroupIds(), req.restrictedTagIds(), List.of());
 
-        // Notify station members about new event
-        String eventDescription = "";
-        if (req.description() != null && !req.description().isBlank()) {
-            eventDescription =
-                    req.description().length() > 80 ? req.description().substring(0, 80) + "..." : req.description();
-        }
-        notificationService.notifyStation(
-                session.stationId(),
-                NotificationType.NEW_EVENT,
-                NotificationData.of(
-                        new NotificationParams.NewEvent(req.name(), eventDescription),
-                        new NotificationData.NotificationLink("event-detail", Map.of("id", event.id()))));
-
         ctx.status(HttpStatus.CREATED).json(event);
     }
 
@@ -344,11 +323,6 @@ public class EventRoutes implements Routes {
             throw new ForbiddenResponse("Cannot access resources from another station");
         }
         if (eventService.delete(id)) {
-            // Remove notifications for this event
-            notificationService.deleteByTypeContaining(
-                    NotificationType.NEW_EVENT,
-                    NotificationData.of(new NotificationParams.NewEvent(event.name(), null))
-                            .toJson());
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
             throw new NotFoundResponse();
@@ -711,27 +685,6 @@ public class EventRoutes implements Routes {
         if (!eventService.updateRegistrationStatus(id, status)) {
             throw new NotFoundResponse();
         }
-        var event = eventService.findById(registration.eventId()).orElse(null);
-        String eventName = event != null ? event.name() : "?";
-        String eventDescription = "";
-        if (event != null && event.description() != null && !event.description().isBlank()) {
-            eventDescription = event.description().length() > 80
-                    ? event.description().substring(0, 80) + "..."
-                    : event.description();
-        }
-        var data = NotificationData.of(
-                new NotificationParams.EventRegistrationStatus(eventName, req.status(), eventDescription),
-                new NotificationData.NotificationLink("event-detail", Map.of("id", registration.eventId())));
-        notificationService.notify(registration.memberId(), NotificationType.EVENT_REGISTRATION_STATUS, data);
-        var eventMgmtIds =
-                stationMemberRepository.findMembersWithRole(session.stationId(), Roles.EVENT_MANAGER).stream()
-                        .map(StationMember::id)
-                        .toList();
-        notificationService.notifyMembersIfAbsent(
-                eventMgmtIds,
-                NotificationType.EVENT_REGISTRATION_STATUS,
-                data,
-                session.member().id());
         ctx.json(new MessageResponse("Status updated"));
     }
 
