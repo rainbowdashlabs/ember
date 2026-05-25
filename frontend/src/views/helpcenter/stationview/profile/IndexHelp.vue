@@ -11,9 +11,11 @@ import HelpTip from '@/components/helpcenter/HelpTip.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import ErrorContainer from '@/components/container/ErrorContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
+import FieldLabel from '@/components/typography/FieldLabel.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import PasswordInput from '@/components/input/text/PasswordInput.vue'
+import MutedText from '@/components/typography/MutedText.vue'
 
 const {t} = useI18n()
 </script>
@@ -33,15 +35,15 @@ const {t} = useI18n()
       <SectionHeader>{{ t('profile.accountTitle') }}</SectionHeader>
       <div class="grid gap-4 sm:grid-cols-3">
         <div class="space-y-1">
-          <label class="block text-sm font-medium">{{ t('profile.firstName') }}</label>
+          <FieldLabel>{{ t('profile.firstName') }}</FieldLabel>
           <TextInput model-value="Max"/>
         </div>
         <div class="space-y-1">
-          <label class="block text-sm font-medium">{{ t('profile.lastName') }}</label>
+          <FieldLabel>{{ t('profile.lastName') }}</FieldLabel>
           <TextInput model-value="Mustermann"/>
         </div>
         <div class="space-y-1">
-          <label class="block text-sm font-medium">{{ t('profile.email') }}</label>
+          <FieldLabel>{{ t('profile.email') }}</FieldLabel>
           <TextInput model-value="max@beispiel.de"/>
         </div>
       </div>
@@ -57,15 +59,15 @@ const {t} = useI18n()
       <SectionHeader>{{ t('profile.passwordTitle') }}</SectionHeader>
       <div class="grid gap-4 sm:grid-cols-3">
         <div class="space-y-1">
-          <label class="block text-sm font-medium">{{ t('profile.currentPassword') }}</label>
+          <FieldLabel>{{ t('profile.currentPassword') }}</FieldLabel>
           <PasswordInput model-value="" :placeholder="t('profile.currentPassword')"/>
         </div>
         <div class="space-y-1">
-          <label class="block text-sm font-medium">{{ t('profile.newPassword') }}</label>
+          <FieldLabel>{{ t('profile.newPassword') }}</FieldLabel>
           <PasswordInput model-value="" :placeholder="t('profile.newPassword')"/>
         </div>
         <div class="space-y-1">
-          <label class="block text-sm font-medium">{{ t('profile.confirmPassword') }}</label>
+          <FieldLabel>{{ t('profile.confirmPassword') }}</FieldLabel>
           <PasswordInput model-value="" :placeholder="t('profile.confirmPassword')"/>
         </div>
       </div>
@@ -82,27 +84,27 @@ const {t} = useI18n()
     <NeutralContainer class="space-y-4">
       <SectionHeader>{{ t('profile.title') }}</SectionHeader>
       <div class="space-y-1">
-        <label class="block text-sm font-medium">
+        <FieldLabel>
           {{ t('helpCenter.exampleFields.phoneNumber') }} <span class="text-error">*</span>
-        </label>
+        </FieldLabel>
         <TextInput model-value="0170 1234567"/>
       </div>
       <div class="space-y-1">
-        <label class="block text-sm font-medium">
+        <FieldLabel>
           {{ t('helpCenter.exampleFields.birthday') }} <span class="text-error">*</span>
-        </label>
+        </FieldLabel>
         <TextInput model-value="15.03.2010"/>
       </div>
       <div class="space-y-1">
-        <label class="block text-sm font-medium">
+        <FieldLabel>
           {{ t('helpCenter.exampleFields.emergencyContact') }}
-        </label>
+        </FieldLabel>
         <TextInput model-value="Erika Mustermann, 0170 9876543"/>
       </div>
       <div class="space-y-1">
-        <label class="block text-sm font-medium">
-          {{ t('helpCenter.exampleFields.memberNumber') }} <span class="text-xs text-(--text-muted) ml-1">({{ t('profile.readonlyHint') }})</span>
-        </label>
+        <FieldLabel>
+          {{ t('helpCenter.exampleFields.memberNumber') }} <MutedText class="ml-1">({{ t('profile.readonlyHint') }})</MutedText>
+        </FieldLabel>
         <TextInput model-value="M-2024-042" disabled/>
       </div>
       <PrimaryButton>{{ t('profile.save') }}</PrimaryButton>

@@ -5,32 +5,47 @@
  */
 package dev.chojo.ember.feature.system.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import dev.chojo.ember.feature.media.service.ImageCategory;
+import dev.chojo.ember.feature.media.service.ImageService;
 import dev.chojo.ember.feature.quiz.entity.QuestionType;
+import dev.chojo.ember.feature.quiz.entity.QuizQuestion;
 import dev.chojo.ember.feature.quiz.repository.QuizCatalogRepository;
 import dev.chojo.ember.feature.quiz.repository.QuizTestRepository;
 import dev.chojo.ember.feature.quiz.service.QuizService;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Seeder for demo quiz catalogs, questions, and tests.
  */
 @Singleton
 public class DemoQuizSeeder {
+    private static final Logger log = LoggerFactory.getLogger(DemoQuizSeeder.class);
     private final QuizCatalogRepository quizCatalogRepository;
     private final QuizTestRepository quizTestRepository;
     private final QuizService quizService;
+    private final ImageService imageService;
 
     @Inject
     public DemoQuizSeeder(
             QuizCatalogRepository quizCatalogRepository,
             QuizTestRepository quizTestRepository,
-            QuizService quizService) {
+            QuizService quizService,
+            ImageService imageService) {
         this.quizCatalogRepository = quizCatalogRepository;
         this.quizTestRepository = quizTestRepository;
         this.quizService = quizService;
+        this.imageService = imageService;
     }
 
     public void seedQuiz(int stationId, int createdBy, List<Integer> memberIds) {
@@ -603,18 +618,29 @@ public class DemoQuizSeeder {
                 4,
                 List.of("Helm", "Handschuhe"),
                 List.of("Stiefel", "Jacke"));
-        // IMAGE_TEXT question (imageUrl "demo" triggers logo fallback in PDF export)
-        quizCatalogRepository.createQuestion(
+        // IMAGE_TEXT question with actual image
+        var imageTextQuestion = quizCatalogRepository.createQuestion(
                 showcaseCatalog.id(),
                 catShowcase.id(),
                 QuestionType.IMAGE_TEXT,
                 "Was siehst du auf dem Bild?",
                 "Beschreibe das abgebildete Logo.",
-                "demo",
+                "uploaded",
                 2,
                 false,
                 "{\"answer\":\"Das Ember-Logo der Jugendfeuerwehr-Plattform.\"}",
                 5);
+        try (var logoStream = getClass().getResourceAsStream("/logo/NoBG_NoGlow.png")) {
+            if (logoStream != null) {
+                imageService.store(
+                        ImageCategory.QUIZ_QUESTIONS,
+                        String.valueOf(imageTextQuestion.id()),
+                        logoStream.readAllBytes(),
+                        "image/png");
+            }
+        } catch (IOException e) {
+            log.warn("Failed to store demo quiz question image", e);
+        }
         createConnectQuestion(
                 showcaseCatalog.id(),
                 catShowcase.id(),
@@ -711,15 +737,15 @@ public class DemoQuizSeeder {
         }
     }
 
-    private String generateShowcaseAnswer(dev.chojo.ember.feature.quiz.entity.QuizQuestion q) {
+    private String generateShowcaseAnswer(QuizQuestion q) {
         try {
-            var cfg = q.config();
+            var cfg = q.configNode();
             return switch (q.questionType()) {
                 case MULTIPLE_CHOICE -> {
                     // Select all correct options
                     var options = cfg.get("options");
                     if (options == null) yield null;
-                    var selected = new java.util.ArrayList<Integer>();
+                    var selected = new ArrayList<Integer>();
                     for (int i = 0; i < options.size(); i++) {
                         if (options.get(i).has("correct")
                                 && options.get(i).get("correct").asBoolean()) {
@@ -736,9 +762,9 @@ public class DemoQuizSeeder {
                 case CONNECT -> {
                     var pairs = cfg.get("pairs");
                     if (pairs == null) yield null;
-                    var map = new java.util.HashMap<String, String>();
+                    var map = new HashMap<String, String>();
                     for (int i = 0; i < pairs.size(); i++) {
-                        map.put(String.valueOf(i), pairs.get(i).get("right").asText());
+                        map.put(String.valueOf(i), pairs.get(i).get("right").asString());
                     }
                     var sb = new StringBuilder("{\"pairs\":{");
                     for (var entry : map.entrySet()) {
@@ -755,7 +781,7 @@ public class DemoQuizSeeder {
                 case ORDERING -> {
                     var items = cfg.get("items");
                     if (items == null) yield null;
-                    var order = new java.util.ArrayList<Integer>();
+                    var order = new ArrayList<Integer>();
                     for (int i = 0; i < items.size(); i++) order.add(i);
                     yield "{\"order\":" + order + "}";
                 }
@@ -768,7 +794,7 @@ public class DemoQuizSeeder {
                         gapsSb.append("\"")
                                 .append(i)
                                 .append("\":\"")
-                                .append(answers.get(i).asText().replace("\"", "\\\""))
+                                .append(answers.get(i).asString().replace("\"", "\\\""))
                                 .append("\"");
                     }
                     gapsSb.append("}}");
@@ -785,11 +811,11 @@ public class DemoQuizSeeder {
                 case ENUMERATION -> {
                     var answers = cfg.get("answers");
                     if (answers == null || !answers.isArray()) yield null;
-                    var items = new java.util.ArrayList<String>();
+                    var items = new ArrayList<String>();
                     int count =
                             cfg.has("requiredCount") ? cfg.get("requiredCount").asInt() : answers.size();
                     for (int i = 0; i < Math.min(count, answers.size()); i++) {
-                        items.add("\"" + answers.get(i).asText().replace("\"", "\\\"") + "\"");
+                        items.add("\"" + answers.get(i).asString().replace("\"", "\\\"") + "\"");
                     }
                     yield "{\"items\":[" + String.join(",", items) + "]}";
                 }
@@ -799,21 +825,21 @@ public class DemoQuizSeeder {
         }
     }
 
-    private String generateDemoAnswer(dev.chojo.ember.feature.quiz.entity.QuizQuestion q, boolean correct) {
+    private String generateDemoAnswer(QuizQuestion q, boolean correct) {
         try {
-            var cfg = q.config();
+            var cfg = q.configNode();
             return switch (q.questionType()) {
                 case MULTIPLE_CHOICE -> {
                     var options = cfg.get("options");
                     if (options == null) yield null;
-                    var selected = new java.util.ArrayList<Integer>();
+                    var selected = new ArrayList<Integer>();
                     for (int i = 0; i < options.size(); i++) {
                         boolean isCorrect = options.get(i).has("correct")
                                 && options.get(i).get("correct").asBoolean();
                         if (correct && isCorrect) selected.add(i);
                         else if (!correct && !isCorrect && selected.isEmpty()) selected.add(i);
                     }
-                    if (selected.isEmpty() && options.size() > 0) selected.add(0);
+                    if (selected.isEmpty() && !options.isEmpty()) selected.add(0);
                     yield "{\"selected\":" + selected + "}";
                 }
                 case TRUE_FALSE -> {
@@ -825,35 +851,34 @@ public class DemoQuizSeeder {
                 case CONNECT -> {
                     var pairs = cfg.get("pairs");
                     if (pairs == null) yield null;
-                    var map = new java.util.HashMap<String, String>();
+                    var map = new HashMap<String, String>();
                     for (int i = 0; i < pairs.size(); i++) {
                         if (correct) {
-                            map.put(String.valueOf(i), pairs.get(i).get("right").asText());
+                            map.put(String.valueOf(i), pairs.get(i).get("right").asString());
                         } else {
                             // Shift answers by one
                             int wrongIdx = (i + 1) % pairs.size();
                             map.put(
                                     String.valueOf(i),
-                                    pairs.get(wrongIdx).get("right").asText());
+                                    pairs.get(wrongIdx).get("right").asString());
                         }
                     }
-                    yield new com.fasterxml.jackson.databind.ObjectMapper()
-                            .writeValueAsString(java.util.Map.of("pairs", map));
+                    yield new ObjectMapper().writeValueAsString(Map.of("pairs", map));
                 }
                 case ORDERING -> {
                     var items = cfg.get("items");
                     if (items == null) yield null;
-                    var order = new java.util.ArrayList<Integer>();
+                    var order = new ArrayList<Integer>();
                     for (int i = 0; i < items.size(); i++) order.add(i);
-                    if (!correct) java.util.Collections.shuffle(order);
+                    if (!correct) Collections.shuffle(order);
                     yield "{\"order\":" + order + "}";
                 }
                 case FILL_IN_THE_BLANK -> {
                     var answers = cfg.get("answers");
                     if (answers == null || !answers.isArray()) yield "{\"gaps\":{}}";
-                    var gaps = new java.util.HashMap<String, String>();
+                    var gaps = new HashMap<String, String>();
                     for (int i = 0; i < answers.size(); i++) {
-                        gaps.put(String.valueOf(i), correct ? answers.get(i).asText() : "???");
+                        gaps.put(String.valueOf(i), correct ? answers.get(i).asString() : "???");
                     }
                     var gapsSb2 = new StringBuilder("{\"gaps\":{");
                     for (var entry : gaps.entrySet()) {
@@ -873,11 +898,11 @@ public class DemoQuizSeeder {
                 case ENUMERATION -> {
                     var answers = cfg.get("answers");
                     if (answers == null || !answers.isArray()) yield "{\"items\":[]}";
-                    var items = new java.util.ArrayList<String>();
+                    var items = new ArrayList<String>();
                     int count =
                             cfg.has("requiredCount") ? cfg.get("requiredCount").asInt() : answers.size();
                     for (int i = 0; i < Math.min(count, answers.size()); i++) {
-                        items.add("\"" + (correct ? answers.get(i).asText() : "???").replace("\"", "\\\"") + "\"");
+                        items.add("\"" + (correct ? answers.get(i).asString() : "???").replace("\"", "\\\"") + "\"");
                     }
                     yield "{\"items\":[" + String.join(",", items) + "]}";
                 }
@@ -905,7 +930,7 @@ public class DemoQuizSeeder {
                     .append("}");
         }
         config.append("],\"pointsPerCorrect\":").append(pointsPerCorrect).append("}");
-        int points = (int) Math.ceil(correctIndices.size() * pointsPerCorrect);
+        double points = correctIndices.size() * pointsPerCorrect;
         quizCatalogRepository.createQuestion(
                 catalogId,
                 categoryId,

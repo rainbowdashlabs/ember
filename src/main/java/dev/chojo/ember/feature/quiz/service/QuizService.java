@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.quiz.service;
 
+import dev.chojo.ember.feature.quiz.entity.QuestionConfig;
 import dev.chojo.ember.feature.quiz.entity.QuestionType;
 import dev.chojo.ember.feature.quiz.entity.QuizCatalog;
 import dev.chojo.ember.feature.quiz.entity.QuizCategory;
@@ -19,25 +20,38 @@ import dev.chojo.ember.feature.quiz.entity.QuizTestSectionSource;
 import dev.chojo.ember.feature.quiz.entity.TestStatus;
 import dev.chojo.ember.feature.quiz.repository.QuizCatalogRepository;
 import dev.chojo.ember.feature.quiz.repository.QuizTestRepository;
+import dev.chojo.ember.feature.restriction.RestrictionMode;
+import dev.chojo.ember.feature.restriction.RestrictionRepository;
+import dev.chojo.ember.feature.restriction.RestrictionSet;
+import dev.chojo.ember.feature.restriction.RestrictionType;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Singleton
 public class QuizService {
     private final QuizCatalogRepository catalogRepository;
     private final QuizTestRepository testRepository;
+    private final RestrictionRepository restrictionRepository;
 
     @Inject
-    public QuizService(QuizCatalogRepository catalogRepository, QuizTestRepository testRepository) {
+    public QuizService(
+            QuizCatalogRepository catalogRepository,
+            QuizTestRepository testRepository,
+            RestrictionRepository restrictionRepository) {
         this.catalogRepository = catalogRepository;
         this.testRepository = testRepository;
+        this.restrictionRepository = restrictionRepository;
     }
 
     // -- Catalogs --
@@ -72,6 +86,10 @@ public class QuizService {
         return catalogRepository.findCategoriesByStation(stationId);
     }
 
+    public Optional<QuizCategory> findCategory(int id) {
+        return catalogRepository.findCategoryById(id);
+    }
+
     public QuizCategory createCategory(int stationId, String name, String description, int position) {
         return catalogRepository.createCategory(stationId, name, description, position);
     }
@@ -101,10 +119,11 @@ public class QuizService {
             String title,
             String description,
             String imageUrl,
-            int points,
+            double points,
             boolean autoPoints,
             String config,
             int position) {
+        double effectivePoints = autoPoints ? calculateAutoPoints(questionType, config, points) : points;
         return catalogRepository.createQuestion(
                 catalogId,
                 categoryId,
@@ -112,7 +131,7 @@ public class QuizService {
                 title,
                 description,
                 imageUrl,
-                points,
+                effectivePoints,
                 autoPoints,
                 config,
                 position);
@@ -124,12 +143,32 @@ public class QuizService {
             String title,
             String description,
             String imageUrl,
-            int points,
+            double points,
             boolean autoPoints,
             String config,
             int position) {
+        double effectivePoints = points;
+        if (autoPoints && config != null) {
+            // Determine question type from existing record
+            var existing = catalogRepository.findQuestionById(id);
+            if (existing.isPresent()) {
+                effectivePoints = calculateAutoPoints(existing.get().questionType(), config, points);
+            }
+        }
         return catalogRepository.updateQuestion(
-                id, categoryId, title, description, imageUrl, points, autoPoints, config, position);
+                id, categoryId, title, description, imageUrl, effectivePoints, autoPoints, config, position);
+    }
+
+    /**
+     * Calculates auto-points from the question config based on type.
+     * Uses {@link QuestionType#parseConfig} for typed deserialization and
+     * {@link QuestionConfig#autoPoints} for the calculation.
+     */
+    private double calculateAutoPoints(QuestionType type, String configStr, double fallback) {
+        var config = type.parseConfig(configStr);
+        if (config instanceof QuestionConfig.Unknown) return fallback;
+        double points = config.autoPoints();
+        return points > 0 ? points : fallback;
     }
 
     public boolean deleteQuestion(int id) {
@@ -144,6 +183,10 @@ public class QuizService {
 
     public List<QuizTest> findTests(int stationId) {
         return testRepository.findByStation(stationId);
+    }
+
+    public List<QuizTest> findTestsForMember(int stationId, int memberId) {
+        return testRepository.findByStationForMember(stationId, memberId);
     }
 
     public int countAttempts(int testId) {
@@ -206,7 +249,7 @@ public class QuizService {
     public void replaceWithRandomQuestion(int testId, int position) {
         var frozen = testRepository.findFrozenQuestions(testId);
         var usedQuestionIds =
-                frozen.stream().map(QuizTestFrozenQuestion::questionId).collect(java.util.stream.Collectors.toSet());
+                frozen.stream().map(QuizTestFrozenQuestion::questionId).collect(Collectors.toSet());
 
         Integer sectionId = null;
         for (var fq : frozen) {
@@ -250,7 +293,7 @@ public class QuizService {
     public List<QuizQuestion> findAvailableReplacements(int testId) {
         var frozen = testRepository.findFrozenQuestions(testId);
         var usedQuestionIds =
-                frozen.stream().map(QuizTestFrozenQuestion::questionId).collect(java.util.stream.Collectors.toSet());
+                frozen.stream().map(QuizTestFrozenQuestion::questionId).collect(Collectors.toSet());
 
         var sections = testRepository.findSections(testId);
         List<QuizQuestion> candidates = new ArrayList<>();
@@ -294,28 +337,16 @@ public class QuizService {
         Instant now = Instant.now();
         if (test.startAt() != null && now.isBefore(test.startAt())) return false;
         if (test.endAt() != null && now.isAfter(test.endAt())) return false;
-        // Check per-member override
-        testRepository.hasMemberAccess(test.id(), memberId);
-        // Global access when no time restrictions or within window
-        return true;
+        // Check per-member override (grants access regardless of restrictions)
+        if (testRepository.hasMemberAccess(test.id(), memberId)) return true;
+        // Check role/group/tag restrictions (DB resolves roles with inheritance + manager bypass)
+        return canMemberAccess(test.id(), memberId);
     }
 
     // -- Sections --
 
     public List<QuizTestSection> findSections(int testId) {
         return testRepository.findSections(testId);
-    }
-
-    public QuizTestSection createSection(int testId, String title, String description, int position) {
-        return testRepository.createSection(testId, title, description, position);
-    }
-
-    public boolean updateSection(int id, String title, String description, int position) {
-        return testRepository.updateSection(id, title, description, position);
-    }
-
-    public boolean deleteSection(int id) {
-        return testRepository.deleteSection(id);
     }
 
     public void replaceSections(int testId, List<SectionEntry> sections) {
@@ -448,23 +479,23 @@ public class QuizService {
 
     private void autoGradeAnswers(int attemptId) {
         var answers = testRepository.findAnswers(attemptId);
-        var mapper = new tools.jackson.databind.ObjectMapper();
+        var mapper = new ObjectMapper();
 
         for (var answer : answers) {
             var question = catalogRepository.findQuestionById(answer.questionId());
             if (question.isEmpty()) continue;
             var q = question.get();
-            int autoPoints = autoGradeQuestion(q, answer.answer(), mapper);
+            double autoPoints = autoGradeQuestion(q, answer.answer(), mapper);
             if (autoPoints >= 0) {
                 testRepository.gradeAnswer(answer.id(), autoPoints);
             }
         }
     }
 
-    private int autoGradeQuestion(QuizQuestion q, String answerJson, tools.jackson.databind.ObjectMapper mapper) {
+    private double autoGradeQuestion(QuizQuestion q, String answerJson, ObjectMapper mapper) {
         if (answerJson == null || answerJson.isBlank()) return 0;
         try {
-            var config = q.config();
+            var config = q.configNode();
             var answer = mapper.readTree(answerJson);
             return switch (q.questionType()) {
                 case MULTIPLE_CHOICE -> gradeMultipleChoice(config, answer, q.points());
@@ -480,13 +511,12 @@ public class QuizService {
         }
     }
 
-    private int gradeMultipleChoice(
-            tools.jackson.databind.JsonNode config, tools.jackson.databind.JsonNode answer, int maxPoints) {
+    private double gradeMultipleChoice(JsonNode config, JsonNode answer, double maxPoints) {
         var options = config.get("options");
         var selected = answer.get("selected");
         if (options == null || selected == null || !selected.isArray()) return 0;
 
-        var correctSet = new java.util.HashSet<Integer>();
+        var correctSet = new HashSet<Integer>();
         for (int i = 0; i < options.size(); i++) {
             if (options.get(i).has("correct") && options.get(i).get("correct").asBoolean()) {
                 correctSet.add(i);
@@ -494,7 +524,7 @@ public class QuizService {
         }
 
         double pointsPerCorrect =
-                config.has("pointsPerCorrect") ? config.get("pointsPerCorrect").asDouble() : 0.5;
+                config.has("pointsPerCorrect") ? config.get("pointsPerCorrect").asDouble() : 1;
         int correct = 0;
         int wrong = 0;
         for (var s : selected) {
@@ -503,58 +533,62 @@ public class QuizService {
         }
 
         double points = (correct * pointsPerCorrect) - (wrong * pointsPerCorrect);
-        return Math.max(0, (int) Math.round(Math.min(points, maxPoints)));
+        return Math.max(0, Math.min(points, maxPoints));
     }
 
-    private int gradeTrueFalse(
-            tools.jackson.databind.JsonNode config, tools.jackson.databind.JsonNode answer, int maxPoints) {
+    private double gradeTrueFalse(JsonNode config, JsonNode answer, double maxPoints) {
         if (!config.has("correctAnswer") || !answer.has("value")) return 0;
         boolean correct = config.get("correctAnswer").asBoolean();
         boolean given = answer.get("value").asBoolean();
         return correct == given ? maxPoints : 0;
     }
 
-    private int gradeConnect(
-            tools.jackson.databind.JsonNode config, tools.jackson.databind.JsonNode answer, int maxPoints) {
+    private double gradeConnect(JsonNode config, JsonNode answer, double maxPoints) {
         var pairs = config.get("pairs");
         var givenPairs = answer.get("pairs");
         if (pairs == null || givenPairs == null) return 0;
 
+        double ppc =
+                config.has("pointsPerCorrect") ? config.get("pointsPerCorrect").asDouble() : 0;
+
         int correct = 0;
         for (int i = 0; i < pairs.size(); i++) {
-            String expectedRight = pairs.get(i).get("right").asText();
+            String expectedRight = pairs.get(i).get("right").asString();
             var given = givenPairs.get(String.valueOf(i));
-            if (given != null && given.asText().equals(expectedRight)) {
+            if (given != null && given.asString().equals(expectedRight)) {
                 correct++;
             }
         }
 
+        if (ppc > 0) return Math.min(correct * ppc, maxPoints);
         int totalPairs = pairs.size();
-        return totalPairs == 0 ? 0 : Math.round((float) correct / totalPairs * maxPoints);
+        return totalPairs == 0 ? 0 : (double) correct / totalPairs * maxPoints;
     }
 
-    private int gradeOrdering(
-            tools.jackson.databind.JsonNode config, tools.jackson.databind.JsonNode answer, int maxPoints) {
+    private double gradeOrdering(JsonNode config, JsonNode answer, double maxPoints) {
         var items = config.get("items");
         var order = answer.get("order");
         if (items == null || order == null || !order.isArray()) return 0;
 
-        // Correct order is 0, 1, 2, ... (items are stored in correct order)
-        boolean allCorrect = true;
+        double ppc =
+                config.has("pointsPerCorrect") ? config.get("pointsPerCorrect").asDouble() : 0;
+
+        int correct = 0;
         for (int i = 0; i < order.size(); i++) {
-            if (order.get(i).asInt() != i) {
-                allCorrect = false;
-                break;
-            }
+            if (order.get(i).asInt() == i) correct++;
         }
-        return allCorrect ? maxPoints : 0;
+
+        if (ppc > 0) return Math.min(correct * ppc, maxPoints);
+        return correct == items.size() ? maxPoints : 0;
     }
 
-    private int gradeFillBlank(
-            tools.jackson.databind.JsonNode config, tools.jackson.databind.JsonNode answer, int maxPoints) {
+    private double gradeFillBlank(JsonNode config, JsonNode answer, double maxPoints) {
         var correctAnswers = config.get("answers");
         if (correctAnswers == null || !correctAnswers.isArray()) return -1;
         if (correctAnswers.isEmpty()) return -1;
+
+        double ppc =
+                config.has("pointsPerCorrect") ? config.get("pointsPerCorrect").asDouble() : 0;
 
         // New format: gaps = {"0": "answer1", "1": "answer2"}
         var gaps = answer.get("gaps");
@@ -563,29 +597,30 @@ public class QuizService {
             for (int i = 0; i < correctAnswers.size(); i++) {
                 var given = gaps.get(String.valueOf(i));
                 if (given != null
-                        && given.asText()
+                        && given.asString()
                                 .trim()
-                                .equalsIgnoreCase(correctAnswers.get(i).asText().trim())) {
+                                .equalsIgnoreCase(
+                                        correctAnswers.get(i).asString().trim())) {
                     correct++;
                 }
             }
+            if (ppc > 0) return Math.min(correct * ppc, maxPoints);
             int total = correctAnswers.size();
-            return total == 0 ? 0 : Math.round((float) correct / total * maxPoints);
+            return total == 0 ? 0 : (double) correct / total * maxPoints;
         }
 
         // Legacy format: text = "single answer"
-        String given = answer.has("text") ? answer.get("text").asText().trim() : "";
+        String given = answer.has("text") ? answer.get("text").asString().trim() : "";
         if (given.isEmpty()) return 0;
         for (var a : correctAnswers) {
-            if (a.asText().trim().equalsIgnoreCase(given)) {
-                return maxPoints;
+            if (a.asString().trim().equalsIgnoreCase(given)) {
+                return ppc > 0 ? ppc : maxPoints;
             }
         }
         return 0;
     }
 
-    private int gradeEnumeration(
-            tools.jackson.databind.JsonNode config, tools.jackson.databind.JsonNode answer, int maxPoints) {
+    private double gradeEnumeration(JsonNode config, JsonNode answer, double maxPoints) {
         var correctAnswers = config.get("answers");
         if (correctAnswers == null || !correctAnswers.isArray()) return -1;
         int requiredCount =
@@ -597,12 +632,12 @@ public class QuizService {
         if (items == null || !items.isArray()) return 0;
 
         // Build set of correct answers (lowercase for comparison)
-        var correctSet = new java.util.ArrayList<String>();
-        for (var a : correctAnswers) correctSet.add(a.asText().trim().toLowerCase());
+        var correctSet = new ArrayList<String>();
+        for (var a : correctAnswers) correctSet.add(a.asString().trim().toLowerCase());
 
         int correct = 0;
         for (int i = 0; i < Math.min(items.size(), requiredCount); i++) {
-            String given = items.get(i).asText().trim().toLowerCase();
+            String given = items.get(i).asString().trim().toLowerCase();
             if (ordered) {
                 // Must match position
                 if (i < correctSet.size() && correctSet.get(i).equals(given)) {
@@ -632,15 +667,15 @@ public class QuizService {
         testRepository.saveAnswer(attemptId, questionId, answer);
     }
 
-    public boolean gradeAnswer(int answerId, int points) {
+    public boolean gradeAnswer(int answerId, double points) {
         return testRepository.gradeAnswer(answerId, points);
     }
 
     public boolean gradeAttempt(int attemptId, int gradedBy) {
         var answers = testRepository.findAnswers(attemptId);
-        int total = answers.stream()
+        double total = answers.stream()
                 .filter(QuizTestAnswer::graded)
-                .mapToInt(a -> a.points() != null ? a.points() : 0)
+                .mapToDouble(a -> a.points() != null ? a.points() : 0)
                 .sum();
         return testRepository.gradeAttempt(attemptId, total, gradedBy);
     }
@@ -657,42 +692,38 @@ public class QuizService {
 
     // -- Restrictions --
 
-    public List<Integer> findRoleRestrictions(int testId) {
-        return testRepository.findRoleRestrictions(testId);
+    /**
+     * Retrieves the restriction set for a test.
+     */
+    public RestrictionSet findRestrictions(int testId) {
+        var test = testRepository.findById(testId).orElse(null);
+        RestrictionMode mode = test != null ? test.restrictionMode() : RestrictionMode.OR;
+        return restrictionRepository.findRestrictionSet(
+                RestrictionType.QUIZ_TEST.table(), RestrictionType.QUIZ_TEST.fkColumn(), testId, mode);
     }
 
-    public List<Integer> findGroupRestrictions(int testId) {
-        return testRepository.findGroupRestrictions(testId);
+    public void setRestrictions(
+            int testId, List<Integer> roleIds, List<Integer> groupIds, List<Integer> tagIds, List<Integer> memberIds) {
+        restrictionRepository.setRestrictions(
+                RestrictionType.QUIZ_TEST.table(),
+                RestrictionType.QUIZ_TEST.fkColumn(),
+                testId,
+                roleIds != null ? roleIds : List.of(),
+                groupIds != null ? groupIds : List.of(),
+                tagIds != null ? tagIds : List.of(),
+                memberIds != null ? memberIds : List.of());
     }
 
-    public List<Integer> findTagRestrictions(int testId) {
-        return testRepository.findTagRestrictions(testId);
+    public void updateRestrictionMode(int testId, RestrictionMode mode) {
+        testRepository.updateRestrictionMode(testId, mode);
     }
 
-    public void setRestrictions(int testId, List<Integer> roleIds, List<Integer> groupIds, List<Integer> tagIds) {
-        testRepository.setRoleRestrictions(testId, roleIds);
-        testRepository.setGroupRestrictions(testId, groupIds);
-        testRepository.setTagRestrictions(testId, tagIds);
-    }
-
-    public boolean canMemberAccess(
-            int testId, List<Integer> memberRoleIds, List<Integer> memberGroupIds, List<Integer> memberTagIds) {
-        var roleRestrictions = testRepository.findRoleRestrictions(testId);
-        var groupRestrictions = testRepository.findGroupRestrictions(testId);
-        var tagRestrictions = testRepository.findTagRestrictions(testId);
-        // No restrictions = open to all
-        if (roleRestrictions.isEmpty() && groupRestrictions.isEmpty() && tagRestrictions.isEmpty()) return true;
-        // Check if member matches any restriction
-        for (int rId : roleRestrictions) {
-            if (memberRoleIds.contains(rId)) return true;
-        }
-        for (int gId : groupRestrictions) {
-            if (memberGroupIds.contains(gId)) return true;
-        }
-        for (int tId : tagRestrictions) {
-            if (memberTagIds.contains(tId)) return true;
-        }
-        return false;
+    /**
+     * Checks if a member can access a quiz test based on its restrictions.
+     * Delegates to the DB function which resolves the member's identity internally.
+     */
+    public boolean canMemberAccess(int testId, int memberId) {
+        return restrictionRepository.checkRestriction(RestrictionType.QUIZ_TEST, testId, memberId);
     }
 
     // -- Records --

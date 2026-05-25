@@ -20,8 +20,8 @@ public record QuizTestAttempt(
         Instant submittedAt,
         Instant gradedAt,
         Integer gradedBy,
-        int totalPoints,
-        int maxPoints) {
+        double totalPoints,
+        double maxPoints) {
 
     public static RowMapping<QuizTestAttempt> map() {
         return row -> new QuizTestAttempt(
@@ -33,7 +33,7 @@ public record QuizTestAttempt(
                 row.get("submitted_at", INSTANT_TIMESTAMP),
                 row.get("graded_at", INSTANT_TIMESTAMP),
                 row.getObject("graded_by", Integer.class),
-                row.getInt("total_points"),
-                row.getInt("max_points"));
+                row.getDouble("total_points"),
+                row.getDouble("max_points"));
     }
 }

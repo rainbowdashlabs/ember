@@ -15,6 +15,7 @@ import ViewContent from '@/components/layout/ViewContent.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
+import StatValue from '@/components/typography/StatValue.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import client from '@/api/client'
@@ -128,7 +129,7 @@ const emailStatusOption = computed(() => {
         <SubHeader>{{ t('adminStats.emailSection') }}</SubHeader>
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <NeutralContainer class="text-center">
-            <p class="text-2xl font-bold text-success">{{ stats.emailSentToday }}</p>
+            <StatValue color="success">{{ stats.emailSentToday }}</StatValue>
             <p class="text-sm text-(--text-muted)">{{ t('adminStats.sentToday') }}</p>
           </NeutralContainer>
           <NeutralContainer class="text-center">
@@ -159,23 +160,23 @@ const emailStatusOption = computed(() => {
         <SubHeader>{{ t('adminStats.platformSection') }}</SubHeader>
         <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-4">
           <NeutralContainer class="text-center">
-            <p class="text-2xl font-bold text-primary">{{ stats.totalStations }}</p>
+            <StatValue>{{ stats.totalStations }}</StatValue>
             <p class="text-sm text-(--text-muted)">{{ t('adminStats.stations') }}</p>
           </NeutralContainer>
           <NeutralContainer class="text-center">
-            <p class="text-2xl font-bold text-primary">{{ stats.totalAccounts }}</p>
+            <StatValue>{{ stats.totalAccounts }}</StatValue>
             <p class="text-sm text-(--text-muted)">{{ t('adminStats.accounts') }}</p>
           </NeutralContainer>
           <NeutralContainer class="text-center">
-            <p class="text-2xl font-bold text-primary">{{ stats.totalMembers }}</p>
+            <StatValue>{{ stats.totalMembers }}</StatValue>
             <p class="text-sm text-(--text-muted)">{{ t('adminStats.members') }}</p>
           </NeutralContainer>
           <NeutralContainer class="text-center">
-            <p class="text-2xl font-bold text-primary">{{ stats.activeSessions }}</p>
+            <StatValue>{{ stats.activeSessions }}</StatValue>
             <p class="text-sm text-(--text-muted)">{{ t('adminStats.activeSessions') }}</p>
           </NeutralContainer>
           <NeutralContainer class="text-center">
-            <p class="text-2xl font-bold text-primary">{{ stats.totalGroups }}</p>
+            <StatValue>{{ stats.totalGroups }}</StatValue>
             <p class="text-sm text-(--text-muted)">{{ t('adminStats.groups') }}</p>
           </NeutralContainer>
         </div>
@@ -184,23 +185,23 @@ const emailStatusOption = computed(() => {
         <SubHeader>{{ t('adminStats.dataSection') }}</SubHeader>
         <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-4">
           <NeutralContainer class="text-center">
-            <p class="text-2xl font-bold text-primary">{{ stats.totalEvents }}</p>
+            <StatValue>{{ stats.totalEvents }}</StatValue>
             <p class="text-sm text-(--text-muted)">{{ t('adminStats.events') }}</p>
           </NeutralContainer>
           <NeutralContainer class="text-center">
-            <p class="text-2xl font-bold text-primary">{{ stats.totalAttendanceSessions }}</p>
+            <StatValue>{{ stats.totalAttendanceSessions }}</StatValue>
             <p class="text-sm text-(--text-muted)">{{ t('adminStats.attendanceSessions') }}</p>
           </NeutralContainer>
           <NeutralContainer class="text-center">
-            <p class="text-2xl font-bold text-primary">{{ stats.totalAttendanceEntries }}</p>
+            <StatValue>{{ stats.totalAttendanceEntries }}</StatValue>
             <p class="text-sm text-(--text-muted)">{{ t('adminStats.attendanceEntries') }}</p>
           </NeutralContainer>
           <NeutralContainer class="text-center">
-            <p class="text-2xl font-bold text-primary">{{ stats.totalInventoryItems }}</p>
+            <StatValue>{{ stats.totalInventoryItems }}</StatValue>
             <p class="text-sm text-(--text-muted)">{{ t('adminStats.inventoryItems') }}</p>
           </NeutralContainer>
           <NeutralContainer class="text-center">
-            <p class="text-2xl font-bold text-primary">{{ stats.totalProfileFields }}</p>
+            <StatValue>{{ stats.totalProfileFields }}</StatValue>
             <p class="text-sm text-(--text-muted)">{{ t('adminStats.profileFields') }}</p>
           </NeutralContainer>
         </div>

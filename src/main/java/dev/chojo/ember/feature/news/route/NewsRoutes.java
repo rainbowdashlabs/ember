@@ -65,9 +65,9 @@ public class NewsRoutes implements Routes {
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
         routes.get(prefix + "/news", this::list, Roles.LOGIN);
         routes.get(prefix + "/news/{id}", this::get, Roles.LOGIN);
-        routes.post(prefix + "/news", this::create, Roles.NEWS_MANAGEMENT);
-        routes.put(prefix + "/news/{id}", this::update, Roles.NEWS_MANAGEMENT);
-        routes.delete(prefix + "/news/{id}", this::delete, Roles.NEWS_MANAGEMENT);
+        routes.post(prefix + "/news", this::create, Roles.NEWS_MANAGER);
+        routes.put(prefix + "/news/{id}", this::update, Roles.NEWS_MANAGER);
+        routes.delete(prefix + "/news/{id}", this::delete, Roles.NEWS_MANAGER);
         routes.get(prefix + "/news/{id}/comments", this::listComments, Roles.LOGIN);
         routes.post(prefix + "/news/{id}/comments", this::createComment, Roles.LOGIN);
         routes.put(prefix + "/news/comments/{commentId}", this::updateComment, Roles.LOGIN);
@@ -85,14 +85,14 @@ public class NewsRoutes implements Routes {
         int offset = ctx.queryParamAsClass("offset", Integer.class).getOrDefault(0);
         int limit = ctx.queryParamAsClass("limit", Integer.class).getOrDefault(20);
         List<News> newsList;
-        if (session.hasRole(Roles.NEWS_MANAGEMENT)) {
+        if (session.hasRole(Roles.NEWS_MANAGER)) {
             newsList = newsService.findByStation(session.stationId(), offset, limit);
         } else {
             newsList = newsService.findVisibleForMember(
                     session.stationId(), session.member().id(), offset, limit);
         }
         ctx.json(newsList.stream()
-                .map(n -> toResponse(n, session.hasRole(Roles.NEWS_MANAGEMENT)))
+                .map(n -> toResponse(n, session.hasRole(Roles.NEWS_MANAGER)))
                 .toList());
     }
 
@@ -111,7 +111,7 @@ public class NewsRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         newsService
                 .findById(id)
-                .ifPresentOrElse(news -> ctx.json(toResponse(news, session.hasRole(Roles.NEWS_MANAGEMENT))), () -> {
+                .ifPresentOrElse(news -> ctx.json(toResponse(news, session.hasRole(Roles.NEWS_MANAGER))), () -> {
                     throw new NotFoundResponse();
                 });
     }
@@ -138,7 +138,10 @@ public class NewsRoutes implements Routes {
                 request.contentMarkdown(),
                 request.contentHtml() != null ? request.contentHtml() : "",
                 session.member().id(),
-                request.groupIds() != null ? request.groupIds() : List.of());
+                request.roleIds() != null ? request.roleIds() : List.of(),
+                request.groupIds() != null ? request.groupIds() : List.of(),
+                request.tagIds() != null ? request.tagIds() : List.of(),
+                request.memberIds() != null ? request.memberIds() : List.of());
         String authorName = session.account().fullName().trim();
         String preview = request.contentMarkdown().length() > 100
                 ? request.contentMarkdown().substring(0, 100) + "..."
@@ -166,6 +169,10 @@ public class NewsRoutes implements Routes {
     private void update(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
         UserSession session = UserSession.from(ctx);
+        var news = newsService.findById(id).orElseThrow(NotFoundResponse::new);
+        if (news.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot modify news from another station");
+        }
         var request = ctx.bodyAsClass(NewsRequest.class);
         newsService
                 .update(
@@ -173,8 +180,11 @@ public class NewsRoutes implements Routes {
                         request.title(),
                         request.contentMarkdown(),
                         request.contentHtml() != null ? request.contentHtml() : "",
-                        request.groupIds() != null ? request.groupIds() : List.of())
-                .ifPresentOrElse(news -> ctx.json(toResponse(news, true)), () -> {
+                        request.roleIds() != null ? request.roleIds() : List.of(),
+                        request.groupIds() != null ? request.groupIds() : List.of(),
+                        request.tagIds() != null ? request.tagIds() : List.of(),
+                        request.memberIds() != null ? request.memberIds() : List.of())
+                .ifPresentOrElse(updated -> ctx.json(toResponse(updated, true)), () -> {
                     throw new NotFoundResponse();
                 });
     }
@@ -191,7 +201,11 @@ public class NewsRoutes implements Routes {
             })
     private void delete(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
+        UserSession session = UserSession.from(ctx);
         var news = newsService.findById(id).orElseThrow(NotFoundResponse::new);
+        if (news.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot delete news from another station");
+        }
         if (newsService.delete(id)) {
             // Remove notifications for this news article and its comments
             notificationService.deleteByTypeContaining(
@@ -222,7 +236,17 @@ public class NewsRoutes implements Routes {
                 .flatMap(m -> accountRepository.findById(m.accountId()))
                 .map(a -> (a.firstName() + " " + a.lastName()).trim())
                 .orElse("");
-        List<Integer> groupIds = includeRestrictions ? newsService.findGroupRestrictions(news.id()) : List.of();
+        List<Integer> roleIds = List.of();
+        List<Integer> groupIds = List.of();
+        List<Integer> tagIds = List.of();
+        List<Integer> memberIds = List.of();
+        if (includeRestrictions) {
+            var restrictions = newsService.findRestrictions(news.id());
+            roleIds = restrictions.roleIds();
+            groupIds = restrictions.groupIds();
+            tagIds = restrictions.tagIds();
+            memberIds = restrictions.memberIds();
+        }
         int commentCount = newsService.countComments(news.id());
         return new NewsResponse(
                 news.id(),
@@ -235,7 +259,10 @@ public class NewsRoutes implements Routes {
                 authorName,
                 news.publishedAt(),
                 news.createdAt(),
+                roleIds,
                 groupIds,
+                tagIds,
+                memberIds,
                 commentCount);
     }
 
@@ -294,9 +321,9 @@ public class NewsRoutes implements Routes {
                     }
                 });
             }
-            // Notify all NEWS_MANAGEMENT members
+            // Notify all NEWS_MANAGER members
             var newsMgmtIds =
-                    stationMemberRepository.findMembersWithRole(session.stationId(), Roles.NEWS_MANAGEMENT).stream()
+                    stationMemberRepository.findMembersWithRole(session.stationId(), Roles.NEWS_MANAGER).stream()
                             .map(StationMember::id)
                             .toList();
             notificationService.notifyMembersIfAbsent(
@@ -339,7 +366,7 @@ public class NewsRoutes implements Routes {
     @OpenApi(
             path = "/api/v1/news/comments/{commentId}",
             methods = HttpMethod.DELETE,
-            summary = "Delete a comment (own or NEWS_MANAGEMENT)",
+            summary = "Delete a comment (own or NEWS_MANAGER)",
             tags = {"News"},
             pathParams = @OpenApiParam(name = "commentId", type = Integer.class, required = true),
             responses = {
@@ -351,7 +378,7 @@ public class NewsRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         var comment = newsService.findCommentById(commentId).orElseThrow(NotFoundResponse::new);
         boolean isAuthor = comment.authorId() == session.member().id();
-        boolean canModerate = session.hasRole(Roles.NEWS_MANAGEMENT);
+        boolean canModerate = session.hasRole(Roles.NEWS_MANAGER);
         if (!isAuthor && !canModerate) {
             throw new ForbiddenResponse("You can only delete your own comments");
         }
@@ -401,7 +428,14 @@ public class NewsRoutes implements Routes {
      * @param contentHtml     article body as HTML
      * @param groupIds        group IDs to restrict visibility to
      */
-    public record NewsRequest(String title, String contentMarkdown, String contentHtml, List<Integer> groupIds) {}
+    public record NewsRequest(
+            String title,
+            String contentMarkdown,
+            String contentHtml,
+            List<Integer> roleIds,
+            List<Integer> groupIds,
+            List<Integer> tagIds,
+            List<Integer> memberIds) {}
 
     /**
      * API response representing a news article with resolved author information.
@@ -430,7 +464,10 @@ public class NewsRoutes implements Routes {
             String authorName,
             Instant publishedAt,
             Instant createdAt,
+            List<Integer> roleIds,
             List<Integer> groupIds,
+            List<Integer> tagIds,
+            List<Integer> memberIds,
             int commentCount) {}
 
     /**

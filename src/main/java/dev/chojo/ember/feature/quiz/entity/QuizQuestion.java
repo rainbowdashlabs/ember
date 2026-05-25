@@ -22,9 +22,10 @@ public record QuizQuestion(
         String title,
         String description,
         String imageUrl,
-        int points,
+        double points,
         boolean autoPoints,
-        JsonNode config,
+        QuestionConfig config,
+        String configRaw,
         int position,
         Instant createdAt,
         Instant updatedAt) {
@@ -32,29 +33,37 @@ public record QuizQuestion(
     private static final ObjectMapper MAPPER = JsonMapper.builder().build();
 
     public String configString() {
-        return config != null ? config.toString() : "{}";
+        return configRaw != null ? configRaw : "{}";
+    }
+
+    /**
+     * Returns the config as a JsonNode (for legacy code that still uses raw JSON).
+     */
+    public JsonNode configNode() {
+        try {
+            return configRaw != null ? MAPPER.readTree(configRaw) : MAPPER.createObjectNode();
+        } catch (Exception e) {
+            return MAPPER.createObjectNode();
+        }
     }
 
     public static RowMapping<QuizQuestion> map() {
         return row -> {
-            JsonNode cfg;
-            try {
-                String raw = row.getString("config");
-                cfg = raw != null ? MAPPER.readTree(raw) : MAPPER.createObjectNode();
-            } catch (Exception e) {
-                cfg = MAPPER.createObjectNode();
-            }
+            var type = row.getEnum("question_type", QuestionType.class);
+            String raw = row.getString("config");
+            var config = type.parseConfig(raw != null ? raw : "{}");
             return new QuizQuestion(
                     row.getInt("id"),
                     row.getInt("catalog_id"),
                     row.getObject("category_id", Integer.class),
-                    row.getEnum("question_type", QuestionType.class),
+                    type,
                     row.getString("title"),
                     row.getString("description"),
                     row.getString("image_url"),
-                    row.getInt("points"),
+                    row.getDouble("points"),
                     row.getBoolean("auto_points"),
-                    cfg,
+                    config,
+                    raw,
                     row.getInt("position"),
                     row.get("created_at", INSTANT_TIMESTAMP),
                     row.get("updated_at", INSTANT_TIMESTAMP));

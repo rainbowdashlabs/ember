@@ -45,18 +45,16 @@ public class InventoryCheckRoutes implements Routes {
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        routes.get(prefix + "/inventory-checks", this::overview, Roles.INVENTORY_MANAGEMENT);
-        routes.post(prefix + "/inventory-checks/{memberId}/start", this::startCheck, Roles.INVENTORY_MANAGEMENT);
-        routes.post(prefix + "/inventory-checks/{memberId}/complete", this::completeCheck, Roles.INVENTORY_MANAGEMENT);
-        routes.post(prefix + "/inventory-checks/{memberId}/cancel", this::cancelCheck, Roles.INVENTORY_MANAGEMENT);
-        routes.get(prefix + "/inventory-checks/{memberId}/last", this::lastCheck, Roles.INVENTORY_MANAGEMENT);
-        routes.put(prefix + "/inventory-checks/{memberId}/assign", this::assignItem, Roles.INVENTORY_MANAGEMENT);
-        routes.put(prefix + "/inventory-checks/{memberId}/unassign", this::unassignItem, Roles.INVENTORY_MANAGEMENT);
+        routes.get(prefix + "/inventory-checks", this::overview, Roles.INVENTORY_MANAGER);
+        routes.post(prefix + "/inventory-checks/{memberId}/start", this::startCheck, Roles.INVENTORY_MANAGER);
+        routes.post(prefix + "/inventory-checks/{memberId}/complete", this::completeCheck, Roles.INVENTORY_MANAGER);
+        routes.post(prefix + "/inventory-checks/{memberId}/cancel", this::cancelCheck, Roles.INVENTORY_MANAGER);
+        routes.get(prefix + "/inventory-checks/{memberId}/last", this::lastCheck, Roles.INVENTORY_MANAGER);
+        routes.put(prefix + "/inventory-checks/{memberId}/assign", this::assignItem, Roles.INVENTORY_MANAGER);
+        routes.put(prefix + "/inventory-checks/{memberId}/unassign", this::unassignItem, Roles.INVENTORY_MANAGER);
         routes.post(
-                prefix + "/inventory-checks/{memberId}/create-assign",
-                this::createAndAssign,
-                Roles.INVENTORY_MANAGEMENT);
-        routes.get(prefix + "/inventory-checks/next", this::nextMember, Roles.INVENTORY_MANAGEMENT);
+                prefix + "/inventory-checks/{memberId}/create-assign", this::createAndAssign, Roles.INVENTORY_MANAGER);
+        routes.get(prefix + "/inventory-checks/next", this::nextMember, Roles.INVENTORY_MANAGER);
     }
 
     @OpenApi(

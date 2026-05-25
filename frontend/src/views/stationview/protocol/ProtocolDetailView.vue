@@ -23,14 +23,27 @@ import NumberInput from '@/components/input/number/NumberInput.vue'
 import DecimalInput from '@/components/input/number/DecimalInput.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
+import FieldLabel from '@/components/typography/FieldLabel.vue'
+import StationBadge from '@/components/badge/StationBadge.vue'
 import { useSession } from '@/composables/useSession'
-import { protocol } from '@/api'
+import { protocol, federation } from '@/api'
+import { getItem } from '@/api/storage'
 import type { TestProtocol, TestProtocolSection, TestProtocolItem } from '@/api/protocol'
+import MutedText from '@/components/typography/MutedText.vue'
+import MutedIcon from '@/components/display/MutedIcon.vue'
 
 const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
 const { canManageProtocol, loaded } = useSession()
+
+const isFederated = computed(() => {
+  if (!proto.value) return false
+  const currentStationId = getItem('station_id')
+  return currentStationId != null && String(proto.value.stationId) !== currentStationId
+})
+
+const canEdit = computed(() => canManageProtocol() && !isFederated.value)
 
 const protocolId = computed(() => Number(route.params.id))
 const proto = ref<TestProtocol | null>(null)
@@ -65,6 +78,14 @@ async function loadData() {
     items.value = data.items
   } catch { error.value = t('common.error') }
   finally { loading.value = false }
+}
+
+async function copyToStation() {
+  if (!proto.value) return
+  try {
+    await federation.copyProtocol(proto.value.id)
+    router.push({ name: 'protocol-list' })
+  } catch { error.value = t('common.error') }
 }
 
 function topSections() { return sections.value.filter(s => !s.parentId).sort((a, b) => a.position - b.position) }
@@ -213,12 +234,16 @@ onMounted(() => { if (loaded.value) loadData() })
 
 <template>
   <ViewContent>
-    <div class="flex items-center gap-3 mb-4">
+    <div class="flex items-center gap-2 mb-4">
       <SecondaryButton @click="router.push({ name: 'protocol-list' })">
         <font-awesome-icon :icon="['fas', 'chevron-left']" />
       </SecondaryButton>
       <SectionHeader>{{ proto?.name ?? '' }}</SectionHeader>
-      <EditButton v-if="canManageProtocol()" :label="t('common.edit')" @click="openEditProtocol" />
+      <StationBadge v-if="isFederated" :station-name="''" />
+      <EditButton v-if="canEdit" :label="t('common.edit')" @click="openEditProtocol" />
+      <PrimaryButton v-if="isFederated && canManageProtocol()" @click="copyToStation">
+        <font-awesome-icon :icon="['fas', 'copy']" class="mr-1" /> {{ t('federation.copyToStation') }}
+      </PrimaryButton>
       <span class="text-sm text-[var(--text-muted)] ml-auto">
         <template v-if="proto?.passThreshold">{{ t('protocol.threshold') }}: {{ proto.passThreshold }}P / </template>
         {{ totalProtocolPoints }}P {{ t('protocol.total') }}
@@ -229,15 +254,15 @@ onMounted(() => { if (loaded.value) loadData() })
     <Alert v-if="error" variant="error">{{ error }}</Alert>
 
     <template v-if="!loading && proto">
-      <p v-if="proto.description" class="text-sm text-[var(--text-muted)] mb-4">{{ proto.description }}</p>
+      <MutedText tag="p" size="sm" v-if="proto.description">{{ proto.description }}</MutedText>
 
       <!-- Sections -->
       <div class="space-y-4">
         <NeutralContainer v-for="section in topSections()" :key="section.id" class="space-y-2">
           <div class="flex items-center gap-2">
             <SubHeader>{{ section.name }}</SubHeader>
-            <span class="text-xs text-[var(--text-muted)] ml-auto">{{ sectionTotalPoints(section.id) }}P</span>
-            <template v-if="canManageProtocol()">
+            <MutedText class="ml-auto">{{ sectionTotalPoints(section.id) }}P</MutedText>
+            <template v-if="canEdit">
               <IconButton :icon="['fas', 'plus']" :label="t('protocol.addItem')" @click="openAddItem(section.id)" />
               <IconButton :icon="['fas', 'folder-plus']" :label="t('protocol.addSubsection')" @click="openAddSection(section.id)" />
               <IconButton :icon="['fas', 'pen']" :label="t('common.edit')" @click="openEditSection(section)" />
@@ -246,11 +271,11 @@ onMounted(() => { if (loaded.value) loadData() })
           </div>
 
           <!-- Items at section level -->
-          <div v-for="item in sectionItems(section.id)" :key="item.id" class="flex items-center gap-2 pl-4 text-sm">
-            <font-awesome-icon :icon="['fas', 'square']" class="w-3 h-3 text-[var(--text-muted)]" />
+          <div v-for="item in sectionItems(section.id)" :key="item.id" class="flex items-center gap-2 pl-4 text-xs">
+            <MutedIcon :icon="['fas', 'square']" />
             <span class="flex-1">{{ item.label }}</span>
             <span class="text-xs text-[var(--text-muted)]">{{ item.points }}P</span>
-            <template v-if="canManageProtocol()">
+            <template v-if="canEdit">
               <IconButton :icon="['fas', 'pen']" :label="t('common.edit')" @click="openEditItem(item)" />
               <DeleteButton :label="t('common.delete')" @click="handleDeleteItem(item.id)" />
             </template>
@@ -260,18 +285,18 @@ onMounted(() => { if (loaded.value) loadData() })
           <div v-for="sub in childSections(section.id)" :key="sub.id" class="ml-4 border-l-2 border-[var(--border)] pl-3 space-y-1">
             <div class="flex items-center gap-2">
               <span class="font-medium text-sm">{{ sub.name }}</span>
-              <span class="text-xs text-[var(--text-muted)] ml-auto">{{ sectionTotalPoints(sub.id) }}P</span>
-              <template v-if="canManageProtocol()">
+              <MutedText class="ml-auto">{{ sectionTotalPoints(sub.id) }}P</MutedText>
+              <template v-if="canEdit">
                 <IconButton :icon="['fas', 'plus']" :label="t('protocol.addItem')" @click="openAddItem(sub.id)" />
                 <IconButton :icon="['fas', 'pen']" :label="t('common.edit')" @click="openEditSection(sub)" />
                 <DeleteButton :label="t('common.delete')" @click="handleDeleteSection(sub.id)" />
               </template>
             </div>
-            <div v-for="item in sectionItems(sub.id)" :key="item.id" class="flex items-center gap-2 pl-4 text-sm">
-              <font-awesome-icon :icon="['fas', 'square']" class="w-3 h-3 text-[var(--text-muted)]" />
+            <div v-for="item in sectionItems(sub.id)" :key="item.id" class="flex items-center gap-2 pl-4 text-xs">
+              <MutedIcon :icon="['fas', 'square']" />
               <span class="flex-1">{{ item.label }}</span>
               <span class="text-xs text-[var(--text-muted)]">{{ item.points }}P</span>
-              <template v-if="canManageProtocol()">
+              <template v-if="canEdit">
                 <IconButton :icon="['fas', 'pen']" :label="t('common.edit')" @click="openEditItem(item)" />
                 <DeleteButton :label="t('common.delete')" @click="handleDeleteItem(item.id)" />
               </template>
@@ -280,14 +305,14 @@ onMounted(() => { if (loaded.value) loadData() })
         </NeutralContainer>
       </div>
 
-      <PrimaryButton v-if="canManageProtocol()" class="mt-4" @click="openAddSection()">
+      <PrimaryButton v-if="canEdit" class="mt-4" @click="openAddSection()">
         <font-awesome-icon :icon="['fas', 'plus']" class="mr-1" /> {{ t('protocol.addSection') }}
       </PrimaryButton>
     </template>
 
     <!-- Section Modal -->
     <Modal v-model="showSectionModal">
-      <h3 class="text-lg font-semibold mb-3">{{ editSectionId ? t('protocol.editSection') : t('protocol.addSection') }}</h3>
+      <SubHeader class="mb-3">{{ editSectionId ? t('protocol.editSection') : t('protocol.addSection') }}</SubHeader>
       <form @submit.prevent="handleSaveSection" class="space-y-3">
         <TextInput v-model="sectionName" :placeholder="t('protocol.sectionName')" required />
         <TextAreaInput v-model="sectionDescription" :placeholder="t('protocol.description')" />
@@ -307,7 +332,7 @@ onMounted(() => { if (loaded.value) loadData() })
 
     <!-- Item Modal -->
     <Modal v-model="showItemModal">
-      <h3 class="text-lg font-semibold mb-3">{{ editItemId ? t('protocol.editItem') : t('protocol.addItem') }}</h3>
+      <SubHeader class="mb-3">{{ editItemId ? t('protocol.editItem') : t('protocol.addItem') }}</SubHeader>
       <form @submit.prevent="handleSaveItem" class="space-y-3">
         <TextInput v-model="itemLabel" :placeholder="t('protocol.itemLabel')" required />
         <TextAreaInput v-model="itemDescription" :placeholder="t('protocol.description')" />
@@ -323,12 +348,12 @@ onMounted(() => { if (loaded.value) loadData() })
 
     <!-- Edit Protocol Modal -->
     <Modal v-model="showEditProtocolModal">
-      <h3 class="text-lg font-semibold mb-3">{{ t('common.edit') }}</h3>
+      <SubHeader class="mb-3">{{ t('common.edit') }}</SubHeader>
       <form @submit.prevent="handleSaveProtocol" class="space-y-3">
         <TextInput v-model="editProtoName" :placeholder="t('protocol.name')" required />
         <TextAreaInput v-model="editProtoDescription" :placeholder="t('protocol.description')" />
         <div>
-          <label class="block text-sm font-medium mb-1">{{ t('protocol.passThreshold') }}</label>
+          <FieldLabel class="mb-1">{{ t('protocol.passThreshold') }}</FieldLabel>
           <NumberInput v-model="editProtoPassThreshold" />
           <p class="text-xs text-[var(--text-muted)] mt-1">{{ t('protocol.passThresholdHint') }}</p>
         </div>

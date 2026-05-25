@@ -10,6 +10,7 @@ import HelpSection from '@/components/helpcenter/HelpSection.vue'
 import HelpTip from '@/components/helpcenter/HelpTip.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
+import FieldLabel from '@/components/typography/FieldLabel.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import TimeShortInput from '@/components/input/datetime/TimeShortInput.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
@@ -27,19 +28,19 @@ const {t} = useI18n()
       <SectionHeader>{{ t('events.general') }}</SectionHeader>
       <div class="grid gap-4 sm:grid-cols-2">
         <div class="space-y-1">
-          <label class="block text-sm font-medium">{{ t('events.name') }}</label>
+          <FieldLabel>{{ t('events.name') }}</FieldLabel>
           <TextInput model-value="Übungsabend"/>
         </div>
         <div class="space-y-1">
-          <label class="block text-sm font-medium">{{ t('events.type') }}</label>
+          <FieldLabel>{{ t('events.type') }}</FieldLabel>
           <TextInput model-value="Wiederkehrend" disabled/>
         </div>
         <div class="space-y-1">
-          <label class="block text-sm font-medium">{{ t('events.startTime') }}</label>
+          <FieldLabel>{{ t('events.startTime') }}</FieldLabel>
           <TimeShortInput model-value="18:00"/>
         </div>
         <div class="space-y-1">
-          <label class="block text-sm font-medium">{{ t('events.endTime') }}</label>
+          <FieldLabel>{{ t('events.endTime') }}</FieldLabel>
           <TimeShortInput model-value="20:00"/>
         </div>
       </div>
@@ -47,11 +48,11 @@ const {t} = useI18n()
 
     <NeutralContainer class="space-y-4">
       <SectionHeader>{{ t('events.registration') }}</SectionHeader>
-      <div class="flex items-center gap-3">
+      <div class="flex items-center gap-2">
         <ToggleInput :model-value="true"/>
         <span class="text-sm">{{ t('events.requiresRegistration') }}</span>
       </div>
-      <div class="flex items-center gap-3">
+      <div class="flex items-center gap-2">
         <ToggleInput :model-value="false"/>
         <span class="text-sm">{{ t('events.requiresConfirmation') }}</span>
       </div>

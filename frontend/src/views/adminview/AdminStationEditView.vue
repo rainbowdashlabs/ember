@@ -18,6 +18,7 @@ import InfoContainer from '@/components/container/InfoContainer.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
+import FieldLabel from '@/components/typography/FieldLabel.vue'
 import type {ManagerDetail} from '@/api/types'
 import {stations} from '@/api'
 
@@ -27,7 +28,7 @@ const router = useRouter()
 
 const stationId = computed(() => {
   const id = route.params.id
-  return id ? Number(id) : null
+  return id ? String(id) : null
 })
 const isEdit = computed(() => stationId.value !== null)
 
@@ -99,8 +100,7 @@ onMounted(loadStation)
 <template>
   <ViewContent>
     <div class="space-y-6">
-      <SecondaryButton @click="goBack">
-        <font-awesome-icon :icon="['fas', 'chevron-left']" class="mr-2"/>
+      <SecondaryButton :icon="['fas', 'chevron-left']" @click="goBack">
         {{ t('adminStations.back') }}
       </SecondaryButton>
 
@@ -112,13 +112,13 @@ onMounted(loadStation)
         <SectionHeader>{{ isEdit ? t('adminStations.editTitle') : t('adminStations.createTitle') }}</SectionHeader>
 
         <div class="space-y-1">
-          <label class="block text-sm font-medium">{{ t('adminStations.name') }}</label>
+          <FieldLabel>{{ t('adminStations.name') }}</FieldLabel>
           <TextInput v-model="name" :placeholder="t('adminStations.namePlaceholder')"/>
         </div>
 
         <!-- Manager section -->
         <div class="space-y-2">
-          <label class="block text-sm font-medium">{{ t('adminStations.managerEmail') }}</label>
+          <FieldLabel>{{ t('adminStations.managerEmail') }}</FieldLabel>
 
           <!-- Show manager state when one exists and not editing -->
           <template v-if="isEdit && hasManager && !editingManager">

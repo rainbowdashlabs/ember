@@ -7,25 +7,27 @@ package dev.chojo.ember.feature.events.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
 
-/**
- * Represents a custom field attached to a station event.
- *
- * @param id       the unique identifier of the field
- * @param eventId  the event this field belongs to
- * @param name     the field name (label)
- * @param value    the field value
- * @param position the display order position
- */
-public record EventField(int id, int eventId, String name, String value, int position) {
-    /**
-     * Creates a row mapping for database result set conversion.
-     */
+public record EventField(
+        int id,
+        int eventId,
+        String name,
+        String fieldType,
+        String config,
+        String value,
+        int position,
+        boolean overview,
+        Integer attendanceFieldId) {
+
     public static RowMapping<EventField> map() {
         return row -> new EventField(
                 row.getInt("id"),
                 row.getInt("event_id"),
                 row.getString("name"),
+                row.getString("field_type"),
+                row.getString("config"),
                 row.getString("value"),
-                row.getInt("position"));
+                row.getInt("position"),
+                row.getBoolean("overview"),
+                row.getObject("attendance_field_id", Integer.class));
     }
 }

@@ -16,6 +16,10 @@ import dev.chojo.ember.feature.members.entity.UserTag;
 import dev.chojo.ember.feature.members.service.MemberGroupService;
 import dev.chojo.ember.feature.members.service.StationMemberService;
 import dev.chojo.ember.feature.members.service.UserTagService;
+import dev.chojo.ember.feature.restriction.RestrictionMode;
+import dev.chojo.ember.feature.restriction.RestrictionRepository;
+import dev.chojo.ember.feature.restriction.RestrictionSet;
+import dev.chojo.ember.feature.restriction.RestrictionType;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
@@ -34,58 +38,59 @@ public class FormService {
     private final StationMemberService memberService;
     private final MemberGroupService groupService;
     private final UserTagService tagService;
+    private final RestrictionRepository restrictionRepository;
 
     @Inject
     public FormService(
             FormRepository repository,
             StationMemberService memberService,
             MemberGroupService groupService,
-            UserTagService tagService) {
+            UserTagService tagService,
+            RestrictionRepository restrictionRepository) {
         this.repository = repository;
         this.memberService = memberService;
         this.groupService = groupService;
         this.tagService = tagService;
+        this.restrictionRepository = restrictionRepository;
     }
 
     /**
      * Check if a specific member has access to a form based on its restrictions.
-     * If the form has no restrictions, everyone has access.
-     * Otherwise, the member must match at least one role, group, or tag restriction.
+     * Uses the unified restriction system with RestrictionSet.matches().
      */
     public boolean canMemberAccess(int formId, int memberId) {
-        var roleRestrictions = repository.findRoleRestrictions(formId);
-        var groupRestrictions = repository.findGroupRestrictions(formId);
-        var tagRestrictions = repository.findTagRestrictions(formId);
+        var restrictions = findRestrictions(formId);
+        if (!restrictions.hasRestrictions()) return true;
 
-        // No restrictions = open to all
-        if (roleRestrictions.isEmpty() && groupRestrictions.isEmpty() && tagRestrictions.isEmpty()) {
-            return true;
-        }
+        var memberRoleIds =
+                memberService.findRoles(memberId).stream().map(Role::id).toList();
+        var memberGroupIds = groupService.findGroupsForMember(memberId).stream()
+                .map(MemberGroup::id)
+                .toList();
+        var memberTagIds =
+                tagService.findTagsForMember(memberId).stream().map(UserTag::id).toList();
 
-        // Check role match
-        if (!roleRestrictions.isEmpty()) {
-            var memberRoleIds =
-                    memberService.findRoles(memberId).stream().map(Role::id).toList();
-            if (memberRoleIds.stream().anyMatch(roleRestrictions::contains)) return true;
-        }
+        return restrictions.matches(memberRoleIds, memberGroupIds, memberTagIds, memberId);
+    }
 
-        // Check group match
-        if (!groupRestrictions.isEmpty()) {
-            var memberGroupIds = groupService.findGroupsForMember(memberId).stream()
-                    .map(MemberGroup::id)
-                    .toList();
-            if (memberGroupIds.stream().anyMatch(groupRestrictions::contains)) return true;
-        }
+    /**
+     * Retrieves the restriction set for a form.
+     */
+    public RestrictionSet findRestrictions(int formId) {
+        var form = repository.findById(formId).orElse(null);
+        RestrictionMode mode = form != null ? form.restrictionMode() : RestrictionMode.OR;
+        return restrictionRepository.findRestrictionSet(
+                RestrictionType.FORM.table(), RestrictionType.FORM.fkColumn(), formId, mode);
+    }
 
-        // Check tag match
-        if (!tagRestrictions.isEmpty()) {
-            var memberTagIds = tagService.findTagsForMember(memberId).stream()
-                    .map(UserTag::id)
-                    .toList();
-            return memberTagIds.stream().anyMatch(tagRestrictions::contains);
-        }
-
-        return false;
+    /**
+     * Updates the restriction mode for a form.
+     *
+     * @param formId the form ID
+     * @param mode   the restriction mode ("AND" or "OR")
+     */
+    public void updateRestrictionMode(int formId, RestrictionMode mode) {
+        repository.updateRestrictionMode(formId, mode);
     }
 
     // -- Forms --
@@ -98,6 +103,17 @@ public class FormService {
      */
     public List<Form> findByStation(int stationId) {
         return repository.findByStation(stationId);
+    }
+
+    /**
+     * Retrieves forms for a station that the given member is allowed to see.
+     *
+     * @param stationId the station ID
+     * @param memberId  the requesting member ID
+     * @return the filtered list of forms
+     */
+    public List<Form> findByStationForMember(int stationId, int memberId) {
+        return repository.findByStationForMember(stationId, memberId);
     }
 
     /**
@@ -226,6 +242,7 @@ public class FormService {
      * @param config       type-specific configuration as JSON
      * @return the newly created question
      */
+    // Individual CRUD — routes use replaceQuestions() instead, kept for programmatic use
     public FormQuestion createQuestion(
             int formId,
             int position,
@@ -250,6 +267,7 @@ public class FormService {
      * @param position    new display order position
      * @return {@code true} if the question was updated
      */
+    // Individual CRUD — routes use replaceQuestions() instead, kept for programmatic use
     public boolean updateQuestion(
             int id, String title, String description, boolean required, boolean shuffle, String config, int position) {
         return repository.updateQuestion(id, title, description, required, shuffle, config, position);
@@ -261,6 +279,7 @@ public class FormService {
      * @param id the question ID
      * @return {@code true} if the question was deleted
      */
+    // Individual CRUD — routes use replaceQuestions() instead, kept for programmatic use
     public boolean deleteQuestion(int id) {
         return repository.deleteQuestion(id);
     }
@@ -366,47 +385,24 @@ public class FormService {
     // -- Restrictions --
 
     /**
-     * Retrieves the role IDs that restrict access to a form.
+     * Replaces all access restrictions for a form. Null lists are treated as empty.
      *
-     * @param formId the form ID
-     * @return list of role IDs
+     * @param formId    the form ID
+     * @param roleIds   role IDs to restrict access to, or {@code null} for none
+     * @param groupIds  group IDs to restrict access to, or {@code null} for none
+     * @param tagIds    tag IDs to restrict access to, or {@code null} for none
+     * @param memberIds member IDs to restrict access to, or {@code null} for none
      */
-    public List<Integer> findRoleRestrictions(int formId) {
-        return repository.findRoleRestrictions(formId);
-    }
-
-    /**
-     * Retrieves the group IDs that restrict access to a form.
-     *
-     * @param formId the form ID
-     * @return list of group IDs
-     */
-    public List<Integer> findGroupRestrictions(int formId) {
-        return repository.findGroupRestrictions(formId);
-    }
-
-    /**
-     * Retrieves the tag IDs that restrict access to a form.
-     *
-     * @param formId the form ID
-     * @return list of tag IDs
-     */
-    public List<Integer> findTagRestrictions(int formId) {
-        return repository.findTagRestrictions(formId);
-    }
-
-    /**
-     * Replaces all access restrictions (roles, groups, tags) for a form. Null lists are treated as empty.
-     *
-     * @param formId   the form ID
-     * @param roleIds  role IDs to restrict access to, or {@code null} for none
-     * @param groupIds group IDs to restrict access to, or {@code null} for none
-     * @param tagIds   tag IDs to restrict access to, or {@code null} for none
-     */
-    public void setRestrictions(int formId, List<Integer> roleIds, List<Integer> groupIds, List<Integer> tagIds) {
-        repository.setRoleRestrictions(formId, roleIds != null ? roleIds : List.of());
-        repository.setGroupRestrictions(formId, groupIds != null ? groupIds : List.of());
-        repository.setTagRestrictions(formId, tagIds != null ? tagIds : List.of());
+    public void setRestrictions(
+            int formId, List<Integer> roleIds, List<Integer> groupIds, List<Integer> tagIds, List<Integer> memberIds) {
+        restrictionRepository.setRestrictions(
+                RestrictionType.FORM.table(),
+                RestrictionType.FORM.fkColumn(),
+                formId,
+                roleIds != null ? roleIds : List.of(),
+                groupIds != null ? groupIds : List.of(),
+                tagIds != null ? tagIds : List.of(),
+                memberIds != null ? memberIds : List.of());
     }
 
     /**

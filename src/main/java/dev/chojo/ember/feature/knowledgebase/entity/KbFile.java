@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.knowledgebase.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
+import dev.chojo.ember.feature.restriction.RestrictionMode;
 
 import java.time.Instant;
 
@@ -26,7 +27,11 @@ public record KbFile(
         int position,
         int createdBy,
         Instant createdAt,
-        Instant updatedAt) {
+        Instant updatedAt,
+        Integer sourceFileId,
+        Integer sourceStationId,
+        RestrictionMode restrictionMode,
+        boolean restricted) {
 
     public static RowMapping<KbFile> map() {
         return row -> new KbFile(
@@ -44,6 +49,10 @@ public record KbFile(
                 row.getInt("position"),
                 row.getInt("created_by"),
                 row.get("created_at", INSTANT_TIMESTAMP),
-                row.get("updated_at", INSTANT_TIMESTAMP));
+                row.get("updated_at", INSTANT_TIMESTAMP),
+                row.getObject("source_file_id", Integer.class),
+                row.getObject("source_station_id", Integer.class),
+                RestrictionMode.valueOf(row.getString("restriction_mode")),
+                row.getBoolean("restricted"));
     }
 }

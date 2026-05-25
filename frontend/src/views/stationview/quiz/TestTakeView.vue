@@ -14,14 +14,10 @@ import Modal from '@/components/feedback/Modal.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SuccessButton from '@/components/button/SuccessButton.vue'
-import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SuccessContainer from '@/components/container/SuccessContainer.vue'
-import TextInput from '@/components/input/text/TextInput.vue'
-import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
-import SelectInput from '@/components/input/select/SelectInput.vue'
 import IconButton from '@/components/button/IconButton.vue'
-import DragList from '@/components/input/DragList.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
+import TestQuestionCard from './testtakeview/TestQuestionCard.vue'
 import { QuizQuestionTypes } from '@/api/types'
 import type { QuizAttemptDetail, QuizTest, QuizQuestion } from '@/api/types'
 import { quiz } from '@/api'
@@ -276,7 +272,6 @@ async function loadData() {
     let detail: QuizAttemptDetail
     try {
       const existing = await quiz.getMyAttempt(testId.value)
-      // Backend returns empty attempt object when no attempt exists
       if (existing.attempt && existing.attempt.id) {
         detail = existing
       } else {
@@ -287,16 +282,13 @@ async function loadData() {
     }
     attemptDetail.value = detail
 
-    // Check if already submitted
     if (detail.attempt.submittedAt) {
       submitted.value = true
     }
 
-    // Load test info
     const testDetail = await quiz.getTest(testId.value)
     test.value = testDetail.test
 
-    // Load question details for each attempt question
     const qMap = new Map<number, QuizQuestion>()
     const questionIds = [...new Set(detail.questions.map(q => q.questionId))]
     const questionPromises = questionIds.map(async (qId) => {
@@ -396,9 +388,11 @@ onUnmounted(() => {
 
         <!-- Progress dots -->
         <div class="flex flex-wrap gap-1">
-          <button
+          <IconButton
             v-for="(q, idx) in sortedQuestions"
             :key="q.id"
+            :icon="['fas', 'circle']"
+            :label="String(idx + 1)"
             class="w-7 h-7 rounded-full text-xs font-medium transition-colors"
             :class="{
               'bg-primary text-white': idx === currentIndex,
@@ -408,183 +402,33 @@ onUnmounted(() => {
             @click="navigateToQuestion(idx)"
           >
             {{ idx + 1 }}
-          </button>
+          </IconButton>
         </div>
 
         <!-- Question card -->
-        <NeutralContainer>
-          <div class="space-y-4">
-            <div>
-              <span class="text-xs font-semibold text-(--text-muted) uppercase">
-                {{ t(`quiz.questionTypes.${currentQuestionDetail.questionType}`) }}
-              </span>
-              <h3 class="font-medium text-lg mt-1">{{ currentQuestionDetail.title }}</h3>
-              <p v-if="currentQuestionDetail.description" class="text-sm text-(--text-muted) mt-1">
-                {{ currentQuestionDetail.description }}
-              </p>
-            </div>
-
-            <!-- MULTIPLE_CHOICE -->
-            <template v-if="currentQuestionDetail.questionType === QuizQuestionTypes.MULTIPLE_CHOICE">
-              <div class="space-y-2">
-                <div
-                  v-for="(opt, oi) in (currentConfig.options as { text: string }[] ?? [])"
-                  :key="oi"
-                  class="flex items-center gap-3 px-3 py-2 rounded-lg border cursor-pointer transition-all"
-                  :class="(currentAnswerParsed.selected ?? []).includes(oi)
-                    ? 'border-primary bg-primary/10'
-                    : 'border-bg-light-accent dark:border-bg-dark-accent hover:border-primary'"
-                  @click="setMCAnswer(oi, true)"
-                >
-                  <font-awesome-icon
-                    :icon="['fas', (currentAnswerParsed.selected ?? []).includes(oi) ? 'square-check' : 'square']"
-                    :class="(currentAnswerParsed.selected ?? []).includes(oi) ? 'text-primary' : 'text-(--text-muted)'"
-                  />
-                  <span class="text-sm">{{ opt.text }}</span>
-                </div>
-              </div>
-            </template>
-
-            <!-- FILL_IN_THE_BLANK -->
-            <template v-if="currentQuestionDetail.questionType === QuizQuestionTypes.FILL_IN_THE_BLANK">
-              <div class="space-y-2">
-                <template v-if="(currentConfig.useDropdown as boolean) && (currentConfig.wordBank as string[] ?? []).length > 0">
-                  <!-- Dropdown mode: show text with selects in gaps -->
-                  <div class="text-sm leading-relaxed" v-if="currentConfig.text">
-                    <template v-for="(part, pi) in (currentConfig.text as string || '').split('___')" :key="pi">
-                      <span>{{ part }}</span>
-                      <SelectInput v-if="pi < (currentConfig.gapCount as number ?? 0)"
-                                   :model-value="(currentAnswerParsed.gaps ?? {} as Record<string, string>)[String(pi)] ?? ''"
-                                   class="inline-block mx-1 w-auto"
-                                   @update:model-value="(v: string | undefined) => setFillBlankGap(pi, v ?? '')">
-                        <option value="">...</option>
-                        <option v-for="word in (currentConfig.wordBank as string[])" :key="word" :value="word">{{ word }}</option>
-                      </SelectInput>
-                    </template>
-                  </div>
-                </template>
-                <template v-else>
-                  <!-- Per-gap text inputs -->
-                  <div v-for="gi in (currentConfig.gapCount as number ?? 1)" :key="gi" class="flex items-center gap-2">
-                    <span class="text-xs text-(--text-muted) w-8 shrink-0">{{ t('quiz.attempt.gap') }} {{ gi }}:</span>
-                    <TextInput
-                      :model-value="(currentAnswerParsed.gaps ?? {} as Record<string, string>)[String(gi - 1)] ?? ''"
-                      :placeholder="t('quiz.attempt.fillBlankPlaceholder')"
-                      @update:model-value="(v: string | undefined) => setFillBlankGap(gi - 1, v ?? '')"
-                    />
-                  </div>
-                </template>
-              </div>
-            </template>
-
-            <!-- FREE_ANSWER -->
-            <template v-if="currentQuestionDetail.questionType === QuizQuestionTypes.FREE_ANSWER">
-              <TextAreaInput
-                :model-value="currentAnswerParsed.text ?? ''"
-                :placeholder="t('quiz.attempt.freeAnswerPlaceholder')"
-                @update:model-value="(v: string | undefined) => setFreeAnswer(v ?? '')"
-              />
-            </template>
-
-            <!-- CONNECT -->
-            <template v-if="currentQuestionDetail.questionType === QuizQuestionTypes.CONNECT">
-              <div class="space-y-2">
-                <div
-                  v-for="(left, li) in connectLeftItems"
-                  :key="li"
-                  class="flex items-center gap-3 p-2 rounded border border-bg-light-accent dark:border-bg-dark-accent"
-                >
-                  <span class="text-sm font-medium flex-1">{{ left }}</span>
-                  <font-awesome-icon :icon="['fas', 'arrow-right']" class="text-(--text-muted)" />
-                  <SelectInput
-                    :model-value="(currentAnswerParsed.pairs ?? {})[String(li)] ?? ''"
-                    class="flex-1"
-                    @update:model-value="(v: string | undefined) => setConnectPair(li, v ?? '')"
-                  >
-                    <option value="">--</option>
-                    <option v-for="(right, ri) in connectRightItems" :key="ri" :value="right">
-                      {{ right }}
-                    </option>
-                  </SelectInput>
-                </div>
-              </div>
-            </template>
-
-            <!-- IMAGE_TEXT -->
-            <template v-if="currentQuestionDetail.questionType === QuizQuestionTypes.IMAGE_TEXT">
-              <div class="space-y-3">
-                <img
-                  v-if="currentQuestionDetail.imageUrl"
-                  :src="currentQuestionDetail.imageUrl"
-                  :alt="currentQuestionDetail.title"
-                  class="max-w-full rounded border border-bg-light-accent dark:border-bg-dark-accent"
-                />
-                <TextAreaInput
-                  :model-value="currentAnswerParsed.text ?? ''"
-                  :placeholder="t('quiz.attempt.imageTextPlaceholder')"
-                  @update:model-value="(v: string | undefined) => setImageTextAnswer(v ?? '')"
-                />
-              </div>
-            </template>
-
-            <!-- TRUE_FALSE -->
-            <template v-if="currentQuestionDetail.questionType === QuizQuestionTypes.TRUE_FALSE">
-              <div class="flex gap-4">
-                <label
-                  class="flex-1 flex items-center justify-center gap-2 p-4 rounded border cursor-pointer transition-colors"
-                  :class="currentAnswerParsed.value === true
-                    ? 'border-success bg-success/10'
-                    : 'border-bg-light-accent dark:border-bg-dark-accent hover:border-success/50'"
-                  @click="setTrueFalse(true)"
-                >
-                  <input type="radio" :checked="currentAnswerParsed.value === true" class="h-4 w-4 accent-success" @click.stop @change="setTrueFalse(true)" />
-                  <span class="font-medium">{{ t('quiz.attempt.true') }}</span>
-                </label>
-                <label
-                  class="flex-1 flex items-center justify-center gap-2 p-4 rounded border cursor-pointer transition-colors"
-                  :class="currentAnswerParsed.value === false
-                    ? 'border-error bg-error/10'
-                    : 'border-bg-light-accent dark:border-bg-dark-accent hover:border-error/50'"
-                  @click="setTrueFalse(false)"
-                >
-                  <input type="radio" :checked="currentAnswerParsed.value === false" class="h-4 w-4 accent-error" @click.stop @change="setTrueFalse(false)" />
-                  <span class="font-medium">{{ t('quiz.attempt.false') }}</span>
-                </label>
-              </div>
-            </template>
-
-            <!-- ORDERING -->
-            <template v-if="currentQuestionDetail.questionType === QuizQuestionTypes.ORDERING">
-              <div class="space-y-1">
-                <DragList
-                  :items="(currentAnswerParsed.order as number[] ?? [])"
-                  :key-fn="(_item: number, index: number) => index"
-                  @reorder="reorderItems"
-                >
-                  <template #default="{ item, index }: { item: number; index: number }">
-                    <div class="flex items-center gap-2 px-3 py-2 rounded border border-bg-light-accent dark:border-bg-dark-accent mb-1 cursor-grab bg-(--bg)">
-                      <font-awesome-icon :icon="['fas', 'grip-vertical']" class="text-(--text-muted)" />
-                      <span class="text-xs text-(--text-muted) w-5">{{ index + 1 }}.</span>
-                      <span class="flex-1 text-sm">{{ (currentConfig.items as string[] ?? [])[item] ?? `#${item}` }}</span>
-                      <IconButton :icon="['fas', 'chevron-up']" :label="t('common.moveUp')" class="text-(--text-muted) hover:text-primary" @click="moveOrderItem(index, -1)" />
-                      <IconButton :icon="['fas', 'chevron-down']" :label="t('common.moveDown')" class="text-(--text-muted) hover:text-primary" @click="moveOrderItem(index, 1)" />
-                    </div>
-                  </template>
-                </DragList>
-              </div>
-            </template>
-          </div>
-        </NeutralContainer>
+        <TestQuestionCard
+          :question-detail="currentQuestionDetail"
+          :config="currentConfig"
+          :answer-parsed="currentAnswerParsed"
+          :connect-left-items="connectLeftItems"
+          :connect-right-items="connectRightItems"
+          @set-m-c-answer="setMCAnswer"
+          @set-fill-blank-gap="setFillBlankGap"
+          @set-free-answer="setFreeAnswer"
+          @set-connect-pair="setConnectPair"
+          @set-image-text-answer="setImageTextAnswer"
+          @set-true-false="setTrueFalse"
+          @reorder-items="reorderItems"
+          @move-order-item="moveOrderItem"
+        />
 
         <!-- Navigation buttons -->
         <div class="flex items-center justify-between">
-          <SecondaryButton :disabled="isFirstQuestion" @click="goPrev">
-            <font-awesome-icon :icon="['fas', 'chevron-left']" class="mr-1" />
+          <SecondaryButton :icon="['fas', 'chevron-left']" :disabled="isFirstQuestion" @click="goPrev">
             {{ t('quiz.attempt.prev') }}
           </SecondaryButton>
 
-          <SuccessButton @click="confirmSubmit">
-            <font-awesome-icon :icon="['fas', 'paper-plane']" class="mr-1" />
+          <SuccessButton :icon="['fas', 'paper-plane']" @click="confirmSubmit">
             {{ t('quiz.attempt.submit') }}
           </SuccessButton>
 

@@ -16,6 +16,7 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import EditButton from '@/components/button/EditButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
+import SecondaryButton from '@/components/button/SecondaryButton.vue'
 
 const {t} = useI18n()
 
@@ -42,8 +43,7 @@ const activeRole = ref('')
     <!-- Dummy: News list -->
     <div class="flex items-center justify-between">
       <SectionHeader>{{ t('news.title') }}</SectionHeader>
-      <PrimaryButton v-if="activeRole === 'manager'">
-        <font-awesome-icon :icon="['fas', 'plus']" class="mr-2"/>
+      <PrimaryButton :icon="['fas', 'plus']" v-if="activeRole === 'manager'">
         {{ t('news.create') }}
       </PrimaryButton>
     </div>
@@ -52,7 +52,7 @@ const activeRole = ref('')
       <NeutralContainer class="space-y-3">
         <div class="flex items-start justify-between gap-3">
           <div>
-            <h3 class="font-semibold text-lg">Dienstplanänderung Mai</h3>
+            <SubHeader>Dienstplanänderung Mai</SubHeader>
             <p class="text-xs text-(--text-muted)">Admin &middot; 14.05.2026, 10:30</p>
           </div>
           <div v-if="activeRole === 'manager'" class="flex items-center gap-1 shrink-0">
@@ -64,18 +64,18 @@ const activeRole = ref('')
           <p>Ab dem 20. Mai gilt ein neuer Dienstplan. Bitte prüft eure Einteilungen.</p>
         </div>
         <div class="pt-2 border-t border-bg-light-accent dark:border-bg-dark-accent">
-          <button type="button" class="text-sm text-(--text-muted) hover:text-primary transition-colors flex items-center gap-1.5">
+          <SecondaryButton>
             <font-awesome-icon :icon="['fas', 'comment']" class="h-3.5 w-3.5"/>
             {{ t('news.commentsCount', {count: 3}) }}
             <font-awesome-icon :icon="['fas', 'chevron-down']" class="h-2.5 w-2.5 ml-0.5"/>
-          </button>
+          </SecondaryButton>
         </div>
       </NeutralContainer>
 
       <NeutralContainer class="space-y-3">
         <div class="flex items-start justify-between gap-3">
           <div>
-            <h3 class="font-semibold text-lg">Neue Ausrüstung eingetroffen</h3>
+            <SubHeader>Neue Ausrüstung eingetroffen</SubHeader>
             <p class="text-xs text-(--text-muted)">Admin &middot; 10.05.2026, 14:00</p>
           </div>
           <div v-if="activeRole === 'manager'" class="flex items-center gap-1 shrink-0">
@@ -87,11 +87,11 @@ const activeRole = ref('')
           <p>Die bestellten Helme und Jacken sind da. Bitte meldet euch bei eurem Betreuer zur Ausgabe.</p>
         </div>
         <div class="pt-2 border-t border-bg-light-accent dark:border-bg-dark-accent">
-          <button type="button" class="text-sm text-(--text-muted) hover:text-primary transition-colors flex items-center gap-1.5">
+          <SecondaryButton>
             <font-awesome-icon :icon="['fas', 'comment']" class="h-3.5 w-3.5"/>
             {{ t('news.addComment') }}
             <font-awesome-icon :icon="['fas', 'chevron-down']" class="h-2.5 w-2.5 ml-0.5"/>
-          </button>
+          </SecondaryButton>
         </div>
       </NeutralContainer>
     </div>

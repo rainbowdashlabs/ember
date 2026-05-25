@@ -6,6 +6,7 @@
 package dev.chojo.ember.service;
 
 import dev.chojo.ember.feature.account.service.AuthService;
+import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.feature.station.service.StationService;
 import dev.chojo.ember.repository.RepositoryTestBase;
@@ -27,7 +28,8 @@ class StationServiceTest extends RepositoryTestBase {
 
     @BeforeAll
     static void setup() {
-        service = new StationService(stationRepo, stationMemberRepo, accountRepo, mock(AuthService.class));
+        service = new StationService(
+                stationRepo, stationMemberRepo, accountRepo, mock(AuthService.class), mock(FederationService.class));
     }
 
     @Test

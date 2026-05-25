@@ -12,6 +12,8 @@ import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import {stationApplications, adminSettings} from '@/api'
+import FieldLabel from '@/components/typography/FieldLabel.vue'
+import PageHeader from '@/components/typography/PageHeader.vue'
 
 const {t} = useI18n()
 
@@ -65,7 +67,7 @@ async function submit() {
     <div class="w-full max-w-md space-y-6">
       <div class="text-center">
         <font-awesome-icon :icon="['fas', 'building']" class="text-4xl text-primary mb-3"/>
-        <h1 class="text-2xl font-bold">{{ t('apply.title') }}</h1>
+        <PageHeader class="text-2xl font-bold">{{ t('apply.title') }}</PageHeader>
       </div>
 
       <Spinner v-if="loading" size="md" />
@@ -87,24 +89,24 @@ async function submit() {
 
         <form class="space-y-4" @submit.prevent="submit">
           <div class="space-y-1">
-            <label class="block text-sm font-medium">{{ t('apply.firstName') }}</label>
+            <FieldLabel>{{ t('apply.firstName') }}</FieldLabel>
             <TextInput v-model="firstName" :placeholder="t('apply.firstNamePlaceholder')"/>
           </div>
           <div class="space-y-1">
-            <label class="block text-sm font-medium">{{ t('apply.lastName') }}</label>
+            <FieldLabel>{{ t('apply.lastName') }}</FieldLabel>
             <TextInput v-model="lastName" :placeholder="t('apply.lastNamePlaceholder')"/>
           </div>
           <div class="space-y-1">
-            <label class="block text-sm font-medium">{{ t('apply.email') }}</label>
+            <FieldLabel>{{ t('apply.email') }}</FieldLabel>
             <TextInput v-model="email" :placeholder="t('apply.emailPlaceholder')"/>
             <p class="text-xs text-(--text-muted)">{{ t('apply.emailHint') }}</p>
           </div>
           <div class="space-y-1">
-            <label class="block text-sm font-medium">{{ t('apply.stationName') }}</label>
+            <FieldLabel>{{ t('apply.stationName') }}</FieldLabel>
             <TextInput v-model="stationName" :placeholder="t('apply.stationNamePlaceholder')"/>
           </div>
           <div class="space-y-1">
-            <label class="block text-sm font-medium">{{ t('apply.introduction') }}</label>
+            <FieldLabel>{{ t('apply.introduction') }}</FieldLabel>
             <TextAreaInput v-model="introduction" :placeholder="t('apply.introductionPlaceholder')"/>
             <p class="text-xs text-(--text-muted)">{{ t('apply.introductionHint') }}</p>
           </div>

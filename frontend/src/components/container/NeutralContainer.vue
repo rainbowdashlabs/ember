@@ -8,6 +8,7 @@ import BaseContainer from './BaseContainer.vue'
 
 const props = withDefaults(defineProps<{
   padded?: boolean
+  clickable?: boolean
 }>(), {
   padded: true,
 })
@@ -16,6 +17,7 @@ const props = withDefaults(defineProps<{
 <template>
   <BaseContainer
       :padded="props.padded"
+      :class="clickable ? 'cursor-pointer hover:border-primary transition-colors' : ''"
       class="border-bg-light-accent bg-bg-light-accent/20 dark:border-bg-dark-accent dark:bg-bg-dark-accent/20">
     <slot/>
   </BaseContainer>

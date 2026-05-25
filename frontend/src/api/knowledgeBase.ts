@@ -8,7 +8,7 @@ import {getItem} from './storage'
 
 export interface KbFolder {
     id: number
-    stationId: number
+    stationId: string
     parentId: number | null
     name: string
     description: string
@@ -17,11 +17,12 @@ export interface KbFolder {
     createdBy: number
     createdAt: string
     updatedAt: string
+    restricted?: boolean
 }
 
 export interface KbFile {
     id: number
-    stationId: number
+    stationId: string
     folderId: number | null
     name: string
     description: string
@@ -35,6 +36,9 @@ export interface KbFile {
     createdBy: number
     createdAt: string
     updatedAt: string
+    sourceFileId: number | null
+    sourceStationId: string | null
+    restricted?: boolean
 }
 
 export interface KbFileVersion {
@@ -48,10 +52,18 @@ export interface KbFileVersion {
     createdAt: string
 }
 
+export interface SharedFileEntry {
+    file: KbFile
+    stationName: string
+    sourceStationId: string
+}
+
 export interface BrowseResponse {
     currentFolder: KbFolder | null
     folders: KbFolder[]
     files: KbFile[]
+    sharedFiles: SharedFileEntry[]
+    favourites: KbFile[]
 }
 
 export interface MarkdownHtmlResponse {
@@ -124,6 +136,7 @@ export async function listFiles(folderId?: number | null): Promise<KbFile[]> {
 export interface FileResponse {
     file: KbFile
     lastEditedByName: string | null
+    isFavourite: boolean
 }
 
 export async function getFile(id: number): Promise<FileResponse> {
@@ -299,7 +312,7 @@ export async function uploadFolderIcon(folderId: number, file: File): Promise<vo
 
 export interface KbTag {
     id: number
-    stationId: number
+    stationId: string
     name: string
 }
 
@@ -361,15 +374,48 @@ export function kbImageUrl(imageId: string, size = 1024): string {
     return `${client.defaults.baseURL}/kb/images/${imageId}?size=${size}&token=${encodeURIComponent(token)}&stationId=${encodeURIComponent(stationId)}`
 }
 
+// -- Favourites --
+
+export async function listFavourites(): Promise<KbFile[]> {
+    const res = await client.get<KbFile[]>('/kb/favourites')
+    return res.data
+}
+
+export async function addFavourite(fileId: number): Promise<void> {
+    await client.post(`/kb/favourites/${fileId}`)
+}
+
+export async function removeFavourite(fileId: number): Promise<void> {
+    await client.delete(`/kb/favourites/${fileId}`)
+}
+
 // -- Search --
 
 export interface SearchResult {
     file: KbFile
     snippet: string
     folderPath: string
+    stationName: string | null
+    sourceStationId: string
 }
 
-export async function search(query: string): Promise<SearchResult[]> {
-    const res = await client.get<SearchResult[]>('/kb/search', {params: {q: query}})
+// -- Public Visibility --
+
+export async function getPublicVisibility(type: 'files' | 'folders', id: number): Promise<{ visible: boolean | null }> {
+    const res = await client.get<{ visible: boolean | null }>(`/kb/${type}/${id}/public-visibility`)
+    return res.data
+}
+
+export async function setPublicVisibility(type: 'files' | 'folders', id: number, visible: boolean | null): Promise<void> {
+    await client.put(`/kb/${type}/${id}/public-visibility`, { visible })
+}
+
+// -- Search --
+
+export async function search(query: string, options?: { tag?: string; federated?: boolean }): Promise<SearchResult[]> {
+    const params: Record<string, string> = {q: query}
+    if (options?.tag) params.tag = options.tag
+    if (options?.federated === false) params.federated = 'false'
+    const res = await client.get<SearchResult[]>('/kb/search', {params})
     return res.data
 }

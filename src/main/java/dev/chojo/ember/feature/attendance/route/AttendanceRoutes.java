@@ -38,6 +38,8 @@ import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -52,6 +54,8 @@ import java.util.Set;
  */
 @Singleton
 public class AttendanceRoutes implements Routes {
+    private static final Logger log = LoggerFactory.getLogger(AttendanceRoutes.class);
+
     private final AttendanceService attendanceService;
     private final AttendanceExportService exportService;
     private final AttendanceReportService reportService;
@@ -76,88 +80,84 @@ public class AttendanceRoutes implements Routes {
         return s == null || s.isBlank();
     }
 
+    private void verifySessionOwnership(int sessionId, UserSession userSession) {
+        var attSession = attendanceService.findSessionById(sessionId).orElseThrow(NotFoundResponse::new);
+        var template =
+                attendanceService.findTemplateById(attSession.templateId()).orElseThrow(NotFoundResponse::new);
+        if (template.stationId() != userSession.stationId()) {
+            throw new ForbiddenResponse("Cannot access resources from another station");
+        }
+    }
+
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        routes.get(prefix + "/attendance/templates", this::listTemplates, Roles.ATTENDENCE_MANAGEMENT);
-        routes.post(prefix + "/attendance/templates", this::createTemplate, Roles.ATTENDENCE_MANAGEMENT);
-        routes.get(prefix + "/attendance/templates/{id}", this::getTemplate, Roles.ATTENDENCE_MANAGEMENT);
-        routes.put(prefix + "/attendance/templates/{id}", this::updateTemplate, Roles.ATTENDENCE_MANAGEMENT);
-        routes.delete(prefix + "/attendance/templates/{id}", this::deleteTemplate, Roles.ATTENDENCE_MANAGEMENT);
+        routes.get(prefix + "/attendance/templates", this::listTemplates, Roles.ATTENDANCE_MANAGER);
+        routes.post(prefix + "/attendance/templates", this::createTemplate, Roles.ATTENDANCE_MANAGER);
+        routes.get(prefix + "/attendance/templates/{id}", this::getTemplate, Roles.ATTENDANCE_MANAGER);
+        routes.put(prefix + "/attendance/templates/{id}", this::updateTemplate, Roles.ATTENDANCE_MANAGER);
+        routes.delete(prefix + "/attendance/templates/{id}", this::deleteTemplate, Roles.ATTENDANCE_MANAGER);
 
         routes.put(
                 prefix + "/attendance/templates/{templateId}/groups",
                 this::setTemplateGroups,
-                Roles.ATTENDENCE_MANAGEMENT);
+                Roles.ATTENDANCE_MANAGER);
 
         routes.get(
                 prefix + "/attendance/templates/{templateId}/fields",
                 this::listTemplateFields,
-                Roles.ATTENDENCE_MANAGEMENT);
+                Roles.ATTENDANCE_MANAGER);
         routes.post(
                 prefix + "/attendance/templates/{templateId}/fields",
                 this::createTemplateField,
-                Roles.ATTENDENCE_MANAGEMENT);
+                Roles.ATTENDANCE_MANAGER);
         routes.put(
                 prefix + "/attendance/templates/{templateId}/fields/{fieldId}",
                 this::updateTemplateField,
-                Roles.ATTENDENCE_MANAGEMENT);
+                Roles.ATTENDANCE_MANAGER);
         routes.delete(
                 prefix + "/attendance/templates/{templateId}/fields/{fieldId}",
                 this::deleteTemplateField,
-                Roles.ATTENDENCE_MANAGEMENT);
+                Roles.ATTENDANCE_MANAGER);
 
-        routes.get(prefix + "/attendance/sessions", this::listSessionSummaries, Roles.ATTENDENCE_MANAGEMENT);
+        routes.get(prefix + "/attendance/sessions", this::listSessionSummaries, Roles.ATTENDANCE_MANAGER);
         routes.get(
-                prefix + "/attendance/templates/{templateId}/sessions",
-                this::listSessions,
-                Roles.ATTENDENCE_MANAGEMENT);
+                prefix + "/attendance/templates/{templateId}/sessions", this::listSessions, Roles.ATTENDANCE_MANAGER);
         routes.post(
-                prefix + "/attendance/templates/{templateId}/sessions",
-                this::createSession,
-                Roles.ATTENDENCE_MANAGEMENT);
-        routes.get(prefix + "/attendance/sessions/{id}", this::getSession, Roles.ATTENDENCE_MANAGEMENT);
-        routes.put(prefix + "/attendance/sessions/{id}", this::updateSession, Roles.ATTENDENCE_MANAGEMENT);
-        routes.delete(prefix + "/attendance/sessions/{id}", this::deleteSession, Roles.ATTENDENCE_MANAGEMENT);
+                prefix + "/attendance/templates/{templateId}/sessions", this::createSession, Roles.ATTENDANCE_MANAGER);
+        routes.get(prefix + "/attendance/sessions/{id}", this::getSession, Roles.ATTENDANCE_MANAGER);
+        routes.put(prefix + "/attendance/sessions/{id}", this::updateSession, Roles.ATTENDANCE_MANAGER);
+        routes.delete(prefix + "/attendance/sessions/{id}", this::deleteSession, Roles.ATTENDANCE_MANAGER);
 
         routes.get(
-                prefix + "/attendance/sessions/{sessionId}/fields",
-                this::listSessionFields,
-                Roles.ATTENDENCE_MANAGEMENT);
+                prefix + "/attendance/sessions/{sessionId}/fields", this::listSessionFields, Roles.ATTENDANCE_MANAGER);
         routes.put(
-                prefix + "/attendance/sessions/{sessionId}/fields",
-                this::setSessionFields,
-                Roles.ATTENDENCE_MANAGEMENT);
+                prefix + "/attendance/sessions/{sessionId}/fields", this::setSessionFields, Roles.ATTENDANCE_MANAGER);
 
-        routes.get(prefix + "/attendance/sessions/{sessionId}/entries", this::listEntries, Roles.ATTENDENCE_MANAGEMENT);
+        routes.get(prefix + "/attendance/sessions/{sessionId}/entries", this::listEntries, Roles.ATTENDANCE_MANAGER);
+        routes.post(prefix + "/attendance/sessions/{sessionId}/entries", this::createEntry, Roles.ATTENDANCE_MANAGER);
+        routes.post(prefix + "/attendance/entries/{id}/check-in", this::checkIn, Roles.ATTENDANCE_MANAGER);
+        routes.post(prefix + "/attendance/entries/{id}/check-out", this::checkOut, Roles.ATTENDANCE_MANAGER);
+        routes.put(prefix + "/attendance/entries/{id}/status", this::updateEntryStatus, Roles.ATTENDANCE_MANAGER);
+        routes.post(prefix + "/attendance/entries/{id}/reset-times", this::resetTimes, Roles.ATTENDANCE_MANAGER);
+        routes.delete(prefix + "/attendance/entries/{id}", this::deleteEntry, Roles.ATTENDANCE_MANAGER);
         routes.post(
-                prefix + "/attendance/sessions/{sessionId}/entries", this::createEntry, Roles.ATTENDENCE_MANAGEMENT);
-        routes.post(prefix + "/attendance/entries/{id}/check-in", this::checkIn, Roles.ATTENDENCE_MANAGEMENT);
-        routes.post(prefix + "/attendance/entries/{id}/check-out", this::checkOut, Roles.ATTENDENCE_MANAGEMENT);
-        routes.put(prefix + "/attendance/entries/{id}/status", this::updateEntryStatus, Roles.ATTENDENCE_MANAGEMENT);
-        routes.post(prefix + "/attendance/entries/{id}/reset-times", this::resetTimes, Roles.ATTENDENCE_MANAGEMENT);
-        routes.delete(prefix + "/attendance/entries/{id}", this::deleteEntry, Roles.ATTENDENCE_MANAGEMENT);
-        routes.post(
-                prefix + "/attendance/sessions/{sessionId}/sync-event",
-                this::syncFromEvent,
-                Roles.ATTENDENCE_MANAGEMENT);
-        routes.get(prefix + "/attendance/sessions/{sessionId}/export", this::exportPdf, Roles.ATTENDENCE_MANAGEMENT);
+                prefix + "/attendance/sessions/{sessionId}/sync-event", this::syncFromEvent, Roles.ATTENDANCE_MANAGER);
+        routes.get(prefix + "/attendance/sessions/{sessionId}/export", this::exportPdf, Roles.ATTENDANCE_MANAGER);
 
         // Report export
-        routes.get(prefix + "/attendance/report/preview", this::reportPreview, Roles.ATTENDENCE_EXPORT_MANAGER);
-        routes.get(prefix + "/attendance/report/export", this::reportExport, Roles.ATTENDENCE_EXPORT_MANAGER);
+        routes.get(prefix + "/attendance/report/preview", this::reportPreview, Roles.ATTENDANCE_EXPORT_MANAGER);
+        routes.get(prefix + "/attendance/report/export", this::reportExport, Roles.ATTENDANCE_EXPORT_MANAGER);
 
         // Saved report presets
-        routes.get(prefix + "/attendance/report/presets", this::listPresets, Roles.ATTENDENCE_EXPORT_MANAGER);
-        routes.post(prefix + "/attendance/report/presets", this::createPreset, Roles.ATTENDENCE_EXPORT_MANAGER);
-        routes.delete(prefix + "/attendance/report/presets/{id}", this::deletePreset, Roles.ATTENDENCE_EXPORT_MANAGER);
+        routes.get(prefix + "/attendance/report/presets", this::listPresets, Roles.ATTENDANCE_EXPORT_MANAGER);
+        routes.post(prefix + "/attendance/report/presets", this::createPreset, Roles.ATTENDANCE_EXPORT_MANAGER);
+        routes.delete(prefix + "/attendance/report/presets/{id}", this::deletePreset, Roles.ATTENDANCE_EXPORT_MANAGER);
 
-        routes.get(prefix + "/attendance/absences", this::listActiveAbsences, Roles.ATTENDENCE_MANAGEMENT);
+        routes.get(prefix + "/attendance/absences", this::listActiveAbsences, Roles.ATTENDANCE_MANAGER);
         routes.get(
-                prefix + "/attendance/absences/member/{memberId}",
-                this::listMemberAbsences,
-                Roles.ATTENDENCE_MANAGEMENT);
-        routes.post(prefix + "/attendance/absences", this::createAbsence, Roles.ATTENDENCE_MANAGEMENT);
-        routes.delete(prefix + "/attendance/absences/{id}", this::deleteAbsence, Roles.ATTENDENCE_MANAGEMENT);
+                prefix + "/attendance/absences/member/{memberId}", this::listMemberAbsences, Roles.ATTENDANCE_MANAGER);
+        routes.post(prefix + "/attendance/absences", this::createAbsence, Roles.ATTENDANCE_MANAGER);
+        routes.delete(prefix + "/attendance/absences/{id}", this::deleteAbsence, Roles.ATTENDANCE_MANAGER);
 
         // Self-service absence management
         routes.get(prefix + "/profile/absences", this::listMyAbsences, Roles.USER);
@@ -267,6 +267,11 @@ public class AttendanceRoutes implements Routes {
             })
     private void updateTemplate(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
+        UserSession session = UserSession.from(ctx);
+        var template = attendanceService.findTemplateById(id).orElseThrow(NotFoundResponse::new);
+        if (template.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot access resources from another station");
+        }
         var request = ctx.bodyAsClass(TemplateRequest.class);
         if (isBlank(request.name())) {
             throw new BadRequestResponse("name is required");
@@ -290,6 +295,11 @@ public class AttendanceRoutes implements Routes {
             })
     private void deleteTemplate(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
+        UserSession session = UserSession.from(ctx);
+        var template = attendanceService.findTemplateById(id).orElseThrow(NotFoundResponse::new);
+        if (template.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot access resources from another station");
+        }
         if (attendanceService.deleteTemplate(id)) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
@@ -309,6 +319,11 @@ public class AttendanceRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = TemplateGroupEntry[].class)))
     private void setTemplateGroups(Context ctx) {
         int templateId = ctx.pathParamAsClass("templateId", Integer.class).get();
+        UserSession session = UserSession.from(ctx);
+        var template = attendanceService.findTemplateById(templateId).orElseThrow(NotFoundResponse::new);
+        if (template.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot access resources from another station");
+        }
         var request = ctx.bodyAsClass(SetTemplateGroupsRequest.class);
         var groups = request.groups() != null
                 ? request.groups().stream()
@@ -346,6 +361,11 @@ public class AttendanceRoutes implements Routes {
                     @OpenApiResponse(status = "201", content = @OpenApiContent(from = AttendanceTemplateField[].class)))
     private void createTemplateField(Context ctx) {
         int templateId = ctx.pathParamAsClass("templateId", Integer.class).get();
+        UserSession session = UserSession.from(ctx);
+        var template = attendanceService.findTemplateById(templateId).orElseThrow(NotFoundResponse::new);
+        if (template.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot access resources from another station");
+        }
         var request = ctx.bodyAsClass(TemplateFieldRequest.class);
         if (isBlank(request.name()) || isBlank(request.fieldType())) {
             throw new BadRequestResponse("name and fieldType are required");
@@ -372,6 +392,11 @@ public class AttendanceRoutes implements Routes {
     private void updateTemplateField(Context ctx) {
         int templateId = ctx.pathParamAsClass("templateId", Integer.class).get();
         int fieldId = ctx.pathParamAsClass("fieldId", Integer.class).get();
+        UserSession session = UserSession.from(ctx);
+        var template = attendanceService.findTemplateById(templateId).orElseThrow(NotFoundResponse::new);
+        if (template.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot access resources from another station");
+        }
         var request = ctx.bodyAsClass(TemplateFieldRequest.class);
         if (isBlank(request.name()) || isBlank(request.fieldType())) {
             throw new BadRequestResponse("name and fieldType are required");
@@ -402,6 +427,11 @@ public class AttendanceRoutes implements Routes {
     private void deleteTemplateField(Context ctx) {
         int templateId = ctx.pathParamAsClass("templateId", Integer.class).get();
         int fieldId = ctx.pathParamAsClass("fieldId", Integer.class).get();
+        UserSession session = UserSession.from(ctx);
+        var template = attendanceService.findTemplateById(templateId).orElseThrow(NotFoundResponse::new);
+        if (template.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot access resources from another station");
+        }
         attendanceService.deleteTemplateField(templateId, fieldId).ifPresentOrElse(ctx::json, () -> {
             throw new NotFoundResponse();
         });
@@ -434,6 +464,11 @@ public class AttendanceRoutes implements Routes {
             responses = @OpenApiResponse(status = "201", content = @OpenApiContent(from = AttendanceSession.class)))
     private void createSession(Context ctx) {
         int templateId = ctx.pathParamAsClass("templateId", Integer.class).get();
+        UserSession session = UserSession.from(ctx);
+        var template = attendanceService.findTemplateById(templateId).orElseThrow(NotFoundResponse::new);
+        if (template.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot access resources from another station");
+        }
         var request = ctx.bodyAsClass(SessionRequest.class);
         ctx.status(HttpStatus.CREATED)
                 .json(attendanceService.createSession(
@@ -478,6 +513,13 @@ public class AttendanceRoutes implements Routes {
             })
     private void updateSession(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
+        UserSession userSession = UserSession.from(ctx);
+        var attSession = attendanceService.findSessionById(id).orElseThrow(NotFoundResponse::new);
+        var template =
+                attendanceService.findTemplateById(attSession.templateId()).orElseThrow(NotFoundResponse::new);
+        if (template.stationId() != userSession.stationId()) {
+            throw new ForbiddenResponse("Cannot access resources from another station");
+        }
         var request = ctx.bodyAsClass(SessionRequest.class);
         attendanceService
                 .updateSession(id, request.startTime(), request.endTime(), request.title())
@@ -500,6 +542,13 @@ public class AttendanceRoutes implements Routes {
             })
     private void deleteSession(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
+        UserSession userSession = UserSession.from(ctx);
+        var attSession = attendanceService.findSessionById(id).orElseThrow(NotFoundResponse::new);
+        var template =
+                attendanceService.findTemplateById(attSession.templateId()).orElseThrow(NotFoundResponse::new);
+        if (template.stationId() != userSession.stationId()) {
+            throw new ForbiddenResponse("Cannot access resources from another station");
+        }
         if (attendanceService.deleteSession(id)) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
@@ -534,6 +583,7 @@ public class AttendanceRoutes implements Routes {
                     @OpenApiResponse(status = "200", content = @OpenApiContent(from = AttendanceSessionField[].class)))
     private void setSessionFields(Context ctx) {
         int sessionId = ctx.pathParamAsClass("sessionId", Integer.class).get();
+        verifySessionOwnership(sessionId, UserSession.from(ctx));
         var request = ctx.bodyAsClass(SetSessionFieldsRequest.class);
         List<AttendanceService.FieldValueEntry> entries = request.fields() != null
                 ? request.fields().stream()
@@ -565,6 +615,7 @@ public class AttendanceRoutes implements Routes {
             responses = @OpenApiResponse(status = "201", content = @OpenApiContent(from = AttendanceEntry[].class)))
     private void createEntry(Context ctx) {
         int sessionId = ctx.pathParamAsClass("sessionId", Integer.class).get();
+        verifySessionOwnership(sessionId, UserSession.from(ctx));
         var request = ctx.bodyAsClass(CreateEntryRequest.class);
         if (request.memberId() == null) {
             throw new BadRequestResponse("memberId is required");
@@ -657,6 +708,7 @@ public class AttendanceRoutes implements Routes {
         try {
             status = AttendanceEntry.AttendanceStatus.valueOf(request.status());
         } catch (IllegalArgumentException e) {
+            log.warn("Invalid attendance status value: {}", request.status(), e);
             throw new BadRequestResponse("status must be UNCONFIRMED, PRESENT, ABSENT, or DECLINED");
         }
         if (attendanceService.updateEntryStatus(id, status)) {
@@ -694,6 +746,7 @@ public class AttendanceRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = AttendanceEntry[].class)))
     private void syncFromEvent(Context ctx) {
         int sessionId = ctx.pathParamAsClass("sessionId", Integer.class).get();
+        verifySessionOwnership(sessionId, UserSession.from(ctx));
         ctx.json(attendanceService.syncFromEvent(sessionId));
     }
 
@@ -712,6 +765,7 @@ public class AttendanceRoutes implements Routes {
     private void exportPdf(Context ctx) {
         int sessionId = ctx.pathParamAsClass("sessionId", Integer.class).get();
         UserSession session = UserSession.from(ctx);
+        verifySessionOwnership(sessionId, session);
         String generatedBy =
                 (session.account().firstName() + " " + session.account().lastName()).trim();
         var pdf = exportService.exportSessionPdf(sessionId, generatedBy);
@@ -729,11 +783,11 @@ public class AttendanceRoutes implements Routes {
             summary = "Preview an attendance report",
             tags = {"Attendance"},
             queryParams = {
-                @OpenApiParam(name = "role", type = String.class),
+                @OpenApiParam(name = "role"),
                 @OpenApiParam(name = "groupId", type = Integer.class),
-                @OpenApiParam(name = "from", type = String.class, required = true),
-                @OpenApiParam(name = "to", type = String.class, required = true),
-                @OpenApiParam(name = "rounding", type = String.class)
+                @OpenApiParam(name = "from", required = true),
+                @OpenApiParam(name = "to", required = true),
+                @OpenApiParam(name = "rounding")
             },
             responses = {
                 @OpenApiResponse(status = "200", content = @OpenApiContent(from = ReportData.class)),
@@ -764,12 +818,12 @@ public class AttendanceRoutes implements Routes {
             summary = "Export an attendance report as PDF",
             tags = {"Attendance"},
             queryParams = {
-                @OpenApiParam(name = "role", type = String.class),
+                @OpenApiParam(name = "role"),
                 @OpenApiParam(name = "groupId", type = Integer.class),
-                @OpenApiParam(name = "from", type = String.class, required = true),
-                @OpenApiParam(name = "to", type = String.class, required = true),
-                @OpenApiParam(name = "rounding", type = String.class),
-                @OpenApiParam(name = "period", type = String.class)
+                @OpenApiParam(name = "from", required = true),
+                @OpenApiParam(name = "to", required = true),
+                @OpenApiParam(name = "rounding"),
+                @OpenApiParam(name = "period")
             },
             responses = {
                 @OpenApiResponse(status = "200"),

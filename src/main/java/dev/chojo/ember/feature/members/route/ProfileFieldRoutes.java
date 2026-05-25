@@ -29,6 +29,8 @@ import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 
@@ -38,6 +40,8 @@ import java.util.List;
  */
 @Singleton
 public class ProfileFieldRoutes implements Routes {
+    private static final Logger log = LoggerFactory.getLogger(ProfileFieldRoutes.class);
+
     private final ProfileFieldService profileFieldService;
 
     @Inject
@@ -53,14 +57,14 @@ public class ProfileFieldRoutes implements Routes {
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        // Field definitions (station config) — requires MEMBER_MANAGEMENT
+        // Field definitions (station config) — requires MEMBER_MANAGER
         routes.get(prefix + "/profile-fields", this::list, Roles.USER);
-        routes.post(prefix + "/profile-fields", this::create, Roles.MEMBER_MANAGEMENT);
+        routes.post(prefix + "/profile-fields", this::create, Roles.MEMBER_MANAGER);
         routes.get(prefix + "/profile-fields/{id}", this::get, Roles.USER);
-        routes.put(prefix + "/profile-fields/{id}", this::update, Roles.MEMBER_MANAGEMENT);
-        routes.delete(prefix + "/profile-fields/{id}", this::delete, Roles.MEMBER_MANAGEMENT);
+        routes.put(prefix + "/profile-fields/{id}", this::update, Roles.MEMBER_MANAGER);
+        routes.delete(prefix + "/profile-fields/{id}", this::delete, Roles.MEMBER_MANAGER);
 
-        // Field values per member — MEMBER or TEAM can read/write own, MEMBER_MANAGEMENT for any
+        // Field values per member — MEMBER or TEAM can read/write own, MEMBER_MANAGER for any
         routes.get(prefix + "/station-members/{memberId}/profile", this::getValues, Roles.USER);
         routes.put(prefix + "/station-members/{memberId}/profile", this::setValues, Roles.USER);
     }
@@ -95,6 +99,7 @@ public class ProfileFieldRoutes implements Routes {
         try {
             ProfileFieldType.valueOf(request.fieldType().toUpperCase());
         } catch (IllegalArgumentException e) {
+            log.warn("Invalid profile field type: {}", request.fieldType(), e);
             throw new BadRequestResponse("Invalid field type: " + request.fieldType());
         }
         ctx.status(HttpStatus.CREATED)
@@ -200,7 +205,7 @@ public class ProfileFieldRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         int memberId = ctx.pathParamAsClass("memberId", Integer.class).get();
         var request = ctx.bodyAsClass(SetValuesRequest.class);
-        boolean canEditReadonly = session.hasRole(Roles.MEMBER_MANAGEMENT);
+        boolean canEditReadonly = session.hasRole(Roles.MEMBER_MANAGER);
 
         List<ProfileFieldService.FieldValueEntry> entries = request.values() != null
                 ? request.values().stream()

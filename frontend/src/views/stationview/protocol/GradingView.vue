@@ -17,8 +17,8 @@ import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
 import { useSession } from '@/composables/useSession'
-import { useStations } from '@/composables/useStations'
 import { protocol, stationMembers } from '@/api'
 import type { TestProtocolSection, TestProtocolItem } from '@/api/protocol'
 import type { StationMember } from '@/api/types'
@@ -27,7 +27,7 @@ const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
 const { loaded } = useSession()
-const { currentStationId } = useStations()
+
 
 const runId = computed(() => Number(route.params.id))
 const memberId = computed(() => Number(route.params.memberId))
@@ -131,7 +131,7 @@ async function loadData() {
       protocol.getProtocol((await protocol.getRun(runId.value)).run.protocolId),
       protocol.getChecks(runId.value, memberId.value),
       protocol.getSectionsDone(runId.value, memberId.value),
-      stationMembers.listMembers(currentStationId.value!),
+      stationMembers.listMembers(),
     ])
     sections.value = protocolData.sections
     items.value = protocolData.items
@@ -255,16 +255,16 @@ onMounted(() => { if (loaded.value) loadData() })
       <!-- Current section -->
       <NeutralContainer class="space-y-3 mb-4">
         <div class="flex items-center justify-between">
-          <h2 class="text-lg font-bold">
+          <SectionHeader class="font-bold">
             <font-awesome-icon v-if="doneSections.has(currentSection.id)" :icon="['fas', 'circle-check']" class="w-4 h-4 text-[var(--success)] mr-1" />
             {{ currentSection.name }}
-          </h2>
+          </SectionHeader>
           <div class="flex items-center gap-2">
             <SuccessBadge>{{ currentSectionScore }} / {{ currentSectionMaxPoints }}P</SuccessBadge>
-            <SuccessButton v-if="!doneSections.has(currentSection.id)" class="!text-xs !py-1 !px-2" @click="toggleSectionDone(currentSection.id)">
+            <SuccessButton compact v-if="!doneSections.has(currentSection.id)" @click="toggleSectionDone(currentSection.id)">
               <font-awesome-icon :icon="['fas', 'check']" class="mr-1" /> {{ t('protocol.markDone') }}
             </SuccessButton>
-            <SecondaryButton v-else class="!text-xs !py-1 !px-2" @click="toggleSectionDone(currentSection.id)">
+            <SecondaryButton compact v-else @click="toggleSectionDone(currentSection.id)">
               <font-awesome-icon :icon="['fas', 'xmark']" class="mr-1" /> {{ t('protocol.unmarkDone') }}
             </SecondaryButton>
           </div>
@@ -274,7 +274,7 @@ onMounted(() => { if (loaded.value) loadData() })
         <div v-for="item in sectionItems(currentSection.id)" :key="item.id">
           <button
             type="button"
-            class="w-full flex items-center gap-3 p-3 rounded-lg border-2 transition-all text-left cursor-pointer"
+            class="w-full flex items-center gap-2 p-3 rounded-lg border-2 transition-all text-left cursor-pointer"
             :class="checks.get(item.id)
               ? 'border-[var(--success)] bg-[color-mix(in_srgb,var(--success)_10%,transparent)]'
               : 'border-[var(--border)] hover:border-[var(--text-muted)]'"
@@ -292,13 +292,13 @@ onMounted(() => { if (loaded.value) loadData() })
         <!-- Subsections -->
         <template v-for="sub in childSections(currentSection.id)" :key="sub.id">
           <div class="border-t border-[var(--border)] pt-3 mt-3">
-            <h3 class="font-medium text-sm mb-2">{{ sub.name }}</h3>
+            <SubHeader class="text-sm mb-2">{{ sub.name }}</SubHeader>
             <div class="space-y-2">
               <button
                 v-for="item in sectionItems(sub.id)"
                 :key="item.id"
                 type="button"
-                class="w-full flex items-center gap-3 p-3 rounded-lg border-2 transition-all text-left cursor-pointer"
+                class="w-full flex items-center gap-2 p-3 rounded-lg border-2 transition-all text-left cursor-pointer"
                 :class="checks.get(item.id)
                   ? 'border-[var(--success)] bg-[color-mix(in_srgb,var(--success)_10%,transparent)]'
                   : 'border-[var(--border)] hover:border-[var(--text-muted)]'"
@@ -317,7 +317,7 @@ onMounted(() => { if (loaded.value) loadData() })
       </NeutralContainer>
 
       <!-- Navigation -->
-      <div class="flex items-center gap-3">
+      <div class="flex items-center gap-2">
         <SecondaryButton v-if="currentSectionIndex > 0" @click="savePrev" :disabled="saving">
           <font-awesome-icon :icon="['fas', 'chevron-left']" class="mr-1" /> {{ t('protocol.prevSection') }}
         </SecondaryButton>

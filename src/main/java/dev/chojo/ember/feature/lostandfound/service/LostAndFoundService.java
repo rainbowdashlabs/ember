@@ -98,7 +98,7 @@ public class LostAndFoundService {
 
     /**
      * Claims a lost and found item for a member. On success, notifies managers with the
-     * LOST_AND_FOUND_MANAGEMENT role and removes the "new item" notification.
+     * LOST_AND_FOUND_MANAGER role and removes the "new item" notification.
      *
      * @param id          the item ID to claim
      * @param claimedBy   the member ID claiming the item
@@ -113,7 +113,7 @@ public class LostAndFoundService {
             String desc = item.description() != null ? item.description() : "";
             notificationService.notifyMembersWithRole(
                     stationId,
-                    "LOST_AND_FOUND_MANAGEMENT",
+                    "LOST_AND_FOUND_MANAGER",
                     NotificationType.LOST_AND_FOUND_CLAIMED,
                     NotificationData.of(
                             new NotificationParams.LostAndFoundClaimed(claimerName, desc),

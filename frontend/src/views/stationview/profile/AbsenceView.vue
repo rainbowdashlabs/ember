@@ -24,6 +24,8 @@ import {absences, managedMembers as managedMembersApi} from '@/api'
 import type {MemberAbsence} from '@/api/absences'
 import {useSession} from '@/composables/useSession'
 import MemberName from '@/components/avatar/MemberName.vue'
+import FieldLabel from '@/components/typography/FieldLabel.vue'
+import MutedText from '@/components/typography/MutedText.vue'
 
 const {t} = useI18n()
 const {sessionInfo, loaded, isGuardian} = useSession()
@@ -156,8 +158,7 @@ watch(loaded, (isLoaded) => {
       <template v-if="!loading">
         <div class="flex items-center justify-between">
           <div/>
-          <SecondaryButton @click="openAddForm">
-            <font-awesome-icon :icon="['fas', 'plus']" class="mr-1"/>
+          <SecondaryButton :icon="['fas', 'plus']" @click="openAddForm">
             {{ t('profile.absenceAdd') }}
           </SecondaryButton>
         </div>
@@ -166,22 +167,22 @@ watch(loaded, (isLoaded) => {
         <NeutralContainer v-if="showAddAbsence" class="space-y-4">
           <div class="grid gap-4 sm:grid-cols-3">
             <div class="space-y-1">
-              <label class="block text-sm font-medium">{{ t('profile.absenceFrom') }}</label>
+              <FieldLabel>{{ t('profile.absenceFrom') }}</FieldLabel>
               <DateInput v-model="newAbsenceFrom"/>
             </div>
             <div class="space-y-1">
-              <label class="block text-sm font-medium">{{ t('profile.absenceUntil') }}</label>
+              <FieldLabel>{{ t('profile.absenceUntil') }}</FieldLabel>
               <DateInput v-model="newAbsenceUntil"/>
             </div>
             <div class="space-y-1">
-              <label class="block text-sm font-medium">{{ t('profile.absenceReason') }}</label>
+              <FieldLabel>{{ t('profile.absenceReason') }}</FieldLabel>
               <TextAreaInput v-model="newAbsenceReason" :placeholder="t('profile.absenceReasonPlaceholder')"/>
             </div>
           </div>
 
           <!-- Member selection -->
           <div class="space-y-2">
-            <label class="block text-sm font-medium">{{ t('profile.absenceFor') }}</label>
+            <FieldLabel>{{ t('profile.absenceFor') }}</FieldLabel>
             <div class="flex flex-wrap gap-2">
               <SelectionToggleButton
                   :selected="selectedMemberIds.has(currentMemberId)"
@@ -231,7 +232,7 @@ watch(loaded, (isLoaded) => {
                 <span class="text-sm">{{ formatDate(absence.absentFrom) }} – {{
                     formatDate(absence.absentUntil)
                   }}</span>
-                <span v-if="absence.reason" class="ml-3 text-sm text-(--text-muted)">{{ absence.reason }}</span>
+                <MutedText size="sm" class="ml-3" v-if="absence.reason">{{ absence.reason }}</MutedText>
                 <span v-if="absence.createdByName" class="ml-3 text-xs text-(--text-muted) italic">{{ t('common.createdBy', { name: absence.createdByName }) }}</span>
               </div>
               <div class="flex items-center gap-2">

@@ -31,6 +31,8 @@ import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.time.Instant;
@@ -44,6 +46,7 @@ import java.util.Set;
  */
 @Singleton
 public class LostAndFoundRoutes implements Routes {
+    private static final Logger log = LoggerFactory.getLogger(LostAndFoundRoutes.class);
     private static final Set<String> ALLOWED_IMAGE_TYPES = Set.of("image/png", "image/jpeg", "image/webp");
 
     private final LostAndFoundService lostAndFoundService;
@@ -72,13 +75,13 @@ public class LostAndFoundRoutes implements Routes {
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
         routes.get(prefix + "/lost-and-found", this::list, Roles.LOGIN);
-        routes.post(prefix + "/lost-and-found", this::create, Roles.LOST_AND_FOUND_MANAGEMENT);
+        routes.post(prefix + "/lost-and-found", this::create, Roles.LOST_AND_FOUND_MANAGER);
         routes.get(prefix + "/lost-and-found/{id}", this::getById, Roles.LOGIN);
         routes.get(prefix + "/lost-and-found/{id}/image", this::getImage, Roles.LOGIN);
-        routes.post(prefix + "/lost-and-found/{id}/image", this::uploadImage, Roles.LOST_AND_FOUND_MANAGEMENT);
+        routes.post(prefix + "/lost-and-found/{id}/image", this::uploadImage, Roles.LOST_AND_FOUND_MANAGER);
         routes.post(prefix + "/lost-and-found/{id}/claim", this::claim, Roles.LOGIN);
-        routes.post(prefix + "/lost-and-found/{id}/provided", this::provided, Roles.LOST_AND_FOUND_MANAGEMENT);
-        routes.delete(prefix + "/lost-and-found/{id}", this::delete, Roles.LOST_AND_FOUND_MANAGEMENT);
+        routes.post(prefix + "/lost-and-found/{id}/provided", this::provided, Roles.LOST_AND_FOUND_MANAGER);
+        routes.delete(prefix + "/lost-and-found/{id}", this::delete, Roles.LOST_AND_FOUND_MANAGER);
     }
 
     @OpenApi(
@@ -93,7 +96,7 @@ public class LostAndFoundRoutes implements Routes {
                             content = @OpenApiContent(from = LostAndFoundItemResponse[].class)))
     private void list(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        boolean isManager = session.roles().contains(Roles.LOST_AND_FOUND_MANAGEMENT);
+        boolean isManager = session.roles().contains(Roles.LOST_AND_FOUND_MANAGER);
         var items = isManager
                 ? lostAndFoundService.findByStation(session.stationId())
                 : lostAndFoundService.findUnclaimedOrClaimedBy(
@@ -184,8 +187,10 @@ public class LostAndFoundRoutes implements Routes {
                     apiConfig.maxImageSizeBytes());
             ctx.json(new MessageResponse("Image uploaded"));
         } catch (IllegalArgumentException e) {
+            log.warn("Invalid argument storing lost-and-found image for item {}", id, e);
             throw new BadRequestResponse(e.getMessage());
         } catch (IOException e) {
+            log.error("Failed to process lost-and-found image for item {}", id, e);
             throw new InternalServerErrorResponse("Failed to process image");
         }
     }

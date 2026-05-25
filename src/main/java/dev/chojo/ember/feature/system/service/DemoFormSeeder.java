@@ -9,6 +9,8 @@ import dev.chojo.ember.feature.form.entity.Form;
 import dev.chojo.ember.feature.form.entity.FormQuestion;
 import dev.chojo.ember.feature.form.repository.FormRepository;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.restriction.RestrictionRepository;
+import dev.chojo.ember.feature.restriction.RestrictionType;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -26,10 +28,12 @@ public class DemoFormSeeder {
     private static final Logger log = LoggerFactory.getLogger(DemoFormSeeder.class);
 
     private final FormRepository formRepository;
+    private final RestrictionRepository restrictionRepository;
 
     @Inject
-    public DemoFormSeeder(FormRepository formRepository) {
+    public DemoFormSeeder(FormRepository formRepository, RestrictionRepository restrictionRepository) {
         this.formRepository = formRepository;
+        this.restrictionRepository = restrictionRepository;
     }
 
     public void seedForms(
@@ -289,7 +293,14 @@ public class DemoFormSeeder {
                 true,
                 false,
                 "{\"multiSelect\":false,\"dropdown\":false,\"allowOther\":false,\"options\":[\"Ja, unbedingt!\",\"Vielleicht\",\"Nein, lieber nicht\"],\"multiLimitType\":\"NONE\"}");
-        formRepository.setRoleRestrictions(memberOnly.id(), List.of(memberRoleId));
+        restrictionRepository.setRestrictions(
+                RestrictionType.FORM.table(),
+                RestrictionType.FORM.fkColumn(),
+                memberOnly.id(),
+                List.of(memberRoleId),
+                List.of(),
+                List.of(),
+                List.of());
 
         // Form 4: For MEMBER + GUARDIAN (both can fill for themselves)
         var bothRoles = formRepository.create(
@@ -320,7 +331,14 @@ public class DemoFormSeeder {
                 false,
                 false,
                 "{\"multiSelect\":false,\"dropdown\":false,\"allowOther\":false,\"options\":[\"Ja\",\"Nein\",\"Vielleicht\"],\"multiLimitType\":\"NONE\"}");
-        formRepository.setRoleRestrictions(bothRoles.id(), List.of(memberRoleId, memberManagerRoleId));
+        restrictionRepository.setRestrictions(
+                RestrictionType.FORM.table(),
+                RestrictionType.FORM.fkColumn(),
+                bothRoles.id(),
+                List.of(memberRoleId, memberManagerRoleId),
+                List.of(),
+                List.of(),
+                List.of());
 
         // Form 5: Restricted to Wettkampfgruppe tag only
         var wettkampfForm = formRepository.create(
@@ -351,7 +369,14 @@ public class DemoFormSeeder {
                 true,
                 false,
                 "{\"multiSelect\":true,\"dropdown\":false,\"allowOther\":true,\"options\":[\"Löschangriff\",\"Staffellauf\",\"Knotenkunde\",\"Erste Hilfe\"],\"multiLimitType\":\"AT_MOST\",\"multiLimit\":2}");
-        formRepository.setTagRestrictions(wettkampfForm.id(), List.of(wettkampfTagId));
+        restrictionRepository.setRestrictions(
+                RestrictionType.FORM.table(),
+                RestrictionType.FORM.fkColumn(),
+                wettkampfForm.id(),
+                List.of(),
+                List.of(),
+                List.of(wettkampfTagId),
+                List.of());
 
         // Form 6: Restricted to Anfänger group only
         var anfaengerForm = formRepository.create(
@@ -382,7 +407,14 @@ public class DemoFormSeeder {
                 false,
                 false,
                 "{\"longAnswer\":true}");
-        formRepository.setGroupRestrictions(anfaengerForm.id(), List.of(anfaengerGroupId));
+        restrictionRepository.setRestrictions(
+                RestrictionType.FORM.table(),
+                RestrictionType.FORM.fkColumn(),
+                anfaengerForm.id(),
+                List.of(),
+                List.of(anfaengerGroupId),
+                List.of(),
+                List.of());
 
         log.info(
                 "Demo: Created 6 forms (open all types, closed all types, member-only, member+manager, tag-restricted, group-restricted)");

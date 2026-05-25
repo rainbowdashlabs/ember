@@ -14,6 +14,7 @@ import Alert from '@/components/feedback/Alert.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
+import PageHeader from '@/components/typography/PageHeader.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
@@ -104,7 +105,7 @@ onMounted(loadStatus)
     <div class="w-full max-w-lg space-y-6">
       <div class="text-center">
         <font-awesome-icon :icon="['fas', 'clipboard-list']" class="text-4xl text-primary mb-3" />
-        <h1 class="text-2xl font-bold">{{ t('waitingList.publicStatus.title') }}</h1>
+        <PageHeader class="text-2xl font-bold">{{ t('waitingList.publicStatus.title') }}</PageHeader>
       </div>
 
       <Spinner v-if="loading" size="md" />
@@ -120,7 +121,7 @@ onMounted(loadStatus)
       <template v-if="!loading && status && !removed">
         <NeutralContainer class="space-y-4">
           <div class="text-center space-y-1">
-            <h2 class="text-lg font-semibold">{{ status.listName }}</h2>
+            <SectionHeader class="text-lg font-semibold">{{ status.listName }}</SectionHeader>
           </div>
 
           <div class="grid gap-3 sm:grid-cols-2">
@@ -163,12 +164,10 @@ onMounted(loadStatus)
 
         <!-- Actions -->
         <div v-if="status.status === 'WAITING'" class="flex flex-col sm:flex-row gap-3">
-          <PrimaryButton :disabled="confirming" class="flex-1" @click="confirmInterest">
-            <font-awesome-icon :icon="['fas', 'check']" class="mr-2" />
+          <PrimaryButton :icon="['fas', 'check']" :disabled="confirming" class="flex-1" @click="confirmInterest">
             {{ confirming ? t('common.loading') : t('waitingList.publicStatus.confirmInterest') }}
           </PrimaryButton>
-          <ErrorButton class="flex-1" @click="showRemoveModal = true">
-            <font-awesome-icon :icon="['fas', 'xmark']" class="mr-2" />
+          <ErrorButton :icon="['fas', 'xmark']" class="flex-1" @click="showRemoveModal = true">
             {{ t('waitingList.publicStatus.removeFromList') }}
           </ErrorButton>
         </div>

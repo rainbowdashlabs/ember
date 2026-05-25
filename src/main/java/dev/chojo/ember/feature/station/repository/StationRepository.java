@@ -7,6 +7,8 @@ package dev.chojo.ember.feature.station.repository;
 
 import de.chojo.sadu.queries.api.call.Call;
 import de.chojo.sadu.queries.api.query.Query;
+import de.chojo.sadu.queries.converter.StandardValueConverter;
+import dev.chojo.ember.feature.station.entity.DiscoveryVisibility;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.entity.StationModule;
 import jakarta.inject.Singleton;
@@ -14,6 +16,7 @@ import jakarta.inject.Singleton;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 
 /**
  * Repository for station CRUD operations, logo management, and module settings.
@@ -22,7 +25,7 @@ import java.util.Set;
 public class StationRepository {
 
     private static final String STATION_COLUMNS =
-            "id, name, timezone, locale, owner_member_id, default_theme, allow_user_theme, custom_theme_colors";
+            "id, uid, name, timezone, locale, owner_member_id, default_theme, allow_user_theme, custom_theme_colors, public_kb_mode, federation_private_key, discovery_visibility, discovery_description, discovery_show_kb";
 
     /**
      * Finds a station by its ID.
@@ -38,12 +41,25 @@ public class StationRepository {
     }
 
     /**
+     * Finds a station by its external UUID.
+     *
+     * @param uid the station UUID
+     * @return the station, or empty if not found
+     */
+    public Optional<Station> findByUid(UUID uid) {
+        return Query.query("SELECT " + STATION_COLUMNS + " FROM station WHERE uid = :uid::uuid;")
+                .single(Call.of().bind("uid", uid, StandardValueConverter.UUID_STRING))
+                .map(Station.map())
+                .first();
+    }
+
+    /**
      * Retrieves all stations.
      *
      * @return a list of all stations
      */
     public List<Station> findAll() {
-        return Query.query("SELECT " + STATION_COLUMNS + " FROM station;")
+        return Query.query("SELECT " + STATION_COLUMNS + " FROM station ORDER BY id;")
                 .single()
                 .map(Station.map())
                 .all();
@@ -101,6 +117,20 @@ public class StationRepository {
     public boolean updateLocale(int id, String locale) {
         return Query.query("UPDATE station SET locale = :locale WHERE id = :id;")
                 .single(Call.of().bind("locale", locale).bind("id", id))
+                .update()
+                .changed();
+    }
+
+    public boolean updatePublicKbMode(int id, String mode) {
+        return Query.query("UPDATE station SET public_kb_mode = :mode WHERE id = :id;")
+                .single(Call.of().bind("mode", mode).bind("id", id))
+                .update()
+                .changed();
+    }
+
+    public boolean updateFederationPrivateKey(int id, String privateKey) {
+        return Query.query("UPDATE station SET federation_private_key = :key WHERE id = :id;")
+                .single(Call.of().bind("key", privateKey).bind("id", id))
                 .update()
                 .changed();
     }
@@ -216,6 +246,48 @@ public class StationRepository {
                     .single(Call.of().bind("station_id", stationId).bind("module", module))
                     .insert();
         }
+    }
+
+    /**
+     * Updates the UUID of a station (used during import to preserve the original UUID).
+     */
+    public void updateUid(int id, UUID uid) {
+        Query.query("UPDATE station SET uid = :uid::uuid WHERE id = :id;")
+                .single(Call.of()
+                        .bind("uid", uid, StandardValueConverter.UUID_STRING)
+                        .bind("id", id))
+                .update();
+    }
+
+    /**
+     * Updates the discovery settings for a station.
+     */
+    public boolean updateDiscoverySettings(int id, DiscoveryVisibility visibility, String description, boolean showKb) {
+        return Query.query("""
+                        UPDATE station SET discovery_visibility = :visibility, discovery_description = :description,
+                        discovery_show_kb = :show_kb WHERE id = :id;""")
+                .single(Call.of()
+                        .bind("id", id)
+                        .bind("visibility", visibility)
+                        .bind("description", description)
+                        .bind("show_kb", showKb))
+                .update()
+                .changed();
+    }
+
+    /**
+     * Finds all stations visible to the given visibility levels, excluding the given station.
+     */
+    public List<Station> findDiscoverable(int excludeStationId, DiscoveryVisibility visA, DiscoveryVisibility visB) {
+        return Query.query(
+                        "SELECT " + STATION_COLUMNS
+                                + " FROM station WHERE id != :exclude_id AND discovery_visibility IN (:vis_a, :vis_b) ORDER BY name;")
+                .single(Call.of()
+                        .bind("exclude_id", excludeStationId)
+                        .bind("vis_a", visA)
+                        .bind("vis_b", visB))
+                .map(Station.map())
+                .all();
     }
 
     /**

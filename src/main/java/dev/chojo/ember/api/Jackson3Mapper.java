@@ -24,7 +24,6 @@ import java.util.stream.Stream;
  */
 public class Jackson3Mapper implements JsonMapper {
     private final ObjectMapper mapper;
-    private final PipedStreamExecutor executor;
 
     /**
      * Creates a mapper using the given Jackson {@link ObjectMapper} with blocking threads.
@@ -43,7 +42,7 @@ public class Jackson3Mapper implements JsonMapper {
      */
     public Jackson3Mapper(ObjectMapper mapper, boolean useVirtualThreads) {
         this.mapper = mapper;
-        this.executor = new PipedStreamExecutor(useVirtualThreads);
+        PipedStreamExecutor executor = new PipedStreamExecutor(useVirtualThreads);
     }
 
     @Override

@@ -45,6 +45,7 @@ const {
   canManageWaitlist,
   canManageQuiz,
   canManageProtocol,
+  canManageFederation,
   canTestProtocol,
   isGuardian,
   isModuleEnabled,
@@ -173,6 +174,14 @@ async function handleLogout() {
                      @navigate="close">
           {{ t('sidebar.membersConfig') }}
         </SidebarLink>
+        <SidebarLink v-if="canManageFederation()" :icon="['fas', 'arrow-right-arrow-left']" name="station-federation" to="/station/manage/federation"
+                     @navigate="close">
+          {{ t('sidebar.federation') }}
+        </SidebarLink>
+        <SidebarLink :icon="['fas', 'compass']" name="station-discovery" to="/station/manage/discovery"
+                     @navigate="close">
+          {{ t('sidebar.discovery') }}
+        </SidebarLink>
       </SidebarGroup>
 
       <SidebarGroup :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => openGroup = v" v-if="canManageMembers()" :badge="pendingChangesCount" :icon="['fas', 'users']"
@@ -238,6 +247,10 @@ async function handleLogout() {
         <SidebarLink v-if="canManageInventory()" :icon="['fas', 'folder-plus']" name="inventory-procurement" to="/station/inventory/procurement"
                      @navigate="close">
           {{ t('sidebar.inventoryProcurement') }}
+        </SidebarLink>
+        <SidebarLink v-if="canManageInventory() && canManageFederation()" :icon="['fas', 'handshake']" name="inventory-lending" to="/station/inventory/lending"
+                     @navigate="close">
+          {{ t('sidebar.inventoryLending') }}
         </SidebarLink>
       </SidebarGroup>
 

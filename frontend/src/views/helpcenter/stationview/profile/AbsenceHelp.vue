@@ -15,11 +15,14 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
+import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
 import DateInput from '@/components/input/datetime/DateInput.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
+import FieldLabel from '@/components/typography/FieldLabel.vue'
+import MutedText from '@/components/typography/MutedText.vue'
 
 const {t} = useI18n()
 
@@ -50,15 +53,15 @@ const activeRole = ref('')
     <NeutralContainer class="space-y-4">
       <div class="grid gap-4 sm:grid-cols-3">
         <div class="space-y-1">
-          <label class="block text-sm font-medium">{{ t('profile.absenceFrom') }}</label>
+          <FieldLabel>{{ t('profile.absenceFrom') }}</FieldLabel>
           <DateInput model-value="2026-06-01"/>
         </div>
         <div class="space-y-1">
-          <label class="block text-sm font-medium">{{ t('profile.absenceUntil') }}</label>
+          <FieldLabel>{{ t('profile.absenceUntil') }}</FieldLabel>
           <DateInput model-value="2026-06-14"/>
         </div>
         <div class="space-y-1">
-          <label class="block text-sm font-medium">{{ t('profile.absenceReason') }}</label>
+          <FieldLabel>{{ t('profile.absenceReason') }}</FieldLabel>
           <TextAreaInput model-value="Sommerurlaub" :placeholder="t('profile.absenceReasonPlaceholder')"/>
         </div>
       </div>
@@ -66,20 +69,17 @@ const activeRole = ref('')
       <!-- Dummy: Member selection for managers -->
       <template v-if="activeRole === 'memberManager'">
         <div class="space-y-2">
-          <label class="block text-sm font-medium">{{ t('profile.absenceFor') }}</label>
+          <FieldLabel>{{ t('profile.absenceFor') }}</FieldLabel>
           <div class="flex flex-wrap gap-2">
-            <button type="button"
-                    class="rounded-lg px-3 py-1.5 text-sm font-medium border transition-all border-primary bg-primary/10 text-primary ring-1 ring-primary/30">
+            <SelectionToggleButton :selected="true" size="md">
               {{ t('profile.absenceMyself') }}
-            </button>
-            <button type="button"
-                    class="rounded-lg px-3 py-1.5 text-sm font-medium border transition-all border-primary bg-primary/10 text-primary ring-1 ring-primary/30">
+            </SelectionToggleButton>
+            <SelectionToggleButton :selected="true" size="md">
               Lena Mustermann
-            </button>
-            <button type="button"
-                    class="rounded-lg px-3 py-1.5 text-sm font-medium border transition-all border-bg-light-accent dark:border-bg-dark-accent text-(--text-muted) hover:border-primary">
+            </SelectionToggleButton>
+            <SelectionToggleButton :selected="false" size="md">
               Tim Mustermann
-            </button>
+            </SelectionToggleButton>
           </div>
         </div>
       </template>
@@ -102,7 +102,7 @@ const activeRole = ref('')
         <div class="flex items-center justify-between flex-wrap gap-2">
           <div>
             <span class="text-sm">01.06.2026 – 14.06.2026</span>
-            <span class="ml-3 text-sm text-(--text-muted)">Sommerurlaub</span>
+            <MutedText size="sm" class="ml-3">Sommerurlaub</MutedText>
           </div>
           <div class="flex items-center gap-2">
             <InfoBadge>{{ t('profile.absenceUpcoming') }}</InfoBadge>
@@ -114,7 +114,7 @@ const activeRole = ref('')
         <div class="flex items-center justify-between flex-wrap gap-2">
           <div>
             <span class="text-sm">10.05.2026 – 16.05.2026</span>
-            <span class="ml-3 text-sm text-(--text-muted)">Klassenfahrt</span>
+            <MutedText size="sm" class="ml-3">Klassenfahrt</MutedText>
           </div>
           <div class="flex items-center gap-2">
             <SuccessBadge>{{ t('profile.absenceActive') }}</SuccessBadge>
@@ -126,7 +126,7 @@ const activeRole = ref('')
         <div class="flex items-center justify-between flex-wrap gap-2">
           <div>
             <span class="text-sm">01.04.2026 – 05.04.2026</span>
-            <span class="ml-3 text-sm text-(--text-muted)">Krank</span>
+            <MutedText size="sm" class="ml-3">Krank</MutedText>
           </div>
           <div class="flex items-center gap-2">
             <ErrorBadge>{{ t('profile.absenceExpired') }}</ErrorBadge>

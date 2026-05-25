@@ -14,18 +14,22 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
-import TextInput from '@/components/input/text/TextInput.vue'
 import MarkdownEditor from '@/components/input/MarkdownEditor.vue'
+import IconButton from '@/components/button/IconButton.vue'
+import PageHeader from '@/components/typography/PageHeader.vue'
+import KbTagsSection from '@/views/stationview/knowledge/kbfileview/KbTagsSection.vue'
+import KbRelatedFilesSection from '@/views/stationview/knowledge/kbfileview/KbRelatedFilesSection.vue'
 import {useSession} from '@/composables/useSession'
 import {knowledgeBase} from '@/api'
 import type {KbFile, KbTag, MarkdownHtmlResponse} from '@/api/knowledgeBase'
 import {KbFileType} from '@/api/knowledgeBase'
 import {getItem} from '@/api/storage'
+import MutedText from '@/components/typography/MutedText.vue'
 
 const {t} = useI18n()
 const router = useRouter()
 const route = useRoute()
-const {canManageKnowledge, loaded} = useSession()
+const {canManageKnowledge, loaded, isKbPublic} = useSession()
 
 const file = ref<KbFile | null>(null)
 const lastEditedByName = ref<string | null>(null)
@@ -44,20 +48,31 @@ const textContent = ref('')
 // Tags
 const fileTags = ref<KbTag[]>([])
 const allStationTags = ref<KbTag[]>([])
-const newTagInput = ref('')
-const showTagSuggestions = ref(false)
 
 // Related files
 const relatedFiles = ref<KbFile[]>([])
-const showAddRelated = ref(false)
-const allStationFiles = ref<KbFile[]>([])
-const relatedSearchQuery = ref('')
 
 // Description editing
 const editingDescription = ref(false)
 const editDescriptionValue = ref('')
 
 const fileId = computed(() => Number(route.params.id))
+const isFederated = computed(() => {
+    if (!file.value) return false
+    const myStationId = getItem('station_id')
+    return file.value.stationId !== myStationId
+})
+
+async function copyToStation() {
+    if (!file.value) return
+    try {
+        const {federation} = await import('@/api')
+        await federation.copyKbFile(file.value.id)
+        router.push({name: 'kb-browse'})
+    } catch {
+        error.value = t('common.error')
+    }
+}
 
 // Process rendered HTML: add auth tokens to KB image URLs (leaves external URLs untouched)
 const renderedHtml = computed(() => {
@@ -173,28 +188,12 @@ async function saveContent() {
     }
 }
 
-function hideTagSuggestions() {
-    setTimeout(() => { showTagSuggestions.value = false }, 200)
-}
-
-const tagSuggestions = computed(() => {
-    const input = newTagInput.value.toLowerCase().trim()
-    if (!input) return []
-    const existing = new Set(fileTags.value.map(t => t.name.toLowerCase()))
-    return allStationTags.value
-        .filter(t => t.name.toLowerCase().includes(input) && !existing.has(t.name.toLowerCase()))
-        .slice(0, 8)
-})
-
-async function addTag(name?: string) {
-    const tagName = (name ?? newTagInput.value).trim()
-    if (!file.value || !tagName) return
+async function addTag(name: string) {
+    if (!file.value) return
     const tagNames = fileTags.value.map(t => t.name)
-    tagNames.push(tagName)
+    tagNames.push(name)
     fileTags.value = await knowledgeBase.setFileTags(file.value.id, tagNames)
     allStationTags.value = await knowledgeBase.listTags()
-    newTagInput.value = ''
-    showTagSuggestions.value = false
 }
 
 async function removeTag(tagName: string) {
@@ -220,25 +219,6 @@ async function saveDescription() {
     editingDescription.value = false
 }
 
-async function openAddRelated() {
-    showAddRelated.value = true
-    relatedSearchQuery.value = ''
-    // Load all files from the same station for picking
-    if (file.value) {
-        const browse = await knowledgeBase.browse()
-        allStationFiles.value = browse.files.filter(f => f.id !== file.value!.id)
-    }
-}
-
-const filteredRelatedCandidates = computed(() => {
-    const existingIds = new Set(relatedFiles.value.map(f => f.id))
-    const q = relatedSearchQuery.value.toLowerCase()
-    return allStationFiles.value
-        .filter(f => !existingIds.has(f.id))
-        .filter(f => !q || f.name.toLowerCase().includes(q) || f.description.toLowerCase().includes(q))
-        .slice(0, 10)
-})
-
 async function addRelatedFile(targetId: number) {
     if (!file.value) return
     const ids = [...relatedFiles.value.map(f => f.id), targetId]
@@ -259,6 +239,17 @@ function goBack() {
     }
 }
 
+const shareCopied = ref(false)
+function copyShareLink() {
+    if (!file.value) return
+    const stationUid = getItem('station_id') ?? ''
+    const url = `${window.location.origin}/public/kb/${stationUid}/file/${file.value.id}`
+    navigator.clipboard.writeText(url).then(() => {
+        shareCopied.value = true
+        setTimeout(() => { shareCopied.value = false }, 2000)
+    })
+}
+
 watch(loaded, (isLoaded) => {
     if (isLoaded) loadData()
 }, {immediate: true})
@@ -275,15 +266,27 @@ onMounted(() => {
 
         <template v-else-if="file">
             <!-- Header -->
-            <div class="flex flex-wrap items-center gap-3 mb-4">
+            <div class="flex flex-wrap items-center gap-2 mb-4">
                 <SecondaryButton @click="goBack">
                     <font-awesome-icon :icon="['fas', 'chevron-left']"/>
                     {{ t('kb.backToBrowse') }}
                 </SecondaryButton>
 
-                <h1 class="text-xl font-bold flex-1">{{ file.name }}</h1>
+                <PageHeader class="flex-1 !mb-0">{{ file.name }}</PageHeader>
 
-                <template v-if="canManageKnowledge()">
+                <IconButton
+                    v-if="isKbPublic()"
+                    :icon="['fas', shareCopied ? 'check' : 'share-nodes']"
+                    :label="t('kb.shareLink')"
+                    :class="shareCopied ? '!text-green-500' : '!text-[var(--text-muted)]'"
+                    @click="copyShareLink"
+                />
+
+                <PrimaryButton v-if="isFederated" @click="copyToStation">
+                    <font-awesome-icon :icon="['fas', 'copy']"/>
+                    {{ t('federation.copyToStation') }}
+                </PrimaryButton>
+                <template v-else-if="canManageKnowledge()">
                     <PrimaryButton
                         v-if="file.fileType === KbFileType.MARKDOWN || file.fileType === KbFileType.TEXT"
                         @click="toggleEdit"
@@ -311,16 +314,16 @@ onMounted(() => {
                     <font-awesome-icon :icon="['fas', 'xmark']"/>
                 </SecondaryButton>
             </div>
-            <p v-else-if="file.description || canManageKnowledge()" class="text-sm text-[var(--text-muted)] mb-4 group/desc">
+            <MutedText tag="p" size="sm" v-else-if="file.description || canManageKnowledge()" class="group/desc">
                 {{ file.description || t('kb.description') }}
-                <button
+                <IconButton
                     v-if="canManageKnowledge()"
-                    class="opacity-0 group-hover/desc:opacity-100 ml-1 text-[var(--primary)] transition-opacity cursor-pointer"
+                    :icon="['fas', 'pen']"
+                    :label="t('kb.edit')"
+                    class="opacity-0 group-hover/desc:opacity-100 ml-1 text-[var(--primary)] !p-0 text-xs"
                     @click="startEditDescription"
-                >
-                    <font-awesome-icon :icon="['fas', 'pen']" class="text-xs"/>
-                </button>
-            </p>
+                />
+            </MutedText>
 
             <!-- Last edit info -->
             <p v-if="file.updatedAt" class="text-xs text-[var(--text-muted)] mb-3">
@@ -328,113 +331,28 @@ onMounted(() => {
                 <span v-if="lastEditedByName"> &mdash; {{ lastEditedByName }}</span>
             </p>
 
-            <!-- Tags -->
-            <div v-if="fileTags.length > 0 || canManageKnowledge()" class="flex flex-wrap items-center gap-2 mb-4">
-                <font-awesome-icon :icon="['fas', 'tags']" class="text-xs text-[var(--text-muted)]"/>
-                <span
-                    v-for="tag in fileTags"
-                    :key="tag.id"
-                    class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-[var(--bg-accent)] text-[var(--text)]"
-                >
-                    {{ tag.name }}
-                    <button
-                        v-if="canManageKnowledge()"
-                        type="button"
-                        class="hover:text-[var(--error)] transition-colors cursor-pointer"
-                        @click="removeTag(tag.name)"
-                    >
-                        <font-awesome-icon :icon="['fas', 'xmark']" class="text-[10px]"/>
-                    </button>
-                </span>
-                <div v-if="canManageKnowledge()" class="relative inline-flex">
-                    <form @submit.prevent="addTag()">
-                        <TextInput
-                            v-model="newTagInput"
-                            :placeholder="t('kb.tagPlaceholder')"
-                            class="!py-0.5 !px-2 !text-xs w-32"
-                            @focus="showTagSuggestions = true"
-                            @blur="hideTagSuggestions"
-                        />
-                    </form>
-                    <div
-                        v-if="showTagSuggestions && tagSuggestions.length > 0"
-                        class="absolute top-full left-0 mt-1 z-20 min-w-40 rounded border border-[var(--border)] bg-[var(--bg)] shadow-lg py-1"
-                    >
-                        <button
-                            v-for="suggestion in tagSuggestions"
-                            :key="suggestion.id"
-                            type="button"
-                            class="w-full text-left px-3 py-1 text-xs hover:bg-[var(--bg-accent)] transition-colors cursor-pointer"
-                            @mousedown.prevent="addTag(suggestion.name)"
-                        >
-                            {{ suggestion.name }}
-                        </button>
-                    </div>
-                </div>
-            </div>
+            <!-- Tags (hide for federated files) -->
+            <KbTagsSection
+                v-if="!isFederated"
+                :tags="fileTags"
+                :all-tags="allStationTags"
+                :can-manage="canManageKnowledge()"
+                @add-tag="addTag"
+                @remove-tag="removeTag"
+            />
 
-            <!-- Related files / Further reading -->
-            <div v-if="relatedFiles.length > 0 || canManageKnowledge()" class="mb-4">
-                <div class="flex items-center gap-2 mb-2">
-                    <font-awesome-icon :icon="['fas', 'book-open']" class="text-xs text-[var(--text-muted)]"/>
-                    <span class="text-sm font-medium">{{ t('kb.relatedFiles') }}</span>
-                    <button
-                        v-if="canManageKnowledge()"
-                        type="button"
-                        class="text-[var(--primary)] text-xs hover:underline cursor-pointer"
-                        @click="openAddRelated"
-                    >
-                        <font-awesome-icon :icon="['fas', 'plus']" /> {{ t('common.add') }}
-                    </button>
-                </div>
-                <div class="flex flex-wrap gap-2">
-                    <router-link
-                        v-for="rf in relatedFiles"
-                        :key="rf.id"
-                        :to="{name: 'kb-file', params: {id: rf.id}}"
-                        class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-sm bg-[var(--bg-accent)] border border-[var(--border)] hover:border-[var(--primary)] transition-colors group/rf"
-                    >
-                        <font-awesome-icon :icon="['fas', 'file-lines']" class="text-xs text-[var(--primary)]"/>
-                        {{ rf.name }}
-                        <button
-                            v-if="canManageKnowledge()"
-                            type="button"
-                            class="opacity-0 group-hover/rf:opacity-100 text-[var(--error)] transition-opacity cursor-pointer"
-                            @click.prevent="removeRelatedFile(rf.id)"
-                        >
-                            <font-awesome-icon :icon="['fas', 'xmark']" class="text-[10px]"/>
-                        </button>
-                    </router-link>
-                </div>
-                <!-- Add related file picker -->
-                <div v-if="showAddRelated" class="mt-2 p-3 rounded-lg border border-[var(--border)] bg-[var(--bg)]">
-                    <TextInput
-                        v-model="relatedSearchQuery"
-                        :placeholder="t('kb.searchRelated')"
-                        class="!text-sm mb-2"
-                    />
-                    <div v-if="filteredRelatedCandidates.length > 0" class="flex flex-col gap-1 max-h-40 overflow-y-auto">
-                        <button
-                            v-for="candidate in filteredRelatedCandidates"
-                            :key="candidate.id"
-                            type="button"
-                            class="flex items-center gap-2 px-2 py-1 text-sm rounded hover:bg-[var(--bg-accent)] text-left transition-colors cursor-pointer"
-                            @click="addRelatedFile(candidate.id)"
-                        >
-                            <font-awesome-icon :icon="['fas', 'file-lines']" class="text-xs text-[var(--primary)]"/>
-                            <span class="truncate">{{ candidate.name }}</span>
-                            <span v-if="candidate.description" class="text-xs text-[var(--text-muted)] truncate">{{ candidate.description }}</span>
-                        </button>
-                    </div>
-                    <p v-else class="text-xs text-[var(--text-muted)]">{{ t('kb.noFilesFound') }}</p>
-                    <SecondaryButton class="mt-2 !text-xs !py-1 !px-2" @click="showAddRelated = false">
-                        {{ t('common.close') }}
-                    </SecondaryButton>
-                </div>
-            </div>
+            <!-- Related files (hide for federated files) -->
+            <KbRelatedFilesSection
+                v-if="!isFederated"
+                :related-files="relatedFiles"
+                :file-id="file.id"
+                :can-manage="canManageKnowledge()"
+                @add-related="addRelatedFile"
+                @remove-related="removeRelatedFile"
+            />
 
             <!-- Save bar -->
-            <div v-if="editing" class="flex items-center gap-3 mb-3">
+            <div v-if="editing" class="flex items-center gap-2 mb-3">
                 <PrimaryButton :disabled="saving || !hasUnsavedChanges" @click="saveContent">
                     <font-awesome-icon :icon="['fas', saving ? 'spinner' : 'check']" :spin="saving"/>
                     {{ t('kb.save') }}

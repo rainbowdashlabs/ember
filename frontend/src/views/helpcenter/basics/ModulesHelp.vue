@@ -11,6 +11,7 @@ import HelpTip from '@/components/helpcenter/HelpTip.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
+import BulletList from '@/components/typography/BulletList.vue'
 
 const {t} = useI18n()
 
@@ -33,7 +34,7 @@ const modules = [
     <HelpSection :title="t('helpCenter.basics.modules.available')">
       <div class="space-y-2">
         <NeutralContainer v-for="m in modules" :key="m.key" class="flex items-center justify-between p-3">
-          <div class="flex items-center gap-3">
+          <div class="flex items-center gap-2">
             <font-awesome-icon :icon="m.icon" class="h-4 w-4 text-primary shrink-0"/>
             <div>
               <p class="font-semibold text-sm">{{ t(`helpCenter.basics.modules.module.${m.key}.name`) }}</p>
@@ -69,12 +70,12 @@ const modules = [
 
     <HelpSection :title="t('helpCenter.basics.modules.navigation')">
       <p>{{ t('helpCenter.basics.modules.navigationText') }}</p>
-      <ul class="list-disc pl-5 space-y-1">
+      <BulletList>
         <li>{{ t('helpCenter.basics.modules.nav1') }}</li>
         <li>{{ t('helpCenter.basics.modules.nav2') }}</li>
         <li>{{ t('helpCenter.basics.modules.nav3') }}</li>
         <li>{{ t('helpCenter.basics.modules.nav4') }}</li>
-      </ul>
+      </BulletList>
     </HelpSection>
 
     <HelpSection :title="t('helpCenter.basics.modules.notifications')">

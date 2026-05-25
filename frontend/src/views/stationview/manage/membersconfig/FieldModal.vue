@@ -15,6 +15,7 @@ import NumberInput from '@/components/input/number/NumberInput.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
+import FieldLabel from '@/components/typography/FieldLabel.vue'
 import type {ProfileField} from '@/api/types'
 import {FieldTypes} from '@/api/types'
 
@@ -165,12 +166,12 @@ function submit() {
       <SectionHeader>{{ field ? t('membersConfig.editField') : t('membersConfig.addField') }}</SectionHeader>
 
       <div class="space-y-1">
-        <label class="block text-sm font-medium">{{ t('membersConfig.fieldName') }}</label>
+        <FieldLabel>{{ t('membersConfig.fieldName') }}</FieldLabel>
         <TextInput v-model="fieldName" :placeholder="t('membersConfig.fieldNamePlaceholder')"/>
       </div>
 
       <div class="space-y-1">
-        <label class="block text-sm font-medium">{{ t('membersConfig.fieldType') }}</label>
+        <FieldLabel>{{ t('membersConfig.fieldType') }}</FieldLabel>
         <SelectInput v-model="fieldType">
           <option v-for="ft in fieldTypeOptions.filter(o => o.value !== 'age' || scope === 'MEMBER')" :key="ft.value"
                   :value="ft.value">{{ ft.label }}
@@ -179,14 +180,14 @@ function submit() {
       </div>
 
       <div v-if="fieldType === 'enum'" class="space-y-1">
-        <label class="block text-sm font-medium">{{ t('membersConfig.fieldEnumOptions') }}</label>
+        <FieldLabel>{{ t('membersConfig.fieldEnumOptions') }}</FieldLabel>
         <TextAreaInput v-model="fieldEnumOptions" :placeholder="t('membersConfig.fieldEnumOptionsPlaceholder')"/>
         <p class="text-xs text-(--text-muted)">{{ t('membersConfig.fieldEnumOptionsHint') }}</p>
       </div>
 
       <div v-if="fieldType === 'age'" class="space-y-3">
         <div class="space-y-1">
-          <label class="block text-sm font-medium">{{ t('membersConfig.fieldAgeSource') }}</label>
+          <FieldLabel>{{ t('membersConfig.fieldAgeSource') }}</FieldLabel>
           <SelectInput v-model="fieldAgeSource">
             <option disabled value="">{{ t('membersConfig.fieldAgeSourcePlaceholder') }}</option>
             <option v-for="f in dateFields" :key="f.id" :value="f.name">{{ f.name }}</option>
@@ -194,7 +195,7 @@ function submit() {
           <p class="text-xs text-(--text-muted)">{{ t('membersConfig.fieldAgeSourceHint') }}</p>
         </div>
         <div class="space-y-1">
-          <label class="block text-sm font-medium">{{ t('membersConfig.fieldAgeMode') }}</label>
+          <FieldLabel>{{ t('membersConfig.fieldAgeMode') }}</FieldLabel>
           <SelectInput v-model="fieldAgeMode">
             <option value="now">{{ t('membersConfig.fieldAgeModeNow') }}</option>
             <option value="end_of_year">{{ t('membersConfig.fieldAgeModeEndOfYear') }}</option>
@@ -267,7 +268,7 @@ function submit() {
       </div>
 
       <div class="space-y-1">
-        <label class="block text-sm font-medium">{{ t('membersConfig.fieldPosition') }}</label>
+        <FieldLabel>{{ t('membersConfig.fieldPosition') }}</FieldLabel>
         <NumberInput v-model="fieldPosition"/>
       </div>
 

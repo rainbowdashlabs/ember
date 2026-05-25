@@ -19,9 +19,12 @@ import dev.chojo.ember.feature.legal.service.GdprExportService;
 import dev.chojo.ember.feature.media.service.ImageCategory;
 import dev.chojo.ember.feature.media.service.ImageService;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
+import dev.chojo.ember.feature.members.entity.Role;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.members.entity.UserTag;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.repository.UserSettingsRepository;
+import dev.chojo.ember.feature.members.repository.UserTagRepository;
 import dev.chojo.ember.feature.members.service.MemberGroupService;
 import dev.chojo.ember.feature.members.service.ProfileFieldService;
 import dev.chojo.ember.feature.members.service.StationMemberService;
@@ -68,6 +71,7 @@ public class SessionRoutes implements Routes {
     private final Api apiConfig;
     private final ImageService imageService;
     private final UserSettingsRepository userSettingsRepository;
+    private final UserTagRepository userTagRepository;
 
     @Inject
     public SessionRoutes(
@@ -82,7 +86,8 @@ public class SessionRoutes implements Routes {
             GdprDeletionService gdprDeletionService,
             Api apiConfig,
             ImageService imageService,
-            UserSettingsRepository userSettingsRepository) {
+            UserSettingsRepository userSettingsRepository,
+            UserTagRepository userTagRepository) {
         this.stationService = stationService;
         this.memberService = memberService;
         this.groupService = groupService;
@@ -95,6 +100,7 @@ public class SessionRoutes implements Routes {
         this.apiConfig = apiConfig;
         this.imageService = imageService;
         this.userSettingsRepository = userSettingsRepository;
+        this.userTagRepository = userTagRepository;
     }
 
     @Override
@@ -124,14 +130,24 @@ public class SessionRoutes implements Routes {
 
         List<StationMember> managed = List.of();
         List<MemberGroup> groups = List.of();
+        List<UserTag> tags = List.of();
+        List<Integer> roleIds = List.of();
+        List<Integer> groupIds = List.of();
+        List<Integer> tagIds = List.of();
         MemberInfo memberInfo = null;
 
         if (session.member() != null) {
             managed = memberService.findManaged(session.member().id());
             groups = groupService.findGroupsForMember(session.member().id());
+            tags = userTagRepository.findTagsForMember(session.member().id());
+            roleIds = stationMemberRepository.findRoles(session.member().id()).stream()
+                    .map(Role::id)
+                    .toList();
+            groupIds = groups.stream().map(MemberGroup::id).toList();
+            tagIds = tags.stream().map(UserTag::id).toList();
             memberInfo = new MemberInfo(
                     session.member().id(),
-                    session.member().stationId(),
+                    session.stationUid() != null ? session.stationUid().toString() : null,
                     session.member().accountId());
         }
 
@@ -151,8 +167,11 @@ public class SessionRoutes implements Routes {
                             ? (account.firstName() + " " + account.lastName()).trim()
                             : (m.displayName() != null ? m.displayName() : "");
                     String email = account != null ? account.email() : "";
+                    var managedStation = stationService.findById(m.stationId()).orElse(null);
+                    String managedStationUid =
+                            managedStation != null ? managedStation.uid().toString() : null;
                     return new ManagedMemberInfo(
-                            m.id(), m.stationId(), m.accountId() != null ? m.accountId() : 0, name, email);
+                            m.id(), managedStationUid, m.accountId() != null ? m.accountId() : 0, name, email);
                 })
                 .toList();
 
@@ -182,14 +201,24 @@ public class SessionRoutes implements Routes {
                         session.account().email(),
                         session.account().firstName(),
                         session.account().lastName()),
-                session.stationId(),
+                session.stationUid() != null ? session.stationUid().toString() : null,
                 memberInfo,
                 roleNames,
                 managedInfos,
                 groups,
+                tags,
+                roleIds,
+                groupIds,
+                tagIds,
                 profileComplete,
                 disabledModules,
-                themeInfo));
+                themeInfo,
+                session.stationId() != null
+                        ? stationService
+                                .findById(session.stationId())
+                                .map(s -> s.publicKbMode().name())
+                                .orElse("OFF")
+                        : null));
     }
 
     @OpenApi(
@@ -205,7 +234,8 @@ public class SessionRoutes implements Routes {
                 .map(m -> {
                     var station = stationService.findById(m.stationId()).orElse(null);
                     String stationName = station != null ? station.name() : null;
-                    return new StationMembership(m.id(), m.stationId(), stationName);
+                    String stationUid = station != null ? station.uid().toString() : null;
+                    return new StationMembership(m.id(), stationUid, stationName);
                 })
                 .toList();
         ctx.json(result);
@@ -372,10 +402,11 @@ public class SessionRoutes implements Routes {
             responses = @OpenApiResponse(status = "200"))
     private void gdprExport(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        var data = gdprExportService.exportAccountData(session.accountId());
-        ctx.contentType("application/json");
-        ctx.header("Content-Disposition", "attachment; filename=\"gdpr-export.json\"");
-        ctx.json(data);
+        String locale = ctx.queryParam("locale");
+        byte[] zipData = gdprExportService.exportAccountDataAsZip(session.accountId(), locale);
+        ctx.contentType("application/zip");
+        ctx.header("Content-Disposition", "attachment; filename=\"gdpr-export.zip\"");
+        ctx.result(zipData);
     }
 
     /**
@@ -392,14 +423,19 @@ public class SessionRoutes implements Routes {
      */
     public record SessionInfo(
             AccountInfo account,
-            Integer stationId,
+            String stationId,
             MemberInfo member,
             List<String> roles,
             List<ManagedMemberInfo> managedMembers,
             List<MemberGroup> groups,
+            List<UserTag> tags,
+            List<Integer> roleIds,
+            List<Integer> groupIds,
+            List<Integer> tagIds,
             boolean profileComplete,
             Set<StationModule> disabledModules,
-            ThemeInfo theme) {}
+            ThemeInfo theme,
+            String publicKbMode) {}
 
     public record ThemeInfo(
             String defaultTheme,
@@ -417,7 +453,7 @@ public class SessionRoutes implements Routes {
      * @param name      the member's display name
      * @param email     the member's email, or empty string if unavailable
      */
-    public record ManagedMemberInfo(int id, int stationId, int accountId, String name, String email) {}
+    public record ManagedMemberInfo(int id, String stationId, int accountId, String name, String email) {}
 
     /**
      * Account information included in the session response.
@@ -436,7 +472,7 @@ public class SessionRoutes implements Routes {
      * @param stationId the station identifier
      * @param accountId the account identifier
      */
-    public record MemberInfo(int id, int stationId, int accountId) {}
+    public record MemberInfo(int id, String stationId, int accountId) {}
 
     /**
      * A station membership entry listing which stations the user belongs to.
@@ -445,7 +481,7 @@ public class SessionRoutes implements Routes {
      * @param stationId   the station identifier
      * @param stationName the station name
      */
-    public record StationMembership(int memberId, int stationId, String stationName) {}
+    public record StationMembership(int memberId, String stationId, String stationName) {}
 
     /**
      * Represents an active session as returned to the user.

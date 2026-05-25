@@ -27,10 +27,9 @@ const {t} = useI18n()
 
     <!-- Dummy: Member inventory view -->
     <div class="space-y-6">
-      <div class="flex items-center justify-between flex-wrap gap-3">
+      <div class="flex items-center justify-between flex-wrap gap-2">
         <SectionHeader>{{ t('profile.inventory') }} &mdash; Max Mustermann</SectionHeader>
-        <SecondaryButton>
-          <font-awesome-icon :icon="['fas', 'chevron-left']" class="mr-2" />
+        <SecondaryButton :icon="['fas', 'chevron-left']">
           {{ t('common.back') }}
         </SecondaryButton>
       </div>

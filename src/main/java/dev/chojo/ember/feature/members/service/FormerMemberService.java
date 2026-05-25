@@ -18,8 +18,6 @@ import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Set;
-
 /**
  * Service for managing former members including converting active members to former status,
  * tracking departure reasons, and cleaning up associated data (inventory, attendance, roles).
@@ -27,7 +25,6 @@ import java.util.Set;
 @Singleton
 public class FormerMemberService {
     private static final Logger log = LoggerFactory.getLogger(FormerMemberService.class);
-    private static final Set<String> ALLOWED_ROLES_FOR_FORMER = Set.of("MEMBER", "TEAM", "USER");
 
     private final StationMemberRepository memberRepository;
     private final AccountRepository accountRepository;

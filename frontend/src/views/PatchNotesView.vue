@@ -10,8 +10,10 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import PageHeader from '@/components/typography/PageHeader.vue'
+import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import PrimaryBadge from '@/components/badge/PrimaryBadge.vue'
+import MutedText from '@/components/typography/MutedText.vue'
 
 const { t } = useI18n()
 
@@ -78,10 +80,10 @@ onMounted(async () => {
 
     <NeutralContainer v-for="release in releases" :key="release.id" class="space-y-3">
       <div class="flex flex-wrap items-center gap-2">
-        <h2 class="text-lg font-bold">{{ release.name || release.tag_name }}</h2>
+        <SectionHeader class="text-lg font-bold">{{ release.name || release.tag_name }}</SectionHeader>
         <PrimaryBadge>{{ release.tag_name }}</PrimaryBadge>
         <SecondaryBadge v-if="release.prerelease">Pre-release</SecondaryBadge>
-        <span class="text-xs text-[var(--text-muted)] ml-auto">{{ formatDate(release.published_at) }}</span>
+        <MutedText class="ml-auto">{{ formatDate(release.published_at) }}</MutedText>
       </div>
 
       <div v-if="release.body" class="markdown-content text-sm" v-html="renderMarkdown(release.body)" />

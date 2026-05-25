@@ -70,7 +70,7 @@ class EventRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(3)
     void updateCategory() {
-        assertTrue(eventRepo.updateCategory(categoryId, "Exercise", 2));
+        assertTrue(eventRepo.updateCategory(categoryId, "Exercise", 2, null));
         var cats = eventRepo.findCategoriesByStation(station.id());
         assertEquals("Exercise", cats.getFirst().name());
         assertEquals(2, cats.getFirst().position());

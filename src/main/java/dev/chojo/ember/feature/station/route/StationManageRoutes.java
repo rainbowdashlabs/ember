@@ -12,6 +12,7 @@ import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.mail.service.EmailService;
+import dev.chojo.ember.feature.station.entity.DiscoveryVisibility;
 import dev.chojo.ember.feature.station.entity.MailProviderType;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.entity.StationMailConfig;
@@ -35,6 +36,8 @@ import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.time.LocalDate;
@@ -42,6 +45,7 @@ import java.time.ZoneId;
 import java.time.zone.ZoneRulesException;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 
 /**
  * Routes for station self-management by managers, including settings, logo, mail configuration,
@@ -49,6 +53,7 @@ import java.util.Set;
  */
 @Singleton
 public class StationManageRoutes implements Routes {
+    private static final Logger log = LoggerFactory.getLogger(StationManageRoutes.class);
     private static final long MAX_LOGO_SIZE = 2 * 1024 * 1024;
     private static final Set<String> ALLOWED_CONTENT_TYPES =
             Set.of("image/png", "image/jpeg", "image/webp", "image/svg+xml");
@@ -80,6 +85,7 @@ public class StationManageRoutes implements Routes {
         routes.post(prefix + "/station/manage/logo", this::uploadLogo, Roles.MANAGER);
         routes.get(prefix + "/station/manage/logo", this::getLogo, Roles.LOGIN);
         routes.get(prefix + "/stations/{stationId}/logo", this::getLogoByStation, Roles.LOGIN);
+        routes.get(prefix + "/public/stations/{stationId}/logo", this::getLogoByStation);
         routes.delete(prefix + "/station/manage/logo", this::deleteLogo, Roles.MANAGER);
         routes.get(prefix + "/station/manage/mail", this::getMailConfig, Roles.MANAGER);
         routes.put(prefix + "/station/manage/mail", this::updateMailConfig, Roles.MANAGER);
@@ -117,7 +123,7 @@ public class StationManageRoutes implements Routes {
                 && station.ownerMemberId() != null
                 && station.ownerMemberId() == session.member().id();
         return new StationInfo(
-                station.id(),
+                station.uid().toString(),
                 station.name(),
                 station.timezone(),
                 station.locale(),
@@ -126,7 +132,11 @@ public class StationManageRoutes implements Routes {
                 isOwner,
                 station.defaultTheme(),
                 station.allowUserTheme(),
-                station.customThemeColors());
+                station.customThemeColors(),
+                station.publicKbMode().name(),
+                station.discoveryVisibility(),
+                station.discoveryDescription(),
+                station.discoveryShowKb());
     }
 
     @OpenApi(
@@ -150,6 +160,7 @@ public class StationManageRoutes implements Routes {
             try {
                 ZoneId.of(request.timezone());
             } catch (ZoneRulesException e) {
+                log.warn("Invalid timezone: {}", request.timezone(), e);
                 throw new BadRequestResponse("Invalid timezone: " + request.timezone());
             }
             stationService.updateTimezone(session.stationId(), request.timezone());
@@ -163,6 +174,16 @@ public class StationManageRoutes implements Routes {
                     request.defaultTheme(),
                     request.allowUserTheme() != null ? request.allowUserTheme() : true,
                     request.customThemeColors());
+        }
+        if (request.publicKbMode() != null) {
+            stationService.updatePublicKbMode(session.stationId(), request.publicKbMode());
+        }
+        if (request.discoveryVisibility() != null) {
+            stationService.updateDiscoverySettings(
+                    session.stationId(),
+                    request.discoveryVisibility(),
+                    request.discoveryDescription(),
+                    request.discoveryShowKb() != null ? request.discoveryShowKb() : false);
         }
         stationService
                 .update(session.stationId(), request.name())
@@ -198,6 +219,7 @@ public class StationManageRoutes implements Routes {
             stationService.setLogo(session.stationId(), data, contentType);
             ctx.json(new MessageResponse("Logo uploaded"));
         } catch (IOException e) {
+            log.warn("Failed to read uploaded logo file", e);
             throw new BadRequestResponse("Failed to read uploaded file");
         }
     }
@@ -233,8 +255,9 @@ public class StationManageRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void getLogoByStation(Context ctx) {
-        int stationId = ctx.pathParamAsClass("stationId", Integer.class).get();
-        Optional<StationLogo> logoOpt = stationService.getLogo(stationId);
+        String uidParam = ctx.pathParam("stationId");
+        var station = stationService.findByUid(UUID.fromString(uidParam)).orElseThrow(NotFoundResponse::new);
+        Optional<StationLogo> logoOpt = stationService.getLogo(station.id());
         if (logoOpt.isEmpty()) {
             throw new NotFoundResponse("No logo set");
         }
@@ -306,6 +329,7 @@ public class StationManageRoutes implements Routes {
         try {
             provider = body.provider() != null ? MailProviderType.valueOf(body.provider()) : MailProviderType.NONE;
         } catch (IllegalArgumentException e) {
+            log.warn("Invalid mail provider: {}", body.provider(), e);
             throw new BadRequestResponse("Invalid provider: " + body.provider());
         }
 
@@ -501,7 +525,11 @@ public class StationManageRoutes implements Routes {
             String locale,
             String defaultTheme,
             Boolean allowUserTheme,
-            String customThemeColors) {}
+            String customThemeColors,
+            String publicKbMode,
+            DiscoveryVisibility discoveryVisibility,
+            String discoveryDescription,
+            Boolean discoveryShowKb) {}
 
     // -- Station deletion --
 
@@ -517,7 +545,7 @@ public class StationManageRoutes implements Routes {
      * @param isOwner       whether the current user is the station owner
      */
     public record StationInfo(
-            int id,
+            String id,
             String name,
             String timezone,
             String locale,
@@ -526,7 +554,11 @@ public class StationManageRoutes implements Routes {
             boolean isOwner,
             String defaultTheme,
             boolean allowUserTheme,
-            String customThemeColors) {}
+            String customThemeColors,
+            String publicKbMode,
+            DiscoveryVisibility discoveryVisibility,
+            String discoveryDescription,
+            boolean discoveryShowKb) {}
 
     /**
      * Response containing the station's mail configuration and current usage statistics.

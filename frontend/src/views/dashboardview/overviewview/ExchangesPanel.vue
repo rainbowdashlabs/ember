@@ -8,6 +8,7 @@ import {computed, onMounted, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRouter} from 'vue-router'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
+import EmptyState from '@/components/feedback/EmptyState.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
@@ -54,12 +55,10 @@ onMounted(loadData)
       {{ t('dashboard.exchanges') }}
     </SectionHeader>
     <div class="overflow-y-auto flex-1 space-y-2">
-      <div v-if="openExchanges.length === 0" class="text-center text-(--text-muted) py-4">
-        {{ t('dashboard.noExchanges') }}
-      </div>
+      <EmptyState compact v-if="openExchanges.length === 0">{{ t('dashboard.noExchanges') }}</EmptyState>
       <template v-else>
         <NeutralContainer v-for="ex in openExchanges" :key="ex.id"
-                          class="flex items-center justify-between gap-3 py-2 px-3 cursor-pointer hover:bg-(--bg-accent)"
+                          class="flex items-center justify-between gap-2 py-2 px-3 cursor-pointer hover:bg-(--bg-accent)"
                           @click="router.push({ name: 'inventory-exchanges' })">
           <div>
             <MemberName v-if="isOtherMember(ex.memberId)" :name="ex.memberName"

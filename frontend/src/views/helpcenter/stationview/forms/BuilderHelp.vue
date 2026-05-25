@@ -12,9 +12,15 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
+import DateTimeInput from '@/components/input/datetime/DateTimeInput.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import IconButton from '@/components/button/IconButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
+import FieldHint from '@/components/typography/FieldHint.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
+import FieldLabel from '@/components/typography/FieldLabel.vue'
+import BulletList from '@/components/typography/BulletList.vue'
+import SectionLabel from '@/components/typography/SectionLabel.vue'
 
 const {t} = useI18n()
 </script>
@@ -36,23 +42,23 @@ const {t} = useI18n()
         <TextInput model-value="Wie gefällt dir unsere Jugendfeuerwehr?" disabled />
         <div class="grid grid-cols-2 gap-4">
           <div>
-            <label class="text-xs text-(--text-muted) block mb-1">{{ t('forms.startAt') }}</label>
-            <input type="datetime-local" disabled class="w-full px-3 py-2 rounded border border-bg-light-accent dark:border-bg-dark-accent bg-transparent text-sm opacity-60" />
+            <FieldLabel hint class="mb-1">{{ t('forms.startAt') }}</FieldLabel>
+            <DateTimeInput disabled />
           </div>
           <div>
-            <label class="text-xs text-(--text-muted) block mb-1">{{ t('forms.endAt') }}</label>
-            <input type="datetime-local" disabled class="w-full px-3 py-2 rounded border border-bg-light-accent dark:border-bg-dark-accent bg-transparent text-sm opacity-60" />
+            <FieldLabel hint class="mb-1">{{ t('forms.endAt') }}</FieldLabel>
+            <DateTimeInput disabled />
           </div>
         </div>
         <div class="flex gap-6">
-          <label class="flex items-center gap-2 text-sm opacity-60">
+          <FieldLabel inline class="opacity-60">
             <ToggleInput :model-value="false" disabled />
             {{ t('forms.shuffleQuestions') }}
-          </label>
-          <label class="flex items-center gap-2 text-sm opacity-60">
+          </FieldLabel>
+          <FieldLabel inline class="opacity-60">
             <ToggleInput :model-value="true" disabled />
             {{ t('forms.allowEdit') }}
-          </label>
+          </FieldLabel>
         </div>
       </div>
     </NeutralContainer>
@@ -65,7 +71,7 @@ const {t} = useI18n()
     <NeutralContainer>
       <div class="space-y-3">
         <div class="flex items-center justify-between">
-          <span class="text-xs font-semibold text-(--text-muted) uppercase">1. {{ t('forms.questionTypes.RATING') }}</span>
+          <SectionLabel>1. {{ t('forms.questionTypes.RATING') }}</SectionLabel>
           <div class="flex gap-1">
             <IconButton :icon="['fas', 'chevron-up']" label="Up" class="text-(--text-muted)" disabled />
             <IconButton :icon="['fas', 'chevron-down']" label="Down" class="text-(--text-muted)" disabled />
@@ -75,10 +81,10 @@ const {t} = useI18n()
         <TextInput model-value="Wie zufrieden bist du insgesamt?" disabled />
         <TextInput model-value="1 = sehr unzufrieden, 5 = sehr zufrieden" disabled />
         <div class="flex gap-4">
-          <label class="flex items-center gap-2 text-sm opacity-60">
+          <FieldLabel inline class="opacity-60">
             <ToggleInput :model-value="true" disabled />
             {{ t('forms.questionRequired') }}
-          </label>
+          </FieldLabel>
         </div>
       </div>
     </NeutralContainer>
@@ -86,7 +92,7 @@ const {t} = useI18n()
     <NeutralContainer>
       <div class="space-y-3">
         <div class="flex items-center justify-between">
-          <span class="text-xs font-semibold text-(--text-muted) uppercase">2. {{ t('forms.questionTypes.CHOICE') }}</span>
+          <SectionLabel>2. {{ t('forms.questionTypes.CHOICE') }}</SectionLabel>
           <div class="flex gap-1">
             <IconButton :icon="['fas', 'chevron-up']" label="Up" class="text-(--text-muted)" disabled />
             <IconButton :icon="['fas', 'chevron-down']" label="Down" class="text-(--text-muted)" disabled />
@@ -95,21 +101,21 @@ const {t} = useI18n()
         </div>
         <TextInput model-value="Was gefällt dir am besten?" disabled />
         <div class="flex gap-4 flex-wrap opacity-60">
-          <label class="flex items-center gap-2 text-sm">
+          <FieldLabel inline>
             <ToggleInput :model-value="true" disabled />
             {{ t('forms.choice.multiSelect') }}
-          </label>
-          <label class="flex items-center gap-2 text-sm">
+          </FieldLabel>
+          <FieldLabel inline>
             <ToggleInput :model-value="false" disabled />
             {{ t('forms.choice.dropdown') }}
-          </label>
-          <label class="flex items-center gap-2 text-sm">
+          </FieldLabel>
+          <FieldLabel inline>
             <ToggleInput :model-value="true" disabled />
             {{ t('forms.choice.allowOther') }}
-          </label>
+          </FieldLabel>
         </div>
         <div class="space-y-1 opacity-60">
-          <label class="text-xs text-(--text-muted)">{{ t('forms.choice.options') }}</label>
+          <FieldHint>{{ t('forms.choice.options') }}</FieldHint>
           <div class="flex gap-2 items-center">
             <TextInput model-value="Übungen" disabled class="flex-1" />
             <IconButton :icon="['fas', 'chevron-up']" label="Up" class="text-(--text-muted)" disabled />
@@ -133,28 +139,22 @@ const {t} = useI18n()
 
     <!-- Dummy: Add question buttons -->
     <div class="flex flex-wrap gap-2">
-      <SecondaryButton disabled>
-        <font-awesome-icon :icon="['fas', 'plus']" class="mr-1" />
+      <SecondaryButton :icon="['fas', 'plus']" disabled>
         {{ t('forms.questionTypes.CHOICE') }}
       </SecondaryButton>
-      <SecondaryButton disabled>
-        <font-awesome-icon :icon="['fas', 'plus']" class="mr-1" />
+      <SecondaryButton :icon="['fas', 'plus']" disabled>
         {{ t('forms.questionTypes.TEXT') }}
       </SecondaryButton>
-      <SecondaryButton disabled>
-        <font-awesome-icon :icon="['fas', 'plus']" class="mr-1" />
+      <SecondaryButton :icon="['fas', 'plus']" disabled>
         {{ t('forms.questionTypes.RATING') }}
       </SecondaryButton>
-      <SecondaryButton disabled>
-        <font-awesome-icon :icon="['fas', 'plus']" class="mr-1" />
+      <SecondaryButton :icon="['fas', 'plus']" disabled>
         {{ t('forms.questionTypes.DATE') }}
       </SecondaryButton>
-      <SecondaryButton disabled>
-        <font-awesome-icon :icon="['fas', 'plus']" class="mr-1" />
+      <SecondaryButton :icon="['fas', 'plus']" disabled>
         {{ t('forms.questionTypes.RANKING') }}
       </SecondaryButton>
-      <SecondaryButton disabled>
-        <font-awesome-icon :icon="['fas', 'plus']" class="mr-1" />
+      <SecondaryButton :icon="['fas', 'plus']" disabled>
         {{ t('forms.questionTypes.LIKERT') }}
       </SecondaryButton>
     </div>
@@ -165,28 +165,28 @@ const {t} = useI18n()
 
     <HelpSection :title="t('forms.questionTypes.CHOICE')">
       <p>{{ t('helpCenter.formsBuilder.typeChoiceText') }}</p>
-      <ul class="list-disc pl-5 space-y-1 mt-2 text-sm">
+      <BulletList class="mt-2">
         <li>{{ t('helpCenter.formsBuilder.typeChoiceMulti') }}</li>
         <li>{{ t('helpCenter.formsBuilder.typeChoiceDropdown') }}</li>
         <li>{{ t('helpCenter.formsBuilder.typeChoiceOther') }}</li>
         <li>{{ t('helpCenter.formsBuilder.typeChoiceLimit') }}</li>
         <li>{{ t('helpCenter.formsBuilder.typeChoiceShuffle') }}</li>
-      </ul>
+      </BulletList>
     </HelpSection>
 
     <HelpSection :title="t('forms.questionTypes.TEXT')">
       <p>{{ t('helpCenter.formsBuilder.typeTextText') }}</p>
-      <ul class="list-disc pl-5 space-y-1 mt-2 text-sm">
+      <BulletList class="mt-2">
         <li>{{ t('helpCenter.formsBuilder.typeTextLong') }}</li>
-      </ul>
+      </BulletList>
     </HelpSection>
 
     <HelpSection :title="t('forms.questionTypes.RATING')">
       <p>{{ t('helpCenter.formsBuilder.typeRatingText') }}</p>
-      <ul class="list-disc pl-5 space-y-1 mt-2 text-sm">
+      <BulletList class="mt-2">
         <li>{{ t('helpCenter.formsBuilder.typeRatingScale') }}</li>
         <li>{{ t('helpCenter.formsBuilder.typeRatingIcon') }}</li>
-      </ul>
+      </BulletList>
     </HelpSection>
 
     <HelpSection :title="t('forms.questionTypes.DATE')">
@@ -195,18 +195,18 @@ const {t} = useI18n()
 
     <HelpSection :title="t('forms.questionTypes.RANKING')">
       <p>{{ t('helpCenter.formsBuilder.typeRankingText') }}</p>
-      <ul class="list-disc pl-5 space-y-1 mt-2 text-sm">
+      <BulletList class="mt-2">
         <li>{{ t('helpCenter.formsBuilder.typeRankingShuffle') }}</li>
-      </ul>
+      </BulletList>
     </HelpSection>
 
     <HelpSection :title="t('forms.questionTypes.LIKERT')">
       <p>{{ t('helpCenter.formsBuilder.typeLikertText') }}</p>
-      <ul class="list-disc pl-5 space-y-1 mt-2 text-sm">
+      <BulletList class="mt-2">
         <li>{{ t('helpCenter.formsBuilder.typeLikertStatements') }}</li>
         <li>{{ t('helpCenter.formsBuilder.typeLikertScale') }}</li>
         <li>{{ t('helpCenter.formsBuilder.typeLikertShuffle') }}</li>
-      </ul>
+      </BulletList>
     </HelpSection>
 
     <HelpSection :title="t('helpCenter.formsBuilder.restrictionsTitle')">
@@ -216,23 +216,23 @@ const {t} = useI18n()
     <!-- Dummy: Restrictions -->
     <NeutralContainer>
       <div class="space-y-3">
-        <h3 class="text-sm font-semibold">{{ t('forms.restrictions.title') }}</h3>
+        <SubHeader class="text-sm">{{ t('forms.restrictions.title') }}</SubHeader>
         <div class="space-y-2">
-          <label class="text-xs text-(--text-muted)">{{ t('forms.restrictions.roles') }}</label>
+          <FieldHint>{{ t('forms.restrictions.roles') }}</FieldHint>
           <div class="flex flex-wrap gap-2">
             <span class="px-2 py-1 text-xs rounded border border-primary bg-primary/15 text-primary">Mitglied</span>
             <span class="px-2 py-1 text-xs rounded border border-bg-light-accent dark:border-bg-dark-accent text-(--text-muted)">Team</span>
           </div>
         </div>
         <div class="space-y-2">
-          <label class="text-xs text-(--text-muted)">{{ t('forms.restrictions.groups') }}</label>
+          <FieldHint>{{ t('forms.restrictions.groups') }}</FieldHint>
           <div class="flex flex-wrap gap-2">
             <span class="px-2 py-1 text-xs rounded border border-primary bg-primary/15 text-primary">Anfänger</span>
             <span class="px-2 py-1 text-xs rounded border border-bg-light-accent dark:border-bg-dark-accent text-(--text-muted)">Fortgeschritten</span>
           </div>
         </div>
         <div class="space-y-2">
-          <label class="text-xs text-(--text-muted)">{{ t('forms.restrictions.tags') }}</label>
+          <FieldHint>{{ t('forms.restrictions.tags') }}</FieldHint>
           <div class="flex flex-wrap gap-2">
             <span class="px-2 py-1 text-xs rounded border border-bg-light-accent dark:border-bg-dark-accent text-(--text-muted)">Wettkampfgruppe</span>
           </div>

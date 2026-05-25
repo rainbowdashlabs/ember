@@ -15,20 +15,21 @@ import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import PrimaryBadge from '@/components/badge/PrimaryBadge.vue'
+import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import { useSession } from '@/composables/useSession'
-import { useStations } from '@/composables/useStations'
 import { protocol, stationMembers } from '@/api'
 import type { TestProtocolRun, RunMemberWithProgress } from '@/api/protocol'
 import type { StationMember } from '@/api/types'
+import FieldLabel from '@/components/typography/FieldLabel.vue'
 
 const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
 const { canManageProtocol, canTestProtocol, loaded } = useSession()
-const { currentStationId } = useStations()
+
 
 const runId = computed(() => Number(route.params.id))
 const run = ref<TestProtocolRun | null>(null)
@@ -43,7 +44,7 @@ async function loadData() {
   try {
     const [runData, allMembers] = await Promise.all([
       protocol.getRun(runId.value),
-      stationMembers.listMembers(currentStationId.value!),
+      stationMembers.listMembers(),
     ])
     run.value = runData.run
     runMembers.value = runData.members
@@ -84,7 +85,7 @@ onMounted(() => { if (loaded.value) loadData() })
 
 <template>
   <ViewContent>
-    <div class="flex items-center gap-3 mb-4">
+    <div class="flex items-center gap-2 mb-4">
       <SecondaryButton @click="router.push({ name: 'protocol-run-list' })">
         <font-awesome-icon :icon="['fas', 'chevron-left']" />
       </SecondaryButton>
@@ -105,16 +106,16 @@ onMounted(() => { if (loaded.value) loadData() })
     <Alert v-if="error" variant="error">{{ error }}</Alert>
 
     <template v-if="!loading && run">
-      <div class="flex items-center gap-3 mb-4">
+      <div class="flex items-center gap-2 mb-4">
         <p class="text-sm text-[var(--text-muted)]">{{ new Date(run.testDate).toLocaleDateString('de-DE') }}</p>
-        <label class="flex items-center gap-2 text-sm text-[var(--text-muted)] ml-auto cursor-pointer">
-          <input type="checkbox" v-model="filterIncomplete" />
+        <FieldLabel inline class="cursor-pointer ml-auto text-[var(--text-muted)]">
+          <ToggleInput v-model="filterIncomplete" />
           {{ t('protocol.filterIncomplete') }}
-        </label>
+        </FieldLabel>
       </div>
 
       <div class="space-y-2">
-        <NeutralContainer v-for="rm in filteredMembers" :key="rm.member.id" class="flex items-center gap-3">
+        <NeutralContainer v-for="rm in filteredMembers" :key="rm.member.id" class="flex items-center gap-2">
           <div class="flex-1 min-w-0">
             <div class="font-medium">{{ memberName(rm.member.memberId) }}</div>
             <div class="text-xs text-[var(--text-muted)] flex items-center gap-2">

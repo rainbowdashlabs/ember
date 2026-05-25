@@ -5,6 +5,7 @@
  */
 <script lang="ts" setup>
 import {computed, onBeforeUnmount, onMounted, ref} from 'vue'
+import MutedText from '@/components/typography/MutedText.vue'
 
 const model = defineModel<string>()
 
@@ -87,9 +88,9 @@ onBeforeUnmount(() => document.removeEventListener('click', onClickOutside))
         >
           {{ opt.label }}
         </button>
-        <div v-if="filteredOptions.length === 0" class="px-3 py-2 text-sm text-(--text-muted)">
+        <MutedText tag="div" size="sm" class="py-2 px-3" v-if="filteredOptions.length === 0">
           Keine Ergebnisse
-        </div>
+        </MutedText>
       </div>
     </div>
   </div>

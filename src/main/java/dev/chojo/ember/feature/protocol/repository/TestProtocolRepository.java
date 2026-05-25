@@ -35,6 +35,15 @@ public class TestProtocolRepository {
                 .all();
     }
 
+    public List<TestProtocol> searchProtocols(int stationId, String query) {
+        var pattern = "%" + query + "%";
+        return Query.query(
+                        "SELECT * FROM test_protocol WHERE station_id = :station_id AND (name ILIKE :q OR description ILIKE :q) ORDER BY name;")
+                .single(Call.of().bind("station_id", stationId).bind("q", pattern))
+                .map(TestProtocol.map())
+                .all();
+    }
+
     public Optional<TestProtocol> findProtocolById(int id) {
         return Query.query("SELECT * FROM test_protocol WHERE id = :id;")
                 .single(Call.of().bind("id", id))

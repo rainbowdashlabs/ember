@@ -14,6 +14,7 @@ import type {HelpRole} from '@/components/helpcenter/HelpRoleToggle.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
+import FieldLabel from '@/components/typography/FieldLabel.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
@@ -40,7 +41,7 @@ const activeRole = ref('')
 
     <!-- Dummy: Member selector for managers -->
     <template v-if="activeRole === 'memberManager'">
-      <div class="flex items-center justify-between flex-wrap gap-3">
+      <div class="flex items-center justify-between flex-wrap gap-2">
         <SectionHeader>{{ t('profile.inventory') }}</SectionHeader>
         <SelectInput model-value="self" class="w-48 text-sm">
           <option value="self">{{ t('profile.myInventorySelf') }}</option>
@@ -67,10 +68,10 @@ const activeRole = ref('')
                 </div>
                 <div class="text-xs text-(--text-muted)">HLM-2024-012</div>
               </div>
-              <button type="button" class="text-xs text-primary hover:underline shrink-0">
+              <SecondaryButton class="shrink-0">
                 <font-awesome-icon :icon="['fas', 'rotate']" class="mr-0.5"/>
                 {{ t('profile.requestExchange') }}
-              </button>
+              </SecondaryButton>
             </div>
           </NeutralContainer>
         </div>
@@ -134,7 +135,7 @@ const activeRole = ref('')
         Helme — Helm #12 <span class="text-(--text-muted)">[M]</span>
       </p>
       <div class="space-y-1">
-        <label class="block text-sm font-medium">Neue Größe</label>
+        <FieldLabel>Neue Größe</FieldLabel>
         <SelectInput model-value="">
           <option value="" disabled>Größe wählen...</option>
           <option value="1">S</option>

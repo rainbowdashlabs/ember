@@ -9,6 +9,7 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import {Roles} from '@/api/types'
+import MutedText from '@/components/typography/MutedText.vue'
 
 const {t} = useI18n()
 
@@ -35,7 +36,7 @@ const emit = defineEmits<{
       >
         <font-awesome-icon :icon="['fas', 'user']" class="text-2xl mb-2"/>
         <div class="font-medium">{{ t('membersCreate.roleMember') }}</div>
-        <p class="text-xs text-(--text-muted) mt-1">{{ t('membersCreate.roleMemberHint') }}</p>
+        <MutedText tag="p" class="mt-1">{{ t('membersCreate.roleMemberHint') }}</MutedText>
       </NeutralContainer>
 
       <NeutralContainer
@@ -45,7 +46,7 @@ const emit = defineEmits<{
       >
         <font-awesome-icon :icon="['fas', 'user-plus']" class="text-2xl mb-2"/>
         <div class="font-medium">{{ t('membersCreate.roleMemberManager') }}</div>
-        <p class="text-xs text-(--text-muted) mt-1">{{ t('membersCreate.roleMemberManagerHint') }}</p>
+        <MutedText tag="p" class="mt-1">{{ t('membersCreate.roleMemberManagerHint') }}</MutedText>
       </NeutralContainer>
 
       <NeutralContainer
@@ -55,7 +56,7 @@ const emit = defineEmits<{
       >
         <font-awesome-icon :icon="['fas', 'users']" class="text-2xl mb-2"/>
         <div class="font-medium">{{ t('membersCreate.roleTeam') }}</div>
-        <p class="text-xs text-(--text-muted) mt-1">{{ t('membersCreate.roleTeamHint') }}</p>
+        <MutedText tag="p" class="mt-1">{{ t('membersCreate.roleTeamHint') }}</MutedText>
       </NeutralContainer>
     </div>
 

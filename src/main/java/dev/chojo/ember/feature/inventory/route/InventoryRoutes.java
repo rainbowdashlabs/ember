@@ -19,6 +19,7 @@ import dev.chojo.ember.feature.inventory.service.InventoryExportService;
 import dev.chojo.ember.feature.inventory.service.InventoryService;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
+import io.javalin.http.ForbiddenResponse;
 import io.javalin.http.HttpStatus;
 import io.javalin.http.NotFoundResponse;
 import io.javalin.openapi.HttpMethod;
@@ -30,6 +31,8 @@ import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
 import java.util.List;
@@ -40,6 +43,7 @@ import java.util.List;
  */
 @Singleton
 public class InventoryRoutes implements Routes {
+    private static final Logger log = LoggerFactory.getLogger(InventoryRoutes.class);
     private final InventoryService inventoryService;
     private final InventoryCheckService checkService;
     private final InventoryExportService inventoryExportService;
@@ -58,6 +62,14 @@ public class InventoryRoutes implements Routes {
         return s == null || s.isBlank();
     }
 
+    private void verifyItemOwnership(int itemId, UserSession session) {
+        var item = inventoryService.findItemById(itemId).orElseThrow(NotFoundResponse::new);
+        var inventory = inventoryService.findById(item.inventoryId()).orElseThrow(NotFoundResponse::new);
+        if (inventory.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot access resources from another station");
+        }
+    }
+
     // -- Inventories --
 
     @Override
@@ -67,42 +79,41 @@ public class InventoryRoutes implements Routes {
         routes.get(
                 prefix + "/station-members/{memberId}/inventory-items",
                 this::memberItems,
-                Roles.MEMBER_MANAGEMENT,
-                Roles.INVENTORY_MANAGEMENT);
-        routes.get(prefix + "/inventories", this::list, Roles.INVENTORY_MANAGEMENT);
-        routes.post(prefix + "/inventories", this::create, Roles.INVENTORY_MANAGEMENT);
-        routes.get(prefix + "/inventories/all-items", this::listAllItems, Roles.INVENTORY_MANAGEMENT);
+                Roles.MEMBER_MANAGER,
+                Roles.INVENTORY_MANAGER);
+        routes.get(prefix + "/inventories", this::list, Roles.INVENTORY_MANAGER);
+        routes.post(prefix + "/inventories", this::create, Roles.INVENTORY_MANAGER);
+        routes.get(prefix + "/inventories/all-items", this::listAllItems, Roles.INVENTORY_MANAGER);
         routes.get(prefix + "/inventories/all-sizes", this::listAllSizes, Roles.LOGIN);
-        routes.get(prefix + "/inventories/{id}", this::get, Roles.INVENTORY_MANAGEMENT);
-        routes.put(prefix + "/inventories/{id}", this::update, Roles.INVENTORY_MANAGEMENT);
-        routes.delete(prefix + "/inventories/{id}", this::delete, Roles.INVENTORY_MANAGEMENT);
+        routes.get(prefix + "/inventories/{id}", this::get, Roles.INVENTORY_MANAGER);
+        routes.put(prefix + "/inventories/{id}", this::update, Roles.INVENTORY_MANAGER);
+        routes.delete(prefix + "/inventories/{id}", this::delete, Roles.INVENTORY_MANAGER);
 
         routes.get(prefix + "/inventories/{inventoryId}/sizes", this::listSizes, Roles.LOGIN);
-        routes.post(prefix + "/inventories/{inventoryId}/sizes", this::createSize, Roles.INVENTORY_MANAGEMENT);
-        routes.put(prefix + "/inventories/{inventoryId}/sizes/{sizeId}", this::updateSize, Roles.INVENTORY_MANAGEMENT);
-        routes.delete(
-                prefix + "/inventories/{inventoryId}/sizes/{sizeId}", this::deleteSize, Roles.INVENTORY_MANAGEMENT);
+        routes.post(prefix + "/inventories/{inventoryId}/sizes", this::createSize, Roles.INVENTORY_MANAGER);
+        routes.put(prefix + "/inventories/{inventoryId}/sizes/{sizeId}", this::updateSize, Roles.INVENTORY_MANAGER);
+        routes.delete(prefix + "/inventories/{inventoryId}/sizes/{sizeId}", this::deleteSize, Roles.INVENTORY_MANAGER);
 
-        routes.get(prefix + "/inventories/{inventoryId}/items", this::listItems, Roles.INVENTORY_MANAGEMENT);
-        routes.post(prefix + "/inventories/{inventoryId}/items", this::createItem, Roles.INVENTORY_MANAGEMENT);
-        routes.get(prefix + "/inventory-items/{id}", this::getItem, Roles.INVENTORY_MANAGEMENT);
-        routes.put(prefix + "/inventory-items/{id}", this::updateItem, Roles.INVENTORY_MANAGEMENT);
-        routes.put(prefix + "/inventory-items/{id}/assign", this::assignItem, Roles.INVENTORY_MANAGEMENT);
-        routes.get(prefix + "/inventory-items/{id}/history", this::getHistory, Roles.INVENTORY_MANAGEMENT);
-        routes.put(prefix + "/inventory-items/{id}/lost", this::markLost, Roles.INVENTORY_MANAGEMENT);
-        routes.delete(prefix + "/inventory-items/{id}/lost", this::markFound, Roles.INVENTORY_MANAGEMENT);
-        routes.delete(prefix + "/inventory-items/{id}", this::deleteItem, Roles.INVENTORY_MANAGEMENT);
+        routes.get(prefix + "/inventories/{inventoryId}/items", this::listItems, Roles.INVENTORY_MANAGER);
+        routes.post(prefix + "/inventories/{inventoryId}/items", this::createItem, Roles.INVENTORY_MANAGER);
+        routes.get(prefix + "/inventory-items/{id}", this::getItem, Roles.INVENTORY_MANAGER);
+        routes.put(prefix + "/inventory-items/{id}", this::updateItem, Roles.INVENTORY_MANAGER);
+        routes.put(prefix + "/inventory-items/{id}/assign", this::assignItem, Roles.INVENTORY_MANAGER);
+        routes.get(prefix + "/inventory-items/{id}/history", this::getHistory, Roles.INVENTORY_MANAGER);
+        routes.put(prefix + "/inventory-items/{id}/lost", this::markLost, Roles.INVENTORY_MANAGER);
+        routes.delete(prefix + "/inventory-items/{id}/lost", this::markFound, Roles.INVENTORY_MANAGER);
+        routes.delete(prefix + "/inventory-items/{id}", this::deleteItem, Roles.INVENTORY_MANAGER);
 
-        routes.get(prefix + "/inventory-requirements", this::listAllRequirements, Roles.INVENTORY_MANAGEMENT);
-        routes.post(prefix + "/inventory-requirements", this::createRequirement, Roles.INVENTORY_MANAGEMENT);
-        routes.put(prefix + "/inventory-requirements/{id}", this::updateRequirement, Roles.INVENTORY_MANAGEMENT);
+        routes.get(prefix + "/inventory-requirements", this::listAllRequirements, Roles.INVENTORY_MANAGER);
+        routes.post(prefix + "/inventory-requirements", this::createRequirement, Roles.INVENTORY_MANAGER);
+        routes.put(prefix + "/inventory-requirements/{id}", this::updateRequirement, Roles.INVENTORY_MANAGER);
         routes.patch(
                 prefix + "/inventory-requirements/{id}/position",
                 this::updateRequirementPosition,
-                Roles.INVENTORY_MANAGEMENT);
-        routes.delete(prefix + "/inventory-requirements/{id}", this::deleteRequirement, Roles.INVENTORY_MANAGEMENT);
+                Roles.INVENTORY_MANAGER);
+        routes.delete(prefix + "/inventory-requirements/{id}", this::deleteRequirement, Roles.INVENTORY_MANAGER);
 
-        routes.post(prefix + "/inventories/members/export", this::exportMembers, Roles.INVENTORY_MANAGEMENT);
+        routes.post(prefix + "/inventories/members/export", this::exportMembers, Roles.INVENTORY_MANAGER);
     }
 
     @OpenApi(
@@ -283,6 +294,11 @@ public class InventoryRoutes implements Routes {
             })
     private void update(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
+        UserSession session = UserSession.from(ctx);
+        var inventory = inventoryService.findById(id).orElseThrow(NotFoundResponse::new);
+        if (inventory.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot access resources from another station");
+        }
         var request = ctx.bodyAsClass(InventoryRequest.class);
         if (isBlank(request.name())) {
             throw new BadRequestResponse("name is required");
@@ -308,6 +324,11 @@ public class InventoryRoutes implements Routes {
             })
     private void delete(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
+        UserSession session = UserSession.from(ctx);
+        var inventory = inventoryService.findById(id).orElseThrow(NotFoundResponse::new);
+        if (inventory.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot access resources from another station");
+        }
         if (inventoryService.delete(id)) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
@@ -337,6 +358,11 @@ public class InventoryRoutes implements Routes {
             responses = @OpenApiResponse(status = "201", content = @OpenApiContent(from = InventorySize[].class)))
     private void createSize(Context ctx) {
         int inventoryId = ctx.pathParamAsClass("inventoryId", Integer.class).get();
+        UserSession session = UserSession.from(ctx);
+        var inventory = inventoryService.findById(inventoryId).orElseThrow(NotFoundResponse::new);
+        if (inventory.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot access resources from another station");
+        }
         var request = ctx.bodyAsClass(SizeRequest.class);
         if (isBlank(request.label())) {
             throw new BadRequestResponse("label is required");
@@ -362,6 +388,11 @@ public class InventoryRoutes implements Routes {
     private void updateSize(Context ctx) {
         int inventoryId = ctx.pathParamAsClass("inventoryId", Integer.class).get();
         int sizeId = ctx.pathParamAsClass("sizeId", Integer.class).get();
+        UserSession session = UserSession.from(ctx);
+        var inventory = inventoryService.findById(inventoryId).orElseThrow(NotFoundResponse::new);
+        if (inventory.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot access resources from another station");
+        }
         var request = ctx.bodyAsClass(SizeRequest.class);
         if (isBlank(request.label())) {
             throw new BadRequestResponse("label is required");
@@ -391,6 +422,11 @@ public class InventoryRoutes implements Routes {
     private void deleteSize(Context ctx) {
         int inventoryId = ctx.pathParamAsClass("inventoryId", Integer.class).get();
         int sizeId = ctx.pathParamAsClass("sizeId", Integer.class).get();
+        UserSession session = UserSession.from(ctx);
+        var inventory = inventoryService.findById(inventoryId).orElseThrow(NotFoundResponse::new);
+        if (inventory.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot access resources from another station");
+        }
         inventoryService.deleteSize(inventoryId, sizeId).ifPresentOrElse(ctx::json, () -> {
             throw new NotFoundResponse();
         });
@@ -418,6 +454,11 @@ public class InventoryRoutes implements Routes {
             responses = @OpenApiResponse(status = "201", content = @OpenApiContent(from = InventoryItem.class)))
     private void createItem(Context ctx) {
         int inventoryId = ctx.pathParamAsClass("inventoryId", Integer.class).get();
+        UserSession session = UserSession.from(ctx);
+        var inventory = inventoryService.findById(inventoryId).orElseThrow(NotFoundResponse::new);
+        if (inventory.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot access resources from another station");
+        }
         var request = ctx.bodyAsClass(ItemRequest.class);
         if (isBlank(request.name())) {
             throw new BadRequestResponse("name is required");
@@ -466,6 +507,7 @@ public class InventoryRoutes implements Routes {
             })
     private void updateItem(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
+        verifyItemOwnership(id, UserSession.from(ctx));
         var request = ctx.bodyAsClass(ItemRequest.class);
         if (isBlank(request.name())) {
             throw new BadRequestResponse("name is required");
@@ -490,6 +532,7 @@ public class InventoryRoutes implements Routes {
             })
     private void assignItem(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
+        verifyItemOwnership(id, UserSession.from(ctx));
         var request = ctx.bodyAsClass(AssignRequest.class);
         inventoryService
                 .assignItem(id, request.memberId(), request.memberName())
@@ -515,6 +558,7 @@ public class InventoryRoutes implements Routes {
             })
     private void markLost(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
+        verifyItemOwnership(id, UserSession.from(ctx));
         inventoryService.markLost(id).ifPresentOrElse(ctx::json, () -> {
             throw new NotFoundResponse();
         });
@@ -532,6 +576,7 @@ public class InventoryRoutes implements Routes {
             })
     private void markFound(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
+        verifyItemOwnership(id, UserSession.from(ctx));
         inventoryService.markFound(id).ifPresentOrElse(ctx::json, () -> {
             throw new NotFoundResponse();
         });
@@ -549,6 +594,7 @@ public class InventoryRoutes implements Routes {
             })
     private void deleteItem(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
+        verifyItemOwnership(id, UserSession.from(ctx));
         if (inventoryService.deleteItem(id)) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
@@ -662,6 +708,7 @@ public class InventoryRoutes implements Routes {
         try {
             return InventoryType.valueOf(type);
         } catch (IllegalArgumentException e) {
+            log.warn("Invalid inventory type: {}", type, e);
             throw new BadRequestResponse("Invalid inventory type: " + type);
         }
     }

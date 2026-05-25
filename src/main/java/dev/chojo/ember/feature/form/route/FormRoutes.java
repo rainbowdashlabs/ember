@@ -22,6 +22,7 @@ import dev.chojo.ember.feature.notifications.entity.NotificationData;
 import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
 import dev.chojo.ember.feature.notifications.service.NotificationService;
+import dev.chojo.ember.feature.restriction.RestrictionMode;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.ForbiddenResponse;
@@ -39,14 +40,18 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * HTTP route handlers for form management, including CRUD operations, question management,
- * access restrictions, response submission, and analytics. Requires {@code POLL_MANAGEMENT} role
+ * access restrictions, response submission, and analytics. Requires {@code POLL_MANAGER} role
  * for administrative endpoints and {@code USER} role for respondent endpoints.
  */
 @Singleton
@@ -77,22 +82,22 @@ public class FormRoutes implements Routes {
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
         // Management
-        routes.get(prefix + "/forms", this::list, Roles.POLL_MANAGEMENT);
-        routes.post(prefix + "/forms", this::create, Roles.POLL_MANAGEMENT);
+        routes.get(prefix + "/forms", this::list, Roles.POLL_MANAGER);
+        routes.post(prefix + "/forms", this::create, Roles.POLL_MANAGER);
         routes.get(prefix + "/forms/available", this::listAvailable, Roles.USER);
         routes.get(prefix + "/forms/{id}", this::get, Roles.USER);
-        routes.put(prefix + "/forms/{id}", this::update, Roles.POLL_MANAGEMENT);
-        routes.delete(prefix + "/forms/{id}", this::delete, Roles.POLL_MANAGEMENT);
-        routes.post(prefix + "/forms/{id}/publish", this::publish, Roles.POLL_MANAGEMENT);
-        routes.post(prefix + "/forms/{id}/close", this::close, Roles.POLL_MANAGEMENT);
+        routes.put(prefix + "/forms/{id}", this::update, Roles.POLL_MANAGER);
+        routes.delete(prefix + "/forms/{id}", this::delete, Roles.POLL_MANAGER);
+        routes.post(prefix + "/forms/{id}/publish", this::publish, Roles.POLL_MANAGER);
+        routes.post(prefix + "/forms/{id}/close", this::close, Roles.POLL_MANAGER);
 
         // Questions
         routes.get(prefix + "/forms/{id}/questions", this::listQuestions, Roles.USER);
-        routes.put(prefix + "/forms/{id}/questions", this::setQuestions, Roles.POLL_MANAGEMENT);
+        routes.put(prefix + "/forms/{id}/questions", this::setQuestions, Roles.POLL_MANAGER);
 
         // Restrictions
         routes.get(prefix + "/forms/{id}/restrictions", this::getRestrictions, Roles.USER);
-        routes.put(prefix + "/forms/{id}/restrictions", this::setRestrictions, Roles.POLL_MANAGEMENT);
+        routes.put(prefix + "/forms/{id}/restrictions", this::setRestrictions, Roles.POLL_MANAGER);
 
         // Responding
         routes.get(prefix + "/forms/{id}/my-response", this::getMyResponse, Roles.USER);
@@ -103,9 +108,9 @@ public class FormRoutes implements Routes {
         routes.put(prefix + "/forms/{id}/respond/{memberId}", this::updateForMember, Roles.GUARDIAN);
 
         // Analytics
-        routes.get(prefix + "/forms/{id}/analytics", this::getAnalytics, Roles.POLL_MANAGEMENT);
-        routes.get(prefix + "/forms/{id}/responses", this::listResponses, Roles.POLL_MANAGEMENT);
-        routes.get(prefix + "/forms/{id}/responses/{responseId}", this::getResponseDetail, Roles.POLL_MANAGEMENT);
+        routes.get(prefix + "/forms/{id}/analytics", this::getAnalytics, Roles.POLL_MANAGER);
+        routes.get(prefix + "/forms/{id}/responses", this::listResponses, Roles.POLL_MANAGER);
+        routes.get(prefix + "/forms/{id}/responses/{responseId}", this::getResponseDetail, Roles.POLL_MANAGER);
     }
 
     // -- Form CRUD --
@@ -134,18 +139,36 @@ public class FormRoutes implements Routes {
             return;
         }
         int memberId = session.member().id();
-        var openForms = formService.findByStation(session.stationId()).stream()
+
+        // findByStationForMember uses DB restriction check (manager bypass + role inheritance)
+        var accessibleForms = formService.findByStationForMember(session.stationId(), memberId).stream()
                 .filter(f -> f.status() == Form.FormStatus.OPEN)
                 .filter(formService::isAcceptingResponses)
                 .toList();
 
-        // Include forms accessible by self OR any managed member
+        // Also include forms where a managed member has access but the current member does not
         var managed = stationMemberService.findManaged(memberId);
-        var result = openForms.stream()
-                .filter(f -> {
-                    if (formService.canMemberAccess(f.id(), memberId)) return true;
-                    return managed.stream().anyMatch(m -> formService.canMemberAccess(f.id(), m.id()));
-                })
+        var managedAccessible = managed.isEmpty()
+                ? Set.<Integer>of()
+                : managed.stream()
+                        .flatMap(m -> formService.findByStationForMember(session.stationId(), m.id()).stream())
+                        .filter(f -> f.status() == Form.FormStatus.OPEN)
+                        .filter(formService::isAcceptingResponses)
+                        .map(Form::id)
+                        .collect(Collectors.toSet());
+
+        var seen = new HashSet<Integer>();
+        var combined = new ArrayList<>(accessibleForms);
+        accessibleForms.forEach(f -> seen.add(f.id()));
+        if (!managedAccessible.isEmpty()) {
+            formService.findByStation(session.stationId()).stream()
+                    .filter(f -> managedAccessible.contains(f.id()) && !seen.contains(f.id()))
+                    .filter(f -> f.status() == Form.FormStatus.OPEN)
+                    .filter(formService::isAcceptingResponses)
+                    .forEach(combined::add);
+        }
+
+        var result = combined.stream()
                 .map(f -> new FormListEntry(
                         f.id(),
                         f.stationId(),
@@ -217,6 +240,11 @@ public class FormRoutes implements Routes {
             })
     private void update(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
+        UserSession session = UserSession.from(ctx);
+        var form = formService.findById(id).orElseThrow(NotFoundResponse::new);
+        if (form.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot access resources from another station");
+        }
         var req = ctx.bodyAsClass(FormRequest.class);
         if (!formService.update(
                 id,
@@ -245,6 +273,11 @@ public class FormRoutes implements Routes {
             })
     private void delete(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
+        UserSession session = UserSession.from(ctx);
+        var form = formService.findById(id).orElseThrow(NotFoundResponse::new);
+        if (form.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot access resources from another station");
+        }
         if (formService.delete(id)) {
             deleteFormNotifications(id);
             ctx.status(HttpStatus.NO_CONTENT);
@@ -267,6 +300,9 @@ public class FormRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         int id = ctx.pathParamAsClass("id", Integer.class).get();
         var form = formService.findById(id).orElseThrow(NotFoundResponse::new);
+        if (form.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot access resources from another station");
+        }
         if (form.status() != Form.FormStatus.DRAFT) throw new BadRequestResponse("Form is not in DRAFT status");
         formService.publish(id);
 
@@ -294,6 +330,11 @@ public class FormRoutes implements Routes {
             })
     private void close(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
+        UserSession session = UserSession.from(ctx);
+        var form = formService.findById(id).orElseThrow(NotFoundResponse::new);
+        if (form.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot access resources from another station");
+        }
         if (!formService.close(id)) throw new NotFoundResponse();
         deleteFormNotifications(id);
         formService.findById(id).ifPresentOrElse(ctx::json, () -> {
@@ -325,6 +366,11 @@ public class FormRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = FormQuestion[].class)))
     private void setQuestions(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
+        UserSession session = UserSession.from(ctx);
+        var form = formService.findById(id).orElseThrow(NotFoundResponse::new);
+        if (form.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot access resources from another station");
+        }
         var questions = ctx.bodyAsClass(QuestionRequest[].class);
         formService.replaceQuestions(
                 id,
@@ -351,10 +397,14 @@ public class FormRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = FormRestrictions.class)))
     private void getRestrictions(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
+        formService.findById(id).orElseThrow(NotFoundResponse::new);
+        var restrictions = formService.findRestrictions(id);
         ctx.json(new FormRestrictions(
-                formService.findRoleRestrictions(id),
-                formService.findGroupRestrictions(id),
-                formService.findTagRestrictions(id)));
+                restrictions.roleIds(),
+                restrictions.groupIds(),
+                restrictions.tagIds(),
+                restrictions.memberIds(),
+                restrictions.mode()));
     }
 
     @OpenApi(
@@ -367,8 +417,17 @@ public class FormRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = FormRestrictions.class)))
     private void setRestrictions(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
+        UserSession session = UserSession.from(ctx);
+        var form = formService.findById(id).orElseThrow(NotFoundResponse::new);
+        if (form.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot access resources from another station");
+        }
         var req = ctx.bodyAsClass(FormRestrictions.class);
-        formService.setRestrictions(id, req.roleIds(), req.groupIds(), req.tagIds());
+        formService.setRestrictions(
+                id, req.roleIds(), req.groupIds(), req.tagIds(), req.memberIds() != null ? req.memberIds() : List.of());
+        if (req.mode() != null) {
+            formService.updateRestrictionMode(id, req.mode());
+        }
         ctx.json(req);
     }
 
@@ -545,16 +604,16 @@ public class FormRoutes implements Routes {
     }
 
     /**
-     * Verifies that the current user manages the specified member or has POLL_MANAGEMENT role.
+     * Verifies that the current user manages the specified member or has POLL_MANAGER role.
      *
      * @param session  the current user session
      * @param memberId the member ID to verify management of
-     * @throws ForbiddenResponse if the user does not manage the member and lacks POLL_MANAGEMENT role
+     * @throws ForbiddenResponse if the user does not manage the member and lacks POLL_MANAGER role
      */
     private void verifyManages(UserSession session, int memberId) {
         boolean manages =
                 stationMemberService.findManaged(session.member().id()).stream().anyMatch(m -> m.id() == memberId);
-        if (!manages && !session.hasRole(Roles.POLL_MANAGEMENT)) {
+        if (!manages && !session.hasRole(Roles.POLL_MANAGER)) {
             throw new ForbiddenResponse("You do not manage this member");
         }
     }
@@ -683,7 +742,12 @@ public class FormRoutes implements Routes {
      * @param groupIds list of group IDs that grant access
      * @param tagIds   list of tag IDs that grant access
      */
-    public record FormRestrictions(List<Integer> roleIds, List<Integer> groupIds, List<Integer> tagIds) {}
+    public record FormRestrictions(
+            List<Integer> roleIds,
+            List<Integer> groupIds,
+            List<Integer> tagIds,
+            List<Integer> memberIds,
+            RestrictionMode mode) {}
 
     /**
      * Request body for submitting or updating a form response.

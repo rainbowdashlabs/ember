@@ -16,7 +16,9 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import InfoContainer from '@/components/container/InfoContainer.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import SuccessButton from '@/components/button/SuccessButton.vue'
+import LinkButton from '@/components/button/LinkButton.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
 
 const {t} = useI18n()
 const router = useRouter()
@@ -97,7 +99,7 @@ async function handleAccept() {
       <template v-if="changes && !loading">
         <!-- Privacy policy changes -->
         <NeutralContainer v-if="changes.privacyChanged" class="space-y-3">
-          <h3 class="font-semibold">{{ t('reconsent.privacyChanged') }}</h3>
+          <SubHeader>{{ t('reconsent.privacyChanged') }}</SubHeader>
 
           <template v-if="changes.privacyDiff">
             <div class="text-xs text-(--text-muted) mb-1">{{ t('reconsent.whatChanged') }}</div>
@@ -109,10 +111,9 @@ async function handleAccept() {
             </div>
           </template>
 
-          <button class="text-xs text-primary hover:underline cursor-pointer"
-                  @click="showPrivacyFull = !showPrivacyFull">
+          <LinkButton @click="showPrivacyFull = !showPrivacyFull">
             {{ showPrivacyFull ? t('reconsent.hideFullText') : t('reconsent.showFullText') }}
-          </button>
+          </LinkButton>
           <div v-if="showPrivacyFull && changes.privacyHtml"
                class="legal-content max-h-96 overflow-y-auto border border-(--border) rounded-lg p-3"
                v-html="changes.privacyHtml"/>
@@ -120,7 +121,7 @@ async function handleAccept() {
 
         <!-- ToS changes -->
         <NeutralContainer v-if="changes.tosChanged" class="space-y-3">
-          <h3 class="font-semibold">{{ t('reconsent.tosChanged') }}</h3>
+          <SubHeader>{{ t('reconsent.tosChanged') }}</SubHeader>
 
           <template v-if="changes.tosDiff">
             <div class="text-xs text-(--text-muted) mb-1">{{ t('reconsent.whatChanged') }}</div>
@@ -132,10 +133,9 @@ async function handleAccept() {
             </div>
           </template>
 
-          <button class="text-xs text-primary hover:underline cursor-pointer"
-                  @click="showTosFull = !showTosFull">
+          <LinkButton @click="showTosFull = !showTosFull">
             {{ showTosFull ? t('reconsent.hideFullText') : t('reconsent.showFullText') }}
-          </button>
+          </LinkButton>
           <div v-if="showTosFull && changes.tosHtml"
                class="legal-content max-h-96 overflow-y-auto border border-(--border) rounded-lg p-3"
                v-html="changes.tosHtml"/>

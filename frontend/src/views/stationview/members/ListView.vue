@@ -14,41 +14,28 @@ import TabBar from '@/components/navigation/TabBar.vue'
 import MemberFilterBar from './listview/FilterBar.vue'
 import MemberTable from './listview/Table.vue'
 import ExportModal from './listview/ExportModal.vue'
-import type { ProfileField, StationMember, MemberGroup, UserTag } from '@/api/types'
-import { Roles, hasTeamRole } from '@/api/types'
-import { profileFields, stationMembers, memberGroups, savedFilters as savedFiltersApi, userTags } from '@/api'
-import { useStations } from '@/composables/useStations'
+import type { StationMember } from '@/api/types'
+import { Roles } from '@/api/types'
+import type { FilterCriteria, FilterOption } from '@/components/input/filter/MemberFilterBar.vue'
+import { useMemberData, parseConfig, memberDisplayName } from './listview/useMemberData'
+import { useSavedFilters, emptyTabState, type TabFilterState } from './listview/useSavedFilters'
+import { useExport } from './listview/useExport'
 
 const { t } = useI18n()
 const router = useRouter()
-const { currentStationId } = useStations()
 
-const members = ref<StationMember[]>([])
-const fields = ref<ProfileField[]>([])
-const allGroups = ref<MemberGroup[]>([])
-const allTags = ref<UserTag[]>([])
-const memberValues = ref<Map<number, Map<number, string>>>(new Map())
-const memberRolesMap = ref<Map<number, string[]>>(new Map())
-const memberGroupsMap = ref<Map<number, string[]>>(new Map())
-const memberTagsMap = ref<Map<number, string[]>>(new Map())
-const memberManagers = ref<Map<number, StationMember[]>>(new Map())
-const loading = ref(true)
-const error = ref('')
-const expandedId = ref<number | null>(null)
+// --- Member data ---
+const {
+  members, fields, allGroups, allTags, allRoles,
+  memberRolesMap, memberGroupsMap, memberTagsMap, memberManagers,
+  loading, error, expandedId, overviewFields,
+  getFieldValue, getFieldValueAsString, getMemberType, getMemberGroups, getColumnValues,
+  loadData, toggleExpand,
+} = useMemberData()
+
+// --- Tab state ---
 const activeTab = ref('ALL')
-
-type FilterKey = 'name' | 'groups' | 'tags' | number
-interface TabFilterState {
-  filterText: string
-  columnMultiFilters: Map<FilterKey, Set<string>>
-  columnEmptyFilters: Set<FilterKey>
-  sortColumn: 'name' | number
-  sortAsc: boolean
-}
-
-function emptyTabState(): TabFilterState {
-  return { filterText: '', columnMultiFilters: new Map(), columnEmptyFilters: new Set(), sortColumn: 'name', sortAsc: true }
-}
+const memberFilterCriteria = ref<FilterCriteria>({ roleIds: [], groupIds: [], tagIds: [], mode: 'AND' })
 
 const tabStates = ref<Record<string, TabFilterState>>({
   ALL: emptyTabState(),
@@ -67,11 +54,6 @@ const columnEmptyFilters = computed(() => currentTabState.value.columnEmptyFilte
 const sortColumn = computed(() => currentTabState.value.sortColumn)
 const sortAsc = computed(() => currentTabState.value.sortAsc)
 
-// Export mode
-const exportMode = ref(false)
-const selectedIds = ref<Set<number>>(new Set())
-const showExportModal = ref(false)
-
 const tabs = computed(() => [
   { key: 'ALL', label: t('membersList.tabAll') },
   { key: 'MEMBER', label: t('membersList.tabMember') },
@@ -79,91 +61,11 @@ const tabs = computed(() => [
   { key: 'TEAM', label: t('membersList.tabTeam') },
 ])
 
-// Saved filters
-const TABLE_TYPE = 'members'
+// --- Saved filters ---
+const { savedFilters, loadSavedFilters, saveCurrentFilter, applyFilter, deleteFilter, clearFilters } =
+  useSavedFilters(tabStates, activeTab)
 
-interface SavedFilterPreset {
-  id?: number
-  name: string
-  tab: string
-  textFilters: Record<string, string>
-  multiFilters: Record<string, string[]>
-  emptyFilters?: string[]
-}
-
-const savedFilters = ref<SavedFilterPreset[]>([])
-
-async function loadSavedFilters() {
-  try {
-    const filters = await savedFiltersApi.listFilters(TABLE_TYPE)
-    savedFilters.value = filters.map(f => {
-      const data = JSON.parse(f.filterData)
-      return { id: f.id, name: f.name, tab: data.tab ?? 'ALL', textFilters: data.textFilters ?? {}, multiFilters: data.multiFilters ?? {} }
-    })
-  } catch { /* ignore */ }
-}
-
-async function saveCurrentFilter(name: string) {
-  const textFilters: Record<string, string> = {}
-  const multiFilters: Record<string, string[]> = {}
-  for (const [k, v] of columnMultiFilters.value) { multiFilters[String(k)] = [...v] }
-  const emptyFilters: string[] = [...columnEmptyFilters.value].map(String)
-  const filterData = JSON.stringify({ tab: activeTab.value, textFilters, multiFilters, emptyFilters })
-  try {
-    await savedFiltersApi.createFilter({ tableType: TABLE_TYPE, name, filterData })
-    await loadSavedFilters()
-  } catch { /* ignore */ }
-}
-
-function applyFilter(preset: SavedFilterPreset) {
-  activeTab.value = preset.tab
-  const state = tabStates.value[preset.tab]
-  const multiMap = new Map<FilterKey, Set<string>>()
-  for (const [k, v] of Object.entries(preset.multiFilters)) {
-    const key: FilterKey = (k === 'name' || k === 'groups' || k === 'tags') ? k : Number(k)
-    multiMap.set(key, new Set(v))
-  }
-  state.columnMultiFilters = multiMap
-  const emptySet = new Set<FilterKey>()
-  for (const k of (preset.emptyFilters ?? [])) {
-    emptySet.add((k === 'name' || k === 'groups' || k === 'tags') ? k : Number(k))
-  }
-  state.columnEmptyFilters = emptySet
-}
-
-async function deleteFilter(index: number) {
-  const preset = savedFilters.value[index]
-  if (!preset) return
-  try {
-    await savedFiltersApi.deleteFilter(preset.id!)
-    await loadSavedFilters()
-  } catch { /* ignore */ }
-}
-
-function clearFilters() {
-  const state = tabStates.value[activeTab.value]
-  state.columnMultiFilters = new Map()
-  state.columnEmptyFilters = new Set()
-  state.filterText = ''
-}
-
-function parseConfig(configStr: string | undefined): Record<string, unknown> {
-  if (!configStr) return {}
-  try { return JSON.parse(configStr) } catch { return {} }
-}
-
-function computeAge(dateStr: string, mode: string): string {
-  if (!dateStr) return ''
-  const birth = new Date(dateStr)
-  const now = new Date()
-  const target = mode === 'end_of_year' ? new Date(now.getFullYear(), 11, 31) : now
-  let age = target.getFullYear() - birth.getFullYear()
-  const m = target.getMonth() - birth.getMonth()
-  if (m < 0 || (m === 0 && target.getDate() < birth.getDate())) age--
-  return String(age)
-}
-
-const overviewFields = computed(() => fields.value.filter(f => parseConfig(f.config).overview))
+// --- Column visibility ---
 const extraColumnIds = ref<Set<number>>(new Set())
 
 const tabScopedFields = computed(() => {
@@ -194,73 +96,39 @@ function toggleExtraColumn(fieldId: number) {
   extraColumnIds.value = newSet
 }
 
-function memberDisplayName(m: StationMember): string {
-  return m.name && m.name.trim() ? m.name : m.email ?? `#${m.id}`
+// --- Filter bar options ---
+const roleFriendlyNames: Record<string, string> = {
+  MEMBER: 'Mitglied', GUARDIAN: 'Erziehungsberechtigter', TEAM: 'Team', TRIAL: 'Probe',
+}
+const filterRoleOptions = computed<FilterOption[]>(() => {
+  const allowed: string[] = [Roles.MEMBER, Roles.GUARDIAN, Roles.TEAM, Roles.TRIAL]
+  return allRoles.value.filter(r => allowed.includes(r.role)).map(r => ({ id: r.id, name: roleFriendlyNames[r.role] ?? r.role }))
+})
+const filterGroupOptions = computed<FilterOption[]>(() => allGroups.value.map(g => ({ id: g.id, name: g.name ?? '' })))
+const filterTagOptions = computed<FilterOption[]>(() => allTags.value.map(t => ({ id: t.id, name: t.name })))
+
+function onMemberFilter(criteria: FilterCriteria) {
+  memberFilterCriteria.value = criteria
 }
 
-function getMemberFirstName(m: StationMember): string {
-  const name = m.name ?? ''
-  return name.split(' ')[0] ?? ''
-}
-
-function getMemberLastName(m: StationMember): string {
-  const name = m.name ?? ''
-  return name.split(' ').slice(1).join(' ') ?? ''
-}
-
-function getFieldValue(memberId: number, fieldId: number): unknown {
-  const field = fields.value.find(f => f.id === fieldId)
-  if (field?.fieldType === 'age') {
-    const cfg = parseConfig(field.config)
-    const sourceField = fields.value.find(f => f.name === cfg.sourceField)
-    if (sourceField) {
-      const dateVal = String(getRawFieldValue(memberId, sourceField.id))
-      return computeAge(dateVal, (cfg.ageMode as string) ?? 'now')
-    }
-    return ''
-  }
-  return getRawFieldValue(memberId, fieldId)
-}
-
-function getFieldValueAsString(memberId: number, fieldId: number): string {
-  const val = getFieldValue(memberId, fieldId)
-  if (val == null) return ''
-  return String(val)
-}
-
-function getRawFieldValue(memberId: number, fieldId: number): unknown {
-  const vals = memberValues.value.get(memberId)
-  if (!vals) return ''
-  const raw = vals.get(fieldId) ?? ''
-  try { return JSON.parse(raw) } catch { return raw }
-}
-
-function getMemberType(memberId: number): 'MEMBER' | 'GUARDIAN' | 'TEAM' | null {
-  const roles = memberRolesMap.value.get(memberId) ?? []
-  if (hasTeamRole(roles)) return Roles.TEAM
-  if (roles.includes(Roles.GUARDIAN)) return Roles.GUARDIAN
-  if (roles.includes(Roles.MEMBER)) return Roles.MEMBER
-  return null
-}
-
-function getMemberGroups(memberId: number): string[] {
-  return memberGroupsMap.value.get(memberId) ?? []
-}
-
-function getMemberTags(memberId: number): string[] {
-  return memberTagsMap.value.get(memberId) ?? []
-}
-
-function getColumnValues(m: StationMember, key: 'name' | 'groups' | 'tags' | number): string[] {
-  if (key === 'name') return [memberDisplayName(m)]
-  if (key === 'groups') return getMemberGroups(m.id)
-  if (key === 'tags') return getMemberTags(m.id)
-  const v = getFieldValueAsString(m.id, key)
-  return v ? [v] : []
-}
-
+// --- Filtered and sorted members ---
 const filteredMembers = computed(() => {
   let list = activeTab.value === 'ALL' ? members.value : members.value.filter(m => getMemberType(m.id) === activeTab.value)
+
+  const fc = memberFilterCriteria.value
+  if (fc.roleIds.length > 0 || fc.groupIds.length > 0 || fc.tagIds.length > 0) {
+    const filterRoleNames = new Set<string>(allRoles.value.filter(r => fc.roleIds.includes(r.id)).map(r => r.role))
+    const filterGroupNames = new Set(allGroups.value.filter(g => fc.groupIds.includes(g.id)).map(g => g.name ?? ''))
+    const filterTagNames = new Set(allTags.value.filter(t => fc.tagIds.includes(t.id)).map(t => t.name))
+
+    list = list.filter(m => {
+      const matchesRole = fc.roleIds.length === 0 || (memberRolesMap.value.get(m.id) ?? []).some(r => filterRoleNames.has(r))
+      const matchesGroup = fc.groupIds.length === 0 || (memberGroupsMap.value.get(m.id) ?? []).some(g => filterGroupNames.has(g))
+      const matchesTag = fc.tagIds.length === 0 || (memberTagsMap.value.get(m.id) ?? []).some(t => filterTagNames.has(t))
+      return fc.mode === 'AND' ? (matchesRole && matchesGroup && matchesTag) : (matchesRole || matchesGroup || matchesTag)
+    })
+  }
+
   const q = filterText.value.toLowerCase().trim()
   if (q) {
     list = list.filter(m => {
@@ -281,7 +149,6 @@ const filteredMembers = computed(() => {
       return values.some(v => selectedValues.has(v))
     })
   }
-  // Apply empty-only filters (where no multi-select values are chosen)
   for (const key of columnEmptyFilters.value) {
     if (columnMultiFilters.value.has(key) && (columnMultiFilters.value.get(key)?.size ?? 0) > 0) continue
     list = list.filter(m => {
@@ -303,6 +170,7 @@ const filteredMembers = computed(() => {
   })
 })
 
+// --- Sort & column filter actions ---
 function toggleSort(column: 'name' | number) {
   const state = tabStates.value[activeTab.value]
   if (state.sortColumn === column) { state.sortAsc = !state.sortAsc }
@@ -319,6 +187,13 @@ function applyColumnFilter(key: 'name' | 'groups' | 'tags' | number, selected: S
   state.columnEmptyFilters = newEmpty
 }
 
+// --- Export ---
+const {
+  exportMode, selectedIds, showExportModal,
+  toggleExportMode, toggleSelect, toggleSelectAll, openExportModal, performExport,
+} = useExport(filteredMembers, fields, getMemberGroups, getFieldValueAsString)
+
+// --- Navigation ---
 function navigateToDetail(member: StationMember, event: Event) {
   event.stopPropagation()
   router.push({ name: 'members-detail', params: { id: member.id } })
@@ -327,161 +202,6 @@ function navigateToDetail(member: StationMember, event: Event) {
 function navigateToEdit(member: StationMember, event: Event) {
   event.stopPropagation()
   router.push({ name: 'members-edit', params: { id: member.id } })
-}
-
-// Export functions
-function toggleExportMode() {
-  exportMode.value = !exportMode.value
-  if (!exportMode.value) {
-    selectedIds.value = new Set()
-  }
-}
-
-function toggleSelect(memberId: number) {
-  const newSet = new Set(selectedIds.value)
-  if (newSet.has(memberId)) { newSet.delete(memberId) } else { newSet.add(memberId) }
-  selectedIds.value = newSet
-}
-
-function toggleSelectAll() {
-  if (filteredMembers.value.every(m => selectedIds.value.has(m.id))) {
-    selectedIds.value = new Set()
-  } else {
-    selectedIds.value = new Set(filteredMembers.value.map(m => m.id))
-  }
-}
-
-function openExportModal() {
-  if (selectedIds.value.size === 0) return
-  showExportModal.value = true
-}
-
-function performExport(columns: string[], format: 'csv' | 'values') {
-  const selectedMembers = filteredMembers.value.filter(m => selectedIds.value.has(m.id))
-
-  function getColumnValue(m: StationMember, col: string): string {
-    if (col === 'firstName') return getMemberFirstName(m)
-    if (col === 'lastName') return getMemberLastName(m)
-    if (col === 'email') return m.email ?? ''
-    if (col === 'groups') return getMemberGroups(m.id).join(', ')
-    if (col.startsWith('field:')) {
-      const fieldId = Number(col.slice(6))
-      return getFieldValueAsString(m.id, fieldId)
-    }
-    return ''
-  }
-
-  function getColumnLabel(col: string): string {
-    if (col === 'firstName') return t('membersList.export.colFirstName')
-    if (col === 'lastName') return t('membersList.export.colLastName')
-    if (col === 'email') return t('membersList.export.colEmail')
-    if (col === 'groups') return t('membersList.export.colGroups')
-    if (col.startsWith('field:')) {
-      const fieldId = Number(col.slice(6))
-      return fields.value.find(f => f.id === fieldId)?.name ?? ''
-    }
-    return col
-  }
-
-  let output: string
-
-  if (format === 'values' && columns.length === 1) {
-    const col = columns[0]
-    const values = selectedMembers.map(m => getColumnValue(m, col)).filter(v => v)
-    output = values.join('; ')
-  } else {
-    const escapeCsv = (val: string) => {
-      if (val.includes(';') || val.includes('"') || val.includes('\n')) {
-        return `"${val.replace(/"/g, '""')}"`
-      }
-      return val
-    }
-    const header = columns.map(c => escapeCsv(getColumnLabel(c))).join(';')
-    const rows = selectedMembers.map(m =>
-      columns.map(c => escapeCsv(getColumnValue(m, c))).join(';')
-    )
-    output = [header, ...rows].join('\n')
-  }
-
-  // Download as file
-  const blob = new Blob([output], { type: format === 'csv' ? 'text/csv;charset=utf-8' : 'text/plain;charset=utf-8' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = format === 'csv' ? 'mitglieder.csv' : 'mitglieder.txt'
-  document.body.appendChild(a)
-  a.click()
-  document.body.removeChild(a)
-  URL.revokeObjectURL(url)
-
-  showExportModal.value = false
-  exportMode.value = false
-  selectedIds.value = new Set()
-}
-
-async function loadData() {
-  loading.value = true
-  error.value = ''
-  try {
-    const [allFields, allMembers, groups, tags] = await Promise.all([
-      profileFields.listFields(),
-      stationMembers.listMembers(currentStationId.value!),
-      memberGroups.listGroups(),
-      userTags.listTags(),
-    ])
-    fields.value = allFields
-    members.value = allMembers
-    allGroups.value = groups
-    allTags.value = tags
-
-    const valMap = new Map<number, Map<number, string>>()
-    const rolesMap = new Map<number, string[]>()
-    const groupsMap = new Map<number, string[]>()
-    const tagsMap = new Map<number, string[]>()
-    for (const m of allMembers) {
-      try {
-        const [vals, roles, mTags] = await Promise.all([
-          profileFields.getValues(m.id),
-          stationMembers.getRoles(m.id),
-          userTags.getMemberTags(m.id),
-        ])
-        const fieldMap = new Map<number, string>()
-        for (const v of vals) { fieldMap.set(v.fieldId, v.value ?? '') }
-        valMap.set(m.id, fieldMap)
-        rolesMap.set(m.id, roles.map(r => r.role))
-        tagsMap.set(m.id, mTags.map(tag => tag.name))
-      } catch { /* skip */ }
-    }
-    for (const group of groups) {
-      try {
-        const groupMembers = await memberGroups.getGroupMembers(group.id)
-        for (const gm of groupMembers) {
-          const existing = groupsMap.get(gm.id) ?? []
-          existing.push(group.name ?? '')
-          groupsMap.set(gm.id, existing)
-        }
-      } catch { /* skip */ }
-    }
-    memberValues.value = valMap
-    memberRolesMap.value = rolesMap
-    memberGroupsMap.value = groupsMap
-    memberTagsMap.value = tagsMap
-  } catch {
-    error.value = t('common.error')
-  } finally {
-    loading.value = false
-  }
-}
-
-async function toggleExpand(member: StationMember) {
-  if (expandedId.value === member.id) { expandedId.value = null; return }
-  expandedId.value = member.id
-  if (!memberManagers.value.has(member.id)) {
-    try {
-      const managers = await stationMembers.getManagers(member.id)
-      memberManagers.value = new Map([...memberManagers.value, [member.id, managers]])
-    } catch { /* ignore */ }
-  }
 }
 
 onMounted(() => {
@@ -506,6 +226,9 @@ onMounted(() => {
           :extra-column-ids="extraColumnIds"
           :export-mode="exportMode"
           :selected-count="selectedIds.size"
+          :roles="filterRoleOptions"
+          :groups="filterGroupOptions"
+          :tags="filterTagOptions"
           @clear-filters="clearFilters"
           @apply-filter="applyFilter"
           @delete-filter="deleteFilter"
@@ -513,6 +236,7 @@ onMounted(() => {
           @toggle-column="toggleExtraColumn"
           @toggle-export="toggleExportMode"
           @export-continue="openExportModal"
+          @filter="onMemberFilter"
         />
 
         <MemberTable

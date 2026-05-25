@@ -26,7 +26,7 @@ public final class RoleValidation {
      * <p>
      * Enforces:
      * <ul>
-     *     <li>Protected roles (MEMBER_MANAGEMENT, MANAGER) cannot be removed</li>
+     *     <li>Protected roles (MEMBER_MANAGER, MANAGER) cannot be removed</li>
      *     <li>Station owner's MANAGER role can never be removed</li>
      *     <li>Caller can only grant roles they themselves have</li>
      * </ul>

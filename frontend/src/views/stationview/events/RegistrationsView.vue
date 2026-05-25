@@ -12,15 +12,14 @@ import ErrorButton from '@/components/button/ErrorButton.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
+import EmptyState from '@/components/feedback/EmptyState.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import {events, stationMembers} from '@/api'
 import type {StationEvent, StationMember} from '@/api/types'
 import {RegistrationStatus} from '@/api/types'
-import {useStations} from '@/composables/useStations'
 import MemberName from '@/components/avatar/MemberName.vue'
 
 const {t} = useI18n()
-const {currentStationId} = useStations()
 
 interface PendingRegistration {
   id: number
@@ -54,7 +53,7 @@ async function loadData() {
     const [regs, evs, members] = await Promise.all([
       events.listPendingRegistrations(),
       events.listEvents(),
-      stationMembers.listMembers(currentStationId.value!),
+      stationMembers.listMembers(),
     ])
     registrations.value = regs
     allEvents.value = evs
@@ -98,24 +97,20 @@ onMounted(loadData)
       <template v-if="!loading">
         <SectionHeader>{{ t('eventsRegistrations.title') }}</SectionHeader>
 
-        <div v-if="registrations.length === 0" class="text-center text-(--text-muted) py-8">
-          {{ t('eventsRegistrations.empty') }}
-        </div>
+        <EmptyState v-if="registrations.length === 0">{{ t('eventsRegistrations.empty') }}</EmptyState>
 
         <div class="space-y-3">
           <NeutralContainer v-for="reg in registrations" :key="reg.id" class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-            <div class="flex items-center gap-2 flex-wrap text-sm">
+            <div class="flex items-center gap-2 flex-wrap text-xs">
               <MemberName :name="memberName(reg.memberId)" :member-id="reg.memberId"/>
               <span class="text-(--text-muted)">{{ eventName(reg.eventId) }}</span>
               <span class="text-xs text-(--text-muted)">{{ reg.eventDate }}</span>
             </div>
             <div class="flex items-center gap-2">
-              <PrimaryButton @click="accept(reg.id)">
-                <font-awesome-icon :icon="['fas', 'check']" class="mr-1"/>
+              <PrimaryButton :icon="['fas', 'check']" @click="accept(reg.id)">
                 {{ t('eventsRegistrations.accept') }}
               </PrimaryButton>
-              <ErrorButton @click="deny(reg.id)">
-                <font-awesome-icon :icon="['fas', 'xmark']" class="mr-1"/>
+              <ErrorButton :icon="['fas', 'xmark']" @click="deny(reg.id)">
                 {{ t('eventsRegistrations.deny') }}
               </ErrorButton>
             </div>

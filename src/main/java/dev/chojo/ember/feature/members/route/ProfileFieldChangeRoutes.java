@@ -40,23 +40,22 @@ public class ProfileFieldChangeRoutes implements Routes {
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        routes.get(prefix + "/profile-changes/all", this::getAllChanges, Roles.MEMBER_MANAGEMENT, Roles.GUARDIAN);
-        routes.get(
-                prefix + "/profile-changes/pending", this::getPendingSummary, Roles.MEMBER_MANAGEMENT, Roles.GUARDIAN);
+        routes.get(prefix + "/profile-changes/all", this::getAllChanges, Roles.MEMBER_MANAGER, Roles.GUARDIAN);
+        routes.get(prefix + "/profile-changes/pending", this::getPendingSummary, Roles.MEMBER_MANAGER, Roles.GUARDIAN);
         routes.get(
                 prefix + "/station-members/{memberId}/profile-changes",
                 this::getChanges,
-                Roles.MEMBER_MANAGEMENT,
+                Roles.MEMBER_MANAGER,
                 Roles.GUARDIAN);
         routes.post(
                 prefix + "/profile-changes/{changeId}/acknowledge",
                 this::acknowledge,
-                Roles.MEMBER_MANAGEMENT,
+                Roles.MEMBER_MANAGER,
                 Roles.GUARDIAN);
         routes.post(
                 prefix + "/station-members/{memberId}/profile-changes/acknowledge-all",
                 this::acknowledgeAll,
-                Roles.MEMBER_MANAGEMENT,
+                Roles.MEMBER_MANAGER,
                 Roles.GUARDIAN);
     }
 

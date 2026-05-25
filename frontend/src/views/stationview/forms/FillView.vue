@@ -19,11 +19,13 @@ import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import DateInput from '@/components/input/datetime/DateInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import IconButton from '@/components/button/IconButton.vue'
+import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
 import type { Form, FormQuestion } from '@/api/types'
 import { QuestionTypes } from '@/api/types'
 import { forms } from '@/api'
 import type { EligibleMembers } from '@/api/forms'
 import { useSession } from '@/composables/useSession'
+import SectionHeader from '@/components/typography/SectionHeader.vue'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -246,7 +248,7 @@ watch(loaded, (isLoaded) => {
 
       <template v-if="!loading && form">
         <div>
-          <h2 class="text-xl font-semibold">{{ form.title }}</h2>
+          <SectionHeader>{{ form.title }}</SectionHeader>
           <p v-if="form.description" class="text-(--text-muted) mt-1">{{ form.description }}</p>
         </div>
 
@@ -296,16 +298,14 @@ watch(loaded, (isLoaded) => {
                     </SelectInput>
                   </template>
                   <template v-else>
-                    <label v-for="(opt, oi) in (parseConfig(q.config).options as string[])" :key="oi"
-                           class="flex items-center gap-2 py-1 cursor-pointer text-sm">
-                      <input
-                          :type="parseConfig(q.config).multiSelect ? 'checkbox' : 'radio'"
-                          :checked="(answers[q.id] as { selected: number[] })?.selected?.includes(oi)"
-                          class="h-4 w-4 accent-primary"
-                          @change="toggleChoice(q.id, oi, !!parseConfig(q.config).multiSelect)"
-                      />
-                      {{ opt }}
-                    </label>
+                    <div v-for="(opt, oi) in (parseConfig(q.config).options as string[])" :key="oi" class="py-1">
+                      <SelectionToggleButton
+                          :selected="(answers[q.id] as { selected: number[] })?.selected?.includes(oi)"
+                          @toggle="toggleChoice(q.id, oi, !!parseConfig(q.config).multiSelect)"
+                      >
+                        {{ opt }}
+                      </SelectionToggleButton>
+                    </div>
                   </template>
                   <TextInput v-if="parseConfig(q.config).allowOther"
                              v-model="(answers[q.id] as { selected: number[]; other: string }).other"
@@ -323,13 +323,21 @@ watch(loaded, (isLoaded) => {
               <!-- RATING -->
               <template v-if="q.questionType === QuestionTypes.RATING">
                 <div class="flex gap-1">
-                  <button v-for="n in (parseConfig(q.config).scale as number || 5)" :key="n"
-                          :class="n <= ((answers[q.id] as { rating: number })?.rating ?? 0) ? 'text-primary' : 'text-(--text-muted)'"
-                          class="text-xl hover:text-primary transition-colors p-1"
-                          @click="setRating(q.id, n)">
-                    <font-awesome-icon v-if="(parseConfig(q.config).icon as string) !== 'NUMBER'" :icon="ratingIcon(parseConfig(q.config).icon as string)" />
-                    <span v-else class="text-base font-bold">{{ n }}</span>
-                  </button>
+                  <template v-if="(parseConfig(q.config).icon as string) !== 'NUMBER'">
+                    <IconButton v-for="n in (parseConfig(q.config).scale as number || 5)" :key="n"
+                            :icon="ratingIcon(parseConfig(q.config).icon as string)"
+                            :label="`Rating ${n}`"
+                            :class="n <= ((answers[q.id] as { rating: number })?.rating ?? 0) ? 'text-primary' : 'text-(--text-muted)'"
+                            class="text-xl hover:text-primary"
+                            @click="setRating(q.id, n)" />
+                  </template>
+                  <template v-else>
+                    <SelectionToggleButton v-for="n in (parseConfig(q.config).scale as number || 5)" :key="n"
+                            :selected="n <= ((answers[q.id] as { rating: number })?.rating ?? 0)"
+                            @toggle="setRating(q.id, n)">
+                      {{ n }}
+                    </SelectionToggleButton>
+                  </template>
                 </div>
               </template>
 
@@ -370,10 +378,11 @@ watch(loaded, (isLoaded) => {
                       <td class="py-2 pr-4 text-sm">{{ stmt || `Option ${si + 1}` }}</td>
                       <td v-for="n in ((parseConfig(q.config).scaleMax as number) - (parseConfig(q.config).scaleMin as number) + 1)"
                           :key="n" class="text-center px-2 py-2">
-                        <input type="radio" :name="`likert-${q.id}-${si}`"
-                               :checked="(answers[q.id] as { ratings: Record<string, number> })?.ratings?.[String(si)] === (parseConfig(q.config).scaleMin as number) + n - 1"
-                               class="h-4 w-4 accent-primary"
-                               @change="setLikertRating(q.id, si, (parseConfig(q.config).scaleMin as number) + n - 1)" />
+                        <SelectionToggleButton
+                               :selected="(answers[q.id] as { ratings: Record<string, number> })?.ratings?.[String(si)] === (parseConfig(q.config).scaleMin as number) + n - 1"
+                               @toggle="setLikertRating(q.id, si, (parseConfig(q.config).scaleMin as number) + n - 1)">
+                          {{ (parseConfig(q.config).scaleMin as number) + n - 1 }}
+                        </SelectionToggleButton>
                       </td>
                     </tr>
                     </tbody>

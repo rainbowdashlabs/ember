@@ -60,10 +60,10 @@ function onInput() {
     <p class="text-[10px] text-[var(--text-muted)]">YouTube, Vimeo, PeerTube, Dailymotion oder beliebige Embed-URL</p>
 
     <div class="flex items-center gap-2">
-      <PrimaryButton class="!text-xs !py-1 !px-2" :disabled="!videoUrl" @click="$emit('apply', videoUrl)">
+      <PrimaryButton compact :disabled="!videoUrl" @click="$emit('apply', videoUrl)">
         <font-awesome-icon :icon="['fas', 'check']" class="mr-1" /> Einfügen
       </PrimaryButton>
-      <SecondaryButton class="!text-xs !py-1 !px-2" @click="$emit('cancel')">Abbrechen</SecondaryButton>
+      <SecondaryButton compact @click="$emit('cancel')">Abbrechen</SecondaryButton>
     </div>
   </div>
 </template>

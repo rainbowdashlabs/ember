@@ -75,19 +75,4 @@ public final class PandocConverter {
             Files.deleteIfExists(tempDir);
         }
     }
-
-    /**
-     * Checks if pandoc is available.
-     */
-    public static boolean isAvailable() {
-        try {
-            var process = new ProcessBuilder(PANDOC_BIN, "--version")
-                    .redirectErrorStream(true)
-                    .start();
-            process.getInputStream().readAllBytes();
-            return process.waitFor() == 0;
-        } catch (Exception e) {
-            return false;
-        }
-    }
 }

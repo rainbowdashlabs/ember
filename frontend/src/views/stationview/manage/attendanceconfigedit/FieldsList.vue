@@ -11,7 +11,9 @@ import EditButton from '@/components/button/EditButton.vue'
 import DragList from '@/components/input/DragList.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
+import EmptyState from '@/components/feedback/EmptyState.vue'
 import type {AttendanceTemplateField, MemberGroup} from '@/api/types'
+import MutedText from '@/components/typography/MutedText.vue'
 
 const props = defineProps<{
   fields: AttendanceTemplateField[]
@@ -35,8 +37,6 @@ const fieldTypeOptions: Record<string, string> = {
   member_list: 'Mitgliederliste',
   member_of_group: 'Mitglied aus Gruppe',
   member_list_of_group: 'Mitgliederliste aus Gruppe',
-  attendance: 'Anwesenheit',
-  attendance_of_group: 'Anwesenheit einer Gruppe',
 }
 
 function fieldTypeLabel(value: string): string {
@@ -61,29 +61,26 @@ function groupName(groupId: number): string {
   <NeutralContainer class="space-y-4">
     <div class="flex items-center justify-between">
       <SectionHeader>{{ t('attendanceConfig.fields') }}</SectionHeader>
-      <PrimaryButton @click="emit('add')">
-        <font-awesome-icon :icon="['fas', 'plus']" class="mr-2"/>
+      <PrimaryButton :icon="['fas', 'plus']" @click="emit('add')">
         {{ t('attendanceConfig.addField') }}
       </PrimaryButton>
     </div>
 
-    <div v-if="fields.length === 0" class="text-center text-(--text-muted) py-8">
-      {{ t('attendanceConfig.noFields') }}
-    </div>
+    <EmptyState v-if="fields.length === 0">{{ t('attendanceConfig.noFields') }}</EmptyState>
 
     <DragList :items="fields" :key-fn="(f) => f.id" @reorder="(from, to) => emit('reorder', from, to)">
       <template #default="{ item: field }">
         <div
             class="flex items-center justify-between cursor-grab active:cursor-grabbing rounded-lg border p-4 border-bg-light-accent bg-bg-light-accent/20 dark:border-bg-dark-accent dark:bg-bg-dark-accent/20 mb-2">
-          <div class="flex items-center gap-3">
+          <div class="flex items-center gap-2">
             <font-awesome-icon :icon="['fas', 'grip-vertical']" class="text-(--text-muted) h-4 w-4"/>
             <div>
               <span class="font-medium">{{ field.name }}</span>
               <span v-if="parseConfig(field.config).required" class="ml-1 text-xs text-error">*</span>
-              <span class="ml-2 text-sm text-(--text-muted)">({{ fieldTypeLabel(field.fieldType ?? '') }})</span>
-              <span v-if="parseConfig(field.config).groupId" class="ml-1 text-xs text-(--text-muted)">
+              <MutedText size="sm" class="ml-2">({{ fieldTypeLabel(field.fieldType ?? '') }})</MutedText>
+              <MutedText class="ml-1" v-if="parseConfig(field.config).groupId">
                 — {{ groupName(parseConfig(field.config).groupId!) }}
-              </span>
+              </MutedText>
               <span v-if="parseConfig(field.config).autoAttend" class="ml-2 text-xs text-primary">
                 <font-awesome-icon :icon="['fas', 'user-plus']" class="mr-0.5"/>auto
               </span>

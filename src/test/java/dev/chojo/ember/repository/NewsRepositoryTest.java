@@ -78,18 +78,23 @@ class NewsRepositoryTest extends RepositoryTestBase {
         assertEquals(1, visible.size());
     }
 
-    // -- Group Restrictions --
+    // -- Restrictions (now handled by RestrictionRepository) --
 
     @Test
     @Order(10)
-    void setAndFindGroupRestrictions() {
+    void setAndFindRestrictions() {
+        var restrictionRepo = new dev.chojo.ember.feature.restriction.RestrictionRepository();
         var group = memberGroupRepo.create(station.id(), "News Group");
-        newsRepo.setGroupRestrictions(newsId, List.of(group.id()));
-        var restrictions = newsRepo.findGroupRestrictions(newsId);
+        restrictionRepo.setRestrictions(
+                "news_restriction", "news_id", newsId, List.of(), List.of(group.id()), List.of(), List.of());
+        var restrictions = restrictionRepo.findRestrictions("news_restriction", "news_id", newsId);
         assertEquals(1, restrictions.size());
         // Clear
-        newsRepo.setGroupRestrictions(newsId, List.of());
-        assertTrue(newsRepo.findGroupRestrictions(newsId).isEmpty());
+        restrictionRepo.setRestrictions(
+                "news_restriction", "news_id", newsId, List.of(), List.of(), List.of(), List.of());
+        assertTrue(restrictionRepo
+                .findRestrictions("news_restriction", "news_id", newsId)
+                .isEmpty());
         memberGroupRepo.delete(group.id());
     }
 

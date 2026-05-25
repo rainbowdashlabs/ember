@@ -12,6 +12,7 @@ import dev.chojo.ember.feature.members.entity.Role;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
+import dev.chojo.ember.feature.station.entity.Station;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
@@ -19,6 +20,7 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 
 /**
  * Manages authentication and authorization by resolving session tokens into user sessions
@@ -63,11 +65,11 @@ public class AccessManager {
      * Resolves a session token and optional station context into a full user session.
      * Combines account-level roles with station-specific member and group roles, then expands the role hierarchy.
      *
-     * @param token     the bearer token
-     * @param stationId the station to scope the session to, or {@code null} for account-level only
+     * @param token   the bearer token
+     * @param station the station to scope the session to, or {@code null} for account-level only
      * @return the user session with resolved roles, or empty if the token is invalid
      */
-    public Optional<UserSession> resolveUserSession(String token, Integer stationId) {
+    public Optional<UserSession> resolveUserSession(String token, Station station) {
         Optional<AccountSession> sessionOpt = resolveSession(token);
         if (sessionOpt.isEmpty()) {
             return Optional.empty();
@@ -80,6 +82,8 @@ public class AccessManager {
         }
 
         Account account = accountOpt.get();
+        Integer stationId = station != null ? station.id() : null;
+        UUID stationUid = station != null ? station.uid() : null;
 
         // Resolve account-level roles (e.g. admin)
         Set<Roles> roles = resolveAccountRoles(accountId);
@@ -95,11 +99,11 @@ public class AccessManager {
                 List<Role> groupRoles = memberGroupRepository.findRolesForMemberViaGroups(member.id());
                 groupRoles.stream().map(Role::role).forEach(roles::add);
                 roles = Roles.expand(roles);
-                return Optional.of(new UserSession(account, stationId, member, roles));
+                return Optional.of(new UserSession(account, stationId, stationUid, member, roles));
             }
         }
 
-        return Optional.of(new UserSession(account, stationId, null, roles));
+        return Optional.of(new UserSession(account, stationId, stationUid, null, roles));
     }
 
     /**

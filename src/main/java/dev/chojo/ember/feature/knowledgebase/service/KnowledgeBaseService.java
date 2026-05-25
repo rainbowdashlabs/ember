@@ -11,7 +11,11 @@ import dev.chojo.ember.feature.knowledgebase.entity.KbFileType;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFileVersion;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFolder;
 import dev.chojo.ember.feature.knowledgebase.entity.KbTag;
+import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
 import dev.chojo.ember.feature.knowledgebase.repository.KnowledgeBaseRepository;
+import dev.chojo.ember.feature.restriction.Restriction;
+import dev.chojo.ember.feature.restriction.RestrictionMode;
+import dev.chojo.ember.feature.restriction.RestrictionSet;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.util.TextDiff;
 import jakarta.inject.Inject;
@@ -29,10 +33,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.URI;
+import java.net.URLEncoder;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -197,7 +204,7 @@ public class KnowledgeBaseService {
     private String fetchYoutubeMetadata(String youtubeUrl) {
         try {
             String oembedUrl = "https://www.youtube.com/oembed?url="
-                    + java.net.URLEncoder.encode(youtubeUrl, java.nio.charset.StandardCharsets.UTF_8)
+                    + URLEncoder.encode(youtubeUrl, StandardCharsets.UTF_8)
                     + "&format=json";
             HttpClient httpClient = HttpClient.newBuilder()
                     .connectTimeout(Duration.ofSeconds(5))
@@ -222,7 +229,7 @@ public class KnowledgeBaseService {
     }
 
     private static String extractJsonString(String json, String key) {
-        var pattern = java.util.regex.Pattern.compile("\"" + key + "\"\\s*:\\s*\"([^\"]+)\"");
+        var pattern = Pattern.compile("\"" + key + "\"\\s*:\\s*\"([^\"]+)\"");
         var matcher = pattern.matcher(json);
         return matcher.find() ? matcher.group(1) : null;
     }
@@ -308,17 +315,21 @@ public class KnowledgeBaseService {
             List<Integer> memberGroupIds,
             List<Integer> memberTagIds) {
         // Check file/folder restrictions
-        var restrictions =
-                repository.findRestrictions(folderId != null ? folderId : null, fileId != null ? fileId : null);
-        if (!restrictions.isEmpty()) {
-            boolean matched = restrictions.stream().anyMatch(r -> {
-                if (r.roleId() != null) return memberRoleIds.contains(r.roleId());
-                if (r.groupId() != null) return memberGroupIds.contains(r.groupId());
-                if (r.tagId() != null) return memberTagIds.contains(r.tagId());
-                if (r.memberId() != null) return r.memberId() == memberId;
-                return false;
-            });
-            if (!matched) return false;
+        var rawRestrictions = repository.findRestrictions(folderId, fileId);
+        if (!rawRestrictions.isEmpty()) {
+            // Determine restriction mode from the entity
+            RestrictionMode mode = RestrictionMode.AND;
+            if (fileId != null) {
+                var file = repository.findFileById(fileId);
+                if (file.isPresent() && file.get().restrictionMode() != null)
+                    mode = file.get().restrictionMode();
+            } else if (folderId != null) {
+                var folder = repository.findFolderById(folderId);
+                if (folder.isPresent() && folder.get().restrictionMode() != null)
+                    mode = folder.get().restrictionMode();
+            }
+            var restrictions = toRestrictionSet(rawRestrictions, mode);
+            if (!restrictions.matches(memberRoleIds, memberGroupIds, memberTagIds, memberId)) return false;
         }
 
         // For files, also check parent folder restrictions (inherited)
@@ -346,16 +357,12 @@ public class KnowledgeBaseService {
         var folder = repository.findFolderById(folderId);
         if (folder.isEmpty()) return true;
 
-        var restrictions = repository.findRestrictions(folderId, null);
-        if (!restrictions.isEmpty()) {
-            boolean matched = restrictions.stream().anyMatch(r -> {
-                if (r.roleId() != null) return memberRoleIds.contains(r.roleId());
-                if (r.groupId() != null) return memberGroupIds.contains(r.groupId());
-                if (r.tagId() != null) return memberTagIds.contains(r.tagId());
-                if (r.memberId() != null) return r.memberId() == memberId;
-                return false;
-            });
-            if (!matched) return false;
+        var rawRestrictions = repository.findRestrictions(folderId, null);
+        if (!rawRestrictions.isEmpty()) {
+            RestrictionMode mode =
+                    folder.get().restrictionMode() != null ? folder.get().restrictionMode() : RestrictionMode.AND;
+            var restrictions = toRestrictionSet(rawRestrictions, mode);
+            if (!restrictions.matches(memberRoleIds, memberGroupIds, memberTagIds, memberId)) return false;
         }
 
         // Check parent folder
@@ -366,13 +373,74 @@ public class KnowledgeBaseService {
         return true;
     }
 
+    private RestrictionSet toRestrictionSet(List<KbAccessRestriction> kbRestrictions, RestrictionMode mode) {
+        var restrictions = kbRestrictions.stream()
+                .map(r -> new Restriction(r.id(), r.roleId(), r.groupId(), r.tagId(), r.memberId()))
+                .toList();
+        return new RestrictionSet(restrictions, mode);
+    }
+
     public boolean updateFile(int id, String name, String description, String iconUrl, int position) {
         return repository.updateFile(id, name, description, iconUrl, position);
+    }
+
+    public void setSourceReference(int fileId, int sourceFileId, int sourceStationId) {
+        repository.setSourceReference(fileId, sourceFileId, sourceStationId);
     }
 
     public boolean deleteFile(int id) {
         fileStorage.delete(id);
         return repository.deleteFile(id);
+    }
+
+    // -- Public Visibility --
+
+    /**
+     * Checks if a folder or file is publicly visible based on the station's public KB mode.
+     * Items with access restrictions are never public.
+     * In ALLOW_ALL mode: public unless explicitly opted out.
+     * In DENY_ALL mode: not public unless explicitly opted in.
+     * Folder visibility is inherited by child items unless overridden.
+     */
+    public boolean isPubliclyVisible(PublicKbMode mode, Integer folderId, Integer fileId) {
+        if (mode == PublicKbMode.OFF) return false;
+
+        // Items with access restrictions are never public
+        if (repository.hasRestrictions(folderId, fileId)) return false;
+
+        // For files, also check parent folder restrictions
+        if (fileId != null) {
+            var file = repository.findFileById(fileId).orElse(null);
+            if (file != null && file.folderId() != null) {
+                if (!isPubliclyVisible(mode, file.folderId(), null)) return false;
+            }
+        }
+
+        // For folders, check parent folder restrictions recursively
+        if (folderId != null) {
+            var folder = repository.findFolderById(folderId).orElse(null);
+            if (folder != null && folder.parentId() != null) {
+                if (!isPubliclyVisible(mode, folder.parentId(), null)) return false;
+            }
+        }
+
+        // Check explicit visibility override
+        var override = repository.findPublicVisibility(folderId, fileId);
+        return override.orElseGet(() -> mode == PublicKbMode.ALLOW_ALL);
+
+        // Default based on mode
+    }
+
+    public void setPublicVisibility(Integer folderId, Integer fileId, boolean visible) {
+        repository.setPublicVisibility(folderId, fileId, visible);
+    }
+
+    public void removePublicVisibility(Integer folderId, Integer fileId) {
+        repository.removePublicVisibility(folderId, fileId);
+    }
+
+    public Optional<Boolean> findPublicVisibility(Integer folderId, Integer fileId) {
+        return repository.findPublicVisibility(folderId, fileId);
     }
 
     private void storeBinaryFile(int fileId, byte[] data, String contentType) {
@@ -431,7 +499,7 @@ public class KnowledgeBaseService {
     public Optional<String> reconstructVersion(int fileId, int targetVersion) {
         var allVersions = repository.findVersions(fileId);
         // Sort ascending by version
-        allVersions.sort((a, b) -> Integer.compare(a.version(), b.version()));
+        allVersions.sort(Comparator.comparingInt(KbFileVersion::version));
 
         String content = null;
         for (var v : allVersions) {
@@ -512,6 +580,10 @@ public class KnowledgeBaseService {
         return repository.findFileTags(fileId);
     }
 
+    public List<KbFile> findFilesByTag(int stationId, String tagName) {
+        return repository.findFilesByTag(stationId, tagName);
+    }
+
     public List<KbTag> setFileTags(int fileId, List<String> tagNames, int stationId) {
         repository.setFileTags(fileId, tagNames, stationId);
         return repository.findFileTags(fileId);
@@ -529,6 +601,24 @@ public class KnowledgeBaseService {
 
     public void setRelatedFiles(int fileId, List<Integer> targetFileIds) {
         repository.setRelatedFiles(fileId, targetFileIds);
+    }
+
+    // -- Favourites --
+
+    public void addFavourite(int memberId, int fileId) {
+        repository.addFavourite(memberId, fileId);
+    }
+
+    public boolean removeFavourite(int memberId, int fileId) {
+        return repository.removeFavourite(memberId, fileId);
+    }
+
+    public List<KbFile> findFavourites(int memberId) {
+        return repository.findFavourites(memberId);
+    }
+
+    public boolean isFavourite(int memberId, int fileId) {
+        return repository.isFavourite(memberId, fileId);
     }
 
     public List<KbTag> setFolderTags(int folderId, List<String> tagNames, int stationId) {

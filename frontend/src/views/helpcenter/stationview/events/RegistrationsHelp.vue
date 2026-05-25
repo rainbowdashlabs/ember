@@ -12,6 +12,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
+import MutedText from '@/components/typography/MutedText.vue'
 
 const {t} = useI18n()
 </script>
@@ -32,16 +33,14 @@ const {t} = useI18n()
       <NeutralContainer class="flex items-center justify-between">
         <div>
           <span class="font-medium">Max Mustermann</span>
-          <span class="ml-2 text-sm text-(--text-muted)">Wettkampf Vorbereitung</span>
-          <span class="ml-2 text-xs text-(--text-muted)">2026-05-25</span>
+          <MutedText size="sm" class="ml-2">Wettkampf Vorbereitung</MutedText>
+          <MutedText class="ml-2">2026-05-25</MutedText>
         </div>
         <div class="flex items-center gap-2">
-          <PrimaryButton>
-            <font-awesome-icon :icon="['fas', 'check']" class="mr-1"/>
+          <PrimaryButton :icon="['fas', 'check']">
             {{ t('eventsRegistrations.accept') }}
           </PrimaryButton>
-          <ErrorButton>
-            <font-awesome-icon :icon="['fas', 'xmark']" class="mr-1"/>
+          <ErrorButton :icon="['fas', 'xmark']">
             {{ t('eventsRegistrations.deny') }}
           </ErrorButton>
         </div>
@@ -49,16 +48,14 @@ const {t} = useI18n()
       <NeutralContainer class="flex items-center justify-between">
         <div>
           <span class="font-medium">Erika Muster</span>
-          <span class="ml-2 text-sm text-(--text-muted)">Wettkampf Vorbereitung</span>
-          <span class="ml-2 text-xs text-(--text-muted)">2026-05-25</span>
+          <MutedText size="sm" class="ml-2">Wettkampf Vorbereitung</MutedText>
+          <MutedText class="ml-2">2026-05-25</MutedText>
         </div>
         <div class="flex items-center gap-2">
-          <PrimaryButton>
-            <font-awesome-icon :icon="['fas', 'check']" class="mr-1"/>
+          <PrimaryButton :icon="['fas', 'check']">
             {{ t('eventsRegistrations.accept') }}
           </PrimaryButton>
-          <ErrorButton>
-            <font-awesome-icon :icon="['fas', 'xmark']" class="mr-1"/>
+          <ErrorButton :icon="['fas', 'xmark']">
             {{ t('eventsRegistrations.deny') }}
           </ErrorButton>
         </div>

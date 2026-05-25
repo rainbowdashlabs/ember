@@ -8,8 +8,11 @@ import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
+import IconButton from '@/components/button/IconButton.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
+import EmptyState from '@/components/feedback/EmptyState.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
+import FieldLabel from '@/components/typography/FieldLabel.vue'
 import type {MemberGroup, TemplateGroupEntry} from '@/api/types'
 
 const props = defineProps<{
@@ -41,9 +44,7 @@ const unselectedGroups = computed(() => {
     <SectionHeader>{{ t('attendanceConfig.groups') }}</SectionHeader>
     <p class="text-sm text-(--text-muted)">{{ t('attendanceConfig.groupsHint') }}</p>
 
-    <div v-if="groups.length === 0" class="text-center text-(--text-muted) py-4">
-      {{ t('attendanceConfig.noGroups') }}
-    </div>
+    <EmptyState compact v-if="groups.length === 0">{{ t('attendanceConfig.noGroups') }}</EmptyState>
 
     <div class="space-y-2">
       <NeutralContainer v-for="(group, index) in groups" :key="group.groupId" class="flex items-center justify-between">
@@ -52,25 +53,20 @@ const unselectedGroups = computed(() => {
           <span class="font-medium">{{ groupName(group.groupId) }}</span>
         </div>
         <div class="flex items-center gap-1">
-          <button :disabled="index === 0" class="p-1 text-(--text-muted) hover:text-(--text) disabled:opacity-30"
-                  @click="emit('moveUp', index)">
-            <font-awesome-icon :icon="['fas', 'chevron-up']" class="h-3 w-3"/>
-          </button>
-          <button :disabled="index === groups.length - 1"
-                  class="p-1 text-(--text-muted) hover:text-(--text) disabled:opacity-30" @click="emit('moveDown', index)">
-            <font-awesome-icon :icon="['fas', 'chevron-down']" class="h-3 w-3"/>
-          </button>
+          <IconButton :disabled="index === 0" :icon="['fas', 'chevron-up']"
+                     :label="t('common.moveUp')" @click="emit('moveUp', index)"/>
+          <IconButton :disabled="index === groups.length - 1" :icon="['fas', 'chevron-down']"
+                     :label="t('common.moveDown')" @click="emit('moveDown', index)"/>
           <DeleteButton @click="emit('remove', group.groupId)"/>
         </div>
       </NeutralContainer>
     </div>
 
     <div v-if="unselectedGroups.length > 0" class="pt-2">
-      <label class="block text-sm font-medium mb-1">{{ t('attendanceConfig.addGroup') }}</label>
+      <FieldLabel class="mb-1">{{ t('attendanceConfig.addGroup') }}</FieldLabel>
       <div class="flex flex-wrap gap-2">
-        <SecondaryButton v-for="group in unselectedGroups" :key="group.id"
+        <SecondaryButton :icon="['fas', 'plus']" v-for="group in unselectedGroups" :key="group.id"
                          @click="emit('add', group.id)">
-          <font-awesome-icon :icon="['fas', 'plus']" class="mr-1"/>
           {{ group.name }}
         </SecondaryButton>
       </div>

@@ -27,6 +27,7 @@ import dev.chojo.ember.util.PandocConverter;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.ContentType;
 import io.javalin.http.Context;
+import io.javalin.http.ForbiddenResponse;
 import io.javalin.http.HttpStatus;
 import io.javalin.http.InternalServerErrorResponse;
 import io.javalin.http.NotFoundResponse;
@@ -37,6 +38,7 @@ import org.slf4j.Logger;
 
 import java.io.IOException;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
@@ -74,7 +76,7 @@ public class KnowledgeBaseRoutes implements Routes {
 
     private String resolveFolderPath(Integer folderId) {
         if (folderId == null) return "/";
-        var parts = new java.util.ArrayList<String>();
+        var parts = new ArrayList<String>();
         Integer current = folderId;
         while (current != null) {
             var folder = service.findFolder(current);
@@ -107,38 +109,38 @@ public class KnowledgeBaseRoutes implements Routes {
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
         // Folders
         routes.get(prefix + "/kb/folders", this::listFolders, Roles.USER);
-        routes.post(prefix + "/kb/folders", this::createFolder, Roles.KNOWLEDGE_MANAGEMENT);
+        routes.post(prefix + "/kb/folders", this::createFolder, Roles.KNOWLEDGE_MANAGER);
         routes.get(prefix + "/kb/folders/{id}", this::getFolder, Roles.USER);
-        routes.put(prefix + "/kb/folders/{id}", this::updateFolder, Roles.KNOWLEDGE_MANAGEMENT);
-        routes.delete(prefix + "/kb/folders/{id}", this::deleteFolder, Roles.KNOWLEDGE_MANAGEMENT);
+        routes.put(prefix + "/kb/folders/{id}", this::updateFolder, Roles.KNOWLEDGE_MANAGER);
+        routes.delete(prefix + "/kb/folders/{id}", this::deleteFolder, Roles.KNOWLEDGE_MANAGER);
 
         // Files
         routes.get(prefix + "/kb/files", this::listFiles, Roles.USER);
         routes.get(prefix + "/kb/files/{id}", this::getFile, Roles.USER);
-        routes.put(prefix + "/kb/files/{id}", this::updateFile, Roles.KNOWLEDGE_MANAGEMENT);
-        routes.delete(prefix + "/kb/files/{id}", this::deleteFile, Roles.KNOWLEDGE_MANAGEMENT);
+        routes.put(prefix + "/kb/files/{id}", this::updateFile, Roles.KNOWLEDGE_MANAGER);
+        routes.delete(prefix + "/kb/files/{id}", this::deleteFile, Roles.KNOWLEDGE_MANAGER);
 
         // File creation
-        routes.post(prefix + "/kb/files/markdown", this::createMarkdownFile, Roles.KNOWLEDGE_MANAGEMENT);
-        routes.post(prefix + "/kb/files/youtube", this::createYoutubeFile, Roles.KNOWLEDGE_MANAGEMENT);
-        routes.post(prefix + "/kb/files/upload", this::uploadFile, Roles.KNOWLEDGE_MANAGEMENT);
-        routes.post(prefix + "/kb/files/import-document", this::importDocument, Roles.KNOWLEDGE_MANAGEMENT);
-        routes.post(prefix + "/kb/files/link", this::createLinkFile, Roles.KNOWLEDGE_MANAGEMENT);
+        routes.post(prefix + "/kb/files/markdown", this::createMarkdownFile, Roles.KNOWLEDGE_MANAGER);
+        routes.post(prefix + "/kb/files/youtube", this::createYoutubeFile, Roles.KNOWLEDGE_MANAGER);
+        routes.post(prefix + "/kb/files/upload", this::uploadFile, Roles.KNOWLEDGE_MANAGER);
+        routes.post(prefix + "/kb/files/import-document", this::importDocument, Roles.KNOWLEDGE_MANAGER);
+        routes.post(prefix + "/kb/files/link", this::createLinkFile, Roles.KNOWLEDGE_MANAGER);
 
         // File content
         routes.get(prefix + "/kb/files/{id}/content", this::getFileContent, Roles.USER);
         routes.get(prefix + "/kb/files/{id}/html", this::getMarkdownHtml, Roles.USER);
-        routes.put(prefix + "/kb/files/{id}/content", this::updateMarkdownContent, Roles.KNOWLEDGE_MANAGEMENT);
+        routes.put(prefix + "/kb/files/{id}/content", this::updateMarkdownContent, Roles.KNOWLEDGE_MANAGER);
 
         // Versions (markdown only)
-        routes.get(prefix + "/kb/files/{id}/versions", this::listVersions, Roles.KNOWLEDGE_MANAGEMENT);
-        routes.get(prefix + "/kb/files/{id}/versions/{version}", this::getVersion, Roles.KNOWLEDGE_MANAGEMENT);
+        routes.get(prefix + "/kb/files/{id}/versions", this::listVersions, Roles.KNOWLEDGE_MANAGER);
+        routes.get(prefix + "/kb/files/{id}/versions/{version}", this::getVersion, Roles.KNOWLEDGE_MANAGER);
         routes.post(
-                prefix + "/kb/files/{id}/versions/{version}/revert", this::revertToVersion, Roles.KNOWLEDGE_MANAGEMENT);
+                prefix + "/kb/files/{id}/versions/{version}/revert", this::revertToVersion, Roles.KNOWLEDGE_MANAGER);
 
         // Related files
         routes.get(prefix + "/kb/files/{id}/related", this::getRelatedFiles, Roles.USER);
-        routes.put(prefix + "/kb/files/{id}/related", this::setRelatedFiles, Roles.KNOWLEDGE_MANAGEMENT);
+        routes.put(prefix + "/kb/files/{id}/related", this::setRelatedFiles, Roles.KNOWLEDGE_MANAGER);
 
         // Search
         routes.get(prefix + "/kb/search", this::search, Roles.USER);
@@ -147,25 +149,25 @@ public class KnowledgeBaseRoutes implements Routes {
         routes.get(prefix + "/kb/browse", this::browse, Roles.USER);
 
         // Access restrictions
-        routes.get(prefix + "/kb/folders/{id}/restrictions", this::getFolderRestrictions, Roles.KNOWLEDGE_MANAGEMENT);
-        routes.put(prefix + "/kb/folders/{id}/restrictions", this::setFolderRestrictions, Roles.KNOWLEDGE_MANAGEMENT);
-        routes.get(prefix + "/kb/files/{id}/restrictions", this::getFileRestrictions, Roles.KNOWLEDGE_MANAGEMENT);
-        routes.put(prefix + "/kb/files/{id}/restrictions", this::setFileRestrictions, Roles.KNOWLEDGE_MANAGEMENT);
+        routes.get(prefix + "/kb/folders/{id}/restrictions", this::getFolderRestrictions, Roles.KNOWLEDGE_MANAGER);
+        routes.put(prefix + "/kb/folders/{id}/restrictions", this::setFolderRestrictions, Roles.KNOWLEDGE_MANAGER);
+        routes.get(prefix + "/kb/files/{id}/restrictions", this::getFileRestrictions, Roles.KNOWLEDGE_MANAGER);
+        routes.put(prefix + "/kb/files/{id}/restrictions", this::setFileRestrictions, Roles.KNOWLEDGE_MANAGER);
 
         // Folder icons
         routes.get(prefix + "/kb/folders/{id}/icon", this::getFolderIcon, Roles.USER);
-        routes.post(prefix + "/kb/folders/{id}/icon", this::uploadFolderIcon, Roles.KNOWLEDGE_MANAGEMENT);
+        routes.post(prefix + "/kb/folders/{id}/icon", this::uploadFolderIcon, Roles.KNOWLEDGE_MANAGER);
 
         // KB Images (for markdown embedding)
-        routes.post(prefix + "/kb/files/{id}/images", this::uploadKbImage, Roles.KNOWLEDGE_MANAGEMENT);
+        routes.post(prefix + "/kb/files/{id}/images", this::uploadKbImage, Roles.KNOWLEDGE_MANAGER);
         routes.get(prefix + "/kb/images/{imageId}", this::getKbImage, Roles.USER);
 
         // Tags
         routes.get(prefix + "/kb/tags", this::listTags, Roles.USER);
         routes.get(prefix + "/kb/files/{id}/tags", this::getFileTags, Roles.USER);
-        routes.put(prefix + "/kb/files/{id}/tags", this::setFileTags, Roles.KNOWLEDGE_MANAGEMENT);
+        routes.put(prefix + "/kb/files/{id}/tags", this::setFileTags, Roles.KNOWLEDGE_MANAGER);
         routes.get(prefix + "/kb/folders/{id}/tags", this::getFolderTags, Roles.USER);
-        routes.put(prefix + "/kb/folders/{id}/tags", this::setFolderTags, Roles.KNOWLEDGE_MANAGEMENT);
+        routes.put(prefix + "/kb/folders/{id}/tags", this::setFolderTags, Roles.KNOWLEDGE_MANAGER);
     }
 
     // -- Folders --
@@ -199,6 +201,11 @@ public class KnowledgeBaseRoutes implements Routes {
 
     private void updateFolder(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
+        var session = UserSession.from(ctx);
+        var folder = service.findFolder(id).orElseThrow(NotFoundResponse::new);
+        if (folder.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot access resources from another station");
+        }
         var req = ctx.bodyAsClass(FolderRequest.class);
         if (!service.updateFolder(
                 id,
@@ -215,6 +222,11 @@ public class KnowledgeBaseRoutes implements Routes {
 
     private void deleteFolder(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
+        var session = UserSession.from(ctx);
+        var folder = service.findFolder(id).orElseThrow(NotFoundResponse::new);
+        if (folder.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot access resources from another station");
+        }
         if (!service.deleteFolder(id)) throw new NotFoundResponse();
         ctx.status(204);
     }
@@ -232,17 +244,18 @@ public class KnowledgeBaseRoutes implements Routes {
     private void getFile(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
         service.findFile(id)
-                .ifPresentOrElse(
-                        file -> {
-                            ctx.json(new FileResponse(file, resolveMemberName(file.createdBy())));
-                        },
-                        () -> {
-                            throw new NotFoundResponse();
-                        });
+                .ifPresentOrElse(file -> ctx.json(new FileResponse(file, resolveMemberName(file.createdBy()))), () -> {
+                    throw new NotFoundResponse();
+                });
     }
 
     private void updateFile(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
+        var session = UserSession.from(ctx);
+        var file = service.findFile(id).orElseThrow(NotFoundResponse::new);
+        if (file.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot access resources from another station");
+        }
         var req = ctx.bodyAsClass(FileUpdateRequest.class);
         if (!service.updateFile(
                 id,
@@ -259,6 +272,11 @@ public class KnowledgeBaseRoutes implements Routes {
 
     private void deleteFile(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
+        var session = UserSession.from(ctx);
+        var file = service.findFile(id).orElseThrow(NotFoundResponse::new);
+        if (file.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot access resources from another station");
+        }
         if (!service.deleteFile(id)) throw new NotFoundResponse();
         ctx.status(204);
     }
@@ -328,7 +346,8 @@ public class KnowledgeBaseRoutes implements Routes {
                     file.contentType(),
                     session.member().id()));
         } catch (Exception e) {
-            throw new BadRequestResponse("Failed to read file: " + e.getMessage());
+            log.warn("Failed to read uploaded file for KB", e);
+            throw new BadRequestResponse("Failed to read file");
         }
     }
 
@@ -367,7 +386,8 @@ public class KnowledgeBaseRoutes implements Routes {
                     markdown,
                     session.member().id()));
         } catch (Exception e) {
-            throw new BadRequestResponse("Document conversion failed: " + e.getMessage());
+            log.warn("Document conversion failed for KB import", e);
+            throw new BadRequestResponse("Document conversion failed");
         }
     }
 
@@ -426,6 +446,10 @@ public class KnowledgeBaseRoutes implements Routes {
     private void updateMarkdownContent(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
         var session = UserSession.from(ctx);
+        var file = service.findFile(id).orElseThrow(NotFoundResponse::new);
+        if (file.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot access resources from another station");
+        }
         var req = ctx.bodyAsClass(ContentUpdateRequest.class);
         service.updateMarkdownContent(
                 id, req.content() != null ? req.content() : "", session.member().id());
@@ -460,6 +484,10 @@ public class KnowledgeBaseRoutes implements Routes {
         int fileId = ctx.pathParamAsClass("id", Integer.class).get();
         int version = ctx.pathParamAsClass("version", Integer.class).get();
         var session = UserSession.from(ctx);
+        var file = service.findFile(fileId).orElseThrow(NotFoundResponse::new);
+        if (file.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot access resources from another station");
+        }
         service.revertToVersion(fileId, version, session.member().id());
         ctx.status(204);
     }
@@ -473,6 +501,11 @@ public class KnowledgeBaseRoutes implements Routes {
 
     private void setRelatedFiles(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
+        var session = UserSession.from(ctx);
+        var file = service.findFile(id).orElseThrow(NotFoundResponse::new);
+        if (file.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot access resources from another station");
+        }
         var req = ctx.bodyAsClass(RelatedFilesRequest.class);
         service.setRelatedFiles(id, req.fileIds() != null ? req.fileIds() : List.of());
         ctx.json(service.findRelatedFiles(id));
@@ -505,8 +538,8 @@ public class KnowledgeBaseRoutes implements Routes {
         var files = service.findFiles(session.stationId(), folderId);
         KbFolder currentFolder = folderId != null ? service.findFolder(folderId).orElse(null) : null;
 
-        // Filter by access restrictions unless user has KNOWLEDGE_MANAGEMENT role
-        if (!session.hasRole(Roles.KNOWLEDGE_MANAGEMENT)) {
+        // Filter by access restrictions unless user has KNOWLEDGE_MANAGER role
+        if (!session.hasRole(Roles.KNOWLEDGE_MANAGER)) {
             int memberId = session.member().id();
             var memberRoleIds = stationMemberRepository.findRoles(memberId).stream()
                     .map(Role::id)
@@ -539,6 +572,11 @@ public class KnowledgeBaseRoutes implements Routes {
 
     private void setFolderRestrictions(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
+        var session = UserSession.from(ctx);
+        var folder = service.findFolder(id).orElseThrow(NotFoundResponse::new);
+        if (folder.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot access resources from another station");
+        }
         var req = ctx.bodyAsClass(RestrictionRequest.class);
         service.setRestrictions(
                 id,
@@ -558,6 +596,11 @@ public class KnowledgeBaseRoutes implements Routes {
 
     private void setFileRestrictions(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
+        var session = UserSession.from(ctx);
+        var file = service.findFile(id).orElseThrow(NotFoundResponse::new);
+        if (file.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot access resources from another station");
+        }
         var req = ctx.bodyAsClass(RestrictionRequest.class);
         service.setRestrictions(
                 null,
@@ -635,6 +678,11 @@ public class KnowledgeBaseRoutes implements Routes {
 
     private void uploadFolderIcon(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
+        var session = UserSession.from(ctx);
+        var folder = service.findFolder(id).orElseThrow(NotFoundResponse::new);
+        if (folder.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot access resources from another station");
+        }
         var file = ctx.uploadedFile("icon");
         if (file == null) throw new BadRequestResponse("No file uploaded");
         if (!ALLOWED_IMAGE_TYPES.contains(file.contentType())) {
@@ -644,10 +692,10 @@ public class KnowledgeBaseRoutes implements Routes {
             byte[] data = content.readAllBytes();
             imageService.store(ImageCategory.KB_ICONS, "folder-" + id, data, file.contentType(), 5 * 1024 * 1024);
             // Mark folder as having an icon so the frontend shows it
-            var folder = service.findFolder(id).orElseThrow(NotFoundResponse::new);
             service.updateFolder(id, folder.name(), folder.description(), "folder-" + id, folder.position());
             ctx.json(new MessageResponse("Icon updated"));
         } catch (IllegalArgumentException e) {
+            log.warn("Invalid argument storing folder icon for folder {}", id, e);
             throw new BadRequestResponse(e.getMessage());
         } catch (IOException e) {
             log.error("Failed to process image", e);
@@ -659,8 +707,11 @@ public class KnowledgeBaseRoutes implements Routes {
 
     private void uploadKbImage(Context ctx) {
         int fileId = ctx.pathParamAsClass("id", Integer.class).get();
-        // Verify the file exists
-        service.findFile(fileId).orElseThrow(NotFoundResponse::new);
+        var session = UserSession.from(ctx);
+        var kbFile = service.findFile(fileId).orElseThrow(NotFoundResponse::new);
+        if (kbFile.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot access resources from another station");
+        }
         var file = ctx.uploadedFile("image");
         if (file == null) throw new BadRequestResponse("No image uploaded");
         if (!ALLOWED_IMAGE_TYPES.contains(file.contentType())) {
@@ -672,6 +723,7 @@ public class KnowledgeBaseRoutes implements Routes {
             imageService.store(ImageCategory.KB_IMAGES, imageId, data, file.contentType(), 10 * 1024 * 1024);
             ctx.json(new ImageUploadResponse(imageId));
         } catch (IllegalArgumentException e) {
+            log.warn("Invalid argument storing KB image for file {}", fileId, e);
             throw new BadRequestResponse(e.getMessage());
         } catch (IOException e) {
             log.error("Failed to process image", e);
@@ -708,6 +760,10 @@ public class KnowledgeBaseRoutes implements Routes {
     private void setFileTags(Context ctx) {
         var session = UserSession.from(ctx);
         int id = ctx.pathParamAsClass("id", Integer.class).get();
+        var file = service.findFile(id).orElseThrow(NotFoundResponse::new);
+        if (file.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot access resources from another station");
+        }
         var req = ctx.bodyAsClass(TagRequest.class);
         ctx.json(service.setFileTags(id, req.tags(), session.stationId()));
     }
@@ -720,6 +776,10 @@ public class KnowledgeBaseRoutes implements Routes {
     private void setFolderTags(Context ctx) {
         var session = UserSession.from(ctx);
         int id = ctx.pathParamAsClass("id", Integer.class).get();
+        var folder = service.findFolder(id).orElseThrow(NotFoundResponse::new);
+        if (folder.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot access resources from another station");
+        }
         var req = ctx.bodyAsClass(TagRequest.class);
         ctx.json(service.setFolderTags(id, req.tags(), session.stationId()));
     }

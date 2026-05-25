@@ -11,6 +11,7 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
 import type {StationMember} from '@/api/types'
 
 const {t} = useI18n()
@@ -55,7 +56,7 @@ async function submitCreate() {
 
     <!-- Existing members -->
     <div v-if="members.length > 0" class="space-y-2">
-      <h3 class="text-sm font-semibold uppercase text-(--text-muted)">{{ t('membersCreate.existingManagers') }}</h3>
+      <SubHeader class="text-sm font-semibold uppercase text-(--text-muted)">{{ t('membersCreate.existingManagers') }}</SubHeader>
       <div
           v-for="member in members"
           :key="member.id"
@@ -70,15 +71,14 @@ async function submitCreate() {
 
     <!-- Create new manager -->
     <div class="space-y-3 pt-2 border-t border-bg-light-accent dark:border-bg-dark-accent">
-      <h3 class="text-sm font-semibold uppercase text-(--text-muted)">{{ t('membersCreate.createNewManager') }}</h3>
+      <SubHeader class="text-sm font-semibold uppercase text-(--text-muted)">{{ t('membersCreate.createNewManager') }}</SubHeader>
       <p class="text-xs text-(--text-muted)">{{ t('membersCreate.createNewManagerHint') }}</p>
       <div class="grid gap-3 sm:grid-cols-3">
         <TextInput v-model="newFirstName" :placeholder="t('membersCreate.firstName')"/>
         <TextInput v-model="newLastName" :placeholder="t('membersCreate.lastName')"/>
         <TextInput v-model="newEmail" :placeholder="t('membersCreate.email')"/>
       </div>
-      <SecondaryButton :disabled="!newEmail || !newFirstName || !newLastName || creating" @click="submitCreate">
-        <font-awesome-icon :icon="['fas', 'plus']" class="mr-1"/>
+      <SecondaryButton :icon="['fas', 'plus']" :disabled="!newEmail || !newFirstName || !newLastName || creating" @click="submitCreate">
         {{ creating ? t('common.loading') : t('membersCreate.addManager') }}
       </SecondaryButton>
 

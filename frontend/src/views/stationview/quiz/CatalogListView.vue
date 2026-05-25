@@ -4,27 +4,34 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted, watch, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
+import EmptyState from '@/components/feedback/EmptyState.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import IconButton from '@/components/button/IconButton.vue'
+import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
+import SelectInput from '@/components/input/select/SelectInput.vue'
+import StationBadge from '@/components/badge/StationBadge.vue'
 import PageHeader from '@/components/typography/PageHeader.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import type { QuizCatalog, QuizCatalogExport } from '@/api/types'
-import { quiz } from '@/api'
+import type { SharedCatalogEntry } from '@/api/quiz'
+import { quiz, federation } from '@/api'
 import { useSession } from '@/composables/useSession'
 import { useBreakpoint } from '@/composables/useBreakpoint'
+import FieldLabel from '@/components/typography/FieldLabel.vue'
 
 const { t } = useI18n()
 const router = useRouter()
@@ -32,8 +39,52 @@ const { loaded } = useSession()
 const { isMobile } = useBreakpoint()
 
 const catalogs = ref<QuizCatalog[]>([])
+const sharedCatalogs = ref<SharedCatalogEntry[]>([])
 const loading = ref(true)
 const error = ref('')
+
+// Search
+const searchQuery = ref('')
+
+// Filters
+const showFederated = ref(true)
+const filterStationId = ref<string | null>(null)
+
+// Unique partner stations from shared catalogs
+const partnerStations = computed(() => {
+  const map = new Map<string, string>()
+  for (const s of sharedCatalogs.value) {
+    map.set(s.sourceStationId, s.stationName)
+  }
+  return [...map.entries()].map(([id, name]) => ({ id, name }))
+})
+
+// Filtered local catalogs by search
+const filteredCatalogs = computed(() => {
+  if (!searchQuery.value.trim()) return catalogs.value
+  const lower = searchQuery.value.toLowerCase()
+  return catalogs.value.filter(
+    c => c.name.toLowerCase().includes(lower) || (c.description && c.description.toLowerCase().includes(lower)),
+  )
+})
+
+// Filtered shared catalogs
+const filteredSharedCatalogs = computed(() => {
+  if (!showFederated.value) return []
+  let result = sharedCatalogs.value
+  if (filterStationId.value != null) {
+    result = result.filter(s => s.sourceStationId === filterStationId.value)
+  }
+  if (searchQuery.value.trim()) {
+    const lower = searchQuery.value.toLowerCase()
+    result = result.filter(
+      s =>
+        s.catalog.name.toLowerCase().includes(lower) ||
+        (s.catalog.description && s.catalog.description.toLowerCase().includes(lower)),
+    )
+  }
+  return result
+})
 
 // Create modal
 const showCreateModal = ref(false)
@@ -52,7 +103,15 @@ async function loadData() {
   loading.value = true
   error.value = ''
   try {
-    catalogs.value = await quiz.listCatalogs()
+    const response = await quiz.listCatalogs()
+    // Backend may return wrapped {catalogs, sharedCatalogs} or plain array
+    if (Array.isArray(response)) {
+      catalogs.value = response as unknown as typeof catalogs.value
+      sharedCatalogs.value = []
+    } else {
+      catalogs.value = response.catalogs ?? []
+      sharedCatalogs.value = response.sharedCatalogs ?? []
+    }
   } catch {
     error.value = t('common.error')
   } finally {
@@ -138,6 +197,16 @@ async function handleImportFile(event: Event) {
   }
 }
 
+async function copySharedCatalog(catalogId: number) {
+  error.value = ''
+  try {
+    await federation.copyQuizCatalog(catalogId)
+    await loadData()
+  } catch {
+    error.value = t('common.error')
+  }
+}
+
 function navigateToCatalog(catalog: QuizCatalog) {
   router.push({ name: 'quiz-catalog-detail', params: { id: catalog.id } })
 }
@@ -154,15 +223,13 @@ watch(loaded, (isLoaded) => {
 <template>
   <ViewContent>
     <div class="space-y-6">
-      <div class="flex items-center justify-between flex-wrap gap-3">
+      <div class="flex items-center justify-between flex-wrap gap-2">
         <PageHeader>{{ t('quiz.catalogs.title') }}</PageHeader>
         <div class="flex gap-2 flex-wrap">
-          <SecondaryButton @click="triggerImport">
-            <font-awesome-icon :icon="['fas', 'file-import']" class="mr-1" />
+          <SecondaryButton :icon="['fas', 'file-import']" @click="triggerImport">
             {{ t('quiz.catalogs.import') }}
           </SecondaryButton>
-          <PrimaryButton @click="openCreateModal">
-            <font-awesome-icon :icon="['fas', 'plus']" class="mr-1" />
+          <PrimaryButton :icon="['fas', 'plus']" @click="openCreateModal">
             {{ t('quiz.catalogs.create') }}
           </PrimaryButton>
         </div>
@@ -170,18 +237,44 @@ watch(loaded, (isLoaded) => {
 
       <input ref="fileInput" type="file" accept=".json" class="hidden" @change="handleImportFile" />
 
+      <!-- Search -->
+      <div>
+        <TextInput
+          v-model="searchQuery"
+          :placeholder="t('quiz.catalogs.search')"
+        />
+      </div>
+
+      <!-- Filters -->
+      <div class="flex flex-wrap items-center gap-2">
+        <SelectionToggleButton :selected="showFederated" @toggle="showFederated = !showFederated">
+          <font-awesome-icon :icon="['fas', 'arrow-right-arrow-left']" class="w-3 h-3 mr-1" />
+          {{ t('federation.shared') }}
+        </SelectionToggleButton>
+        <SelectInput
+          v-if="showFederated && partnerStations.length > 0"
+          :model-value="filterStationId != null ? String(filterStationId) : ''"
+          class="!w-auto !text-xs !py-1"
+          @update:model-value="(v: string | undefined) => { filterStationId = v || null }"
+        >
+          <option value="">{{ t('quiz.catalogs.allStations') }}</option>
+          <option v-for="station in partnerStations" :key="station.id" :value="String(station.id)">
+            {{ station.name }}
+          </option>
+        </SelectInput>
+      </div>
+
       <Spinner v-if="loading" size="lg" />
       <Alert v-if="error" variant="error">{{ error }}</Alert>
 
       <template v-if="!loading">
-        <div v-if="catalogs.length === 0" class="text-center text-(--text-muted) py-8">
-          {{ t('quiz.catalogs.noCatalogs') }}
-        </div>
+        <EmptyState v-if="filteredCatalogs.length === 0 && filteredSharedCatalogs.length === 0">{{ t('quiz.catalogs.noCatalogs') }}</EmptyState>
 
         <div class="space-y-2">
+          <!-- Local catalogs -->
           <NeutralContainer
-            v-for="catalog in catalogs"
-            :key="catalog.id"
+            v-for="catalog in filteredCatalogs"
+            :key="'local-' + catalog.id"
             class="cursor-pointer hover:border-primary transition-colors"
             @click="navigateToCatalog(catalog)"
           >
@@ -208,9 +301,52 @@ watch(loaded, (isLoaded) => {
                 </div>
                 <p v-if="catalog.description" class="text-xs text-(--text-muted) truncate">{{ catalog.description }}</p>
               </div>
-              <div class="flex items-center gap-3 shrink-0" @click.stop>
+              <div class="flex items-center gap-2 shrink-0" @click.stop>
                 <IconButton :icon="['fas', 'file-export']" :label="t('quiz.catalogs.export')" class="text-(--text-muted) hover:text-primary" @click="exportCatalog(catalog)" />
                 <DeleteButton @click="confirmDelete(catalog)" />
+              </div>
+            </div>
+          </NeutralContainer>
+
+          <!-- Shared catalogs (from partner stations) -->
+          <NeutralContainer
+            v-for="shared in filteredSharedCatalogs"
+            :key="'shared-' + shared.catalog.id"
+            class="cursor-pointer hover:border-primary transition-colors"
+            @click="navigateToCatalog(shared.catalog)"
+          >
+            <div v-if="isMobile" class="space-y-2">
+              <div class="flex items-center gap-2 flex-wrap">
+                <span class="font-medium">{{ shared.catalog.name }}</span>
+                <StationBadge :station-name="shared.stationName" />
+                <SuccessBadge v-if="shared.catalog.trainingEnabled">{{ t('quiz.catalogs.trainingEnabled') }}</SuccessBadge>
+              </div>
+              <p v-if="shared.catalog.description" class="text-xs text-(--text-muted)">{{ shared.catalog.description }}</p>
+              <div class="flex items-center justify-end border-t border-bg-light-accent dark:border-bg-dark-accent pt-2 mt-2">
+                <IconButton
+                  :icon="['fas', 'copy']"
+                  :label="t('federation.copyToStation')"
+                  @click.stop="copySharedCatalog(shared.catalog.id)"
+                />
+              </div>
+            </div>
+
+            <div v-else class="flex items-center justify-between gap-4">
+              <div class="flex-1 min-w-0 space-y-1">
+                <div class="flex items-center gap-2 flex-wrap">
+                  <span class="font-medium">{{ shared.catalog.name }}</span>
+                  <StationBadge :station-name="shared.stationName" />
+                  <SuccessBadge v-if="shared.catalog.trainingEnabled">{{ t('quiz.catalogs.trainingEnabled') }}</SuccessBadge>
+                </div>
+                <p v-if="shared.catalog.description" class="text-xs text-(--text-muted) truncate">{{ shared.catalog.description }}</p>
+              </div>
+              <div class="flex items-center gap-2 shrink-0" @click.stop>
+                <IconButton
+                  :icon="['fas', 'copy']"
+                  :label="t('federation.copyToStation')"
+                  class="text-(--text-muted) hover:text-primary"
+                  @click="copySharedCatalog(shared.catalog.id)"
+                />
               </div>
             </div>
           </NeutralContainer>
@@ -220,13 +356,13 @@ watch(loaded, (isLoaded) => {
       <!-- Create Modal -->
       <Modal v-model="showCreateModal">
         <div class="space-y-4">
-          <h3 class="text-lg font-semibold">{{ t('quiz.catalogs.create') }}</h3>
+          <SubHeader>{{ t('quiz.catalogs.create') }}</SubHeader>
           <TextInput v-model="createName" :placeholder="t('quiz.catalogs.name')" />
           <TextAreaInput v-model="createDescription" :placeholder="t('quiz.catalogs.description')" />
-          <label class="flex items-center gap-2 text-sm">
+          <FieldLabel inline>
             <ToggleInput v-model="createTrainingEnabled" />
             {{ t('quiz.catalogs.trainingEnabled') }}
-          </label>
+          </FieldLabel>
           <div class="flex justify-end gap-3">
             <SecondaryButton @click="showCreateModal = false">{{ t('common.cancel') }}</SecondaryButton>
             <PrimaryButton :disabled="!createName.trim()" @click="createCatalog">{{ t('common.save') }}</PrimaryButton>
@@ -237,7 +373,7 @@ watch(loaded, (isLoaded) => {
       <!-- Delete Confirmation Modal -->
       <Modal v-model="showDeleteModal">
         <div class="space-y-4">
-          <h3 class="text-lg font-semibold">{{ t('quiz.catalogs.deleteCatalog') }}</h3>
+          <SubHeader>{{ t('quiz.catalogs.deleteCatalog') }}</SubHeader>
           <p class="text-sm">{{ t('quiz.catalogs.deleteConfirm') }}</p>
           <div class="flex justify-end gap-3">
             <SecondaryButton @click="showDeleteModal = false">{{ t('common.cancel') }}</SecondaryButton>

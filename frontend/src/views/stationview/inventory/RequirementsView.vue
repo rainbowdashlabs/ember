@@ -16,11 +16,14 @@ import DragList from '@/components/input/DragList.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
+import EmptyState from '@/components/feedback/EmptyState.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
+import FieldLabel from '@/components/typography/FieldLabel.vue'
 import type { Inventory, InventoryRequirement, MemberGroup, Role } from '@/api/types'
 import { inventory, memberGroups, stationMembers } from '@/api'
+import MutedIcon from '@/components/display/MutedIcon.vue'
 
 const { t } = useI18n()
 
@@ -45,12 +48,12 @@ const roleFriendlyNames: Record<string, string> = {
   MEMBER: 'Mitglied',
   TEAM: 'Team',
   GUARDIAN: 'Erziehungsberechtigter',
-  ATTENDENCE_MANAGEMENT: 'Anwesenheitsverwaltung',
-  INVENTORY_MANAGEMENT: 'Inventarverwaltung',
-  EVENT_MANAGEMENT: 'Terminverwaltung',
-  MEMBER_MANAGEMENT: 'Mitgliederverwaltung',
+  ATTENDANCE_MANAGER: 'Anwesenheitsverwaltung',
+  INVENTORY_MANAGER: 'Inventarverwaltung',
+  EVENT_MANAGER: 'Terminverwaltung',
+  MEMBER_MANAGER: 'Mitgliederverwaltung',
   MANAGER: 'Manager',
-  NEWS_MANAGEMENT: 'Neuigkeiten',
+  NEWS_MANAGER: 'Neuigkeiten',
 }
 
 function roleName(roleId: number): string {
@@ -199,17 +202,14 @@ onMounted(loadData)
       <template v-if="!loading">
         <div class="flex items-center justify-between">
           <SectionHeader>{{ t('inventory.requirements.title') }}</SectionHeader>
-          <PrimaryButton @click="openAdd()">
-            <font-awesome-icon :icon="['fas', 'plus']" class="mr-1" />
+          <PrimaryButton :icon="['fas', 'plus']" @click="openAdd()">
             {{ t('inventory.requirements.add') }}
           </PrimaryButton>
         </div>
 
         <p class="text-sm text-(--text-muted)">{{ t('inventory.requirements.hint') }}</p>
 
-        <div v-if="grouped.length === 0" class="text-center text-(--text-muted) py-8">
-          {{ t('inventory.requirements.empty') }}
-        </div>
+        <EmptyState v-if="grouped.length === 0">{{ t('inventory.requirements.empty') }}</EmptyState>
 
         <div class="space-y-4">
           <NeutralContainer v-for="group in grouped" :key="`${group.type}-${group.id}`" class="space-y-3">
@@ -220,8 +220,7 @@ onMounted(loadData)
                 </span>
                 {{ group.label }}
               </SubHeader>
-              <SecondaryButton @click="openAdd({ type: group.type, id: group.id })">
-                <font-awesome-icon :icon="['fas', 'plus']" class="mr-1" />
+              <SecondaryButton :icon="['fas', 'plus']" @click="openAdd({ type: group.type, id: group.id })">
                 {{ t('inventory.requirements.addItem') }}
               </SecondaryButton>
             </div>
@@ -229,7 +228,7 @@ onMounted(loadData)
             <DragList :items="group.items" :key-fn="(r) => r.id" @reorder="(from, to) => onReorder(group, from, to)">
               <template #default="{ item: req }">
                 <div class="grid grid-cols-[auto_1fr_6rem_2.5rem] gap-2 items-center px-3 py-2 border-b border-bg-light-accent/50 dark:border-bg-dark-accent/50 cursor-grab active:cursor-grabbing">
-                  <font-awesome-icon :icon="['fas', 'grip-vertical']" class="text-(--text-muted) h-3.5 w-3.5" />
+                  <MutedIcon size="md" :icon="['fas', 'grip-vertical']" />
                   <div class="text-sm">{{ inventoryName(req.inventoryId) }}</div>
                   <NumberInput :model-value="req.quantity" :min="1" @update:model-value="updateQuantity(req, $event as number)" />
                   <DeleteButton @click="removeRequirement(req)" />
@@ -246,7 +245,7 @@ onMounted(loadData)
           <SectionHeader>{{ t('inventory.requirements.add') }}</SectionHeader>
 
           <div class="space-y-1">
-            <label class="block text-sm font-medium">{{ t('inventory.requirements.targetType') }}</label>
+            <FieldLabel>{{ t('inventory.requirements.targetType') }}</FieldLabel>
             <SelectInput v-model="addTargetType">
               <option value="role">{{ t('inventory.requirements.byRole') }}</option>
               <option value="group">{{ t('inventory.requirements.byGroup') }}</option>
@@ -254,7 +253,7 @@ onMounted(loadData)
           </div>
 
           <div v-if="addTargetType === 'role'" class="space-y-1">
-            <label class="block text-sm font-medium">{{ t('inventory.requirements.role') }}</label>
+            <FieldLabel>{{ t('inventory.requirements.role') }}</FieldLabel>
             <SelectInput v-model="addRoleId">
               <option value="" disabled>{{ t('inventory.requirements.selectRole') }}</option>
               <option v-for="role in allRoles" :key="role.id" :value="String(role.id)">{{ roleFriendlyNames[role.role] ?? role.role }}</option>
@@ -262,7 +261,7 @@ onMounted(loadData)
           </div>
 
           <div v-if="addTargetType === 'group'" class="space-y-1">
-            <label class="block text-sm font-medium">{{ t('inventory.requirements.group') }}</label>
+            <FieldLabel>{{ t('inventory.requirements.group') }}</FieldLabel>
             <SelectInput v-model="addGroupId">
               <option value="" disabled>{{ t('inventory.requirements.selectGroup') }}</option>
               <option v-for="group in allGroups" :key="group.id" :value="String(group.id)">{{ group.name }}</option>
@@ -270,7 +269,7 @@ onMounted(loadData)
           </div>
 
           <div class="space-y-1">
-            <label class="block text-sm font-medium">{{ t('inventory.requirements.inventory') }}</label>
+            <FieldLabel>{{ t('inventory.requirements.inventory') }}</FieldLabel>
             <SelectInput v-model="addInventoryId">
               <option value="" disabled>{{ t('inventory.requirements.selectInventory') }}</option>
               <option v-for="inv in inventories" :key="inv.id" :value="String(inv.id)">{{ inv.name }}</option>
@@ -278,7 +277,7 @@ onMounted(loadData)
           </div>
 
           <div class="space-y-1">
-            <label class="block text-sm font-medium">{{ t('inventory.requirements.quantity') }}</label>
+            <FieldLabel>{{ t('inventory.requirements.quantity') }}</FieldLabel>
             <NumberInput v-model="addQuantity" :min="1" />
           </div>
 

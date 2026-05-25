@@ -15,7 +15,10 @@ import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.repository.UserTagRepository;
 import dev.chojo.ember.feature.members.service.ProfileFieldService;
+import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
+import dev.chojo.ember.feature.system.service.ApiRequestLogger;
+import dev.chojo.ember.feature.system.service.DemoService;
 import io.javalin.Javalin;
 import io.javalin.config.RoutesConfig;
 import io.javalin.http.BadRequestResponse;
@@ -50,6 +53,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import static io.javalin.http.ContentType.JSON;
@@ -78,6 +82,8 @@ public class ApiServer {
     private final ProfileFieldService profileFieldService;
     private final MemberGroupRepository memberGroupRepository;
     private final UserTagRepository userTagRepository;
+    private final ApiRequestLogger apiRequestLogger;
+    private final DemoService demoService;
 
     @Inject
     public ApiServer(
@@ -90,7 +96,9 @@ public class ApiServer {
             StationRepository stationRepository,
             ProfileFieldService profileFieldService,
             MemberGroupRepository memberGroupRepository,
-            UserTagRepository userTagRepository) {
+            UserTagRepository userTagRepository,
+            ApiRequestLogger apiRequestLogger,
+            DemoService demoService) {
         this.routes = routes;
         this.apiConfig = apiConfig;
         this.demoConfig = demoConfig;
@@ -101,6 +109,9 @@ public class ApiServer {
         this.profileFieldService = profileFieldService;
         this.memberGroupRepository = memberGroupRepository;
         this.userTagRepository = userTagRepository;
+        this.apiRequestLogger = apiRequestLogger;
+        this.demoService = demoService;
+        this.apiRequestLogger.start();
     }
 
     /**
@@ -178,6 +189,16 @@ public class ApiServer {
             // Cache-control headers
             config.routes.after(this::applyCacheHeaders);
 
+            // API request timing
+            config.routes.before(ctx -> ctx.attribute("_requestStart", System.currentTimeMillis()));
+            config.routes.after(ctx -> {
+                Long start = ctx.attribute("_requestStart");
+                if (start != null && ctx.path().startsWith(API_PREFIX)) {
+                    long duration = System.currentTimeMillis() - start;
+                    apiRequestLogger.record(ctx.method().name(), ctx.path(), ctx.statusCode(), duration);
+                }
+            });
+
             if (demoConfig.enabled()) {
                 config.routes.before(this::handleDemoGuard);
             }
@@ -246,32 +267,46 @@ public class ApiServer {
             ctx.json(List.of());
             return;
         }
-        int stationId = allStations.getFirst().id();
-        var members = stationMemberRepository.findByStation(stationId);
-        var accounts = new ArrayList<DemoAccount>();
-        for (StationMember member : members) {
-            if (member.accountId() == null) continue;
-            accountRepository.findById(member.accountId()).ifPresent(account -> {
-                var roles = stationMemberRepository.findRoles(member.id());
-                var roleNames = roles.stream().map(r -> r.role().name()).toList();
-                var groupNames = memberGroupRepository.findGroupsForMember(member.id()).stream()
-                        .map(MemberGroup::name)
-                        .toList();
-                var tagNames = userTagRepository.findTagsForMember(member.id()).stream()
-                        .map(UserTag::name)
-                        .toList();
-                boolean complete = profileFieldService.isProfileComplete(member.id(), stationId, roleNames);
-                accounts.add(new DemoAccount(
-                        account.email(),
-                        account.firstName(),
-                        account.lastName(),
-                        roleNames,
-                        groupNames,
-                        tagNames,
-                        complete));
-            });
+        var stationGroups = new ArrayList<Map<String, Object>>();
+        for (var station : allStations) {
+            var members = stationMemberRepository.findByStation(station.id());
+            var accounts = new ArrayList<DemoAccount>();
+            for (StationMember member : members) {
+                if (member.accountId() == null) continue;
+                accountRepository.findById(member.accountId()).ifPresent(account -> {
+                    var roles = stationMemberRepository.findRoles(member.id());
+                    var roleNames = roles.stream().map(r -> r.role().name()).toList();
+                    var groupNames = memberGroupRepository.findGroupsForMember(member.id()).stream()
+                            .map(MemberGroup::name)
+                            .toList();
+                    var tagNames = userTagRepository.findTagsForMember(member.id()).stream()
+                            .map(UserTag::name)
+                            .toList();
+                    boolean complete = profileFieldService.isProfileComplete(member.id(), station.id(), roleNames);
+                    accounts.add(new DemoAccount(
+                            account.email(),
+                            account.firstName(),
+                            account.lastName(),
+                            roleNames,
+                            groupNames,
+                            tagNames,
+                            complete));
+                });
+            }
+            if (!accounts.isEmpty()) {
+                stationGroups.add(Map.of(
+                        "stationId", station.uid().toString(),
+                        "stationName", station.name(),
+                        "accounts", accounts));
+            }
         }
-        ctx.json(accounts);
+        // Always return flat list from the first station (primary)
+        // Additional stations are appended with stationName for display
+        if (stationGroups.isEmpty()) {
+            ctx.json(List.of());
+        } else {
+            ctx.json(stationGroups);
+        }
     }
 
     /**
@@ -282,8 +317,27 @@ public class ApiServer {
     private void handleAccess(@NotNull Context ctx) {
         Set<RouteRole> routeRoles = ctx.routeRoles();
 
-        // Routes with no roles defined are public
+        // Routes with no roles defined are public — still populate session if token is present (best effort)
         if (routeRoles.isEmpty()) {
+            String publicAuthHeader = ctx.header("Authorization");
+            if (publicAuthHeader != null && publicAuthHeader.startsWith("Bearer ")) {
+                String publicToken = publicAuthHeader.substring(7);
+                if (!publicToken.isBlank()) {
+                    Station publicStation = null;
+                    String publicStationId = ctx.header("X-Station-Id");
+                    if (publicStationId != null && !publicStationId.isBlank()) {
+                        try {
+                            publicStation = stationRepository
+                                    .findByUid(UUID.fromString(publicStationId))
+                                    .orElse(null);
+                        } catch (IllegalArgumentException ignored) {
+                        }
+                    }
+                    accessManager
+                            .resolveUserSession(publicToken, publicStation)
+                            .ifPresent(s -> ctx.attribute(ATTR_SESSION, s));
+                }
+            }
             return;
         }
 
@@ -301,22 +355,27 @@ public class ApiServer {
             throw new UnauthorizedResponse("Missing or invalid Authorization header");
         }
 
-        // Parse optional station ID from header or query param
-        Integer stationId = null;
+        // Parse optional station UID from header or query param
+        Station station = null;
         String stationIdHeader = ctx.header("X-Station-Id");
         if ((stationIdHeader == null || stationIdHeader.isBlank()) && ctx.queryParam("stationId") != null) {
             stationIdHeader = ctx.queryParam("stationId");
         }
         if (stationIdHeader != null && !stationIdHeader.isBlank()) {
             try {
-                stationId = Integer.parseInt(stationIdHeader);
-            } catch (NumberFormatException e) {
+                var uid = UUID.fromString(stationIdHeader);
+                station = stationRepository.findByUid(uid).orElse(null);
+                if (station == null) {
+                    throw new UnauthorizedResponse("Unknown station");
+                }
+            } catch (IllegalArgumentException e) {
+                log.warn("Invalid X-Station-Id header value", e);
                 throw new UnauthorizedResponse("Invalid X-Station-Id header");
             }
         }
 
         // Resolve user session with account info and roles
-        Optional<UserSession> sessionOpt = accessManager.resolveUserSession(token, stationId);
+        Optional<UserSession> sessionOpt = accessManager.resolveUserSession(token, station);
         if (sessionOpt.isEmpty()) {
             throw new UnauthorizedResponse("Invalid or expired session");
         }
@@ -328,6 +387,11 @@ public class ApiServer {
         String userAgent = ctx.userAgent();
         String location = ctx.header("CF-IPCountry");
         accountRepository.touchSession(token, userAgent, location);
+
+        // Track activity for demo idle reset
+        if (demoConfig.enabled()) {
+            demoService.recordActivity();
+        }
 
         // If route only requires LOGIN, authenticated is enough
         if (routeRoles.size() == 1 && routeRoles.contains(Roles.LOGIN)) {
@@ -354,6 +418,7 @@ public class ApiServer {
      */
     private Jackson3Mapper jacksonMapper() {
         ObjectMapper mapper = JsonMapper.builder()
+                .addModule(new StationIdModule())
                 .defaultDateFormat(new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSX"))
                 .build();
         return new Jackson3Mapper(mapper);
@@ -376,20 +441,36 @@ public class ApiServer {
      * Registers exception handlers that convert exceptions into standardized JSON error responses.
      */
     private void setupExceptionHandlers(RoutesConfig routes) {
-        routes.exception(ApiException.class, (err, ctx) -> ctx.json(
-                        new ErrorResponseWrapper(err.getClass().getSimpleName(), err.getMessage()))
-                .status(err.status()));
+        routes.exception(ApiException.class, (err, ctx) -> {
+            int code = err.status().getCode();
+            if (code >= 500) {
+                log.error("API error {} on {} {}: {}", code, ctx.method(), ctx.path(), err.getMessage(), err);
+            } else if (code >= 400 && code != 401) {
+                log.warn("API error {} on {} {}: {}", code, ctx.method(), ctx.path(), err.getMessage());
+            }
+            ctx.json(new ErrorResponseWrapper(err.getClass().getSimpleName(), err.getMessage()))
+                    .status(err.status());
+        });
 
-        routes.exception(HttpResponseException.class, (err, ctx) -> ctx.json(new ErrorResponseWrapper(
-                        HttpStatus.forStatus(err.getStatus()).getMessage(), err.getMessage()))
-                .status(err.getStatus()));
+        routes.exception(HttpResponseException.class, (err, ctx) -> {
+            int code = err.getStatus();
+            if (code >= 500) {
+                log.error("HTTP {} on {} {}: {}", code, ctx.method(), ctx.path(), err.getMessage(), err);
+            } else if (code >= 400 && code != 401) {
+                log.warn("HTTP {} on {} {}: {}", code, ctx.method(), ctx.path(), err.getMessage());
+            }
+            ctx.json(new ErrorResponseWrapper(HttpStatus.forStatus(code).getMessage(), err.getMessage()))
+                    .status(code);
+        });
 
-        routes.exception(IllegalArgumentException.class, (err, ctx) -> ctx.json(
-                        new ErrorResponseWrapper("Invalid Input", err.getMessage()))
-                .status(HttpStatus.BAD_REQUEST));
+        routes.exception(IllegalArgumentException.class, (err, ctx) -> {
+            log.warn("Invalid input on {} {}: {}", ctx.method(), ctx.path(), err.getMessage());
+            ctx.json(new ErrorResponseWrapper("Invalid Input", err.getMessage()))
+                    .status(HttpStatus.BAD_REQUEST);
+        });
 
         routes.exception(Exception.class, (err, ctx) -> {
-            log.error("Unhandled exception on route {}", ctx.path(), err);
+            log.error("Unhandled exception on route {} {}", ctx.method(), ctx.path(), err);
             ctx.json(new ErrorResponseWrapper("Internal Server Error")).status(HttpStatus.INTERNAL_SERVER_ERROR);
         });
     }

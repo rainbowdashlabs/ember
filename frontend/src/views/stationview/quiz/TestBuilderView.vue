@@ -10,6 +10,7 @@ import { useRoute, useRouter } from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
+import EmptyState from '@/components/feedback/EmptyState.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import IconButton from '@/components/button/IconButton.vue'
@@ -22,8 +23,12 @@ import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import DateTimeInput from '@/components/input/datetime/DateTimeInput.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
-import type { QuizCatalog, QuizCategory, QuizSectionDetail } from '@/api/types'
-import { quiz } from '@/api'
+import type { QuizCatalog, QuizCategory, QuizSectionDetail, Role, MemberGroup, UserTag } from '@/api/types'
+import { quiz, stationMembers, memberGroups, userTags } from '@/api'
+import RestrictionPicker from '@/components/input/RestrictionPicker.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
+import FieldLabel from '@/components/typography/FieldLabel.vue'
+import SectionLabel from '@/components/typography/SectionLabel.vue'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -43,6 +48,14 @@ const timeLimitEnabled = ref(false)
 const shuffle = ref(false)
 const startAt = ref('')
 const endAt = ref('')
+
+// Restrictions
+const allRoles = ref<Role[]>([])
+const allGroups = ref<MemberGroup[]>([])
+const allTags = ref<UserTag[]>([])
+const selectedRoleIds = ref<number[]>([])
+const selectedGroupIds = ref<number[]>([])
+const selectedTagIds = ref<number[]>([])
 
 // Catalogs for source selection
 const catalogs = ref<QuizCatalog[]>([])
@@ -130,7 +143,16 @@ async function loadData() {
   loading.value = true
   error.value = ''
   try {
-    catalogs.value = await quiz.listCatalogs()
+    const [catalogRes, roles, groups, tags] = await Promise.all([
+      quiz.listCatalogs(),
+      stationMembers.listAllRoles(),
+      memberGroups.listGroups(),
+      userTags.listTags(),
+    ])
+    catalogs.value = Array.isArray(catalogRes) ? catalogRes as unknown as QuizCatalog[] : (catalogRes.catalogs ?? [])
+    allRoles.value = roles
+    allGroups.value = groups
+    allTags.value = tags
 
     if (testId.value) {
       const detail = await quiz.getTest(testId.value)
@@ -151,6 +173,14 @@ async function loadData() {
         }
       }
       await Promise.all([...catalogIds].map(id => loadCatalogCategories(id)))
+
+      // Load restrictions
+      try {
+        const restrictions = await quiz.getRestrictions(testId.value)
+        selectedRoleIds.value = restrictions.roleIds ?? []
+        selectedGroupIds.value = restrictions.groupIds ?? []
+        selectedTagIds.value = restrictions.tagIds ?? []
+      } catch { /* no restrictions */ }
 
       sections.value = detail.sections.map((sec: QuizSectionDetail) => ({
         key: generateKey(),
@@ -204,6 +234,14 @@ async function save() {
     }))
 
     await quiz.replaceSections(id!, sectionPayload)
+
+    // Save restrictions
+    await quiz.setRestrictions(id!, {
+      roleIds: selectedRoleIds.value,
+      groupIds: selectedGroupIds.value,
+      tagIds: selectedTagIds.value,
+    })
+
     router.push({ name: 'quiz-test-detail', params: { id: id! } })
   } catch {
     error.value = t('common.error')
@@ -230,24 +268,24 @@ onMounted(loadData)
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label class="text-xs text-(--text-muted) block mb-1">{{ t('quiz.tests.startAt') }}</label>
+                <FieldLabel hint class="mb-1">{{ t('quiz.tests.startAt') }}</FieldLabel>
                 <DateTimeInput v-model="startAt" />
               </div>
               <div>
-                <label class="text-xs text-(--text-muted) block mb-1">{{ t('quiz.tests.endAt') }}</label>
+                <FieldLabel hint class="mb-1">{{ t('quiz.tests.endAt') }}</FieldLabel>
                 <DateTimeInput v-model="endAt" />
               </div>
             </div>
 
             <div class="flex flex-wrap gap-6">
-              <label class="flex items-center gap-2 text-sm">
+              <FieldLabel inline>
                 <ToggleInput v-model="shuffle" />
                 {{ t('quiz.tests.shuffle') }}
-              </label>
-              <label class="flex items-center gap-2 text-sm">
+              </FieldLabel>
+              <FieldLabel inline>
                 <ToggleInput v-model="timeLimitEnabled" />
                 {{ t('quiz.tests.timeLimitEnabled') }}
-              </label>
+              </FieldLabel>
             </div>
 
             <div v-if="timeLimitEnabled" class="flex items-center gap-2">
@@ -257,26 +295,39 @@ onMounted(loadData)
           </div>
         </NeutralContainer>
 
+        <!-- Restrictions -->
+        <NeutralContainer class="space-y-3">
+          <SubHeader>{{ t('quiz.tests.restrictions') }}</SubHeader>
+          <RestrictionPicker
+              :roles="allRoles"
+              :groups="allGroups"
+              :tags="allTags"
+              :selected-role-ids="selectedRoleIds"
+              :selected-group-ids="selectedGroupIds"
+              :selected-tag-ids="selectedTagIds"
+              @update:selected-role-ids="v => selectedRoleIds = v"
+              @update:selected-group-ids="v => selectedGroupIds = v"
+              @update:selected-tag-ids="v => selectedTagIds = v"
+          />
+        </NeutralContainer>
+
         <!-- Sections -->
         <div class="space-y-4">
           <div class="flex items-center justify-between">
             <SectionHeader>{{ t('quiz.sections.title') }}</SectionHeader>
-            <SecondaryButton @click="addSection">
-              <font-awesome-icon :icon="['fas', 'plus']" class="mr-1" />
+            <SecondaryButton :icon="['fas', 'plus']" @click="addSection">
               {{ t('quiz.sections.add') }}
             </SecondaryButton>
           </div>
 
-          <div v-if="sections.length === 0" class="text-center text-(--text-muted) py-4">
-            {{ t('quiz.sections.noSections') }}
-          </div>
+          <EmptyState compact v-if="sections.length === 0">{{ t('quiz.sections.noSections') }}</EmptyState>
 
           <NeutralContainer v-for="(section, sIdx) in sections" :key="section.key">
             <div class="space-y-4">
               <div class="flex items-center justify-between">
-                <span class="text-xs font-semibold text-(--text-muted) uppercase">
+                <SectionLabel>
                   {{ t('quiz.sections.sectionNumber', { n: sIdx + 1 }) }}
-                </span>
+                </SectionLabel>
                 <div class="flex gap-1">
                   <IconButton :icon="['fas', 'chevron-up']" :label="t('common.moveUp')" :disabled="sIdx === 0"
                               class="text-(--text-muted) hover:text-primary" @click="moveSection(sIdx, -1)" />
@@ -326,8 +377,7 @@ onMounted(loadData)
                   <DeleteButton @click="removeSource(section, srcIdx)" />
                 </div>
 
-                <SecondaryButton @click="addSource(section)">
-                  <font-awesome-icon :icon="['fas', 'plus']" class="mr-1" />
+                <SecondaryButton :icon="['fas', 'plus']" @click="addSource(section)">
                   {{ t('quiz.sections.addSource') }}
                 </SecondaryButton>
               </div>

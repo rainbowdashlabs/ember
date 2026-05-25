@@ -18,10 +18,30 @@ import type {
     QuizAttemptDetail,
 } from './types'
 
+// -- Shared catalog entry from federation --
+
+export interface SharedCatalogEntry {
+    catalog: QuizCatalog
+    stationName: string
+    sourceStationId: string
+}
+
+export interface CatalogListResponse {
+    catalogs: QuizCatalog[]
+    sharedCatalogs: SharedCatalogEntry[]
+}
+
 // -- Catalogs --
 
-export async function listCatalogs(): Promise<QuizCatalog[]> {
-    const res = await client.get<QuizCatalog[]>('/quiz/catalogs')
+export async function listCatalogs(): Promise<CatalogListResponse> {
+    const res = await client.get<CatalogListResponse>('/quiz/catalogs')
+    return res.data
+}
+
+export async function searchCatalogs(query: string, federated: boolean): Promise<CatalogListResponse> {
+    const res = await client.get<CatalogListResponse>('/quiz/catalogs/search', {
+        params: { q: query, federated },
+    })
     return res.data
 }
 
@@ -215,12 +235,12 @@ export async function gradeAttempt(attemptId: number): Promise<QuizTestAttempt> 
 
 // -- Restrictions --
 
-export async function getRestrictions(testId: number): Promise<{ roleIds: number[]; groupIds: number[]; tagIds: number[] }> {
-    const res = await client.get<{ roleIds: number[]; groupIds: number[]; tagIds: number[] }>(`/quiz/tests/${testId}/restrictions`)
+export async function getRestrictions(testId: number): Promise<{ roleIds: number[]; groupIds: number[]; tagIds: number[]; mode?: string }> {
+    const res = await client.get<{ roleIds: number[]; groupIds: number[]; tagIds: number[]; mode?: string }>(`/quiz/tests/${testId}/restrictions`)
     return res.data
 }
 
-export async function setRestrictions(testId: number, data: { roleIds: number[]; groupIds: number[]; tagIds: number[] }): Promise<void> {
+export async function setRestrictions(testId: number, data: { roleIds: number[]; groupIds: number[]; tagIds: number[]; mode?: string }): Promise<void> {
     await client.put(`/quiz/tests/${testId}/restrictions`, data)
 }
 
@@ -249,7 +269,7 @@ export async function getTrainingQuestions(catalogId: number): Promise<QuizQuest
 // -- Question Images --
 
 export function questionImageUrl(questionId: number, size?: number): string {
-    const base = `${client.defaults.baseURL}/quiz/questions/${questionId}/image`
+    const base = `/quiz/questions/${questionId}/image`
     return size ? `${base}?size=${size}` : base
 }
 

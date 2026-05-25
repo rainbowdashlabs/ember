@@ -8,7 +8,6 @@ package dev.chojo.ember.feature.inventory.entity;
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
 
 import java.time.Instant;
-import java.util.Optional;
 
 import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIMESTAMP;
 
@@ -49,24 +48,6 @@ public record InventoryItem(
                 row.getObject("assigned_to", Integer.class),
                 row.get("lost_at", INSTANT_TIMESTAMP),
                 row.getEnum("item_source", ItemSource.class));
-    }
-
-    /**
-     * Returns the size ID as an optional.
-     *
-     * @return optional containing the size ID, or empty if not set
-     */
-    public Optional<Integer> sizeIdOpt() {
-        return Optional.ofNullable(sizeId);
-    }
-
-    /**
-     * Returns the assigned member ID as an optional.
-     *
-     * @return optional containing the assigned member ID, or empty if unassigned
-     */
-    public Optional<Integer> assignedToOpt() {
-        return Optional.ofNullable(assignedTo);
     }
 
     /**

@@ -11,11 +11,18 @@ import IconButton from '@/components/button/IconButton.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import UserAvatar from '@/components/avatar/UserAvatar.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
+import CheckboxInput from '@/components/input/toggle/CheckboxInput.vue'
 import ColumnFilterModal from './ColumnFilterModal.vue'
 import type {ProfileField, StationMember} from '@/api/types'
 import {Roles, hasTeamRole} from '@/api/types'
 import FieldValueDisplay from '@/components/display/FieldValueDisplay.vue'
 import {useBreakpoint} from '@/composables/useBreakpoint'
+import EmptyState from '@/components/feedback/EmptyState.vue'
+import Th from '@/components/table/Th.vue'
+import Td from '@/components/table/Td.vue'
+import THead from '@/components/table/THead.vue'
+import TRow from '@/components/table/TRow.vue'
+import MutedIcon from '@/components/display/MutedIcon.vue'
 
 const {isMobile} = useBreakpoint()
 
@@ -174,7 +181,7 @@ function onRowClick(member: StationMember) {
 <template>
   <!-- Mobile card layout -->
   <div v-if="isMobile" class="space-y-3">
-    <div v-if="members.length === 0" class="text-center text-(--text-muted) py-8">{{ t('membersList.empty') }}</div>
+    <EmptyState v-if="members.length === 0">{{ t('membersList.empty') }}</EmptyState>
     <NeutralContainer v-for="member in members" :key="member.id" class="space-y-2" @click="onRowClick(member)">
       <div class="flex items-center justify-between">
         <div class="flex items-center gap-2">
@@ -199,7 +206,7 @@ function onRowClick(member: StationMember) {
           <EditButton @click="emit('navigateEdit', member, $event)"/>
         </div>
         <div v-else @click.stop>
-          <input :checked="selectedIds?.has(member.id)" class="h-4 w-4 rounded accent-primary cursor-pointer" type="checkbox" @change="emit('toggleSelect', member.id)"/>
+          <CheckboxInput :model-value="selectedIds?.has(member.id) ?? false" @update:model-value="emit('toggleSelect', member.id)"/>
         </div>
       </div>
       <div class="grid grid-cols-2 gap-x-4 gap-y-1 text-sm mt-1">
@@ -227,14 +234,13 @@ function onRowClick(member: StationMember) {
   <div class="overflow-x-auto">
     <table class="w-full text-sm">
       <thead>
-      <tr class="border-b border-bg-light-accent dark:border-bg-dark-accent text-left">
+      <THead>
         <th v-if="exportMode" class="px-2 py-2 w-10">
-          <input :checked="allSelected" class="h-4 w-4 rounded accent-primary cursor-pointer" type="checkbox"
-                 @change="emit('toggleSelectAll')"/>
+          <CheckboxInput :model-value="allSelected" @update:model-value="emit('toggleSelectAll')"/>
         </th>
         <th v-if="!exportMode" class="px-3 py-2 w-20"></th>
         <!-- Name column -->
-        <th class="px-3 py-2 font-medium">
+        <Th>
           <span class="inline-flex items-center gap-1">
             {{ t('membersList.colName') }}
             <font-awesome-icon
@@ -249,13 +255,13 @@ function onRowClick(member: StationMember) {
                 @click.stop="openFilterModal('name', t('membersList.colName'))"
             />
           </span>
-        </th>
+        </Th>
         <!-- Role column -->
-        <th class="px-3 py-2 font-medium">{{ t('membersList.colRole') }}</th>
+        <Th>{{ t('membersList.colRole') }}</Th>
         <!-- Email column -->
-        <th class="px-3 py-2 font-medium">{{ t('membersList.colEmail') }}</th>
+        <Th>{{ t('membersList.colEmail') }}</Th>
         <!-- Groups column -->
-        <th class="px-3 py-2 font-medium">
+        <Th>
           <span class="inline-flex items-center gap-1">
             {{ t('membersList.colGroups') }}
             <font-awesome-icon
@@ -265,9 +271,9 @@ function onRowClick(member: StationMember) {
                 @click.stop="openFilterModal('groups', t('membersList.colGroups'))"
             />
           </span>
-        </th>
+        </Th>
         <!-- Tags column -->
-        <th class="px-3 py-2 font-medium">
+        <Th>
           <span class="inline-flex items-center gap-1">
             {{ t('membersList.colTags') }}
             <font-awesome-icon
@@ -277,9 +283,9 @@ function onRowClick(member: StationMember) {
                 @click.stop="openFilterModal('tags', t('membersList.colTags'))"
             />
           </span>
-        </th>
+        </Th>
         <!-- Dynamic field columns -->
-        <th v-for="field in visibleColumns" :key="field.id" class="px-3 py-2 font-medium">
+        <Th v-for="field in visibleColumns" :key="field.id">
           <span class="inline-flex items-center gap-1">
             {{ field.name }}
             <font-awesome-icon
@@ -294,30 +300,29 @@ function onRowClick(member: StationMember) {
                 @click.stop="openFilterModal(field.id, field.name ?? '')"
             />
           </span>
-        </th>
-      </tr>
+        </Th>
+      </THead>
       </thead>
       <tbody>
       <template v-for="member in members" :key="member.id">
-        <tr
+        <TRow
             :class="{
               'bg-bg-light-accent/30 dark:bg-bg-dark-accent/30': !exportMode && expandedId === member.id,
               'bg-primary/5': exportMode && selectedIds?.has(member.id),
+              'cursor-pointer hover:bg-bg-light-accent/30 dark:hover:bg-bg-dark-accent/30 transition-colors': true,
             }"
-            class="border-b border-bg-light-accent/50 dark:border-bg-dark-accent/50 cursor-pointer hover:bg-bg-light-accent/30 dark:hover:bg-bg-dark-accent/30 transition-colors"
             @click="onRowClick(member)"
         >
           <td v-if="exportMode" class="px-2 py-2.5" @click.stop>
-            <input :checked="selectedIds?.has(member.id)" class="h-4 w-4 rounded accent-primary cursor-pointer"
-                   type="checkbox" @change="emit('toggleSelect', member.id)"/>
+            <CheckboxInput :model-value="selectedIds?.has(member.id) ?? false" @update:model-value="emit('toggleSelect', member.id)"/>
           </td>
-          <td v-if="!exportMode" class="px-3 py-2.5" @click.stop>
+          <Td v-if="!exportMode" @click.stop>
             <IconButton :icon="['fas', 'eye']" :label="t('membersList.detail')"
                         class="text-primary hover:bg-primary/15"
                         @click="emit('navigateDetail', member, $event)"/>
             <EditButton @click="emit('navigateEdit', member, $event)"/>
-          </td>
-          <td class="px-3 py-2.5">
+          </Td>
+          <Td>
             <div class="flex items-center gap-2">
               <UserAvatar :member-id="member.id" :name="memberDisplayName(member)" size="sm"/>
               <span class="font-medium">{{ memberDisplayName(member) }}</span>
@@ -325,8 +330,8 @@ function onRowClick(member: StationMember) {
                   t('membersList.incomplete')
                 }}</ErrorBadge>
             </div>
-          </td>
-          <td class="px-3 py-2.5">
+          </Td>
+          <Td>
             <span
                 v-if="getPrimaryRole(member.id)"
                 class="inline-block rounded-full px-2 py-0.5 text-[10px] font-medium"
@@ -336,27 +341,26 @@ function onRowClick(member: StationMember) {
                   'bg-bg-light-accent dark:bg-bg-dark-accent text-(--text-muted)': getPrimaryRole(member.id) === 'MEMBER',
                 }"
             >{{ primaryRoleLabels[getPrimaryRole(member.id)] }}</span>
-          </td>
-          <td class="px-3 py-2.5 text-(--text-muted) text-xs">
+          </Td>
+          <Td class="text-(--text-muted) text-xs">
             {{ member.email || '–' }}
-          </td>
-          <td class="px-3 py-2.5 text-(--text-muted) text-xs">
+          </Td>
+          <Td class="text-(--text-muted) text-xs">
             {{ getMemberGroups(member.id).join(', ') || '–' }}
-          </td>
-          <td class="px-3 py-2.5 text-(--text-muted) text-xs">
+          </Td>
+          <Td class="text-(--text-muted) text-xs">
             {{ getMemberTags(member.id).join(', ') || '–' }}
-          </td>
-          <td
+          </Td>
+          <Td
               v-for="field in visibleColumns"
               :key="field.id"
               :class="isFieldApplicable(member.id, field) ? 'text-(--text-muted)' : 'bg-bg-light-accent/40 dark:bg-bg-dark-accent/40'"
-              class="px-3 py-2.5"
           >
             <template v-if="isFieldApplicable(member.id, field)">
               <FieldValueDisplay :value="getFieldValue(member.id, field.id)" :field-type="field.fieldType"/>
             </template>
-          </td>
-        </tr>
+          </Td>
+        </TRow>
         <tr v-if="!exportMode && expandedId === member.id">
           <td :colspan="visibleColumns.length + 8" class="px-3 py-4 bg-bg-light-accent/20 dark:bg-bg-dark-accent/20">
             <div class="space-y-3">
@@ -374,7 +378,7 @@ function onRowClick(member: StationMember) {
                   <div v-for="mgr in getManagers(member.id)" :key="mgr.id"
                        class="rounded-lg px-4 py-3 bg-bg-light-accent/40 dark:bg-bg-dark-accent/40 space-y-1">
                     <div class="flex items-center gap-2">
-                      <font-awesome-icon :icon="['fas', 'user']" class="text-(--text-muted) h-3 w-3"/>
+                      <MutedIcon :icon="['fas', 'user']"/>
                       <span class="text-sm font-medium">{{ managerName(mgr) }}</span>
                       <span v-if="mgr.email" class="text-xs text-(--text-muted)">{{ mgr.email }}</span>
                     </div>
@@ -395,7 +399,7 @@ function onRowClick(member: StationMember) {
     </table>
   </div>
 
-  <div v-if="members.length === 0" class="text-center text-(--text-muted) py-8">{{ t('membersList.empty') }}</div>
+  <EmptyState v-if="members.length === 0">{{ t('membersList.empty') }}</EmptyState>
   </template>
 
   <ColumnFilterModal

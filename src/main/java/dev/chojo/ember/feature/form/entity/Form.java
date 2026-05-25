@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.form.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
+import dev.chojo.ember.feature.restriction.RestrictionMode;
 
 import java.time.Instant;
 
@@ -41,7 +42,9 @@ public record Form(
         Instant closedAt,
         int createdBy,
         Instant createdAt,
-        Instant updatedAt) {
+        Instant updatedAt,
+        RestrictionMode restrictionMode,
+        boolean restricted) {
 
     /**
      * Creates a row mapping for database result set conversion.
@@ -60,7 +63,9 @@ public record Form(
                 row.get("closed_at", INSTANT_TIMESTAMP),
                 row.getInt("created_by"),
                 row.get("created_at", INSTANT_TIMESTAMP),
-                row.get("updated_at", INSTANT_TIMESTAMP));
+                row.get("updated_at", INSTANT_TIMESTAMP),
+                RestrictionMode.valueOf(row.getString("restriction_mode")),
+                row.getBoolean("restricted"));
     }
 
     /**

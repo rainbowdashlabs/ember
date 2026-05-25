@@ -11,6 +11,7 @@ import HelpTip from '@/components/helpcenter/HelpTip.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import MutedText from '@/components/typography/MutedText.vue'
 
 const {t} = useI18n()
 </script>
@@ -28,8 +29,7 @@ const {t} = useI18n()
           <SectionHeader>Max Mustermann</SectionHeader>
           <p class="text-sm text-(--text-muted)">{{ t('inventory.check.lastResult') }}</p>
         </div>
-        <SecondaryButton>
-          <font-awesome-icon :icon="['fas', 'chevron-left']" class="mr-1" />
+        <SecondaryButton :icon="['fas', 'chevron-left']">
           {{ t('inventory.check.backToOverview') }}
         </SecondaryButton>
       </div>
@@ -63,7 +63,7 @@ const {t} = useI18n()
             {{ t('inventory.check.resultLost') }}
           </span>
         </div>
-        <p class="text-sm text-(--text-muted) mt-1">Konnte nicht gefunden werden</p>
+        <MutedText tag="p" size="sm" class="mt-1">Konnte nicht gefunden werden</MutedText>
       </NeutralContainer>
 
       <NeutralContainer class="border-l-4 bg-info/10 border-info">

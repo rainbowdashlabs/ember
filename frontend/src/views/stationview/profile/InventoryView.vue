@@ -14,7 +14,9 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
+import EmptyState from '@/components/feedback/EmptyState.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
+import FieldLabel from '@/components/typography/FieldLabel.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import InventoryItemCard from '@/views/stationview/inventory/InventoryItemCard.vue'
 import SizeBadge from '@/components/badge/SizeBadge.vue'
@@ -24,6 +26,7 @@ import {ExchangeStatus} from '@/api/types'
 import type {MyInventoryItem, MyRequirement} from '@/api/inventory'
 import type {ManagedMember} from '@/api/managedMembers'
 import {useSession} from '@/composables/useSession'
+import MutedText from '@/components/typography/MutedText.vue'
 
 const {t} = useI18n()
 const {isGuardian, sessionInfo} = useSession()
@@ -183,7 +186,7 @@ async function submitExchange() {
 <template>
   <ViewContent>
     <div class="space-y-6">
-      <div class="flex items-center justify-between flex-wrap gap-3">
+      <div class="flex items-center justify-between flex-wrap gap-2">
         <SectionHeader>
           {{ viewingMemberName ? `${t('profile.inventory')} — ${viewingMemberName}` : t('profile.inventory') }}
         </SectionHeader>
@@ -197,9 +200,7 @@ async function submitExchange() {
       <Alert v-if="error" variant="error">{{ error }}</Alert>
 
       <template v-if="!loading">
-        <div v-if="grouped.length === 0 && items.length === 0" class="text-center text-(--text-muted) py-8">
-          {{ t('profile.noInventory') }}
-        </div>
+        <EmptyState v-if="grouped.length === 0 && items.length === 0">{{ t('profile.noInventory') }}</EmptyState>
 
         <div v-else class="space-y-6">
           <div v-for="group in grouped" :key="group.inventoryId">
@@ -213,9 +214,9 @@ async function submitExchange() {
               </span>
             </div>
 
-            <div v-if="group.items.length === 0" class="text-sm text-(--text-muted) py-2">
+            <MutedText tag="div" size="sm" class="py-2" v-if="group.items.length === 0">
               {{ t('profile.noInventory') }}
-            </div>
+            </MutedText>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
               <InventoryItemCard
@@ -242,7 +243,7 @@ async function submitExchange() {
             <SizeBadge>{{ exchangeItem.sizeName ?? t('common.unisize') }}</SizeBadge>
           </p>
           <div v-if="exchangeSizes.length > 0" class="space-y-1">
-            <label class="block text-sm font-medium">{{ t('exchanges.newSize') }}</label>
+            <FieldLabel>{{ t('exchanges.newSize') }}</FieldLabel>
             <SelectInput v-model="exchangeNewSizeId">
               <option value="" disabled>{{ t('exchanges.selectNewSize') }}</option>
               <option v-for="size in exchangeSizes" :key="size.id" :value="String(size.id)">{{ size.label }}</option>

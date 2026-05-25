@@ -10,20 +10,16 @@ import { useRoute, useRouter } from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import SuccessButton from '@/components/button/SuccessButton.vue'
-import ErrorButton from '@/components/button/ErrorButton.vue'
-import InfoButton from '@/components/button/InfoButton.vue'
-import SizeBadge from '@/components/badge/SizeBadge.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
-import SelectInput from '@/components/input/select/SelectInput.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
-import SubHeader from '@/components/typography/SubHeader.vue'
-import TextInput from '@/components/input/text/TextInput.vue'
 import type { CheckResult, InventoryItem, MemberCheckState, RequiredInventoryItem } from '@/api/types'
 import { inventoryCheck, procurement } from '@/api'
 import MemberName from '@/components/avatar/MemberName.vue'
+import RapidCheckMode from './checkmemberview/RapidCheckMode.vue'
+import type { CheckEntry } from './checkmemberview/RapidCheckMode.vue'
+import InventorySection from './checkmemberview/InventorySection.vue'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -41,9 +37,8 @@ const itemResults = ref<Map<number, CheckResult>>(new Map())
 const itemNotes = ref<Map<number, string>>(new Map())
 const procurementCreated = ref<Set<number>>(new Set())
 
-// Check mode (rapid one-by-one like attendance)
+// Check mode
 const checkMode = ref(false)
-const checkIndex = ref(0)
 
 // Per-slot assign selection (key: "inventoryId-slotIndex")
 const slotSelections = ref<Map<string, string>>(new Map())
@@ -61,32 +56,21 @@ function setResult(itemId: number, result: CheckResult) {
   itemResults.value = new Map(itemResults.value)
 }
 
-function getResult(itemId: number): CheckResult | undefined {
-  return itemResults.value.get(itemId)
-}
-
 function setNote(itemId: number, note: string) {
   itemNotes.value.set(itemId, note)
   itemNotes.value = new Map(itemNotes.value)
 }
 
-function getNote(itemId: number): string {
-  return itemNotes.value.get(itemId) ?? ''
-}
-
-// Items assigned to this member for a specific inventory
 function assignedForInventory(inventoryId: number): InventoryItem[] {
   if (!state.value) return []
   return state.value.assigned.filter(i => i.inventoryId === inventoryId)
 }
 
-// Unassigned items available for a specific inventory
 function availableForInventory(inventoryId: number): InventoryItem[] {
   if (!state.value) return []
   return state.value.unassigned[inventoryId] ?? []
 }
 
-// Number of empty slots for an inventory
 function emptySlotCount(req: RequiredInventoryItem): number {
   return Math.max(0, req.requiredQuantity - req.assignedQuantity)
 }
@@ -112,11 +96,6 @@ const allMarked = computed(() => {
   return assignedMarked && emptyMarked
 })
 
-// Items that still need checking in rapid mode
-type CheckEntry =
-  | { type: 'item'; item: InventoryItem; req: RequiredInventoryItem }
-  | { type: 'slot'; req: RequiredInventoryItem; slotIndex: number }
-
 const uncheckedEntries = computed((): CheckEntry[] => {
   if (!state.value) return []
   const entries: CheckEntry[] = []
@@ -136,82 +115,8 @@ const uncheckedEntries = computed((): CheckEntry[] => {
   return entries
 })
 
-const currentCheckEntry = computed((): CheckEntry | null => {
-  if (!checkMode.value || checkIndex.value >= uncheckedEntries.value.length) return null
-  return uncheckedEntries.value[checkIndex.value]
-})
-
-// Selection for assigning in rapid mode
-const rapidAssignSelection = ref('')
-const rapidCreateSizeId = ref('')
-
 function startCheckMode() {
-  checkIndex.value = 0
-  rapidAssignSelection.value = ''
-  rapidCreateSizeId.value = ''
   checkMode.value = true
-}
-
-function checkModeSetResult(result: CheckResult) {
-  const entry = currentCheckEntry.value
-  if (!entry || entry.type !== 'item') return
-  itemResults.value.set(entry.item.id, result)
-  itemResults.value = new Map(itemResults.value)
-  rapidAssignSelection.value = ''
-  rapidCreateSizeId.value = ''
-  if (checkIndex.value >= uncheckedEntries.value.length) {
-    checkMode.value = false
-  }
-}
-
-function checkModeMarkNotInPossession() {
-  const entry = currentCheckEntry.value
-  if (!entry || entry.type !== 'slot') return
-  toggleNotInPossession(entry.req.inventoryId, entry.slotIndex)
-  rapidAssignSelection.value = ''
-  rapidCreateSizeId.value = ''
-  if (checkIndex.value >= uncheckedEntries.value.length) {
-    checkMode.value = false
-  }
-}
-
-async function checkModeAssign() {
-  const entry = currentCheckEntry.value
-  if (!entry || entry.type !== 'slot' || !rapidAssignSelection.value) return
-  error.value = ''
-  try {
-    state.value = await inventoryCheck.assignItem(memberId.value, Number(rapidAssignSelection.value))
-    rapidAssignSelection.value = ''
-    rapidCreateSizeId.value = ''
-  } catch {
-    error.value = t('common.error')
-  }
-}
-
-async function checkModeCreateAndAssign() {
-  const entry = currentCheckEntry.value
-  if (!entry || entry.type !== 'slot') return
-  error.value = ''
-  try {
-    state.value = await inventoryCheck.createAndAssign(
-      memberId.value,
-      entry.req.inventoryId,
-      rapidCreateSizeId.value ? Number(rapidCreateSizeId.value) : null,
-    )
-    rapidAssignSelection.value = ''
-    rapidCreateSizeId.value = ''
-  } catch {
-    error.value = t('common.error')
-  }
-}
-
-function skipCheckItem() {
-  checkIndex.value++
-  rapidAssignSelection.value = ''
-  rapidCreateSizeId.value = ''
-  if (checkIndex.value >= uncheckedEntries.value.length) {
-    checkMode.value = false
-  }
 }
 
 function markAllConfirmed() {
@@ -240,13 +145,57 @@ async function loadData() {
   }
 }
 
-async function assignToSlot(inventoryId: number, slotIndex: number, oldItemId?: number) {
+// Rapid check mode handlers
+function onRapidSetResult(result: CheckResult) {
+  const entry = uncheckedEntries.value[0]
+  if (!entry || entry.type !== 'item') return
+  itemResults.value.set(entry.item.id, result)
+  itemResults.value = new Map(itemResults.value)
+}
+
+function onRapidMarkNotInPossession() {
+  const entry = uncheckedEntries.value[0]
+  if (!entry || entry.type !== 'slot') return
+  toggleNotInPossession(entry.req.inventoryId, entry.slotIndex)
+}
+
+async function onRapidAssign(itemIdStr: string) {
+  error.value = ''
+  try {
+    state.value = await inventoryCheck.assignItem(memberId.value, Number(itemIdStr))
+  } catch {
+    error.value = t('common.error')
+  }
+}
+
+async function onRapidCreateAndAssign(sizeIdStr: string) {
+  const entry = uncheckedEntries.value[0]
+  if (!entry || entry.type !== 'slot') return
+  error.value = ''
+  try {
+    state.value = await inventoryCheck.createAndAssign(
+      memberId.value,
+      entry.req.inventoryId,
+      sizeIdStr ? Number(sizeIdStr) : null,
+    )
+  } catch {
+    error.value = t('common.error')
+  }
+}
+
+// Inventory section handlers
+function updateSelection(key: string, value: string) {
+  slotSelections.value.set(key, value)
+  slotSelections.value = new Map(slotSelections.value)
+}
+
+async function assignToSlot(inventoryId: number, slotIndex: number) {
   const key = `${inventoryId}-${slotIndex}`
   const selectedId = slotSelections.value.get(key)
   if (!selectedId) return
   error.value = ''
   try {
-    state.value = await inventoryCheck.assignItem(memberId.value, Number(selectedId), oldItemId)
+    state.value = await inventoryCheck.assignItem(memberId.value, Number(selectedId))
     slotSelections.value.delete(key)
     slotSelections.value = new Map(slotSelections.value)
   } catch {
@@ -260,7 +209,6 @@ async function changeItem(currentItemId: number, _inventoryId: number) {
   if (!selectedId) return
   error.value = ''
   try {
-    // Remove check result for old item
     itemResults.value.delete(currentItemId)
     itemResults.value = new Map(itemResults.value)
     state.value = await inventoryCheck.assignItem(memberId.value, Number(selectedId), currentItemId)
@@ -344,7 +292,6 @@ async function submit() {
       result: itemResults.value.get(item.id)!,
       note: itemNotes.value.get(item.id) ?? '',
     }))
-    // Add empty slot "not in possession" entries
     for (const req of state.value.required) {
       const empty = emptySlotCount(req)
       for (let i = 1; i <= empty; i++) {
@@ -358,7 +305,6 @@ async function submit() {
 
     const nextId = await inventoryCheck.getNextMember(completedMemberId, teamOnly.value)
     if (nextId) {
-      // Reset state before navigating
       state.value = null
       itemResults.value = new Map()
       itemNotes.value = new Map()
@@ -383,17 +329,6 @@ async function cancel() {
     // ignore
   }
   router.push({ name: 'inventory-checks' })
-}
-
-function resultClass(itemId: number): string {
-  const result = itemResults.value.get(itemId)
-  if (!result) return ''
-  switch (result) {
-    case 'CONFIRMED': return 'ring-2 ring-success bg-success/10'
-    case 'NOT_IN_POSSESSION': return 'ring-2 ring-info bg-info/10'
-    case 'LOST': return 'ring-2 ring-error bg-error/10'
-    default: return ''
-  }
 }
 
 function sizeLabel(req: RequiredInventoryItem, sizeId?: number | null): string {
@@ -426,8 +361,7 @@ onMounted(loadData)
             <p class="text-sm text-(--text-muted)">{{ t('inventory.check.title') }}</p>
           </div>
           <div class="flex gap-2">
-            <PrimaryButton v-if="uncheckedEntries.length > 0 && !checkMode" class="text-sm" @click="startCheckMode">
-              <font-awesome-icon :icon="['fas', 'list-check']" class="mr-1" />
+            <PrimaryButton :icon="['fas', 'list-check']" v-if="uncheckedEntries.length > 0 && !checkMode" class="text-sm" @click="startCheckMode">
               {{ t('inventory.check.rapidCheck') }}
             </PrimaryButton>
             <SecondaryButton v-if="state.assigned.length > 0 && !checkMode" class="text-sm" @click="markAllConfirmed">
@@ -444,266 +378,48 @@ onMounted(loadData)
           </div>
         </NeutralContainer>
 
-        <!-- Rapid check mode: assigned item -->
-        <NeutralContainer v-if="checkMode && currentCheckEntry?.type === 'item'" class="space-y-4">
-          <div class="text-center space-y-2">
-            <p class="text-xs text-(--text-muted)">{{ t('inventory.check.rapidProgress', { current: uncheckedEntries.length }) }}</p>
-            <SubHeader>{{ currentCheckEntry.req.inventoryName }}</SubHeader>
-            <p class="text-2xl font-bold">{{ currentCheckEntry.item.name }}</p>
-            <div class="flex items-center justify-center gap-2">
-              <SizeBadge v-if="sizeLabel(currentCheckEntry.req, currentCheckEntry.item.sizeId)">{{ sizeLabel(currentCheckEntry.req, currentCheckEntry.item.sizeId) }}</SizeBadge>
-              <span v-if="currentCheckEntry.item.internalId" class="text-sm text-(--text-muted)">{{ currentCheckEntry.item.internalId }}</span>
-            </div>
-          </div>
-          <div class="flex justify-center gap-4">
-            <SuccessButton @click="checkModeSetResult('CONFIRMED')">
-              <font-awesome-icon :icon="['fas', 'check']" class="mr-2" />
-              {{ t('inventory.check.confirmed') }}
-            </SuccessButton>
-            <ErrorButton @click="checkModeSetResult('LOST')">
-              <font-awesome-icon :icon="['fas', 'xmark']" class="mr-2" />
-              {{ t('inventory.check.lost') }}
-            </ErrorButton>
-          </div>
-          <div class="flex justify-center">
-            <SecondaryButton @click="skipCheckItem">
-              {{ t('inventory.check.skip') }}
-            </SecondaryButton>
-          </div>
-        </NeutralContainer>
-
-        <!-- Rapid check mode: empty slot (missing item) -->
-        <NeutralContainer v-if="checkMode && currentCheckEntry?.type === 'slot'" class="space-y-4">
-          <div class="text-center space-y-2">
-            <p class="text-xs text-(--text-muted)">{{ t('inventory.check.rapidProgress', { current: uncheckedEntries.length }) }}</p>
-            <SubHeader>{{ currentCheckEntry.req.inventoryName }}</SubHeader>
-            <p class="text-lg font-medium text-(--text-muted)">{{ t('inventory.check.missingItem') }}</p>
-            <p class="text-sm text-(--text-muted)">
-              {{ currentCheckEntry.req.assignedQuantity }} / {{ currentCheckEntry.req.requiredQuantity }}
-            </p>
-          </div>
-
-          <!-- Assign from existing unassigned -->
-          <div v-if="availableForInventory(currentCheckEntry.req.inventoryId).length > 0" class="flex flex-col sm:flex-row gap-2 max-w-md mx-auto">
-            <SelectInput v-model="rapidAssignSelection" class="flex-1">
-              <option value="" disabled>{{ t('inventory.check.selectItem') }}</option>
-              <option v-for="avail in availableForInventory(currentCheckEntry.req.inventoryId)" :key="avail.id" :value="String(avail.id)">
-                {{ itemLabel(avail, currentCheckEntry.req) }}
-              </option>
-            </SelectInput>
-            <PrimaryButton :disabled="!rapidAssignSelection" @click="checkModeAssign">
-              {{ t('inventory.check.assign') }}
-            </PrimaryButton>
-          </div>
-
-          <!-- Create new item -->
-          <div class="flex flex-col sm:flex-row gap-2 max-w-md mx-auto">
-            <SelectInput v-if="currentCheckEntry.req.hasSizes && currentCheckEntry.req.sizes.length > 0" v-model="rapidCreateSizeId" class="flex-1">
-              <option value="" disabled>{{ t('inventory.check.selectSize') }}</option>
-              <option v-for="size in currentCheckEntry.req.sizes" :key="size.id" :value="String(size.id)">{{ size.label }}</option>
-            </SelectInput>
-            <SecondaryButton :disabled="currentCheckEntry.req.hasSizes && currentCheckEntry.req.sizes.length > 0 && !rapidCreateSizeId" @click="checkModeCreateAndAssign">
-              <font-awesome-icon :icon="['fas', 'plus']" class="mr-1" />
-              {{ t('inventory.check.create') }}
-            </SecondaryButton>
-          </div>
-
-          <div class="flex justify-center gap-4">
-            <InfoButton @click="checkModeMarkNotInPossession">
-              <font-awesome-icon :icon="['fas', 'ban']" class="mr-2" />
-              {{ t('inventory.check.notInPossession') }}
-            </InfoButton>
-          </div>
-          <div class="flex justify-center">
-            <SecondaryButton @click="skipCheckItem">
-              {{ t('inventory.check.skip') }}
-            </SecondaryButton>
-          </div>
-        </NeutralContainer>
-
-        <!-- Rapid check mode: done -->
-        <NeutralContainer v-if="checkMode && !currentCheckEntry" class="text-center py-4 space-y-2">
-          <p class="text-lg font-medium">{{ t('inventory.check.rapidDone') }}</p>
-          <SecondaryButton @click="checkMode = false">{{ t('inventory.check.backToList') }}</SecondaryButton>
-        </NeutralContainer>
+        <!-- Rapid check mode -->
+        <RapidCheckMode
+          v-if="checkMode"
+          :unchecked-entries="uncheckedEntries"
+          :available-for-inventory="availableForInventory"
+          :item-label="itemLabel"
+          :size-label="sizeLabel"
+          @set-result="onRapidSetResult"
+          @mark-not-in-possession="onRapidMarkNotInPossession"
+          @assign="onRapidAssign"
+          @create-and-assign="onRapidCreateAndAssign"
+          @skip="() => {}"
+          @done="checkMode = false"
+        />
 
         <!-- Inventory sections -->
         <div v-if="!checkMode" class="space-y-6">
-          <NeutralContainer v-for="req in state.required" :key="req.inventoryId" class="space-y-3">
-            <div class="flex items-center justify-between gap-2">
-              <SubHeader>{{ req.inventoryName }}</SubHeader>
-              <span class="text-sm text-(--text-muted) shrink-0">
-                {{ req.assignedQuantity }} / {{ req.requiredQuantity }}
-                <span v-if="req.assignedQuantity < req.requiredQuantity" class="text-error">
-                  ({{ req.requiredQuantity - req.assignedQuantity }} fehlt)
-                </span>
-              </span>
-            </div>
-
-            <!-- Assigned items -->
-            <div class="space-y-2">
-              <div
-                v-for="item in assignedForInventory(req.inventoryId)"
-                :key="item.id"
-                class="rounded border border-bg-light-accent/50 dark:border-bg-dark-accent/50 p-3 space-y-2 transition-all"
-                :class="resultClass(item.id)"
-              >
-                <!-- Item info + action buttons -->
-                <div class="flex flex-col sm:flex-row sm:items-center gap-2">
-                  <div class="flex-1 min-w-0">
-                    <div class="font-medium text-sm truncate">
-                      {{ item.name }}
-                      <SizeBadge v-if="sizeLabel(req, item.sizeId)">{{ sizeLabel(req, item.sizeId) }}</SizeBadge>
-                    </div>
-                    <div v-if="item.internalId" class="text-xs text-(--text-muted)">{{ item.internalId }}</div>
-                  </div>
-                  <div class="flex gap-1 shrink-0">
-                    <SuccessButton
-                      class="text-xs px-3 py-1.5 sm:px-2 sm:py-1 flex-1 sm:flex-none"
-                      :class="{ 'opacity-40': getResult(item.id) && getResult(item.id) !== 'CONFIRMED' }"
-                      @click="setResult(item.id, 'CONFIRMED')"
-                    >
-                      <font-awesome-icon :icon="['fas', 'check']" />
-                    </SuccessButton>
-                    <ErrorButton
-                      class="text-xs px-3 py-1.5 sm:px-2 sm:py-1 flex-1 sm:flex-none"
-                      :class="{ 'opacity-40': getResult(item.id) && getResult(item.id) !== 'LOST' }"
-                      @click="setResult(item.id, 'LOST')"
-                    >
-                      <font-awesome-icon :icon="['fas', 'xmark']" />
-                    </ErrorButton>
-                    <SecondaryButton
-                      class="text-xs px-3 py-1.5 sm:px-2 sm:py-1 flex-1 sm:flex-none"
-                      @click="unassignItem(item.id)"
-                    >
-                      <font-awesome-icon :icon="['fas', 'right-from-bracket']" />
-                    </SecondaryButton>
-                    <SecondaryButton
-                      v-if="getResult(item.id) === 'LOST' && !procurementCreated.has(item.id)"
-                      class="text-xs px-3 py-1.5 sm:px-2 sm:py-1 flex-1 sm:flex-none"
-                      @click="createProcurementForItem(item)"
-                    >
-                      <font-awesome-icon :icon="['fas', 'folder-plus']" class="mr-1" />
-                      {{ t('inventory.check.createProcurement') }}
-                    </SecondaryButton>
-                    <span v-if="procurementCreated.has(item.id)" class="text-xs text-success">
-                      <font-awesome-icon :icon="['fas', 'check']" class="mr-1" />
-                      {{ t('inventory.check.procurementCreated') }}
-                    </span>
-                  </div>
-                </div>
-
-                <!-- Note -->
-                <TextInput
-                  :model-value="getNote(item.id)"
-                  :placeholder="t('inventory.check.notePlaceholder')"
-                  @update:model-value="setNote(item.id, ($event as string) ?? '')"
-                />
-
-                <!-- Change: pick from existing unassigned -->
-                <div v-if="availableForInventory(req.inventoryId).length > 0" class="flex flex-col sm:flex-row gap-2">
-                  <SelectInput
-                    :model-value="slotSelections.get(`change-${item.id}`) ?? ''"
-                    class="flex-1"
-                    @update:model-value="(v: string | undefined) => { slotSelections.set(`change-${item.id}`, v ?? ''); slotSelections = new Map(slotSelections) }"
-                  >
-                    <option value="" disabled>{{ t('inventory.check.change') }}...</option>
-                    <option v-for="avail in availableForInventory(req.inventoryId)" :key="avail.id" :value="String(avail.id)">
-                      {{ itemLabel(avail, req) }}
-                    </option>
-                  </SelectInput>
-                  <PrimaryButton
-                    class="text-sm"
-                    :disabled="!slotSelections.get(`change-${item.id}`)"
-                    @click="changeItem(item.id, req.inventoryId)"
-                  >
-                    {{ t('inventory.check.change') }}
-                  </PrimaryButton>
-                </div>
-
-                <!-- Change: create new item by size -->
-                <div class="flex flex-col sm:flex-row gap-2">
-                  <SelectInput
-                    v-if="req.hasSizes && req.sizes.length > 0"
-                    :model-value="slotSelections.get(`create-change-${item.id}`) ?? ''"
-                    class="flex-1"
-                    @update:model-value="(v: string | undefined) => { slotSelections.set(`create-change-${item.id}`, v ?? ''); slotSelections = new Map(slotSelections) }"
-                  >
-                    <option value="" disabled>{{ t('inventory.check.selectSize') }}</option>
-                    <option v-for="size in req.sizes" :key="size.id" :value="String(size.id)">{{ size.label }}</option>
-                  </SelectInput>
-                  <SecondaryButton
-                    class="text-sm"
-                    :disabled="req.hasSizes && req.sizes.length > 0 && !slotSelections.get(`create-change-${item.id}`)"
-                    @click="createAndChangeItem(item.id, req)"
-                  >
-                    <font-awesome-icon :icon="['fas', 'plus']" class="mr-1" />
-                    {{ t('inventory.check.create') }}
-                  </SecondaryButton>
-                </div>
-              </div>
-            </div>
-
-            <!-- Empty slots -->
-            <div v-for="slotIdx in emptySlotCount(req)" :key="`empty-${req.inventoryId}-${slotIdx}`"
-              class="rounded border-2 border-dashed p-3 space-y-2 transition-all"
-              :class="slotsNotInPossession.has(`${req.inventoryId}-${slotIdx}`) ? 'border-info ring-2 ring-info bg-info/10' : 'border-bg-light-accent dark:border-bg-dark-accent'"
-            >
-              <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                <span class="text-sm text-(--text-muted)">{{ t('inventory.check.emptySlot') }}</span>
-                <InfoButton
-                  class="text-xs px-2 py-1.5 sm:py-1 w-full sm:w-auto"
-                  :class="{ 'opacity-100': slotsNotInPossession.has(`${req.inventoryId}-${slotIdx}`), 'opacity-60': !slotsNotInPossession.has(`${req.inventoryId}-${slotIdx}`) }"
-                  @click="toggleNotInPossession(req.inventoryId, slotIdx)"
-                >
-                  <font-awesome-icon :icon="['fas', 'ban']" class="mr-1" />
-                  {{ t('inventory.check.notInPossession') }}
-                </InfoButton>
-              </div>
-
-              <!-- Assign existing unassigned item -->
-              <div v-if="availableForInventory(req.inventoryId).length > 0" class="flex flex-col sm:flex-row gap-2">
-                <SelectInput
-                  :model-value="slotSelections.get(`${req.inventoryId}-${slotIdx}`) ?? ''"
-                  class="flex-1"
-                  @update:model-value="(v: string | undefined) => { slotSelections.set(`${req.inventoryId}-${slotIdx}`, v ?? ''); slotSelections = new Map(slotSelections) }"
-                >
-                  <option value="" disabled>{{ t('inventory.check.selectItem') }}</option>
-                  <option v-for="avail in availableForInventory(req.inventoryId)" :key="avail.id" :value="String(avail.id)">
-                    {{ itemLabel(avail, req) }}
-                  </option>
-                </SelectInput>
-                <PrimaryButton
-                  class="text-sm"
-                  :disabled="!slotSelections.get(`${req.inventoryId}-${slotIdx}`)"
-                  @click="assignToSlot(req.inventoryId, slotIdx)"
-                >
-                  {{ t('inventory.check.assign') }}
-                </PrimaryButton>
-              </div>
-
-              <!-- Create new item on the fly -->
-              <div class="flex flex-col sm:flex-row gap-2">
-                <SelectInput
-                  v-if="req.hasSizes && req.sizes.length > 0"
-                  :model-value="slotSelections.get(`create-${req.inventoryId}-${slotIdx}`) ?? ''"
-                  class="flex-1"
-                  @update:model-value="(v: string | undefined) => { slotSelections.set(`create-${req.inventoryId}-${slotIdx}`, v ?? ''); slotSelections = new Map(slotSelections) }"
-                >
-                  <option value="" disabled>{{ t('inventory.check.selectSize') }}</option>
-                  <option v-for="size in req.sizes" :key="size.id" :value="String(size.id)">{{ size.label }}</option>
-                </SelectInput>
-                <SecondaryButton
-                  class="text-sm"
-                  :disabled="req.hasSizes && req.sizes.length > 0 && !slotSelections.get(`create-${req.inventoryId}-${slotIdx}`)"
-                  @click="createAndAssignToSlot(req, slotIdx)"
-                >
-                  <font-awesome-icon :icon="['fas', 'plus']" class="mr-1" />
-                  {{ t('inventory.check.create') }}
-                </SecondaryButton>
-              </div>
-            </div>
-          </NeutralContainer>
+          <InventorySection
+            v-for="req in state.required"
+            :key="req.inventoryId"
+            :req="req"
+            :assigned-items="assignedForInventory(req.inventoryId)"
+            :available-items="availableForInventory(req.inventoryId)"
+            :empty-slot-count="emptySlotCount(req)"
+            :item-results="itemResults"
+            :item-notes="itemNotes"
+            :procurement-created="procurementCreated"
+            :slots-not-in-possession="slotsNotInPossession"
+            :slot-selections="slotSelections"
+            :size-label="sizeLabel"
+            :item-label="itemLabel"
+            @set-result="setResult"
+            @set-note="setNote"
+            @unassign="unassignItem"
+            @create-procurement="createProcurementForItem"
+            @change-item="changeItem"
+            @create-and-change="createAndChangeItem"
+            @toggle-not-in-possession="toggleNotInPossession"
+            @assign-to-slot="assignToSlot"
+            @create-and-assign-to-slot="createAndAssignToSlot"
+            @update-selection="updateSelection"
+          />
         </div>
 
         <!-- Submit (sticky on mobile) -->

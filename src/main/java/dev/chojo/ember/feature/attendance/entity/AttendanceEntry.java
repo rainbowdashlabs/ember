@@ -8,7 +8,6 @@ package dev.chojo.ember.feature.attendance.entity;
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
 
 import java.time.Instant;
-import java.util.Optional;
 
 import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIMESTAMP;
 
@@ -43,14 +42,6 @@ public record AttendanceEntry(
                 row.get("check_in", INSTANT_TIMESTAMP),
                 row.get("check_out", INSTANT_TIMESTAMP),
                 row.getEnum("source", EntrySource.class));
-    }
-
-    public Optional<Instant> checkInOpt() {
-        return Optional.ofNullable(checkIn);
-    }
-
-    public Optional<Instant> checkOutOpt() {
-        return Optional.ofNullable(checkOut);
     }
 
     /**

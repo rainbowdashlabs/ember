@@ -9,7 +9,9 @@ import {useI18n} from 'vue-i18n'
 import {useRouter} from 'vue-router'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import LinkButton from '@/components/button/LinkButton.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
+import EmptyState from '@/components/feedback/EmptyState.vue'
 import {notifications} from '@/api'
 import type {NotificationEntry} from '@/api/types'
 
@@ -94,17 +96,16 @@ onMounted(loadData)
         {{ t('dashboard.notifications') }}
         <span v-if="notifs.length > 0"> ({{ notifs.length }})</span>
       </SectionHeader>
-      <SecondaryButton v-if="notifs.length > 0" class="text-sm" @click="ackAll">
-        <font-awesome-icon :icon="['fas', 'check-double']" class="mr-1"/>
+      <SecondaryButton :icon="['fas', 'check-double']" v-if="notifs.length > 0" class="text-sm" @click="ackAll">
         {{ t('dashboard.acknowledgeAll') }}
       </SecondaryButton>
     </div>
 
     <div class="overflow-y-auto flex-1 space-y-2">
-      <div v-if="!loading && notifs.length === 0" class="text-center text-(--text-muted) py-4">
+      <EmptyState compact v-if="!loading && notifs.length === 0">
         <font-awesome-icon :icon="['fas', 'check-double']" class="text-2xl text-success mb-2"/>
         <p>{{ t('dashboard.noNotifications') }}</p>
-      </div>
+      </EmptyState>
 
       <template v-if="notifs.length > 0">
         <NeutralContainer v-for="n in notifs" :key="n.id" class="flex items-start justify-between gap-3 py-2 px-3"
@@ -119,10 +120,10 @@ onMounted(loadData)
               <p class="text-xs text-(--text-muted)">{{ formatDate(n.createdAt) }}</p>
             </div>
           </div>
-          <button type="button" class="text-xs text-primary hover:underline shrink-0 mt-1" @click.stop="ack(n.id)">
+          <LinkButton class="shrink-0 mt-1" @click="($event: MouseEvent) => { $event.stopPropagation(); ack(n.id) }">
             <font-awesome-icon :icon="['fas', 'check']" class="mr-0.5"/>
             {{ t('dashboard.acknowledge') }}
-          </button>
+          </LinkButton>
         </NeutralContainer>
       </template>
     </div>

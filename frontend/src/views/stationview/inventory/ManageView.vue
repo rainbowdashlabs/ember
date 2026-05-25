@@ -10,6 +10,7 @@ import { useRouter } from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import IconButton from '@/components/button/IconButton.vue'
 import EditButton from '@/components/button/EditButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
@@ -18,12 +19,15 @@ import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
+import EmptyState from '@/components/feedback/EmptyState.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
+import FieldLabel from '@/components/typography/FieldLabel.vue'
 import type { Inventory, InventoryItem, ProcurementEntry } from '@/api/types'
 import { InventoryTypes } from '@/api/types'
 import { inventory, procurement } from '@/api'
+import MutedText from '@/components/typography/MutedText.vue'
 
 const { t } = useI18n()
 const router = useRouter()
@@ -170,22 +174,19 @@ onMounted(loadData)
       <template v-if="!loading">
         <div class="flex items-center justify-between">
           <SectionHeader>{{ t('inventory.manage.title') }}</SectionHeader>
-          <PrimaryButton @click="openCreate">
-            <font-awesome-icon :icon="['fas', 'plus']" class="mr-2" />
+          <PrimaryButton :icon="['fas', 'plus']" @click="openCreate">
             {{ t('inventory.manage.create') }}
           </PrimaryButton>
         </div>
 
-        <div v-if="inventories.length === 0" class="text-center text-(--text-muted) py-8">
-          {{ t('inventory.manage.empty') }}
-        </div>
+        <EmptyState v-if="inventories.length === 0">{{ t('inventory.manage.empty') }}</EmptyState>
 
         <div class="space-y-3">
-          <NeutralContainer v-for="inv in inventories" :key="inv.id" class="cursor-pointer hover:ring-1 hover:ring-primary/30 transition-all" @click="viewDetail(inv)">
+          <NeutralContainer clickable v-for="inv in inventories" :key="inv.id" @click="viewDetail(inv)">
             <div class="flex items-center justify-between">
               <div>
                 <span class="font-medium">{{ inv.name }}</span>
-                <span class="ml-2 text-xs text-(--text-muted)">{{ t('inventory.manage.type.' + (inv.inventoryType ?? InventoryTypes.INTERNAL)) }}</span>
+                <MutedText class="ml-2">{{ t('inventory.manage.type.' + (inv.inventoryType ?? InventoryTypes.INTERNAL)) }}</MutedText>
                 <span v-if="inv.hasSizes" class="ml-2 text-xs text-secondary-accent dark:text-secondary">{{ t('inventory.manage.withSizes') }}</span>
               </div>
               <div class="flex items-center gap-2" @click.stop>
@@ -193,7 +194,7 @@ onMounted(loadData)
                 <DeleteButton @click="requestDelete(inv)" />
               </div>
             </div>
-            <div class="text-xs text-(--text-muted) mt-1">
+            <MutedText tag="div" class="mt-1">
               {{ t('inventory.manage.itemCount', { count: itemCount(inv.id) }) }}
               <template v-if="lostCount(inv.id) > 0">
                 &middot; <span class="text-error">{{ t('inventory.manage.lostCount', { count: lostCount(inv.id) }) }}</span>
@@ -201,7 +202,7 @@ onMounted(loadData)
               <template v-if="procurementCount(inv.id) > 0">
                 &middot; <span class="text-info-accent dark:text-info">{{ t('inventory.manage.procurementCount', { count: procurementCount(inv.id) }) }}</span>
               </template>
-            </div>
+            </MutedText>
           </NeutralContainer>
         </div>
       </template>
@@ -213,12 +214,12 @@ onMounted(loadData)
 
           <template v-if="createStep === 'basic'">
             <div class="space-y-1">
-              <label class="block text-sm font-medium">{{ t('inventory.manage.name') }}</label>
+              <FieldLabel>{{ t('inventory.manage.name') }}</FieldLabel>
               <TextInput v-model="createName" :placeholder="t('inventory.manage.namePlaceholder')" />
             </div>
 
             <div class="space-y-1">
-              <label class="block text-sm font-medium">{{ t('inventory.manage.typeLabel') }}</label>
+              <FieldLabel>{{ t('inventory.manage.typeLabel') }}</FieldLabel>
               <SelectInput v-model="createType">
                 <option :value="InventoryTypes.INTERNAL">{{ t('inventory.manage.type.INTERNAL') }}</option>
                 <option :value="InventoryTypes.EXTERNAL">{{ t('inventory.manage.type.EXTERNAL') }}</option>
@@ -256,7 +257,7 @@ onMounted(loadData)
             <div v-if="createSizes.length > 0" class="space-y-1">
               <div v-for="(size, idx) in createSizes" :key="idx" class="flex items-center justify-between rounded-lg px-3 py-2 border border-bg-light-accent dark:border-bg-dark-accent">
                 <span class="text-sm">{{ size }}</span>
-                <button class="text-(--text-muted) hover:text-error text-sm" @click="removeSize(idx)">&times;</button>
+                <IconButton :icon="['fas', 'xmark']" :label="t('common.delete')" class="text-(--text-muted) hover:text-error text-sm" @click="removeSize(idx)"/>
               </div>
             </div>
 

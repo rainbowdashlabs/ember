@@ -23,6 +23,11 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
 @Singleton
 public class NewsRepository {
 
+    private static final String NEWS_COLUMNS =
+            "n.id, n.station_id, n.title, n.content_markdown, n.content_html, n.author_id, n.published_at, n.created_at, n.restriction_mode, EXISTS(SELECT 1 FROM news_restriction r WHERE r.news_id = n.id) AS restricted";
+    private static final String NEWS_COLUMNS_BARE =
+            "id, station_id, title, content_markdown, content_html, author_id, published_at, created_at, restriction_mode, EXISTS(SELECT 1 FROM news_restriction r WHERE r.news_id = id) AS restricted";
+
     /**
      * Creates a new news article and returns the persisted entity.
      *
@@ -37,7 +42,7 @@ public class NewsRepository {
         return Query.query("""
                             INSERT INTO news(station_id, title, content_markdown, content_html, author_id, published_at)
                             VALUES(:station_id, :title, :content_markdown, :content_html, :author_id, :published_at)
-                            RETURNING *;""")
+                            RETURNING\s""" + NEWS_COLUMNS_BARE + ";")
                 .single(Call.of()
                         .bind("station_id", stationId)
                         .bind("title", title)
@@ -57,7 +62,7 @@ public class NewsRepository {
      * @return the news article, or empty if not found
      */
     public Optional<News> findById(int id) {
-        return Query.query("SELECT * FROM news WHERE id = :id;")
+        return Query.query("SELECT " + NEWS_COLUMNS + " FROM news n WHERE n.id = :id;")
                 .single(Call.of().bind("id", id))
                 .map(News.map())
                 .first();
@@ -73,7 +78,8 @@ public class NewsRepository {
      */
     public List<News> findByStation(int stationId, int offset, int limit) {
         return Query.query(
-                        "SELECT * FROM news WHERE station_id = :station_id ORDER BY published_at DESC LIMIT :limit OFFSET :offset;")
+                        "SELECT " + NEWS_COLUMNS
+                                + " FROM news n WHERE n.station_id = :station_id ORDER BY n.published_at DESC LIMIT :limit OFFSET :offset;")
                 .single(Call.of()
                         .bind("station_id", stationId)
                         .bind("limit", limit)
@@ -83,8 +89,8 @@ public class NewsRepository {
     }
 
     /**
-     * Retrieves published news visible to a specific member, respecting group restrictions.
-     * A news article is visible if it has no group restrictions or the member belongs to a restricted group.
+     * Retrieves published news visible to a specific member, using the DB restriction check function.
+     * The function resolves role inheritance, restriction mode, and manager bypass.
      *
      * @param stationId the station ID
      * @param memberId  the member ID
@@ -93,18 +99,12 @@ public class NewsRepository {
      * @return list of visible news articles
      */
     public List<News> findVisibleForMember(int stationId, int memberId, int offset, int limit) {
-        return Query.query("""
-                            SELECT DISTINCT n.*
-                            FROM news n
-                            LEFT JOIN news_group_restriction ngr ON n.id = ngr.news_id
-                            WHERE n.station_id = :station_id
-                              AND n.published_at IS NOT NULL
-                              AND (
-                                NOT exists (SELECT 1 FROM news_group_restriction r WHERE r.news_id = n.id)
-                                OR ngr.group_id IN (SELECT mge.group_id FROM member_group_entry mge WHERE mge.member_id = :member_id)
-                              )
-                            ORDER BY n.published_at DESC
-                            LIMIT :limit OFFSET :offset;""")
+        return Query.query("SELECT " + NEWS_COLUMNS + " FROM news n"
+                        + " WHERE n.station_id = :station_id"
+                        + " AND n.published_at IS NOT NULL"
+                        + " AND check_restriction('news_restriction', 'news_id', 'news', 'id', n.id, :member_id, 'NEWS_MANAGER')"
+                        + " ORDER BY n.published_at DESC"
+                        + " LIMIT :limit OFFSET :offset;")
                 .single(Call.of()
                         .bind("station_id", stationId)
                         .bind("member_id", memberId)
@@ -147,21 +147,6 @@ public class NewsRepository {
                 .single(Call.of().bind("id", id))
                 .delete()
                 .changed();
-    }
-
-    // -- Group Restrictions --
-
-    /**
-     * Retrieves the group IDs that restrict visibility of a news article.
-     *
-     * @param newsId the news article ID
-     * @return list of restricting group IDs
-     */
-    public List<Integer> findGroupRestrictions(int newsId) {
-        return Query.query("SELECT group_id FROM news_group_restriction WHERE news_id = :news_id;")
-                .single(Call.of().bind("news_id", newsId))
-                .map(row -> row.getInt("group_id"))
-                .all();
     }
 
     // -- Comments --
@@ -257,26 +242,6 @@ public class NewsRepository {
                 .changed();
     }
 
-    // -- Group Restrictions --
-
-    /**
-     * Replaces all group restrictions for a news article.
-     * Deletes existing restrictions and inserts the new set.
-     *
-     * @param newsId   the news article ID
-     * @param groupIds list of group IDs to restrict visibility to
-     */
-    public void setGroupRestrictions(int newsId, List<Integer> groupIds) {
-        Query.query("DELETE FROM news_group_restriction WHERE news_id = :news_id;")
-                .single(Call.of().bind("news_id", newsId))
-                .delete();
-        for (int groupId : groupIds) {
-            Query.query("INSERT INTO news_group_restriction(news_id, group_id) VALUES(:news_id, :group_id);")
-                    .single(Call.of().bind("news_id", newsId).bind("group_id", groupId))
-                    .insert();
-        }
-    }
-
     // -- Acknowledgements --
 
     /**
@@ -285,6 +250,7 @@ public class NewsRepository {
      * @param newsId   the news article ID
      * @param memberId the member ID
      */
+    // Not yet exposed via routes — acknowledgement UI not implemented
     public void acknowledge(int newsId, int memberId) {
         Query.query(
                         "INSERT INTO news_acknowledgement(news_id, member_id) VALUES(:news_id, :member_id) ON CONFLICT DO NOTHING;")
@@ -320,11 +286,7 @@ public class NewsRepository {
                             WHERE n.station_id = :station_id
                               AND n.published_at IS NOT NULL
                               AND NOT exists (SELECT 1 FROM news_acknowledgement na WHERE na.news_id = n.id AND na.member_id = :member_id)
-                              AND (
-                                NOT exists (SELECT 1 FROM news_group_restriction r WHERE r.news_id = n.id)
-                                OR exists (SELECT 1 FROM news_group_restriction r JOIN member_group_entry mge ON r.group_id = mge.group_id
-                                           WHERE r.news_id = n.id AND mge.member_id = :member_id)
-                              );""")
+                              AND check_restriction('news_restriction', 'news_id', 'news', 'id', n.id, :member_id, 'NEWS_MANAGER');""")
                 .single(Call.of().bind("station_id", stationId).bind("member_id", memberId))
                 .map(row -> row.getInt("cnt"))
                 .first()

@@ -18,16 +18,17 @@ import TextInput from '@/components/input/text/TextInput.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
+import EmptyState from '@/components/feedback/EmptyState.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
+import FieldLabel from '@/components/typography/FieldLabel.vue'
 import RoleSelector from '@/components/input/RoleSelector.vue'
 import type {MemberGroup, Role, StationMember} from '@/api/types'
 import {memberGroups, stationMembers} from '@/api'
-import {useStations} from '@/composables/useStations'
 import {useSession} from '@/composables/useSession'
+import MutedText from '@/components/typography/MutedText.vue'
 
 const {t} = useI18n()
-const {currentStationId} = useStations()
 const {canManageMembers, isManager} = useSession()
 
 const groups = ref<MemberGroup[]>([])
@@ -85,7 +86,7 @@ async function loadData() {
   try {
     const [g, m, r] = await Promise.all([
       memberGroups.listGroups(),
-      stationMembers.listMembers(currentStationId.value!),
+      stationMembers.listMembers(),
       stationMembers.listAllRoles(),
     ])
     groups.value = g
@@ -236,15 +237,12 @@ onMounted(loadData)
         <div class="space-y-4">
           <div class="flex items-center justify-between">
             <SectionHeader>{{ t('memberGroups.title') }}</SectionHeader>
-            <PrimaryButton @click="openCreateGroup">
-              <font-awesome-icon :icon="['fas', 'plus']" class="mr-2"/>
+            <PrimaryButton :icon="['fas', 'plus']" @click="openCreateGroup">
               {{ t('memberGroups.create') }}
             </PrimaryButton>
           </div>
 
-          <div v-if="groups.length === 0" class="text-center text-(--text-muted) py-8">
-            {{ t('memberGroups.empty') }}
-          </div>
+          <EmptyState v-if="groups.length === 0">{{ t('memberGroups.empty') }}</EmptyState>
 
           <div class="space-y-2">
             <NeutralContainer
@@ -273,41 +271,39 @@ onMounted(loadData)
           <template v-if="!groupLoading">
             <!-- Group roles -->
             <div v-if="canEditRoles" class="space-y-2">
-              <label class="block text-sm font-medium text-(--text-muted)">{{ t('memberGroups.roles') }}</label>
+              <FieldLabel class="text-(--text-muted)">{{ t('memberGroups.roles') }}</FieldLabel>
               <RoleSelector v-model="groupRoleIds" :all-roles="allRoles" class="max-w-md" />
               <p v-if="groupRoles.length === 0" class="text-xs text-(--text-muted)">{{ t('memberGroups.noRoles') }}</p>
             </div>
 
             <!-- Current members -->
             <div class="space-y-1">
-              <label class="block text-sm font-medium text-(--text-muted)">{{
+              <FieldLabel class="text-(--text-muted)">{{
                   t('memberGroups.currentMembers')
-                }}</label>
-              <div v-if="groupMembers.length === 0" class="text-sm text-(--text-muted) py-2">
+                }}</FieldLabel>
+              <MutedText tag="div" size="sm" class="py-2" v-if="groupMembers.length === 0">
                 {{ t('memberGroups.noMembers') }}
-              </div>
+              </MutedText>
               <div class="space-y-1">
                 <div v-for="member in sortedGroupMembers" :key="member.id"
                      class="flex items-center justify-between rounded-lg px-3 py-2 bg-bg-light-accent dark:bg-bg-dark-accent">
                   <div>
                     <MemberName :name="memberDisplayName(member)" :member-id="member.id" class="text-sm font-medium"/>
-                    <span v-if="member.name && member.email" class="ml-2 text-xs text-(--text-muted)">{{
+                    <MutedText class="ml-2" v-if="member.name && member.email">{{
                         member.email
-                      }}</span>
+                      }}</MutedText>
                   </div>
-                  <button class="text-error hover:text-error/80 text-sm" @click="removeMemberFromGroup(member)">
-                    <font-awesome-icon :icon="['fas', 'xmark']"/>
-                  </button>
+                  <IconButton :icon="['fas', 'xmark']" :label="t('memberGroups.removeMember')" class="text-error hover:text-error/80 text-sm" @click="removeMemberFromGroup(member)"/>
                 </div>
               </div>
             </div>
 
             <!-- Available members to add -->
             <div class="space-y-1">
-              <label class="block text-sm font-medium text-(--text-muted)">{{ t('memberGroups.addMembers') }}</label>
-              <div v-if="availableMembers.length === 0" class="text-sm text-(--text-muted) py-2">
+              <FieldLabel class="text-(--text-muted)">{{ t('memberGroups.addMembers') }}</FieldLabel>
+              <MutedText tag="div" size="sm" class="py-2" v-if="availableMembers.length === 0">
                 {{ t('memberGroups.allAdded') }}
-              </div>
+              </MutedText>
               <div class="space-y-1">
                 <div
                     v-for="member in availableMembers"
@@ -317,9 +313,9 @@ onMounted(loadData)
                 >
                   <div>
                     <MemberName :name="memberDisplayName(member)" :member-id="member.id" class="text-sm font-medium"/>
-                    <span v-if="member.name && member.email" class="ml-2 text-xs text-(--text-muted)">{{
+                    <MutedText class="ml-2" v-if="member.name && member.email">{{
                         member.email
-                      }}</span>
+                      }}</MutedText>
                   </div>
                   <font-awesome-icon :icon="['fas', 'plus']" class="text-primary text-sm"/>
                 </div>
@@ -341,7 +337,7 @@ onMounted(loadData)
             }}
           </SectionHeader>
           <div class="space-y-1">
-            <label class="block text-sm font-medium">{{ t('memberGroups.name') }}</label>
+            <FieldLabel>{{ t('memberGroups.name') }}</FieldLabel>
             <TextInput v-model="groupName" :placeholder="t('memberGroups.namePlaceholder')"/>
           </div>
           <div class="flex justify-end gap-3">

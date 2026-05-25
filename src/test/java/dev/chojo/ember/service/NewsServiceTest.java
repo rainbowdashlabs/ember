@@ -32,7 +32,7 @@ class NewsServiceTest extends RepositoryTestBase {
 
     @BeforeAll
     static void setup() {
-        service = new NewsService(newsRepo);
+        service = new NewsService(newsRepo, new dev.chojo.ember.feature.restriction.RestrictionRepository());
         station = stationRepo.create("NewsStation");
         account = accountRepo.create("news-svc@test.com", "News", "Author");
         member = stationMemberRepo.create(station.id(), account.id());
@@ -53,6 +53,9 @@ class NewsServiceTest extends RepositoryTestBase {
                 "Content of the news article",
                 "<p>Content of the news article</p>",
                 member.id(),
+                List.of(),
+                List.of(),
+                List.of(),
                 List.of());
         assertNotNull(news);
         assertEquals("Test News", news.title());
@@ -75,7 +78,15 @@ class NewsServiceTest extends RepositoryTestBase {
     @Test
     @Order(10)
     void update() {
-        var result = service.update(newsId, "Updated News", "Updated content", "<p>Updated content</p>", List.of());
+        var result = service.update(
+                newsId,
+                "Updated News",
+                "Updated content",
+                "<p>Updated content</p>",
+                List.of(),
+                List.of(),
+                List.of(),
+                List.of());
         assertTrue(result.isPresent());
         assertEquals("Updated News", result.get().title());
     }

@@ -16,9 +16,13 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SuccessContainer from '@/components/container/SuccessContainer.vue'
 import NumberInput from '@/components/input/number/NumberInput.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
+import SectionHeader from '@/components/typography/SectionHeader.vue'
 import type { QuizAttemptDetail, QuizQuestion, QuizTestAnswer, StationMember } from '@/api/types'
 import { QuizQuestionTypes } from '@/api/types'
 import { quiz, stationMembers } from '@/api'
+import FieldLabel from '@/components/typography/FieldLabel.vue'
+import MutedText from '@/components/typography/MutedText.vue'
+import SectionLabel from '@/components/typography/SectionLabel.vue'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -153,12 +157,12 @@ onMounted(loadData)
       <template v-if="!loading && attemptDetail">
         <div class="flex items-center justify-between flex-wrap gap-4">
           <div>
-            <h2 class="text-xl font-semibold">{{ t('quiz.evaluate.title') }}</h2>
-            <p class="text-(--text-muted) text-sm mt-1">
+            <SectionHeader>{{ t('quiz.evaluate.title') }}</SectionHeader>
+            <MutedText tag="p" size="sm" class="mt-1">
               {{ member?.name ?? member?.email ?? `#${attemptDetail.attempt.memberId}` }}
-            </p>
+            </MutedText>
           </div>
-          <div class="flex items-center gap-3">
+          <div class="flex items-center gap-2">
             <span class="text-sm font-medium">
               {{ totalPoints }} / {{ maxPoints }} {{ t('quiz.points') }}
             </span>
@@ -166,7 +170,7 @@ onMounted(loadData)
         </div>
 
         <SuccessContainer v-if="graded">
-          <div class="flex items-center gap-3">
+          <div class="flex items-center gap-2">
             <font-awesome-icon :icon="['fas', 'check-circle']" class="text-lg" />
             <span>{{ t('quiz.evaluate.gradedSuccess') }}</span>
           </div>
@@ -182,10 +186,10 @@ onMounted(loadData)
                 <!-- Question header -->
                 <div>
                   <div class="flex items-center gap-2 mb-1">
-                    <span class="text-xs font-semibold text-(--text-muted) uppercase">
+                    <SectionLabel>
                       {{ index + 1 }}.
                       {{ t(`quiz.questionTypes.${questionsMap.get(aq.questionId)!.questionType}`) }}
-                    </span>
+                    </SectionLabel>
                     <span class="text-xs text-(--text-muted)">
                       ({{ questionsMap.get(aq.questionId)!.points }} {{ t('quiz.points') }})
                     </span>
@@ -202,7 +206,7 @@ onMounted(loadData)
                     <div
                       v-for="(opt, oi) in (parseConfig(questionsMap.get(aq.questionId)!.config).options as { text: string; correct: boolean }[] ?? [])"
                       :key="oi"
-                      class="flex items-center gap-2 px-3 py-1.5 rounded text-sm"
+                      class="flex items-center gap-2 px-3 py-1.5 rounded text-xs"
                       :class="{
                         'bg-success/10 border border-success/30': opt.correct && (parseAnswer(getAnswerForQuestion(aq.questionId)?.answer ?? '{}').selected as number[] ?? []).includes(oi),
                         'bg-success/5 border border-success/20': opt.correct && !(parseAnswer(getAnswerForQuestion(aq.questionId)?.answer ?? '{}').selected as number[] ?? []).includes(oi),
@@ -246,7 +250,7 @@ onMounted(loadData)
                     <div
                       v-for="(pair, pi) in (parseConfig(questionsMap.get(aq.questionId)!.config).pairs as { left: string; right: string }[] ?? [])"
                       :key="pi"
-                      class="flex items-center gap-2 px-3 py-1.5 rounded text-sm border"
+                      class="flex items-center gap-2 px-3 py-1.5 rounded text-xs border"
                       :class="(parseAnswer(getAnswerForQuestion(aq.questionId)?.answer ?? '{}').pairs as Record<string, string> ?? {})[String(pi)] === pair.right
                         ? 'border-success/30 bg-success/10'
                         : 'border-error/30 bg-error/10'"
@@ -274,7 +278,7 @@ onMounted(loadData)
                     <div
                       v-for="(itemIdx, pos) in (parseAnswer(getAnswerForQuestion(aq.questionId)?.answer ?? '{}').order as number[] ?? [])"
                       :key="pos"
-                      class="flex items-center gap-2 px-3 py-1.5 rounded text-sm border"
+                      class="flex items-center gap-2 px-3 py-1.5 rounded text-xs border"
                       :class="itemIdx === pos ? 'border-success/30 bg-success/10' : 'border-error/30 bg-error/10'"
                     >
                       <span class="text-xs text-(--text-muted) w-5">{{ pos + 1 }}.</span>
@@ -292,7 +296,7 @@ onMounted(loadData)
                 <template v-else-if="questionsMap.get(aq.questionId)!.questionType === QuizQuestionTypes.FILL_IN_THE_BLANK">
                   <div class="space-y-2">
                     <div>
-                      <label class="text-xs font-semibold text-(--text-muted) block mb-1">{{ t('quiz.evaluate.studentAnswer') }}</label>
+                      <FieldLabel hint class="mb-1">{{ t('quiz.evaluate.studentAnswer') }}</FieldLabel>
                       <p class="text-sm px-3 py-2 rounded border border-bg-light-accent dark:border-bg-dark-accent">
                         {{ (parseAnswer(getAnswerForQuestion(aq.questionId)?.answer ?? '{}').text as string) || t('quiz.noAnswer') }}
                       </p>
@@ -310,7 +314,7 @@ onMounted(loadData)
                 <template v-else>
                   <div class="space-y-2">
                     <div>
-                      <label class="text-xs font-semibold text-(--text-muted) block mb-1">{{ t('quiz.evaluate.studentAnswer') }}</label>
+                      <FieldLabel hint class="mb-1">{{ t('quiz.evaluate.studentAnswer') }}</FieldLabel>
                       <p class="text-sm px-3 py-2 rounded border border-bg-light-accent dark:border-bg-dark-accent whitespace-pre-wrap">
                         {{ (parseAnswer(getAnswerForQuestion(aq.questionId)?.answer ?? '{}').text as string) || t('quiz.noAnswer') }}
                       </p>

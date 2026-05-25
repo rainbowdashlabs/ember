@@ -8,17 +8,26 @@ package dev.chojo.ember.feature.legal.service;
 import de.chojo.sadu.queries.api.call.Call;
 import de.chojo.sadu.queries.api.query.Query;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
+import dev.chojo.ember.feature.knowledgebase.service.KbFileStorageService;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
+import dev.chojo.ember.util.TypstCompiler;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.json.JsonMapper;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 
 /**
  * Service for exporting all personal data associated with an account or station member
@@ -26,14 +35,20 @@ import java.util.Map;
  */
 @Singleton
 public class GdprExportService {
+    private static final Logger log = LoggerFactory.getLogger(GdprExportService.class);
     private static final ObjectMapper MAPPER = JsonMapper.builder().build();
     private final AccountRepository accountRepository;
     private final StationMemberRepository stationMemberRepository;
+    private final KbFileStorageService kbFileStorageService;
 
     @Inject
-    public GdprExportService(AccountRepository accountRepository, StationMemberRepository stationMemberRepository) {
+    public GdprExportService(
+            AccountRepository accountRepository,
+            StationMemberRepository stationMemberRepository,
+            KbFileStorageService kbFileStorageService) {
         this.accountRepository = accountRepository;
         this.stationMemberRepository = stationMemberRepository;
+        this.kbFileStorageService = kbFileStorageService;
     }
 
     /**
@@ -89,6 +104,106 @@ public class GdprExportService {
         data.put("stationMemberships", stationDataList);
 
         return data;
+    }
+
+    /**
+     * Exports all personal data as a ZIP archive containing:
+     * - data.json (machine-readable data)
+     * - data.pdf (human-readable summary via Typst)
+     * - files/kb/* (KB files created by this user)
+     */
+    public byte[] exportAccountDataAsZip(int accountId, String locale) {
+        var data = exportAccountData(accountId);
+
+        try (var baos = new ByteArrayOutputStream();
+                var zip = new ZipOutputStream(baos)) {
+
+            // 1. data.json
+            zip.putNextEntry(new ZipEntry("data.json"));
+            zip.write(MAPPER.writeValueAsBytes(data));
+            zip.closeEntry();
+
+            // 2. data.pdf (best effort — skip if Typst fails)
+            try {
+                byte[] pdf = generatePdf(data, locale);
+                if (pdf != null) {
+                    zip.putNextEntry(new ZipEntry("data.pdf"));
+                    zip.write(pdf);
+                    zip.closeEntry();
+                }
+            } catch (Exception e) {
+                log.warn("Failed to generate GDPR export PDF, skipping", e);
+            }
+
+            // 3. User's KB files
+            var memberships = stationMemberRepository.findAllByAccountId(accountId);
+            for (var member : memberships) {
+                addKbFiles(zip, member.id());
+            }
+
+            zip.finish();
+            return baos.toByteArray();
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to create GDPR export ZIP", e);
+        }
+    }
+
+    private byte[] generatePdf(Map<String, Object> data, String locale) {
+        String lang = locale != null && locale.startsWith("en") ? "en" : "de";
+        try {
+            return TypstCompiler.compileTemplate(data, lang + "/gdpr-export", null, MAPPER);
+        } catch (Exception e) {
+            log.warn("Typst PDF generation failed for GDPR export", e);
+            return null;
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private void addKbFiles(ZipOutputStream zip, int memberId) throws IOException {
+        // Find KB files created by this member
+        var files = Query.query(
+                        "SELECT kf.id, kf.name, kf.file_type FROM kb_file kf JOIN kb_file_version kfv ON kfv.file_id = kf.id WHERE kfv.version = 1 AND kfv.created_by = :member_id")
+                .single(Call.of().bind("member_id", memberId))
+                .map(row -> Map.of(
+                        "id", row.getInt("id"),
+                        "name", row.getString("name"),
+                        "fileType", (Object) row.getString("file_type")))
+                .all();
+
+        for (var file : files) {
+            int fileId = (int) file.get("id");
+            String name = (String) file.get("name");
+            String fileType = (String) file.get("fileType");
+            String safeName = name.replaceAll("[^a-zA-Z0-9äöüÄÖÜß._\\- ]", "_");
+
+            if ("MARKDOWN".equals(fileType) || "TEXT".equals(fileType)) {
+                // Get text content from DB
+                var textOpt = Query.query("SELECT text_content FROM kb_file_content WHERE file_id = :id")
+                        .single(Call.of().bind("id", fileId))
+                        .map(row -> row.getString("text_content"))
+                        .first();
+                if (textOpt.isPresent() && textOpt.get() != null) {
+                    String ext = "MARKDOWN".equals(fileType) ? ".md" : ".txt";
+                    zip.putNextEntry(new ZipEntry("files/kb/" + safeName + ext));
+                    zip.write(textOpt.get().getBytes(StandardCharsets.UTF_8));
+                    zip.closeEntry();
+                }
+            } else {
+                // Get binary content from disk
+                var fileDataOpt = kbFileStorageService.read(fileId);
+                if (fileDataOpt.isPresent()) {
+                    String ext =
+                            switch (fileType) {
+                                case "PDF" -> ".pdf";
+                                case "IMAGE" -> ".img";
+                                default -> "";
+                            };
+                    zip.putNextEntry(new ZipEntry("files/kb/" + safeName + ext));
+                    zip.write(fileDataOpt.get().data());
+                    zip.closeEntry();
+                }
+            }
+        }
     }
 
     /**

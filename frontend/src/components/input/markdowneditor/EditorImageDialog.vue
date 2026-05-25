@@ -63,13 +63,13 @@ async function handleUpload(event: Event) {
     <input ref="fileInput" type="file" accept="image/png,image/jpeg,image/webp" class="hidden" @change="handleUpload" />
 
     <div class="flex items-center gap-2">
-      <PrimaryButton v-if="imageUrl" class="!text-xs !py-1 !px-2" @click="$emit('insertUrl', imageUrl, imageAlt)">
+      <PrimaryButton compact v-if="imageUrl" @click="$emit('insertUrl', imageUrl, imageAlt)">
         <font-awesome-icon :icon="['fas', 'check']" class="mr-1" /> Einfügen
       </PrimaryButton>
-      <SecondaryButton v-if="fileId" class="!text-xs !py-1 !px-2" :disabled="uploading" @click="fileInput?.click()">
+      <SecondaryButton compact v-if="fileId" :disabled="uploading" @click="fileInput?.click()">
         <font-awesome-icon :icon="['fas', uploading ? 'spinner' : 'upload']" :spin="uploading" class="mr-1" /> Hochladen
       </SecondaryButton>
-      <SecondaryButton class="!text-xs !py-1 !px-2" @click="$emit('cancel')">Abbrechen</SecondaryButton>
+      <SecondaryButton compact @click="$emit('cancel')">Abbrechen</SecondaryButton>
     </div>
   </div>
 </template>

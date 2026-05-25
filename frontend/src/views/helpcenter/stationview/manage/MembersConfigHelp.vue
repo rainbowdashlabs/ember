@@ -16,6 +16,10 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import EditButton from '@/components/button/EditButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
+import THead from '@/components/table/THead.vue'
+import TRow from '@/components/table/TRow.vue'
+import Td from '@/components/table/Td.vue'
+import Th from '@/components/table/Th.vue'
 
 const {t} = useI18n()
 
@@ -50,8 +54,7 @@ const tabs = [
     <NeutralContainer class="space-y-4">
       <div class="flex items-center justify-between">
         <SectionHeader>{{ t('membersConfig.fields') }}</SectionHeader>
-        <PrimaryButton disabled>
-          <font-awesome-icon :icon="['fas', 'plus']" class="mr-2"/>
+        <PrimaryButton :icon="['fas', 'plus']" disabled>
           {{ t('membersConfig.addField') }}
         </PrimaryButton>
       </div>
@@ -60,55 +63,55 @@ const tabs = [
 
       <table class="w-full text-sm">
         <thead>
-          <tr class="border-b border-bg-light-accent dark:border-bg-dark-accent text-left">
+          <THead>
             <th class="py-2 px-3 font-medium">{{ t('membersConfig.colName') }}</th>
             <th class="py-2 px-3 font-medium">{{ t('membersConfig.colType') }}</th>
-            <th class="py-2 px-3 font-medium text-center">
+            <Th align="center" class="font-medium">
               <font-awesome-icon :icon="['fas', 'asterisk']" class="h-3 w-3" :title="t('helpCenter.membersConfig.optRequired')"/>
-            </th>
-            <th class="py-2 px-3 font-medium text-center">
+            </Th>
+            <Th align="center" class="font-medium">
               <font-awesome-icon :icon="['fas', 'lock']" class="h-3 w-3" :title="t('helpCenter.membersConfig.optReadonly')"/>
-            </th>
+            </Th>
             <th class="py-2 px-3 font-medium text-right"></th>
-          </tr>
+          </THead>
         </thead>
         <tbody>
-          <tr class="border-b border-bg-light-accent dark:border-bg-dark-accent">
-            <td class="py-2 px-3">Telefonnummer</td>
-            <td class="py-2 px-3 text-(--text-muted)">Text</td>
-            <td class="py-2 px-3 text-center"><ToggleInput :model-value="true" disabled/></td>
-            <td class="py-2 px-3 text-center"><ToggleInput :model-value="false" disabled/></td>
-            <td class="py-2 px-3 text-right">
+          <TRow>
+            <Td>Telefonnummer</Td>
+            <Td class="text-(--text-muted)">Text</Td>
+            <Td align="center"><ToggleInput :model-value="true" disabled/></Td>
+            <Td align="center"><ToggleInput :model-value="false" disabled/></Td>
+            <Td align="right">
               <div class="flex items-center justify-end gap-2">
                 <EditButton disabled/>
                 <DeleteButton disabled/>
               </div>
-            </td>
-          </tr>
-          <tr class="border-b border-bg-light-accent dark:border-bg-dark-accent">
-            <td class="py-2 px-3">Geburtsdatum</td>
-            <td class="py-2 px-3 text-(--text-muted)">Datum</td>
-            <td class="py-2 px-3 text-center"><ToggleInput :model-value="true" disabled/></td>
-            <td class="py-2 px-3 text-center"><ToggleInput :model-value="true" disabled/></td>
-            <td class="py-2 px-3 text-right">
+            </Td>
+          </TRow>
+          <TRow>
+            <Td>Geburtsdatum</Td>
+            <Td class="text-(--text-muted)">Datum</Td>
+            <Td align="center"><ToggleInput :model-value="true" disabled/></Td>
+            <Td align="center"><ToggleInput :model-value="true" disabled/></Td>
+            <Td align="right">
               <div class="flex items-center justify-end gap-2">
                 <EditButton disabled/>
                 <DeleteButton disabled/>
               </div>
-            </td>
-          </tr>
-          <tr class="border-b border-bg-light-accent dark:border-bg-dark-accent">
-            <td class="py-2 px-3">Kleidergröße</td>
-            <td class="py-2 px-3 text-(--text-muted)">Auswahl</td>
-            <td class="py-2 px-3 text-center"><ToggleInput :model-value="false" disabled/></td>
-            <td class="py-2 px-3 text-center"><ToggleInput :model-value="false" disabled/></td>
-            <td class="py-2 px-3 text-right">
+            </Td>
+          </TRow>
+          <TRow>
+            <Td>Kleidergröße</Td>
+            <Td class="text-(--text-muted)">Auswahl</Td>
+            <Td align="center"><ToggleInput :model-value="false" disabled/></Td>
+            <Td align="center"><ToggleInput :model-value="false" disabled/></Td>
+            <Td align="right">
               <div class="flex items-center justify-end gap-2">
                 <EditButton disabled/>
                 <DeleteButton disabled/>
               </div>
-            </td>
-          </tr>
+            </Td>
+          </TRow>
         </tbody>
       </table>
     </NeutralContainer>

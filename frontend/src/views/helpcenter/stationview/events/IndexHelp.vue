@@ -15,6 +15,7 @@ import EditButton from '@/components/button/EditButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
+import MutedText from '@/components/typography/MutedText.vue'
 
 const {t} = useI18n()
 </script>
@@ -44,7 +45,7 @@ const {t} = useI18n()
       <NeutralContainer class="flex items-center justify-between">
         <div>
           <span class="font-medium">Übungsabend</span>
-          <span class="ml-2 text-xs text-(--text-muted)">Dienstag, 18:00 – 20:00</span>
+          <MutedText class="ml-2">Dienstag, 18:00 – 20:00</MutedText>
           <span class="ml-2 text-xs text-primary">{{ t('events.typeRecurring') }}</span>
         </div>
         <div class="flex items-center gap-1">
@@ -55,7 +56,7 @@ const {t} = useI18n()
       <NeutralContainer class="flex items-center justify-between">
         <div>
           <span class="font-medium">Wettkampf Vorbereitung</span>
-          <span class="ml-2 text-xs text-(--text-muted)">25.05.2026, 14:00 – 17:00</span>
+          <MutedText class="ml-2">25.05.2026, 14:00 – 17:00</MutedText>
           <span class="ml-2 text-xs text-primary">{{ t('events.typeOneTime') }}</span>
         </div>
         <div class="flex items-center gap-1">
@@ -66,8 +67,7 @@ const {t} = useI18n()
     </div>
 
     <div class="flex justify-end">
-      <PrimaryButton>
-        <font-awesome-icon :icon="['fas', 'plus']" class="mr-1"/>
+      <PrimaryButton :icon="['fas', 'plus']">
         {{ t('events.addEvent') }}
       </PrimaryButton>
     </div>
@@ -90,7 +90,7 @@ const {t} = useI18n()
       <NeutralContainer class="flex items-center justify-between">
         <div>
           <span class="font-medium">Sommerferien</span>
-          <span class="ml-2 text-xs text-(--text-muted)">01.07.2026 – 15.08.2026</span>
+          <MutedText class="ml-2">01.07.2026 – 15.08.2026</MutedText>
         </div>
         <div class="flex items-center gap-1">
           <EditButton/>
@@ -99,12 +99,10 @@ const {t} = useI18n()
       </NeutralContainer>
     </div>
     <div class="flex gap-2">
-      <PrimaryButton>
-        <font-awesome-icon :icon="['fas', 'plus']" class="mr-1"/>
+      <PrimaryButton :icon="['fas', 'plus']">
         {{ t('events.addBreak') }}
       </PrimaryButton>
-      <SecondaryButton>
-        <font-awesome-icon :icon="['fas', 'download']" class="mr-1"/>
+      <SecondaryButton :icon="['fas', 'download']">
         {{ t('events.importHolidays') }}
       </SecondaryButton>
     </div>

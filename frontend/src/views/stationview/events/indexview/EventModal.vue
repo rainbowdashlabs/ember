@@ -13,10 +13,11 @@ import SelectInput from '@/components/input/select/SelectInput.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import DateTimeInput from '@/components/input/datetime/DateTimeInput.vue'
 import Modal from '@/components/feedback/Modal.vue'
-import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
+import RestrictionPicker from '@/components/input/RestrictionPicker.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
-import type { StationEvent, EventCategory, AttendanceTemplate, AttendanceTemplateField, Role, MemberGroup } from '@/api/types'
-import { Roles, EventTypes } from '@/api/types'
+import FieldLabel from '@/components/typography/FieldLabel.vue'
+import type { StationEvent, EventCategory, AttendanceTemplate, AttendanceTemplateField, Role, MemberGroup, UserTag } from '@/api/types'
+import { EventTypes } from '@/api/types'
 import type { EventFieldDefault } from '@/api/events'
 
 const { t } = useI18n()
@@ -28,8 +29,10 @@ const props = defineProps<{
   templates: AttendanceTemplate[]
   roles: Role[]
   groups: MemberGroup[]
+  tags: UserTag[]
   eventRoleIds: number[]
   eventGroupIds: number[]
+  eventTagIds: number[]
   templateFields: AttendanceTemplateField[]
   eventFieldDefaults: EventFieldDefault[]
 }>()
@@ -51,8 +54,9 @@ const eventRequiresRegistration = ref(false)
 const eventHasDeadline = ref(false)
 const eventRegistrationDeadline = ref('')
 const eventRequiresConfirmation = ref(false)
-const selectedRoleIds = ref<Set<number>>(new Set())
-const selectedGroupIds = ref<Set<number>>(new Set())
+const selectedRoleIds = ref<number[]>([])
+const selectedGroupIds = ref<number[]>([])
+const selectedTagIds = ref<number[]>([])
 // field defaults: fieldId -> { source, value }
 const fieldDefaults = ref<Map<number, { source: string; value: string }>>(new Map())
 const saving = ref(false)
@@ -79,8 +83,9 @@ watch(() => props.modelValue, (open) => {
     eventHasDeadline.value = !!ev.registrationDeadline
     eventRegistrationDeadline.value = ev.registrationDeadline ? toLocalDateTime(ev.registrationDeadline) : ''
     eventRequiresConfirmation.value = ev.requiresConfirmation ?? false
-    selectedRoleIds.value = new Set(props.eventRoleIds)
-    selectedGroupIds.value = new Set(props.eventGroupIds)
+    selectedRoleIds.value = [...props.eventRoleIds]
+    selectedGroupIds.value = [...props.eventGroupIds]
+    selectedTagIds.value = [...props.eventTagIds]
     const fdMap = new Map<number, { source: string; value: string }>()
     for (const fd of props.eventFieldDefaults) {
       fdMap.set(fd.fieldId, { source: fd.source, value: fd.value ?? '' })
@@ -99,27 +104,12 @@ watch(() => props.modelValue, (open) => {
     eventHasDeadline.value = false
     eventRegistrationDeadline.value = ''
     eventRequiresConfirmation.value = false
-    selectedRoleIds.value = new Set()
-    selectedGroupIds.value = new Set()
+    selectedRoleIds.value = []
+    selectedGroupIds.value = []
+    selectedTagIds.value = []
     fieldDefaults.value = new Map()
   }
 })
-
-const RESTRICTION_ROLES = [Roles.MEMBER, Roles.GUARDIAN, Roles.TEAM] as readonly string[]
-
-const roleFriendlyNames: Record<string, string> = {
-  MEMBER: 'Mitglied', GUARDIAN: 'Erziehungsberechtigter', TEAM: 'Team',
-}
-
-const restrictionRoles = computed(() =>
-  props.roles.filter(r => RESTRICTION_ROLES.includes(r.role))
-)
-
-function toggleRole(roleId: number) {
-  const s = new Set(selectedRoleIds.value)
-  if (s.has(roleId)) s.delete(roleId); else s.add(roleId)
-  selectedRoleIds.value = s
-}
 
 const EVENT_SOURCES = [
   { value: 'EVENT_NAME', label: 'Terminname' },
@@ -155,12 +145,6 @@ function setFieldDefaultValue(fieldId: number, value: string) {
   fieldDefaults.value = m
 }
 
-function toggleGroup(groupId: number) {
-  const s = new Set(selectedGroupIds.value)
-  if (s.has(groupId)) s.delete(groupId); else s.add(groupId)
-  selectedGroupIds.value = s
-}
-
 function submit() {
   saving.value = true
   emit('save', {
@@ -176,8 +160,9 @@ function submit() {
     registrationDeadline: eventHasDeadline.value && eventRegistrationDeadline.value
       ? new Date(eventRegistrationDeadline.value).toISOString() : null,
     requiresConfirmation: eventRequiresConfirmation.value,
-    restrictedRoleIds: [...selectedRoleIds.value],
-    restrictedGroupIds: [...selectedGroupIds.value],
+    restrictedRoleIds: selectedRoleIds.value,
+    restrictedGroupIds: selectedGroupIds.value,
+    restrictedTagIds: selectedTagIds.value,
     fieldDefaults: [...fieldDefaults.value.entries()]
       .filter(([, v]) => v.source)
       .map(([fieldId, v]) => ({ fieldId, source: v.source, value: v.value || undefined })),
@@ -192,17 +177,17 @@ function submit() {
       <SectionHeader>{{ event ? t('events.editEvent') : t('events.addEvent') }}</SectionHeader>
 
       <div class="space-y-1">
-        <label class="block text-sm font-medium">{{ t('events.name') }}</label>
+        <FieldLabel>{{ t('events.name') }}</FieldLabel>
         <TextInput v-model="eventName" :placeholder="t('events.namePlaceholder')" />
       </div>
 
       <div class="space-y-1">
-        <label class="block text-sm font-medium">{{ t('events.description') }}</label>
+        <FieldLabel>{{ t('events.description') }}</FieldLabel>
         <TextInput v-model="eventDescription" :placeholder="t('events.descriptionPlaceholder')" />
       </div>
 
       <div class="space-y-1">
-        <label class="block text-sm font-medium">{{ t('events.type') }}</label>
+        <FieldLabel>{{ t('events.type') }}</FieldLabel>
         <SelectInput v-model="eventType">
           <option :value="EventTypes.RECURRING">{{ t('events.typeRecurring') }}</option>
           <option :value="EventTypes.ONE_TIME">{{ t('events.typeOneTime') }}</option>
@@ -210,7 +195,7 @@ function submit() {
       </div>
 
       <div v-if="eventType === EventTypes.RECURRING" class="space-y-1">
-        <label class="block text-sm font-medium">{{ t('events.dayOfWeek') }}</label>
+        <FieldLabel>{{ t('events.dayOfWeek') }}</FieldLabel>
         <SelectInput v-model="eventDayOfWeek">
           <option value="1">Montag</option>
           <option value="2">Dienstag</option>
@@ -224,17 +209,17 @@ function submit() {
 
       <div class="grid grid-cols-2 gap-3">
         <div class="space-y-1">
-          <label class="block text-sm font-medium">{{ t('events.startTime') }}</label>
+          <FieldLabel>{{ t('events.startTime') }}</FieldLabel>
           <DateTimeInput v-model="eventStartTime" />
         </div>
         <div class="space-y-1">
-          <label class="block text-sm font-medium">{{ t('events.endTime') }}</label>
+          <FieldLabel>{{ t('events.endTime') }}</FieldLabel>
           <DateTimeInput v-model="eventEndTime" />
         </div>
       </div>
 
       <div class="space-y-1">
-        <label class="block text-sm font-medium">{{ t('events.template') }}</label>
+        <FieldLabel>{{ t('events.template') }}</FieldLabel>
         <SelectInput v-model="eventTemplateId">
           <option value="">{{ t('events.noTemplate') }}</option>
           <option v-for="tpl in templates" :key="tpl.id" :value="String(tpl.id)">{{ tpl.name }}</option>
@@ -244,7 +229,7 @@ function submit() {
 
       <!-- Field defaults for template -->
       <div v-if="currentTemplateFields.length > 0" class="space-y-3">
-        <label class="block text-sm font-medium">{{ t('events.fieldDefaults') }}</label>
+        <FieldLabel>{{ t('events.fieldDefaults') }}</FieldLabel>
         <p class="text-xs text-(--text-muted)">{{ t('events.fieldDefaultsHint') }}</p>
         <div class="space-y-2">
           <div v-for="field in currentTemplateFields" :key="field.id" class="rounded-lg px-3 py-2 bg-bg-light-accent/20 dark:bg-bg-dark-accent/20 space-y-2">
@@ -270,7 +255,7 @@ function submit() {
       </div>
 
       <div class="space-y-1">
-        <label class="block text-sm font-medium">{{ t('events.category') }}</label>
+        <FieldLabel>{{ t('events.category') }}</FieldLabel>
         <SelectInput v-model="eventCategoryId">
           <option value="">{{ t('events.noCategory') }}</option>
           <option v-for="cat in categories" :key="cat.id" :value="String(cat.id)">{{ cat.name }}</option>
@@ -295,39 +280,26 @@ function submit() {
         </div>
 
         <div v-if="eventHasDeadline" class="space-y-1">
-          <label class="block text-sm font-medium">{{ t('events.registrationDeadline') }}</label>
+          <FieldLabel>{{ t('events.registrationDeadline') }}</FieldLabel>
           <DateTimeInput v-model="eventRegistrationDeadline" />
         </div>
       </template>
 
       <!-- Restrictions -->
       <div class="space-y-2">
-        <label class="block text-sm font-medium">{{ t('events.restrictToRoles') }}</label>
+        <FieldLabel>{{ t('events.restrictToRoles') }}</FieldLabel>
         <p class="text-xs text-(--text-muted)">{{ t('events.restrictToRolesHint') }}</p>
-        <div class="flex flex-wrap gap-2">
-          <SelectionToggleButton
-            v-for="role in restrictionRoles"
-            :key="role.id"
-            :selected="selectedRoleIds.has(role.id)"
-            @toggle="toggleRole(role.id)"
-          >
-            {{ roleFriendlyNames[role.role] ?? role.role }}
-          </SelectionToggleButton>
-        </div>
-      </div>
-
-      <div v-if="groups.length > 0" class="space-y-2">
-        <label class="block text-sm font-medium">{{ t('events.restrictToGroups') }}</label>
-        <div class="flex flex-wrap gap-2">
-          <SelectionToggleButton
-            v-for="group in groups"
-            :key="group.id"
-            :selected="selectedGroupIds.has(group.id)"
-            @toggle="toggleGroup(group.id)"
-          >
-            {{ group.name }}
-          </SelectionToggleButton>
-        </div>
+        <RestrictionPicker
+          :roles="roles"
+          :groups="groups"
+          :tags="tags"
+          :selected-role-ids="selectedRoleIds"
+          :selected-group-ids="selectedGroupIds"
+          :selected-tag-ids="selectedTagIds"
+          @update:selected-role-ids="selectedRoleIds = $event"
+          @update:selected-group-ids="selectedGroupIds = $event"
+          @update:selected-tag-ids="selectedTagIds = $event"
+        />
       </div>
 
       <div class="flex justify-end gap-3">

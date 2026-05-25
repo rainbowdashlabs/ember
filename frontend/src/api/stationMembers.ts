@@ -11,8 +11,8 @@ export async function listAllRoles(): Promise<Role[]> {
     return res.data
 }
 
-export async function listMembers(stationId: number, includeFormer = false): Promise<StationMember[]> {
-    const params: Record<string, unknown> = {stationId}
+export async function listMembers(includeFormer = false): Promise<StationMember[]> {
+    const params: Record<string, unknown> = {}
     if (includeFormer) params.includeFormer = true
     const res = await client.get<StationMember[]>('/station-members', {params})
     return res.data

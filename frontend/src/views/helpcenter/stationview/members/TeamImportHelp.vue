@@ -31,8 +31,7 @@ const dummySeparator = ref(';')
     <!-- Dummy: Header with back button -->
     <div class="flex items-center justify-between">
       <SectionHeader>{{ t('teamImport.title') }}</SectionHeader>
-      <SecondaryButton>
-        <font-awesome-icon :icon="['fas', 'chevron-left']" class="mr-2"/>
+      <SecondaryButton :icon="['fas', 'chevron-left']">
         {{ t('common.back') }}
       </SecondaryButton>
     </div>
@@ -41,8 +40,7 @@ const dummySeparator = ref(';')
     <NeutralContainer class="space-y-4">
       <SubHeader>{{ t('memberImport.upload') }}</SubHeader>
       <div class="flex items-center gap-4 flex-wrap">
-        <SecondaryButton>
-          <font-awesome-icon :icon="['fas', 'upload']" class="mr-1"/>
+        <SecondaryButton :icon="['fas', 'upload']">
           {{ t('memberImport.chooseFile') }}
         </SecondaryButton>
         <span class="text-sm">

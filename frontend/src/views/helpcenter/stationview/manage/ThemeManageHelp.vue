@@ -11,6 +11,7 @@ import HelpSection from '@/components/helpcenter/HelpSection.vue'
 import HelpTip from '@/components/helpcenter/HelpTip.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
+import FieldLabel from '@/components/typography/FieldLabel.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
@@ -37,7 +38,7 @@ const themeOptions = Object.entries(THEMES).map(([key, theme]) => ({value: key, 
     <NeutralContainer class="space-y-4">
       <SectionHeader>{{ t('theme.stationTheme') }}</SectionHeader>
       <div class="space-y-1">
-        <label class="block text-sm font-medium">{{ t('theme.stationDefaultTheme') }}</label>
+        <FieldLabel>{{ t('theme.stationDefaultTheme') }}</FieldLabel>
         <SelectInput v-model="dummyTheme">
           <option v-for="opt in themeOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
         </SelectInput>

@@ -10,6 +10,7 @@ import { useRouter } from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
+import EmptyState from '@/components/feedback/EmptyState.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
@@ -22,6 +23,8 @@ import { FormStatus } from '@/api/types'
 import type { Form, FormListEntry } from '@/api/types'
 import { forms } from '@/api'
 import { useSession } from '@/composables/useSession'
+import SectionHeader from '@/components/typography/SectionHeader.vue'
+import MutedIcon from '@/components/display/MutedIcon.vue'
 
 const { t } = useI18n()
 const router = useRouter()
@@ -111,16 +114,13 @@ watch(loaded, (isLoaded) => {
         <!-- Management Section -->
         <div v-if="canManagePolls()" class="space-y-4">
           <div class="flex items-center justify-between">
-            <h2 class="text-lg font-semibold">{{ t('forms.title') }}</h2>
-            <PrimaryButton @click="router.push({ name: 'forms-create' })">
-              <font-awesome-icon :icon="['fas', 'plus']" class="mr-1" />
+            <SectionHeader>{{ t('forms.title') }}</SectionHeader>
+            <PrimaryButton :icon="['fas', 'plus']" @click="router.push({ name: 'forms-create' })">
               {{ t('forms.create') }}
             </PrimaryButton>
           </div>
 
-          <div v-if="managedForms.length === 0" class="text-center text-(--text-muted) py-4">
-            {{ t('forms.noForms') }}
-          </div>
+          <EmptyState compact v-if="managedForms.length === 0">{{ t('forms.noForms') }}</EmptyState>
 
           <div class="space-y-2">
             <NeutralContainer v-for="form in managedForms" :key="form.id">
@@ -128,6 +128,7 @@ watch(loaded, (isLoaded) => {
                 <div class="space-y-1">
                   <div class="flex items-center gap-2 flex-wrap">
                     <span class="font-medium">{{ form.title }}</span>
+                    <MutedIcon v-if="form.restricted" :icon="['fas', 'lock']" class="ml-1"/>
                     <SuccessBadge v-if="form.status === FormStatus.OPEN">{{ statusLabel(form.status) }}</SuccessBadge>
                     <ErrorBadge v-else-if="form.status === FormStatus.CLOSED">{{ statusLabel(form.status) }}</ErrorBadge>
                     <InfoBadge v-else>{{ statusLabel(form.status) }}</InfoBadge>
@@ -160,17 +161,16 @@ watch(loaded, (isLoaded) => {
 
         <!-- Available Forms for User -->
         <div class="space-y-4">
-          <h2 v-if="canManagePolls()" class="text-lg font-semibold mt-6">{{ t('forms.fillForm') }}</h2>
+          <SectionHeader v-if="canManagePolls()" class="mt-6">{{ t('forms.fillForm') }}</SectionHeader>
 
-          <div v-if="availableForms.length === 0" class="text-center text-(--text-muted) py-4">
-            {{ t('forms.noAvailableForms') }}
-          </div>
+          <EmptyState compact v-if="availableForms.length === 0">{{ t('forms.noAvailableForms') }}</EmptyState>
 
           <div class="space-y-2">
             <NeutralContainer v-for="form in availableForms" :key="form.id">
               <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                 <div class="space-y-1">
                   <span class="font-medium">{{ form.title }}</span>
+                  <MutedIcon v-if="form.restricted" :icon="['fas', 'lock']" class="ml-1"/>
                   <p v-if="form.description" class="text-xs text-(--text-muted)">{{ form.description }}</p>
                   <p class="text-xs text-(--text-muted)">{{ form.responseCount }} {{ t('forms.responses') }}</p>
                 </div>

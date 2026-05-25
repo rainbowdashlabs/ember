@@ -24,6 +24,11 @@ import { inventory, stationMembers, exchanges, procurement } from '@/api'
 import { useStations } from '@/composables/useStations'
 import { useBreakpoint } from '@/composables/useBreakpoint'
 import MemberName from '@/components/avatar/MemberName.vue'
+import Th from '@/components/table/Th.vue'
+import Td from '@/components/table/Td.vue'
+import THead from '@/components/table/THead.vue'
+import TRow from '@/components/table/TRow.vue'
+import EmptyState from '@/components/feedback/EmptyState.vue'
 
 const { t } = useI18n()
 const router = useRouter()
@@ -54,7 +59,7 @@ async function loadData() {
 
     const [inventories, members, exch, proc] = await Promise.all([
       inventory.listInventories(),
-      stationMembers.listMembers(stationId),
+      stationMembers.listMembers(),
       exchanges.listExchanges(),
       procurement.listOpen(),
     ])
@@ -138,7 +143,7 @@ watch(() => activeStation.value?.stationId, (newId, oldId) => {
                 <span class="text-sm font-medium">{{ ex.inventoryName }}</span>
                 <component :is="exchangeStatusBadge(ex.status)">{{ t(`exchanges.status.${ex.status}`) }}</component>
               </div>
-              <div class="text-xs text-(--text-muted)"><MemberName :name="ex.memberName"/></div>
+              <div class="text-xs text-(--text-muted)"><MemberName :name="ex.memberName" :member-id="ex.memberId"/></div>
               <SizeBadge>{{ ex.oldSizeLabel ?? t('common.unisize') }} &rarr; {{ ex.newSizeLabel ?? t('common.unisize') }}</SizeBadge>
             </NeutralContainer>
           </div>
@@ -146,25 +151,25 @@ watch(() => activeStation.value?.stationId, (newId, oldId) => {
           <NeutralContainer v-else class="overflow-x-auto">
             <table class="w-full text-sm">
               <thead>
-                <tr class="border-b border-bg-light-accent dark:border-bg-dark-accent text-left">
-                  <th class="px-3 py-2 font-medium">{{ t('inventory.overview.colItem') }}</th>
-                  <th class="px-3 py-2 font-medium">{{ t('inventory.overview.colOwner') }}</th>
-                  <th class="px-3 py-2 font-medium">{{ t('inventory.overview.colStatus') }}</th>
-                </tr>
+                <THead>
+                  <Th>{{ t('inventory.overview.colItem') }}</Th>
+                  <Th>{{ t('inventory.overview.colOwner') }}</Th>
+                  <Th>{{ t('inventory.overview.colStatus') }}</Th>
+                </THead>
               </thead>
               <tbody>
-                <tr v-for="ex in openExchanges" :key="ex.id"
-                    class="border-b border-bg-light-accent/50 dark:border-bg-dark-accent/50 cursor-pointer hover:bg-(--bg-accent)"
+                <TRow v-for="ex in openExchanges" :key="ex.id"
+                    class="cursor-pointer hover:bg-(--bg-accent)"
                     @click="router.push({ name: 'inventory-exchanges' })">
-                  <td class="px-3 py-2.5">
+                  <Td>
                     {{ ex.inventoryName }}
                     <SizeBadge>{{ ex.oldSizeLabel ?? t('common.unisize') }} &rarr; {{ ex.newSizeLabel ?? t('common.unisize') }}</SizeBadge>
-                  </td>
-                  <td class="px-3 py-2.5"><MemberName :name="ex.memberName"/></td>
-                  <td class="px-3 py-2.5">
+                  </Td>
+                  <Td><MemberName :name="ex.memberName" :member-id="ex.memberId"/></Td>
+                  <Td>
                     <component :is="exchangeStatusBadge(ex.status)">{{ t(`exchanges.status.${ex.status}`) }}</component>
-                  </td>
-                </tr>
+                  </Td>
+                </TRow>
               </tbody>
             </table>
           </NeutralContainer>
@@ -183,7 +188,7 @@ watch(() => activeStation.value?.stationId, (newId, oldId) => {
                 <span class="text-sm font-medium">{{ p.inventoryName }}</span>
                 <SizeBadge>{{ p.sizeLabel || t('common.unisize') }}</SizeBadge>
               </div>
-              <div class="text-xs text-(--text-muted)"><MemberName :name="p.memberName"/></div>
+              <div class="text-xs text-(--text-muted)"><MemberName :name="p.memberName" :member-id="p.memberId"/></div>
               <div v-if="p.notes" class="text-xs text-(--text-muted)">{{ p.notes }}</div>
             </NeutralContainer>
           </div>
@@ -191,23 +196,23 @@ watch(() => activeStation.value?.stationId, (newId, oldId) => {
           <NeutralContainer v-else class="overflow-x-auto">
             <table class="w-full text-sm">
               <thead>
-                <tr class="border-b border-bg-light-accent dark:border-bg-dark-accent text-left">
-                  <th class="px-3 py-2 font-medium">{{ t('inventory.overview.colItem') }}</th>
-                  <th class="px-3 py-2 font-medium">{{ t('inventory.overview.colOwner') }}</th>
-                  <th class="px-3 py-2 font-medium">{{ t('inventory.overview.colNotes') }}</th>
-                </tr>
+                <THead>
+                  <Th>{{ t('inventory.overview.colItem') }}</Th>
+                  <Th>{{ t('inventory.overview.colOwner') }}</Th>
+                  <Th>{{ t('inventory.overview.colNotes') }}</Th>
+                </THead>
               </thead>
               <tbody>
-                <tr v-for="p in openProcurement" :key="p.id"
-                    class="border-b border-bg-light-accent/50 dark:border-bg-dark-accent/50 cursor-pointer hover:bg-(--bg-accent)"
+                <TRow v-for="p in openProcurement" :key="p.id"
+                    class="cursor-pointer hover:bg-(--bg-accent)"
                     @click="router.push({ name: 'inventory-procurement' })">
-                  <td class="px-3 py-2.5">
+                  <Td>
                     {{ p.inventoryName }}
                     <SizeBadge>{{ p.sizeLabel || t('common.unisize') }}</SizeBadge>
-                  </td>
-                  <td class="px-3 py-2.5"><MemberName :name="p.memberName"/></td>
-                  <td class="px-3 py-2.5 text-(--text-muted)">{{ p.notes || '-' }}</td>
-                </tr>
+                  </Td>
+                  <Td><MemberName :name="p.memberName" :member-id="p.memberId"/></Td>
+                  <Td muted>{{ p.notes || '-' }}</Td>
+                </TRow>
               </tbody>
             </table>
           </NeutralContainer>
@@ -227,42 +232,39 @@ watch(() => activeStation.value?.stationId, (newId, oldId) => {
                 <SizeBadge lost>{{ a.sizeName || t('common.unisize') }}</SizeBadge>
                 <span v-if="a.item.internalId" class="text-xs text-(--text-muted)">{{ a.item.internalId }}</span>
               </div>
-              <div class="text-xs text-(--text-muted)"><MemberName :name="a.ownerName"/></div>
+              <div class="text-xs text-(--text-muted)"><MemberName :name="a.ownerName" :member-id="a.item.assignedTo"/></div>
             </NeutralContainer>
           </div>
           <!-- Desktop table -->
           <NeutralContainer v-else class="overflow-x-auto">
             <table class="w-full text-sm">
               <thead>
-                <tr class="border-b border-bg-light-accent dark:border-bg-dark-accent text-left">
-                  <th class="px-3 py-2 font-medium">{{ t('inventory.overview.colItem') }}</th>
-                  <th class="px-3 py-2 font-medium">{{ t('inventory.overview.colOwner') }}</th>
-                  <th class="px-3 py-2 font-medium">{{ t('inventory.overview.colLostSince') }}</th>
-                </tr>
+                <THead>
+                  <Th>{{ t('inventory.overview.colItem') }}</Th>
+                  <Th>{{ t('inventory.overview.colOwner') }}</Th>
+                  <Th>{{ t('inventory.overview.colLostSince') }}</Th>
+                </THead>
               </thead>
               <tbody>
-                <tr v-for="a in lostItems" :key="a.item.id" class="border-b border-bg-light-accent/50 dark:border-bg-dark-accent/50">
-                  <td class="px-3 py-2.5">
+                <TRow v-for="a in lostItems" :key="a.item.id">
+                  <Td>
                     <div class="font-medium">
                       {{ a.item.name }}
                       <SizeBadge lost>{{ a.sizeName || t('common.unisize') }}</SizeBadge>
                     </div>
                     <div v-if="a.item.internalId" class="text-xs text-(--text-muted)">{{ a.item.internalId }}</div>
-                  </td>
-                  <td class="px-3 py-2.5"><MemberName :name="a.ownerName"/></td>
-                  <td class="px-3 py-2.5">
+                  </Td>
+                  <Td><MemberName :name="a.ownerName" :member-id="a.item.assignedTo"/></Td>
+                  <Td>
                     <ErrorBadge>{{ formatDate(a.item.lostAt) }}</ErrorBadge>
-                  </td>
-                </tr>
+                  </Td>
+                </TRow>
               </tbody>
             </table>
           </NeutralContainer>
         </div>
 
-        <div v-if="lostItems.length === 0 && openExchanges.length === 0 && openProcurement.length === 0"
-             class="text-center text-(--text-muted) py-8">
-          {{ t('inventory.overview.noLost') }}
-        </div>
+        <EmptyState v-if="lostItems.length === 0 && openExchanges.length === 0 && openProcurement.length === 0">{{ t('inventory.overview.noLost') }}</EmptyState>
       </template>
     </div>
   </ViewContent>

@@ -17,6 +17,7 @@ import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.UserTagService;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
+import io.javalin.http.ForbiddenResponse;
 import io.javalin.http.HttpStatus;
 import io.javalin.http.NotFoundResponse;
 import io.javalin.openapi.HttpMethod;
@@ -40,7 +41,6 @@ import java.util.List;
 public class UserTagRoutes implements Routes {
     private final UserTagService tagService;
     private final AccountRepository accountRepository;
-    private final StationMemberRepository stationMemberRepository;
 
     @Inject
     public UserTagRoutes(
@@ -49,7 +49,6 @@ public class UserTagRoutes implements Routes {
             StationMemberRepository stationMemberRepository) {
         this.tagService = tagService;
         this.accountRepository = accountRepository;
-        this.stationMemberRepository = stationMemberRepository;
     }
 
     private static boolean isBlank(String s) {
@@ -58,17 +57,17 @@ public class UserTagRoutes implements Routes {
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        routes.get(prefix + "/tags", this::list, Roles.MEMBER_MANAGEMENT);
-        routes.post(prefix + "/tags", this::create, Roles.MEMBER_MANAGEMENT);
-        routes.put(prefix + "/tags/{id}", this::update, Roles.MEMBER_MANAGEMENT);
-        routes.delete(prefix + "/tags/{id}", this::delete, Roles.MEMBER_MANAGEMENT);
+        routes.get(prefix + "/tags", this::list, Roles.MEMBER_MANAGER);
+        routes.post(prefix + "/tags", this::create, Roles.MEMBER_MANAGER);
+        routes.put(prefix + "/tags/{id}", this::update, Roles.MEMBER_MANAGER);
+        routes.delete(prefix + "/tags/{id}", this::delete, Roles.MEMBER_MANAGER);
 
-        routes.get(prefix + "/tags/{id}/members", this::getMembers, Roles.MEMBER_MANAGEMENT);
-        routes.put(prefix + "/tags/{id}/members", this::setMembers, Roles.MEMBER_MANAGEMENT);
+        routes.get(prefix + "/tags/{id}/members", this::getMembers, Roles.MEMBER_MANAGER);
+        routes.put(prefix + "/tags/{id}/members", this::setMembers, Roles.MEMBER_MANAGER);
 
-        routes.get(prefix + "/station-members/{memberId}/tags", this::getMemberTags, Roles.MEMBER_MANAGEMENT);
+        routes.get(prefix + "/station-members/{memberId}/tags", this::getMemberTags, Roles.MEMBER_MANAGER);
 
-        routes.post(prefix + "/tags/{id}/convert-to-group", this::convertToGroup, Roles.MEMBER_MANAGEMENT);
+        routes.post(prefix + "/tags/{id}/convert-to-group", this::convertToGroup, Roles.MEMBER_MANAGER);
     }
 
     // -- Tags --
@@ -124,6 +123,11 @@ public class UserTagRoutes implements Routes {
             })
     private void update(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
+        UserSession session = UserSession.from(ctx);
+        var tag = tagService.findById(id).orElseThrow(NotFoundResponse::new);
+        if (tag.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot access resources from another station");
+        }
         var request = ctx.bodyAsClass(TagRequest.class);
         if (isBlank(request.name())) {
             throw new BadRequestResponse("name is required");
@@ -147,6 +151,11 @@ public class UserTagRoutes implements Routes {
             })
     private void delete(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
+        UserSession session = UserSession.from(ctx);
+        var tag = tagService.findById(id).orElseThrow(NotFoundResponse::new);
+        if (tag.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot access resources from another station");
+        }
         if (tagService.delete(id)) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
@@ -178,6 +187,11 @@ public class UserTagRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MemberWithName[].class)))
     private void setMembers(Context ctx) {
         int tagId = ctx.pathParamAsClass("id", Integer.class).get();
+        UserSession session = UserSession.from(ctx);
+        var tag = tagService.findById(tagId).orElseThrow(NotFoundResponse::new);
+        if (tag.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot access resources from another station");
+        }
         var request = ctx.bodyAsClass(SetMembersRequest.class);
         List<Integer> memberIds = request.memberIds() != null ? request.memberIds() : List.of();
         tagService.setMembers(tagId, memberIds);
@@ -213,10 +227,14 @@ public class UserTagRoutes implements Routes {
             })
     private void convertToGroup(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
+        UserSession session = UserSession.from(ctx);
         tagService
                 .findById(id)
                 .ifPresentOrElse(
                         tag -> {
+                            if (tag.stationId() != session.stationId()) {
+                                throw new ForbiddenResponse("Cannot access resources from another station");
+                            }
                             tagService.convertToGroup(id);
                             ctx.status(HttpStatus.NO_CONTENT);
                         },

@@ -7,6 +7,7 @@ package dev.chojo.ember.service;
 
 import dev.chojo.ember.api.Roles;
 import dev.chojo.ember.feature.account.entity.Account;
+import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.service.StationMemberService;
 import dev.chojo.ember.feature.station.entity.Station;
@@ -24,6 +25,7 @@ import java.util.EnumSet;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class StationMemberServiceTest extends RepositoryTestBase {
@@ -36,7 +38,8 @@ class StationMemberServiceTest extends RepositoryTestBase {
 
     @BeforeAll
     static void setup() {
-        service = new StationMemberService(stationMemberRepo, stationRepo);
+        var authService = mock(AuthService.class);
+        service = new StationMemberService(stationMemberRepo, stationRepo, accountRepo, authService);
         station = stationRepo.create("MemberServiceStation");
         account1 = accountRepo.create("svc1@test.com", "First", "Member");
         account2 = accountRepo.create("svc2@test.com", "Second", "Member");
@@ -105,7 +108,7 @@ class StationMemberServiceTest extends RepositoryTestBase {
         var adminRole = stationMemberRepo.findRoleByName(Roles.ADMIN).orElseThrow();
         assertThrows(
                 ForbiddenResponse.class,
-                () -> service.setRoles(member2.id(), List.of(adminRole.id()), EnumSet.of(Roles.MEMBER_MANAGEMENT)));
+                () -> service.setRoles(member2.id(), List.of(adminRole.id()), EnumSet.of(Roles.MEMBER_MANAGER)));
     }
 
     @Test

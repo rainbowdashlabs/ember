@@ -12,7 +12,10 @@
     "PROCUREMENT_FULFILLED": "Procurement Fulfilled",
     "NEW_FORM": "New Form",
     "LOST_AND_FOUND_NEW": "Lost and Found",
-    "LOST_AND_FOUND_CLAIMED": "Item Claimed"
+    "LOST_AND_FOUND_CLAIMED": "Item Claimed",
+    "LENDING_NEW_REQUEST": "New Lending Request",
+    "LENDING_STATUS_CHANGE": "Lending Request Updated",
+    "LENDING_NEW_MESSAGE": "New Message"
   },
   "message": {
     "notification.newNews": "{title} — by {author}",
@@ -27,6 +30,9 @@
     "notification.procurementFulfilled": "Procurement fulfilled: {inventoryName}",
     "notification.newForm": "New form: {title}",
     "notification.lostAndFoundNew": "New lost item: {description}",
-    "notification.lostAndFoundClaimed": "{name} claimed \"{description}\""
+    "notification.lostAndFoundClaimed": "{name} claimed \"{description}\"",
+    "notification.lendingNewRequest": "New lending request from {stationName}: {itemSummary}",
+    "notification.lendingStatusChange": "Lending request from {stationName}: {status}",
+    "notification.lendingNewMessage": "New message from {senderName} ({stationName})"
   }
 }

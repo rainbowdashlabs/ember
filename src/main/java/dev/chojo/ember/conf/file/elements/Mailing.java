@@ -13,7 +13,7 @@ import java.util.Properties;
  * Email sending configuration including SMTP settings, authentication credentials,
  * sender identity, daily send limits, and notification digest intervals.
  */
-@SuppressWarnings({"FieldCanBeLocal", "FieldMayBeFinal"})
+@SuppressWarnings({"FieldCanBeLocal", "FieldMayBeFinal", "CanBeFinal"})
 public class Mailing {
     private String provider = "SMTP";
     private MailSettings smtp = new MailSettings();

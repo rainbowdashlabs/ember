@@ -15,20 +15,22 @@ import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
+import EmptyState from '@/components/feedback/EmptyState.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
+import FieldLabel from '@/components/typography/FieldLabel.vue'
 import InventoryItemCard from './InventoryItemCard.vue'
 import {inventory, exchanges, stationMembers} from '@/api'
 import type {ExchangeRequestEntry, InventorySize, StationMember} from '@/api/types'
 import {ExchangeStatus} from '@/api/types'
 import type {MyInventoryItem} from '@/api/inventory'
-import {useStations} from '@/composables/useStations'
 import {useSession} from '@/composables/useSession'
+import MutedText from '@/components/typography/MutedText.vue'
 
 const {t} = useI18n()
 const route = useRoute()
 const router = useRouter()
-const {currentStationId} = useStations()
+
 const {canManageInventory} = useSession()
 
 const memberId = computed(() => Number(route.params.memberId))
@@ -69,7 +71,7 @@ async function loadData() {
     const mid = memberId.value
     const [memberItems, allMembers] = await Promise.all([
       inventory.memberItems(mid),
-      stationMembers.listMembers(currentStationId.value!),
+      stationMembers.listMembers(),
     ])
     items.value = memberItems
     member.value = allMembers.find(m => m.id === mid) ?? null
@@ -146,12 +148,11 @@ watch(memberId, loadData)
 <template>
   <ViewContent>
     <div class="space-y-6">
-      <div class="flex items-center justify-between flex-wrap gap-3">
+      <div class="flex items-center justify-between flex-wrap gap-2">
         <SectionHeader>
           {{ member ? `${t('profile.inventory')} — ${memberDisplayName(member)}` : t('profile.inventory') }}
         </SectionHeader>
-        <SecondaryButton @click="goBack">
-          <font-awesome-icon :icon="['fas', 'chevron-left']" class="mr-2" />
+        <SecondaryButton :icon="['fas', 'chevron-left']" @click="goBack">
           {{ t('common.back') }}
         </SecondaryButton>
       </div>
@@ -160,9 +161,7 @@ watch(memberId, loadData)
       <Alert v-if="error" variant="error">{{ error }}</Alert>
 
       <template v-if="!loading">
-        <div v-if="grouped.length === 0 && items.length === 0" class="text-center text-(--text-muted) py-8">
-          {{ t('profile.noInventory') }}
-        </div>
+        <EmptyState v-if="grouped.length === 0 && items.length === 0">{{ t('profile.noInventory') }}</EmptyState>
 
         <div v-else class="space-y-6">
           <div v-for="group in grouped" :key="group.inventoryId">
@@ -171,9 +170,9 @@ watch(memberId, loadData)
               <span class="text-sm text-(--text-muted)">{{ group.items.length }}</span>
             </div>
 
-            <div v-if="group.items.length === 0" class="text-sm text-(--text-muted) py-2">
+            <MutedText tag="div" size="sm" class="py-2" v-if="group.items.length === 0">
               {{ t('profile.noInventory') }}
-            </div>
+            </MutedText>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
               <InventoryItemCard
@@ -205,14 +204,14 @@ watch(memberId, loadData)
               <span class="text-(--text-muted)">{{ exchangeItem.sizeName ?? t('common.unisize') }}</span>
             </p>
             <div v-if="exchangeSizes.length > 0" class="space-y-1">
-              <label class="block text-sm font-medium">{{ t('exchanges.newSize') }}</label>
+              <FieldLabel>{{ t('exchanges.newSize') }}</FieldLabel>
               <SelectInput v-model="exchangeNewSizeId">
                 <option value="" disabled>{{ t('exchanges.selectNewSize') }}</option>
                 <option v-for="size in exchangeSizes" :key="size.id" :value="String(size.id)">{{ size.label }}</option>
               </SelectInput>
             </div>
             <div class="space-y-1">
-              <label class="block text-sm font-medium">{{ t('exchanges.reason') }}</label>
+              <FieldLabel>{{ t('exchanges.reason') }}</FieldLabel>
               <TextAreaInput v-model="exchangeReason" :placeholder="t('exchanges.reasonPlaceholder')" :rows="3" />
             </div>
             <div class="flex justify-end gap-2">

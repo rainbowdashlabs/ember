@@ -17,6 +17,9 @@ import InfoBadge from '@/components/badge/InfoBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import IconButton from '@/components/button/IconButton.vue'
 import NumberInput from '@/components/input/number/NumberInput.vue'
+import FieldLabel from '@/components/typography/FieldLabel.vue'
+import BulletList from '@/components/typography/BulletList.vue'
+import SectionLabel from '@/components/typography/SectionLabel.vue'
 
 const { t } = useI18n()
 </script>
@@ -25,16 +28,16 @@ const { t } = useI18n()
   <HelpArticle :title="t('helpCenter.quiz.testDetailTitle')" :subtitle="t('helpCenter.quiz.testDetailSubtitle')">
     <HelpSection :title="t('helpCenter.quiz.lifecycleTitle')">
       <p>{{ t('helpCenter.quiz.lifecycleText') }}</p>
-      <ul class="list-disc pl-5 space-y-1 mt-2 text-sm">
+      <BulletList class="mt-2">
         <li><strong>{{ t('quiz.statusDraft') }}:</strong> {{ t('helpCenter.quiz.statusDraftDesc') }}</li>
         <li><strong>{{ t('quiz.statusActive') }}:</strong> {{ t('helpCenter.quiz.statusActiveDesc') }}</li>
         <li><strong>{{ t('quiz.statusClosed') }}:</strong> {{ t('helpCenter.quiz.statusClosedDesc') }}</li>
-      </ul>
+      </BulletList>
     </HelpSection>
 
     <!-- Dummy: Lifecycle flow -->
     <NeutralContainer>
-      <div class="flex items-center justify-center gap-3 flex-wrap">
+      <div class="flex items-center justify-center gap-2 flex-wrap">
         <InfoBadge>{{ t('quiz.statusDraft') }}</InfoBadge>
         <font-awesome-icon :icon="['fas', 'arrow-right']" class="text-(--text-muted)" />
         <SuccessBadge>{{ t('quiz.statusActive') }}</SuccessBadge>
@@ -69,8 +72,7 @@ const { t } = useI18n()
       <div class="space-y-3">
         <div class="flex items-center justify-between mb-2">
           <span class="font-semibold text-sm">Testfragen (3)</span>
-          <SecondaryButton disabled>
-            <font-awesome-icon :icon="['fas', 'rotate']" class="mr-1" />
+          <SecondaryButton :icon="['fas', 'rotate']" disabled>
             Fragen generieren
           </SecondaryButton>
         </div>
@@ -152,16 +154,16 @@ const { t } = useI18n()
     <!-- Dummy: Grading detail -->
     <NeutralContainer>
       <div class="space-y-3">
-        <span class="text-xs font-semibold text-(--text-muted) uppercase">{{ t('quiz.evaluate.title') }}</span>
+        <SectionLabel>{{ t('quiz.evaluate.title') }}</SectionLabel>
         <div>
-          <label class="text-xs text-(--text-muted) block mb-1">{{ t('quiz.evaluate.studentAnswer') }}</label>
+          <FieldLabel hint class="mb-1">{{ t('quiz.evaluate.studentAnswer') }}</FieldLabel>
           <p class="text-sm px-3 py-2 rounded border border-bg-light-accent dark:border-bg-dark-accent">Wasser</p>
         </div>
         <div>
           <label class="text-xs text-success block mb-1">{{ t('quiz.evaluate.correctAnswer') }}</label>
           <p class="text-sm px-3 py-2 rounded border border-success/30 bg-success/10">Wasser, Schaum</p>
         </div>
-        <div class="flex items-center gap-3">
+        <div class="flex items-center gap-2">
           <label class="text-sm font-medium">{{ t('quiz.evaluate.points') }}</label>
           <NumberInput :model-value="1" disabled class="w-24" />
           <span class="text-sm text-(--text-muted)">/ 2</span>

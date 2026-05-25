@@ -16,6 +16,7 @@ import DeleteButton from '@/components/button/DeleteButton.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import DateInput from '@/components/input/datetime/DateInput.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
+import FieldLabel from '@/components/typography/FieldLabel.vue'
 
 const {t} = useI18n()
 </script>
@@ -29,8 +30,7 @@ const {t} = useI18n()
     <!-- Dummy: Lost and found list -->
     <div class="flex items-center justify-between mb-4">
       <SectionHeader>{{ t('lostAndFound.title') }}</SectionHeader>
-      <PrimaryButton disabled>
-        <font-awesome-icon :icon="['fas', 'plus']" class="mr-2"/>
+      <PrimaryButton :icon="['fas', 'plus']" disabled>
         {{ t('lostAndFound.create') }}
       </PrimaryButton>
     </div>
@@ -46,8 +46,7 @@ const {t} = useI18n()
           <SuccessBadge>{{ t('lostAndFound.claimedByYou') }}</SuccessBadge>
         </div>
         <div class="flex gap-2">
-          <SuccessButton class="text-xs flex-1" disabled>
-            <font-awesome-icon :icon="['fas', 'hand']" class="mr-1"/>
+          <SuccessButton :icon="['fas', 'hand']" class="text-xs flex-1" disabled>
             {{ t('lostAndFound.claim') }}
           </SuccessButton>
           <DeleteButton disabled/>
@@ -63,8 +62,7 @@ const {t} = useI18n()
           <p class="text-xs text-(--text-muted)">{{ t('lostAndFound.foundAt') }}: 15.05.2026</p>
         </div>
         <div class="flex gap-2">
-          <SuccessButton class="text-xs flex-1" disabled>
-            <font-awesome-icon :icon="['fas', 'hand']" class="mr-1"/>
+          <SuccessButton :icon="['fas', 'hand']" class="text-xs flex-1" disabled>
             {{ t('lostAndFound.claim') }}
           </SuccessButton>
           <DeleteButton disabled/>
@@ -80,11 +78,11 @@ const {t} = useI18n()
     <NeutralContainer class="space-y-3">
       <p class="text-sm font-semibold">{{ t('lostAndFound.createTitle') }}</p>
       <div>
-        <label class="text-xs text-(--text-muted) block mb-1">{{ t('lostAndFound.description') }}</label>
+        <FieldLabel hint class="mb-1">{{ t('lostAndFound.description') }}</FieldLabel>
         <TextAreaInput :model-value="''" :placeholder="t('lostAndFound.descriptionPlaceholder')" disabled/>
       </div>
       <div>
-        <label class="text-xs text-(--text-muted) block mb-1">{{ t('lostAndFound.foundAt') }}</label>
+        <FieldLabel hint class="mb-1">{{ t('lostAndFound.foundAt') }}</FieldLabel>
         <DateInput model-value="" disabled/>
       </div>
     </NeutralContainer>

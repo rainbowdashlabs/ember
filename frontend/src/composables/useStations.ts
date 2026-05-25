@@ -11,9 +11,9 @@ import type {StationMembership} from '@/api/types'
 
 const stationList = ref<StationMembership[]>([])
 const loaded = ref(false)
-const currentStationId = ref<number | null>(getItem('station_id') ? Number(getItem('station_id')) : null)
+const currentStationId = ref<string | null>(getItem('station_id') ?? null)
 const activeLogoUrl = ref<string | null>(null)
-const stationLogos = ref<Map<number, string>>(new Map())
+const stationLogos = ref<Map<string, string>>(new Map())
 
 export function useStations() {
     async function load() {
@@ -24,7 +24,7 @@ export function useStations() {
             stationList.value = []
         }
         const stored = getItem('station_id')
-        currentStationId.value = stored ? Number(stored) : null
+        currentStationId.value = stored ?? null
         loaded.value = true
         await loadAllLogos()
     }
@@ -41,13 +41,13 @@ export function useStations() {
         stationLogos.value = new Map()
     }
 
-    function setActiveStation(stationId: number) {
-        setItem('station_id', String(stationId))
+    function setActiveStation(stationId: string) {
+        setItem('station_id', stationId)
         currentStationId.value = stationId
         loadActiveLogo()
     }
 
-    async function fetchLogo(stationId: number): Promise<string | null> {
+    async function fetchLogo(stationId: string): Promise<string | null> {
         const res = await client.get(`/stations/${stationId}/logo`, {
             responseType: 'blob',
             validateStatus: (status) => status === 200 || status === 404,
@@ -100,7 +100,7 @@ export function useStations() {
         }
     }
 
-    function getStationLogoUrl(stationId: number): string | null {
+    function getStationLogoUrl(stationId: string): string | null {
         return stationLogos.value.get(stationId) ?? null
     }
 

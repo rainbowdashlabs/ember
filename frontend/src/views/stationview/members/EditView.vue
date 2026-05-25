@@ -20,16 +20,22 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
 import type { ProfileField, StationMember, Role, MemberGroup, UserTag } from '@/api/types'
 import { Roles, hasTeamRole } from '@/api/types'
 import { profileFields, stationMembers, members, inventory, memberGroups, userTags } from '@/api'
 import type { MyInventoryItem } from '@/api/inventory'
-import { useStations } from '@/composables/useStations'
+import Th from '@/components/table/Th.vue'
+import Td from '@/components/table/Td.vue'
+import THead from '@/components/table/THead.vue'
+import TRow from '@/components/table/TRow.vue'
+import FieldLabel from '@/components/typography/FieldLabel.vue'
+
 
 const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
-const { currentStationId } = useStations()
+
 
 const memberId = computed(() => Number(route.params.id))
 
@@ -59,17 +65,17 @@ function parseConfig(configStr: string | undefined): { options?: string[]; [key:
 
 function getAllChildren(roleName: string): string[] {
   const hierarchy: Record<string, string[]> = {
-    [Roles.MANAGER]: [Roles.TEAM, Roles.ATTENDENCE_MANAGEMENT, Roles.INVENTORY_MANAGEMENT, Roles.EVENT_MANAGEMENT, Roles.MEMBER_MANAGEMENT, Roles.NEWS_MANAGEMENT, Roles.POLL_MANAGEMENT, Roles.LOST_AND_FOUND_MANAGEMENT],
+    [Roles.MANAGER]: [Roles.TEAM, Roles.ATTENDANCE_MANAGER, Roles.INVENTORY_MANAGER, Roles.EVENT_MANAGER, Roles.MEMBER_MANAGER, Roles.NEWS_MANAGER, Roles.POLL_MANAGER, Roles.LOST_AND_FOUND_MANAGER],
     [Roles.TEAM]: [Roles.LOGIN, Roles.USER],
     [Roles.GUARDIAN]: [Roles.USER, Roles.LOGIN],
     [Roles.MEMBER]: [Roles.USER],
-    [Roles.ATTENDENCE_MANAGEMENT]: [Roles.TEAM],
-    [Roles.INVENTORY_MANAGEMENT]: [Roles.TEAM],
-    [Roles.EVENT_MANAGEMENT]: [Roles.TEAM],
-    [Roles.MEMBER_MANAGEMENT]: [Roles.TEAM],
-    [Roles.NEWS_MANAGEMENT]: [Roles.TEAM],
-    [Roles.POLL_MANAGEMENT]: [Roles.TEAM],
-    [Roles.LOST_AND_FOUND_MANAGEMENT]: [Roles.TEAM],
+    [Roles.ATTENDANCE_MANAGER]: [Roles.TEAM],
+    [Roles.INVENTORY_MANAGER]: [Roles.TEAM],
+    [Roles.EVENT_MANAGER]: [Roles.TEAM],
+    [Roles.MEMBER_MANAGER]: [Roles.TEAM],
+    [Roles.NEWS_MANAGER]: [Roles.TEAM],
+    [Roles.POLL_MANAGER]: [Roles.TEAM],
+    [Roles.LOST_AND_FOUND_MANAGER]: [Roles.TEAM],
   }
   const direct = hierarchy[roleName] ?? []
   const all: string[] = [...direct]
@@ -122,7 +128,7 @@ async function loadData() {
   try {
     const [allFields, allMembers, roles, memberRoles, profileValues, groups, tags, mGroups, mTags] = await Promise.all([
       profileFields.listFields(),
-      stationMembers.listMembers(currentStationId.value!),
+      stationMembers.listMembers(),
       stationMembers.listAllRoles(),
       stationMembers.getRoles(memberId.value),
       profileFields.getValues(memberId.value),
@@ -258,8 +264,7 @@ onMounted(async () => {
 <template>
   <ViewContent>
     <div class="space-y-6">
-      <SecondaryButton @click="goBack">
-        <font-awesome-icon :icon="['fas', 'chevron-left']" class="mr-2" />
+      <SecondaryButton :icon="['fas', 'chevron-left']" @click="goBack">
         {{ t('memberEdit.back') }}
       </SecondaryButton>
 
@@ -272,18 +277,18 @@ onMounted(async () => {
 
         <!-- Base fields -->
         <NeutralContainer class="space-y-4">
-          <h3 class="text-sm font-semibold">{{ t('memberEdit.baseFields') }}</h3>
+          <SubHeader class="text-sm">{{ t('memberEdit.baseFields') }}</SubHeader>
           <div class="grid gap-4 sm:grid-cols-3">
             <div class="space-y-1">
-              <label class="block text-xs font-medium text-(--text-muted)">{{ t('memberEdit.firstName') }}</label>
+              <FieldLabel hint>{{ t('memberEdit.firstName') }}</FieldLabel>
               <TextInput v-model="editFirstName" />
             </div>
             <div class="space-y-1">
-              <label class="block text-xs font-medium text-(--text-muted)">{{ t('memberEdit.lastName') }}</label>
+              <FieldLabel hint>{{ t('memberEdit.lastName') }}</FieldLabel>
               <TextInput v-model="editLastName" />
             </div>
             <div class="space-y-1">
-              <label class="block text-xs font-medium text-(--text-muted)">{{ t('memberEdit.email') }}</label>
+              <FieldLabel hint>{{ t('memberEdit.email') }}</FieldLabel>
               <TextInput v-model="editEmail" />
             </div>
           </div>
@@ -291,13 +296,13 @@ onMounted(async () => {
 
         <!-- Roles -->
         <NeutralContainer class="space-y-3">
-          <h3 class="text-sm font-semibold">{{ t('memberEdit.roles') }}</h3>
+          <SubHeader class="text-sm">{{ t('memberEdit.roles') }}</SubHeader>
           <RoleSelector v-model="editRoleIds" :all-roles="allRoles" />
         </NeutralContainer>
 
         <!-- Groups -->
         <NeutralContainer class="space-y-3">
-          <h3 class="text-sm font-semibold">{{ t('memberEdit.groups') }}</h3>
+          <SubHeader class="text-sm">{{ t('memberEdit.groups') }}</SubHeader>
           <div class="flex flex-wrap gap-2">
             <button
               v-for="group in allGroups"
@@ -314,7 +319,7 @@ onMounted(async () => {
 
         <!-- Tags -->
         <NeutralContainer class="space-y-3">
-          <h3 class="text-sm font-semibold">{{ t('memberEdit.tags') }}</h3>
+          <SubHeader class="text-sm">{{ t('memberEdit.tags') }}</SubHeader>
           <div class="flex flex-wrap gap-2">
             <button
               v-for="tag in allTags"
@@ -331,27 +336,27 @@ onMounted(async () => {
 
         <!-- Profile fields -->
         <NeutralContainer class="space-y-4">
-          <h3 class="text-sm font-semibold">{{ t('memberEdit.fields') }}</h3>
+          <SubHeader class="text-sm">{{ t('memberEdit.fields') }}</SubHeader>
           <div class="overflow-x-auto">
             <table class="w-full text-sm">
               <thead>
-                <tr class="border-b border-bg-light-accent dark:border-bg-dark-accent text-left">
-                  <th class="px-3 py-2 font-medium text-(--text-muted)">{{ t('memberEdit.fieldName') }}</th>
-                  <th class="px-3 py-2 font-medium text-(--text-muted)">{{ t('memberEdit.fieldValue') }}</th>
-                </tr>
+                <THead>
+                  <Th class="text-(--text-muted)">{{ t('memberEdit.fieldName') }}</Th>
+                  <Th class="text-(--text-muted)">{{ t('memberEdit.fieldValue') }}</Th>
+                </THead>
               </thead>
               <tbody>
-                <tr v-for="field in applicableFields" :key="field.id" class="border-b border-bg-light-accent/50 dark:border-bg-dark-accent/50">
-                  <td class="px-3 py-2.5 font-medium whitespace-nowrap">{{ field.name }}</td>
-                  <td class="px-3 py-2.5">
+                <TRow v-for="field in applicableFields" :key="field.id">
+                  <Td class="font-medium whitespace-nowrap">{{ field.name }}</Td>
+                  <Td>
                     <ProfileFieldInput
                       :field-type="field.fieldType ?? 'text'"
                       :model-value="getEditValue(field.id)"
                       :options="parseConfig(field.config).options as string[]"
                       @update:model-value="setEditValue(field.id, $event)"
                     />
-                  </td>
-                </tr>
+                  </Td>
+                </TRow>
               </tbody>
             </table>
           </div>
@@ -362,8 +367,7 @@ onMounted(async () => {
           <PrimaryButton :disabled="saving" @click="save">
             {{ saving ? t('common.loading') : t('memberEdit.save') }}
           </PrimaryButton>
-          <ErrorButton v-if="!formerSuccess" @click="showFormerModal = true">
-            <font-awesome-icon :icon="['fas', 'user-slash']" class="mr-1" />
+          <ErrorButton :icon="['fas', 'user-slash']" v-if="!formerSuccess" @click="showFormerModal = true">
             {{ t('memberDetail.markFormer') }}
           </ErrorButton>
         </div>

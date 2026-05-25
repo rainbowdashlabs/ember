@@ -8,7 +8,9 @@ import { useI18n } from 'vue-i18n'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
+import DecimalInput from '@/components/input/number/DecimalInput.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
+import FieldHint from '@/components/typography/FieldHint.vue'
 
 const { t } = useI18n()
 
@@ -51,6 +53,10 @@ function updateConnectPairRight(idx: number, value: string) {
 </script>
 
 <template>
+  <div class="flex items-center gap-2">
+    <FieldHint>{{ t('quiz.questions.config.pointsPerCorrect') }}</FieldHint>
+    <DecimalInput :model-value="(config.pointsPerCorrect as number) || 1" step="0.5" class="w-20" @update:model-value="(v: number | undefined) => updateConfig({ pointsPerCorrect: v ?? 1 })"/>
+  </div>
   <SubHeader>{{ t('quiz.questions.config.pairs') }}</SubHeader>
   <div class="space-y-2">
     <div v-for="(pair, idx) in (config.pairs as { left: string; right: string }[])" :key="idx" class="flex items-center gap-2">

@@ -11,7 +11,7 @@ export async function listStations(): Promise<Station[]> {
     return res.data
 }
 
-export async function getStation(id: number): Promise<StationDetail> {
+export async function getStation(id: string): Promise<StationDetail> {
     const res = await client.get<StationDetail>(`/stations/${id}`)
     return res.data
 }
@@ -21,11 +21,11 @@ export async function createStation(data: StationRequest): Promise<StationDetail
     return res.data
 }
 
-export async function updateStation(id: number, data: StationRequest): Promise<StationDetail> {
+export async function updateStation(id: string, data: StationRequest): Promise<StationDetail> {
     const res = await client.put<StationDetail>(`/stations/${id}`, data)
     return res.data
 }
 
-export async function deleteStation(id: number): Promise<void> {
+export async function deleteStation(id: string): Promise<void> {
     await client.delete(`/stations/${id}`)
 }

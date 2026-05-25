@@ -8,6 +8,7 @@ import {useI18n} from 'vue-i18n'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
+import EmptyState from '@/components/feedback/EmptyState.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import type {MemberGroup} from '@/api/types'
 
@@ -31,9 +32,7 @@ const emit = defineEmits<{
     <SectionHeader>{{ t('membersCreate.stepGroups') }}</SectionHeader>
     <p class="text-sm text-(--text-muted)">{{ t('membersCreate.stepGroupsHint') }}</p>
 
-    <div v-if="groups.length === 0" class="text-center text-(--text-muted) py-4">
-      {{ t('membersCreate.noGroups') }}
-    </div>
+    <EmptyState compact v-if="groups.length === 0">{{ t('membersCreate.noGroups') }}</EmptyState>
 
     <div class="space-y-2">
       <div

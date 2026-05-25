@@ -12,6 +12,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
+import FieldLabel from '@/components/typography/FieldLabel.vue'
 
 const {t} = useI18n()
 </script>
@@ -33,17 +34,17 @@ const {t} = useI18n()
     <!-- Dummy: Editor -->
     <NeutralContainer class="space-y-4">
       <div class="space-y-1">
-        <label class="block text-sm font-medium">{{ t('news.titleField') }}</label>
+        <FieldLabel>{{ t('news.titleField') }}</FieldLabel>
         <div class="rounded-lg border border-bg-light-accent dark:border-bg-dark-accent px-3 py-2 text-sm">
           Dienstplanänderung Mai
         </div>
       </div>
       <div class="space-y-1">
         <div class="flex items-center justify-between">
-          <label class="block text-sm font-medium">{{ t('news.content') }}</label>
-          <button type="button" class="text-xs text-primary hover:underline">
+          <FieldLabel>{{ t('news.content') }}</FieldLabel>
+          <SecondaryButton>
             {{ t('news.showPreview') }}
-          </button>
+          </SecondaryButton>
         </div>
         <div class="rounded-lg border border-bg-light-accent dark:border-bg-dark-accent px-3 py-2 text-sm min-h-[120px]">
           Ab dem 20. Mai gilt ein **neuer Dienstplan**. Bitte prüft eure Einteilungen.
@@ -65,7 +66,7 @@ const {t} = useI18n()
       <SubHeader>{{ t('news.preview') }}</SubHeader>
       <NeutralContainer class="prose prose-sm dark:prose-invert max-w-none">
         <p>Ab dem 20. Mai gilt ein <strong>neuer Dienstplan</strong>. Bitte prüft eure Einteilungen.</p>
-        <h2>Änderungen</h2>
+        <SectionHeader>Änderungen</SectionHeader>
         <ul>
           <li>Dienstag: Beginn um 18:30 statt 18:00</li>
           <li>Freitag: entfällt bis auf Weiteres</li>

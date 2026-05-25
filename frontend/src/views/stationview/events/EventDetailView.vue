@@ -7,6 +7,7 @@
 import {computed, onMounted, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRoute, useRouter} from 'vue-router'
+import {marked} from 'marked'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
@@ -21,9 +22,10 @@ import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import PrimaryBadge from '@/components/badge/PrimaryBadge.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
+import EventFieldValue from '@/components/display/EventFieldValue.vue'
 import type {AttendanceTemplate, EventCategory, EventField, StationEvent} from '@/api/types'
 import {EventTypes, RegistrationStatus, isRecurringEvent} from '@/api/types'
-import type {AbsentMember, EventRegistrationEntry} from '@/api/events'
+import type {AbsentMember, EventRegistrationEntry, MemberRegistrationStats} from '@/api/events'
 import {attendance, events} from '@/api'
 import {useSession} from '@/composables/useSession'
 import MemberName from '@/components/avatar/MemberName.vue'
@@ -42,21 +44,31 @@ const templates = ref<AttendanceTemplate[]>([])
 const fields = ref<EventField[]>([])
 const registrations = ref<EventRegistrationEntry[]>([])
 const absentMembers = ref<AbsentMember[]>([])
+const registrationStats = ref<MemberRegistrationStats[]>([])
 const loading = ref(true)
 const error = ref('')
 
 const dayNames = ['', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag']
-
-const statusOrder = [RegistrationStatus.PENDING, RegistrationStatus.ACCEPTED, RegistrationStatus.DECLINED, RegistrationStatus.DENIED] as string[]
 
 interface StatusGroup {
   status: string
   entries: EventRegistrationEntry[]
 }
 
-const groupedRegistrations = computed<StatusGroup[]>(() => {
+const pendingRegistrations = computed(() => {
+  const pending = registrations.value.filter(r => r.status === RegistrationStatus.PENDING)
+  // Sort by fairness score (highest first = most deserving)
+  return [...pending].sort((a, b) => {
+    const sa = getStatsForMember(a.memberId)
+    const sb = getStatsForMember(b.memberId)
+    return (sb?.fairnessScore ?? 0) - (sa?.fairnessScore ?? 0)
+  })
+})
+
+const nonPendingRegistrations = computed<StatusGroup[]>(() => {
   const byStatus = new Map<string, EventRegistrationEntry[]>()
   for (const reg of registrations.value) {
+    if (reg.status === RegistrationStatus.PENDING) continue
     const list = byStatus.get(reg.status) ?? []
     list.push(reg)
     byStatus.set(reg.status, list)
@@ -64,7 +76,7 @@ const groupedRegistrations = computed<StatusGroup[]>(() => {
   for (const list of byStatus.values()) {
     list.sort((a, b) => a.memberName.localeCompare(b.memberName, 'de'))
   }
-  return statusOrder
+  return [RegistrationStatus.ACCEPTED, RegistrationStatus.DECLINED, RegistrationStatus.DENIED]
       .filter(s => byStatus.has(s))
       .map(s => ({status: s, entries: byStatus.get(s)!}))
 })
@@ -99,6 +111,18 @@ function statusLabel(status: string): string {
   if (status === RegistrationStatus.DENIED) return t('eventsUpcoming.statusDenied')
   if (status === RegistrationStatus.DECLINED) return t('eventsUpcoming.statusDeclined')
   return status
+}
+
+function getStatsForMember(memberId: number): MemberRegistrationStats | undefined {
+  return registrationStats.value.find(s => s.memberId === memberId)
+}
+
+function renderMarkdown(md: string): string {
+  try {
+    return marked.parse(md) as string
+  } catch {
+    return md
+  }
 }
 
 function categoryName(id: number | null | undefined): string {
@@ -167,6 +191,10 @@ async function loadData() {
 async function loadRegistrations() {
   try {
     registrations.value = await events.listEventRegistrations(eventId.value)
+    if (canManageEvents() && event.value?.requiresRegistration) {
+      registrationStats.value = await events.getRegistrationStats(
+          eventId.value, event.value.categoryId ?? undefined)
+    }
   } catch {
     error.value = t('common.error')
   }
@@ -278,14 +306,24 @@ onMounted(loadData)
           </div>
         </div>
 
-        <!-- Event Info -->
+        <!-- Registration info (shown prominently below title) -->
+        <div v-if="event.requiresRegistration" class="flex flex-wrap gap-3 text-sm">
+          <SuccessBadge>{{ t('events.requiresRegistration') }}</SuccessBadge>
+          <InfoBadge v-if="event.requiresConfirmation">{{ t('events.requiresConfirmation') }}</InfoBadge>
+          <span v-if="event.registrationDeadline" class="text-(--text-muted)">
+            {{ t('events.registrationDeadline') }}: {{ formatDatetime(event.registrationDeadline) }}
+          </span>
+        </div>
+
+        <!-- Event Info + Fields -->
         <NeutralContainer class="space-y-3">
           <SubHeader>{{ t('events.general') }}</SubHeader>
 
           <div class="grid gap-4 sm:grid-cols-2">
-            <div>
+            <div class="sm:col-span-2">
               <span class="text-xs font-medium text-(--text-muted) uppercase">{{ t('events.description') }}</span>
-              <p class="text-sm">{{ event.description || '–' }}</p>
+              <div v-if="event.description" class="prose prose-sm dark:prose-invert max-w-none mt-1" v-html="renderMarkdown(event.description)"/>
+              <p v-else class="text-sm">–</p>
             </div>
             <div>
               <span class="text-xs font-medium text-(--text-muted) uppercase">{{ t('events.category') }}</span>
@@ -307,6 +345,13 @@ onMounted(loadData)
               <span class="text-xs font-medium text-(--text-muted) uppercase">{{ t('events.template') }}</span>
               <p class="text-sm">{{ templateName(event.templateId) }}</p>
             </div>
+            <!-- Event Fields inline -->
+            <div v-for="field in fields" :key="field.id">
+              <span class="text-xs font-medium text-(--text-muted) uppercase">{{ field.name }}</span>
+              <p class="text-sm">
+                <EventFieldValue :field-type="field.fieldType" :value="field.value"/>
+              </p>
+            </div>
           </div>
         </NeutralContainer>
 
@@ -327,29 +372,6 @@ onMounted(loadData)
             </div>
           </div>
           <p v-else class="text-sm text-(--text-muted)">{{ t('eventDetail.noAbsences') }}</p>
-        </NeutralContainer>
-
-        <!-- Event Fields -->
-        <NeutralContainer v-if="fields.length > 0" class="space-y-3">
-          <SubHeader>{{ t('eventDetail.fields') }}</SubHeader>
-          <div class="grid gap-3 sm:grid-cols-2">
-            <div v-for="field in fields" :key="field.id">
-              <span class="text-xs font-medium text-(--text-muted) uppercase">{{ field.name }}</span>
-              <p class="text-sm">{{ field.value || '–' }}</p>
-            </div>
-          </div>
-        </NeutralContainer>
-
-        <!-- Registration Settings -->
-        <NeutralContainer v-if="event.requiresRegistration" class="space-y-3">
-          <SubHeader>{{ t('events.registration') }}</SubHeader>
-          <div class="flex flex-wrap gap-3 text-sm">
-            <SuccessBadge>{{ t('events.requiresRegistration') }}</SuccessBadge>
-            <InfoBadge v-if="event.requiresConfirmation">{{ t('events.requiresConfirmation') }}</InfoBadge>
-            <span v-if="event.registrationDeadline" class="text-(--text-muted)">
-              {{ t('events.registrationDeadline') }}: {{ formatDatetime(event.registrationDeadline) }}
-            </span>
-          </div>
         </NeutralContainer>
 
         <!-- Self-registration for members -->
@@ -396,29 +418,64 @@ onMounted(loadData)
             </PrimaryBadge>
           </div>
 
-          <!-- Grouped registration list -->
-          <div v-for="group in groupedRegistrations" :key="group.status" class="space-y-2">
+          <!-- Pending registrations with stats (sorted by fairness score) -->
+          <div v-if="pendingRegistrations.length > 0" class="space-y-2">
+            <h4 class="text-xs font-semibold uppercase text-(--text-muted) pt-1">{{ statusLabel('PENDING') }}</h4>
+            <div class="overflow-x-auto">
+              <table class="w-full text-sm border-collapse">
+                <thead v-if="canManageEvents() && registrationStats.length > 0">
+                <tr class="border-b border-(--border) text-left text-xs text-(--text-muted) uppercase">
+                  <th class="p-2">{{ t('registrationStats.member') }}</th>
+                  <th class="p-2 text-center">{{ t('registrationStats.score') }}</th>
+                  <th class="p-2 text-center">{{ t('registrationStats.accepted') }}</th>
+                  <th class="p-2 text-center">{{ t('registrationStats.denied') }}</th>
+                  <th class="p-2 text-center">{{ t('registrationStats.rate') }}</th>
+                  <th class="p-2"></th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr v-for="reg in pendingRegistrations" :key="reg.id" class="border-b border-(--border)">
+                  <td class="p-2">
+                    <MemberName :name="reg.memberName" :member-id="reg.memberId"/>
+                  </td>
+                  <template v-if="canManageEvents() && getStatsForMember(reg.memberId)">
+                    <td class="p-2 text-center font-bold" :class="getStatsForMember(reg.memberId)!.priority === 'HIGH' ? 'text-[var(--error)]' : getStatsForMember(reg.memberId)!.priority === 'MEDIUM' ? 'text-[var(--info)]' : ''">
+                      {{ getStatsForMember(reg.memberId)!.fairnessScore }}
+                    </td>
+                    <td class="p-2 text-center"><SuccessBadge>{{ getStatsForMember(reg.memberId)!.accepted }}</SuccessBadge></td>
+                    <td class="p-2 text-center">
+                      <ErrorBadge v-if="getStatsForMember(reg.memberId)!.denied > 0">{{ getStatsForMember(reg.memberId)!.denied }}</ErrorBadge>
+                      <span v-else>0</span>
+                    </td>
+                    <td class="p-2 text-center">{{ Math.round(getStatsForMember(reg.memberId)!.acceptRate * 100) }}%</td>
+                  </template>
+                  <template v-else>
+                    <td class="p-2 text-center text-(--text-muted)" colspan="4">–</td>
+                  </template>
+                  <td class="p-2">
+                    <div v-if="canManageEvents() && event.requiresConfirmation" class="flex items-center gap-2 justify-end">
+                      <PrimaryButton @click="acceptRegistration(reg.id)">
+                        <font-awesome-icon :icon="['fas', 'check']" class="mr-1"/>
+                        {{ t('eventsRegistrations.accept') }}
+                      </PrimaryButton>
+                      <ErrorButton @click="denyRegistration(reg.id)">
+                        <font-awesome-icon :icon="['fas', 'xmark']" class="mr-1"/>
+                        {{ t('eventsRegistrations.deny') }}
+                      </ErrorButton>
+                    </div>
+                  </td>
+                </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Non-pending registrations (accepted, declined, denied) -->
+          <div v-for="group in nonPendingRegistrations" :key="group.status" class="space-y-2">
             <h4 class="text-xs font-semibold uppercase text-(--text-muted) pt-1">{{ statusLabel(group.status) }}</h4>
             <NeutralContainer v-for="reg in group.entries" :key="reg.id" class="flex items-center justify-between">
-              <div>
-                <MemberName :name="reg.memberName"/>
-                <span v-if="reg.eventDate" class="ml-2 text-xs text-(--text-muted)">{{ formatDate(reg.eventDate) }}</span>
-                <span v-if="reg.createdByName" class="ml-2 text-xs text-(--text-muted) italic">
-                  {{ t('common.createdBy', { name: reg.createdByName }) }}
-                </span>
-              </div>
-              <div class="flex items-center gap-2">
-                <template v-if="canManageEvents() && event.requiresConfirmation && reg.status === RegistrationStatus.PENDING">
-                  <PrimaryButton @click="acceptRegistration(reg.id)">
-                    <font-awesome-icon :icon="['fas', 'check']" class="mr-1"/>
-                    {{ t('eventsRegistrations.accept') }}
-                  </PrimaryButton>
-                  <ErrorButton @click="denyRegistration(reg.id)">
-                    <font-awesome-icon :icon="['fas', 'xmark']" class="mr-1"/>
-                    {{ t('eventsRegistrations.deny') }}
-                  </ErrorButton>
-                </template>
-              </div>
+              <MemberName :name="reg.memberName" :member-id="reg.memberId"/>
+              <span v-if="reg.eventDate" class="text-xs text-(--text-muted)">{{ formatDate(reg.eventDate) }}</span>
             </NeutralContainer>
           </div>
         </NeutralContainer>

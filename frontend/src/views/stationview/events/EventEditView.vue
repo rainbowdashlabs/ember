@@ -10,21 +10,18 @@ import {useRoute, useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import DeleteButton from '@/components/button/DeleteButton.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
-import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
-import DateTimeInput from '@/components/input/datetime/DateTimeInput.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
-import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
-import type {AttendanceTemplate, AttendanceTemplateField, EventCategory, MemberGroup, Role, UserTag} from '@/api/types'
-import {Roles, EventTypes, needsDayOfWeek} from '@/api/types'
+import type {AttendanceTemplate, AttendanceTemplateField, EventCategory, EventFieldEntry, MemberGroup, Role, StationMember, UserTag} from '@/api/types'
+import {EventTypes, needsDayOfWeek} from '@/api/types'
 import type {EventFieldDefault} from '@/api/events'
 import {attendance, events, memberGroups, stationMembers, userTags} from '@/api'
+import EventFormPanel from './eventshared/EventFormPanel.vue'
 import {useSession} from '@/composables/useSession'
 
 const {t} = useI18n()
@@ -41,11 +38,13 @@ const roles = ref<Role[]>([])
 const groups = ref<MemberGroup[]>([])
 const tags = ref<UserTag[]>([])
 const allTemplateFields = ref<AttendanceTemplateField[]>([])
+const allMembers = ref<StationMember[]>([])
+const groupMembersMap = ref(new Map<number, StationMember[]>())
 const eventRoleIds = ref<number[]>([])
 const eventGroupIds = ref<number[]>([])
 const eventTagIds = ref<number[]>([])
 const eventFieldDefaults = ref<EventFieldDefault[]>([])
-const eventCustomFields = ref<{ name: string; value: string }[]>([])
+const eventCustomFields = ref<EventFieldEntry[]>([])
 
 const loading = ref(true)
 const saving = ref(false)
@@ -54,7 +53,7 @@ const error = ref('')
 // Form state
 const eventName = ref('')
 const eventDescription = ref('')
-const eventType = ref<string>(EventTypes.RECURRING)
+const eventType = ref<string>(EventTypes.ONE_TIME)
 const eventDayOfWeek = ref('1')
 const eventStartTime = ref('')
 const eventEndTime = ref('')
@@ -64,9 +63,10 @@ const eventRequiresRegistration = ref(false)
 const eventHasDeadline = ref(false)
 const eventRegistrationDeadline = ref('')
 const eventRequiresConfirmation = ref(false)
-const selectedRoleIds = ref<Set<number>>(new Set())
-const selectedGroupIds = ref<Set<number>>(new Set())
-const selectedTagIds = ref<Set<number>>(new Set())
+const selectedRoleIds = ref<number[]>([])
+const selectedGroupIds = ref<number[]>([])
+const selectedTagIds = ref<number[]>([])
+const restrictionMode = ref<'AND' | 'OR'>('AND')
 const fieldDefaults = ref<Map<number, { source: string; value: string }>>(new Map())
 
 function toLocalDateTime(iso: string): string {
@@ -79,18 +79,28 @@ async function loadData() {
   loading.value = true
   error.value = ''
   try {
-    const [cats, tpl, allRoles, allGroups, allTags] = await Promise.all([
+    const [cats, tpl, allRoles, allGroups, allTags, members] = await Promise.all([
       events.listCategories(),
       attendance.listTemplates(),
       stationMembers.listAllRoles(),
       memberGroups.listGroups(),
       userTags.listTags(),
+      stationMembers.listMembers(),
     ])
     categories.value = cats
     templates.value = tpl
     roles.value = allRoles
     groups.value = allGroups
     tags.value = allTags
+    allMembers.value = members
+
+    // Build group members map
+    const gMap = new Map<number, StationMember[]>()
+    for (const g of allGroups) {
+      const gMembers = await memberGroups.getGroupMembers(g.id)
+      gMap.set(g.id, gMembers)
+    }
+    groupMembersMap.value = gMap
 
     const fieldResults = await Promise.all(tpl.map(t => attendance.listTemplateFields(t.id)))
     allTemplateFields.value = fieldResults.flat()
@@ -103,7 +113,14 @@ async function loadData() {
         events.getEventFields(eventId.value!),
       ])
 
-      eventCustomFields.value = fields.map(f => ({name: f.name ?? '', value: f.value ?? ''}))
+      eventCustomFields.value = fields.map(f => ({
+        name: f.name ?? '',
+        fieldType: f.fieldType ?? 'string',
+        config: f.config ?? '{}',
+        value: f.value ?? '',
+        overview: f.overview ?? false,
+        attendanceFieldId: f.attendanceFieldId ?? null,
+      }))
 
       eventName.value = ev.name ?? ''
       eventDescription.value = ev.description ?? ''
@@ -121,9 +138,10 @@ async function loadData() {
       eventRoleIds.value = restrictions.roleIds ?? []
       eventGroupIds.value = restrictions.groupIds ?? []
       eventTagIds.value = restrictions.tagIds ?? []
-      selectedRoleIds.value = new Set(eventRoleIds.value)
-      selectedGroupIds.value = new Set(eventGroupIds.value)
-      selectedTagIds.value = new Set(eventTagIds.value)
+      selectedRoleIds.value = [...eventRoleIds.value]
+      selectedGroupIds.value = [...eventGroupIds.value]
+      selectedTagIds.value = [...eventTagIds.value]
+      restrictionMode.value = (restrictions.mode as 'AND' | 'OR') ?? 'AND'
 
       const fdMap = new Map<number, { source: string; value: string }>()
       for (const fd of defaults) {
@@ -137,34 +155,6 @@ async function loadData() {
   } finally {
     loading.value = false
   }
-}
-
-const RESTRICTION_ROLES = [Roles.MEMBER, Roles.GUARDIAN, Roles.TEAM] as readonly string[]
-
-const roleFriendlyNames: Record<string, string> = {
-  MEMBER: 'Mitglied', GUARDIAN: 'Erziehungsberechtigter', TEAM: 'Team',
-}
-
-const restrictionRoles = computed(() =>
-    roles.value.filter(r => RESTRICTION_ROLES.includes(r.role))
-)
-
-function toggleRole(roleId: number) {
-  const s = new Set(selectedRoleIds.value)
-  if (s.has(roleId)) s.delete(roleId); else s.add(roleId)
-  selectedRoleIds.value = s
-}
-
-function toggleGroup(groupId: number) {
-  const s = new Set(selectedGroupIds.value)
-  if (s.has(groupId)) s.delete(groupId); else s.add(groupId)
-  selectedGroupIds.value = s
-}
-
-function toggleTag(tagId: number) {
-  const s = new Set(selectedTagIds.value)
-  if (s.has(tagId)) s.delete(tagId); else s.add(tagId)
-  selectedTagIds.value = s
 }
 
 const EVENT_SOURCES = [
@@ -201,13 +191,6 @@ function setFieldDefaultValue(fieldId: number, value: string) {
   fieldDefaults.value = m
 }
 
-function addCustomField() {
-  eventCustomFields.value.push({name: '', value: ''})
-}
-
-function removeCustomField(index: number) {
-  eventCustomFields.value.splice(index, 1)
-}
 
 async function submit() {
   saving.value = true
@@ -230,9 +213,9 @@ async function submit() {
       registrationDeadline: eventHasDeadline.value && eventRegistrationDeadline.value
           ? new Date(eventRegistrationDeadline.value).toISOString() : undefined,
       requiresConfirmation: eventRequiresConfirmation.value,
-      restrictedRoleIds: [...selectedRoleIds.value],
-      restrictedGroupIds: [...selectedGroupIds.value],
-      restrictedTagIds: [...selectedTagIds.value],
+      restrictedRoleIds: selectedRoleIds.value,
+      restrictedGroupIds: selectedGroupIds.value,
+      restrictedTagIds: selectedTagIds.value,
     }
 
     let savedEventId: number
@@ -276,8 +259,7 @@ watch(loaded, (isLoaded) => {
   <ViewContent>
     <div class="space-y-6">
       <div class="flex items-center justify-between">
-        <SecondaryButton @click="goBack">
-          <font-awesome-icon :icon="['fas', 'chevron-left']" class="mr-2"/>
+        <SecondaryButton :icon="['fas', 'chevron-left']" @click="goBack">
           {{ t('common.back') }}
         </SecondaryButton>
       </div>
@@ -288,199 +270,63 @@ watch(loaded, (isLoaded) => {
       <template v-if="!loading">
         <SectionHeader>{{ isEdit ? t('events.editEvent') : t('events.addEvent') }}</SectionHeader>
 
-        <NeutralContainer class="space-y-4">
-          <SubHeader>{{ t('events.general') }}</SubHeader>
-
-          <div class="space-y-1">
-            <label class="block text-sm font-medium">{{ t('events.name') }}</label>
-            <TextInput v-model="eventName" :placeholder="t('events.namePlaceholder')"/>
-          </div>
-
-          <div class="space-y-1">
-            <label class="block text-sm font-medium">{{ t('events.description') }}</label>
-            <TextInput v-model="eventDescription" :placeholder="t('events.descriptionPlaceholder')"/>
-          </div>
-
-          <div class="space-y-1">
-            <label class="block text-sm font-medium">{{ t('events.type') }}</label>
-            <SelectInput v-model="eventType">
-              <option :value="EventTypes.RECURRING">{{ t('events.typeRecurring') }}</option>
-              <option :value="EventTypes.MONTHLY_FIRST">{{ t('events.typeMonthlyFirst') }}</option>
-              <option :value="EventTypes.QUARTERLY">{{ t('events.typeQuarterly') }}</option>
-              <option :value="EventTypes.YEARLY">{{ t('events.typeYearly') }}</option>
-              <option :value="EventTypes.ONE_TIME">{{ t('events.typeOneTime') }}</option>
-            </SelectInput>
-          </div>
-
-          <div v-if="needsDayOfWeek(eventType)" class="space-y-1">
-            <label class="block text-sm font-medium">{{ t('events.dayOfWeek') }}</label>
-            <SelectInput v-model="eventDayOfWeek">
-              <option value="1">Montag</option>
-              <option value="2">Dienstag</option>
-              <option value="3">Mittwoch</option>
-              <option value="4">Donnerstag</option>
-              <option value="5">Freitag</option>
-              <option value="6">Samstag</option>
-              <option value="7">Sonntag</option>
-            </SelectInput>
-          </div>
-
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div class="space-y-1">
-              <label class="block text-sm font-medium">{{ t('events.startTime') }}</label>
-              <DateTimeInput v-model="eventStartTime"/>
-            </div>
-            <div class="space-y-1">
-              <label class="block text-sm font-medium">{{ t('events.endTime') }}</label>
-              <DateTimeInput v-model="eventEndTime"/>
-            </div>
-          </div>
-
-          <div class="space-y-1">
-            <label class="block text-sm font-medium">{{ t('events.category') }}</label>
-            <SelectInput v-model="eventCategoryId">
-              <option value="">{{ t('events.noCategory') }}</option>
-              <option v-for="cat in categories" :key="cat.id" :value="String(cat.id)">{{ cat.name }}</option>
-            </SelectInput>
-          </div>
+        <NeutralContainer>
+          <EventFormPanel
+              v-model:name="eventName"
+              v-model:description="eventDescription"
+              v-model:category-id="eventCategoryId"
+              v-model:template-id="eventTemplateId"
+              v-model:event-type="eventType"
+              v-model:day-of-week="eventDayOfWeek"
+              v-model:start-time="eventStartTime"
+              v-model:end-time="eventEndTime"
+              v-model:requires-registration="eventRequiresRegistration"
+              v-model:requires-confirmation="eventRequiresConfirmation"
+              v-model:has-deadline="eventHasDeadline"
+              v-model:registration-deadline="eventRegistrationDeadline"
+              v-model:selected-role-ids="selectedRoleIds"
+              v-model:selected-group-ids="selectedGroupIds"
+              v-model:selected-tag-ids="selectedTagIds"
+              v-model:fields="eventCustomFields"
+              :categories="categories"
+              :templates="templates"
+              :attendance-fields="allTemplateFields"
+              :roles="roles"
+              :groups="groups"
+              :tags="tags"
+              :all-members="allMembers"
+              :group-members="groupMembersMap"
+              show-schedule
+              show-value
+          />
         </NeutralContainer>
 
-        <NeutralContainer class="space-y-4">
-          <div class="flex items-center justify-between">
-            <SubHeader>{{ t('events.eventFields') }}</SubHeader>
-            <SecondaryButton @click="addCustomField">
-              <font-awesome-icon :icon="['fas', 'plus']" class="mr-1"/>
-              {{ t('events.addField') }}
-            </SecondaryButton>
-          </div>
-          <p class="text-xs text-(--text-muted)">{{ t('events.eventFieldsHint') }}</p>
-          <div v-if="eventCustomFields.length === 0" class="text-sm text-(--text-muted) py-2">
-            {{ t('events.noFields') }}
-          </div>
-          <div v-for="(field, index) in eventCustomFields" :key="index"
-               class="flex items-start gap-2">
-            <div class="flex-1 grid gap-2 sm:grid-cols-2">
-              <TextInput v-model="field.name" :placeholder="t('events.fieldNamePlaceholder')"/>
-              <TextInput v-model="field.value" :placeholder="t('events.fieldValuePlaceholder')"/>
-            </div>
-            <DeleteButton class="mt-1" @click="removeCustomField(index)"/>
-          </div>
-        </NeutralContainer>
-
-        <NeutralContainer class="space-y-4">
-          <SubHeader>{{ t('events.template') }}</SubHeader>
-
-          <div class="space-y-1">
-            <SelectInput v-model="eventTemplateId">
-              <option value="">{{ t('events.noTemplate') }}</option>
-              <option v-for="tpl in templates" :key="tpl.id" :value="String(tpl.id)">{{ tpl.name }}</option>
-            </SelectInput>
-            <p class="text-xs text-(--text-muted)">{{ t('events.templateHint') }}</p>
-          </div>
-
-          <div v-if="currentTemplateFields.length > 0" class="space-y-3">
-            <label class="block text-sm font-medium">{{ t('events.fieldDefaults') }}</label>
-            <p class="text-xs text-(--text-muted)">{{ t('events.fieldDefaultsHint') }}</p>
-            <div class="space-y-2">
-              <div v-for="field in currentTemplateFields" :key="field.id"
-                   class="rounded-lg px-3 py-2 bg-bg-light-accent/20 dark:bg-bg-dark-accent/20 space-y-2">
-                <div class="text-sm font-medium">{{ field.name }} <span
-                    class="text-xs text-(--text-muted)">({{ field.fieldType }})</span></div>
-                <div class="grid gap-2 sm:grid-cols-2">
-                  <SelectInput
-                      :model-value="getFieldDefault(field.id).source"
-                      @update:model-value="setFieldDefaultSource(field.id, $event ?? '')"
-                  >
-                    <option value="">{{ t('events.noDefault') }}</option>
-                    <option value="VALUE">{{ t('events.staticValue') }}</option>
-                    <option v-for="src in EVENT_SOURCES" :key="src.value" :value="src.value">{{ src.label }}</option>
-                  </SelectInput>
-                  <TextInput
-                      v-if="getFieldDefault(field.id).source === 'VALUE'"
-                      :model-value="getFieldDefault(field.id).value"
-                      :placeholder="t('events.defaultValuePlaceholder')"
-                      @update:model-value="setFieldDefaultValue(field.id, $event ?? '')"
-                  />
-                </div>
+        <NeutralContainer v-if="currentTemplateFields.length > 0" class="space-y-4">
+          <SubHeader>{{ t('events.fieldDefaults') }}</SubHeader>
+          <p class="text-xs text-(--text-muted)">{{ t('events.fieldDefaultsHint') }}</p>
+          <div class="space-y-2">
+            <div v-for="field in currentTemplateFields" :key="field.id"
+                 class="rounded-lg px-3 py-2 bg-bg-light-accent/20 dark:bg-bg-dark-accent/20 space-y-2">
+              <div class="text-sm font-medium">{{ field.name }} <span
+                  class="text-xs text-(--text-muted)">({{ field.fieldType }})</span></div>
+              <div class="grid gap-2 sm:grid-cols-2">
+                <SelectInput
+                    :model-value="getFieldDefault(field.id).source"
+                    @update:model-value="setFieldDefaultSource(field.id, $event ?? '')"
+                >
+                  <option value="">{{ t('events.noDefault') }}</option>
+                  <option value="VALUE">{{ t('events.staticValue') }}</option>
+                  <option v-for="src in EVENT_SOURCES" :key="src.value" :value="src.value">{{ src.label }}</option>
+                </SelectInput>
+                <TextInput
+                    v-if="getFieldDefault(field.id).source === 'VALUE'"
+                    :model-value="getFieldDefault(field.id).value"
+                    :placeholder="t('events.defaultValuePlaceholder')"
+                    @update:model-value="setFieldDefaultValue(field.id, $event ?? '')"
+                />
               </div>
             </div>
           </div>
-        </NeutralContainer>
-
-        <NeutralContainer class="space-y-4">
-          <SubHeader>{{ t('events.registration') }}</SubHeader>
-
-          <div class="flex items-center justify-between">
-            <label class="text-sm font-medium">{{ t('events.requiresRegistration') }}</label>
-            <ToggleInput v-model="eventRequiresRegistration"/>
-          </div>
-
-          <template v-if="eventRequiresRegistration">
-            <div class="flex items-center justify-between">
-              <label class="text-sm font-medium">{{ t('events.requiresConfirmation') }}</label>
-              <ToggleInput v-model="eventRequiresConfirmation"/>
-            </div>
-            <p class="text-xs text-(--text-muted)">{{ t('events.requiresConfirmationHint') }}</p>
-
-            <div class="flex items-center justify-between">
-              <label class="text-sm font-medium">{{ t('events.hasDeadline') }}</label>
-              <ToggleInput v-model="eventHasDeadline"/>
-            </div>
-
-            <div v-if="eventHasDeadline" class="space-y-1">
-              <label class="block text-sm font-medium">{{ t('events.registrationDeadline') }}</label>
-              <DateTimeInput v-model="eventRegistrationDeadline"/>
-            </div>
-          </template>
-        </NeutralContainer>
-
-        <NeutralContainer class="space-y-4">
-          <SubHeader>{{ t('events.restrictions') }}</SubHeader>
-
-          <div class="space-y-2">
-            <label class="block text-sm font-medium">{{ t('events.restrictToRoles') }}</label>
-            <p class="text-xs text-(--text-muted)">{{ t('events.restrictToRolesHint') }}</p>
-            <div class="flex flex-wrap gap-2">
-              <SelectionToggleButton
-                  v-for="role in restrictionRoles"
-                  :key="role.id"
-                  :selected="selectedRoleIds.has(role.id)"
-                  @toggle="toggleRole(role.id)"
-              >
-                {{ roleFriendlyNames[role.role] ?? role.role }}
-              </SelectionToggleButton>
-            </div>
-          </div>
-
-          <div v-if="groups.length > 0" class="space-y-2">
-            <label class="block text-sm font-medium">{{ t('events.restrictToGroups') }}</label>
-            <div class="flex flex-wrap gap-2">
-              <SelectionToggleButton
-                  v-for="group in groups"
-                  :key="group.id"
-                  :selected="selectedGroupIds.has(group.id)"
-                  @toggle="toggleGroup(group.id)"
-              >
-                {{ group.name }}
-              </SelectionToggleButton>
-            </div>
-          </div>
-
-          <div v-if="tags.length > 0" class="space-y-2">
-            <label class="block text-sm font-medium">{{ t('events.restrictToTags') }}</label>
-            <div class="flex flex-wrap gap-2">
-              <SelectionToggleButton
-                  v-for="tag in tags"
-                  :key="tag.id"
-                  :selected="selectedTagIds.has(tag.id)"
-                  @toggle="toggleTag(tag.id)"
-              >
-                {{ tag.name }}
-              </SelectionToggleButton>
-            </div>
-          </div>
-
-          <p class="text-xs text-(--text-muted)">{{ t('events.restrictionsAndHint') }}</p>
         </NeutralContainer>
 
         <div class="flex justify-end gap-3">

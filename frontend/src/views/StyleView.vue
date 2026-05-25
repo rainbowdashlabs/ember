@@ -11,7 +11,6 @@ import ThemePicker from '@/components/theme/ThemePicker.vue'
 
 import PageHeader from '@/components/typography/PageHeader.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
-import SubHeader from '@/components/typography/SubHeader.vue'
 
 import PrimaryContainer from '@/components/container/PrimaryContainer.vue'
 import SecondaryContainer from '@/components/container/SecondaryContainer.vue'
@@ -19,28 +18,21 @@ import SuccessContainer from '@/components/container/SuccessContainer.vue'
 import ErrorContainer from '@/components/container/ErrorContainer.vue'
 import InfoContainer from '@/components/container/InfoContainer.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
+
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SuccessButton from '@/components/button/SuccessButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import InfoButton from '@/components/button/InfoButton.vue'
-
+import LinkButton from '@/components/button/LinkButton.vue'
+import IconButton from '@/components/button/IconButton.vue'
 import DownloadButton from '@/components/button/DownloadButton.vue'
 import UploadButton from '@/components/button/UploadButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import ConfirmButton from '@/components/button/ConfirmButton.vue'
 import EditButton from '@/components/button/EditButton.vue'
-
-import TextInput from '@/components/input/text/TextInput.vue'
-import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
-import NumberInput from '@/components/input/number/NumberInput.vue'
-import DecimalInput from '@/components/input/number/DecimalInput.vue'
-import SliderInput from '@/components/input/number/SliderInput.vue'
-import DateInput from '@/components/input/datetime/DateInput.vue'
-import TimeInput from '@/components/input/datetime/TimeInput.vue'
-import TimeShortInput from '@/components/input/datetime/TimeShortInput.vue'
-import SelectInput from '@/components/input/select/SelectInput.vue'
-import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
+import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
+import DropdownMenuItem from '@/components/button/DropdownMenuItem.vue'
 
 import PrimaryBadge from '@/components/badge/PrimaryBadge.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
@@ -49,201 +41,117 @@ import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import SizeBadge from '@/components/badge/SizeBadge.vue'
 
-import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
-import DropdownMenuItem from '@/components/button/DropdownMenuItem.vue'
-import ProgressBar from '@/components/feedback/ProgressBar.vue'
-import Spinner from '@/components/feedback/Spinner.vue'
-import Alert from '@/components/feedback/Alert.vue'
-import Modal from '@/components/feedback/Modal.vue'
+import THead from '@/components/table/THead.vue'
+import TRow from '@/components/table/TRow.vue'
+import Th from '@/components/table/Th.vue'
+import Td from '@/components/table/Td.vue'
 
-const textValue = ref('')
-const textAreaValue = ref('')
-const numberValue = ref(0)
-const decimalValue = ref(0)
-const sliderValue = ref(50)
-const dateValue = ref('')
-const timeValue = ref('')
-const timeShortValue = ref('')
-const selectValue = ref('option1')
-const toggleValue = ref(false)
-const modalOpen = ref(false)
+import StyleTypography from '@/views/styleview/StyleTypography.vue'
+import StyleInputs from '@/views/styleview/StyleInputs.vue'
+import StyleFeedback from '@/views/styleview/StyleFeedback.vue'
+
 const toggleStates = ref(new Set([1, 3]))
 </script>
 
 <template>
   <div class="max-w-3xl mx-auto px-4 py-6 sm:px-8 sm:py-8 space-y-10 sm:space-y-12">
-    <div class="flex items-center justify-between">
-      <PageHeader>Style Guide</PageHeader>
-      <ThemeToggle/>
+    <!-- Theme Picker at top -->
+    <div class="space-y-4">
+      <div class="flex items-center justify-between">
+        <PageHeader>Style Guide</PageHeader>
+        <ThemeToggle/>
+      </div>
+      <ThemePicker/>
     </div>
 
-    <!-- Typography -->
-    <section class="space-y-4">
-      <SectionHeader>Typography</SectionHeader>
-      <div class="space-y-2">
-        <PageHeader>Page Header</PageHeader>
-        <SectionHeader>Section Header</SectionHeader>
-        <SubHeader>Sub Header</SubHeader>
-      </div>
-    </section>
+    <StyleTypography/>
 
     <!-- Buttons -->
     <section class="space-y-4">
       <SectionHeader>Buttons</SectionHeader>
-      <div class="flex flex-wrap gap-3 items-center">
+      <div class="flex flex-wrap gap-2 items-center">
         <PrimaryButton>Primary</PrimaryButton>
         <SecondaryButton>Secondary</SecondaryButton>
         <SuccessButton>Success</SuccessButton>
         <ErrorButton>Error</ErrorButton>
         <InfoButton>Info</InfoButton>
       </div>
-      <div class="flex flex-wrap gap-3 items-center">
-        <PrimaryButton disabled>Primary</PrimaryButton>
-        <SecondaryButton disabled>Secondary</SecondaryButton>
-        <SuccessButton disabled>Success</SuccessButton>
-        <ErrorButton disabled>Error</ErrorButton>
-        <InfoButton disabled>Info</InfoButton>
+      <div class="flex flex-wrap gap-2 items-center">
+        <PrimaryButton :icon="['fas', 'plus']">With Icon</PrimaryButton>
+        <SecondaryButton :icon="['fas', 'download']">Download</SecondaryButton>
+        <SuccessButton :icon="['fas', 'check']">Confirm</SuccessButton>
+        <ErrorButton :icon="['fas', 'trash']">Delete</ErrorButton>
       </div>
-      <p class="text-sm text-[var(--text-muted)]">Second row: disabled state</p>
+      <div class="flex flex-wrap gap-2 items-center">
+        <PrimaryButton compact>Compact</PrimaryButton>
+        <SecondaryButton compact>Compact</SecondaryButton>
+        <SuccessButton compact>Compact</SuccessButton>
+      </div>
+      <div class="flex flex-wrap gap-2 items-center">
+        <PrimaryButton disabled>Disabled</PrimaryButton>
+        <SecondaryButton disabled>Disabled</SecondaryButton>
+        <SuccessButton disabled>Disabled</SuccessButton>
+        <ErrorButton disabled>Disabled</ErrorButton>
+        <InfoButton disabled>Disabled</InfoButton>
+      </div>
+      <div class="flex flex-wrap gap-2 items-center">
+        <LinkButton>Link Button</LinkButton>
+        <LinkButton disabled>Link (disabled)</LinkButton>
+      </div>
     </section>
 
     <!-- Icon Buttons -->
     <section class="space-y-4">
       <SectionHeader>Icon Buttons</SectionHeader>
-      <div class="flex flex-wrap gap-3 items-center">
+      <div class="flex flex-wrap gap-2 items-center">
+        <IconButton :icon="['fas', 'gear']" label="Settings"/>
         <DownloadButton/>
         <UploadButton/>
         <DeleteButton/>
         <ConfirmButton/>
         <EditButton/>
       </div>
-      <div class="flex flex-wrap gap-3 items-center">
+      <div class="flex flex-wrap gap-2 items-center">
+        <IconButton :icon="['fas', 'gear']" label="Settings" disabled/>
         <DownloadButton disabled/>
         <UploadButton disabled/>
         <DeleteButton disabled/>
         <ConfirmButton disabled/>
         <EditButton disabled/>
       </div>
-      <p class="text-sm text-[var(--text-muted)]">Second row: disabled state</p>
     </section>
 
-    <!-- Text Inputs -->
+    <!-- Selection Toggle & Dropdown -->
     <section class="space-y-4">
-      <SectionHeader>Text Inputs</SectionHeader>
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div class="space-y-1">
-          <label class="text-sm font-medium">Text</label>
-          <TextInput v-model="textValue" placeholder="Enter text..."/>
-        </div>
-        <div class="space-y-1">
-          <label class="text-sm font-medium">Text (disabled)</label>
-          <TextInput disabled placeholder="Disabled"/>
-        </div>
-      </div>
-      <div class="space-y-1">
-        <label class="text-sm font-medium">Text Area</label>
-        <TextAreaInput v-model="textAreaValue" placeholder="Enter longer text..."/>
-      </div>
-      <div class="space-y-1">
-        <label class="text-sm font-medium">Text Area (disabled)</label>
-        <TextAreaInput :rows="2" disabled placeholder="Disabled"/>
+      <SectionHeader>Selection Toggle Buttons</SectionHeader>
+      <div class="flex flex-wrap gap-2">
+        <SelectionToggleButton
+            v-for="i in 5"
+            :key="i"
+            :selected="toggleStates.has(i)"
+            @toggle="toggleStates.has(i) ? toggleStates.delete(i) : toggleStates.add(i)"
+        >
+          Option {{ i }}
+        </SelectionToggleButton>
       </div>
     </section>
 
-    <!-- Number Inputs -->
     <section class="space-y-4">
-      <SectionHeader>Number Inputs</SectionHeader>
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div class="space-y-1">
-          <label class="text-sm font-medium">Number (integer)</label>
-          <NumberInput v-model="numberValue" placeholder="Enter number..."/>
-        </div>
-        <div class="space-y-1">
-          <label class="text-sm font-medium">Decimal</label>
-          <DecimalInput v-model="decimalValue" placeholder="Enter decimal..."/>
-        </div>
-        <div class="space-y-1">
-          <label class="text-sm font-medium">Number (disabled)</label>
-          <NumberInput disabled/>
-        </div>
-      </div>
-      <div class="space-y-1">
-        <label class="text-sm font-medium">Slider</label>
-        <SliderInput v-model="sliderValue"/>
-      </div>
-      <div class="space-y-1">
-        <label class="text-sm font-medium">Slider (with input)</label>
-        <SliderInput v-model="sliderValue" show-input/>
-      </div>
-      <div class="space-y-1">
-        <label class="text-sm font-medium">Slider (disabled)</label>
-        <SliderInput :model-value="40" disabled/>
-      </div>
+      <SectionHeader>Dropdown Menu Items</SectionHeader>
+      <NeutralContainer class="p-0! max-w-xs overflow-hidden">
+        <DropdownMenuItem :icon="['fas', 'folder']" icon-class="text-(--accent)">Neuer Ordner</DropdownMenuItem>
+        <DropdownMenuItem :icon="['fas', 'file-lines']">Neue Datei</DropdownMenuItem>
+        <DropdownMenuItem :icon="['fas', 'upload']">Hochladen</DropdownMenuItem>
+        <DropdownMenuItem :icon="['fab', 'youtube']" icon-class="text-red-600">YouTube</DropdownMenuItem>
+      </NeutralContainer>
     </section>
 
-    <!-- Date & Time Inputs -->
-    <section class="space-y-4">
-      <SectionHeader>Date & Time Inputs</SectionHeader>
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div class="space-y-1">
-          <label class="text-sm font-medium">Date</label>
-          <DateInput v-model="dateValue"/>
-        </div>
-        <div class="space-y-1">
-          <label class="text-sm font-medium">Time</label>
-          <TimeInput v-model="timeValue"/>
-        </div>
-        <div class="space-y-1">
-          <label class="text-sm font-medium">Time (no seconds)</label>
-          <TimeShortInput v-model="timeShortValue"/>
-        </div>
-      </div>
-    </section>
-
-    <!-- Select -->
-    <section class="space-y-4">
-      <SectionHeader>Select</SectionHeader>
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div class="space-y-1">
-          <label class="text-sm font-medium">Select</label>
-          <SelectInput v-model="selectValue">
-            <option value="option1">Option 1</option>
-            <option value="option2">Option 2</option>
-            <option value="option3">Option 3</option>
-          </SelectInput>
-        </div>
-        <div class="space-y-1">
-          <label class="text-sm font-medium">Select (disabled)</label>
-          <SelectInput disabled>
-            <option>Disabled</option>
-          </SelectInput>
-        </div>
-      </div>
-    </section>
-
-    <!-- Toggle -->
-    <section class="space-y-4">
-      <SectionHeader>Toggle</SectionHeader>
-      <div class="flex flex-wrap items-center gap-4 sm:gap-6">
-        <div class="flex items-center gap-2">
-          <ToggleInput v-model="toggleValue"/>
-          <span class="text-sm">{{ toggleValue ? 'On' : 'Off' }}</span>
-        </div>
-        <div class="flex items-center gap-2">
-          <ToggleInput disabled/>
-          <span class="text-sm text-[var(--text-muted)]">Disabled (off)</span>
-        </div>
-        <div class="flex items-center gap-2">
-          <ToggleInput :model-value="true" disabled/>
-          <span class="text-sm text-[var(--text-muted)]">Disabled (on)</span>
-        </div>
-      </div>
-    </section>
+    <StyleInputs/>
 
     <!-- Badges -->
     <section class="space-y-4">
       <SectionHeader>Badges</SectionHeader>
-      <div class="flex flex-wrap gap-3 items-center">
+      <div class="flex flex-wrap gap-2 items-center">
         <PrimaryBadge>Primary</PrimaryBadge>
         <SecondaryBadge>Secondary</SecondaryBadge>
         <SuccessBadge>Success</SuccessBadge>
@@ -267,95 +175,37 @@ const toggleStates = ref(new Set([1, 3]))
       </div>
     </section>
 
-    <!-- Progress Bars -->
+    <!-- Table -->
     <section class="space-y-4">
-      <SectionHeader>Progress Bar</SectionHeader>
-      <div class="space-y-3">
-        <ProgressBar :value="75"/>
-        <ProgressBar :value="50" variant="secondary"/>
-        <ProgressBar :value="100" variant="success"/>
-        <ProgressBar :value="30" variant="error"/>
-        <ProgressBar :value="60" variant="info"/>
-      </div>
-    </section>
-
-    <!-- Alerts -->
-    <section class="space-y-4">
-      <SectionHeader>Alerts</SectionHeader>
-      <div class="space-y-3">
-        <Alert variant="info">This is an informational message.</Alert>
-        <Alert variant="success">Operation completed successfully.</Alert>
-        <Alert variant="error">Something went wrong. Please try again.</Alert>
-      </div>
-    </section>
-
-    <!-- Spinner -->
-    <section class="space-y-4">
-      <SectionHeader>Spinner</SectionHeader>
-      <div class="flex flex-wrap items-center gap-4 sm:gap-6">
-        <div class="flex items-center gap-2">
-          <Spinner size="sm"/>
-          <span class="text-sm">Small</span>
-        </div>
-        <div class="flex items-center gap-2">
-          <Spinner size="md"/>
-          <span class="text-sm">Medium</span>
-        </div>
-        <div class="flex items-center gap-2">
-          <Spinner size="lg"/>
-          <span class="text-sm">Large</span>
-        </div>
-      </div>
-    </section>
-
-    <!-- Modal -->
-    <section class="space-y-4">
-      <SectionHeader>Modal</SectionHeader>
-      <PrimaryButton @click="modalOpen = true">Open Modal</PrimaryButton>
-      <Modal v-model="modalOpen">
-        <SubHeader>Modal Title</SubHeader>
-        <p class="mt-2 text-sm text-[var(--text-muted)]">This is an example modal dialog with some content.</p>
-      </Modal>
-    </section>
-
-    <!-- Theme Toggle -->
-    <section class="space-y-4">
-      <SectionHeader>Theme Toggle</SectionHeader>
-      <div class="flex items-center gap-4">
-        <ThemeToggle/>
-        <span class="text-sm text-[var(--text-muted)]">Click to cycle system / light / dark</span>
-      </div>
-    </section>
-
-    <section class="space-y-4">
-      <SectionHeader>Theme Picker</SectionHeader>
-      <ThemePicker/>
-    </section>
-
-    <!-- Selection Toggle Buttons -->
-    <section class="space-y-4">
-      <SectionHeader>Selection Toggle Buttons</SectionHeader>
-      <div class="flex flex-wrap gap-2">
-        <SelectionToggleButton
-          v-for="i in 5"
-          :key="i"
-          :selected="toggleStates.has(i)"
-          @toggle="toggleStates.has(i) ? toggleStates.delete(i) : toggleStates.add(i)"
-        >
-          Option {{ i }}
-        </SelectionToggleButton>
-      </div>
-    </section>
-
-    <!-- Dropdown Menu Items -->
-    <section class="space-y-4">
-      <SectionHeader>Dropdown Menu Items</SectionHeader>
-      <NeutralContainer class="!p-0 max-w-xs overflow-hidden">
-        <DropdownMenuItem :icon="['fas', 'folder']" icon-class="text-[var(--accent)]">Neuer Ordner</DropdownMenuItem>
-        <DropdownMenuItem :icon="['fas', 'file-lines']">Neue Datei</DropdownMenuItem>
-        <DropdownMenuItem :icon="['fas', 'upload']">Hochladen</DropdownMenuItem>
-        <DropdownMenuItem :icon="['fab', 'youtube']" icon-class="text-red-600">YouTube</DropdownMenuItem>
+      <SectionHeader>Table</SectionHeader>
+      <NeutralContainer :padded="false" class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <THead>
+            <Th>Name</Th>
+            <Th>Role</Th>
+            <Th align="right">Score</Th>
+          </THead>
+          <tbody>
+            <TRow>
+              <Td>Alice</Td>
+              <Td>Admin</Td>
+              <Td align="right">95</Td>
+            </TRow>
+            <TRow>
+              <Td>Bob</Td>
+              <Td muted>Member</Td>
+              <Td align="right">72</Td>
+            </TRow>
+            <TRow>
+              <Td>Charlie</Td>
+              <Td muted>Guest</Td>
+              <Td align="right" muted>—</Td>
+            </TRow>
+          </tbody>
+        </table>
       </NeutralContainer>
     </section>
+
+    <StyleFeedback/>
   </div>
 </template>

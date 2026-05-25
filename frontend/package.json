@@ -5,7 +5,12 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vue-tsc -b && vite build",
+    "lint:conventions": "node scripts/lint-conventions.mjs",
+    "lint:helpcenter": "node scripts/lint-helpcenter.mjs",
+    "lint:icons": "node scripts/lint-icons.mjs",
+    "refactor": "python3 scripts/refactor.py",
+    "refactor:scan": "python3 scripts/refactor.py scan",
+    "build": "vue-tsc -b && node scripts/lint-icons.mjs && node scripts/lint-conventions.mjs && node scripts/lint-helpcenter.mjs && vite build",
     "preview": "vite preview"
   },
   "dependencies": {

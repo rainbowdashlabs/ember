@@ -11,8 +11,11 @@ import type {
     EventBreak,
     EventCategory,
     EventField,
+    EventLayout,
+    EventLayoutField,
     EventRequest,
     EventRestrictions,
+    LayoutFieldEntry,
     SetEventFieldsRequest,
     StationEvent
 } from './types'
@@ -243,5 +246,116 @@ export async function getEventFields(eventId: number): Promise<EventField[]> {
 
 export async function setEventFields(eventId: number, data: SetEventFieldsRequest): Promise<EventField[]> {
     const res = await client.put<EventField[]>(`/events/${eventId}/fields`, data)
+    return res.data
+}
+
+// -- Overview Fields --
+
+export async function getOverviewFields(): Promise<Record<number, EventField[]>> {
+    const res = await client.get<Record<number, EventField[]>>('/events/overview-fields')
+    return res.data
+}
+
+// -- Layouts --
+
+export async function listLayouts(): Promise<EventLayout[]> {
+    const res = await client.get<EventLayout[]>('/events/layouts')
+    return res.data
+}
+
+export async function createLayout(data: { name: string }): Promise<EventLayout> {
+    const res = await client.post<EventLayout>('/events/layouts', data)
+    return res.data
+}
+
+export async function getLayout(id: number): Promise<EventLayout> {
+    const res = await client.get<EventLayout>(`/events/layouts/${id}`)
+    return res.data
+}
+
+export async function updateLayout(id: number, data: { name: string }): Promise<EventLayout> {
+    const res = await client.put<EventLayout>(`/events/layouts/${id}`, data)
+    return res.data
+}
+
+export async function deleteLayout(id: number): Promise<void> {
+    await client.delete(`/events/layouts/${id}`)
+}
+
+export async function getLayoutFields(layoutId: number): Promise<EventLayoutField[]> {
+    const res = await client.get<EventLayoutField[]>(`/events/layouts/${layoutId}/fields`)
+    return res.data
+}
+
+export async function setLayoutFields(layoutId: number, data: { fields: LayoutFieldEntry[] }): Promise<EventLayoutField[]> {
+    const res = await client.put<EventLayoutField[]>(`/events/layouts/${layoutId}/fields`, data)
+    return res.data
+}
+
+// -- Batch Creation --
+
+export interface BatchRow {
+    name?: string
+    startTime: string
+    endTime: string
+    fieldValues?: Record<string, string>
+}
+
+export interface BatchCreateRequest {
+    name?: string
+    description?: string
+    templateId?: number | null
+    categoryId?: number | null
+    layoutId?: number | null
+    inlineFields?: LayoutFieldEntry[]
+    rows: BatchRow[]
+    requiresRegistration?: boolean
+    requiresConfirmation?: boolean
+    registrationDeadline?: string | null
+    restrictedRoleIds?: number[]
+    restrictedGroupIds?: number[]
+    restrictedTagIds?: number[]
+}
+
+export interface GenerateDatesRequest {
+    intervalType: string
+    dayOfWeek?: number
+    startDate: string
+    endDate: string
+    startTime?: string
+    endTime?: string
+    ignoreBreaks?: boolean
+}
+
+export async function generateDates(data: GenerateDatesRequest): Promise<BatchRow[]> {
+    const res = await client.post<BatchRow[]>('/events/batch/generate-dates', data)
+    return res.data
+}
+
+export async function createBatchEvents(data: BatchCreateRequest): Promise<StationEvent[]> {
+    const res = await client.post<StationEvent[]>('/events/batch', data)
+    return res.data
+}
+
+// -- Registration Stats --
+
+export interface MemberRegistrationStats {
+    memberId: number
+    memberName: string
+    registered: number
+    accepted: number
+    denied: number
+    declined: number
+    acceptRate: number
+    lastDenied?: string | null
+    priority: 'HIGH' | 'MEDIUM' | 'LOW' | 'NONE'
+    fairnessScore: number
+}
+
+export async function getRegistrationStats(eventId: number, categoryId?: number, months?: number): Promise<MemberRegistrationStats[]> {
+    const params: Record<string, string> = {}
+    if (categoryId != null) params.categoryId = String(categoryId)
+    if (months != null) params.months = String(months)
+    const res = await client.get<MemberRegistrationStats[]>(`/events/${eventId}/registration-stats`, {params})
     return res.data
 }

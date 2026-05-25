@@ -30,6 +30,8 @@ import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -39,11 +41,20 @@ import java.util.Map;
 
 @Singleton
 public class WaitingListRoutes implements Routes {
+    private static final Logger log = LoggerFactory.getLogger(WaitingListRoutes.class);
+
     private final WaitingListService service;
 
     @Inject
     public WaitingListRoutes(WaitingListService service) {
         this.service = service;
+    }
+
+    private void verifyListOwnership(int listId, UserSession session) {
+        var list = service.findById(listId).orElseThrow(NotFoundResponse::new);
+        if (list.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot access resources from another station");
+        }
     }
 
     @Override
@@ -56,47 +67,41 @@ public class WaitingListRoutes implements Routes {
         routes.post(prefix + "/public/waiting-list/entry/{token}/confirm", this::confirmInterest);
 
         // Management endpoints
-        routes.get(prefix + "/waiting-lists", this::listAll, Roles.WAITLIST_MANAGEMENT);
-        routes.post(prefix + "/waiting-lists", this::create, Roles.WAITLIST_MANAGEMENT);
-        routes.get(prefix + "/waiting-lists/{id}", this::getById, Roles.WAITLIST_MANAGEMENT);
-        routes.put(prefix + "/waiting-lists/{id}", this::update, Roles.WAITLIST_MANAGEMENT);
-        routes.delete(prefix + "/waiting-lists/{id}", this::deleteList, Roles.WAITLIST_MANAGEMENT);
-        routes.put(prefix + "/waiting-lists/{id}/visible-fields", this::updateVisibleFields, Roles.WAITLIST_MANAGEMENT);
+        routes.get(prefix + "/waiting-lists", this::listAll, Roles.WAITLIST_MANAGER);
+        routes.post(prefix + "/waiting-lists", this::create, Roles.WAITLIST_MANAGER);
+        routes.get(prefix + "/waiting-lists/{id}", this::getById, Roles.WAITLIST_MANAGER);
+        routes.put(prefix + "/waiting-lists/{id}", this::update, Roles.WAITLIST_MANAGER);
+        routes.delete(prefix + "/waiting-lists/{id}", this::deleteList, Roles.WAITLIST_MANAGER);
+        routes.put(prefix + "/waiting-lists/{id}/visible-fields", this::updateVisibleFields, Roles.WAITLIST_MANAGER);
 
         // Fields
-        routes.get(prefix + "/waiting-lists/{id}/fields", this::listFields, Roles.WAITLIST_MANAGEMENT);
-        routes.post(prefix + "/waiting-lists/{id}/fields", this::createField, Roles.WAITLIST_MANAGEMENT);
-        routes.put(prefix + "/waiting-lists/{id}/fields/{fieldId}", this::updateField, Roles.WAITLIST_MANAGEMENT);
-        routes.delete(prefix + "/waiting-lists/{id}/fields/{fieldId}", this::deleteField, Roles.WAITLIST_MANAGEMENT);
+        routes.get(prefix + "/waiting-lists/{id}/fields", this::listFields, Roles.WAITLIST_MANAGER);
+        routes.post(prefix + "/waiting-lists/{id}/fields", this::createField, Roles.WAITLIST_MANAGER);
+        routes.put(prefix + "/waiting-lists/{id}/fields/{fieldId}", this::updateField, Roles.WAITLIST_MANAGER);
+        routes.delete(prefix + "/waiting-lists/{id}/fields/{fieldId}", this::deleteField, Roles.WAITLIST_MANAGER);
 
         // Invites
-        routes.get(prefix + "/waiting-lists/{id}/invites", this::listInvites, Roles.WAITLIST_MANAGEMENT);
-        routes.post(prefix + "/waiting-lists/{id}/invites", this::createInvite, Roles.WAITLIST_MANAGEMENT);
-        routes.delete(prefix + "/waiting-lists/{id}/invites/{inviteId}", this::deleteInvite, Roles.WAITLIST_MANAGEMENT);
+        routes.get(prefix + "/waiting-lists/{id}/invites", this::listInvites, Roles.WAITLIST_MANAGER);
+        routes.post(prefix + "/waiting-lists/{id}/invites", this::createInvite, Roles.WAITLIST_MANAGER);
+        routes.delete(prefix + "/waiting-lists/{id}/invites/{inviteId}", this::deleteInvite, Roles.WAITLIST_MANAGER);
 
         // Entries
-        routes.get(prefix + "/waiting-lists/{id}/entries", this::listEntries, Roles.WAITLIST_MANAGEMENT);
-        routes.post(prefix + "/waiting-lists/{id}/entries", this::createEntry, Roles.WAITLIST_MANAGEMENT);
-        routes.put(prefix + "/waiting-lists/{id}/entries/{entryId}", this::updateEntry, Roles.WAITLIST_MANAGEMENT);
-        routes.delete(prefix + "/waiting-lists/{id}/entries/{entryId}", this::deleteEntry, Roles.WAITLIST_MANAGEMENT);
+        routes.get(prefix + "/waiting-lists/{id}/entries", this::listEntries, Roles.WAITLIST_MANAGER);
+        routes.post(prefix + "/waiting-lists/{id}/entries", this::createEntry, Roles.WAITLIST_MANAGER);
+        routes.put(prefix + "/waiting-lists/{id}/entries/{entryId}", this::updateEntry, Roles.WAITLIST_MANAGER);
+        routes.delete(prefix + "/waiting-lists/{id}/entries/{entryId}", this::deleteEntry, Roles.WAITLIST_MANAGER);
         routes.put(
                 prefix + "/waiting-lists/{id}/entries/{entryId}/created-at",
                 this::updateCreatedAt,
-                Roles.WAITLIST_MANAGEMENT);
+                Roles.WAITLIST_MANAGER);
 
         // State transitions
+        routes.post(prefix + "/waiting-lists/{id}/entries/{entryId}/invite", this::inviteEntry, Roles.WAITLIST_MANAGER);
         routes.post(
-                prefix + "/waiting-lists/{id}/entries/{entryId}/invite", this::inviteEntry, Roles.WAITLIST_MANAGEMENT);
+                prefix + "/waiting-lists/{id}/entries/{entryId}/testing", this::moveToTesting, Roles.WAITLIST_MANAGER);
+        routes.post(prefix + "/waiting-lists/{id}/entries/{entryId}/join", this::moveToJoined, Roles.WAITLIST_MANAGER);
         routes.post(
-                prefix + "/waiting-lists/{id}/entries/{entryId}/testing",
-                this::moveToTesting,
-                Roles.WAITLIST_MANAGEMENT);
-        routes.post(
-                prefix + "/waiting-lists/{id}/entries/{entryId}/join", this::moveToJoined, Roles.WAITLIST_MANAGEMENT);
-        routes.post(
-                prefix + "/waiting-lists/{id}/entries/{entryId}/withdraw",
-                this::withdrawEntry,
-                Roles.WAITLIST_MANAGEMENT);
+                prefix + "/waiting-lists/{id}/entries/{entryId}/withdraw", this::withdrawEntry, Roles.WAITLIST_MANAGER);
     }
 
     // --- Public ---
@@ -106,7 +111,7 @@ public class WaitingListRoutes implements Routes {
             methods = HttpMethod.GET,
             summary = "Get invite info and fields for registration",
             tags = {"Waiting List"},
-            pathParams = @OpenApiParam(name = "code", type = String.class, required = true))
+            pathParams = @OpenApiParam(name = "code", required = true))
     private void getInviteInfo(Context ctx) {
         String code = ctx.pathParam("code");
         var invite = service.findInviteByCode(code).orElseThrow(NotFoundResponse::new);
@@ -141,8 +146,10 @@ public class WaitingListRoutes implements Routes {
                     request.notes());
             ctx.status(HttpStatus.CREATED).json(new PublicEntryResponse(entry.accessToken()));
         } catch (IllegalArgumentException e) {
+            log.warn("Invalid argument registering via waiting list invite", e);
             throw new BadRequestResponse(e.getMessage());
         } catch (IllegalStateException e) {
+            log.warn("Invalid state registering via waiting list invite", e);
             throw new ForbiddenResponse(e.getMessage());
         }
     }
@@ -152,7 +159,7 @@ public class WaitingListRoutes implements Routes {
             methods = HttpMethod.GET,
             summary = "View waiting list entry by access token",
             tags = {"Waiting List"},
-            pathParams = @OpenApiParam(name = "token", type = String.class, required = true))
+            pathParams = @OpenApiParam(name = "token", required = true))
     private void getEntryByToken(Context ctx) {
         String token = ctx.pathParam("token");
         var entry = service.findEntryByToken(token).orElseThrow(NotFoundResponse::new);
@@ -181,7 +188,7 @@ public class WaitingListRoutes implements Routes {
             methods = HttpMethod.POST,
             summary = "Remove self from waiting list",
             tags = {"Waiting List"},
-            pathParams = @OpenApiParam(name = "token", type = String.class, required = true))
+            pathParams = @OpenApiParam(name = "token", required = true))
     private void removeByToken(Context ctx) {
         String token = ctx.pathParam("token");
         service.removeByToken(token);
@@ -193,7 +200,7 @@ public class WaitingListRoutes implements Routes {
             methods = HttpMethod.POST,
             summary = "Re-confirm interest on waiting list",
             tags = {"Waiting List"},
-            pathParams = @OpenApiParam(name = "token", type = String.class, required = true))
+            pathParams = @OpenApiParam(name = "token", required = true))
     private void confirmInterest(Context ctx) {
         String token = ctx.pathParam("token");
         service.confirmInterest(token);
@@ -259,12 +266,17 @@ public class WaitingListRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = ListRequest.class)))
     private void update(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
+        UserSession session = UserSession.from(ctx);
+        var list = service.findById(id).orElseThrow(NotFoundResponse::new);
+        if (list.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot access resources from another station");
+        }
         var request = ctx.bodyAsClass(ListRequest.class);
         var fieldNames = service.findFieldsByList(id).stream()
                 .map(WaitingListField::name)
                 .toList();
         validateFormula(request.scoringFormula(), fieldNames);
-        var list = service.update(
+        var updated = service.update(
                         id,
                         request.name(),
                         request.description() != null ? request.description() : "",
@@ -275,7 +287,7 @@ public class WaitingListRoutes implements Routes {
                         request.joinRoleId(),
                         request.attendanceThreshold() != null ? request.attendanceThreshold() : 5)
                 .orElseThrow(NotFoundResponse::new);
-        ctx.json(list);
+        ctx.json(updated);
     }
 
     @OpenApi(
@@ -286,12 +298,18 @@ public class WaitingListRoutes implements Routes {
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true))
     private void deleteList(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
+        UserSession session = UserSession.from(ctx);
+        var list = service.findById(id).orElseThrow(NotFoundResponse::new);
+        if (list.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot access resources from another station");
+        }
         service.delete(id);
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
     private void updateVisibleFields(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
+        verifyListOwnership(id, UserSession.from(ctx));
         var request = ctx.bodyAsClass(VisibleFieldsRequest.class);
         var list = service.updateVisibleFields(id, toJson(request.fieldIds())).orElseThrow(NotFoundResponse::new);
         ctx.json(list);
@@ -316,6 +334,7 @@ public class WaitingListRoutes implements Routes {
 
     private void createField(Context ctx) {
         int listId = ctx.pathParamAsClass("id", Integer.class).get();
+        verifyListOwnership(listId, UserSession.from(ctx));
         var request = ctx.bodyAsClass(FieldRequest.class);
         var field = service.createField(
                 listId,
@@ -328,6 +347,8 @@ public class WaitingListRoutes implements Routes {
     }
 
     private void updateField(Context ctx) {
+        int listId = ctx.pathParamAsClass("id", Integer.class).get();
+        verifyListOwnership(listId, UserSession.from(ctx));
         int fieldId = ctx.pathParamAsClass("fieldId", Integer.class).get();
         var request = ctx.bodyAsClass(FieldRequest.class);
         var field = service.updateField(
@@ -342,6 +363,8 @@ public class WaitingListRoutes implements Routes {
     }
 
     private void deleteField(Context ctx) {
+        int listId = ctx.pathParamAsClass("id", Integer.class).get();
+        verifyListOwnership(listId, UserSession.from(ctx));
         int fieldId = ctx.pathParamAsClass("fieldId", Integer.class).get();
         service.deleteField(fieldId);
         ctx.status(HttpStatus.NO_CONTENT);
@@ -356,6 +379,7 @@ public class WaitingListRoutes implements Routes {
 
     private void createInvite(Context ctx) {
         int listId = ctx.pathParamAsClass("id", Integer.class).get();
+        verifyListOwnership(listId, UserSession.from(ctx));
         var request = ctx.bodyAsClass(InviteRequest.class);
         Instant expiresAt = null;
         if (request.expiresAt() != null && !request.expiresAt().isBlank()) {
@@ -374,6 +398,8 @@ public class WaitingListRoutes implements Routes {
     }
 
     private void deleteInvite(Context ctx) {
+        int listId = ctx.pathParamAsClass("id", Integer.class).get();
+        verifyListOwnership(listId, UserSession.from(ctx));
         int inviteId = ctx.pathParamAsClass("inviteId", Integer.class).get();
         service.deleteInvite(inviteId);
         ctx.status(HttpStatus.NO_CONTENT);
@@ -398,6 +424,7 @@ public class WaitingListRoutes implements Routes {
 
     private void createEntry(Context ctx) {
         int listId = ctx.pathParamAsClass("id", Integer.class).get();
+        verifyListOwnership(listId, UserSession.from(ctx));
         var request = ctx.bodyAsClass(EntryRequest.class);
         var entry = service.createEntry(
                 listId,
@@ -411,6 +438,8 @@ public class WaitingListRoutes implements Routes {
     }
 
     private void updateEntry(Context ctx) {
+        int listId = ctx.pathParamAsClass("id", Integer.class).get();
+        verifyListOwnership(listId, UserSession.from(ctx));
         int entryId = ctx.pathParamAsClass("entryId", Integer.class).get();
         var request = ctx.bodyAsClass(EntryRequest.class);
         service.updateEntry(
@@ -426,6 +455,8 @@ public class WaitingListRoutes implements Routes {
     }
 
     private void updateCreatedAt(Context ctx) {
+        int listId = ctx.pathParamAsClass("id", Integer.class).get();
+        verifyListOwnership(listId, UserSession.from(ctx));
         int entryId = ctx.pathParamAsClass("entryId", Integer.class).get();
         var request = ctx.bodyAsClass(CreatedAtRequest.class);
         service.updateCreatedAt(entryId, request.createdAt());
@@ -434,6 +465,8 @@ public class WaitingListRoutes implements Routes {
     }
 
     private void deleteEntry(Context ctx) {
+        int listId = ctx.pathParamAsClass("id", Integer.class).get();
+        verifyListOwnership(listId, UserSession.from(ctx));
         int entryId = ctx.pathParamAsClass("entryId", Integer.class).get();
         service.deleteEntry(entryId);
         ctx.status(HttpStatus.NO_CONTENT);
@@ -442,49 +475,65 @@ public class WaitingListRoutes implements Routes {
     // --- State transitions ---
 
     private void inviteEntry(Context ctx) {
+        int listId = ctx.pathParamAsClass("id", Integer.class).get();
+        verifyListOwnership(listId, UserSession.from(ctx));
         int entryId = ctx.pathParamAsClass("entryId", Integer.class).get();
         try {
             var entry = service.inviteEntry(entryId);
             ctx.json(entry);
         } catch (IllegalArgumentException e) {
+            log.warn("Waiting list entry not found for invite, entryId={}", entryId, e);
             throw new NotFoundResponse(e.getMessage());
         } catch (IllegalStateException e) {
+            log.warn("Invalid state when inviting waiting list entry, entryId={}", entryId, e);
             throw new BadRequestResponse(e.getMessage());
         }
     }
 
     private void moveToTesting(Context ctx) {
+        int listId = ctx.pathParamAsClass("id", Integer.class).get();
+        verifyListOwnership(listId, UserSession.from(ctx));
         int entryId = ctx.pathParamAsClass("entryId", Integer.class).get();
         try {
             var entry = service.moveToTesting(entryId);
             ctx.json(entry);
         } catch (IllegalArgumentException e) {
+            log.warn("Waiting list entry not found for moveToTesting, entryId={}", entryId, e);
             throw new NotFoundResponse(e.getMessage());
         } catch (IllegalStateException e) {
+            log.warn("Invalid state when moving waiting list entry to testing, entryId={}", entryId, e);
             throw new BadRequestResponse(e.getMessage());
         }
     }
 
     private void moveToJoined(Context ctx) {
+        int listId = ctx.pathParamAsClass("id", Integer.class).get();
+        verifyListOwnership(listId, UserSession.from(ctx));
         int entryId = ctx.pathParamAsClass("entryId", Integer.class).get();
         try {
             var entry = service.moveToJoined(entryId);
             ctx.json(entry);
         } catch (IllegalArgumentException e) {
+            log.warn("Waiting list entry not found for moveToJoined, entryId={}", entryId, e);
             throw new NotFoundResponse(e.getMessage());
         } catch (IllegalStateException e) {
+            log.warn("Invalid state when moving waiting list entry to joined, entryId={}", entryId, e);
             throw new BadRequestResponse(e.getMessage());
         }
     }
 
     private void withdrawEntry(Context ctx) {
+        int listId = ctx.pathParamAsClass("id", Integer.class).get();
+        verifyListOwnership(listId, UserSession.from(ctx));
         int entryId = ctx.pathParamAsClass("entryId", Integer.class).get();
         try {
             var entry = service.withdrawEntry(entryId);
             ctx.json(entry);
         } catch (IllegalArgumentException e) {
+            log.warn("Waiting list entry not found for withdraw, entryId={}", entryId, e);
             throw new NotFoundResponse(e.getMessage());
         } catch (IllegalStateException e) {
+            log.warn("Invalid state when withdrawing waiting list entry, entryId={}", entryId, e);
             throw new BadRequestResponse(e.getMessage());
         }
     }
@@ -494,6 +543,7 @@ public class WaitingListRoutes implements Routes {
         try {
             ScoreEvaluator.validate(formula, fieldNames);
         } catch (IllegalArgumentException e) {
+            log.warn("Invalid scoring formula: {}", formula, e);
             throw new BadRequestResponse("Invalid formula: " + e.getMessage());
         }
     }

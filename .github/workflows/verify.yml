@@ -120,7 +120,7 @@ jobs:
           java-version: ${{ env.JAVA_VERSION }}
       - uses: gradle/actions/wrapper-validation@v6
       - name: Run database validation tests
-        run: ./gradlew testDatabase --info
+        run: ./gradlew test --info
 
 
   verify-locales-frontend:

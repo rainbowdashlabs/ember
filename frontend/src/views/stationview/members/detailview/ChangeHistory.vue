@@ -17,6 +17,9 @@ import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import type {ProfileFieldChange} from '@/api/types'
 import {profileFieldChanges} from '@/api'
 import {usePendingChanges} from '@/composables/usePendingChanges'
+import SubHeader from '@/components/typography/SubHeader.vue'
+import MutedText from '@/components/typography/MutedText.vue'
+import MutedIcon from '@/components/display/MutedIcon.vue'
 
 const props = defineProps<{
   memberId: number
@@ -110,10 +113,10 @@ function toggleComment(changeId: number) {
 <template>
   <NeutralContainer class="space-y-4">
     <div class="flex items-center justify-between">
-      <h3 class="text-sm font-semibold">
+      <SubHeader class="text-sm">
         <font-awesome-icon :icon="['fas', 'clock-rotate-left']" class="mr-2"/>
         {{ t('memberDetail.changeHistory') }}
-      </h3>
+      </SubHeader>
       <SuccessButton
           v-if="unacknowledgedCount > 0"
           :disabled="acknowledging"
@@ -127,9 +130,9 @@ function toggleComment(changeId: number) {
 
     <Alert v-if="error" variant="error">{{ error }}</Alert>
 
-    <div v-if="changes.length === 0" class="text-(--text-muted) text-sm py-2">
+    <MutedText tag="div" size="sm" class="py-2" v-if="changes.length === 0">
       {{ t('memberDetail.noChanges') }}
-    </div>
+    </MutedText>
 
     <div class="space-y-3">
       <div
@@ -161,9 +164,9 @@ function toggleComment(changeId: number) {
         </div>
 
         <!-- Values -->
-        <div class="flex items-center gap-3 text-sm">
+        <div class="flex items-center gap-2 text-xs">
           <span class="text-(--text-muted)">{{ formatValue(change.oldValue) }}</span>
-          <font-awesome-icon :icon="['fas', 'chevron-right']" class="h-3 w-3 text-(--text-muted)"/>
+          <MutedIcon :icon="['fas', 'chevron-right']"/>
           <span class="font-medium">{{ formatValue(change.newValue) }}</span>
         </div>
 
@@ -182,12 +185,10 @@ function toggleComment(changeId: number) {
 
         <!-- Action buttons (only for notify changes) -->
         <div v-if="change.requiresAcknowledgement && !isAcknowledgedByMe(change)" class="flex items-center gap-2 pt-1">
-          <PrimaryButton :disabled="acknowledging" @click="acknowledgeChange(change.id)">
-            <font-awesome-icon :icon="['fas', 'check']" class="mr-1"/>
+          <PrimaryButton :icon="['fas', 'check']" :disabled="acknowledging" @click="acknowledgeChange(change.id)">
             {{ t('memberDetail.acknowledge') }}
           </PrimaryButton>
-          <SecondaryButton @click="toggleComment(change.id)">
-            <font-awesome-icon :icon="['fas', 'comment']" class="mr-1"/>
+          <SecondaryButton :icon="['fas', 'comment']" @click="toggleComment(change.id)">
             {{ t('memberDetail.acknowledgeWithComment') }}
           </SecondaryButton>
         </div>

@@ -8,7 +8,7 @@ import { getItem } from './storage'
 
 export interface TestProtocol {
     id: number
-    stationId: number
+    stationId: string
     name: string
     description: string
     passThreshold: number | null
@@ -39,7 +39,7 @@ export interface TestProtocolItem {
 export interface TestProtocolRun {
     id: number
     protocolId: number
-    stationId: number
+    stationId: string
     name: string
     testDate: string
     status: 'OPEN' | 'CLOSED'
@@ -82,10 +82,21 @@ export interface RunDetailResponse {
     members: RunMemberWithProgress[]
 }
 
+export interface SharedProtocolEntry {
+    protocol: TestProtocol
+    stationName: string
+    sourceStationId: string
+}
+
+export interface ProtocolListResponse {
+    protocols: TestProtocol[]
+    shared: SharedProtocolEntry[]
+}
+
 // -- Protocols --
 
-export async function listProtocols(): Promise<TestProtocol[]> {
-    const res = await client.get<TestProtocol[]>('/protocols')
+export async function listProtocols(): Promise<ProtocolListResponse> {
+    const res = await client.get<ProtocolListResponse>('/protocols')
     return res.data
 }
 

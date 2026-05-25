@@ -48,9 +48,9 @@ public class MemberRoutes implements Routes {
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        routes.post(prefix + "/members/invite", this::invite, Roles.MEMBER_MANAGEMENT);
-        routes.put(prefix + "/members/{accountId}", this::updateAccount, Roles.MEMBER_MANAGEMENT);
-        routes.post(prefix + "/members/reset-password", this::resetPassword, Roles.MEMBER_MANAGEMENT);
+        routes.post(prefix + "/members/invite", this::invite, Roles.MEMBER_MANAGER);
+        routes.put(prefix + "/members/{accountId}", this::updateAccount, Roles.MEMBER_MANAGER);
+        routes.post(prefix + "/members/reset-password", this::resetPassword, Roles.MEMBER_MANAGER);
     }
 
     @OpenApi(
@@ -92,7 +92,7 @@ public class MemberRoutes implements Routes {
             methods = HttpMethod.POST,
             summary = "Invite a new user to a station",
             description =
-                    "Creates a pre-verified account associated with the station from X-Station-Id and sends a password setup email. Requires MEMBER_MANAGEMENT role.",
+                    "Creates a pre-verified account associated with the station from X-Station-Id and sends a password setup email. Requires MEMBER_MANAGER role.",
             tags = {"Members"},
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = InviteRequest.class)),
             responses = {
@@ -126,7 +126,7 @@ public class MemberRoutes implements Routes {
             methods = HttpMethod.POST,
             summary = "Reset a member's password",
             description =
-                    "Sends a password reset email to the member. Optionally forces them to change password on next login. Requires MEMBER_MANAGEMENT role.",
+                    "Sends a password reset email to the member. Optionally forces them to change password on next login. Requires MEMBER_MANAGER role.",
             tags = {"Members"},
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = ResetPasswordRequest.class)),
             responses = {

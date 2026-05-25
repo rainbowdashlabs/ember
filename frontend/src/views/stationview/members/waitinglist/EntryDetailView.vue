@@ -16,12 +16,14 @@ import TextInput from '@/components/input/text/TextInput.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import NumberInput from '@/components/input/number/NumberInput.vue'
 import DateInput from '@/components/input/datetime/DateInput.vue'
+import DateTimeInput from '@/components/input/datetime/DateTimeInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
+import FieldLabel from '@/components/typography/FieldLabel.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
@@ -197,8 +199,7 @@ onMounted(loadData)
   <ViewContent>
     <div class="space-y-6">
       <div class="flex items-center justify-between">
-        <SecondaryButton @click="goBack">
-          <font-awesome-icon :icon="['fas', 'chevron-left']" class="mr-2" />
+        <SecondaryButton :icon="['fas', 'chevron-left']" @click="goBack">
           {{ t('waitingList.backToList') }}
         </SecondaryButton>
       </div>
@@ -208,7 +209,7 @@ onMounted(loadData)
       <Alert v-if="success" variant="success">{{ success }}</Alert>
 
       <template v-if="!loading && entry">
-        <div class="flex items-center gap-3">
+        <div class="flex items-center gap-2">
           <SectionHeader>{{ entryFullName() }}</SectionHeader>
           <component :is="statusBadgeComponent(entry.entry.status)">{{ t('waitingList.status_' + entry.entry.status) }}</component>
         </div>
@@ -219,7 +220,7 @@ onMounted(loadData)
           <span class="inline-flex items-center gap-1">
             {{ t('waitingList.createdAt') }}:
             <template v-if="editingCreatedAt">
-              <input type="datetime-local" v-model="editCreatedAtValue" class="text-xs px-1 py-0.5 rounded border border-[var(--border)] bg-[var(--bg)] text-[var(--text)]" />
+              <DateTimeInput v-model="editCreatedAtValue" />
               <IconButton :icon="['fas', 'check']" label="Speichern" @click="saveCreatedAt" />
               <IconButton :icon="['fas', 'xmark']" label="Abbrechen" @click="editingCreatedAt = false" />
             </template>
@@ -240,24 +241,24 @@ onMounted(loadData)
           <SubHeader>{{ t('waitingList.entryDetails') }}</SubHeader>
           <div class="grid gap-4 sm:grid-cols-2">
             <div class="space-y-1">
-              <label class="block text-sm font-medium">{{ t('waitingList.firstname') }}</label>
+              <FieldLabel>{{ t('waitingList.firstname') }}</FieldLabel>
               <TextInput v-model="editFirstname" />
             </div>
             <div class="space-y-1">
-              <label class="block text-sm font-medium">{{ t('waitingList.lastname') }}</label>
+              <FieldLabel>{{ t('waitingList.lastname') }}</FieldLabel>
               <TextInput v-model="editLastname" />
             </div>
             <div class="space-y-1">
-              <label class="block text-sm font-medium">{{ t('waitingList.parentName') }}</label>
+              <FieldLabel>{{ t('waitingList.parentName') }}</FieldLabel>
               <TextInput v-model="editParentName" />
             </div>
             <div class="space-y-1">
-              <label class="block text-sm font-medium">{{ t('waitingList.email') }}</label>
+              <FieldLabel>{{ t('waitingList.email') }}</FieldLabel>
               <TextInput v-model="editEmail" />
             </div>
           </div>
           <div class="space-y-1">
-            <label class="block text-sm font-medium">{{ t('waitingList.notes') }}</label>
+            <FieldLabel>{{ t('waitingList.notes') }}</FieldLabel>
             <TextAreaInput v-model="editNotes" />
           </div>
         </NeutralContainer>
@@ -267,10 +268,10 @@ onMounted(loadData)
           <SubHeader>{{ t('waitingList.customFields') }}</SubHeader>
           <div class="grid gap-4 sm:grid-cols-2">
             <div v-for="field in fields" :key="field.id" class="space-y-1">
-              <label class="block text-sm font-medium">
+              <FieldLabel>
                 {{ field.name }}
                 <span v-if="field.required" class="text-error text-xs ml-1">*</span>
-              </label>
+              </FieldLabel>
 
               <TextInput
                 v-if="field.fieldType === 'TEXT'"

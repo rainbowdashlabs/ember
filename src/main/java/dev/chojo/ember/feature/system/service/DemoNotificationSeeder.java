@@ -65,7 +65,7 @@ public class DemoNotificationSeeder {
                                 "Werden die alten Helme eingesammelt?"),
                         new NotificationData.NotificationLink("news-list")));
 
-        // Exchange request notification for Betreuer (INVENTORY_MANAGEMENT)
+        // Exchange request notification for Betreuer (INVENTORY_MANAGER)
         for (var m : betreuer) {
             notificationRepository.create(
                     m.id(),

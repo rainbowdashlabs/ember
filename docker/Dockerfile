@@ -41,7 +41,7 @@ ENV GITHUB_SHA=$GITHUB_SHA
 ENV DOCKER=true
 ENV EMBER_PUBLIC_DIR=/app/public
 
-RUN apk add --no-cache typst
+RUN apk add --no-cache typst pandoc
 
 WORKDIR /app
 

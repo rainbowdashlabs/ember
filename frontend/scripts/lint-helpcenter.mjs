@@ -1,0 +1,146 @@
+#!/usr/bin/env node
+/**
+ * Help Center Coverage Linter
+ *
+ * Checks that every app route has a corresponding help center route.
+ * Covers: station panel, admin panel, and (future) cluster panel.
+ *
+ * Exit code 1 if any app routes lack a help center counterpart.
+ */
+
+import {parseRoutes, normalizePath, RED, GREEN, YELLOW, RESET, BOLD} from './lint-utils.mjs'
+
+const allRoutes = parseRoutes()
+
+// ── Panel definitions ───────────────────────────────────────────────
+
+const panels = [
+    {
+        label: 'Station',
+        appFilter: (r) => !['help-', 'admin-', 'login', 'forgot', 'set-password', 'station-select',
+            'apply', 'waitlist-', 'waiting-list', 'home', 'privacy', 'terms', 'reconsent', 'imprint',
+            'patch-notes', 'reset-password', 'public-', 'not-found', 'style', 'helpcenter-']
+            .some(p => r.name.startsWith(p)),
+        helpFilter: (r) => r.name.startsWith('help-') && !r.name.startsWith('help-admin') && !r.name.startsWith('help-cluster'),
+        supplementaryHelp: (r) => r.name.startsWith('help-basics') || r.name === 'help-welcome'
+            || r.name.endsWith('-overview') || r.name.endsWith('-module-overview')
+            || r.path.includes('/editor') || r.path.includes('/federated') || r.path.includes('/ai')
+            || r.path.includes('/mail-config') || r.path.includes('/theme')
+            || r.path === 'knowledge/browse' || r.path === 'members/waiting-lists',
+    },
+    {
+        label: 'Admin',
+        appFilter: (r) => r.name.startsWith('admin-'),
+        helpFilter: (r) => r.name.startsWith('help-admin-'),
+        supplementaryHelp: (r) => r.name.endsWith('-overview'),
+    },
+    {
+        label: 'Cluster',
+        appFilter: (r) => r.name.startsWith('cluster-'),
+        helpFilter: (r) => r.name.startsWith('help-cluster-'),
+        supplementaryHelp: (r) => r.name.endsWith('-overview'),
+    },
+]
+
+// ── Run checks per panel ────────────────────────────────────────────
+
+let totalMissing = 0
+
+for (const panel of panels) {
+    const appRoutes = allRoutes.filter(panel.appFilter).filter(r => r.path && !r.path.includes('pathMatch'))
+    const helpRoutes = allRoutes.filter(panel.helpFilter).filter(r => r.path && !r.path.includes('pathMatch'))
+
+    if (appRoutes.length === 0) continue
+
+    const helpPathSet = new Set(helpRoutes.map(r => normalizePath(r.path)))
+    const appPathSet = new Set(appRoutes.map(r => normalizePath(r.path)).filter(Boolean))
+
+    const missing = appRoutes.filter(r => {
+        const normalized = normalizePath(r.path)
+        if (!normalized) return false
+        return !helpPathSet.has(normalized)
+    })
+
+    const orphaned = helpRoutes.filter(r => {
+        const normalized = normalizePath(r.path)
+        if (!normalized) return false
+        if (panel.supplementaryHelp(r)) return false
+        return !appPathSet.has(normalized)
+    })
+
+    const covered = appRoutes.length - missing.length
+    const pct = Math.round((covered / appRoutes.length) * 100)
+
+    console.log(`\n${BOLD}${panel.label} Panel${RESET}`)
+    console.log(`  App routes: ${appRoutes.length} | Help routes: ${helpRoutes.length} | Coverage: ${covered}/${appRoutes.length} (${pct}%)`)
+
+    if (orphaned.length > 0) {
+        console.log(`\n  ${YELLOW}Orphaned help pages (${orphaned.length}) — path doesn't match any app route:${RESET}`)
+        for (const {name, path} of orphaned.sort((a, b) => a.path.localeCompare(b.path))) {
+            console.log(`    ${YELLOW}warning${RESET} ${name} → ${path}`)
+        }
+    }
+
+    if (missing.length > 0) {
+        console.log(`\n  ${RED}Missing help pages (${missing.length}):${RESET}`)
+        for (const {name, path} of missing.sort((a, b) => a.path.localeCompare(b.path))) {
+            console.log(`    ${RED}error${RESET} ${name} → ${path}`)
+        }
+        totalMissing += missing.length
+    }
+
+    if (missing.length === 0 && orphaned.length === 0) {
+        console.log(`  ${GREEN}✓ Full coverage, no orphans${RESET}`)
+    }
+}
+
+// ── Section overview check ──────────────────────────────────────────
+
+console.log(`\n${BOLD}Section Overview Check${RESET}`)
+
+const missingSectionOverviews = []
+
+for (const panel of panels) {
+    const helpRoutes = allRoutes.filter(panel.helpFilter).filter(r => r.path && !r.path.includes('pathMatch'))
+    if (helpRoutes.length === 0) continue
+
+    const sections = new Map()
+    for (const r of helpRoutes) {
+        const seg = r.path.split('/')[0]
+        if (!seg) continue
+        if (!sections.has(seg)) sections.set(seg, [])
+        sections.get(seg).push(r)
+    }
+
+    const SKIP_SECTIONS = ['basics', 'dashboard']
+
+    for (const [section, routes] of sections) {
+        if (SKIP_SECTIONS.includes(section)) continue
+        if (routes.length < 2) continue
+
+        const hasOverview = routes.some(r => r.name.endsWith('-module-overview'))
+        if (!hasOverview) {
+            missingSectionOverviews.push({panel: panel.label, section, routeCount: routes.length})
+        }
+    }
+}
+
+if (missingSectionOverviews.length > 0) {
+    console.log(`  ${YELLOW}Sections missing an overview page (${missingSectionOverviews.length}):${RESET}`)
+    for (const {panel, section, routeCount} of missingSectionOverviews) {
+        console.log(`    ${YELLOW}warning${RESET} [${panel}] ${section}/ (${routeCount} routes, no overview)`)
+    }
+} else {
+    console.log(`  ${GREEN}✓ All sections have overview pages${RESET}`)
+}
+
+// ── Exit ────────────────────────────────────────────────────────────
+
+console.log('')
+
+if (totalMissing > 0) {
+    console.log(`${RED}${BOLD}${totalMissing} missing help center page(s).${RESET}\n`)
+    process.exit(1)
+} else {
+    console.log(`${GREEN}${BOLD}All panels have full help center coverage.${RESET}\n`)
+}

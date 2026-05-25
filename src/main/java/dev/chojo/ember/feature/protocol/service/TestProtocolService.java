@@ -19,6 +19,7 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Singleton
 public class TestProtocolService {
@@ -34,6 +35,10 @@ public class TestProtocolService {
 
     public List<TestProtocol> findProtocols(int stationId) {
         return repository.findProtocols(stationId);
+    }
+
+    public List<TestProtocol> searchProtocols(int stationId, String query) {
+        return repository.searchProtocols(stationId, query);
     }
 
     public Optional<TestProtocol> findProtocol(int id) {
@@ -148,14 +153,14 @@ public class TestProtocolService {
 
     public boolean lockMember(int runId, int memberId, int lockedBy) {
         var rm = repository.findRunMember(runId, memberId);
-        if (rm.isEmpty()) return false;
-        return repository.lockMember(rm.get().id(), lockedBy);
+        return rm.filter(testProtocolRunMember -> repository.lockMember(testProtocolRunMember.id(), lockedBy))
+                .isPresent();
     }
 
     public boolean unlockMember(int runId, int memberId) {
         var rm = repository.findRunMember(runId, memberId);
-        if (rm.isEmpty()) return false;
-        return repository.unlockMember(rm.get().id());
+        return rm.filter(testProtocolRunMember -> repository.unlockMember(testProtocolRunMember.id()))
+                .isPresent();
     }
 
     public void saveChecks(int runId, int memberId, Map<Integer, Boolean> checks, int checkedBy, int protocolId) {
@@ -168,8 +173,7 @@ public class TestProtocolService {
         // Recalculate and update score
         var allChecks = repository.findChecks(runMemberId);
         var allItems = repository.findAllItemsByProtocol(protocolId);
-        var itemPoints = allItems.stream()
-                .collect(java.util.stream.Collectors.toMap(TestProtocolItem::id, TestProtocolItem::points));
+        var itemPoints = allItems.stream().collect(Collectors.toMap(TestProtocolItem::id, TestProtocolItem::points));
         double score = 0;
         for (var c : allChecks) {
             if (c.checked() && itemPoints.containsKey(c.itemId())) {
@@ -217,8 +221,7 @@ public class TestProtocolService {
         // Calculate total score from checked items
         var checks = repository.findChecks(runMemberId);
         var allItems = repository.findAllItemsByProtocol(protocolId);
-        var itemPoints = allItems.stream()
-                .collect(java.util.stream.Collectors.toMap(TestProtocolItem::id, TestProtocolItem::points));
+        var itemPoints = allItems.stream().collect(Collectors.toMap(TestProtocolItem::id, TestProtocolItem::points));
 
         double totalScore = 0;
         for (var check : checks) {

@@ -9,7 +9,7 @@ import type {MyInventoryItem, MyRequirement} from './inventory'
 
 export interface ManagedMember {
     id: number
-    stationId: number
+    stationId: string
     accountId: number
     name: string
     email: string

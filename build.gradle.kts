@@ -19,7 +19,8 @@ application {
 }
 
 group = "dev.chojo"
-version = "1.2.0"
+// CalVer as YY.MINOR.MICRO -> https://calver.org/
+version = "26.4.0"
 
 repositories {
     mavenCentral()
@@ -100,29 +101,11 @@ tasks {
 
     test {
         useJUnitPlatform {
-            excludeTags("locale", "database")
+            excludeTags("locale")
         }
         testLogging {
             events("passed", "skipped", "failed")
         }
-    }
-
-    register<Test>("testDatabase") {
-        group = "verification"
-        description = "Runs database validation tests"
-        testClassesDirs = sourceSets.test.get().output.classesDirs
-        classpath = sourceSets.test.get().runtimeClasspath
-        useJUnitPlatform {
-            includeTags("database")
-        }
-        testLogging {
-            events("passed", "skipped", "failed")
-        }
-        mustRunAfter(test)
-    }
-
-    named("check") {
-        dependsOn("testDatabase")
     }
 
     register<JacocoReport>("jacocoFullReport") {

@@ -10,7 +10,10 @@ import DeleteButton from '@/components/button/DeleteButton.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
+import DecimalInput from '@/components/input/number/DecimalInput.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
+import FieldLabel from '@/components/typography/FieldLabel.vue'
+import FieldHint from '@/components/typography/FieldHint.vue'
 
 const { t } = useI18n()
 
@@ -65,6 +68,10 @@ function updateDistractor(idx: number, value: string) {
 </script>
 
 <template>
+  <div class="flex items-center gap-2">
+    <FieldHint>{{ t('quiz.questions.config.pointsPerCorrect') }}</FieldHint>
+    <DecimalInput :model-value="(config.pointsPerCorrect as number) || 1" step="0.5" class="w-20" @update:model-value="(v: number | undefined) => updateConfig({ pointsPerCorrect: v ?? 1 })"/>
+  </div>
   <SubHeader>{{ t('quiz.questions.config.fillText') }}</SubHeader>
   <TextAreaInput :model-value="(config.text as string)" :placeholder="t('quiz.questions.config.fillTextPlaceholder')" @update:model-value="(v: string | undefined) => updateConfig({ text: v ?? '' })" />
   <SubHeader>{{ t('quiz.questions.config.correctAnswers') }}</SubHeader>
@@ -86,9 +93,9 @@ function updateDistractor(idx: number, value: string) {
     </div>
     <SecondaryButton @click="addDistractor"><font-awesome-icon :icon="['fas', 'plus']" class="mr-1" />{{ t('quiz.questions.config.addDistractor') }}</SecondaryButton>
   </div>
-  <label class="flex items-center gap-2 text-sm mt-3">
+  <FieldLabel inline class="mt-3">
     <ToggleInput :model-value="(config.useDropdown as boolean) ?? false" @update:model-value="(v: boolean) => updateConfig({ useDropdown: v })" />
     {{ t('quiz.questions.config.useDropdown') }}
-  </label>
+  </FieldLabel>
   <p class="text-xs text-(--text-muted)">{{ t('quiz.questions.config.useDropdownHint') }}</p>
 </template>

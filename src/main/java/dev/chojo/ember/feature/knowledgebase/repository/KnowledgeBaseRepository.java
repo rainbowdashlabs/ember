@@ -15,32 +15,45 @@ import dev.chojo.ember.feature.knowledgebase.entity.KbFolder;
 import dev.chojo.ember.feature.knowledgebase.entity.KbTag;
 import jakarta.inject.Singleton;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Singleton
 public class KnowledgeBaseRepository {
+
+    private static final String FOLDER_COLUMNS =
+            "fo.id, fo.station_id, fo.parent_id, fo.name, fo.description, fo.icon_url, fo.position, fo.created_by, fo.created_at, fo.updated_at, fo.restriction_mode, EXISTS(SELECT 1 FROM kb_access_restriction r WHERE r.folder_id = fo.id) AS restricted";
+    private static final String FOLDER_COLUMNS_BARE =
+            "id, station_id, parent_id, name, description, icon_url, position, created_by, created_at, updated_at, restriction_mode, EXISTS(SELECT 1 FROM kb_access_restriction r WHERE r.folder_id = id) AS restricted";
+    private static final String FILE_COLUMNS =
+            "f.id, f.station_id, f.folder_id, f.name, f.description, f.file_type, f.mime_type, f.file_size, f.icon_url, f.youtube_url, f.link_url, f.position, f.created_by, f.created_at, f.updated_at, f.source_file_id, f.source_station_id, f.restriction_mode, EXISTS(SELECT 1 FROM kb_access_restriction r WHERE r.file_id = f.id) AS restricted";
+    private static final String FILE_COLUMNS_BARE =
+            "id, station_id, folder_id, name, description, file_type, mime_type, file_size, icon_url, youtube_url, link_url, position, created_by, created_at, updated_at, source_file_id, source_station_id, restriction_mode, EXISTS(SELECT 1 FROM kb_access_restriction r WHERE r.file_id = id) AS restricted";
 
     // -- Folders --
 
     public List<KbFolder> findFolders(int stationId, Integer parentId) {
         if (parentId == null) {
             return Query.query(
-                            "SELECT * FROM kb_folder WHERE station_id = :station_id AND parent_id IS NULL ORDER BY position, name;")
+                            "SELECT " + FOLDER_COLUMNS
+                                    + " FROM kb_folder fo WHERE fo.station_id = :station_id AND fo.parent_id IS NULL ORDER BY fo.position, fo.name;")
                     .single(Call.of().bind("station_id", stationId))
                     .map(KbFolder.map())
                     .all();
         }
         return Query.query(
-                        "SELECT * FROM kb_folder WHERE station_id = :station_id AND parent_id = :parent_id ORDER BY position, name;")
+                        "SELECT " + FOLDER_COLUMNS
+                                + " FROM kb_folder fo WHERE fo.station_id = :station_id AND fo.parent_id = :parent_id ORDER BY fo.position, fo.name;")
                 .single(Call.of().bind("station_id", stationId).bind("parent_id", parentId))
                 .map(KbFolder.map())
                 .all();
     }
 
     public Optional<KbFolder> findFolderById(int id) {
-        return Query.query("SELECT * FROM kb_folder WHERE id = :id;")
+        return Query.query("SELECT " + FOLDER_COLUMNS + " FROM kb_folder fo WHERE fo.id = :id;")
                 .single(Call.of().bind("id", id))
                 .map(KbFolder.map())
                 .first();
@@ -50,7 +63,7 @@ public class KnowledgeBaseRepository {
         return Query.query("""
                         INSERT INTO kb_folder(station_id, parent_id, name, description, created_by)
                         VALUES (:station_id, :parent_id, :name, :description, :created_by)
-                        RETURNING *;""")
+                        RETURNING\s""" + FOLDER_COLUMNS_BARE + ";")
                 .single(Call.of()
                         .bind("station_id", stationId)
                         .bind("parent_id", parentId)
@@ -88,20 +101,22 @@ public class KnowledgeBaseRepository {
     public List<KbFile> findFiles(int stationId, Integer folderId) {
         if (folderId == null) {
             return Query.query(
-                            "SELECT * FROM kb_file WHERE station_id = :station_id AND folder_id IS NULL ORDER BY position, name;")
+                            "SELECT " + FILE_COLUMNS
+                                    + " FROM kb_file f WHERE f.station_id = :station_id AND f.folder_id IS NULL ORDER BY f.position, f.name;")
                     .single(Call.of().bind("station_id", stationId))
                     .map(KbFile.map())
                     .all();
         }
         return Query.query(
-                        "SELECT * FROM kb_file WHERE station_id = :station_id AND folder_id = :folder_id ORDER BY position, name;")
+                        "SELECT " + FILE_COLUMNS
+                                + " FROM kb_file f WHERE f.station_id = :station_id AND f.folder_id = :folder_id ORDER BY f.position, f.name;")
                 .single(Call.of().bind("station_id", stationId).bind("folder_id", folderId))
                 .map(KbFile.map())
                 .all();
     }
 
     public Optional<KbFile> findFileById(int id) {
-        return Query.query("SELECT * FROM kb_file WHERE id = :id;")
+        return Query.query("SELECT " + FILE_COLUMNS + " FROM kb_file f WHERE f.id = :id;")
                 .single(Call.of().bind("id", id))
                 .map(KbFile.map())
                 .first();
@@ -135,7 +150,7 @@ public class KnowledgeBaseRepository {
         return Query.query("""
                         INSERT INTO kb_file(station_id, folder_id, name, description, file_type, mime_type, file_size, youtube_url, link_url, created_by)
                         VALUES (:station_id, :folder_id, :name, :description, :file_type, :mime_type, :file_size, :youtube_url, :link_url, :created_by)
-                        RETURNING *;""")
+                        RETURNING\s""" + FILE_COLUMNS_BARE + ";")
                 .single(Call.of()
                         .bind("station_id", stationId)
                         .bind("folder_id", folderId)
@@ -162,6 +177,17 @@ public class KnowledgeBaseRepository {
                         .bind("description", description)
                         .bind("icon_url", iconUrl)
                         .bind("position", position))
+                .update()
+                .changed();
+    }
+
+    public boolean setSourceReference(int fileId, int sourceFileId, int sourceStationId) {
+        return Query.query(
+                        "UPDATE kb_file SET source_file_id = :source_file_id, source_station_id = :source_station_id WHERE id = :id;")
+                .single(Call.of()
+                        .bind("id", fileId)
+                        .bind("source_file_id", sourceFileId)
+                        .bind("source_station_id", sourceStationId))
                 .update()
                 .changed();
     }
@@ -253,16 +279,16 @@ public class KnowledgeBaseRepository {
     }
 
     private static String preparePrefixQuery(String query) {
-        return java.util.Arrays.stream(query.trim().split("\\s+"))
+        return Arrays.stream(query.trim().split("\\s+"))
                 .filter(w -> !w.isBlank())
                 .map(w -> w.replaceAll("[^\\w\\p{L}]", "") + ":*")
-                .collect(java.util.stream.Collectors.joining(" & "));
+                .collect(Collectors.joining(" & "));
     }
 
     public List<KbFile> search(int stationId, String query, String tsConfig) {
         String cfg = sanitizeTsConfig(tsConfig);
         String tsq = buildPrefixTsQuery(cfg, query);
-        return Query.query("SELECT f.* FROM kb_file f JOIN kb_search_index si ON si.file_id = f.id"
+        return Query.query("SELECT " + FILE_COLUMNS + " FROM kb_file f JOIN kb_search_index si ON si.file_id = f.id"
                         + " WHERE f.station_id = :station_id AND si.search_text @@ " + tsq
                         + " ORDER BY ts_rank(si.search_text, " + tsq + ") DESC LIMIT 50;")
                 .single(Call.of().bind("station_id", stationId).bind("tsquery", preparePrefixQuery(query)))
@@ -280,7 +306,7 @@ public class KnowledgeBaseRepository {
                 + "COALESCE(fc.text_content, f.name || ' ' || COALESCE(f.description, ''))"
                 + ", '<[^>]+>', ' ', 'g')" // strip HTML tags
                 + ", '[#*_~`>\\[\\]()!|]', '', 'g')"; // strip markdown syntax
-        return Query.query("SELECT f.*, ts_headline('" + cfg
+        return Query.query("SELECT " + FILE_COLUMNS + ", ts_headline('" + cfg
                         + "', " + cleanText + ", "
                         + tsq
                         + ", 'MaxWords=30, MinWords=10, StartSel=<mark>, StopSel=</mark>') as snippet"
@@ -371,6 +397,7 @@ public class KnowledgeBaseRepository {
                 .orElseThrow();
     }
 
+    // Not yet exposed via routes — tag management UI not implemented
     public boolean deleteTag(int id) {
         return Query.query("DELETE FROM kb_tag WHERE id = :id;")
                 .single(Call.of().bind("id", id))
@@ -386,16 +413,19 @@ public class KnowledgeBaseRepository {
                 .all();
     }
 
+    public List<KbFile> findFilesByTag(int stationId, String tagName) {
+        return Query.query(
+                        "SELECT " + FILE_COLUMNS
+                                + " FROM kb_file f JOIN kb_file_tag ft ON ft.file_id = f.id JOIN kb_tag t ON t.id = ft.tag_id WHERE f.station_id = :station_id AND lower(t.name) = lower(:tag_name) ORDER BY f.name;")
+                .single(Call.of().bind("station_id", stationId).bind("tag_name", tagName))
+                .map(KbFile.map())
+                .all();
+    }
+
     public void addFileTag(int fileId, int tagId) {
         Query.query("INSERT INTO kb_file_tag(file_id, tag_id) VALUES(:file_id, :tag_id) ON CONFLICT DO NOTHING;")
                 .single(Call.of().bind("file_id", fileId).bind("tag_id", tagId))
                 .insert();
-    }
-
-    public void removeFileTag(int fileId, int tagId) {
-        Query.query("DELETE FROM kb_file_tag WHERE file_id = :file_id AND tag_id = :tag_id;")
-                .single(Call.of().bind("file_id", fileId).bind("tag_id", tagId))
-                .delete();
     }
 
     public List<KbTag> findFolderTags(int folderId) {
@@ -412,12 +442,6 @@ public class KnowledgeBaseRepository {
                 .insert();
     }
 
-    public void removeFolderTag(int folderId, int tagId) {
-        Query.query("DELETE FROM kb_folder_tag WHERE folder_id = :folder_id AND tag_id = :tag_id;")
-                .single(Call.of().bind("folder_id", folderId).bind("tag_id", tagId))
-                .delete();
-    }
-
     public void setFileTags(int fileId, List<String> tagNames, int stationId) {
         Query.query("DELETE FROM kb_file_tag WHERE file_id = :file_id;")
                 .single(Call.of().bind("file_id", fileId))
@@ -432,7 +456,8 @@ public class KnowledgeBaseRepository {
 
     public List<KbFile> findRelatedFiles(int fileId) {
         return Query.query(
-                        "SELECT f.* FROM kb_file f JOIN kb_related_file r ON r.target_file_id = f.id WHERE r.source_file_id = :file_id ORDER BY r.position, f.name;")
+                        "SELECT " + FILE_COLUMNS
+                                + " FROM kb_file f JOIN kb_related_file r ON r.target_file_id = f.id WHERE r.source_file_id = :file_id ORDER BY r.position, f.name;")
                 .single(Call.of().bind("file_id", fileId))
                 .map(KbFile.map())
                 .all();
@@ -455,6 +480,39 @@ public class KnowledgeBaseRepository {
         }
     }
 
+    // -- Favourites --
+
+    public void addFavourite(int memberId, int fileId) {
+        Query.query("INSERT INTO kb_favourite(member_id, file_id) VALUES(:member_id, :file_id) ON CONFLICT DO NOTHING;")
+                .single(Call.of().bind("member_id", memberId).bind("file_id", fileId))
+                .insert();
+    }
+
+    // Not yet exposed via routes — favourites UI not implemented
+    public boolean removeFavourite(int memberId, int fileId) {
+        return Query.query("DELETE FROM kb_favourite WHERE member_id = :member_id AND file_id = :file_id;")
+                .single(Call.of().bind("member_id", memberId).bind("file_id", fileId))
+                .delete()
+                .changed();
+    }
+
+    public List<KbFile> findFavourites(int memberId) {
+        return Query.query(
+                        "SELECT " + FILE_COLUMNS
+                                + " FROM kb_file f JOIN kb_favourite fav ON fav.file_id = f.id WHERE fav.member_id = :member_id ORDER BY fav.created_at DESC;")
+                .single(Call.of().bind("member_id", memberId))
+                .map(KbFile.map())
+                .all();
+    }
+
+    public boolean isFavourite(int memberId, int fileId) {
+        return Query.query("SELECT 1 FROM kb_favourite WHERE member_id = :member_id AND file_id = :file_id;")
+                .single(Call.of().bind("member_id", memberId).bind("file_id", fileId))
+                .map(row -> true)
+                .first()
+                .orElse(false);
+    }
+
     public void setFolderTags(int folderId, List<String> tagNames, int stationId) {
         Query.query("DELETE FROM kb_folder_tag WHERE folder_id = :folder_id;")
                 .single(Call.of().bind("folder_id", folderId))
@@ -463,5 +521,69 @@ public class KnowledgeBaseRepository {
             var tag = findOrCreateTag(stationId, name.trim());
             addFolderTag(folderId, tag.id());
         }
+    }
+
+    // -- Public Visibility --
+
+    public Optional<Boolean> findPublicVisibility(Integer folderId, Integer fileId) {
+        if (folderId != null) {
+            return Query.query("SELECT visible FROM kb_public_visibility WHERE folder_id = :folder_id;")
+                    .single(Call.of().bind("folder_id", folderId))
+                    .map(row -> row.getBoolean("visible"))
+                    .first();
+        }
+        if (fileId != null) {
+            return Query.query("SELECT visible FROM kb_public_visibility WHERE file_id = :file_id;")
+                    .single(Call.of().bind("file_id", fileId))
+                    .map(row -> row.getBoolean("visible"))
+                    .first();
+        }
+        return Optional.empty();
+    }
+
+    public void setPublicVisibility(Integer folderId, Integer fileId, boolean visible) {
+        if (folderId != null) {
+            Query.query("""
+                            INSERT INTO kb_public_visibility(folder_id, visible) VALUES(:folder_id, :visible)
+                            ON CONFLICT (folder_id) DO UPDATE SET visible = :visible;""")
+                    .single(Call.of().bind("folder_id", folderId).bind("visible", visible))
+                    .insert();
+        } else if (fileId != null) {
+            Query.query("""
+                            INSERT INTO kb_public_visibility(file_id, visible) VALUES(:file_id, :visible)
+                            ON CONFLICT (file_id) DO UPDATE SET visible = :visible;""")
+                    .single(Call.of().bind("file_id", fileId).bind("visible", visible))
+                    .insert();
+        }
+    }
+
+    public void removePublicVisibility(Integer folderId, Integer fileId) {
+        if (folderId != null) {
+            Query.query("DELETE FROM kb_public_visibility WHERE folder_id = :folder_id;")
+                    .single(Call.of().bind("folder_id", folderId))
+                    .delete();
+        } else if (fileId != null) {
+            Query.query("DELETE FROM kb_public_visibility WHERE file_id = :file_id;")
+                    .single(Call.of().bind("file_id", fileId))
+                    .delete();
+        }
+    }
+
+    public boolean hasRestrictions(Integer folderId, Integer fileId) {
+        if (folderId != null) {
+            return Query.query("SELECT 1 FROM kb_access_restriction WHERE folder_id = :folder_id LIMIT 1;")
+                    .single(Call.of().bind("folder_id", folderId))
+                    .map(row -> true)
+                    .first()
+                    .orElse(false);
+        }
+        if (fileId != null) {
+            return Query.query("SELECT 1 FROM kb_access_restriction WHERE file_id = :file_id LIMIT 1;")
+                    .single(Call.of().bind("file_id", fileId))
+                    .map(row -> true)
+                    .first()
+                    .orElse(false);
+        }
+        return false;
     }
 }

@@ -10,11 +10,11 @@ import dev.chojo.ember.feature.events.repository.EventFieldRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
-/**
- * Service for managing custom fields attached to station events.
- */
 @Singleton
 public class EventFieldService {
     private final EventFieldRepository repository;
@@ -24,32 +24,23 @@ public class EventFieldService {
         this.repository = repository;
     }
 
-    /**
-     * Retrieves all distinct field names used across events of a station.
-     *
-     * @param stationId the station ID
-     * @return the sorted list of unique field names
-     */
     public List<String> findDistinctFieldNames(int stationId) {
         return repository.findDistinctFieldNames(stationId);
     }
 
-    /**
-     * Retrieves all fields for a given event.
-     *
-     * @param eventId the event ID
-     * @return the list of event fields
-     */
     public List<EventField> findByEvent(int eventId) {
         return repository.findByEvent(eventId);
     }
 
-    /**
-     * Replaces all fields for an event with the given entries.
-     *
-     * @param eventId the event ID
-     * @param fields  the new field entries
-     */
+    public Map<Integer, List<EventField>> findOverviewFieldsByEvents(List<Integer> eventIds) {
+        var allFields = repository.findOverviewFieldsByEvents(eventIds);
+        var result = new LinkedHashMap<Integer, List<EventField>>();
+        for (var field : allFields) {
+            result.computeIfAbsent(field.eventId(), _ -> new ArrayList<>()).add(field);
+        }
+        return result;
+    }
+
     public void replaceFields(int eventId, List<EventFieldRepository.FieldEntry> fields) {
         repository.replaceFields(eventId, fields);
     }

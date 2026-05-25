@@ -11,6 +11,7 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
+import FieldLabel from '@/components/typography/FieldLabel.vue'
 
 const {t} = useI18n()
 
@@ -75,14 +76,14 @@ async function importHolidays() {
       <p class="text-sm text-(--text-muted)">{{ t('events.importHolidaysHint') }}</p>
 
       <div class="space-y-1">
-        <label class="block text-sm font-medium">{{ t('events.holidayState') }}</label>
+        <FieldLabel>{{ t('events.holidayState') }}</FieldLabel>
         <SelectInput v-model="holidayState">
           <option v-for="state in germanStates" :key="state.code" :value="state.code">{{ state.name }}</option>
         </SelectInput>
       </div>
 
       <div class="space-y-1">
-        <label class="block text-sm font-medium">{{ t('events.holidayYear') }}</label>
+        <FieldLabel>{{ t('events.holidayYear') }}</FieldLabel>
         <SelectInput v-model="holidayYear">
           <option v-for="y in [2024, 2025, 2026, 2027, 2028]" :key="y" :value="String(y)">{{ y }}</option>
         </SelectInput>

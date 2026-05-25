@@ -46,7 +46,6 @@ public class AdminSettingsRoutes implements Routes {
     private final ApplicationSettingRepository settingRepository;
     private final ImageService imageService;
     private final Conf conf;
-    private final ConsentService consentService;
     private final LegalDocumentService documentService;
 
     @Inject
@@ -58,7 +57,6 @@ public class AdminSettingsRoutes implements Routes {
         this.settingRepository = settingRepository;
         this.imageService = imageService;
         this.conf = conf;
-        this.consentService = consentService;
         this.documentService = new LegalDocumentService();
         initializeAppLogos();
     }

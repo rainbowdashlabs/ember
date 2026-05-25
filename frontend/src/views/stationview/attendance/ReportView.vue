@@ -14,12 +14,17 @@ import TextInput from '@/components/input/text/TextInput.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
+import FieldLabel from '@/components/typography/FieldLabel.vue'
+import THead from '@/components/table/THead.vue'
+import TRow from '@/components/table/TRow.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import type {MemberGroup, Role} from '@/api/types'
 import {attendance, memberGroups, stationMembers} from '@/api'
 import type {ReportData, ReportPreset} from '@/api/attendance'
 import {useSession} from '@/composables/useSession'
+import Td from '@/components/table/Td.vue'
+import Th from '@/components/table/Th.vue'
 
 const {t} = useI18n()
 const {loaded} = useSession()
@@ -265,16 +270,16 @@ watch(loaded, (isLoaded) => {
           <SubHeader>{{ t('attendanceReport.filters') }}</SubHeader>
           <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             <div class="space-y-1">
-              <label class="block text-sm font-medium">{{ t('attendanceReport.filterBy') }}</label>
+              <FieldLabel>{{ t('attendanceReport.filterBy') }}</FieldLabel>
               <SelectInput v-model="filterType">
                 <option value="role">{{ t('attendanceReport.byRole') }}</option>
                 <option value="group">{{ t('attendanceReport.byGroup') }}</option>
               </SelectInput>
             </div>
             <div class="space-y-1">
-              <label class="block text-sm font-medium">{{
+              <FieldLabel>{{
                   filterType === 'role' ? t('attendanceReport.role') : t('attendanceReport.group')
-                }}</label>
+                }}</FieldLabel>
               <SelectInput v-if="filterType === 'role'" v-model="selectedRole">
                 <option disabled value="">{{ t('attendanceReport.selectRole') }}</option>
                 <option v-for="role in roles" :key="role.id" :value="role.role">{{ role.role }}</option>
@@ -285,7 +290,7 @@ watch(loaded, (isLoaded) => {
               </SelectInput>
             </div>
             <div class="space-y-1">
-              <label class="block text-sm font-medium">{{ t('attendanceReport.rounding') }}</label>
+              <FieldLabel>{{ t('attendanceReport.rounding') }}</FieldLabel>
               <SelectInput v-model="selectedRounding">
                 <option v-for="opt in roundingOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
               </SelectInput>
@@ -294,37 +299,35 @@ watch(loaded, (isLoaded) => {
 
           <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             <div class="space-y-1">
-              <label class="block text-sm font-medium">{{ t('attendanceReport.period') }}</label>
+              <FieldLabel>{{ t('attendanceReport.period') }}</FieldLabel>
               <SelectInput v-model="selectedPeriod">
                 <option v-for="opt in periodOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
               </SelectInput>
             </div>
             <div class="space-y-1">
-              <label class="block text-sm font-medium">{{ t('attendanceReport.year') }}</label>
+              <FieldLabel>{{ t('attendanceReport.year') }}</FieldLabel>
               <SelectInput :model-value="String(selectedYear)" @update:model-value="selectedYear = Number($event)">
                 <option v-for="y in yearOptions" :key="y" :value="String(y)">{{ y }}</option>
               </SelectInput>
             </div>
             <div v-if="selectedPeriod === 'month'" class="space-y-1">
-              <label class="block text-sm font-medium">{{ t('attendanceReport.month') }}</label>
+              <FieldLabel>{{ t('attendanceReport.month') }}</FieldLabel>
               <SelectInput :model-value="String(selectedMonth)" @update:model-value="selectedMonth = Number($event)">
                 <option v-for="m in monthOptions" :key="m.value" :value="String(m.value)">{{ m.label }}</option>
               </SelectInput>
             </div>
             <div v-if="selectedPeriod === 'week'" class="space-y-1">
-              <label class="block text-sm font-medium">{{ t('attendanceReport.week') }}</label>
+              <FieldLabel>{{ t('attendanceReport.week') }}</FieldLabel>
               <SelectInput :model-value="String(selectedWeek)" @update:model-value="selectedWeek = Number($event)">
                 <option v-for="w in weekOptions" :key="w" :value="String(w)">KW {{ w }}</option>
               </SelectInput>
             </div>
           </div>
-          <div class="flex items-center gap-3 flex-wrap">
-            <PrimaryButton :disabled="!canPreview || previewing" @click="preview">
-              <font-awesome-icon :icon="['fas', 'eye']" class="mr-1"/>
+          <div class="flex items-center gap-2 flex-wrap">
+            <PrimaryButton :icon="['fas', 'eye']" :disabled="!canPreview || previewing" @click="preview">
               {{ previewing ? t('common.loading') : t('attendanceReport.preview') }}
             </PrimaryButton>
-            <SecondaryButton v-if="!showSavePreset" :disabled="!canPreview" @click="showSavePreset = true">
-              <font-awesome-icon :icon="['fas', 'copy']" class="mr-1"/>
+            <SecondaryButton :icon="['fas', 'copy']" v-if="!showSavePreset" :disabled="!canPreview" @click="showSavePreset = true">
               {{ t('attendanceReport.savePreset') }}
             </SecondaryButton>
             <template v-if="showSavePreset">
@@ -338,8 +341,7 @@ watch(loaded, (isLoaded) => {
         <!-- Preview -->
         <template v-if="report">
           <div class="flex justify-end">
-            <PrimaryButton :disabled="exporting" @click="exportPdf">
-              <font-awesome-icon :icon="['fas', 'download']" class="mr-1"/>
+            <PrimaryButton :icon="['fas', 'download']" :disabled="exporting" @click="exportPdf">
               {{ exporting ? t('common.loading') : t('attendanceReport.exportPdf') }}
             </PrimaryButton>
           </div>
@@ -350,21 +352,20 @@ watch(loaded, (isLoaded) => {
             <div class="overflow-x-auto">
               <table class="w-full text-sm">
                 <thead>
-                <tr class="border-b border-bg-light-accent dark:border-bg-dark-accent">
+                <THead>
                   <th class="text-left py-2 px-3">{{ t('attendanceReport.name') }}</th>
-                  <th class="text-center py-2 px-3">{{ t('attendanceReport.sessions') }}</th>
-                  <th class="text-center py-2 px-3">{{ t('attendanceReport.present') }}</th>
-                  <th class="text-right py-2 px-3">{{ t('attendanceReport.hours') }}</th>
-                </tr>
+                  <Th align="center">{{ t('attendanceReport.sessions') }}</th>
+                  <Th align="center">{{ t('attendanceReport.present') }}</th>
+                  <th class="text-right py-2 px-3">{{ t('attendanceReport.hours') }}</Th>
+                </THead>
                 </thead>
                 <tbody>
-                <tr v-for="m in report.members" :key="m.memberId"
-                    class="border-b border-bg-light-accent/50 dark:border-bg-dark-accent/50">
-                  <td class="py-2 px-3">{{ m.name }}</td>
-                  <td class="text-center py-2 px-3">{{ m.sessionCount }}</td>
-                  <td class="text-center py-2 px-3">{{ m.presentCount }}</td>
-                  <td class="text-right py-2 px-3 font-mono">{{ m.totalHours.toFixed(1) }}</td>
-                </tr>
+                <TRow v-for="m in report.members" :key="m.memberId">
+                  <Td>{{ m.name }}</Td>
+                  <Td align="center">{{ m.sessionCount }}</Td>
+                  <Td align="center">{{ m.presentCount }}</Td>
+                  <Td align="right" class="font-mono">{{ m.totalHours.toFixed(1) }}</Td>
+                </TRow>
                 </tbody>
               </table>
             </div>
@@ -380,19 +381,18 @@ watch(loaded, (isLoaded) => {
                 <div class="overflow-x-auto">
                   <table class="w-full text-sm">
                     <thead>
-                    <tr class="border-b border-bg-light-accent dark:border-bg-dark-accent">
-                      <th class="text-left py-2 px-3">{{ t('attendanceReport.name') }}</th>
-                      <th class="text-center py-2 px-3">{{ t('attendanceReport.present') }}</th>
-                      <th class="text-right py-2 px-3">{{ t('attendanceReport.hours') }}</th>
-                    </tr>
+                    <THead>
+                      <th class="text-left py-2 px-3">{{ t('attendanceReport.name') }}</Th>
+                      <Th align="center">{{ t('attendanceReport.present') }}</th>
+                      <th class="text-right py-2 px-3">{{ t('attendanceReport.hours') }}</Th>
+                    </THead>
                     </thead>
                     <tbody>
-                    <tr v-for="m in ms.members" :key="m.memberId"
-                        class="border-b border-bg-light-accent/50 dark:border-bg-dark-accent/50">
-                      <td class="py-2 px-3">{{ m.name }}</td>
-                      <td class="text-center py-2 px-3">{{ m.presentCount }}</td>
-                      <td class="text-right py-2 px-3 font-mono">{{ m.totalHours.toFixed(1) }}</td>
-                    </tr>
+                    <TRow v-for="m in ms.members" :key="m.memberId">
+                      <Td>{{ m.name }}</Td>
+                      <Td align="center">{{ m.presentCount }}</Td>
+                      <Td align="right" class="font-mono">{{ m.totalHours.toFixed(1) }}</Td>
+                    </TRow>
                     </tbody>
                   </table>
                 </div>
@@ -416,12 +416,12 @@ watch(loaded, (isLoaded) => {
                 <div class="overflow-x-auto">
                   <table class="w-full text-sm">
                     <thead>
-                    <tr class="border-b border-bg-light-accent dark:border-bg-dark-accent">
+                    <THead>
                       <th class="text-left py-1.5 px-2">{{ t('attendanceReport.name') }}</th>
                       <th class="text-center py-1.5 px-2">{{ t('attendanceReport.from') }}</th>
                       <th class="text-center py-1.5 px-2">{{ t('attendanceReport.to') }}</th>
                       <th class="text-right py-1.5 px-2">{{ t('attendanceReport.hours') }}</th>
-                    </tr>
+                    </THead>
                     </thead>
                     <tbody>
                     <tr v-for="entry in session.entries" :key="entry.memberId"
@@ -458,12 +458,12 @@ watch(loaded, (isLoaded) => {
               <div class="overflow-x-auto">
                 <table class="w-full text-sm">
                   <thead>
-                  <tr class="border-b border-bg-light-accent dark:border-bg-dark-accent">
+                  <THead>
                     <th class="text-left py-1.5 px-2">{{ t('attendanceReport.name') }}</th>
                     <th class="text-center py-1.5 px-2">{{ t('attendanceReport.from') }}</th>
                     <th class="text-center py-1.5 px-2">{{ t('attendanceReport.to') }}</th>
                     <th class="text-right py-1.5 px-2">{{ t('attendanceReport.hours') }}</th>
-                  </tr>
+                  </THead>
                   </thead>
                   <tbody>
                   <tr v-for="entry in session.entries" :key="entry.memberId"

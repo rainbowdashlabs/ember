@@ -23,6 +23,7 @@ import {transfer} from '@/api'
 import type {ImportProgress} from '@/api/transfer'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
+import FieldLabel from '@/components/typography/FieldLabel.vue'
 
 const {t} = useI18n()
 const router = useRouter()
@@ -50,7 +51,7 @@ function navigateToCreate() {
   router.push({name: 'admin-station-edit'})
 }
 
-function navigateToEdit(id: number) {
+function navigateToEdit(id: string) {
   router.push({name: 'admin-station-edit', params: {id}})
 }
 
@@ -62,7 +63,7 @@ function requestDelete(station: Station) {
 async function confirmDelete() {
   if (!deleteTarget.value) return
   try {
-    await stations.deleteStation(deleteTarget.value.id)
+    await stations.deleteStation(deleteTarget.value.id.toString())
     showDeleteModal.value = false
     deleteTarget.value = null
     await loadStations()
@@ -94,7 +95,7 @@ async function handleStartImport() {
   }
 }
 
-async function pollProgress(stationId: number) {
+async function pollProgress(stationId: string) {
   pollTimer = setInterval(async () => {
     try {
       const progress = await transfer.getImportProgress(stationId)
@@ -129,7 +130,7 @@ onMounted(loadStations)
       <div v-if="!loading" class="grid gap-4 sm:grid-cols-2">
         <!-- Add station tile -->
         <PrimaryContainer
-            class="flex flex-col items-center justify-center gap-3 cursor-pointer py-6 border-dashed hover:opacity-80 transition-opacity"
+            class="flex flex-col items-center justify-center gap-2 cursor-pointer py-6 border-dashed hover:opacity-80 transition-opacity"
             @click="navigateToCreate"
         >
           <font-awesome-icon :icon="['fas', 'plus']" class="text-2xl"/>
@@ -138,7 +139,7 @@ onMounted(loadStations)
 
         <!-- Import station tile -->
         <NeutralContainer
-            class="flex flex-col items-center justify-center gap-3 cursor-pointer py-6 hover:opacity-80 transition-opacity"
+            class="flex flex-col items-center justify-center gap-2 cursor-pointer py-6 hover:opacity-80 transition-opacity"
             @click="showImportModal = true"
         >
           <font-awesome-icon :icon="['fas', 'upload']" class="text-2xl text-(--text-muted)"/>
@@ -150,7 +151,7 @@ onMounted(loadStations)
                           class="flex items-center justify-between py-6">
           <span class="font-medium text-lg">{{ station.name }}</span>
           <div class="flex items-center gap-2">
-            <EditButton @click="navigateToEdit(station.id)"/>
+            <EditButton @click="navigateToEdit(station.id.toString())"/>
             <DeleteButton @click="requestDelete(station)"/>
           </div>
         </NeutralContainer>
@@ -189,11 +190,11 @@ onMounted(loadStations)
         <div class="space-y-4">
           <p class="text-sm text-(--text-muted)">{{ t('adminStations.importHint') }}</p>
           <div class="space-y-1">
-            <label class="block text-sm font-medium">{{ t('adminStations.importSourceUrl') }}</label>
+            <FieldLabel>{{ t('adminStations.importSourceUrl') }}</FieldLabel>
             <TextInput v-model="importSourceUrl" :placeholder="t('adminStations.importSourceUrlPlaceholder')"/>
           </div>
           <div class="space-y-1">
-            <label class="block text-sm font-medium">{{ t('adminStations.importToken') }}</label>
+            <FieldLabel>{{ t('adminStations.importToken') }}</FieldLabel>
             <TextInput v-model="importToken" :placeholder="t('adminStations.importTokenPlaceholder')"/>
           </div>
           <div class="flex justify-end gap-3">

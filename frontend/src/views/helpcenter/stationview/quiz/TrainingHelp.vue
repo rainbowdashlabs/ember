@@ -13,6 +13,9 @@ import SuccessContainer from '@/components/container/SuccessContainer.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
+import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
+import SectionLabel from '@/components/typography/SectionLabel.vue'
 
 const { t } = useI18n()
 </script>
@@ -30,8 +33,8 @@ const { t } = useI18n()
     <!-- Dummy: Catalog selection -->
     <div class="space-y-2">
       <NeutralContainer>
-        <label class="flex items-center gap-3 cursor-pointer">
-          <input type="checkbox" checked disabled class="h-4 w-4 accent-primary" />
+        <label class="flex items-center gap-2 cursor-pointer">
+          <ToggleInput :model-value="true" disabled />
           <div>
             <span class="font-medium">Brandschutz Grundlagen</span>
             <p class="text-xs text-(--text-muted)">12 Fragen</p>
@@ -39,8 +42,8 @@ const { t } = useI18n()
         </label>
       </NeutralContainer>
       <NeutralContainer>
-        <label class="flex items-center gap-3 cursor-pointer">
-          <input type="checkbox" disabled class="h-4 w-4" />
+        <label class="flex items-center gap-2 cursor-pointer">
+          <ToggleInput :model-value="false" disabled />
           <div>
             <span class="font-medium">Erste Hilfe</span>
             <p class="text-xs text-(--text-muted)">8 Fragen</p>
@@ -70,15 +73,14 @@ const { t } = useI18n()
 
       <NeutralContainer>
         <div class="space-y-3">
-          <span class="text-xs font-semibold text-(--text-muted) uppercase">{{ t('quiz.questionTypes.FILL_IN_THE_BLANK') }}</span>
-          <h3 class="font-medium">Welche Nummer hat die Feuerwehr?</h3>
+          <SectionLabel>{{ t('quiz.questionTypes.FILL_IN_THE_BLANK') }}</SectionLabel>
+          <SubHeader class="font-medium">Welche Nummer hat die Feuerwehr?</SubHeader>
           <TextInput model-value="112" disabled />
         </div>
       </NeutralContainer>
 
       <div class="flex justify-end gap-3">
-        <SecondaryButton disabled>
-          <font-awesome-icon :icon="['fas', 'eye']" class="mr-1" />
+        <SecondaryButton :icon="['fas', 'eye']" disabled>
           {{ t('quiz.training.showAnswer') }}
         </SecondaryButton>
       </div>
@@ -106,8 +108,7 @@ const { t } = useI18n()
         <font-awesome-icon :icon="['fas', 'trophy']" class="text-2xl" />
         <p class="font-semibold">{{ t('quiz.training.finished') }}</p>
         <div class="flex justify-center gap-3">
-          <SecondaryButton disabled>
-            <font-awesome-icon :icon="['fas', 'redo']" class="mr-1" />
+          <SecondaryButton :icon="['fas', 'redo']" disabled>
             {{ t('quiz.training.restart') }}
           </SecondaryButton>
           <PrimaryButton disabled>{{ t('common.back') }}</PrimaryButton>

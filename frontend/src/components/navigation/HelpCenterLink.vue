@@ -4,89 +4,68 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {useRoute} from 'vue-router'
+import {useRoute, useRouter} from 'vue-router'
 import {useI18n} from 'vue-i18n'
 import {computed} from 'vue'
 import EmberLogo from '@/components/display/EmberLogo.vue'
 
 const route = useRoute()
+const router = useRouter()
 const {t} = useI18n()
 
-const routeToHelp: Record<string, string> = {
-  'dashboard-overview': 'help-dashboard-overview',
-  'dashboard-statistics': 'help-dashboard-statistics',
-  'news-list': 'help-news-list',
-  'news-create': 'help-news-create',
-  'news-edit': 'help-news-edit',
-  'profile': 'help-profile',
-  'profile-absences': 'help-profile-absences',
-  'profile-managed': 'help-profile-managed',
-  'profile-inventory': 'help-profile-inventory',
-  'profile-settings': 'help-profile-settings',
-  'station-manage': 'help-station-manage',
-  'station-attendance-config': 'help-station-attendance-config',
-  'station-attendance-config-edit': 'help-station-attendance-config-edit',
-  'station-members-config': 'help-station-members-config',
-  'station-mail-config': 'help-station-mail-config',
-  'members-create': 'help-members-create',
-  'members-list': 'help-members-list',
-  'members-detail': 'help-members-detail',
-  'members-edit': 'help-members-edit',
-  'members-import': 'help-members-import',
-  'members-import-team': 'help-members-import-team',
-  'members-groups': 'help-members-groups',
-  'members-tags': 'help-members-tags',
-  'members-changes': 'help-members-changes',
-  'members-former': 'help-members-former',
-  'inventory-overview': 'help-inventory-overview',
-  'inventory-my': 'help-inventory-my',
-  'inventory-manage': 'help-inventory-manage',
-  'inventory-edit': 'help-inventory-edit',
-  'inventory-detail': 'help-inventory-detail',
-  'inventory-exchanges': 'help-inventory-exchanges',
-  'inventory-members': 'help-inventory-members',
-  'inventory-member': 'help-inventory-member',
-  'inventory-requirements': 'help-inventory-requirements',
-  'inventory-checks': 'help-inventory-checks',
-  'inventory-check-member': 'help-inventory-check-member',
-  'inventory-check-result': 'help-inventory-check-result',
-  'inventory-procurement': 'help-inventory-procurement',
-  'attendance-new': 'help-attendance-new',
-  'attendance-session': 'help-attendance-session',
-  'attendance-past': 'help-attendance-past',
-  'attendance-report': 'help-attendance-report',
-  'events': 'help-events',
-  'events-upcoming': 'help-events-upcoming',
-  'events-registrations': 'help-events-registrations',
-  'event-new': 'help-event-new',
-  'event-edit': 'help-event-edit',
-  'event-detail': 'help-event-detail',
-  'forms-list': 'help-forms-list',
-  'forms-create': 'help-forms-create',
-  'forms-fill': 'help-forms-fill',
-  'forms-analytics': 'help-forms-analytics',
-  'lost-and-found': 'help-lost-and-found',
-  'quiz-overview': 'help-quiz-overview',
-  'quiz-catalogs': 'help-quiz-catalogs',
-  'quiz-catalog-detail': 'help-quiz-catalog-detail',
-  'quiz-catalog-generate': 'help-quiz-ai',
-  'quiz-tests': 'help-quiz-tests',
-  'quiz-test-detail': 'help-quiz-test-detail',
-  'quiz-test-take': 'help-quiz-test-detail',
-  'quiz-training': 'help-quiz-training',
+/**
+ * Explicit overrides for routes where the help page name differs from
+ * the automatic `help-{routeName}` convention.
+ */
+const OVERRIDES: Record<string, string> = {
   'kb-browse': 'help-knowledge-base',
   'kb-file': 'help-knowledge-base',
   'kb-versions': 'help-knowledge-base',
-  'admin-overview': 'help-admin-overview',
-  'admin-statistics': 'help-admin-statistics',
-  'admin-stations': 'help-admin-stations',
-  'admin-station-edit': 'help-admin-station-edit',
-  'admin-station-applications': 'help-admin-station-applications',
+  'quiz-catalog-generate': 'help-quiz-ai',
+  'quiz-test-take': 'help-quiz-test-detail',
+}
+
+/**
+ * Module overview fallbacks — when a route has no direct help page,
+ * fall back to the module overview.
+ */
+const MODULE_FALLBACKS: Record<string, string> = {
+  'dashboard': 'help-dashboard-module-overview',
+  'news': 'help-news-module-overview',
+  'profile': 'help-profile-module-overview',
+  'station': 'help-manage-module-overview',
+  'members': 'help-members-module-overview',
+  'inventory': 'help-inventory-module-overview',
+  'attendance': 'help-attendance-module-overview',
+  'events': 'help-events-module-overview',
+  'forms': 'help-forms-module-overview',
+  'quiz': 'help-quiz-module-overview',
+  'kb': 'help-knowledge-module-overview',
+  'protocol': 'help-knowledge-module-overview',
+  'admin': 'help-admin-module-overview',
+}
+
+function routeExists(name: string): boolean {
+  return router.getRoutes().some(r => r.name === name)
 }
 
 const helpRoute = computed(() => {
   const name = route.name as string
-  return {name: routeToHelp[name] ?? 'help-dashboard-overview'}
+  if (!name) return {name: 'help-dashboard-module-overview'}
+
+  // 1. Check explicit overrides
+  if (OVERRIDES[name]) return {name: OVERRIDES[name]}
+
+  // 2. Try automatic convention: help-{routeName}
+  const autoName = `help-${name}`
+  if (routeExists(autoName)) return {name: autoName}
+
+  // 3. Fall back to module overview based on route name prefix
+  const prefix = name.split('-')[0]
+  if (MODULE_FALLBACKS[prefix]) return {name: MODULE_FALLBACKS[prefix]}
+
+  // 4. Default
+  return {name: 'help-dashboard-module-overview'}
 })
 </script>
 

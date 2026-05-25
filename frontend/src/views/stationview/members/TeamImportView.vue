@@ -11,10 +11,13 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import FileUploadButton from '@/components/button/FileUploadButton.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
+import TextInput from '@/components/input/text/TextInput.vue'
+import NumberInput from '@/components/input/number/NumberInput.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SuccessContainer from '@/components/container/SuccessContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
+import THead from '@/components/table/THead.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import client from '@/api/client'
@@ -22,6 +25,8 @@ import { profileFields as profileFieldsApi } from '@/api'
 import type { ProfileField } from '@/api/types'
 import { useRouter } from 'vue-router'
 import { useSession } from '@/composables/useSession'
+import Th from '@/components/table/Th.vue'
+import Td from '@/components/table/Td.vue'
 
 const { t } = useI18n()
 const router = useRouter()
@@ -206,8 +211,7 @@ watch(loaded, async (isLoaded) => {
     <div class="space-y-6">
       <div class="flex items-center justify-between">
         <SectionHeader>{{ t('teamImport.title') }}</SectionHeader>
-        <SecondaryButton @click="router.push({ name: 'members-import' })">
-          <font-awesome-icon :icon="['fas', 'chevron-left']" class="mr-2" />
+        <SecondaryButton :icon="['fas', 'chevron-left']" @click="router.push({ name: 'members-import' })">
           {{ t('common.back') }}
         </SecondaryButton>
       </div>
@@ -270,20 +274,20 @@ watch(loaded, async (isLoaded) => {
                   </SelectInput>
                 </div>
               </div>
-              <div v-if="m.target !== 'skip' && isMerged(m.target)" class="flex items-center gap-3 mt-2 text-xs">
+              <div v-if="m.target !== 'skip' && isMerged(m.target)" class="flex items-center gap-2 mt-2 text-xs">
                 <span class="text-(--text-muted)">
                   <font-awesome-icon :icon="['fas', 'link']" class="mr-1" />
                   {{ t('memberImport.mergedWith') }}
                 </span>
                 <div class="flex items-center gap-1">
                   <label class="text-(--text-muted)">{{ t('memberImport.order') }}:</label>
-                  <input type="number" :value="m.mergeOrder" class="w-12 px-1 py-0.5 rounded border border-bg-light-accent dark:border-bg-dark-accent bg-bg-light dark:bg-bg-dark text-center text-xs"
-                    @input="mappings[i] = { ...m, mergeOrder: Number(($event.target as HTMLInputElement).value) }" />
+                  <NumberInput :model-value="m.mergeOrder" class="!w-12 !px-1 !py-0.5 text-center text-xs"
+                    @update:model-value="mappings[i] = { ...m, mergeOrder: Number($event) }" />
                 </div>
                 <div class="flex items-center gap-1">
                   <label class="text-(--text-muted)">{{ t('memberImport.sep') }}:</label>
-                  <input type="text" :value="m.mergeSeparator" class="w-10 px-1 py-0.5 rounded border border-bg-light-accent dark:border-bg-dark-accent bg-bg-light dark:bg-bg-dark text-center text-xs"
-                    @input="mappings[i] = { ...m, mergeSeparator: ($event.target as HTMLInputElement).value }" />
+                  <TextInput :model-value="m.mergeSeparator" class="!w-10 !px-1 !py-0.5 text-center text-xs"
+                    @update:model-value="mappings[i] = { ...m, mergeSeparator: $event ?? '' }" />
                 </div>
               </div>
             </div>
@@ -292,8 +296,7 @@ watch(loaded, async (isLoaded) => {
 
         <div class="flex justify-between">
           <SecondaryButton @click="step = 'upload'">{{ t('common.back') }}</SecondaryButton>
-          <PrimaryButton :disabled="loading" @click="loadPreview">
-            <font-awesome-icon :icon="['fas', 'eye']" class="mr-1" />
+          <PrimaryButton :icon="['fas', 'eye']" :disabled="loading" @click="loadPreview">
             {{ loading ? t('common.loading') : t('memberImport.preview') }}
           </PrimaryButton>
         </div>
@@ -310,24 +313,24 @@ watch(loaded, async (isLoaded) => {
           <div class="overflow-x-auto">
             <table class="w-full text-sm">
               <thead>
-                <tr class="border-b border-bg-light-accent dark:border-bg-dark-accent">
-                  <th class="text-left py-2 px-2">{{ t('memberImport.name') }}</th>
-                  <th class="text-left py-2 px-2">{{ t('memberImport.email') }}</th>
-                  <th class="text-left py-2 px-2">{{ t('memberImport.group') }}</th>
-                  <th class="text-left py-2 px-2">{{ t('memberImport.fields') }}</th>
-                </tr>
+                <THead>
+                  <Th>{{ t('memberImport.name') }}</th>
+                  <Th>{{ t('memberImport.email') }}</th>
+                  <Th>{{ t('memberImport.group') }}</th>
+                  <Th>{{ t('memberImport.fields') }}</th>
+                </THead>
               </thead>
               <tbody>
-                <tr v-for="(m, i) in preview.members" :key="i" class="border-b border-bg-light-accent/50 dark:border-bg-dark-accent/50">
+                <TRow v-for="(m, i) in preview.members" :key="i">
                   <td class="py-2 px-2 font-medium">{{ m.firstName }} {{ m.lastName }}</td>
-                  <td class="py-2 px-2 text-xs">{{ m.email }}</td>
-                  <td class="py-2 px-2">{{ m.group }}</td>
-                  <td class="py-2 px-2 text-xs">
+                  <Td class="!px-2 text-xs">{{ m.email }}</td>
+                  <td class="py-2 px-2">{{ m.group }}</Td>
+                  <Td class="!px-2 text-xs">
                     <span v-for="(v, k) in m.profileFields" :key="k" class="inline-block mr-2">
                       <span class="text-(--text-muted)">{{ k }}:</span> {{ v }}
                     </span>
-                  </td>
-                </tr>
+                  </Td>
+                </TRow>
               </tbody>
             </table>
           </div>
@@ -335,8 +338,7 @@ watch(loaded, async (isLoaded) => {
 
         <div class="flex justify-between">
           <SecondaryButton @click="step = 'mapping'">{{ t('common.back') }}</SecondaryButton>
-          <PrimaryButton :disabled="loading" @click="doImport">
-            <font-awesome-icon :icon="['fas', 'download']" class="mr-1" />
+          <PrimaryButton :icon="['fas', 'download']" :disabled="loading" @click="doImport">
             {{ loading ? t('common.loading') : t('memberImport.import') }}
           </PrimaryButton>
         </div>

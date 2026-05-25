@@ -12,17 +12,19 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import EditButton from '@/components/button/EditButton.vue'
+import IconButton from '@/components/button/IconButton.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
+import EmptyState from '@/components/feedback/EmptyState.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
+import FieldLabel from '@/components/typography/FieldLabel.vue'
 import type {UserTag, StationMember} from '@/api/types'
 import {userTags, stationMembers} from '@/api'
-import {useStations} from '@/composables/useStations'
+import MutedText from '@/components/typography/MutedText.vue'
 
-const {currentStationId} = useStations()
 
 const tags = ref<UserTag[]>([])
 const allMembers = ref<StationMember[]>([])
@@ -64,7 +66,7 @@ async function loadData() {
   try {
     const [t, m] = await Promise.all([
       userTags.listTags(),
-      stationMembers.listMembers(currentStationId.value!),
+      stationMembers.listMembers(),
     ])
     tags.value = t
     allMembers.value = m
@@ -199,15 +201,12 @@ onMounted(loadData)
         <div class="space-y-4">
           <div class="flex items-center justify-between">
             <SectionHeader>Tags</SectionHeader>
-            <PrimaryButton @click="openCreateTag">
-              <font-awesome-icon :icon="['fas', 'plus']" class="mr-2"/>
+            <PrimaryButton :icon="['fas', 'plus']" @click="openCreateTag">
               Tag erstellen
             </PrimaryButton>
           </div>
 
-          <div v-if="tags.length === 0" class="text-center text-(--text-muted) py-8">
-            Keine Tags vorhanden.
-          </div>
+          <EmptyState v-if="tags.length === 0">Keine Tags vorhanden.</EmptyState>
 
           <div class="space-y-2">
             <NeutralContainer
@@ -219,8 +218,7 @@ onMounted(loadData)
             >
               <span class="font-medium">{{ tag.name }}</span>
               <div class="flex items-center gap-2">
-                <SecondaryButton @click.stop="requestConvert(tag)">
-                  <font-awesome-icon :icon="['fas', 'people-group']" class="mr-1"/>
+                <SecondaryButton :icon="['fas', 'people-group']" @click.stop="requestConvert(tag)">
                   Zu Gruppe
                 </SecondaryButton>
                 <EditButton @click.stop="openEditTag(tag)"/>
@@ -239,32 +237,28 @@ onMounted(loadData)
           <template v-if="!tagLoading">
             <!-- Current members -->
             <div class="space-y-1">
-              <label class="block text-sm font-medium text-(--text-muted)">Mitglieder</label>
-              <div v-if="tagMembers.length === 0" class="text-sm text-(--text-muted) py-2">
+              <FieldLabel class="text-(--text-muted)">Mitglieder</FieldLabel>
+              <MutedText tag="div" size="sm" class="py-2" v-if="tagMembers.length === 0">
                 Keine Mitglieder in diesem Tag.
-              </div>
+              </MutedText>
               <div class="space-y-1">
                 <div v-for="member in tagMembers" :key="member.id"
                      class="flex items-center justify-between rounded-lg px-3 py-2 bg-bg-light-accent dark:bg-bg-dark-accent">
                   <div>
                     <MemberName :name="memberDisplayName(member)" :member-id="member.id" class="text-sm font-medium"/>
-                    <span v-if="member.name && member.email" class="ml-2 text-xs text-(--text-muted)">{{
-                        member.email
-                      }}</span>
+                    <div v-if="member.name && member.email" class="text-xs text-(--text-muted) ml-7">{{ member.email }}</div>
                   </div>
-                  <button class="text-error hover:text-error/80 text-sm" @click="removeMemberFromTag(member)">
-                    <font-awesome-icon :icon="['fas', 'xmark']"/>
-                  </button>
+                  <IconButton :icon="['fas', 'xmark']" label="Entfernen" class="text-error hover:text-error/80 text-sm" @click="removeMemberFromTag(member)"/>
                 </div>
               </div>
             </div>
 
             <!-- Available members to add -->
             <div class="space-y-1">
-              <label class="block text-sm font-medium text-(--text-muted)">Mitglied hinzufügen</label>
-              <div v-if="availableMembers.length === 0" class="text-sm text-(--text-muted) py-2">
+              <FieldLabel class="text-(--text-muted)">Mitglied hinzufügen</FieldLabel>
+              <MutedText tag="div" size="sm" class="py-2" v-if="availableMembers.length === 0">
                 Alle Mitglieder sind bereits zugewiesen.
-              </div>
+              </MutedText>
               <div class="space-y-1">
                 <div
                     v-for="member in availableMembers"
@@ -274,9 +268,7 @@ onMounted(loadData)
                 >
                   <div>
                     <MemberName :name="memberDisplayName(member)" :member-id="member.id" class="text-sm font-medium"/>
-                    <span v-if="member.name && member.email" class="ml-2 text-xs text-(--text-muted)">{{
-                        member.email
-                      }}</span>
+                    <div v-if="member.name && member.email" class="text-xs text-(--text-muted) ml-7">{{ member.email }}</div>
                   </div>
                   <font-awesome-icon :icon="['fas', 'plus']" class="text-primary text-sm"/>
                 </div>
@@ -298,7 +290,7 @@ onMounted(loadData)
             }}
           </SectionHeader>
           <div class="space-y-1">
-            <label class="block text-sm font-medium">Name</label>
+            <FieldLabel>Name</FieldLabel>
             <TextInput v-model="tagName" placeholder="Tag-Name"/>
           </div>
           <div class="flex justify-end gap-3">

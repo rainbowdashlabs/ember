@@ -219,7 +219,7 @@ public class AttendanceExportService {
     }
 
     private boolean isMemberField(String fieldType) {
-        return fieldType != null && (fieldType.startsWith("member") || fieldType.startsWith("attendance"));
+        return fieldType != null && fieldType.startsWith("member");
     }
 
     private String resolveMemberFieldValue(String rawValue) {

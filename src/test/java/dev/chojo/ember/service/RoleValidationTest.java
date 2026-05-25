@@ -25,29 +25,29 @@ class RoleValidationTest {
     static final Role MEMBER = new Role(2, Roles.MEMBER);
     static final Role GUARDIAN = new Role(3, Roles.GUARDIAN);
     static final Role TEAM = new Role(4, Roles.TEAM);
-    static final Role MEMBER_MANAGEMENT = new Role(9, Roles.MEMBER_MANAGEMENT);
+    static final Role MEMBER_MANAGER = new Role(9, Roles.MEMBER_MANAGER);
     static final Role MANAGER = new Role(13, Roles.MANAGER);
     static final Role ADMIN = new Role(14, Roles.ADMIN);
-    static final Role INVENTORY_MANAGEMENT = new Role(7, Roles.INVENTORY_MANAGEMENT);
+    static final Role INVENTORY_MANAGER = new Role(7, Roles.INVENTORY_MANAGER);
 
     static final List<Role> ALL_ROLES =
-            List.of(LOGIN, MEMBER, GUARDIAN, TEAM, MEMBER_MANAGEMENT, MANAGER, ADMIN, INVENTORY_MANAGEMENT);
+            List.of(LOGIN, MEMBER, GUARDIAN, TEAM, MEMBER_MANAGER, MANAGER, ADMIN, INVENTORY_MANAGER);
 
     // --- validateRoleChanges ---
 
     @Test
     void allowsValidRoleAssignment() {
         List<Role> current = List.of(LOGIN, TEAM);
-        List<Integer> desired = List.of(LOGIN.id(), TEAM.id(), INVENTORY_MANAGEMENT.id());
-        Set<Roles> callerRoles = EnumSet.of(Roles.MANAGER, Roles.TEAM, Roles.INVENTORY_MANAGEMENT);
+        List<Integer> desired = List.of(LOGIN.id(), TEAM.id(), INVENTORY_MANAGER.id());
+        Set<Roles> callerRoles = EnumSet.of(Roles.MANAGER, Roles.TEAM, Roles.INVENTORY_MANAGER);
 
         assertDoesNotThrow(() -> RoleValidation.validateRoleChanges(current, desired, ALL_ROLES, callerRoles, false));
     }
 
     @Test
     void rejectsRemovingProtectedRole() {
-        List<Role> current = List.of(LOGIN, MEMBER_MANAGEMENT);
-        List<Integer> desired = List.of(LOGIN.id()); // removing MEMBER_MANAGEMENT
+        List<Role> current = List.of(LOGIN, MEMBER_MANAGER);
+        List<Integer> desired = List.of(LOGIN.id()); // removing MEMBER_MANAGER
         Set<Roles> callerRoles = EnumSet.of(Roles.ADMIN);
 
         assertThrows(
@@ -82,7 +82,7 @@ class RoleValidationTest {
     void rejectsGrantingRoleCallerDoesNotHave() {
         List<Role> current = List.of(LOGIN);
         List<Integer> desired = List.of(LOGIN.id(), ADMIN.id());
-        Set<Roles> callerRoles = EnumSet.of(Roles.MEMBER_MANAGEMENT); // doesn't have ADMIN
+        Set<Roles> callerRoles = EnumSet.of(Roles.MEMBER_MANAGER); // doesn't have ADMIN
 
         assertThrows(
                 ForbiddenResponse.class,
@@ -93,7 +93,7 @@ class RoleValidationTest {
     void allowsKeepingExistingRoleEvenWithoutCallerHavingIt() {
         List<Role> current = List.of(LOGIN, ADMIN);
         List<Integer> desired = List.of(LOGIN.id(), ADMIN.id()); // no change
-        Set<Roles> callerRoles = EnumSet.of(Roles.MEMBER_MANAGEMENT); // doesn't have ADMIN
+        Set<Roles> callerRoles = EnumSet.of(Roles.MEMBER_MANAGER); // doesn't have ADMIN
 
         assertDoesNotThrow(() -> RoleValidation.validateRoleChanges(current, desired, ALL_ROLES, callerRoles, false));
     }

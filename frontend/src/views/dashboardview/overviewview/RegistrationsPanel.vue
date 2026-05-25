@@ -8,6 +8,7 @@ import {computed, onMounted, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRouter} from 'vue-router'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
+import EmptyState from '@/components/feedback/EmptyState.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
@@ -67,12 +68,10 @@ onMounted(loadData)
       {{ isGuardian() ? t('dashboard.registrationsManaged') : t('dashboard.registrations') }}
     </SectionHeader>
     <div class="overflow-y-auto flex-1 space-y-2">
-      <div v-if="activeRegistrations.length === 0" class="text-center text-(--text-muted) py-4">
-        {{ t('dashboard.noRegistrations') }}
-      </div>
+      <EmptyState compact v-if="activeRegistrations.length === 0">{{ t('dashboard.noRegistrations') }}</EmptyState>
       <template v-else>
         <NeutralContainer v-for="reg in activeRegistrations" :key="reg.id"
-                          class="flex items-center justify-between gap-3 py-2 px-3 cursor-pointer hover:bg-(--bg-accent)"
+                          class="flex items-center justify-between gap-2 py-2 px-3 cursor-pointer hover:bg-(--bg-accent)"
                           @click="router.push({ name: 'events-upcoming' })">
           <div>
             <MemberName v-if="isOtherMember(reg.memberId)" :name="reg.memberName"

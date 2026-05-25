@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.events.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
+import dev.chojo.ember.feature.restriction.RestrictionMode;
 
 import java.time.Instant;
 
@@ -41,7 +42,9 @@ public record StationEvent(
         boolean requiresRegistration,
         Instant registrationDeadline,
         boolean requiresConfirmation,
-        Integer categoryId) {
+        Integer categoryId,
+        RestrictionMode restrictionMode,
+        boolean restricted) {
 
     /**
      * Creates a row mapping for database result set conversion.
@@ -60,7 +63,9 @@ public record StationEvent(
                 row.getBoolean("requires_registration"),
                 row.get("registration_deadline", INSTANT_TIMESTAMP),
                 row.getBoolean("requires_confirmation"),
-                row.getObject("category_id", Integer.class));
+                row.getObject("category_id", Integer.class),
+                RestrictionMode.valueOf(row.getString("restriction_mode")),
+                row.getBoolean("restricted"));
     }
 
     /**

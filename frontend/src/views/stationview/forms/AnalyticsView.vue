@@ -15,24 +15,27 @@ import VChart from 'vue-echarts'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
+import EmptyState from '@/components/feedback/EmptyState.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import IconButton from '@/components/button/IconButton.vue'
+import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import TabBar from '@/components/navigation/TabBar.vue'
 import type { Form, FormAnalytics, FormQuestionAnalytics, FormResponse, FormAnswer, ProfileField } from '@/api/types'
 import { QuestionTypes } from '@/api/types'
 import { forms, profileFields, stationMembers } from '@/api'
-import { useStations } from '@/composables/useStations'
 import MemberName from '@/components/avatar/MemberName.vue'
+import SectionHeader from '@/components/typography/SectionHeader.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
 
 use([CanvasRenderer, BarChart, PieChart, TitleComponent, TooltipComponent, LegendComponent, GridComponent])
 
 const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
-const { currentStationId } = useStations()
+
 
 const formId = computed(() => Number(route.params.id))
 const loading = ref(true)
@@ -303,7 +306,7 @@ async function loadData() {
       forms.getAnalytics(formId.value),
       forms.listResponses(formId.value),
       profileFields.listFields(),
-      stationMembers.listMembers(currentStationId.value!),
+      stationMembers.listMembers(),
     ])
     form.value = f
     analytics.value = a
@@ -343,23 +346,20 @@ onMounted(loadData)
       <template v-if="!loading && form && analytics">
         <div class="flex items-center justify-between">
           <div>
-            <h2 class="text-xl font-semibold">{{ form.title }}</h2>
+            <SectionHeader>{{ form.title }}</SectionHeader>
             <p class="text-(--text-muted) text-sm">
               {{ t('forms.analytics.totalResponses') }}: {{ analytics.totalResponses }}
             </p>
           </div>
           <div class="flex gap-2">
-            <SecondaryButton @click="openExportModal">
-              <font-awesome-icon :icon="['fas', 'file-export']" class="mr-1" />
+            <SecondaryButton :icon="['fas', 'file-export']" @click="openExportModal">
               {{ t('forms.analytics.export') }}
             </SecondaryButton>
             <SecondaryButton @click="router.push({ name: 'forms-list' })">{{ t('common.back') }}</SecondaryButton>
           </div>
         </div>
 
-        <div v-if="analytics.totalResponses === 0" class="text-center text-(--text-muted) py-8">
-          {{ t('forms.analytics.noResponses') }}
-        </div>
+        <EmptyState v-if="analytics.totalResponses === 0">{{ t('forms.analytics.noResponses') }}</EmptyState>
 
         <template v-else>
           <TabBar v-model="activeTab" :tabs="tabs" />
@@ -368,7 +368,7 @@ onMounted(loadData)
           <div v-if="activeTab === 'charts'" class="space-y-6">
             <NeutralContainer v-for="q in analytics.questions" :key="q.questionId">
               <div class="space-y-3">
-                <h3 class="font-medium">{{ q.title }}</h3>
+                <SubHeader>{{ q.title }}</SubHeader>
                 <p class="text-xs text-(--text-muted)">{{ q.values.length }} {{ t('forms.responses') }}</p>
                 <VChart v-if="q.questionType === QuestionTypes.CHOICE" :option="buildChoiceChart(q)" autoresize style="height: 250px" />
                 <VChart v-if="q.questionType === QuestionTypes.RATING" :option="buildRatingChart(q)" autoresize style="height: 200px" />
@@ -426,7 +426,7 @@ onMounted(loadData)
       <!-- Export Modal -->
       <Modal v-model="showExportModal">
         <div class="space-y-4">
-          <h3 class="text-lg font-semibold">{{ t('forms.analytics.export') }}</h3>
+          <SubHeader>{{ t('forms.analytics.export') }}</SubHeader>
 
           <!-- Question selection -->
           <div class="space-y-2">
@@ -438,12 +438,11 @@ onMounted(loadData)
               </div>
             </div>
             <div class="max-h-40 overflow-y-auto space-y-1 border rounded border-bg-light-accent dark:border-bg-dark-accent p-2">
-              <label v-for="q in analytics?.questions" :key="q.questionId"
-                     class="flex items-center gap-2 text-sm cursor-pointer py-0.5">
-                <input type="checkbox" :checked="exportQuestionIds.has(q.questionId)"
-                       class="h-4 w-4 rounded accent-primary" @change="toggleExportQuestion(q.questionId)" />
-                {{ q.title }}
-              </label>
+              <div v-for="q in analytics?.questions" :key="q.questionId" class="py-0.5">
+                <SelectionToggleButton :selected="exportQuestionIds.has(q.questionId)" @toggle="toggleExportQuestion(q.questionId)">
+                  {{ q.title }}
+                </SelectionToggleButton>
+              </div>
             </div>
           </div>
 
@@ -451,12 +450,11 @@ onMounted(loadData)
           <div class="space-y-2">
             <label class="text-sm font-medium">{{ t('forms.analytics.exportFields') }}</label>
             <div class="max-h-40 overflow-y-auto space-y-1 border rounded border-bg-light-accent dark:border-bg-dark-accent p-2">
-              <label v-for="f in allFields" :key="f.id"
-                     class="flex items-center gap-2 text-sm cursor-pointer py-0.5">
-                <input type="checkbox" :checked="exportFieldIds.has(f.id)"
-                       class="h-4 w-4 rounded accent-primary" @change="toggleExportField(f.id)" />
-                {{ f.name }}
-              </label>
+              <div v-for="f in allFields" :key="f.id" class="py-0.5">
+                <SelectionToggleButton :selected="exportFieldIds.has(f.id)" @toggle="toggleExportField(f.id)">
+                  {{ f.name }}
+                </SelectionToggleButton>
+              </div>
               <p v-if="allFields.length === 0" class="text-xs text-(--text-muted)">–</p>
             </div>
           </div>

@@ -13,6 +13,8 @@ import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.List;
+
 /**
  * Seeds demo knowledge base content with folders, markdown files, a YouTube video, and a PDF.
  */
@@ -164,7 +166,7 @@ public class DemoKnowledgeBaseSeeder {
                         > Tipp: Markiere Text im Editor, um die Schnellformatierung zu nutzen!
                         """,
                 createdBy);
-        kbRepository.setFileTags(showcaseFile.id(), java.util.List.of("beispiel", "formatierung", "editor"), stationId);
+        kbRepository.setFileTags(showcaseFile.id(), List.of("beispiel", "formatierung", "editor"), stationId);
 
         // === Grundlagen Folder ===
         var grundlagenFolder =
@@ -452,11 +454,11 @@ public class DemoKnowledgeBaseSeeder {
         }
 
         // === Tags ===
-        kbRepository.setFileTags(welcomeFile.id(), java.util.List.of("wichtig", "einstieg"), stationId);
-        kbRepository.setFolderTags(grundlagenFolder.id(), java.util.List.of("grundlagen", "theorie"), stationId);
-        kbRepository.setFolderTags(ausruestungFolder.id(), java.util.List.of("ausrüstung", "praxis"), stationId);
-        kbRepository.setFolderTags(ersteHilfeFolder.id(), java.util.List.of("erste hilfe", "wichtig"), stationId);
-        kbRepository.setFolderTags(uebungenFolder.id(), java.util.List.of("übungen", "praxis"), stationId);
-        kbRepository.setFolderTags(videosFolder.id(), java.util.List.of("videos", "multimedia"), stationId);
+        kbRepository.setFileTags(welcomeFile.id(), List.of("wichtig", "einstieg"), stationId);
+        kbRepository.setFolderTags(grundlagenFolder.id(), List.of("grundlagen", "theorie"), stationId);
+        kbRepository.setFolderTags(ausruestungFolder.id(), List.of("ausrüstung", "praxis"), stationId);
+        kbRepository.setFolderTags(ersteHilfeFolder.id(), List.of("erste hilfe", "wichtig"), stationId);
+        kbRepository.setFolderTags(uebungenFolder.id(), List.of("übungen", "praxis"), stationId);
+        kbRepository.setFolderTags(videosFolder.id(), List.of("videos", "multimedia"), stationId);
     }
 }

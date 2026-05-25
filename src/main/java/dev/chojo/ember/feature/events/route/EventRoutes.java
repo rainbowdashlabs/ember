@@ -5,7 +5,6 @@
  */
 package dev.chojo.ember.feature.events.route;
 
-import dev.chojo.ember.api.AccessManager;
 import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.MessageResponse;
 import dev.chojo.ember.api.Roles;
@@ -17,23 +16,24 @@ import dev.chojo.ember.feature.events.entity.EventBreak;
 import dev.chojo.ember.feature.events.entity.EventCategory;
 import dev.chojo.ember.feature.events.entity.EventField;
 import dev.chojo.ember.feature.events.entity.EventFieldDefault;
+import dev.chojo.ember.feature.events.entity.EventLayoutField;
 import dev.chojo.ember.feature.events.entity.EventRegistration;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventFieldRepository;
+import dev.chojo.ember.feature.events.repository.EventLayoutRepository;
+import dev.chojo.ember.feature.events.service.BatchEventService;
 import dev.chojo.ember.feature.events.service.EventExportService;
 import dev.chojo.ember.feature.events.service.EventFieldService;
+import dev.chojo.ember.feature.events.service.EventLayoutService;
 import dev.chojo.ember.feature.events.service.EventService;
-import dev.chojo.ember.feature.members.entity.MemberGroup;
 import dev.chojo.ember.feature.members.entity.StationMember;
-import dev.chojo.ember.feature.members.entity.UserTag;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
-import dev.chojo.ember.feature.members.service.MemberGroupService;
 import dev.chojo.ember.feature.members.service.StationMemberService;
-import dev.chojo.ember.feature.members.service.UserTagService;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
 import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
 import dev.chojo.ember.feature.notifications.service.NotificationService;
+import dev.chojo.ember.feature.restriction.RestrictionMode;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.ForbiddenResponse;
@@ -53,13 +53,13 @@ import jakarta.inject.Singleton;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 /**
  * Routes for event management including CRUD operations on events, categories, breaks,
@@ -69,108 +69,102 @@ import java.util.Set;
 public class EventRoutes implements Routes {
     private final EventService eventService;
     private final EventFieldService eventFieldService;
+    private final EventLayoutService eventLayoutService;
+    private final BatchEventService batchEventService;
     private final StationMemberService stationMemberService;
-    private final AccessManager accessManager;
-    private final MemberGroupService memberGroupService;
     private final NotificationService notificationService;
     private final StationMemberRepository stationMemberRepository;
     private final AccountRepository accountRepository;
     private final AttendanceService attendanceService;
     private final EventExportService eventExportService;
-    private final UserTagService userTagService;
 
     @Inject
     public EventRoutes(
             EventService eventService,
             EventFieldService eventFieldService,
+            EventLayoutService eventLayoutService,
+            BatchEventService batchEventService,
             StationMemberService stationMemberService,
-            AccessManager accessManager,
-            MemberGroupService memberGroupService,
             NotificationService notificationService,
             StationMemberRepository stationMemberRepository,
             AccountRepository accountRepository,
             AttendanceService attendanceService,
-            EventExportService eventExportService,
-            UserTagService userTagService) {
+            EventExportService eventExportService) {
         this.eventService = eventService;
         this.eventFieldService = eventFieldService;
+        this.eventLayoutService = eventLayoutService;
+        this.batchEventService = batchEventService;
         this.stationMemberService = stationMemberService;
-        this.accessManager = accessManager;
-        this.memberGroupService = memberGroupService;
         this.notificationService = notificationService;
         this.stationMemberRepository = stationMemberRepository;
         this.accountRepository = accountRepository;
         this.attendanceService = attendanceService;
         this.eventExportService = eventExportService;
-        this.userTagService = userTagService;
     }
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
         routes.get(prefix + "/events", this::list, Roles.USER);
         routes.get(prefix + "/events/today", this::listToday, Roles.USER);
-        routes.post(prefix + "/events", this::create, Roles.EVENT_MANAGEMENT);
+        routes.post(prefix + "/events", this::create, Roles.EVENT_MANAGER);
 
-        routes.post(prefix + "/events/export", this::exportPdf, Roles.EVENT_MANAGEMENT);
-        routes.get(prefix + "/events/field-names", this::listFieldNames, Roles.EVENT_MANAGEMENT);
+        routes.post(prefix + "/events/export", this::exportPdf, Roles.EVENT_MANAGER);
+        routes.get(prefix + "/events/field-names", this::listFieldNames, Roles.EVENT_MANAGER);
 
         routes.get(prefix + "/events/categories", this::listCategories, Roles.USER);
-        routes.post(prefix + "/events/categories", this::createCategory, Roles.EVENT_MANAGEMENT);
-        routes.put(prefix + "/events/categories/{id}", this::updateCategory, Roles.EVENT_MANAGEMENT);
-        routes.delete(prefix + "/events/categories/{id}", this::deleteCategory, Roles.EVENT_MANAGEMENT);
+        routes.post(prefix + "/events/categories", this::createCategory, Roles.EVENT_MANAGER);
+        routes.put(prefix + "/events/categories/{id}", this::updateCategory, Roles.EVENT_MANAGER);
+        routes.delete(prefix + "/events/categories/{id}", this::deleteCategory, Roles.EVENT_MANAGER);
 
         routes.get(prefix + "/events/breaks", this::listBreaks, Roles.USER);
-        routes.post(prefix + "/events/breaks", this::createBreak, Roles.EVENT_MANAGEMENT);
-        routes.put(prefix + "/events/breaks/{id}", this::updateBreak, Roles.EVENT_MANAGEMENT);
-        routes.delete(prefix + "/events/breaks/{id}", this::deleteBreak, Roles.EVENT_MANAGEMENT);
+        routes.post(prefix + "/events/breaks", this::createBreak, Roles.EVENT_MANAGER);
+        routes.put(prefix + "/events/breaks/{id}", this::updateBreak, Roles.EVENT_MANAGER);
+        routes.delete(prefix + "/events/breaks/{id}", this::deleteBreak, Roles.EVENT_MANAGER);
 
         routes.get(prefix + "/events/registrations/mine", this::listMyRegistrations, Roles.USER);
-        routes.get(prefix + "/events/registrations/pending", this::listPendingRegistrations, Roles.EVENT_MANAGEMENT);
+        routes.get(prefix + "/events/registrations/pending", this::listPendingRegistrations, Roles.EVENT_MANAGER);
         routes.get(prefix + "/events/registrations/counts", this::listRegistrationCounts, Roles.USER);
-        routes.put(
-                prefix + "/events/registrations/{id}/status", this::updateRegistrationStatus, Roles.EVENT_MANAGEMENT);
+        routes.put(prefix + "/events/registrations/{id}/status", this::updateRegistrationStatus, Roles.EVENT_MANAGER);
         routes.delete(prefix + "/events/registrations/{id}", this::withdrawRegistration, Roles.USER);
 
         routes.get(prefix + "/events/restrictions", this::listAllRestrictions, Roles.USER);
         routes.get(prefix + "/events/eligible-members", this::listEligibleMembers, Roles.USER);
 
+        // Overview fields
+        routes.get(prefix + "/events/overview-fields", this::getOverviewFields, Roles.USER);
+
+        // Layouts
+        routes.get(prefix + "/events/layouts", this::listLayouts, Roles.EVENT_MANAGER);
+        routes.post(prefix + "/events/layouts", this::createLayout, Roles.EVENT_MANAGER);
+        routes.get(prefix + "/events/layouts/{id}", this::getLayout, Roles.EVENT_MANAGER);
+        routes.put(prefix + "/events/layouts/{id}", this::updateLayout, Roles.EVENT_MANAGER);
+        routes.delete(prefix + "/events/layouts/{id}", this::deleteLayout, Roles.EVENT_MANAGER);
+        routes.get(prefix + "/events/layouts/{id}/fields", this::getLayoutFields, Roles.EVENT_MANAGER);
+        routes.put(prefix + "/events/layouts/{id}/fields", this::setLayoutFields, Roles.EVENT_MANAGER);
+
+        // Batch creation
+        routes.post(prefix + "/events/batch", this::batchCreate, Roles.EVENT_MANAGER);
+        routes.post(prefix + "/events/batch/generate-dates", this::generateDates, Roles.EVENT_MANAGER);
+
+        routes.get(prefix + "/events/{eventId}/registration-stats", this::getRegistrationStats, Roles.EVENT_MANAGER);
         routes.get(prefix + "/events/{eventId}/registrations", this::listRegistrations, Roles.USER);
         routes.post(prefix + "/events/{eventId}/register", this::register, Roles.USER);
         routes.post(prefix + "/events/{eventId}/decline", this::decline, Roles.USER);
 
         routes.get(prefix + "/events/{id}", this::get, Roles.USER);
-        routes.put(prefix + "/events/{id}", this::update, Roles.EVENT_MANAGEMENT);
-        routes.delete(prefix + "/events/{id}", this::delete, Roles.EVENT_MANAGEMENT);
+        routes.put(prefix + "/events/{id}", this::update, Roles.EVENT_MANAGER);
+        routes.delete(prefix + "/events/{id}", this::delete, Roles.EVENT_MANAGER);
 
         routes.get(prefix + "/events/{id}/restrictions", this::getRestrictions, Roles.USER);
-        routes.put(prefix + "/events/{id}/restrictions", this::setRestrictions, Roles.EVENT_MANAGEMENT);
+        routes.put(prefix + "/events/{id}/restrictions", this::setRestrictions, Roles.EVENT_MANAGER);
 
         routes.get(prefix + "/events/{id}/field-defaults", this::getFieldDefaults, Roles.USER);
-        routes.put(prefix + "/events/{id}/field-defaults", this::setFieldDefaults, Roles.EVENT_MANAGEMENT);
+        routes.put(prefix + "/events/{id}/field-defaults", this::setFieldDefaults, Roles.EVENT_MANAGER);
 
         routes.get(prefix + "/events/{id}/fields", this::getFields, Roles.USER);
-        routes.put(prefix + "/events/{id}/fields", this::setFields, Roles.EVENT_MANAGEMENT);
+        routes.put(prefix + "/events/{id}/fields", this::setFields, Roles.EVENT_MANAGER);
 
-        routes.get(prefix + "/events/{id}/absences", this::listAbsencesForDate, Roles.EVENT_MANAGEMENT);
-    }
-
-    private Set<Roles> resolveRolesForMember(UserSession session, int memberId) {
-        if (session.member() != null && session.member().id() == memberId) {
-            return session.roles();
-        }
-        return accessManager.resolveExpandedMemberRoles(memberId);
-    }
-
-    private List<Integer> resolveGroupIdsForMember(int memberId) {
-        return memberGroupService.findGroupsForMember(memberId).stream()
-                .map(MemberGroup::id)
-                .toList();
-    }
-
-    private List<Integer> resolveTagIdsForMember(int memberId) {
-        return userTagService.findTagsForMember(memberId).stream()
-                .map(UserTag::id)
-                .toList();
+        routes.get(prefix + "/events/{id}/absences", this::listAbsencesForDate, Roles.EVENT_MANAGER);
     }
 
     private String resolveCreatedByName(Integer createdBy) {
@@ -192,7 +186,14 @@ public class EventRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = StationEvent[].class)))
     private void list(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        ctx.json(eventService.findByStation(session.stationId()));
+        if (session.hasRole(Roles.EVENT_MANAGER)) {
+            ctx.json(eventService.findByStation(session.stationId()));
+        } else if (session.member() != null) {
+            ctx.json(eventService.findByStationForMember(
+                    session.stationId(), session.member().id()));
+        } else {
+            ctx.json(List.of());
+        }
     }
 
     @OpenApi(
@@ -235,7 +236,7 @@ public class EventRoutes implements Routes {
                 req.requiresConfirmation() != null && req.requiresConfirmation(),
                 req.categoryId());
         eventService.setRestrictions(
-                event.id(), req.restrictedRoleIds(), req.restrictedGroupIds(), req.restrictedTagIds());
+                event.id(), req.restrictedRoleIds(), req.restrictedGroupIds(), req.restrictedTagIds(), List.of());
 
         // Notify station members about new event
         String eventDescription = "";
@@ -264,10 +265,13 @@ public class EventRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void get(Context ctx) {
+        UserSession session = UserSession.from(ctx);
         int id = ctx.pathParamAsClass("id", Integer.class).get();
-        eventService.findById(id).ifPresentOrElse(ctx::json, () -> {
-            throw new NotFoundResponse();
-        });
+        var event = eventService.findById(id).orElseThrow(NotFoundResponse::new);
+        if (event.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot access resources from another station");
+        }
+        ctx.json(event);
     }
 
     @OpenApi(
@@ -282,7 +286,12 @@ public class EventRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void update(Context ctx) {
+        UserSession session = UserSession.from(ctx);
         int id = ctx.pathParamAsClass("id", Integer.class).get();
+        var existing = eventService.findById(id).orElseThrow(NotFoundResponse::new);
+        if (existing.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot access resources from another station");
+        }
         var req = ctx.bodyAsClass(EventRequest.class);
         validate(req);
         var eventType = StationEvent.EventType.valueOf(req.eventType());
@@ -303,7 +312,11 @@ public class EventRoutes implements Routes {
                 .ifPresentOrElse(
                         event -> {
                             eventService.setRestrictions(
-                                    id, req.restrictedRoleIds(), req.restrictedGroupIds(), req.restrictedTagIds());
+                                    id,
+                                    req.restrictedRoleIds(),
+                                    req.restrictedGroupIds(),
+                                    req.restrictedTagIds(),
+                                    List.of());
                             ctx.json(event);
                         },
                         () -> {
@@ -322,8 +335,12 @@ public class EventRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void delete(Context ctx) {
+        UserSession session = UserSession.from(ctx);
         int id = ctx.pathParamAsClass("id", Integer.class).get();
         var event = eventService.findById(id).orElseThrow(NotFoundResponse::new);
+        if (event.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot access resources from another station");
+        }
         if (eventService.delete(id)) {
             // Remove notifications for this event
             notificationService.deleteByTypeContaining(
@@ -383,7 +400,12 @@ public class EventRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void updateBreak(Context ctx) {
+        UserSession session = UserSession.from(ctx);
         int id = ctx.pathParamAsClass("id", Integer.class).get();
+        var existing = eventService.findBreakById(id).orElseThrow(NotFoundResponse::new);
+        if (existing.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot access resources from another station");
+        }
         var req = ctx.bodyAsClass(BreakRequest.class);
         eventService
                 .updateBreak(id, req.name(), LocalDate.parse(req.startDate()), LocalDate.parse(req.endDate()))
@@ -403,7 +425,12 @@ public class EventRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void deleteBreak(Context ctx) {
+        UserSession session = UserSession.from(ctx);
         int id = ctx.pathParamAsClass("id", Integer.class).get();
+        var existing = eventService.findBreakById(id).orElseThrow(NotFoundResponse::new);
+        if (existing.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot access resources from another station");
+        }
         if (eventService.deleteBreak(id)) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
@@ -481,6 +508,46 @@ public class EventRoutes implements Routes {
             tags = {"Events"},
             pathParams = @OpenApiParam(name = "eventId", type = Integer.class, required = true),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = EventRegistration[].class)))
+    private void getRegistrationStats(Context ctx) {
+        int eventId = ctx.pathParamAsClass("eventId", Integer.class).get();
+        var event = eventService.findById(eventId).orElseThrow(NotFoundResponse::new);
+        String catParam = ctx.queryParam("categoryId");
+        Integer categoryId = catParam != null ? Integer.parseInt(catParam) : event.categoryId();
+        String monthsParam = ctx.queryParam("months");
+        int months = monthsParam != null ? Integer.parseInt(monthsParam) : 12;
+
+        var stats = eventService.findRegistrationStats(eventId, categoryId, months);
+        var result = stats.stream()
+                .map(s -> {
+                    String name = resolveCreatedByName(s.memberId());
+                    int decisions = s.accepted() + s.denied();
+                    double acceptRate = decisions > 0 ? (double) s.accepted() / decisions : 1.0;
+                    String priority;
+                    if (decisions == 0) priority = "NONE";
+                    else if (acceptRate < 0.5) priority = "HIGH";
+                    else if (acceptRate < 0.75) priority = "MEDIUM";
+                    else priority = "LOW";
+                    // Fairness score: higher = should be prioritized
+                    // Factors: denial ratio (0-1) + denied count bonus - accepted count penalty
+                    double denialRatio = decisions > 0 ? (double) s.denied() / decisions : 0;
+                    double fairnessScore =
+                            Math.round((denialRatio * 50 + s.denied() * 5 - s.accepted() * 2 + 50) * 10) / 10.0;
+                    return new RegistrationStatsResponse(
+                            s.memberId(),
+                            name != null ? name : "#" + s.memberId(),
+                            s.registered(),
+                            s.accepted(),
+                            s.denied(),
+                            s.declined(),
+                            Math.round(acceptRate * 100) / 100.0,
+                            s.lastDenied() != null ? s.lastDenied().toString() : null,
+                            priority,
+                            Math.max(0, fairnessScore));
+                })
+                .toList();
+        ctx.json(result);
+    }
+
     private void listRegistrations(Context ctx) {
         int eventId = ctx.pathParamAsClass("eventId", Integer.class).get();
         String dateStr = ctx.queryParam("date");
@@ -546,7 +613,7 @@ public class EventRoutes implements Routes {
                         .findManaged(session.member().id())
                         .stream()
                         .anyMatch(m -> m.id() == memberId);
-                if (!manages && !session.hasRole(Roles.EVENT_MANAGEMENT)) {
+                if (!manages && !session.hasRole(Roles.EVENT_MANAGER)) {
                     throw new ForbiddenResponse("You do not manage this member");
                 }
             }
@@ -554,11 +621,8 @@ public class EventRoutes implements Routes {
             memberId = session.member().id();
         }
 
-        // Check eligibility using expanded roles
-        var memberRoles = resolveRolesForMember(session, memberId);
-        var memberGroupIds = resolveGroupIdsForMember(memberId);
-        var memberTagIds = resolveTagIdsForMember(memberId);
-        if (!eventService.isMemberEligible(eventId, memberRoles, memberGroupIds, memberTagIds)) {
+        // Check eligibility using restrictions (DB resolves roles/groups/tags + manager bypass)
+        if (!eventService.isMemberEligible(eventId, memberId)) {
             throw new BadRequestResponse("Member is not eligible for this event");
         }
 
@@ -594,7 +658,7 @@ public class EventRoutes implements Routes {
                         .findManaged(session.member().id())
                         .stream()
                         .anyMatch(m -> m.id() == memberId);
-                if (!manages && !session.hasRole(Roles.EVENT_MANAGEMENT)) {
+                if (!manages && !session.hasRole(Roles.EVENT_MANAGER)) {
                     throw new ForbiddenResponse("You do not manage this member");
                 }
             }
@@ -638,6 +702,10 @@ public class EventRoutes implements Routes {
             throw new BadRequestResponse("status must be ACCEPTED or DENIED");
         }
         var registration = eventService.findRegistrationById(id).orElseThrow(NotFoundResponse::new);
+        var regEvent = eventService.findById(registration.eventId()).orElseThrow(NotFoundResponse::new);
+        if (regEvent.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot access resources from another station");
+        }
         if (!eventService.updateRegistrationStatus(id, status)) {
             throw new NotFoundResponse();
         }
@@ -654,7 +722,7 @@ public class EventRoutes implements Routes {
                 new NotificationData.NotificationLink("event-detail", Map.of("id", registration.eventId())));
         notificationService.notify(registration.memberId(), NotificationType.EVENT_REGISTRATION_STATUS, data);
         var eventMgmtIds =
-                stationMemberRepository.findMembersWithRole(session.stationId(), Roles.EVENT_MANAGEMENT).stream()
+                stationMemberRepository.findMembersWithRole(session.stationId(), Roles.EVENT_MANAGER).stream()
                         .map(StationMember::id)
                         .toList();
         notificationService.notifyMembersIfAbsent(
@@ -680,14 +748,14 @@ public class EventRoutes implements Routes {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
         var reg = eventService.findRegistrationById(id).orElseThrow(NotFoundResponse::new);
 
-        // Allow if it's the user's own registration, they manage the member, or they have EVENT_MANAGEMENT
+        // Allow if it's the user's own registration, they manage the member, or they have EVENT_MANAGER
         int regMemberId = reg.memberId();
         boolean isOwn = session.member() != null && session.member().id() == regMemberId;
         boolean manages = session.member() != null
                 && session.hasRole(Roles.GUARDIAN)
                 && stationMemberService.findManaged(session.member().id()).stream()
                         .anyMatch(m -> m.id() == regMemberId);
-        if (!isOwn && !manages && !session.hasRole(Roles.EVENT_MANAGEMENT)) {
+        if (!isOwn && !manages && !session.hasRole(Roles.EVENT_MANAGER)) {
             throw new ForbiddenResponse("You cannot withdraw this registration");
         }
 
@@ -740,9 +808,14 @@ public class EventRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void updateCategory(Context ctx) {
+        UserSession session = UserSession.from(ctx);
         int id = ctx.pathParamAsClass("id", Integer.class).get();
+        var existing = eventService.findCategoryById(id).orElseThrow(NotFoundResponse::new);
+        if (existing.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot access resources from another station");
+        }
         var req = ctx.bodyAsClass(CategoryRequest.class);
-        if (!eventService.updateCategory(id, req.name(), req.position())) {
+        if (!eventService.updateCategory(id, req.name(), req.position(), req.maxShownEvents())) {
             throw new NotFoundResponse();
         }
         ctx.status(HttpStatus.OK).json(new MessageResponse("Updated"));
@@ -759,7 +832,12 @@ public class EventRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void deleteCategory(Context ctx) {
+        UserSession session = UserSession.from(ctx);
         int id = ctx.pathParamAsClass("id", Integer.class).get();
+        var existing = eventService.findCategoryById(id).orElseThrow(NotFoundResponse::new);
+        if (existing.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot access resources from another station");
+        }
         if (eventService.deleteCategory(id)) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
@@ -792,33 +870,19 @@ public class EventRoutes implements Routes {
             stationMemberService.findManaged(session.member().id()).forEach(m -> memberIds.add(m.id()));
         }
 
-        // Pre-resolve roles, groups, and tags for each member
-        var memberRolesMap = new HashMap<Integer, Set<Roles>>();
-        var memberGroupsMap = new HashMap<Integer, List<Integer>>();
-        var memberTagsMap = new HashMap<Integer, List<Integer>>();
-        for (int mid : memberIds) {
-            memberRolesMap.put(mid, resolveRolesForMember(session, mid));
-            memberGroupsMap.put(mid, resolveGroupIdsForMember(mid));
-            memberTagsMap.put(mid, resolveTagIdsForMember(mid));
-        }
-
         var allEvents = eventService.findByStation(session.stationId());
         var result = new HashMap<Integer, List<Integer>>();
 
         for (var event : allEvents) {
-            var roleRes = eventService.findRoleRestrictions(event.id());
-            var groupRes = eventService.findGroupRestrictions(event.id());
-            var tagRes = eventService.findTagRestrictions(event.id());
-            if (roleRes.isEmpty() && groupRes.isEmpty() && tagRes.isEmpty()) continue;
-
             var eligible = new ArrayList<Integer>();
             for (int mid : memberIds) {
-                if (eventService.isMemberEligible(
-                        event.id(), memberRolesMap.get(mid), memberGroupsMap.get(mid), memberTagsMap.get(mid))) {
+                if (eventService.isMemberEligible(event.id(), mid)) {
                     eligible.add(mid);
                 }
             }
-            result.put(event.id(), eligible);
+            if (!eligible.isEmpty()) {
+                result.put(event.id(), eligible);
+            }
         }
         ctx.json(result);
     }
@@ -834,10 +898,14 @@ public class EventRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = EventRestrictions.class)))
     private void getRestrictions(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
+        eventService.findById(id).orElseThrow(NotFoundResponse::new);
+        var restrictions = eventService.findRestrictions(id);
         ctx.json(new EventRestrictions(
-                eventService.findRoleRestrictions(id),
-                eventService.findGroupRestrictions(id),
-                eventService.findTagRestrictions(id)));
+                restrictions.roleIds(),
+                restrictions.groupIds(),
+                restrictions.tagIds(),
+                restrictions.memberIds(),
+                restrictions.mode()));
     }
 
     // -- Restrictions --
@@ -851,9 +919,17 @@ public class EventRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = EventRestrictions.class)),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = EventRestrictions.class)))
     private void setRestrictions(Context ctx) {
+        UserSession session = UserSession.from(ctx);
         int id = ctx.pathParamAsClass("id", Integer.class).get();
+        var event = eventService.findById(id).orElseThrow(NotFoundResponse::new);
+        if (event.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot access resources from another station");
+        }
         var req = ctx.bodyAsClass(EventRestrictions.class);
-        eventService.setRestrictions(id, req.roleIds(), req.groupIds(), req.tagIds());
+        eventService.setRestrictions(id, req.roleIds(), req.groupIds(), req.tagIds(), req.memberIds());
+        if (req.mode() != null) {
+            eventService.updateRestrictionMode(id, req.mode());
+        }
         ctx.json(req);
     }
 
@@ -880,7 +956,12 @@ public class EventRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = FieldDefaultEntry[].class)),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = EventFieldDefault[].class)))
     private void setFieldDefaults(Context ctx) {
+        UserSession session = UserSession.from(ctx);
         int id = ctx.pathParamAsClass("id", Integer.class).get();
+        var event = eventService.findById(id).orElseThrow(NotFoundResponse::new);
+        if (event.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot access resources from another station");
+        }
         var req = ctx.bodyAsClass(FieldDefaultEntry[].class);
         var defaults = Arrays.stream(req)
                 .map(e -> new EventFieldDefault(id, e.fieldId(), e.source(), e.value()))
@@ -894,13 +975,25 @@ public class EventRoutes implements Routes {
             methods = HttpMethod.GET,
             summary = "List all event restrictions",
             tags = {"Events"},
-            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = AllEventRestrictions.class)))
+            responses = @OpenApiResponse(status = "200"))
     private void listAllRestrictions(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        ctx.json(new AllEventRestrictions(
-                eventService.findAllRoleRestrictionsByStation(session.stationId()),
-                eventService.findAllGroupRestrictionsByStation(session.stationId()),
-                eventService.findAllTagRestrictionsByStation(session.stationId())));
+        var events = eventService.findByStation(session.stationId());
+        var restrictionsMap = new HashMap<Integer, EventRestrictions>();
+        for (var event : events) {
+            var restrictions = eventService.findRestrictions(event.id());
+            if (restrictions.hasRestrictions()) {
+                restrictionsMap.put(
+                        event.id(),
+                        new EventRestrictions(
+                                restrictions.roleIds(),
+                                restrictions.groupIds(),
+                                restrictions.tagIds(),
+                                restrictions.memberIds(),
+                                restrictions.mode()));
+            }
+        }
+        ctx.json(restrictionsMap);
     }
 
     @OpenApi(
@@ -926,14 +1019,167 @@ public class EventRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = SetEventFieldsRequest.class)),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = EventField[].class)))
     private void setFields(Context ctx) {
+        UserSession session = UserSession.from(ctx);
         int id = ctx.pathParamAsClass("id", Integer.class).get();
+        var event = eventService.findById(id).orElseThrow(NotFoundResponse::new);
+        if (event.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot access resources from another station");
+        }
         var req = ctx.bodyAsClass(SetEventFieldsRequest.class);
         eventFieldService.replaceFields(
                 id,
                 req.fields().stream()
-                        .map(e -> new EventFieldRepository.FieldEntry(e.name(), e.value() != null ? e.value() : ""))
+                        .map(e -> new EventFieldRepository.FieldEntry(
+                                e.name(),
+                                e.fieldType(),
+                                e.config(),
+                                e.value() != null ? e.value() : "",
+                                e.overview() != null && e.overview(),
+                                e.attendanceFieldId()))
                         .toList());
         ctx.json(eventFieldService.findByEvent(id));
+    }
+
+    // -- Overview Fields --
+
+    private void getOverviewFields(Context ctx) {
+        var session = UserSession.from(ctx);
+        var eventIds = eventService.findByStation(session.stationId()).stream()
+                .map(StationEvent::id)
+                .toList();
+        ctx.json(eventFieldService.findOverviewFieldsByEvents(eventIds));
+    }
+
+    // -- Layouts --
+
+    private void listLayouts(Context ctx) {
+        var session = UserSession.from(ctx);
+        ctx.json(eventLayoutService.findByStation(session.stationId()));
+    }
+
+    private void createLayout(Context ctx) {
+        var session = UserSession.from(ctx);
+        var req = ctx.bodyAsClass(LayoutRequest.class);
+        if (req.name() == null || req.name().isBlank()) {
+            throw new BadRequestResponse("name is required");
+        }
+        ctx.json(eventLayoutService.create(session.stationId(), req.name()));
+    }
+
+    private void getLayout(Context ctx) {
+        var session = UserSession.from(ctx);
+        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        var layout = eventLayoutService.findById(id).orElseThrow(NotFoundResponse::new);
+        if (layout.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot access resources from another station");
+        }
+        ctx.json(layout);
+    }
+
+    private void updateLayout(Context ctx) {
+        var session = UserSession.from(ctx);
+        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        var layout = eventLayoutService.findById(id).orElseThrow(NotFoundResponse::new);
+        if (layout.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot access resources from another station");
+        }
+        var req = ctx.bodyAsClass(LayoutRequest.class);
+        if (!eventLayoutService.update(id, req.name())) {
+            throw new NotFoundResponse();
+        }
+        ctx.json(eventLayoutService.findById(id).orElseThrow());
+    }
+
+    private void deleteLayout(Context ctx) {
+        var session = UserSession.from(ctx);
+        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        var layout = eventLayoutService.findById(id).orElseThrow(NotFoundResponse::new);
+        if (layout.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot access resources from another station");
+        }
+        if (!eventLayoutService.delete(id)) {
+            throw new NotFoundResponse();
+        }
+        ctx.status(HttpStatus.NO_CONTENT);
+    }
+
+    private void getLayoutFields(Context ctx) {
+        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        ctx.json(eventLayoutService.findFieldsByLayout(id));
+    }
+
+    private void setLayoutFields(Context ctx) {
+        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        var req = ctx.bodyAsClass(SetLayoutFieldsRequest.class);
+        eventLayoutService.replaceLayoutFields(
+                id,
+                req.fields().stream()
+                        .map(f -> new EventLayoutRepository.LayoutFieldEntry(
+                                f.name(),
+                                f.fieldType(),
+                                f.config(),
+                                f.overview() != null && f.overview(),
+                                f.attendanceFieldId()))
+                        .toList());
+        ctx.json(eventLayoutService.findFieldsByLayout(id));
+    }
+
+    // -- Batch Creation --
+
+    private void generateDates(Context ctx) {
+        var session = UserSession.from(ctx);
+        var req = ctx.bodyAsClass(GenerateDatesRequest.class);
+        var interval = new BatchEventService.IntervalConfig(
+                req.intervalType(),
+                req.dayOfWeek() != null ? req.dayOfWeek() : 1,
+                LocalDate.parse(req.startDate()),
+                LocalDate.parse(req.endDate()),
+                req.startTime() != null ? LocalTime.parse(req.startTime()) : null,
+                req.endTime() != null ? LocalTime.parse(req.endTime()) : null);
+        var rows = batchEventService.generateDates(
+                session.stationId(), interval, req.ignoreBreaks() != null && req.ignoreBreaks());
+        ctx.json(rows);
+    }
+
+    private void batchCreate(Context ctx) {
+        var session = UserSession.from(ctx);
+        var req = ctx.bodyAsClass(BatchCreateRequest.class);
+        if (req.rows() == null || req.rows().isEmpty()) {
+            throw new BadRequestResponse("rows are required");
+        }
+        List<EventLayoutField> inlineFields = req.inlineFields() != null
+                ? req.inlineFields().stream()
+                        .map(f -> new EventLayoutField(
+                                0,
+                                0,
+                                f.name(),
+                                f.fieldType() != null ? f.fieldType() : "string",
+                                f.config() != null ? f.config() : "{}",
+                                0,
+                                f.overview() != null && f.overview(),
+                                f.attendanceFieldId()))
+                        .toList()
+                : null;
+        var batchRows = req.rows().stream()
+                .map(r -> new BatchEventService.BatchRow(
+                        r.name(), r.startTime(), r.endTime(), r.fieldValues() != null ? r.fieldValues() : Map.of()))
+                .toList();
+        var batchReq = new BatchEventService.BatchRequest(
+                req.name(),
+                req.description(),
+                req.templateId(),
+                req.categoryId(),
+                req.layoutId(),
+                inlineFields,
+                batchRows,
+                req.requiresRegistration(),
+                req.requiresConfirmation(),
+                req.registrationDeadline(),
+                req.restrictedRoleIds(),
+                req.restrictedGroupIds(),
+                req.restrictedTagIds());
+        var created = batchEventService.createBatch(session.stationId(), batchReq);
+        ctx.json(created);
     }
 
     @OpenApi(
@@ -942,7 +1188,7 @@ public class EventRoutes implements Routes {
             summary = "List absent members for a given date",
             tags = {"Events"},
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
-            queryParams = @OpenApiParam(name = "date", type = String.class),
+            queryParams = @OpenApiParam(name = "date"),
             responses = @OpenApiResponse(status = "200"))
     private void listAbsencesForDate(Context ctx) {
         UserSession session = UserSession.from(ctx);
@@ -1033,7 +1279,7 @@ public class EventRoutes implements Routes {
 
     public record BreakRequest(String name, String startDate, String endDate) {}
 
-    public record CategoryRequest(String name, int position) {}
+    public record CategoryRequest(String name, int position, Integer maxShownEvents) {}
 
     // -- Event Fields (per-event) --
 
@@ -1042,12 +1288,12 @@ public class EventRoutes implements Routes {
 
     public record StatusUpdateRequest(String status) {}
 
-    public record EventRestrictions(List<Integer> roleIds, List<Integer> groupIds, List<Integer> tagIds) {}
-
-    public record AllEventRestrictions(
-            Map<Integer, List<Integer>> roleRestrictions,
-            Map<Integer, List<Integer>> groupRestrictions,
-            Map<Integer, List<Integer>> tagRestrictions) {}
+    public record EventRestrictions(
+            List<Integer> roleIds,
+            List<Integer> groupIds,
+            List<Integer> tagIds,
+            List<Integer> memberIds,
+            RestrictionMode mode) {}
 
     public record FieldDefaultEntry(int fieldId, String source, String value) {}
 
@@ -1063,5 +1309,51 @@ public class EventRoutes implements Routes {
     public record SetEventFieldsRequest(List<EventFieldEntry> fields) {}
 
     @OpenApiName("EventFieldEntry")
-    public record EventFieldEntry(String name, String value) {}
+    public record EventFieldEntry(
+            String name, String fieldType, String config, String value, Boolean overview, Integer attendanceFieldId) {}
+
+    public record LayoutRequest(String name) {}
+
+    public record LayoutFieldEntry(
+            String name, String fieldType, String config, Boolean overview, Integer attendanceFieldId) {}
+
+    public record SetLayoutFieldsRequest(List<LayoutFieldEntry> fields) {}
+
+    public record GenerateDatesRequest(
+            String intervalType,
+            Integer dayOfWeek,
+            String startDate,
+            String endDate,
+            String startTime,
+            String endTime,
+            Boolean ignoreBreaks) {}
+
+    public record BatchCreateRequest(
+            String name,
+            String description,
+            Integer templateId,
+            Integer categoryId,
+            Integer layoutId,
+            List<LayoutFieldEntry> inlineFields,
+            List<BatchRowEntry> rows,
+            Boolean requiresRegistration,
+            Boolean requiresConfirmation,
+            Instant registrationDeadline,
+            List<Integer> restrictedRoleIds,
+            List<Integer> restrictedGroupIds,
+            List<Integer> restrictedTagIds) {}
+
+    public record BatchRowEntry(String name, Instant startTime, Instant endTime, Map<String, String> fieldValues) {}
+
+    public record RegistrationStatsResponse(
+            int memberId,
+            String memberName,
+            int registered,
+            int accepted,
+            int denied,
+            int declined,
+            double acceptRate,
+            String lastDenied,
+            String priority,
+            double fairnessScore) {}
 }

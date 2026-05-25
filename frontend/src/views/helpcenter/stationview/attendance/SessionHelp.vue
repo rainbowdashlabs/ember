@@ -46,7 +46,7 @@ const {t} = useI18n()
     <div class="space-y-1">
       <div class="rounded-lg px-4 py-3 border-l-4 transition-all border-success bg-success/5">
         <div class="flex items-center justify-between flex-wrap gap-2">
-          <div class="flex items-center gap-3 min-w-0">
+          <div class="flex items-center gap-2 min-w-0">
             <font-awesome-icon :icon="['fas', 'check']" class="h-4 w-4 text-success shrink-0"/>
             <span class="font-medium text-sm">Max Mustermann</span>
           </div>
@@ -65,7 +65,7 @@ const {t} = useI18n()
       </div>
       <div class="rounded-lg px-4 py-3 border-l-4 transition-all border-error bg-error/5">
         <div class="flex items-center justify-between flex-wrap gap-2">
-          <div class="flex items-center gap-3 min-w-0">
+          <div class="flex items-center gap-2 min-w-0">
             <font-awesome-icon :icon="['fas', 'xmark']" class="h-4 w-4 text-error shrink-0"/>
             <span class="font-medium text-sm">Erika Muster</span>
           </div>
@@ -84,7 +84,7 @@ const {t} = useI18n()
       </div>
       <div class="rounded-lg px-4 py-3 border-l-4 transition-all border-bg-light-accent dark:border-bg-dark-accent bg-bg-light-accent/20 dark:bg-bg-dark-accent/20">
         <div class="flex items-center justify-between flex-wrap gap-2">
-          <div class="flex items-center gap-3 min-w-0">
+          <div class="flex items-center gap-2 min-w-0">
             <font-awesome-icon :icon="['fas', 'asterisk']" class="h-4 w-4 text-(--text-muted) shrink-0"/>
             <span class="font-medium text-sm">Anna Schmidt</span>
           </div>
@@ -114,16 +114,13 @@ const {t} = useI18n()
         <p class="text-2xl font-bold">Anna Schmidt</p>
         <p class="text-sm text-(--text-muted)">1 / 2</p>
         <div class="flex justify-center gap-4">
-          <SuccessButton>
-            <font-awesome-icon :icon="['fas', 'check']" class="mr-2"/>
+          <SuccessButton :icon="['fas', 'check']">
             {{ t('attendanceSession.present') }}
           </SuccessButton>
-          <ErrorButton>
-            <font-awesome-icon :icon="['fas', 'xmark']" class="mr-2"/>
+          <ErrorButton :icon="['fas', 'xmark']">
             {{ t('attendanceSession.absent') }}
           </ErrorButton>
-          <InfoButton>
-            <font-awesome-icon :icon="['fas', 'ban']" class="mr-2"/>
+          <InfoButton :icon="['fas', 'ban']">
             {{ t('attendanceSession.declined') }}
           </InfoButton>
         </div>
@@ -141,16 +138,13 @@ const {t} = useI18n()
 
     <!-- Dummy: Action buttons -->
     <div class="flex items-center gap-2">
-      <SecondaryButton>
-        <font-awesome-icon :icon="['fas', 'download']" class="mr-1"/>
+      <SecondaryButton :icon="['fas', 'download']">
         {{ t('attendanceSession.export') }}
       </SecondaryButton>
-      <SecondaryButton>
-        <font-awesome-icon :icon="['fas', 'clipboard-check']" class="mr-1"/>
+      <SecondaryButton :icon="['fas', 'clipboard-check']">
         {{ t('attendanceSession.sync') }}
       </SecondaryButton>
-      <PrimaryButton>
-        <font-awesome-icon :icon="['fas', 'clipboard-user']" class="mr-1"/>
+      <PrimaryButton :icon="['fas', 'clipboard-user']">
         {{ t('attendanceSession.checkMode') }} (2)
       </PrimaryButton>
     </div>

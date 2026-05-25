@@ -105,7 +105,7 @@ class StationTransferTest extends RepositoryTestBase {
                 .findRoleByName(dev.chojo.ember.api.Roles.GUARDIAN)
                 .orElseThrow();
         Role attendanceRole = stationMemberRepo
-                .findRoleByName(dev.chojo.ember.api.Roles.ATTENDENCE_MANAGEMENT)
+                .findRoleByName(dev.chojo.ember.api.Roles.ATTENDANCE_MANAGER)
                 .orElseThrow();
 
         stationMemberRepo.addRole(manager.id(), managerRole.id());

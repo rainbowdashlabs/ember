@@ -11,12 +11,12 @@ export interface TransferToken {
 }
 
 export interface ImportStartResult {
-    stationId: number
+    stationId: string
     stationName: string
 }
 
 export interface ImportProgress {
-    stationId: number
+    stationId: string
     stationName: string
     status: 'IN_PROGRESS' | 'COMPLETED' | 'FAILED'
     totalTables: number
@@ -35,7 +35,7 @@ export async function startImport(sourceUrl: string, token: string): Promise<Imp
     return res.data
 }
 
-export async function getImportProgress(stationId: number): Promise<ImportProgress> {
+export async function getImportProgress(stationId: string): Promise<ImportProgress> {
     const res = await client.get<ImportProgress>(`/admin/transfer/import/${stationId}/progress`)
     return res.data
 }

@@ -10,8 +10,10 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import EditButton from '@/components/button/EditButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
+import EmptyState from '@/components/feedback/EmptyState.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import type {EventBreak} from '@/api/types'
+import MutedText from '@/components/typography/MutedText.vue'
 
 const {t} = useI18n()
 
@@ -32,26 +34,22 @@ const emit = defineEmits<{
     <div class="flex items-center justify-between flex-wrap gap-2">
       <SectionHeader>{{ t('events.breaks') }}</SectionHeader>
       <div class="flex items-center gap-2 flex-wrap">
-        <SecondaryButton @click="emit('importHolidays')">
-          <font-awesome-icon :icon="['fas', 'download']" class="mr-1"/>
+        <SecondaryButton :icon="['fas', 'download']" @click="emit('importHolidays')">
           {{ t('events.importHolidays') }}
         </SecondaryButton>
-        <PrimaryButton @click="emit('add')">
-          <font-awesome-icon :icon="['fas', 'plus']" class="mr-2"/>
+        <PrimaryButton :icon="['fas', 'plus']" @click="emit('add')">
           {{ t('events.addBreak') }}
         </PrimaryButton>
       </div>
     </div>
 
-    <div v-if="breaks.length === 0" class="text-center text-(--text-muted) py-4">
-      {{ t('events.noBreaks') }}
-    </div>
+    <EmptyState compact v-if="breaks.length === 0">{{ t('events.noBreaks') }}</EmptyState>
 
     <div class="space-y-2">
       <NeutralContainer v-for="br in breaks" :key="br.id" class="flex items-center justify-between flex-wrap gap-2">
         <div>
           <span class="font-medium">{{ br.name }}</span>
-          <span class="ml-2 text-sm text-(--text-muted)">{{ br.startDate }} – {{ br.endDate }}</span>
+          <MutedText size="sm" class="ml-2">{{ br.startDate }} – {{ br.endDate }}</MutedText>
         </div>
         <div class="flex items-center gap-2">
           <EditButton @click="emit('edit', br)"/>

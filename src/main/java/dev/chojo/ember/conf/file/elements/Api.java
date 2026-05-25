@@ -8,12 +8,12 @@ package dev.chojo.ember.conf.file.elements;
 /**
  * API server configuration including host, port, base URL, and paths to legal document directories.
  */
-@SuppressWarnings({"FieldCanBeLocal", "FieldMayBeFinal"})
+@SuppressWarnings({"FieldCanBeLocal", "FieldMayBeFinal", "CanBeFinal"})
 public class Api {
     private String host = "0.0.0.0";
     private int port = 8080;
     private String baseUrl = "http://localhost:5173";
-    private String demoUrl = "";
+    private String demoUrl = "https://demo.ember-panel.de";
     private int maxImageSizeBytes = 5 * 1024 * 1024;
     private String privacyPolicyDir = "data/privacy";
     private String consentDir = "data/consent";

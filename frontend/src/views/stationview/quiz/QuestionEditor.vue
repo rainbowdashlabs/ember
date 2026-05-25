@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
@@ -13,6 +13,7 @@ import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import NumberInput from '@/components/input/number/NumberInput.vue'
+import FieldHint from '@/components/typography/FieldHint.vue'
 import ImageUploadField from './ImageUploadField.vue'
 import type { QuizCategory, QuizQuestionTypeName } from '@/api/types'
 import { QuizQuestionTypes } from '@/api/types'
@@ -23,6 +24,7 @@ import FreeAnswerConfigEditor from './FreeAnswerConfigEditor.vue'
 import ConnectConfigEditor from './ConnectConfigEditor.vue'
 import OrderingConfigEditor from './OrderingConfigEditor.vue'
 import ImageTextConfigEditor from './ImageTextConfigEditor.vue'
+import FieldLabel from '@/components/typography/FieldLabel.vue'
 
 const { t } = useI18n()
 
@@ -34,6 +36,7 @@ const props = defineProps<{
   points: number
   autoPoints: boolean
   imagePreview: string | null
+  authImageSrc?: string | null
   hasImage: boolean
   config: Record<string, unknown>
   categories: QuizCategory[]
@@ -76,24 +79,28 @@ const calculatedPoints = computed(() => {
     case QuizQuestionTypes.MULTIPLE_CHOICE: {
       const opts = (config.options as { text: string; correct: boolean }[]) || []
       const correctCount = opts.filter(o => o.correct).length
-      const ppc = (config.pointsPerCorrect as number) || 0.5
+      const ppc = (config.pointsPerCorrect as number) || 1
       return correctCount * ppc
     }
     case QuizQuestionTypes.FILL_IN_THE_BLANK: {
       const answers = (config.answers as string[]) || []
-      return answers.length || 1
+      const ppcFill = (config.pointsPerCorrect as number) || 1
+      return (answers.length || 1) * ppcFill
     }
     case QuizQuestionTypes.FREE_ANSWER: {
       const answers = (config.answers as string[]) || []
-      return answers.length || 1
+      const ppcFree = (config.pointsPerCorrect as number) || 1
+      return (answers.length || 1) * ppcFree
     }
     case QuizQuestionTypes.CONNECT: {
       const pairs = (config.pairs as { left: string; right: string }[]) || []
-      return pairs.length || 1
+      const ppcConn = (config.pointsPerCorrect as number) || 1
+      return (pairs.length || 1) * ppcConn
     }
     case QuizQuestionTypes.ORDERING: {
       const items = (config.items as string[]) || []
-      return items.length || 1
+      const ppcOrd = (config.pointsPerCorrect as number) || 1
+      return (items.length || 1) * ppcOrd
     }
     case QuizQuestionTypes.TRUE_FALSE:
       return 1
@@ -101,6 +108,13 @@ const calculatedPoints = computed(() => {
       return 1
     default:
       return 1
+  }
+})
+
+// Auto-update points when autoPoints is on and config/type changes
+watch(calculatedPoints, (val) => {
+  if (props.autoPoints) {
+    emit('update:points', val)
   }
 })
 
@@ -116,13 +130,13 @@ function onTypeChange(val: QuizQuestionTypeName | string | undefined) {
     <TextAreaInput :model-value="description" :placeholder="t('quiz.questions.description')" @update:model-value="(v: string | undefined) => emit('update:description', v ?? '')" />
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
       <div>
-        <label class="text-xs text-(--text-muted) block mb-1">{{ t('quiz.questions.type') }}</label>
+        <FieldLabel hint class="mb-1">{{ t('quiz.questions.type') }}</FieldLabel>
         <SelectInput :model-value="questionType" :disabled="isEditing" @update:model-value="onTypeChange">
           <option v-for="qt in allQuestionTypes" :key="qt" :value="qt">{{ t(`quiz.questionTypes.${qt}`) }}</option>
         </SelectInput>
       </div>
       <div>
-        <label class="text-xs text-(--text-muted) block mb-1">{{ t('quiz.questions.category') }}</label>
+        <FieldLabel hint class="mb-1">{{ t('quiz.questions.category') }}</FieldLabel>
         <SelectInput v-model="categoryIdStr">
           <option value="">{{ t('quiz.questions.noCategory') }}</option>
           <option v-for="cat in categories" :key="cat.id" :value="String(cat.id)">{{ cat.name }}</option>
@@ -130,19 +144,19 @@ function onTypeChange(val: QuizQuestionTypeName | string | undefined) {
       </div>
     </div>
     <div class="flex items-center gap-4 flex-wrap">
-      <label class="flex items-center gap-2 text-sm">
+      <FieldLabel inline>
         <ToggleInput :model-value="autoPoints" @update:model-value="(v: boolean) => emit('update:autoPoints', v)" />
         {{ t('quiz.questions.autoPoints') }}
-      </label>
+      </FieldLabel>
       <span v-if="autoPoints" class="text-sm text-(--text-muted)">= {{ calculatedPoints }} {{ t('quiz.points') }}</span>
       <div v-else class="flex items-center gap-2">
-        <label class="text-xs text-(--text-muted)">{{ t('quiz.questions.points') }}</label>
+        <FieldHint>{{ t('quiz.questions.points') }}</FieldHint>
         <NumberInput :model-value="points" class="w-20" @update:model-value="(v: number | undefined) => emit('update:points', v ?? 1)" />
       </div>
     </div>
 
     <!-- Image upload (only for IMAGE_TEXT) -->
-    <ImageUploadField v-if="questionType === QuizQuestionTypes.IMAGE_TEXT" :image-preview="imagePreview" @select-image="(e: Event) => emit('selectImage', e)" @remove-image="emit('removeImage')" />
+    <ImageUploadField v-if="questionType === QuizQuestionTypes.IMAGE_TEXT" :image-preview="imagePreview" :auth-src="authImageSrc" @select-image="(e: Event) => emit('selectImage', e)" @remove-image="emit('removeImage')" />
 
     <!-- Type-specific config editors -->
     <McConfigEditor v-if="questionType === QuizQuestionTypes.MULTIPLE_CHOICE" :config="config" :question-title="title" @update:config="(v: Record<string, unknown>) => emit('update:config', v)" />

@@ -43,7 +43,7 @@ const {t} = useI18n()
     <!-- Dummy: Dark mode toggle -->
     <NeutralContainer class="space-y-4">
       <SubHeader>{{ t('theme.darkMode') }}</SubHeader>
-      <div class="flex items-center gap-3">
+      <div class="flex items-center gap-2">
         <ThemeToggle />
         <span class="text-sm text-(--text-muted)">{{ t('helpCenter.themeUser.darkModeClickHint') }}</span>
       </div>

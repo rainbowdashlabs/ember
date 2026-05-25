@@ -10,6 +10,7 @@ import HelpSection from '@/components/helpcenter/HelpSection.vue'
 import HelpTip from '@/components/helpcenter/HelpTip.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import ErrorContainer from '@/components/container/ErrorContainer.vue'
+import BulletList from '@/components/typography/BulletList.vue'
 
 const {t} = useI18n()
 </script>
@@ -58,41 +59,41 @@ const {t} = useI18n()
 
     <HelpSection :title="t('helpCenter.basics.hosting.config')">
       <p>{{ t('helpCenter.basics.hosting.configText') }}</p>
-      <ul class="list-disc pl-5 space-y-1">
+      <BulletList>
         <li><strong>{{ t('helpCenter.basics.hosting.configDb') }}:</strong> {{ t('helpCenter.basics.hosting.configDbText') }}</li>
         <li><strong>{{ t('helpCenter.basics.hosting.configMail') }}:</strong> {{ t('helpCenter.basics.hosting.configMailText') }}</li>
         <li><strong>{{ t('helpCenter.basics.hosting.configUrl') }}:</strong> {{ t('helpCenter.basics.hosting.configUrlText') }}</li>
         <li><strong>{{ t('helpCenter.basics.hosting.configAuth') }}:</strong> {{ t('helpCenter.basics.hosting.configAuthText') }}</li>
-      </ul>
+      </BulletList>
     </HelpSection>
 
     <HelpSection :title="t('helpCenter.basics.hosting.envVars')">
       <p>{{ t('helpCenter.basics.hosting.envVarsText') }}</p>
-      <ul class="list-disc pl-5 space-y-1 text-sm">
+      <BulletList>
         <li><code class="text-xs bg-[var(--bg-accent)] px-1 rounded">{{ t('helpCenter.basics.hosting.envDb') }}</code></li>
         <li><code class="text-xs bg-[var(--bg-accent)] px-1 rounded">{{ t('helpCenter.basics.hosting.envDemo') }}</code></li>
         <li><code class="text-xs bg-[var(--bg-accent)] px-1 rounded">{{ t('helpCenter.basics.hosting.envTypst') }}</code></li>
         <li><code class="text-xs bg-[var(--bg-accent)] px-1 rounded">{{ t('helpCenter.basics.hosting.envPandoc') }}</code></li>
-      </ul>
+      </BulletList>
     </HelpSection>
 
     <HelpSection :title="t('helpCenter.basics.hosting.dataDir')">
       <p>{{ t('helpCenter.basics.hosting.dataDirText') }}</p>
-      <ul class="list-disc pl-5 space-y-1 text-sm">
+      <BulletList>
         <li>{{ t('helpCenter.basics.hosting.dataLegal') }}</li>
         <li>{{ t('helpCenter.basics.hosting.dataImages') }}</li>
         <li>{{ t('helpCenter.basics.hosting.dataKbFiles') }}</li>
-      </ul>
+      </BulletList>
       <p class="mt-2 text-sm">{{ t('helpCenter.basics.hosting.dataDirText2') }}</p>
     </HelpSection>
 
     <HelpSection :title="t('helpCenter.basics.hosting.reverseProxy')">
       <p>{{ t('helpCenter.basics.hosting.reverseProxyText') }}</p>
-      <ul class="list-disc pl-5 space-y-1">
+      <BulletList>
         <li>{{ t('helpCenter.basics.hosting.proxy1') }}</li>
         <li>{{ t('helpCenter.basics.hosting.proxy2') }}</li>
         <li>{{ t('helpCenter.basics.hosting.proxy3') }}</li>
-      </ul>
+      </BulletList>
     </HelpSection>
 
     <ErrorContainer class="text-sm">
@@ -107,10 +108,10 @@ const {t} = useI18n()
 
     <HelpSection :title="t('helpCenter.basics.hosting.backups')">
       <p>{{ t('helpCenter.basics.hosting.backupsText') }}</p>
-      <ul class="list-disc pl-5 space-y-1">
+      <BulletList>
         <li>{{ t('helpCenter.basics.hosting.backup1') }}</li>
         <li>{{ t('helpCenter.basics.hosting.backup2') }}</li>
-      </ul>
+      </BulletList>
     </HelpSection>
 
     <HelpTip>{{ t('helpCenter.basics.hosting.tip') }}</HelpTip>

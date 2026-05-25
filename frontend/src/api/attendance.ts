@@ -225,7 +225,7 @@ export interface ReportData {
 
 export interface ReportPreset {
     id: number
-    stationId: number
+    stationId: string
     name: string
     roleName?: string
     groupId?: number | null

@@ -15,6 +15,7 @@ import dev.chojo.ember.feature.quiz.entity.QuizTestFrozenQuestion;
 import dev.chojo.ember.feature.quiz.entity.QuizTestSection;
 import dev.chojo.ember.feature.quiz.entity.QuizTestSectionSource;
 import dev.chojo.ember.feature.quiz.entity.TestStatus;
+import dev.chojo.ember.feature.restriction.RestrictionMode;
 import jakarta.inject.Singleton;
 
 import java.time.Instant;
@@ -26,17 +27,33 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
 @Singleton
 public class QuizTestRepository {
 
+    private static final String TEST_COLUMNS =
+            "t.id, t.station_id, t.title, t.description, t.status, t.time_limit, t.shuffle, t.start_at, t.end_at, t.created_by, t.created_at, t.updated_at, t.restriction_mode, EXISTS(SELECT 1 FROM quiz_test_restriction r WHERE r.test_id = t.id) AS restricted";
+    private static final String TEST_COLUMNS_BARE =
+            "id, station_id, title, description, status, time_limit, shuffle, start_at, end_at, created_by, created_at, updated_at, restriction_mode, EXISTS(SELECT 1 FROM quiz_test_restriction r WHERE r.test_id = id) AS restricted";
+
     // -- Tests --
 
     public List<QuizTest> findByStation(int stationId) {
-        return Query.query("SELECT * FROM quiz_test WHERE station_id = :station_id ORDER BY created_at DESC;")
+        return Query.query("SELECT " + TEST_COLUMNS
+                        + " FROM quiz_test t WHERE t.station_id = :station_id ORDER BY t.created_at DESC;")
                 .single(Call.of().bind("station_id", stationId))
                 .map(QuizTest.map())
                 .all();
     }
 
+    public List<QuizTest> findByStationForMember(int stationId, int memberId) {
+        return Query.query("SELECT " + TEST_COLUMNS + " FROM quiz_test t"
+                        + " WHERE t.station_id = :station_id"
+                        + " AND check_restriction('quiz_test_restriction', 'test_id', 'quiz_test', 'id', t.id, :member_id, 'QUIZ_MANAGER')"
+                        + " ORDER BY t.created_at DESC;")
+                .single(Call.of().bind("station_id", stationId).bind("member_id", memberId))
+                .map(QuizTest.map())
+                .all();
+    }
+
     public Optional<QuizTest> findById(int id) {
-        return Query.query("SELECT * FROM quiz_test WHERE id = :id;")
+        return Query.query("SELECT " + TEST_COLUMNS + " FROM quiz_test t WHERE t.id = :id;")
                 .single(Call.of().bind("id", id))
                 .map(QuizTest.map())
                 .first();
@@ -47,7 +64,7 @@ public class QuizTestRepository {
         return Query.query("""
                         INSERT INTO quiz_test(station_id, title, description, time_limit, shuffle, created_by)
                         VALUES (:station_id, :title, :description, :time_limit, :shuffle, :created_by)
-                        RETURNING *;""")
+                        RETURNING\s""" + TEST_COLUMNS_BARE + ";")
                 .single(Call.of()
                         .bind("station_id", stationId)
                         .bind("title", title)
@@ -239,7 +256,7 @@ public class QuizTestRepository {
                 .changed();
     }
 
-    public boolean gradeAttempt(int id, int totalPoints, int gradedBy) {
+    public boolean gradeAttempt(int id, double totalPoints, int gradedBy) {
         return Query.query("""
                         UPDATE quiz_test_attempt
                         SET status = 'GRADED', total_points = :total_points, graded_at = now(), graded_by = :graded_by
@@ -316,7 +333,7 @@ public class QuizTestRepository {
                 .update();
     }
 
-    public boolean gradeAnswer(int answerId, int points) {
+    public boolean gradeAnswer(int answerId, double points) {
         return Query.query("UPDATE quiz_test_answer SET points = :points, graded = true WHERE id = :id;")
                 .single(Call.of().bind("id", answerId).bind("points", points))
                 .update()
@@ -389,57 +406,10 @@ public class QuizTestRepository {
 
     // -- Restrictions --
 
-    public List<Integer> findRoleRestrictions(int testId) {
-        return Query.query("SELECT role_id FROM quiz_test_role_restriction WHERE test_id = :test_id;")
-                .single(Call.of().bind("test_id", testId))
-                .map(row -> row.getInt("role_id"))
-                .all();
-    }
-
-    public List<Integer> findGroupRestrictions(int testId) {
-        return Query.query("SELECT group_id FROM quiz_test_group_restriction WHERE test_id = :test_id;")
-                .single(Call.of().bind("test_id", testId))
-                .map(row -> row.getInt("group_id"))
-                .all();
-    }
-
-    public List<Integer> findTagRestrictions(int testId) {
-        return Query.query("SELECT tag_id FROM quiz_test_tag_restriction WHERE test_id = :test_id;")
-                .single(Call.of().bind("test_id", testId))
-                .map(row -> row.getInt("tag_id"))
-                .all();
-    }
-
-    public void setRoleRestrictions(int testId, List<Integer> roleIds) {
-        Query.query("DELETE FROM quiz_test_role_restriction WHERE test_id = :test_id;")
-                .single(Call.of().bind("test_id", testId))
-                .delete();
-        for (int roleId : roleIds) {
-            Query.query("INSERT INTO quiz_test_role_restriction(test_id, role_id) VALUES(:test_id, :role_id);")
-                    .single(Call.of().bind("test_id", testId).bind("role_id", roleId))
-                    .insert();
-        }
-    }
-
-    public void setGroupRestrictions(int testId, List<Integer> groupIds) {
-        Query.query("DELETE FROM quiz_test_group_restriction WHERE test_id = :test_id;")
-                .single(Call.of().bind("test_id", testId))
-                .delete();
-        for (int groupId : groupIds) {
-            Query.query("INSERT INTO quiz_test_group_restriction(test_id, group_id) VALUES(:test_id, :group_id);")
-                    .single(Call.of().bind("test_id", testId).bind("group_id", groupId))
-                    .insert();
-        }
-    }
-
-    public void setTagRestrictions(int testId, List<Integer> tagIds) {
-        Query.query("DELETE FROM quiz_test_tag_restriction WHERE test_id = :test_id;")
-                .single(Call.of().bind("test_id", testId))
-                .delete();
-        for (int tagId : tagIds) {
-            Query.query("INSERT INTO quiz_test_tag_restriction(test_id, tag_id) VALUES(:test_id, :tag_id);")
-                    .single(Call.of().bind("test_id", testId).bind("tag_id", tagId))
-                    .insert();
-        }
+    public boolean updateRestrictionMode(int testId, RestrictionMode mode) {
+        return Query.query("UPDATE quiz_test SET restriction_mode = :mode WHERE id = :id;")
+                .single(Call.of().bind("mode", mode.name()).bind("id", testId))
+                .update()
+                .changed();
     }
 }

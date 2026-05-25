@@ -36,7 +36,7 @@ const dummySeparator = ref(';')
         </div>
         <p class="text-sm text-(--text-muted)">{{ t('memberImport.modeMembersHint') }}</p>
       </NeutralContainer>
-      <NeutralContainer class="space-y-2 cursor-pointer hover:border-primary transition-colors">
+      <NeutralContainer clickable class="space-y-2">
         <div class="flex items-center gap-2">
           <font-awesome-icon :icon="['fas', 'user-shield']" class="text-primary"/>
           <span class="font-semibold">{{ t('teamImport.modeTeam') }}</span>
@@ -53,8 +53,7 @@ const dummySeparator = ref(';')
     <NeutralContainer class="space-y-4">
       <SubHeader>{{ t('memberImport.upload') }}</SubHeader>
       <div class="flex items-center gap-4 flex-wrap">
-        <SecondaryButton>
-          <font-awesome-icon :icon="['fas', 'upload']" class="mr-1"/>
+        <SecondaryButton :icon="['fas', 'upload']">
           {{ t('memberImport.chooseFile') }}
         </SecondaryButton>
         <span class="text-sm">

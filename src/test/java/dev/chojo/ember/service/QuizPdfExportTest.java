@@ -95,7 +95,8 @@ class QuizPdfExportTest {
         stationRepo = new StationRepository();
         catalogRepo = new QuizCatalogRepository();
         testRepo = new QuizTestRepository();
-        quizService = new QuizService(catalogRepo, testRepo);
+        quizService =
+                new QuizService(catalogRepo, testRepo, new dev.chojo.ember.feature.restriction.RestrictionRepository());
         pdfService = new QuizPdfService(testRepo, catalogRepo, quizService);
     }
 

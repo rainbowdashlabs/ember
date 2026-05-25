@@ -13,8 +13,10 @@ import DeleteButton from '@/components/button/DeleteButton.vue'
 import EditButton from '@/components/button/EditButton.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
+import EmptyState from '@/components/feedback/EmptyState.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
@@ -190,8 +192,7 @@ onUnmounted(() => {
     <div class="space-y-6">
       <div class="flex items-center justify-between">
         <SectionHeader>{{ t('news.title') }}</SectionHeader>
-        <PrimaryButton v-if="canManageNews()" @click="router.push({ name: 'news-create' })">
-          <font-awesome-icon :icon="['fas', 'plus']" class="mr-2" />
+        <PrimaryButton :icon="['fas', 'plus']" v-if="canManageNews()" @click="router.push({ name: 'news-create' })">
           {{ t('news.create') }}
         </PrimaryButton>
       </div>
@@ -199,9 +200,7 @@ onUnmounted(() => {
       <Spinner v-if="loading" size="lg" />
       <Alert v-if="error" variant="error">{{ error }}</Alert>
 
-      <div v-if="!loading && entries.length === 0" class="text-center text-(--text-muted) py-8">
-        {{ t('news.empty') }}
-      </div>
+      <EmptyState v-if="!loading && entries.length === 0">{{ t('news.empty') }}</EmptyState>
 
       <div class="space-y-4">
         <NeutralContainer v-for="entry in entries" :key="entry.id" class="space-y-3">
@@ -210,7 +209,7 @@ onUnmounted(() => {
             <div class="flex items-center gap-2">
               <UserAvatar :member-id="entry.authorId" :name="entry.authorName" size="md"/>
               <div>
-                <h3 class="font-semibold text-lg">{{ entry.title }}</h3>
+                <SubHeader class="flex items-center gap-1">{{ entry.title }}<font-awesome-icon v-if="entry.restricted" :icon="['fas', 'lock']" class="ml-1 h-3 w-3 text-[var(--text-muted)]"/></SubHeader>
                 <p class="text-xs text-(--text-muted)">
                   {{ entry.authorName }} &middot; {{ formatDate(entry.publishedAt) }}
                 </p>

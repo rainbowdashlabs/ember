@@ -9,7 +9,10 @@ import {useI18n} from 'vue-i18n'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import Modal from '@/components/feedback/Modal.vue'
+import CheckboxInput from '@/components/input/toggle/CheckboxInput.vue'
+import RadioInput from '@/components/input/toggle/RadioInput.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
+import FieldLabel from '@/components/typography/FieldLabel.vue'
 import type {ProfileField} from '@/api/types'
 
 const {t} = useI18n()
@@ -83,22 +86,16 @@ function submit() {
       <!-- Column selection -->
       <div class="space-y-2">
         <div class="flex items-center justify-between">
-          <label class="block text-sm font-medium">{{ t('membersList.export.selectColumns') }}</label>
+          <FieldLabel>{{ t('membersList.export.selectColumns') }}</FieldLabel>
           <div class="flex items-center gap-2">
-            <button class="text-xs text-primary hover:underline" @click="selectAll">{{
-                t('membersList.export.selectAll')
-              }}
-            </button>
-            <button class="text-xs text-primary hover:underline" @click="selectNone">
-              {{ t('membersList.export.selectNone') }}
-            </button>
+            <SecondaryButton @click="selectAll">{{ t('membersList.export.selectAll') }}</SecondaryButton>
+            <SecondaryButton @click="selectNone">{{ t('membersList.export.selectNone') }}</SecondaryButton>
           </div>
         </div>
         <div class="grid gap-1 sm:grid-cols-2 max-h-64 overflow-y-auto">
           <label v-for="col in allColumns" :key="col.key"
-                 class="flex items-center gap-2 cursor-pointer text-sm py-1 px-2 rounded hover:bg-bg-light-accent/30 dark:hover:bg-bg-dark-accent/30">
-            <input :checked="selectedColumns.has(col.key)" class="h-4 w-4 rounded accent-primary cursor-pointer"
-                   type="checkbox" @change="toggleColumn(col.key)"/>
+                 class="flex items-center gap-2 cursor-pointer text-xs py-1 px-2 rounded hover:bg-bg-light-accent/30 dark:hover:bg-bg-dark-accent/30">
+            <CheckboxInput :model-value="selectedColumns.has(col.key)" @update:model-value="toggleColumn(col.key)"/>
             {{ col.label }}
           </label>
         </div>
@@ -106,14 +103,14 @@ function submit() {
 
       <!-- Format -->
       <div class="space-y-2">
-        <label class="block text-sm font-medium">{{ t('membersList.export.format') }}</label>
+        <FieldLabel>{{ t('membersList.export.format') }}</FieldLabel>
         <div class="flex items-center gap-4">
-          <label class="flex items-center gap-2 cursor-pointer text-sm">
-            <input v-model="format" class="accent-primary" type="radio" value="csv"/>
+          <FieldLabel inline class="cursor-pointer">
+            <RadioInput v-model="format" value="csv"/>
             {{ t('membersList.export.formatCsv') }}
-          </label>
-          <label :class="{ 'opacity-40': !canExportValues }" class="flex items-center gap-2 cursor-pointer text-sm">
-            <input v-model="format" :disabled="!canExportValues" class="accent-primary" type="radio" value="values"/>
+          </FieldLabel>
+          <label :class="{ 'opacity-40': !canExportValues }" class="flex items-center gap-2 cursor-pointer text-xs">
+            <RadioInput v-model="format" value="values" :disabled="!canExportValues"/>
             {{ t('membersList.export.formatValues') }}
           </label>
         </div>
@@ -123,8 +120,7 @@ function submit() {
 
       <div class="flex justify-end gap-3">
         <SecondaryButton @click="emit('update:modelValue', false)">{{ t('common.cancel') }}</SecondaryButton>
-        <PrimaryButton :disabled="selectedColumns.size === 0" @click="submit">
-          <font-awesome-icon :icon="['fas', 'download']" class="mr-1"/>
+        <PrimaryButton :icon="['fas', 'download']" :disabled="selectedColumns.size === 0" @click="submit">
           {{ t('membersList.export.submit') }}
         </PrimaryButton>
       </div>

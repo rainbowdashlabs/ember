@@ -5,13 +5,17 @@
  */
 package dev.chojo.ember.feature.events.service;
 
-import dev.chojo.ember.api.Roles;
 import dev.chojo.ember.feature.events.entity.EventBreak;
 import dev.chojo.ember.feature.events.entity.EventCategory;
 import dev.chojo.ember.feature.events.entity.EventFieldDefault;
 import dev.chojo.ember.feature.events.entity.EventRegistration;
+import dev.chojo.ember.feature.events.entity.MemberRegistrationStats;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventRepository;
+import dev.chojo.ember.feature.restriction.RestrictionMode;
+import dev.chojo.ember.feature.restriction.RestrictionRepository;
+import dev.chojo.ember.feature.restriction.RestrictionSet;
+import dev.chojo.ember.feature.restriction.RestrictionType;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
@@ -22,7 +26,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 
 /**
  * Service providing business logic for station events, including CRUD operations for events, breaks, categories,
@@ -31,10 +34,12 @@ import java.util.Set;
 @Singleton
 public class EventService {
     private final EventRepository eventRepository;
+    private final RestrictionRepository restrictionRepository;
 
     @Inject
-    public EventService(EventRepository eventRepository) {
+    public EventService(EventRepository eventRepository, RestrictionRepository restrictionRepository) {
         this.eventRepository = eventRepository;
+        this.restrictionRepository = restrictionRepository;
     }
 
     // -- Events --
@@ -47,6 +52,17 @@ public class EventService {
      */
     public List<StationEvent> findByStation(int stationId) {
         return eventRepository.findByStation(stationId);
+    }
+
+    /**
+     * Retrieves events for a station that the given member is allowed to see.
+     *
+     * @param stationId the station ID
+     * @param memberId  the requesting member ID
+     * @return the filtered list of station events
+     */
+    public List<StationEvent> findByStationForMember(int stationId, int memberId) {
+        return eventRepository.findByStationForMember(stationId, memberId);
     }
 
     /**
@@ -204,9 +220,13 @@ public class EventService {
     /**
      * Retrieves all event categories for a station.
      *
-     * @param stationId the station ID
+     * @param id the ID
      * @return the list of categories
      */
+    public Optional<EventCategory> findCategoryById(int id) {
+        return eventRepository.findCategoryById(id);
+    }
+
     public List<EventCategory> findCategoriesByStation(int stationId) {
         return eventRepository.findCategoriesByStation(stationId);
     }
@@ -231,8 +251,8 @@ public class EventService {
      * @param position the new position
      * @return true if the category was updated
      */
-    public boolean updateCategory(int id, String name, int position) {
-        return eventRepository.updateCategory(id, name, position);
+    public boolean updateCategory(int id, String name, int position, Integer maxShownEvents) {
+        return eventRepository.updateCategory(id, name, position, maxShownEvents);
     }
 
     /**
@@ -309,119 +329,58 @@ public class EventService {
     // -- Restrictions --
 
     /**
-     * Retrieves the role IDs restricting access to an event.
+     * Retrieves the restriction set for an event.
      *
      * @param eventId the event ID
-     * @return the list of role IDs
+     * @return the restriction set
      */
-    public List<Integer> findRoleRestrictions(int eventId) {
-        return eventRepository.findRoleRestrictions(eventId);
+    public RestrictionSet findRestrictions(int eventId) {
+        var event = eventRepository.findById(eventId).orElse(null);
+        RestrictionMode mode = event != null ? event.restrictionMode() : RestrictionMode.AND;
+        return restrictionRepository.findRestrictionSet(
+                RestrictionType.EVENT.table(), RestrictionType.EVENT.fkColumn(), eventId, mode);
     }
 
     /**
-     * Retrieves the group IDs restricting access to an event.
+     * Sets all restrictions for an event, replacing any existing restrictions.
+     *
+     * @param eventId   the event ID
+     * @param roleIds   the role IDs to restrict to, or null for no role restrictions
+     * @param groupIds  the group IDs to restrict to, or null for no group restrictions
+     * @param tagIds    the tag IDs to restrict to, or null for no tag restrictions
+     * @param memberIds the member IDs to restrict to, or null for no member restrictions
+     */
+    public void setRestrictions(
+            int eventId, List<Integer> roleIds, List<Integer> groupIds, List<Integer> tagIds, List<Integer> memberIds) {
+        restrictionRepository.setRestrictions(
+                RestrictionType.EVENT.table(),
+                RestrictionType.EVENT.fkColumn(),
+                eventId,
+                roleIds != null ? roleIds : List.of(),
+                groupIds != null ? groupIds : List.of(),
+                tagIds != null ? tagIds : List.of(),
+                memberIds != null ? memberIds : List.of());
+    }
+
+    /**
+     * Updates the restriction mode for an event.
      *
      * @param eventId the event ID
-     * @return the list of group IDs
+     * @param mode    the restriction mode
      */
-    public List<Integer> findGroupRestrictions(int eventId) {
-        return eventRepository.findGroupRestrictions(eventId);
-    }
-
-    public List<Integer> findTagRestrictions(int eventId) {
-        return eventRepository.findTagRestrictions(eventId);
+    public void updateRestrictionMode(int eventId, RestrictionMode mode) {
+        eventRepository.updateRestrictionMode(eventId, mode);
     }
 
     /**
-     * Sets role, group, and tag restrictions for an event, replacing any existing restrictions.
+     * Checks if a member is eligible for an event based on its restrictions.
+     * Delegates to the DB function which resolves the member's identity internally.
      *
-     * @param eventId  the event ID
-     * @param roleIds  the role IDs to restrict to, or null for no role restrictions
-     * @param groupIds the group IDs to restrict to, or null for no group restrictions
+     * @param eventId  the event to check
+     * @param memberId the member ID
      */
-    public void setRestrictions(int eventId, List<Integer> roleIds, List<Integer> groupIds, List<Integer> tagIds) {
-        eventRepository.setRoleRestrictions(eventId, roleIds != null ? roleIds : List.of());
-        eventRepository.setGroupRestrictions(eventId, groupIds != null ? groupIds : List.of());
-        eventRepository.setTagRestrictions(eventId, tagIds != null ? tagIds : List.of());
-    }
-
-    /**
-     * Checks if a member is eligible for an event based on their expanded roles, group memberships, and tags.
-     * Uses AND logic: if multiple restriction types are set, the member must match ALL of them.
-     *
-     * @param eventId        the event to check
-     * @param expandedRoles  the member's roles (already expanded via Roles.expand)
-     * @param memberGroupIds the member's group IDs
-     * @param memberTagIds   the member's tag IDs
-     */
-    public boolean isMemberEligible(
-            int eventId, Set<Roles> expandedRoles, List<Integer> memberGroupIds, List<Integer> memberTagIds) {
-        var roleRestrictionNames = eventRepository.findRoleRestrictionNames(eventId);
-        var groupRestrictions = eventRepository.findGroupRestrictions(eventId);
-        var tagRestrictions = eventRepository.findTagRestrictions(eventId);
-
-        if (roleRestrictionNames.isEmpty() && groupRestrictions.isEmpty() && tagRestrictions.isEmpty()) return true;
-
-        // AND logic: each non-empty restriction type must match
-        if (!roleRestrictionNames.isEmpty()) {
-            boolean roleMatch = false;
-            for (String roleName : roleRestrictionNames) {
-                Roles role = Roles.fromDbName(roleName);
-                if (role != null && expandedRoles.contains(role)) {
-                    roleMatch = true;
-                    break;
-                }
-            }
-            if (!roleMatch) return false;
-        }
-
-        if (!groupRestrictions.isEmpty()) {
-            boolean groupMatch = false;
-            for (int groupId : groupRestrictions) {
-                if (memberGroupIds.contains(groupId)) {
-                    groupMatch = true;
-                    break;
-                }
-            }
-            if (!groupMatch) return false;
-        }
-
-        if (!tagRestrictions.isEmpty()) {
-            boolean tagMatch = false;
-            for (int tagId : tagRestrictions) {
-                if (memberTagIds.contains(tagId)) {
-                    tagMatch = true;
-                    break;
-                }
-            }
-            return tagMatch;
-        }
-
-        return true;
-    }
-
-    /**
-     * Finds all role restrictions for events in a station, grouped by event ID.
-     *
-     * @param stationId the station ID
-     * @return a map of event ID to list of restricted role IDs
-     */
-    public Map<Integer, List<Integer>> findAllRoleRestrictionsByStation(int stationId) {
-        return eventRepository.findAllRoleRestrictionsByStation(stationId);
-    }
-
-    /**
-     * Finds all group restrictions for events in a station, grouped by event ID.
-     *
-     * @param stationId the station ID
-     * @return a map of event ID to list of restricted group IDs
-     */
-    public Map<Integer, List<Integer>> findAllGroupRestrictionsByStation(int stationId) {
-        return eventRepository.findAllGroupRestrictionsByStation(stationId);
-    }
-
-    public Map<Integer, List<Integer>> findAllTagRestrictionsByStation(int stationId) {
-        return eventRepository.findAllTagRestrictionsByStation(stationId);
+    public boolean isMemberEligible(int eventId, int memberId) {
+        return restrictionRepository.checkRestriction(RestrictionType.EVENT, eventId, memberId);
     }
 
     // -- Field Defaults --
@@ -565,5 +524,9 @@ public class EventService {
 
     public List<Integer> findDeclinedMemberIds(int eventId, LocalDate eventDate) {
         return eventRepository.findDeclinedMemberIds(eventId, eventDate);
+    }
+
+    public List<MemberRegistrationStats> findRegistrationStats(int eventId, Integer categoryId, int months) {
+        return eventRepository.findRegistrationStatsByEvent(eventId, categoryId, months);
     }
 }

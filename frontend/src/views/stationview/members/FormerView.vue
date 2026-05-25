@@ -11,11 +11,16 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
+import EmptyState from '@/components/feedback/EmptyState.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import type { StationMember } from '@/api/types'
 import { stationMembers } from '@/api'
+import Th from '@/components/table/Th.vue'
+import Td from '@/components/table/Td.vue'
+import THead from '@/components/table/THead.vue'
+import TRow from '@/components/table/TRow.vue'
 
 const { t } = useI18n()
 
@@ -78,31 +83,27 @@ onMounted(loadData)
       <Alert v-if="success" variant="success">{{ success }}</Alert>
 
       <template v-if="!loading">
-        <div v-if="members.length === 0" class="text-center text-(--text-muted) py-8">
-          {{ t('formerMembers.empty') }}
-        </div>
+        <EmptyState v-if="members.length === 0">{{ t('formerMembers.empty') }}</EmptyState>
 
         <NeutralContainer v-if="members.length > 0" class="overflow-x-auto">
           <table class="w-full text-sm">
             <thead>
-              <tr class="border-b border-bg-light-accent dark:border-bg-dark-accent text-left">
-                <th class="px-3 py-2 font-medium">{{ t('membersList.colName') }}</th>
-                <th class="px-3 py-2 font-medium">{{ t('membersList.colEmail') }}</th>
+              <THead>
+                <Th>{{ t('membersList.colName') }}</Th>
+                <Th>{{ t('membersList.colEmail') }}</Th>
                 <th class="px-3 py-2"></th>
-              </tr>
+              </THead>
             </thead>
             <tbody>
-              <tr v-for="member in members" :key="member.id"
-                  class="border-b border-bg-light-accent/50 dark:border-bg-dark-accent/50">
-                <td class="px-3 py-2.5 font-medium text-(--text-muted)">{{ memberDisplayName(member) }}</td>
-                <td class="px-3 py-2.5 text-(--text-muted)">{{ member.email ?? '' }}</td>
-                <td class="px-3 py-2.5 text-right">
-                  <PrimaryButton @click="openReactivate(member)">
-                    <font-awesome-icon :icon="['fas', 'user-check']" class="mr-1" />
+              <TRow v-for="member in members" :key="member.id">
+                <Td class="font-medium text-(--text-muted)">{{ memberDisplayName(member) }}</Td>
+                <Td muted>{{ member.email ?? '' }}</Td>
+                <Td align="right">
+                  <PrimaryButton :icon="['fas', 'user-check']" @click="openReactivate(member)">
                     {{ t('formerMembers.reactivate') }}
                   </PrimaryButton>
-                </td>
-              </tr>
+                </Td>
+              </TRow>
             </tbody>
           </table>
         </NeutralContainer>

@@ -26,7 +26,7 @@ const pageTitle = computed(() => {
   <SidebarLayout :subtitle="t('helpCenter.title')" :title="pageTitle" :station-name="t('helpCenter.adminHelp')">
     <template #sidebar="{ close }">
       <SidebarGroup :icon="['fas', 'gauge']" :label="t('sidebar.dashboard')" prefix="/helpcenter/admin/dashboard">
-        <SidebarLink :icon="['fas', 'house']" name="help-admin-overview"
+        <SidebarLink :icon="['fas', 'house']" name="help-admin-module-overview"
                      to="/helpcenter/admin/dashboard/overview" @navigate="close">
           {{ t('sidebar.overview') }}
         </SidebarLink>
@@ -36,7 +36,8 @@ const pageTitle = computed(() => {
         </SidebarLink>
       </SidebarGroup>
 
-      <SidebarGroup :icon="['fas', 'building']" :label="t('sidebar.stations')" prefix="/helpcenter/admin/stations">
+      <SidebarGroup :icon="['fas', 'building']" :label="t('sidebar.stations')" prefix="/helpcenter/admin/stations"
+                    to="/helpcenter/admin/stations/overview" name="help-admin-stations-module-overview" @navigate="close">
         <SidebarLink :icon="['fas', 'building']" name="help-admin-stations"
                      to="/helpcenter/admin/stations" @navigate="close">
           {{ t('sidebar.manageStations') }}
@@ -48,6 +49,14 @@ const pageTitle = computed(() => {
         <SidebarLink :icon="['fas', 'gear']" name="help-admin-settings"
                      to="/helpcenter/admin/settings" @navigate="close">
           {{ t('sidebar.settings') }}
+        </SidebarLink>
+        <SidebarLink :icon="['fas', 'chart-line']" name="help-admin-api-status"
+                     to="/helpcenter/admin/api-status" @navigate="close">
+          {{ t('helpCenter.adminApiStatus.sidebarLabel') }}
+        </SidebarLink>
+        <SidebarLink :icon="['fas', 'triangle-exclamation']" name="help-admin-problems"
+                     to="/helpcenter/admin/problems" @navigate="close">
+          {{ t('helpCenter.adminProblems.sidebarLabel') }}
         </SidebarLink>
       </SidebarGroup>
     </template>

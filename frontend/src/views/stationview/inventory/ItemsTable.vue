@@ -9,6 +9,7 @@ import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import IconButton from '@/components/button/IconButton.vue'
+import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import EditButton from '@/components/button/EditButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import SizeBadge from '@/components/badge/SizeBadge.vue'
@@ -16,8 +17,14 @@ import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import PrimaryBadge from '@/components/badge/PrimaryBadge.vue'
 import type { InventoryItem, InventorySize, StationMember } from '@/api/types'
 import { InventoryTypes, ItemSource } from '@/api/types'
+import type { LentOutItem } from '@/api/lending'
+import InfoBadge from '@/components/badge/InfoBadge.vue'
 import MemberName from '@/components/avatar/MemberName.vue'
 import { useBreakpoint } from '@/composables/useBreakpoint'
+import Th from '@/components/table/Th.vue'
+import Td from '@/components/table/Td.vue'
+import THead from '@/components/table/THead.vue'
+import TRow from '@/components/table/TRow.vue'
 
 const { isMobile } = useBreakpoint()
 
@@ -31,10 +38,15 @@ const props = withDefaults(defineProps<{
   members?: Map<number, StationMember>
   showActions?: boolean
   inventoryType?: string
+  lentOutItems?: LentOutItem[]
 }>(), {
   showActions: false,
   inventoryType: InventoryTypes.INTERNAL,
 })
+
+function lendingInfoForItem(itemId: number): LentOutItem | undefined {
+  return props.lentOutItems?.find(l => l.assignedItemId === itemId)
+}
 
 const isMixed = computed(() => props.inventoryType === InventoryTypes.MIXED)
 
@@ -74,6 +86,14 @@ function formatDate(iso: string | null | undefined): string {
         <div>
           <span class="font-medium">{{ item.name }}</span>
           <span v-if="item.lostAt" class="ml-2 text-xs text-error">{{ t('inventory.edit.lost') }} ({{ formatDate(item.lostAt) }})</span>
+          <div v-if="lendingInfoForItem(item.id)" class="mt-0.5">
+            <router-link :to="{ name: 'inventory-lending-request', params: { id: lendingInfoForItem(item.id)!.requestId } }">
+              <InfoBadge>
+                <font-awesome-icon :icon="['fas', 'arrow-right-arrow-left']" class="mr-0.5 h-2.5 w-2.5"/>
+                {{ t('inventory.detail.lentTo') }} {{ lendingInfoForItem(item.id)!.requestingStationName }}
+              </InfoBadge>
+            </router-link>
+          </div>
         </div>
         <div v-if="hasSizes">
           <SizeBadge :lost="!!item.lostAt">{{ getSizeLabel(item.sizeId) }}</SizeBadge>
@@ -87,17 +107,17 @@ function formatDate(iso: string | null | undefined): string {
         </div>
         <div v-if="item.assignedTo">
           <span class="text-(--text-muted)">{{ t('inventory.edit.colAssigned') }}:</span>
-          <button class="ml-1 text-primary font-medium hover:underline cursor-pointer" @click.stop="router.push({ name: 'inventory-member', params: { memberId: item.assignedTo } })">
+          <SecondaryButton class="!bg-transparent !p-0 ml-1 text-primary font-medium hover:underline" @click.stop="router.push({ name: 'inventory-member', params: { memberId: item.assignedTo } })">
             <MemberName :name="getMemberName(item.assignedTo)" :member-id="item.assignedTo"/>
-          </button>
+          </SecondaryButton>
         </div>
       </div>
       <div v-if="showActions" class="flex items-center gap-0.5 pt-1 border-t border-bg-light-accent/50 dark:border-bg-dark-accent/50">
         <IconButton v-if="!item.lostAt" :icon="['fas', 'user']" :label="item.assignedTo ? t('inventory.edit.reassign') : t('inventory.edit.assign')" class="text-primary hover:bg-primary/15" @click="emit('assign', item)"/>
-        <IconButton v-if="item.assignedTo && !item.lostAt" :icon="['fas', 'right-from-bracket']" :label="t('inventory.edit.unassign')" class="text-(--text-muted) hover:bg-bg-light-accent dark:hover:bg-bg-dark-accent" @click="emit('unassign', item)"/>
+        <IconButton class="text-(--text-muted) hover:bg-bg-light-accent dark:hover:bg-bg-dark-accent" v-if="item.assignedTo && !item.lostAt" :icon="['fas', 'right-from-bracket']" :label="t('inventory.edit.unassign')" @click="emit('unassign', item)"/>
         <IconButton v-if="!item.lostAt" :icon="['fas', 'triangle-exclamation']" :label="t('inventory.edit.markLost')" class="text-error hover:bg-error/15" @click="emit('markLost', item)"/>
         <IconButton v-if="item.lostAt" :icon="['fas', 'check']" :label="t('inventory.edit.markFound')" class="text-success hover:bg-success/15" @click="emit('markFound', item)"/>
-        <IconButton :icon="['fas', 'clock-rotate-left']" :label="t('inventory.edit.historyTitle')" class="text-(--text-muted) hover:bg-bg-light-accent dark:hover:bg-bg-dark-accent" @click="emit('history', item)"/>
+        <IconButton class="text-(--text-muted) hover:bg-bg-light-accent dark:hover:bg-bg-dark-accent" :icon="['fas', 'clock-rotate-left']" :label="t('inventory.edit.historyTitle')" @click="emit('history', item)"/>
         <EditButton @click="emit('edit', item)"/>
         <DeleteButton @click="emit('delete', item)"/>
       </div>
@@ -108,37 +128,45 @@ function formatDate(iso: string | null | undefined): string {
   <NeutralContainer v-else-if="items.length > 0" class="overflow-x-auto">
     <table class="w-full text-sm">
       <thead>
-        <tr class="border-b border-bg-light-accent dark:border-bg-dark-accent text-left">
-          <th class="px-3 py-2 font-medium">{{ t('inventory.edit.colName') }}</th>
-          <th class="px-3 py-2 font-medium">{{ t('inventory.edit.colId') }}</th>
-          <th v-if="hasSizes" class="px-3 py-2 font-medium">{{ t('inventory.edit.colSize') }}</th>
-          <th v-if="isMixed" class="px-3 py-2 font-medium">{{ t('inventory.edit.colSource') }}</th>
-          <th class="px-3 py-2 font-medium">{{ t('inventory.edit.colAssigned') }}</th>
+        <THead>
+          <Th>{{ t('inventory.edit.colName') }}</Th>
+          <Th>{{ t('inventory.edit.colId') }}</Th>
+          <Th v-if="hasSizes">{{ t('inventory.edit.colSize') }}</Th>
+          <Th v-if="isMixed">{{ t('inventory.edit.colSource') }}</Th>
+          <Th>{{ t('inventory.edit.colAssigned') }}</Th>
           <th v-if="showActions" class="px-3 py-2"></th>
-        </tr>
+        </THead>
       </thead>
       <tbody>
-        <tr v-for="item in items" :key="item.id"
-            :class="item.lostAt ? 'opacity-60' : ''"
-            class="border-b border-bg-light-accent/50 dark:border-bg-dark-accent/50">
-          <td class="px-3 py-2.5 font-medium">
+        <TRow v-for="item in items" :key="item.id"
+            :class="item.lostAt ? 'opacity-60' : ''">
+          <Td class="font-medium">
             {{ item.name }}
             <span v-if="item.lostAt" class="ml-2 text-xs text-error font-normal">
               {{ t('inventory.edit.lost') }} ({{ formatDate(item.lostAt) }})
             </span>
-          </td>
-          <td class="px-3 py-2.5 text-(--text-muted)">{{ item.internalId || '–' }}</td>
-          <td v-if="hasSizes" class="px-3 py-2.5"><SizeBadge :lost="!!item.lostAt">{{ getSizeLabel(item.sizeId) }}</SizeBadge></td>
-          <td v-if="isMixed" class="px-3 py-2.5">
+            <template v-if="lendingInfoForItem(item.id)">
+              <router-link :to="{ name: 'inventory-lending-request', params: { id: lendingInfoForItem(item.id)!.requestId } }" class="ml-2 inline-flex items-center gap-1">
+                <InfoBadge>
+                  <font-awesome-icon :icon="['fas', 'arrow-right-arrow-left']" class="mr-0.5 h-2.5 w-2.5"/>
+                  {{ t('inventory.detail.lentTo') }} {{ lendingInfoForItem(item.id)!.requestingStationName }}
+                  <template v-if="lendingInfoForItem(item.id)!.dateTo"> · {{ t('inventory.detail.until') }} {{ formatDate(lendingInfoForItem(item.id)!.dateTo) }}</template>
+                </InfoBadge>
+              </router-link>
+            </template>
+          </Td>
+          <Td muted>{{ item.internalId || '–' }}</Td>
+          <Td v-if="hasSizes"><SizeBadge :lost="!!item.lostAt">{{ getSizeLabel(item.sizeId) }}</SizeBadge></Td>
+          <Td v-if="isMixed">
             <PrimaryBadge v-if="item.itemSource === ItemSource.INTERNAL">{{ t('inventory.edit.sourceInternal') }}</PrimaryBadge>
             <SecondaryBadge v-else-if="item.itemSource === ItemSource.EXTERNAL">{{ t('inventory.edit.sourceExternal') }}</SecondaryBadge>
             <span v-else class="text-(--text-muted)">–</span>
-          </td>
-          <td class="px-3 py-2.5">
-            <button v-if="item.assignedTo" class="text-primary font-medium hover:underline cursor-pointer" @click.stop="router.push({ name: 'inventory-member', params: { memberId: item.assignedTo } })"><MemberName :name="getMemberName(item.assignedTo)" :member-id="item.assignedTo"/></button>
+          </Td>
+          <Td>
+            <SecondaryButton v-if="item.assignedTo" class="!bg-transparent !p-0 text-primary font-medium hover:underline" @click.stop="router.push({ name: 'inventory-member', params: { memberId: item.assignedTo } })"><MemberName :name="getMemberName(item.assignedTo)" :member-id="item.assignedTo"/></SecondaryButton>
             <span v-else class="text-(--text-muted)">–</span>
-          </td>
-          <td v-if="showActions" class="px-3 py-2.5 text-right">
+          </Td>
+          <Td v-if="showActions" align="right">
             <div class="flex items-center justify-end gap-0.5">
               <IconButton v-if="!item.lostAt" :icon="['fas', 'user']"
                           :label="item.assignedTo ? t('inventory.edit.reassign') : t('inventory.edit.assign')"
@@ -158,8 +186,8 @@ function formatDate(iso: string | null | undefined): string {
               <EditButton @click="emit('edit', item)" />
               <DeleteButton @click="emit('delete', item)" />
             </div>
-          </td>
-        </tr>
+          </Td>
+        </TRow>
       </tbody>
     </table>
   </NeutralContainer>

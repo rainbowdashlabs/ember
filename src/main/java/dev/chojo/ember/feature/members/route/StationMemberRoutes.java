@@ -20,6 +20,7 @@ import dev.chojo.ember.feature.members.service.ProfileFieldService;
 import dev.chojo.ember.feature.members.service.StationMemberService;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
+import io.javalin.http.ForbiddenResponse;
 import io.javalin.http.HttpStatus;
 import io.javalin.http.NotFoundResponse;
 import io.javalin.openapi.HttpMethod;
@@ -68,21 +69,21 @@ public class StationMemberRoutes implements Routes {
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
         routes.get(prefix + "/roles", this::listAllRoles, Roles.LOGIN);
-        routes.get(prefix + "/station-members", this::listByStation, Roles.MEMBER_MANAGEMENT);
-        routes.get(prefix + "/station-members/former", this::listFormer, Roles.MEMBER_MANAGEMENT);
-        routes.get(prefix + "/station-members/all-roles", this::getAllMemberRoles, Roles.MEMBER_MANAGEMENT);
-        routes.get(prefix + "/station-members/{id}", this::get, Roles.MEMBER_MANAGEMENT);
-        routes.post(prefix + "/station-members", this::create, Roles.MEMBER_MANAGEMENT);
-        routes.delete(prefix + "/station-members/{id}", this::delete, Roles.MEMBER_MANAGEMENT);
-        routes.get(prefix + "/station-members/{id}/roles", this::getRoles, Roles.MEMBER_MANAGEMENT);
-        routes.put(prefix + "/station-members/{id}/roles", this::setRoles, Roles.MEMBER_MANAGEMENT);
+        routes.get(prefix + "/station-members", this::listByStation, Roles.MEMBER_MANAGER);
+        routes.get(prefix + "/station-members/former", this::listFormer, Roles.MEMBER_MANAGER);
+        routes.get(prefix + "/station-members/all-roles", this::getAllMemberRoles, Roles.MEMBER_MANAGER);
+        routes.get(prefix + "/station-members/{id}", this::get, Roles.MEMBER_MANAGER);
+        routes.post(prefix + "/station-members", this::create, Roles.MEMBER_MANAGER);
+        routes.delete(prefix + "/station-members/{id}", this::delete, Roles.MEMBER_MANAGER);
+        routes.get(prefix + "/station-members/{id}/roles", this::getRoles, Roles.MEMBER_MANAGER);
+        routes.put(prefix + "/station-members/{id}/roles", this::setRoles, Roles.MEMBER_MANAGER);
 
-        routes.get(prefix + "/station-members/{id}/managed", this::getManaged, Roles.MEMBER_MANAGEMENT);
-        routes.get(prefix + "/station-members/{id}/managers", this::getManagers, Roles.MEMBER_MANAGEMENT);
-        routes.put(prefix + "/station-members/{id}/managers", this::setManagers, Roles.MEMBER_MANAGEMENT);
+        routes.get(prefix + "/station-members/{id}/managed", this::getManaged, Roles.MEMBER_MANAGER);
+        routes.get(prefix + "/station-members/{id}/managers", this::getManagers, Roles.MEMBER_MANAGER);
+        routes.put(prefix + "/station-members/{id}/managers", this::setManagers, Roles.MEMBER_MANAGER);
 
-        routes.post(prefix + "/station-members/{id}/mark-former", this::markFormer, Roles.MEMBER_MANAGEMENT);
-        routes.post(prefix + "/station-members/{id}/reactivate", this::reactivate, Roles.MEMBER_MANAGEMENT);
+        routes.post(prefix + "/station-members/{id}/mark-former", this::markFormer, Roles.MEMBER_MANAGER);
+        routes.post(prefix + "/station-members/{id}/reactivate", this::reactivate, Roles.MEMBER_MANAGER);
     }
 
     @OpenApi(
@@ -97,7 +98,8 @@ public class StationMemberRoutes implements Routes {
     }
 
     private void listByStation(Context ctx) {
-        int stationId = ctx.queryParamAsClass("stationId", Integer.class).get();
+        var session = UserSession.from(ctx);
+        int stationId = session.stationId();
         boolean includeFormer = "true".equals(ctx.queryParam("includeFormer"));
         ctx.json(memberService.findByStation(stationId, includeFormer).stream()
                 .map(this::toMemberWithName)
@@ -151,14 +153,11 @@ public class StationMemberRoutes implements Routes {
             })
     private void delete(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
+        UserSession session = UserSession.from(ctx);
         var member = stationMemberRepository.findById(id).orElseThrow(NotFoundResponse::new);
-        // Check that the member is not a station owner
-        var station = member.stationId() > 0
-                ? stationMemberRepository.findByStation(member.stationId()).stream()
-                        .filter(m -> m.id() == id)
-                        .findFirst()
-                        .orElse(null)
-                : null;
+        if (member.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot delete a member from another station");
+        }
         gdprDeletionService.anonymizeMember(id);
         ctx.status(HttpStatus.NO_CONTENT);
     }

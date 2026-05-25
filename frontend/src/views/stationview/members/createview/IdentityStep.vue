@@ -11,6 +11,7 @@ import TextInput from '@/components/input/text/TextInput.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
+import FieldLabel from '@/components/typography/FieldLabel.vue'
 
 const {t} = useI18n()
 
@@ -31,13 +32,13 @@ const emit = defineEmits<{
 
     <div class="grid gap-4 sm:grid-cols-2">
       <div class="space-y-1">
-        <label class="block text-sm font-medium">{{ t('membersCreate.firstName') }} <span
-            class="text-error">*</span></label>
+        <FieldLabel>{{ t('membersCreate.firstName') }} <span
+            class="text-error">*</span></FieldLabel>
         <TextInput v-model="firstName" :placeholder="t('membersCreate.firstNamePlaceholder')"/>
       </div>
       <div class="space-y-1">
-        <label class="block text-sm font-medium">{{ t('membersCreate.lastName') }} <span
-            class="text-error">*</span></label>
+        <FieldLabel>{{ t('membersCreate.lastName') }} <span
+            class="text-error">*</span></FieldLabel>
         <TextInput v-model="lastName" :placeholder="t('membersCreate.lastNamePlaceholder')"/>
       </div>
     </div>
@@ -51,7 +52,7 @@ const emit = defineEmits<{
     </div>
 
     <div v-if="canLogin" class="space-y-1">
-      <label class="block text-sm font-medium">{{ t('membersCreate.email') }} <span class="text-error">*</span></label>
+      <FieldLabel>{{ t('membersCreate.email') }} <span class="text-error">*</span></FieldLabel>
       <TextInput v-model="email" :placeholder="t('membersCreate.emailPlaceholder')"/>
       <p class="text-xs text-(--text-muted)">{{ t('membersCreate.emailHint') }}</p>
     </div>

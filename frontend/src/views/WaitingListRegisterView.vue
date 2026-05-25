@@ -17,6 +17,9 @@ import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
+import FieldLabel from '@/components/typography/FieldLabel.vue'
+import PageHeader from '@/components/typography/PageHeader.vue'
+import SectionHeader from '@/components/typography/SectionHeader.vue'
 import type { WaitingListInviteInfo } from '@/api/types'
 import { waitingList } from '@/api'
 
@@ -146,7 +149,7 @@ onMounted(loadInviteInfo)
     <div class="w-full max-w-lg space-y-6">
       <div class="text-center">
         <font-awesome-icon :icon="['fas', 'clipboard-list']" class="text-4xl text-primary mb-3" />
-        <h1 class="text-2xl font-bold">{{ t('waitingList.register.title') }}</h1>
+        <PageHeader class="text-2xl font-bold">{{ t('waitingList.register.title') }}</PageHeader>
       </div>
 
       <Spinner v-if="loading" size="md" />
@@ -155,34 +158,34 @@ onMounted(loadInviteInfo)
       <!-- Invite info header -->
       <template v-if="!loading && inviteInfo && !submitted">
         <NeutralContainer class="text-center space-y-2">
-          <h2 class="text-lg font-semibold">{{ inviteInfo.listName }}</h2>
+          <SectionHeader class="text-lg font-semibold">{{ inviteInfo.listName }}</SectionHeader>
           <p v-if="inviteInfo.listDescription" class="text-sm text-(--text-muted)">{{ inviteInfo.listDescription }}</p>
         </NeutralContainer>
 
         <form class="space-y-4" @submit.prevent="submit">
           <div class="space-y-1">
-            <label class="block text-sm font-medium">{{ t('waitingList.firstname') }} <span class="text-error">*</span></label>
+            <FieldLabel>{{ t('waitingList.firstname') }} <span class="text-error">*</span></FieldLabel>
             <TextInput v-model="firstname" :placeholder="t('waitingList.register.firstnamePlaceholder')" />
           </div>
           <div class="space-y-1">
-            <label class="block text-sm font-medium">{{ t('waitingList.lastname') }}</label>
+            <FieldLabel>{{ t('waitingList.lastname') }}</FieldLabel>
             <TextInput v-model="lastname" :placeholder="t('waitingList.register.lastnamePlaceholder')" />
           </div>
           <div class="space-y-1">
-            <label class="block text-sm font-medium">{{ t('waitingList.parentName') }}</label>
+            <FieldLabel>{{ t('waitingList.parentName') }}</FieldLabel>
             <TextInput v-model="parentName" :placeholder="t('waitingList.register.parentNamePlaceholder')" />
           </div>
           <div class="space-y-1">
-            <label class="block text-sm font-medium">{{ t('waitingList.email') }} <span class="text-error">*</span></label>
+            <FieldLabel>{{ t('waitingList.email') }} <span class="text-error">*</span></FieldLabel>
             <TextInput v-model="email" :placeholder="t('waitingList.register.emailPlaceholder')" />
           </div>
 
           <!-- Dynamic fields -->
           <div v-for="field in inviteInfo.fields" :key="field.id" class="space-y-1">
-            <label class="block text-sm font-medium">
+            <FieldLabel>
               {{ field.name }}
               <span v-if="field.required" class="text-error">*</span>
-            </label>
+            </FieldLabel>
 
             <TextInput
               v-if="field.fieldType === 'TEXT'"
@@ -220,7 +223,7 @@ onMounted(loadInviteInfo)
           </div>
 
           <div class="space-y-1">
-            <label class="block text-sm font-medium">{{ t('waitingList.notes') }}</label>
+            <FieldLabel>{{ t('waitingList.notes') }}</FieldLabel>
             <TextAreaInput v-model="notes" :placeholder="t('waitingList.register.notesPlaceholder')" />
           </div>
 

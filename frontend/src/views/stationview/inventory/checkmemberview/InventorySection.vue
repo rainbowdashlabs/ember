@@ -1,0 +1,93 @@
+/*
+ *     SPDX-License-Identifier: AGPL-3.0-only
+ *
+ *     Copyright (C) RainbowDashLabs and Contributor
+ */
+<script setup lang="ts">
+import NeutralContainer from '@/components/container/NeutralContainer.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
+import InventoryItemCard from './InventoryItemCard.vue'
+import EmptySlotCard from './EmptySlotCard.vue'
+import type { CheckResult, InventoryItem, RequiredInventoryItem } from '@/api/types'
+
+const props = defineProps<{
+  req: RequiredInventoryItem
+  assignedItems: InventoryItem[]
+  availableItems: InventoryItem[]
+  emptySlotCount: number
+  itemResults: Map<number, CheckResult>
+  itemNotes: Map<number, string>
+  procurementCreated: Set<number>
+  slotsNotInPossession: Set<string>
+  slotSelections: Map<string, string>
+  sizeLabel: (req: RequiredInventoryItem, sizeId?: number | null) => string
+  itemLabel: (item: InventoryItem, req: RequiredInventoryItem) => string
+}>()
+
+const emit = defineEmits<{
+  setResult: [itemId: number, result: CheckResult]
+  setNote: [itemId: number, note: string]
+  unassign: [itemId: number]
+  createProcurement: [item: InventoryItem]
+  changeItem: [currentItemId: number, inventoryId: number]
+  createAndChange: [currentItemId: number, req: RequiredInventoryItem]
+  toggleNotInPossession: [inventoryId: number, slotIndex: number]
+  assignToSlot: [inventoryId: number, slotIndex: number]
+  createAndAssignToSlot: [req: RequiredInventoryItem, slotIndex: number]
+  updateSelection: [key: string, value: string]
+}>()
+</script>
+
+<template>
+  <NeutralContainer class="space-y-3">
+    <div class="flex items-center justify-between gap-2">
+      <SubHeader>{{ req.inventoryName }}</SubHeader>
+      <span class="text-sm text-(--text-muted) shrink-0">
+        {{ req.assignedQuantity }} / {{ req.requiredQuantity }}
+        <span v-if="req.assignedQuantity < req.requiredQuantity" class="text-error">
+          ({{ req.requiredQuantity - req.assignedQuantity }} fehlt)
+        </span>
+      </span>
+    </div>
+
+    <!-- Assigned items -->
+    <div class="space-y-2">
+      <InventoryItemCard
+        v-for="item in assignedItems"
+        :key="item.id"
+        :item="item"
+        :req="req"
+        :result="itemResults.get(item.id)"
+        :note="itemNotes.get(item.id) ?? ''"
+        :procurement-created="procurementCreated.has(item.id)"
+        :available-items="availableItems"
+        :slot-selections="slotSelections"
+        :size-label="sizeLabel(req, item.sizeId)"
+        :item-label="itemLabel"
+        @set-result="(id, r) => emit('setResult', id, r)"
+        @set-note="(id, n) => emit('setNote', id, n)"
+        @unassign="id => emit('unassign', id)"
+        @create-procurement="item => emit('createProcurement', item)"
+        @change-item="(id, inv) => emit('changeItem', id, inv)"
+        @create-and-change="(id, r) => emit('createAndChange', id, r)"
+        @update-selection="(k, v) => emit('updateSelection', k, v)"
+      />
+    </div>
+
+    <!-- Empty slots -->
+    <EmptySlotCard
+      v-for="slotIdx in emptySlotCount"
+      :key="`empty-${req.inventoryId}-${slotIdx}`"
+      :req="req"
+      :slot-index="slotIdx"
+      :is-not-in-possession="slotsNotInPossession.has(`${req.inventoryId}-${slotIdx}`)"
+      :available-items="availableItems"
+      :slot-selections="slotSelections"
+      :item-label="itemLabel"
+      @toggle-not-in-possession="(inv, si) => emit('toggleNotInPossession', inv, si)"
+      @assign-to-slot="(inv, si) => emit('assignToSlot', inv, si)"
+      @create-and-assign="(r, si) => emit('createAndAssignToSlot', r, si)"
+      @update-selection="(k, v) => emit('updateSelection', k, v)"
+    />
+  </NeutralContainer>
+</template>

@@ -91,8 +91,12 @@ public class DemoService {
     private final DemoMediaSeeder mediaSeeder;
     private final DemoKnowledgeBaseSeeder kbSeeder;
     private final DemoProtocolSeeder protocolSeeder;
+    private final DemoFederationSeeder federationSeeder;
+    private final DemoLendingSeeder lendingSeeder;
     private final ApplicationSettingRepository applicationSettingRepository;
     private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
+    private volatile Instant lastActivity = Instant.now();
+    private volatile boolean needsReset = false;
 
     @Inject
     public DemoService(
@@ -123,6 +127,8 @@ public class DemoService {
             DemoMediaSeeder mediaSeeder,
             DemoKnowledgeBaseSeeder kbSeeder,
             DemoProtocolSeeder protocolSeeder,
+            DemoFederationSeeder federationSeeder,
+            DemoLendingSeeder lendingSeeder,
             ApplicationSettingRepository applicationSettingRepository) {
         this.demoConfig = demoConfig;
         this.databaseConfig = databaseConfig;
@@ -151,19 +157,13 @@ public class DemoService {
         this.mediaSeeder = mediaSeeder;
         this.kbSeeder = kbSeeder;
         this.protocolSeeder = protocolSeeder;
+        this.federationSeeder = federationSeeder;
+        this.lendingSeeder = lendingSeeder;
         this.applicationSettingRepository = applicationSettingRepository;
     }
 
     public boolean isEnabled() {
         return demoConfig.enabled() || demoConfig.dev();
-    }
-
-    public boolean isDemo() {
-        return demoConfig.enabled();
-    }
-
-    public boolean isDev() {
-        return demoConfig.dev();
     }
 
     public void initialize() {
@@ -173,10 +173,29 @@ public class DemoService {
             return;
         }
         if (!demoConfig.enabled()) return;
-        log.info("Demo mode enabled. Reset interval: {} hours", demoConfig.resetIntervalHours());
+        log.info("Demo mode enabled. Idle reset after {} minutes of inactivity", demoConfig.idleResetMinutes());
         resetAndSeed();
-        scheduler.scheduleAtFixedRate(
-                this::resetAndSeed, demoConfig.resetIntervalHours(), demoConfig.resetIntervalHours(), TimeUnit.HOURS);
+        // Check every minute if idle timeout has been reached
+        scheduler.scheduleAtFixedRate(this::checkIdleReset, 1, 1, TimeUnit.MINUTES);
+    }
+
+    /**
+     * Records an authenticated request. Resets the idle timer and marks the data as dirty.
+     * Called from the API access handler on every authenticated request.
+     */
+    public void recordActivity() {
+        lastActivity = Instant.now();
+        needsReset = true;
+    }
+
+    private void checkIdleReset() {
+        if (!needsReset) return;
+        var idleMinutes = Duration.between(lastActivity, Instant.now()).toMinutes();
+        if (idleMinutes >= demoConfig.idleResetMinutes()) {
+            log.info("Demo: {} minutes idle, resetting data...", idleMinutes);
+            needsReset = false;
+            resetAndSeed();
+        }
     }
 
     public void resetAndSeed() {
@@ -231,13 +250,12 @@ public class DemoService {
         var teamRole = stationMemberRepository.findRoleByName(Roles.TEAM).orElseThrow();
         var memberManagerRole =
                 stationMemberRepository.findRoleByName(Roles.GUARDIAN).orElseThrow();
-        var attendanceMgmt = stationMemberRepository
-                .findRoleByName(Roles.ATTENDENCE_MANAGEMENT)
-                .orElseThrow();
+        var attendanceMgmt =
+                stationMemberRepository.findRoleByName(Roles.ATTENDANCE_MANAGER).orElseThrow();
         var eventMgmt =
-                stationMemberRepository.findRoleByName(Roles.EVENT_MANAGEMENT).orElseThrow();
+                stationMemberRepository.findRoleByName(Roles.EVENT_MANAGER).orElseThrow();
         var memberMgmt =
-                stationMemberRepository.findRoleByName(Roles.MEMBER_MANAGEMENT).orElseThrow();
+                stationMemberRepository.findRoleByName(Roles.MEMBER_MANAGER).orElseThrow();
 
         stationMemberRepository.addRole(adminMember.id(), managerRole.id());
         stationMemberRepository.addRole(adminMember.id(), loginRole.id());
@@ -595,7 +613,7 @@ public class DemoService {
                     true);
             profileFieldChangeRepository.acknowledge(c4.id(), bId, "Mit Eltern abgestimmt");
             // Birthday correction
-            var c5 = profileFieldChangeRepository.create(
+            profileFieldChangeRepository.create(
                     fieldGeburtstag.id(),
                     anfaengerMembers.get(3).id(),
                     "\"2014-05-10\"",
@@ -932,37 +950,185 @@ public class DemoService {
                     null);
         }
 
+        // -- Öffentlichkeitsarbeit events --
+        var catOeffentlichkeit = eventRepository.createCategory(station.id(), "Öffentlichkeitsarbeit", 3);
+        var allMembers = new ArrayList<StationMember>();
+        allMembers.addAll(anfaengerMembers);
+        allMembers.addAll(fortgeschrittenMembers);
+
+        // Past events (completed)
+        String[] oeNames = {
+            "Feuerwehrfest Sommerfest",
+            "Brandschutztag Grundschule",
+            "Infostand Stadtfest",
+            "Laternenumzug St. Martin",
+            "Weihnachtsmarkt Standdienst"
+        };
+        String[] oeOrte = {
+            "Feuerwehrgerätehaus",
+            "Grundschule am Park",
+            "Marktplatz Musterstadt",
+            "Treffpunkt Rathaus",
+            "Weihnachtsmarkt Innenstadt"
+        };
+        int[] oeMemberCounts = {15, 12, 14, 16, 18};
+
+        for (int e = 0; e < oeNames.length; e++) {
+            LocalDate eventDate = LocalDate.now().minusWeeks(oeNames.length - e);
+            Instant oeStart = eventDate.atTime(10, 0).toInstant(ZoneOffset.UTC);
+            Instant oeEnd = eventDate.atTime(16, 0).toInstant(ZoneOffset.UTC);
+            var oeEvent = eventRepository.create(
+                    station.id(),
+                    oeNames[e],
+                    "Öffentlichkeitsarbeit der Jugendfeuerwehr",
+                    StationEvent.EventType.ONE_TIME,
+                    null,
+                    oeStart,
+                    oeEnd,
+                    null,
+                    true,
+                    null,
+                    true,
+                    catOeffentlichkeit.id());
+            eventFieldRepository.create(oeEvent.id(), "Ort", "string", "{}", oeOrte[e], 0, true, null);
+            eventFieldRepository.create(
+                    oeEvent.id(), "Treffpunkt", "string", "{}", "Feuerwehrgerätehaus", 1, true, null);
+            // Create registrations with rotation: offset accepted members per event for variance
+            int count = Math.min(oeMemberCounts[e], allMembers.size());
+            int acceptOffset = e * 3; // shift which members get accepted each event
+            for (int i = 0; i < count; i++) {
+                int rotatedIdx = (i + acceptOffset) % allMembers.size();
+                var status = i < 6
+                        ? EventRegistration.RegistrationStatus.ACCEPTED
+                        : EventRegistration.RegistrationStatus.DENIED;
+                eventRepository.createRegistration(
+                        oeEvent.id(), allMembers.get(rotatedIdx).id(), eventDate, status, null);
+            }
+        }
+
+        // One open event with pending (unconfirmed) registrations
+        LocalDate openDate = LocalDate.now().plusWeeks(1);
+        Instant openStart = openDate.atTime(9, 0).toInstant(ZoneOffset.UTC);
+        Instant openEnd = openDate.atTime(15, 0).toInstant(ZoneOffset.UTC);
+        Instant openDeadline = LocalDate.now().plusDays(3).atTime(23, 59).toInstant(ZoneOffset.UTC);
+        var oeOpen = eventRepository.create(
+                station.id(),
+                "Blaulichtmeile Bürgerfest",
+                "Öffentlichkeitsarbeit — Anmeldung offen",
+                StationEvent.EventType.ONE_TIME,
+                null,
+                openStart,
+                openEnd,
+                null,
+                true,
+                openDeadline,
+                true,
+                catOeffentlichkeit.id());
+        eventFieldRepository.create(oeOpen.id(), "Ort", "string", "{}", "Rathausplatz Musterstadt", 0, true, null);
+        eventFieldRepository.create(
+                oeOpen.id(), "Treffpunkt", "string", "{}", "Feuerwehrgerätehaus 08:30", 1, true, null);
+        eventFieldRepository.create(
+                oeOpen.id(), "Hinweis", "string", "{}", "Dienstkleidung und Ausrüstung mitbringen", 2, false, null);
+        // 14 registrations: 6 accepted, 8 pending (not yet confirmed)
+        int openCount = Math.min(14, allMembers.size());
+        for (int i = 0; i < openCount; i++) {
+            var status = i < 6
+                    ? EventRegistration.RegistrationStatus.ACCEPTED
+                    : EventRegistration.RegistrationStatus.PENDING;
+            eventRepository.createRegistration(oeOpen.id(), allMembers.get(i).id(), openDate, status, null);
+        }
+
         // -- Event Fields --
         // Per-event fields
-        eventFieldRepository.create(tagDerOffenenTuer.id(), "Ort", "Feuerwehrhaus Musterstadt", 0);
-        eventFieldRepository.create(tagDerOffenenTuer.id(), "Treffpunkt", "Haupteingang", 1);
-        eventFieldRepository.create(tagDerOffenenTuer.id(), "Hinweis", "Dienstkleidung tragen", 2);
-        eventFieldRepository.create(stadtfest.id(), "Ort", "Marktplatz Musterstadt", 0);
-        eventFieldRepository.create(stadtfest.id(), "Treffpunkt", "Stand der Jugendfeuerwehr", 1);
-        eventFieldRepository.create(kreisWettbewerb.id(), "Ort", "Sportplatz Nachbarstadt", 0);
-        eventFieldRepository.create(kreisWettbewerb.id(), "Hinweis", "Wettkampfkleidung und Ausrüstung mitbringen", 1);
+        eventFieldRepository.create(
+                tagDerOffenenTuer.id(), "Ort", "string", "{}", "Feuerwehrhaus Musterstadt", 0, true, null);
+        eventFieldRepository.create(
+                tagDerOffenenTuer.id(), "Treffpunkt", "string", "{}", "Haupteingang", 1, true, null);
+        eventFieldRepository.create(
+                tagDerOffenenTuer.id(), "Hinweis", "string", "{}", "Dienstkleidung tragen", 2, false, null);
+        eventFieldRepository.create(stadtfest.id(), "Ort", "string", "{}", "Marktplatz Musterstadt", 0, true, null);
+        eventFieldRepository.create(
+                stadtfest.id(), "Treffpunkt", "string", "{}", "Stand der Jugendfeuerwehr", 1, true, null);
+        eventFieldRepository.create(
+                kreisWettbewerb.id(), "Ort", "string", "{}", "Sportplatz Nachbarstadt", 0, true, null);
+        eventFieldRepository.create(
+                kreisWettbewerb.id(),
+                "Hinweis",
+                "string",
+                "{}",
+                "Wettkampfkleidung und Ausrüstung mitbringen",
+                1,
+                false,
+                null);
         // Recurring event fields
-        eventFieldRepository.create(evAnfaenger.id(), "Ort", "Feuerwehrhaus Musterstadt", 0);
-        eventFieldRepository.create(evAnfaenger.id(), "Hinweis", "Sportkleidung mitbringen", 1);
-        eventFieldRepository.create(evFort.id(), "Ort", "Feuerwehrhaus Musterstadt", 0);
-        eventFieldRepository.create(evFort.id(), "Hinweis", "Schutzausrüstung wird gestellt", 1);
-        eventFieldRepository.create(evGesamt.id(), "Ort", "Feuerwehrhaus Musterstadt", 0);
-        eventFieldRepository.create(evGesamt.id(), "Treffpunkt", "Fahrzeughalle", 1);
-        eventFieldRepository.create(theorieabend.id(), "Ort", "Schulungsraum Feuerwehrhaus", 0);
-        eventFieldRepository.create(theorieabend.id(), "Hinweis", "Schreibzeug mitbringen", 1);
+        eventFieldRepository.create(
+                evAnfaenger.id(), "Ort", "string", "{}", "Feuerwehrhaus Musterstadt", 0, true, null);
+        eventFieldRepository.create(
+                evAnfaenger.id(), "Hinweis", "string", "{}", "Sportkleidung mitbringen", 1, false, null);
+        eventFieldRepository.create(evFort.id(), "Ort", "string", "{}", "Feuerwehrhaus Musterstadt", 0, true, null);
+        eventFieldRepository.create(
+                evFort.id(), "Hinweis", "string", "{}", "Schutzausrüstung wird gestellt", 1, false, null);
+        eventFieldRepository.create(evGesamt.id(), "Ort", "string", "{}", "Feuerwehrhaus Musterstadt", 0, true, null);
+        eventFieldRepository.create(evGesamt.id(), "Treffpunkt", "string", "{}", "Fahrzeughalle", 1, true, null);
+        eventFieldRepository.create(
+                theorieabend.id(), "Ort", "string", "{}", "Schulungsraum Feuerwehrhaus", 0, true, null);
+        eventFieldRepository.create(
+                theorieabend.id(), "Hinweis", "string", "{}", "Schreibzeug mitbringen", 1, false, null);
 
         // -- News --
         var news1 = newsRepository.create(
                 station.id(),
                 "Willkommen bei der Jugendfeuerwehr!",
-                "Herzlich willkommen auf unserer neuen Plattform! Hier findet ihr alle wichtigen Informationen rund um unsere **Jugendfeuerwehr**.\n\n## Was ist neu?\n\n- Übersicht über Termine und Anwesenheit\n- Inventarverwaltung für Ausrüstung\n- Profilverwaltung für alle Mitglieder\n\nBei Fragen wendet euch bitte an eure Betreuer.",
-                "<h1>Willkommen bei der Jugendfeuerwehr!</h1><p>Herzlich willkommen auf unserer neuen Plattform! Hier findet ihr alle wichtigen Informationen rund um unsere <strong>Jugendfeuerwehr</strong>.</p><h2>Was ist neu?</h2><ul><li>Übersicht über Termine und Anwesenheit</li><li>Inventarverwaltung für Ausrüstung</li><li>Profilverwaltung für alle Mitglieder</li></ul><p>Bei Fragen wendet euch bitte an eure Betreuer.</p>",
+                """
+                Herzlich willkommen auf unserer neuen Plattform! Hier findet ihr alle wichtigen Informationen rund um unsere **Jugendfeuerwehr**.
+
+                ## Was ist neu?
+
+                Wir haben viele neue Funktionen für euch:
+
+                - **Terminübersicht** — Alle Übungen, Veranstaltungen und Wettbewerbe auf einen Blick
+                - **Anwesenheitsverwaltung** — Schnelles Ein- und Auschecken bei Übungen
+                - **Inventarverwaltung** — Eure Ausrüstung immer im Blick
+                - **Wissensdatenbank** — Lernmaterial und Protokolle
+
+                ## Erste Schritte
+
+                1. Prüft euer **Profil** und ergänzt fehlende Daten
+                2. Schaut euch die **kommenden Termine** an
+                3. Meldet euch für den nächsten **Wettbewerb** an
+
+                > **Tipp:** Bei Fragen könnt ihr jederzeit die Betreuer ansprechen oder die Hilfe-Seite nutzen.
+
+                Wir freuen uns auf eine tolle Zeit! 🚒
+                """,
+                "<p>Herzlich willkommen auf unserer neuen Plattform! Hier findet ihr alle wichtigen Informationen rund um unsere <strong>Jugendfeuerwehr</strong>.</p><h2>Was ist neu?</h2><p>Wir haben viele neue Funktionen für euch:</p><ul><li><strong>Terminübersicht</strong> — Alle Übungen, Veranstaltungen und Wettbewerbe auf einen Blick</li><li><strong>Anwesenheitsverwaltung</strong> — Schnelles Ein- und Auschecken bei Übungen</li><li><strong>Inventarverwaltung</strong> — Eure Ausrüstung immer im Blick</li><li><strong>Wissensdatenbank</strong> — Lernmaterial und Protokolle</li></ul><h2>Erste Schritte</h2><ol><li>Prüft euer <strong>Profil</strong> und ergänzt fehlende Daten</li><li>Schaut euch die <strong>kommenden Termine</strong> an</li><li>Meldet euch für den nächsten <strong>Wettbewerb</strong> an</ol><blockquote><p><strong>Tipp:</strong> Bei Fragen könnt ihr jederzeit die Betreuer ansprechen oder die Hilfe-Seite nutzen.</p></blockquote><p>Wir freuen uns auf eine tolle Zeit! 🚒</p>",
                 adminMember.id());
         var news2 = newsRepository.create(
                 station.id(),
                 "Kreiswettbewerb: Anmeldung geöffnet",
-                "Die Anmeldung zum **Kreiswettbewerb** am 20. des übernächsten Monats ist jetzt geöffnet!\n\nBitte meldet euch über die Terminseite an. Die Plätze sind begrenzt.\n\n*Teilnehmen dürfen alle Fortgeschrittenen.*",
-                "<p>Die Anmeldung zum <strong>Kreiswettbewerb</strong> am 20. des übernächsten Monats ist jetzt geöffnet!</p><p>Bitte meldet euch über die Terminseite an. Die Plätze sind begrenzt.</p><p><em>Teilnehmen dürfen alle Fortgeschrittenen.</em></p>",
+                """
+                Die Anmeldung zum **Kreiswettbewerb** am 20. des übernächsten Monats ist jetzt geöffnet!
+
+                ## Wichtige Infos
+
+                | | Details |
+                |---|---|
+                | **Datum** | 20. des übernächsten Monats |
+                | **Ort** | Sportplatz Nachbarstadt |
+                | **Treffpunkt** | Feuerwehrgerätehaus, 07:30 Uhr |
+
+                ### Was wird bewertet?
+
+                - Löschangriff
+                - Staffellauf
+                - Knotenkunde
+                - Erste Hilfe
+
+                Bitte meldet euch **bis spätestens nächste Woche** über die Terminseite an. Die Plätze sind begrenzt.
+
+                > *Teilnehmen dürfen alle Fortgeschrittenen.*
+                """,
+                "<p>Die Anmeldung zum <strong>Kreiswettbewerb</strong> am 20. des übernächsten Monats ist jetzt geöffnet!</p><h2>Wichtige Infos</h2><table><tr><td></td><td>Details</td></tr><tr><td><strong>Datum</strong></td><td>20. des übernächsten Monats</td></tr><tr><td><strong>Ort</strong></td><td>Sportplatz Nachbarstadt</td></tr><tr><td><strong>Treffpunkt</strong></td><td>Feuerwehrgerätehaus, 07:30 Uhr</td></tr></table><h3>Was wird bewertet?</h3><ul><li>Löschangriff</li><li>Staffellauf</li><li>Knotenkunde</li><li>Erste Hilfe</li></ul><p>Bitte meldet euch <strong>bis spätestens nächste Woche</strong> über die Terminseite an. Die Plätze sind begrenzt.</p><blockquote><p><em>Teilnehmen dürfen alle Fortgeschrittenen.</em></p></blockquote>",
                 betreuerMembers.getFirst().id());
 
         // Comments on news
@@ -982,15 +1148,41 @@ public class DemoService {
         var news3 = newsRepository.create(
                 station.id(),
                 "Neue Ausrüstung eingetroffen",
-                "Die bestellten **Helme und Handschuhe** sind eingetroffen! Die Verteilung findet bei der nächsten Übung statt.\n\nBitte prüft eure Größen im Inventar und meldet euch bei Unstimmigkeiten.",
-                "<p>Die bestellten <strong>Helme und Handschuhe</strong> sind eingetroffen! Die Verteilung findet bei der nächsten Übung statt.</p><p>Bitte prüft eure Größen im Inventar und meldet euch bei Unstimmigkeiten.</p>",
+                """
+                Die bestellten **Helme und Handschuhe** sind eingetroffen! 🎉
+
+                ## Verteilung
+
+                Die Verteilung findet bei der **nächsten Übung** statt. Bitte beachtet:
+
+                1. Prüft eure **Größen im Inventar** vorab
+                2. Meldet euch bei Unstimmigkeiten bei den Betreuern
+                3. Bringt eure **alten Helme** zur Rückgabe mit
+
+                > Die neuen Helme entsprechen der aktuellen **DIN EN 443** Norm und bieten verbesserten Schutz.
+                """,
+                "<p>Die bestellten <strong>Helme und Handschuhe</strong> sind eingetroffen! 🎉</p><h2>Verteilung</h2><p>Die Verteilung findet bei der <strong>nächsten Übung</strong> statt. Bitte beachtet:</p><ol><li>Prüft eure <strong>Größen im Inventar</strong> vorab</li><li>Meldet euch bei Unstimmigkeiten bei den Betreuern</li><li>Bringt eure <strong>alten Helme</strong> zur Rückgabe mit</li></ol><blockquote><p>Die neuen Helme entsprechen der aktuellen <strong>DIN EN 443</strong> Norm und bieten verbesserten Schutz.</p></blockquote>",
                 betreuerMembers.get(1).id());
 
         newsRepository.create(
                 station.id(),
                 "Sommerferien: Übungspause",
-                "Während der **Sommerferien** finden keine regulären Übungen statt. Der Übungsbetrieb startet wieder am ersten Montag nach den Ferien.\n\nWir wünschen allen schöne Ferien! ☀️",
-                "<p>Während der <strong>Sommerferien</strong> finden keine regulären Übungen statt. Der Übungsbetrieb startet wieder am ersten Montag nach den Ferien.</p><p>Wir wünschen allen schöne Ferien! ☀️</p>",
+                """
+                Während der **Sommerferien** finden keine regulären Übungen statt.
+
+                ## Zeitraum
+
+                Der Übungsbetrieb **pausiert** während der gesamten Schulferien. Wir starten wieder am **ersten Montag nach den Ferien**.
+
+                ### Trotzdem aktiv bleiben?
+
+                - Das **Wissenscenter** bleibt verfügbar — nutzt die Zeit zum Lernen
+                - Prüft eure **Ausrüstung** und meldet Mängel vorab
+                - Die **Anmeldung** für den Herbst-Wettbewerb öffnet in den Ferien
+
+                Wir wünschen allen **schöne und erholsame Ferien**! ☀️
+                """,
+                "<p>Während der <strong>Sommerferien</strong> finden keine regulären Übungen statt.</p><h2>Zeitraum</h2><p>Der Übungsbetrieb <strong>pausiert</strong> während der gesamten Schulferien. Wir starten wieder am <strong>ersten Montag nach den Ferien</strong>.</p><h3>Trotzdem aktiv bleiben?</h3><ul><li>Das <strong>Wissenscenter</strong> bleibt verfügbar — nutzt die Zeit zum Lernen</li><li>Prüft eure <strong>Ausrüstung</strong> und meldet Mängel vorab</li><li>Die <strong>Anmeldung</strong> für den Herbst-Wettbewerb öffnet in den Ferien</li></ul><p>Wir wünschen allen <strong>schöne und erholsame Ferien</strong>! ☀️</p>",
                 adminMember.id());
 
         newsRepository.createComment(
@@ -1161,6 +1353,18 @@ public class DemoService {
         mediaSeeder.seedProfilePictures(
                 station.id(), adminMember, betreuerMembers, elternMembers, anfaengerMembers, fortgeschrittenMembers);
         log.info("Demo: Created profile pictures");
+
+        // -- Federation --
+        int partnerStationId = federationSeeder.seed(station.id(), adminMember.id());
+        log.info("Demo: Created federation data");
+
+        // -- Lending --
+        lendingSeeder.seed(station.id(), partnerStationId, adminMember.id());
+        log.info("Demo: Created lending data");
+
+        // -- Public Knowledge Base --
+        stationRepository.updatePublicKbMode(station.id(), "ALLOW_ALL");
+        log.info("Demo: Enabled public knowledge base");
 
         // -- Settings --
         applicationSettingRepository.setBoolean("station_registration_enabled", false);
