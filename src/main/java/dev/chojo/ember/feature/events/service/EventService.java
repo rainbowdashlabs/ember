@@ -220,7 +220,7 @@ public class EventService {
     /**
      * Retrieves all event categories for a station.
      *
-     * @param stationId the station ID
+     * @param id the ID
      * @return the list of categories
      */
     public Optional<EventCategory> findCategoryById(int id) {
