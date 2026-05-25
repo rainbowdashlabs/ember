@@ -160,15 +160,36 @@ async function handleLogout() {
                      to="/station/profile/managed" @navigate="close">
           {{ t('sidebar.managedProfiles') }}
         </SidebarLink>
-        <SidebarLink :icon="['fas', 'gear']" name="profile-settings" to="/station/profile/settings" @navigate="close">
-          {{ t('sidebar.settings') }}
-        </SidebarLink>
+        <SidebarExpandableLink :icon="['fas', 'gear']" name="profile-theming" to="/station/profile/settings/theming" prefix="/station/profile/settings" @navigate="close">
+          <template #label>{{ t('sidebar.settings') }}</template>
+          <SidebarLink :icon="['fas', 'palette']" name="profile-theming" to="/station/profile/settings/theming" @navigate="close">
+            {{ t('sidebar.theming') }}
+          </SidebarLink>
+          <SidebarLink :icon="['fas', 'desktop']" name="profile-sessions" to="/station/profile/settings/sessions" @navigate="close">
+            {{ t('sidebar.sessions') }}
+          </SidebarLink>
+          <SidebarLink :icon="['fas', 'bell']" name="profile-notifications" to="/station/profile/settings/notifications" @navigate="close">
+            {{ t('sidebar.notifications') }}
+          </SidebarLink>
+        </SidebarExpandableLink>
       </SidebarGroup>
 
       <SidebarGroup :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => openGroup = v" v-if="isManager()" :icon="['fas', 'gears']" :label="t('sidebar.station')" prefix="/station/manage">
-        <SidebarLink :icon="['fas', 'gears']" name="station-manage" to="/station/manage" @navigate="close">
-          {{ t('sidebar.manage') }}
-        </SidebarLink>
+        <SidebarExpandableLink :icon="['fas', 'gears']" name="station-manage" to="/station/manage" prefix="/station/manage" @navigate="close">
+          <template #label>{{ t('sidebar.manage') }}</template>
+          <SidebarLink :icon="['fas', 'palette']" name="station-theme" to="/station/manage/theme" @navigate="close">
+            {{ t('sidebar.stationTheme') }}
+          </SidebarLink>
+          <SidebarLink :icon="['fas', 'envelope']" name="station-mailing" to="/station/manage/mailing" @navigate="close">
+            {{ t('sidebar.stationMailing') }}
+          </SidebarLink>
+          <SidebarLink :icon="['fas', 'puzzle-piece']" name="station-modules" to="/station/manage/modules" @navigate="close">
+            {{ t('sidebar.stationModules') }}
+          </SidebarLink>
+          <SidebarLink :icon="['fas', 'file-import']" name="station-import" to="/station/manage/import" @navigate="close">
+            {{ t('sidebar.stationImport') }}
+          </SidebarLink>
+        </SidebarExpandableLink>
         <SidebarLink :icon="['fas', 'clipboard-check']" name="station-attendance-config"
                      to="/station/manage/attendance-config" @navigate="close">
           {{ t('sidebar.attendanceConfig') }}

@@ -81,6 +81,15 @@ public class StationRepository {
                 .orElseThrow();
     }
 
+    public Station create(String name, UUID uid) {
+        return Query.query(
+                        "INSERT INTO station(name, uid) VALUES(:name, :uid::uuid) RETURNING " + STATION_COLUMNS + ";")
+                .single(Call.of().bind("name", name).bind("uid", uid, StandardValueConverter.UUID_STRING))
+                .map(Station.map())
+                .first()
+                .orElseThrow();
+    }
+
     /**
      * Updates the name of a station.
      *
@@ -307,7 +316,8 @@ public class StationRepository {
 
     public List<Station> findDiscoverable(int excludeStationId, DiscoveryVisibility visA, DiscoveryVisibility visB) {
         return Query.query(
-                        "SELECT %s FROM station WHERE id != :exclude_id AND discovery_visibility IN (:vis_a, :vis_b) ORDER BY name;", STATION_COLUMNS)
+                        "SELECT %s FROM station WHERE id != :exclude_id AND discovery_visibility IN (:vis_a, :vis_b) ORDER BY name;",
+                        STATION_COLUMNS)
                 .single(Call.of()
                         .bind("exclude_id", excludeStationId)
                         .bind("vis_a", visA)

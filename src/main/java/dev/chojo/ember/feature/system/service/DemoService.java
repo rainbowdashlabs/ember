@@ -235,7 +235,8 @@ public class DemoService {
         accountRepository.addAccountRole(admin.id(), "ADMIN");
 
         // -- Station --
-        var station = stationRepository.create("Jugendfeuerwehr Musterstadt");
+        var station = stationRepository.create(
+                "Jugendfeuerwehr Musterstadt", UUID.fromString("00000000-0000-4000-a000-000000000001"));
         stationRepository.updateTimezone(station.id(), "Europe/Berlin");
         stationRepository.updateLocale(station.id(), "de-DE");
         stationRepository.updatePublicCalendarEnabled(station.id(), true);

@@ -163,6 +163,26 @@ const router = createRouter({
                     component: StationManageView,
                 },
                 {
+                    path: 'manage/theme',
+                    name: 'station-theme',
+                    component: () => import('@/views/stationview/manage/StationThemeView.vue'),
+                },
+                {
+                    path: 'manage/mailing',
+                    name: 'station-mailing',
+                    component: () => import('@/views/stationview/manage/StationMailingView.vue'),
+                },
+                {
+                    path: 'manage/modules',
+                    name: 'station-modules',
+                    component: () => import('@/views/stationview/manage/StationModulesView.vue'),
+                },
+                {
+                    path: 'manage/import',
+                    name: 'station-import',
+                    component: () => import('@/views/stationview/manage/StationImportView.vue'),
+                },
+                {
                     path: 'manage/attendance-config',
                     name: 'station-attendance-config',
                     component: AttendanceConfigView,
@@ -460,7 +480,22 @@ const router = createRouter({
                 {
                     path: 'profile/settings',
                     name: 'profile-settings',
-                    component: () => import('@/views/stationview/profile/SettingsView.vue'),
+                    redirect: { name: 'profile-theming' },
+                },
+                {
+                    path: 'profile/settings/theming',
+                    name: 'profile-theming',
+                    component: () => import('@/views/stationview/profile/ThemingView.vue'),
+                },
+                {
+                    path: 'profile/settings/sessions',
+                    name: 'profile-sessions',
+                    component: () => import('@/views/stationview/profile/SessionsView.vue'),
+                },
+                {
+                    path: 'profile/settings/notifications',
+                    name: 'profile-notifications',
+                    component: () => import('@/views/stationview/profile/NotificationsView.vue'),
                 },
                 {
                     path: 'attendance/new',
@@ -757,6 +792,21 @@ const router = createRouter({
                     component: () => import('@/views/helpcenter/stationview/profile/SettingsHelp.vue')
                 },
                 {
+                    path: 'profile/settings/theming',
+                    name: 'help-profile-theming',
+                    component: () => import('@/views/helpcenter/stationview/profile/SettingsHelp.vue')
+                },
+                {
+                    path: 'profile/settings/sessions',
+                    name: 'help-profile-sessions',
+                    component: () => import('@/views/helpcenter/stationview/profile/SettingsHelp.vue')
+                },
+                {
+                    path: 'profile/settings/notifications',
+                    name: 'help-profile-notifications',
+                    component: () => import('@/views/helpcenter/stationview/profile/SettingsHelp.vue')
+                },
+                {
                     path: 'profile/theme',
                     name: 'help-profile-theme',
                     component: () => import('@/views/helpcenter/stationview/profile/ThemeHelp.vue')
@@ -789,8 +839,23 @@ const router = createRouter({
                 },
                 {
                     path: 'manage/theme',
-                    name: 'help-station-theme-manage',
+                    name: 'help-station-theme',
                     component: () => import('@/views/helpcenter/stationview/manage/ThemeManageHelp.vue')
+                },
+                {
+                    path: 'manage/mailing',
+                    name: 'help-station-mailing',
+                    component: () => import('@/views/helpcenter/stationview/manage/MailConfigHelp.vue')
+                },
+                {
+                    path: 'manage/modules',
+                    name: 'help-station-modules',
+                    component: () => import('@/views/helpcenter/stationview/manage/MailConfigHelp.vue')
+                },
+                {
+                    path: 'manage/import',
+                    name: 'help-station-import',
+                    component: () => import('@/views/helpcenter/stationview/manage/MailConfigHelp.vue')
                 },
                 {
                     path: 'manage/federation',

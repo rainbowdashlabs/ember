@@ -4,14 +4,44 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {ref} from 'vue'
+import {ref, watchEffect} from 'vue'
+import {useRoute} from 'vue-router'
 
-import ThemeToggle from '@/components/theme/ThemeToggle.vue'
-import ThemePicker from '@/components/theme/ThemePicker.vue'
-import {Feel} from '@/theme/themes'
-import {useTheme} from '@/composables/useTheme'
+import ThemeSelector from '@/components/theme/ThemeSelector.vue'
+import type {ThemeColors} from '@/theme/themes'
 
-const themeState = useTheme()
+const route = useRoute()
+const hasCustomParam = ref(false)
+
+function applyCustomColors(colors: ThemeColors) {
+  const root = document.documentElement.style
+  root.setProperty('--color-primary', colors.primary)
+  root.setProperty('--color-primary-accent', colors.primaryAccent)
+  root.setProperty('--color-secondary', colors.secondary)
+  root.setProperty('--color-secondary-accent', colors.secondaryAccent)
+  root.setProperty('--color-info', colors.info)
+  root.setProperty('--color-info-accent', colors.infoAccent)
+  root.setProperty('--color-success', colors.success)
+  root.setProperty('--color-error', colors.error)
+  root.setProperty('--color-bg-light', colors.bgLight)
+  root.setProperty('--color-bg-light-accent', colors.bgLightAccent)
+  root.setProperty('--color-bg-dark', colors.bgDark)
+  root.setProperty('--color-bg-dark-accent', colors.bgDarkAccent)
+}
+
+// Apply custom colors from query param — use watchEffect with post flush
+// to ensure it runs after the theme system (initFromLocalStorage, fetchPublicTheme)
+watchEffect(() => {
+  const param = route.query.customTheme as string | undefined
+  if (param) {
+    try {
+      const colors = JSON.parse(decodeURIComponent(param)) as ThemeColors
+      hasCustomParam.value = true
+      // Delay slightly to win the race against fetchPublicTheme
+      setTimeout(() => applyCustomColors(colors), 50)
+    } catch { /* ignore */ }
+  }
+}, { flush: 'post' })
 
 import PageHeader from '@/components/typography/PageHeader.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
@@ -61,22 +91,8 @@ const toggleStates = ref(new Set([1, 3]))
   <div class="max-w-3xl mx-auto px-4 py-6 sm:px-8 sm:py-8 space-y-10 sm:space-y-12">
     <!-- Theme Picker at top -->
     <div class="space-y-4">
-      <div class="flex items-center justify-between">
-        <PageHeader>Style Guide</PageHeader>
-        <ThemeToggle/>
-      </div>
-      <ThemePicker/>
-      <div class="flex items-center gap-2">
-        <span class="text-sm font-medium">Feel:</span>
-        <SelectionToggleButton
-          v-for="feel in [Feel.ROUNDED, Feel.CORNERS]"
-          :key="feel"
-          :selected="themeState.activeFeel.value === feel"
-          @toggle="themeState.setFeel(feel)"
-        >
-          {{ feel === 'ROUNDED' ? 'Abgerundet' : 'Eckig' }}
-        </SelectionToggleButton>
-      </div>
+      <PageHeader>Style Guide</PageHeader>
+      <ThemeSelector/>
     </div>
 
     <StyleTypography/>
