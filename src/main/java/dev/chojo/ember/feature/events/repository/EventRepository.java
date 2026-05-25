@@ -164,7 +164,7 @@ public class EventRepository {
             Instant registrationDeadline,
             boolean requiresConfirmation,
             Integer categoryId,
-            boolean isPublic) {
+            Boolean isPublic) {
         return Query.query("""
                             UPDATE station_event SET
                                 name = :name, description = :description, event_type = :event_type,

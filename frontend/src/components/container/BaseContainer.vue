@@ -14,7 +14,7 @@ const props = withDefaults(defineProps<{
 <template>
   <div
       :class="props.padded ? 'p-4' : ''"
-      class="rounded-lg border transition-colors duration-150"
+      class="rounded-theme border transition-colors duration-150"
   >
     <slot/>
   </div>

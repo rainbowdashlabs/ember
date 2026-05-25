@@ -21,7 +21,7 @@ import FieldLabel from '@/components/typography/FieldLabel.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import {stationManage} from '@/api'
 import client from '@/api/client'
-import {THEMES} from '@/theme/themes'
+import {THEMES, Feel} from '@/theme/themes'
 import {useTheme} from '@/composables/useTheme'
 import MailConfigSection from './stationview/MailConfigSection.vue'
 import StationImportSection from './stationview/StationImportSection.vue'
@@ -53,6 +53,8 @@ const timezone = ref('Europe/Berlin')
 const locale = ref('de-DE')
 const defaultTheme = ref('ember')
 const allowUserTheme = ref(true)
+const defaultFeel = ref('ROUNDED')
+const allowUserFeel = ref(true)
 const hasLogo = ref(false)
 const isOwner = ref(false)
 const stationId = ref('')
@@ -74,6 +76,8 @@ async function loadStation() {
     locale.value = info.locale ?? 'de-DE'
     defaultTheme.value = info.defaultTheme ?? 'ember'
     allowUserTheme.value = info.allowUserTheme ?? true
+    defaultFeel.value = info.defaultFeel ?? 'ROUNDED'
+    allowUserFeel.value = info.allowUserFeel ?? true
     hasLogo.value = info.hasLogo
     isOwner.value = info.isOwner
     stationId.value = info.id
@@ -143,9 +147,13 @@ async function saveTheme() {
       locale: locale.value,
       defaultTheme: defaultTheme.value,
       allowUserTheme: allowUserTheme.value,
+      defaultFeel: defaultFeel.value,
+      allowUserFeel: allowUserFeel.value,
     })
     defaultTheme.value = info.defaultTheme ?? 'ember'
     allowUserTheme.value = info.allowUserTheme ?? true
+    defaultFeel.value = info.defaultFeel ?? 'ROUNDED'
+    allowUserFeel.value = info.allowUserFeel ?? true
     // Apply the resolved theme: if user can override, use their theme; otherwise station default
     const resolvedTheme = allowUserTheme.value && themeCtrl.activeTheme.value !== defaultTheme.value
         ? themeCtrl.activeTheme.value
@@ -351,6 +359,19 @@ onMounted(async () => {
             <span class="text-sm font-medium">{{ t('theme.allowUserTheme') }}</span>
           </div>
           <ToggleInput v-model="allowUserTheme"/>
+        </div>
+        <div class="space-y-1">
+          <FieldLabel>{{ t('theme.stationDefaultFeel') }}</FieldLabel>
+          <SelectInput v-model="defaultFeel">
+            <option :value="Feel.ROUNDED">{{ t('theme.feelROUNDED') }}</option>
+            <option :value="Feel.CORNERS">{{ t('theme.feelCORNERS') }}</option>
+          </SelectInput>
+        </div>
+        <div class="flex items-center justify-between">
+          <div>
+            <span class="text-sm font-medium">{{ t('theme.allowUserFeel') }}</span>
+          </div>
+          <ToggleInput v-model="allowUserFeel"/>
         </div>
         <PrimaryButton :disabled="themeSaving" @click="saveTheme">
           {{ themeSaving ? t('common.loading') : t('stationManage.save') }}

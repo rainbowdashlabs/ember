@@ -150,7 +150,7 @@ public class EventService {
             Instant registrationDeadline,
             boolean requiresConfirmation,
             Integer categoryId,
-            boolean isPublic) {
+            Boolean isPublic) {
         if (eventRepository.update(
                 id,
                 name,

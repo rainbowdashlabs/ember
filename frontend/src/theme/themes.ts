@@ -3,6 +3,14 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
+export const Feel = { ROUNDED: 'ROUNDED', CORNERS: 'CORNERS' } as const
+export type FeelValue = (typeof Feel)[keyof typeof Feel]
+
+export const FEEL_RADIUS: Record<FeelValue, string> = {
+    ROUNDED: '0.5rem',
+    CORNERS: '0.125rem',
+}
+
 export interface ThemeColors {
     primary: string
     primaryAccent: string
@@ -18,7 +26,13 @@ export interface ThemeColors {
     bgDarkAccent: string
 }
 
-export const THEMES: Record<string, { label: string; colors: ThemeColors }> = {
+export interface ThemeDefinition {
+    label: string
+    colors: ThemeColors
+    supportedFeels: FeelValue[]
+}
+
+export const THEMES: Record<string, ThemeDefinition> = {
     ember: {
         label: 'Ember',
         colors: {
@@ -35,6 +49,7 @@ export const THEMES: Record<string, { label: string; colors: ThemeColors }> = {
             bgDark: '#212121',
             bgDarkAccent: '#191919',
         },
+        supportedFeels: [Feel.ROUNDED, Feel.CORNERS],
     },
     midnight: {
         label: 'Midnight',
@@ -52,6 +67,7 @@ export const THEMES: Record<string, { label: string; colors: ThemeColors }> = {
             bgDark: '#0D1B2A',
             bgDarkAccent: '#071120',
         },
+        supportedFeels: [Feel.ROUNDED, Feel.CORNERS],
     },
     fire_red: {
         label: 'Fire Red',
@@ -69,6 +85,7 @@ export const THEMES: Record<string, { label: string; colors: ThemeColors }> = {
             bgDark: '#1C1111',
             bgDarkAccent: '#140C0C',
         },
+        supportedFeels: [Feel.ROUNDED, Feel.CORNERS],
     },
     forest: {
         label: 'Forest',
@@ -86,6 +103,7 @@ export const THEMES: Record<string, { label: string; colors: ThemeColors }> = {
             bgDark: '#1A2418',
             bgDarkAccent: '#111A10',
         },
+        supportedFeels: [Feel.ROUNDED, Feel.CORNERS],
     },
     cherry_blossom: {
         label: 'Cherry Blossom',
@@ -103,6 +121,7 @@ export const THEMES: Record<string, { label: string; colors: ThemeColors }> = {
             bgDark: '#2A1A22',
             bgDarkAccent: '#1E1018',
         },
+        supportedFeels: [Feel.ROUNDED, Feel.CORNERS],
     },
     simple: {
         label: 'Simple',
@@ -120,6 +139,7 @@ export const THEMES: Record<string, { label: string; colors: ThemeColors }> = {
             bgDark: '#2C2C2C',
             bgDarkAccent: '#222222',
         },
+        supportedFeels: [Feel.ROUNDED, Feel.CORNERS],
     },
     ocean: {
         label: 'Ocean',
@@ -137,6 +157,7 @@ export const THEMES: Record<string, { label: string; colors: ThemeColors }> = {
             bgDark: '#0E1F20',
             bgDarkAccent: '#081516',
         },
+        supportedFeels: [Feel.ROUNDED, Feel.CORNERS],
     },
     sunset: {
         label: 'Sunset',
@@ -154,6 +175,25 @@ export const THEMES: Record<string, { label: string; colors: ThemeColors }> = {
             bgDark: '#231A12',
             bgDarkAccent: '#18100A',
         },
+        supportedFeels: [Feel.ROUNDED, Feel.CORNERS],
+    },
+    fire: {
+        label: 'Fire',
+        colors: {
+            primary: '#CC0000',
+            primaryAccent: '#8B0000',
+            secondary: '#2B2B2B',
+            secondaryAccent: '#1A1A1A',
+            info: '#D4A017',
+            infoAccent: '#B8860B',
+            success: '#2E8B57',
+            error: '#DC2626',
+            bgLight: '#F2F2F2',
+            bgLightAccent: '#D9D9D9',
+            bgDark: '#1A1A1A',
+            bgDarkAccent: '#111111',
+        },
+        supportedFeels: [Feel.CORNERS],
     },
     lavender: {
         label: 'Lavender',
@@ -171,6 +211,7 @@ export const THEMES: Record<string, { label: string; colors: ThemeColors }> = {
             bgDark: '#1C162A',
             bgDarkAccent: '#120E1E',
         },
+        supportedFeels: [Feel.ROUNDED, Feel.CORNERS],
     },
 }
 

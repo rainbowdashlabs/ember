@@ -10,6 +10,7 @@ import dev.chojo.ember.conf.file.elements.Auth;
 import dev.chojo.ember.conf.file.elements.Database;
 import dev.chojo.ember.conf.file.elements.Demo;
 import dev.chojo.ember.conf.file.elements.Mailing;
+import dev.chojo.ember.conf.file.elements.Theming;
 
 /**
  * Root configuration file containing all application settings.
@@ -23,6 +24,7 @@ public class File {
     private Mailing mailing = new Mailing();
     private Auth auth = new Auth();
     private Demo demo = new Demo();
+    private Theming theming = new Theming();
 
     public Database database() {
         return database;
@@ -44,6 +46,10 @@ public class File {
         return demo;
     }
 
+    public Theming theming() {
+        return theming;
+    }
+
     @Override
     public String toString() {
         return "File{" + "database="
@@ -51,6 +57,7 @@ public class File {
                 + api + ", mailing="
                 + mailing + ", auth="
                 + auth + ", demo="
-                + demo + '}';
+                + demo + ", theming="
+                + theming + '}';
     }
 }

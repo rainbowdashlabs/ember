@@ -66,7 +66,7 @@ function toggle() {
           :class="isActive
           ? '!text-primary'
           : '!text-[var(--text)] hover:bg-primary/5'"
-          class="flex flex-1 items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium no-underline transition-colors duration-150"
+          class="flex flex-1 items-center gap-3 rounded-theme px-3 py-2 text-sm font-medium no-underline transition-colors duration-150"
           @click="to ? emit('navigate') : toggle()"
       >
         <font-awesome-icon v-if="icon" :icon="icon" class="w-4"/>
@@ -77,7 +77,7 @@ function toggle() {
           }}</span>
       </component>
       <button
-          class="flex items-center justify-center w-8 h-8 rounded-lg text-[var(--text)] transition-colors duration-150"
+          class="flex items-center justify-center w-8 h-8 rounded-theme text-[var(--text)] transition-colors duration-150"
           @click="toggle"
       >
         <font-awesome-icon

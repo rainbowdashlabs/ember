@@ -11,12 +11,14 @@ import dev.chojo.ember.feature.account.entity.AccountCredential;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.federation.service.FederationService;
+import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
 import dev.chojo.ember.feature.members.entity.Role;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.station.entity.DiscoveryVisibility;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.entity.StationModule;
+import dev.chojo.ember.feature.station.entity.ThemeFeel;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.station.repository.StationRepository.StationLogo;
 import jakarta.inject.Inject;
@@ -81,7 +83,7 @@ public class StationService {
         return stationRepository.findByUid(uid);
     }
 
-    public boolean updatePublicKbMode(int stationId, String mode) {
+    public boolean updatePublicKbMode(int stationId, PublicKbMode mode) {
         return stationRepository.updatePublicKbMode(stationId, mode);
     }
 
@@ -154,8 +156,15 @@ public class StationService {
         return Optional.empty();
     }
 
-    public void updateThemeSettings(int id, String defaultTheme, boolean allowUserTheme, String customThemeColors) {
-        stationRepository.updateThemeSettings(id, defaultTheme, allowUserTheme, customThemeColors);
+    public void updateThemeSettings(
+            int id,
+            String defaultTheme,
+            boolean allowUserTheme,
+            String customThemeColors,
+            ThemeFeel defaultFeel,
+            boolean allowUserFeel) {
+        stationRepository.updateThemeSettings(
+                id, defaultTheme, allowUserTheme, customThemeColors, defaultFeel, allowUserFeel);
     }
 
     /**

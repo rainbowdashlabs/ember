@@ -11,10 +11,12 @@ import dev.chojo.ember.conf.Conf;
 import dev.chojo.ember.conf.file.elements.Auth;
 import dev.chojo.ember.conf.file.elements.MailSettings;
 import dev.chojo.ember.conf.file.elements.Mailing;
+import dev.chojo.ember.conf.file.elements.Theming;
 import dev.chojo.ember.feature.legal.service.ConsentService;
 import dev.chojo.ember.feature.legal.service.LegalDocumentService;
 import dev.chojo.ember.feature.media.service.ImageCategory;
 import dev.chojo.ember.feature.media.service.ImageService;
+import dev.chojo.ember.feature.station.entity.ThemeFeel;
 import dev.chojo.ember.feature.system.repository.ApplicationSettingRepository;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
@@ -64,6 +66,7 @@ public class AdminSettingsRoutes implements Routes {
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
         routes.get(prefix + "/public/settings/station-registration", this::isRegistrationEnabled);
+        routes.get(prefix + "/public/settings/theme", this::getPublicTheme);
         routes.get(prefix + "/public/logo/{name}", this::serveAppLogo);
         routes.get(prefix + "/admin/settings", this::getSettings, Roles.ADMIN);
         routes.put(prefix + "/admin/settings", this::updateSettings, Roles.ADMIN);
@@ -136,9 +139,20 @@ public class AdminSettingsRoutes implements Routes {
             summary = "Get application settings",
             tags = {"Settings"},
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ApplicationSettings.class)))
+    private void getPublicTheme(Context ctx) {
+        var theming = conf.main().theming();
+        ctx.json(new PublicThemeResponse(
+                theming.defaultTheme(), theming.defaultFeel().name(), theming.lockFeel()));
+    }
+
     private void getSettings(Context ctx) {
         boolean registrationEnabled = settingRepository.getBoolean(STATION_REGISTRATION_ENABLED, true);
-        ctx.json(new ApplicationSettings(registrationEnabled));
+        var theming = conf.main().theming();
+        ctx.json(new ApplicationSettings(
+                registrationEnabled,
+                theming.defaultTheme(),
+                theming.defaultFeel().name(),
+                theming.lockFeel()));
     }
 
     @OpenApi(
@@ -151,7 +165,25 @@ public class AdminSettingsRoutes implements Routes {
     private void updateSettings(Context ctx) {
         var request = ctx.bodyAsClass(ApplicationSettings.class);
         settingRepository.setBoolean(STATION_REGISTRATION_ENABLED, request.stationRegistrationEnabled());
-        ctx.json(request);
+        try {
+            var theming = conf.main().theming();
+            if (request.instanceDefaultTheme() != null) {
+                setField(Theming.class, theming, "defaultTheme", request.instanceDefaultTheme());
+            }
+            if (request.instanceDefaultFeel() != null) {
+                setField(Theming.class, theming, "defaultFeel", ThemeFeel.valueOf(request.instanceDefaultFeel()));
+            }
+            setField(Theming.class, theming, "lockFeel", request.instanceLockFeel());
+            conf.save();
+        } catch (Exception e) {
+            log.error("Failed to update instance settings", e);
+        }
+        var theming = conf.main().theming();
+        ctx.json(new ApplicationSettings(
+                request.stationRegistrationEnabled(),
+                theming.defaultTheme(),
+                theming.defaultFeel().name(),
+                theming.lockFeel()));
     }
 
     // -- Auth config --
@@ -299,7 +331,11 @@ public class AdminSettingsRoutes implements Routes {
     @OpenApiName("StationRegistrationStatus")
     public record RegistrationStatus(boolean enabled) {}
 
-    public record ApplicationSettings(boolean stationRegistrationEnabled) {}
+    public record ApplicationSettings(
+            boolean stationRegistrationEnabled,
+            String instanceDefaultTheme,
+            String instanceDefaultFeel,
+            boolean instanceLockFeel) {}
 
     public record AuthConfigResponse(
             int tokenBytes, int verifyTokenHours, int passwordTokenHours, int sessionMinutes) {}
@@ -335,4 +371,6 @@ public class AdminSettingsRoutes implements Routes {
     public record LegalDocumentResponse(String type, String content, String version) {}
 
     public record LegalDocumentRequest(String content) {}
+
+    public record PublicThemeResponse(String defaultTheme, String defaultFeel, boolean lockFeel) {}
 }

@@ -8,6 +8,10 @@ import {ref} from 'vue'
 
 import ThemeToggle from '@/components/theme/ThemeToggle.vue'
 import ThemePicker from '@/components/theme/ThemePicker.vue'
+import {Feel} from '@/theme/themes'
+import {useTheme} from '@/composables/useTheme'
+
+const themeState = useTheme()
 
 import PageHeader from '@/components/typography/PageHeader.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
@@ -62,6 +66,17 @@ const toggleStates = ref(new Set([1, 3]))
         <ThemeToggle/>
       </div>
       <ThemePicker/>
+      <div class="flex items-center gap-2">
+        <span class="text-sm font-medium">Feel:</span>
+        <SelectionToggleButton
+          v-for="feel in [Feel.ROUNDED, Feel.CORNERS]"
+          :key="feel"
+          :selected="themeState.activeFeel.value === feel"
+          @toggle="themeState.setFeel(feel)"
+        >
+          {{ feel === 'ROUNDED' ? 'Abgerundet' : 'Eckig' }}
+        </SelectionToggleButton>
+      </div>
     </div>
 
     <StyleTypography/>

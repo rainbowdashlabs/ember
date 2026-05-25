@@ -183,6 +183,11 @@ const router = createRouter({
                     component: () => import('@/views/stationview/manage/FederationView.vue'),
                 },
                 {
+                    path: 'manage/federation/settings',
+                    name: 'station-federation-settings',
+                    component: () => import('@/views/stationview/manage/FederationSettingsView.vue'),
+                },
+                {
                     path: 'manage/federation/:id',
                     name: 'station-federation-partner',
                     component: () => import('@/views/stationview/manage/FederationPartnerView.vue'),
@@ -631,6 +636,16 @@ const router = createRouter({
                     component: () => import('@/views/adminview/AdminSettingsView.vue'),
                 },
                 {
+                    path: 'settings/legal',
+                    name: 'admin-legal',
+                    component: () => import('@/views/adminview/AdminLegalView.vue'),
+                },
+                {
+                    path: 'settings/mailing',
+                    name: 'admin-mailing',
+                    component: () => import('@/views/adminview/AdminMailingView.vue'),
+                },
+                {
                     path: 'problems',
                     name: 'admin-problems',
                     component: () => import('@/views/adminview/AdminProblemsView.vue'),
@@ -781,6 +796,11 @@ const router = createRouter({
                     path: 'manage/federation',
                     name: 'help-station-federation',
                     component: () => import('@/views/helpcenter/stationview/manage/FederationHelp.vue')
+                },
+                {
+                    path: 'manage/federation/settings',
+                    name: 'help-station-federation-settings',
+                    component: () => import('@/views/helpcenter/stationview/manage/FederationSettingsHelp.vue')
                 },
                 {
                     path: 'manage/federation/:id',
@@ -1247,6 +1267,16 @@ const router = createRouter({
                     path: 'settings',
                     name: 'help-admin-settings',
                     component: () => import('@/views/helpcenter/adminview/SettingsHelp.vue')
+                },
+                {
+                    path: 'settings/legal',
+                    name: 'help-admin-legal',
+                    component: () => import('@/views/helpcenter/adminview/LegalHelp.vue')
+                },
+                {
+                    path: 'settings/mailing',
+                    name: 'help-admin-mailing',
+                    component: () => import('@/views/helpcenter/adminview/MailingHelp.vue')
                 },
                 {
                     path: 'api-status',

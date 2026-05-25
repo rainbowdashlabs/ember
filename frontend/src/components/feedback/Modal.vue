@@ -21,7 +21,7 @@ const model = defineModel<boolean>({default: false})
         />
         <!-- Content -->
         <div
-            class="relative z-10 w-full max-w-lg mx-4 rounded-lg border border-bg-light-accent bg-bg-light p-6 shadow-xl dark:border-bg-dark-accent dark:bg-bg-dark">
+            class="relative z-10 w-full max-w-lg mx-4 rounded-theme border border-bg-light-accent bg-bg-light p-6 shadow-xl dark:border-bg-dark-accent dark:bg-bg-dark">
           <button
               class="absolute top-3 right-3 p-1 text-[var(--text-muted)] hover:text-[var(--text)] transition-colors"
               @click="model = false"

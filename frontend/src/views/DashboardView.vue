@@ -10,6 +10,7 @@ import {useRoute, useRouter} from 'vue-router'
 import SidebarLayout from '@/components/layout/SidebarLayout.vue'
 import SidebarGroup from '@/components/navigation/SidebarGroup.vue'
 import SidebarLink from '@/components/navigation/SidebarLink.vue'
+import SidebarExpandableLink from '@/components/navigation/SidebarExpandableLink.vue'
 import StationSwitcher from '@/components/navigation/StationSwitcher.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import IconButton from '@/components/button/IconButton.vue'
@@ -19,6 +20,7 @@ import Alert from '@/components/feedback/Alert.vue'
 import {getItem} from '@/api/storage'
 import {Roles, StationModules} from '@/api/types'
 import {useSession} from '@/composables/useSession'
+import {useTheme} from '@/composables/useTheme'
 import {useStations} from '@/composables/useStations'
 import {usePendingChanges} from '@/composables/usePendingChanges'
 import HelpCenterLink from '@/components/navigation/HelpCenterLink.vue'
@@ -120,6 +122,7 @@ async function handleLogout() {
     }
   }
   clear()
+  useTheme().resetToInstanceDefaults()
   await router.push({name: 'login'})
 }
 </script>
@@ -174,14 +177,15 @@ async function handleLogout() {
                      @navigate="close">
           {{ t('sidebar.membersConfig') }}
         </SidebarLink>
-        <SidebarLink v-if="canManageFederation()" :icon="['fas', 'arrow-right-arrow-left']" name="station-federation" to="/station/manage/federation"
-                     @navigate="close">
-          {{ t('sidebar.federation') }}
-        </SidebarLink>
-        <SidebarLink :icon="['fas', 'compass']" name="station-discovery" to="/station/manage/discovery"
-                     @navigate="close">
-          {{ t('sidebar.discovery') }}
-        </SidebarLink>
+        <SidebarExpandableLink v-if="canManageFederation()" :icon="['fas', 'arrow-right-arrow-left']" name="station-federation" to="/station/manage/federation" :prefix="['/station/manage/federation', '/station/manage/discovery']" @navigate="close">
+          <template #label>{{ t('sidebar.federation') }}</template>
+          <SidebarLink :icon="['fas', 'gear']" name="station-federation-settings" to="/station/manage/federation/settings" @navigate="close">
+            {{ t('sidebar.federationSettings') }}
+          </SidebarLink>
+          <SidebarLink :icon="['fas', 'compass']" name="station-discovery" to="/station/manage/discovery" @navigate="close">
+            {{ t('sidebar.discovery') }}
+          </SidebarLink>
+        </SidebarExpandableLink>
       </SidebarGroup>
 
       <SidebarGroup :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => openGroup = v" v-if="canManageMembers()" :badge="pendingChangesCount" :icon="['fas', 'users']"
@@ -282,6 +286,10 @@ async function handleLogout() {
         <SidebarLink v-if="canManageEvents()" :icon="['fas', 'gears']" name="events" to="/station/events"
                      @navigate="close">
           {{ t('sidebar.manageEvents') }}
+        </SidebarLink>
+        <SidebarLink v-if="canManageEvents()" :icon="['fas', 'folder-plus']" name="event-categories" to="/station/events/categories"
+                     @navigate="close">
+          {{ t('sidebar.eventCategories') }}
         </SidebarLink>
       </SidebarGroup>
 

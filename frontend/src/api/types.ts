@@ -140,11 +140,17 @@ export interface SessionInfo {
 }
 
 export interface ThemeSessionInfo {
+    instanceDefaultTheme?: string
+    instanceDefaultFeel?: string
+    instanceLockFeel?: boolean
     defaultTheme?: string
+    defaultFeel?: string
     allowUserTheme?: boolean
+    allowUserFeel?: boolean
     customThemeColors?: string | null
     userTheme?: string
     userDarkMode?: string
+    userFeel?: string
 }
 
 export const StationModules = {
@@ -514,10 +520,13 @@ export interface StationManageInfo {
     defaultTheme?: string
     allowUserTheme?: boolean
     customThemeColors?: string | null
+    defaultFeel?: string
+    allowUserFeel?: boolean
     publicKbMode?: string
     discoveryVisibility?: string
     discoveryDescription?: string | null
     discoveryShowKb?: boolean
+    publicCalendarEnabled?: boolean
 }
 
 export interface UpdateStationNameRequest {
@@ -527,10 +536,13 @@ export interface UpdateStationNameRequest {
     defaultTheme?: string
     allowUserTheme?: boolean
     customThemeColors?: string | null
+    defaultFeel?: string
+    allowUserFeel?: boolean
     publicKbMode?: string
     discoveryVisibility?: string
     discoveryDescription?: string | null
     discoveryShowKb?: boolean
+    publicCalendarEnabled?: boolean
 }
 
 // -- Stations --
@@ -1145,6 +1157,7 @@ export interface UserSettingsRequest {
     emailEnabled?: boolean
     theme?: string
     darkMode?: string
+    feel?: string
     notifications?: Record<string, NotificationToggle>
 }
 

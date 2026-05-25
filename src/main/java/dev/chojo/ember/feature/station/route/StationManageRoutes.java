@@ -11,12 +11,14 @@ import dev.chojo.ember.api.Roles;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.feature.account.service.AuthService;
+import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
 import dev.chojo.ember.feature.mail.service.EmailService;
 import dev.chojo.ember.feature.station.entity.DiscoveryVisibility;
 import dev.chojo.ember.feature.station.entity.MailProviderType;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.entity.StationMailConfig;
 import dev.chojo.ember.feature.station.entity.StationModule;
+import dev.chojo.ember.feature.station.entity.ThemeFeel;
 import dev.chojo.ember.feature.station.repository.StationMailConfigRepository;
 import dev.chojo.ember.feature.station.repository.StationRepository.StationLogo;
 import dev.chojo.ember.feature.station.service.StationImportService;
@@ -133,7 +135,9 @@ public class StationManageRoutes implements Routes {
                 station.defaultTheme(),
                 station.allowUserTheme(),
                 station.customThemeColors(),
-                station.publicKbMode().name(),
+                station.defaultFeel(),
+                station.allowUserFeel(),
+                station.publicKbMode(),
                 station.discoveryVisibility(),
                 station.discoveryDescription(),
                 station.discoveryShowKb(),
@@ -174,10 +178,12 @@ public class StationManageRoutes implements Routes {
                     session.stationId(),
                     request.defaultTheme(),
                     request.allowUserTheme() != null ? request.allowUserTheme() : true,
-                    request.customThemeColors());
+                    request.customThemeColors(),
+                    request.defaultFeel() != null ? request.defaultFeel() : ThemeFeel.ROUNDED,
+                    request.allowUserFeel() != null ? request.allowUserFeel() : true);
         }
         if (request.publicKbMode() != null) {
-            stationService.updatePublicKbMode(session.stationId(), request.publicKbMode());
+            stationService.updatePublicKbMode(session.stationId(), PublicKbMode.valueOf(request.publicKbMode()));
         }
         if (request.discoveryVisibility() != null) {
             stationService.updateDiscoverySettings(
@@ -530,6 +536,8 @@ public class StationManageRoutes implements Routes {
             String defaultTheme,
             Boolean allowUserTheme,
             String customThemeColors,
+            ThemeFeel defaultFeel,
+            Boolean allowUserFeel,
             String publicKbMode,
             DiscoveryVisibility discoveryVisibility,
             String discoveryDescription,
@@ -560,7 +568,9 @@ public class StationManageRoutes implements Routes {
             String defaultTheme,
             boolean allowUserTheme,
             String customThemeColors,
-            String publicKbMode,
+            ThemeFeel defaultFeel,
+            boolean allowUserFeel,
+            PublicKbMode publicKbMode,
             DiscoveryVisibility discoveryVisibility,
             String discoveryDescription,
             boolean discoveryShowKb,

@@ -8,9 +8,11 @@ package dev.chojo.ember.feature.station.repository;
 import de.chojo.sadu.queries.api.call.Call;
 import de.chojo.sadu.queries.api.query.Query;
 import de.chojo.sadu.queries.converter.StandardValueConverter;
+import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
 import dev.chojo.ember.feature.station.entity.DiscoveryVisibility;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.entity.StationModule;
+import dev.chojo.ember.feature.station.entity.ThemeFeel;
 import jakarta.inject.Singleton;
 
 import java.util.List;
@@ -25,7 +27,7 @@ import java.util.UUID;
 public class StationRepository {
 
     private static final String STATION_COLUMNS =
-            "id, uid, name, timezone, locale, owner_member_id, default_theme, allow_user_theme, custom_theme_colors, public_kb_mode, federation_private_key, discovery_visibility, discovery_description, discovery_show_kb, public_calendar_enabled";
+            "id, uid, name, timezone, locale, owner_member_id, default_theme, allow_user_theme, custom_theme_colors, default_feel, allow_user_feel, public_kb_mode, federation_private_key, discovery_visibility, discovery_description, discovery_show_kb, public_calendar_enabled";
 
     /**
      * Finds a station by its ID.
@@ -121,9 +123,9 @@ public class StationRepository {
                 .changed();
     }
 
-    public boolean updatePublicKbMode(int id, String mode) {
+    public boolean updatePublicKbMode(int id, PublicKbMode mode) {
         return Query.query("UPDATE station SET public_kb_mode = :mode WHERE id = :id;")
-                .single(Call.of().bind("mode", mode).bind("id", id))
+                .single(Call.of().bind("mode", mode.name()).bind("id", id))
                 .update()
                 .changed();
     }
@@ -142,15 +144,24 @@ public class StationRepository {
                 .changed();
     }
 
-    public void updateThemeSettings(int id, String defaultTheme, boolean allowUserTheme, String customThemeColors) {
+    public void updateThemeSettings(
+            int id,
+            String defaultTheme,
+            boolean allowUserTheme,
+            String customThemeColors,
+            ThemeFeel defaultFeel,
+            boolean allowUserFeel) {
         Query.query("""
                         UPDATE station SET default_theme = :default_theme, allow_user_theme = :allow_user_theme,
-                        custom_theme_colors = :custom_theme_colors::jsonb WHERE id = :id;""")
+                        custom_theme_colors = :custom_theme_colors::jsonb, default_feel = :default_feel,
+                        allow_user_feel = :allow_user_feel WHERE id = :id;""")
                 .single(Call.of()
                         .bind("id", id)
                         .bind("default_theme", defaultTheme)
                         .bind("allow_user_theme", allowUserTheme)
-                        .bind("custom_theme_colors", customThemeColors))
+                        .bind("custom_theme_colors", customThemeColors)
+                        .bind("default_feel", defaultFeel)
+                        .bind("allow_user_feel", allowUserFeel))
                 .update();
     }
 
@@ -296,8 +307,7 @@ public class StationRepository {
 
     public List<Station> findDiscoverable(int excludeStationId, DiscoveryVisibility visA, DiscoveryVisibility visB) {
         return Query.query(
-                        "SELECT " + STATION_COLUMNS
-                                + " FROM station WHERE id != :exclude_id AND discovery_visibility IN (:vis_a, :vis_b) ORDER BY name;")
+                        "SELECT %s FROM station WHERE id != :exclude_id AND discovery_visibility IN (:vis_a, :vis_b) ORDER BY name;", STATION_COLUMNS)
                 .single(Call.of()
                         .bind("exclude_id", excludeStationId)
                         .bind("vis_a", visA)

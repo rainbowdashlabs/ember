@@ -310,7 +310,7 @@ public class EventRoutes implements Routes {
                         req.registrationDeadline(),
                         req.requiresConfirmation() != null && req.requiresConfirmation(),
                         req.categoryId(),
-                        req.isPublic() != null && req.isPublic())
+                        req.isPublic())
                 .ifPresentOrElse(
                         event -> {
                             eventService.setRestrictions(

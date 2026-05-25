@@ -15,6 +15,7 @@ import IconButton from '@/components/button/IconButton.vue'
 import {auth} from '@/api'
 import {getItem} from '@/api/storage'
 import {useSession} from '@/composables/useSession'
+import {useTheme} from '@/composables/useTheme'
 import HelpCenterLink from '@/components/navigation/HelpCenterLink.vue'
 
 const {t, te} = useI18n()
@@ -48,6 +49,7 @@ async function handleLogout() {
     }
   }
   clear()
+  useTheme().resetToInstanceDefaults()
   await router.push({name: 'login'})
 }
 </script>
@@ -77,7 +79,13 @@ async function handleLogout() {
 
       <SidebarGroup :icon="['fas', 'gear']" :label="t('sidebar.settings')" prefix="/admin/settings">
         <SidebarLink :icon="['fas', 'sliders']" name="admin-settings" to="/admin/settings" @navigate="close">
-          {{ t('sidebar.appSettings') }}
+          {{ t('sidebar.general') }}
+        </SidebarLink>
+        <SidebarLink :icon="['fas', 'envelope']" name="admin-mailing" to="/admin/settings/mailing" @navigate="close">
+          {{ t('sidebar.mailing') }}
+        </SidebarLink>
+        <SidebarLink :icon="['fas', 'scale-balanced']" name="admin-legal" to="/admin/settings/legal" @navigate="close">
+          {{ t('sidebar.legal') }}
         </SidebarLink>
       </SidebarGroup>
 

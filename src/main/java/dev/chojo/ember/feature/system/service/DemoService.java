@@ -23,6 +23,7 @@ import dev.chojo.ember.feature.inventory.entity.ExchangeStatus;
 import dev.chojo.ember.feature.inventory.repository.ExchangeRepository;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
 import dev.chojo.ember.feature.inventory.repository.ProcurementRepository;
+import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
 import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
@@ -238,7 +239,7 @@ public class DemoService {
         stationRepository.updateTimezone(station.id(), "Europe/Berlin");
         stationRepository.updateLocale(station.id(), "de-DE");
         stationRepository.updatePublicCalendarEnabled(station.id(), true);
-        stationRepository.updatePublicKbMode(station.id(), "ALLOW_ALL");
+        stationRepository.updatePublicKbMode(station.id(), PublicKbMode.ALLOW_ALL);
         stationRepository.updateDiscoverySettings(
                 station.id(),
                 DiscoveryVisibility.PUBLIC,
@@ -1389,7 +1390,7 @@ public class DemoService {
         log.info("Demo: Created lending data");
 
         // -- Public Knowledge Base --
-        stationRepository.updatePublicKbMode(station.id(), "ALLOW_ALL");
+        stationRepository.updatePublicKbMode(station.id(), PublicKbMode.ALLOW_ALL);
         log.info("Demo: Enabled public knowledge base");
 
         // -- Settings --

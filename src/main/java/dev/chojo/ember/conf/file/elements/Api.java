@@ -5,19 +5,41 @@
  */
 package dev.chojo.ember.conf.file.elements;
 
+import dev.chojo.ocular.override.Env;
+import dev.chojo.ocular.override.Overwrite;
+import dev.chojo.ocular.override.OverwritePrefix;
+
 /**
  * API server configuration including host, port, base URL, and paths to legal document directories.
  */
 @SuppressWarnings({"FieldCanBeLocal", "FieldMayBeFinal", "CanBeFinal"})
+@OverwritePrefix("API")
 public class Api {
+    @Overwrite(env = @Env)
     private String host = "0.0.0.0";
+
+    @Overwrite(env = @Env)
     private int port = 8080;
+
+    @Overwrite(env = @Env)
     private String baseUrl = "http://localhost:5173";
+
+    @Overwrite(env = @Env)
     private String demoUrl = "https://demo.ember-panel.de";
+
+    @Overwrite(env = @Env)
     private int maxImageSizeBytes = 5 * 1024 * 1024;
+
+    @Overwrite(env = @Env)
     private String privacyPolicyDir = "data/privacy";
+
+    @Overwrite(env = @Env)
     private String consentDir = "data/consent";
+
+    @Overwrite(env = @Env)
     private String tosDir = "data/tos";
+
+    @Overwrite(env = @Env)
     private String imprintDir = "data/imprint";
 
     public String host() {

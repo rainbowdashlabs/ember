@@ -74,7 +74,8 @@ public class PublicEventRoutes implements Routes {
     }
 
     private boolean isEventPublic(StationEvent event, Map<Integer, EventCategory> categoryMap) {
-        if (event.isPublic()) return true;
+        // Tri-state: true = force public, false = force hidden, null = inherit from category
+        if (event.isPublic() != null) return event.isPublic();
         if (event.categoryId() != null) {
             var cat = categoryMap.get(event.categoryId());
             return cat != null && cat.isPublic();
