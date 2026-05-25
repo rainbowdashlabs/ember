@@ -1635,3 +1635,32 @@ export interface QuizCatalogExport {
     categories: QuizCategory[]
     questions: QuizQuestion[]
 }
+
+// -- Comments --
+
+export interface Comment {
+    id: number
+    parentId?: number | null
+    authorId: number
+    content: string
+    createdAt: string
+    updatedAt?: string | null
+}
+
+export interface EntityNote {
+    id: number
+    entityType: string
+    entityId: number
+    stationId: string
+    content: string
+    updatedBy?: number | null
+    updatedAt: string
+}
+
+export interface NoteVersion {
+    id: number
+    noteId: number
+    diffPatch: string
+    authorId: number
+    createdAt: string
+}

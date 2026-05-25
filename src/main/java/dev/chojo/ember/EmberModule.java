@@ -37,6 +37,7 @@ import dev.chojo.ember.event.handlers.LendingMessageSentHandler;
 import dev.chojo.ember.event.handlers.LendingRequestedHandler;
 import dev.chojo.ember.event.handlers.LendingStatusChangedHandler;
 import dev.chojo.ember.event.handlers.MembersAddedToGroupHandler;
+import dev.chojo.ember.event.handlers.MentionedInCommentHandler;
 import dev.chojo.ember.event.handlers.NewsCreatedHandler;
 import dev.chojo.ember.event.handlers.NewsDeletedHandler;
 import dev.chojo.ember.event.handlers.ProcurementCreatedHandler;
@@ -45,6 +46,8 @@ import dev.chojo.ember.event.handlers.RegistrationDeadlineExpiredHandler;
 import dev.chojo.ember.feature.account.route.AuthRoutes;
 import dev.chojo.ember.feature.account.route.SessionRoutes;
 import dev.chojo.ember.feature.attendance.route.AttendanceRoutes;
+import dev.chojo.ember.feature.comment.route.EventCommentRoutes;
+import dev.chojo.ember.feature.comment.route.NoteRoutes;
 import dev.chojo.ember.feature.events.route.EventRoutes;
 import dev.chojo.ember.feature.events.route.EventTemplateRoutes;
 import dev.chojo.ember.feature.events.route.FederatedEventRoutes;
@@ -170,6 +173,8 @@ public class EmberModule extends AbstractModule {
         routesBinder.addBinding().to(DiscoveryRoutes.class);
         routesBinder.addBinding().to(FeedTokenRoutes.class);
         routesBinder.addBinding().to(UserFeedRoutes.class);
+        routesBinder.addBinding().to(EventCommentRoutes.class);
+        routesBinder.addBinding().to(NoteRoutes.class);
 
         // Domain event handlers
         Multibinder<DomainEventHandler<?>> eventBinder =
@@ -192,6 +197,7 @@ public class EmberModule extends AbstractModule {
         eventBinder.addBinding().to(LendingRequestedHandler.class);
         eventBinder.addBinding().to(LendingStatusChangedHandler.class);
         eventBinder.addBinding().to(LendingMessageSentHandler.class);
+        eventBinder.addBinding().to(MentionedInCommentHandler.class);
     }
 
     @Provides

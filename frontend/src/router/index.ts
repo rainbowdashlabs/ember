@@ -383,6 +383,11 @@ const router = createRouter({
                     component: () => import('@/views/stationview/inventory/MemberInventoryView.vue'),
                 },
                 {
+                    path: 'inventory/item/:id',
+                    name: 'inventory-item-detail',
+                    component: () => import('@/views/stationview/inventory/ItemDetailView.vue'),
+                },
+                {
                     path: 'events',
                     name: 'events',
                     component: EventsView,
@@ -978,6 +983,11 @@ const router = createRouter({
                     path: 'inventory/members',
                     name: 'help-inventory-members',
                     component: () => import('@/views/helpcenter/stationview/inventory/MemberListHelp.vue')
+                },
+                {
+                    path: 'inventory/item/:id',
+                    name: 'help-inventory-item-detail',
+                    redirect: { name: 'help-inventory-detail' },
                 },
                 {
                     path: 'inventory/detail/:id?',

@@ -13,8 +13,6 @@ import jakarta.inject.Singleton;
 import java.util.List;
 import java.util.Optional;
 
-import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIMESTAMP;
-
 /**
  * Repository for managing event comments with threaded reply support.
  */

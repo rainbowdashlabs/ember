@@ -64,14 +64,16 @@ public class CommentService {
      * @param content    the comment text
      * @return the created comment
      */
-    public Comment create(int stationId, int eventId, Integer parentId, int authorId, String authorName, String content) {
+    public Comment create(
+            int stationId, int eventId, Integer parentId, int authorId, String authorName, String content) {
         var comment = commentRepository.create(eventId, parentId, authorId, content);
 
         // Parse @mentions and publish events
         var mentionedIds = parseMentions(content);
         for (int mentionedId : mentionedIds) {
             if (mentionedId != authorId) {
-                eventBus.publish(new MentionedInComment(stationId, mentionedId, authorId, authorName, "event", eventId));
+                eventBus.publish(
+                        new MentionedInComment(stationId, mentionedId, authorId, authorName, "event", eventId));
             }
         }
 

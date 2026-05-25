@@ -28,6 +28,7 @@ import {EventTypes, RegistrationStatus, isRecurringEvent} from '@/api/types'
 import type {AbsentMember, EventRegistrationEntry, MemberRegistrationStats} from '@/api/events'
 import {attendance, events} from '@/api'
 import {useSession} from '@/composables/useSession'
+import CommentSection from '@/components/comment/CommentSection.vue'
 import MemberName from '@/components/avatar/MemberName.vue'
 
 const {t} = useI18n()
@@ -480,6 +481,11 @@ onMounted(loadData)
           </div>
         </NeutralContainer>
       </template>
+
+      <!-- Comments -->
+      <NeutralContainer v-if="!loading">
+        <CommentSection :event-id="eventId"/>
+      </NeutralContainer>
     </div>
   </ViewContent>
 </template>
