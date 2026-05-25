@@ -310,8 +310,7 @@ class FederationRepositoryTest extends RepositoryTestBase {
         federationRepo.logChange(stationA.id(), "QUIZ", 2, "UPDATED");
 
         var changes = federationRepo.findChangesSince(stationA.id(), before);
-        assertTrue(changes.size() >= 2,
-                "Expected at least 2 changes, got " + changes.size() + ": " + changes);
+        assertTrue(changes.size() >= 2, "Expected at least 2 changes, got " + changes.size() + ": " + changes);
         assertTrue(
                 changes.stream()
                         .anyMatch(c -> c.contentType() == ContentType.KB && c.changeType() == ChangeType.CREATED),
