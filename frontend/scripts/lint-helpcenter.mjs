@@ -94,6 +94,36 @@ for (const panel of panels) {
     }
 }
 
+// ── Duplicate component check ───────────────────────────────────────
+
+console.log(`\n${BOLD}Duplicate Help Component Check${RESET}`)
+
+const helpComponentUsage = new Map()
+for (const r of allRoutes) {
+    if (!r.name || !r.name.startsWith('help-')) continue
+    if (!r.component) continue
+    const comp = r.component
+    if (!helpComponentUsage.has(comp)) helpComponentUsage.set(comp, [])
+    helpComponentUsage.get(comp).push(r)
+}
+
+let duplicateCount = 0
+for (const [comp, routes] of helpComponentUsage) {
+    if (routes.length <= 1) continue
+    duplicateCount++
+    const short = comp.replace(/.*\/views\//, '')
+    console.log(`  ${RED}error${RESET} ${short} used ${routes.length} times:`)
+    for (const r of routes) {
+        console.log(`    - ${r.name} → ${r.path}`)
+    }
+}
+
+if (duplicateCount === 0) {
+    console.log(`  ${GREEN}✓ No duplicate help components${RESET}`)
+} else {
+    totalMissing += duplicateCount
+}
+
 // ── Section overview check ──────────────────────────────────────────
 
 console.log(`\n${BOLD}Section Overview Check${RESET}`)

@@ -69,13 +69,17 @@ export function parseRoutes() {
         const pathMatch = lines[i].match(/^\s*path:\s*'([^']*)'/)
         if (!pathMatch) continue
 
+        let name = null
+        let component = null
         for (let j = i + 1; j < Math.min(i + 6, lines.length); j++) {
             const nameMatch = lines[j].match(/^\s*name:\s*'([^']*)'/)
-            if (nameMatch) {
-                routes.push({name: nameMatch[1], path: pathMatch[1]})
-                break
-            }
+            if (nameMatch) name = nameMatch[1]
+            const compMatch = lines[j].match(/import\('([^']+)'\)/)
+            if (compMatch) component = compMatch[1]
             if (lines[j].match(/^\s*path:\s*'/) || lines[j].match(/^\s{8,12}}/)) break
+        }
+        if (name) {
+            routes.push({name, path: pathMatch[1], component: component || null})
         }
     }
 

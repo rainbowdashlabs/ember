@@ -8,6 +8,7 @@ import {ref} from 'vue'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import StationImportSection from './stationview/StationImportSection.vue'
+import TransferSection from './stationview/TransferSection.vue'
 
 const error = ref('')
 const success = ref('')
@@ -22,6 +23,7 @@ function handleSuccess(msg: string) { success.value = msg; error.value = '' }
       <Alert v-if="error" variant="error">{{ error }}</Alert>
       <Alert v-if="success" variant="success">{{ success }}</Alert>
       <StationImportSection @error="handleError" @success="handleSuccess"/>
+      <TransferSection @error="handleError" @success="handleSuccess"/>
     </div>
   </ViewContent>
 </template>

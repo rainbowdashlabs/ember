@@ -758,7 +758,7 @@ const router = createRouter({
                 {
                     path: 'news/create',
                     name: 'help-news-create',
-                    component: () => import('@/views/helpcenter/stationview/news/EditHelp.vue')
+                    redirect: { name: 'help-news-edit' },
                 },
                 {
                     path: 'news/:id/edit',
@@ -794,17 +794,17 @@ const router = createRouter({
                 {
                     path: 'profile/settings/theming',
                     name: 'help-profile-theming',
-                    component: () => import('@/views/helpcenter/stationview/profile/SettingsHelp.vue')
+                    component: () => import('@/views/helpcenter/stationview/profile/ThemingHelp.vue')
                 },
                 {
                     path: 'profile/settings/sessions',
                     name: 'help-profile-sessions',
-                    component: () => import('@/views/helpcenter/stationview/profile/SettingsHelp.vue')
+                    component: () => import('@/views/helpcenter/stationview/profile/SessionsHelp.vue')
                 },
                 {
                     path: 'profile/settings/notifications',
                     name: 'help-profile-notifications',
-                    component: () => import('@/views/helpcenter/stationview/profile/SettingsHelp.vue')
+                    component: () => import('@/views/helpcenter/stationview/profile/NotificationsHelp.vue')
                 },
                 {
                     path: 'profile/theme',
@@ -835,7 +835,7 @@ const router = createRouter({
                 {
                     path: 'manage/mail-config',
                     name: 'help-station-mail-config',
-                    component: () => import('@/views/helpcenter/stationview/manage/MailConfigHelp.vue')
+                    redirect: { name: 'help-station-mailing' },
                 },
                 {
                     path: 'manage/theme',
@@ -850,12 +850,12 @@ const router = createRouter({
                 {
                     path: 'manage/modules',
                     name: 'help-station-modules',
-                    component: () => import('@/views/helpcenter/stationview/manage/MailConfigHelp.vue')
+                    component: () => import('@/views/helpcenter/stationview/manage/ModulesHelp.vue')
                 },
                 {
                     path: 'manage/import',
                     name: 'help-station-import',
-                    component: () => import('@/views/helpcenter/stationview/manage/MailConfigHelp.vue')
+                    component: () => import('@/views/helpcenter/stationview/manage/ImportHelp.vue')
                 },
                 {
                     path: 'manage/federation',
@@ -952,7 +952,7 @@ const router = createRouter({
                 {
                     path: 'inventory/my',
                     name: 'help-inventory-my',
-                    component: () => import('@/views/helpcenter/stationview/profile/InventoryHelp.vue')
+                    redirect: { name: 'help-profile-inventory' },
                 },
                 {
                     path: 'inventory/exchanges',
@@ -1089,7 +1089,7 @@ const router = createRouter({
                 {
                     path: 'events/new',
                     name: 'help-event-new',
-                    component: () => import('@/views/helpcenter/stationview/events/EventEditHelp.vue')
+                    redirect: { name: 'help-event-edit' },
                 },
                 {
                     path: 'events/:id/edit',
@@ -1192,7 +1192,7 @@ const router = createRouter({
                 {
                     path: 'quiz/catalogs/:id/mc-fill',
                     name: 'help-quiz-catalog-mc-fill',
-                    component: () => import('@/views/helpcenter/stationview/quiz/CatalogGenerateHelp.vue')
+                    redirect: { name: 'help-quiz-catalog-generate' },
                 },
                 {
                     path: 'quiz/catalogs/:id/import',

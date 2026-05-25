@@ -23,6 +23,9 @@ import dev.chojo.ember.conf.file.elements.Auth;
 import dev.chojo.ember.conf.file.elements.Database;
 import dev.chojo.ember.conf.file.elements.Demo;
 import dev.chojo.ember.conf.file.elements.Mailing;
+import dev.chojo.ember.event.DomainEventHandler;
+import dev.chojo.ember.event.handlers.EventCreatedHandler;
+import dev.chojo.ember.event.handlers.NewsCreatedHandler;
 import dev.chojo.ember.feature.account.route.AuthRoutes;
 import dev.chojo.ember.feature.account.route.SessionRoutes;
 import dev.chojo.ember.feature.attendance.route.AttendanceRoutes;
@@ -143,6 +146,12 @@ public class EmberModule extends AbstractModule {
         routesBinder.addBinding().to(FederationRemoteRoutes.class);
         routesBinder.addBinding().to(LendingRoutes.class);
         routesBinder.addBinding().to(DiscoveryRoutes.class);
+
+        // Domain event handlers
+        Multibinder<DomainEventHandler<?>> eventBinder =
+                Multibinder.newSetBinder(binder(), new com.google.inject.TypeLiteral<DomainEventHandler<?>>() {});
+        eventBinder.addBinding().to(EventCreatedHandler.class);
+        eventBinder.addBinding().to(NewsCreatedHandler.class);
     }
 
     @Provides
