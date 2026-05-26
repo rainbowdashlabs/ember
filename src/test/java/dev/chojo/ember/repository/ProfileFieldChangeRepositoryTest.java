@@ -7,6 +7,7 @@ package dev.chojo.ember.repository;
 
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
+import dev.chojo.ember.feature.members.entity.ProfileFieldType;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.station.entity.Station;
 import org.junit.jupiter.api.AfterAll;
@@ -33,7 +34,8 @@ class ProfileFieldChangeRepositoryTest extends RepositoryTestBase {
         station = stationRepo.create("PFC Station");
         account = accountRepo.create("pfc@test.com", "PFC", "User");
         member = stationMemberRepo.create(station.id(), account.id());
-        var field = profileFieldRepo.create(station.id(), "Phone", "TEXT", "{}", 0, ProfileFieldScope.MEMBER);
+        var field = profileFieldRepo.create(
+                station.id(), "Phone", ProfileFieldType.TEXT, "{}", 0, ProfileFieldScope.MEMBER);
         fieldId = field.id();
     }
 

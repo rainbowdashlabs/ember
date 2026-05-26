@@ -8,6 +8,7 @@ package dev.chojo.ember.repository;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.events.entity.EventCategory;
 import dev.chojo.ember.feature.events.entity.EventField;
+import dev.chojo.ember.feature.events.entity.EventFieldType;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventFieldRepository;
 import dev.chojo.ember.feature.members.entity.StationMember;
@@ -68,7 +69,8 @@ class EventFieldRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(1)
     void create() {
-        EventField field = eventFieldRepo.create(eventId, "Location", "string", "{}", "Berlin", 0, false, null, false);
+        EventField field = eventFieldRepo.create(
+                eventId, "Location", EventFieldType.STRING, "{}", "Berlin", 0, false, null, false);
         assertNotNull(field);
         assertEquals("Location", field.name());
         assertEquals("string", field.fieldType());
@@ -106,8 +108,10 @@ class EventFieldRepositoryTest extends RepositoryTestBase {
         eventFieldRepo.replaceFields(
                 eventId,
                 List.of(
-                        new EventFieldRepository.FieldEntry("Key1", "string", "{}", "Val1", false, null, false),
-                        new EventFieldRepository.FieldEntry("Key2", "string", "{}", "Val2", true, null, false)));
+                        new EventFieldRepository.FieldEntry(
+                                "Key1", EventFieldType.STRING, "{}", "Val1", false, null, false),
+                        new EventFieldRepository.FieldEntry(
+                                "Key2", EventFieldType.STRING, "{}", "Val2", true, null, false)));
         var fields = eventFieldRepo.findByEvent(eventId);
         assertEquals(2, fields.size());
         assertEquals("Key1", fields.get(0).name());

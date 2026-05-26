@@ -18,6 +18,7 @@ import dev.chojo.ember.feature.events.entity.EventBreak;
 import dev.chojo.ember.feature.events.entity.EventCategory;
 import dev.chojo.ember.feature.events.entity.EventField;
 import dev.chojo.ember.feature.events.entity.EventFieldDefault;
+import dev.chojo.ember.feature.events.entity.EventFieldType;
 import dev.chojo.ember.feature.events.entity.EventLayoutField;
 import dev.chojo.ember.feature.events.entity.EventRegistration;
 import dev.chojo.ember.feature.events.entity.IntervalConfig;
@@ -1058,7 +1059,7 @@ public class EventRoutes implements Routes {
                                 0,
                                 0,
                                 f.name(),
-                                f.fieldType() != null ? f.fieldType() : "string",
+                                f.fieldType() != null ? f.fieldType() : EventFieldType.STRING,
                                 f.config() != null ? f.config() : "{}",
                                 0,
                                 f.overview() != null && f.overview(),
@@ -1220,7 +1221,7 @@ public class EventRoutes implements Routes {
     @OpenApiName("EventFieldEntry")
     public record EventFieldEntry(
             String name,
-            String fieldType,
+            EventFieldType fieldType,
             String config,
             String value,
             Boolean overview,
@@ -1230,7 +1231,7 @@ public class EventRoutes implements Routes {
     public record LayoutRequest(String name) {}
 
     public record LayoutFieldEntry(
-            String name, String fieldType, String config, Boolean overview, Integer attendanceFieldId) {}
+            String name, EventFieldType fieldType, String config, Boolean overview, Integer attendanceFieldId) {}
 
     public record SetLayoutFieldsRequest(List<LayoutFieldEntry> fields) {}
 

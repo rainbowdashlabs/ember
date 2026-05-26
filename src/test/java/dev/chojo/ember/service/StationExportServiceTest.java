@@ -7,6 +7,7 @@ package dev.chojo.ember.service;
 
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
+import dev.chojo.ember.feature.members.entity.ProfileFieldType;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.station.service.StationExportService;
 import dev.chojo.ember.repository.RepositoryTestBase;
@@ -46,7 +47,7 @@ class StationExportServiceTest extends RepositoryTestBase {
         var group = memberGroupRepo.create(stationId, "Anfänger");
         memberGroupRepo.addMember(group.id(), member.id());
 
-        profileFieldRepo.create(stationId, "Telefon", "TEXT", "{}", 0, ProfileFieldScope.MEMBER);
+        profileFieldRepo.create(stationId, "Telefon", ProfileFieldType.TEXT, "{}", 0, ProfileFieldScope.MEMBER);
     }
 
     @Test

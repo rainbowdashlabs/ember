@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.comment.service;
 
 import dev.chojo.ember.feature.comment.entity.EntityNote;
+import dev.chojo.ember.feature.comment.entity.NoteEntityType;
 import dev.chojo.ember.feature.comment.entity.NoteVersion;
 import dev.chojo.ember.feature.comment.repository.NoteRepository;
 import dev.chojo.ember.util.TextDiff;
@@ -34,7 +35,7 @@ public class NoteService {
      * @param entityId   the entity ID
      * @return the note, if found
      */
-    public Optional<EntityNote> findNote(String entityType, int entityId) {
+    public Optional<EntityNote> findNote(NoteEntityType entityType, int entityId) {
         return noteRepository.findNote(entityType, entityId);
     }
 
@@ -49,7 +50,8 @@ public class NoteService {
      * @param authorId   the member ID who is making the change
      * @return the updated note
      */
-    public EntityNote updateNote(String entityType, int entityId, int stationId, String newContent, int authorId) {
+    public EntityNote updateNote(
+            NoteEntityType entityType, int entityId, int stationId, String newContent, int authorId) {
         var existing = noteRepository.findNote(entityType, entityId);
 
         var note = noteRepository.createOrUpdate(entityType, entityId, stationId, newContent, authorId);

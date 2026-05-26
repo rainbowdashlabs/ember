@@ -10,11 +10,11 @@ import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.members.entity.FieldValueEntry;
 import dev.chojo.ember.feature.members.entity.PagedChanges;
 import dev.chojo.ember.feature.members.entity.ProfileField;
-import dev.chojo.ember.feature.members.entity.ProfileFieldType;
 import dev.chojo.ember.feature.members.entity.ProfileFieldChange;
 import dev.chojo.ember.feature.members.entity.ProfileFieldChangeAcknowledgement;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
 import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
+import dev.chojo.ember.feature.members.entity.ProfileFieldType;
 import dev.chojo.ember.feature.members.entity.ProfileFieldValue;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.ProfileFieldChangeRepository;
@@ -79,7 +79,12 @@ public class ProfileFieldService {
     }
 
     public ProfileField create(
-            int stationId, String name, ProfileFieldType fieldType, String config, int position, ProfileFieldScope scope) {
+            int stationId,
+            String name,
+            ProfileFieldType fieldType,
+            String config,
+            int position,
+            ProfileFieldScope scope) {
         return profileFieldRepository.create(stationId, name, fieldType, config, position, scope);
     }
 

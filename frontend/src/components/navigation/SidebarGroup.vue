@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {computed, ref, watch} from 'vue'
+import {computed, ref, useSlots, watch} from 'vue'
 import {useRoute} from 'vue-router'
 
 const props = defineProps<{
@@ -24,7 +24,9 @@ const emit = defineEmits<{
 }>()
 
 const route = useRoute()
+const slots = useSlots()
 const isActive = computed(() => (route.path + '/').startsWith(props.prefix + '/') || route.path === props.prefix)
+const hasChildren = computed(() => !!slots.default)
 
 const localExpanded = ref(isActive.value)
 const key = computed(() => props.groupKey ?? props.prefix)
@@ -77,6 +79,7 @@ function toggle() {
           }}</span>
       </component>
       <button
+          v-if="hasChildren"
           class="flex items-center justify-center w-8 h-8 rounded-theme text-[var(--text)] transition-colors duration-150"
           @click="toggle"
       >
@@ -87,7 +90,7 @@ function toggle() {
       </button>
     </div>
 
-    <div v-if="expanded" class="ml-4 flex flex-col gap-1 mt-1">
+    <div v-if="hasChildren && expanded" class="ml-4 flex flex-col gap-1 mt-1">
       <slot/>
     </div>
   </div>

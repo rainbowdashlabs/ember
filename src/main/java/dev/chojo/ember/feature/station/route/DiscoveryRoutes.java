@@ -61,8 +61,9 @@ public class DiscoveryRoutes implements Routes {
         if (session != null && session.stationId() != null) {
             excludeStationId = session.stationId();
             var existingPartners = federationService.findPartners(excludeStationId);
-            partnerStationIds = new HashSet<>(
-                    existingPartners.stream().map(FederationPartner::partnerStationId).toList());
+            partnerStationIds = new HashSet<>(existingPartners.stream()
+                    .map(FederationPartner::partnerStationId)
+                    .toList());
         }
 
         // Merge discoverable stations + stations with public content (deduplicated)

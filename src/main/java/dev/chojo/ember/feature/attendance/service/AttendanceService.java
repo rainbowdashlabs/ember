@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.attendance.service;
 
 import dev.chojo.ember.feature.attendance.entity.AttendanceEntry;
 import dev.chojo.ember.feature.attendance.entity.AttendanceFieldConfig;
+import dev.chojo.ember.feature.attendance.entity.AttendanceFieldType;
 import dev.chojo.ember.feature.attendance.entity.AttendanceFieldValueEntry;
 import dev.chojo.ember.feature.attendance.entity.AttendanceSession;
 import dev.chojo.ember.feature.attendance.entity.AttendanceSessionField;
@@ -102,13 +103,13 @@ public class AttendanceService {
     // -- Template Fields --
 
     public List<AttendanceTemplateField> createTemplateField(
-            int templateId, String name, String fieldType, String config, int position) {
+            int templateId, String name, AttendanceFieldType fieldType, String config, int position) {
         attendanceRepository.createTemplateField(templateId, name, fieldType, config, position);
         return attendanceRepository.findTemplateFields(templateId);
     }
 
     public Optional<List<AttendanceTemplateField>> updateTemplateField(
-            int templateId, int fieldId, String name, String fieldType, String config, int position) {
+            int templateId, int fieldId, String name, AttendanceFieldType fieldType, String config, int position) {
         if (attendanceRepository.updateTemplateField(fieldId, name, fieldType, config, position)) {
             return Optional.of(attendanceRepository.findTemplateFields(templateId));
         }

@@ -65,8 +65,8 @@ public class FederationHttpClient {
     public List<RemoteKbSearchResult> searchKb(
             String remoteHost, int localStationId, String localPrivateKeyBase64, String query) {
         try {
-            String url =
-                    apiUrl(remoteHost) + "/federation/remote/kb/search?q=" + URLEncoder.encode(query, StandardCharsets.UTF_8);
+            String url = apiUrl(remoteHost) + "/federation/remote/kb/search?q="
+                    + URLEncoder.encode(query, StandardCharsets.UTF_8);
             var response = signedGet(url, localStationId, localPrivateKeyBase64);
             if (response.statusCode() != 200) return List.of();
             var type = mapper.getTypeFactory().constructCollectionType(List.class, RemoteKbSearchResult.class);

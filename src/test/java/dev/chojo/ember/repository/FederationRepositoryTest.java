@@ -278,10 +278,10 @@ class FederationRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(50)
     void upsertAndFindMetadataCache() {
-        federationRepo.upsertMetadataCache(partnerId, "KB", 100, "Test File", "A description");
-        federationRepo.upsertMetadataCache(partnerId, "KB", 101, "Another File", "Another desc");
+        federationRepo.upsertMetadataCache(partnerId, ContentType.KB, 100, "Test File", "A description");
+        federationRepo.upsertMetadataCache(partnerId, ContentType.KB, 101, "Another File", "Another desc");
 
-        var cached = federationRepo.findCachedMetadata(partnerId, "KB");
+        var cached = federationRepo.findCachedMetadata(partnerId, ContentType.KB);
         assertEquals(2, cached.size());
         assertTrue(
                 cached.stream().anyMatch(c -> c.remoteId() == 100 && c.title().equals("Test File")));
@@ -292,8 +292,8 @@ class FederationRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(51)
     void upsertMetadataCacheUpdatesExisting() {
-        federationRepo.upsertMetadataCache(partnerId, "KB", 100, "Updated Title", "Updated desc");
-        var cached = federationRepo.findCachedMetadata(partnerId, "KB");
+        federationRepo.upsertMetadataCache(partnerId, ContentType.KB, 100, "Updated Title", "Updated desc");
+        var cached = federationRepo.findCachedMetadata(partnerId, ContentType.KB);
         assertTrue(
                 cached.stream().anyMatch(c -> c.remoteId() == 100 && c.title().equals("Updated Title")));
     }
@@ -302,7 +302,7 @@ class FederationRepositoryTest extends RepositoryTestBase {
     @Order(52)
     void clearMetadataCache() {
         federationRepo.clearMetadataCache(partnerId);
-        var cached = federationRepo.findCachedMetadata(partnerId, "KB");
+        var cached = federationRepo.findCachedMetadata(partnerId, ContentType.KB);
         assertTrue(cached.isEmpty());
     }
 
@@ -312,8 +312,8 @@ class FederationRepositoryTest extends RepositoryTestBase {
     @Order(60)
     void logAndFindChanges() {
         Instant before = Instant.EPOCH;
-        federationRepo.logChange(stationA.id(), "KB", 1, "CREATED");
-        federationRepo.logChange(stationA.id(), "QUIZ", 2, "UPDATED");
+        federationRepo.logChange(stationA.id(), ContentType.KB, 1, ChangeType.CREATED);
+        federationRepo.logChange(stationA.id(), ContentType.QUIZ, 2, ChangeType.UPDATED);
 
         var changes = federationRepo.findChangesSince(stationA.id(), before);
         assertTrue(changes.size() >= 2, "Expected at least 2 changes, got " + changes.size() + ": " + changes);

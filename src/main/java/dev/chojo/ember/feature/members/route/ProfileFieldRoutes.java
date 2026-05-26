@@ -93,14 +93,8 @@ public class ProfileFieldRoutes implements Routes {
     private void create(Context ctx) {
         UserSession session = UserSession.from(ctx);
         var request = ctx.bodyAsClass(ProfileFieldRequest.class);
-        if (isBlank(request.name()) || isBlank(request.fieldType())) {
+        if (isBlank(request.name()) || request.fieldType() == null) {
             throw new BadRequestResponse("name and fieldType are required");
-        }
-        try {
-            ProfileFieldType.valueOf(request.fieldType().toUpperCase());
-        } catch (IllegalArgumentException e) {
-            log.warn("Invalid profile field type: {}", request.fieldType(), e);
-            throw new BadRequestResponse("Invalid field type: " + request.fieldType());
         }
         ctx.status(HttpStatus.CREATED)
                 .json(profileFieldService.create(
@@ -143,7 +137,7 @@ public class ProfileFieldRoutes implements Routes {
     private void update(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
         var request = ctx.bodyAsClass(ProfileFieldRequest.class);
-        if (isBlank(request.name()) || isBlank(request.fieldType())) {
+        if (isBlank(request.name()) || request.fieldType() == null) {
             throw new BadRequestResponse("name and fieldType are required");
         }
         profileFieldService

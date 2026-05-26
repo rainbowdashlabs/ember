@@ -10,6 +10,7 @@ import dev.chojo.ember.event.events.CommentCreated;
 import dev.chojo.ember.event.events.CommentDeleted;
 import dev.chojo.ember.event.events.NewsCreated;
 import dev.chojo.ember.event.events.NewsDeleted;
+import dev.chojo.ember.feature.comment.entity.CommentEntityType;
 import dev.chojo.ember.feature.news.entity.News;
 import dev.chojo.ember.feature.news.entity.NewsComment;
 import dev.chojo.ember.feature.news.repository.NewsRepository;
@@ -206,7 +207,7 @@ public class NewsService {
             }
             eventBus.publish(new CommentCreated(
                     stationId,
-                    "news",
+                    CommentEntityType.NEWS,
                     newsId,
                     news.title(),
                     comment.id(),

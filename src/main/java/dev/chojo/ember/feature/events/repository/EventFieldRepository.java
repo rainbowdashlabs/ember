@@ -9,6 +9,7 @@ import de.chojo.sadu.postgresql.types.PostgreSqlTypes;
 import de.chojo.sadu.queries.api.call.Call;
 import de.chojo.sadu.queries.api.query.Query;
 import dev.chojo.ember.feature.events.entity.EventField;
+import dev.chojo.ember.feature.events.entity.EventFieldType;
 import jakarta.inject.Singleton;
 
 import java.util.List;
@@ -51,7 +52,7 @@ public class EventFieldRepository {
     public EventField create(
             int eventId,
             String name,
-            String fieldType,
+            EventFieldType fieldType,
             String config,
             String value,
             int position,
@@ -90,7 +91,7 @@ public class EventFieldRepository {
             create(
                     eventId,
                     f.name(),
-                    f.fieldType() != null ? f.fieldType() : "string",
+                    f.fieldType() != null ? f.fieldType() : EventFieldType.STRING,
                     f.config() != null ? f.config() : "{}",
                     f.value() != null ? f.value() : "",
                     i,
@@ -102,7 +103,7 @@ public class EventFieldRepository {
 
     public record FieldEntry(
             String name,
-            String fieldType,
+            EventFieldType fieldType,
             String config,
             String value,
             boolean overview,

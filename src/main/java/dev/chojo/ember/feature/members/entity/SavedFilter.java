@@ -17,7 +17,8 @@ import de.chojo.sadu.mapper.rowmapper.RowMapping;
  * @param filterData the filter configuration stored as JSON
  * @param position   the display order position
  */
-public record SavedFilter(int id, int accountId, String tableType, String name, String filterData, int position) {
+public record SavedFilter(
+        int id, int accountId, FilterTableType tableType, String name, String filterData, int position) {
     /**
      * Creates a row mapping for database result set conversion.
      */
@@ -25,7 +26,7 @@ public record SavedFilter(int id, int accountId, String tableType, String name, 
         return row -> new SavedFilter(
                 row.getInt("id"),
                 row.getInt("account_id"),
-                row.getString("table_type"),
+                row.getEnum("table_type", FilterTableType.class),
                 row.getString("name"),
                 row.getString("filter_data"),
                 row.getInt("position"));

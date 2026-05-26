@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.service;
 
+import dev.chojo.ember.feature.events.entity.EventFieldType;
 import dev.chojo.ember.feature.events.entity.LayoutFieldEntry;
 import dev.chojo.ember.feature.events.repository.EventLayoutRepository;
 import dev.chojo.ember.feature.events.service.EventLayoutService;
@@ -84,8 +85,8 @@ class EventLayoutServiceTest extends RepositoryTestBase {
     @Order(10)
     void replaceAndFindFields() {
         var fields = List.of(
-                new LayoutFieldEntry("Location", "string", "{}", true, null),
-                new LayoutFieldEntry("Notes", "string", "{}", false, null));
+                new LayoutFieldEntry("Location", EventFieldType.STRING, "{}", true, null),
+                new LayoutFieldEntry("Notes", EventFieldType.STRING, "{}", false, null));
         service.replaceLayoutFields(layoutId, fields);
 
         var found = service.findFieldsByLayout(layoutId);
@@ -98,7 +99,7 @@ class EventLayoutServiceTest extends RepositoryTestBase {
     @Order(11)
     void replaceLayoutFieldsClearsOld() {
         service.replaceLayoutFields(
-                layoutId, List.of(new LayoutFieldEntry("SingleField", "string", "{}", false, null)));
+                layoutId, List.of(new LayoutFieldEntry("SingleField", EventFieldType.STRING, "{}", false, null)));
 
         var found = service.findFieldsByLayout(layoutId);
         assertEquals(1, found.size());
@@ -116,9 +117,9 @@ class EventLayoutServiceTest extends RepositoryTestBase {
     @Order(13)
     void fieldsHaveCorrectPositions() {
         var fields = List.of(
-                new LayoutFieldEntry("First", "string", "{}", false, null),
-                new LayoutFieldEntry("Second", "number", "{}", false, null),
-                new LayoutFieldEntry("Third", "string", "{}", true, null));
+                new LayoutFieldEntry("First", EventFieldType.STRING, "{}", false, null),
+                new LayoutFieldEntry("Second", EventFieldType.NUMBER, "{}", false, null),
+                new LayoutFieldEntry("Third", EventFieldType.STRING, "{}", true, null));
         service.replaceLayoutFields(layoutId, fields);
 
         var found = service.findFieldsByLayout(layoutId);

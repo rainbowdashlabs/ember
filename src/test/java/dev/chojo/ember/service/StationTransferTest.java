@@ -6,10 +6,12 @@
 package dev.chojo.ember.service;
 
 import dev.chojo.ember.api.Roles;
+import dev.chojo.ember.feature.attendance.entity.AttendanceFieldType;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.form.entity.FormQuestion;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
 import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
+import dev.chojo.ember.feature.members.entity.ProfileFieldType;
 import dev.chojo.ember.feature.members.entity.Role;
 import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.feature.station.service.StationExportService;
@@ -127,11 +129,12 @@ class StationTransferTest extends RepositoryTestBase {
         userTagRepo.addMember(tagErsteHilfe.id(), manager.id());
 
         // --- Profile fields ---
-        var fieldTelefon =
-                profileFieldRepo.create(sourceStationId, "Telefon", "text", "{}", 0, ProfileFieldScope.MEMBER);
-        var fieldGeburtstag =
-                profileFieldRepo.create(sourceStationId, "Geburtstag", "date", "{}", 1, ProfileFieldScope.MEMBER);
-        var fieldNotizen = profileFieldRepo.create(sourceStationId, "Notizen", "text", "{}", 0, ProfileFieldScope.TEAM);
+        var fieldTelefon = profileFieldRepo.create(
+                sourceStationId, "Telefon", ProfileFieldType.TEXT, "{}", 0, ProfileFieldScope.MEMBER);
+        var fieldGeburtstag = profileFieldRepo.create(
+                sourceStationId, "Geburtstag", ProfileFieldType.DATE, "{}", 1, ProfileFieldScope.MEMBER);
+        var fieldNotizen = profileFieldRepo.create(
+                sourceStationId, "Notizen", ProfileFieldType.TEXT, "{}", 0, ProfileFieldScope.TEAM);
         profileFieldRepo.setValue(manager.id(), fieldTelefon.id(), "\"0151-11111\"");
         profileFieldRepo.setValue(trainer.id(), fieldTelefon.id(), "\"0151-22222\"");
         profileFieldRepo.setValue(child.id(), fieldGeburtstag.id(), "\"2012-05-15\"");
@@ -139,10 +142,10 @@ class StationTransferTest extends RepositoryTestBase {
 
         // --- Attendance templates ---
         var templateStandard = attendanceRepo.createTemplate(sourceStationId, "Standard-Übung");
-        attendanceRepo.createTemplateField(templateStandard.id(), "Leiter", "member", "{}", 0);
-        attendanceRepo.createTemplateField(templateStandard.id(), "Thema", "text", "{}", 1);
+        attendanceRepo.createTemplateField(templateStandard.id(), "Leiter", AttendanceFieldType.MEMBER, "{}", 0);
+        attendanceRepo.createTemplateField(templateStandard.id(), "Thema", AttendanceFieldType.STRING, "{}", 1);
         var templateSonder = attendanceRepo.createTemplate(sourceStationId, "Sondertermin");
-        attendanceRepo.createTemplateField(templateSonder.id(), "Verantwortlich", "member", "{}", 0);
+        attendanceRepo.createTemplateField(templateSonder.id(), "Verantwortlich", AttendanceFieldType.MEMBER, "{}", 0);
 
         // --- Event categories ---
         var catTraining = eventRepo.createCategory(sourceStationId, "Training", 0);

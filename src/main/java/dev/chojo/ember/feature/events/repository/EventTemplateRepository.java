@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.events.repository;
 
 import de.chojo.sadu.queries.api.call.Call;
 import de.chojo.sadu.queries.api.query.Query;
+import dev.chojo.ember.feature.events.entity.EventFieldType;
 import dev.chojo.ember.feature.events.entity.EventTemplate;
 import dev.chojo.ember.feature.events.entity.EventTemplateField;
 import dev.chojo.ember.feature.events.entity.EventTemplateFieldData;
@@ -118,7 +119,7 @@ public class EventTemplateRepository {
                     .single(Call.of()
                             .bind("template_id", templateId)
                             .bind("name", f.name())
-                            .bind("field_type", f.fieldType() != null ? f.fieldType() : "string")
+                            .bind("field_type", f.fieldType() != null ? f.fieldType() : EventFieldType.STRING)
                             .bind("config", f.config() != null ? f.config() : "{}")
                             .bind("position", f.position())
                             .bind("overview", f.overview())

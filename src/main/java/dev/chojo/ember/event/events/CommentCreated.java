@@ -6,10 +6,11 @@
 package dev.chojo.ember.event.events;
 
 import dev.chojo.ember.event.DomainEvent;
+import dev.chojo.ember.feature.comment.entity.CommentEntityType;
 
 public record CommentCreated(
         int stationId,
-        String entityType,
+        CommentEntityType entityType,
         int entityId,
         String entityTitle,
         int commentId,

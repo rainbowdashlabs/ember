@@ -9,6 +9,7 @@ import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.CommentCreated;
 import dev.chojo.ember.event.events.MentionedInComment;
 import dev.chojo.ember.feature.comment.entity.Comment;
+import dev.chojo.ember.feature.comment.entity.CommentEntityType;
 import dev.chojo.ember.feature.comment.repository.EventCommentRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -76,7 +77,7 @@ public class CommentService {
                     String preview = content.length() > 100 ? content.substring(0, 100) + "…" : content;
                     eventBus.publish(new CommentCreated(
                             stationId,
-                            "event",
+                            CommentEntityType.EVENT,
                             eventId,
                             "",
                             comment.id(),
@@ -93,8 +94,8 @@ public class CommentService {
         var mentionedIds = parseMentions(content);
         for (int mentionedId : mentionedIds) {
             if (mentionedId != authorId) {
-                eventBus.publish(
-                        new MentionedInComment(stationId, mentionedId, authorId, authorName, "event", eventId));
+                eventBus.publish(new MentionedInComment(
+                        stationId, mentionedId, authorId, authorName, CommentEntityType.EVENT, eventId));
             }
         }
 

@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.service;
 
+import dev.chojo.ember.feature.events.entity.EventFieldType;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventFieldRepository;
 import dev.chojo.ember.feature.events.service.EventFieldService;
@@ -80,8 +81,10 @@ class EventFieldServiceTest extends RepositoryTestBase {
     @Order(1)
     void replaceAndFindByEvent() {
         var fields = List.of(
-                new EventFieldRepository.FieldEntry("Location", "string", "{}", "Berlin HQ", true, null, false),
-                new EventFieldRepository.FieldEntry("Notes", "string", "{}", "Bring gear", false, null, true));
+                new EventFieldRepository.FieldEntry(
+                        "Location", EventFieldType.STRING, "{}", "Berlin HQ", true, null, false),
+                new EventFieldRepository.FieldEntry(
+                        "Notes", EventFieldType.STRING, "{}", "Bring gear", false, null, true));
         service.replaceFields(eventId, fields);
 
         var found = service.findByEvent(eventId);
@@ -98,7 +101,7 @@ class EventFieldServiceTest extends RepositoryTestBase {
         service.replaceFields(
                 eventId,
                 List.of(new EventFieldRepository.FieldEntry(
-                        "SingleField", "string", "{}", "value", false, null, false)));
+                        "SingleField", EventFieldType.STRING, "{}", "value", false, null, false)));
 
         var found = service.findByEvent(eventId);
         assertEquals(1, found.size());
@@ -117,12 +120,15 @@ class EventFieldServiceTest extends RepositoryTestBase {
     void findDistinctFieldNames() {
         service.replaceFields(
                 eventId,
-                List.of(new EventFieldRepository.FieldEntry("Location", "string", "{}", "Berlin", true, null, false)));
+                List.of(new EventFieldRepository.FieldEntry(
+                        "Location", EventFieldType.STRING, "{}", "Berlin", true, null, false)));
         service.replaceFields(
                 event2Id,
                 List.of(
-                        new EventFieldRepository.FieldEntry("Location", "string", "{}", "Munich", true, null, false),
-                        new EventFieldRepository.FieldEntry("Topic", "string", "{}", "Training", false, null, false)));
+                        new EventFieldRepository.FieldEntry(
+                                "Location", EventFieldType.STRING, "{}", "Munich", true, null, false),
+                        new EventFieldRepository.FieldEntry(
+                                "Topic", EventFieldType.STRING, "{}", "Training", false, null, false)));
 
         var names = service.findDistinctFieldNames(station.id());
         assertTrue(names.contains("Location"));
@@ -138,10 +144,13 @@ class EventFieldServiceTest extends RepositoryTestBase {
         service.replaceFields(
                 eventId,
                 List.of(
-                        new EventFieldRepository.FieldEntry("Loc", "string", "{}", "A", true, null, false),
-                        new EventFieldRepository.FieldEntry("Note", "string", "{}", "B", false, null, false)));
+                        new EventFieldRepository.FieldEntry("Loc", EventFieldType.STRING, "{}", "A", true, null, false),
+                        new EventFieldRepository.FieldEntry(
+                                "Note", EventFieldType.STRING, "{}", "B", false, null, false)));
         service.replaceFields(
-                event2Id, List.of(new EventFieldRepository.FieldEntry("Loc", "string", "{}", "C", true, null, false)));
+                event2Id,
+                List.of(new EventFieldRepository.FieldEntry(
+                        "Loc", EventFieldType.STRING, "{}", "C", true, null, false)));
 
         var map = service.findOverviewFieldsByEvents(List.of(eventId, event2Id));
         assertTrue(map.containsKey(eventId));

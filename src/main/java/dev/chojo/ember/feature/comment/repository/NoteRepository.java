@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.comment.repository;
 import de.chojo.sadu.queries.api.call.Call;
 import de.chojo.sadu.queries.api.query.Query;
 import dev.chojo.ember.feature.comment.entity.EntityNote;
+import dev.chojo.ember.feature.comment.entity.NoteEntityType;
 import dev.chojo.ember.feature.comment.entity.NoteVersion;
 import jakarta.inject.Singleton;
 
@@ -27,7 +28,7 @@ public class NoteRepository {
      * @param entityId   the entity ID
      * @return the note, if found
      */
-    public Optional<EntityNote> findNote(String entityType, int entityId) {
+    public Optional<EntityNote> findNote(NoteEntityType entityType, int entityId) {
         return Query.query("SELECT id, entity_type, entity_id, station_id, content, updated_by, updated_at"
                         + " FROM entity_note WHERE entity_type = :entity_type AND entity_id = :entity_id;")
                 .single(Call.of().bind("entity_type", entityType).bind("entity_id", entityId))
@@ -45,7 +46,8 @@ public class NoteRepository {
      * @param updatedBy  the member ID who is updating
      * @return the created or updated note
      */
-    public EntityNote createOrUpdate(String entityType, int entityId, int stationId, String content, int updatedBy) {
+    public EntityNote createOrUpdate(
+            NoteEntityType entityType, int entityId, int stationId, String content, int updatedBy) {
         return Query.query("INSERT INTO entity_note (entity_type, entity_id, station_id, content, updated_by)"
                         + " VALUES (:entity_type, :entity_id, :station_id, :content, :updated_by)"
                         + " ON CONFLICT (entity_type, entity_id) DO UPDATE"

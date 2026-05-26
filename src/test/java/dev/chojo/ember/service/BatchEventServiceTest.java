@@ -8,6 +8,7 @@ package dev.chojo.ember.service;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.events.entity.BatchRequest;
 import dev.chojo.ember.feature.events.entity.BatchRow;
+import dev.chojo.ember.feature.events.entity.EventFieldType;
 import dev.chojo.ember.feature.events.entity.EventLayoutField;
 import dev.chojo.ember.feature.events.entity.IntervalConfig;
 import dev.chojo.ember.feature.events.entity.LayoutFieldEntry;
@@ -62,8 +63,8 @@ class BatchEventServiceTest extends RepositoryTestBase {
         layoutService.replaceLayoutFields(
                 layoutId,
                 List.of(
-                        new LayoutFieldEntry("Location", "string", "{}", true, null),
-                        new LayoutFieldEntry("Topic", "string", "{}", false, null)));
+                        new LayoutFieldEntry("Location", EventFieldType.STRING, "{}", true, null),
+                        new LayoutFieldEntry("Topic", EventFieldType.STRING, "{}", false, null)));
     }
 
     @AfterAll
@@ -80,8 +81,8 @@ class BatchEventServiceTest extends RepositoryTestBase {
         Instant end2 = start2.plus(2, ChronoUnit.HOURS);
 
         var inlineFields = List.of(
-                new EventLayoutField(0, 0, "Location", "string", "{}", 0, true, null),
-                new EventLayoutField(0, 0, "Notes", "string", "{}", 1, false, null));
+                new EventLayoutField(0, 0, "Location", EventFieldType.STRING, "{}", 0, true, null),
+                new EventLayoutField(0, 0, "Notes", EventFieldType.STRING, "{}", 1, false, null));
 
         var rows = List.of(
                 new BatchRow("Event Day 1", start1, end1, Map.of("Location", "Berlin", "Notes", "Bring gear")),

@@ -6,4 +6,4 @@
 package dev.chojo.ember.feature.events.entity;
 
 public record LayoutFieldEntry(
-        String name, String fieldType, String config, boolean overview, Integer attendanceFieldId) {}
+        String name, EventFieldType fieldType, String config, boolean overview, Integer attendanceFieldId) {}

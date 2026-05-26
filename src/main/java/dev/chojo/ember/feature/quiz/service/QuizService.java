@@ -42,8 +42,7 @@ import java.util.stream.Collectors;
 
 @Singleton
 public class QuizService {
-    private static final ObjectMapper MAPPER =
-            JsonMapper.builder().build();
+    private static final ObjectMapper MAPPER = JsonMapper.builder().build();
 
     private final QuizCatalogRepository catalogRepository;
     private final QuizTestRepository testRepository;

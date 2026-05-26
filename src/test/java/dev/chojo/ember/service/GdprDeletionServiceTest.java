@@ -10,6 +10,7 @@ import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.legal.service.GdprDeletionService;
 import dev.chojo.ember.feature.media.service.ImageService;
 import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
+import dev.chojo.ember.feature.members.entity.ProfileFieldType;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
@@ -41,7 +42,8 @@ class GdprDeletionServiceTest extends RepositoryTestBase {
         stationMemberRepo.findRoleByName(Roles.LOGIN).ifPresent(r -> stationMemberRepo.addRole(member.id(), r.id()));
 
         // Add profile field value
-        var field = profileFieldRepo.create(station.id(), "Phone", "text", "{}", 0, ProfileFieldScope.MEMBER);
+        var field = profileFieldRepo.create(
+                station.id(), "Phone", ProfileFieldType.TEXT, "{}", 0, ProfileFieldScope.MEMBER);
         profileFieldRepo.setValue(member.id(), field.id(), "\"0123456789\"");
 
         // Add to a group

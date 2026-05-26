@@ -8,6 +8,7 @@ package dev.chojo.ember.service;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.members.entity.FieldValueEntry;
 import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
+import dev.chojo.ember.feature.members.entity.ProfileFieldType;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.service.ProfileFieldService;
 import dev.chojo.ember.feature.notifications.service.NotificationService;
@@ -55,7 +56,7 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
     @Test
     @Order(1)
     void create() {
-        var field = service.create(station.id(), "Phone", "text", "{}", 1, ProfileFieldScope.MEMBER);
+        var field = service.create(station.id(), "Phone", ProfileFieldType.TEXT, "{}", 1, ProfileFieldScope.MEMBER);
         assertNotNull(field);
         assertEquals("Phone", field.name());
         assertEquals(ProfileFieldScope.MEMBER, field.scope());
@@ -89,7 +90,7 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
     @Test
     @Order(5)
     void update() {
-        var updated = service.update(fieldId, "Mobile", "text", "{}", 2, false);
+        var updated = service.update(fieldId, "Mobile", ProfileFieldType.TEXT, "{}", 2, false);
         assertTrue(updated.isPresent());
         assertEquals("Mobile", updated.get().name());
         assertEquals(2, updated.get().position());
@@ -98,7 +99,7 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
     @Test
     @Order(6)
     void updateNonExistent() {
-        var result = service.update(99999, "X", "text", "{}", 1, false);
+        var result = service.update(99999, "X", ProfileFieldType.TEXT, "{}", 1, false);
         assertTrue(result.isEmpty());
     }
 
@@ -205,7 +206,12 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
     void isProfileCompleteRequiredFieldMissing() {
         // Create a required field with no value for a new member
         var reqField = service.create(
-                station.id(), "Required Field", "text", "{\"required\":true}", 10, ProfileFieldScope.MEMBER);
+                station.id(),
+                "Required Field",
+                ProfileFieldType.TEXT,
+                "{\"required\":true}",
+                10,
+                ProfileFieldScope.MEMBER);
         var account2 = accountRepo.create("pfield-empty@test.com", "Empty", "Member");
         var member2 = stationMemberRepo.create(station.id(), account2.id());
 

@@ -6,6 +6,7 @@
 package dev.chojo.ember.event.events;
 
 import dev.chojo.ember.event.DomainEvent;
+import dev.chojo.ember.feature.comment.entity.CommentEntityType;
 
 /**
  * Published when a member is @mentioned in a comment.
@@ -18,5 +19,10 @@ import dev.chojo.ember.event.DomainEvent;
  * @param entityId        the ID of the entity
  */
 public record MentionedInComment(
-        int stationId, int mentionedMemberId, int authorMemberId, String authorName, String entityType, int entityId)
+        int stationId,
+        int mentionedMemberId,
+        int authorMemberId,
+        String authorName,
+        CommentEntityType entityType,
+        int entityId)
         implements DomainEvent {}

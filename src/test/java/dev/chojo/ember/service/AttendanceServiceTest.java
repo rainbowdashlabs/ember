@@ -7,9 +7,11 @@ package dev.chojo.ember.service;
 
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.attendance.entity.AttendanceEntry;
+import dev.chojo.ember.feature.attendance.entity.AttendanceFieldType;
 import dev.chojo.ember.feature.attendance.entity.AttendanceFieldValueEntry;
 import dev.chojo.ember.feature.attendance.repository.AttendanceRepository;
 import dev.chojo.ember.feature.attendance.service.AttendanceService;
+import dev.chojo.ember.feature.events.entity.EventFieldType;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.station.entity.Station;
@@ -98,7 +100,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
     @Test
     @Order(10)
     void createTemplateField() {
-        var fields = service.createTemplateField(templateId, "Location", "text", "{}", 1);
+        var fields = service.createTemplateField(templateId, "Location", AttendanceFieldType.STRING, "{}", 1);
         assertFalse(fields.isEmpty());
         assertEquals("Location", fields.getFirst().name());
     }
@@ -115,7 +117,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
     void updateTemplateField() {
         var fields = service.findTemplateFields(templateId);
         int fieldId = fields.getFirst().id();
-        var result = service.updateTemplateField(templateId, fieldId, "Room", "text", "{}", 1);
+        var result = service.updateTemplateField(templateId, fieldId, "Room", AttendanceFieldType.STRING, "{}", 1);
         assertTrue(result.isPresent());
         assertEquals("Room", result.get().getFirst().name());
     }
@@ -123,7 +125,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
     @Test
     @Order(13)
     void updateTemplateFieldNonExistent() {
-        assertTrue(service.updateTemplateField(templateId, 99999, "X", "text", "{}", 1)
+        assertTrue(service.updateTemplateField(templateId, 99999, "X", AttendanceFieldType.STRING, "{}", 1)
                 .isEmpty());
     }
 
@@ -215,7 +217,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
     @Order(26)
     void setAndFindSessionFields() {
         // Create a template field first
-        service.createTemplateField(templateId, "Notes", "text", "{}", 1);
+        service.createTemplateField(templateId, "Notes", AttendanceFieldType.STRING, "{}", 1);
         int fieldId = service.findTemplateFields(templateId).getFirst().id();
 
         var fields =
@@ -575,7 +577,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
         // Create a template field with autoAttend config
         var autoAttendTemplate = service.createTemplate(station.id(), "AutoAttend Template");
         var fieldJson = "{\"autoAttend\":true}";
-        service.createTemplateField(autoAttendTemplate.id(), "Members", "member_select", fieldJson, 1);
+        service.createTemplateField(autoAttendTemplate.id(), "Members", AttendanceFieldType.MEMBER, fieldJson, 1);
         var fields = service.findTemplateFields(autoAttendTemplate.id());
         int fieldId = fields.getFirst().id();
 
@@ -672,12 +674,20 @@ class AttendanceServiceTest extends RepositoryTestBase {
 
         // Create a template with a field
         var fieldTemplate = service.createTemplate(station.id(), "Field Default Template");
-        var fields = service.createTemplateField(fieldTemplate.id(), "Location", "text", "{}", 1);
+        var fields = service.createTemplateField(fieldTemplate.id(), "Location", AttendanceFieldType.STRING, "{}", 1);
         int attendanceFieldId = fields.getFirst().id();
 
         // Create event field linked to attendance field — value must be valid JSON
         eventFieldRepo.create(
-                event.id(), "Location", "text", "{}", "\"Conference Room A\"", 0, false, attendanceFieldId, false);
+                event.id(),
+                "Location",
+                EventFieldType.STRING,
+                "{}",
+                "\"Conference Room A\"",
+                0,
+                false,
+                attendanceFieldId,
+                false);
 
         // Create session — should auto-populate from event field
         var session = service.createSession(fieldTemplate.id(), null, null, event.id(), null);
@@ -745,7 +755,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
         // Test parseMemberIdsFromFieldValue via syncFromEvent with various formats
         var autoAttendTemplate2 = service.createTemplate(station.id(), "ParseTest Template");
         var fieldJson = "{\"autoAttend\":true}";
-        service.createTemplateField(autoAttendTemplate2.id(), "Members", "member_select", fieldJson, 1);
+        service.createTemplateField(autoAttendTemplate2.id(), "Members", AttendanceFieldType.MEMBER, fieldJson, 1);
         var fields2 = service.findTemplateFields(autoAttendTemplate2.id());
         int fieldId2 = fields2.getFirst().id();
 
@@ -792,7 +802,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
         // Template field with a default value — session creation should auto-populate
         var defaultTemplate = service.createTemplate(station.id(), "Default Value Template");
         var fieldJson = "{\"defaultValue\":\"Room 101\"}";
-        service.createTemplateField(defaultTemplate.id(), "Room", "text", fieldJson, 1);
+        service.createTemplateField(defaultTemplate.id(), "Room", AttendanceFieldType.STRING, fieldJson, 1);
         var templateFields = service.findTemplateFields(defaultTemplate.id());
 
         var session = service.createSession(

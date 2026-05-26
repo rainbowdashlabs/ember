@@ -7,6 +7,8 @@ package dev.chojo.ember.feature.federation.service;
 
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.federation.entity.CapabilityType;
+import dev.chojo.ember.feature.federation.entity.ChangeType;
+import dev.chojo.ember.feature.federation.entity.ContentType;
 import dev.chojo.ember.feature.federation.entity.Direction;
 import dev.chojo.ember.feature.federation.entity.FederationCapability;
 import dev.chojo.ember.feature.federation.entity.FederationChangeLog;
@@ -347,12 +349,12 @@ public class FederationService {
     // -- Metadata Cache --
 
     // Available for remote sync — not yet called from routes
-    public List<FederationMetadataCache> getCachedMetadata(int partnerId, String contentType) {
+    public List<FederationMetadataCache> getCachedMetadata(int partnerId, ContentType contentType) {
         return repository.findCachedMetadata(partnerId, contentType);
     }
 
     // Available for remote sync — not yet called from routes
-    public void refreshMetadataCache(int partnerId, String contentType, List<FederationMetadataCache> entries) {
+    public void refreshMetadataCache(int partnerId, ContentType contentType, List<FederationMetadataCache> entries) {
         for (var entry : entries) {
             repository.upsertMetadataCache(
                     partnerId, contentType, entry.remoteId(), entry.title(), entry.description());
@@ -376,7 +378,7 @@ public class FederationService {
     /**
      * Logs a content change for federation sync polling.
      */
-    public void logChange(int stationId, String contentType, int contentId, String changeType) {
+    public void logChange(int stationId, ContentType contentType, int contentId, ChangeType changeType) {
         repository.logChange(stationId, contentType, contentId, changeType);
     }
 

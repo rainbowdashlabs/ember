@@ -11,6 +11,7 @@ import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.attendance.entity.AttendanceEntry;
+import dev.chojo.ember.feature.attendance.entity.AttendanceFieldType;
 import dev.chojo.ember.feature.attendance.entity.AttendanceFieldValueEntry;
 import dev.chojo.ember.feature.attendance.entity.AttendanceReportPreset;
 import dev.chojo.ember.feature.attendance.entity.AttendanceSession;
@@ -368,7 +369,7 @@ public class AttendanceRoutes implements Routes {
             throw new ForbiddenResponse("Cannot access resources from another station");
         }
         var request = ctx.bodyAsClass(TemplateFieldRequest.class);
-        if (isBlank(request.name()) || isBlank(request.fieldType())) {
+        if (isBlank(request.name()) || request.fieldType() == null) {
             throw new BadRequestResponse("name and fieldType are required");
         }
         ctx.status(HttpStatus.CREATED)
@@ -399,7 +400,7 @@ public class AttendanceRoutes implements Routes {
             throw new ForbiddenResponse("Cannot access resources from another station");
         }
         var request = ctx.bodyAsClass(TemplateFieldRequest.class);
-        if (isBlank(request.name()) || isBlank(request.fieldType())) {
+        if (isBlank(request.name()) || request.fieldType() == null) {
             throw new BadRequestResponse("name and fieldType are required");
         }
         attendanceService
@@ -1134,7 +1135,7 @@ public class AttendanceRoutes implements Routes {
     /**
      * Request body for creating or updating a template field.
      */
-    public record TemplateFieldRequest(String name, String fieldType, String config, int position) {}
+    public record TemplateFieldRequest(String name, AttendanceFieldType fieldType, String config, int position) {}
 
     /**
      * Request body for creating or updating an attendance session.

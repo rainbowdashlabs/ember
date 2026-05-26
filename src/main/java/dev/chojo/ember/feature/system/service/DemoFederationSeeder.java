@@ -140,6 +140,52 @@ public class DemoFederationSeeder {
                         """,
                 partnerMember.id());
 
+        // Create a KB folder with files on the partner station
+        var partnerFolder = kbService.createFolder(
+                partnerStation.id(),
+                null,
+                "Gemeinsame Dokumente",
+                "Geteilte Ausbildungsunterlagen",
+                partnerMember.id());
+        kbService.createMarkdownFile(
+                partnerStation.id(),
+                partnerFolder.id(),
+                "Einsatzablauf",
+                "Standard-Einsatzablauf für gemeinsame Übungen",
+                """
+                        # Einsatzablauf
+
+                        ## Alarmierung
+                        1. Alarmierung über Funkmeldeempfänger
+                        2. Anfahrt zum Gerätehaus
+                        3. Einkleiden und Fahrzeugbesetzung
+
+                        ## Anfahrt
+                        - Einsatzort anfahren
+                        - Rückmeldung an Leitstelle
+
+                        ## Einsatzstelle
+                        - Erkundung durch Einsatzleiter
+                        - Aufgabenverteilung
+                        - Durchführung
+                        """,
+                partnerMember.id());
+        kbService.createMarkdownFile(
+                partnerStation.id(),
+                partnerFolder.id(),
+                "Funkrufnamen",
+                "Übersicht der Funkrufnamen beider Wehren",
+                """
+                        # Funkrufnamen
+
+                        | Fahrzeug | Rufname |
+                        |----------|---------|
+                        | LF 10    | Florian Musterstadt 1-44-1 |
+                        | MTW      | Florian Musterstadt 1-19-1 |
+                        | TSF-W    | Florian Partnerwache 1-43-1 |
+                        """,
+                partnerMember.id());
+
         // Federate the two stations
         // When federationForceHttp is set, register partners as remote (same host, exercising HTTP path)
         String remoteHost = demoConfig.federationForceHttp() ? "http://localhost:" + apiConfig.port() : null;
@@ -154,10 +200,14 @@ public class DemoFederationSeeder {
                 remoteHost,
                 remoteHost);
 
-        // Share the partner station's KB with the primary station
+        // Share the partner station's KB with the primary station (files + folders)
         var kbFiles = kbService.findFiles(partnerStation.id(), null);
         for (var file : kbFiles) {
             federationService.createKbShare(partnerStation.id(), file.id(), null, ShareScope.ALL_PARTNERS);
+        }
+        var kbFolders = kbService.findFolders(partnerStation.id(), null);
+        for (var folder : kbFolders) {
+            federationService.createKbShare(partnerStation.id(), null, folder.id(), ShareScope.ALL_PARTNERS);
         }
 
         // Share the primary station's KB with the partner station

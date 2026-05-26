@@ -8,6 +8,7 @@ package dev.chojo.ember.service;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.federation.entity.CapabilityType;
+import dev.chojo.ember.feature.federation.entity.ContentType;
 import dev.chojo.ember.feature.federation.entity.Direction;
 import dev.chojo.ember.feature.federation.entity.ShareScope;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
@@ -338,7 +339,7 @@ class FederatedContentServiceTest extends RepositoryTestBase {
     @Order(40)
     void browseKbUpdatesMetadataCache() {
         contentService.browseSharedKb(stationA.id());
-        var cached = federationRepo.findCachedMetadata(partnerIdAtoB, "KB");
+        var cached = federationRepo.findCachedMetadata(partnerIdAtoB, ContentType.KB);
         assertTrue(cached.stream()
                 .anyMatch(c -> c.remoteId() == realKbFileId && c.title().equals("SharedFile")));
     }
@@ -347,7 +348,7 @@ class FederatedContentServiceTest extends RepositoryTestBase {
     @Order(41)
     void browseQuizUpdatesMetadataCache() {
         contentService.browseSharedQuiz(stationA.id());
-        var cached = federationRepo.findCachedMetadata(partnerIdAtoB, "QUIZ");
+        var cached = federationRepo.findCachedMetadata(partnerIdAtoB, ContentType.QUIZ);
         assertTrue(cached.stream()
                 .anyMatch(c -> c.remoteId() == realQuizCatalogId && c.title().equals("SharedCatalog")));
     }
@@ -356,7 +357,7 @@ class FederatedContentServiceTest extends RepositoryTestBase {
     @Order(42)
     void browseProtocolsUpdatesMetadataCache() {
         contentService.browseSharedProtocols(stationA.id());
-        var cached = federationRepo.findCachedMetadata(partnerIdAtoB, "PROTOCOL");
+        var cached = federationRepo.findCachedMetadata(partnerIdAtoB, ContentType.PROTOCOL);
         assertTrue(cached.stream()
                 .anyMatch(c -> c.remoteId() == realProtocolId && c.title().equals("SharedProtocol")));
     }

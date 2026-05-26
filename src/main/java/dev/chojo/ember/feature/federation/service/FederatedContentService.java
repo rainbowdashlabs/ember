@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.federation.service;
 
 import dev.chojo.ember.feature.federation.entity.CapabilityType;
+import dev.chojo.ember.feature.federation.entity.ContentType;
 import dev.chojo.ember.feature.federation.entity.Direction;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
@@ -115,7 +116,7 @@ public class FederatedContentService {
             if (item.file() != null) {
                 federationRepository.upsertMetadataCache(
                         partner.id(),
-                        "KB",
+                        ContentType.KB,
                         item.file().id(),
                         item.file().name(),
                         item.file().description());
@@ -149,7 +150,7 @@ public class FederatedContentService {
                     false);
             result.add(new SharedKbItem(file, null, remoteStationId, partner.id()));
             federationRepository.upsertMetadataCache(
-                    partner.id(), "KB", remoteFile.id(), remoteFile.name(), remoteFile.description());
+                    partner.id(), ContentType.KB, remoteFile.id(), remoteFile.name(), remoteFile.description());
         }
     }
 
@@ -184,7 +185,7 @@ public class FederatedContentService {
                     result.add(new SharedQuizItem(catalog.get(), remoteStationId, partner.id()));
                     federationRepository.upsertMetadataCache(
                             partner.id(),
-                            "QUIZ",
+                            ContentType.QUIZ,
                             catalog.get().id(),
                             catalog.get().name(),
                             catalog.get().description());
@@ -201,7 +202,11 @@ public class FederatedContentService {
             quizService.findCatalog(remoteCatalog.id()).ifPresent(catalog -> {
                 result.add(new SharedQuizItem(catalog, remoteStationId, partner.id()));
                 federationRepository.upsertMetadataCache(
-                        partner.id(), "QUIZ", remoteCatalog.id(), remoteCatalog.name(), remoteCatalog.description());
+                        partner.id(),
+                        ContentType.QUIZ,
+                        remoteCatalog.id(),
+                        remoteCatalog.name(),
+                        remoteCatalog.description());
             });
         }
     }
@@ -237,7 +242,7 @@ public class FederatedContentService {
                 protocolService.findProtocol(share.protocolId()).ifPresent(proto -> {
                     result.add(new SharedProtocolItem(proto, remoteStationId, partner.id()));
                     federationRepository.upsertMetadataCache(
-                            partner.id(), "PROTOCOL", proto.id(), proto.name(), proto.description());
+                            partner.id(), ContentType.PROTOCOL, proto.id(), proto.name(), proto.description());
                 });
             }
         }
@@ -251,7 +256,11 @@ public class FederatedContentService {
             protocolService.findProtocol(remoteProto.id()).ifPresent(proto -> {
                 result.add(new SharedProtocolItem(proto, remoteStationId, partner.id()));
                 federationRepository.upsertMetadataCache(
-                        partner.id(), "PROTOCOL", remoteProto.id(), remoteProto.name(), remoteProto.description());
+                        partner.id(),
+                        ContentType.PROTOCOL,
+                        remoteProto.id(),
+                        remoteProto.name(),
+                        remoteProto.description());
             });
         }
     }

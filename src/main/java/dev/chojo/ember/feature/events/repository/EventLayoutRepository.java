@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.events.repository;
 
 import de.chojo.sadu.queries.api.call.Call;
 import de.chojo.sadu.queries.api.query.Query;
+import dev.chojo.ember.feature.events.entity.EventFieldType;
 import dev.chojo.ember.feature.events.entity.EventLayout;
 import dev.chojo.ember.feature.events.entity.EventLayoutField;
 import dev.chojo.ember.feature.events.entity.LayoutFieldEntry;
@@ -76,7 +77,7 @@ public class EventLayoutRepository {
                     .single(Call.of()
                             .bind("layout_id", layoutId)
                             .bind("name", f.name())
-                            .bind("field_type", f.fieldType() != null ? f.fieldType() : "string")
+                            .bind("field_type", f.fieldType() != null ? f.fieldType() : EventFieldType.STRING)
                             .bind("config", f.config() != null ? f.config() : "{}")
                             .bind("position", i)
                             .bind("overview", f.overview())

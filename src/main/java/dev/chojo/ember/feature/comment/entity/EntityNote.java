@@ -23,14 +23,20 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
  * @param updatedAt  timestamp when the note was last updated
  */
 public record EntityNote(
-        int id, String entityType, int entityId, int stationId, String content, Integer updatedBy, Instant updatedAt) {
+        int id,
+        NoteEntityType entityType,
+        int entityId,
+        int stationId,
+        String content,
+        Integer updatedBy,
+        Instant updatedAt) {
     /**
      * Creates a row mapping for database result set conversion.
      */
     public static RowMapping<EntityNote> map() {
         return row -> new EntityNote(
                 row.getInt("id"),
-                row.getString("entity_type"),
+                row.getEnum("entity_type", NoteEntityType.class),
                 row.getInt("entity_id"),
                 row.getInt("station_id"),
                 row.getString("content"),

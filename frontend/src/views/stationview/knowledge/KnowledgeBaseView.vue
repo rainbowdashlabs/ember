@@ -73,6 +73,9 @@ const filteredSharedFiles = computed(() => {
     return sharedFiles.value
 })
 
+const filteredFolders = computed(() => filterStationId.value != null ? [] : folders.value)
+const filteredFiles = computed(() => filterStationId.value != null ? [] : files.value)
+
 // Search
 const searchQuery = ref('')
 const searchResults = ref<import('@/api/knowledgeBase').SearchResult[]>([])
@@ -393,11 +396,11 @@ function navigateToFavourites() {
                 />
 
                 <!-- Content: Grid or List -->
-                <template v-if="folders.length > 0 || files.length > 0 || filteredSharedFiles.length > 0 || (!currentFolder && !isFavouritesView && favourites.length > 0)">
+                <template v-if="filteredFolders.length > 0 || filteredFiles.length > 0 || filteredSharedFiles.length > 0 || (!currentFolder && !isFavouritesView && favourites.length > 0)">
                     <KbItemGrid
                         v-if="viewMode === 'grid'"
-                        :folders="folders"
-                        :files="files"
+                        :folders="filteredFolders"
+                        :files="filteredFiles"
                         :shared-files="filteredSharedFiles"
                         :favourites="favourites"
                         :favourite-ids="favouriteIds"
@@ -416,8 +419,8 @@ function navigateToFavourites() {
                     />
                     <KbItemList
                         v-else
-                        :folders="folders"
-                        :files="files"
+                        :folders="filteredFolders"
+                        :files="filteredFiles"
                         :shared-files="filteredSharedFiles"
                         :favourites="favourites"
                         :favourite-ids="favouriteIds"

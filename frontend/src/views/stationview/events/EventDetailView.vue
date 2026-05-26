@@ -29,6 +29,7 @@ import type {AbsentMember, EventRegistrationEntry, MemberRegistrationStats} from
 import {attendance, events} from '@/api'
 import {useSession} from '@/composables/useSession'
 import CommentSection from '@/components/comment/CommentSection.vue'
+import NoteEditor from '@/components/comment/NoteEditor.vue'
 import MemberName from '@/components/avatar/MemberName.vue'
 
 const {t} = useI18n()
@@ -483,6 +484,11 @@ onMounted(loadData)
           </div>
         </NeutralContainer>
       </template>
+
+      <!-- Notes (manager only) -->
+      <NeutralContainer v-if="!loading && canManageEvents()">
+        <NoteEditor entity-type="EVENT" :entity-id="eventId"/>
+      </NeutralContainer>
 
       <!-- Comments -->
       <NeutralContainer v-if="!loading">

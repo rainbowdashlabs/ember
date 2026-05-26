@@ -6,6 +6,7 @@
 package dev.chojo.ember.service;
 
 import dev.chojo.ember.feature.account.entity.Account;
+import dev.chojo.ember.feature.comment.entity.NoteEntityType;
 import dev.chojo.ember.feature.comment.service.NoteService;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.station.entity.Station;
@@ -44,17 +45,17 @@ class NoteServiceTest extends RepositoryTestBase {
     @Test
     @Order(1)
     void findNoteWhenNoneExists() {
-        var note = service.findNote("event", 9999);
+        var note = service.findNote(NoteEntityType.EVENT, 9999);
         assertTrue(note.isEmpty());
     }
 
     @Test
     @Order(2)
     void createNote() {
-        var note = service.updateNote("event", 1, station.id(), "First content", member.id());
+        var note = service.updateNote(NoteEntityType.EVENT, 1, station.id(), "First content", member.id());
         assertNotNull(note);
         assertEquals("First content", note.content());
-        assertEquals("event", note.entityType());
+        assertEquals(NoteEntityType.EVENT, note.entityType());
         assertEquals(1, note.entityId());
         noteId = note.id();
     }
@@ -62,7 +63,7 @@ class NoteServiceTest extends RepositoryTestBase {
     @Test
     @Order(3)
     void findNote() {
-        var note = service.findNote("event", 1);
+        var note = service.findNote(NoteEntityType.EVENT, 1);
         assertTrue(note.isPresent());
         assertEquals("First content", note.get().content());
     }
@@ -70,7 +71,7 @@ class NoteServiceTest extends RepositoryTestBase {
     @Test
     @Order(4)
     void updateNoteCreatesVersion() {
-        var note = service.updateNote("event", 1, station.id(), "Updated content", member.id());
+        var note = service.updateNote(NoteEntityType.EVENT, 1, station.id(), "Updated content", member.id());
         assertEquals("Updated content", note.content());
 
         // Should have created a version with diff
@@ -82,7 +83,7 @@ class NoteServiceTest extends RepositoryTestBase {
     @Test
     @Order(5)
     void updateWithSameContentNoVersion() {
-        service.updateNote("event", 1, station.id(), "Updated content", member.id());
+        service.updateNote(NoteEntityType.EVENT, 1, station.id(), "Updated content", member.id());
         // No new version since content didn't change
         var versions = service.findVersions(noteId);
         assertEquals(1, versions.size());
@@ -91,8 +92,8 @@ class NoteServiceTest extends RepositoryTestBase {
     @Test
     @Order(6)
     void multipleUpdatesCreateMultipleVersions() {
-        service.updateNote("event", 1, station.id(), "Third version", member.id());
-        service.updateNote("event", 1, station.id(), "Fourth version", member.id());
+        service.updateNote(NoteEntityType.EVENT, 1, station.id(), "Third version", member.id());
+        service.updateNote(NoteEntityType.EVENT, 1, station.id(), "Fourth version", member.id());
         var versions = service.findVersions(noteId);
         assertEquals(3, versions.size());
     }

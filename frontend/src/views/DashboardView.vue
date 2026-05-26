@@ -132,27 +132,16 @@ async function handleLogout() {
   <SidebarLayout :station-logo-url="activeLogoUrl" :station-name="activeStation?.stationName" :subtitle="pageSubtitle"
                  :title="pageTitle">
     <template #sidebar="{ close }">
-      <SidebarGroup :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => openGroup = v" :badge="notificationCount" :icon="['fas', 'gauge']" :label="t('sidebar.dashboard')" prefix="/station/dashboard">
-        <SidebarLink :badge="notificationCount" :icon="['fas', 'house']" name="dashboard-overview" to="/station/dashboard/overview"
-                     @navigate="close">
-          {{ t('sidebar.overview') }}
-        </SidebarLink>
+      <SidebarGroup :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => openGroup = v" :badge="notificationCount" :icon="['fas', 'gauge']" :label="t('sidebar.dashboard')" prefix="/station/dashboard" to="/station/dashboard/overview" name="dashboard-overview" @navigate="close">
         <SidebarLink v-if="hasRole(Roles.TEAM)" :icon="['fas', 'chart-line']" name="dashboard-statistics"
                      to="/station/dashboard/statistics" @navigate="close">
           {{ t('sidebar.statistics') }}
         </SidebarLink>
       </SidebarGroup>
 
-      <SidebarGroup :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => openGroup = v" v-if="isModuleEnabled(StationModules.NEWS)" :icon="['fas', 'newspaper']" :label="t('sidebar.news')" prefix="/station/news">
-        <SidebarLink :icon="['fas', 'newspaper']" name="news-list" to="/station/news" @navigate="close">
-          {{ t('sidebar.newsList') }}
-        </SidebarLink>
-      </SidebarGroup>
+      <SidebarGroup :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => openGroup = v" v-if="isModuleEnabled(StationModules.NEWS)" :icon="['fas', 'newspaper']" :label="t('sidebar.news')" prefix="/station/news" to="/station/news" name="news-list" @navigate="close"/>
 
-      <SidebarGroup :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => openGroup = v" :icon="['fas', 'user']" :label="t('sidebar.profile')" prefix="/station/profile">
-        <SidebarLink :icon="['fas', 'user']" name="profile" to="/station/profile" @navigate="close">
-          {{ t('sidebar.myProfile') }}
-        </SidebarLink>
+      <SidebarGroup :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => openGroup = v" :icon="['fas', 'user']" :label="t('sidebar.profile')" prefix="/station/profile" to="/station/profile" name="profile" @navigate="close">
         <SidebarLink :icon="['fas', 'calendar-days']" name="profile-absences" to="/station/profile/absences"
                      @navigate="close">
           {{ t('sidebar.absences') }}
@@ -211,12 +200,9 @@ async function handleLogout() {
       </SidebarGroup>
 
       <SidebarGroup :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => openGroup = v" v-if="canManageMembers()" :badge="pendingChangesCount" :icon="['fas', 'users']"
-                    :label="t('sidebar.members')" prefix="/station/members">
+                    :label="t('sidebar.members')" prefix="/station/members" to="/station/members/list" name="members-list" @navigate="close">
         <SidebarLink :icon="['fas', 'user-plus']" name="members-create" to="/station/members/create" @navigate="close">
           {{ t('sidebar.create') }}
-        </SidebarLink>
-        <SidebarLink :icon="['fas', 'list']" name="members-list" to="/station/members/list" @navigate="close">
-          {{ t('sidebar.list') }}
         </SidebarLink>
         <SidebarLink :icon="['fas', 'layer-group']" name="members-groups" to="/station/members/groups"
                      @navigate="close">
@@ -281,11 +267,7 @@ async function handleLogout() {
       </SidebarGroup>
 
       <SidebarGroup :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => openGroup = v" v-if="canManageAttendance() && isModuleEnabled(StationModules.ATTENDANCE)" :icon="['fas', 'clipboard-user']" :label="t('sidebar.attendance')"
-                    prefix="/station/attendance">
-        <SidebarLink :icon="['fas', 'calendar-plus']" name="attendance-new" to="/station/attendance/new"
-                     @navigate="close">
-          {{ t('sidebar.newAttendance') }}
-        </SidebarLink>
+                    prefix="/station/attendance" to="/station/attendance/new" name="attendance-new" @navigate="close">
         <SidebarLink :icon="['fas', 'clock-rotate-left']" name="attendance-past" to="/station/attendance/past"
                      @navigate="close">
           {{ t('sidebar.pastAttendance') }}
@@ -296,11 +278,7 @@ async function handleLogout() {
         </SidebarLink>
       </SidebarGroup>
 
-      <SidebarGroup :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => openGroup = v" v-if="isModuleEnabled(StationModules.EVENTS)" :badge="pendingRegistrationCount" :icon="['fas', 'calendar-days']" :label="t('sidebar.events')" prefix="/station/events">
-        <SidebarLink :icon="['fas', 'calendar-plus']" name="events-upcoming" to="/station/events/upcoming"
-                     @navigate="close">
-          {{ t('sidebar.upcomingEvents') }}
-        </SidebarLink>
+      <SidebarGroup :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => openGroup = v" v-if="isModuleEnabled(StationModules.EVENTS)" :badge="pendingRegistrationCount" :icon="['fas', 'calendar-days']" :label="t('sidebar.events')" prefix="/station/events" to="/station/events/upcoming" name="events-upcoming" @navigate="close">
         <SidebarLink v-if="canManageEvents()" :badge="pendingRegistrationCount" :icon="['fas', 'clipboard-list']" name="events-registrations"
                      to="/station/events/registrations" @navigate="close">
           {{ t('sidebar.pendingRegistrations') }}
@@ -319,21 +297,14 @@ async function handleLogout() {
         </SidebarLink>
       </SidebarGroup>
 
-      <SidebarGroup :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => openGroup = v" v-if="isModuleEnabled(StationModules.FORMS)" :icon="['fas', 'square-poll-vertical']" :label="t('sidebar.forms')" prefix="/station/forms">
-        <SidebarLink :icon="['fas', 'list']" name="forms-list" to="/station/forms" @navigate="close">
-          {{ t('sidebar.formsList') }}
-        </SidebarLink>
+      <SidebarGroup :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => openGroup = v" v-if="isModuleEnabled(StationModules.FORMS)" :icon="['fas', 'square-poll-vertical']" :label="t('sidebar.forms')" prefix="/station/forms" to="/station/forms" name="forms-list" @navigate="close">
         <SidebarLink v-if="canManagePolls()" :icon="['fas', 'plus']" name="forms-create" to="/station/forms/create"
                      @navigate="close">
           {{ t('sidebar.formsCreate') }}
         </SidebarLink>
       </SidebarGroup>
 
-      <SidebarGroup :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => openGroup = v" v-if="isModuleEnabled(StationModules.LOST_AND_FOUND)" :icon="['fas', 'box-open']" :label="t('sidebar.lostAndFound')" prefix="/station/lost-and-found">
-        <SidebarLink :icon="['fas', 'box-open']" name="lost-and-found" to="/station/lost-and-found" @navigate="close">
-          {{ t('sidebar.lostAndFoundList') }}
-        </SidebarLink>
-      </SidebarGroup>
+      <SidebarGroup :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => openGroup = v" v-if="isModuleEnabled(StationModules.LOST_AND_FOUND)" :icon="['fas', 'box-open']" :label="t('sidebar.lostAndFound')" prefix="/station/lost-and-found" to="/station/lost-and-found" name="lost-and-found" @navigate="close"/>
 
       <SidebarGroup :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => openGroup = v" v-if="isModuleEnabled(StationModules.QUIZ) || isModuleEnabled(StationModules.TEST_PROTOCOL)" :icon="['fas', 'graduation-cap']" :label="t('sidebar.quiz')" prefix="/station/quiz" group-key="quiz-protocols">
         <SidebarLink v-if="canManageQuiz()" :icon="['fas', 'book']" name="quiz-catalogs" to="/station/quiz/catalogs" @navigate="close">
@@ -353,11 +324,7 @@ async function handleLogout() {
         </SidebarLink>
       </SidebarGroup>
 
-      <SidebarGroup :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => openGroup = v" v-if="isModuleEnabled(StationModules.KNOWLEDGE_BASE)" :icon="['fas', 'book-open']" :label="t('sidebar.knowledgeBase')" prefix="/station/knowledge">
-        <SidebarLink :icon="['fas', 'folder-open']" name="kb-browse" to="/station/knowledge" @navigate="close">
-          {{ t('sidebar.kbBrowse') }}
-        </SidebarLink>
-      </SidebarGroup>
+      <SidebarGroup :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => openGroup = v" v-if="isModuleEnabled(StationModules.KNOWLEDGE_BASE)" :icon="['fas', 'book-open']" :label="t('sidebar.knowledgeBase')" prefix="/station/knowledge" to="/station/knowledge" name="kb-browse" @navigate="close"/>
 
     </template>
 

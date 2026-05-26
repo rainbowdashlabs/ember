@@ -9,6 +9,7 @@ import de.chojo.sadu.queries.api.call.Call;
 import de.chojo.sadu.queries.api.query.Query;
 import de.chojo.sadu.queries.api.results.writing.insertion.InsertionResult;
 import dev.chojo.ember.feature.attendance.entity.AttendanceEntry;
+import dev.chojo.ember.feature.attendance.entity.AttendanceFieldType;
 import dev.chojo.ember.feature.attendance.entity.AttendanceReportPreset;
 import dev.chojo.ember.feature.attendance.entity.AttendanceSession;
 import dev.chojo.ember.feature.attendance.entity.AttendanceSessionField;
@@ -129,7 +130,7 @@ public class AttendanceRepository {
      * @return the insertion result
      */
     public InsertionResult createTemplateField(
-            int templateId, String name, String fieldType, String config, int position) {
+            int templateId, String name, AttendanceFieldType fieldType, String config, int position) {
         return Query.query("""
                             INSERT
                             INTO
@@ -155,7 +156,8 @@ public class AttendanceRepository {
      * @param position  new ordering position
      * @return {@code true} if the field was updated
      */
-    public boolean updateTemplateField(int id, String name, String fieldType, String config, int position) {
+    public boolean updateTemplateField(
+            int id, String name, AttendanceFieldType fieldType, String config, int position) {
         return Query.query("""
                             UPDATE attendance_template_field
                             SET

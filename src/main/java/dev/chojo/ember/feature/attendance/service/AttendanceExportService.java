@@ -9,6 +9,7 @@ import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.attendance.entity.AttendanceEntry;
+import dev.chojo.ember.feature.attendance.entity.AttendanceFieldType;
 import dev.chojo.ember.feature.attendance.entity.AttendanceSession;
 import dev.chojo.ember.feature.attendance.entity.AttendanceSessionField;
 import dev.chojo.ember.feature.attendance.entity.AttendanceTemplate;
@@ -218,8 +219,11 @@ public class AttendanceExportService {
         return name.isEmpty() ? acc.email() : name;
     }
 
-    private boolean isMemberField(String fieldType) {
-        return fieldType != null && fieldType.startsWith("member");
+    private boolean isMemberField(AttendanceFieldType fieldType) {
+        return fieldType == AttendanceFieldType.MEMBER
+                || fieldType == AttendanceFieldType.MEMBER_LIST
+                || fieldType == AttendanceFieldType.MEMBER_OF_GROUP
+                || fieldType == AttendanceFieldType.MEMBER_LIST_OF_GROUP;
     }
 
     private String resolveMemberFieldValue(String rawValue) {

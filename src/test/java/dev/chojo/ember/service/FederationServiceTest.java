@@ -7,6 +7,7 @@ package dev.chojo.ember.service;
 
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.federation.entity.CapabilityType;
+import dev.chojo.ember.feature.federation.entity.ChangeType;
 import dev.chojo.ember.feature.federation.entity.ContentType;
 import dev.chojo.ember.feature.federation.entity.Direction;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
@@ -178,8 +179,8 @@ class FederationServiceTest extends RepositoryTestBase {
     @Order(30)
     void logAndRetrieveChanges() {
         Instant before = Instant.EPOCH;
-        service.logChange(stationA.id(), "KB", 42, "CREATED");
-        service.logChange(stationA.id(), "QUIZ", 7, "UPDATED");
+        service.logChange(stationA.id(), ContentType.KB, 42, ChangeType.CREATED);
+        service.logChange(stationA.id(), ContentType.QUIZ, 7, ChangeType.UPDATED);
 
         var changes = service.getChangesSince(stationA.id(), before);
         assertTrue(changes.size() >= 2, "Expected at least 2 changes, got " + changes.size());
@@ -427,16 +428,16 @@ class FederationServiceTest extends RepositoryTestBase {
     @Order(88)
     void metadataCacheOperations() {
         // Use the existing partner between stationA and stationB (created at order 4)
-        var cached = service.getCachedMetadata(partnerIdAtoB, "KB");
+        var cached = service.getCachedMetadata(partnerIdAtoB, ContentType.KB);
         assertNotNull(cached);
 
         service.refreshMetadataCache(
                 partnerIdAtoB,
-                "KB",
+                ContentType.KB,
                 java.util.List.of(new dev.chojo.ember.feature.federation.entity.FederationMetadataCache(
                         0, partnerIdAtoB, ContentType.KB, 42, "Test File", "Description", Instant.now())));
 
-        var refreshed = service.getCachedMetadata(partnerIdAtoB, "KB");
+        var refreshed = service.getCachedMetadata(partnerIdAtoB, ContentType.KB);
         assertTrue(refreshed.stream().anyMatch(c -> c.remoteId() == 42));
     }
 

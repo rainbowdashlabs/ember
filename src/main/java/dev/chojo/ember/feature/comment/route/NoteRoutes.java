@@ -9,6 +9,7 @@ import dev.chojo.ember.api.Roles;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.feature.comment.entity.EntityNote;
+import dev.chojo.ember.feature.comment.entity.NoteEntityType;
 import dev.chojo.ember.feature.comment.entity.NoteVersion;
 import dev.chojo.ember.feature.comment.service.NoteService;
 import io.javalin.http.BadRequestResponse;
@@ -41,7 +42,7 @@ public class NoteRoutes implements Routes {
     }
 
     private void getNote(Context ctx) {
-        String entityType = ctx.pathParam("entityType");
+        var entityType = NoteEntityType.valueOf(ctx.pathParam("entityType").toUpperCase());
         int entityId = ctx.pathParamAsClass("entityId", Integer.class).get();
         var note = noteService.findNote(entityType, entityId);
         if (note.isEmpty()) {
@@ -52,7 +53,7 @@ public class NoteRoutes implements Routes {
     }
 
     private void updateNote(Context ctx) {
-        String entityType = ctx.pathParam("entityType");
+        var entityType = NoteEntityType.valueOf(ctx.pathParam("entityType").toUpperCase());
         int entityId = ctx.pathParamAsClass("entityId", Integer.class).get();
         UserSession session = UserSession.from(ctx);
         var request = ctx.bodyAsClass(UpdateNoteRequest.class);
@@ -69,7 +70,7 @@ public class NoteRoutes implements Routes {
     }
 
     private void listVersions(Context ctx) {
-        String entityType = ctx.pathParam("entityType");
+        var entityType = NoteEntityType.valueOf(ctx.pathParam("entityType").toUpperCase());
         int entityId = ctx.pathParamAsClass("entityId", Integer.class).get();
         var note = noteService.findNote(entityType, entityId).orElseThrow(NotFoundResponse::new);
         var versions = noteService.findVersions(note.id());
@@ -95,7 +96,12 @@ public class NoteRoutes implements Routes {
      * API response representing a note.
      */
     public record NoteResponse(
-            Integer id, String entityType, int entityId, String content, Integer updatedBy, Instant updatedAt) {}
+            Integer id,
+            NoteEntityType entityType,
+            int entityId,
+            String content,
+            Integer updatedBy,
+            Instant updatedAt) {}
 
     /**
      * API response representing a note version.
