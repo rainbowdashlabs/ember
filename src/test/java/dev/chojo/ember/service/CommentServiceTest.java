@@ -9,6 +9,7 @@ import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.CommentCreated;
 import dev.chojo.ember.event.events.MentionedInComment;
 import dev.chojo.ember.feature.account.entity.Account;
+import dev.chojo.ember.feature.comment.entity.CommentEntityType;
 import dev.chojo.ember.feature.comment.service.CommentService;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.members.entity.StationMember;
@@ -116,7 +117,7 @@ class CommentServiceTest extends RepositoryTestBase {
         verify(eventBus).publish(argThat(event -> {
             if (!(event instanceof CommentCreated c)) return false;
             return c.stationId() == station.id()
-                    && "event".equals(c.entityType())
+                    && c.entityType() == CommentEntityType.EVENT
                     && c.entityId() == eventId
                     && c.parentAuthorId() == member1.id()
                     && c.authorMemberId() == member2.id()
@@ -125,7 +126,7 @@ class CommentServiceTest extends RepositoryTestBase {
     }
 
     @Test
-    @Order(4)
+    @Order(5)
     void createReplyToOwnCommentDoesNotNotify() {
         reset(eventBus);
         // Reply to own comment — should NOT publish CommentCreated
@@ -136,7 +137,7 @@ class CommentServiceTest extends RepositoryTestBase {
     }
 
     @Test
-    @Order(5)
+    @Order(6)
     void findByEventIncludesReply() {
         var comments = service.findByEvent(eventId);
         assertEquals(2, comments.size());
@@ -158,7 +159,7 @@ class CommentServiceTest extends RepositoryTestBase {
                     && m.mentionedMemberId() == member2.id()
                     && m.authorMemberId() == member1.id()
                     && "Alice".equals(m.authorName())
-                    && "event".equals(m.entityType())
+                    && m.entityType() == CommentEntityType.EVENT
                     && m.entityId() == eventId;
         }));
     }

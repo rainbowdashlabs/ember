@@ -9,6 +9,7 @@ import de.chojo.sadu.postgresql.types.PostgreSqlTypes;
 import de.chojo.sadu.queries.api.call.Call;
 import de.chojo.sadu.queries.api.query.Query;
 import dev.chojo.ember.feature.events.entity.EventField;
+import dev.chojo.ember.feature.events.entity.EventFieldConfig;
 import dev.chojo.ember.feature.events.entity.EventFieldType;
 import jakarta.inject.Singleton;
 
@@ -53,7 +54,7 @@ public class EventFieldRepository {
             int eventId,
             String name,
             EventFieldType fieldType,
-            String config,
+            EventFieldConfig config,
             String value,
             int position,
             boolean overview,
@@ -67,7 +68,7 @@ public class EventFieldRepository {
                         .bind("event_id", eventId)
                         .bind("name", name)
                         .bind("field_type", fieldType)
-                        .bind("config", config)
+                        .bind("config", config.toJson())
                         .bind("value", value)
                         .bind("position", position)
                         .bind("overview", overview)
@@ -92,7 +93,7 @@ public class EventFieldRepository {
                     eventId,
                     f.name(),
                     f.fieldType() != null ? f.fieldType() : EventFieldType.STRING,
-                    f.config() != null ? f.config() : "{}",
+                    f.config() != null ? f.config() : EventFieldConfig.parse("{}"),
                     f.value() != null ? f.value() : "",
                     i,
                     f.overview(),
@@ -104,7 +105,7 @@ public class EventFieldRepository {
     public record FieldEntry(
             String name,
             EventFieldType fieldType,
-            String config,
+            EventFieldConfig config,
             String value,
             boolean overview,
             Integer attendanceFieldId,

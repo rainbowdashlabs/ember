@@ -11,6 +11,7 @@ import dev.chojo.ember.event.events.FormPublished;
 import dev.chojo.ember.feature.form.entity.Form;
 import dev.chojo.ember.feature.form.entity.FormAnswer;
 import dev.chojo.ember.feature.form.entity.FormQuestion;
+import dev.chojo.ember.feature.form.entity.FormQuestionConfig;
 import dev.chojo.ember.feature.form.entity.FormResponse;
 import dev.chojo.ember.feature.form.entity.QuestionEntry;
 import dev.chojo.ember.feature.form.repository.FormRepository;
@@ -268,26 +269,8 @@ public class FormService {
             String description,
             boolean required,
             boolean shuffle,
-            String config) {
+            FormQuestionConfig config) {
         return repository.createQuestion(formId, position, questionType, title, description, required, shuffle, config);
-    }
-
-    /**
-     * Updates an existing question's fields.
-     *
-     * @param id          the question ID
-     * @param title       new question text
-     * @param description new description
-     * @param required    whether an answer is mandatory
-     * @param shuffle     whether answer options should be randomized
-     * @param config      type-specific configuration as JSON
-     * @param position    new display order position
-     * @return {@code true} if the question was updated
-     */
-    // Individual CRUD — routes use replaceQuestions() instead, kept for programmatic use
-    public boolean updateQuestion(
-            int id, String title, String description, boolean required, boolean shuffle, String config, int position) {
-        return repository.updateQuestion(id, title, description, required, shuffle, config, position);
     }
 
     /**

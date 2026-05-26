@@ -42,6 +42,14 @@ public record AttendanceFieldConfig(
      * @param json the JSON string to parse, may be {@code null} or blank
      * @return the parsed config or an empty default
      */
+    public String toJson() {
+        try {
+            return MAPPER.writeValueAsString(this);
+        } catch (Exception e) {
+            return "{}";
+        }
+    }
+
     public static AttendanceFieldConfig parse(String json) {
         if (json == null || json.isBlank()) return EMPTY;
         try {

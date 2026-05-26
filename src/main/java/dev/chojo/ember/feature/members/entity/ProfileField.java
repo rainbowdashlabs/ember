@@ -24,7 +24,7 @@ public record ProfileField(
         int stationId,
         String name,
         ProfileFieldType fieldType,
-        String config,
+        ProfileFieldConfig config,
         int position,
         ProfileFieldScope scope,
         boolean keepOnArchive) {
@@ -37,7 +37,7 @@ public record ProfileField(
                 row.getInt("station_id"),
                 row.getString("name"),
                 row.getEnum("field_type", ProfileFieldType.class),
-                row.getString("config"),
+                ProfileFieldConfig.parse(row.getString("config")),
                 row.getInt("position"),
                 row.getEnum("scope", ProfileFieldScope.class),
                 row.getBoolean("keep_on_archive"));

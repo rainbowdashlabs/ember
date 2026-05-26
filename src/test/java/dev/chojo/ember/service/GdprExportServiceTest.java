@@ -11,6 +11,7 @@ import dev.chojo.ember.feature.events.entity.EventRegistration;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.knowledgebase.service.KbFileStorageService;
 import dev.chojo.ember.feature.legal.service.GdprExportService;
+import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
 import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
 import dev.chojo.ember.feature.members.entity.ProfileFieldType;
 import dev.chojo.ember.feature.members.entity.StationMember;
@@ -62,8 +63,13 @@ class GdprExportServiceTest extends RepositoryTestBase {
                 null);
 
         // Create profile field + value
-        var field =
-                profileFieldRepo.create(stationId, "Telefon", ProfileFieldType.TEXT, "{}", 0, ProfileFieldScope.MEMBER);
+        var field = profileFieldRepo.create(
+                stationId,
+                "Telefon",
+                ProfileFieldType.TEXT,
+                ProfileFieldConfig.parse("{}"),
+                0,
+                ProfileFieldScope.MEMBER);
         profileFieldRepo.setValue(member.id(), field.id(), "\"0151 12345678\"");
 
         // Create group + assign member

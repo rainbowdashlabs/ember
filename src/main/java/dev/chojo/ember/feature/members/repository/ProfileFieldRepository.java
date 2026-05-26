@@ -9,6 +9,7 @@ import de.chojo.sadu.queries.api.call.Call;
 import de.chojo.sadu.queries.api.query.Query;
 import de.chojo.sadu.queries.api.results.writing.insertion.InsertionResult;
 import dev.chojo.ember.feature.members.entity.ProfileField;
+import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
 import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
 import dev.chojo.ember.feature.members.entity.ProfileFieldType;
 import dev.chojo.ember.feature.members.entity.ProfileFieldValue;
@@ -66,7 +67,7 @@ public class ProfileFieldRepository {
             int stationId,
             String name,
             ProfileFieldType fieldType,
-            String config,
+            ProfileFieldConfig config,
             int position,
             ProfileFieldScope scope) {
         return Query.query("""
@@ -77,7 +78,7 @@ public class ProfileFieldRepository {
                         .bind("station_id", stationId)
                         .bind("name", name)
                         .bind("field_type", fieldType)
-                        .bind("config", config)
+                        .bind("config", config.toJson())
                         .bind("position", position)
                         .bind("scope", scope))
                 .map(ProfileField.map())
@@ -89,7 +90,12 @@ public class ProfileFieldRepository {
      * Updates an existing profile field definition.
      */
     public boolean update(
-            int id, String name, ProfileFieldType fieldType, String config, int position, boolean keepOnArchive) {
+            int id,
+            String name,
+            ProfileFieldType fieldType,
+            ProfileFieldConfig config,
+            int position,
+            boolean keepOnArchive) {
         return Query.query("""
                             UPDATE profile_field
                             SET
@@ -102,7 +108,7 @@ public class ProfileFieldRepository {
                 .single(Call.of()
                         .bind("name", name)
                         .bind("field_type", fieldType)
-                        .bind("config", config)
+                        .bind("config", config.toJson())
                         .bind("position", position)
                         .bind("keep_on_archive", keepOnArchive)
                         .bind("id", id))

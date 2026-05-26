@@ -7,6 +7,7 @@ package dev.chojo.ember.repository;
 
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.members.entity.ProfileField;
+import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
 import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
 import dev.chojo.ember.feature.members.entity.ProfileFieldType;
 import dev.chojo.ember.feature.members.entity.StationMember;
@@ -44,7 +45,12 @@ class ProfileFieldRepositoryTest extends RepositoryTestBase {
     @Order(1)
     void create() {
         ProfileField field = profileFieldRepo.create(
-                station.id(), "Phone", ProfileFieldType.TEXT, "{}", 1, ProfileFieldScope.MEMBER);
+                station.id(),
+                "Phone",
+                ProfileFieldType.TEXT,
+                ProfileFieldConfig.parse("{}"),
+                1,
+                ProfileFieldScope.MEMBER);
         assertNotNull(field);
         assertEquals("Phone", field.name());
         assertEquals(1, field.position());
@@ -79,7 +85,8 @@ class ProfileFieldRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(5)
     void update() {
-        assertTrue(profileFieldRepo.update(fieldId, "Email", ProfileFieldType.TEXT, "{}", 2, false));
+        assertTrue(profileFieldRepo.update(
+                fieldId, "Email", ProfileFieldType.TEXT, ProfileFieldConfig.parse("{}"), 2, false));
         ProfileField updated = profileFieldRepo.findById(fieldId).orElseThrow();
         assertEquals("Email", updated.name());
         assertEquals(2, updated.position());

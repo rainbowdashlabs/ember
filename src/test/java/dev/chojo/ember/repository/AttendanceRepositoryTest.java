@@ -7,6 +7,7 @@ package dev.chojo.ember.repository;
 
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.attendance.entity.AttendanceEntry;
+import dev.chojo.ember.feature.attendance.entity.AttendanceFieldConfig;
 import dev.chojo.ember.feature.attendance.entity.AttendanceFieldType;
 import dev.chojo.ember.feature.attendance.entity.AttendanceSession;
 import dev.chojo.ember.feature.attendance.entity.AttendanceTemplate;
@@ -89,7 +90,8 @@ class AttendanceRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(10)
     void createTemplateField() {
-        attendanceRepo.createTemplateField(templateId, "Notes", AttendanceFieldType.STRING, "{}", 1);
+        attendanceRepo.createTemplateField(
+                templateId, "Notes", AttendanceFieldType.STRING, AttendanceFieldConfig.parse("{}"), 1);
         var fields = attendanceRepo.findTemplateFields(templateId);
         assertEquals(1, fields.size());
         assertEquals("Notes", fields.getFirst().name());
@@ -99,7 +101,8 @@ class AttendanceRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(11)
     void updateTemplateField() {
-        assertTrue(attendanceRepo.updateTemplateField(fieldId, "Comment", AttendanceFieldType.STRING, "{}", 2));
+        assertTrue(attendanceRepo.updateTemplateField(
+                fieldId, "Comment", AttendanceFieldType.STRING, AttendanceFieldConfig.parse("{}"), 2));
         var fields = attendanceRepo.findTemplateFields(templateId);
         assertEquals("Comment", fields.getFirst().name());
         assertEquals(2, fields.getFirst().position());
@@ -175,7 +178,8 @@ class AttendanceRepositoryTest extends RepositoryTestBase {
     @Order(25)
     void setAndFindSessionField() {
         // Re-create a template field for this test
-        attendanceRepo.createTemplateField(templateId, "Location", AttendanceFieldType.STRING, "{}", 1);
+        attendanceRepo.createTemplateField(
+                templateId, "Location", AttendanceFieldType.STRING, AttendanceFieldConfig.parse("{}"), 1);
         int fId = attendanceRepo.findTemplateFields(templateId).getFirst().id();
 
         attendanceRepo.setSessionField(sessionId, fId, "\"Room A\"");

@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.system.service;
 
 import dev.chojo.ember.feature.form.entity.Form;
 import dev.chojo.ember.feature.form.entity.FormQuestion;
+import dev.chojo.ember.feature.form.entity.FormQuestionConfig;
 import dev.chojo.ember.feature.form.repository.FormRepository;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.restriction.RestrictionRepository;
@@ -65,7 +66,7 @@ public class DemoFormSeeder {
                 "1 = sehr unzufrieden, 5 = sehr zufrieden",
                 true,
                 false,
-                "{\"scale\":5,\"icon\":\"STAR\"}");
+                FormQuestionConfig.parse("{\"scale\":5,\"icon\":\"STAR\"}"));
         formRepository.createQuestion(
                 survey.id(),
                 1,
@@ -74,7 +75,8 @@ public class DemoFormSeeder {
                 "",
                 false,
                 true,
-                "{\"multiSelect\":true,\"dropdown\":false,\"allowOther\":true,\"options\":[\"Übungen\",\"Gemeinschaft\",\"Ausflüge\",\"Wettbewerbe\"],\"multiLimitType\":\"NONE\"}");
+                FormQuestionConfig.parse(
+                        "{\"multiSelect\":true,\"dropdown\":false,\"allowOther\":true,\"options\":[\"Übungen\",\"Gemeinschaft\",\"Ausflüge\",\"Wettbewerbe\"],\"multiLimitType\":\"NONE\"}"));
         formRepository.createQuestion(
                 survey.id(),
                 2,
@@ -83,7 +85,7 @@ public class DemoFormSeeder {
                 "",
                 false,
                 false,
-                "{\"longAnswer\":true}");
+                FormQuestionConfig.parse("{\"longAnswer\":true}"));
 
         // Add some responses
         var surveyQuestions = formRepository.findQuestions(survey.id());
@@ -100,11 +102,11 @@ public class DemoFormSeeder {
             formRepository.upsertAnswer(
                     response.id(),
                     surveyQuestions.get(1).id(),
-                    "{\"selected\":[" + selected[0] + "," + selected[1] + "],\"other\":\"\"}");
+                    "{\"selected\":[" + selected[0] + "," + selected[1] + "],\"other\":\"\"");
             formRepository.upsertAnswer(
                     response.id(),
                     surveyQuestions.get(2).id(),
-                    "{\"text\":\"" + suggestions[i % suggestions.length] + "\"}");
+                    "{\"text\":\"" + suggestions[i % suggestions.length] + "\"");
         }
 
         // Add remaining types to survey: DATE, RANKING, LIKERT
@@ -116,7 +118,7 @@ public class DemoFormSeeder {
                 "",
                 false,
                 false,
-                "{}");
+                FormQuestionConfig.parse("{}"));
         formRepository.createQuestion(
                 survey.id(),
                 4,
@@ -125,7 +127,7 @@ public class DemoFormSeeder {
                 "",
                 false,
                 true,
-                "{\"options\":[\"Übungen\",\"Wettbewerbe\",\"Ausflüge\",\"Theorie\"]}");
+                FormQuestionConfig.parse("{\"options\":[\"Übungen\",\"Wettbewerbe\",\"Ausflüge\",\"Theorie\"]}"));
         formRepository.createQuestion(
                 survey.id(),
                 5,
@@ -134,7 +136,8 @@ public class DemoFormSeeder {
                 "",
                 false,
                 false,
-                "{\"statements\":[\"Ausrüstung\",\"Betreuung\",\"Abwechslung\"],\"scaleMin\":1,\"scaleMax\":5,\"scaleLabels\":[]}");
+                FormQuestionConfig.parse(
+                        "{\"statements\":[\"Ausrüstung\",\"Betreuung\",\"Abwechslung\"],\"scaleMin\":1,\"scaleMax\":5,\"scaleLabels\":[]}"));
 
         // Re-fetch questions after adding more
         surveyQuestions = formRepository.findQuestions(survey.id());
@@ -145,7 +148,7 @@ public class DemoFormSeeder {
             formRepository.upsertAnswer(
                     existingResponse.id(),
                     surveyQuestions.get(3).id(),
-                    "{\"date\":\"202" + (2 + rng.nextInt(4)) + "-0" + (1 + rng.nextInt(9)) + "-15\"}");
+                    "{\"date\":\"202" + (2 + rng.nextInt(4)) + "-0" + (1 + rng.nextInt(9)) + "-15\"");
             int[] rankOrder = {rng.nextInt(4), (1 + rng.nextInt(3)) % 4, (2 + rng.nextInt(2)) % 4, 3 - rng.nextInt(2)};
             formRepository.upsertAnswer(
                     existingResponse.id(),
@@ -178,7 +181,8 @@ public class DemoFormSeeder {
                 "",
                 true,
                 false,
-                "{\"multiSelect\":false,\"dropdown\":false,\"allowOther\":false,\"options\":[\"Ja\",\"Vielleicht\",\"Nein\"],\"multiLimitType\":\"NONE\"}");
+                FormQuestionConfig.parse(
+                        "{\"multiSelect\":false,\"dropdown\":false,\"allowOther\":false,\"options\":[\"Ja\",\"Vielleicht\",\"Nein\"],\"multiLimitType\":\"NONE\"}"));
         formRepository.createQuestion(
                 feedback.id(),
                 1,
@@ -187,7 +191,7 @@ public class DemoFormSeeder {
                 "",
                 false,
                 false,
-                "{\"longAnswer\":true}");
+                FormQuestionConfig.parse("{\"longAnswer\":true}"));
         formRepository.createQuestion(
                 feedback.id(),
                 2,
@@ -196,7 +200,7 @@ public class DemoFormSeeder {
                 "1 = schlecht, 10 = super",
                 true,
                 false,
-                "{\"scale\":10,\"icon\":\"HEART\"}");
+                FormQuestionConfig.parse("{\"scale\":10,\"icon\":\"HEART\"}"));
         formRepository.createQuestion(
                 feedback.id(),
                 3,
@@ -205,7 +209,7 @@ public class DemoFormSeeder {
                 "",
                 false,
                 false,
-                "{}");
+                FormQuestionConfig.parse("{}"));
         formRepository.createQuestion(
                 feedback.id(),
                 4,
@@ -214,7 +218,7 @@ public class DemoFormSeeder {
                 "",
                 false,
                 true,
-                "{\"options\":[\"Teamwork\",\"Technik\",\"Fitness\",\"Spaß\"]}");
+                FormQuestionConfig.parse("{\"options\":[\"Teamwork\",\"Technik\",\"Fitness\",\"Spaß\"]}"));
         formRepository.createQuestion(
                 feedback.id(),
                 5,
@@ -223,7 +227,8 @@ public class DemoFormSeeder {
                 "",
                 true,
                 false,
-                "{\"statements\":[\"Organisation\",\"Lerninhalte\",\"Spaßfaktor\",\"Zeitdauer\"],\"scaleMin\":1,\"scaleMax\":5,\"scaleLabels\":[]}");
+                FormQuestionConfig.parse(
+                        "{\"statements\":[\"Organisation\",\"Lerninhalte\",\"Spaßfaktor\",\"Zeitdauer\"],\"scaleMin\":1,\"scaleMax\":5,\"scaleLabels\":[]}"));
 
         var feedbackQuestions = formRepository.findQuestions(feedback.id());
         String[] feedbackTexts = {
@@ -238,7 +243,7 @@ public class DemoFormSeeder {
             formRepository.upsertAnswer(
                     response.id(),
                     feedbackQuestions.get(1).id(),
-                    "{\"text\":\"" + feedbackTexts[i % feedbackTexts.length] + "\"}");
+                    "{\"text\":\"" + feedbackTexts[i % feedbackTexts.length] + "\"");
             formRepository.upsertAnswer(
                     response.id(), feedbackQuestions.get(2).id(), "{\"rating\":" + (5 + rng.nextInt(6)) + "}");
             formRepository.upsertAnswer(response.id(), feedbackQuestions.get(3).id(), "{\"date\":\"2026-05-10\"}");
@@ -246,7 +251,7 @@ public class DemoFormSeeder {
             formRepository.upsertAnswer(
                     response.id(),
                     feedbackQuestions.get(4).id(),
-                    "{\"order\":[" + order[0] + "," + order[1] + "," + order[2] + "," + order[3] + "]}");
+                    "{\"order\":[" + order[0] + "," + order[1] + "," + order[2] + "," + order[3] + "]");
             formRepository.upsertAnswer(
                     response.id(),
                     feedbackQuestions.get(5).id(),
@@ -274,7 +279,7 @@ public class DemoFormSeeder {
                 "1 = gar nicht, 5 = sehr wohl",
                 true,
                 false,
-                "{\"scale\":5,\"icon\":\"STAR\"}");
+                FormQuestionConfig.parse("{\"scale\":5,\"icon\":\"STAR\"}"));
         formRepository.createQuestion(
                 memberOnly.id(),
                 1,
@@ -283,7 +288,7 @@ public class DemoFormSeeder {
                 "",
                 false,
                 false,
-                "{\"longAnswer\":true}");
+                FormQuestionConfig.parse("{\"longAnswer\":true}"));
         formRepository.createQuestion(
                 memberOnly.id(),
                 2,
@@ -292,7 +297,8 @@ public class DemoFormSeeder {
                 "",
                 true,
                 false,
-                "{\"multiSelect\":false,\"dropdown\":false,\"allowOther\":false,\"options\":[\"Ja, unbedingt!\",\"Vielleicht\",\"Nein, lieber nicht\"],\"multiLimitType\":\"NONE\"}");
+                FormQuestionConfig.parse(
+                        "{\"multiSelect\":false,\"dropdown\":false,\"allowOther\":false,\"options\":[\"Ja, unbedingt!\",\"Vielleicht\",\"Nein, lieber nicht\"],\"multiLimitType\":\"NONE\"}"));
         restrictionRepository.setRestrictions(
                 RestrictionType.FORM.table(),
                 RestrictionType.FORM.fkColumn(),
@@ -321,7 +327,7 @@ public class DemoFormSeeder {
                 "",
                 true,
                 false,
-                "{}");
+                FormQuestionConfig.parse("{}"));
         formRepository.createQuestion(
                 bothRoles.id(),
                 1,
@@ -330,7 +336,8 @@ public class DemoFormSeeder {
                 "",
                 false,
                 false,
-                "{\"multiSelect\":false,\"dropdown\":false,\"allowOther\":false,\"options\":[\"Ja\",\"Nein\",\"Vielleicht\"],\"multiLimitType\":\"NONE\"}");
+                FormQuestionConfig.parse(
+                        "{\"multiSelect\":false,\"dropdown\":false,\"allowOther\":false,\"options\":[\"Ja\",\"Nein\",\"Vielleicht\"],\"multiLimitType\":\"NONE\"}"));
         restrictionRepository.setRestrictions(
                 RestrictionType.FORM.table(),
                 RestrictionType.FORM.fkColumn(),
@@ -359,7 +366,7 @@ public class DemoFormSeeder {
                 "1 = gar nicht, 5 = top vorbereitet",
                 true,
                 false,
-                "{\"scale\":5,\"icon\":\"STAR\"}");
+                FormQuestionConfig.parse("{\"scale\":5,\"icon\":\"STAR\"}"));
         formRepository.createQuestion(
                 wettkampfForm.id(),
                 1,
@@ -368,7 +375,8 @@ public class DemoFormSeeder {
                 "",
                 true,
                 false,
-                "{\"multiSelect\":true,\"dropdown\":false,\"allowOther\":true,\"options\":[\"Löschangriff\",\"Staffellauf\",\"Knotenkunde\",\"Erste Hilfe\"],\"multiLimitType\":\"AT_MOST\",\"multiLimit\":2}");
+                FormQuestionConfig.parse(
+                        "{\"multiSelect\":true,\"dropdown\":false,\"allowOther\":true,\"options\":[\"Löschangriff\",\"Staffellauf\",\"Knotenkunde\",\"Erste Hilfe\"],\"multiLimitType\":\"AT_MOST\",\"multiLimit\":2}"));
         restrictionRepository.setRestrictions(
                 RestrictionType.FORM.table(),
                 RestrictionType.FORM.fkColumn(),
@@ -397,7 +405,8 @@ public class DemoFormSeeder {
                 "",
                 true,
                 false,
-                "{\"statements\":[\"Ich verstehe die Übungen\",\"Ich fühle mich willkommen\",\"Ich lerne viel Neues\"],\"scaleMin\":1,\"scaleMax\":5,\"scaleLabels\":[]}");
+                FormQuestionConfig.parse(
+                        "{\"statements\":[\"Ich verstehe die Übungen\",\"Ich fühle mich willkommen\",\"Ich lerne viel Neues\"],\"scaleMin\":1,\"scaleMax\":5,\"scaleLabels\":[]}"));
         formRepository.createQuestion(
                 anfaengerForm.id(),
                 1,
@@ -406,7 +415,7 @@ public class DemoFormSeeder {
                 "",
                 false,
                 false,
-                "{\"longAnswer\":true}");
+                FormQuestionConfig.parse("{\"longAnswer\":true}"));
         restrictionRepository.setRestrictions(
                 RestrictionType.FORM.table(),
                 RestrictionType.FORM.fkColumn(),

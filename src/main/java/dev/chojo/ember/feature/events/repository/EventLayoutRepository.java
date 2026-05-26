@@ -78,7 +78,7 @@ public class EventLayoutRepository {
                             .bind("layout_id", layoutId)
                             .bind("name", f.name())
                             .bind("field_type", f.fieldType() != null ? f.fieldType() : EventFieldType.STRING)
-                            .bind("config", f.config() != null ? f.config() : "{}")
+                            .bind("config", f.config() != null ? f.config().toJson() : "{}")
                             .bind("position", i)
                             .bind("overview", f.overview())
                             .bind("attendance_field_id", f.attendanceFieldId()))

@@ -208,9 +208,7 @@ public class ProfileFieldRoutes implements Routes {
                                 var field = profileFieldService
                                         .findById(v.fieldId())
                                         .orElse(null);
-                                return field == null
-                                        || !ProfileFieldConfig.parse(field.config())
-                                                .readonly();
+                                return field == null || !field.config().readonly();
                             }
                             return true;
                         })
@@ -226,7 +224,7 @@ public class ProfileFieldRoutes implements Routes {
     public record ProfileFieldRequest(
             String name,
             ProfileFieldType fieldType,
-            String config,
+            ProfileFieldConfig config,
             int position,
             ProfileFieldScope scope,
             Boolean keepOnArchive) {}

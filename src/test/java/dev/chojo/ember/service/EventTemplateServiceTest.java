@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.service;
 
+import dev.chojo.ember.feature.events.entity.EventFieldConfig;
 import dev.chojo.ember.feature.events.entity.EventFieldType;
 import dev.chojo.ember.feature.events.entity.EventTemplateFieldData;
 import dev.chojo.ember.feature.events.repository.EventTemplateRepository;
@@ -98,8 +99,10 @@ class EventTemplateServiceTest extends RepositoryTestBase {
     @Order(10)
     void replaceAndFindFields() {
         var fields = List.of(
-                new EventTemplateFieldData("Location", EventFieldType.STRING, "{}", 0, true, false, null),
-                new EventTemplateFieldData("Notes", EventFieldType.STRING, "{}", 1, false, true, null));
+                new EventTemplateFieldData(
+                        "Location", EventFieldType.STRING, EventFieldConfig.parse("{}"), 0, true, false, null),
+                new EventTemplateFieldData(
+                        "Notes", EventFieldType.STRING, EventFieldConfig.parse("{}"), 1, false, true, null));
         service.replaceFields(templateId, fields);
 
         var found = service.findFields(templateId);
@@ -113,7 +116,8 @@ class EventTemplateServiceTest extends RepositoryTestBase {
     void replaceFieldsClearsOld() {
         service.replaceFields(
                 templateId,
-                List.of(new EventTemplateFieldData("OnlyField", EventFieldType.STRING, "{}", 0, false, false, null)));
+                List.of(new EventTemplateFieldData(
+                        "OnlyField", EventFieldType.STRING, EventFieldConfig.parse("{}"), 0, false, false, null)));
 
         var found = service.findFields(templateId);
         assertEquals(1, found.size());

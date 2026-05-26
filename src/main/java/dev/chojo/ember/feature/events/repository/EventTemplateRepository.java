@@ -120,7 +120,7 @@ public class EventTemplateRepository {
                             .bind("template_id", templateId)
                             .bind("name", f.name())
                             .bind("field_type", f.fieldType() != null ? f.fieldType() : EventFieldType.STRING)
-                            .bind("config", f.config() != null ? f.config() : "{}")
+                            .bind("config", f.config() != null ? f.config().toJson() : "{}")
                             .bind("position", f.position())
                             .bind("overview", f.overview())
                             .bind("public", f.isPublic())

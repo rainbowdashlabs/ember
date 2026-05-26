@@ -54,6 +54,14 @@ public record ProfileFieldConfig(
      * @param json the JSON configuration string, may be null or blank
      * @return the parsed config or a default empty config
      */
+    public String toJson() {
+        try {
+            return MAPPER.writeValueAsString(this);
+        } catch (Exception e) {
+            return "{}";
+        }
+    }
+
     public static ProfileFieldConfig parse(String json) {
         if (json == null || json.isBlank()) return EMPTY;
         try {

@@ -12,7 +12,7 @@ public record EventLayoutField(
         int layoutId,
         String name,
         EventFieldType fieldType,
-        String config,
+        EventFieldConfig config,
         int position,
         boolean overview,
         Integer attendanceFieldId) {
@@ -23,7 +23,7 @@ public record EventLayoutField(
                 row.getInt("layout_id"),
                 row.getString("name"),
                 row.getEnum("field_type", EventFieldType.class),
-                row.getString("config"),
+                EventFieldConfig.parse(row.getString("config")),
                 row.getInt("position"),
                 row.getBoolean("overview"),
                 row.getObject("attendance_field_id", Integer.class));

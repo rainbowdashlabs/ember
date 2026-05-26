@@ -14,8 +14,10 @@ import dev.chojo.ember.auth.PasswordHasher;
 import dev.chojo.ember.conf.file.elements.Database;
 import dev.chojo.ember.conf.file.elements.Demo;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
+import dev.chojo.ember.feature.attendance.entity.AttendanceFieldConfig;
 import dev.chojo.ember.feature.attendance.entity.AttendanceFieldType;
 import dev.chojo.ember.feature.attendance.repository.AttendanceRepository;
+import dev.chojo.ember.feature.events.entity.EventFieldConfig;
 import dev.chojo.ember.feature.events.entity.EventFieldType;
 import dev.chojo.ember.feature.events.entity.EventRegistration;
 import dev.chojo.ember.feature.events.entity.EventTemplateFieldData;
@@ -31,6 +33,7 @@ import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
 import dev.chojo.ember.feature.inventory.service.ExchangeService;
 import dev.chojo.ember.feature.inventory.service.ProcurementService;
 import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
+import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
 import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
 import dev.chojo.ember.feature.members.entity.ProfileFieldType;
 import dev.chojo.ember.feature.members.entity.StationMember;
@@ -299,29 +302,54 @@ public class DemoService {
 
         // -- Profile fields: TEAM scope (Betreuer) --
         var fieldJuleica = profileFieldRepository.create(
-                station.id(), "Juleica", ProfileFieldType.BOOLEAN, "{}", 0, ProfileFieldScope.TEAM);
+                station.id(),
+                "Juleica",
+                ProfileFieldType.BOOLEAN,
+                ProfileFieldConfig.parse("{}"),
+                0,
+                ProfileFieldScope.TEAM);
         var fieldJuleicaAblauf = profileFieldRepository.create(
-                station.id(), "Juleica Ablaufdatum", ProfileFieldType.DATE, "{}", 1, ProfileFieldScope.TEAM);
+                station.id(),
+                "Juleica Ablaufdatum",
+                ProfileFieldType.DATE,
+                ProfileFieldConfig.parse("{}"),
+                1,
+                ProfileFieldScope.TEAM);
         var fieldFuehrerschein = profileFieldRepository.create(
-                station.id(), "Führerschein", ProfileFieldType.BOOLEAN, "{}", 2, ProfileFieldScope.TEAM);
+                station.id(),
+                "Führerschein",
+                ProfileFieldType.BOOLEAN,
+                ProfileFieldConfig.parse("{}"),
+                2,
+                ProfileFieldScope.TEAM);
         var fieldFuehrerscheinAblauf = profileFieldRepository.create(
-                station.id(), "Führerschein Ablaufdatum", ProfileFieldType.DATE, "{}", 3, ProfileFieldScope.TEAM);
+                station.id(),
+                "Führerschein Ablaufdatum",
+                ProfileFieldType.DATE,
+                ProfileFieldConfig.parse("{}"),
+                3,
+                ProfileFieldScope.TEAM);
 
         // -- Profile fields: GUARDIAN scope (Eltern) --
         var fieldTelefon = profileFieldRepository.create(
                 station.id(),
                 "Mobilnummer",
                 ProfileFieldType.TEXT,
-                "{\"overview\":true,\"required\":true}",
+                ProfileFieldConfig.parse("{\"overview\":true,\"required\":true}"),
                 0,
                 ProfileFieldScope.GUARDIAN);
         var fieldFestnetz = profileFieldRepository.create(
-                station.id(), "Festnetz", ProfileFieldType.TEXT, "{}", 1, ProfileFieldScope.GUARDIAN);
+                station.id(),
+                "Festnetz",
+                ProfileFieldType.TEXT,
+                ProfileFieldConfig.parse("{}"),
+                1,
+                ProfileFieldScope.GUARDIAN);
         var fieldNewsletter = profileFieldRepository.create(
                 station.id(),
                 "Newsletter per Mail",
                 ProfileFieldType.BOOLEAN,
-                "{\"defaultValue\":true}",
+                ProfileFieldConfig.parse("{\"defaultValue\":true}"),
                 2,
                 ProfileFieldScope.GUARDIAN);
 
@@ -330,84 +358,85 @@ public class DemoService {
                 station.id(),
                 "Personalnummer",
                 ProfileFieldType.TEXT,
-                "{\"readonly\":true,\"overview\":true}",
+                ProfileFieldConfig.parse("{\"readonly\":true,\"overview\":true}"),
                 0,
                 ProfileFieldScope.MEMBER);
         var fieldGeschlecht = profileFieldRepository.create(
                 station.id(),
                 "Geschlecht",
                 ProfileFieldType.ENUM,
-                "{\"readonly\":true,\"overview\":true,\"options\":[\"männlich\",\"weiblich\",\"divers\"]}",
+                ProfileFieldConfig.parse(
+                        "{\"readonly\":true,\"overview\":true,\"options\":[\"männlich\",\"weiblich\",\"divers\"]}"),
                 1,
                 ProfileFieldScope.MEMBER);
         var fieldGeburtstag = profileFieldRepository.create(
                 station.id(),
                 "Geburtstag",
                 ProfileFieldType.DATE,
-                "{\"required\":true,\"overview\":true}",
+                ProfileFieldConfig.parse("{\"required\":true,\"overview\":true}"),
                 2,
                 ProfileFieldScope.MEMBER);
         var fieldAllergien = profileFieldRepository.create(
                 station.id(),
                 "Allergien",
                 ProfileFieldType.TEXT,
-                "{\"overview\":true,\"notifyOnChange\":true}",
+                ProfileFieldConfig.parse("{\"overview\":true,\"notifyOnChange\":true}"),
                 3,
                 ProfileFieldScope.MEMBER);
         var fieldLeistungsspange = profileFieldRepository.create(
                 station.id(),
                 "Leistungsspange",
                 ProfileFieldType.BOOLEAN,
-                "{\"readonly\":true}",
+                ProfileFieldConfig.parse("{\"readonly\":true}"),
                 4,
                 ProfileFieldScope.MEMBER);
         var fieldLeistungsspangeDatum = profileFieldRepository.create(
                 station.id(),
                 "Leistungsspange Datum",
                 ProfileFieldType.DATE,
-                "{\"readonly\":true}",
+                ProfileFieldConfig.parse("{\"readonly\":true}"),
                 5,
                 ProfileFieldScope.MEMBER);
         var fieldJF1 = profileFieldRepository.create(
                 station.id(),
                 "Jugendflamme 1",
                 ProfileFieldType.BOOLEAN,
-                "{\"readonly\":true}",
+                ProfileFieldConfig.parse("{\"readonly\":true}"),
                 6,
                 ProfileFieldScope.MEMBER);
         var fieldJF1Datum = profileFieldRepository.create(
                 station.id(),
                 "Jugendflamme 1 Datum",
                 ProfileFieldType.DATE,
-                "{\"readonly\":true}",
+                ProfileFieldConfig.parse("{\"readonly\":true}"),
                 7,
                 ProfileFieldScope.MEMBER);
         var fieldJF2 = profileFieldRepository.create(
                 station.id(),
                 "Jugendflamme 2",
                 ProfileFieldType.BOOLEAN,
-                "{\"readonly\":true}",
+                ProfileFieldConfig.parse("{\"readonly\":true}"),
                 8,
                 ProfileFieldScope.MEMBER);
         var fieldJF2Datum = profileFieldRepository.create(
                 station.id(),
                 "Jugendflamme 2 Datum",
                 ProfileFieldType.DATE,
-                "{\"readonly\":true}",
+                ProfileFieldConfig.parse("{\"readonly\":true}"),
                 9,
                 ProfileFieldScope.MEMBER);
         var fieldJF3 = profileFieldRepository.create(
                 station.id(),
                 "Jugendflamme 3",
                 ProfileFieldType.BOOLEAN,
-                "{\"readonly\":true}",
+                ProfileFieldConfig.parse("{\"readonly\":true}"),
                 10,
                 ProfileFieldScope.MEMBER);
         var fieldJF3Datum = profileFieldRepository.create(
                 station.id(),
                 "Jugendflamme 3 Datum",
                 ProfileFieldType.DATE,
-                "{\"readonly\":true}",
+                ProfileFieldConfig.parse("{\"readonly\":true}"),
                 11,
                 ProfileFieldScope.MEMBER);
 
@@ -721,13 +750,14 @@ public class DemoService {
                 templateAnfaenger.id(),
                 "Thema",
                 AttendanceFieldType.STRING,
-                "{\"defaultValue\":\"Grundausbildung\"}",
+                AttendanceFieldConfig.parse("{\"defaultValue\":\"Grundausbildung\"}"),
                 0);
 
         var templateFort = attendanceRepository.createTemplate(station.id(), "Übung Fortgeschritten");
         attendanceRepository.setTemplateGroups(
                 templateFort.id(), List.of(new AttendanceRepository.TemplateGroup(groupFortgeschritten.id(), 0)));
-        attendanceRepository.createTemplateField(templateFort.id(), "Thema", AttendanceFieldType.STRING, "{}", 0);
+        attendanceRepository.createTemplateField(
+                templateFort.id(), "Thema", AttendanceFieldType.STRING, AttendanceFieldConfig.parse("{}"), 0);
 
         var templateGesamt = attendanceRepository.createTemplate(station.id(), "Gesamtübung");
         attendanceRepository.setTemplateGroups(
@@ -1081,12 +1111,20 @@ public class DemoService {
                     catOeffentlichkeit.id(),
                     null);
             eventFieldRepository.create(
-                    oeEvent.id(), "Ort", EventFieldType.STRING, "{}", oeOrte[e], 0, true, null, true);
+                    oeEvent.id(),
+                    "Ort",
+                    EventFieldType.STRING,
+                    EventFieldConfig.parse("{}"),
+                    oeOrte[e],
+                    0,
+                    true,
+                    null,
+                    true);
             eventFieldRepository.create(
                     oeEvent.id(),
                     "Treffpunkt",
                     EventFieldType.STRING,
-                    "{}",
+                    EventFieldConfig.parse("{}"),
                     "Feuerwehrgerätehaus",
                     1,
                     true,
@@ -1125,12 +1163,20 @@ public class DemoService {
                 catOeffentlichkeit.id(),
                 null);
         eventFieldRepository.create(
-                oeOpen.id(), "Ort", EventFieldType.STRING, "{}", "Rathausplatz Musterstadt", 0, true, null, true);
+                oeOpen.id(),
+                "Ort",
+                EventFieldType.STRING,
+                EventFieldConfig.parse("{}"),
+                "Rathausplatz Musterstadt",
+                0,
+                true,
+                null,
+                true);
         eventFieldRepository.create(
                 oeOpen.id(),
                 "Treffpunkt",
                 EventFieldType.STRING,
-                "{}",
+                EventFieldConfig.parse("{}"),
                 "Feuerwehrgerätehaus 08:30",
                 1,
                 true,
@@ -1140,7 +1186,7 @@ public class DemoService {
                 oeOpen.id(),
                 "Hinweis",
                 EventFieldType.STRING,
-                "{}",
+                EventFieldConfig.parse("{}"),
                 "Dienstkleidung und Ausrüstung mitbringen",
                 2,
                 false,
@@ -1161,31 +1207,47 @@ public class DemoService {
                 tagDerOffenenTuer.id(),
                 "Ort",
                 EventFieldType.STRING,
-                "{}",
+                EventFieldConfig.parse("{}"),
                 "Feuerwehrhaus Musterstadt",
                 0,
                 true,
                 null,
                 true);
         eventFieldRepository.create(
-                tagDerOffenenTuer.id(), "Treffpunkt", EventFieldType.STRING, "{}", "Haupteingang", 1, true, null, true);
+                tagDerOffenenTuer.id(),
+                "Treffpunkt",
+                EventFieldType.STRING,
+                EventFieldConfig.parse("{}"),
+                "Haupteingang",
+                1,
+                true,
+                null,
+                true);
         eventFieldRepository.create(
                 tagDerOffenenTuer.id(),
                 "Hinweis",
                 EventFieldType.STRING,
-                "{}",
+                EventFieldConfig.parse("{}"),
                 "Dienstkleidung tragen",
                 2,
                 false,
                 null,
                 false);
         eventFieldRepository.create(
-                stadtfest.id(), "Ort", EventFieldType.STRING, "{}", "Marktplatz Musterstadt", 0, true, null, true);
+                stadtfest.id(),
+                "Ort",
+                EventFieldType.STRING,
+                EventFieldConfig.parse("{}"),
+                "Marktplatz Musterstadt",
+                0,
+                true,
+                null,
+                true);
         eventFieldRepository.create(
                 stadtfest.id(),
                 "Treffpunkt",
                 EventFieldType.STRING,
-                "{}",
+                EventFieldConfig.parse("{}"),
                 "Stand der Jugendfeuerwehr",
                 1,
                 true,
@@ -1195,7 +1257,7 @@ public class DemoService {
                 kreisWettbewerb.id(),
                 "Ort",
                 EventFieldType.STRING,
-                "{}",
+                EventFieldConfig.parse("{}"),
                 "Sportplatz Nachbarstadt",
                 0,
                 true,
@@ -1205,7 +1267,7 @@ public class DemoService {
                 kreisWettbewerb.id(),
                 "Hinweis",
                 EventFieldType.STRING,
-                "{}",
+                EventFieldConfig.parse("{}"),
                 "Wettkampfkleidung und Ausrüstung mitbringen",
                 1,
                 false,
@@ -1213,38 +1275,70 @@ public class DemoService {
                 false);
         // Recurring event fields
         eventFieldRepository.create(
-                evAnfaenger.id(), "Ort", EventFieldType.STRING, "{}", "Feuerwehrhaus Musterstadt", 0, true, null, true);
+                evAnfaenger.id(),
+                "Ort",
+                EventFieldType.STRING,
+                EventFieldConfig.parse("{}"),
+                "Feuerwehrhaus Musterstadt",
+                0,
+                true,
+                null,
+                true);
         eventFieldRepository.create(
                 evAnfaenger.id(),
                 "Hinweis",
                 EventFieldType.STRING,
-                "{}",
+                EventFieldConfig.parse("{}"),
                 "Sportkleidung mitbringen",
                 1,
                 false,
                 null,
                 false);
         eventFieldRepository.create(
-                evFort.id(), "Ort", EventFieldType.STRING, "{}", "Feuerwehrhaus Musterstadt", 0, true, null, true);
+                evFort.id(),
+                "Ort",
+                EventFieldType.STRING,
+                EventFieldConfig.parse("{}"),
+                "Feuerwehrhaus Musterstadt",
+                0,
+                true,
+                null,
+                true);
         eventFieldRepository.create(
                 evFort.id(),
                 "Hinweis",
                 EventFieldType.STRING,
-                "{}",
+                EventFieldConfig.parse("{}"),
                 "Schutzausrüstung wird gestellt",
                 1,
                 false,
                 null,
                 false);
         eventFieldRepository.create(
-                evGesamt.id(), "Ort", EventFieldType.STRING, "{}", "Feuerwehrhaus Musterstadt", 0, true, null, true);
+                evGesamt.id(),
+                "Ort",
+                EventFieldType.STRING,
+                EventFieldConfig.parse("{}"),
+                "Feuerwehrhaus Musterstadt",
+                0,
+                true,
+                null,
+                true);
         eventFieldRepository.create(
-                evGesamt.id(), "Treffpunkt", EventFieldType.STRING, "{}", "Fahrzeughalle", 1, true, null, true);
+                evGesamt.id(),
+                "Treffpunkt",
+                EventFieldType.STRING,
+                EventFieldConfig.parse("{}"),
+                "Fahrzeughalle",
+                1,
+                true,
+                null,
+                true);
         eventFieldRepository.create(
                 theorieabend.id(),
                 "Ort",
                 EventFieldType.STRING,
-                "{}",
+                EventFieldConfig.parse("{}"),
                 "Schulungsraum Feuerwehrhaus",
                 0,
                 true,
@@ -1254,7 +1348,7 @@ public class DemoService {
                 theorieabend.id(),
                 "Hinweis",
                 EventFieldType.STRING,
-                "{}",
+                EventFieldConfig.parse("{}"),
                 "Schreibzeug mitbringen",
                 1,
                 false,
@@ -1635,16 +1729,26 @@ public class DemoService {
         eventTemplateService.replaceFields(
                 tplStandard.id(),
                 List.of(
-                        new EventTemplateFieldData("Ort", EventFieldType.STRING, "{}", 0, true, true, null),
-                        new EventTemplateFieldData("Treffpunkt", EventFieldType.STRING, "{}", 1, true, true, null)));
+                        new EventTemplateFieldData(
+                                "Ort", EventFieldType.STRING, EventFieldConfig.parse("{}"), 0, true, true, null),
+                        new EventTemplateFieldData(
+                                "Treffpunkt",
+                                EventFieldType.STRING,
+                                EventFieldConfig.parse("{}"),
+                                1,
+                                true,
+                                true,
+                                null)));
         var tplWettbewerb = eventTemplateService.create(station.id(), "Wettbewerb");
         eventTemplateService.update(
                 tplWettbewerb.id(), "Wettbewerb", null, null, null, "ONE_TIME", true, null, true, null, null, null);
         eventTemplateService.replaceFields(
                 tplWettbewerb.id(),
                 List.of(
-                        new EventTemplateFieldData("Ort", EventFieldType.STRING, "{}", 0, true, true, null),
-                        new EventTemplateFieldData("Thema", EventFieldType.STRING, "{}", 1, true, false, null)));
+                        new EventTemplateFieldData(
+                                "Ort", EventFieldType.STRING, EventFieldConfig.parse("{}"), 0, true, true, null),
+                        new EventTemplateFieldData(
+                                "Thema", EventFieldType.STRING, EventFieldConfig.parse("{}"), 1, true, false, null)));
         log.info("Demo: Created event templates");
 
         // -- Feed Tokens --

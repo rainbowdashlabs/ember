@@ -11,6 +11,7 @@ import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.attendance.entity.AttendanceEntry;
+import dev.chojo.ember.feature.attendance.entity.AttendanceFieldConfig;
 import dev.chojo.ember.feature.attendance.entity.AttendanceFieldType;
 import dev.chojo.ember.feature.attendance.entity.AttendanceFieldValueEntry;
 import dev.chojo.ember.feature.attendance.entity.AttendanceReportPreset;
@@ -1135,7 +1136,8 @@ public class AttendanceRoutes implements Routes {
     /**
      * Request body for creating or updating a template field.
      */
-    public record TemplateFieldRequest(String name, AttendanceFieldType fieldType, String config, int position) {}
+    public record TemplateFieldRequest(
+            String name, AttendanceFieldType fieldType, AttendanceFieldConfig config, int position) {}
 
     /**
      * Request body for creating or updating an attendance session.

@@ -29,7 +29,7 @@ public record FormQuestion(
         String description,
         boolean required,
         boolean shuffle,
-        String config) {
+        FormQuestionConfig config) {
 
     /**
      * Creates a row mapping for database result set conversion.
@@ -44,7 +44,7 @@ public record FormQuestion(
                 row.getString("description"),
                 row.getBoolean("required"),
                 row.getBoolean("shuffle"),
-                row.getString("config"));
+                FormQuestionConfig.parse(row.getString("config")));
     }
 
     /**

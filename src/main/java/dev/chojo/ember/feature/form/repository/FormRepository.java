@@ -10,6 +10,7 @@ import de.chojo.sadu.queries.api.query.Query;
 import dev.chojo.ember.feature.form.entity.Form;
 import dev.chojo.ember.feature.form.entity.FormAnswer;
 import dev.chojo.ember.feature.form.entity.FormQuestion;
+import dev.chojo.ember.feature.form.entity.FormQuestionConfig;
 import dev.chojo.ember.feature.form.entity.FormResponse;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 import jakarta.inject.Singleton;
@@ -220,7 +221,7 @@ public class FormRepository {
             String description,
             boolean required,
             boolean shuffle,
-            String config) {
+            FormQuestionConfig config) {
         return Query.query("""
                             INSERT INTO form_question(form_id, position, question_type, title, description, required, shuffle, config)
                             VALUES (:form_id, :position, :question_type, :title, :description, :required, :shuffle, :config::JSONB)
@@ -233,7 +234,7 @@ public class FormRepository {
                         .bind("description", description)
                         .bind("required", required)
                         .bind("shuffle", shuffle)
-                        .bind("config", config))
+                        .bind("config", config.toJson()))
                 .map(FormQuestion.map())
                 .first()
                 .orElseThrow();
@@ -252,7 +253,13 @@ public class FormRepository {
      * @return {@code true} if a row was updated
      */
     public boolean updateQuestion(
-            int id, String title, String description, boolean required, boolean shuffle, String config, int position) {
+            int id,
+            String title,
+            String description,
+            boolean required,
+            boolean shuffle,
+            FormQuestionConfig config,
+            int position) {
         return Query.query("""
                             UPDATE form_question
                             SET title = :title, description = :description, required = :required,
@@ -264,7 +271,7 @@ public class FormRepository {
                         .bind("description", description)
                         .bind("required", required)
                         .bind("shuffle", shuffle)
-                        .bind("config", config)
+                        .bind("config", config.toJson())
                         .bind("position", position))
                 .update()
                 .changed();

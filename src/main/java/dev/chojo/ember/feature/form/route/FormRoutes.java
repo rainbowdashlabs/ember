@@ -13,6 +13,7 @@ import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.form.entity.Form;
 import dev.chojo.ember.feature.form.entity.FormAnswer;
 import dev.chojo.ember.feature.form.entity.FormQuestion;
+import dev.chojo.ember.feature.form.entity.FormQuestionConfig;
 import dev.chojo.ember.feature.form.entity.FormResponse;
 import dev.chojo.ember.feature.form.entity.QuestionEntry;
 import dev.chojo.ember.feature.form.service.FormService;
@@ -366,7 +367,7 @@ public class FormRoutes implements Routes {
                                 q.description() != null ? q.description() : "",
                                 q.required() != null && q.required(),
                                 q.shuffle() != null && q.shuffle(),
-                                q.config() != null ? q.config() : "{}"))
+                                q.config() != null ? q.config() : FormQuestionConfig.parse("{}")))
                         .toList());
         ctx.json(formService.findQuestions(id));
     }
@@ -703,7 +704,12 @@ public class FormRoutes implements Routes {
      * @param config       type-specific configuration as JSON string
      */
     public record QuestionRequest(
-            String questionType, String title, String description, Boolean required, Boolean shuffle, String config) {}
+            String questionType,
+            String title,
+            String description,
+            Boolean required,
+            Boolean shuffle,
+            FormQuestionConfig config) {}
 
     /**
      * Access restrictions for a form, specifying which roles, groups, and tags may access it.
@@ -798,7 +804,7 @@ public class FormRoutes implements Routes {
      * @param values       all answer values submitted for this question
      */
     public record QuestionAnalytics(
-            int questionId, String questionType, String title, String config, List<String> values) {}
+            int questionId, String questionType, String title, FormQuestionConfig config, List<String> values) {}
 
     /**
      * Response indicating which members (self and managed) are eligible to respond to a form.

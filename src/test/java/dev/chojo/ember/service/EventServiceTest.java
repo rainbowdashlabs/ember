@@ -7,6 +7,7 @@ package dev.chojo.ember.service;
 
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
+import dev.chojo.ember.feature.attendance.entity.AttendanceFieldConfig;
 import dev.chojo.ember.feature.attendance.entity.AttendanceFieldType;
 import dev.chojo.ember.feature.events.entity.EventRegistration;
 import dev.chojo.ember.feature.events.entity.StationEvent;
@@ -673,8 +674,10 @@ class EventServiceTest extends RepositoryTestBase {
     void resolveFieldDefaultsWithAttendanceField() {
         // Create an attendance template with two fields
         var template = attendanceRepo.createTemplate(station.id(), "EventDefaultTemplate");
-        attendanceRepo.createTemplateField(template.id(), "FieldA", AttendanceFieldType.STRING, "{}", 0);
-        attendanceRepo.createTemplateField(template.id(), "FieldB", AttendanceFieldType.STRING, "{}", 1);
+        attendanceRepo.createTemplateField(
+                template.id(), "FieldA", AttendanceFieldType.STRING, AttendanceFieldConfig.parse("{}"), 0);
+        attendanceRepo.createTemplateField(
+                template.id(), "FieldB", AttendanceFieldType.STRING, AttendanceFieldConfig.parse("{}"), 1);
         var fields = attendanceRepo.findTemplateFields(template.id());
         assertFalse(fields.isEmpty());
         int fieldAId = fields.get(0).id();
@@ -717,7 +720,8 @@ class EventServiceTest extends RepositoryTestBase {
     void resolveFieldDefaultsWithUnknownSource() {
         // Using an unknown source type — should be skipped (returns null, not added to result)
         var template = attendanceRepo.createTemplate(station.id(), "EventDefaultTemplate2");
-        attendanceRepo.createTemplateField(template.id(), "TestField2", AttendanceFieldType.STRING, "{}", 0);
+        attendanceRepo.createTemplateField(
+                template.id(), "TestField2", AttendanceFieldType.STRING, AttendanceFieldConfig.parse("{}"), 0);
         var fields = attendanceRepo.findTemplateFields(template.id());
         int attendanceFieldId = fields.getFirst().id();
 
@@ -752,7 +756,8 @@ class EventServiceTest extends RepositoryTestBase {
     @Order(100)
     void resolveFieldDefaultsWithEventDescriptionSource() {
         var template = attendanceRepo.createTemplate(station.id(), "EventDefaultTemplate3");
-        attendanceRepo.createTemplateField(template.id(), "TestField3", AttendanceFieldType.STRING, "{}", 0);
+        attendanceRepo.createTemplateField(
+                template.id(), "TestField3", AttendanceFieldType.STRING, AttendanceFieldConfig.parse("{}"), 0);
         var fields = attendanceRepo.findTemplateFields(template.id());
         int attendanceFieldId = fields.getFirst().id();
 

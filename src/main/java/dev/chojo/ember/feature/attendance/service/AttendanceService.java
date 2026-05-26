@@ -103,13 +103,18 @@ public class AttendanceService {
     // -- Template Fields --
 
     public List<AttendanceTemplateField> createTemplateField(
-            int templateId, String name, AttendanceFieldType fieldType, String config, int position) {
+            int templateId, String name, AttendanceFieldType fieldType, AttendanceFieldConfig config, int position) {
         attendanceRepository.createTemplateField(templateId, name, fieldType, config, position);
         return attendanceRepository.findTemplateFields(templateId);
     }
 
     public Optional<List<AttendanceTemplateField>> updateTemplateField(
-            int templateId, int fieldId, String name, AttendanceFieldType fieldType, String config, int position) {
+            int templateId,
+            int fieldId,
+            String name,
+            AttendanceFieldType fieldType,
+            AttendanceFieldConfig config,
+            int position) {
         if (attendanceRepository.updateTemplateField(fieldId, name, fieldType, config, position)) {
             return Optional.of(attendanceRepository.findTemplateFields(templateId));
         }
@@ -187,7 +192,7 @@ public class AttendanceService {
         // Auto-populate field defaults from template field config
         var templateFields = attendanceRepository.findTemplateFields(templateId);
         for (var field : templateFields) {
-            var config = AttendanceFieldConfig.parse(field.config());
+            var config = field.config();
             if (config.hasDefaultValue()) {
                 String resolved = config.resolveDefaultValueJson();
                 if (resolved != null) {
@@ -341,7 +346,7 @@ public class AttendanceService {
                 .collect(Collectors.toSet());
 
         for (var field : templateFieldsList) {
-            if (!AttendanceFieldConfig.parse(field.config()).autoAttend()) continue;
+            if (!field.config().autoAttend()) continue;
             String value = fieldValueMap.getOrDefault(field.id(), "");
             if (value.isBlank()) continue;
 

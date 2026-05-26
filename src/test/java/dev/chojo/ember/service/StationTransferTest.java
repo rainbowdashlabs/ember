@@ -6,10 +6,13 @@
 package dev.chojo.ember.service;
 
 import dev.chojo.ember.api.Roles;
+import dev.chojo.ember.feature.attendance.entity.AttendanceFieldConfig;
 import dev.chojo.ember.feature.attendance.entity.AttendanceFieldType;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.form.entity.FormQuestion;
+import dev.chojo.ember.feature.form.entity.FormQuestionConfig;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
+import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
 import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
 import dev.chojo.ember.feature.members.entity.ProfileFieldType;
 import dev.chojo.ember.feature.members.entity.Role;
@@ -130,11 +133,26 @@ class StationTransferTest extends RepositoryTestBase {
 
         // --- Profile fields ---
         var fieldTelefon = profileFieldRepo.create(
-                sourceStationId, "Telefon", ProfileFieldType.TEXT, "{}", 0, ProfileFieldScope.MEMBER);
+                sourceStationId,
+                "Telefon",
+                ProfileFieldType.TEXT,
+                ProfileFieldConfig.parse("{}"),
+                0,
+                ProfileFieldScope.MEMBER);
         var fieldGeburtstag = profileFieldRepo.create(
-                sourceStationId, "Geburtstag", ProfileFieldType.DATE, "{}", 1, ProfileFieldScope.MEMBER);
+                sourceStationId,
+                "Geburtstag",
+                ProfileFieldType.DATE,
+                ProfileFieldConfig.parse("{}"),
+                1,
+                ProfileFieldScope.MEMBER);
         var fieldNotizen = profileFieldRepo.create(
-                sourceStationId, "Notizen", ProfileFieldType.TEXT, "{}", 0, ProfileFieldScope.TEAM);
+                sourceStationId,
+                "Notizen",
+                ProfileFieldType.TEXT,
+                ProfileFieldConfig.parse("{}"),
+                0,
+                ProfileFieldScope.TEAM);
         profileFieldRepo.setValue(manager.id(), fieldTelefon.id(), "\"0151-11111\"");
         profileFieldRepo.setValue(trainer.id(), fieldTelefon.id(), "\"0151-22222\"");
         profileFieldRepo.setValue(child.id(), fieldGeburtstag.id(), "\"2012-05-15\"");
@@ -142,10 +160,17 @@ class StationTransferTest extends RepositoryTestBase {
 
         // --- Attendance templates ---
         var templateStandard = attendanceRepo.createTemplate(sourceStationId, "Standard-Übung");
-        attendanceRepo.createTemplateField(templateStandard.id(), "Leiter", AttendanceFieldType.MEMBER, "{}", 0);
-        attendanceRepo.createTemplateField(templateStandard.id(), "Thema", AttendanceFieldType.STRING, "{}", 1);
+        attendanceRepo.createTemplateField(
+                templateStandard.id(), "Leiter", AttendanceFieldType.MEMBER, AttendanceFieldConfig.parse("{}"), 0);
+        attendanceRepo.createTemplateField(
+                templateStandard.id(), "Thema", AttendanceFieldType.STRING, AttendanceFieldConfig.parse("{}"), 1);
         var templateSonder = attendanceRepo.createTemplate(sourceStationId, "Sondertermin");
-        attendanceRepo.createTemplateField(templateSonder.id(), "Verantwortlich", AttendanceFieldType.MEMBER, "{}", 0);
+        attendanceRepo.createTemplateField(
+                templateSonder.id(),
+                "Verantwortlich",
+                AttendanceFieldType.MEMBER,
+                AttendanceFieldConfig.parse("{}"),
+                0);
 
         // --- Event categories ---
         var catTraining = eventRepo.createCategory(sourceStationId, "Training", 0);
@@ -229,7 +254,7 @@ class StationTransferTest extends RepositoryTestBase {
                 "Bewerte von 1-5",
                 true,
                 false,
-                "{}");
+                FormQuestionConfig.parse("{}"));
         formRepo.createQuestion(
                 form.id(),
                 1,
@@ -238,7 +263,7 @@ class StationTransferTest extends RepositoryTestBase {
                 "Was können wir besser machen?",
                 false,
                 false,
-                "{}");
+                FormQuestionConfig.parse("{}"));
         formRepo.createQuestion(
                 form.id(),
                 2,
@@ -247,7 +272,7 @@ class StationTransferTest extends RepositoryTestBase {
                 "",
                 false,
                 false,
-                "{\"options\":[\"Löschangriff\",\"Knoten\",\"Erste Hilfe\",\"Sport\"]}");
+                FormQuestionConfig.parse("{\"options\":[\"Löschangriff\",\"Knoten\",\"Erste Hilfe\",\"Sport\"]}"));
     }
 
     // ==================== Export tests ====================

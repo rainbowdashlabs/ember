@@ -9,6 +9,7 @@ import de.chojo.sadu.queries.api.call.Call;
 import de.chojo.sadu.queries.api.query.Query;
 import de.chojo.sadu.queries.api.results.writing.insertion.InsertionResult;
 import dev.chojo.ember.feature.attendance.entity.AttendanceEntry;
+import dev.chojo.ember.feature.attendance.entity.AttendanceFieldConfig;
 import dev.chojo.ember.feature.attendance.entity.AttendanceFieldType;
 import dev.chojo.ember.feature.attendance.entity.AttendanceReportPreset;
 import dev.chojo.ember.feature.attendance.entity.AttendanceSession;
@@ -130,7 +131,7 @@ public class AttendanceRepository {
      * @return the insertion result
      */
     public InsertionResult createTemplateField(
-            int templateId, String name, AttendanceFieldType fieldType, String config, int position) {
+            int templateId, String name, AttendanceFieldType fieldType, AttendanceFieldConfig config, int position) {
         return Query.query("""
                             INSERT
                             INTO
@@ -141,7 +142,7 @@ public class AttendanceRepository {
                         .bind("template_id", templateId)
                         .bind("name", name)
                         .bind("field_type", fieldType)
-                        .bind("config", config)
+                        .bind("config", config.toJson())
                         .bind("position", position))
                 .insert();
     }
@@ -157,7 +158,7 @@ public class AttendanceRepository {
      * @return {@code true} if the field was updated
      */
     public boolean updateTemplateField(
-            int id, String name, AttendanceFieldType fieldType, String config, int position) {
+            int id, String name, AttendanceFieldType fieldType, AttendanceFieldConfig config, int position) {
         return Query.query("""
                             UPDATE attendance_template_field
                             SET
@@ -169,7 +170,7 @@ public class AttendanceRepository {
                 .single(Call.of()
                         .bind("name", name)
                         .bind("field_type", fieldType)
-                        .bind("config", config)
+                        .bind("config", config.toJson())
                         .bind("position", position)
                         .bind("id", id))
                 .update()

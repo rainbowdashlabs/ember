@@ -21,4 +21,4 @@ public record QuestionEntry(
         String description,
         boolean required,
         boolean shuffle,
-        String config) {}
+        FormQuestionConfig config) {}

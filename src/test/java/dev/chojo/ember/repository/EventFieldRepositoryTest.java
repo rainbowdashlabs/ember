@@ -8,6 +8,7 @@ package dev.chojo.ember.repository;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.events.entity.EventCategory;
 import dev.chojo.ember.feature.events.entity.EventField;
+import dev.chojo.ember.feature.events.entity.EventFieldConfig;
 import dev.chojo.ember.feature.events.entity.EventFieldType;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventFieldRepository;
@@ -70,10 +71,18 @@ class EventFieldRepositoryTest extends RepositoryTestBase {
     @Order(1)
     void create() {
         EventField field = eventFieldRepo.create(
-                eventId, "Location", EventFieldType.STRING, "{}", "Berlin", 0, false, null, false);
+                eventId,
+                "Location",
+                EventFieldType.STRING,
+                EventFieldConfig.parse("{}"),
+                "Berlin",
+                0,
+                false,
+                null,
+                false);
         assertNotNull(field);
         assertEquals("Location", field.name());
-        assertEquals("string", field.fieldType());
+        assertEquals(EventFieldType.STRING, field.fieldType());
         assertEquals("Berlin", field.value());
         assertEquals(0, field.position());
         assertFalse(field.overview());
@@ -109,9 +118,21 @@ class EventFieldRepositoryTest extends RepositoryTestBase {
                 eventId,
                 List.of(
                         new EventFieldRepository.FieldEntry(
-                                "Key1", EventFieldType.STRING, "{}", "Val1", false, null, false),
+                                "Key1",
+                                EventFieldType.STRING,
+                                EventFieldConfig.parse("{}"),
+                                "Val1",
+                                false,
+                                null,
+                                false),
                         new EventFieldRepository.FieldEntry(
-                                "Key2", EventFieldType.STRING, "{}", "Val2", true, null, false)));
+                                "Key2",
+                                EventFieldType.STRING,
+                                EventFieldConfig.parse("{}"),
+                                "Val2",
+                                true,
+                                null,
+                                false)));
         var fields = eventFieldRepo.findByEvent(eventId);
         assertEquals(2, fields.size());
         assertEquals("Key1", fields.get(0).name());

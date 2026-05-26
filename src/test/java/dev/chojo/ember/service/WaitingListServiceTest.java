@@ -9,6 +9,7 @@ import dev.chojo.ember.feature.mail.service.EmailService;
 import dev.chojo.ember.feature.notifications.service.NotificationService;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListEntryStatus;
+import dev.chojo.ember.feature.waitinglist.entity.WaitingListFieldConfig;
 import dev.chojo.ember.feature.waitinglist.service.WaitingListService;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.BeforeAll;
@@ -72,13 +73,14 @@ class WaitingListServiceTest extends RepositoryTestBase {
 
     @Test
     void fieldCrud() {
-        var field = service.createField(listId, "Name", "TEXT", "{}", 0, true);
+        var field = service.createField(listId, "Name", "TEXT", WaitingListFieldConfig.parse("{}"), 0, true);
         assertNotNull(field);
 
         var fields = service.findFieldsByList(listId);
         assertEquals(1, fields.size());
 
-        var updated = service.updateField(field.id(), "Full Name", "TEXT", "{}", 0, false);
+        var updated =
+                service.updateField(field.id(), "Full Name", "TEXT", WaitingListFieldConfig.parse("{}"), 0, false);
         assertTrue(updated.isPresent());
         assertEquals("Full Name", updated.get().name());
 
@@ -100,7 +102,7 @@ class WaitingListServiceTest extends RepositoryTestBase {
     @Test
     void registerViaInvite() {
         var invite = service.createInvite(listId, 1, null);
-        var field = service.createField(listId, "Age", "NUMBER", "{}", 0, true);
+        var field = service.createField(listId, "Age", "NUMBER", WaitingListFieldConfig.parse("{}"), 0, true);
 
         var entry = service.registerViaInvite(
                 invite.code(), "Max", "Müller", "Sabine", "test@test.com", Map.of(field.id(), "8"), "Test note");
@@ -170,8 +172,8 @@ class WaitingListServiceTest extends RepositoryTestBase {
 
     @Test
     void scoreEvaluation() {
-        var ageField = service.createField(listId, "Alter", "NUMBER", "{}", 0, true);
-        var expField = service.createField(listId, "Erfahrung", "ENUM", "{}", 1, true);
+        var ageField = service.createField(listId, "Alter", "NUMBER", WaitingListFieldConfig.parse("{}"), 0, true);
+        var expField = service.createField(listId, "Erfahrung", "ENUM", WaitingListFieldConfig.parse("{}"), 1, true);
         var list = service.update(
                         listId,
                         "Scored",
@@ -246,7 +248,7 @@ class WaitingListServiceTest extends RepositoryTestBase {
 
     @Test
     void updateEntryWithFieldValues() {
-        var field = service.createField(listId, "Score", "NUMBER", "{}", 0, false);
+        var field = service.createField(listId, "Score", "NUMBER", WaitingListFieldConfig.parse("{}"), 0, false);
         var entry = service.createEntry(listId, "A", "B", "", "e@test.com", Map.of(field.id(), "5"), "");
         service.updateEntry(entry.id(), "A", "B", "", "e@test.com", "", Map.of(field.id(), "10"));
         var values = service.findEntryValues(entry.id());
@@ -357,7 +359,7 @@ class WaitingListServiceTest extends RepositoryTestBase {
 
     @Test
     void scoreEvaluationWithAgeFunction() {
-        var dobField = service.createField(listId, "Geburtsdatum", "DATE", "{}", 0, true);
+        var dobField = service.createField(listId, "Geburtsdatum", "DATE", WaitingListFieldConfig.parse("{}"), 0, true);
         var list = service.update(listId, "AgeScored", "", "age([Geburtsdatum])", 180, null, null, null, 5)
                 .orElseThrow();
 
@@ -468,7 +470,7 @@ class WaitingListServiceTest extends RepositoryTestBase {
     @Test
     void scoreEvaluationWithInvalidDateField() {
         // age() function with an invalid date string — should not throw, age = 0
-        var dobField = service.createField(listId, "BadDate", "DATE", "{}", 0, false);
+        var dobField = service.createField(listId, "BadDate", "DATE", WaitingListFieldConfig.parse("{}"), 0, false);
         var list = service.update(listId, "BadDateScored", "", "age([BadDate])", 180, null, null, null, 5)
                 .orElseThrow();
         var entry = service.createEntry(listId, "A", "", "", "t@t.com", Map.of(dobField.id(), "\"not-a-date\""), "");

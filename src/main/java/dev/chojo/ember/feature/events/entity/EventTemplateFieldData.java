@@ -8,7 +8,7 @@ package dev.chojo.ember.feature.events.entity;
 public record EventTemplateFieldData(
         String name,
         EventFieldType fieldType,
-        String config,
+        EventFieldConfig config,
         int position,
         boolean overview,
         boolean isPublic,

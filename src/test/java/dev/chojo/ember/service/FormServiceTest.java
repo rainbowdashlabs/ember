@@ -9,6 +9,7 @@ import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.form.entity.Form;
 import dev.chojo.ember.feature.form.entity.FormQuestion;
+import dev.chojo.ember.feature.form.entity.FormQuestionConfig;
 import dev.chojo.ember.feature.form.entity.QuestionEntry;
 import dev.chojo.ember.feature.form.service.FormService;
 import dev.chojo.ember.feature.members.entity.StationMember;
@@ -33,7 +34,6 @@ import java.util.Map;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
@@ -149,7 +149,14 @@ class FormServiceTest extends RepositoryTestBase {
     @Order(10)
     void createQuestion() {
         var q = service.createQuestion(
-                formId, 0, FormQuestion.QuestionType.TEXT, "Your name?", "Enter name", true, false, "{}");
+                formId,
+                0,
+                FormQuestion.QuestionType.TEXT,
+                "Your name?",
+                "Enter name",
+                true,
+                false,
+                FormQuestionConfig.parse("{}"));
         assertNotNull(q);
         assertEquals("Your name?", q.title());
         questionId = q.id();
@@ -164,17 +171,23 @@ class FormServiceTest extends RepositoryTestBase {
     }
 
     @Test
-    @Order(12)
-    void updateQuestion() {
-        assertTrue(service.updateQuestion(questionId, "Full name?", "Enter full name", false, true, "{}", 1));
-    }
-
-    @Test
     @Order(13)
     void replaceQuestions() {
         var entries = List.of(
-                new QuestionEntry(FormQuestion.QuestionType.TEXT, "Question A", "Desc A", true, false, "{}"),
-                new QuestionEntry(FormQuestion.QuestionType.TEXT, "Question B", "Desc B", false, false, "{}"));
+                new QuestionEntry(
+                        FormQuestion.QuestionType.TEXT,
+                        "Question A",
+                        "Desc A",
+                        true,
+                        false,
+                        FormQuestionConfig.parse("{}")),
+                new QuestionEntry(
+                        FormQuestion.QuestionType.TEXT,
+                        "Question B",
+                        "Desc B",
+                        false,
+                        false,
+                        FormQuestionConfig.parse("{}")));
         service.replaceQuestions(formId, entries);
         var qs = service.findQuestions(formId);
         assertEquals(2, qs.size());
@@ -363,12 +376,6 @@ class FormServiceTest extends RepositoryTestBase {
     @Order(39)
     void deleteQuestionNonExistent() {
         assertFalse(service.deleteQuestion(999999));
-    }
-
-    @Test
-    @Order(40)
-    void updateQuestionNonExistent() {
-        assertFalse(service.updateQuestion(999999, "title", "desc", false, false, "{}", 0));
     }
 
     // -- Delete --

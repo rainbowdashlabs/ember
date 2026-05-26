@@ -82,14 +82,19 @@ public class ProfileFieldService {
             int stationId,
             String name,
             ProfileFieldType fieldType,
-            String config,
+            ProfileFieldConfig config,
             int position,
             ProfileFieldScope scope) {
         return profileFieldRepository.create(stationId, name, fieldType, config, position, scope);
     }
 
     public Optional<ProfileField> update(
-            int id, String name, ProfileFieldType fieldType, String config, int position, boolean keepOnArchive) {
+            int id,
+            String name,
+            ProfileFieldType fieldType,
+            ProfileFieldConfig config,
+            int position,
+            boolean keepOnArchive) {
         if (profileFieldRepository.update(id, name, fieldType, config, position, keepOnArchive)) {
             return profileFieldRepository.findById(id);
         }
@@ -127,7 +132,7 @@ public class ProfileFieldService {
         for (var field : allFields) {
             if (field.scope() == ProfileFieldScope.GROUP) continue;
             if (!scopes.contains(field.scope())) continue;
-            var config = ProfileFieldConfig.parse(field.config());
+            var config = field.config();
             if (!config.required()) continue;
             if (config.readonly()) continue;
             String val = valueMap.get(field.id());
@@ -283,8 +288,7 @@ public class ProfileFieldService {
         var field = profileFieldRepository.findById(fieldId).orElse(null);
         if (field == null) return;
 
-        boolean requiresAcknowledgement =
-                ProfileFieldConfig.parse(field.config()).notifyOnChange();
+        boolean requiresAcknowledgement = field.config().notifyOnChange();
 
         Instant cutoff = Instant.now().minus(MERGE_WINDOW);
         var recent = changeRepository.findRecentChange(fieldId, memberId, changedBy, cutoff);

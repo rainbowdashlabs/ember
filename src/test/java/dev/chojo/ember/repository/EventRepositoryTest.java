@@ -6,6 +6,7 @@
 package dev.chojo.ember.repository;
 
 import dev.chojo.ember.feature.account.entity.Account;
+import dev.chojo.ember.feature.attendance.entity.AttendanceFieldConfig;
 import dev.chojo.ember.feature.attendance.entity.AttendanceFieldType;
 import dev.chojo.ember.feature.events.entity.EventBreak;
 import dev.chojo.ember.feature.events.entity.EventCategory;
@@ -392,7 +393,8 @@ class EventRepositoryTest extends RepositoryTestBase {
     void setAndFindFieldDefaults() {
         // event_field_default.field_id references attendance_template_field
         var template = attendanceRepo.createTemplate(station.id(), "FDTemplate");
-        attendanceRepo.createTemplateField(template.id(), "SignedBy", AttendanceFieldType.STRING, "{}", 0);
+        attendanceRepo.createTemplateField(
+                template.id(), "SignedBy", AttendanceFieldType.STRING, AttendanceFieldConfig.parse("{}"), 0);
         var templateFields = attendanceRepo.findTemplateFields(template.id());
         int templateFieldId = templateFields.getFirst().id();
 
