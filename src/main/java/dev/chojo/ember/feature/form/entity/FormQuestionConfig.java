@@ -27,12 +27,12 @@ import static org.slf4j.LoggerFactory.getLogger;
 public sealed interface FormQuestionConfig {
     Logger log = getLogger(FormQuestionConfig.class);
     ObjectMapper MAPPER = JsonMapper.builder()
-                                    .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
-                                    .disable(DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES)
-                                    .disable(SerializationFeature.FAIL_ON_EMPTY_BEANS)
-                                    .changeDefaultVisibility(v -> v.withFieldVisibility(JsonAutoDetect.Visibility.ANY)
-                                                                   .withGetterVisibility(JsonAutoDetect.Visibility.NONE))
-                                    .build();
+            .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
+            .disable(DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES)
+            .disable(SerializationFeature.FAIL_ON_EMPTY_BEANS)
+            .changeDefaultVisibility(v -> v.withFieldVisibility(JsonAutoDetect.Visibility.ANY)
+                    .withGetterVisibility(JsonAutoDetect.Visibility.NONE))
+            .build();
 
     /**
      * Validates the given answer value against this config.
@@ -90,13 +90,10 @@ public sealed interface FormQuestionConfig {
                     case EXACTLY -> {
                         if (size != multiLimit) errors.add("Exactly %d options must be selected".formatted(multiLimit));
                     }
-                    case NONE -> {
-                    }
+                    case NONE -> {}
                 }
             }
-            if (!TRUE.equals(allowOther)
-                    && other != null
-                    && !other.isBlank()) {
+            if (!TRUE.equals(allowOther) && other != null && !other.isBlank()) {
                 errors.add("'Other' option is not allowed");
             }
             return errors;
@@ -107,8 +104,7 @@ public sealed interface FormQuestionConfig {
      * Free text question.
      */
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    record Text(Boolean longAnswer) implements FormQuestionConfig {
-    }
+    record Text(Boolean longAnswer) implements FormQuestionConfig {}
 
     /**
      * Rating question with scale and icon.
@@ -135,8 +131,7 @@ public sealed interface FormQuestionConfig {
      * Date question (no special config).
      */
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    record Date() implements FormQuestionConfig {
-    }
+    record Date() implements FormQuestionConfig {}
 
     /**
      * Ranking question with orderable options.
@@ -145,7 +140,7 @@ public sealed interface FormQuestionConfig {
     record Ranking(List<String> options) implements FormQuestionConfig {
         @Override
         public List<String> validate(FormAnswerValue value) {
-            if (!(value instanceof FormAnswerValue.Ranking(List<Integer> order))){
+            if (!(value instanceof FormAnswerValue.Ranking(List<Integer> order))) {
                 return List.of("Expected ranking answer");
             }
             if (options == null) return List.of();
@@ -167,7 +162,8 @@ public sealed interface FormQuestionConfig {
             implements FormQuestionConfig {
         @Override
         public List<String> validate(FormAnswerValue value) {
-            if (!(value instanceof FormAnswerValue.Likert(Map<String, Integer> ratings))) return List.of("Expected likert answer");
+            if (!(value instanceof FormAnswerValue.Likert(Map<String, Integer> ratings)))
+                return List.of("Expected likert answer");
             if (ratings == null || ratings.isEmpty()) return List.of("No ratings provided");
             var errors = new ArrayList<String>();
             int min = scaleMin != null ? scaleMin : 1;
@@ -184,8 +180,7 @@ public sealed interface FormQuestionConfig {
     /**
      * Fallback for unknown or empty configs.
      */
-    record Unknown() implements FormQuestionConfig {
-    }
+    record Unknown() implements FormQuestionConfig {}
 
     /**
      * Parses a JSON string into the appropriate config for the given question type.

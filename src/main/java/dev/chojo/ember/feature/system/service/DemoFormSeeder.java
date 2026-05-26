@@ -76,7 +76,13 @@ public class DemoFormSeeder {
                 "",
                 false,
                 true,
-                new FormQuestionConfig.Choice(List.of("Übungen", "Gemeinschaft", "Ausflüge", "Wettbewerbe"), true, false, true, FormQuestionConfig.MultiLimitType.NONE, null));
+                new FormQuestionConfig.Choice(
+                        List.of("Übungen", "Gemeinschaft", "Ausflüge", "Wettbewerbe"),
+                        true,
+                        false,
+                        true,
+                        FormQuestionConfig.MultiLimitType.NONE,
+                        null));
         formRepository.createQuestion(
                 survey.id(),
                 2,
@@ -387,7 +393,13 @@ public class DemoFormSeeder {
                 "",
                 true,
                 false,
-                new FormQuestionConfig.Choice(List.of("Löschangriff", "Staffellauf", "Knotenkunde", "Erste Hilfe"), true, false, true, FormQuestionConfig.MultiLimitType.AT_MOST, 2));
+                new FormQuestionConfig.Choice(
+                        List.of("Löschangriff", "Staffellauf", "Knotenkunde", "Erste Hilfe"),
+                        true,
+                        false,
+                        true,
+                        FormQuestionConfig.MultiLimitType.AT_MOST,
+                        2));
         restrictionRepository.setRestrictions(
                 RestrictionType.FORM.table(),
                 RestrictionType.FORM.fkColumn(),
