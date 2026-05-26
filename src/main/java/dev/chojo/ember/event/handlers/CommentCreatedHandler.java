@@ -8,6 +8,7 @@ package dev.chojo.ember.event.handlers;
 import dev.chojo.ember.api.Roles;
 import dev.chojo.ember.event.DomainEventHandler;
 import dev.chojo.ember.event.events.CommentCreated;
+import dev.chojo.ember.feature.comment.entity.CommentEntityType;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
@@ -38,7 +39,7 @@ public class CommentCreatedHandler implements DomainEventHandler<CommentCreated>
 
     @Override
     public void handle(CommentCreated event) {
-        var link = "news".equals(event.entityType())
+        var link = CommentEntityType.NEWS.equals(event.entityType())
                 ? new NotificationData.NotificationLink("news-detail", Map.of("id", event.entityId()))
                 : new NotificationData.NotificationLink("events");
         var data = NotificationData.of(
@@ -50,7 +51,7 @@ public class CommentCreatedHandler implements DomainEventHandler<CommentCreated>
         }
 
         // Notify managers only for news comments
-        if ("news".equals(event.entityType())) {
+        if (CommentEntityType.NEWS.equals(event.entityType())) {
             var newsMgmtIds =
                     stationMemberRepository.findMembersWithRole(event.stationId(), Roles.NEWS_MANAGER).stream()
                             .map(StationMember::id)

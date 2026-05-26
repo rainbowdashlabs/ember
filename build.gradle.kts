@@ -189,6 +189,15 @@ tasks {
                     minimum = "0.95".toBigDecimal()
                 }
             }
+            // Handlers: 80% line coverage
+            rule {
+                element = "CLASS"
+                includes = listOf("*.handler.*", "*.handlers.*")
+                limit {
+                    counter = "LINE"
+                    minimum = "0.80".toBigDecimal()
+                }
+            }
             // Services: 90% line coverage
             rule {
                 element = "CLASS"

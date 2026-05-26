@@ -7,6 +7,7 @@ package dev.chojo.ember.event.handlers;
 
 import dev.chojo.ember.event.DomainEventHandler;
 import dev.chojo.ember.event.events.MentionedInComment;
+import dev.chojo.ember.feature.comment.entity.CommentEntityType;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
 import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
@@ -35,7 +36,7 @@ public class MentionedInCommentHandler implements DomainEventHandler<MentionedIn
 
     @Override
     public void handle(MentionedInComment event) {
-        var link = "news".equals(event.entityType())
+        var link = CommentEntityType.NEWS.equals(event.entityType())
                 ? new NotificationData.NotificationLink("news-detail", Map.of("id", event.entityId()))
                 : new NotificationData.NotificationLink("events");
         var data = NotificationData.of(
