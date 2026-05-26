@@ -649,6 +649,113 @@ class FederatedContentServiceTest extends RepositoryTestBase {
     }
 
     @Test
+    @Order(66)
+    void copyQuizCatalogWithQuestions() {
+        // Set up mock to return questions with categories to cover lines 289-302
+        var now = Instant.now();
+        when(quizService.findQuestions(realQuizCatalogId))
+                .thenReturn(List.of(
+                        new dev.chojo.ember.feature.quiz.entity.QuizQuestion(
+                                100,
+                                realQuizCatalogId,
+                                10,
+                                dev.chojo.ember.feature.quiz.entity.QuestionType.MULTIPLE_CHOICE,
+                                "Q1",
+                                "Desc Q1",
+                                null,
+                                5.0,
+                                false,
+                                null,
+                                "{}",
+                                0,
+                                now,
+                                now),
+                        new dev.chojo.ember.feature.quiz.entity.QuizQuestion(
+                                101,
+                                realQuizCatalogId,
+                                null,
+                                dev.chojo.ember.feature.quiz.entity.QuestionType.FREE_ANSWER,
+                                "Q2",
+                                "Desc Q2",
+                                null,
+                                3.0,
+                                true,
+                                null,
+                                "{}",
+                                1,
+                                now,
+                                now)));
+
+        var copied = contentService.copyQuizCatalog(realQuizCatalogId, stationA.id());
+        assertNotNull(copied);
+        // Verify questions were created — one with mapped category, one with null
+        verify(quizService, atLeastOnce())
+                .createQuestion(
+                        anyInt(),
+                        eq(20),
+                        any(),
+                        anyString(),
+                        anyString(),
+                        any(),
+                        anyDouble(),
+                        anyBoolean(),
+                        anyString(),
+                        anyInt());
+        verify(quizService, atLeastOnce())
+                .createQuestion(
+                        anyInt(),
+                        isNull(),
+                        any(),
+                        eq("Q2"),
+                        anyString(),
+                        any(),
+                        anyDouble(),
+                        anyBoolean(),
+                        anyString(),
+                        anyInt());
+
+        // Restore empty questions mock
+        when(quizService.findQuestions(realQuizCatalogId)).thenReturn(List.of());
+    }
+
+    @Test
+    @Order(67)
+    void copyProtocolWithSectionsAndItems() {
+        // Set up mock to return sections (root + child) and items to cover lines 314-348
+        var now = Instant.now();
+        var rootSection = new dev.chojo.ember.feature.protocol.entity.TestProtocolSection(
+                1, realProtocolId, null, "Root Section", "Root desc", 100, 70, 0);
+        var childSection = new dev.chojo.ember.feature.protocol.entity.TestProtocolSection(
+                2, realProtocolId, 1, "Child Section", "Child desc", 50, 40, 0);
+        when(protocolService.findSections(realProtocolId)).thenReturn(List.of(rootSection, childSection));
+
+        var newRootSection = new dev.chojo.ember.feature.protocol.entity.TestProtocolSection(
+                10, 9997, null, "Root Section", "Root desc", 100, 70, 0);
+        var newChildSection = new dev.chojo.ember.feature.protocol.entity.TestProtocolSection(
+                11, 9997, 10, "Child Section", "Child desc", 50, 40, 0);
+        when(protocolService.createSection(eq(9997), isNull(), eq("Root Section"), anyString(), any(), any(), anyInt()))
+                .thenReturn(newRootSection);
+        when(protocolService.createSection(eq(9997), eq(10), eq("Child Section"), anyString(), any(), any(), anyInt()))
+                .thenReturn(newChildSection);
+
+        var item = new dev.chojo.ember.feature.protocol.entity.TestProtocolItem(100, 1, "Item 1", "Item desc", 10.0, 0);
+        when(protocolService.findAllItemsByProtocol(realProtocolId)).thenReturn(List.of(item));
+
+        var copied = contentService.copyProtocol(realProtocolId, stationA.id());
+        assertNotNull(copied);
+        // Verify sections and items were created
+        verify(protocolService)
+                .createSection(eq(9997), isNull(), eq("Root Section"), anyString(), any(), any(), anyInt());
+        verify(protocolService)
+                .createSection(eq(9997), eq(10), eq("Child Section"), anyString(), any(), any(), anyInt());
+        verify(protocolService).createItem(eq(10), eq("Item 1"), eq("Item desc"), eq(10.0), eq(0));
+
+        // Restore
+        when(protocolService.findSections(realProtocolId)).thenReturn(List.of());
+        when(protocolService.findAllItemsByProtocol(realProtocolId)).thenReturn(List.of());
+    }
+
+    @Test
     @Order(65)
     void browseSharedKbViaHttpNullFileType() {
         // Verify that a remote KB file with null fileType defaults to MARKDOWN

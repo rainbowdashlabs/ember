@@ -685,8 +685,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
 
         var sessionFields = service.findSessionFields(session.id());
         assertTrue(sessionFields.stream()
-                .anyMatch(f -> f.fieldId() == attendanceFieldId
-                        && "\"Conference Room A\"".equals(f.value())));
+                .anyMatch(f -> f.fieldId() == attendanceFieldId && "\"Conference Room A\"".equals(f.value())));
 
         // Cleanup
         eventFieldRepo.deleteByEvent(event.id());

@@ -33,7 +33,8 @@ import java.util.Map;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.mock;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class FormServiceTest extends RepositoryTestBase {
@@ -273,6 +274,42 @@ class FormServiceTest extends RepositoryTestBase {
     void canMemberAccessNoRestrictions() {
         // No restrictions = everyone can access
         assertTrue(service.canMemberAccess(formId, member.id()));
+    }
+
+    @Test
+    @Order(34)
+    void canMemberAccessWithRestrictions() {
+        // Create a form with restrictions to exercise lines 72-80
+        var form = service.create(station.id(), "Restricted Form", "", false, true, null, null, member.id());
+
+        // Set restrictions to specific member
+        service.setRestrictions(form.id(), List.of(), List.of(), List.of(), List.of(member.id()));
+
+        // Need to set up mocks for memberService, groupService, tagService
+        var memberService = mock(StationMemberService.class);
+        var groupService = mock(MemberGroupService.class);
+        var tagService = mock(UserTagService.class);
+
+        when(memberService.findRoles(member.id())).thenReturn(List.of());
+        when(groupService.findGroupsForMember(member.id())).thenReturn(List.of());
+        when(tagService.findTagsForMember(member.id())).thenReturn(List.of());
+
+        var restrictionRepo = new RestrictionRepository();
+        var eventBus = new DomainEventBus(Set.of());
+        var restrictedService =
+                new FormService(formRepo, memberService, groupService, tagService, restrictionRepo, eventBus);
+
+        // Member is in the restriction list — should have access
+        assertTrue(restrictedService.canMemberAccess(form.id(), member.id()));
+
+        // A different member ID not in the list — should NOT have access
+        when(memberService.findRoles(99999)).thenReturn(List.of());
+        when(groupService.findGroupsForMember(99999)).thenReturn(List.of());
+        when(tagService.findTagsForMember(99999)).thenReturn(List.of());
+        assertFalse(restrictedService.canMemberAccess(form.id(), 99999));
+
+        // Clean up
+        service.delete(form.id());
     }
 
     // -- Close --

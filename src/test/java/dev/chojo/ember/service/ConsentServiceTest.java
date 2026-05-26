@@ -224,4 +224,40 @@ class ConsentServiceTest extends RepositoryTestBase {
         // Calling initialize a second time should not throw
         assertDoesNotThrow(() -> service.initialize());
     }
+
+    @Test
+    @Order(30)
+    void initializeLogsWhenDocumentsChange() throws IOException {
+        // Create a fresh set of directories with new content to trigger the "changed" path
+        Path freshPrivacy = tempDir.resolve("privacy2");
+        Path freshTos = tempDir.resolve("tos2");
+        Path freshConsent = tempDir.resolve("consent2");
+        Path freshImprint = tempDir.resolve("imprint2");
+
+        Files.createDirectories(freshPrivacy.resolve("de"));
+        Files.createDirectories(freshTos.resolve("de"));
+        Files.createDirectories(freshConsent.resolve("de"));
+        Files.createDirectories(freshImprint.resolve("de"));
+
+        Files.writeString(freshPrivacy.resolve("de").resolve("01-privacy.md"), "# Privacy v2\nNew privacy content.");
+        Files.writeString(freshTos.resolve("de").resolve("01-tos.md"), "# Terms v2\nNew terms.");
+        Files.writeString(freshConsent.resolve("de").resolve("01-consent.md"), "# Consent v2\nNew consent.");
+        Files.writeString(freshImprint.resolve("de").resolve("01-imprint.md"), "# Imprint v2\nNew imprint.");
+
+        var apiConfig2 = mock(Api.class);
+        when(apiConfig2.privacyPolicyDir()).thenReturn(freshPrivacy.toString());
+        when(apiConfig2.tosDir()).thenReturn(freshTos.toString());
+        when(apiConfig2.consentDir()).thenReturn(freshConsent.toString());
+        when(apiConfig2.imprintDir()).thenReturn(freshImprint.toString());
+
+        var service2 = new ConsentService(accountRepo, apiConfig2);
+        // First init — all documents are new, so changed=true
+        assertDoesNotThrow(() -> service2.initialize());
+        // Second init — same content, so changed=false (exercises the else branch)
+        assertDoesNotThrow(() -> service2.initialize());
+
+        // Modify one doc and re-init to trigger the log.warn with mixed changed/unchanged
+        Files.writeString(freshPrivacy.resolve("de").resolve("01-privacy.md"), "# Privacy v3\nUpdated again.");
+        assertDoesNotThrow(() -> service2.initialize());
+    }
 }
