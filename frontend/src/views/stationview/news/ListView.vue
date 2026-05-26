@@ -20,16 +20,16 @@ import EmptyState from '@/components/feedback/EmptyState.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
-import CommentThread from './CommentThread.vue'
-import type { NewsComment, NewsEntry } from '@/api/types'
+
+import NewsCommentSection from '@/components/comment/NewsCommentSection.vue'
+import type { NewsEntry } from '@/api/types'
 import { news } from '@/api'
 import UserAvatar from '@/components/avatar/UserAvatar.vue'
 import { useSession } from '@/composables/useSession'
 
 const { t } = useI18n()
 const router = useRouter()
-const { canManageNews, sessionInfo } = useSession()
+const { canManageNews } = useSession()
 
 const PAGE_SIZE = 20
 
@@ -43,9 +43,7 @@ const deleteTarget = ref<NewsEntry | null>(null)
 
 // Comments
 const commentsOpenId = ref<number | null>(null)
-const commentsMap = ref<Map<number, NewsComment[]>>(new Map())
-const commentsLoading = ref<Set<number>>(new Set())
-const newCommentText = ref('')
+
 
 async function loadData() {
   loading.value = true
@@ -83,25 +81,12 @@ function onScroll() {
   }
 }
 
-async function toggleComments(entry: NewsEntry) {
+function toggleComments(entry: NewsEntry) {
   if (commentsOpenId.value === entry.id) {
     commentsOpenId.value = null
     return
   }
   commentsOpenId.value = entry.id
-  newCommentText.value = ''
-  await loadComments(entry.id)
-}
-
-async function loadComments(newsId: number) {
-  commentsLoading.value = new Set([...commentsLoading.value, newsId])
-  try {
-    const comments = await news.listComments(newsId)
-    commentsMap.value = new Map([...commentsMap.value, [newsId, comments]])
-  } catch { /* ignore */ }
-  const s = new Set(commentsLoading.value)
-  s.delete(newsId)
-  commentsLoading.value = s
 }
 
 function formatDate(dateStr?: string): string {
@@ -126,56 +111,7 @@ async function confirmDelete() {
   }
 }
 
-async function submitComment(newsId: number) {
-  if (!newCommentText.value.trim()) return
-  try {
-    await news.createComment(newsId, { content: newCommentText.value.trim() })
-    newCommentText.value = ''
-    await loadComments(newsId)
-    // Update comment count locally
-    const entry = entries.value.find(e => e.id === newsId)
-    if (entry) entry.commentCount = (commentsMap.value.get(newsId) ?? []).length
-  } catch {
-    error.value = t('common.error')
-  }
-}
 
-async function handleReply(newsId: number, parentId: number, content: string) {
-  try {
-    await news.createComment(newsId, { parentId, content })
-    await loadComments(newsId)
-    const entry = entries.value.find(e => e.id === newsId)
-    if (entry) entry.commentCount = (commentsMap.value.get(newsId) ?? []).length
-  } catch {
-    error.value = t('common.error')
-  }
-}
-
-async function handleEditComment(newsId: number, commentId: number, content: string) {
-  try {
-    await news.updateComment(commentId, { content })
-    await loadComments(newsId)
-  } catch { /* ignore */ }
-}
-
-async function handleDeleteComment(newsId: number, commentId: number) {
-  try {
-    await news.deleteComment(commentId)
-    await loadComments(newsId)
-    const entry = entries.value.find(e => e.id === newsId)
-    if (entry) entry.commentCount = (commentsMap.value.get(newsId) ?? []).length
-  } catch {
-    error.value = t('common.error')
-  }
-}
-
-function getTopLevelComments(newsId: number): NewsComment[] {
-  return (commentsMap.value.get(newsId) ?? []).filter(c => c.parentId === null)
-}
-
-function getAllComments(newsId: number): NewsComment[] {
-  return commentsMap.value.get(newsId) ?? []
-}
 
 onMounted(() => {
   loadData()
@@ -245,35 +181,8 @@ onUnmounted(() => {
             </button>
 
             <!-- Comments section (toggled) -->
-            <div v-if="commentsOpenId === entry.id" class="mt-3 space-y-3">
-              <Spinner v-if="commentsLoading.has(entry.id)" size="sm" />
-
-              <template v-if="!commentsLoading.has(entry.id)">
-                <div v-if="getTopLevelComments(entry.id).length === 0" class="text-sm text-(--text-muted)">
-                  {{ t('news.noComments') }}
-                </div>
-
-                <CommentThread
-                  v-for="comment in getTopLevelComments(entry.id)"
-                  :key="comment.id"
-                  :comment="comment"
-                  :all-comments="getAllComments(entry.id)"
-                  :current-member-id="sessionInfo?.member?.id ?? 0"
-                  :can-moderate="canManageNews()"
-                  :depth="0"
-                  @reply="(parentId: number, content: string) => handleReply(entry.id, parentId, content)"
-                  @edit="(commentId: number, content: string) => handleEditComment(entry.id, commentId, content)"
-                  @delete="(commentId: number) => handleDeleteComment(entry.id, commentId)"
-                />
-
-                <!-- New top-level comment -->
-                <div class="space-y-2 pt-2">
-                  <TextAreaInput v-model="newCommentText" :placeholder="t('news.commentPlaceholder')" :rows="2" />
-                  <PrimaryButton :disabled="!newCommentText.trim()" @click="submitComment(entry.id)">
-                    {{ t('news.submitComment') }}
-                  </PrimaryButton>
-                </div>
-              </template>
+            <div v-if="commentsOpenId === entry.id" class="mt-3">
+              <NewsCommentSection :news-id="entry.id"/>
             </div>
           </div>
         </NeutralContainer>

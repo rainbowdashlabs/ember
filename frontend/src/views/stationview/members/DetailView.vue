@@ -27,6 +27,7 @@ import type { MyInventoryItem } from '@/api/inventory'
 import type { ExchangeRequestEntry } from '@/api/types'
 import { profileFields, profileFieldChanges, stationMembers, members, inventory, exchanges } from '@/api'
 import { useSession } from '@/composables/useSession'
+import NoteEditor from '@/components/comment/NoteEditor.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 
 const { t } = useI18n()
@@ -409,6 +410,10 @@ onMounted(loadData)
         @load-exchange-sizes="handleLoadExchangeSizes"
         @load-inventories="handleLoadInventories"
       />
+      <!-- Manager Notes -->
+      <NeutralContainer v-if="canManageMembers()">
+        <NoteEditor :entity-type="'MEMBER'" :entity-id="memberId"/>
+      </NeutralContainer>
     </div>
   </ViewContent>
 </template>

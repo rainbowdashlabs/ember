@@ -8,6 +8,7 @@ import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import type {Comment, StationMember} from '@/api/types'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
+import MentionInput from '@/components/comment/MentionInput.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import IconButton from '@/components/button/IconButton.vue'
@@ -138,7 +139,7 @@ const maxDepth = 6
 
       <!-- Reply form -->
       <div v-if="replyingTo === comment.id" class="ml-4 space-y-2">
-        <TextAreaInput v-model="replyContent" :rows="2" :placeholder="t('comments.replyPlaceholder')"/>
+        <MentionInput v-model="replyContent" :members="members" :placeholder="t('comments.replyPlaceholder')"/>
         <div class="flex gap-2">
           <PrimaryButton compact @click="submitReply">{{ t('comments.reply') }}</PrimaryButton>
           <SecondaryButton compact @click="cancelReply">{{ t('common.cancel') }}</SecondaryButton>

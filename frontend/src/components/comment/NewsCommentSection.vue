@@ -7,16 +7,16 @@
 import {onMounted, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import type {Comment, StationMember} from '@/api/types'
-import {comments as commentsApi, stationMembers} from '@/api'
+import {news, stationMembers} from '@/api'
 import CommentThread from './CommentThread.vue'
-import MentionInput from '@/components/comment/MentionInput.vue'
+import MentionInput from './MentionInput.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 
 const props = defineProps<{
-  eventId: number
+  newsId: number
 }>()
 
 const {t} = useI18n()
@@ -31,11 +31,19 @@ const posting = ref(false)
 async function loadComments() {
   loading.value = true
   try {
-    const [c, m] = await Promise.all([
-      commentsApi.listEventComments(props.eventId),
+    const [rawComments, m] = await Promise.all([
+      news.listComments(props.newsId),
       stationMembers.listMembers(),
     ])
-    commentsList.value = c
+    // Adapt NewsComment to generic Comment interface
+    commentsList.value = rawComments.map(c => ({
+      id: c.id,
+      parentId: c.parentId,
+      authorId: c.authorId,
+      content: c.content,
+      createdAt: c.createdAt,
+      updatedAt: null,
+    }))
     members.value = m
   } catch { error.value = t('common.error') }
   finally { loading.value = false }
@@ -43,22 +51,22 @@ async function loadComments() {
 
 async function createComment(parentId: number | null, content: string) {
   try {
-    await commentsApi.createEventComment(props.eventId, {parentId, content})
-    commentsList.value = await commentsApi.listEventComments(props.eventId)
+    await news.createComment(props.newsId, {parentId, content})
+    await loadComments()
   } catch { error.value = t('common.error') }
 }
 
 async function updateComment(commentId: number, content: string) {
   try {
-    await commentsApi.updateComment(commentId, {content})
-    commentsList.value = await commentsApi.listEventComments(props.eventId)
+    await news.updateComment(commentId, {content})
+    await loadComments()
   } catch { error.value = t('common.error') }
 }
 
 async function deleteComment(commentId: number) {
   try {
-    await commentsApi.deleteComment(commentId)
-    commentsList.value = await commentsApi.listEventComments(props.eventId)
+    await news.deleteComment(commentId)
+    await loadComments()
   } catch { error.value = t('common.error') }
 }
 
@@ -80,7 +88,6 @@ onMounted(loadComments)
     <Spinner v-if="loading" size="sm"/>
 
     <template v-if="!loading">
-      <!-- New comment form -->
       <div class="space-y-2">
         <MentionInput v-model="newComment" :members="members" :placeholder="t('comments.placeholder')"/>
         <PrimaryButton :disabled="posting || !newComment.trim()" compact @click="postTopLevel">
@@ -88,7 +95,6 @@ onMounted(loadComments)
         </PrimaryButton>
       </div>
 
-      <!-- Thread -->
       <CommentThread
         :comments="commentsList"
         :members="members"
