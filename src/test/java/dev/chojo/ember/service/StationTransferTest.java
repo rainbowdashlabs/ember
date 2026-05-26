@@ -254,7 +254,7 @@ class StationTransferTest extends RepositoryTestBase {
                 "Bewerte von 1-5",
                 true,
                 false,
-                new FormQuestionConfig.Rating(5, "STAR"));
+                new FormQuestionConfig.Rating(5, FormQuestionConfig.Rating.RatingIcon.STAR));
         formRepo.createQuestion(
                 form.id(),
                 1,
