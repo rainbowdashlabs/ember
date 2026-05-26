@@ -4,151 +4,123 @@
 
 ### New Features
 
-#### Domain Event System
-- **Event-driven architecture** — new `DomainEventBus` with Guice multibinding decouples all notification logic from routes
-- **17 event handlers** for all notification-producing operations (events, news, exchange, forms, procurement, lending, groups, comments)
-- Services publish domain events after state changes; dedicated handlers create notifications
-- Routes no longer depend on `NotificationService` directly
-
 #### Comments & @Mentions
-- **Event comments** — threaded comments with unlimited nesting depth on events
-- **@mention autocomplete** — type `@` in any comment field to search and tag members, with styled inline chips in the editor
-- **Mention rendering** — `@Name` tokens render as styled primary-colored text in both comment display and edit fields
-- **MentionedInComment notifications** — mentioned members receive a notification
-- **Reply notifications** — replying to a comment notifies the original comment author
-- **Soft-delete** — deleting a comment with replies preserves the thread structure, showing "Dieser Kommentar wurde gelöscht" in place of the content
-- **Privacy** — email addresses are never exposed in the mention autocomplete dropdown
-- **News comment migration** — news comments now use the same generic `CommentThread` with full nesting and @mention support
+- **Event comments** — threaded comments on events, just like news comments
+- **@Mentions** — type `@` in any comment to search and tag members; they get a notification
+- **Reply notifications** — replying to a comment notifies the original author
+- **Soft-delete** — deleting a comment with replies shows "Dieser Kommentar wurde gelöscht" instead of removing the whole thread
 
-#### Notes System
-- **Entity notes** — diff-based versioned notes on inventory items, member profiles, and events
-- **NoteEditor component** — markdown textarea with save tracking and version history panel
-- **Event notes** — managers can add internal notes to events (visible in event detail view)
-- **Manager-only visibility** — member profile notes are restricted to managers
+#### Notes
+- **Notes on inventory items, member profiles, and events** — managers can keep internal notes with version history
+- Member profile notes are only visible to managers
 
-#### User Feeds (iCal, RSS, Atom)
-- **Personal iCal feed** — subscribe to your events in Thunderbird, Outlook, Google Calendar, or any calendar app
-- **RSS 2.0 and Atom 1.0 notification feeds** — follow your notifications in any feed reader
-- **Feed token management** — generate, regenerate, or revoke your feed token
-- **Per-type feed toggle** — enable or disable feed inclusion per notification type
-- **Dashboard feed integration** — CTA banners on the notifications and upcoming events panels when feeds are not configured or inactive (not polled in 24h)
-- **Feed activity tracking** — feed poll timestamps tracked to detect inactive subscriptions
-- **Help center guides** — platform-specific setup instructions for iCal and RSS/Atom readers
+#### Feeds (iCal, RSS, Atom)
+- **iCal feed** — subscribe to your events in Thunderbird, Outlook, Google Calendar, or any calendar app
+- **RSS and Atom feeds** — follow your notifications in any feed reader
+- **Feed management** — generate, regenerate, or revoke your feed token; toggle which notification types appear in feeds
+- Dashboard shows a reminder when feeds are not set up or inactive
 
 #### Event Templates
-- **Templates replace layouts** — reusable event templates are now a superset of the old layout system
-- **Full template editor** — dedicated page for creating/editing templates with field configuration
-- **Attendance template and registration limit** — templates can include attendance settings and participant caps
-- **Load Template dropdown** — populate an event form from a saved template in one click
-- **Quick field templates** — Ort, Treffpunkt, and Thema quick-add buttons in the field editor with public/internal defaults
+- **Reusable templates** — save and load event templates with all fields, attendance settings, and registration limits
+- **Quick fields** — Ort, Treffpunkt, and Thema quick-add buttons in the field editor
 
 #### Federated Events
-- **Cross-station event sharing** — share events with federation partners (local and remote)
-- **Event sharing toggle** — enable/disable federation sharing per event in the event edit view
-- **Federated events section** — partner station events shown on the upcoming events page
-- **Remote registration** — register for events at partner stations via signed HTTP
-- **Webhook notifications** — real-time status updates for registration acceptance/denial and member name changes
-- **EVENT_SHARE capability** — control event sharing per federation partner
+- **Cross-station event sharing** — share events with federation partners
+- **Remote registration** — register for events at partner stations
+- Partner station events shown on the upcoming events page
 
 #### Federated Knowledge Base
-- **Shared KB browsing** — federated KB files and folders from partner stations shown on the knowledge base page
-- **Federated search** — KB search queries partner stations in parallel and merges results
-- **Partner station filter** — filter knowledge base view to show only content from a specific partner
-- **Remote search endpoint** — `GET /federation/remote/kb/search` for cross-instance KB search
+- **Shared KB browsing** — browse files and folders from partner stations
+- **Federated search** — search queries partner stations in parallel
+- **Partner filter** — show only content from a specific partner
 
 #### Public Calendar & Station View
-- **Public calendar** — stations can expose a public event calendar for unauthenticated visitors
-- **Public station shell** — unified `/public/station/:uid` layout with calendar and knowledge base tabs
-- **Discovery integration** — discoverable stations link to their public station view
-- **Public event fields** — individual event fields can be marked as public or internal
+- **Public calendar** — expose an event calendar for visitors without an account
+- **Public station page** — unified public view with calendar and knowledge base tabs
+- Event fields can be marked as public or internal
 
-#### Event Category Management
-- **Dedicated category view** — create, edit, reorder, and delete event categories
-- **Max shown events** — configure how many events each category shows on the index view
-- **Public toggle** — mark categories as public for the public calendar
+#### Event Categories
+- Create, edit, reorder, and delete event categories
+- Configure how many events each category shows on the overview
+- Mark categories as public for the public calendar
 
-#### Registration Rework
-- **Grouped registrations view** — registrations grouped by event, sorted by deadline
-- **Expandable fairness table** — acceptance/denial ratio per member for fair decision-making
+#### Registrations
+- **Grouped view** — registrations grouped by event, sorted by deadline
+- **Fairness table** — acceptance/denial ratio per member for fair decision-making
 - **Registration limit** — cap the number of accepted registrations per event
-- **Deadline notifications** — managers are notified when a registration deadline expires with pending registrations
+- **Deadline notifications** — managers are notified when a deadline expires with pending registrations
 
-#### Inventory Item Detail View
-- **Item detail page** — view item metadata, current assignment, full assignment history, and manager notes
+#### Inventory
+- **Item detail page** — view item metadata, current assignment, full history, and manager notes
 
 #### Theming
-- **Color blind themes** — new accessible theme options
-- **Fire theme** — new color theme
-- **Three-axis theming** — Theme (color) × Variant (light/dark) × Feel (rounded/corners)
-- **Hierarchical theme settings** — instance → station → user, each level can lock for the level below
-- **ThemeSelector component** — visual theme picker with live preview
-- **Station theme management** — dedicated station settings view for theme and feel configuration
+- **New themes** — color blind accessible themes and fire theme
+- **Feel setting** — choose between rounded or cornered UI style
+- **Hierarchical settings** — instance, station, and user each pick their theme; each level can lock for the level below
 
 #### Problem Reports
-- **Report problem button** — floating bug icon on all station pages to report issues
-- **Auto-captured context** — page URL, user roles, last 20 API requests with status/duration, browser info, screen size
-- **Admin review** — `/admin/problem-reports` view with expandable details, request history table, acknowledge/delete actions
+- **Report a problem** — floating bug icon on all station pages; automatically captures page, roles, and recent requests
+- **Admin review** — view, acknowledge, and delete problem reports
 
 #### Admin Settings
-- **Legal document management** — dedicated admin view for editing privacy policy, terms of service, consent text, and imprint
-- **Mailing configuration** — dedicated admin view for SMTP settings
+- **Legal documents** — edit privacy policy, terms of service, consent text, and imprint
+- **Mailing settings** — configure SMTP in the admin UI
 
 ### Improvements
 
-#### Help Center
-- New help pages for theming, sessions, notifications, modules, import, federation settings, comments, templates, notes, item detail view, event categories, legal, and mailing
-- RSS/Atom and iCal setup guides with platform-specific instructions (Thunderbird, Outlook, Android, iOS)
-
-#### Frontend
-- **InfiniteReel component** — animated infinite scrolling display
-- **PublicEventList component** — event listing for public views
-- **DiffView component** — shared unified diff renderer with compact and line-number modes, used by KB version history and note editor
-- **News detail view** — dedicated `/station/news/:id` page with always-visible comments, linked from notifications
-- **Comment highlight** — `?comment=123` query param scrolls to and highlights the specific comment
-- **Sidebar rebuild** — section headers are now navigable (Dashboard, News, Profile, Members, Attendance, Events, Forms, Lost & Found, Knowledge Base merge their default child into the header)
-- **Collapsible sidebar groups** — arrow hidden when section has no children
-- **Member completions endpoint** — lightweight `GET /station-members/completions` (LOGIN role) returns only id + name for comment autocomplete
-- **Item detail links** — item names in inventory tables link to the item detail view
-- **Dashboard navigation** — clicking events/registrations navigates to the specific event, notifications auto-acknowledge on click
-- **Admin settings refactored** — split into focused sub-views (legal, mailing, general)
-- **Station settings refactored** — split into focused sub-views (theme, modules, federation, discovery)
-- **Landing page update** — improved visual presentation
-
-#### Backend
-- `DemoService` migrated to use services instead of repositories for operations that produce domain events
-- `ConsentService` extended with imprint document retrieval and version tracking
-- Form service now publishes `FormPublished` and `FormDeleted` domain events
-- Absences endpoint now accessible to both `EVENT_MANAGER` and `ATTENDANCE_MANAGER` roles
-
-#### Code Quality
-- **Typed config records** — all `String config` fields replaced with typed records (`ProfileFieldConfig`, `EventFieldConfig`, `AttendanceFieldConfig`, `FormQuestionConfig`, `WaitingListFieldConfig`) with `parse()`/`toJson()` methods
-- **Typed enum fields** — all `String *Type` fields replaced with proper enums (`ProfileFieldType`, `EventFieldType`, `AttendanceFieldType`, `NoteEntityType`, `CommentEntityType`, `FilterTableType`, `ContentType`, `ChangeType`)
-- **Quiz config as objects** — `QuizService.createQuestion()` accepts `QuestionConfig` instead of raw JSON strings
-
-### Infrastructure
-
-- **JaCoCo coverage enforcement** — 95% line coverage for repositories, 90% for services
-- **Parallel CI test jobs** — repository, service, and other tests run in separate GitHub Actions jobs for faster feedback
-- **Coverage verification in CI** — JaCoCo exec artifacts uploaded and merged across parallel test jobs
-- **Javadoc verification** — dedicated CI job validates javadoc generation
-- **Split Gradle test tasks** — `testRepositories`, `testServices`, `testOther` for parallel local and CI execution
-- **Comprehensive test suite** — new service tests for attendance, auth, batch events, comments, consent, event federation, event fields, event layouts, event templates, feed tokens, forms, knowledge base, notes, profile fields, quiz, registration codes, station applications, test protocols, user settings
-- **Database patch 5** — public columns for stations, event categories, events, event fields, boards, problem reports, feed poll tracking
+- New help pages for theming, sessions, notifications, modules, import, federation, comments, templates, notes, categories, legal, and mailing
+- iCal and RSS/Atom setup guides for Thunderbird, Outlook, Android, and iOS
+- News has a dedicated detail page with always-visible comments
+- Clicking a notification links directly to the relevant page and auto-acknowledges
+- Sidebar headers are now clickable and collapsible
+- Item names in inventory tables link to the detail page
+- Admin and station settings split into focused sub-views
+- Improved landing page
+- **Form answer validation** — submitted answers are now validated against question rules (option range, multi-select limits, rating scale, ranking order, likert bounds)
+- Absences visible to both event and attendance managers
 
 ### Bug Fixes
 
-- Fixed @mention regex mismatch — backend pattern now matches the `@[id:name]` format sent by the frontend
-- Fixed comment deletion cascading to child comments — now soft-deletes when children exist
-- Fixed news author being notified on every comment — only the replied-to comment author is notified
-- Fixed KB share link generating wrong URL — now correctly links to `/public/station/:uid/knowledge/file/:id`
-- Fixed federated shared files being clickable (navigating to non-existent local file) — removed broken navigation
-- Fixed absences section visible to non-managers on event detail view
-- Fixed unnecessary 403 requests for absences from non-manager users
+- Fixed @mentions not matching between frontend and backend
+- Fixed deleting a comment removing all replies — now soft-deletes
+- Fixed news author being notified on every comment instead of only on replies
+- Fixed KB share links pointing to the wrong URL
+- Fixed federated KB files navigating to a non-existent local file
+- Fixed absences section visible to non-managers on event detail
 - Fixed past event registrations appearing on the dashboard
-- Fixed `Modal` component warnings from incorrect `show`/`close` prop usage
-- Fixed event layouts being a separate concept from templates — consolidated into a single template system
-- Fixed notification creation being coupled to route handlers — moved to domain event handlers
-- Fixed news comment rendering using inline logic — migrated to shared CommentThread component
+- Fixed modal component warnings
+
+---
+
+### Technical Changes
+
+#### Architecture
+- **Domain event system** — `DomainEventBus` with Guice multibinding; 19 event handlers decouple notification logic from routes
+- Services publish events after state changes; handlers create notifications
+- Notifications no longer created in route handlers
+
+#### Code Quality
+- All `String config` fields replaced with typed records (`ProfileFieldConfig`, `EventFieldConfig`, `AttendanceFieldConfig`, `FormQuestionConfig`, `WaitingListFieldConfig`) with `parse()`/`toJson()`
+- All `String *Type` fields replaced with proper enums (`ProfileFieldType`, `EventFieldType`, `AttendanceFieldType`, `NoteEntityType`, `CommentEntityType`, `FilterTableType`, `ContentType`, `ChangeType`)
+- `QuizService.createQuestion()` accepts `QuestionConfig` instead of raw JSON
+- `FormQuestionConfig.validate(FormAnswerValue)` validates answers per question type on submission
+- `MultiLimitType` enum replaces raw `String multiLimitType` (NONE, AT_MOST, AT_LEAST, EXACTLY)
+- Unified `QuestionType` enum — removed duplicate inner `FormQuestion.QuestionType`
+- Removed dead `NewsCommented` event (superseded by `CommentCreated`)
+
+#### Frontend Components
+- `InfiniteReel`, `PublicEventList`, `DiffView`, `ThemeSelector`, `NoteEditor` components
+- Comment highlight via `?comment=123` query param
+- Lightweight `GET /station-members/completions` endpoint for @mention autocomplete
+
+#### Infrastructure
+- JaCoCo coverage enforcement: 95% repositories, 90% services, 80% handlers
+- Unit tests for all 19 domain event handlers
+- Parallel CI test jobs (`testRepositories`, `testServices`, `testOther`)
+- Coverage verification across parallel CI jobs
+- Javadoc verification in CI
+- Comprehensive service test suite (attendance, auth, batch events, comments, consent, federation, fields, templates, feeds, forms, KB, notes, profiles, quiz, registrations, applications, protocols, settings)
+- Database patch 5: public columns for stations, categories, events, fields, boards, problem reports, feed tracking
 
 ---
 
