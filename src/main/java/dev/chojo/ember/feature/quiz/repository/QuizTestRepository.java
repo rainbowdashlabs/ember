@@ -233,7 +233,7 @@ public class QuizTestRepository {
                 .first();
     }
 
-    public QuizTestAttempt createAttempt(int testId, int memberId, int maxPoints) {
+    public QuizTestAttempt createAttempt(int testId, int memberId, double maxPoints) {
         return Query.query("""
                         INSERT INTO quiz_test_attempt(test_id, member_id, max_points)
                         VALUES (:test_id, :member_id, :max_points)

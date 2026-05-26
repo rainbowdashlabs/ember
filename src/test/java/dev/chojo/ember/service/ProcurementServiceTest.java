@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.service;
 
+import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
 import dev.chojo.ember.feature.inventory.service.InventoryService;
@@ -18,6 +19,8 @@ import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
+
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -33,7 +36,8 @@ class ProcurementServiceTest extends RepositoryTestBase {
     @BeforeAll
     static void setup() {
         var inventoryService = new InventoryService(inventoryRepo);
-        service = new ProcurementService(procurementRepo, inventoryService);
+        service =
+                new ProcurementService(procurementRepo, inventoryService, inventoryRepo, new DomainEventBus(Set.of()));
         station = stationRepo.create("ProcStation");
         account = accountRepo.create("proc-svc@test.com", "Proc", "Tester");
         member = stationMemberRepo.create(station.id(), account.id());

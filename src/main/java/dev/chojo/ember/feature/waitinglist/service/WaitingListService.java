@@ -21,6 +21,7 @@ import dev.chojo.ember.feature.waitinglist.entity.WaitingListEntry;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListEntryStatus;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListEntryValue;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListField;
+import dev.chojo.ember.feature.waitinglist.entity.WaitingListFieldConfig;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListInvite;
 import dev.chojo.ember.feature.waitinglist.repository.WaitingListRepository;
 import jakarta.inject.Inject;
@@ -147,12 +148,12 @@ public class WaitingListService {
     }
 
     public WaitingListField createField(
-            int listId, String name, String fieldType, String config, int position, boolean required) {
+            int listId, String name, String fieldType, WaitingListFieldConfig config, int position, boolean required) {
         return repository.createField(listId, name, fieldType, config, position, required);
     }
 
     public Optional<WaitingListField> updateField(
-            int fieldId, String name, String fieldType, String config, int position, boolean required) {
+            int fieldId, String name, String fieldType, WaitingListFieldConfig config, int position, boolean required) {
         return repository.updateField(fieldId, name, fieldType, config, position, required);
     }
 

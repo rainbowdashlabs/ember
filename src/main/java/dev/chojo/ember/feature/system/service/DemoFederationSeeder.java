@@ -10,10 +10,17 @@ import dev.chojo.ember.auth.PasswordHasher;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.conf.file.elements.Demo;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
+import dev.chojo.ember.feature.events.entity.StationEvent;
+import dev.chojo.ember.feature.events.service.EventFederationService;
+import dev.chojo.ember.feature.events.service.EventService;
+import dev.chojo.ember.feature.federation.entity.CapabilityType;
+import dev.chojo.ember.feature.federation.entity.Direction;
+import dev.chojo.ember.feature.federation.entity.ShareScope;
 import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseService;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.protocol.service.TestProtocolService;
+import dev.chojo.ember.feature.quiz.entity.QuestionConfig;
 import dev.chojo.ember.feature.quiz.entity.QuestionType;
 import dev.chojo.ember.feature.quiz.service.QuizService;
 import dev.chojo.ember.feature.station.entity.DiscoveryVisibility;
@@ -22,6 +29,11 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneOffset;
+import java.util.List;
 
 /**
  * Seeds a second demo station and federates it with the primary station.
@@ -36,6 +48,8 @@ public class DemoFederationSeeder {
     private final KnowledgeBaseService kbService;
     private final QuizService quizService;
     private final TestProtocolService protocolService;
+    private final EventService eventService;
+    private final EventFederationService eventFederationService;
     private final AccountRepository accountRepository;
     private final StationMemberRepository stationMemberRepository;
     private final PasswordHasher passwordHasher;
@@ -49,6 +63,8 @@ public class DemoFederationSeeder {
             KnowledgeBaseService kbService,
             QuizService quizService,
             TestProtocolService protocolService,
+            EventService eventService,
+            EventFederationService eventFederationService,
             AccountRepository accountRepository,
             StationMemberRepository stationMemberRepository,
             PasswordHasher passwordHasher,
@@ -59,6 +75,8 @@ public class DemoFederationSeeder {
         this.kbService = kbService;
         this.quizService = quizService;
         this.protocolService = protocolService;
+        this.eventService = eventService;
+        this.eventFederationService = eventFederationService;
         this.accountRepository = accountRepository;
         this.stationMemberRepository = stationMemberRepository;
         this.passwordHasher = passwordHasher;
@@ -122,6 +140,52 @@ public class DemoFederationSeeder {
                         """,
                 partnerMember.id());
 
+        // Create a KB folder with files on the partner station
+        var partnerFolder = kbService.createFolder(
+                partnerStation.id(),
+                null,
+                "Gemeinsame Dokumente",
+                "Geteilte Ausbildungsunterlagen",
+                partnerMember.id());
+        kbService.createMarkdownFile(
+                partnerStation.id(),
+                partnerFolder.id(),
+                "Einsatzablauf",
+                "Standard-Einsatzablauf für gemeinsame Übungen",
+                """
+                        # Einsatzablauf
+
+                        ## Alarmierung
+                        1. Alarmierung über Funkmeldeempfänger
+                        2. Anfahrt zum Gerätehaus
+                        3. Einkleiden und Fahrzeugbesetzung
+
+                        ## Anfahrt
+                        - Einsatzort anfahren
+                        - Rückmeldung an Leitstelle
+
+                        ## Einsatzstelle
+                        - Erkundung durch Einsatzleiter
+                        - Aufgabenverteilung
+                        - Durchführung
+                        """,
+                partnerMember.id());
+        kbService.createMarkdownFile(
+                partnerStation.id(),
+                partnerFolder.id(),
+                "Funkrufnamen",
+                "Übersicht der Funkrufnamen beider Wehren",
+                """
+                        # Funkrufnamen
+
+                        | Fahrzeug | Rufname |
+                        |----------|---------|
+                        | LF 10    | Florian Musterstadt 1-44-1 |
+                        | MTW      | Florian Musterstadt 1-19-1 |
+                        | TSF-W    | Florian Partnerwache 1-43-1 |
+                        """,
+                partnerMember.id());
+
         // Federate the two stations
         // When federationForceHttp is set, register partners as remote (same host, exercising HTTP path)
         String remoteHost = demoConfig.federationForceHttp() ? "http://localhost:" + apiConfig.port() : null;
@@ -136,16 +200,20 @@ public class DemoFederationSeeder {
                 remoteHost,
                 remoteHost);
 
-        // Share the partner station's KB with the primary station
+        // Share the partner station's KB with the primary station (files + folders)
         var kbFiles = kbService.findFiles(partnerStation.id(), null);
         for (var file : kbFiles) {
-            federationService.createKbShare(partnerStation.id(), file.id(), null, "ALL_PARTNERS");
+            federationService.createKbShare(partnerStation.id(), file.id(), null, ShareScope.ALL_PARTNERS);
+        }
+        var kbFolders = kbService.findFolders(partnerStation.id(), null);
+        for (var folder : kbFolders) {
+            federationService.createKbShare(partnerStation.id(), null, folder.id(), ShareScope.ALL_PARTNERS);
         }
 
         // Share the primary station's KB with the partner station
         var primaryKbFiles = kbService.findFiles(primaryStationId, null);
         for (var file : primaryKbFiles) {
-            federationService.createKbShare(primaryStationId, file.id(), null, "ALL_PARTNERS");
+            federationService.createKbShare(primaryStationId, file.id(), null, ShareScope.ALL_PARTNERS);
         }
 
         // Create and share a quiz catalog on the partner station
@@ -161,7 +229,12 @@ public class DemoFederationSeeder {
                 null,
                 1,
                 true,
-                "{\"options\":[{\"text\":\"Retten, Löschen, Bergen, Schützen\",\"correct\":true},{\"text\":\"Räumen, Löschen, Bauen, Sichern\",\"correct\":false},{\"text\":\"Retten, Leiten, Bergen, Senden\",\"correct\":false}],\"pointsPerCorrect\":1}",
+                new QuestionConfig.MultipleChoice(
+                        List.of(
+                                new QuestionConfig.MultipleChoice.Option("Retten, Löschen, Bergen, Schützen", true),
+                                new QuestionConfig.MultipleChoice.Option("Räumen, Löschen, Bauen, Sichern", false),
+                                new QuestionConfig.MultipleChoice.Option("Retten, Leiten, Bergen, Senden", false)),
+                        1),
                 0);
         quizService.createQuestion(
                 partnerCatalog.id(),
@@ -172,9 +245,9 @@ public class DemoFederationSeeder {
                 null,
                 1,
                 true,
-                "{\"correctAnswer\":true}",
+                new QuestionConfig.TrueFalse(true),
                 1);
-        federationService.createQuizShare(partnerStation.id(), partnerCatalog.id(), "ALL_PARTNERS");
+        federationService.createQuizShare(partnerStation.id(), partnerCatalog.id(), ShareScope.ALL_PARTNERS);
 
         // Create and share a test protocol on the partner station
         var partnerProtocol = protocolService.createProtocol(
@@ -185,7 +258,34 @@ public class DemoFederationSeeder {
         protocolService.createItem(protoSection.id(), "RLBS erklären", "Vier Grundaufgaben", 5, 1);
         protocolService.createItem(protoSection.id(), "Fahrzeugkunde", "Fahrzeugtypen benennen", 5, 2);
         protocolService.createItem(protoSection.id(), "Dienstgrade", "Dienstgrade der Feuerwehr", 5, 3);
-        federationService.createProtocolShare(partnerStation.id(), partnerProtocol.id(), "ALL_PARTNERS");
+        federationService.createProtocolShare(partnerStation.id(), partnerProtocol.id(), ShareScope.ALL_PARTNERS);
+
+        // Enable EVENT_SHARE capability
+        federationService.setCapability(partner.id(), CapabilityType.EVENT_SHARE, Direction.IMPORT, true);
+        federationService.setCapability(partner.id(), CapabilityType.EVENT_SHARE, Direction.EXPORT, true);
+
+        // Create a public event on the partner station (visible via federation)
+        var eventCategory = eventService.createCategory(partnerStation.id(), "Gemeinsame Übung", 0);
+        Instant nextSatStart = LocalDate.now()
+                .plusDays(14 - LocalDate.now().getDayOfWeek().getValue() % 7)
+                .atTime(9, 0)
+                .toInstant(ZoneOffset.UTC);
+        Instant nextSatEnd = nextSatStart.plusSeconds(4 * 3600);
+        var fedEvent = eventService.create(
+                partnerStation.id(),
+                "Gemeinsame Großübung",
+                "Übergreifende Übung mit beiden Wehren — Einsatzszenarien Brand und THL",
+                StationEvent.EventType.ONE_TIME,
+                null,
+                nextSatStart,
+                nextSatEnd,
+                null,
+                true,
+                null,
+                true,
+                eventCategory.id(),
+                null);
+        eventFederationService.setShare(fedEvent.id(), "ALL_PARTNERS", List.of());
 
         log.info("Demo: Federated station {} with partner station {}", primaryStationId, partnerStation.id());
 

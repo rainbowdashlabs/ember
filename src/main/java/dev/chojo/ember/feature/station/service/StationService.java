@@ -11,12 +11,15 @@ import dev.chojo.ember.feature.account.entity.AccountCredential;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.federation.service.FederationService;
+import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
 import dev.chojo.ember.feature.members.entity.Role;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.station.entity.DiscoveryVisibility;
+import dev.chojo.ember.feature.station.entity.ManagerInfo;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.entity.StationModule;
+import dev.chojo.ember.feature.station.entity.ThemeFeel;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.station.repository.StationRepository.StationLogo;
 import jakarta.inject.Inject;
@@ -81,7 +84,7 @@ public class StationService {
         return stationRepository.findByUid(uid);
     }
 
-    public boolean updatePublicKbMode(int stationId, String mode) {
+    public boolean updatePublicKbMode(int stationId, PublicKbMode mode) {
         return stationRepository.updatePublicKbMode(stationId, mode);
     }
 
@@ -154,8 +157,15 @@ public class StationService {
         return Optional.empty();
     }
 
-    public void updateThemeSettings(int id, String defaultTheme, boolean allowUserTheme, String customThemeColors) {
-        stationRepository.updateThemeSettings(id, defaultTheme, allowUserTheme, customThemeColors);
+    public void updateThemeSettings(
+            int id,
+            String defaultTheme,
+            boolean allowUserTheme,
+            String customThemeColors,
+            ThemeFeel defaultFeel,
+            boolean allowUserFeel) {
+        stationRepository.updateThemeSettings(
+                id, defaultTheme, allowUserTheme, customThemeColors, defaultFeel, allowUserFeel);
     }
 
     /**
@@ -308,6 +318,10 @@ public class StationService {
     /**
      * Updates the discovery settings for a station.
      */
+    public void updatePublicCalendarEnabled(int stationId, boolean enabled) {
+        stationRepository.updatePublicCalendarEnabled(stationId, enabled);
+    }
+
     public void updateDiscoverySettings(
             int stationId, DiscoveryVisibility visibility, String description, boolean showKb) {
         stationRepository.updateDiscoverySettings(stationId, visibility, description, showKb);
@@ -316,6 +330,10 @@ public class StationService {
     /**
      * Finds all stations discoverable by the given station (instance-level visibility).
      */
+    public List<Station> findWithPublicContent(int excludeStationId) {
+        return stationRepository.findWithPublicContent(excludeStationId);
+    }
+
     public List<Station> findDiscoverable(int excludeStationId) {
         return stationRepository.findDiscoverable(
                 excludeStationId, DiscoveryVisibility.INSTANCE, DiscoveryVisibility.PUBLIC);
@@ -359,14 +377,4 @@ public class StationService {
             stationRepository.setOwner(stationId, member.id());
         }
     }
-
-    /**
-     * Summary information about a station's manager.
-     *
-     * @param email        the manager's email address
-     * @param firstName    the manager's first name
-     * @param lastName     the manager's last name
-     * @param accountReady whether the manager's account is fully set up (has password, email verified)
-     */
-    public record ManagerInfo(String email, String firstName, String lastName, boolean accountReady) {}
 }

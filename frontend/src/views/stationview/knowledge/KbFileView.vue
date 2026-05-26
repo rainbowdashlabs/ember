@@ -243,7 +243,7 @@ const shareCopied = ref(false)
 function copyShareLink() {
     if (!file.value) return
     const stationUid = getItem('station_id') ?? ''
-    const url = `${window.location.origin}/public/kb/${stationUid}/file/${file.value.id}`
+    const url = `${window.location.origin}/public/station/${stationUid}/knowledge/file/${file.value.id}`
     navigator.clipboard.writeText(url).then(() => {
         shareCopied.value = true
         setTimeout(() => { shareCopied.value = false }, 2000)

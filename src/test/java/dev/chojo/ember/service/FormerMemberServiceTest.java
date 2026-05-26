@@ -108,4 +108,55 @@ class FormerMemberServiceTest extends RepositoryTestBase {
     void reactivateRejectsNonFormer() {
         assertThrows(IllegalStateException.class, () -> service.reactivate(member.id()));
     }
+
+    @Test
+    @Order(22)
+    void reactivateNonExistentMember() {
+        assertThrows(IllegalStateException.class, () -> service.reactivate(999999));
+    }
+
+    @Test
+    @Order(30)
+    void canMarkFormerRejectsWithInventoryAssigned() {
+        // Create a new member and assign an inventory item to them
+        var acc = accountRepo.create("former-inv@test.com", "Inv", "Member");
+        var mem = stationMemberRepo.create(station.id(), acc.id());
+        stationMemberRepo.findRoleByName(Roles.MEMBER).ifPresent(r -> stationMemberRepo.addRole(mem.id(), r.id()));
+
+        var inv = inventoryRepo.create(
+                station.id(), "FormerTestInv", dev.chojo.ember.feature.inventory.entity.InventoryType.INTERNAL, false);
+        var item = inventoryRepo.createItem(inv.id(), "FT-001", "Former Test Item", null, "{}");
+        inventoryRepo.assignItem(item.id(), mem.id());
+
+        String result = service.canMarkFormer(mem.id());
+        assertNotNull(result);
+        assertTrue(result.contains("inventory"));
+
+        // Cleanup
+        inventoryRepo.delete(inv.id());
+        stationMemberRepo.delete(mem.id());
+        accountRepo.delete(acc.id());
+    }
+
+    @Test
+    @Order(31)
+    void canMarkFormerRejectsWithForbiddenRole() {
+        var acc = accountRepo.create("former-mgr@test.com", "Mgr", "Member");
+        var mem = stationMemberRepo.create(station.id(), acc.id());
+        stationMemberRepo.findRoleByName(Roles.MANAGER).ifPresent(r -> stationMemberRepo.addRole(mem.id(), r.id()));
+
+        String result = service.canMarkFormer(mem.id());
+        assertNotNull(result);
+
+        stationMemberRepo.delete(mem.id());
+        accountRepo.delete(acc.id());
+    }
+
+    @Test
+    @Order(32)
+    void markFormerThrowsWhenCannotMarkFormer() {
+        // member is now not former (was reactivated in order 20), so they are valid.
+        // Force a failure by using a non-existent member ID
+        assertThrows(IllegalStateException.class, () -> service.markFormer(999999));
+    }
 }

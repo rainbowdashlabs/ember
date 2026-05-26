@@ -11,7 +11,7 @@ const props = defineProps<{
   to: string
   name: string
   icon?: string[]
-  prefix?: string
+  prefix?: string | string[]
 }>()
 
 defineEmits<{
@@ -20,10 +20,13 @@ defineEmits<{
 
 const route = useRoute()
 const isLinkActive = computed(() => route.name === props.name)
-const effectivePrefix = computed(() => props.prefix ?? props.to)
+const prefixes = computed(() => {
+  const p = props.prefix ?? props.to
+  return Array.isArray(p) ? p : [p]
+})
 const isChildActive = computed(() => {
-  const p = effectivePrefix.value
-  return !isLinkActive.value && ((route.path + '/').startsWith(p + '/') || route.path === p)
+  if (isLinkActive.value) return false
+  return prefixes.value.some(p => (route.path + '/').startsWith(p + '/') || route.path === p)
 })
 const isInPath = computed(() => isLinkActive.value || isChildActive.value)
 const expanded = ref(isInPath.value)
@@ -41,14 +44,14 @@ watch(isInPath, (active) => {
           ? '!text-primary'
           : '!text-[var(--text)] hover:bg-primary/5'"
           :to="to"
-          class="flex flex-1 items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium no-underline transition-colors duration-150"
+          class="flex flex-1 items-center gap-3 rounded-theme px-3 py-2 text-sm font-medium no-underline transition-colors duration-150"
           @click="$emit('navigate')"
       >
         <font-awesome-icon v-if="icon" :icon="icon" class="w-4"/>
         <span class="flex-1"><slot name="label"/></span>
       </router-link>
       <button
-          class="flex items-center justify-center w-8 h-8 rounded-lg text-[var(--text)] transition-colors duration-150"
+          class="flex items-center justify-center w-8 h-8 rounded-theme text-[var(--text)] transition-colors duration-150"
           @click="expanded = !expanded"
       >
         <font-awesome-icon

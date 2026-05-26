@@ -34,11 +34,14 @@ public record Station(
         String defaultTheme,
         boolean allowUserTheme,
         String customThemeColors,
+        ThemeFeel defaultFeel,
+        boolean allowUserFeel,
         PublicKbMode publicKbMode,
         String federationPrivateKey,
         DiscoveryVisibility discoveryVisibility,
         String discoveryDescription,
-        boolean discoveryShowKb) {
+        boolean discoveryShowKb,
+        boolean publicCalendarEnabled) {
     public static RowMapping<Station> map() {
         return row -> new Station(
                 row.getInt("id"),
@@ -50,10 +53,13 @@ public record Station(
                 row.getString("default_theme"),
                 row.getBoolean("allow_user_theme"),
                 row.getString("custom_theme_colors"),
+                row.getEnum("default_feel", ThemeFeel.class),
+                row.getBoolean("allow_user_feel"),
                 PublicKbMode.valueOf(row.getString("public_kb_mode")),
                 row.getString("federation_private_key"),
                 DiscoveryVisibility.valueOf(row.getString("discovery_visibility")),
                 row.getString("discovery_description"),
-                row.getBoolean("discovery_show_kb"));
+                row.getBoolean("discovery_show_kb"),
+                row.getBoolean("public_calendar_enabled"));
     }
 }

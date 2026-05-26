@@ -6,6 +6,7 @@
 package dev.chojo.ember.repository;
 
 import dev.chojo.ember.feature.account.entity.Account;
+import dev.chojo.ember.feature.members.entity.FilterTableType;
 import dev.chojo.ember.feature.members.entity.SavedFilter;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -34,10 +35,10 @@ class SavedFilterRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(1)
     void create() {
-        SavedFilter filter =
-                savedFilterRepo.create(account.id(), "members", "Active Members", "{\"status\":\"active\"}", 1);
+        SavedFilter filter = savedFilterRepo.create(
+                account.id(), FilterTableType.MEMBERS, "Active Members", "{\"status\":\"active\"}", 1);
         assertNotNull(filter);
-        assertEquals("members", filter.tableType());
+        assertEquals(FilterTableType.MEMBERS, filter.tableType());
         assertEquals("Active Members", filter.name());
         assertEquals(1, filter.position());
         filterId = filter.id();
@@ -46,7 +47,7 @@ class SavedFilterRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(2)
     void findByAccountAndTable() {
-        var filters = savedFilterRepo.findByAccountAndTable(account.id(), "members");
+        var filters = savedFilterRepo.findByAccountAndTable(account.id(), FilterTableType.MEMBERS);
         assertEquals(1, filters.size());
         assertEquals("Active Members", filters.getFirst().name());
     }
@@ -55,15 +56,16 @@ class SavedFilterRepositoryTest extends RepositoryTestBase {
     @Order(3)
     void findByAccountAndTableEmpty() {
         assertTrue(savedFilterRepo
-                .findByAccountAndTable(account.id(), "nonexistent")
+                .findByAccountAndTable(account.id(), FilterTableType.EVENTS)
                 .isEmpty());
     }
 
     @Test
     @Order(4)
     void createMultipleAndOrder() {
-        savedFilterRepo.create(account.id(), "members", "Inactive Members", "{\"status\":\"inactive\"}", 0);
-        var filters = savedFilterRepo.findByAccountAndTable(account.id(), "members");
+        savedFilterRepo.create(
+                account.id(), FilterTableType.MEMBERS, "Inactive Members", "{\"status\":\"inactive\"}", 0);
+        var filters = savedFilterRepo.findByAccountAndTable(account.id(), FilterTableType.MEMBERS);
         assertEquals(2, filters.size());
         assertEquals("Inactive Members", filters.getFirst().name());
         assertEquals("Active Members", filters.get(1).name());
@@ -73,18 +75,20 @@ class SavedFilterRepositoryTest extends RepositoryTestBase {
     @Order(5)
     void deleteOwnFilter() {
         assertTrue(savedFilterRepo.delete(filterId, account.id()));
-        var filters = savedFilterRepo.findByAccountAndTable(account.id(), "members");
+        var filters = savedFilterRepo.findByAccountAndTable(account.id(), FilterTableType.MEMBERS);
         assertEquals(1, filters.size());
     }
 
     @Test
     @Order(6)
     void deleteWrongAccount() {
-        var filters = savedFilterRepo.findByAccountAndTable(account.id(), "members");
+        var filters = savedFilterRepo.findByAccountAndTable(account.id(), FilterTableType.MEMBERS);
         int otherId = filters.getFirst().id();
         assertFalse(savedFilterRepo.delete(otherId, 99999));
         assertEquals(
                 1,
-                savedFilterRepo.findByAccountAndTable(account.id(), "members").size());
+                savedFilterRepo
+                        .findByAccountAndTable(account.id(), FilterTableType.MEMBERS)
+                        .size());
     }
 }

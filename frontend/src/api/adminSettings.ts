@@ -7,6 +7,9 @@ import client from './client'
 
 export interface ApplicationSettings {
     stationRegistrationEnabled: boolean
+    instanceDefaultTheme: string
+    instanceDefaultFeel: string
+    instanceLockFeel: boolean
 }
 
 export interface RegistrationStatus {
@@ -53,6 +56,17 @@ export async function updateSettings(settings: ApplicationSettings): Promise<App
 export async function isRegistrationEnabled(): Promise<boolean> {
     const res = await client.get<RegistrationStatus>('/public/settings/station-registration')
     return res.data.enabled
+}
+
+export interface PublicTheme {
+    defaultTheme: string
+    defaultFeel: string
+    lockFeel: boolean
+}
+
+export async function getPublicTheme(): Promise<PublicTheme> {
+    const res = await client.get<PublicTheme>('/public/settings/theme')
+    return res.data
 }
 
 export async function getAuthConfig(): Promise<AuthConfig> {

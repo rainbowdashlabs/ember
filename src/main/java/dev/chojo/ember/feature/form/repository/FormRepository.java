@@ -9,8 +9,11 @@ import de.chojo.sadu.queries.api.call.Call;
 import de.chojo.sadu.queries.api.query.Query;
 import dev.chojo.ember.feature.form.entity.Form;
 import dev.chojo.ember.feature.form.entity.FormAnswer;
+import dev.chojo.ember.feature.form.entity.FormAnswerValue;
 import dev.chojo.ember.feature.form.entity.FormQuestion;
+import dev.chojo.ember.feature.form.entity.FormQuestionConfig;
 import dev.chojo.ember.feature.form.entity.FormResponse;
+import dev.chojo.ember.feature.form.entity.QuestionType;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 import jakarta.inject.Singleton;
 
@@ -215,12 +218,12 @@ public class FormRepository {
     public FormQuestion createQuestion(
             int formId,
             int position,
-            FormQuestion.QuestionType questionType,
+            QuestionType questionType,
             String title,
             String description,
             boolean required,
             boolean shuffle,
-            String config) {
+            FormQuestionConfig config) {
         return Query.query("""
                             INSERT INTO form_question(form_id, position, question_type, title, description, required, shuffle, config)
                             VALUES (:form_id, :position, :question_type, :title, :description, :required, :shuffle, :config::JSONB)
@@ -233,7 +236,7 @@ public class FormRepository {
                         .bind("description", description)
                         .bind("required", required)
                         .bind("shuffle", shuffle)
-                        .bind("config", config))
+                        .bind("config", config.toJson()))
                 .map(FormQuestion.map())
                 .first()
                 .orElseThrow();
@@ -252,7 +255,13 @@ public class FormRepository {
      * @return {@code true} if a row was updated
      */
     public boolean updateQuestion(
-            int id, String title, String description, boolean required, boolean shuffle, String config, int position) {
+            int id,
+            String title,
+            String description,
+            boolean required,
+            boolean shuffle,
+            FormQuestionConfig config,
+            int position) {
         return Query.query("""
                             UPDATE form_question
                             SET title = :title, description = :description, required = :required,
@@ -264,7 +273,7 @@ public class FormRepository {
                         .bind("description", description)
                         .bind("required", required)
                         .bind("shuffle", shuffle)
-                        .bind("config", config)
+                        .bind("config", config.toJson())
                         .bind("position", position))
                 .update()
                 .changed();
@@ -423,7 +432,7 @@ public class FormRepository {
      * @param questionId the question ID
      * @param value      the answer value as a JSON string
      */
-    public void upsertAnswer(int responseId, int questionId, String value) {
+    public void upsertAnswer(int responseId, int questionId, FormAnswerValue value) {
         Query.query("""
                      INSERT INTO form_answer(response_id, question_id, value)
                      VALUES (:response_id, :question_id, :value::JSONB)
@@ -431,7 +440,7 @@ public class FormRepository {
                 .single(Call.of()
                         .bind("response_id", responseId)
                         .bind("question_id", questionId)
-                        .bind("value", value))
+                        .bind("value", value.toJson()))
                 .insert();
     }
 

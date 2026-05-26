@@ -16,7 +16,7 @@ defineProps<{
       'border-success bg-success/10': variant === 'success',
       'border-error bg-error/10': variant === 'error',
     }"
-      class="flex items-start gap-3 rounded-lg border p-4"
+      class="flex items-start gap-3 rounded-theme border p-4"
   >
     <font-awesome-icon
         :class="{

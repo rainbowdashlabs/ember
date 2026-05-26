@@ -6,6 +6,7 @@
 package dev.chojo.ember.service;
 
 import dev.chojo.ember.api.Roles;
+import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.service.MemberGroupService;
@@ -20,6 +21,7 @@ import org.junit.jupiter.api.TestMethodOrder;
 
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -33,7 +35,7 @@ class MemberGroupServiceTest extends RepositoryTestBase {
 
     @BeforeAll
     static void setup() {
-        service = new MemberGroupService(memberGroupRepo, stationMemberRepo, userTagRepo);
+        service = new MemberGroupService(memberGroupRepo, stationMemberRepo, userTagRepo, new DomainEventBus(Set.of()));
         station = stationRepo.create("GroupStation");
         account = accountRepo.create("group-svc@test.com", "Group", "Tester");
         member = stationMemberRepo.create(station.id(), account.id());
@@ -112,5 +114,25 @@ class MemberGroupServiceTest extends RepositoryTestBase {
     void delete() {
         assertTrue(service.delete(groupId));
         assertTrue(service.findById(groupId).isEmpty());
+    }
+
+    @Test
+    @Order(50)
+    void convertToTag() {
+        // Create a fresh group with the member in it
+        var group2 = service.create(station.id(), "ToBeTag");
+        service.setMembers(group2.id(), List.of(member.id()));
+
+        service.convertToTag(group2.id());
+
+        // Group should be gone
+        assertTrue(service.findById(group2.id()).isEmpty());
+
+        // Tag should exist with the same name
+        var tags = userTagRepo.findByStation(station.id());
+        assertTrue(tags.stream().anyMatch(t -> "ToBeTag".equals(t.name())));
+
+        // Cleanup
+        tags.stream().filter(t -> "ToBeTag".equals(t.name())).findFirst().ifPresent(t -> userTagRepo.delete(t.id()));
     }
 }

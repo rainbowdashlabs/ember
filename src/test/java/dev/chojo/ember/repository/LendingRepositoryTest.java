@@ -201,7 +201,7 @@ class LendingRepositoryTest extends RepositoryTestBase {
         assertTrue(localA.stream().allMatch(m -> m.senderStationId() == stationA.id()));
 
         var localB = lendingRepo.findLocalMessages(requestId, stationB.id());
-        assertTrue(localB.size() >= 1);
+        assertTrue(!localB.isEmpty());
         assertTrue(localB.stream().allMatch(m -> m.senderStationId() == stationB.id()));
     }
 

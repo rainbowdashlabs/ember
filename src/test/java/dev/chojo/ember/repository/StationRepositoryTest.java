@@ -5,13 +5,19 @@
  */
 package dev.chojo.ember.repository;
 
+import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
+import dev.chojo.ember.feature.station.entity.DiscoveryVisibility;
 import dev.chojo.ember.feature.station.entity.Station;
+import dev.chojo.ember.feature.station.entity.StationModule;
+import dev.chojo.ember.feature.station.entity.ThemeFeel;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Set;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -88,6 +94,144 @@ class StationRepositoryTest extends RepositoryTestBase {
     void deleteLogo() {
         assertTrue(stationRepo.deleteLogo(stationId));
         assertTrue(stationRepo.findLogo(stationId).isEmpty());
+    }
+
+    // -- UUID --
+
+    @Test
+    @Order(14)
+    void findByUid() {
+        var station = stationRepo.findById(stationId).orElseThrow();
+        assertTrue(stationRepo.findByUid(station.uid()).isPresent());
+        assertTrue(stationRepo.findByUid(UUID.randomUUID()).isEmpty());
+    }
+
+    @Test
+    @Order(15)
+    void createWithUid() {
+        UUID uid = UUID.randomUUID();
+        Station withUid = stationRepo.create("UUID Station", uid);
+        assertEquals(uid, withUid.uid());
+        stationRepo.delete(withUid.id());
+    }
+
+    // -- Discovery settings --
+
+    @Test
+    @Order(20)
+    void updateDiscoverySettings() {
+        assertTrue(
+                stationRepo.updateDiscoverySettings(stationId, DiscoveryVisibility.INSTANCE, "A great station", true));
+        var station = stationRepo.findById(stationId).orElseThrow();
+        assertEquals(DiscoveryVisibility.INSTANCE, station.discoveryVisibility());
+    }
+
+    @Test
+    @Order(21)
+    void findDiscoverable() {
+        var other = stationRepo.create("Other Discoverable Station");
+        stationRepo.updateDiscoverySettings(other.id(), DiscoveryVisibility.PUBLIC, "Public", false);
+        var results = stationRepo.findDiscoverable(stationId, DiscoveryVisibility.INSTANCE, DiscoveryVisibility.PUBLIC);
+        assertTrue(results.stream().anyMatch(s -> s.id() == other.id()));
+        stationRepo.delete(other.id());
+    }
+
+    @Test
+    @Order(22)
+    void findWithPublicContent() {
+        var other = stationRepo.create("Public Calendar Station");
+        stationRepo.updatePublicCalendarEnabled(other.id(), true);
+        var results = stationRepo.findWithPublicContent(stationId);
+        assertTrue(results.stream().anyMatch(s -> s.id() == other.id()));
+        stationRepo.delete(other.id());
+    }
+
+    // -- Public calendar --
+
+    @Test
+    @Order(23)
+    void updatePublicCalendarEnabled() {
+        assertTrue(stationRepo.updatePublicCalendarEnabled(stationId, true));
+        assertTrue(stationRepo.updatePublicCalendarEnabled(stationId, false));
+    }
+
+    // -- Public KB mode --
+
+    @Test
+    @Order(24)
+    void updatePublicKbMode() {
+        assertTrue(stationRepo.updatePublicKbMode(stationId, PublicKbMode.ALLOW_ALL));
+        assertTrue(stationRepo.updatePublicKbMode(stationId, PublicKbMode.OFF));
+    }
+
+    // -- Theme settings --
+
+    @Test
+    @Order(25)
+    void updateThemeSettings() {
+        assertDoesNotThrow(
+                () -> stationRepo.updateThemeSettings(stationId, "ember", true, "{}", ThemeFeel.ROUNDED, false));
+    }
+
+    // -- Modules --
+
+    @Test
+    @Order(26)
+    void setAndFindDisabledModules() {
+        stationRepo.setDisabledModules(stationId, Set.of(StationModule.ATTENDANCE));
+        assertTrue(stationRepo.findDisabledModules(stationId).contains(StationModule.ATTENDANCE));
+        stationRepo.setDisabledModules(stationId, Set.of());
+        assertTrue(stationRepo.findDisabledModules(stationId).isEmpty());
+    }
+
+    // -- Federation key --
+
+    @Test
+    @Order(27)
+    void updateFederationPrivateKey() {
+        assertTrue(stationRepo.updateFederationPrivateKey(stationId, "mock-private-key"));
+    }
+
+    // -- Timezone / Locale --
+
+    @Test
+    @Order(28)
+    void updateTimezone() {
+        assertTrue(stationRepo.updateTimezone(stationId, "Europe/Berlin"));
+    }
+
+    @Test
+    @Order(29)
+    void updateLocale() {
+        assertTrue(stationRepo.updateLocale(stationId, "de-DE"));
+    }
+
+    // -- Owner --
+
+    @Test
+    @Order(30)
+    void setOwner() {
+        // Need an account+member for this station
+        var account = accountRepo.create("owner-test@test.com", "Owner", "Test");
+        var member = stationMemberRepo.create(stationId, account.id());
+        assertTrue(stationRepo.setOwner(stationId, member.id()));
+        var station = stationRepo.findById(stationId).orElseThrow();
+        assertEquals(member.id(), station.ownerMemberId());
+        // Clear owner
+        assertTrue(stationRepo.setOwner(stationId, null));
+        assertNull(stationRepo.findById(stationId).orElseThrow().ownerMemberId());
+        accountRepo.delete(account.id());
+    }
+
+    // -- UID update --
+
+    @Test
+    @Order(31)
+    void updateUid() {
+        UUID newUid = UUID.randomUUID();
+        assertDoesNotThrow(() -> stationRepo.updateUid(stationId, newUid));
+        var station = stationRepo.findById(stationId).orElseThrow();
+        assertEquals(newUid, station.uid());
     }
 
     @Test

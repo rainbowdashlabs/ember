@@ -18,7 +18,7 @@ defineEmits<{
   <button
     type="button"
     :class="[
-      'rounded-lg font-medium border transition-all cursor-pointer',
+      'rounded-theme font-medium border transition-all cursor-pointer',
       size === 'md' ? 'px-3 py-1.5 text-sm' : 'px-3 py-1.5 text-xs',
       selected
         ? 'border-primary bg-primary/10 text-primary ring-1 ring-primary/30'

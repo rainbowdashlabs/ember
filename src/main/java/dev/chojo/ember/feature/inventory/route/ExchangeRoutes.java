@@ -18,12 +18,7 @@ import dev.chojo.ember.feature.inventory.entity.InventorySize;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
 import dev.chojo.ember.feature.inventory.service.ExchangeExportService;
 import dev.chojo.ember.feature.inventory.service.ExchangeService;
-import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
-import dev.chojo.ember.feature.notifications.entity.NotificationData;
-import dev.chojo.ember.feature.notifications.entity.NotificationParams;
-import dev.chojo.ember.feature.notifications.entity.NotificationType;
-import dev.chojo.ember.feature.notifications.service.NotificationService;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.ForbiddenResponse;
@@ -58,7 +53,6 @@ public class ExchangeRoutes implements Routes {
     private final AccountRepository accountRepository;
     private final StationMemberRepository stationMemberRepository;
     private final InventoryRepository inventoryRepository;
-    private final NotificationService notificationService;
 
     @Inject
     public ExchangeRoutes(
@@ -66,14 +60,12 @@ public class ExchangeRoutes implements Routes {
             ExchangeExportService exchangeExportService,
             AccountRepository accountRepository,
             StationMemberRepository stationMemberRepository,
-            InventoryRepository inventoryRepository,
-            NotificationService notificationService) {
+            InventoryRepository inventoryRepository) {
         this.exchangeService = exchangeService;
         this.exchangeExportService = exchangeExportService;
         this.accountRepository = accountRepository;
         this.stationMemberRepository = stationMemberRepository;
         this.inventoryRepository = inventoryRepository;
-        this.notificationService = notificationService;
     }
 
     @Override
@@ -178,32 +170,13 @@ public class ExchangeRoutes implements Routes {
         var exchange = exchangeService.create(
                 session.stationId(),
                 targetMemberId,
+                session.account().fullName().trim(),
                 request.itemId(),
                 request.inventoryId(),
                 request.oldSizeId(),
                 request.newSizeId(),
                 request.reason(),
                 createdBy);
-
-        // Notify managers about the new exchange request
-        String memberName = session.account().fullName().trim();
-        String inventoryName = inventoryRepository
-                .findById(exchange.inventoryId())
-                .map(Inventory::name)
-                .orElse("?");
-        String reason = request.reason() != null && !request.reason().isBlank() ? request.reason() : null;
-        var exchangeData = NotificationData.of(
-                new NotificationParams.ExchangeNewRequest(memberName, inventoryName, reason),
-                new NotificationData.NotificationLink("inventory-exchanges"));
-        var inventoryMgmtIds =
-                stationMemberRepository.findMembersWithRole(session.stationId(), Roles.INVENTORY_MANAGER).stream()
-                        .map(StationMember::id)
-                        .toList();
-        notificationService.notifyMembersIfAbsent(
-                inventoryMgmtIds,
-                NotificationType.EXCHANGE_NEW_REQUEST,
-                exchangeData,
-                session.member().id());
 
         ctx.status(HttpStatus.CREATED).json(toResponse(exchange));
     }
@@ -239,24 +212,6 @@ public class ExchangeRoutes implements Routes {
         }
         var exchange = exchangeService.updateStatus(
                 id, status, session.member().id(), request.note(), request.exchangedItemId());
-        String inventoryName = inventoryRepository
-                .findById(exchange.inventoryId())
-                .map(Inventory::name)
-                .orElse("?");
-        String reason = exchange.reason() != null && !exchange.reason().isBlank() ? exchange.reason() : null;
-        var data = NotificationData.of(
-                new NotificationParams.ExchangeStatusChange(status.name(), inventoryName, reason),
-                new NotificationData.NotificationLink("inventory-exchanges"));
-        notificationService.notify(exchange.memberId(), NotificationType.EXCHANGE_STATUS_CHANGE, data);
-        var invMgmtIds =
-                stationMemberRepository.findMembersWithRole(session.stationId(), Roles.INVENTORY_MANAGER).stream()
-                        .map(StationMember::id)
-                        .toList();
-        notificationService.notifyMembersIfAbsent(
-                invMgmtIds,
-                NotificationType.EXCHANGE_STATUS_CHANGE,
-                data,
-                session.member().id());
         ctx.json(toResponse(exchange));
     }
 

@@ -12,6 +12,8 @@ import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.entity.AccountCredential;
 import dev.chojo.ember.feature.account.entity.AccountSession;
 import dev.chojo.ember.feature.account.entity.AccountToken;
+import dev.chojo.ember.feature.account.entity.LoginResult;
+import dev.chojo.ember.feature.account.entity.RegistrationResult;
 import dev.chojo.ember.feature.account.entity.TokenType;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.mail.service.EmailService;
@@ -568,61 +570,5 @@ public class AuthService {
         byte[] bytes = new byte[authConfig.tokenBytes()];
         RANDOM.nextBytes(bytes);
         return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
-    }
-
-    /**
-     * Result of a registration attempt.
-     *
-     * @param success whether the registration succeeded
-     * @param message error message on failure, {@code null} on success
-     * @param account the created account on success, {@code null} on failure
-     */
-    public record RegistrationResult(boolean success, String message, Account account) {
-        /**
-         * Creates a failed registration result with an error message.
-         */
-        public static RegistrationResult failure(String message) {
-            return new RegistrationResult(false, message, null);
-        }
-
-        /**
-         * Creates a successful registration result with the created account.
-         */
-        public static RegistrationResult success(Account account) {
-            return new RegistrationResult(true, null, account);
-        }
-    }
-
-    /**
-     * Result of a login attempt.
-     *
-     * @param success                whether the login succeeded
-     * @param message                error message on failure, {@code null} on success
-     * @param token                  the session or password change token on success
-     * @param expiresAt              when the token expires
-     * @param passwordChangeRequired whether a password change is required before a session can be created
-     */
-    public record LoginResult(
-            boolean success, String message, String token, Instant expiresAt, boolean passwordChangeRequired) {
-        /**
-         * Creates a failed login result with an error message.
-         */
-        public static LoginResult failure(String message) {
-            return new LoginResult(false, message, null, null, false);
-        }
-
-        /**
-         * Creates a successful login result with a session token.
-         */
-        public static LoginResult success(String token, Instant expiresAt) {
-            return new LoginResult(true, null, token, expiresAt, false);
-        }
-
-        /**
-         * Creates a login result indicating a forced password change is required.
-         */
-        public static LoginResult passwordChangeRequired(String token, Instant expiresAt) {
-            return new LoginResult(true, null, token, expiresAt, true);
-        }
     }
 }

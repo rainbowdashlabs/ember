@@ -8,7 +8,9 @@
  * Exit code 1 if any app routes lack a help center counterpart.
  */
 
-import {parseRoutes, normalizePath, RED, GREEN, YELLOW, RESET, BOLD} from './lint-utils.mjs'
+import {readFileSync} from 'fs'
+import {join} from 'path'
+import {parseRoutes, normalizePath, SRC, RED, GREEN, YELLOW, RESET, BOLD} from './lint-utils.mjs'
 
 const allRoutes = parseRoutes()
 
@@ -25,7 +27,7 @@ const panels = [
         supplementaryHelp: (r) => r.name.startsWith('help-basics') || r.name === 'help-welcome'
             || r.name.endsWith('-overview') || r.name.endsWith('-module-overview')
             || r.path.includes('/editor') || r.path.includes('/federated') || r.path.includes('/ai')
-            || r.path.includes('/mail-config') || r.path.includes('/theme')
+            || r.path.includes('/mail-config') || r.path.includes('/theme') || r.path.includes('/feeds/')
             || r.path === 'knowledge/browse' || r.path === 'members/waiting-lists',
     },
     {
@@ -94,6 +96,36 @@ for (const panel of panels) {
     }
 }
 
+// ── Duplicate component check ───────────────────────────────────────
+
+console.log(`\n${BOLD}Duplicate Help Component Check${RESET}`)
+
+const helpComponentUsage = new Map()
+for (const r of allRoutes) {
+    if (!r.name || !r.name.startsWith('help-')) continue
+    if (!r.component) continue
+    const comp = r.component
+    if (!helpComponentUsage.has(comp)) helpComponentUsage.set(comp, [])
+    helpComponentUsage.get(comp).push(r)
+}
+
+let duplicateCount = 0
+for (const [comp, routes] of helpComponentUsage) {
+    if (routes.length <= 1) continue
+    duplicateCount++
+    const short = comp.replace(/.*\/views\//, '')
+    console.log(`  ${RED}error${RESET} ${short} used ${routes.length} times:`)
+    for (const r of routes) {
+        console.log(`    - ${r.name} → ${r.path}`)
+    }
+}
+
+if (duplicateCount === 0) {
+    console.log(`  ${GREEN}✓ No duplicate help components${RESET}`)
+} else {
+    totalMissing += duplicateCount
+}
+
 // ── Section overview check ──────────────────────────────────────────
 
 console.log(`\n${BOLD}Section Overview Check${RESET}`)
@@ -132,6 +164,50 @@ if (missingSectionOverviews.length > 0) {
     }
 } else {
     console.log(`  ${GREEN}✓ All sections have overview pages${RESET}`)
+}
+
+// ── Sidebar linkage check ───────────────────────────────────────────
+
+console.log(`\n${BOLD}Sidebar Linkage Check${RESET}`)
+
+const sidebarFiles = [
+    join(SRC, 'views', 'DashboardView.vue'),
+    join(SRC, 'views', 'AdminView.vue'),
+    join(SRC, 'views', 'HelpCenterStationView.vue'),
+]
+
+const sidebarRouteNames = new Set()
+for (const file of sidebarFiles) {
+    try {
+        const content = readFileSync(file, 'utf-8')
+        // Match name="xxx" in SidebarLink and SidebarExpandableLink
+        const matches = content.matchAll(/\bname="([^"]+)"/g)
+        for (const m of matches) sidebarRouteNames.add(m[1])
+    } catch { /* file may not exist */ }
+}
+
+// Routes that don't need sidebar links
+const SIDEBAR_SKIP = (r) =>
+    r.name.startsWith('help-') || r.name.startsWith('helpcenter-')
+    || r.path.includes(':id') || r.path.includes('pathMatch')
+    || ['home', 'login', 'forgot-password', 'set-password', 'reset-password', 'apply',
+        'privacy', 'terms', 'reconsent', 'imprint', 'patch-notes', 'not-found', 'style',
+        'station-select', 'profile-settings'].includes(r.name)
+    || r.name.startsWith('public-') || r.name.startsWith('waiting-list') || r.name.startsWith('waitlist-')
+
+const unlinkedRoutes = allRoutes.filter(r => {
+    if (!r.name || !r.path) return false
+    if (SIDEBAR_SKIP(r)) return false
+    return !sidebarRouteNames.has(r.name)
+})
+
+if (unlinkedRoutes.length > 0) {
+    console.log(`  ${YELLOW}Routes not linked in any sidebar (${unlinkedRoutes.length}):${RESET}`)
+    for (const {name, path} of unlinkedRoutes.sort((a, b) => a.path.localeCompare(b.path))) {
+        console.log(`    ${YELLOW}warning${RESET} ${name} → ${path}`)
+    }
+} else {
+    console.log(`  ${GREEN}✓ All routes are linked in sidebars${RESET}`)
 }
 
 // ── Exit ────────────────────────────────────────────────────────────

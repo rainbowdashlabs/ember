@@ -5,11 +5,16 @@
  */
 package dev.chojo.ember.feature.events.service;
 
+import dev.chojo.ember.event.DomainEventBus;
+import dev.chojo.ember.event.events.EventCreated;
+import dev.chojo.ember.event.events.EventDeleted;
+import dev.chojo.ember.event.events.EventRegistrationStatusChanged;
 import dev.chojo.ember.feature.events.entity.EventBreak;
 import dev.chojo.ember.feature.events.entity.EventCategory;
 import dev.chojo.ember.feature.events.entity.EventFieldDefault;
 import dev.chojo.ember.feature.events.entity.EventRegistration;
 import dev.chojo.ember.feature.events.entity.MemberRegistrationStats;
+import dev.chojo.ember.feature.events.entity.RegistrationCount;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventRepository;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
@@ -35,11 +40,14 @@ import java.util.Optional;
 public class EventService {
     private final EventRepository eventRepository;
     private final RestrictionRepository restrictionRepository;
+    private final DomainEventBus eventBus;
 
     @Inject
-    public EventService(EventRepository eventRepository, RestrictionRepository restrictionRepository) {
+    public EventService(
+            EventRepository eventRepository, RestrictionRepository restrictionRepository, DomainEventBus eventBus) {
         this.eventRepository = eventRepository;
         this.restrictionRepository = restrictionRepository;
+        this.eventBus = eventBus;
     }
 
     // -- Events --
@@ -104,8 +112,9 @@ public class EventService {
             boolean requiresRegistration,
             Instant registrationDeadline,
             boolean requiresConfirmation,
-            Integer categoryId) {
-        return eventRepository.create(
+            Integer categoryId,
+            Integer registrationLimit) {
+        var event = eventRepository.create(
                 stationId,
                 name,
                 description,
@@ -117,7 +126,10 @@ public class EventService {
                 requiresRegistration,
                 registrationDeadline,
                 requiresConfirmation,
-                categoryId);
+                categoryId,
+                registrationLimit);
+        eventBus.publish(new EventCreated(stationId, event));
+        return event;
     }
 
     /**
@@ -149,7 +161,9 @@ public class EventService {
             boolean requiresRegistration,
             Instant registrationDeadline,
             boolean requiresConfirmation,
-            Integer categoryId) {
+            Integer categoryId,
+            Boolean isPublic,
+            Integer registrationLimit) {
         if (eventRepository.update(
                 id,
                 name,
@@ -162,7 +176,9 @@ public class EventService {
                 requiresRegistration,
                 registrationDeadline,
                 requiresConfirmation,
-                categoryId)) {
+                categoryId,
+                isPublic,
+                registrationLimit)) {
             return eventRepository.findById(id);
         }
         return Optional.empty();
@@ -175,7 +191,13 @@ public class EventService {
      * @return true if the event was deleted
      */
     public boolean delete(int id) {
-        return eventRepository.delete(id);
+        var event = eventRepository.findById(id).orElse(null);
+        if (event == null) return false;
+        if (eventRepository.delete(id)) {
+            eventBus.publish(new EventDeleted(event.stationId(), id, event.name()));
+            return true;
+        }
+        return false;
     }
 
     /**
@@ -251,8 +273,8 @@ public class EventService {
      * @param position the new position
      * @return true if the category was updated
      */
-    public boolean updateCategory(int id, String name, int position, Integer maxShownEvents) {
-        return eventRepository.updateCategory(id, name, position, maxShownEvents);
+    public boolean updateCategory(int id, String name, int position, Integer maxShownEvents, boolean isPublic) {
+        return eventRepository.updateCategory(id, name, position, maxShownEvents, isPublic);
     }
 
     /**
@@ -263,6 +285,10 @@ public class EventService {
      */
     public boolean deleteCategory(int id) {
         return eventRepository.deleteCategory(id);
+    }
+
+    public void reorderCategories(List<Integer> orderedIds) {
+        eventRepository.reorderCategories(orderedIds);
     }
 
     // -- Breaks --
@@ -506,7 +532,16 @@ public class EventService {
     }
 
     public boolean updateRegistrationStatus(int id, EventRegistration.RegistrationStatus status) {
-        return eventRepository.updateRegistrationStatus(id, status);
+        if (!eventRepository.updateRegistrationStatus(id, status)) return false;
+        var registration = eventRepository.findRegistrationById(id).orElse(null);
+        if (registration != null) {
+            var event = eventRepository.findById(registration.eventId()).orElse(null);
+            if (event != null) {
+                eventBus.publish(new EventRegistrationStatusChanged(
+                        event.stationId(), event.id(), event.name(), registration.memberId(), status.name()));
+            }
+        }
+        return true;
     }
 
     public boolean withdrawRegistration(int id) {
@@ -518,7 +553,7 @@ public class EventService {
                 eventId, memberId, eventDate, EventRegistration.RegistrationStatus.DECLINED, createdBy);
     }
 
-    public List<EventRepository.RegistrationCount> findRegistrationCounts(int stationId) {
+    public List<RegistrationCount> findRegistrationCounts(int stationId) {
         return eventRepository.findRegistrationCounts(stationId);
     }
 

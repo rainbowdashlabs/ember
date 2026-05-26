@@ -7,7 +7,8 @@ package dev.chojo.ember.feature.events.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
 
-public record EventCategory(int id, int stationId, String name, int position, Integer maxShownEvents) {
+public record EventCategory(
+        int id, int stationId, String name, int position, Integer maxShownEvents, boolean isPublic) {
 
     public static RowMapping<EventCategory> map() {
         return row -> new EventCategory(
@@ -15,6 +16,7 @@ public record EventCategory(int id, int stationId, String name, int position, In
                 row.getInt("station_id"),
                 row.getString("name"),
                 row.getInt("position"),
-                row.getObject("max_shown_events", Integer.class));
+                row.getObject("max_shown_events", Integer.class),
+                row.getBoolean("public"));
     }
 }

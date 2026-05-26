@@ -140,11 +140,17 @@ export interface SessionInfo {
 }
 
 export interface ThemeSessionInfo {
+    instanceDefaultTheme?: string
+    instanceDefaultFeel?: string
+    instanceLockFeel?: boolean
     defaultTheme?: string
+    defaultFeel?: string
     allowUserTheme?: boolean
+    allowUserFeel?: boolean
     customThemeColors?: string | null
     userTheme?: string
     userDarkMode?: string
+    userFeel?: string
 }
 
 export const StationModules = {
@@ -227,12 +233,16 @@ export interface EventCategory {
     name?: string
     position: number
     maxShownEvents?: number | null
+    isPublic?: boolean
+    registrationLimit?: number | null
 }
 
 export interface CategoryRequest {
     name?: string
     position: number
     maxShownEvents?: number | null
+    isPublic?: boolean
+    registrationLimit?: number | null
 }
 
 export interface StationEvent {
@@ -251,6 +261,8 @@ export interface StationEvent {
     categoryId?: number | null
     restrictionMode?: string
     restricted?: boolean
+    isPublic?: boolean
+    registrationLimit?: number | null
 }
 
 export interface EventRequest {
@@ -267,6 +279,8 @@ export interface EventRequest {
     categoryId?: number | null
     restrictedRoleIds?: number[]
     restrictedGroupIds?: number[]
+    isPublic?: boolean
+    registrationLimit?: number | null
 }
 
 export interface EventRestrictions {
@@ -322,6 +336,8 @@ export interface EventField {
     position: number
     overview?: boolean
     attendanceFieldId?: number | null
+    isPublic?: boolean
+    registrationLimit?: number | null
 }
 
 export interface EventFieldEntry {
@@ -331,6 +347,8 @@ export interface EventFieldEntry {
     value?: string
     overview?: boolean
     attendanceFieldId?: number | null
+    isPublic?: boolean
+    registrationLimit?: number | null
 }
 
 export interface SetEventFieldsRequest {
@@ -361,6 +379,53 @@ export interface LayoutFieldEntry {
     fieldType?: string
     config?: string
     overview?: boolean
+    attendanceFieldId?: number | null
+}
+
+// -- Event Templates --
+
+export interface EventTemplate {
+    id: number
+    stationId: string
+    name: string
+    title?: string | null
+    description?: string | null
+    categoryId?: number | null
+    eventType?: string | null
+    requiresRegistration?: boolean | null
+    registrationDeadlineOffset?: string | null
+    requiresConfirmation?: boolean | null
+    restrictionMode?: string | null
+    attendanceTemplateId?: number | null
+    registrationLimit?: number | null
+}
+
+export interface EventTemplateField {
+    id: number
+    templateId: number
+    name: string
+    fieldType: string
+    config: string
+    position: number
+    overview: boolean
+    isPublic: boolean
+    attendanceFieldId?: number | null
+}
+
+export interface EventTemplateDetail {
+    template: EventTemplate
+    fields: EventTemplateField[]
+    restrictionRoleIds: number[]
+}
+
+export interface EventTemplateFieldEntry {
+    name: string
+    fieldType?: string
+    config?: string
+    position: number
+    overview?: boolean
+    isPublic?: boolean
+    registrationLimit?: number | null
     attendanceFieldId?: number | null
 }
 
@@ -508,10 +573,13 @@ export interface StationManageInfo {
     defaultTheme?: string
     allowUserTheme?: boolean
     customThemeColors?: string | null
+    defaultFeel?: string
+    allowUserFeel?: boolean
     publicKbMode?: string
     discoveryVisibility?: string
     discoveryDescription?: string | null
     discoveryShowKb?: boolean
+    publicCalendarEnabled?: boolean
 }
 
 export interface UpdateStationNameRequest {
@@ -521,10 +589,13 @@ export interface UpdateStationNameRequest {
     defaultTheme?: string
     allowUserTheme?: boolean
     customThemeColors?: string | null
+    defaultFeel?: string
+    allowUserFeel?: boolean
     publicKbMode?: string
     discoveryVisibility?: string
     discoveryDescription?: string | null
     discoveryShowKb?: boolean
+    publicCalendarEnabled?: boolean
 }
 
 // -- Stations --
@@ -1110,6 +1181,7 @@ export interface NewsComment {
     authorAccountId?: number | null
     authorName: string
     content: string
+    deleted?: boolean
     createdAt: string
 }
 
@@ -1123,6 +1195,7 @@ export interface CommentRequest {
 export interface NotificationToggle {
     app: boolean
     email: boolean
+    feed: boolean
 }
 
 export interface UserSettings {
@@ -1139,6 +1212,7 @@ export interface UserSettingsRequest {
     emailEnabled?: boolean
     theme?: string
     darkMode?: string
+    feel?: string
     notifications?: Record<string, NotificationToggle>
 }
 
@@ -1561,4 +1635,34 @@ export interface QuizCatalogExport {
     trainingEnabled: boolean
     categories: QuizCategory[]
     questions: QuizQuestion[]
+}
+
+// -- Comments --
+
+export interface Comment {
+    id: number
+    parentId?: number | null
+    authorId: number
+    content: string
+    deleted?: boolean
+    createdAt: string
+    updatedAt?: string | null
+}
+
+export interface EntityNote {
+    id: number
+    entityType: string
+    entityId: number
+    stationId: string
+    content: string
+    updatedBy?: number | null
+    updatedAt: string
+}
+
+export interface NoteVersion {
+    id: number
+    noteId: number
+    diffPatch: string
+    authorId: number
+    createdAt: string
 }

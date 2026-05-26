@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
+import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
@@ -25,6 +26,20 @@ const emit = defineEmits<{
 
 const {t} = useI18n()
 
+const quickFields = [
+  {name: 'Ort', fieldType: 'string', overview: true, isPublic: true},
+  {name: 'Treffpunkt', fieldType: 'string', overview: true, isPublic: true},
+  {name: 'Thema', fieldType: 'string', overview: true, isPublic: false},
+]
+
+const existingNames = computed(() => new Set(props.fields.map(f => f.name.toLowerCase())))
+
+function addQuickField(qf: typeof quickFields[number]) {
+  emit('update:fields', [...props.fields, {
+    name: qf.name, fieldType: qf.fieldType, config: '{}', value: '', overview: qf.overview, attendanceFieldId: null, isPublic: qf.isPublic,
+  }])
+}
+
 function addField() {
   emit('update:fields', [...props.fields, {name: '', fieldType: 'string', config: '{}', value: '', overview: false, attendanceFieldId: null}])
 }
@@ -45,9 +60,20 @@ function updateField(index: number, field: EventFieldEntry) {
 <template>
   <div class="flex items-center justify-between">
     <SubHeader>{{ t('events.eventFields') }}</SubHeader>
-    <SecondaryButton :icon="['fas', 'plus']" @click="addField">
-      {{ t('eventFields.addField') }}
-    </SecondaryButton>
+    <div class="flex items-center gap-2">
+      <SecondaryButton
+          v-for="qf in quickFields"
+          :key="qf.name"
+          :disabled="existingNames.has(qf.name.toLowerCase())"
+          class="!py-1 !px-2 !text-xs"
+          @click="addQuickField(qf)"
+      >
+        + {{ qf.name }}
+      </SecondaryButton>
+      <SecondaryButton :icon="['fas', 'plus']" @click="addField">
+        {{ t('eventFields.addField') }}
+      </SecondaryButton>
+    </div>
   </div>
   <MutedText v-if="fields.length === 0" tag="div" size="sm" class="py-2">
     {{ t('events.noFields') }}

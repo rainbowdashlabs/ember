@@ -4,15 +4,18 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {onMounted, ref} from 'vue'
+import {computed, onMounted, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRouter} from 'vue-router'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
+import InfoContainer from '@/components/container/InfoContainer.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import LinkButton from '@/components/button/LinkButton.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import {notifications} from '@/api'
+import {getFeedStatus} from '@/api/feedToken'
+import type {FeedStatusResponse} from '@/api/feedToken'
 import type {NotificationEntry} from '@/api/types'
 
 const {t} = useI18n()
@@ -20,6 +23,7 @@ const router = useRouter()
 
 const notifs = ref<NotificationEntry[]>([])
 const loading = ref(true)
+const feedStatus = ref<FeedStatusResponse | null>(null)
 
 const typeIcons: Record<string, string> = {
   NEW_NEWS: 'newspaper',
@@ -55,7 +59,8 @@ function renderDetail(n: NotificationEntry): string | null {
   return null
 }
 
-function navigateTo(n: NotificationEntry) {
+async function navigateTo(n: NotificationEntry) {
+  await ack(n.id)
   if (n.link) {
     router.push({name: n.link.route, params: n.link.routeParams})
   }
@@ -77,10 +82,26 @@ async function ackAll() {
   notifs.value = []
 }
 
+const showFeedCta = computed(() => {
+  if (!feedStatus.value) return false
+  return !feedStatus.value.hasToken || !feedStatus.value.notificationActive
+})
+
+const feedCtaMessage = computed(() => {
+  if (!feedStatus.value) return ''
+  if (!feedStatus.value.hasToken) return t('dashboard.feedSetupHint')
+  return t('dashboard.feedInactiveHint')
+})
+
 async function loadData() {
   loading.value = true
   try {
-    notifs.value = await notifications.listUnacknowledged()
+    const [n, fs] = await Promise.all([
+      notifications.listUnacknowledged(),
+      getFeedStatus().catch(() => null),
+    ])
+    notifs.value = n
+    feedStatus.value = fs
   } catch { /* ignore */ }
   loading.value = false
 }
@@ -102,6 +123,16 @@ onMounted(loadData)
     </div>
 
     <div class="overflow-y-auto flex-1 space-y-2">
+      <InfoContainer v-if="showFeedCta" class="flex items-center justify-between gap-3 py-2 px-3">
+        <div class="flex items-center gap-2">
+          <font-awesome-icon :icon="['fas', 'rss']" class="text-info shrink-0"/>
+          <p class="text-xs">{{ feedCtaMessage }}</p>
+        </div>
+        <SecondaryButton class="shrink-0 text-xs" compact @click="router.push({ name: 'profile-notifications' })">
+          {{ t('dashboard.feedSetup') }}
+        </SecondaryButton>
+      </InfoContainer>
+
       <EmptyState compact v-if="!loading && notifs.length === 0">
         <font-awesome-icon :icon="['fas', 'check-double']" class="text-2xl text-success mb-2"/>
         <p>{{ t('dashboard.noNotifications') }}</p>

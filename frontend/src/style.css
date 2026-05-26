@@ -24,6 +24,9 @@
     /* Dark backgrounds */
     --color-bg-dark: #212121;
     --color-bg-dark-accent: #191919;
+
+    /* Border radius */
+    --radius-theme: 0.5rem;
 }
 
 :root {

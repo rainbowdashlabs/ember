@@ -15,6 +15,9 @@ import type {
     EventLayoutField,
     EventRequest,
     EventRestrictions,
+    EventTemplate,
+    EventTemplateDetail,
+    EventTemplateFieldEntry,
     LayoutFieldEntry,
     SetEventFieldsRequest,
     StationEvent
@@ -70,6 +73,11 @@ export async function updateCategory(id: number, data: CategoryRequest): Promise
 
 export async function deleteCategory(id: number): Promise<void> {
     await client.delete(`/events/categories/${id}`)
+}
+
+export async function reorderCategories(orderedIds: number[]): Promise<EventCategory[]> {
+    const res = await client.put<EventCategory[]>('/events/categories/reorder', {orderedIds})
+    return res.data
 }
 
 // -- Registrations --
@@ -292,6 +300,44 @@ export async function setLayoutFields(layoutId: number, data: { fields: LayoutFi
     return res.data
 }
 
+// -- Templates --
+
+export async function listTemplates(): Promise<EventTemplate[]> {
+    const res = await client.get<EventTemplate[]>('/event-templates')
+    return res.data
+}
+
+export async function createTemplate(data: { name: string }): Promise<EventTemplate> {
+    const res = await client.post<EventTemplate>('/event-templates', data)
+    return res.data
+}
+
+export async function getTemplate(id: number): Promise<EventTemplateDetail> {
+    const res = await client.get<EventTemplateDetail>(`/event-templates/${id}`)
+    return res.data
+}
+
+export async function updateTemplate(id: number, data: {
+    name?: string, title?: string | null, description?: string | null, categoryId?: number | null,
+    eventType?: string | null, requiresRegistration?: boolean | null,
+    registrationDeadlineOffset?: string | null, requiresConfirmation?: boolean | null,
+    restrictionMode?: string | null, attendanceTemplateId?: number | null, registrationLimit?: number | null
+}): Promise<void> {
+    await client.put(`/event-templates/${id}`, data)
+}
+
+export async function deleteTemplate(id: number): Promise<void> {
+    await client.delete(`/event-templates/${id}`)
+}
+
+export async function setTemplateFields(id: number, data: { fields: EventTemplateFieldEntry[] }): Promise<void> {
+    await client.put(`/event-templates/${id}/fields`, data)
+}
+
+export async function setTemplateRestrictions(id: number, data: { roleIds: number[] }): Promise<void> {
+    await client.put(`/event-templates/${id}/restrictions`, data)
+}
+
 // -- Batch Creation --
 
 export interface BatchRow {
@@ -358,4 +404,46 @@ export async function getRegistrationStats(eventId: number, categoryId?: number,
     if (months != null) params.months = String(months)
     const res = await client.get<MemberRegistrationStats[]>(`/events/${eventId}/registration-stats`, {params})
     return res.data
+}
+
+// -- Federated Events --
+
+export interface FederatedEvent {
+    partnerId: number
+    partnerStationName: string
+    event: {
+        id: number
+        name: string
+        description: string
+        eventType: string
+        dayOfWeek: number
+        startTime: string
+        endTime: string
+        requiresRegistration: boolean
+        requiresConfirmation: boolean
+    }
+}
+
+export async function listFederatedEvents(): Promise<FederatedEvent[]> {
+    const res = await client.get<FederatedEvent[]>('/federation/events')
+    return res.data
+}
+
+export interface EventFederationShareInfo {
+    shared: boolean
+    scope?: string
+    partnerIds?: number[]
+}
+
+export async function getFederationShare(eventId: number): Promise<EventFederationShareInfo> {
+    const res = await client.get<EventFederationShareInfo>(`/events/${eventId}/federation`)
+    return res.data
+}
+
+export async function setFederationShare(eventId: number, scope: string, partnerIds?: number[]): Promise<void> {
+    await client.put(`/events/${eventId}/federation`, {scope, partnerIds: partnerIds ?? []})
+}
+
+export async function removeFederationShare(eventId: number): Promise<void> {
+    await client.delete(`/events/${eventId}/federation`)
 }

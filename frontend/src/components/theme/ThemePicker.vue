@@ -34,7 +34,7 @@ const themeEntries = computed(() => {
         <button
             v-for="entry in themeEntries"
             :key="entry.key"
-            class="flex flex-col items-center gap-2 rounded-lg border-2 p-3 transition-all duration-150
+            class="flex flex-col items-center gap-2 rounded-theme border-2 p-3 transition-all duration-150
                    bg-[var(--bg)] hover:shadow-md"
             :class="activeTheme === entry.key
                 ? 'border-[var(--color-primary)] ring-2 ring-[var(--color-primary)]'

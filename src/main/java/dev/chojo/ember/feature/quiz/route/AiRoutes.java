@@ -246,12 +246,16 @@ public class AiRoutes implements Routes {
 
         for (var q : questions) {
             try {
-                if (!(q.config() instanceof QuestionConfig.MultipleChoice mc)) continue;
-                if (mc.options() == null || mc.options().isEmpty()) continue;
-                if (mc.options().size() >= targetTotal) continue;
+                if (!(q.config()
+                        instanceof
+                        QuestionConfig.MultipleChoice(
+                                List<QuestionConfig.MultipleChoice.Option> options,
+                                double pointsPerCorrect))) continue;
+                if (options == null || options.isEmpty()) continue;
+                if (options.size() >= targetTotal) continue;
 
-                int need = targetTotal - mc.options().size();
-                var correctParts = mc.options().stream()
+                int need = targetTotal - options.size();
+                var correctParts = options.stream()
                         .filter(QuestionConfig.MultipleChoice.Option::correct)
                         .map(QuestionConfig.MultipleChoice.Option::text)
                         .toList();
@@ -266,12 +270,12 @@ public class AiRoutes implements Routes {
                         String.join(", ", correctParts),
                         need);
 
-                var updatedOptions = new ArrayList<>(mc.options());
+                var updatedOptions = new ArrayList<>(options);
                 for (var answer : newAnswers) {
                     updatedOptions.add(new QuestionConfig.MultipleChoice.Option(answer, false));
                 }
 
-                var updatedMc = new QuestionConfig.MultipleChoice(updatedOptions, mc.pointsPerCorrect());
+                var updatedMc = new QuestionConfig.MultipleChoice(updatedOptions, pointsPerCorrect);
                 String newConfig = MAPPER.writeValueAsString(updatedMc);
                 quizService.updateQuestion(
                         q.id(),

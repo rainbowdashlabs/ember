@@ -11,6 +11,11 @@ import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
+import dev.chojo.ember.feature.federation.entity.CapabilityType;
+import dev.chojo.ember.feature.federation.entity.Direction;
+import dev.chojo.ember.feature.federation.entity.FederationPartner;
+import dev.chojo.ember.feature.federation.service.FederationHttpClient;
+import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.knowledgebase.entity.KbAccessRestriction;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFile;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFolder;
@@ -23,6 +28,8 @@ import dev.chojo.ember.feature.members.entity.UserTag;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.repository.UserTagRepository;
+import dev.chojo.ember.feature.station.entity.Station;
+import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.util.PandocConverter;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.ContentType;
@@ -41,6 +48,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 
 import static org.slf4j.LoggerFactory.getLogger;
 
@@ -57,6 +65,9 @@ public class KnowledgeBaseRoutes implements Routes {
     private final MemberGroupRepository memberGroupRepository;
     private final UserTagRepository userTagRepository;
     private final ImageService imageService;
+    private final FederationService federationService;
+    private final FederationHttpClient federationHttpClient;
+    private final StationRepository stationRepository;
 
     @Inject
     public KnowledgeBaseRoutes(
@@ -65,13 +76,19 @@ public class KnowledgeBaseRoutes implements Routes {
             AccountRepository accountRepository,
             MemberGroupRepository memberGroupRepository,
             UserTagRepository userTagRepository,
-            ImageService imageService) {
+            ImageService imageService,
+            FederationService federationService,
+            FederationHttpClient federationHttpClient,
+            StationRepository stationRepository) {
         this.service = service;
         this.stationMemberRepository = stationMemberRepository;
         this.accountRepository = accountRepository;
         this.memberGroupRepository = memberGroupRepository;
         this.userTagRepository = userTagRepository;
         this.imageService = imageService;
+        this.federationService = federationService;
+        this.federationHttpClient = federationHttpClient;
+        this.stationRepository = stationRepository;
     }
 
     private String resolveFolderPath(Integer folderId) {
@@ -335,8 +352,8 @@ public class KnowledgeBaseRoutes implements Routes {
         Integer folderId = null;
         String folderIdStr = ctx.formParam("folderId");
         if (folderIdStr != null && !folderIdStr.isBlank()) folderId = Integer.parseInt(folderIdStr);
-        try {
-            byte[] data = file.content().readAllBytes();
+        try (var content = file.content()) {
+            byte[] data = content.readAllBytes();
             ctx.json(service.createUploadedFile(
                     session.stationId(),
                     folderId,
@@ -375,8 +392,8 @@ public class KnowledgeBaseRoutes implements Routes {
             throw new BadRequestResponse("Unsupported document format. Supported: .docx, .odt, .html, .rtf");
         }
 
-        try {
-            byte[] data = file.content().readAllBytes();
+        try (var content = file.content()) {
+            byte[] data = content.readAllBytes();
             String markdown = PandocConverter.toMarkdown(data, format);
             ctx.json(service.createMarkdownFile(
                     session.stationId(),
@@ -516,15 +533,99 @@ public class KnowledgeBaseRoutes implements Routes {
     private void search(Context ctx) {
         var session = UserSession.from(ctx);
         String query = ctx.queryParam("q");
+        boolean federated = !"false".equals(ctx.queryParam("federated"));
         if (query == null || query.isBlank()) {
             ctx.json(List.of());
             return;
         }
-        var results = service.searchWithSnippets(session.stationId(), query);
-        ctx.json(results.stream()
+
+        // Local search
+        var localFuture = CompletableFuture.supplyAsync(() -> service.searchWithSnippets(session.stationId(), query));
+
+        // Federated search (parallel)
+        var federatedFuture = federated
+                ? CompletableFuture.supplyAsync(() -> searchFederated(session.stationId(), query))
+                : CompletableFuture.completedFuture(List.<SearchResultResponse>of());
+
+        var localResults = localFuture.join().stream()
                 .map(r -> new SearchResultResponse(
-                        r.file(), r.snippet(), resolveFolderPath(r.file().folderId())))
-                .toList());
+                        r.file(), r.snippet(), resolveFolderPath(r.file().folderId()), null, null))
+                .toList();
+
+        var fedResults = federatedFuture.join();
+
+        var all = new ArrayList<>(localResults);
+        all.addAll(fedResults);
+        ctx.json(all);
+    }
+
+    private List<SearchResultResponse> searchFederated(int stationId, String query) {
+        var results = new ArrayList<SearchResultResponse>();
+        var partners = federationService.findPartners(stationId).stream()
+                .filter(p -> p.status() == FederationPartner.FederationStatus.ACTIVE)
+                .filter(p -> federationService.hasCapability(p.id(), CapabilityType.KB_SHARE, Direction.IMPORT))
+                .toList();
+
+        var futures = new ArrayList<CompletableFuture<Void>>();
+        for (var partner : partners) {
+            int remoteStationId = partner.stationId() == stationId ? partner.partnerStationId() : partner.stationId();
+            String stationName = stationRepository
+                    .findById(remoteStationId)
+                    .map(Station::name)
+                    .orElse("?");
+            String stationUid = stationRepository
+                    .findById(remoteStationId)
+                    .map(s -> s.uid().toString())
+                    .orElse("");
+
+            futures.add(CompletableFuture.runAsync(() -> {
+                List<SearchResultResponse> partnerResults;
+                if (partner.isRemote()) {
+                    var station = stationRepository.findById(stationId).orElse(null);
+                    if (station == null || station.federationPrivateKey() == null) return;
+                    var remote = federationHttpClient.searchKb(
+                            partner.remoteHost(), stationId, station.federationPrivateKey(), query);
+                    partnerResults = remote.stream()
+                            .map(r -> new SearchResultResponse(
+                                    new KbFile(
+                                            r.id(),
+                                            remoteStationId,
+                                            null,
+                                            r.name(),
+                                            r.description(),
+                                            null,
+                                            null,
+                                            0,
+                                            null,
+                                            null,
+                                            null,
+                                            0,
+                                            0,
+                                            Instant.now(),
+                                            Instant.now(),
+                                            null,
+                                            null,
+                                            null,
+                                            false),
+                                    r.snippet(),
+                                    "",
+                                    stationName,
+                                    stationUid))
+                            .toList();
+                } else {
+                    var local = service.searchWithSnippets(remoteStationId, query);
+                    partnerResults = local.stream()
+                            .map(r -> new SearchResultResponse(r.file(), r.snippet(), "", stationName, stationUid))
+                            .toList();
+                }
+                synchronized (results) {
+                    results.addAll(partnerResults);
+                }
+            }));
+        }
+
+        CompletableFuture.allOf(futures.toArray(CompletableFuture[]::new)).join();
+        return results;
     }
 
     // -- Browse (combined) --
@@ -795,7 +896,8 @@ public class KnowledgeBaseRoutes implements Routes {
     public record VersionResponse(
             int id, int version, boolean isFull, int createdBy, String createdByName, Instant createdAt) {}
 
-    public record SearchResultResponse(KbFile file, String snippet, String folderPath) {}
+    public record SearchResultResponse(
+            KbFile file, String snippet, String folderPath, String stationName, String sourceStationId) {}
 
     public record ImageUploadResponse(String imageId) {}
 }

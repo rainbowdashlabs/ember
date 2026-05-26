@@ -9,6 +9,7 @@ import {useI18n} from 'vue-i18n'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import InfoButton from '@/components/button/InfoButton.vue'
+import InfiniteReel from '@/components/display/InfiniteReel.vue'
 import client from '@/api/client'
 import {adminSettings} from '@/api'
 import EmberLogo from '@/components/display/EmberLogo.vue'
@@ -27,7 +28,6 @@ onMounted(async () => {
   } catch { /* ignore */ }
   adminSettings.isRegistrationEnabled().then(v => registrationEnabled.value = v).catch(() => {})
 
-  // Inject JSON-LD structured data
   const script = document.createElement('script')
   script.type = 'application/ld+json'
   script.textContent = JSON.stringify({
@@ -37,15 +37,8 @@ onMounted(async () => {
     applicationCategory: 'BusinessApplication',
     operatingSystem: 'Web',
     description: t('landing.heroSubtitle'),
-    offers: {
-      '@type': 'Offer',
-      price: '0',
-      priceCurrency: 'EUR',
-    },
-    author: {
-      '@type': 'Organization',
-      name: 'RainbowDashLabs',
-    },
+    offers: { '@type': 'Offer', price: '0', priceCurrency: 'EUR' },
+    author: { '@type': 'Organization', name: 'RainbowDashLabs' },
   })
   document.head.appendChild(script)
 })
@@ -62,6 +55,8 @@ const features = [
   {icon: ['fas', 'clipboard-check'], key: 'protocol', help: '/helpcenter/station/protocols'},
   {icon: ['fas', 'list-check'], key: 'waitingList', help: '/helpcenter/station/members/waitinglist'},
   {icon: ['fas', 'box-open'], key: 'lostAndFound', help: '/helpcenter/station/inventory/overview'},
+  {icon: ['fas', 'arrow-right-arrow-left'], key: 'federation', help: '/helpcenter/station/manage/federation'},
+  {icon: ['fas', 'globe'], key: 'publicStation', help: '/helpcenter/station/manage/federation/settings'},
   {icon: ['fas', 'bell'], key: 'notifications', help: '/helpcenter/station/profile/settings'},
   {icon: ['fas', 'circle-question'], key: 'helpCenter', help: '/helpcenter/station/basics'},
 ]
@@ -118,31 +113,35 @@ const highlights = [
       </div>
     </section>
 
-    <!-- Features Grid -->
-    <section aria-label="Funktionen" class="mx-auto max-w-5xl px-6 py-16">
-      <SectionHeader class="text-2xl sm:text-3xl font-bold text-center mb-3">
-        {{ t('landing.featuresTitle') }}
-      </SectionHeader>
-      <p class="text-center text-(--text-muted) mb-12 max-w-xl mx-auto">
-        {{ t('landing.featuresSubtitle') }}
-      </p>
-      <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        <router-link
-            v-for="feature in features"
-            :key="feature.key"
+    <!-- Features Reel -->
+    <section aria-label="Funktionen" class="py-16">
+      <div class="mx-auto max-w-5xl px-6">
+        <SectionHeader class="text-2xl sm:text-3xl font-bold text-center mb-3">
+          {{ t('landing.featuresTitle') }}
+        </SectionHeader>
+        <p class="text-center text-(--text-muted) mb-12 max-w-xl mx-auto">
+          {{ t('landing.featuresSubtitle') }}
+        </p>
+      </div>
+      <div class="mx-auto max-w-5xl px-6">
+        <InfiniteReel :item-count="features.length">
+          <router-link
+            v-for="(feature, i) in [...features, ...features]"
+            :key="`f-${i}`"
             :to="feature.help"
-            class="rounded-xl border border-(--border) bg-(--bg) p-6 transition-all hover:border-primary/40 hover:shadow-lg"
-        >
-          <div class="flex items-center justify-center h-12 w-12 rounded-lg bg-primary/10 mb-4">
-            <font-awesome-icon :icon="feature.icon" class="h-6 w-6 text-primary"/>
-          </div>
-          <SubHeader class="mb-2">{{ t(`landing.feature.${feature.key}.title`) }}</SubHeader>
-          <p class="text-sm text-(--text-muted) leading-relaxed">{{ t(`landing.feature.${feature.key}.desc`) }}</p>
-        </router-link>
+            class="shrink-0 w-[calc((100%-3rem)/3)] rounded-xl border border-(--border) bg-(--bg) p-6 transition-shadow hover:border-primary/40 hover:shadow-lg"
+          >
+            <div class="flex items-center justify-center h-12 w-12 rounded-lg bg-primary/10 mb-4 mx-auto">
+              <font-awesome-icon :icon="feature.icon" class="h-6 w-6 text-primary"/>
+            </div>
+            <SubHeader class="mb-2 text-center">{{ t(`landing.feature.${feature.key}.title`) }}</SubHeader>
+            <p class="text-sm text-(--text-muted) leading-relaxed text-center">{{ t(`landing.feature.${feature.key}.desc`) }}</p>
+          </router-link>
+        </InfiniteReel>
       </div>
     </section>
 
-    <!-- Highlights / Why Ember -->
+    <!-- Highlights Reel -->
     <section aria-label="Vorteile" class="bg-(--bg-accent) py-16">
       <div class="mx-auto max-w-5xl px-6">
         <SectionHeader class="text-2xl sm:text-3xl font-bold text-center mb-3">
@@ -151,19 +150,21 @@ const highlights = [
         <p class="text-center text-(--text-muted) mb-12 max-w-xl mx-auto">
           {{ t('landing.highlightsSubtitle') }}
         </p>
-        <div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+      </div>
+      <div class="mx-auto max-w-5xl px-6">
+        <InfiniteReel :item-count="highlights.length">
           <div
-              v-for="h in highlights"
-              :key="h.key"
-              class="flex items-start gap-4 rounded-lg p-4"
+            v-for="(h, i) in [...highlights, ...highlights]"
+            :key="`h-${i}`"
+            class="shrink-0 w-[calc((100%-3rem)/3)] rounded-xl border border-(--border) bg-(--bg) p-6"
           >
-            <font-awesome-icon :icon="h.icon" class="h-5 w-5 text-secondary mt-0.5 shrink-0"/>
-            <div>
-              <SubHeader class="text-sm mb-1">{{ t(`landing.highlight.${h.key}.title`) }}</SubHeader>
-              <p class="text-xs text-(--text-muted) leading-relaxed">{{ t(`landing.highlight.${h.key}.desc`) }}</p>
+            <div class="flex items-center justify-center h-10 w-10 rounded-lg bg-secondary/10 mb-3 mx-auto">
+              <font-awesome-icon :icon="h.icon" class="h-5 w-5 text-secondary"/>
             </div>
+            <SubHeader class="text-sm mb-1 text-center">{{ t(`landing.highlight.${h.key}.title`) }}</SubHeader>
+            <p class="text-xs text-(--text-muted) leading-relaxed text-center">{{ t(`landing.highlight.${h.key}.desc`) }}</p>
           </div>
-        </div>
+        </InfiniteReel>
       </div>
     </section>
 

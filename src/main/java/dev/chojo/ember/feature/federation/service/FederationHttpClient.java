@@ -13,9 +13,11 @@ import org.slf4j.LoggerFactory;
 import tools.jackson.databind.json.JsonMapper;
 
 import java.net.URI;
+import java.net.URLEncoder;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.List;
 
@@ -59,6 +61,23 @@ public class FederationHttpClient {
             return List.of();
         }
     }
+
+    public List<RemoteKbSearchResult> searchKb(
+            String remoteHost, int localStationId, String localPrivateKeyBase64, String query) {
+        try {
+            String url = apiUrl(remoteHost) + "/federation/remote/kb/search?q="
+                    + URLEncoder.encode(query, StandardCharsets.UTF_8);
+            var response = signedGet(url, localStationId, localPrivateKeyBase64);
+            if (response.statusCode() != 200) return List.of();
+            var type = mapper.getTypeFactory().constructCollectionType(List.class, RemoteKbSearchResult.class);
+            return mapper.readValue(response.body(), type);
+        } catch (Exception e) {
+            log.error("Failed to search KB on {}", remoteHost, e);
+            return List.of();
+        }
+    }
+
+    public record RemoteKbSearchResult(int id, String name, String description, String snippet) {}
 
     public List<RemoteKbFile> fetchSharedKbFiles(String remoteHost, int localStationId, String localPrivateKeyBase64) {
         try {
@@ -169,6 +188,99 @@ public class FederationHttpClient {
         return httpClient.send(request, HttpResponse.BodyHandlers.ofString());
     }
 
+    private HttpResponse<String> signedPost(String url, String body, int localStationId, String localPrivateKeyBase64)
+            throws Exception {
+        String timestampStr = Instant.now().toString();
+        var privateKey = signingService.decodePrivateKey(localPrivateKeyBase64);
+        String signature = signingService.sign(body, timestampStr, privateKey);
+
+        var request = HttpRequest.newBuilder()
+                .uri(URI.create(url))
+                .header("X-Federation-Station-Id", String.valueOf(localStationId))
+                .header("X-Federation-Signature", signature)
+                .header("X-Federation-Timestamp", timestampStr)
+                .header("X-Federation-Version", String.valueOf(FederationService.FEDERATION_VERSION))
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(body))
+                .build();
+
+        return httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+    }
+
+    private HttpResponse<String> signedDelete(String url, String body, int localStationId, String localPrivateKeyBase64)
+            throws Exception {
+        String timestampStr = Instant.now().toString();
+        var privateKey = signingService.decodePrivateKey(localPrivateKeyBase64);
+        String signature = signingService.sign(body, timestampStr, privateKey);
+
+        var request = HttpRequest.newBuilder()
+                .uri(URI.create(url))
+                .header("X-Federation-Station-Id", String.valueOf(localStationId))
+                .header("X-Federation-Signature", signature)
+                .header("X-Federation-Timestamp", timestampStr)
+                .header("X-Federation-Version", String.valueOf(FederationService.FEDERATION_VERSION))
+                .header("Content-Type", "application/json")
+                .method("DELETE", HttpRequest.BodyPublishers.ofString(body))
+                .build();
+
+        return httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+    }
+
+    // -- Federated Events --
+
+    public List<RemoteFederatedEvent> fetchFederatedEvents(
+            String remoteHost, int localStationId, String localPrivateKeyBase64) {
+        try {
+            String url = apiUrl(remoteHost) + "/federation/remote/events";
+            var response = signedGet(url, localStationId, localPrivateKeyBase64);
+            if (response.statusCode() != 200) {
+                log.warn("Failed to fetch federated events from {}: HTTP {}", remoteHost, response.statusCode());
+                return List.of();
+            }
+            var type = mapper.getTypeFactory().constructCollectionType(List.class, RemoteFederatedEvent.class);
+            return mapper.readValue(response.body(), type);
+        } catch (Exception e) {
+            log.error("Failed to fetch federated events from {}", remoteHost, e);
+            return List.of();
+        }
+    }
+
+    public boolean registerForFederatedEvent(
+            String remoteHost,
+            int eventId,
+            String remoteMemberId,
+            String eventDate,
+            int localStationId,
+            String localPrivateKeyBase64) {
+        try {
+            String url = apiUrl(remoteHost) + "/federation/remote/events/" + eventId + "/register";
+            String body = mapper.writeValueAsString(new FederatedRegBody(remoteMemberId, eventDate));
+            var response = signedPost(url, body, localStationId, localPrivateKeyBase64);
+            return response.statusCode() == 201;
+        } catch (Exception e) {
+            log.error("Failed to register for federated event {} on {}", eventId, remoteHost, e);
+            return false;
+        }
+    }
+
+    public boolean withdrawFederatedRegistration(
+            String remoteHost,
+            int eventId,
+            String remoteMemberId,
+            String eventDate,
+            int localStationId,
+            String localPrivateKeyBase64) {
+        try {
+            String url = apiUrl(remoteHost) + "/federation/remote/events/" + eventId + "/register";
+            String body = mapper.writeValueAsString(new FederatedRegBody(remoteMemberId, eventDate));
+            var response = signedDelete(url, body, localStationId, localPrivateKeyBase64);
+            return response.statusCode() == 204;
+        } catch (Exception e) {
+            log.error("Failed to withdraw federated registration for event {} on {}", eventId, remoteHost, e);
+            return false;
+        }
+    }
+
     public record RemoteKbFile(int id, String name, String description, String fileType) {}
 
     public record RemoteQuizCatalog(int id, String name, String description) {}
@@ -176,4 +288,17 @@ public class FederationHttpClient {
     public record RemoteProtocol(int id, String name, String description) {}
 
     public record RemoteKbContent(int fileId, String content) {}
+
+    public record RemoteFederatedEvent(
+            int id,
+            String name,
+            String description,
+            String eventType,
+            int dayOfWeek,
+            String startTime,
+            String endTime,
+            boolean requiresRegistration,
+            boolean requiresConfirmation) {}
+
+    private record FederatedRegBody(String remoteMemberId, String eventDate) {}
 }

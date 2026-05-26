@@ -12,16 +12,16 @@ import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.form.entity.Form;
 import dev.chojo.ember.feature.form.entity.FormAnswer;
+import dev.chojo.ember.feature.form.entity.FormAnswerValue;
 import dev.chojo.ember.feature.form.entity.FormQuestion;
+import dev.chojo.ember.feature.form.entity.FormQuestionConfig;
 import dev.chojo.ember.feature.form.entity.FormResponse;
+import dev.chojo.ember.feature.form.entity.QuestionEntry;
+import dev.chojo.ember.feature.form.entity.QuestionType;
 import dev.chojo.ember.feature.form.service.FormService;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.StationMemberService;
-import dev.chojo.ember.feature.notifications.entity.NotificationData;
-import dev.chojo.ember.feature.notifications.entity.NotificationParams;
-import dev.chojo.ember.feature.notifications.entity.NotificationType;
-import dev.chojo.ember.feature.notifications.service.NotificationService;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
@@ -57,7 +57,6 @@ import java.util.stream.Collectors;
 @Singleton
 public class FormRoutes implements Routes {
     private final FormService formService;
-    private final NotificationService notificationService;
     private final StationMemberService stationMemberService;
     private final StationMemberRepository stationMemberRepository;
     private final AccountRepository accountRepository;
@@ -65,12 +64,10 @@ public class FormRoutes implements Routes {
     @Inject
     public FormRoutes(
             FormService formService,
-            NotificationService notificationService,
             StationMemberService stationMemberService,
             StationMemberRepository stationMemberRepository,
             AccountRepository accountRepository) {
         this.formService = formService;
-        this.notificationService = notificationService;
         this.stationMemberService = stationMemberService;
         this.stationMemberRepository = stationMemberRepository;
         this.accountRepository = accountRepository;
@@ -279,7 +276,6 @@ public class FormRoutes implements Routes {
             throw new ForbiddenResponse("Cannot access resources from another station");
         }
         if (formService.delete(id)) {
-            deleteFormNotifications(id);
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
             throw new NotFoundResponse();
@@ -306,13 +302,6 @@ public class FormRoutes implements Routes {
         if (form.status() != Form.FormStatus.DRAFT) throw new BadRequestResponse("Form is not in DRAFT status");
         formService.publish(id);
 
-        notificationService.notifyStation(
-                session.stationId(),
-                NotificationType.NEW_FORM,
-                NotificationData.of(
-                        new NotificationParams.NewForm(form.title()),
-                        new NotificationData.NotificationLink("forms-fill", Map.of("id", String.valueOf(id)))));
-
         formService.findById(id).ifPresentOrElse(ctx::json, () -> {
             throw new NotFoundResponse();
         });
@@ -336,7 +325,6 @@ public class FormRoutes implements Routes {
             throw new ForbiddenResponse("Cannot access resources from another station");
         }
         if (!formService.close(id)) throw new NotFoundResponse();
-        deleteFormNotifications(id);
         formService.findById(id).ifPresentOrElse(ctx::json, () -> {
             throw new NotFoundResponse();
         });
@@ -375,13 +363,13 @@ public class FormRoutes implements Routes {
         formService.replaceQuestions(
                 id,
                 Arrays.stream(questions)
-                        .map(q -> new FormService.QuestionEntry(
-                                FormQuestion.QuestionType.valueOf(q.questionType()),
+                        .map(q -> new QuestionEntry(
+                                QuestionType.valueOf(q.questionType()),
                                 q.title(),
                                 q.description() != null ? q.description() : "",
                                 q.required() != null && q.required(),
                                 q.shuffle() != null && q.shuffle(),
-                                q.config() != null ? q.config() : "{}"))
+                                q.config() != null ? q.config() : new FormQuestionConfig.Unknown()))
                         .toList());
         ctx.json(formService.findQuestions(id));
     }
@@ -497,9 +485,13 @@ public class FormRoutes implements Routes {
             throw new ForbiddenResponse("You do not have access to this form");
         }
         var req = ctx.bodyAsClass(SubmitRequest.class);
-        var response = formService.submitResponse(
-                id, session.member().id(), session.member().id(), req.answers());
-        ctx.status(HttpStatus.CREATED).json(response);
+        try {
+            var response = formService.submitResponse(
+                    id, session.member().id(), session.member().id(), req.answers());
+            ctx.status(HttpStatus.CREATED).json(response);
+        } catch (IllegalArgumentException e) {
+            throw new BadRequestResponse(e.getMessage());
+        }
     }
 
     @OpenApi(
@@ -523,9 +515,13 @@ public class FormRoutes implements Routes {
             throw new ForbiddenResponse("You do not have access to this form");
         }
         var req = ctx.bodyAsClass(SubmitRequest.class);
-        var response = formService.submitResponse(
-                id, session.member().id(), session.member().id(), req.answers());
-        ctx.json(response);
+        try {
+            var response = formService.submitResponse(
+                    id, session.member().id(), session.member().id(), req.answers());
+            ctx.json(response);
+        } catch (IllegalArgumentException e) {
+            throw new BadRequestResponse(e.getMessage());
+        }
     }
 
     @OpenApi(
@@ -554,8 +550,13 @@ public class FormRoutes implements Routes {
             throw new ForbiddenResponse("The member does not have access to this form");
         }
         var req = ctx.bodyAsClass(SubmitRequest.class);
-        var response = formService.submitResponse(id, memberId, session.member().id(), req.answers());
-        ctx.status(HttpStatus.CREATED).json(response);
+        try {
+            var response =
+                    formService.submitResponse(id, memberId, session.member().id(), req.answers());
+            ctx.status(HttpStatus.CREATED).json(response);
+        } catch (IllegalArgumentException e) {
+            throw new BadRequestResponse(e.getMessage());
+        }
     }
 
     @OpenApi(
@@ -584,23 +585,13 @@ public class FormRoutes implements Routes {
             throw new ForbiddenResponse("The member does not have access to this form");
         }
         var req = ctx.bodyAsClass(SubmitRequest.class);
-        var response = formService.submitResponse(id, memberId, session.member().id(), req.answers());
-        ctx.json(response);
-    }
-
-    /**
-     * Deletes all NEW_FORM notifications associated with a specific form, used when a form is deleted or closed.
-     *
-     * @param formId the form ID whose notifications should be removed
-     */
-    private void deleteFormNotifications(int formId) {
-        notificationService.deleteByTypeContaining(
-                NotificationType.NEW_FORM,
-                NotificationData.of(
-                                new NotificationParams.NewForm(null),
-                                new NotificationData.NotificationLink(
-                                        "forms-fill", Map.of("id", String.valueOf(formId))))
-                        .toJson());
+        try {
+            var response =
+                    formService.submitResponse(id, memberId, session.member().id(), req.answers());
+            ctx.json(response);
+        } catch (IllegalArgumentException e) {
+            throw new BadRequestResponse(e.getMessage());
+        }
     }
 
     /**
@@ -725,7 +716,7 @@ public class FormRoutes implements Routes {
     /**
      * Request body for creating a form question.
      *
-     * @param questionType the question type name (must match {@link FormQuestion.QuestionType})
+     * @param questionType the question type name (must match {@link QuestionType})
      * @param title        the question text
      * @param description  optional description
      * @param required     whether an answer is mandatory
@@ -733,7 +724,12 @@ public class FormRoutes implements Routes {
      * @param config       type-specific configuration as JSON string
      */
     public record QuestionRequest(
-            String questionType, String title, String description, Boolean required, Boolean shuffle, String config) {}
+            String questionType,
+            String title,
+            String description,
+            Boolean required,
+            Boolean shuffle,
+            FormQuestionConfig config) {}
 
     /**
      * Access restrictions for a form, specifying which roles, groups, and tags may access it.
@@ -755,7 +751,7 @@ public class FormRoutes implements Routes {
      * @param answers map of question ID to answer value (JSON string)
      */
     @OpenApiName("FormSubmitRequest")
-    public record SubmitRequest(Map<Integer, String> answers) {}
+    public record SubmitRequest(Map<Integer, FormAnswerValue> answers) {}
 
     /**
      * Enriched form response entry with optional submitter name resolution.
@@ -828,7 +824,7 @@ public class FormRoutes implements Routes {
      * @param values       all answer values submitted for this question
      */
     public record QuestionAnalytics(
-            int questionId, String questionType, String title, String config, List<String> values) {}
+            int questionId, String questionType, String title, FormQuestionConfig config, List<String> values) {}
 
     /**
      * Response indicating which members (self and managed) are eligible to respond to a form.

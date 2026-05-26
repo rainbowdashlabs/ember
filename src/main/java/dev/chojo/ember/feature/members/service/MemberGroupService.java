@@ -6,6 +6,8 @@
 package dev.chojo.ember.feature.members.service;
 
 import dev.chojo.ember.api.Roles;
+import dev.chojo.ember.event.DomainEventBus;
+import dev.chojo.ember.event.events.MembersAddedToGroup;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
 import dev.chojo.ember.feature.members.entity.Role;
 import dev.chojo.ember.feature.members.entity.StationMember;
@@ -16,6 +18,8 @@ import dev.chojo.ember.feature.members.util.RoleValidation;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -29,15 +33,18 @@ public class MemberGroupService {
     private final MemberGroupRepository groupRepository;
     private final StationMemberRepository memberRepository;
     private final UserTagRepository tagRepository;
+    private final DomainEventBus eventBus;
 
     @Inject
     public MemberGroupService(
             MemberGroupRepository groupRepository,
             StationMemberRepository memberRepository,
-            UserTagRepository tagRepository) {
+            UserTagRepository tagRepository,
+            DomainEventBus eventBus) {
         this.groupRepository = groupRepository;
         this.memberRepository = memberRepository;
         this.tagRepository = tagRepository;
+        this.eventBus = eventBus;
     }
 
     public List<MemberGroup> findByStation(int stationId) {
@@ -75,17 +82,25 @@ public class MemberGroupService {
 
     public List<StationMember> setMembers(int groupId, List<Integer> desiredMemberIds) {
         List<StationMember> currentMembers = groupRepository.findMembers(groupId);
-        var currentMemberIds = currentMembers.stream().map(StationMember::id).toList();
+        var currentMemberIdSet =
+                new HashSet<>(currentMembers.stream().map(StationMember::id).toList());
 
-        for (int memberId : currentMemberIds) {
+        var addedMemberIds = new ArrayList<Integer>();
+        for (int memberId : currentMemberIdSet) {
             if (!desiredMemberIds.contains(memberId)) {
                 groupRepository.removeMember(groupId, memberId);
             }
         }
         for (int memberId : desiredMemberIds) {
-            if (!currentMemberIds.contains(memberId)) {
+            if (!currentMemberIdSet.contains(memberId)) {
                 groupRepository.addMember(groupId, memberId);
+                addedMemberIds.add(memberId);
             }
+        }
+
+        if (!addedMemberIds.isEmpty()) {
+            findById(groupId)
+                    .ifPresent(g -> eventBus.publish(new MembersAddedToGroup(g.stationId(), g.name(), addedMemberIds)));
         }
 
         return groupRepository.findMembers(groupId);

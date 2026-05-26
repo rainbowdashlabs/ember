@@ -73,6 +73,9 @@ const filteredSharedFiles = computed(() => {
     return sharedFiles.value
 })
 
+const filteredFolders = computed(() => filterStationId.value != null ? [] : folders.value)
+const filteredFiles = computed(() => filterStationId.value != null ? [] : files.value)
+
 // Search
 const searchQuery = ref('')
 const searchResults = ref<import('@/api/knowledgeBase').SearchResult[]>([])
@@ -152,9 +155,22 @@ async function loadData() {
             currentFolder.value = result.currentFolder
             folders.value = result.folders
             files.value = result.files
-            sharedFiles.value = result.sharedFiles ?? []
             favourites.value = result.favourites ?? []
             await buildBreadcrumbs()
+
+            // Load federated KB content at root level
+            if (currentFolderId.value == null) {
+                try {
+                    const shared = await federation.browseSharedKb()
+                    sharedFiles.value = shared.map(s => ({
+                        file: {id: s.remoteId, name: s.title, description: s.description} as any,
+                        stationName: s.stationName,
+                        sourceStationId: s.stationId,
+                    }))
+                } catch { sharedFiles.value = [] }
+            } else {
+                sharedFiles.value = []
+            }
         }
     } catch {
         error.value = t('common.error')
@@ -380,11 +396,11 @@ function navigateToFavourites() {
                 />
 
                 <!-- Content: Grid or List -->
-                <template v-if="folders.length > 0 || files.length > 0 || filteredSharedFiles.length > 0 || (!currentFolder && !isFavouritesView && favourites.length > 0)">
+                <template v-if="filteredFolders.length > 0 || filteredFiles.length > 0 || filteredSharedFiles.length > 0 || (!currentFolder && !isFavouritesView && favourites.length > 0)">
                     <KbItemGrid
                         v-if="viewMode === 'grid'"
-                        :folders="folders"
-                        :files="files"
+                        :folders="filteredFolders"
+                        :files="filteredFiles"
                         :shared-files="filteredSharedFiles"
                         :favourites="favourites"
                         :favourite-ids="favouriteIds"
@@ -403,8 +419,8 @@ function navigateToFavourites() {
                     />
                     <KbItemList
                         v-else
-                        :folders="folders"
-                        :files="files"
+                        :folders="filteredFolders"
+                        :files="filteredFiles"
                         :shared-files="filteredSharedFiles"
                         :favourites="favourites"
                         :favourite-ids="favouriteIds"

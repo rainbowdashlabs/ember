@@ -7,10 +7,13 @@ package dev.chojo.ember.feature.attendance.service;
 
 import dev.chojo.ember.feature.attendance.entity.AttendanceEntry;
 import dev.chojo.ember.feature.attendance.entity.AttendanceFieldConfig;
+import dev.chojo.ember.feature.attendance.entity.AttendanceFieldType;
+import dev.chojo.ember.feature.attendance.entity.AttendanceFieldValueEntry;
 import dev.chojo.ember.feature.attendance.entity.AttendanceSession;
 import dev.chojo.ember.feature.attendance.entity.AttendanceSessionField;
 import dev.chojo.ember.feature.attendance.entity.AttendanceTemplate;
 import dev.chojo.ember.feature.attendance.entity.AttendanceTemplateField;
+import dev.chojo.ember.feature.attendance.entity.SessionSummary;
 import dev.chojo.ember.feature.attendance.repository.AttendanceRepository;
 import dev.chojo.ember.feature.attendance.repository.AttendanceRepository.TemplateGroup;
 import dev.chojo.ember.feature.events.repository.EventFieldRepository;
@@ -100,13 +103,18 @@ public class AttendanceService {
     // -- Template Fields --
 
     public List<AttendanceTemplateField> createTemplateField(
-            int templateId, String name, String fieldType, String config, int position) {
+            int templateId, String name, AttendanceFieldType fieldType, AttendanceFieldConfig config, int position) {
         attendanceRepository.createTemplateField(templateId, name, fieldType, config, position);
         return attendanceRepository.findTemplateFields(templateId);
     }
 
     public Optional<List<AttendanceTemplateField>> updateTemplateField(
-            int templateId, int fieldId, String name, String fieldType, String config, int position) {
+            int templateId,
+            int fieldId,
+            String name,
+            AttendanceFieldType fieldType,
+            AttendanceFieldConfig config,
+            int position) {
         if (attendanceRepository.updateTemplateField(fieldId, name, fieldType, config, position)) {
             return Optional.of(attendanceRepository.findTemplateFields(templateId));
         }
@@ -122,7 +130,7 @@ public class AttendanceService {
 
     // -- Sessions --
 
-    public List<AttendanceRepository.SessionSummary> findSessionSummaries(int stationId) {
+    public List<SessionSummary> findSessionSummaries(int stationId) {
         return attendanceRepository.findSessionSummariesByStation(stationId);
     }
 
@@ -184,7 +192,7 @@ public class AttendanceService {
         // Auto-populate field defaults from template field config
         var templateFields = attendanceRepository.findTemplateFields(templateId);
         for (var field : templateFields) {
-            var config = AttendanceFieldConfig.parse(field.config());
+            var config = field.config();
             if (config.hasDefaultValue()) {
                 String resolved = config.resolveDefaultValueJson();
                 if (resolved != null) {
@@ -244,7 +252,7 @@ public class AttendanceService {
 
     // -- Session Fields (batch) --
 
-    public List<AttendanceSessionField> setSessionFields(int sessionId, List<FieldValueEntry> fields) {
+    public List<AttendanceSessionField> setSessionFields(int sessionId, List<AttendanceFieldValueEntry> fields) {
         for (var field : fields) {
             attendanceRepository.setSessionField(sessionId, field.fieldId(), field.value());
         }
@@ -338,7 +346,7 @@ public class AttendanceService {
                 .collect(Collectors.toSet());
 
         for (var field : templateFieldsList) {
-            if (!AttendanceFieldConfig.parse(field.config()).autoAttend()) continue;
+            if (!field.config().autoAttend()) continue;
             String value = fieldValueMap.getOrDefault(field.id(), "");
             if (value.isBlank()) continue;
 
@@ -437,6 +445,4 @@ public class AttendanceService {
         }
         return ids;
     }
-
-    public record FieldValueEntry(int fieldId, String value) {}
 }

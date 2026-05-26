@@ -11,7 +11,6 @@ import HelpSection from '@/components/helpcenter/HelpSection.vue'
 import HelpTip from '@/components/helpcenter/HelpTip.vue'
 import HelpRoleToggle from '@/components/helpcenter/HelpRoleToggle.vue'
 import type {HelpRole} from '@/components/helpcenter/HelpRoleToggle.vue'
-import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
@@ -19,8 +18,11 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
-import ErrorBadge from '@/components/badge/ErrorBadge.vue'
-import InfoBadge from '@/components/badge/InfoBadge.vue'
+import InventoryItemCard from '@/views/stationview/inventory/InventoryItemCard.vue'
+import Modal from '@/components/feedback/Modal.vue'
+import SizeBadge from '@/components/badge/SizeBadge.vue'
+import type {MyInventoryItem} from '@/api/inventory'
+import type {ExchangeRequestEntry} from '@/api/types'
 
 const {t} = useI18n()
 
@@ -29,6 +31,27 @@ const roles: HelpRole[] = [
   {key: 'memberManager', label: t('helpCenter.roles.memberManager')},
 ]
 const activeRole = ref('')
+const showExchangeModal = ref(false)
+
+const dummyHelm: MyInventoryItem = {
+  id: 1, inventoryId: 1, inventoryName: 'Helme', name: 'Helm #12',
+  sizeName: 'M', sizeId: 2, internalId: 'HLM-2024-012', lostAt: null,
+}
+const dummyJacke: MyInventoryItem = {
+  id: 2, inventoryId: 2, inventoryName: 'Jacken', name: 'Einsatzjacke #7',
+  sizeName: 'L', sizeId: 3, internalId: 'JCK-2023-007', lostAt: null,
+}
+const dummyJackeExchange = {
+  id: 1, memberId: 1, memberName: 'Max Mustermann', itemId: 2,
+  inventoryId: 2, inventoryName: 'Jacken', inventoryType: 'SIZED',
+  oldSizeId: 3, oldSizeLabel: 'L', newSizeId: 4, newSizeLabel: 'XL',
+  reason: 'Zu klein geworden', status: 'ANNOUNCED',
+  createdAt: '2026-01-15T10:00:00Z', updatedAt: '2026-01-15T10:00:00Z',
+} as ExchangeRequestEntry
+const dummyStiefel: MyInventoryItem = {
+  id: 3, inventoryId: 3, inventoryName: 'Stiefel', name: 'Stiefel #3',
+  sizeName: '42', sizeId: 4, lostAt: '2026-03-01T00:00:00Z',
+}
 </script>
 
 <template>
@@ -51,7 +74,7 @@ const activeRole = ref('')
       </div>
     </template>
 
-    <!-- Dummy: Inventory groups -->
+    <!-- Dummy: Inventory groups using real InventoryItemCard -->
     <div class="space-y-6">
       <!-- Group: Helme -->
       <div>
@@ -60,43 +83,18 @@ const activeRole = ref('')
           <span class="text-sm text-(--text-muted)">1 / 1</span>
         </div>
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-          <NeutralContainer>
-            <div class="flex items-start justify-between gap-2">
-              <div>
-                <div class="font-medium text-sm">
-                  Helm #12 <span class="font-normal text-(--text-muted)">[M]</span>
-                </div>
-                <div class="text-xs text-(--text-muted)">HLM-2024-012</div>
-              </div>
-              <SecondaryButton class="shrink-0">
-                <font-awesome-icon :icon="['fas', 'rotate']" class="mr-0.5"/>
-                {{ t('profile.requestExchange') }}
-              </SecondaryButton>
-            </div>
-          </NeutralContainer>
+          <InventoryItemCard :item="dummyHelm" :show-exchange-button="true" @request-exchange="showExchangeModal = true"/>
         </div>
       </div>
 
-      <!-- Group: Jacken -->
+      <!-- Group: Jacken (with exchange) -->
       <div>
         <div class="flex items-center justify-between mb-2">
           <SubHeader>Jacken</SubHeader>
-          <span class="text-sm text-(--text-muted)">
-            1 / 1
-          </span>
+          <span class="text-sm text-(--text-muted)">1 / 1</span>
         </div>
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-          <NeutralContainer>
-            <div class="flex items-start justify-between gap-2">
-              <div>
-                <div class="font-medium text-sm">
-                  Einsatzjacke #7 <span class="font-normal text-(--text-muted)">[L]</span>
-                </div>
-                <div class="text-xs text-(--text-muted)">JCK-2023-007</div>
-                <InfoBadge class="mt-1">Angekündigt</InfoBadge>
-              </div>
-            </div>
-          </NeutralContainer>
+          <InventoryItemCard :item="dummyJacke" :exchange="dummyJackeExchange" :show-exchange-button="true"/>
         </div>
       </div>
 
@@ -110,16 +108,7 @@ const activeRole = ref('')
           </span>
         </div>
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-          <NeutralContainer class="opacity-60 border-error">
-            <div class="flex items-start justify-between gap-2">
-              <div>
-                <div class="font-medium text-sm">
-                  Stiefel #3 <span class="font-normal text-(--text-muted)">[42]</span>
-                </div>
-                <ErrorBadge class="mt-1">{{ t('profile.lostSince') }} 01.03.2026</ErrorBadge>
-              </div>
-            </div>
-          </NeutralContainer>
+          <InventoryItemCard :item="dummyStiefel" :show-exchange-button="false"/>
         </div>
       </div>
     </div>
@@ -128,28 +117,30 @@ const activeRole = ref('')
       <p>{{ t('helpCenter.inventoryMy.exchangeText') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Exchange request modal preview -->
-    <NeutralContainer class="space-y-3">
-      <SectionHeader>{{ t('profile.requestExchange') }}</SectionHeader>
-      <p class="text-sm">
-        Helme — Helm #12 <span class="text-(--text-muted)">[M]</span>
-      </p>
-      <div class="space-y-1">
-        <FieldLabel>Neue Größe</FieldLabel>
-        <SelectInput model-value="">
-          <option value="" disabled>Größe wählen...</option>
-          <option value="1">S</option>
-          <option value="2">M</option>
-          <option value="3">L</option>
-          <option value="4">XL</option>
-        </SelectInput>
+    <!-- Exchange request modal using real Modal -->
+    <Modal v-model="showExchangeModal">
+      <div class="space-y-3">
+        <SectionHeader>{{ t('profile.requestExchange') }}</SectionHeader>
+        <p class="text-sm">
+          Helme — Helm #12 <SizeBadge>M</SizeBadge>
+        </p>
+        <div class="space-y-1">
+          <FieldLabel>{{ t('exchanges.newSize') }}</FieldLabel>
+          <SelectInput model-value="">
+            <option value="" disabled>{{ t('exchanges.selectNewSize') }}</option>
+            <option value="1">S</option>
+            <option value="2">M</option>
+            <option value="3">L</option>
+            <option value="4">XL</option>
+          </SelectInput>
+        </div>
+        <TextAreaInput model-value="" :placeholder="t('profile.exchangeReasonPlaceholder')" :rows="3"/>
+        <div class="flex justify-end gap-2">
+          <SecondaryButton @click="showExchangeModal = false">{{ t('common.cancel') }}</SecondaryButton>
+          <PrimaryButton disabled>{{ t('profile.submitExchange') }}</PrimaryButton>
+        </div>
       </div>
-      <TextAreaInput model-value="" :placeholder="t('profile.exchangeReasonPlaceholder')" :rows="3"/>
-      <div class="flex justify-end gap-2">
-        <SecondaryButton>{{ t('common.cancel') }}</SecondaryButton>
-        <PrimaryButton disabled>{{ t('profile.submitExchange') }}</PrimaryButton>
-      </div>
-    </NeutralContainer>
+    </Modal>
 
     <HelpTip>{{ t('helpCenter.inventoryMy.tip') }}</HelpTip>
   </HelpArticle>

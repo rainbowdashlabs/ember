@@ -17,23 +17,25 @@ import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
-import type {AttendanceTemplate, AttendanceTemplateField, EventCategory, EventFieldEntry, MemberGroup, Role, StationMember, UserTag} from '@/api/types'
+import type {AttendanceTemplate, AttendanceTemplateField, EventCategory, EventFieldEntry, EventTemplate, MemberGroup, Role, StationMember, UserTag} from '@/api/types'
 import {EventTypes, needsDayOfWeek} from '@/api/types'
 import type {EventFieldDefault} from '@/api/events'
 import {attendance, events, memberGroups, stationMembers, userTags} from '@/api'
 import EventFormPanel from './eventshared/EventFormPanel.vue'
+import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import {useSession} from '@/composables/useSession'
 
 const {t} = useI18n()
 const route = useRoute()
 const router = useRouter()
-const {loaded} = useSession()
+const {loaded, canManageFederation} = useSession()
 
 const eventId = computed(() => route.params.id ? Number(route.params.id) : null)
 const isEdit = computed(() => eventId.value !== null)
 
 const categories = ref<EventCategory[]>([])
 const templates = ref<AttendanceTemplate[]>([])
+const eventTemplates = ref<EventTemplate[]>([])
 const roles = ref<Role[]>([])
 const groups = ref<MemberGroup[]>([])
 const tags = ref<UserTag[]>([])
@@ -49,6 +51,38 @@ const eventCustomFields = ref<EventFieldEntry[]>([])
 const loading = ref(true)
 const saving = ref(false)
 const error = ref('')
+const templateApplied = ref(false)
+
+async function applyEventTemplate(templateId: string | undefined) {
+  if (!templateId) return
+  try {
+    const detail = await events.getTemplate(Number(templateId))
+    const tpl = detail.template
+    if (tpl.title) eventName.value = tpl.title
+    if (tpl.description) eventDescription.value = tpl.description
+    if (tpl.categoryId) eventCategoryId.value = String(tpl.categoryId)
+    if (tpl.eventType) eventType.value = tpl.eventType
+    if (tpl.requiresRegistration != null) eventRequiresRegistration.value = tpl.requiresRegistration
+    if (tpl.requiresConfirmation != null) eventRequiresConfirmation.value = tpl.requiresConfirmation
+    if (detail.fields.length > 0) {
+      const newFields = detail.fields.map(f => ({
+        name: f.name,
+        fieldType: f.fieldType ?? 'string',
+        config: f.config ?? '{}',
+        value: '',
+        overview: f.overview ?? false,
+        attendanceFieldId: f.attendanceFieldId ?? null,
+        isPublic: f.isPublic ?? false,
+      }))
+      eventCustomFields.value = [...eventCustomFields.value, ...newFields]
+    }
+    if (detail.restrictionRoleIds.length > 0) {
+      selectedRoleIds.value = [...new Set([...selectedRoleIds.value, ...detail.restrictionRoleIds])]
+    }
+    templateApplied.value = true
+    setTimeout(() => { templateApplied.value = false }, 3000)
+  } catch { error.value = t('common.error') }
+}
 
 // Form state
 const eventName = ref('')
@@ -63,10 +97,13 @@ const eventRequiresRegistration = ref(false)
 const eventHasDeadline = ref(false)
 const eventRegistrationDeadline = ref('')
 const eventRequiresConfirmation = ref(false)
+const eventRegistrationLimit = ref<number | undefined>(undefined)
+
 const selectedRoleIds = ref<number[]>([])
 const selectedGroupIds = ref<number[]>([])
 const selectedTagIds = ref<number[]>([])
 const restrictionMode = ref<'AND' | 'OR'>('AND')
+const federationShared = ref(false)
 const fieldDefaults = ref<Map<number, { source: string; value: string }>>(new Map())
 
 function toLocalDateTime(iso: string): string {
@@ -79,16 +116,18 @@ async function loadData() {
   loading.value = true
   error.value = ''
   try {
-    const [cats, tpl, allRoles, allGroups, allTags, members] = await Promise.all([
+    const [cats, tpl, allRoles, allGroups, allTags, members, evtTpls] = await Promise.all([
       events.listCategories(),
       attendance.listTemplates(),
       stationMembers.listAllRoles(),
       memberGroups.listGroups(),
       userTags.listTags(),
       stationMembers.listMembers(),
+      events.listTemplates(),
     ])
     categories.value = cats
     templates.value = tpl
+    eventTemplates.value = evtTpls
     roles.value = allRoles
     groups.value = allGroups
     tags.value = allTags
@@ -134,6 +173,7 @@ async function loadData() {
       eventHasDeadline.value = !!ev.registrationDeadline
       eventRegistrationDeadline.value = ev.registrationDeadline ? toLocalDateTime(ev.registrationDeadline) : ''
       eventRequiresConfirmation.value = ev.requiresConfirmation ?? false
+      eventRegistrationLimit.value = ev.registrationLimit ?? undefined
 
       eventRoleIds.value = restrictions.roleIds ?? []
       eventGroupIds.value = restrictions.groupIds ?? []
@@ -149,6 +189,11 @@ async function loadData() {
       }
       fieldDefaults.value = fdMap
       eventFieldDefaults.value = defaults
+
+      if (canManageFederation()) {
+        const fedShare = await events.getFederationShare(eventId.value!)
+        federationShared.value = fedShare.shared
+      }
     }
   } catch {
     error.value = t('common.error')
@@ -213,6 +258,7 @@ async function submit() {
       registrationDeadline: eventHasDeadline.value && eventRegistrationDeadline.value
           ? new Date(eventRegistrationDeadline.value).toISOString() : undefined,
       requiresConfirmation: eventRequiresConfirmation.value,
+      registrationLimit: eventRegistrationLimit.value ?? undefined,
       restrictedRoleIds: selectedRoleIds.value,
       restrictedGroupIds: selectedGroupIds.value,
       restrictedTagIds: selectedTagIds.value,
@@ -233,6 +279,14 @@ async function submit() {
 
     const customFields = eventCustomFields.value.filter(f => f.name.trim())
     await events.setEventFields(savedEventId, {fields: customFields})
+
+    if (canManageFederation()) {
+      if (federationShared.value) {
+        await events.setFederationShare(savedEventId, 'ALL_PARTNERS')
+      } else {
+        await events.removeFederationShare(savedEventId).catch(() => {})
+      }
+    }
 
     router.push({name: 'events'})
   } catch {
@@ -266,9 +320,18 @@ watch(loaded, (isLoaded) => {
 
       <Spinner v-if="loading" size="lg"/>
       <Alert v-if="error" variant="error">{{ error }}</Alert>
+      <Alert v-if="templateApplied" variant="success">{{ t('eventTemplates.applied') }}</Alert>
 
       <template v-if="!loading">
-        <SectionHeader>{{ isEdit ? t('events.editEvent') : t('events.addEvent') }}</SectionHeader>
+        <div class="flex items-center justify-between flex-wrap gap-2">
+          <SectionHeader>{{ isEdit ? t('events.editEvent') : t('events.addEvent') }}</SectionHeader>
+          <div v-if="eventTemplates.length > 0" class="flex items-center gap-2">
+            <SelectInput model-value="" class="w-48 text-sm" @update:model-value="applyEventTemplate">
+              <option value="" disabled>{{ t('eventTemplates.loadTemplate') }}</option>
+              <option v-for="et in eventTemplates" :key="et.id" :value="String(et.id)">{{ et.name }}</option>
+            </SelectInput>
+          </div>
+        </div>
 
         <NeutralContainer>
           <EventFormPanel
@@ -284,6 +347,7 @@ watch(loaded, (isLoaded) => {
               v-model:requires-confirmation="eventRequiresConfirmation"
               v-model:has-deadline="eventHasDeadline"
               v-model:registration-deadline="eventRegistrationDeadline"
+              v-model:registration-limit="eventRegistrationLimit"
               v-model:selected-role-ids="selectedRoleIds"
               v-model:selected-group-ids="selectedGroupIds"
               v-model:selected-tag-ids="selectedTagIds"
@@ -299,6 +363,15 @@ watch(loaded, (isLoaded) => {
               show-schedule
               show-value
           />
+        </NeutralContainer>
+
+        <NeutralContainer v-if="canManageFederation()" class="space-y-2">
+          <SubHeader>{{ t('events.federation') }}</SubHeader>
+          <label class="flex items-center gap-3">
+            <ToggleInput v-model="federationShared"/>
+            <span class="text-sm">{{ t('events.federationShare') }}</span>
+          </label>
+          <p class="text-xs text-(--text-muted)">{{ t('events.federationShareHint') }}</p>
         </NeutralContainer>
 
         <NeutralContainer v-if="currentTemplateFields.length > 0" class="space-y-4">

@@ -9,6 +9,7 @@ import de.chojo.sadu.queries.api.call.Call;
 import de.chojo.sadu.queries.api.query.Query;
 import de.chojo.sadu.queries.api.results.writing.insertion.InsertionResult;
 import dev.chojo.ember.api.Roles;
+import dev.chojo.ember.feature.members.entity.MemberCompletion;
 import dev.chojo.ember.feature.members.entity.Role;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import jakarta.inject.Singleton;
@@ -73,6 +74,20 @@ public class StationMemberRepository {
                         "SELECT * FROM station_member WHERE station_id = :station_id AND (former = FALSE OR :include_former);")
                 .single(Call.of().bind("station_id", stationId).bind("include_former", includeFormer))
                 .map(StationMember.map())
+                .all();
+    }
+
+    /**
+     * Finds active members of a station for autocomplete, returning only id and display name.
+     *
+     * @param stationId the station identifier
+     * @return list of member completion entries
+     */
+    public List<MemberCompletion> findCompletions(int stationId) {
+        return Query.query(
+                        "SELECT id, display_name FROM station_member WHERE station_id = :station_id AND former = FALSE AND display_name != '' ORDER BY display_name;")
+                .single(Call.of().bind("station_id", stationId))
+                .map(row -> new MemberCompletion(row.getInt("id"), row.getString("display_name")))
                 .all();
     }
 

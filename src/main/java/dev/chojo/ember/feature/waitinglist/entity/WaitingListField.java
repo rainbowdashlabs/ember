@@ -12,7 +12,7 @@ public record WaitingListField(
         int listId,
         String name,
         WaitingListFieldType fieldType,
-        String config,
+        WaitingListFieldConfig config,
         int position,
         boolean required) {
 
@@ -22,7 +22,7 @@ public record WaitingListField(
                 row.getInt("list_id"),
                 row.getString("name"),
                 WaitingListFieldType.valueOf(row.getString("field_type")),
-                row.getString("config"),
+                WaitingListFieldConfig.parse(row.getString("config")),
                 row.getInt("position"),
                 row.getBoolean("required"));
     }

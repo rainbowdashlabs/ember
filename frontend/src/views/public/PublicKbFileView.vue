@@ -8,11 +8,11 @@ import {ref, computed, onMounted} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRouter, useRoute} from 'vue-router'
 import Spinner from '@/components/feedback/Spinner.vue'
+import ViewContent from '@/components/layout/ViewContent.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
-import PageHeader from '@/components/typography/PageHeader.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import * as publicKb from '@/api/publicKb'
 import type {PublicStationInfo} from '@/api/publicKb'
@@ -110,12 +110,10 @@ onMounted(() => {
 </script>
 
 <template>
-    <div class="py-8">
-        <div class="max-w-5xl mx-auto px-4 py-8">
+    <ViewContent>
+        <div class="space-y-6">
             <!-- Station name header -->
-            <PageHeader v-if="stationInfo" class="text-2xl font-bold mb-6">
-                {{ stationInfo.stationName }}
-            </PageHeader>
+
 
             <Alert v-if="error" variant="error" class="mb-4">{{ error }}</Alert>
             <Spinner v-if="loading"/>
@@ -233,5 +231,5 @@ onMounted(() => {
                 </template>
             </template>
         </div>
-    </div>
+    </ViewContent>
 </template>

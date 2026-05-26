@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.legal.service;
 
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
+import dev.chojo.ember.feature.legal.entity.DocumentVersions;
 import dev.chojo.ember.feature.legal.entity.GdprConsent;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -174,13 +175,4 @@ public class ConsentService {
     public Optional<GdprConsent> findLatestConsent(int accountId) {
         return accountRepository.findLatestConsent(accountId);
     }
-
-    /**
-     * Container for the current version hashes of all legal documents.
-     *
-     * @param privacyVersion the privacy policy version hash
-     * @param tosVersion     the terms of service version hash
-     * @param consentVersion the consent text version hash
-     */
-    public record DocumentVersions(String privacyVersion, String tosVersion, String consentVersion) {}
 }

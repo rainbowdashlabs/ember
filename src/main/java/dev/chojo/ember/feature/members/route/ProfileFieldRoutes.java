@@ -9,6 +9,7 @@ import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.Roles;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.feature.members.entity.FieldValueEntry;
 import dev.chojo.ember.feature.members.entity.ProfileField;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
 import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
@@ -22,7 +23,6 @@ import io.javalin.http.NotFoundResponse;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
 import io.javalin.openapi.OpenApiContent;
-import io.javalin.openapi.OpenApiName;
 import io.javalin.openapi.OpenApiParam;
 import io.javalin.openapi.OpenApiRequestBody;
 import io.javalin.openapi.OpenApiResponse;
@@ -93,14 +93,8 @@ public class ProfileFieldRoutes implements Routes {
     private void create(Context ctx) {
         UserSession session = UserSession.from(ctx);
         var request = ctx.bodyAsClass(ProfileFieldRequest.class);
-        if (isBlank(request.name()) || isBlank(request.fieldType())) {
+        if (isBlank(request.name()) || request.fieldType() == null) {
             throw new BadRequestResponse("name and fieldType are required");
-        }
-        try {
-            ProfileFieldType.valueOf(request.fieldType().toUpperCase());
-        } catch (IllegalArgumentException e) {
-            log.warn("Invalid profile field type: {}", request.fieldType(), e);
-            throw new BadRequestResponse("Invalid field type: " + request.fieldType());
         }
         ctx.status(HttpStatus.CREATED)
                 .json(profileFieldService.create(
@@ -143,7 +137,7 @@ public class ProfileFieldRoutes implements Routes {
     private void update(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
         var request = ctx.bodyAsClass(ProfileFieldRequest.class);
-        if (isBlank(request.name()) || isBlank(request.fieldType())) {
+        if (isBlank(request.name()) || request.fieldType() == null) {
             throw new BadRequestResponse("name and fieldType are required");
         }
         profileFieldService
@@ -207,20 +201,18 @@ public class ProfileFieldRoutes implements Routes {
         var request = ctx.bodyAsClass(SetValuesRequest.class);
         boolean canEditReadonly = session.hasRole(Roles.MEMBER_MANAGER);
 
-        List<ProfileFieldService.FieldValueEntry> entries = request.values() != null
+        List<FieldValueEntry> entries = request.values() != null
                 ? request.values().stream()
                         .filter(v -> {
                             if (!canEditReadonly) {
                                 var field = profileFieldService
                                         .findById(v.fieldId())
                                         .orElse(null);
-                                return field == null
-                                        || !ProfileFieldConfig.parse(field.config())
-                                                .readonly();
+                                return field == null || !field.config().readonly();
                             }
                             return true;
                         })
-                        .map(v -> new ProfileFieldService.FieldValueEntry(v.fieldId(), v.value()))
+                        .map(v -> new FieldValueEntry(v.fieldId(), v.value()))
                         .toList()
                 : List.of();
         ctx.json(profileFieldService.setValues(
@@ -231,14 +223,11 @@ public class ProfileFieldRoutes implements Routes {
 
     public record ProfileFieldRequest(
             String name,
-            String fieldType,
-            String config,
+            ProfileFieldType fieldType,
+            ProfileFieldConfig config,
             int position,
             ProfileFieldScope scope,
             Boolean keepOnArchive) {}
-
-    @OpenApiName("ProfileFieldValueEntry")
-    public record FieldValueEntry(int fieldId, String value) {}
 
     public record SetValuesRequest(List<FieldValueEntry> values) {}
 }

@@ -7,9 +7,13 @@ package dev.chojo.ember.repository;
 
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.form.entity.Form;
+import dev.chojo.ember.feature.form.entity.FormAnswerValue;
 import dev.chojo.ember.feature.form.entity.FormQuestion;
+import dev.chojo.ember.feature.form.entity.FormQuestionConfig;
 import dev.chojo.ember.feature.form.entity.FormResponse;
+import dev.chojo.ember.feature.form.entity.QuestionType;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.restriction.RestrictionRepository;
 import dev.chojo.ember.feature.station.entity.Station;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -100,10 +104,17 @@ class FormRepositoryTest extends RepositoryTestBase {
     @Order(10)
     void createQuestion() {
         FormQuestion q = formRepo.createQuestion(
-                formId, 0, FormQuestion.QuestionType.TEXT, "Your name?", "Enter name", true, false, "{}");
+                formId,
+                0,
+                QuestionType.TEXT,
+                "Your name?",
+                "Enter name",
+                true,
+                false,
+                new FormQuestionConfig.Text(false));
         assertNotNull(q);
         assertEquals("Your name?", q.title());
-        assertEquals(FormQuestion.QuestionType.TEXT, q.questionType());
+        assertEquals(QuestionType.TEXT, q.questionType());
         questionId = q.id();
     }
 
@@ -117,7 +128,8 @@ class FormRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(12)
     void updateQuestion() {
-        assertTrue(formRepo.updateQuestion(questionId, "Full name?", "Enter full name", false, true, "{}", 1));
+        assertTrue(formRepo.updateQuestion(
+                questionId, "Full name?", "Enter full name", false, true, new FormQuestionConfig.Text(false), 1));
         var questions = formRepo.findQuestions(formId);
         assertEquals("Full name?", questions.getFirst().title());
         assertEquals(1, questions.getFirst().position());
@@ -166,7 +178,7 @@ class FormRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(30)
     void upsertAnswer() {
-        formRepo.upsertAnswer(responseId, questionId, "\"John Doe\"");
+        formRepo.upsertAnswer(responseId, questionId, new FormAnswerValue.Text("John Doe"));
         var answers = formRepo.findAnswers(responseId);
         assertEquals(1, answers.size());
     }
@@ -181,7 +193,7 @@ class FormRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(32)
     void upsertAnswerOverwrite() {
-        formRepo.upsertAnswer(responseId, questionId, "\"Jane Doe\"");
+        formRepo.upsertAnswer(responseId, questionId, new FormAnswerValue.Text("Jane Doe"));
         var answers = formRepo.findAnswers(responseId);
         assertEquals(1, answers.size());
     }
@@ -191,7 +203,7 @@ class FormRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(40)
     void setAndFindRestrictions() {
-        var restrictionRepo = new dev.chojo.ember.feature.restriction.RestrictionRepository();
+        var restrictionRepo = new RestrictionRepository();
         restrictionRepo.setRestrictions(
                 "form_restriction", "form_id", formId, List.of(1, 2), List.of(), List.of(), List.of());
         var restrictions = restrictionRepo.findRestrictions("form_restriction", "form_id", formId);

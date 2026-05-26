@@ -69,6 +69,7 @@ public class StationMemberRoutes implements Routes {
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
         routes.get(prefix + "/roles", this::listAllRoles, Roles.LOGIN);
+        routes.get(prefix + "/station-members/completions", this::completions, Roles.LOGIN);
         routes.get(prefix + "/station-members", this::listByStation, Roles.MEMBER_MANAGER);
         routes.get(prefix + "/station-members/former", this::listFormer, Roles.MEMBER_MANAGER);
         routes.get(prefix + "/station-members/all-roles", this::getAllMemberRoles, Roles.MEMBER_MANAGER);
@@ -95,6 +96,11 @@ public class StationMemberRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MemberWithName[].class)))
     private void listAllRoles(Context ctx) {
         ctx.json(stationMemberRepository.findAllRoles());
+    }
+
+    private void completions(Context ctx) {
+        var session = UserSession.from(ctx);
+        ctx.json(stationMemberRepository.findCompletions(session.stationId()));
     }
 
     private void listByStation(Context ctx) {

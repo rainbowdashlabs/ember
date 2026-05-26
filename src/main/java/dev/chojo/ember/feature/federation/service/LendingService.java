@@ -5,6 +5,10 @@
  */
 package dev.chojo.ember.feature.federation.service;
 
+import dev.chojo.ember.event.DomainEventBus;
+import dev.chojo.ember.event.events.LendingMessageSent;
+import dev.chojo.ember.event.events.LendingRequested;
+import dev.chojo.ember.event.events.LendingStatusChanged;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.entity.InventoryBlock;
 import dev.chojo.ember.feature.federation.entity.LendingMessage;
@@ -12,6 +16,10 @@ import dev.chojo.ember.feature.federation.entity.LendingRequest;
 import dev.chojo.ember.feature.federation.entity.LendingRequestItem;
 import dev.chojo.ember.feature.federation.entity.LendingStatus;
 import dev.chojo.ember.feature.federation.repository.LendingRepository;
+import dev.chojo.ember.feature.inventory.entity.Inventory;
+import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
+import dev.chojo.ember.feature.notifications.entity.NotificationType;
+import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -35,24 +43,69 @@ public class LendingService {
     private final FederationHttpClient httpClient;
     private final FederationService federationService;
     private final StationRepository stationRepository;
+    private final InventoryRepository inventoryRepository;
+    private final DomainEventBus eventBus;
 
     @Inject
     public LendingService(
             LendingRepository repository,
             FederationHttpClient httpClient,
             FederationService federationService,
-            StationRepository stationRepository) {
+            StationRepository stationRepository,
+            InventoryRepository inventoryRepository,
+            DomainEventBus eventBus) {
         this.repository = repository;
         this.httpClient = httpClient;
         this.federationService = federationService;
         this.stationRepository = stationRepository;
+        this.inventoryRepository = inventoryRepository;
+        this.eventBus = eventBus;
+    }
+
+    private String stationName(int stationId) {
+        return stationRepository.findById(stationId).map(Station::name).orElse("?");
+    }
+
+    private String buildItemSummary(int requestId) {
+        var items = repository.findItemsByRequest(requestId);
+        var parts = new ArrayList<String>();
+        for (var item : items) {
+            String name = item.inventoryId() != null
+                    ? inventoryRepository
+                            .findById(item.inventoryId())
+                            .map(Inventory::name)
+                            .orElse("?")
+                    : "?";
+            parts.add(item.quantity() + "x " + name);
+        }
+        return String.join(", ", parts);
+    }
+
+    private void publishStatusChange(LendingRequest request, int actingStationId, String status) {
+        int targetStationId = request.requestingStationId() == actingStationId
+                ? request.owningStationId()
+                : request.requestingStationId();
+        eventBus.publish(new LendingStatusChanged(
+                actingStationId,
+                targetStationId,
+                request.id(),
+                NotificationType.LENDING_STATUS_CHANGE,
+                stationName(actingStationId),
+                status));
     }
 
     // -- Requests --
 
     public LendingRequest createRequest(
             int requestingStationId, int owningStationId, LocalDate dateFrom, LocalDate dateTo, int createdBy) {
-        return repository.createRequest(requestingStationId, owningStationId, dateFrom, dateTo, createdBy);
+        var request = repository.createRequest(requestingStationId, owningStationId, dateFrom, dateTo, createdBy);
+        eventBus.publish(new LendingRequested(
+                requestingStationId,
+                owningStationId,
+                request.id(),
+                stationName(requestingStationId),
+                buildItemSummary(request.id())));
+        return request;
     }
 
     public Optional<LendingRequest> findRequest(int id) {
@@ -81,6 +134,7 @@ public class LendingService {
         boolean updated = repository.updateRequestStatus(requestId, LendingStatus.APPROVED);
         if (updated) {
             repository.createMessage(requestId, stationId, null, "Anfrage genehmigt", true);
+            repository.findRequestById(requestId).ifPresent(r -> publishStatusChange(r, stationId, "APPROVED"));
         }
         return updated;
     }
@@ -89,6 +143,7 @@ public class LendingService {
         boolean updated = repository.updateRequestStatus(requestId, LendingStatus.DECLINED);
         if (updated) {
             String msg = "Anfrage abgelehnt" + (reason != null && !reason.isBlank() ? ": " + reason : "");
+            repository.findRequestById(requestId).ifPresent(r -> publishStatusChange(r, stationId, "DECLINED"));
             repository.createMessage(requestId, stationId, null, msg, true);
         }
         return updated;
@@ -98,6 +153,7 @@ public class LendingService {
         boolean updated = repository.updateRequestStatus(requestId, LendingStatus.LENT);
         if (updated) {
             repository.createMessage(requestId, stationId, null, "Ausrüstung ausgeliehen", true);
+            repository.findRequestById(requestId).ifPresent(r -> publishStatusChange(r, stationId, "LENT"));
         }
         return updated;
     }
@@ -106,6 +162,7 @@ public class LendingService {
         boolean updated = repository.updateRequestStatus(requestId, LendingStatus.RETURNED);
         if (updated) {
             repository.createMessage(requestId, stationId, null, "Ausrüstung zurückgegeben", true);
+            repository.findRequestById(requestId).ifPresent(r -> publishStatusChange(r, stationId, "RETURNED"));
         }
         return updated;
     }
@@ -114,14 +171,23 @@ public class LendingService {
         boolean updated = repository.updateRequestStatus(requestId, LendingStatus.CLOSED);
         if (updated) {
             repository.createMessage(requestId, stationId, null, "Anfrage geschlossen", true);
+            repository.findRequestById(requestId).ifPresent(r -> publishStatusChange(r, stationId, "CLOSED"));
         }
         return updated;
     }
 
     // -- Messages --
 
-    public LendingMessage sendMessage(int requestId, int senderStationId, int senderMemberId, String message) {
-        return repository.createMessage(requestId, senderStationId, senderMemberId, message, false);
+    public LendingMessage sendMessage(
+            int requestId, int senderStationId, int senderMemberId, String senderName, String message) {
+        var msg = repository.createMessage(requestId, senderStationId, senderMemberId, message, false);
+        repository.findRequestById(requestId).ifPresent(r -> {
+            int targetStationId =
+                    r.requestingStationId() == senderStationId ? r.owningStationId() : r.requestingStationId();
+            eventBus.publish(new LendingMessageSent(
+                    senderStationId, targetStationId, requestId, stationName(senderStationId), senderName));
+        });
+        return msg;
     }
 
     public List<LendingMessage> getLocalMessages(int requestId, int stationId) {
@@ -177,11 +243,6 @@ public class LendingService {
             }
         }
         return null;
-    }
-
-    @Deprecated
-    public List<LendingMessage> getMessages(int requestId) {
-        return repository.findMessagesByRequest(requestId);
     }
 
     // -- Blocks --

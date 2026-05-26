@@ -5,10 +5,17 @@
  */
 package dev.chojo.ember.feature.form.service;
 
+import dev.chojo.ember.event.DomainEventBus;
+import dev.chojo.ember.event.events.FormDeleted;
+import dev.chojo.ember.event.events.FormPublished;
 import dev.chojo.ember.feature.form.entity.Form;
 import dev.chojo.ember.feature.form.entity.FormAnswer;
+import dev.chojo.ember.feature.form.entity.FormAnswerValue;
 import dev.chojo.ember.feature.form.entity.FormQuestion;
+import dev.chojo.ember.feature.form.entity.FormQuestionConfig;
 import dev.chojo.ember.feature.form.entity.FormResponse;
+import dev.chojo.ember.feature.form.entity.QuestionEntry;
+import dev.chojo.ember.feature.form.entity.QuestionType;
 import dev.chojo.ember.feature.form.repository.FormRepository;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
 import dev.chojo.ember.feature.members.entity.Role;
@@ -24,9 +31,11 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 /**
  * Service layer for form management, including form CRUD, questions, responses, answers, and access control.
@@ -39,6 +48,7 @@ public class FormService {
     private final MemberGroupService groupService;
     private final UserTagService tagService;
     private final RestrictionRepository restrictionRepository;
+    private final DomainEventBus eventBus;
 
     @Inject
     public FormService(
@@ -46,12 +56,14 @@ public class FormService {
             StationMemberService memberService,
             MemberGroupService groupService,
             UserTagService tagService,
-            RestrictionRepository restrictionRepository) {
+            RestrictionRepository restrictionRepository,
+            DomainEventBus eventBus) {
         this.repository = repository;
         this.memberService = memberService;
         this.groupService = groupService;
         this.tagService = tagService;
         this.restrictionRepository = restrictionRepository;
+        this.eventBus = eventBus;
     }
 
     /**
@@ -181,7 +193,12 @@ public class FormService {
      * @return {@code true} if the form was deleted
      */
     public boolean delete(int id) {
-        return repository.delete(id);
+        var form = repository.findById(id).orElse(null);
+        boolean deleted = repository.delete(id);
+        if (deleted && form != null) {
+            eventBus.publish(new FormDeleted(form.stationId(), id));
+        }
+        return deleted;
     }
 
     /**
@@ -191,7 +208,12 @@ public class FormService {
      * @return {@code true} if the status was updated
      */
     public boolean publish(int id) {
-        return repository.updateStatus(id, Form.FormStatus.OPEN);
+        var form = repository.findById(id).orElse(null);
+        boolean updated = repository.updateStatus(id, Form.FormStatus.OPEN);
+        if (updated && form != null) {
+            eventBus.publish(new FormPublished(form.stationId(), id, form.title()));
+        }
+        return updated;
     }
 
     /**
@@ -246,31 +268,13 @@ public class FormService {
     public FormQuestion createQuestion(
             int formId,
             int position,
-            FormQuestion.QuestionType questionType,
+            QuestionType questionType,
             String title,
             String description,
             boolean required,
             boolean shuffle,
-            String config) {
+            FormQuestionConfig config) {
         return repository.createQuestion(formId, position, questionType, title, description, required, shuffle, config);
-    }
-
-    /**
-     * Updates an existing question's fields.
-     *
-     * @param id          the question ID
-     * @param title       new question text
-     * @param description new description
-     * @param required    whether an answer is mandatory
-     * @param shuffle     whether answer options should be randomized
-     * @param config      type-specific configuration as JSON
-     * @param position    new display order position
-     * @return {@code true} if the question was updated
-     */
-    // Individual CRUD — routes use replaceQuestions() instead, kept for programmatic use
-    public boolean updateQuestion(
-            int id, String title, String description, boolean required, boolean shuffle, String config, int position) {
-        return repository.updateQuestion(id, title, description, required, shuffle, config, position);
     }
 
     /**
@@ -344,15 +348,46 @@ public class FormService {
     }
 
     /**
-     * Submits or updates a response for a member, upserting all provided answers.
+     * Submits or updates a response for a member, validating all answers against question configs.
      *
      * @param formId      the form ID
      * @param memberId    the member the response is for
      * @param submittedBy the member who submitted the response (may differ for managed members)
-     * @param answers     map of question ID to answer value (JSON string)
+     * @param answers     map of question ID to answer value
      * @return the created or updated response
+     * @throws IllegalArgumentException if any answer fails validation
      */
-    public FormResponse submitResponse(int formId, int memberId, int submittedBy, Map<Integer, String> answers) {
+    public FormResponse submitResponse(
+            int formId, int memberId, int submittedBy, Map<Integer, FormAnswerValue> answers) {
+        var questions = repository.findQuestions(formId);
+        var questionMap = questions.stream().collect(Collectors.toMap(FormQuestion::id, q -> q));
+
+        var errors = new ArrayList<String>();
+
+        for (var question : questions) {
+            var value = answers.get(question.id());
+            if (value == null && question.required()) {
+                errors.add("Question '%s' is required".formatted(question.title()));
+                continue;
+            }
+            if (value == null) continue;
+
+            var validationErrors = question.config().validate(value);
+            if (!validationErrors.isEmpty()) {
+                errors.add("Question '%s': %s".formatted(question.title(), String.join(", ", validationErrors)));
+            }
+        }
+
+        for (var questionId : answers.keySet()) {
+            if (!questionMap.containsKey(questionId)) {
+                errors.add("Answer for unknown question ID: " + questionId);
+            }
+        }
+
+        if (!errors.isEmpty()) {
+            throw new IllegalArgumentException(String.join("; ", errors));
+        }
+
         var response = repository.createResponse(formId, memberId, submittedBy);
         for (var entry : answers.entrySet()) {
             repository.upsertAnswer(response.id(), entry.getKey(), entry.getValue());
@@ -404,22 +439,4 @@ public class FormService {
                 tagIds != null ? tagIds : List.of(),
                 memberIds != null ? memberIds : List.of());
     }
-
-    /**
-     * Data transfer object for creating questions during a bulk replace operation.
-     *
-     * @param questionType the type of question
-     * @param title        the question text
-     * @param description  optional description
-     * @param required     whether an answer is mandatory
-     * @param shuffle      whether answer options should be randomized
-     * @param config       type-specific configuration as JSON
-     */
-    public record QuestionEntry(
-            FormQuestion.QuestionType questionType,
-            String title,
-            String description,
-            boolean required,
-            boolean shuffle,
-            String config) {}
 }

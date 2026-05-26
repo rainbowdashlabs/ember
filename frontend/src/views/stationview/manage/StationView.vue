@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {onMounted, ref, watch} from 'vue'
+import {onMounted, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
@@ -18,20 +18,13 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
-import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import {stationManage} from '@/api'
 import client from '@/api/client'
-import {THEMES} from '@/theme/themes'
-import {useTheme} from '@/composables/useTheme'
-import MailConfigSection from './stationview/MailConfigSection.vue'
-import StationImportSection from './stationview/StationImportSection.vue'
 import OwnerSection from './stationview/OwnerSection.vue'
 
 const {t} = useI18n()
 
 const timezoneOptions = Intl.supportedValuesOf('timeZone').map(tz => ({value: tz, label: tz}))
-
-const themeOptions = Object.entries(THEMES).map(([key, theme]) => ({value: key, label: theme.label}))
 
 const localeOptions = [
   {value: 'de-DE', label: 'Deutsch'},
@@ -51,8 +44,6 @@ const localeOptions = [
 const name = ref('')
 const timezone = ref('Europe/Berlin')
 const locale = ref('de-DE')
-const defaultTheme = ref('ember')
-const allowUserTheme = ref(true)
 const hasLogo = ref(false)
 const isOwner = ref(false)
 const stationId = ref('')
@@ -72,8 +63,6 @@ async function loadStation() {
     name.value = info.name ?? ''
     timezone.value = info.timezone ?? 'Europe/Berlin'
     locale.value = info.locale ?? 'de-DE'
-    defaultTheme.value = info.defaultTheme ?? 'ember'
-    allowUserTheme.value = info.allowUserTheme ?? true
     hasLogo.value = info.hasLogo
     isOwner.value = info.isOwner
     stationId.value = info.id
@@ -124,41 +113,6 @@ async function saveName() {
   }
 }
 
-const themeSaving = ref(false)
-const themeCtrl = useTheme()
-
-// Live preview: apply theme when the dropdown changes
-watch(defaultTheme, (newTheme) => {
-  themeCtrl.applyTheme(newTheme)
-})
-
-async function saveTheme() {
-  themeSaving.value = true
-  error.value = ''
-  success.value = ''
-  try {
-    const info = await stationManage.updateStationName({
-      name: name.value,
-      timezone: timezone.value,
-      locale: locale.value,
-      defaultTheme: defaultTheme.value,
-      allowUserTheme: allowUserTheme.value,
-    })
-    defaultTheme.value = info.defaultTheme ?? 'ember'
-    allowUserTheme.value = info.allowUserTheme ?? true
-    // Apply the resolved theme: if user can override, use their theme; otherwise station default
-    const resolvedTheme = allowUserTheme.value && themeCtrl.activeTheme.value !== defaultTheme.value
-        ? themeCtrl.activeTheme.value
-        : defaultTheme.value
-    themeCtrl.applyTheme(resolvedTheme)
-    success.value = t('theme.saved')
-  } catch {
-    error.value = t('common.error')
-  } finally {
-    themeSaving.value = false
-  }
-}
-
 async function handleLogoUpload(file: File) {
   if (file.size > 2 * 1024 * 1024) {
     error.value = t('stationManage.logoTooLarge')
@@ -196,51 +150,6 @@ async function removeLogo() {
   }
 }
 
-// -- Module settings --
-const disabledModules = ref<Set<string>>(new Set())
-const modulesSaving = ref(false)
-
-const allModules = [
-  {key: 'INVENTORY', label: 'moduleInventory'},
-  {key: 'NEWS', label: 'moduleNews'},
-  {key: 'EVENTS', label: 'moduleEvents'},
-  {key: 'ATTENDANCE', label: 'moduleAttendance'},
-  {key: 'FORMS', label: 'moduleForms'},
-  {key: 'LOST_AND_FOUND', label: 'moduleLostAndFound'},
-  {key: 'WAITING_LIST', label: 'moduleWaitingList'},
-  {key: 'QUIZ', label: 'moduleQuiz'},
-  {key: 'KNOWLEDGE_BASE', label: 'moduleKnowledgeBase'},
-]
-
-async function loadModules() {
-  try {
-    const res = await stationManage.getDisabledModules()
-    disabledModules.value = new Set(res.disabledModules)
-  } catch { /* ignore */ }
-}
-
-function isModuleEnabled(key: string): boolean {
-  return !disabledModules.value.has(key)
-}
-
-async function toggleModule(key: string) {
-  modulesSaving.value = true
-  const next = new Set(disabledModules.value)
-  if (next.has(key)) {
-    next.delete(key)
-  } else {
-    next.add(key)
-  }
-  try {
-    const res = await stationManage.setDisabledModules([...next])
-    disabledModules.value = new Set(res.disabledModules)
-  } catch {
-    error.value = t('common.error')
-  }
-  modulesSaving.value = false
-}
-
-
 function handleError(msg: string) {
   error.value = msg
   success.value = ''
@@ -253,7 +162,6 @@ function handleSuccess(msg: string) {
 
 onMounted(async () => {
   await loadStation()
-  await loadModules()
 })
 </script>
 
@@ -315,50 +223,6 @@ onMounted(async () => {
 
         <p class="text-xs text-(--text-muted)">{{ t('stationManage.logoHint') }}</p>
       </NeutralContainer>
-
-      <!-- Mail settings -->
-      <MailConfigSection v-if="!loading" @error="handleError" @success="handleSuccess"/>
-
-      <!-- Module settings -->
-      <NeutralContainer v-if="!loading" class="space-y-4">
-        <SectionHeader>{{ t('stationManage.modulesTitle') }}</SectionHeader>
-        <p class="text-sm text-(--text-muted)">{{ t('stationManage.modulesHint') }}</p>
-        <div class="space-y-3">
-          <div v-for="mod in allModules" :key="mod.key" class="flex items-center justify-between">
-            <span class="text-sm font-medium">{{ t(`stationManage.${mod.label}`) }}</span>
-            <ToggleInput :model-value="isModuleEnabled(mod.key)" :disabled="modulesSaving" @update:model-value="toggleModule(mod.key)"/>
-          </div>
-        </div>
-      </NeutralContainer>
-
-      <!-- Theme settings -->
-      <NeutralContainer v-if="!loading" class="space-y-4">
-        <div class="flex items-center gap-2">
-          <SectionHeader>{{ t('theme.stationTheme') }}</SectionHeader>
-          <router-link :to="{name: 'help-station-theme-manage'}" target="_blank" class="text-[var(--text-muted)] hover:text-primary transition-colors">
-            <font-awesome-icon :icon="['fas', 'circle-question']" class="w-4 h-4"/>
-          </router-link>
-        </div>
-        <div class="space-y-1">
-          <FieldLabel>{{ t('theme.stationDefaultTheme') }}</FieldLabel>
-          <SelectInput v-model="defaultTheme">
-            <option v-for="opt in themeOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
-          </SelectInput>
-          <p class="text-xs text-(--text-muted)">{{ t('theme.stationDefaultThemeHint') }}</p>
-        </div>
-        <div class="flex items-center justify-between">
-          <div>
-            <span class="text-sm font-medium">{{ t('theme.allowUserTheme') }}</span>
-          </div>
-          <ToggleInput v-model="allowUserTheme"/>
-        </div>
-        <PrimaryButton :disabled="themeSaving" @click="saveTheme">
-          {{ themeSaving ? t('common.loading') : t('stationManage.save') }}
-        </PrimaryButton>
-      </NeutralContainer>
-
-      <!-- Station import -->
-      <StationImportSection v-if="!loading" @error="handleError" @success="handleSuccess"/>
 
       <!-- Owner sections (transfer, handover, deletion) -->
       <OwnerSection

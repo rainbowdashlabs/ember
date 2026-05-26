@@ -7,16 +7,14 @@
 import {ref, onMounted, watch, computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRouter, useRoute} from 'vue-router'
-import {parsePatch} from 'diff'
 import ViewContent from '@/components/layout/ViewContent.vue'
+import DiffView from '@/components/display/DiffView.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
-import SuccessBadge from '@/components/badge/SuccessBadge.vue'
-import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import {useSession} from '@/composables/useSession'
 import {knowledgeBase} from '@/api'
 import PageHeader from '@/components/typography/PageHeader.vue'
@@ -88,42 +86,6 @@ function formatDate(dateStr: string): string {
     return new Date(dateStr).toLocaleString('de-DE')
 }
 
-interface DiffLine {
-    type: 'add' | 'remove' | 'context'
-    content: string
-    oldLine?: number
-    newLine?: number
-}
-
-function parseDiffLines(patch: string): DiffLine[] {
-    const lines: DiffLine[] = []
-    const parsed = parsePatch(patch)
-    if (parsed.length === 0) return lines
-
-    for (const hunk of parsed[0].hunks) {
-        let oldLine = hunk.oldStart
-        let newLine = hunk.newStart
-        for (const line of hunk.lines) {
-            if (line.startsWith('+')) {
-                lines.push({type: 'add', content: line.substring(1), newLine: newLine++})
-            } else if (line.startsWith('-')) {
-                lines.push({type: 'remove', content: line.substring(1), oldLine: oldLine++})
-            } else {
-                lines.push({type: 'context', content: line.substring(1), oldLine: oldLine++, newLine: newLine++})
-            }
-        }
-    }
-    return lines
-}
-
-const diffLines = computed<DiffLine[]>(() => {
-    if (!selectedVersion.value || selectedVersion.value.isFull) return []
-    return parseDiffLines(selectedVersion.value.patch)
-})
-
-const addedCount = computed(() => diffLines.value.filter(l => l.type === 'add').length)
-const removedCount = computed(() => diffLines.value.filter(l => l.type === 'remove').length)
-
 watch(loaded, (isLoaded) => {
     if (isLoaded) loadData()
 }, {immediate: true})
@@ -194,36 +156,8 @@ onMounted(() => {
 
                 <!-- Subsequent versions: colored diff -->
                 <template v-else>
-                    <div class="flex gap-3 mb-3 text-sm">
-                        <SuccessBadge>+{{ addedCount }} {{ t('kb.linesAdded') }}</SuccessBadge>
-                        <ErrorBadge>-{{ removedCount }} {{ t('kb.linesRemoved') }}</ErrorBadge>
-                    </div>
                     <NeutralContainer class="!p-0 overflow-hidden">
-                        <div class="overflow-x-auto">
-                            <table class="w-full text-sm font-mono border-collapse">
-                                <tbody>
-                                    <tr
-                                        v-for="(line, idx) in diffLines"
-                                        :key="idx"
-                                        :class="{
-                                            'diff-add': line.type === 'add',
-                                            'diff-remove': line.type === 'remove',
-                                        }"
-                                    >
-                                        <td class="select-none px-2 py-0.5 text-right text-[var(--text-muted)] border-r border-[var(--border)] w-10 text-xs">
-                                            {{ line.oldLine ?? '' }}
-                                        </td>
-                                        <td class="select-none px-2 py-0.5 text-right text-[var(--text-muted)] border-r border-[var(--border)] w-10 text-xs">
-                                            {{ line.newLine ?? '' }}
-                                        </td>
-                                        <td class="select-none px-2 py-0.5 w-4 text-center font-bold diff-marker">
-                                            {{ line.type === 'add' ? '+' : line.type === 'remove' ? '-' : '' }}
-                                        </td>
-                                        <td class="px-3 py-0.5 whitespace-pre-wrap break-all diff-content">{{ line.content }}</td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
+                        <DiffView :patch="selectedVersion.patch" show-line-numbers/>
                     </NeutralContainer>
                 </template>
             </div>
@@ -240,25 +174,3 @@ onMounted(() => {
         </Modal>
     </ViewContent>
 </template>
-
-<style scoped>
-tr.diff-add {
-    background: color-mix(in srgb, #00C507 15%, transparent);
-}
-tr.diff-add .diff-marker {
-    color: #00C507;
-}
-tr.diff-add .diff-content {
-    color: #00C507;
-}
-tr.diff-remove {
-    background: color-mix(in srgb, #ec2929 15%, transparent);
-}
-tr.diff-remove .diff-marker {
-    color: #ec2929;
-}
-tr.diff-remove .diff-content {
-    color: #ec2929;
-    text-decoration: line-through;
-}
-</style>

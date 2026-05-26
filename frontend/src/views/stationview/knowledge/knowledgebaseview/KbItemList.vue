@@ -184,8 +184,7 @@ function formatDate(dateStr: string): string {
         <div
             v-for="shared in sharedFiles"
             :key="'shared-' + shared.file.id"
-            class="flex items-center gap-2 px-3 py-1.5 cursor-pointer hover:bg-[var(--bg-accent)] transition-colors group"
-            @click="emit('navigateFile', shared.file)"
+            class="flex items-center gap-2 px-3 py-1.5 hover:bg-[var(--bg-accent)] transition-colors group"
         >
             <div class="w-5 flex-shrink-0 flex justify-center">
                 <font-awesome-icon :icon="fileIcon(shared.file)" class="text-sm text-[var(--primary)]"/>

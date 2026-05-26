@@ -230,16 +230,37 @@ public class NewsRepository {
     }
 
     /**
-     * Deletes a comment by its ID.
+     * Soft-deletes a comment if it has children, or hard-deletes it if it has none.
      *
      * @param id the comment ID
-     * @return {@code true} if a row was deleted
+     * @return {@code true} if the comment was deleted or marked as deleted
      */
     public boolean deleteComment(int id) {
+        boolean hasChildren = hasCommentChildren(id);
+        if (hasChildren) {
+            return Query.query("UPDATE news_comment SET deleted = TRUE, content = '' WHERE id = :id;")
+                    .single(Call.of().bind("id", id))
+                    .update()
+                    .changed();
+        }
         return Query.query("DELETE FROM news_comment WHERE id = :id;")
                 .single(Call.of().bind("id", id))
                 .delete()
                 .changed();
+    }
+
+    /**
+     * Checks whether a comment has any child replies.
+     *
+     * @param id the comment ID
+     * @return {@code true} if the comment has children
+     */
+    public boolean hasCommentChildren(int id) {
+        return Query.query("SELECT EXISTS(SELECT 1 FROM news_comment WHERE parent_id = :id);")
+                .single(Call.of().bind("id", id))
+                .map(row -> row.getBoolean(1))
+                .first()
+                .orElse(false);
     }
 
     // -- Acknowledgements --

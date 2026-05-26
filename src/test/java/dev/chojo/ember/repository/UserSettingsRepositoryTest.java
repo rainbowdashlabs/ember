@@ -72,4 +72,29 @@ class UserSettingsRepositoryTest extends RepositoryTestBase {
         // Should return existing settings, not create new ones
         assertTrue(settings.emailEnabled()); // preserved from previous update
     }
+
+    @Test
+    @Order(6)
+    void updateTheme() {
+        var settings = userSettingsRepo.updateTheme(member.id(), "ember", "dark", "ROUNDED");
+        assertNotNull(settings);
+        assertEquals("ember", settings.theme());
+        assertEquals("dark", settings.darkMode());
+        assertEquals("ROUNDED", settings.feel());
+    }
+
+    @Test
+    @Order(7)
+    void updateThemePreservedOnFindOrCreate() {
+        var settings = userSettingsRepo.findOrCreate(member.id());
+        // Should return existing settings, not reset theme
+        assertEquals("ember", settings.theme());
+    }
+
+    @Test
+    @Order(8)
+    void updateEmailEnabledFalse() {
+        var settings = userSettingsRepo.updateEmailEnabled(member.id(), false);
+        assertFalse(settings.emailEnabled());
+    }
 }

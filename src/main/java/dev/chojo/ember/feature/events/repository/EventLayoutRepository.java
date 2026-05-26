@@ -7,8 +7,10 @@ package dev.chojo.ember.feature.events.repository;
 
 import de.chojo.sadu.queries.api.call.Call;
 import de.chojo.sadu.queries.api.query.Query;
+import dev.chojo.ember.feature.events.entity.EventFieldType;
 import dev.chojo.ember.feature.events.entity.EventLayout;
 import dev.chojo.ember.feature.events.entity.EventLayoutField;
+import dev.chojo.ember.feature.events.entity.LayoutFieldEntry;
 import jakarta.inject.Singleton;
 
 import java.util.List;
@@ -75,15 +77,12 @@ public class EventLayoutRepository {
                     .single(Call.of()
                             .bind("layout_id", layoutId)
                             .bind("name", f.name())
-                            .bind("field_type", f.fieldType() != null ? f.fieldType() : "string")
-                            .bind("config", f.config() != null ? f.config() : "{}")
+                            .bind("field_type", f.fieldType() != null ? f.fieldType() : EventFieldType.STRING)
+                            .bind("config", f.config() != null ? f.config().toJson() : "{}")
                             .bind("position", i)
                             .bind("overview", f.overview())
                             .bind("attendance_field_id", f.attendanceFieldId()))
                     .insert();
         }
     }
-
-    public record LayoutFieldEntry(
-            String name, String fieldType, String config, boolean overview, Integer attendanceFieldId) {}
 }

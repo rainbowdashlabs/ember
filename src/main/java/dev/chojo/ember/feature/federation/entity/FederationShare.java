@@ -19,11 +19,6 @@ public record FederationShare(
         Integer protocolId,
         ShareScope shareScope) {
 
-    public enum ShareScope {
-        ALL_PARTNERS,
-        SPECIFIC
-    }
-
     public static RowMapping<FederationShare> mapKb() {
         return row -> new FederationShare(
                 row.getInt("id"),

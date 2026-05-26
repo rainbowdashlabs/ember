@@ -17,6 +17,8 @@ import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 
+import java.util.List;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
@@ -66,7 +68,7 @@ class UserTagServiceTest extends RepositoryTestBase {
     @Test
     @Order(10)
     void setMembersAndFind() {
-        service.setMembers(tagId, java.util.List.of(member.id()));
+        service.setMembers(tagId, List.of(member.id()));
         var members = service.findMembers(tagId);
         assertTrue(members.stream().anyMatch(m -> m.id() == member.id()));
     }
@@ -81,7 +83,7 @@ class UserTagServiceTest extends RepositoryTestBase {
     @Test
     @Order(12)
     void clearMembers() {
-        service.setMembers(tagId, java.util.List.of());
+        service.setMembers(tagId, List.of());
         var members = service.findMembers(tagId);
         assertFalse(members.stream().anyMatch(m -> m.id() == member.id()));
     }
@@ -99,5 +101,28 @@ class UserTagServiceTest extends RepositoryTestBase {
     void delete() {
         assertTrue(service.delete(tagId));
         assertTrue(service.findById(tagId).isEmpty());
+    }
+
+    @Test
+    @Order(40)
+    void convertToGroup() {
+        // Create a fresh tag with the member in it
+        var tag2 = service.create(station.id(), "ToBeGroup");
+        service.setMembers(tag2.id(), List.of(member.id()));
+
+        service.convertToGroup(tag2.id());
+
+        // Tag should be gone
+        assertTrue(service.findById(tag2.id()).isEmpty());
+
+        // Group should exist with the same name
+        var groups = memberGroupRepo.findByStation(station.id());
+        assertTrue(groups.stream().anyMatch(g -> "ToBeGroup".equals(g.name())));
+
+        // Cleanup
+        groups.stream()
+                .filter(g -> "ToBeGroup".equals(g.name()))
+                .findFirst()
+                .ifPresent(g -> memberGroupRepo.delete(g.id()));
     }
 }

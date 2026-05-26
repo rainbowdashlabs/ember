@@ -153,6 +153,11 @@ const router = createRouter({
                     component: () => import('@/views/stationview/news/EditView.vue'),
                 },
                 {
+                    path: 'news/:id',
+                    name: 'news-detail',
+                    component: () => import('@/views/stationview/news/DetailView.vue'),
+                },
+                {
                     path: 'news/:id/edit',
                     name: 'news-edit',
                     component: () => import('@/views/stationview/news/EditView.vue'),
@@ -161,6 +166,26 @@ const router = createRouter({
                     path: 'manage',
                     name: 'station-manage',
                     component: StationManageView,
+                },
+                {
+                    path: 'manage/theme',
+                    name: 'station-theme',
+                    component: () => import('@/views/stationview/manage/StationThemeView.vue'),
+                },
+                {
+                    path: 'manage/mailing',
+                    name: 'station-mailing',
+                    component: () => import('@/views/stationview/manage/StationMailingView.vue'),
+                },
+                {
+                    path: 'manage/modules',
+                    name: 'station-modules',
+                    component: () => import('@/views/stationview/manage/StationModulesView.vue'),
+                },
+                {
+                    path: 'manage/import',
+                    name: 'station-import',
+                    component: () => import('@/views/stationview/manage/StationImportView.vue'),
                 },
                 {
                     path: 'manage/attendance-config',
@@ -181,6 +206,11 @@ const router = createRouter({
                     path: 'manage/federation',
                     name: 'station-federation',
                     component: () => import('@/views/stationview/manage/FederationView.vue'),
+                },
+                {
+                    path: 'manage/federation/settings',
+                    name: 'station-federation-settings',
+                    component: () => import('@/views/stationview/manage/FederationSettingsView.vue'),
                 },
                 {
                     path: 'manage/federation/:id',
@@ -358,6 +388,11 @@ const router = createRouter({
                     component: () => import('@/views/stationview/inventory/MemberInventoryView.vue'),
                 },
                 {
+                    path: 'inventory/item/:id',
+                    name: 'inventory-item-detail',
+                    component: () => import('@/views/stationview/inventory/ItemDetailView.vue'),
+                },
+                {
                     path: 'events',
                     name: 'events',
                     component: EventsView,
@@ -388,9 +423,19 @@ const router = createRouter({
                     component: () => import('@/views/stationview/events/EventEditView.vue'),
                 },
                 {
-                    path: 'events/layouts',
-                    name: 'event-layouts',
-                    component: () => import('@/views/stationview/events/LayoutManageView.vue'),
+                    path: 'events/categories',
+                    name: 'event-categories',
+                    component: () => import('@/views/stationview/events/CategoryManageView.vue'),
+                },
+                {
+                    path: 'events/templates',
+                    name: 'event-templates',
+                    component: () => import('@/views/stationview/events/TemplateManageView.vue'),
+                },
+                {
+                    path: 'events/templates/:id',
+                    name: 'event-template-edit',
+                    component: () => import('@/views/stationview/events/TemplateEditView.vue'),
                 },
                 {
                     path: 'events/batch',
@@ -450,7 +495,22 @@ const router = createRouter({
                 {
                     path: 'profile/settings',
                     name: 'profile-settings',
-                    component: () => import('@/views/stationview/profile/SettingsView.vue'),
+                    redirect: { name: 'profile-theming' },
+                },
+                {
+                    path: 'profile/settings/theming',
+                    name: 'profile-theming',
+                    component: () => import('@/views/stationview/profile/ThemingView.vue'),
+                },
+                {
+                    path: 'profile/settings/sessions',
+                    name: 'profile-sessions',
+                    component: () => import('@/views/stationview/profile/SessionsView.vue'),
+                },
+                {
+                    path: 'profile/settings/notifications',
+                    name: 'profile-notifications',
+                    component: () => import('@/views/stationview/profile/NotificationsView.vue'),
                 },
                 {
                     path: 'attendance/new',
@@ -626,9 +686,24 @@ const router = createRouter({
                     component: () => import('@/views/adminview/AdminSettingsView.vue'),
                 },
                 {
+                    path: 'settings/legal',
+                    name: 'admin-legal',
+                    component: () => import('@/views/adminview/AdminLegalView.vue'),
+                },
+                {
+                    path: 'settings/mailing',
+                    name: 'admin-mailing',
+                    component: () => import('@/views/adminview/AdminMailingView.vue'),
+                },
+                {
                     path: 'problems',
                     name: 'admin-problems',
                     component: () => import('@/views/adminview/AdminProblemsView.vue'),
+                },
+                {
+                    path: 'problem-reports',
+                    name: 'admin-problem-reports',
+                    component: () => import('@/views/adminview/AdminProblemReportsView.vue'),
                 },
                 {
                     path: 'api-status',
@@ -701,9 +776,14 @@ const router = createRouter({
                     component: () => import('@/views/helpcenter/stationview/news/OverviewHelp.vue')
                 },
                 {
+                    path: 'news/:id',
+                    name: 'help-news-detail',
+                    redirect: { name: 'help-news-module-overview' },
+                },
+                {
                     path: 'news/create',
                     name: 'help-news-create',
-                    component: () => import('@/views/helpcenter/stationview/news/EditHelp.vue')
+                    redirect: { name: 'help-news-edit' },
                 },
                 {
                     path: 'news/:id/edit',
@@ -737,6 +817,31 @@ const router = createRouter({
                     component: () => import('@/views/helpcenter/stationview/profile/SettingsHelp.vue')
                 },
                 {
+                    path: 'profile/settings/theming',
+                    name: 'help-profile-theming',
+                    component: () => import('@/views/helpcenter/stationview/profile/ThemingHelp.vue')
+                },
+                {
+                    path: 'profile/settings/sessions',
+                    name: 'help-profile-sessions',
+                    component: () => import('@/views/helpcenter/stationview/profile/SessionsHelp.vue')
+                },
+                {
+                    path: 'profile/settings/notifications',
+                    name: 'help-profile-notifications',
+                    component: () => import('@/views/helpcenter/stationview/profile/NotificationsHelp.vue')
+                },
+                {
+                    path: 'profile/feeds/rss',
+                    name: 'help-profile-rss-feed',
+                    component: () => import('@/views/helpcenter/stationview/profile/RssFeedHelp.vue')
+                },
+                {
+                    path: 'profile/feeds/ical',
+                    name: 'help-profile-ical-feed',
+                    component: () => import('@/views/helpcenter/stationview/profile/IcalFeedHelp.vue')
+                },
+                {
                     path: 'profile/theme',
                     name: 'help-profile-theme',
                     component: () => import('@/views/helpcenter/stationview/profile/ThemeHelp.vue')
@@ -765,17 +870,37 @@ const router = createRouter({
                 {
                     path: 'manage/mail-config',
                     name: 'help-station-mail-config',
-                    component: () => import('@/views/helpcenter/stationview/manage/MailConfigHelp.vue')
+                    redirect: { name: 'help-station-mailing' },
                 },
                 {
                     path: 'manage/theme',
-                    name: 'help-station-theme-manage',
+                    name: 'help-station-theme',
                     component: () => import('@/views/helpcenter/stationview/manage/ThemeManageHelp.vue')
+                },
+                {
+                    path: 'manage/mailing',
+                    name: 'help-station-mailing',
+                    component: () => import('@/views/helpcenter/stationview/manage/MailConfigHelp.vue')
+                },
+                {
+                    path: 'manage/modules',
+                    name: 'help-station-modules',
+                    component: () => import('@/views/helpcenter/stationview/manage/ModulesHelp.vue')
+                },
+                {
+                    path: 'manage/import',
+                    name: 'help-station-import',
+                    component: () => import('@/views/helpcenter/stationview/manage/ImportHelp.vue')
                 },
                 {
                     path: 'manage/federation',
                     name: 'help-station-federation',
                     component: () => import('@/views/helpcenter/stationview/manage/FederationHelp.vue')
+                },
+                {
+                    path: 'manage/federation/settings',
+                    name: 'help-station-federation-settings',
+                    component: () => import('@/views/helpcenter/stationview/manage/FederationSettingsHelp.vue')
                 },
                 {
                     path: 'manage/federation/:id',
@@ -862,7 +987,7 @@ const router = createRouter({
                 {
                     path: 'inventory/my',
                     name: 'help-inventory-my',
-                    component: () => import('@/views/helpcenter/stationview/profile/InventoryHelp.vue')
+                    redirect: { name: 'help-profile-inventory' },
                 },
                 {
                     path: 'inventory/exchanges',
@@ -873,6 +998,11 @@ const router = createRouter({
                     path: 'inventory/members',
                     name: 'help-inventory-members',
                     component: () => import('@/views/helpcenter/stationview/inventory/MemberListHelp.vue')
+                },
+                {
+                    path: 'inventory/item/:id',
+                    name: 'help-inventory-item-detail',
+                    redirect: { name: 'help-inventory-detail' },
                 },
                 {
                     path: 'inventory/detail/:id?',
@@ -999,7 +1129,7 @@ const router = createRouter({
                 {
                     path: 'events/new',
                     name: 'help-event-new',
-                    component: () => import('@/views/helpcenter/stationview/events/EventEditHelp.vue')
+                    redirect: { name: 'help-event-edit' },
                 },
                 {
                     path: 'events/:id/edit',
@@ -1012,9 +1142,19 @@ const router = createRouter({
                     component: () => import('@/views/helpcenter/stationview/events/EventDetailHelp.vue')
                 },
                 {
-                    path: 'events/layouts',
-                    name: 'help-event-layouts',
-                    component: () => import('@/views/helpcenter/stationview/events/LayoutsHelp.vue')
+                    path: 'events/categories',
+                    name: 'help-event-categories',
+                    component: () => import('@/views/helpcenter/stationview/events/CategoriesHelp.vue')
+                },
+                {
+                    path: 'events/templates',
+                    name: 'help-event-templates',
+                    redirect: { name: 'help-event-edit' },
+                },
+                {
+                    path: 'events/templates/:id',
+                    name: 'help-event-template-edit',
+                    redirect: { name: 'help-event-templates' },
                 },
                 {
                     path: 'events/batch',
@@ -1097,7 +1237,7 @@ const router = createRouter({
                 {
                     path: 'quiz/catalogs/:id/mc-fill',
                     name: 'help-quiz-catalog-mc-fill',
-                    component: () => import('@/views/helpcenter/stationview/quiz/CatalogGenerateHelp.vue')
+                    redirect: { name: 'help-quiz-catalog-generate' },
                 },
                 {
                     path: 'quiz/catalogs/:id/import',
@@ -1239,6 +1379,16 @@ const router = createRouter({
                     component: () => import('@/views/helpcenter/adminview/SettingsHelp.vue')
                 },
                 {
+                    path: 'settings/legal',
+                    name: 'help-admin-legal',
+                    component: () => import('@/views/helpcenter/adminview/LegalHelp.vue')
+                },
+                {
+                    path: 'settings/mailing',
+                    name: 'help-admin-mailing',
+                    component: () => import('@/views/helpcenter/adminview/MailingHelp.vue')
+                },
+                {
                     path: 'api-status',
                     name: 'help-admin-api-status',
                     component: () => import('@/views/helpcenter/adminview/ApiStatusHelp.vue')
@@ -1254,6 +1404,11 @@ const router = createRouter({
                     component: () => import('@/views/helpcenter/adminview/ProblemsHelp.vue')
                 },
                 {
+                    path: 'problem-reports',
+                    name: 'help-admin-problem-reports',
+                    redirect: { name: 'help-admin-problems' }
+                },
+                {
                     path: ':pathMatch(.*)*',
                     name: 'helpcenter-admin-not-found',
                     component: () => import('@/components/feedback/NotFoundContent.vue')
@@ -1261,16 +1416,31 @@ const router = createRouter({
             ],
         },
         {
-            path: '/public/kb/:stationUid',
-            name: 'public-kb',
-            component: () => import('@/views/public/PublicKnowledgeBaseView.vue'),
+            path: '/public/station/:stationUid',
+            component: () => import('@/views/public/PublicStationShell.vue'),
             meta: {public: true},
-        },
-        {
-            path: '/public/kb/:stationUid/file/:id',
-            name: 'public-kb-file',
-            component: () => import('@/views/public/PublicKbFileView.vue'),
-            meta: {public: true},
+            children: [
+                {
+                    path: '',
+                    name: 'public-station',
+                    redirect: to => ({name: 'public-station-calendar', params: to.params}),
+                },
+                {
+                    path: 'calendar',
+                    name: 'public-station-calendar',
+                    component: () => import('@/views/public/PublicStationCalendarView.vue'),
+                },
+                {
+                    path: 'knowledge',
+                    name: 'public-kb',
+                    component: () => import('@/views/public/PublicKnowledgeBaseView.vue'),
+                },
+                {
+                    path: 'knowledge/file/:id',
+                    name: 'public-kb-file',
+                    component: () => import('@/views/public/PublicKbFileView.vue'),
+                },
+            ],
         },
         {
             path: '/discovery',

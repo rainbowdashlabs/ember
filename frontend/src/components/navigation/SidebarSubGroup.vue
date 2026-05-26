@@ -27,7 +27,7 @@ watch(isActive, (active) => {
         :class="isActive
         ? 'text-primary'
         : 'text-[var(--text-muted)] hover:text-[var(--text)]'"
-        class="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-xs font-medium transition-colors duration-150"
+        class="flex w-full items-center gap-2 rounded-theme px-2 py-1.5 text-xs font-medium transition-colors duration-150"
         @click="expanded = !expanded"
     >
       <font-awesome-icon

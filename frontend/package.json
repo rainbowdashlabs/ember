@@ -11,6 +11,7 @@
     "refactor": "python3 scripts/refactor.py",
     "refactor:scan": "python3 scripts/refactor.py scan",
     "build": "vue-tsc -b && node scripts/lint-icons.mjs && node scripts/lint-conventions.mjs && node scripts/lint-helpcenter.mjs && vite build",
+    "lint": "vue-tsc -b && node scripts/lint-icons.mjs && node scripts/lint-conventions.mjs && node scripts/lint-helpcenter.mjs",
     "preview": "vite preview"
   },
   "dependencies": {

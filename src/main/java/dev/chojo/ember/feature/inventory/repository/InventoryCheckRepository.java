@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.inventory.repository;
 import de.chojo.sadu.queries.api.call.Call;
 import de.chojo.sadu.queries.api.query.Query;
 import dev.chojo.ember.api.Roles;
+import dev.chojo.ember.feature.inventory.entity.CheckDetail;
 import dev.chojo.ember.feature.inventory.entity.CheckResult;
 import dev.chojo.ember.feature.inventory.entity.InventoryCheck;
 import dev.chojo.ember.feature.inventory.entity.InventoryCheckItem;
@@ -309,15 +310,4 @@ public class InventoryCheckRepository {
             String lockerFirstName,
             String lockerLastName,
             List<Roles> roles) {}
-
-    /**
-     * Detailed view of an inventory check including the checker's name and all checked items.
-     *
-     * @param check            the inventory check record
-     * @param checkerFirstName the checker's first name
-     * @param checkerLastName  the checker's last name
-     * @param items            the list of checked items
-     */
-    public record CheckDetail(
-            InventoryCheck check, String checkerFirstName, String checkerLastName, List<InventoryCheckItem> items) {}
 }

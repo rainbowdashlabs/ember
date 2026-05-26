@@ -18,7 +18,12 @@ import de.chojo.sadu.mapper.rowmapper.RowMapping;
  * @param position   ordering position within the template
  */
 public record AttendanceTemplateField(
-        int id, int templateId, String name, String fieldType, String config, int position) {
+        int id,
+        int templateId,
+        String name,
+        AttendanceFieldType fieldType,
+        AttendanceFieldConfig config,
+        int position) {
     /**
      * Creates a row mapping for database result set conversion.
      */
@@ -27,8 +32,8 @@ public record AttendanceTemplateField(
                 row.getInt("id"),
                 row.getInt("template_id"),
                 row.getString("name"),
-                row.getString("field_type"),
-                row.getString("config"),
+                row.getEnum("field_type", AttendanceFieldType.class),
+                AttendanceFieldConfig.parse(row.getString("config")),
                 row.getInt("position"));
     }
 }

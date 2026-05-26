@@ -5,10 +5,16 @@
  */
 package dev.chojo.ember.service;
 
+import dev.chojo.ember.api.Roles;
+import dev.chojo.ember.feature.attendance.entity.AttendanceFieldConfig;
+import dev.chojo.ember.feature.attendance.entity.AttendanceFieldType;
 import dev.chojo.ember.feature.events.entity.StationEvent;
-import dev.chojo.ember.feature.form.entity.FormQuestion;
+import dev.chojo.ember.feature.form.entity.FormQuestionConfig;
+import dev.chojo.ember.feature.form.entity.QuestionType;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
+import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
 import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
+import dev.chojo.ember.feature.members.entity.ProfileFieldType;
 import dev.chojo.ember.feature.members.entity.Role;
 import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.feature.station.service.StationExportService;
@@ -21,9 +27,11 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
@@ -65,8 +73,7 @@ class StationTransferTest extends RepositoryTestBase {
         sourceStationId = station.id();
         stationRepo.updateTimezone(sourceStationId, "Europe/Berlin");
         stationRepo.updateLocale(sourceStationId, "de-DE");
-        stationRepo.setDisabledModules(
-                sourceStationId, java.util.Set.of(dev.chojo.ember.feature.station.entity.StationModule.LOST_AND_FOUND));
+        stationRepo.setDisabledModules(sourceStationId, Set.of(StationModule.LOST_AND_FOUND));
 
         // --- Accounts & Members ---
         // Manager with full account
@@ -93,20 +100,12 @@ class StationTransferTest extends RepositoryTestBase {
         var former = stationMemberRepo.create(sourceStationId, formerAccount.id());
 
         // --- Roles ---
-        Role managerRole = stationMemberRepo
-                .findRoleByName(dev.chojo.ember.api.Roles.MANAGER)
-                .orElseThrow();
-        Role teamRole =
-                stationMemberRepo.findRoleByName(dev.chojo.ember.api.Roles.TEAM).orElseThrow();
-        Role memberRole = stationMemberRepo
-                .findRoleByName(dev.chojo.ember.api.Roles.MEMBER)
-                .orElseThrow();
-        Role guardianRole = stationMemberRepo
-                .findRoleByName(dev.chojo.ember.api.Roles.GUARDIAN)
-                .orElseThrow();
-        Role attendanceRole = stationMemberRepo
-                .findRoleByName(dev.chojo.ember.api.Roles.ATTENDANCE_MANAGER)
-                .orElseThrow();
+        Role managerRole = stationMemberRepo.findRoleByName(Roles.MANAGER).orElseThrow();
+        Role teamRole = stationMemberRepo.findRoleByName(Roles.TEAM).orElseThrow();
+        Role memberRole = stationMemberRepo.findRoleByName(Roles.MEMBER).orElseThrow();
+        Role guardianRole = stationMemberRepo.findRoleByName(Roles.GUARDIAN).orElseThrow();
+        Role attendanceRole =
+                stationMemberRepo.findRoleByName(Roles.ATTENDANCE_MANAGER).orElseThrow();
 
         stationMemberRepo.addRole(manager.id(), managerRole.id());
         stationMemberRepo.addRole(trainer.id(), teamRole.id());
@@ -133,11 +132,27 @@ class StationTransferTest extends RepositoryTestBase {
         userTagRepo.addMember(tagErsteHilfe.id(), manager.id());
 
         // --- Profile fields ---
-        var fieldTelefon =
-                profileFieldRepo.create(sourceStationId, "Telefon", "text", "{}", 0, ProfileFieldScope.MEMBER);
-        var fieldGeburtstag =
-                profileFieldRepo.create(sourceStationId, "Geburtstag", "date", "{}", 1, ProfileFieldScope.MEMBER);
-        var fieldNotizen = profileFieldRepo.create(sourceStationId, "Notizen", "text", "{}", 0, ProfileFieldScope.TEAM);
+        var fieldTelefon = profileFieldRepo.create(
+                sourceStationId,
+                "Telefon",
+                ProfileFieldType.TEXT,
+                ProfileFieldConfig.parse("{}"),
+                0,
+                ProfileFieldScope.MEMBER);
+        var fieldGeburtstag = profileFieldRepo.create(
+                sourceStationId,
+                "Geburtstag",
+                ProfileFieldType.DATE,
+                ProfileFieldConfig.parse("{}"),
+                1,
+                ProfileFieldScope.MEMBER);
+        var fieldNotizen = profileFieldRepo.create(
+                sourceStationId,
+                "Notizen",
+                ProfileFieldType.TEXT,
+                ProfileFieldConfig.parse("{}"),
+                0,
+                ProfileFieldScope.TEAM);
         profileFieldRepo.setValue(manager.id(), fieldTelefon.id(), "\"0151-11111\"");
         profileFieldRepo.setValue(trainer.id(), fieldTelefon.id(), "\"0151-22222\"");
         profileFieldRepo.setValue(child.id(), fieldGeburtstag.id(), "\"2012-05-15\"");
@@ -145,10 +160,17 @@ class StationTransferTest extends RepositoryTestBase {
 
         // --- Attendance templates ---
         var templateStandard = attendanceRepo.createTemplate(sourceStationId, "Standard-Übung");
-        attendanceRepo.createTemplateField(templateStandard.id(), "Leiter", "member", "{}", 0);
-        attendanceRepo.createTemplateField(templateStandard.id(), "Thema", "text", "{}", 1);
+        attendanceRepo.createTemplateField(
+                templateStandard.id(), "Leiter", AttendanceFieldType.MEMBER, AttendanceFieldConfig.parse("{}"), 0);
+        attendanceRepo.createTemplateField(
+                templateStandard.id(), "Thema", AttendanceFieldType.STRING, AttendanceFieldConfig.parse("{}"), 1);
         var templateSonder = attendanceRepo.createTemplate(sourceStationId, "Sondertermin");
-        attendanceRepo.createTemplateField(templateSonder.id(), "Verantwortlich", "member", "{}", 0);
+        attendanceRepo.createTemplateField(
+                templateSonder.id(),
+                "Verantwortlich",
+                AttendanceFieldType.MEMBER,
+                AttendanceFieldConfig.parse("{}"),
+                0);
 
         // --- Event categories ---
         var catTraining = eventRepo.createCategory(sourceStationId, "Training", 0);
@@ -168,7 +190,8 @@ class StationTransferTest extends RepositoryTestBase {
                 false,
                 null,
                 false,
-                catTraining.id());
+                catTraining.id(),
+                null);
         eventRepo.create(
                 sourceStationId,
                 "Donnerstags Training",
@@ -181,7 +204,8 @@ class StationTransferTest extends RepositoryTestBase {
                 true,
                 now.plusSeconds(86400),
                 true,
-                catTraining.id());
+                catTraining.id(),
+                null);
         eventRepo.create(
                 sourceStationId,
                 "Sommerfest",
@@ -194,7 +218,8 @@ class StationTransferTest extends RepositoryTestBase {
                 true,
                 now.plusSeconds(2505600),
                 false,
-                catSonder.id());
+                catSonder.id(),
+                null);
 
         // --- Inventories ---
         var invHelme = inventoryRepo.create(sourceStationId, "Helme", InventoryType.INTERNAL, true);
@@ -224,30 +249,31 @@ class StationTransferTest extends RepositoryTestBase {
         formRepo.createQuestion(
                 form.id(),
                 0,
-                FormQuestion.QuestionType.RATING,
+                QuestionType.RATING,
                 "Gesamtzufriedenheit",
                 "Bewerte von 1-5",
                 true,
                 false,
-                "{}");
+                new FormQuestionConfig.Rating(5, FormQuestionConfig.Rating.RatingIcon.STAR));
         formRepo.createQuestion(
                 form.id(),
                 1,
-                FormQuestion.QuestionType.TEXT,
+                QuestionType.TEXT,
                 "Verbesserungsvorschläge",
                 "Was können wir besser machen?",
                 false,
                 false,
-                "{}");
+                new FormQuestionConfig.Text(false));
         formRepo.createQuestion(
                 form.id(),
                 2,
-                FormQuestion.QuestionType.CHOICE,
+                QuestionType.CHOICE,
                 "Lieblingsübung",
                 "",
                 false,
                 false,
-                "{\"options\":[\"Löschangriff\",\"Knoten\",\"Erste Hilfe\",\"Sport\"]}");
+                FormQuestionConfig.parse(
+                        QuestionType.CHOICE, "{\"options\":[\"Löschangriff\",\"Knoten\",\"Erste Hilfe\",\"Sport\"]}"));
     }
 
     // ==================== Export tests ====================
@@ -402,7 +428,7 @@ class StationTransferTest extends RepositoryTestBase {
 
         // Build custom export data with a member having that email
         var customData = new HashMap<>(exportedData);
-        var members = new java.util.ArrayList<>((List<Map<String, Object>>) customData.get("members"));
+        var members = new ArrayList<>((List<Map<String, Object>>) customData.get("members"));
         members.add(Map.of(
                 "id", 9999,
                 "display_name", "Reimport User",

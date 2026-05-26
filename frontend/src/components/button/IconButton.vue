@@ -20,7 +20,7 @@ defineEmits<{
       :aria-label="label"
       :disabled="disabled"
       :title="label"
-      class="inline-flex items-center justify-center p-2 rounded-lg transition-all duration-150 active:scale-90 disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100"
+      class="inline-flex items-center justify-center p-2 rounded-theme transition-all duration-150 active:scale-90 disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100"
       @click="$emit('click', $event)"
   >
     <font-awesome-icon :icon="icon" class="h-4 w-4"/>

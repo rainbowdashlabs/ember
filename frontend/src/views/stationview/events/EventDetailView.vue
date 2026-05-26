@@ -28,12 +28,14 @@ import {EventTypes, RegistrationStatus, isRecurringEvent} from '@/api/types'
 import type {AbsentMember, EventRegistrationEntry, MemberRegistrationStats} from '@/api/events'
 import {attendance, events} from '@/api'
 import {useSession} from '@/composables/useSession'
+import CommentSection from '@/components/comment/CommentSection.vue'
+import NoteEditor from '@/components/comment/NoteEditor.vue'
 import MemberName from '@/components/avatar/MemberName.vue'
 
 const {t} = useI18n()
 const route = useRoute()
 const router = useRouter()
-const {canManageEvents, sessionInfo} = useSession()
+const {canManageEvents, canManageAttendance, sessionInfo} = useSession()
 
 const eventId = computed(() => Number(route.params.id))
 const currentMemberId = computed(() => sessionInfo.value?.member?.id ?? 0)
@@ -178,7 +180,7 @@ async function loadData() {
       templates.value = await attendance.listTemplates()
     }
     await loadRegistrations()
-    if (isRecurringEvent(ev.eventType) && ev.dayOfWeek) {
+    if ((canManageEvents() || canManageAttendance()) && isRecurringEvent(ev.eventType) && ev.dayOfWeek) {
       await loadAbsences()
     }
   } catch {
@@ -360,18 +362,20 @@ onMounted(loadData)
           <SubHeader>{{ t('eventDetail.nextOccurrence') }}</SubHeader>
           <p class="text-sm font-medium">{{ formatDateLong(nextOccurrenceDate) }}</p>
 
-          <div v-if="absentMembers.length > 0" class="space-y-2">
-            <h4 class="text-xs font-semibold uppercase text-(--text-muted)">
-              {{ t('eventDetail.absentMembers') }} ({{ absentMembers.length }})
-            </h4>
-            <div class="flex flex-wrap gap-2">
-              <ErrorBadge v-for="m in absentMembers" :key="m.memberId">
-                {{ m.memberName }}
-                <span v-if="m.reason" class="ml-1 opacity-75">– {{ m.reason }}</span>
-              </ErrorBadge>
+          <template v-if="canManageEvents() || canManageAttendance()">
+            <div v-if="absentMembers.length > 0" class="space-y-2">
+              <h4 class="text-xs font-semibold uppercase text-(--text-muted)">
+                {{ t('eventDetail.absentMembers') }} ({{ absentMembers.length }})
+              </h4>
+              <div class="flex flex-wrap gap-2">
+                <ErrorBadge v-for="m in absentMembers" :key="m.memberId">
+                  {{ m.memberName }}
+                  <span v-if="m.reason" class="ml-1 opacity-75">– {{ m.reason }}</span>
+                </ErrorBadge>
+              </div>
             </div>
-          </div>
-          <p v-else class="text-sm text-(--text-muted)">{{ t('eventDetail.noAbsences') }}</p>
+            <p v-else class="text-sm text-(--text-muted)">{{ t('eventDetail.noAbsences') }}</p>
+          </template>
         </NeutralContainer>
 
         <!-- Self-registration for members -->
@@ -480,6 +484,16 @@ onMounted(loadData)
           </div>
         </NeutralContainer>
       </template>
+
+      <!-- Notes (manager only) -->
+      <NeutralContainer v-if="!loading && canManageEvents()">
+        <NoteEditor entity-type="EVENT" :entity-id="eventId"/>
+      </NeutralContainer>
+
+      <!-- Comments -->
+      <NeutralContainer v-if="!loading">
+        <CommentSection :event-id="eventId"/>
+      </NeutralContainer>
     </div>
   </ViewContent>
 </template>

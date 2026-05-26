@@ -15,10 +15,6 @@ import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.news.entity.News;
 import dev.chojo.ember.feature.news.entity.NewsComment;
 import dev.chojo.ember.feature.news.service.NewsService;
-import dev.chojo.ember.feature.notifications.entity.NotificationData;
-import dev.chojo.ember.feature.notifications.entity.NotificationParams;
-import dev.chojo.ember.feature.notifications.entity.NotificationType;
-import dev.chojo.ember.feature.notifications.service.NotificationService;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.ForbiddenResponse;
@@ -47,18 +43,15 @@ public class NewsRoutes implements Routes {
     private final NewsService newsService;
     private final AccountRepository accountRepository;
     private final StationMemberRepository stationMemberRepository;
-    private final NotificationService notificationService;
 
     @Inject
     public NewsRoutes(
             NewsService newsService,
             AccountRepository accountRepository,
-            StationMemberRepository stationMemberRepository,
-            NotificationService notificationService) {
+            StationMemberRepository stationMemberRepository) {
         this.newsService = newsService;
         this.accountRepository = accountRepository;
         this.stationMemberRepository = stationMemberRepository;
-        this.notificationService = notificationService;
     }
 
     @Override
@@ -142,16 +135,6 @@ public class NewsRoutes implements Routes {
                 request.groupIds() != null ? request.groupIds() : List.of(),
                 request.tagIds() != null ? request.tagIds() : List.of(),
                 request.memberIds() != null ? request.memberIds() : List.of());
-        String authorName = session.account().fullName().trim();
-        String preview = request.contentMarkdown().length() > 100
-                ? request.contentMarkdown().substring(0, 100) + "..."
-                : request.contentMarkdown();
-        notificationService.notifyStation(
-                session.stationId(),
-                NotificationType.NEW_NEWS,
-                NotificationData.of(
-                        new NotificationParams.NewNews(request.title(), authorName, preview),
-                        new NotificationData.NotificationLink("news-list")));
         ctx.status(HttpStatus.CREATED).json(toResponse(news, true));
     }
 
@@ -207,15 +190,6 @@ public class NewsRoutes implements Routes {
             throw new ForbiddenResponse("Cannot delete news from another station");
         }
         if (newsService.delete(id)) {
-            // Remove notifications for this news article and its comments
-            notificationService.deleteByTypeContaining(
-                    NotificationType.NEW_NEWS,
-                    NotificationData.of(new NotificationParams.NewNews(news.title(), null, null))
-                            .toJson());
-            notificationService.deleteByTypeContaining(
-                    NotificationType.NEWS_COMMENT,
-                    NotificationData.of(new NotificationParams.NewsComment(news.title(), null, null))
-                            .toJson());
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
             throw new NotFoundResponse();
@@ -297,41 +271,12 @@ public class NewsRoutes implements Routes {
             throw new BadRequestResponse("content is required");
         }
         var comment = newsService.createComment(
-                newsId, request.parentId(), session.member().id(), request.content());
-
-        // Notify news author and parent comment author about the new comment
-        var news = newsService.findById(newsId).orElse(null);
-        if (news != null) {
-            String commenterName = session.account().fullName().trim();
-            String preview =
-                    request.content().length() > 100 ? request.content().substring(0, 100) + "..." : request.content();
-            var data = NotificationData.of(
-                    new NotificationParams.NewsComment(news.title(), commenterName, preview),
-                    new NotificationData.NotificationLink("news-list"));
-
-            // Notify the news author (unless they wrote the comment)
-            if (news.authorId() != session.member().id()) {
-                notificationService.notifyIfAbsent(news.authorId(), NotificationType.NEWS_COMMENT, data);
-            }
-            // Notify the parent comment author (if this is a reply)
-            if (request.parentId() != null) {
-                newsService.findCommentById(request.parentId()).ifPresent(parent -> {
-                    if (parent.authorId() != session.member().id() && parent.authorId() != news.authorId()) {
-                        notificationService.notifyIfAbsent(parent.authorId(), NotificationType.NEWS_COMMENT, data);
-                    }
-                });
-            }
-            // Notify all NEWS_MANAGER members
-            var newsMgmtIds =
-                    stationMemberRepository.findMembersWithRole(session.stationId(), Roles.NEWS_MANAGER).stream()
-                            .map(StationMember::id)
-                            .toList();
-            notificationService.notifyMembersIfAbsent(
-                    newsMgmtIds,
-                    NotificationType.NEWS_COMMENT,
-                    data,
-                    session.member().id());
-        }
+                session.stationId(),
+                newsId,
+                request.parentId(),
+                session.member().id(),
+                session.account().fullName().trim(),
+                request.content());
 
         ctx.status(HttpStatus.CREATED).json(toCommentResponse(comment));
     }
@@ -382,14 +327,7 @@ public class NewsRoutes implements Routes {
         if (!isAuthor && !canModerate) {
             throw new ForbiddenResponse("You can only delete your own comments");
         }
-        if (newsService.deleteComment(commentId)) {
-            // Remove notifications about this comment
-            String preview =
-                    comment.content().length() > 100 ? comment.content().substring(0, 100) + "..." : comment.content();
-            notificationService.deleteByTypeContaining(
-                    NotificationType.NEWS_COMMENT,
-                    NotificationData.of(new NotificationParams.NewsComment(null, null, preview))
-                            .toJson());
+        if (newsService.deleteComment(session.stationId(), commentId)) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
             throw new NotFoundResponse();
@@ -403,6 +341,10 @@ public class NewsRoutes implements Routes {
      * @return the comment response DTO
      */
     private CommentResponse toCommentResponse(NewsComment comment) {
+        if (comment.deleted()) {
+            return new CommentResponse(
+                    comment.id(), comment.newsId(), comment.parentId(), 0, null, null, "", true, comment.createdAt());
+        }
         var memberOpt = stationMemberRepository.findById(comment.authorId());
         Integer authorAccountId = memberOpt.map(StationMember::accountId).orElse(null);
         String authorName = memberOpt
@@ -417,6 +359,7 @@ public class NewsRoutes implements Routes {
                 authorAccountId,
                 authorName,
                 comment.content(),
+                false,
                 comment.createdAt());
     }
 
@@ -498,5 +441,6 @@ public class NewsRoutes implements Routes {
             Integer authorAccountId,
             String authorName,
             String content,
+            boolean deleted,
             Instant createdAt) {}
 }

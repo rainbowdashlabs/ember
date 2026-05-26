@@ -15,6 +15,7 @@ import IconButton from '@/components/button/IconButton.vue'
 import {auth} from '@/api'
 import {getItem} from '@/api/storage'
 import {useSession} from '@/composables/useSession'
+import {useTheme} from '@/composables/useTheme'
 import HelpCenterLink from '@/components/navigation/HelpCenterLink.vue'
 
 const {t, te} = useI18n()
@@ -48,6 +49,7 @@ async function handleLogout() {
     }
   }
   clear()
+  useTheme().resetToInstanceDefaults()
   await router.push({name: 'login'})
 }
 </script>
@@ -77,13 +79,22 @@ async function handleLogout() {
 
       <SidebarGroup :icon="['fas', 'gear']" :label="t('sidebar.settings')" prefix="/admin/settings">
         <SidebarLink :icon="['fas', 'sliders']" name="admin-settings" to="/admin/settings" @navigate="close">
-          {{ t('sidebar.appSettings') }}
+          {{ t('sidebar.general') }}
+        </SidebarLink>
+        <SidebarLink :icon="['fas', 'envelope']" name="admin-mailing" to="/admin/settings/mailing" @navigate="close">
+          {{ t('sidebar.mailing') }}
+        </SidebarLink>
+        <SidebarLink :icon="['fas', 'scale-balanced']" name="admin-legal" to="/admin/settings/legal" @navigate="close">
+          {{ t('sidebar.legal') }}
         </SidebarLink>
       </SidebarGroup>
 
-      <SidebarGroup :icon="['fas', 'triangle-exclamation']" :label="t('sidebar.monitoring')" prefix="/admin/problems">
+      <SidebarGroup :icon="['fas', 'triangle-exclamation']" :label="t('sidebar.monitoring')" prefix="/admin/problem" group-key="monitoring">
         <SidebarLink :icon="['fas', 'bug']" name="admin-problems" to="/admin/problems" @navigate="close">
           {{ t('sidebar.problemLog') }}
+        </SidebarLink>
+        <SidebarLink :icon="['fas', 'flag']" name="admin-problem-reports" to="/admin/problem-reports" @navigate="close">
+          {{ t('sidebar.problemReports') }}
         </SidebarLink>
         <SidebarLink :icon="['fas', 'chart-line']" name="admin-api-status" to="/admin/api-status" @navigate="close">
           {{ t('sidebar.apiStatus') }}

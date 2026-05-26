@@ -5,6 +5,12 @@
  */
 package dev.chojo.ember.feature.news.service;
 
+import dev.chojo.ember.event.DomainEventBus;
+import dev.chojo.ember.event.events.CommentCreated;
+import dev.chojo.ember.event.events.CommentDeleted;
+import dev.chojo.ember.event.events.NewsCreated;
+import dev.chojo.ember.event.events.NewsDeleted;
+import dev.chojo.ember.feature.comment.entity.CommentEntityType;
 import dev.chojo.ember.feature.news.entity.News;
 import dev.chojo.ember.feature.news.entity.NewsComment;
 import dev.chojo.ember.feature.news.repository.NewsRepository;
@@ -26,11 +32,14 @@ import java.util.Optional;
 public class NewsService {
     private final NewsRepository newsRepository;
     private final RestrictionRepository restrictionRepository;
+    private final DomainEventBus eventBus;
 
     @Inject
-    public NewsService(NewsRepository newsRepository, RestrictionRepository restrictionRepository) {
+    public NewsService(
+            NewsRepository newsRepository, RestrictionRepository restrictionRepository, DomainEventBus eventBus) {
         this.newsRepository = newsRepository;
         this.restrictionRepository = restrictionRepository;
+        this.eventBus = eventBus;
     }
 
     /**
@@ -56,6 +65,7 @@ public class NewsService {
             List<Integer> memberIds) {
         var news = newsRepository.create(stationId, title, contentMarkdown, contentHtml, authorId);
         setRestrictions(news.id(), roleIds, groupIds, tagIds, memberIds);
+        eventBus.publish(new NewsCreated(stationId, news.id(), title));
         return news;
     }
 
@@ -127,7 +137,13 @@ public class NewsService {
      * @return {@code true} if the article was deleted
      */
     public boolean delete(int id) {
-        return newsRepository.delete(id);
+        var news = newsRepository.findById(id).orElse(null);
+        if (news == null) return false;
+        if (newsRepository.delete(id)) {
+            eventBus.publish(new NewsDeleted(news.stationId(), id, news.title()));
+            return true;
+        }
+        return false;
     }
 
     /**
@@ -176,8 +192,32 @@ public class NewsService {
      * @param content  comment text
      * @return the newly created comment
      */
-    public NewsComment createComment(int newsId, Integer parentId, int authorId, String content) {
-        return newsRepository.createComment(newsId, parentId, authorId, content);
+    public NewsComment createComment(
+            int stationId, int newsId, Integer parentId, int authorId, String authorName, String content) {
+        var comment = newsRepository.createComment(newsId, parentId, authorId, content);
+        var news = newsRepository.findById(newsId).orElse(null);
+        if (news != null) {
+            String preview = content.length() > 100 ? content.substring(0, 100) + "..." : content;
+            Integer parentAuthorId = null;
+            if (parentId != null) {
+                parentAuthorId = newsRepository
+                        .findCommentById(parentId)
+                        .map(NewsComment::authorId)
+                        .orElse(null);
+            }
+            eventBus.publish(new CommentCreated(
+                    stationId,
+                    CommentEntityType.NEWS,
+                    newsId,
+                    news.title(),
+                    comment.id(),
+                    parentId,
+                    parentAuthorId,
+                    authorId,
+                    authorName,
+                    preview));
+        }
+        return comment;
     }
 
     /**
@@ -217,7 +257,15 @@ public class NewsService {
      * @param id the comment ID
      * @return {@code true} if the comment was deleted
      */
-    public boolean deleteComment(int id) {
-        return newsRepository.deleteComment(id);
+    public boolean deleteComment(int stationId, int id) {
+        var comment = newsRepository.findCommentById(id).orElse(null);
+        if (comment == null) return false;
+        if (newsRepository.deleteComment(id)) {
+            String preview =
+                    comment.content().length() > 100 ? comment.content().substring(0, 100) + "..." : comment.content();
+            eventBus.publish(new CommentDeleted(stationId, id, preview));
+            return true;
+        }
+        return false;
     }
 }

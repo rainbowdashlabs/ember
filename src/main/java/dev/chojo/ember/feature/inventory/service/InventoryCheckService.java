@@ -6,13 +6,17 @@
 package dev.chojo.ember.feature.inventory.service;
 
 import dev.chojo.ember.feature.account.repository.AccountRepository;
+import dev.chojo.ember.feature.inventory.entity.CheckItemRequest;
 import dev.chojo.ember.feature.inventory.entity.CheckResult;
+import dev.chojo.ember.feature.inventory.entity.EnrichedCheckDetail;
+import dev.chojo.ember.feature.inventory.entity.EnrichedCheckItem;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
 import dev.chojo.ember.feature.inventory.entity.InventoryCheck;
 import dev.chojo.ember.feature.inventory.entity.InventoryCheckLock;
 import dev.chojo.ember.feature.inventory.entity.InventoryItem;
 import dev.chojo.ember.feature.inventory.entity.InventoryRequirement;
 import dev.chojo.ember.feature.inventory.entity.InventorySize;
+import dev.chojo.ember.feature.inventory.entity.RequiredInventoryItem;
 import dev.chojo.ember.feature.inventory.repository.InventoryCheckRepository;
 import dev.chojo.ember.feature.inventory.repository.InventoryCheckRepository.MemberCheckSummary;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
@@ -315,67 +319,4 @@ public class InventoryCheckService {
             List<InventoryItem> assigned,
             InventoryCheck lastCheck,
             Map<Integer, List<InventoryItem>> unassigned) {}
-
-    /**
-     * Describes an inventory requirement for a member, with comparison of required vs assigned quantities.
-     *
-     * @param inventoryId      the inventory ID
-     * @param inventoryName    the inventory name
-     * @param inventoryType    the inventory type
-     * @param hasSizes         whether the inventory supports sizes
-     * @param sizes            the available sizes if applicable
-     * @param requiredQuantity the total required quantity
-     * @param assignedQuantity the currently assigned quantity
-     */
-    public record RequiredInventoryItem(
-            int inventoryId,
-            String inventoryName,
-            String inventoryType,
-            boolean hasSizes,
-            List<InventorySize> sizes,
-            int requiredQuantity,
-            int assignedQuantity) {}
-
-    /**
-     * Request data for a single item check result.
-     *
-     * @param itemId      the item ID, or {@code null}
-     * @param inventoryId the inventory ID, or {@code null}
-     * @param result      the check result
-     * @param note        an optional note
-     */
-    public record CheckItemRequest(Integer itemId, Integer inventoryId, CheckResult result, String note) {}
-
-    /**
-     * Enriched inventory check detail with resolved item names and sizes.
-     *
-     * @param check            the inventory check record
-     * @param checkerFirstName the checker's first name
-     * @param checkerLastName  the checker's last name
-     * @param items            the enriched check items
-     */
-    public record EnrichedCheckDetail(
-            InventoryCheck check, String checkerFirstName, String checkerLastName, List<EnrichedCheckItem> items) {}
-
-    /**
-     * A check item enriched with resolved names for display.
-     *
-     * @param id            the check item ID
-     * @param itemId        the item ID, or {@code null}
-     * @param itemName      the resolved item name
-     * @param internalId    the item's internal ID
-     * @param inventoryName the inventory name
-     * @param sizeName      the size label, or {@code null}
-     * @param result        the check result
-     * @param note          the note
-     */
-    public record EnrichedCheckItem(
-            int id,
-            Integer itemId,
-            String itemName,
-            String internalId,
-            String inventoryName,
-            String sizeName,
-            CheckResult result,
-            String note) {}
 }

@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.members.route;
 import dev.chojo.ember.api.Roles;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.feature.members.entity.FilterTableType;
 import dev.chojo.ember.feature.members.entity.SavedFilter;
 import dev.chojo.ember.feature.members.repository.SavedFilterRepository;
 import io.javalin.http.BadRequestResponse;
@@ -52,7 +53,8 @@ public class SavedFilterRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = SavedFilter[].class)))
     private void list(Context ctx) {
         var session = UserSession.from(ctx);
-        String tableType = ctx.queryParamAsClass("tableType", String.class).get();
+        var tableType = FilterTableType.valueOf(
+                ctx.queryParamAsClass("tableType", String.class).get().toUpperCase());
         ctx.json(repository.findByAccountAndTable(session.accountId(), tableType));
     }
 
@@ -95,5 +97,5 @@ public class SavedFilterRoutes implements Routes {
         }
     }
 
-    public record CreateFilterRequest(String tableType, String name, String filterData) {}
+    public record CreateFilterRequest(FilterTableType tableType, String name, String filterData) {}
 }

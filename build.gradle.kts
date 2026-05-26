@@ -20,7 +20,7 @@ application {
 
 group = "dev.chojo"
 // CalVer as YY.MINOR.MICRO -> https://calver.org/
-version = "26.4.0"
+version = "26.5.0"
 
 repositories {
     mavenCentral()
@@ -53,6 +53,8 @@ dependencies {
     implementation(libs.thumbnailator)
     implementation(libs.imageio.webp)
     implementation(libs.pdfbox)
+    implementation(libs.ical4j)
+    implementation(libs.rome)
     implementation(libs.bundles.ai)
 
     testRuntimeOnly(libs.junit.platform)
@@ -108,15 +110,131 @@ tasks {
         }
     }
 
+    register<Test>("testRepositories") {
+        group = "verification"
+        description = "Runs repository tests"
+        testClassesDirs = sourceSets.test.get().output.classesDirs
+        classpath = sourceSets.test.get().runtimeClasspath
+        useJUnitPlatform { excludeTags("locale") }
+        testLogging { events("passed", "skipped", "failed") }
+        filter { includeTestsMatching("dev.chojo.ember.repository.*") }
+    }
+
+    register<Test>("testServices") {
+        group = "verification"
+        description = "Runs service tests"
+        testClassesDirs = sourceSets.test.get().output.classesDirs
+        classpath = sourceSets.test.get().runtimeClasspath
+        useJUnitPlatform { excludeTags("locale") }
+        testLogging { events("passed", "skipped", "failed") }
+        filter { includeTestsMatching("dev.chojo.ember.service.*") }
+    }
+
+    register<Test>("testOther") {
+        group = "verification"
+        description = "Runs non-repository, non-service tests"
+        testClassesDirs = sourceSets.test.get().output.classesDirs
+        classpath = sourceSets.test.get().runtimeClasspath
+        useJUnitPlatform { excludeTags("locale") }
+        testLogging { events("passed", "skipped", "failed") }
+        filter {
+            excludeTestsMatching("dev.chojo.ember.repository.*")
+            excludeTestsMatching("dev.chojo.ember.service.*")
+        }
+    }
+
+    register("verifyJavadoc") {
+        group = "verification"
+        description = "Verifies Javadoc generation succeeds"
+        dependsOn("javadoc")
+    }
+
+    register("verify") {
+        group = "verification"
+        description = "Runs all verification tasks in parallel"
+        dependsOn("testRepositories", "testServices", "testOther", "jacocoCoverageCheck", "verifyJavadoc", "checkLicenseBackend", "checkLicenseFrontend")
+    }
+
     register<JacocoReport>("jacocoFullReport") {
         group = "verification"
-        description = "Merged coverage report from unit + database tests"
-        executionData(file("build/jacoco/test.exec"), file("build/jacoco/testDatabase.exec"))
+        description = "Merged coverage report from all test tasks"
+        dependsOn("testRepositories", "testServices", "testOther")
+        executionData(
+            fileTree("build/jacoco") { include("*.exec") }
+        )
         sourceSets(sourceSets.main.get())
         reports {
             xml.required.set(true)
             csv.required.set(true)
             html.required.set(true)
+        }
+    }
+
+    register<JacocoCoverageVerification>("jacocoCoverageCheck") {
+        group = "verification"
+        description = "Enforces 80% line coverage for services and repositories"
+        dependsOn("testRepositories", "testServices", "testOther")
+        executionData(
+            fileTree("build/jacoco") { include("*.exec") }
+        )
+        sourceSets(sourceSets.main.get())
+        violationRules {
+            // Repositories: 95% line coverage
+            rule {
+                element = "CLASS"
+                includes = listOf("*.repository.*")
+                excludes = listOf("*.route.*")
+                limit {
+                    counter = "LINE"
+                    minimum = "0.95".toBigDecimal()
+                }
+            }
+            // Handlers: 80% line coverage
+            rule {
+                element = "CLASS"
+                includes = listOf("*.handler.*", "*.handlers.*")
+                limit {
+                    counter = "LINE"
+                    minimum = "0.80".toBigDecimal()
+                }
+            }
+            // Services: 90% line coverage
+            rule {
+                element = "CLASS"
+                includes = listOf("*.service.*")
+                excludes = listOf(
+                    "*.route.*",
+                    // Infrastructure that calls external systems
+                    "*.mail.service.*",
+                    "*.FederationHttpClient*",
+                    "*.FederationWebhookService*",
+                    "*.ApiRequestLogger*",
+                    "*.DataInitializer",
+                    "*.ProblemLogAppender*",
+                    // Demo/seed data generators
+                    "*.Demo*Seeder*",
+                    "*.DemoService*",
+                    // PDF/export services requiring external binaries
+                    "*PdfService*",
+                    "*ReportService*",
+                    "*ExportService*",
+                    // External AI API calls
+                    "*.AiService*",
+                    // File I/O services
+                    "*.KbFileStorageService*",
+                    // External binary dependent services
+                    "*.LegalDocumentService*",
+                    // Daemon/scheduler threads
+                    "*.RegistrationDeadlineChecker*",
+                    // Import services (complex CSV parsing with many edge cases)
+                    "*.MemberImportService*",
+                    "*.StationImportService*",
+                )
+                limit {
+                    counter = "LINE"
+                    minimum = "0.90".toBigDecimal()
+                }
+            }
         }
     }
 

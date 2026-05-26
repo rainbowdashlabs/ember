@@ -6,7 +6,9 @@
 package dev.chojo.ember.feature.system.service;
 
 import dev.chojo.ember.feature.form.entity.Form;
-import dev.chojo.ember.feature.form.entity.FormQuestion;
+import dev.chojo.ember.feature.form.entity.FormAnswerValue;
+import dev.chojo.ember.feature.form.entity.FormQuestionConfig;
+import dev.chojo.ember.feature.form.entity.QuestionType;
 import dev.chojo.ember.feature.form.repository.FormRepository;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.restriction.RestrictionRepository;
@@ -60,30 +62,36 @@ public class DemoFormSeeder {
         formRepository.createQuestion(
                 survey.id(),
                 0,
-                FormQuestion.QuestionType.RATING,
+                QuestionType.RATING,
                 "Wie zufrieden bist du insgesamt?",
                 "1 = sehr unzufrieden, 5 = sehr zufrieden",
                 true,
                 false,
-                "{\"scale\":5,\"icon\":\"STAR\"}");
+                new FormQuestionConfig.Rating(5, FormQuestionConfig.Rating.RatingIcon.STAR));
         formRepository.createQuestion(
                 survey.id(),
                 1,
-                FormQuestion.QuestionType.CHOICE,
+                QuestionType.CHOICE,
                 "Was gefällt dir am besten?",
                 "",
                 false,
                 true,
-                "{\"multiSelect\":true,\"dropdown\":false,\"allowOther\":true,\"options\":[\"Übungen\",\"Gemeinschaft\",\"Ausflüge\",\"Wettbewerbe\"],\"multiLimitType\":\"NONE\"}");
+                new FormQuestionConfig.Choice(
+                        List.of("Übungen", "Gemeinschaft", "Ausflüge", "Wettbewerbe"),
+                        true,
+                        false,
+                        true,
+                        FormQuestionConfig.MultiLimitType.NONE,
+                        null));
         formRepository.createQuestion(
                 survey.id(),
                 2,
-                FormQuestion.QuestionType.TEXT,
+                QuestionType.TEXT,
                 "Hast du Verbesserungsvorschläge?",
                 "",
                 false,
                 false,
-                "{\"longAnswer\":true}");
+                new FormQuestionConfig.Text(true));
 
         // Add some responses
         var surveyQuestions = formRepository.findQuestions(survey.id());
@@ -95,46 +103,48 @@ public class DemoFormSeeder {
             var member = respondents.get(i);
             var response = formRepository.createResponse(survey.id(), member.id(), member.id());
             int rating = 3 + rng.nextInt(3);
-            formRepository.upsertAnswer(response.id(), surveyQuestions.get(0).id(), "{\"rating\":" + rating + "}");
+            formRepository.upsertAnswer(response.id(), surveyQuestions.get(0).id(), new FormAnswerValue.Rating(rating));
             int[] selected = rng.nextInt(2) == 0 ? new int[] {0, 2} : new int[] {1, 3};
             formRepository.upsertAnswer(
                     response.id(),
                     surveyQuestions.get(1).id(),
-                    "{\"selected\":[" + selected[0] + "," + selected[1] + "],\"other\":\"\"}");
+                    new FormAnswerValue.Choice(List.of(selected[0], selected[1]), ""));
             formRepository.upsertAnswer(
                     response.id(),
                     surveyQuestions.get(2).id(),
-                    "{\"text\":\"" + suggestions[i % suggestions.length] + "\"}");
+                    new FormAnswerValue.Text(suggestions[i % suggestions.length]));
         }
 
         // Add remaining types to survey: DATE, RANKING, LIKERT
         formRepository.createQuestion(
                 survey.id(),
                 3,
-                FormQuestion.QuestionType.DATE,
+                QuestionType.DATE,
                 "Wann bist du der Jugendfeuerwehr beigetreten?",
                 "",
                 false,
                 false,
-                "{}");
+                new FormQuestionConfig.Unknown());
         formRepository.createQuestion(
                 survey.id(),
                 4,
-                FormQuestion.QuestionType.RANKING,
+                QuestionType.RANKING,
                 "Ordne die Aktivitäten nach Beliebtheit",
                 "",
                 false,
                 true,
-                "{\"options\":[\"Übungen\",\"Wettbewerbe\",\"Ausflüge\",\"Theorie\"]}");
+                new FormQuestionConfig.Ranking(List.of("Übungen", "Wettbewerbe", "Ausflüge", "Theorie")));
         formRepository.createQuestion(
                 survey.id(),
                 5,
-                FormQuestion.QuestionType.LIKERT,
+                QuestionType.LIKERT,
                 "Wie bewertest du die folgenden Bereiche?",
                 "",
                 false,
                 false,
-                "{\"statements\":[\"Ausrüstung\",\"Betreuung\",\"Abwechslung\"],\"scaleMin\":1,\"scaleMax\":5,\"scaleLabels\":[]}");
+                FormQuestionConfig.parse(
+                        QuestionType.LIKERT,
+                        "{\"statements\":[\"Ausrüstung\",\"Betreuung\",\"Abwechslung\"],\"scaleMin\":1,\"scaleMax\":5,\"scaleLabels\":[]}"));
 
         // Re-fetch questions after adding more
         surveyQuestions = formRepository.findQuestions(survey.id());
@@ -145,18 +155,17 @@ public class DemoFormSeeder {
             formRepository.upsertAnswer(
                     existingResponse.id(),
                     surveyQuestions.get(3).id(),
-                    "{\"date\":\"202" + (2 + rng.nextInt(4)) + "-0" + (1 + rng.nextInt(9)) + "-15\"}");
+                    new FormAnswerValue.DateValue("202" + (2 + rng.nextInt(4)) + "-0" + (1 + rng.nextInt(9)) + "-15"));
             int[] rankOrder = {rng.nextInt(4), (1 + rng.nextInt(3)) % 4, (2 + rng.nextInt(2)) % 4, 3 - rng.nextInt(2)};
             formRepository.upsertAnswer(
                     existingResponse.id(),
                     surveyQuestions.get(4).id(),
-                    "{\"order\":[" + rankOrder[0] + "," + rankOrder[1] + "," + rankOrder[2] + "," + rankOrder[3]
-                            + "]}");
+                    new FormAnswerValue.Ranking(List.of(rankOrder[0], rankOrder[1], rankOrder[2], rankOrder[3])));
             formRepository.upsertAnswer(
                     existingResponse.id(),
                     surveyQuestions.get(5).id(),
-                    "{\"ratings\":{\"0\":" + (3 + rng.nextInt(3)) + ",\"1\":" + (3 + rng.nextInt(3)) + ",\"2\":"
-                            + (2 + rng.nextInt(4)) + "}}");
+                    new FormAnswerValue.Likert(java.util.Map.of(
+                            "0", 3 + rng.nextInt(3), "1", 3 + rng.nextInt(3), "2", 2 + rng.nextInt(4))));
         }
 
         // Form 2: CLOSED comprehensive form with ALL types + responses
@@ -173,57 +182,61 @@ public class DemoFormSeeder {
         formRepository.createQuestion(
                 feedback.id(),
                 0,
-                FormQuestion.QuestionType.CHOICE,
+                QuestionType.CHOICE,
                 "Würdest du wieder teilnehmen?",
                 "",
                 true,
                 false,
-                "{\"multiSelect\":false,\"dropdown\":false,\"allowOther\":false,\"options\":[\"Ja\",\"Vielleicht\",\"Nein\"],\"multiLimitType\":\"NONE\"}");
+                FormQuestionConfig.parse(
+                        QuestionType.CHOICE,
+                        "{\"multiSelect\":false,\"dropdown\":false,\"allowOther\":false,\"options\":[\"Ja\",\"Vielleicht\",\"Nein\"],\"multiLimitType\":\"NONE\"}"));
         formRepository.createQuestion(
                 feedback.id(),
                 1,
-                FormQuestion.QuestionType.TEXT,
+                QuestionType.TEXT,
                 "Was hat dir besonders gefallen?",
                 "",
                 false,
                 false,
-                "{\"longAnswer\":true}");
+                new FormQuestionConfig.Text(true));
         formRepository.createQuestion(
                 feedback.id(),
                 2,
-                FormQuestion.QuestionType.RATING,
+                QuestionType.RATING,
                 "Gesamtbewertung",
                 "1 = schlecht, 10 = super",
                 true,
                 false,
-                "{\"scale\":10,\"icon\":\"HEART\"}");
+                new FormQuestionConfig.Rating(10, FormQuestionConfig.Rating.RatingIcon.HEART));
         formRepository.createQuestion(
                 feedback.id(),
                 3,
-                FormQuestion.QuestionType.DATE,
+                QuestionType.DATE,
                 "An welchem Datum warst du dabei?",
                 "",
                 false,
                 false,
-                "{}");
+                new FormQuestionConfig.Unknown());
         formRepository.createQuestion(
                 feedback.id(),
                 4,
-                FormQuestion.QuestionType.RANKING,
+                QuestionType.RANKING,
                 "Was war am wichtigsten?",
                 "",
                 false,
                 true,
-                "{\"options\":[\"Teamwork\",\"Technik\",\"Fitness\",\"Spaß\"]}");
+                new FormQuestionConfig.Ranking(List.of("Teamwork", "Technik", "Fitness", "Spaß")));
         formRepository.createQuestion(
                 feedback.id(),
                 5,
-                FormQuestion.QuestionType.LIKERT,
+                QuestionType.LIKERT,
                 "Bewerte die folgenden Aspekte",
                 "",
                 true,
                 false,
-                "{\"statements\":[\"Organisation\",\"Lerninhalte\",\"Spaßfaktor\",\"Zeitdauer\"],\"scaleMin\":1,\"scaleMax\":5,\"scaleLabels\":[]}");
+                FormQuestionConfig.parse(
+                        QuestionType.LIKERT,
+                        "{\"statements\":[\"Organisation\",\"Lerninhalte\",\"Spaßfaktor\",\"Zeitdauer\"],\"scaleMin\":1,\"scaleMax\":5,\"scaleLabels\":[]}"));
 
         var feedbackQuestions = formRepository.findQuestions(feedback.id());
         String[] feedbackTexts = {
@@ -234,24 +247,32 @@ public class DemoFormSeeder {
             var response = formRepository.createResponse(feedback.id(), member.id(), member.id());
             int choiceIdx = rng.nextInt(3);
             formRepository.upsertAnswer(
-                    response.id(), feedbackQuestions.get(0).id(), "{\"selected\":[" + choiceIdx + "],\"other\":\"\"}");
+                    response.id(), feedbackQuestions.get(0).id(), new FormAnswerValue.Choice(List.of(choiceIdx), ""));
             formRepository.upsertAnswer(
                     response.id(),
                     feedbackQuestions.get(1).id(),
-                    "{\"text\":\"" + feedbackTexts[i % feedbackTexts.length] + "\"}");
+                    new FormAnswerValue.Text(feedbackTexts[i % feedbackTexts.length]));
             formRepository.upsertAnswer(
-                    response.id(), feedbackQuestions.get(2).id(), "{\"rating\":" + (5 + rng.nextInt(6)) + "}");
-            formRepository.upsertAnswer(response.id(), feedbackQuestions.get(3).id(), "{\"date\":\"2026-05-10\"}");
+                    response.id(), feedbackQuestions.get(2).id(), new FormAnswerValue.Rating(5 + rng.nextInt(6)));
+            formRepository.upsertAnswer(
+                    response.id(), feedbackQuestions.get(3).id(), new FormAnswerValue.DateValue("2026-05-10"));
             int[] order = {rng.nextInt(4), (1 + rng.nextInt(3)) % 4, 2, 3};
             formRepository.upsertAnswer(
                     response.id(),
                     feedbackQuestions.get(4).id(),
-                    "{\"order\":[" + order[0] + "," + order[1] + "," + order[2] + "," + order[3] + "]}");
+                    new FormAnswerValue.Ranking(List.of(order[0], order[1], order[2], order[3])));
             formRepository.upsertAnswer(
                     response.id(),
                     feedbackQuestions.get(5).id(),
-                    "{\"ratings\":{\"0\":" + (3 + rng.nextInt(3)) + ",\"1\":" + (2 + rng.nextInt(4)) + ",\"2\":"
-                            + (4 + rng.nextInt(2)) + ",\"3\":" + (2 + rng.nextInt(3)) + "}}");
+                    new FormAnswerValue.Likert(java.util.Map.of(
+                            "0",
+                            3 + rng.nextInt(3),
+                            "1",
+                            2 + rng.nextInt(4),
+                            "2",
+                            4 + rng.nextInt(2),
+                            "3",
+                            2 + rng.nextInt(3))));
         }
         formRepository.updateStatus(feedback.id(), Form.FormStatus.CLOSED);
 
@@ -269,30 +290,32 @@ public class DemoFormSeeder {
         formRepository.createQuestion(
                 memberOnly.id(),
                 0,
-                FormQuestion.QuestionType.RATING,
+                QuestionType.RATING,
                 "Wie wohl fühlst du dich in der Gruppe?",
                 "1 = gar nicht, 5 = sehr wohl",
                 true,
                 false,
-                "{\"scale\":5,\"icon\":\"STAR\"}");
+                new FormQuestionConfig.Rating(5, FormQuestionConfig.Rating.RatingIcon.STAR));
         formRepository.createQuestion(
                 memberOnly.id(),
                 1,
-                FormQuestion.QuestionType.TEXT,
+                QuestionType.TEXT,
                 "Was wünschst du dir für die nächsten Monate?",
                 "",
                 false,
                 false,
-                "{\"longAnswer\":true}");
+                new FormQuestionConfig.Text(true));
         formRepository.createQuestion(
                 memberOnly.id(),
                 2,
-                FormQuestion.QuestionType.CHOICE,
+                QuestionType.CHOICE,
                 "Möchtest du an einem Wettbewerb teilnehmen?",
                 "",
                 true,
                 false,
-                "{\"multiSelect\":false,\"dropdown\":false,\"allowOther\":false,\"options\":[\"Ja, unbedingt!\",\"Vielleicht\",\"Nein, lieber nicht\"],\"multiLimitType\":\"NONE\"}");
+                FormQuestionConfig.parse(
+                        QuestionType.CHOICE,
+                        "{\"multiSelect\":false,\"dropdown\":false,\"allowOther\":false,\"options\":[\"Ja, unbedingt!\",\"Vielleicht\",\"Nein, lieber nicht\"],\"multiLimitType\":\"NONE\"}"));
         restrictionRepository.setRestrictions(
                 RestrictionType.FORM.table(),
                 RestrictionType.FORM.fkColumn(),
@@ -316,21 +339,23 @@ public class DemoFormSeeder {
         formRepository.createQuestion(
                 bothRoles.id(),
                 0,
-                FormQuestion.QuestionType.DATE,
+                QuestionType.DATE,
                 "An welchem Wochenende passt es dir am besten?",
                 "",
                 true,
                 false,
-                "{}");
+                new FormQuestionConfig.Unknown());
         formRepository.createQuestion(
                 bothRoles.id(),
                 1,
-                FormQuestion.QuestionType.CHOICE,
+                QuestionType.CHOICE,
                 "Kannst du beim Aufbau helfen?",
                 "",
                 false,
                 false,
-                "{\"multiSelect\":false,\"dropdown\":false,\"allowOther\":false,\"options\":[\"Ja\",\"Nein\",\"Vielleicht\"],\"multiLimitType\":\"NONE\"}");
+                FormQuestionConfig.parse(
+                        QuestionType.CHOICE,
+                        "{\"multiSelect\":false,\"dropdown\":false,\"allowOther\":false,\"options\":[\"Ja\",\"Nein\",\"Vielleicht\"],\"multiLimitType\":\"NONE\"}"));
         restrictionRepository.setRestrictions(
                 RestrictionType.FORM.table(),
                 RestrictionType.FORM.fkColumn(),
@@ -354,21 +379,27 @@ public class DemoFormSeeder {
         formRepository.createQuestion(
                 wettkampfForm.id(),
                 0,
-                FormQuestion.QuestionType.RATING,
+                QuestionType.RATING,
                 "Wie fit fühlst du dich für den Wettkampf?",
                 "1 = gar nicht, 5 = top vorbereitet",
                 true,
                 false,
-                "{\"scale\":5,\"icon\":\"STAR\"}");
+                new FormQuestionConfig.Rating(5, FormQuestionConfig.Rating.RatingIcon.STAR));
         formRepository.createQuestion(
                 wettkampfForm.id(),
                 1,
-                FormQuestion.QuestionType.CHOICE,
+                QuestionType.CHOICE,
                 "Welche Disziplin möchtest du übernehmen?",
                 "",
                 true,
                 false,
-                "{\"multiSelect\":true,\"dropdown\":false,\"allowOther\":true,\"options\":[\"Löschangriff\",\"Staffellauf\",\"Knotenkunde\",\"Erste Hilfe\"],\"multiLimitType\":\"AT_MOST\",\"multiLimit\":2}");
+                new FormQuestionConfig.Choice(
+                        List.of("Löschangriff", "Staffellauf", "Knotenkunde", "Erste Hilfe"),
+                        true,
+                        false,
+                        true,
+                        FormQuestionConfig.MultiLimitType.AT_MOST,
+                        2));
         restrictionRepository.setRestrictions(
                 RestrictionType.FORM.table(),
                 RestrictionType.FORM.fkColumn(),
@@ -392,21 +423,23 @@ public class DemoFormSeeder {
         formRepository.createQuestion(
                 anfaengerForm.id(),
                 0,
-                FormQuestion.QuestionType.LIKERT,
+                QuestionType.LIKERT,
                 "Bewerte deine bisherige Erfahrung",
                 "",
                 true,
                 false,
-                "{\"statements\":[\"Ich verstehe die Übungen\",\"Ich fühle mich willkommen\",\"Ich lerne viel Neues\"],\"scaleMin\":1,\"scaleMax\":5,\"scaleLabels\":[]}");
+                FormQuestionConfig.parse(
+                        QuestionType.LIKERT,
+                        "{\"statements\":[\"Ich verstehe die Übungen\",\"Ich fühle mich willkommen\",\"Ich lerne viel Neues\"],\"scaleMin\":1,\"scaleMax\":5,\"scaleLabels\":[]}"));
         formRepository.createQuestion(
                 anfaengerForm.id(),
                 1,
-                FormQuestion.QuestionType.TEXT,
+                QuestionType.TEXT,
                 "Was können wir für dich verbessern?",
                 "",
                 false,
                 false,
-                "{\"longAnswer\":true}");
+                new FormQuestionConfig.Text(true));
         restrictionRepository.setRestrictions(
                 RestrictionType.FORM.table(),
                 RestrictionType.FORM.fkColumn(),

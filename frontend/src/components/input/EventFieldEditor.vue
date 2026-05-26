@@ -47,6 +47,7 @@ const name = ref(props.modelValue.name ?? '')
 const fieldType = ref(props.modelValue.fieldType ?? 'string')
 const fieldValue = ref(props.modelValue.value ?? '')
 const overview = ref(props.modelValue.overview ?? false)
+const isPublic = ref(props.modelValue.isPublic ?? false)
 const attendanceFieldId = ref<number | null>(props.modelValue.attendanceFieldId ?? null)
 const enumOptions = ref('')
 
@@ -81,6 +82,7 @@ const entry = computed<EventFieldEntry>(() => ({
   config: configString.value,
   value: fieldValue.value,
   overview: overview.value,
+  isPublic: isPublic.value,
   attendanceFieldId: attendanceFieldId.value,
 }))
 
@@ -111,6 +113,13 @@ watch(entry, val => emit('update:modelValue', val), {deep: true})
         <FieldLabel>{{ t('eventFields.overview') }}</FieldLabel>
         <div class="flex items-center px-3 py-2">
           <ToggleInput v-model="overview"/>
+        </div>
+      </div>
+
+      <div class="space-y-1">
+        <FieldLabel>{{ t('eventFields.public') }}</FieldLabel>
+        <div class="flex items-center px-3 py-2">
+          <ToggleInput v-model="isPublic"/>
         </div>
       </div>
 

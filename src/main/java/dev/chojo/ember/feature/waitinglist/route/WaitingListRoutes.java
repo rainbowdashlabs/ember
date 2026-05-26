@@ -13,6 +13,7 @@ import dev.chojo.ember.feature.waitinglist.entity.WaitingListEntry;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListEntryStatus;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListEntryValue;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListField;
+import dev.chojo.ember.feature.waitinglist.entity.WaitingListFieldConfig;
 import dev.chojo.ember.feature.waitinglist.service.ScoreEvaluator;
 import dev.chojo.ember.feature.waitinglist.service.WaitingListService;
 import io.javalin.http.BadRequestResponse;
@@ -340,7 +341,7 @@ public class WaitingListRoutes implements Routes {
                 listId,
                 request.name(),
                 request.fieldType(),
-                request.config() != null ? request.config() : "{}",
+                request.config() != null ? request.config() : WaitingListFieldConfig.parse("{}"),
                 request.position(),
                 request.required());
         ctx.status(HttpStatus.CREATED).json(field);
@@ -355,7 +356,7 @@ public class WaitingListRoutes implements Routes {
                         fieldId,
                         request.name(),
                         request.fieldType(),
-                        request.config() != null ? request.config() : "{}",
+                        request.config() != null ? request.config() : WaitingListFieldConfig.parse("{}"),
                         request.position(),
                         request.required())
                 .orElseThrow(NotFoundResponse::new);
@@ -587,7 +588,8 @@ public class WaitingListRoutes implements Routes {
     @OpenApiName("WaitingListListWithCount")
     public record ListWithCount(WaitingList list, int entryCount) {}
 
-    public record FieldRequest(String name, String fieldType, String config, int position, boolean required) {}
+    public record FieldRequest(
+            String name, String fieldType, WaitingListFieldConfig config, int position, boolean required) {}
 
     public record VisibleFieldsRequest(List<Integer> fieldIds) {}
 

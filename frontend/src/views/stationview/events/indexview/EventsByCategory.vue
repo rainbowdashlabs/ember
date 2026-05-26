@@ -40,9 +40,6 @@ const emit = defineEmits<{
   addEvent: []
   editEvent: [event: StationEvent]
   deleteEvent: [event: StationEvent]
-  addCategory: []
-  editCategory: [category: EventCategory]
-  deleteCategory: [id: number]
 }>()
 
 // Track which categories are expanded beyond their maxShownEvents limit
@@ -105,13 +102,10 @@ function formatDate(iso?: string): string {
     <div class="flex items-center justify-between flex-wrap gap-2">
       <SectionHeader>{{ t('events.allEvents') }}</SectionHeader>
       <div class="flex items-center gap-2">
-        <SecondaryButton :icon="['fas', 'folder-plus']" @click="emit('addCategory')">
-          {{ t('events.addCategory') }}
+        <SecondaryButton :icon="['fas', 'folder-plus']" @click="router.push({name: 'event-categories'})">
+          {{ t('events.manageCategories') }}
         </SecondaryButton>
-        <SecondaryButton :icon="['fas', 'layer-group']" @click="router.push({name: 'event-layouts'})">
-          {{ t('sidebar.eventLayouts') }}
-        </SecondaryButton>
-        <SecondaryButton :icon="['fas', 'calendar-plus']" @click="router.push({name: 'event-batch'})">
+<SecondaryButton :icon="['fas', 'calendar-plus']" @click="router.push({name: 'event-batch'})">
           {{ t('sidebar.eventBatch') }}
         </SecondaryButton>
         <PrimaryButton :icon="['fas', 'plus']" @click="emit('addEvent')">
@@ -123,12 +117,8 @@ function formatDate(iso?: string): string {
     <EmptyState compact v-if="!hasEvents">{{ t('events.noEvents') }}</EmptyState>
 
     <div v-for="group in groups" :key="group.category?.id ?? 'none'" class="space-y-2">
-      <div v-if="group.category" class="flex items-center justify-between pt-2">
+      <div v-if="group.category" class="pt-2">
         <SubHeader class="text-sm font-semibold uppercase text-(--text-muted)">{{ group.category.name }}</SubHeader>
-        <div class="flex items-center gap-1">
-          <EditButton @click="emit('editCategory', group.category!)"/>
-          <DeleteButton @click="emit('deleteCategory', group.category!.id)"/>
-        </div>
       </div>
       <SubHeader v-else class="text-sm font-semibold uppercase text-(--text-muted) pt-2">{{ t('events.uncategorized') }}</SubHeader>
 

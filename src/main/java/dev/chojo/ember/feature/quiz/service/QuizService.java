@@ -17,6 +17,7 @@ import dev.chojo.ember.feature.quiz.entity.QuizTestAttemptQuestion;
 import dev.chojo.ember.feature.quiz.entity.QuizTestFrozenQuestion;
 import dev.chojo.ember.feature.quiz.entity.QuizTestSection;
 import dev.chojo.ember.feature.quiz.entity.QuizTestSectionSource;
+import dev.chojo.ember.feature.quiz.entity.SectionEntry;
 import dev.chojo.ember.feature.quiz.entity.TestStatus;
 import dev.chojo.ember.feature.quiz.repository.QuizCatalogRepository;
 import dev.chojo.ember.feature.quiz.repository.QuizTestRepository;
@@ -28,6 +29,7 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -40,6 +42,8 @@ import java.util.stream.Collectors;
 
 @Singleton
 public class QuizService {
+    private static final ObjectMapper MAPPER = JsonMapper.builder().build();
+
     private final QuizCatalogRepository catalogRepository;
     private final QuizTestRepository testRepository;
     private final RestrictionRepository restrictionRepository;
@@ -121,9 +125,10 @@ public class QuizService {
             String imageUrl,
             double points,
             boolean autoPoints,
-            String config,
+            QuestionConfig config,
             int position) {
-        double effectivePoints = autoPoints ? calculateAutoPoints(questionType, config, points) : points;
+        String configStr = serializeConfig(config);
+        double effectivePoints = autoPoints ? calculateAutoPoints(questionType, configStr, points) : points;
         return catalogRepository.createQuestion(
                 catalogId,
                 categoryId,
@@ -133,8 +138,45 @@ public class QuizService {
                 imageUrl,
                 effectivePoints,
                 autoPoints,
-                config,
+                configStr,
                 position);
+    }
+
+    /**
+     * Convenience overload that accepts a raw JSON config string.
+     * Parses it to the appropriate {@link QuestionConfig} using the question type.
+     */
+    public QuizQuestion createQuestion(
+            int catalogId,
+            Integer categoryId,
+            QuestionType questionType,
+            String title,
+            String description,
+            String imageUrl,
+            double points,
+            boolean autoPoints,
+            String configJson,
+            int position) {
+        return createQuestion(
+                catalogId,
+                categoryId,
+                questionType,
+                title,
+                description,
+                imageUrl,
+                points,
+                autoPoints,
+                questionType.parseConfig(configJson != null ? configJson : "{}"),
+                position);
+    }
+
+    private String serializeConfig(QuestionConfig config) {
+        if (config == null) return "{}";
+        try {
+            return MAPPER.writeValueAsString(config);
+        } catch (Exception e) {
+            return "{}";
+        }
     }
 
     public boolean updateQuestion(
@@ -452,7 +494,7 @@ public class QuizService {
             throw new IllegalStateException("Test has no frozen questions — was it activated properly?");
         }
 
-        int totalMaxPoints = 0;
+        double totalMaxPoints = 0;
         for (var fq : frozenQuestions) {
             var question = catalogRepository.findQuestionById(fq.questionId());
             if (question.isPresent()) {
@@ -533,7 +575,7 @@ public class QuizService {
         }
 
         double points = (correct * pointsPerCorrect) - (wrong * pointsPerCorrect);
-        return Math.max(0, Math.min(points, maxPoints));
+        return Math.clamp(points, 0, maxPoints);
     }
 
     private double gradeTrueFalse(JsonNode config, JsonNode answer, double maxPoints) {
@@ -725,12 +767,6 @@ public class QuizService {
     public boolean canMemberAccess(int testId, int memberId) {
         return restrictionRepository.checkRestriction(RestrictionType.QUIZ_TEST, testId, memberId);
     }
-
-    // -- Records --
-
-    public record SectionEntry(String title, String description, List<SourceEntry> sources) {}
-
-    public record SourceEntry(int catalogId, Integer categoryId, int questionCount) {}
 
     private record AttemptQuestionEntry(int questionId, Integer sectionId) {}
 }

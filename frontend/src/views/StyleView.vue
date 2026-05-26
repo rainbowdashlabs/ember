@@ -4,10 +4,56 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {ref} from 'vue'
+import {ref, watchEffect} from 'vue'
+import {useRoute} from 'vue-router'
 
-import ThemeToggle from '@/components/theme/ThemeToggle.vue'
-import ThemePicker from '@/components/theme/ThemePicker.vue'
+import ThemeSelector from '@/components/theme/ThemeSelector.vue'
+import type {ThemeColors} from '@/theme/themes'
+
+const route = useRoute()
+const hasCustomParam = ref(false)
+
+const samplePatch = `--- a/notes.md
++++ b/notes.md
+@@ -1,5 +1,6 @@
+ # Meeting Notes
+-Date: 2026-05-20
++Date: 2026-05-26
++Status: Final
+
+-Action items are pending.
++All action items completed.
+ Next meeting in two weeks.`
+
+function applyCustomColors(colors: ThemeColors) {
+  const root = document.documentElement.style
+  root.setProperty('--color-primary', colors.primary)
+  root.setProperty('--color-primary-accent', colors.primaryAccent)
+  root.setProperty('--color-secondary', colors.secondary)
+  root.setProperty('--color-secondary-accent', colors.secondaryAccent)
+  root.setProperty('--color-info', colors.info)
+  root.setProperty('--color-info-accent', colors.infoAccent)
+  root.setProperty('--color-success', colors.success)
+  root.setProperty('--color-error', colors.error)
+  root.setProperty('--color-bg-light', colors.bgLight)
+  root.setProperty('--color-bg-light-accent', colors.bgLightAccent)
+  root.setProperty('--color-bg-dark', colors.bgDark)
+  root.setProperty('--color-bg-dark-accent', colors.bgDarkAccent)
+}
+
+// Apply custom colors from query param — use watchEffect with post flush
+// to ensure it runs after the theme system (initFromLocalStorage, fetchPublicTheme)
+watchEffect(() => {
+  const param = route.query.customTheme as string | undefined
+  if (param) {
+    try {
+      const colors = JSON.parse(decodeURIComponent(param)) as ThemeColors
+      hasCustomParam.value = true
+      // Delay slightly to win the race against fetchPublicTheme
+      setTimeout(() => applyCustomColors(colors), 50)
+    } catch { /* ignore */ }
+  }
+}, { flush: 'post' })
 
 import PageHeader from '@/components/typography/PageHeader.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
@@ -18,6 +64,7 @@ import SuccessContainer from '@/components/container/SuccessContainer.vue'
 import ErrorContainer from '@/components/container/ErrorContainer.vue'
 import InfoContainer from '@/components/container/InfoContainer.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
+import DiffView from '@/components/display/DiffView.vue'
 
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
@@ -57,11 +104,8 @@ const toggleStates = ref(new Set([1, 3]))
   <div class="max-w-3xl mx-auto px-4 py-6 sm:px-8 sm:py-8 space-y-10 sm:space-y-12">
     <!-- Theme Picker at top -->
     <div class="space-y-4">
-      <div class="flex items-center justify-between">
-        <PageHeader>Style Guide</PageHeader>
-        <ThemeToggle/>
-      </div>
-      <ThemePicker/>
+      <PageHeader>Style Guide</PageHeader>
+      <ThemeSelector/>
     </div>
 
     <StyleTypography/>
@@ -204,6 +248,20 @@ const toggleStates = ref(new Set([1, 3]))
           </tbody>
         </table>
       </NeutralContainer>
+    </section>
+
+    <section>
+      <SectionHeader>Diff View</SectionHeader>
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <NeutralContainer class="!p-0 overflow-hidden">
+          <p class="px-3 py-2 text-sm font-medium border-b border-(--border)">Compact (no line numbers)</p>
+          <DiffView :patch="samplePatch" compact/>
+        </NeutralContainer>
+        <NeutralContainer class="!p-0 overflow-hidden">
+          <p class="px-3 py-2 text-sm font-medium border-b border-(--border)">With line numbers</p>
+          <DiffView :patch="samplePatch" show-line-numbers/>
+        </NeutralContainer>
+      </div>
     </section>
 
     <StyleFeedback/>

@@ -6,11 +6,15 @@
 package dev.chojo.ember.feature.federation.route;
 
 import dev.chojo.ember.api.Routes;
+import dev.chojo.ember.feature.events.entity.EventField;
+import dev.chojo.ember.feature.events.service.EventFederationService;
+import dev.chojo.ember.feature.events.service.EventFieldService;
+import dev.chojo.ember.feature.events.service.EventService;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
+import dev.chojo.ember.feature.federation.entity.FederationShare;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.federation.service.FederationSigningService;
-import dev.chojo.ember.feature.federation.service.FederationWebhookService;
 import dev.chojo.ember.feature.federation.service.LendingService;
 import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseService;
 import dev.chojo.ember.feature.protocol.service.TestProtocolService;
@@ -27,8 +31,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 /**
  * Unauthenticated HTTP endpoints for cross-instance federation.
@@ -45,17 +52,22 @@ public class FederationRemoteRoutes implements Routes {
     private final KnowledgeBaseService kbService;
     private final QuizService quizService;
     private final TestProtocolService protocolService;
+    private final EventFederationService eventFederationService;
+    private final EventService eventService;
+    private final EventFieldService eventFieldService;
 
     @Inject
     public FederationRemoteRoutes(
             FederationService federationService,
             FederationSigningService signingService,
-            FederationWebhookService webhookService,
             FederationRepository repository,
             LendingService lendingService,
             KnowledgeBaseService kbService,
             QuizService quizService,
-            TestProtocolService protocolService) {
+            TestProtocolService protocolService,
+            EventFederationService eventFederationService,
+            EventService eventService,
+            EventFieldService eventFieldService) {
         this.federationService = federationService;
         this.signingService = signingService;
         this.repository = repository;
@@ -63,6 +75,9 @@ public class FederationRemoteRoutes implements Routes {
         this.kbService = kbService;
         this.quizService = quizService;
         this.protocolService = protocolService;
+        this.eventFederationService = eventFederationService;
+        this.eventService = eventService;
+        this.eventFieldService = eventFieldService;
     }
 
     @Override
@@ -74,6 +89,7 @@ public class FederationRemoteRoutes implements Routes {
 
         // KB endpoints (signature required)
         routes.get(base + "/kb/browse", this::browseKb);
+        routes.get(base + "/kb/search", this::searchKb);
         routes.get(base + "/kb/file/{id}", this::getKbFile);
         routes.get(base + "/kb/file/{id}/content", this::getKbFileContent);
 
@@ -85,11 +101,22 @@ public class FederationRemoteRoutes implements Routes {
         routes.get(base + "/protocols", this::browseProtocols);
         routes.get(base + "/protocols/{id}", this::getProtocol);
 
+        // Event endpoints (signature required)
+        routes.get(base + "/events", this::listFederatedEvents);
+        routes.get(base + "/events/{id}", this::getFederatedEvent);
+        routes.post(base + "/events/{id}/register", this::registerForFederatedEvent);
+        routes.delete(base + "/events/{id}/register", this::withdrawFederatedRegistration);
+        routes.get(base + "/events/{id}/registrations", this::listFederatedRegistrations);
+
         // Lending endpoints (signature required)
         routes.get(base + "/lending/messages/{requestId}", this::getLendingMessages);
 
         // Webhook registration (signature required)
         routes.post(base + "/webhook/register", this::registerWebhook);
+
+        // Webhook receivers (signature required)
+        routes.post(base + "/webhook/event-registration-status", this::onEventRegistrationStatus);
+        routes.post(base + "/webhook/member-name-changed", this::onMemberNameChanged);
 
         // Sync polling (signature required)
         routes.get(base + "/sync/metadata", this::syncMetadata);
@@ -218,6 +245,34 @@ public class FederationRemoteRoutes implements Routes {
                         "updatedAt", file.updatedAt().toString()))
                 .toList();
         ctx.json(result);
+    }
+
+    private void searchKb(Context ctx) {
+        var partner = verifySignature(ctx);
+        String query = ctx.queryParam("q");
+        if (query == null || query.isBlank()) {
+            ctx.json(List.of());
+            return;
+        }
+        var results = kbService.searchWithSnippets(partner.stationId(), query);
+        // Only return results for files shared with this partner
+        var shares = repository.findKbShares(partner.stationId());
+        var sharedFileIds = shares.stream()
+                .filter(s -> s.fileId() != null)
+                .map(FederationShare::fileId)
+                .collect(Collectors.toSet());
+        ctx.json(results.stream()
+                .filter(r -> sharedFileIds.contains(r.file().id()))
+                .map(r -> Map.<String, Object>of(
+                        "id",
+                        r.file().id(),
+                        "name",
+                        r.file().name(),
+                        "description",
+                        r.file().description() != null ? r.file().description() : "",
+                        "snippet",
+                        r.snippet() != null ? r.snippet() : ""))
+                .toList());
     }
 
     private void getKbFile(Context ctx) {
@@ -385,11 +440,123 @@ public class FederationRemoteRoutes implements Routes {
         ctx.json(Map.of("status", "ok"));
     }
 
+    // -- Federated Events --
+
+    private void listFederatedEvents(Context ctx) {
+        var partner = verifySignature(ctx);
+        var eventIds = eventFederationService.findSharedEventIds(partner.id(), partner.stationId());
+        var events = eventIds.stream()
+                .map(id -> eventService.findById(id).orElse(null))
+                .filter(Objects::nonNull)
+                .map(e -> Map.of(
+                        "id", e.id(),
+                        "name", e.name(),
+                        "description", e.description() != null ? e.description() : "",
+                        "eventType", e.eventType() != null ? e.eventType().name() : "",
+                        "dayOfWeek", e.dayOfWeek() != null ? e.dayOfWeek() : 0,
+                        "startTime", e.startTime() != null ? e.startTime().toString() : "",
+                        "endTime", e.endTime() != null ? e.endTime().toString() : "",
+                        "requiresRegistration", e.requiresRegistration(),
+                        "requiresConfirmation", true))
+                .toList();
+        ctx.json(events);
+    }
+
+    private void getFederatedEvent(Context ctx) {
+        var partner = verifySignature(ctx);
+        int eventId = ctx.pathParamAsClass("id", Integer.class).get();
+        var eventIds = eventFederationService.findSharedEventIds(partner.id(), partner.stationId());
+        if (!eventIds.contains(eventId)) {
+            throw new NotFoundResponse();
+        }
+        var event = eventService.findById(eventId).orElseThrow(NotFoundResponse::new);
+        var fields = eventFieldService.findByEvent(eventId).stream()
+                .filter(EventField::isPublic)
+                .toList();
+        ctx.json(Map.of(
+                "id",
+                event.id(),
+                "name",
+                event.name(),
+                "description",
+                event.description() != null ? event.description() : "",
+                "eventType",
+                event.eventType() != null ? event.eventType().name() : "",
+                "dayOfWeek",
+                event.dayOfWeek() != null ? event.dayOfWeek() : 0,
+                "startTime",
+                event.startTime() != null ? event.startTime().toString() : "",
+                "endTime",
+                event.endTime() != null ? event.endTime().toString() : "",
+                "requiresRegistration",
+                event.requiresRegistration(),
+                "requiresConfirmation",
+                true,
+                "publicFields",
+                fields));
+    }
+
+    private void registerForFederatedEvent(Context ctx) {
+        var partner = verifySignature(ctx);
+        int eventId = ctx.pathParamAsClass("id", Integer.class).get();
+        var eventIds = eventFederationService.findSharedEventIds(partner.id(), partner.stationId());
+        if (!eventIds.contains(eventId)) {
+            throw new NotFoundResponse();
+        }
+        var req = ctx.bodyAsClass(FederatedRegistrationRequest.class);
+        var reg =
+                eventFederationService.registerFederated(eventId, partner.id(), req.remoteMemberId(), req.eventDate());
+        ctx.status(HttpStatus.CREATED).json(reg);
+    }
+
+    private void withdrawFederatedRegistration(Context ctx) {
+        var partner = verifySignature(ctx);
+        int eventId = ctx.pathParamAsClass("id", Integer.class).get();
+        var req = ctx.bodyAsClass(FederatedRegistrationRequest.class);
+        eventFederationService.withdrawRegistration(eventId, partner.id(), req.remoteMemberId(), req.eventDate());
+        ctx.status(HttpStatus.NO_CONTENT);
+    }
+
+    private void listFederatedRegistrations(Context ctx) {
+        var partner = verifySignature(ctx);
+        int eventId = ctx.pathParamAsClass("id", Integer.class).get();
+        var eventIds = eventFederationService.findSharedEventIds(partner.id(), partner.stationId());
+        if (!eventIds.contains(eventId)) {
+            throw new NotFoundResponse();
+        }
+        var registrations = eventFederationService.findRegistrationsByPartner(partner.id()).stream()
+                .filter(r -> r.eventId() == eventId)
+                .toList();
+        ctx.json(registrations);
+    }
+
+    // -- Webhook Receivers --
+
+    private void onEventRegistrationStatus(Context ctx) {
+        var partner = verifySignature(ctx);
+        var req = ctx.bodyAsClass(EventRegistrationStatusWebhook.class);
+        // The owning station notifies us that a registration was accepted/denied.
+        // We create a local notification for the member.
+        // remoteMemberId is the local member ID as string.
+        // This would trigger a local notification via the domain event system.
+        ctx.json(Map.of("status", "ok"));
+    }
+
+    private void onMemberNameChanged(Context ctx) {
+        var partner = verifySignature(ctx);
+        var req = ctx.bodyAsClass(MemberNameChangedWebhook.class);
+        eventFederationService.invalidateName(partner.id(), req.remoteMemberId());
+        ctx.json(Map.of("status", "ok"));
+    }
+
     // -- Request/Response Records --
+
+    public record EventRegistrationStatusWebhook(int eventId, String remoteMemberId, String eventDate, String status) {}
+
+    public record MemberNameChangedWebhook(String remoteMemberId) {}
 
     public record AnnounceRequest(String newHost) {}
 
-    // Uses internal int IDs in the federation protocol — UUID migration requires protocol version bump
     public record HandshakeRequest(
             int stationId, int federationVersion, List<String> capabilities, String publicKey, String signature) {}
 
@@ -397,4 +564,6 @@ public class FederationRemoteRoutes implements Routes {
             int stationId, int federationVersion, List<String> capabilities, String publicKey) {}
 
     public record WebhookRegisterRequest(String webhookUrl) {}
+
+    public record FederatedRegistrationRequest(String remoteMemberId, LocalDate eventDate) {}
 }

@@ -3,6 +3,14 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
+export const Feel = { ROUNDED: 'ROUNDED', CORNERS: 'CORNERS' } as const
+export type FeelValue = (typeof Feel)[keyof typeof Feel]
+
+export const FEEL_RADIUS: Record<FeelValue, string> = {
+    ROUNDED: '0.5rem',
+    CORNERS: '0.125rem',
+}
+
 export interface ThemeColors {
     primary: string
     primaryAccent: string
@@ -18,7 +26,13 @@ export interface ThemeColors {
     bgDarkAccent: string
 }
 
-export const THEMES: Record<string, { label: string; colors: ThemeColors }> = {
+export interface ThemeDefinition {
+    label: string
+    colors: ThemeColors
+    supportedFeels: FeelValue[]
+}
+
+export const THEMES: Record<string, ThemeDefinition> = {
     ember: {
         label: 'Ember',
         colors: {
@@ -35,6 +49,7 @@ export const THEMES: Record<string, { label: string; colors: ThemeColors }> = {
             bgDark: '#212121',
             bgDarkAccent: '#191919',
         },
+        supportedFeels: [Feel.ROUNDED, Feel.CORNERS],
     },
     midnight: {
         label: 'Midnight',
@@ -52,6 +67,7 @@ export const THEMES: Record<string, { label: string; colors: ThemeColors }> = {
             bgDark: '#0D1B2A',
             bgDarkAccent: '#071120',
         },
+        supportedFeels: [Feel.ROUNDED, Feel.CORNERS],
     },
     fire_red: {
         label: 'Fire Red',
@@ -69,6 +85,7 @@ export const THEMES: Record<string, { label: string; colors: ThemeColors }> = {
             bgDark: '#1C1111',
             bgDarkAccent: '#140C0C',
         },
+        supportedFeels: [Feel.ROUNDED, Feel.CORNERS],
     },
     forest: {
         label: 'Forest',
@@ -86,6 +103,7 @@ export const THEMES: Record<string, { label: string; colors: ThemeColors }> = {
             bgDark: '#1A2418',
             bgDarkAccent: '#111A10',
         },
+        supportedFeels: [Feel.ROUNDED, Feel.CORNERS],
     },
     cherry_blossom: {
         label: 'Cherry Blossom',
@@ -103,6 +121,7 @@ export const THEMES: Record<string, { label: string; colors: ThemeColors }> = {
             bgDark: '#2A1A22',
             bgDarkAccent: '#1E1018',
         },
+        supportedFeels: [Feel.ROUNDED, Feel.CORNERS],
     },
     simple: {
         label: 'Simple',
@@ -120,6 +139,7 @@ export const THEMES: Record<string, { label: string; colors: ThemeColors }> = {
             bgDark: '#2C2C2C',
             bgDarkAccent: '#222222',
         },
+        supportedFeels: [Feel.ROUNDED, Feel.CORNERS],
     },
     ocean: {
         label: 'Ocean',
@@ -137,6 +157,7 @@ export const THEMES: Record<string, { label: string; colors: ThemeColors }> = {
             bgDark: '#0E1F20',
             bgDarkAccent: '#081516',
         },
+        supportedFeels: [Feel.ROUNDED, Feel.CORNERS],
     },
     sunset: {
         label: 'Sunset',
@@ -154,6 +175,25 @@ export const THEMES: Record<string, { label: string; colors: ThemeColors }> = {
             bgDark: '#231A12',
             bgDarkAccent: '#18100A',
         },
+        supportedFeels: [Feel.ROUNDED, Feel.CORNERS],
+    },
+    fire: {
+        label: 'Fire',
+        colors: {
+            primary: '#CC0000',
+            primaryAccent: '#8B0000',
+            secondary: '#2B2B2B',
+            secondaryAccent: '#1A1A1A',
+            info: '#D4A017',
+            infoAccent: '#B8860B',
+            success: '#2E8B57',
+            error: '#DC2626',
+            bgLight: '#F2F2F2',
+            bgLightAccent: '#D9D9D9',
+            bgDark: '#1A1A1A',
+            bgDarkAccent: '#111111',
+        },
+        supportedFeels: [Feel.ROUNDED, Feel.CORNERS],
     },
     lavender: {
         label: 'Lavender',
@@ -171,6 +211,80 @@ export const THEMES: Record<string, { label: string; colors: ThemeColors }> = {
             bgDark: '#1C162A',
             bgDarkAccent: '#120E1E',
         },
+        supportedFeels: [Feel.ROUNDED, Feel.CORNERS],
+    },
+    // -- Accessibility: Color blindness optimized themes --
+    cb_protanopia: {
+        label: 'Protanopie (Rotschwäche)',
+        colors: {
+            primary: '#0072B2',
+            primaryAccent: '#005080',
+            secondary: '#E69F00',
+            secondaryAccent: '#CC8400',
+            info: '#56B4E9',
+            infoAccent: '#3A9AD9',
+            success: '#009E73',
+            error: '#D55E00',
+            bgLight: '#F0F4F8',
+            bgLightAccent: '#D6DEE6',
+            bgDark: '#1A2332',
+            bgDarkAccent: '#111826',
+        },
+        supportedFeels: [Feel.ROUNDED, Feel.CORNERS],
+    },
+    cb_deuteranopia: {
+        label: 'Deuteranopie (Grünschwäche)',
+        colors: {
+            primary: '#0077BB',
+            primaryAccent: '#005588',
+            secondary: '#EE7733',
+            secondaryAccent: '#CC5511',
+            info: '#33BBEE',
+            infoAccent: '#1199CC',
+            success: '#0077BB',
+            error: '#CC3311',
+            bgLight: '#F2F5F7',
+            bgLightAccent: '#D8DFE5',
+            bgDark: '#1B2430',
+            bgDarkAccent: '#121920',
+        },
+        supportedFeels: [Feel.ROUNDED, Feel.CORNERS],
+    },
+    cb_tritanopia: {
+        label: 'Tritanopie (Blauschwäche)',
+        colors: {
+            primary: '#CC2936',
+            primaryAccent: '#9E1F2A',
+            secondary: '#008080',
+            secondaryAccent: '#006060',
+            info: '#E8A838',
+            infoAccent: '#CA8A04',
+            success: '#2B9348',
+            error: '#CC2936',
+            bgLight: '#F5F0EE',
+            bgLightAccent: '#DDD5D0',
+            bgDark: '#221A18',
+            bgDarkAccent: '#181010',
+        },
+        supportedFeels: [Feel.ROUNDED, Feel.CORNERS],
+    },
+    cb_monochrome: {
+        label: 'Achromatopsie (Monochrom)',
+        colors: {
+            primary: '#505050',
+            primaryAccent: '#333333',
+            secondary: '#888888',
+            secondaryAccent: '#6A6A6A',
+            info: '#707070',
+            infoAccent: '#585858',
+            success: '#404040',
+            error: '#1A1A1A',
+            bgLight: '#F5F5F5',
+            bgLightAccent: '#D9D9D9',
+            bgDark: '#222222',
+            bgDarkAccent: '#161616',
+        },
+        supportedFeels: [Feel.ROUNDED, Feel.CORNERS],
     },
 }
 

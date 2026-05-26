@@ -13,6 +13,7 @@ import dev.chojo.ember.feature.members.repository.UserSettingsRepository;
 import dev.chojo.ember.feature.notifications.entity.Notification;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
 import dev.chojo.ember.feature.notifications.entity.NotificationParams;
+import dev.chojo.ember.feature.notifications.entity.NotificationSetting;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
 import dev.chojo.ember.feature.notifications.repository.NotificationRepository;
 import dev.chojo.ember.feature.notifications.repository.NotificationSettingsRepository;
@@ -231,6 +232,10 @@ public class NotificationService {
      */
     public List<Notification> findAll(int memberId) {
         return notificationRepository.findAll(memberId);
+    }
+
+    public Map<NotificationType, NotificationSetting> getNotificationSettings(int memberId) {
+        return notificationSettingsRepository.findByMemberAsMap(memberId);
     }
 
     /**

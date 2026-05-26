@@ -163,8 +163,7 @@ function fileIcon(file: KbFile): string[] {
         <NeutralContainer
             v-for="shared in sharedFiles"
             :key="'shared-' + shared.file.id"
-            class="cursor-pointer hover:border-[var(--primary)] transition-colors relative group"
-            @click="emit('navigateFile', shared.file)"
+            class="hover:border-[var(--primary)] transition-colors relative group"
         >
             <div class="flex flex-col items-center gap-2 p-2 text-center">
                 <font-awesome-icon :icon="fileIcon(shared.file)" class="text-2xl text-[var(--primary)]"/>

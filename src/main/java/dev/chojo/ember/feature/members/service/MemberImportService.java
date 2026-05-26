@@ -10,6 +10,7 @@ import dev.chojo.ember.auth.PasswordHasher;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
 import dev.chojo.ember.feature.members.entity.ProfileField;
+import dev.chojo.ember.feature.members.entity.ProfileFieldType;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.ProfileFieldRepository;
@@ -437,8 +438,8 @@ public class MemberImportService {
 
     // -- Preview with mapping --
 
-    private String maybeConvertDate(String value, String fieldType) {
-        if (!"date".equals(fieldType)) return value;
+    private String maybeConvertDate(String value, ProfileFieldType fieldType) {
+        if (fieldType != ProfileFieldType.DATE) return value;
         try {
             return LocalDate.parse(value, DE_DATE).toString();
         } catch (Exception e) {

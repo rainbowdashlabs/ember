@@ -77,6 +77,20 @@ class StationMemberServiceTest extends RepositoryTestBase {
     }
 
     @Test
+    @Order(4)
+    void findByStationIncludeFormer() {
+        var members = service.findByStation(station.id(), false);
+        assertTrue(members.size() >= 2);
+    }
+
+    @Test
+    @Order(5)
+    void findRoles() {
+        var roles = service.findRoles(member1.id());
+        assertNotNull(roles);
+    }
+
+    @Test
     @Order(10)
     void setRolesAssignsAndReturns() {
         var memberRole = stationMemberRepo.findRoleByName(Roles.MEMBER).orElseThrow();
@@ -120,5 +134,38 @@ class StationMemberServiceTest extends RepositoryTestBase {
         var managers = service.findManagers(member2.id());
         assertTrue(managers.stream().anyMatch(m -> m.id() == member1.id()));
         stationMemberRepo.removeAllManaged(member1.id());
+    }
+
+    @Test
+    @Order(21)
+    void setManagers() {
+        // Set member1 as manager of member2
+        var result = service.setManagers(member2.id(), List.of(member1.id()));
+        assertTrue(result.stream().anyMatch(m -> m.id() == member1.id()));
+
+        // Remove all managers
+        var cleared = service.setManagers(member2.id(), List.of());
+        assertTrue(cleared.isEmpty());
+    }
+
+    @Test
+    @Order(22)
+    void setManagersIdempotent() {
+        service.setManagers(member2.id(), List.of(member1.id()));
+        // Setting again with same list should be idempotent
+        var result = service.setManagers(member2.id(), List.of(member1.id()));
+        assertEquals(1, result.size());
+        service.setManagers(member2.id(), List.of());
+    }
+
+    @Test
+    @Order(30)
+    void delete() {
+        // Create a third member to delete
+        var account3 = accountRepo.create("svc3@test.com", "Third", "Member");
+        var member3 = service.create(station.id(), account3.id());
+        assertTrue(service.delete(member3.id()));
+        assertTrue(service.findById(member3.id()).isEmpty());
+        accountRepo.delete(account3.id());
     }
 }

@@ -12,6 +12,7 @@ import dev.chojo.ember.feature.attendance.repository.AttendanceRepository;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListEntryStatus;
+import dev.chojo.ember.feature.waitinglist.entity.WaitingListFieldConfig;
 import dev.chojo.ember.feature.waitinglist.repository.WaitingListRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -60,10 +61,17 @@ public class DemoWaitingListSeeder {
                 joinRoleId,
                 5);
 
-        var nameField = waitingListRepository.createField(list.id(), "Vorname", "TEXT", "{}", 0, true);
-        var ageField = waitingListRepository.createField(list.id(), "Alter", "NUMBER", "{}", 1, true);
+        var nameField = waitingListRepository.createField(
+                list.id(), "Vorname", "TEXT", WaitingListFieldConfig.parse("{}"), 0, true);
+        var ageField = waitingListRepository.createField(
+                list.id(), "Alter", "NUMBER", WaitingListFieldConfig.parse("{}"), 1, true);
         var expField = waitingListRepository.createField(
-                list.id(), "Erfahrung", "ENUM", "{\"options\":[\"anfaenger\",\"fortgeschritten\"]}", 2, true);
+                list.id(),
+                "Erfahrung",
+                "ENUM",
+                WaitingListFieldConfig.parse("{\"options\":[\"anfaenger\",\"fortgeschritten\"]}"),
+                2,
+                true);
 
         // Create invite codes
         waitingListRepository.createInvite(list.id(), "demo-invite-active", 5, null);

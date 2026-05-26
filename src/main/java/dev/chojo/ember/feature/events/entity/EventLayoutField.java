@@ -11,8 +11,8 @@ public record EventLayoutField(
         int id,
         int layoutId,
         String name,
-        String fieldType,
-        String config,
+        EventFieldType fieldType,
+        EventFieldConfig config,
         int position,
         boolean overview,
         Integer attendanceFieldId) {
@@ -22,8 +22,8 @@ public record EventLayoutField(
                 row.getInt("id"),
                 row.getInt("layout_id"),
                 row.getString("name"),
-                row.getString("field_type"),
-                row.getString("config"),
+                row.getEnum("field_type", EventFieldType.class),
+                EventFieldConfig.parse(row.getString("config")),
                 row.getInt("position"),
                 row.getBoolean("overview"),
                 row.getObject("attendance_field_id", Integer.class));

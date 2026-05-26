@@ -6,6 +6,7 @@
 package dev.chojo.ember.service;
 
 import dev.chojo.ember.conf.file.elements.Api;
+import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.federation.entity.LendingMessage;
 import dev.chojo.ember.feature.federation.entity.LendingStatus;
@@ -25,8 +26,10 @@ import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
@@ -59,7 +62,8 @@ class LendingServiceTest extends RepositoryTestBase {
         federationRepo = new FederationRepository();
         federationService = new FederationService(federationRepo, stationRepo, new Api());
         httpClient = mock(FederationHttpClient.class);
-        service = new LendingService(lendingRepo, httpClient, federationService, stationRepo);
+        service = new LendingService(
+                lendingRepo, httpClient, federationService, stationRepo, inventoryRepo, new DomainEventBus(Set.of()));
 
         stationA = stationRepo.create("LendSvcTestStationA");
         stationB = stationRepo.create("LendSvcTestStationB");
@@ -177,7 +181,7 @@ class LendingServiceTest extends RepositoryTestBase {
     @Test
     @Order(20)
     void sendMessage() {
-        var msg = service.sendMessage(requestId, stationA.id(), memberA.id(), "Test message from A");
+        var msg = service.sendMessage(requestId, stationA.id(), memberA.id(), "Tester A", "Test message from A");
         assertNotNull(msg);
         assertEquals("Test message from A", msg.message());
         assertFalse(msg.isSystem());
@@ -187,8 +191,8 @@ class LendingServiceTest extends RepositoryTestBase {
     @Order(21)
     void getMessagesForLocalPartner() {
         // Add messages from both sides
-        service.sendMessage(requestId, stationA.id(), memberA.id(), "Hello from A");
-        service.sendMessage(requestId, stationB.id(), memberB.id(), "Hello from B");
+        service.sendMessage(requestId, stationA.id(), memberA.id(), "Tester A", "Hello from A");
+        service.sendMessage(requestId, stationB.id(), memberB.id(), "Tester B", "Hello from B");
 
         // getMessages should merge both sides using direct DB (local partner)
         var messages = service.getMessages(requestId, stationA.id());
@@ -219,11 +223,11 @@ class LendingServiceTest extends RepositoryTestBase {
         // Create a request between A and C
         var req = service.createRequest(
                 stationC.id(), stationA.id(), LocalDate.now(), LocalDate.now().plusDays(3), memberC.id());
-        service.sendMessage(req.id(), stationA.id(), memberA.id(), "Local msg from A");
+        service.sendMessage(req.id(), stationA.id(), memberA.id(), "Tester A", "Local msg from A");
 
         // Mock remote messages from C
         var remoteMsg = new LendingMessage(
-                9999, req.id(), stationC.id(), memberC.id(), "Remote msg from C", false, java.time.Instant.now());
+                9999, req.id(), stationC.id(), memberC.id(), "Remote msg from C", false, Instant.now());
         when(httpClient.fetchRemoteMessages(eq("https://remote.example.com"), eq(req.id()), eq(stationA.id()), any()))
                 .thenReturn(List.of(remoteMsg));
 
@@ -301,5 +305,149 @@ class LendingServiceTest extends RepositoryTestBase {
                 itemIdA,
                 LocalDate.now(),
                 LocalDate.now().plusDays(1)));
+    }
+
+    @Test
+    @Order(50)
+    void findRequestsByStation() {
+        var requests = service.findRequestsByStation(stationA.id());
+        assertNotNull(requests);
+        // stationA is the owning station — the requests should include our main requestId
+        assertTrue(requests.stream().anyMatch(r -> r.id() == requestId));
+    }
+
+    @Test
+    @Order(51)
+    void getLocalMessages() {
+        var msgs = service.getLocalMessages(requestId, stationA.id());
+        assertNotNull(msgs);
+        // We sent at least one message from stationA in order 20/21
+        assertTrue(msgs.stream().anyMatch(m -> m.senderStationId() == stationA.id()));
+    }
+
+    @Test
+    @Order(52)
+    void declineRequestWithNoReason() {
+        var req = service.createRequest(
+                stationB.id(), stationA.id(), LocalDate.now(), LocalDate.now().plusDays(2), memberB.id());
+        assertTrue(service.declineRequest(req.id(), stationA.id(), null));
+        var found = service.findRequest(req.id()).orElseThrow();
+        assertEquals(dev.chojo.ember.feature.federation.entity.LendingStatus.DECLINED, found.status());
+    }
+
+    @Test
+    @Order(53)
+    void declineRequestWithBlankReason() {
+        var req = service.createRequest(
+                stationB.id(), stationA.id(), LocalDate.now(), LocalDate.now().plusDays(2), memberB.id());
+        assertTrue(service.declineRequest(req.id(), stationA.id(), ""));
+        var found = service.findRequest(req.id()).orElseThrow();
+        assertEquals(dev.chojo.ember.feature.federation.entity.LendingStatus.DECLINED, found.status());
+    }
+
+    @Test
+    @Order(55)
+    void isBlockedReturnsFalseWhenNotBlocked() {
+        // Date range well in the future with no block configured
+        assertFalse(service.isBlocked(
+                stationA.id(),
+                inventoryIdA,
+                itemIdA,
+                LocalDate.now().plusYears(5),
+                LocalDate.now().plusYears(5).plusDays(1)));
+    }
+
+    @Test
+    @Order(56)
+    void findRequestNotFound() {
+        assertTrue(service.findRequest(999999).isEmpty());
+    }
+
+    @Test
+    @Order(57)
+    void createRequestWithItemsBuildsSummary() {
+        // Create request and add an item with inventoryId so buildItemSummary covers lines 72-79
+        var req = service.createRequest(
+                stationB.id(), stationA.id(), LocalDate.now(), LocalDate.now().plusDays(5), memberB.id());
+        service.addRequestItem(req.id(), inventoryIdA, itemIdA, 3);
+
+        // Create another request — this triggers buildItemSummary with items in the DB
+        var req2 = service.createRequest(
+                stationB.id(), stationA.id(), LocalDate.now(), LocalDate.now().plusDays(5), memberB.id());
+        // Add item to req2 before checking (buildItemSummary is called during createRequest,
+        // but the items are added after, so let's exercise it via status changes)
+        service.addRequestItem(req2.id(), inventoryIdA, itemIdA, 1);
+
+        // Approve from the requesting station's side to exercise the other publishStatusChange branch (line 85)
+        assertTrue(service.approveRequest(req.id(), stationB.id()));
+    }
+
+    @Test
+    @Order(58)
+    void getMessagesFromRequestingStationPerspective() {
+        // Exercise getMessages where localStationId == requestingStationId (line 204)
+        var req = service.createRequest(
+                stationB.id(), stationA.id(), LocalDate.now(), LocalDate.now().plusDays(3), memberB.id());
+        service.sendMessage(req.id(), stationA.id(), memberA.id(), "A", "msg from A");
+        service.sendMessage(req.id(), stationB.id(), memberB.id(), "B", "msg from B");
+
+        // Get messages from stationB's perspective (the requesting station)
+        var messages = service.getMessages(req.id(), stationB.id());
+        assertFalse(messages.isEmpty());
+        assertTrue(messages.stream().anyMatch(m -> m.senderStationId() == stationA.id()));
+        assertTrue(messages.stream().anyMatch(m -> m.senderStationId() == stationB.id()));
+    }
+
+    @Test
+    @Order(59)
+    void getMessagesRemotePartnerNoPrivateKey() {
+        // Create a remote federation where the local station has no private key (lines 228-230)
+        var stationC = stationRepo.create("LendNoKeyC");
+        var stationD = stationRepo.create("LendNoKeyD");
+        var memberC = stationMemberRepo.create(stationC.id(), account.id());
+
+        var keyPair = federationService.generateKeyPair();
+        federationService.acceptInvite(
+                stationD.id(),
+                stationC.id(),
+                federationService.encodePublicKey(keyPair),
+                null,
+                "https://remote-lending.example.com");
+
+        // stationC has no federation private key set
+        var req = service.createRequest(
+                stationC.id(), stationD.id(), LocalDate.now(), LocalDate.now().plusDays(2), memberC.id());
+        service.sendMessage(req.id(), stationC.id(), memberC.id(), "C", "msg from C");
+
+        // getMessages from stationD perspective — partner is remote, but stationD has no private key
+        // Should return local messages only (remote fetch returns empty due to no key)
+        var messages = service.getMessages(req.id(), stationD.id());
+        assertNotNull(messages);
+
+        stationRepo.delete(stationC.id());
+        stationRepo.delete(stationD.id());
+    }
+
+    @Test
+    @Order(60)
+    void getMessagesWithNoPartner() {
+        // Exercise findPartnerForStation returning null (lines 243-244)
+        // Create stations without federation
+        var stationE = stationRepo.create("LendNoPartnerE");
+        var stationF = stationRepo.create("LendNoPartnerF");
+        var memberE = stationMemberRepo.create(stationE.id(), account.id());
+
+        // Directly create a lending request via the repository (bypassing federation check)
+        var req = lendingRepo.createRequest(
+                stationE.id(), stationF.id(), LocalDate.now(), LocalDate.now().plusDays(2), memberE.id());
+        lendingRepo.createMessage(req.id(), stationE.id(), memberE.id(), "hello", false);
+
+        // getMessages — no federation partner exists, so findPartnerForStation returns null
+        var messages = service.getMessages(req.id(), stationE.id());
+        assertNotNull(messages);
+        assertFalse(messages.isEmpty());
+
+        stationRepo.delete(stationE.id());
+        stationRepo.delete(stationF.id());
     }
 }

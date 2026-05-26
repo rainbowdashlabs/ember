@@ -62,6 +62,7 @@ public class UserSettingsRoutes implements Routes {
                 userSettings.emailEnabled(),
                 userSettings.theme(),
                 userSettings.darkMode(),
+                userSettings.feel(),
                 notifSettings,
                 session.stationId()));
     }
@@ -82,11 +83,12 @@ public class UserSettingsRoutes implements Routes {
         if (request.emailEnabled() != null) {
             settingsService.updateEmailEnabled(memberId, request.emailEnabled());
         }
-        if (request.theme() != null || request.darkMode() != null) {
+        if (request.theme() != null || request.darkMode() != null || request.feel() != null) {
             settingsService.updateTheme(
                     memberId,
                     request.theme() != null ? request.theme() : current.theme(),
-                    request.darkMode() != null ? request.darkMode() : current.darkMode());
+                    request.darkMode() != null ? request.darkMode() : current.darkMode(),
+                    request.feel() != null ? request.feel() : current.feel());
         }
 
         // Build notification settings map from request
@@ -95,7 +97,8 @@ public class UserSettingsRoutes implements Routes {
             for (var entry : request.notifications().entrySet()) {
                 var type = NotificationType.valueOf(entry.getKey());
                 var toggle = entry.getValue();
-                notifMap.put(type, new NotificationSetting(memberId, type, toggle.app(), toggle.email()));
+                notifMap.put(
+                        type, new NotificationSetting(memberId, type, toggle.app(), toggle.email(), toggle.feed()));
             }
         }
         settingsService.updateNotificationSettings(memberId, notifMap);
@@ -106,6 +109,7 @@ public class UserSettingsRoutes implements Routes {
                 finalSettings.emailEnabled(),
                 finalSettings.theme(),
                 finalSettings.darkMode(),
+                finalSettings.feel(),
                 notifSettings,
                 session.stationId()));
     }
@@ -114,6 +118,7 @@ public class UserSettingsRoutes implements Routes {
             boolean emailEnabled,
             String theme,
             String darkMode,
+            String feel,
             Map<NotificationType, NotificationSetting> notifSettings,
             int stationId) {
         var mailConfig = mailConfigRepository.findByStation(stationId);
@@ -133,22 +138,28 @@ public class UserSettingsRoutes implements Routes {
             var setting = notifSettings.get(type);
             boolean app = setting == null || setting.appEnabled();
             boolean email = setting != null && setting.emailEnabled();
-            responseMap.put(type.name(), new NotificationToggle(app, email));
+            boolean feed = setting == null || setting.feedEnabled();
+            responseMap.put(type.name(), new NotificationToggle(app, email, feed));
         }
 
         return new SettingsResponse(
-                emailEnabled, theme, darkMode, responseMap, mailConfigured, mailProviderName, mailProviderUrl);
+                emailEnabled, theme, darkMode, feel, responseMap, mailConfigured, mailProviderName, mailProviderUrl);
     }
 
-    public record NotificationToggle(boolean app, boolean email) {}
+    public record NotificationToggle(boolean app, boolean email, boolean feed) {}
 
     public record SettingsRequest(
-            Boolean emailEnabled, String theme, String darkMode, Map<String, NotificationToggle> notifications) {}
+            Boolean emailEnabled,
+            String theme,
+            String darkMode,
+            String feel,
+            Map<String, NotificationToggle> notifications) {}
 
     public record SettingsResponse(
             boolean emailEnabled,
             String theme,
             String darkMode,
+            String feel,
             Map<String, NotificationToggle> notifications,
             boolean mailConfigured,
             String mailProviderName,

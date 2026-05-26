@@ -23,6 +23,8 @@ import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 
+import java.time.Instant;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
@@ -251,6 +253,90 @@ class InventoryRepositoryTest extends RepositoryTestBase {
         // cleanup
         inventoryRepo.deleteRequirement(req.id());
         memberGroupRepo.delete(group.id());
+    }
+
+    // -- findItemsByStation / findSizesByStation / findUnassignedItems --
+
+    @Test
+    @Order(45)
+    void findItemsByStation() {
+        // Create a fresh item for this test
+        InventoryItem item = inventoryRepo.createItem(inventoryId, "STAT-001", "Station Item", sizeId, "{}");
+        var items = inventoryRepo.findItemsByStation(station.id());
+        assertFalse(items.isEmpty());
+        assertTrue(items.stream().anyMatch(i -> i.id() == item.id()));
+        inventoryRepo.deleteItem(item.id());
+    }
+
+    @Test
+    @Order(46)
+    void findSizesByStation() {
+        var sizes = inventoryRepo.findSizesByStation(station.id());
+        assertFalse(sizes.isEmpty());
+    }
+
+    @Test
+    @Order(47)
+    void findUnassignedItems() {
+        InventoryItem item = inventoryRepo.createItem(inventoryId, "UNAS-001", "Unassigned Item", null, "{}");
+        var unassigned = inventoryRepo.findUnassignedItems(inventoryId);
+        assertFalse(unassigned.isEmpty());
+        assertTrue(unassigned.stream().anyMatch(i -> i.id() == item.id()));
+        inventoryRepo.deleteItem(item.id());
+    }
+
+    // -- markLost / markFound --
+
+    @Test
+    @Order(48)
+    void markLostAndFound() {
+        InventoryItem item = inventoryRepo.createItem(inventoryId, "LOST-001", "Lost Item", null, "{}");
+        assertTrue(inventoryRepo.markLost(item.id()));
+        assertNotNull(inventoryRepo.findItemById(item.id()).orElseThrow().lostAt());
+
+        assertTrue(inventoryRepo.markFound(item.id()));
+        assertNull(inventoryRepo.findItemById(item.id()).orElseThrow().lostAt());
+
+        inventoryRepo.deleteItem(item.id());
+    }
+
+    // -- createItem with ItemSource --
+
+    @Test
+    @Order(49)
+    void createItemWithItemSource() {
+        InventoryItem item = inventoryRepo.createItem(
+                inventoryId, "SRC-001", "Sourced Item", null, null, InventoryItem.ItemSource.EXTERNAL);
+        assertNotNull(item);
+        assertEquals(InventoryItem.ItemSource.EXTERNAL, item.itemSource());
+        inventoryRepo.deleteItem(item.id());
+    }
+
+    // -- createHistoryWithDates --
+
+    @Test
+    @Order(35)
+    void createHistoryWithDates() {
+        InventoryItem item = inventoryRepo.createItem(inventoryId, "HIST-D", "HistDates Item", null, "{}");
+        Instant givenOut = Instant.parse("2025-01-01T10:00:00Z");
+        Instant returned = Instant.parse("2025-01-15T10:00:00Z");
+        assertDoesNotThrow(
+                () -> inventoryRepo.createHistoryWithDates(item.id(), member.id(), "Inv User", givenOut, returned));
+        var history = inventoryRepo.findHistory(item.id());
+        assertEquals(1, history.size());
+        assertNotNull(history.getFirst().returned());
+        inventoryRepo.deleteItem(item.id());
+    }
+
+    // -- updateRequirementPosition --
+
+    @Test
+    @Order(43)
+    void updateRequirementPosition() {
+        Role loginRole = stationMemberRepo.findRoleByName(Roles.LOGIN).orElseThrow();
+        var req = inventoryRepo.createRequirement(inventoryId, loginRole.id(), 0, 1);
+        assertTrue(inventoryRepo.updateRequirementPosition(req.id(), 5));
+        inventoryRepo.deleteRequirement(req.id());
     }
 
     // -- Cleanup --

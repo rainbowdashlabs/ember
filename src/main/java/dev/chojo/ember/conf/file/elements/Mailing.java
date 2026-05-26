@@ -5,6 +5,10 @@
  */
 package dev.chojo.ember.conf.file.elements;
 
+import dev.chojo.ember.feature.station.entity.MailProviderType;
+import dev.chojo.ocular.override.Env;
+import dev.chojo.ocular.override.Overwrite;
+
 import java.util.Collections;
 import java.util.Map;
 import java.util.Properties;
@@ -15,18 +19,36 @@ import java.util.Properties;
  */
 @SuppressWarnings({"FieldCanBeLocal", "FieldMayBeFinal", "CanBeFinal"})
 public class Mailing {
-    private String provider = "SMTP";
+    @Overwrite(env = @Env)
+    private MailProviderType provider = MailProviderType.SMTP;
+
+    @Overwrite(env = @Env)
     private MailSettings smtp = new MailSettings();
+
+    @Overwrite(env = @Env)
     private String user = "";
+
+    @Overwrite(env = @Env)
     private String password = "";
+
+    @Overwrite(env = @Env)
     private String apiKey = "";
+
+    @Overwrite(env = @Env)
     private String senderAddress = "";
+
+    @Overwrite(env = @Env)
     private String senderName = "Ember";
+
     private Map<String, String> properties = Collections.emptyMap();
+
+    @Overwrite(env = @Env)
     private int dailySendLimit = 200;
+
+    @Overwrite(env = @Env)
     private int notificationDigestIntervalMinutes = 60;
 
-    public String provider() {
+    public MailProviderType provider() {
         return provider;
     }
 

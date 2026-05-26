@@ -5,15 +5,25 @@
  */
 package dev.chojo.ember.conf.file.elements;
 
+import dev.chojo.ocular.override.Env;
+import dev.chojo.ocular.override.Overwrite;
+
 /**
  * Authentication configuration controlling token sizes and expiration durations
  * for sessions, email verification, and password reset tokens.
  */
 @SuppressWarnings({"FieldCanBeLocal", "FieldMayBeFinal", "CanBeFinal"})
 public class Auth {
+    @Overwrite(env = @Env)
     private int tokenBytes = 32;
+
+    @Overwrite(env = @Env)
     private int verifyTokenHours = 24;
+
+    @Overwrite(env = @Env)
     private int passwordTokenHours = 72;
+
+    @Overwrite(env = @Env)
     private int sessionMinutes = 30;
 
     public int tokenBytes() {

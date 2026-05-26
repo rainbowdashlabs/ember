@@ -5,9 +5,13 @@
  */
 package dev.chojo.ember.feature.inventory.service;
 
+import dev.chojo.ember.event.DomainEventBus;
+import dev.chojo.ember.event.events.ExchangeRequested;
+import dev.chojo.ember.event.events.ExchangeStatusChanged;
 import dev.chojo.ember.feature.inventory.entity.ExchangeLog;
 import dev.chojo.ember.feature.inventory.entity.ExchangeRequest;
 import dev.chojo.ember.feature.inventory.entity.ExchangeStatus;
+import dev.chojo.ember.feature.inventory.entity.Inventory;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
 import dev.chojo.ember.feature.inventory.repository.ExchangeRepository;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
@@ -27,15 +31,18 @@ public class ExchangeService {
     private final ExchangeRepository exchangeRepository;
     private final InventoryRepository inventoryRepository;
     private final InventoryService inventoryService;
+    private final DomainEventBus eventBus;
 
     @Inject
     public ExchangeService(
             ExchangeRepository exchangeRepository,
             InventoryRepository inventoryRepository,
-            InventoryService inventoryService) {
+            InventoryService inventoryService,
+            DomainEventBus eventBus) {
         this.exchangeRepository = exchangeRepository;
         this.inventoryRepository = inventoryRepository;
         this.inventoryService = inventoryService;
+        this.eventBus = eventBus;
     }
 
     /**
@@ -54,14 +61,19 @@ public class ExchangeService {
     public ExchangeRequest create(
             int stationId,
             int memberId,
+            String memberName,
             Integer itemId,
             int inventoryId,
             Integer oldSizeId,
             Integer newSizeId,
             String reason,
             Integer createdBy) {
-        return exchangeRepository.create(
+        var exchange = exchangeRepository.create(
                 stationId, memberId, itemId, inventoryId, oldSizeId, newSizeId, reason, createdBy);
+        String inventoryName =
+                inventoryRepository.findById(inventoryId).map(Inventory::name).orElse("?");
+        eventBus.publish(new ExchangeRequested(stationId, exchange.id(), memberId, memberName, inventoryName, reason));
+        return exchange;
     }
 
     /**
@@ -133,7 +145,14 @@ public class ExchangeService {
         }
 
         exchangeRepository.createLog(id, oldStatus, newStatus, changedBy, note);
-        return exchangeRepository.findById(id).orElseThrow();
+        var updated = exchangeRepository.findById(id).orElseThrow();
+        String inventoryName = inventoryRepository
+                .findById(updated.inventoryId())
+                .map(Inventory::name)
+                .orElse("?");
+        eventBus.publish(new ExchangeStatusChanged(
+                updated.stationId(), updated.id(), updated.memberId(), null, inventoryName, newStatus));
+        return updated;
     }
 
     /**

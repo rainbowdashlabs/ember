@@ -18,6 +18,7 @@ import dev.chojo.ember.feature.quiz.repository.QuizCatalogRepository;
 import dev.chojo.ember.feature.quiz.repository.QuizTestRepository;
 import dev.chojo.ember.feature.quiz.service.QuizPdfService;
 import dev.chojo.ember.feature.quiz.service.QuizService;
+import dev.chojo.ember.feature.restriction.RestrictionRepository;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
@@ -95,8 +96,7 @@ class QuizPdfExportTest {
         stationRepo = new StationRepository();
         catalogRepo = new QuizCatalogRepository();
         testRepo = new QuizTestRepository();
-        quizService =
-                new QuizService(catalogRepo, testRepo, new dev.chojo.ember.feature.restriction.RestrictionRepository());
+        quizService = new QuizService(catalogRepo, testRepo, new RestrictionRepository());
         pdfService = new QuizPdfService(testRepo, catalogRepo, quizService);
     }
 

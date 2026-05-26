@@ -48,6 +48,14 @@ public record ProfileFieldConfig(
     private static final ProfileFieldConfig EMPTY =
             new ProfileFieldConfig(false, false, false, false, null, null, false, null, null);
 
+    public String toJson() {
+        try {
+            return MAPPER.writeValueAsString(this);
+        } catch (Exception e) {
+            return "{}";
+        }
+    }
+
     /**
      * Parses a JSON string into a {@link ProfileFieldConfig}, returning a default empty config on failure.
      *

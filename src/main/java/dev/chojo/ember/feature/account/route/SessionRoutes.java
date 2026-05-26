@@ -9,11 +9,13 @@ import dev.chojo.ember.api.MessageResponse;
 import dev.chojo.ember.api.Roles;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.conf.Conf;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.entity.AccountSession;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.account.service.AuthService;
+import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
 import dev.chojo.ember.feature.legal.service.GdprDeletionService;
 import dev.chojo.ember.feature.legal.service.GdprExportService;
 import dev.chojo.ember.feature.media.service.ImageCategory;
@@ -28,7 +30,9 @@ import dev.chojo.ember.feature.members.repository.UserTagRepository;
 import dev.chojo.ember.feature.members.service.MemberGroupService;
 import dev.chojo.ember.feature.members.service.ProfileFieldService;
 import dev.chojo.ember.feature.members.service.StationMemberService;
+import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.entity.StationModule;
+import dev.chojo.ember.feature.station.entity.ThemeFeel;
 import dev.chojo.ember.feature.station.service.StationService;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
@@ -72,6 +76,7 @@ public class SessionRoutes implements Routes {
     private final ImageService imageService;
     private final UserSettingsRepository userSettingsRepository;
     private final UserTagRepository userTagRepository;
+    private final Conf conf;
 
     @Inject
     public SessionRoutes(
@@ -87,7 +92,8 @@ public class SessionRoutes implements Routes {
             Api apiConfig,
             ImageService imageService,
             UserSettingsRepository userSettingsRepository,
-            UserTagRepository userTagRepository) {
+            UserTagRepository userTagRepository,
+            Conf conf) {
         this.stationService = stationService;
         this.memberService = memberService;
         this.groupService = groupService;
@@ -101,6 +107,7 @@ public class SessionRoutes implements Routes {
         this.imageService = imageService;
         this.userSettingsRepository = userSettingsRepository;
         this.userTagRepository = userTagRepository;
+        this.conf = conf;
     }
 
     @Override
@@ -181,18 +188,39 @@ public class SessionRoutes implements Routes {
 
         // Build theme info
         ThemeInfo themeInfo = null;
+        var theming = conf.main().theming();
         if (session.member() != null && session.stationId() != null) {
             var station = stationService.findById(session.stationId()).orElse(null);
             var userSettings =
                     userSettingsRepository.findOrCreate(session.member().id());
             if (station != null) {
                 themeInfo = new ThemeInfo(
+                        theming.defaultTheme(),
+                        theming.defaultFeel(),
+                        theming.lockFeel(),
                         station.defaultTheme(),
+                        station.defaultFeel(),
                         station.allowUserTheme(),
+                        station.allowUserFeel(),
                         station.customThemeColors(),
                         userSettings.theme(),
-                        userSettings.darkMode());
+                        userSettings.darkMode(),
+                        userSettings.feel());
             }
+        }
+        if (themeInfo == null) {
+            themeInfo = new ThemeInfo(
+                    theming.defaultTheme(),
+                    theming.defaultFeel(),
+                    theming.lockFeel(),
+                    "ember",
+                    ThemeFeel.ROUNDED,
+                    true,
+                    true,
+                    null,
+                    null,
+                    null,
+                    null);
         }
 
         ctx.json(new SessionInfo(
@@ -216,8 +244,8 @@ public class SessionRoutes implements Routes {
                 session.stationId() != null
                         ? stationService
                                 .findById(session.stationId())
-                                .map(s -> s.publicKbMode().name())
-                                .orElse("OFF")
+                                .map(Station::publicKbMode)
+                                .orElse(PublicKbMode.OFF)
                         : null));
     }
 
@@ -435,14 +463,20 @@ public class SessionRoutes implements Routes {
             boolean profileComplete,
             Set<StationModule> disabledModules,
             ThemeInfo theme,
-            String publicKbMode) {}
+            PublicKbMode publicKbMode) {}
 
     public record ThemeInfo(
+            String instanceDefaultTheme,
+            ThemeFeel instanceDefaultFeel,
+            boolean instanceLockFeel,
             String defaultTheme,
+            ThemeFeel defaultFeel,
             boolean allowUserTheme,
+            boolean allowUserFeel,
             String customThemeColors,
             String userTheme,
-            String userDarkMode) {}
+            String userDarkMode,
+            String userFeel) {}
 
     /**
      * Summary of a member managed by the current account.

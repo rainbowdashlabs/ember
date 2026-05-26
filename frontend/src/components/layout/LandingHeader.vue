@@ -12,6 +12,7 @@ import IconButton from '@/components/button/IconButton.vue'
 import {auth} from '@/api'
 import {getItem} from '@/api/storage'
 import {useSession} from '@/composables/useSession'
+import {useTheme} from '@/composables/useTheme'
 import UserAvatar from '@/components/avatar/UserAvatar.vue'
 
 const {t} = useI18n()
@@ -35,6 +36,7 @@ async function handleLogout() {
     }
   }
   clear()
+  useTheme().resetToInstanceDefaults()
   await router.push({name: 'login'})
 }
 </script>

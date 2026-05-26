@@ -11,23 +11,25 @@ public record EventField(
         int id,
         int eventId,
         String name,
-        String fieldType,
-        String config,
+        EventFieldType fieldType,
+        EventFieldConfig config,
         String value,
         int position,
         boolean overview,
-        Integer attendanceFieldId) {
+        Integer attendanceFieldId,
+        boolean isPublic) {
 
     public static RowMapping<EventField> map() {
         return row -> new EventField(
                 row.getInt("id"),
                 row.getInt("event_id"),
                 row.getString("name"),
-                row.getString("field_type"),
-                row.getString("config"),
+                row.getEnum("field_type", EventFieldType.class),
+                EventFieldConfig.parse(row.getString("config")),
                 row.getString("value"),
                 row.getInt("position"),
                 row.getBoolean("overview"),
-                row.getObject("attendance_field_id", Integer.class));
+                row.getObject("attendance_field_id", Integer.class),
+                row.getBoolean("public"));
     }
 }

@@ -8,10 +8,9 @@ env:
   NODE_VERSION: 24
 
 jobs:
-  build-backend:
+  verify-build-backend:
     runs-on: ubuntu-latest
     name: Verify Backend Build
-
     steps:
       - uses: actions/checkout@v6
       - name: Set up JDK
@@ -21,14 +20,102 @@ jobs:
           java-version: ${{ env.JAVA_VERSION }}
       - uses: gradle/actions/wrapper-validation@v6
       - name: Build with Gradle
-        run: ./gradlew --build-cache build -x test -x spotlessCheck
-      - name: Test with Gradle
-        run: ./gradlew test --info
+        run: ./gradlew --build-cache build -x test -x spotlessCheck -x javadoc
 
-  build-frontend:
+  verify-test-repositories:
+    runs-on: ubuntu-latest
+    name: Verify Repository Tests
+    needs: verify-build-backend
+    steps:
+      - uses: actions/checkout@v6
+      - name: Set up JDK
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+      - name: Run repository tests
+        run: ./gradlew --build-cache testRepositories
+      - name: Upload coverage data
+        uses: actions/upload-artifact@v4
+        with:
+          name: jacoco-repositories
+          path: build/jacoco/testRepositories.exec
+
+  verify-test-services:
+    runs-on: ubuntu-latest
+    name: Verify Service Tests
+    needs: verify-build-backend
+    steps:
+      - uses: actions/checkout@v6
+      - name: Set up JDK
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+      - name: Run service tests
+        run: ./gradlew --build-cache testServices
+      - name: Upload coverage data
+        uses: actions/upload-artifact@v4
+        with:
+          name: jacoco-services
+          path: build/jacoco/testServices.exec
+
+  verify-test-other:
+    runs-on: ubuntu-latest
+    name: Verify Other Tests
+    needs: verify-build-backend
+    steps:
+      - uses: actions/checkout@v6
+      - name: Set up JDK
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+      - name: Run other tests
+        run: ./gradlew --build-cache testOther
+      - name: Upload coverage data
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: jacoco-other
+          path: build/jacoco/testOther.exec
+
+  verify-coverage:
+    runs-on: ubuntu-latest
+    name: Verify Coverage
+    needs: [verify-test-repositories, verify-test-services, verify-test-other]
+    steps:
+      - uses: actions/checkout@v6
+      - name: Set up JDK
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+      - name: Download coverage data
+        uses: actions/download-artifact@v4
+        with:
+          pattern: jacoco-*
+          path: build/jacoco
+          merge-multiple: true
+      - name: Verify coverage thresholds
+        run: ./gradlew --build-cache jacocoCoverageCheck -x testRepositories -x testServices -x testOther
+
+  verify-javadoc:
+    runs-on: ubuntu-latest
+    name: Verify Javadoc
+    steps:
+      - uses: actions/checkout@v6
+      - name: Set up JDK
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+      - name: Generate Javadoc
+        run: ./gradlew javadoc
+
+  verify-build-frontend:
     runs-on: ubuntu-latest
     name: Verify Frontend Build
-
     steps:
       - uses: actions/checkout@v6
       - name: Set up Node.js
@@ -40,47 +127,13 @@ jobs:
       - name: Install dependencies
         working-directory: frontend
         run: npm ci
-      - name: Type check
-        working-directory: frontend
-        run: npx vue-tsc -b --noEmit
       - name: Build frontend
         working-directory: frontend
         run: npm run build
 
-  verify-license-backend:
-    runs-on: ubuntu-latest
-    name: Verify Backend License Check
-
-    steps:
-      - uses: actions/checkout@v6
-      - name: Set up JDK
-        uses: actions/setup-java@v5
-        with:
-          distribution: temurin
-          java-version: ${{ env.JAVA_VERSION }}
-      - uses: gradle/actions/wrapper-validation@v6
-      - name: Check backend license headers
-        run: ./gradlew checkLicenseBackend
-
-  verify-license-frontend:
-    runs-on: ubuntu-latest
-    name: Verify Frontend License Check
-
-    steps:
-      - uses: actions/checkout@v6
-      - name: Set up JDK
-        uses: actions/setup-java@v5
-        with:
-          distribution: temurin
-          java-version: ${{ env.JAVA_VERSION }}
-      - uses: gradle/actions/wrapper-validation@v6
-      - name: Check frontend license headers
-        run: ./gradlew checkLicenseFrontend
-
   verify-formatting-backend:
     runs-on: ubuntu-latest
-    name: Verify Backend Format Validation
-
+    name: Verify Backend Formatting
     steps:
       - uses: actions/checkout@v6
       - name: Set up JDK
@@ -88,14 +141,12 @@ jobs:
         with:
           distribution: temurin
           java-version: ${{ env.JAVA_VERSION }}
-      - uses: gradle/actions/wrapper-validation@v6
-      - name: Run formatting tests
+      - name: Check formatting and license headers
         run: ./gradlew spotlessJavaCheck
 
   verify-formatting-frontend:
     runs-on: ubuntu-latest
-    name: Verify Frontend Format Validation
-
+    name: Verify Frontend Formatting
     steps:
       - uses: actions/checkout@v6
       - name: Set up JDK
@@ -103,30 +154,12 @@ jobs:
         with:
           distribution: temurin
           java-version: ${{ env.JAVA_VERSION }}
-      - uses: gradle/actions/wrapper-validation@v6
-      - name: Run formatting tests
+      - name: Check formatting and license headers
         run: ./gradlew spotlessJavascriptCheck spotlessVueCheck
 
-  verify-database:
+  verify-locales:
     runs-on: ubuntu-latest
-    name: Verify Backend Database Validation
-
-    steps:
-      - uses: actions/checkout@v6
-      - name: Set up JDK
-        uses: actions/setup-java@v5
-        with:
-          distribution: temurin
-          java-version: ${{ env.JAVA_VERSION }}
-      - uses: gradle/actions/wrapper-validation@v6
-      - name: Run database validation tests
-        run: ./gradlew test --info
-
-
-  verify-locales-frontend:
-    runs-on: ubuntu-latest
-    name: Verify Frontend Locale Validation
-
+    name: Verify Locales
     steps:
       - uses: actions/checkout@v6
       - name: Set up Python
@@ -138,15 +171,13 @@ jobs:
         with:
           distribution: temurin
           java-version: ${{ env.JAVA_VERSION }}
-      - uses: gradle/actions/wrapper-validation@v6
-      - name: Check encoding
+      - name: Check locale encoding
         run: ./gradlew spotlessFrontendLocalesCheck
 
-  build-docker:
+  verify-docker:
     runs-on: ubuntu-latest
     name: Verify Docker Build
-
     steps:
       - uses: actions/checkout@v6
-      - name: Build as Docker image
+      - name: Build Docker image
         run: docker build . -f docker/Dockerfile

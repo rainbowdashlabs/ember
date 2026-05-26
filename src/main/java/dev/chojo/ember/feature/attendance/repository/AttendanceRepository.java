@@ -9,11 +9,14 @@ import de.chojo.sadu.queries.api.call.Call;
 import de.chojo.sadu.queries.api.query.Query;
 import de.chojo.sadu.queries.api.results.writing.insertion.InsertionResult;
 import dev.chojo.ember.feature.attendance.entity.AttendanceEntry;
+import dev.chojo.ember.feature.attendance.entity.AttendanceFieldConfig;
+import dev.chojo.ember.feature.attendance.entity.AttendanceFieldType;
 import dev.chojo.ember.feature.attendance.entity.AttendanceReportPreset;
 import dev.chojo.ember.feature.attendance.entity.AttendanceSession;
 import dev.chojo.ember.feature.attendance.entity.AttendanceSessionField;
 import dev.chojo.ember.feature.attendance.entity.AttendanceTemplate;
 import dev.chojo.ember.feature.attendance.entity.AttendanceTemplateField;
+import dev.chojo.ember.feature.attendance.entity.SessionSummary;
 import dev.chojo.ember.feature.members.entity.MemberAbsence;
 import jakarta.inject.Singleton;
 
@@ -128,7 +131,7 @@ public class AttendanceRepository {
      * @return the insertion result
      */
     public InsertionResult createTemplateField(
-            int templateId, String name, String fieldType, String config, int position) {
+            int templateId, String name, AttendanceFieldType fieldType, AttendanceFieldConfig config, int position) {
         return Query.query("""
                             INSERT
                             INTO
@@ -139,7 +142,7 @@ public class AttendanceRepository {
                         .bind("template_id", templateId)
                         .bind("name", name)
                         .bind("field_type", fieldType)
-                        .bind("config", config)
+                        .bind("config", config.toJson())
                         .bind("position", position))
                 .insert();
     }
@@ -154,7 +157,8 @@ public class AttendanceRepository {
      * @param position  new ordering position
      * @return {@code true} if the field was updated
      */
-    public boolean updateTemplateField(int id, String name, String fieldType, String config, int position) {
+    public boolean updateTemplateField(
+            int id, String name, AttendanceFieldType fieldType, AttendanceFieldConfig config, int position) {
         return Query.query("""
                             UPDATE attendance_template_field
                             SET
@@ -166,7 +170,7 @@ public class AttendanceRepository {
                 .single(Call.of()
                         .bind("name", name)
                         .bind("field_type", fieldType)
-                        .bind("config", config)
+                        .bind("config", config.toJson())
                         .bind("position", position)
                         .bind("id", id))
                 .update()
@@ -852,32 +856,4 @@ public class AttendanceRepository {
      * @param position ordering position
      */
     public record TemplateGroup(int groupId, int position) {}
-
-    /**
-     * Summary of an attendance session including status counts.
-     *
-     * @param id               session ID
-     * @param templateId       template ID
-     * @param startTime        session start time
-     * @param endTime          session end time
-     * @param createdAt        creation timestamp
-     * @param eventId          optional linked event ID
-     * @param title            session title
-     * @param presentCount     number of present entries
-     * @param absentCount      number of absent entries
-     * @param declinedCount    number of declined entries
-     * @param unconfirmedCount number of unconfirmed entries
-     */
-    public record SessionSummary(
-            int id,
-            int templateId,
-            Instant startTime,
-            Instant endTime,
-            Instant createdAt,
-            Integer eventId,
-            String title,
-            int presentCount,
-            int absentCount,
-            int declinedCount,
-            int unconfirmedCount) {}
 }

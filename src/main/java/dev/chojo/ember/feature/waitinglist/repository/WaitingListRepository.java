@@ -12,6 +12,7 @@ import dev.chojo.ember.feature.waitinglist.entity.WaitingListEntry;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListEntryStatus;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListEntryValue;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListField;
+import dev.chojo.ember.feature.waitinglist.entity.WaitingListFieldConfig;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListInvite;
 import jakarta.inject.Singleton;
 
@@ -133,7 +134,7 @@ public class WaitingListRepository {
     }
 
     public WaitingListField createField(
-            int listId, String name, String fieldType, String config, int position, boolean required) {
+            int listId, String name, String fieldType, WaitingListFieldConfig config, int position, boolean required) {
         return Query.query("""
                         INSERT INTO waiting_list_field (list_id, name, field_type, config, position, required)
                         VALUES (:list_id, :name, :field_type, :config::jsonb, :position, :required)
@@ -142,7 +143,7 @@ public class WaitingListRepository {
                         .bind("list_id", listId)
                         .bind("name", name)
                         .bind("field_type", fieldType)
-                        .bind("config", config)
+                        .bind("config", config.toJson())
                         .bind("position", position)
                         .bind("required", required))
                 .map(WaitingListField.map())
@@ -151,7 +152,7 @@ public class WaitingListRepository {
     }
 
     public Optional<WaitingListField> updateField(
-            int fieldId, String name, String fieldType, String config, int position, boolean required) {
+            int fieldId, String name, String fieldType, WaitingListFieldConfig config, int position, boolean required) {
         return Query.query("""
                         UPDATE waiting_list_field SET name = :name, field_type = :field_type,
                         config = :config::jsonb, position = :position, required = :required
@@ -160,7 +161,7 @@ public class WaitingListRepository {
                         .bind("id", fieldId)
                         .bind("name", name)
                         .bind("field_type", fieldType)
-                        .bind("config", config)
+                        .bind("config", config.toJson())
                         .bind("position", position)
                         .bind("required", required))
                 .map(WaitingListField.map())

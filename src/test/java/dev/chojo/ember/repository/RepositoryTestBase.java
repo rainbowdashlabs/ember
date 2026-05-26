@@ -15,13 +15,17 @@ import de.chojo.sadu.updater.QueryReplacement;
 import de.chojo.sadu.updater.SqlUpdater;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.attendance.repository.AttendanceRepository;
+import dev.chojo.ember.feature.comment.repository.EventCommentRepository;
+import dev.chojo.ember.feature.comment.repository.NoteRepository;
 import dev.chojo.ember.feature.events.repository.EventFieldRepository;
 import dev.chojo.ember.feature.events.repository.EventRepository;
+import dev.chojo.ember.feature.feed.repository.FeedTokenRepository;
 import dev.chojo.ember.feature.form.repository.FormRepository;
 import dev.chojo.ember.feature.inventory.repository.ExchangeRepository;
 import dev.chojo.ember.feature.inventory.repository.InventoryCheckRepository;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
 import dev.chojo.ember.feature.inventory.repository.ProcurementRepository;
+import dev.chojo.ember.feature.knowledgebase.repository.KnowledgeBaseRepository;
 import dev.chojo.ember.feature.lostandfound.repository.LostAndFoundRepository;
 import dev.chojo.ember.feature.mail.repository.EmailQueueRepository;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
@@ -35,9 +39,16 @@ import dev.chojo.ember.feature.members.repository.UserTagRepository;
 import dev.chojo.ember.feature.news.repository.NewsRepository;
 import dev.chojo.ember.feature.notifications.repository.NotificationRepository;
 import dev.chojo.ember.feature.notifications.repository.NotificationSettingsRepository;
+import dev.chojo.ember.feature.protocol.repository.TestProtocolRepository;
+import dev.chojo.ember.feature.quiz.repository.AiProviderRepository;
+import dev.chojo.ember.feature.quiz.repository.QuizCatalogRepository;
+import dev.chojo.ember.feature.quiz.repository.QuizTestRepository;
+import dev.chojo.ember.feature.restriction.RestrictionRepository;
 import dev.chojo.ember.feature.station.repository.StationApplicationRepository;
 import dev.chojo.ember.feature.station.repository.StationMailConfigRepository;
 import dev.chojo.ember.feature.station.repository.StationRepository;
+import dev.chojo.ember.feature.system.repository.ApplicationSettingRepository;
+import dev.chojo.ember.feature.system.repository.ProblemReportRepository;
 import dev.chojo.ember.feature.waitinglist.repository.WaitingListRepository;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
@@ -84,6 +95,17 @@ public abstract class RepositoryTestBase {
     protected static StationApplicationRepository stationApplicationRepo;
     protected static StationMailConfigRepository stationMailConfigRepo;
     protected static WaitingListRepository waitingListRepo;
+    protected static EventCommentRepository eventCommentRepo;
+    protected static NoteRepository noteRepo;
+    protected static FeedTokenRepository feedTokenRepo;
+    protected static QuizCatalogRepository quizCatalogRepo;
+    protected static QuizTestRepository quizTestRepo;
+    protected static AiProviderRepository aiProviderRepo;
+    protected static TestProtocolRepository testProtocolRepo;
+    protected static KnowledgeBaseRepository knowledgeBaseRepo;
+    protected static RestrictionRepository restrictionRepo;
+    protected static ApplicationSettingRepository applicationSettingRepo;
+    protected static ProblemReportRepository problemReportRepo;
 
     @BeforeAll
     static void setupDatabase() throws Exception {
@@ -158,5 +180,16 @@ public abstract class RepositoryTestBase {
         stationApplicationRepo = new StationApplicationRepository();
         stationMailConfigRepo = new StationMailConfigRepository();
         waitingListRepo = new WaitingListRepository();
+        eventCommentRepo = new EventCommentRepository();
+        noteRepo = new NoteRepository();
+        feedTokenRepo = new FeedTokenRepository();
+        quizCatalogRepo = new QuizCatalogRepository();
+        quizTestRepo = new QuizTestRepository();
+        aiProviderRepo = new AiProviderRepository();
+        testProtocolRepo = new TestProtocolRepository();
+        knowledgeBaseRepo = new KnowledgeBaseRepository();
+        restrictionRepo = new RestrictionRepository();
+        applicationSettingRepo = new ApplicationSettingRepository();
+        problemReportRepo = new ProblemReportRepository();
     }
 }

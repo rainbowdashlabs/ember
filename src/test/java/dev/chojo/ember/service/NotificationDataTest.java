@@ -10,6 +10,7 @@ import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
 import org.junit.jupiter.api.Test;
 
+import java.util.HashSet;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -100,7 +101,7 @@ class NotificationDataTest {
 
     @Test
     void eachTypeHasUniqueLocaleKey() {
-        var keys = new java.util.HashSet<String>();
+        var keys = new HashSet<String>();
         for (var type : NotificationType.values()) {
             assertTrue(keys.add(type.localeKey()), "Duplicate locale key: " + type.localeKey());
         }
