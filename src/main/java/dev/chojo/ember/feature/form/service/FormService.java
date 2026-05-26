@@ -10,10 +10,12 @@ import dev.chojo.ember.event.events.FormDeleted;
 import dev.chojo.ember.event.events.FormPublished;
 import dev.chojo.ember.feature.form.entity.Form;
 import dev.chojo.ember.feature.form.entity.FormAnswer;
+import dev.chojo.ember.feature.form.entity.FormAnswerValue;
 import dev.chojo.ember.feature.form.entity.FormQuestion;
 import dev.chojo.ember.feature.form.entity.FormQuestionConfig;
 import dev.chojo.ember.feature.form.entity.FormResponse;
 import dev.chojo.ember.feature.form.entity.QuestionEntry;
+import dev.chojo.ember.feature.form.entity.QuestionType;
 import dev.chojo.ember.feature.form.repository.FormRepository;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
 import dev.chojo.ember.feature.members.entity.Role;
@@ -29,9 +31,11 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 /**
  * Service layer for form management, including form CRUD, questions, responses, answers, and access control.
@@ -264,7 +268,7 @@ public class FormService {
     public FormQuestion createQuestion(
             int formId,
             int position,
-            FormQuestion.QuestionType questionType,
+            QuestionType questionType,
             String title,
             String description,
             boolean required,
@@ -344,15 +348,46 @@ public class FormService {
     }
 
     /**
-     * Submits or updates a response for a member, upserting all provided answers.
+     * Submits or updates a response for a member, validating all answers against question configs.
      *
      * @param formId      the form ID
      * @param memberId    the member the response is for
      * @param submittedBy the member who submitted the response (may differ for managed members)
-     * @param answers     map of question ID to answer value (JSON string)
+     * @param answers     map of question ID to answer value
      * @return the created or updated response
+     * @throws IllegalArgumentException if any answer fails validation
      */
-    public FormResponse submitResponse(int formId, int memberId, int submittedBy, Map<Integer, String> answers) {
+    public FormResponse submitResponse(
+            int formId, int memberId, int submittedBy, Map<Integer, FormAnswerValue> answers) {
+        var questions = repository.findQuestions(formId);
+        var questionMap = questions.stream().collect(Collectors.toMap(FormQuestion::id, q -> q));
+
+        var errors = new ArrayList<String>();
+
+        for (var question : questions) {
+            var value = answers.get(question.id());
+            if (value == null && question.required()) {
+                errors.add("Question '%s' is required".formatted(question.title()));
+                continue;
+            }
+            if (value == null) continue;
+
+            var validationErrors = question.config().validate(value);
+            if (!validationErrors.isEmpty()) {
+                errors.add("Question '%s': %s".formatted(question.title(), String.join(", ", validationErrors)));
+            }
+        }
+
+        for (var questionId : answers.keySet()) {
+            if (!questionMap.containsKey(questionId)) {
+                errors.add("Answer for unknown question ID: " + questionId);
+            }
+        }
+
+        if (!errors.isEmpty()) {
+            throw new IllegalArgumentException(String.join("; ", errors));
+        }
+
         var response = repository.createResponse(formId, memberId, submittedBy);
         for (var entry : answers.entrySet()) {
             repository.upsertAnswer(response.id(), entry.getKey(), entry.getValue());

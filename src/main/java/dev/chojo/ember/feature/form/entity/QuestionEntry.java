@@ -16,7 +16,7 @@ package dev.chojo.ember.feature.form.entity;
  * @param config       type-specific configuration as JSON
  */
 public record QuestionEntry(
-        FormQuestion.QuestionType questionType,
+        QuestionType questionType,
         String title,
         String description,
         boolean required,

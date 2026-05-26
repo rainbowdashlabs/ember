@@ -9,8 +9,8 @@ import dev.chojo.ember.api.Roles;
 import dev.chojo.ember.feature.attendance.entity.AttendanceFieldConfig;
 import dev.chojo.ember.feature.attendance.entity.AttendanceFieldType;
 import dev.chojo.ember.feature.events.entity.StationEvent;
-import dev.chojo.ember.feature.form.entity.FormQuestion;
 import dev.chojo.ember.feature.form.entity.FormQuestionConfig;
+import dev.chojo.ember.feature.form.entity.QuestionType;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
 import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
@@ -249,30 +249,31 @@ class StationTransferTest extends RepositoryTestBase {
         formRepo.createQuestion(
                 form.id(),
                 0,
-                FormQuestion.QuestionType.RATING,
+                QuestionType.RATING,
                 "Gesamtzufriedenheit",
                 "Bewerte von 1-5",
                 true,
                 false,
-                FormQuestionConfig.parse("{}"));
+                new FormQuestionConfig.Rating(5, "STAR"));
         formRepo.createQuestion(
                 form.id(),
                 1,
-                FormQuestion.QuestionType.TEXT,
+                QuestionType.TEXT,
                 "Verbesserungsvorschläge",
                 "Was können wir besser machen?",
                 false,
                 false,
-                FormQuestionConfig.parse("{}"));
+                new FormQuestionConfig.Text(false));
         formRepo.createQuestion(
                 form.id(),
                 2,
-                FormQuestion.QuestionType.CHOICE,
+                QuestionType.CHOICE,
                 "Lieblingsübung",
                 "",
                 false,
                 false,
-                FormQuestionConfig.parse("{\"options\":[\"Löschangriff\",\"Knoten\",\"Erste Hilfe\",\"Sport\"]}"));
+                FormQuestionConfig.parse(
+                        QuestionType.CHOICE, "{\"options\":[\"Löschangriff\",\"Knoten\",\"Erste Hilfe\",\"Sport\"]}"));
     }
 
     // ==================== Export tests ====================

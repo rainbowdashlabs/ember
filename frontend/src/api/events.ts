@@ -425,7 +425,7 @@ export interface FederatedEvent {
 }
 
 export async function listFederatedEvents(): Promise<FederatedEvent[]> {
-    const res = await client.get<FederatedEvent[]>('/events/federated')
+    const res = await client.get<FederatedEvent[]>('/federation/events')
     return res.data
 }
 

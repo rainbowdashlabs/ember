@@ -9,6 +9,7 @@ import de.chojo.sadu.queries.api.call.Call;
 import de.chojo.sadu.queries.api.query.Query;
 import de.chojo.sadu.queries.api.results.writing.insertion.InsertionResult;
 import dev.chojo.ember.api.Roles;
+import dev.chojo.ember.feature.members.entity.MemberCompletion;
 import dev.chojo.ember.feature.members.entity.Role;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import jakarta.inject.Singleton;
@@ -89,8 +90,6 @@ public class StationMemberRepository {
                 .map(row -> new MemberCompletion(row.getInt("id"), row.getString("display_name")))
                 .all();
     }
-
-    public record MemberCompletion(int id, String name) {}
 
     /**
      * Find former members of a station.

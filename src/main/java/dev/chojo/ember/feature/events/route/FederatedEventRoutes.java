@@ -57,9 +57,9 @@ public class FederatedEventRoutes implements Routes {
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        routes.get(prefix + "/events/federated", this::listFederatedEvents, Roles.USER);
-        routes.post(prefix + "/events/federated/register", this::registerForEvent, Roles.USER);
-        routes.post(prefix + "/events/federated/withdraw", this::withdrawRegistration, Roles.USER);
+        routes.get(prefix + "/federation/events", this::listFederatedEvents, Roles.USER);
+        routes.post(prefix + "/federation/events/register", this::registerForEvent, Roles.USER);
+        routes.post(prefix + "/federation/events/withdraw", this::withdrawRegistration, Roles.USER);
     }
 
     private void listFederatedEvents(Context ctx) {

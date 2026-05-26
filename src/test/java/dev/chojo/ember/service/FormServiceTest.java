@@ -8,9 +8,10 @@ package dev.chojo.ember.service;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.form.entity.Form;
-import dev.chojo.ember.feature.form.entity.FormQuestion;
+import dev.chojo.ember.feature.form.entity.FormAnswerValue;
 import dev.chojo.ember.feature.form.entity.FormQuestionConfig;
 import dev.chojo.ember.feature.form.entity.QuestionEntry;
+import dev.chojo.ember.feature.form.entity.QuestionType;
 import dev.chojo.ember.feature.form.service.FormService;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.service.MemberGroupService;
@@ -151,12 +152,12 @@ class FormServiceTest extends RepositoryTestBase {
         var q = service.createQuestion(
                 formId,
                 0,
-                FormQuestion.QuestionType.TEXT,
+                QuestionType.TEXT,
                 "Your name?",
                 "Enter name",
                 true,
                 false,
-                FormQuestionConfig.parse("{}"));
+                new FormQuestionConfig.Text(false));
         assertNotNull(q);
         assertEquals("Your name?", q.title());
         questionId = q.id();
@@ -175,19 +176,9 @@ class FormServiceTest extends RepositoryTestBase {
     void replaceQuestions() {
         var entries = List.of(
                 new QuestionEntry(
-                        FormQuestion.QuestionType.TEXT,
-                        "Question A",
-                        "Desc A",
-                        true,
-                        false,
-                        FormQuestionConfig.parse("{}")),
+                        QuestionType.TEXT, "Question A", "Desc A", true, false, new FormQuestionConfig.Text(false)),
                 new QuestionEntry(
-                        FormQuestion.QuestionType.TEXT,
-                        "Question B",
-                        "Desc B",
-                        false,
-                        false,
-                        FormQuestionConfig.parse("{}")));
+                        QuestionType.TEXT, "Question B", "Desc B", false, false, new FormQuestionConfig.Text(false)));
         service.replaceQuestions(formId, entries);
         var qs = service.findQuestions(formId);
         assertEquals(2, qs.size());
@@ -201,7 +192,8 @@ class FormServiceTest extends RepositoryTestBase {
         // get question IDs after replace
         var qs = service.findQuestions(formId);
         int qId = qs.getFirst().id();
-        var response = service.submitResponse(formId, member.id(), member.id(), Map.of(qId, "\"John Doe\""));
+        var response = service.submitResponse(
+                formId, member.id(), member.id(), Map.of(qId, (FormAnswerValue) new FormAnswerValue.Text("John Doe")));
         assertNotNull(response);
         assertEquals(formId, response.formId());
     }

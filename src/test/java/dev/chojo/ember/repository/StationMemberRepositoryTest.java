@@ -147,6 +147,15 @@ class StationMemberRepositoryTest extends RepositoryTestBase {
     }
 
     @Test
+    @Order(22)
+    void findCompletions() {
+        var completions = stationMemberRepo.findCompletions(station.id());
+        assertNotNull(completions);
+        assertTrue(
+                completions.stream().allMatch(c -> c.name() != null && !c.name().isBlank()));
+    }
+
+    @Test
     @Order(99)
     void delete() {
         assertTrue(stationMemberRepo.delete(memberId1));

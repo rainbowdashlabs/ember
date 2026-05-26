@@ -9,9 +9,11 @@ import de.chojo.sadu.queries.api.call.Call;
 import de.chojo.sadu.queries.api.query.Query;
 import dev.chojo.ember.feature.form.entity.Form;
 import dev.chojo.ember.feature.form.entity.FormAnswer;
+import dev.chojo.ember.feature.form.entity.FormAnswerValue;
 import dev.chojo.ember.feature.form.entity.FormQuestion;
 import dev.chojo.ember.feature.form.entity.FormQuestionConfig;
 import dev.chojo.ember.feature.form.entity.FormResponse;
+import dev.chojo.ember.feature.form.entity.QuestionType;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 import jakarta.inject.Singleton;
 
@@ -216,7 +218,7 @@ public class FormRepository {
     public FormQuestion createQuestion(
             int formId,
             int position,
-            FormQuestion.QuestionType questionType,
+            QuestionType questionType,
             String title,
             String description,
             boolean required,
@@ -430,7 +432,7 @@ public class FormRepository {
      * @param questionId the question ID
      * @param value      the answer value as a JSON string
      */
-    public void upsertAnswer(int responseId, int questionId, String value) {
+    public void upsertAnswer(int responseId, int questionId, FormAnswerValue value) {
         Query.query("""
                      INSERT INTO form_answer(response_id, question_id, value)
                      VALUES (:response_id, :question_id, :value::JSONB)
@@ -438,7 +440,7 @@ public class FormRepository {
                 .single(Call.of()
                         .bind("response_id", responseId)
                         .bind("question_id", questionId)
-                        .bind("value", value))
+                        .bind("value", value.toJson()))
                 .insert();
     }
 

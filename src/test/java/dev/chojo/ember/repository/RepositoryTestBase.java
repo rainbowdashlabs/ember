@@ -48,6 +48,7 @@ import dev.chojo.ember.feature.station.repository.StationApplicationRepository;
 import dev.chojo.ember.feature.station.repository.StationMailConfigRepository;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.system.repository.ApplicationSettingRepository;
+import dev.chojo.ember.feature.system.repository.ProblemReportRepository;
 import dev.chojo.ember.feature.waitinglist.repository.WaitingListRepository;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
@@ -104,6 +105,7 @@ public abstract class RepositoryTestBase {
     protected static KnowledgeBaseRepository knowledgeBaseRepo;
     protected static RestrictionRepository restrictionRepo;
     protected static ApplicationSettingRepository applicationSettingRepo;
+    protected static ProblemReportRepository problemReportRepo;
 
     @BeforeAll
     static void setupDatabase() throws Exception {
@@ -188,5 +190,6 @@ public abstract class RepositoryTestBase {
         knowledgeBaseRepo = new KnowledgeBaseRepository();
         restrictionRepo = new RestrictionRepository();
         applicationSettingRepo = new ApplicationSettingRepository();
+        problemReportRepo = new ProblemReportRepository();
     }
 }

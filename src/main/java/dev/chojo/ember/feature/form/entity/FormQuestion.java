@@ -18,7 +18,7 @@ import de.chojo.sadu.mapper.rowmapper.RowMapping;
  * @param description  optional additional description or instructions
  * @param required     whether an answer is mandatory
  * @param shuffle      whether answer options should be randomized
- * @param config       type-specific configuration stored as a JSON string
+ * @param config       type-specific configuration
  */
 public record FormQuestion(
         int id,
@@ -35,27 +35,18 @@ public record FormQuestion(
      * Creates a row mapping for database result set conversion.
      */
     public static RowMapping<FormQuestion> map() {
-        return row -> new FormQuestion(
-                row.getInt("id"),
-                row.getInt("form_id"),
-                row.getInt("position"),
-                QuestionType.valueOf(row.getString("question_type")),
-                row.getString("title"),
-                row.getString("description"),
-                row.getBoolean("required"),
-                row.getBoolean("shuffle"),
-                FormQuestionConfig.parse(row.getString("config")));
-    }
-
-    /**
-     * Supported question types for form questions.
-     */
-    public enum QuestionType {
-        CHOICE,
-        TEXT,
-        RATING,
-        DATE,
-        RANKING,
-        LIKERT
+        return row -> {
+            var type = row.getEnum("question_type", QuestionType.class);
+            return new FormQuestion(
+                    row.getInt("id"),
+                    row.getInt("form_id"),
+                    row.getInt("position"),
+                    type,
+                    row.getString("title"),
+                    row.getString("description"),
+                    row.getBoolean("required"),
+                    row.getBoolean("shuffle"),
+                    FormQuestionConfig.parse(type, row.getString("config")));
+        };
     }
 }

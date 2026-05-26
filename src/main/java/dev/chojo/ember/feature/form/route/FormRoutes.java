@@ -12,10 +12,12 @@ import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.form.entity.Form;
 import dev.chojo.ember.feature.form.entity.FormAnswer;
+import dev.chojo.ember.feature.form.entity.FormAnswerValue;
 import dev.chojo.ember.feature.form.entity.FormQuestion;
 import dev.chojo.ember.feature.form.entity.FormQuestionConfig;
 import dev.chojo.ember.feature.form.entity.FormResponse;
 import dev.chojo.ember.feature.form.entity.QuestionEntry;
+import dev.chojo.ember.feature.form.entity.QuestionType;
 import dev.chojo.ember.feature.form.service.FormService;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
@@ -362,12 +364,12 @@ public class FormRoutes implements Routes {
                 id,
                 Arrays.stream(questions)
                         .map(q -> new QuestionEntry(
-                                FormQuestion.QuestionType.valueOf(q.questionType()),
+                                QuestionType.valueOf(q.questionType()),
                                 q.title(),
                                 q.description() != null ? q.description() : "",
                                 q.required() != null && q.required(),
                                 q.shuffle() != null && q.shuffle(),
-                                q.config() != null ? q.config() : FormQuestionConfig.parse("{}")))
+                                q.config() != null ? q.config() : new FormQuestionConfig.Unknown()))
                         .toList());
         ctx.json(formService.findQuestions(id));
     }
@@ -483,9 +485,13 @@ public class FormRoutes implements Routes {
             throw new ForbiddenResponse("You do not have access to this form");
         }
         var req = ctx.bodyAsClass(SubmitRequest.class);
-        var response = formService.submitResponse(
-                id, session.member().id(), session.member().id(), req.answers());
-        ctx.status(HttpStatus.CREATED).json(response);
+        try {
+            var response = formService.submitResponse(
+                    id, session.member().id(), session.member().id(), req.answers());
+            ctx.status(HttpStatus.CREATED).json(response);
+        } catch (IllegalArgumentException e) {
+            throw new BadRequestResponse(e.getMessage());
+        }
     }
 
     @OpenApi(
@@ -509,9 +515,13 @@ public class FormRoutes implements Routes {
             throw new ForbiddenResponse("You do not have access to this form");
         }
         var req = ctx.bodyAsClass(SubmitRequest.class);
-        var response = formService.submitResponse(
-                id, session.member().id(), session.member().id(), req.answers());
-        ctx.json(response);
+        try {
+            var response = formService.submitResponse(
+                    id, session.member().id(), session.member().id(), req.answers());
+            ctx.json(response);
+        } catch (IllegalArgumentException e) {
+            throw new BadRequestResponse(e.getMessage());
+        }
     }
 
     @OpenApi(
@@ -540,8 +550,13 @@ public class FormRoutes implements Routes {
             throw new ForbiddenResponse("The member does not have access to this form");
         }
         var req = ctx.bodyAsClass(SubmitRequest.class);
-        var response = formService.submitResponse(id, memberId, session.member().id(), req.answers());
-        ctx.status(HttpStatus.CREATED).json(response);
+        try {
+            var response =
+                    formService.submitResponse(id, memberId, session.member().id(), req.answers());
+            ctx.status(HttpStatus.CREATED).json(response);
+        } catch (IllegalArgumentException e) {
+            throw new BadRequestResponse(e.getMessage());
+        }
     }
 
     @OpenApi(
@@ -570,8 +585,13 @@ public class FormRoutes implements Routes {
             throw new ForbiddenResponse("The member does not have access to this form");
         }
         var req = ctx.bodyAsClass(SubmitRequest.class);
-        var response = formService.submitResponse(id, memberId, session.member().id(), req.answers());
-        ctx.json(response);
+        try {
+            var response =
+                    formService.submitResponse(id, memberId, session.member().id(), req.answers());
+            ctx.json(response);
+        } catch (IllegalArgumentException e) {
+            throw new BadRequestResponse(e.getMessage());
+        }
     }
 
     /**
@@ -696,7 +716,7 @@ public class FormRoutes implements Routes {
     /**
      * Request body for creating a form question.
      *
-     * @param questionType the question type name (must match {@link FormQuestion.QuestionType})
+     * @param questionType the question type name (must match {@link QuestionType})
      * @param title        the question text
      * @param description  optional description
      * @param required     whether an answer is mandatory
@@ -731,7 +751,7 @@ public class FormRoutes implements Routes {
      * @param answers map of question ID to answer value (JSON string)
      */
     @OpenApiName("FormSubmitRequest")
-    public record SubmitRequest(Map<Integer, String> answers) {}
+    public record SubmitRequest(Map<Integer, FormAnswerValue> answers) {}
 
     /**
      * Enriched form response entry with optional submitter name resolution.
