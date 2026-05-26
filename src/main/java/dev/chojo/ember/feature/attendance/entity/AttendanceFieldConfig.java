@@ -36,12 +36,6 @@ public record AttendanceFieldConfig(
             .build();
     private static final AttendanceFieldConfig EMPTY = new AttendanceFieldConfig(false, null, false, null, null);
 
-    /**
-     * Parses a JSON string into an {@link AttendanceFieldConfig}, returning an empty default on failure.
-     *
-     * @param json the JSON string to parse, may be {@code null} or blank
-     * @return the parsed config or an empty default
-     */
     public String toJson() {
         try {
             return MAPPER.writeValueAsString(this);
@@ -50,6 +44,12 @@ public record AttendanceFieldConfig(
         }
     }
 
+    /**
+     * Parses a JSON string into an {@link AttendanceFieldConfig}, returning an empty default on failure.
+     *
+     * @param json the JSON string to parse, may be {@code null} or blank
+     * @return the parsed config or an empty default
+     */
     public static AttendanceFieldConfig parse(String json) {
         if (json == null || json.isBlank()) return EMPTY;
         try {

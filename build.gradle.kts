@@ -110,10 +110,58 @@ tasks {
         }
     }
 
+    register<Test>("testRepositories") {
+        group = "verification"
+        description = "Runs repository tests"
+        testClassesDirs = sourceSets.test.get().output.classesDirs
+        classpath = sourceSets.test.get().runtimeClasspath
+        useJUnitPlatform { excludeTags("locale") }
+        testLogging { events("passed", "skipped", "failed") }
+        filter { includeTestsMatching("dev.chojo.ember.repository.*") }
+    }
+
+    register<Test>("testServices") {
+        group = "verification"
+        description = "Runs service tests"
+        testClassesDirs = sourceSets.test.get().output.classesDirs
+        classpath = sourceSets.test.get().runtimeClasspath
+        useJUnitPlatform { excludeTags("locale") }
+        testLogging { events("passed", "skipped", "failed") }
+        filter { includeTestsMatching("dev.chojo.ember.service.*") }
+    }
+
+    register<Test>("testOther") {
+        group = "verification"
+        description = "Runs non-repository, non-service tests"
+        testClassesDirs = sourceSets.test.get().output.classesDirs
+        classpath = sourceSets.test.get().runtimeClasspath
+        useJUnitPlatform { excludeTags("locale") }
+        testLogging { events("passed", "skipped", "failed") }
+        filter {
+            excludeTestsMatching("dev.chojo.ember.repository.*")
+            excludeTestsMatching("dev.chojo.ember.service.*")
+        }
+    }
+
+    register("verifyJavadoc") {
+        group = "verification"
+        description = "Verifies Javadoc generation succeeds"
+        dependsOn("javadoc")
+    }
+
+    register("verify") {
+        group = "verification"
+        description = "Runs all verification tasks in parallel"
+        dependsOn("testRepositories", "testServices", "testOther", "jacocoCoverageCheck", "verifyJavadoc", "checkLicenseBackend", "checkLicenseFrontend")
+    }
+
     register<JacocoReport>("jacocoFullReport") {
         group = "verification"
-        description = "Merged coverage report from unit + database tests"
-        executionData(file("build/jacoco/test.exec"), file("build/jacoco/testDatabase.exec"))
+        description = "Merged coverage report from all test tasks"
+        dependsOn("testRepositories", "testServices", "testOther")
+        executionData(
+            fileTree("build/jacoco") { include("*.exec") }
+        )
         sourceSets(sourceSets.main.get())
         reports {
             xml.required.set(true)
@@ -125,8 +173,10 @@ tasks {
     register<JacocoCoverageVerification>("jacocoCoverageCheck") {
         group = "verification"
         description = "Enforces 80% line coverage for services and repositories"
-        dependsOn("test")
-        executionData(file("build/jacoco/test.exec"), file("build/jacoco/testDatabase.exec"))
+        dependsOn("testRepositories", "testServices", "testOther")
+        executionData(
+            fileTree("build/jacoco") { include("*.exec") }
+        )
         sourceSets(sourceSets.main.get())
         violationRules {
             // Repositories: 95% line coverage

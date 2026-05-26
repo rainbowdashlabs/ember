@@ -48,12 +48,6 @@ public record ProfileFieldConfig(
     private static final ProfileFieldConfig EMPTY =
             new ProfileFieldConfig(false, false, false, false, null, null, false, null, null);
 
-    /**
-     * Parses a JSON string into a {@link ProfileFieldConfig}, returning a default empty config on failure.
-     *
-     * @param json the JSON configuration string, may be null or blank
-     * @return the parsed config or a default empty config
-     */
     public String toJson() {
         try {
             return MAPPER.writeValueAsString(this);
@@ -62,6 +56,12 @@ public record ProfileFieldConfig(
         }
     }
 
+    /**
+     * Parses a JSON string into a {@link ProfileFieldConfig}, returning a default empty config on failure.
+     *
+     * @param json the JSON configuration string, may be null or blank
+     * @return the parsed config or a default empty config
+     */
     public static ProfileFieldConfig parse(String json) {
         if (json == null || json.isBlank()) return EMPTY;
         try {
