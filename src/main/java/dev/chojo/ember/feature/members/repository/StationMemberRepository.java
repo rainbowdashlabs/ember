@@ -77,6 +77,22 @@ public class StationMemberRepository {
     }
 
     /**
+     * Finds active members of a station for autocomplete, returning only id and display name.
+     *
+     * @param stationId the station identifier
+     * @return list of member completion entries
+     */
+    public List<MemberCompletion> findCompletions(int stationId) {
+        return Query.query(
+                        "SELECT id, display_name FROM station_member WHERE station_id = :station_id AND former = FALSE AND display_name != '' ORDER BY display_name;")
+                .single(Call.of().bind("station_id", stationId))
+                .map(row -> new MemberCompletion(row.getInt("id"), row.getString("display_name")))
+                .all();
+    }
+
+    public record MemberCompletion(int id, String name) {}
+
+    /**
      * Find former members of a station.
      */
     public List<StationMember> findFormerByStation(int stationId) {

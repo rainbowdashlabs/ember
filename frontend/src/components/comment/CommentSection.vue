@@ -6,7 +6,8 @@
 <script setup lang="ts">
 import {onMounted, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
-import type {Comment, StationMember} from '@/api/types'
+import type {Comment} from '@/api/types'
+import type {MemberCompletion} from '@/api/stationMembers'
 import {comments as commentsApi, stationMembers} from '@/api'
 import CommentThread from './CommentThread.vue'
 import MentionInput from '@/components/comment/MentionInput.vue'
@@ -22,7 +23,7 @@ const props = defineProps<{
 const {t} = useI18n()
 
 const commentsList = ref<Comment[]>([])
-const members = ref<StationMember[]>([])
+const members = ref<MemberCompletion[]>([])
 const loading = ref(true)
 const error = ref('')
 const newComment = ref('')
@@ -33,7 +34,7 @@ async function loadComments() {
   try {
     const [c, m] = await Promise.all([
       commentsApi.listEventComments(props.eventId),
-      stationMembers.listMembers(),
+      stationMembers.listCompletions(),
     ])
     commentsList.value = c
     members.value = m

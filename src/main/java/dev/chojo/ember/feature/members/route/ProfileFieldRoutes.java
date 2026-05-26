@@ -231,7 +231,7 @@ public class ProfileFieldRoutes implements Routes {
 
     public record ProfileFieldRequest(
             String name,
-            String fieldType,
+            ProfileFieldType fieldType,
             String config,
             int position,
             ProfileFieldScope scope,

@@ -95,9 +95,10 @@ CREATE TABLE ember_schema.event_comment
 (
     id         SERIAL PRIMARY KEY,
     event_id   INTEGER     NOT NULL REFERENCES ember_schema.station_event (id) ON DELETE CASCADE,
-    parent_id  INTEGER              REFERENCES ember_schema.event_comment (id) ON DELETE CASCADE,
+    parent_id  INTEGER              REFERENCES ember_schema.event_comment (id) ON DELETE SET NULL,
     author_id  INTEGER     NOT NULL REFERENCES ember_schema.station_member (id) ON DELETE CASCADE,
     content    TEXT        NOT NULL,
+    deleted    BOOLEAN     NOT NULL DEFAULT FALSE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at TIMESTAMPTZ
 );
@@ -105,6 +106,9 @@ CREATE INDEX idx_event_comment_event ON ember_schema.event_comment (event_id);
 
 -- Comments: news (replace existing news_comment table structure)
 ALTER TABLE ember_schema.news_comment ADD COLUMN updated_at TIMESTAMPTZ;
+ALTER TABLE ember_schema.news_comment ADD COLUMN deleted BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE ember_schema.news_comment DROP CONSTRAINT IF EXISTS news_comment_parent_id_fkey;
+ALTER TABLE ember_schema.news_comment ADD FOREIGN KEY (parent_id) REFERENCES ember_schema.news_comment (id) ON DELETE SET NULL;
 
 -- Entity notes (shared markdown document per entity)
 CREATE TABLE ember_schema.entity_note
@@ -133,9 +137,11 @@ CREATE INDEX idx_entity_note_version_note ON ember_schema.entity_note_version (n
 -- User feed tokens (shared for iCal + RSS/Atom feeds)
 CREATE TABLE ember_schema.user_feed_token
 (
-    member_id  INTEGER     PRIMARY KEY REFERENCES ember_schema.station_member (id) ON DELETE CASCADE,
-    token      TEXT        NOT NULL UNIQUE,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    member_id               INTEGER     PRIMARY KEY REFERENCES ember_schema.station_member (id) ON DELETE CASCADE,
+    token                   TEXT        NOT NULL UNIQUE,
+    created_at              TIMESTAMPTZ NOT NULL DEFAULT now(),
+    ical_polled_at          TIMESTAMPTZ,
+    notification_polled_at  TIMESTAMPTZ
 );
 
 -- News acknowledgements (track which members have read a news article)
@@ -155,4 +161,21 @@ CREATE TABLE ember_schema.kb_favourite
     file_id    INTEGER     NOT NULL REFERENCES ember_schema.kb_file (id) ON DELETE CASCADE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     PRIMARY KEY (member_id, file_id)
+);
+
+-- User problem reports
+CREATE TABLE ember_schema.problem_report
+(
+    id              SERIAL PRIMARY KEY,
+    station_id      INTEGER     NOT NULL REFERENCES ember_schema.station (id) ON DELETE CASCADE,
+    member_id       INTEGER              REFERENCES ember_schema.station_member (id) ON DELETE SET NULL,
+    reporter_name   TEXT        NOT NULL,
+    message         TEXT        NOT NULL,
+    page_url        TEXT,
+    user_roles      TEXT,
+    recent_requests JSONB,
+    browser_info    TEXT,
+    screen_size     TEXT,
+    acknowledged    BOOLEAN     NOT NULL DEFAULT FALSE,
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
 );

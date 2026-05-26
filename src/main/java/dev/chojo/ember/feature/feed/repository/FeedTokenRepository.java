@@ -40,6 +40,18 @@ public class FeedTokenRepository {
                 .orElseThrow();
     }
 
+    public void updateIcalPolled(int memberId) {
+        Query.query("UPDATE user_feed_token SET ical_polled_at = now() WHERE member_id = :member_id;")
+                .single(Call.of().bind("member_id", memberId))
+                .update();
+    }
+
+    public void updateNotificationPolled(int memberId) {
+        Query.query("UPDATE user_feed_token SET notification_polled_at = now() WHERE member_id = :member_id;")
+                .single(Call.of().bind("member_id", memberId))
+                .update();
+    }
+
     public boolean delete(int memberId) {
         return Query.query("DELETE FROM user_feed_token WHERE member_id = :member_id;")
                 .single(Call.of().bind("member_id", memberId))

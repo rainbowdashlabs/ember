@@ -145,7 +145,7 @@ onUnmounted(() => {
             <div class="flex items-center gap-2">
               <UserAvatar :member-id="entry.authorId" :name="entry.authorName" size="md"/>
               <div>
-                <SubHeader class="flex items-center gap-1">{{ entry.title }}<font-awesome-icon v-if="entry.restricted" :icon="['fas', 'lock']" class="ml-1 h-3 w-3 text-[var(--text-muted)]"/></SubHeader>
+                <SubHeader class="flex items-center gap-1"><router-link :to="{name: 'news-detail', params: {id: entry.id}}" class="hover:text-primary hover:underline">{{ entry.title }}</router-link><font-awesome-icon v-if="entry.restricted" :icon="['fas', 'lock']" class="ml-1 h-3 w-3 text-[var(--text-muted)]"/></SubHeader>
                 <p class="text-xs text-(--text-muted)">
                   {{ entry.authorName }} &middot; {{ formatDate(entry.publishedAt) }}
                 </p>

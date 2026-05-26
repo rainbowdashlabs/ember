@@ -11,6 +11,16 @@ export async function listAllRoles(): Promise<Role[]> {
     return res.data
 }
 
+export interface MemberCompletion {
+    id: number
+    name: string
+}
+
+export async function listCompletions(): Promise<MemberCompletion[]> {
+    const res = await client.get<MemberCompletion[]>('/station-members/completions')
+    return res.data
+}
+
 export async function listMembers(includeFormer = false): Promise<StationMember[]> {
     const params: Record<string, unknown> = {}
     if (includeFormer) params.includeFormer = true

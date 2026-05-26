@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.comment.service;
 
 import dev.chojo.ember.event.DomainEventBus;
+import dev.chojo.ember.event.events.CommentCreated;
 import dev.chojo.ember.event.events.MentionedInComment;
 import dev.chojo.ember.feature.comment.entity.Comment;
 import dev.chojo.ember.feature.comment.repository.EventCommentRepository;
@@ -22,7 +23,7 @@ import java.util.regex.Pattern;
  */
 @Singleton
 public class CommentService {
-    private static final Pattern MENTION_PATTERN = Pattern.compile("@\\[(\\d+)]");
+    private static final Pattern MENTION_PATTERN = Pattern.compile("@\\[(\\d+):([^\\]]+)]");
 
     private final EventCommentRepository commentRepository;
     private final DomainEventBus eventBus;
@@ -67,6 +68,26 @@ public class CommentService {
     public Comment create(
             int stationId, int eventId, Integer parentId, int authorId, String authorName, String content) {
         var comment = commentRepository.create(eventId, parentId, authorId, content);
+
+        // Notify parent comment author on reply
+        if (parentId != null) {
+            commentRepository.findById(parentId).ifPresent(parent -> {
+                if (parent.authorId() != authorId) {
+                    String preview = content.length() > 100 ? content.substring(0, 100) + "…" : content;
+                    eventBus.publish(new CommentCreated(
+                            stationId,
+                            "event",
+                            eventId,
+                            "",
+                            comment.id(),
+                            parentId,
+                            parent.authorId(),
+                            authorId,
+                            authorName,
+                            preview));
+                }
+            });
+        }
 
         // Parse @mentions and publish events
         var mentionedIds = parseMentions(content);

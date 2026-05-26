@@ -13,9 +13,11 @@ import org.slf4j.LoggerFactory;
 import tools.jackson.databind.json.JsonMapper;
 
 import java.net.URI;
+import java.net.URLEncoder;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.List;
 
@@ -59,6 +61,23 @@ public class FederationHttpClient {
             return List.of();
         }
     }
+
+    public List<RemoteKbSearchResult> searchKb(
+            String remoteHost, int localStationId, String localPrivateKeyBase64, String query) {
+        try {
+            String url =
+                    apiUrl(remoteHost) + "/federation/remote/kb/search?q=" + URLEncoder.encode(query, StandardCharsets.UTF_8);
+            var response = signedGet(url, localStationId, localPrivateKeyBase64);
+            if (response.statusCode() != 200) return List.of();
+            var type = mapper.getTypeFactory().constructCollectionType(List.class, RemoteKbSearchResult.class);
+            return mapper.readValue(response.body(), type);
+        } catch (Exception e) {
+            log.error("Failed to search KB on {}", remoteHost, e);
+            return List.of();
+        }
+    }
+
+    public record RemoteKbSearchResult(int id, String name, String description, String snippet) {}
 
     public List<RemoteKbFile> fetchSharedKbFiles(String remoteHost, int localStationId, String localPrivateKeyBase64) {
         try {

@@ -6,8 +6,8 @@
 <script setup lang="ts">
 import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
-import type {Comment, StationMember} from '@/api/types'
-import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
+import type {Comment} from '@/api/types'
+import type {MemberCompletion} from '@/api/stationMembers'
 import MentionInput from '@/components/comment/MentionInput.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
@@ -18,9 +18,10 @@ import {useSession} from '@/composables/useSession'
 
 const props = defineProps<{
   comments: Comment[]
-  members: StationMember[]
+  members: MemberCompletion[]
   parentId?: number | null
   depth?: number
+  highlightId?: number | null
 }>()
 
 const emit = defineEmits<{
@@ -51,7 +52,28 @@ function childrenOf(commentId: number): Comment[] {
 function memberName(memberId: number): string {
   const m = props.members.find(m => m.id === memberId)
   if (!m) return `#${memberId}`
-  return m.name?.trim() || m.email || `#${memberId}`
+  return m.name.trim() || `#${memberId}`
+}
+
+function resolveMentions(text: string): Array<{ type: 'text'; value: string } | { type: 'mention'; name: string }> {
+  const parts: Array<{ type: 'text'; value: string } | { type: 'mention'; name: string }> = []
+  const regex = /@\[(\d+):([^\]]+)]/g
+  let last = 0
+  let match: RegExpExecArray | null
+  while ((match = regex.exec(text)) !== null) {
+    if (match.index > last) {
+      parts.push({type: 'text', value: text.substring(last, match.index)})
+    }
+    const id = parseInt(match[1])
+    const fallback = match[2]
+    const member = props.members.find(m => m.id === id)
+    parts.push({type: 'mention', name: member?.name?.trim() || fallback})
+    last = regex.lastIndex
+  }
+  if (last < text.length) {
+    parts.push({type: 'text', value: text.substring(last)})
+  }
+  return parts
 }
 
 function formatDate(iso: string): string {
@@ -98,15 +120,25 @@ const maxDepth = 6
 
 <template>
   <div :class="(depth ?? 0) > 0 ? 'ml-4 pl-3 border-l-2 border-(--border)' : ''">
-    <div v-for="comment in rootComments" :key="comment.id" class="space-y-2 py-2">
+    <div v-for="comment in rootComments" :key="comment.id" :id="`comment-${comment.id}`"
+         class="space-y-2 py-2 transition-colors duration-1000"
+         :class="{'bg-primary/10 rounded-theme px-2 -mx-2': highlightId === comment.id}"
+    >
+      <!-- Deleted comment placeholder -->
+      <div v-if="comment.deleted" class="space-y-1">
+        <div class="flex items-center gap-2">
+          <MutedText size="xs">{{ formatDate(comment.createdAt) }}</MutedText>
+        </div>
+        <p class="text-sm italic text-(--text-muted)">{{ t('comments.deleted') }}</p>
+      </div>
       <!-- Comment content -->
-      <div v-if="editingId !== comment.id" class="space-y-1">
+      <div v-else-if="editingId !== comment.id" class="space-y-1">
         <div class="flex items-center gap-2">
           <MemberName :name="memberName(comment.authorId)" :member-id="comment.authorId" class="text-sm font-medium"/>
           <MutedText size="xs">{{ formatDate(comment.createdAt) }}</MutedText>
           <MutedText v-if="comment.updatedAt" size="xs">({{ t('comments.edited') }})</MutedText>
         </div>
-        <p class="text-sm whitespace-pre-wrap">{{ comment.content }}</p>
+        <p class="text-sm whitespace-pre-wrap"><template v-for="(part, i) in resolveMentions(comment.content)" :key="i"><span v-if="part.type === 'mention'" class="font-semibold text-primary">@{{ part.name }}</span><template v-else>{{ part.value }}</template></template></p>
         <div class="flex items-center gap-1">
           <SecondaryButton v-if="(depth ?? 0) < maxDepth" compact @click="startReply(comment.id)">
             {{ t('comments.reply') }}
@@ -130,7 +162,7 @@ const maxDepth = 6
 
       <!-- Edit form -->
       <div v-else class="space-y-2">
-        <TextAreaInput v-model="editContent" :rows="2"/>
+        <MentionInput v-model="editContent" :members="members"/>
         <div class="flex gap-2">
           <PrimaryButton compact @click="submitEdit">{{ t('comments.save') }}</PrimaryButton>
           <SecondaryButton compact @click="cancelEdit">{{ t('common.cancel') }}</SecondaryButton>
@@ -153,6 +185,7 @@ const maxDepth = 6
         :members="members"
         :parent-id="comment.id"
         :depth="(depth ?? 0) + 1"
+        :highlight-id="highlightId"
         @create="(p, c) => emit('create', p, c)"
         @update="(id, c) => emit('update', id, c)"
         @delete="(id) => emit('delete', id)"

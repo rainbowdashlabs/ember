@@ -10,6 +10,7 @@ import dev.chojo.ember.api.MessageResponse;
 import dev.chojo.ember.api.Roles;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
 import dev.chojo.ember.feature.station.entity.Station;
@@ -61,7 +62,7 @@ public class DiscoveryRoutes implements Routes {
             excludeStationId = session.stationId();
             var existingPartners = federationService.findPartners(excludeStationId);
             partnerStationIds = new HashSet<>(
-                    existingPartners.stream().map(p -> p.partnerStationId()).toList());
+                    existingPartners.stream().map(FederationPartner::partnerStationId).toList());
         }
 
         // Merge discoverable stations + stations with public content (deduplicated)

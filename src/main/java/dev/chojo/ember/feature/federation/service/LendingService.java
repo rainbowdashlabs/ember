@@ -19,6 +19,7 @@ import dev.chojo.ember.feature.federation.repository.LendingRepository;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
+import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -62,7 +63,7 @@ public class LendingService {
     }
 
     private String stationName(int stationId) {
-        return stationRepository.findById(stationId).map(s -> s.name()).orElse("?");
+        return stationRepository.findById(stationId).map(Station::name).orElse("?");
     }
 
     private String buildItemSummary(int requestId) {
@@ -242,11 +243,6 @@ public class LendingService {
             }
         }
         return null;
-    }
-
-    @Deprecated
-    public List<LendingMessage> getMessages(int requestId) {
-        return repository.findMessagesByRequest(requestId);
     }
 
     // -- Blocks --

@@ -341,6 +341,10 @@ public class NewsRoutes implements Routes {
      * @return the comment response DTO
      */
     private CommentResponse toCommentResponse(NewsComment comment) {
+        if (comment.deleted()) {
+            return new CommentResponse(
+                    comment.id(), comment.newsId(), comment.parentId(), 0, null, null, "", true, comment.createdAt());
+        }
         var memberOpt = stationMemberRepository.findById(comment.authorId());
         Integer authorAccountId = memberOpt.map(StationMember::accountId).orElse(null);
         String authorName = memberOpt
@@ -355,6 +359,7 @@ public class NewsRoutes implements Routes {
                 authorAccountId,
                 authorName,
                 comment.content(),
+                false,
                 comment.createdAt());
     }
 
@@ -436,5 +441,6 @@ public class NewsRoutes implements Routes {
             Integer authorAccountId,
             String authorName,
             String content,
+            boolean deleted,
             Instant createdAt) {}
 }

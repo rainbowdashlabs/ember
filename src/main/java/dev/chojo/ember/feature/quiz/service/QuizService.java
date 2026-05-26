@@ -29,6 +29,7 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -41,6 +42,9 @@ import java.util.stream.Collectors;
 
 @Singleton
 public class QuizService {
+    private static final ObjectMapper MAPPER =
+            JsonMapper.builder().build();
+
     private final QuizCatalogRepository catalogRepository;
     private final QuizTestRepository testRepository;
     private final RestrictionRepository restrictionRepository;
@@ -122,9 +126,10 @@ public class QuizService {
             String imageUrl,
             double points,
             boolean autoPoints,
-            String config,
+            QuestionConfig config,
             int position) {
-        double effectivePoints = autoPoints ? calculateAutoPoints(questionType, config, points) : points;
+        String configStr = serializeConfig(config);
+        double effectivePoints = autoPoints ? calculateAutoPoints(questionType, configStr, points) : points;
         return catalogRepository.createQuestion(
                 catalogId,
                 categoryId,
@@ -134,8 +139,45 @@ public class QuizService {
                 imageUrl,
                 effectivePoints,
                 autoPoints,
-                config,
+                configStr,
                 position);
+    }
+
+    /**
+     * Convenience overload that accepts a raw JSON config string.
+     * Parses it to the appropriate {@link QuestionConfig} using the question type.
+     */
+    public QuizQuestion createQuestion(
+            int catalogId,
+            Integer categoryId,
+            QuestionType questionType,
+            String title,
+            String description,
+            String imageUrl,
+            double points,
+            boolean autoPoints,
+            String configJson,
+            int position) {
+        return createQuestion(
+                catalogId,
+                categoryId,
+                questionType,
+                title,
+                description,
+                imageUrl,
+                points,
+                autoPoints,
+                questionType.parseConfig(configJson != null ? configJson : "{}"),
+                position);
+    }
+
+    private String serializeConfig(QuestionConfig config) {
+        if (config == null) return "{}";
+        try {
+            return MAPPER.writeValueAsString(config);
+        } catch (Exception e) {
+            return "{}";
+        }
     }
 
     public boolean updateQuestion(

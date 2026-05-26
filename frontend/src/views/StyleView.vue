@@ -13,6 +13,18 @@ import type {ThemeColors} from '@/theme/themes'
 const route = useRoute()
 const hasCustomParam = ref(false)
 
+const samplePatch = `--- a/notes.md
++++ b/notes.md
+@@ -1,5 +1,6 @@
+ # Meeting Notes
+-Date: 2026-05-20
++Date: 2026-05-26
++Status: Final
+
+-Action items are pending.
++All action items completed.
+ Next meeting in two weeks.`
+
 function applyCustomColors(colors: ThemeColors) {
   const root = document.documentElement.style
   root.setProperty('--color-primary', colors.primary)
@@ -52,6 +64,7 @@ import SuccessContainer from '@/components/container/SuccessContainer.vue'
 import ErrorContainer from '@/components/container/ErrorContainer.vue'
 import InfoContainer from '@/components/container/InfoContainer.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
+import DiffView from '@/components/display/DiffView.vue'
 
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
@@ -235,6 +248,20 @@ const toggleStates = ref(new Set([1, 3]))
           </tbody>
         </table>
       </NeutralContainer>
+    </section>
+
+    <section>
+      <SectionHeader>Diff View</SectionHeader>
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <NeutralContainer class="!p-0 overflow-hidden">
+          <p class="px-3 py-2 text-sm font-medium border-b border-(--border)">Compact (no line numbers)</p>
+          <DiffView :patch="samplePatch" compact/>
+        </NeutralContainer>
+        <NeutralContainer class="!p-0 overflow-hidden">
+          <p class="px-3 py-2 text-sm font-medium border-b border-(--border)">With line numbers</p>
+          <DiffView :patch="samplePatch" show-line-numbers/>
+        </NeutralContainer>
+      </div>
     </section>
 
     <StyleFeedback/>

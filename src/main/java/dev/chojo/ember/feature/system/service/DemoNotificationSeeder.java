@@ -40,7 +40,8 @@ public class DemoNotificationSeeder {
             List<StationMember> anfaenger,
             List<StationMember> fortgeschritten,
             int tagDerOffenenTuerEventId,
-            int stadtfestEventId) {
+            int stadtfestEventId,
+            int newsId) {
         // News notification for all members
         for (var m : betreuer) {
             notificationRepository.create(
@@ -51,7 +52,7 @@ public class DemoNotificationSeeder {
                                     "Neue Ausrüstung eingetroffen",
                                     "Anna Schmidt",
                                     "Die bestellten Helme und Handschuhe sind eingetroffen..."),
-                            new NotificationData.NotificationLink("news-list")));
+                            new NotificationData.NotificationLink("news-detail", Map.of("id", newsId))));
         }
 
         // Comment notifications for Betreuer (news author gets comment notification)
@@ -63,7 +64,7 @@ public class DemoNotificationSeeder {
                                 "Neue Ausrüstung eingetroffen",
                                 "Klaus Schulze",
                                 "Werden die alten Helme eingesammelt?"),
-                        new NotificationData.NotificationLink("news-list")));
+                        new NotificationData.NotificationLink("news-detail", Map.of("id", newsId))));
 
         // Exchange request notification for Betreuer (INVENTORY_MANAGER)
         for (var m : betreuer) {

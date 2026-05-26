@@ -92,6 +92,7 @@ import dev.chojo.ember.feature.station.route.StationRoutes;
 import dev.chojo.ember.feature.statistics.route.StatisticsRoutes;
 import dev.chojo.ember.feature.system.route.AdminSettingsRoutes;
 import dev.chojo.ember.feature.system.route.ApiStatusRoutes;
+import dev.chojo.ember.feature.system.route.ProblemReportRoutes;
 import dev.chojo.ember.feature.system.route.ProblemRoutes;
 import dev.chojo.ember.feature.system.route.UtilRoutes;
 import dev.chojo.ember.feature.waitinglist.route.WaitingListRoutes;
@@ -158,6 +159,7 @@ public class EmberModule extends AbstractModule {
         routesBinder.addBinding().to(TransferRoutes.class);
         routesBinder.addBinding().to(AdminSettingsRoutes.class);
         routesBinder.addBinding().to(ProblemRoutes.class);
+        routesBinder.addBinding().to(ProblemReportRoutes.class);
         routesBinder.addBinding().to(ApiStatusRoutes.class);
         routesBinder.addBinding().to(WaitingListRoutes.class);
         routesBinder.addBinding().to(QuizRoutes.class);

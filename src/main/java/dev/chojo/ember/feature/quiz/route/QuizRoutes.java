@@ -432,13 +432,13 @@ public class QuizRoutes implements Routes {
         var question = quizService.createQuestion(
                 catalogId,
                 req.categoryId(),
-                QuestionType.valueOf(req.questionType()),
+                req.questionType(),
                 req.title(),
                 req.description() != null ? req.description() : "",
                 req.imageUrl(),
                 req.points() != null ? req.points() : 1.0,
                 req.autoPoints() == null || req.autoPoints(),
-                req.configString(),
+                req.questionType().parseConfig(req.configString()),
                 req.position() != null ? req.position() : 0);
         ctx.status(HttpStatus.CREATED).json(question);
     }
@@ -953,7 +953,7 @@ public class QuizRoutes implements Routes {
                         q.imageUrl(),
                         q.points(),
                         q.autoPoints(),
-                        q.configString(),
+                        q.questionType().parseConfig(q.configString()),
                         q.position());
             }
         }
@@ -1071,7 +1071,17 @@ public class QuizRoutes implements Routes {
             // Build config JSON
             String config = buildCsvConfig(questionType, answer, answerSep);
 
-            quizService.createQuestion(catalogId, categoryId2, questionType, title, "", null, points, true, config, i);
+            quizService.createQuestion(
+                    catalogId,
+                    categoryId2,
+                    questionType,
+                    title,
+                    "",
+                    null,
+                    points,
+                    true,
+                    questionType.parseConfig(config),
+                    i);
             imported++;
         }
 
@@ -1222,7 +1232,7 @@ public class QuizRoutes implements Routes {
     public record CategoryRequest(String name, String description, Integer position) {}
 
     public record QuestionRequest(
-            String questionType,
+            QuestionType questionType,
             Integer categoryId,
             String title,
             String description,

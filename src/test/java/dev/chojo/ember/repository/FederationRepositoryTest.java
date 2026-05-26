@@ -6,9 +6,12 @@
 package dev.chojo.ember.repository;
 
 import dev.chojo.ember.feature.account.entity.Account;
+import dev.chojo.ember.feature.federation.entity.CapabilityType;
 import dev.chojo.ember.feature.federation.entity.ChangeType;
 import dev.chojo.ember.feature.federation.entity.ContentType;
+import dev.chojo.ember.feature.federation.entity.Direction;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
+import dev.chojo.ember.feature.federation.entity.ShareScope;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFileType;
 import dev.chojo.ember.feature.knowledgebase.repository.KnowledgeBaseRepository;
@@ -170,28 +173,31 @@ class FederationRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(10)
     void upsertAndFindCapabilities() {
-        federationRepo.upsertCapability(partnerId, "KB_SHARE", "IMPORT", true);
-        federationRepo.upsertCapability(partnerId, "KB_SHARE", "EXPORT", false);
-        federationRepo.upsertCapability(partnerId, "QUIZ_SHARE", "IMPORT", true);
+        federationRepo.upsertCapability(partnerId, CapabilityType.KB_SHARE, Direction.IMPORT, true);
+        federationRepo.upsertCapability(partnerId, CapabilityType.KB_SHARE, Direction.EXPORT, false);
+        federationRepo.upsertCapability(partnerId, CapabilityType.QUIZ_SHARE, Direction.IMPORT, true);
 
         var caps = federationRepo.findCapabilities(partnerId);
         assertEquals(3, caps.size());
         assertTrue(caps.stream()
-                .anyMatch(
-                        c -> c.capability().equals("KB_SHARE") && c.direction().equals("IMPORT") && c.enabled()));
+                .anyMatch(c -> c.capability().equals(CapabilityType.KB_SHARE)
+                        && c.direction().equals(Direction.IMPORT)
+                        && c.enabled()));
         assertTrue(caps.stream()
-                .anyMatch(
-                        c -> c.capability().equals("KB_SHARE") && c.direction().equals("EXPORT") && !c.enabled()));
+                .anyMatch(c -> c.capability().equals(CapabilityType.KB_SHARE)
+                        && c.direction().equals(Direction.EXPORT)
+                        && !c.enabled()));
     }
 
     @Test
     @Order(11)
     void upsertCapabilityUpdatesExisting() {
-        federationRepo.upsertCapability(partnerId, "KB_SHARE", "EXPORT", true);
+        federationRepo.upsertCapability(partnerId, CapabilityType.KB_SHARE, Direction.EXPORT, true);
         var caps = federationRepo.findCapabilities(partnerId);
         assertTrue(caps.stream()
-                .anyMatch(
-                        c -> c.capability().equals("KB_SHARE") && c.direction().equals("EXPORT") && c.enabled()));
+                .anyMatch(c -> c.capability().equals(CapabilityType.KB_SHARE)
+                        && c.direction().equals(Direction.EXPORT)
+                        && c.enabled()));
     }
 
     // -- KB Shares --
@@ -199,7 +205,7 @@ class FederationRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(20)
     void createAndFindKbShare() {
-        var share = federationRepo.createKbShare(stationA.id(), kbFileId, null, "ALL_PARTNERS");
+        var share = federationRepo.createKbShare(stationA.id(), kbFileId, null, ShareScope.ALL_PARTNERS);
         assertNotNull(share);
         assertTrue(share.id() > 0);
         assertEquals(kbFileId, share.fileId());
@@ -224,7 +230,7 @@ class FederationRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(30)
     void createAndFindQuizShare() {
-        var share = federationRepo.createQuizShare(stationA.id(), quizCatalogId, "ALL_PARTNERS");
+        var share = federationRepo.createQuizShare(stationA.id(), quizCatalogId, ShareScope.ALL_PARTNERS);
         assertNotNull(share);
         assertTrue(share.id() > 0);
         assertEquals(quizCatalogId, share.catalogId());
@@ -248,7 +254,7 @@ class FederationRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(40)
     void createAndFindProtocolShare() {
-        var share = federationRepo.createProtocolShare(stationA.id(), protocolId, "ALL_PARTNERS");
+        var share = federationRepo.createProtocolShare(stationA.id(), protocolId, ShareScope.ALL_PARTNERS);
         assertNotNull(share);
         assertTrue(share.id() > 0);
         assertEquals(protocolId, share.protocolId());

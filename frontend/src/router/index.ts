@@ -153,6 +153,11 @@ const router = createRouter({
                     component: () => import('@/views/stationview/news/EditView.vue'),
                 },
                 {
+                    path: 'news/:id',
+                    name: 'news-detail',
+                    component: () => import('@/views/stationview/news/DetailView.vue'),
+                },
+                {
                     path: 'news/:id/edit',
                     name: 'news-edit',
                     component: () => import('@/views/stationview/news/EditView.vue'),
@@ -696,6 +701,11 @@ const router = createRouter({
                     component: () => import('@/views/adminview/AdminProblemsView.vue'),
                 },
                 {
+                    path: 'problem-reports',
+                    name: 'admin-problem-reports',
+                    component: () => import('@/views/adminview/AdminProblemReportsView.vue'),
+                },
+                {
                     path: 'api-status',
                     name: 'admin-api-status',
                     component: () => import('@/views/adminview/AdminApiStatusView.vue'),
@@ -764,6 +774,11 @@ const router = createRouter({
                     path: 'news',
                     name: 'help-news-module-overview',
                     component: () => import('@/views/helpcenter/stationview/news/OverviewHelp.vue')
+                },
+                {
+                    path: 'news/:id',
+                    name: 'help-news-detail',
+                    redirect: { name: 'help-news-module-overview' },
                 },
                 {
                     path: 'news/create',
@@ -1387,6 +1402,11 @@ const router = createRouter({
                     path: 'problems',
                     name: 'help-admin-problems',
                     component: () => import('@/views/helpcenter/adminview/ProblemsHelp.vue')
+                },
+                {
+                    path: 'problem-reports',
+                    name: 'help-admin-problem-reports',
+                    redirect: { name: 'help-admin-problems' }
                 },
                 {
                     path: ':pathMatch(.*)*',

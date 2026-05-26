@@ -1181,6 +1181,7 @@ export interface NewsComment {
     authorAccountId?: number | null
     authorName: string
     content: string
+    deleted?: boolean
     createdAt: string
 }
 
@@ -1643,6 +1644,7 @@ export interface Comment {
     parentId?: number | null
     authorId: number
     content: string
+    deleted?: boolean
     createdAt: string
     updatedAt?: string | null
 }

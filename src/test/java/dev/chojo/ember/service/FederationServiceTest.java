@@ -6,8 +6,11 @@
 package dev.chojo.ember.service;
 
 import dev.chojo.ember.conf.file.elements.Api;
+import dev.chojo.ember.feature.federation.entity.CapabilityType;
 import dev.chojo.ember.feature.federation.entity.ContentType;
+import dev.chojo.ember.feature.federation.entity.Direction;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
+import dev.chojo.ember.feature.federation.entity.ShareScope;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.members.entity.StationMember;
@@ -126,22 +129,22 @@ class FederationServiceTest extends RepositoryTestBase {
     @Order(10)
     void hasCapabilityReturnsTrueWhenEnabled() {
         // Capabilities are initialized with all enabled during acceptInvite
-        assertTrue(service.hasCapability(partnerIdAtoB, "KB_SHARE", "IMPORT"));
-        assertTrue(service.hasCapability(partnerIdAtoB, "QUIZ_SHARE", "EXPORT"));
+        assertTrue(service.hasCapability(partnerIdAtoB, CapabilityType.KB_SHARE, Direction.IMPORT));
+        assertTrue(service.hasCapability(partnerIdAtoB, CapabilityType.QUIZ_SHARE, Direction.EXPORT));
     }
 
     @Test
     @Order(11)
     void setCapabilityDisables() {
-        service.setCapability(partnerIdAtoB, "KB_SHARE", "IMPORT", false);
-        assertFalse(service.hasCapability(partnerIdAtoB, "KB_SHARE", "IMPORT"));
+        service.setCapability(partnerIdAtoB, CapabilityType.KB_SHARE, Direction.IMPORT, false);
+        assertFalse(service.hasCapability(partnerIdAtoB, CapabilityType.KB_SHARE, Direction.IMPORT));
     }
 
     @Test
     @Order(12)
     void setCapabilityReenables() {
-        service.setCapability(partnerIdAtoB, "KB_SHARE", "IMPORT", true);
-        assertTrue(service.hasCapability(partnerIdAtoB, "KB_SHARE", "IMPORT"));
+        service.setCapability(partnerIdAtoB, CapabilityType.KB_SHARE, Direction.IMPORT, true);
+        assertTrue(service.hasCapability(partnerIdAtoB, CapabilityType.KB_SHARE, Direction.IMPORT));
     }
 
     @Test
@@ -494,7 +497,7 @@ class FederationServiceTest extends RepositoryTestBase {
     void kbShareCreateAndDelete() {
         // KB share requires either a file_id or folder_id (CHECK constraint)
         var folder = knowledgeBaseRepo.createFolder(stationA.id(), null, "FedTestFolder", "", memberA.id());
-        var share = service.createKbShare(stationA.id(), null, folder.id(), "ALL_PARTNERS");
+        var share = service.createKbShare(stationA.id(), null, folder.id(), ShareScope.ALL_PARTNERS);
         assertNotNull(share);
         assertTrue(service.deleteKbShare(share.id()));
         assertFalse(service.deleteKbShare(share.id())); // Already deleted
@@ -506,7 +509,7 @@ class FederationServiceTest extends RepositoryTestBase {
     void quizShareCreateAndDelete() {
         // Create a quiz catalog to reference
         var catalog = quizCatalogRepo.create(stationA.id(), "Test Quiz Catalog", "desc", false);
-        var share = service.createQuizShare(stationA.id(), catalog.id(), "ALL_PARTNERS");
+        var share = service.createQuizShare(stationA.id(), catalog.id(), ShareScope.ALL_PARTNERS);
         assertNotNull(share);
         assertTrue(service.deleteQuizShare(share.id()));
     }
@@ -516,7 +519,7 @@ class FederationServiceTest extends RepositoryTestBase {
     void protocolShareCreateAndDelete() {
         // Create a protocol to reference (description must not be null)
         var protocol = testProtocolRepo.createProtocol(stationA.id(), "Test Protocol", "", null);
-        var share = service.createProtocolShare(stationA.id(), protocol.id(), "ALL_PARTNERS");
+        var share = service.createProtocolShare(stationA.id(), protocol.id(), ShareScope.ALL_PARTNERS);
         assertNotNull(share);
         assertTrue(service.deleteProtocolShare(share.id()));
     }

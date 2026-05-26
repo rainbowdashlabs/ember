@@ -7,27 +7,15 @@ package dev.chojo.ember.feature.federation.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
 
-public record FederationCapability(int id, int partnerId, String capability, String direction, boolean enabled) {
-
-    public enum CapabilityType {
-        KB_SHARE,
-        QUIZ_SHARE,
-        PROTOCOL_SHARE,
-        INVENTORY_LEND,
-        EVENT_SHARE
-    }
-
-    public enum Direction {
-        IMPORT,
-        EXPORT
-    }
+public record FederationCapability(
+        int id, int partnerId, CapabilityType capability, Direction direction, boolean enabled) {
 
     public static RowMapping<FederationCapability> map() {
         return row -> new FederationCapability(
                 row.getInt("id"),
                 row.getInt("partner_id"),
-                row.getString("capability"),
-                row.getString("direction"),
+                row.getEnum("capability", CapabilityType.class),
+                row.getEnum("direction", Direction.class),
                 row.getBoolean("enabled"));
     }
 }

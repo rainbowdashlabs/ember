@@ -25,6 +25,7 @@ import {useStations} from '@/composables/useStations'
 import {usePendingChanges} from '@/composables/usePendingChanges'
 import HelpCenterLink from '@/components/navigation/HelpCenterLink.vue'
 import OnboardingTour from '@/components/onboarding/OnboardingTour.vue'
+import ReportProblemButton from '@/components/feedback/ReportProblemButton.vue'
 import UserAvatar from '@/components/avatar/UserAvatar.vue'
 import {useOnboardingTour} from '@/composables/useOnboardingTour'
 
@@ -390,5 +391,6 @@ async function handleLogout() {
     </Alert>
     <RouterView/>
     <OnboardingTour/>
+    <ReportProblemButton/>
   </SidebarLayout>
 </template>

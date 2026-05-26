@@ -8,7 +8,6 @@ package dev.chojo.ember.feature.events.service;
 import dev.chojo.ember.feature.events.entity.EventFederationRegistration;
 import dev.chojo.ember.feature.events.entity.EventFederationShare;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
-import dev.chojo.ember.feature.events.repository.EventRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
@@ -22,12 +21,10 @@ import java.util.Optional;
 @Singleton
 public class EventFederationService {
     private final EventFederationRepository federationRepository;
-    private final EventRepository eventRepository;
 
     @Inject
-    public EventFederationService(EventFederationRepository federationRepository, EventRepository eventRepository) {
+    public EventFederationService(EventFederationRepository federationRepository) {
         this.federationRepository = federationRepository;
-        this.eventRepository = eventRepository;
     }
 
     // -- Share management --

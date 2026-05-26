@@ -6,6 +6,23 @@
 import axios, {type InternalAxiosRequestConfig} from 'axios'
 import {getItem, removeItem, setItem} from './storage'
 
+// -- Request history for problem reports --
+interface RequestHistoryEntry {
+    method: string
+    url: string
+    status: number | null
+    duration: number
+    timestamp: string
+    error?: string
+}
+
+const requestHistory: RequestHistoryEntry[] = []
+const MAX_HISTORY = 20
+
+export function getRequestHistory(): RequestHistoryEntry[] {
+    return [...requestHistory]
+}
+
 const client = axios.create({
     baseURL: '/api/v1',
     headers: {
@@ -33,6 +50,7 @@ function releaseQueue() {
 }
 
 client.interceptors.request.use((config) => {
+    (config as any)._startTime = Date.now();
     // If refreshing and this isn't the refresh request itself, wait
     if (refreshing && !config.url?.includes('/auth/refresh')) {
         return waitForRefresh(config)
@@ -50,8 +68,32 @@ client.interceptors.request.use((config) => {
 })
 
 client.interceptors.response.use(
-    (response) => response,
+    (response) => {
+        const start = (response.config as any)._startTime
+        requestHistory.push({
+            method: (response.config.method ?? 'GET').toUpperCase(),
+            url: response.config.url ?? '',
+            status: response.status,
+            duration: start ? Date.now() - start : 0,
+            timestamp: new Date().toISOString(),
+        })
+        if (requestHistory.length > MAX_HISTORY) requestHistory.shift()
+        return response
+    },
     (error) => {
+        const config = error?.config
+        if (config) {
+            const start = (config as any)._startTime
+            requestHistory.push({
+                method: (config.method ?? 'GET').toUpperCase(),
+                url: config.url ?? '',
+                status: error?.response?.status ?? null,
+                duration: start ? Date.now() - start : 0,
+                timestamp: new Date().toISOString(),
+                error: error?.response?.data?.message ?? error?.message,
+            })
+            if (requestHistory.length > MAX_HISTORY) requestHistory.shift()
+        }
         if (error.response?.status === 401) {
             const token = getItem('session_token')
             if (token && !refreshing) {

@@ -405,3 +405,45 @@ export async function getRegistrationStats(eventId: number, categoryId?: number,
     const res = await client.get<MemberRegistrationStats[]>(`/events/${eventId}/registration-stats`, {params})
     return res.data
 }
+
+// -- Federated Events --
+
+export interface FederatedEvent {
+    partnerId: number
+    partnerStationName: string
+    event: {
+        id: number
+        name: string
+        description: string
+        eventType: string
+        dayOfWeek: number
+        startTime: string
+        endTime: string
+        requiresRegistration: boolean
+        requiresConfirmation: boolean
+    }
+}
+
+export async function listFederatedEvents(): Promise<FederatedEvent[]> {
+    const res = await client.get<FederatedEvent[]>('/events/federated')
+    return res.data
+}
+
+export interface EventFederationShareInfo {
+    shared: boolean
+    scope?: string
+    partnerIds?: number[]
+}
+
+export async function getFederationShare(eventId: number): Promise<EventFederationShareInfo> {
+    const res = await client.get<EventFederationShareInfo>(`/events/${eventId}/federation`)
+    return res.data
+}
+
+export async function setFederationShare(eventId: number, scope: string, partnerIds?: number[]): Promise<void> {
+    await client.put(`/events/${eventId}/federation`, {scope, partnerIds: partnerIds ?? []})
+}
+
+export async function removeFederationShare(eventId: number): Promise<void> {
+    await client.delete(`/events/${eventId}/federation`)
+}

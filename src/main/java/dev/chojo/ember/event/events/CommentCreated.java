@@ -9,9 +9,9 @@ import dev.chojo.ember.event.DomainEvent;
 
 public record CommentCreated(
         int stationId,
-        int newsId,
-        String newsTitle,
-        int newsAuthorId,
+        String entityType,
+        int entityId,
+        String entityTitle,
         int commentId,
         Integer parentCommentId,
         Integer parentAuthorId,

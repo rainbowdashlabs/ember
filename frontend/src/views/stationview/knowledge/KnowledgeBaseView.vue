@@ -152,9 +152,22 @@ async function loadData() {
             currentFolder.value = result.currentFolder
             folders.value = result.folders
             files.value = result.files
-            sharedFiles.value = result.sharedFiles ?? []
             favourites.value = result.favourites ?? []
             await buildBreadcrumbs()
+
+            // Load federated KB content at root level
+            if (currentFolderId.value == null) {
+                try {
+                    const shared = await federation.browseSharedKb()
+                    sharedFiles.value = shared.map(s => ({
+                        file: {id: s.remoteId, name: s.title, description: s.description} as any,
+                        stationName: s.stationName,
+                        sourceStationId: s.stationId,
+                    }))
+                } catch { sharedFiles.value = [] }
+            } else {
+                sharedFiles.value = []
+            }
         }
     } catch {
         error.value = t('common.error')

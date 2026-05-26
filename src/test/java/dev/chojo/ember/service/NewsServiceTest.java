@@ -169,9 +169,13 @@ class NewsServiceTest extends RepositoryTestBase {
 
     @Test
     @Order(26)
-    void deleteComment() {
+    void deleteCommentWithChildrenSoftDeletes() {
+        // Comment has a child reply, so it should be soft-deleted (not removed)
         assertTrue(service.deleteComment(station.id(), commentId));
-        assertTrue(service.findCommentById(commentId).isEmpty());
+        var deleted = service.findCommentById(commentId);
+        assertTrue(deleted.isPresent());
+        assertTrue(deleted.get().deleted());
+        assertEquals("", deleted.get().content());
     }
 
     @Test

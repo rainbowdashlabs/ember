@@ -22,12 +22,13 @@ import {EventTypes, needsDayOfWeek} from '@/api/types'
 import type {EventFieldDefault} from '@/api/events'
 import {attendance, events, memberGroups, stationMembers, userTags} from '@/api'
 import EventFormPanel from './eventshared/EventFormPanel.vue'
+import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import {useSession} from '@/composables/useSession'
 
 const {t} = useI18n()
 const route = useRoute()
 const router = useRouter()
-const {loaded} = useSession()
+const {loaded, canManageFederation} = useSession()
 
 const eventId = computed(() => route.params.id ? Number(route.params.id) : null)
 const isEdit = computed(() => eventId.value !== null)
@@ -102,6 +103,7 @@ const selectedRoleIds = ref<number[]>([])
 const selectedGroupIds = ref<number[]>([])
 const selectedTagIds = ref<number[]>([])
 const restrictionMode = ref<'AND' | 'OR'>('AND')
+const federationShared = ref(false)
 const fieldDefaults = ref<Map<number, { source: string; value: string }>>(new Map())
 
 function toLocalDateTime(iso: string): string {
@@ -187,6 +189,11 @@ async function loadData() {
       }
       fieldDefaults.value = fdMap
       eventFieldDefaults.value = defaults
+
+      if (canManageFederation()) {
+        const fedShare = await events.getFederationShare(eventId.value!)
+        federationShared.value = fedShare.shared
+      }
     }
   } catch {
     error.value = t('common.error')
@@ -273,6 +280,14 @@ async function submit() {
     const customFields = eventCustomFields.value.filter(f => f.name.trim())
     await events.setEventFields(savedEventId, {fields: customFields})
 
+    if (canManageFederation()) {
+      if (federationShared.value) {
+        await events.setFederationShare(savedEventId, 'ALL_PARTNERS')
+      } else {
+        await events.removeFederationShare(savedEventId).catch(() => {})
+      }
+    }
+
     router.push({name: 'events'})
   } catch {
     error.value = t('common.error')
@@ -348,6 +363,15 @@ watch(loaded, (isLoaded) => {
               show-schedule
               show-value
           />
+        </NeutralContainer>
+
+        <NeutralContainer v-if="canManageFederation()" class="space-y-2">
+          <SubHeader>{{ t('events.federation') }}</SubHeader>
+          <label class="flex items-center gap-3">
+            <ToggleInput v-model="federationShared"/>
+            <span class="text-sm">{{ t('events.federationShare') }}</span>
+          </label>
+          <p class="text-xs text-(--text-muted)">{{ t('events.federationShareHint') }}</p>
         </NeutralContainer>
 
         <NeutralContainer v-if="currentTemplateFields.length > 0" class="space-y-4">

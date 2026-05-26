@@ -7,6 +7,9 @@ package dev.chojo.ember.service;
 
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.account.entity.Account;
+import dev.chojo.ember.feature.federation.entity.CapabilityType;
+import dev.chojo.ember.feature.federation.entity.Direction;
+import dev.chojo.ember.feature.federation.entity.ShareScope;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.service.FederatedContentService;
 import dev.chojo.ember.feature.federation.service.FederationHttpClient;
@@ -116,9 +119,9 @@ class FederatedContentServiceTest extends RepositoryTestBase {
         partnerIdAtoB = partner.id();
 
         // Create shares on stationB
-        federationRepo.createKbShare(stationB.id(), realKbFileId, null, "ALL_PARTNERS");
-        federationRepo.createQuizShare(stationB.id(), realQuizCatalogId, "ALL_PARTNERS");
-        federationRepo.createProtocolShare(stationB.id(), realProtocolId, "ALL_PARTNERS");
+        federationRepo.createKbShare(stationB.id(), realKbFileId, null, ShareScope.ALL_PARTNERS);
+        federationRepo.createQuizShare(stationB.id(), realQuizCatalogId, ShareScope.ALL_PARTNERS);
+        federationRepo.createProtocolShare(stationB.id(), realProtocolId, ShareScope.ALL_PARTNERS);
 
         setupMocks();
     }
@@ -248,25 +251,25 @@ class FederatedContentServiceTest extends RepositoryTestBase {
     @Test
     @Order(20)
     void browseKbReturnsEmptyWhenCapabilityDisabled() {
-        federationService.setCapability(partnerIdAtoB, "KB_SHARE", "IMPORT", false);
+        federationService.setCapability(partnerIdAtoB, CapabilityType.KB_SHARE, Direction.IMPORT, false);
         assertTrue(contentService.browseSharedKb(stationA.id()).isEmpty());
-        federationService.setCapability(partnerIdAtoB, "KB_SHARE", "IMPORT", true);
+        federationService.setCapability(partnerIdAtoB, CapabilityType.KB_SHARE, Direction.IMPORT, true);
     }
 
     @Test
     @Order(21)
     void browseQuizReturnsEmptyWhenCapabilityDisabled() {
-        federationService.setCapability(partnerIdAtoB, "QUIZ_SHARE", "IMPORT", false);
+        federationService.setCapability(partnerIdAtoB, CapabilityType.QUIZ_SHARE, Direction.IMPORT, false);
         assertTrue(contentService.browseSharedQuiz(stationA.id()).isEmpty());
-        federationService.setCapability(partnerIdAtoB, "QUIZ_SHARE", "IMPORT", true);
+        federationService.setCapability(partnerIdAtoB, CapabilityType.QUIZ_SHARE, Direction.IMPORT, true);
     }
 
     @Test
     @Order(22)
     void browseProtocolsReturnsEmptyWhenCapabilityDisabled() {
-        federationService.setCapability(partnerIdAtoB, "PROTOCOL_SHARE", "IMPORT", false);
+        federationService.setCapability(partnerIdAtoB, CapabilityType.PROTOCOL_SHARE, Direction.IMPORT, false);
         assertTrue(contentService.browseSharedProtocols(stationA.id()).isEmpty());
-        federationService.setCapability(partnerIdAtoB, "PROTOCOL_SHARE", "IMPORT", true);
+        federationService.setCapability(partnerIdAtoB, CapabilityType.PROTOCOL_SHARE, Direction.IMPORT, true);
     }
 
     // -- Copy content --
@@ -389,7 +392,7 @@ class FederatedContentServiceTest extends RepositoryTestBase {
                 null,
                 memberB.id());
 
-        federationRepo.createKbShare(stationB.id(), null, folder.id(), "ALL_PARTNERS");
+        federationRepo.createKbShare(stationB.id(), null, folder.id(), ShareScope.ALL_PARTNERS);
 
         // Mock folder and file lookups
         var now = Instant.now();
@@ -462,7 +465,7 @@ class FederatedContentServiceTest extends RepositoryTestBase {
                 "https://remote.example.com");
 
         // Enable KB capability
-        federationService.setCapability(partner.id(), "KB_SHARE", "IMPORT", true);
+        federationService.setCapability(partner.id(), CapabilityType.KB_SHARE, Direction.IMPORT, true);
 
         // Mock HTTP client to return a file
         var remoteFile = new FederationHttpClient.RemoteKbFile(realKbFileId, "RemoteShared", "Desc", "MARKDOWN");
@@ -495,7 +498,7 @@ class FederatedContentServiceTest extends RepositoryTestBase {
                 null,
                 "https://remote2.example.com");
 
-        federationService.setCapability(partner.id(), "QUIZ_SHARE", "IMPORT", true);
+        federationService.setCapability(partner.id(), CapabilityType.QUIZ_SHARE, Direction.IMPORT, true);
 
         var remoteCatalog = new FederationHttpClient.RemoteQuizCatalog(realQuizCatalogId, "RemoteCatalog", "CatDesc");
         when(httpClient.fetchSharedQuizCatalogs(anyString(), anyInt(), any())).thenReturn(List.of(remoteCatalog));
@@ -527,7 +530,7 @@ class FederatedContentServiceTest extends RepositoryTestBase {
                 null,
                 "https://remote3.example.com");
 
-        federationService.setCapability(partner.id(), "PROTOCOL_SHARE", "IMPORT", true);
+        federationService.setCapability(partner.id(), CapabilityType.PROTOCOL_SHARE, Direction.IMPORT, true);
 
         var remoteProto = new FederationHttpClient.RemoteProtocol(realProtocolId, "RemoteProto", "ProtoDesc");
         when(httpClient.fetchSharedProtocols(anyString(), anyInt(), any())).thenReturn(List.of(remoteProto));
@@ -559,7 +562,7 @@ class FederatedContentServiceTest extends RepositoryTestBase {
                 null,
                 "https://remote4.example.com");
 
-        federationService.setCapability(partner.id(), "KB_SHARE", "IMPORT", true);
+        federationService.setCapability(partner.id(), CapabilityType.KB_SHARE, Direction.IMPORT, true);
 
         // Return empty list from HTTP
         when(httpClient.fetchSharedKbFiles(anyString(), anyInt(), any())).thenReturn(List.of());
@@ -699,7 +702,7 @@ class FederatedContentServiceTest extends RepositoryTestBase {
                         any(),
                         anyDouble(),
                         anyBoolean(),
-                        anyString(),
+                        any(dev.chojo.ember.feature.quiz.entity.QuestionConfig.class),
                         anyInt());
         verify(quizService, atLeastOnce())
                 .createQuestion(
@@ -711,7 +714,7 @@ class FederatedContentServiceTest extends RepositoryTestBase {
                         any(),
                         anyDouble(),
                         anyBoolean(),
-                        anyString(),
+                        any(dev.chojo.ember.feature.quiz.entity.QuestionConfig.class),
                         anyInt());
 
         // Restore empty questions mock
@@ -774,7 +777,7 @@ class FederatedContentServiceTest extends RepositoryTestBase {
                 null,
                 "https://remote6.example.com");
 
-        federationService.setCapability(partner.id(), "KB_SHARE", "IMPORT", true);
+        federationService.setCapability(partner.id(), CapabilityType.KB_SHARE, Direction.IMPORT, true);
 
         // fileType is null — should default to MARKDOWN
         var remoteFile = new FederationHttpClient.RemoteKbFile(realKbFileId + 100, "NullTypeFile", "desc", null);

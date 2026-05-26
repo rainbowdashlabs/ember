@@ -45,7 +45,7 @@ class EventFederationServiceTest extends RepositoryTestBase {
         federationRepo = new FederationRepository();
         eventFederationRepo = new EventFederationRepository();
         federationService = new FederationService(federationRepo, stationRepo, new Api());
-        service = new EventFederationService(eventFederationRepo, eventRepo);
+        service = new EventFederationService(eventFederationRepo);
 
         stationA = stationRepo.create("EventFedSvcStationA");
         stationB = stationRepo.create("EventFedSvcStationB");

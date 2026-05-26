@@ -18,10 +18,12 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
  * @param parentId  parent comment ID for threaded replies, or {@code null} for top-level comments
  * @param authorId  member ID of the comment author
  * @param content   text content of the comment
+ * @param deleted   whether the comment has been soft-deleted
  * @param createdAt timestamp when the comment was created
  * @param updatedAt timestamp when the comment was last updated, or {@code null}
  */
-public record Comment(int id, Integer parentId, int authorId, String content, Instant createdAt, Instant updatedAt) {
+public record Comment(
+        int id, Integer parentId, int authorId, String content, boolean deleted, Instant createdAt, Instant updatedAt) {
     /**
      * Creates a row mapping for database result set conversion.
      */
@@ -31,6 +33,7 @@ public record Comment(int id, Integer parentId, int authorId, String content, In
                 row.getObject("parent_id", Integer.class),
                 row.getInt("author_id"),
                 row.getString("content"),
+                row.getBoolean("deleted"),
                 row.get("created_at", INSTANT_TIMESTAMP),
                 row.get("updated_at", INSTANT_TIMESTAMP));
     }

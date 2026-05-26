@@ -85,10 +85,19 @@ public class UserFeedRoutes implements Routes {
         return memberRepository.findById(feedToken.memberId()).orElseThrow(NotFoundResponse::new);
     }
 
+    private int resolveMemberId(Context ctx) {
+        String token = ctx.pathParam("token");
+        return tokenService
+                .findByToken(token)
+                .orElseThrow(NotFoundResponse::new)
+                .memberId();
+    }
+
     // -- iCal --
 
     private void icalFeed(Context ctx) {
         var member = resolveToken(ctx);
+        tokenService.recordIcalPoll(member.id());
         var station = stationRepository.findById(member.stationId()).orElseThrow(NotFoundResponse::new);
 
         var categories = eventService.findCategoriesByStation(station.id());
@@ -162,12 +171,13 @@ public class UserFeedRoutes implements Routes {
 
     private void rssFeed(Context ctx) {
         var member = resolveToken(ctx);
+        tokenService.recordNotificationPoll(member.id());
         var station = stationRepository.findById(member.stationId()).orElseThrow(NotFoundResponse::new);
         var notifications = getFeedNotifications(member);
 
         SyndFeed feed = new SyndFeedImpl();
         feed.setFeedType("rss_2.0");
-        feed.setTitle(station.name() + " \u2014 Benachrichtigungen");
+        feed.setTitle(station.name() + " — Benachrichtigungen");
         feed.setDescription("Ember Benachrichtigungen");
         feed.setLanguage("de");
         feed.setLink("urn:ember:station:" + station.uid());
@@ -180,12 +190,13 @@ public class UserFeedRoutes implements Routes {
 
     private void atomFeed(Context ctx) {
         var member = resolveToken(ctx);
+        tokenService.recordNotificationPoll(member.id());
         var station = stationRepository.findById(member.stationId()).orElseThrow(NotFoundResponse::new);
         var notifications = getFeedNotifications(member);
 
         SyndFeed feed = new SyndFeedImpl();
         feed.setFeedType("atom_1.0");
-        feed.setTitle(station.name() + " \u2014 Benachrichtigungen");
+        feed.setTitle(station.name() + " — Benachrichtigungen");
         feed.setUri("urn:ember:notifications:" + member.id());
         feed.setEntries(buildSyndEntries(notifications));
 
@@ -238,6 +249,6 @@ public class UserFeedRoutes implements Routes {
 
     private String feedDescription(Notification n) {
         var params = n.data().paramsAsMap();
-        return params.values().stream().filter(v -> v != null && !v.isBlank()).collect(Collectors.joining(" \u2014 "));
+        return params.values().stream().filter(v -> v != null && !v.isBlank()).collect(Collectors.joining(" — "));
     }
 }

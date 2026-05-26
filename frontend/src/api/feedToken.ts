@@ -8,6 +8,14 @@ import client from './client'
 export interface FeedTokenResponse {
     token: string
     createdAt: string
+    icalPolledAt?: string | null
+    notificationPolledAt?: string | null
+}
+
+export interface FeedStatusResponse {
+    hasToken: boolean
+    icalActive: boolean
+    notificationActive: boolean
 }
 
 export async function getFeedToken(): Promise<FeedTokenResponse | null> {
@@ -32,6 +40,11 @@ export async function regenerateFeedToken(): Promise<FeedTokenResponse> {
 
 export async function revokeFeedToken(): Promise<void> {
     await client.delete('/feed/token')
+}
+
+export async function getFeedStatus(): Promise<FeedStatusResponse> {
+    const res = await client.get<FeedStatusResponse>('/feed/token/status')
+    return res.data
 }
 
 export function buildFeedUrl(token: string, type: 'ical' | 'rss' | 'atom'): string {

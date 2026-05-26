@@ -17,6 +17,8 @@ import dev.chojo.ember.feature.notifications.service.NotificationService;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
+import java.util.Map;
+
 @Singleton
 public class CommentCreatedHandler implements DomainEventHandler<CommentCreated> {
     private final NotificationService notificationService;
@@ -36,25 +38,25 @@ public class CommentCreatedHandler implements DomainEventHandler<CommentCreated>
 
     @Override
     public void handle(CommentCreated event) {
+        var link = "news".equals(event.entityType())
+                ? new NotificationData.NotificationLink("news-detail", Map.of("id", event.entityId()))
+                : new NotificationData.NotificationLink("events");
         var data = NotificationData.of(
-                new NotificationParams.NewsComment(event.newsTitle(), event.authorName(), event.preview()),
-                new NotificationData.NotificationLink("news-list"));
+                new NotificationParams.NewsComment(event.entityTitle(), event.authorName(), event.preview()), link);
 
-        // Notify the news author (unless they wrote the comment)
-        if (event.newsAuthorId() != event.authorMemberId()) {
-            notificationService.notifyIfAbsent(event.newsAuthorId(), NotificationType.NEWS_COMMENT, data);
-        }
-        // Notify the parent comment author (if this is a reply)
-        if (event.parentAuthorId() != null
-                && event.parentAuthorId() != event.authorMemberId()
-                && event.parentAuthorId() != event.newsAuthorId()) {
+        // Notify the parent comment author (if this is a reply and they didn't write this comment)
+        if (event.parentAuthorId() != null && event.parentAuthorId() != event.authorMemberId()) {
             notificationService.notifyIfAbsent(event.parentAuthorId(), NotificationType.NEWS_COMMENT, data);
         }
-        // Notify all NEWS_MANAGER members
-        var newsMgmtIds = stationMemberRepository.findMembersWithRole(event.stationId(), Roles.NEWS_MANAGER).stream()
-                .map(StationMember::id)
-                .toList();
-        notificationService.notifyMembersIfAbsent(
-                newsMgmtIds, NotificationType.NEWS_COMMENT, data, event.authorMemberId());
+
+        // Notify managers only for news comments
+        if ("news".equals(event.entityType())) {
+            var newsMgmtIds =
+                    stationMemberRepository.findMembersWithRole(event.stationId(), Roles.NEWS_MANAGER).stream()
+                            .map(StationMember::id)
+                            .toList();
+            notificationService.notifyMembersIfAbsent(
+                    newsMgmtIds, NotificationType.NEWS_COMMENT, data, event.authorMemberId());
+        }
     }
 }

@@ -21,12 +21,13 @@ public class EventCommentRepository {
 
     /**
      * Finds all comments for an event, ordered by creation time.
+     * Includes soft-deleted comments so the thread structure is preserved.
      *
      * @param eventId the event ID
      * @return the list of comments
      */
     public List<Comment> findByEvent(int eventId) {
-        return Query.query("SELECT id, parent_id, author_id, content, created_at, updated_at"
+        return Query.query("SELECT id, parent_id, author_id, content, deleted, created_at, updated_at"
                         + " FROM event_comment WHERE event_id = :event_id ORDER BY created_at;")
                 .single(Call.of().bind("event_id", eventId))
                 .map(Comment.map())
@@ -41,7 +42,7 @@ public class EventCommentRepository {
      */
     public Optional<Comment> findById(int id) {
         return Query.query(
-                        "SELECT id, parent_id, author_id, content, created_at, updated_at FROM event_comment WHERE id = :id;")
+                        "SELECT id, parent_id, author_id, content, deleted, created_at, updated_at FROM event_comment WHERE id = :id;")
                 .single(Call.of().bind("id", id))
                 .map(Comment.map())
                 .first();
@@ -59,7 +60,7 @@ public class EventCommentRepository {
     public Comment create(int eventId, Integer parentId, int authorId, String content) {
         return Query.query("INSERT INTO event_comment (event_id, parent_id, author_id, content)"
                         + " VALUES (:event_id, :parent_id, :author_id, :content)"
-                        + " RETURNING id, parent_id, author_id, content, created_at, updated_at;")
+                        + " RETURNING id, parent_id, author_id, content, deleted, created_at, updated_at;")
                 .single(Call.of()
                         .bind("event_id", eventId)
                         .bind("parent_id", parentId)
@@ -85,15 +86,36 @@ public class EventCommentRepository {
     }
 
     /**
-     * Deletes a comment by ID. Cascade handles children.
+     * Soft-deletes a comment if it has children, or hard-deletes it if it has none.
      *
      * @param id the comment ID
-     * @return {@code true} if the comment was deleted
+     * @return {@code true} if the comment was deleted or marked as deleted
      */
     public boolean delete(int id) {
+        boolean hasChildren = hasChildren(id);
+        if (hasChildren) {
+            return Query.query("UPDATE event_comment SET deleted = TRUE, content = '' WHERE id = :id;")
+                    .single(Call.of().bind("id", id))
+                    .update()
+                    .changed();
+        }
         return Query.query("DELETE FROM event_comment WHERE id = :id;")
                 .single(Call.of().bind("id", id))
                 .update()
                 .changed();
+    }
+
+    /**
+     * Checks whether a comment has any child replies.
+     *
+     * @param id the comment ID
+     * @return {@code true} if the comment has children
+     */
+    public boolean hasChildren(int id) {
+        return Query.query("SELECT EXISTS(SELECT 1 FROM event_comment WHERE parent_id = :id);")
+                .single(Call.of().bind("id", id))
+                .map(row -> row.getBoolean(1))
+                .first()
+                .orElse(false);
     }
 }

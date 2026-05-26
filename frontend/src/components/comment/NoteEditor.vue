@@ -16,6 +16,7 @@ import MutedText from '@/components/typography/MutedText.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
+import DiffView from '@/components/display/DiffView.vue'
 
 const props = defineProps<{
   entityType: string
@@ -81,6 +82,8 @@ function formatDate(iso: string): string {
   })
 }
 
+
+
 onMounted(loadNote)
 </script>
 
@@ -115,7 +118,7 @@ onMounted(loadNote)
         <SubHeader class="text-xs">{{ t('notes.versionHistory') }}</SubHeader>
         <div v-for="v in versions" :key="v.id" class="border-b border-(--border) pb-2 last:border-0">
           <MutedText size="xs">{{ formatDate(v.createdAt) }}</MutedText>
-          <pre class="text-xs font-mono whitespace-pre-wrap text-(--text-muted) mt-1">{{ v.diffPatch }}</pre>
+          <DiffView :patch="v.diffPatch" compact/>
         </div>
       </NeutralContainer>
     </template>

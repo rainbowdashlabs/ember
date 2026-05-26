@@ -8,7 +8,10 @@ package dev.chojo.ember.feature.federation.route;
 import dev.chojo.ember.api.Roles;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.feature.federation.entity.CapabilityType;
+import dev.chojo.ember.feature.federation.entity.Direction;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
+import dev.chojo.ember.feature.federation.entity.ShareScope;
 import dev.chojo.ember.feature.federation.service.FederatedContentService;
 import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.station.entity.Station;
@@ -169,7 +172,7 @@ public class FederationRoutes implements Routes {
                 .map(p -> {
                     String requesterName = stationRepository
                             .findById(p.stationId())
-                            .map(s -> s.name())
+                            .map(Station::name)
                             .orElse("Unknown");
                     return new PairRequestResponse(
                             p.id(), requesterName, p.createdAt().toString());
@@ -205,7 +208,7 @@ public class FederationRoutes implements Routes {
         var partner = service.findPartner(id).orElseThrow(NotFoundResponse::new);
         String partnerName = stationRepository
                 .findById(partner.partnerStationId())
-                .map(s -> s.name())
+                .map(Station::name)
                 .orElse("Unknown");
         ctx.json(new PartnerResponse(partner, partnerName));
     }
@@ -259,7 +262,7 @@ public class FederationRoutes implements Routes {
                         session.stationId(),
                         req.fileId(),
                         req.folderId(),
-                        req.shareScope() != null ? req.shareScope() : "ALL_PARTNERS"));
+                        req.shareScope() != null ? req.shareScope() : ShareScope.ALL_PARTNERS));
     }
 
     private void deleteKbShare(Context ctx) {
@@ -280,7 +283,7 @@ public class FederationRoutes implements Routes {
                 .json(service.createQuizShare(
                         session.stationId(),
                         req.catalogId(),
-                        req.shareScope() != null ? req.shareScope() : "ALL_PARTNERS"));
+                        req.shareScope() != null ? req.shareScope() : ShareScope.ALL_PARTNERS));
     }
 
     private void deleteQuizShare(Context ctx) {
@@ -301,7 +304,7 @@ public class FederationRoutes implements Routes {
                 .json(service.createProtocolShare(
                         session.stationId(),
                         req.protocolId(),
-                        req.shareScope() != null ? req.shareScope() : "ALL_PARTNERS"));
+                        req.shareScope() != null ? req.shareScope() : ShareScope.ALL_PARTNERS));
     }
 
     private void deleteProtocolShare(Context ctx) {
@@ -411,13 +414,13 @@ public class FederationRoutes implements Routes {
 
     public record AcceptRequest(String inviteCode) {}
 
-    public record CapabilityRequest(String capability, String direction, boolean enabled) {}
+    public record CapabilityRequest(CapabilityType capability, Direction direction, boolean enabled) {}
 
-    public record KbShareRequest(Integer fileId, Integer folderId, String shareScope) {}
+    public record KbShareRequest(Integer fileId, Integer folderId, ShareScope shareScope) {}
 
-    public record QuizShareRequest(int catalogId, String shareScope) {}
+    public record QuizShareRequest(int catalogId, ShareScope shareScope) {}
 
-    public record ProtocolShareRequest(int protocolId, String shareScope) {}
+    public record ProtocolShareRequest(int protocolId, ShareScope shareScope) {}
 
     public record PartnerResponse(FederationPartner partner, String partnerStationName) {}
 

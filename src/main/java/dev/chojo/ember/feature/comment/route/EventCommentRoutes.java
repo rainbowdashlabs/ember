@@ -108,6 +108,10 @@ public class EventCommentRoutes implements Routes {
     }
 
     private CommentResponse toResponse(Comment comment) {
+        if (comment.deleted()) {
+            return new CommentResponse(
+                    comment.id(), comment.parentId(), 0, null, null, "", true, comment.createdAt(), null);
+        }
         var memberOpt = stationMemberRepository.findById(comment.authorId());
         Integer authorAccountId = memberOpt.map(StationMember::accountId).orElse(null);
         String authorName = memberOpt
@@ -121,6 +125,7 @@ public class EventCommentRoutes implements Routes {
                 authorAccountId,
                 authorName,
                 comment.content(),
+                false,
                 comment.createdAt(),
                 comment.updatedAt());
     }
@@ -145,6 +150,7 @@ public class EventCommentRoutes implements Routes {
             Integer authorAccountId,
             String authorName,
             String content,
+            boolean deleted,
             Instant createdAt,
             Instant updatedAt) {}
 }

@@ -84,7 +84,7 @@ function formatDate(iso: string | null | undefined): string {
     <NeutralContainer v-for="item in items" :key="item.id" :class="item.lostAt ? 'opacity-60' : ''" class="space-y-2">
       <div class="flex items-center justify-between">
         <div>
-          <span class="font-medium">{{ item.name }}</span>
+          <router-link :to="{ name: 'inventory-item-detail', params: { id: item.id } }" class="font-medium hover:text-primary hover:underline">{{ item.name }}</router-link>
           <span v-if="item.lostAt" class="ml-2 text-xs text-error">{{ t('inventory.edit.lost') }} ({{ formatDate(item.lostAt) }})</span>
           <div v-if="lendingInfoForItem(item.id)" class="mt-0.5">
             <router-link :to="{ name: 'inventory-lending-request', params: { id: lendingInfoForItem(item.id)!.requestId } }">
@@ -141,7 +141,7 @@ function formatDate(iso: string | null | undefined): string {
         <TRow v-for="item in items" :key="item.id"
             :class="item.lostAt ? 'opacity-60' : ''">
           <Td class="font-medium">
-            {{ item.name }}
+            <router-link :to="{ name: 'inventory-item-detail', params: { id: item.id } }" class="hover:text-primary hover:underline">{{ item.name }}</router-link>
             <span v-if="item.lostAt" class="ml-2 text-xs text-error font-normal">
               {{ t('inventory.edit.lost') }} ({{ formatDate(item.lostAt) }})
             </span>

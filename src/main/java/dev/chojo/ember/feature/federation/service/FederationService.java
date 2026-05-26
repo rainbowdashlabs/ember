@@ -6,11 +6,14 @@
 package dev.chojo.ember.feature.federation.service;
 
 import dev.chojo.ember.conf.file.elements.Api;
+import dev.chojo.ember.feature.federation.entity.CapabilityType;
+import dev.chojo.ember.feature.federation.entity.Direction;
 import dev.chojo.ember.feature.federation.entity.FederationCapability;
 import dev.chojo.ember.feature.federation.entity.FederationChangeLog;
 import dev.chojo.ember.feature.federation.entity.FederationMetadataCache;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.entity.FederationShare;
+import dev.chojo.ember.feature.federation.entity.ShareScope;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import jakarta.inject.Inject;
@@ -230,10 +233,10 @@ public class FederationService {
         repository.activatePartner(reverse.id(), initiatingPublicKey);
 
         // Initialize default capabilities (all enabled for both directions)
-        for (var cap : FederationCapability.CapabilityType.values()) {
-            for (var dir : FederationCapability.Direction.values()) {
-                repository.upsertCapability(partner.id(), cap.name(), dir.name(), true);
-                repository.upsertCapability(reverse.id(), cap.name(), dir.name(), true);
+        for (var cap : CapabilityType.values()) {
+            for (var dir : Direction.values()) {
+                repository.upsertCapability(partner.id(), cap, dir, true);
+                repository.upsertCapability(reverse.id(), cap, dir, true);
             }
         }
 
@@ -293,11 +296,11 @@ public class FederationService {
         return repository.findCapabilities(partnerId);
     }
 
-    public void setCapability(int partnerId, String capability, String direction, boolean enabled) {
+    public void setCapability(int partnerId, CapabilityType capability, Direction direction, boolean enabled) {
         repository.upsertCapability(partnerId, capability, direction, enabled);
     }
 
-    public boolean hasCapability(int partnerId, String capability, String direction) {
+    public boolean hasCapability(int partnerId, CapabilityType capability, Direction direction) {
         return repository.findCapabilities(partnerId).stream()
                 .anyMatch(
                         c -> c.capability().equals(capability) && c.direction().equals(direction) && c.enabled());
@@ -309,7 +312,7 @@ public class FederationService {
         return repository.findKbShares(stationId);
     }
 
-    public FederationShare createKbShare(int stationId, Integer fileId, Integer folderId, String shareScope) {
+    public FederationShare createKbShare(int stationId, Integer fileId, Integer folderId, ShareScope shareScope) {
         return repository.createKbShare(stationId, fileId, folderId, shareScope);
     }
 
@@ -321,7 +324,7 @@ public class FederationService {
         return repository.findQuizShares(stationId);
     }
 
-    public FederationShare createQuizShare(int stationId, int catalogId, String shareScope) {
+    public FederationShare createQuizShare(int stationId, int catalogId, ShareScope shareScope) {
         return repository.createQuizShare(stationId, catalogId, shareScope);
     }
 
@@ -333,7 +336,7 @@ public class FederationService {
         return repository.findProtocolShares(stationId);
     }
 
-    public FederationShare createProtocolShare(int stationId, int protocolId, String shareScope) {
+    public FederationShare createProtocolShare(int stationId, int protocolId, ShareScope shareScope) {
         return repository.createProtocolShare(stationId, protocolId, shareScope);
     }
 
@@ -361,11 +364,11 @@ public class FederationService {
      */
     public List<String> getSupportedCapabilities() {
         return List.of(
-                FederationCapability.CapabilityType.KB_SHARE.name(),
-                FederationCapability.CapabilityType.QUIZ_SHARE.name(),
-                FederationCapability.CapabilityType.PROTOCOL_SHARE.name(),
-                FederationCapability.CapabilityType.INVENTORY_LEND.name(),
-                FederationCapability.CapabilityType.EVENT_SHARE.name());
+                CapabilityType.KB_SHARE.name(),
+                CapabilityType.QUIZ_SHARE.name(),
+                CapabilityType.PROTOCOL_SHARE.name(),
+                CapabilityType.INVENTORY_LEND.name(),
+                CapabilityType.EVENT_SHARE.name());
     }
 
     // -- Change Tracking --

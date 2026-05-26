@@ -6,10 +6,12 @@
 package dev.chojo.ember.feature.federation.route;
 
 import dev.chojo.ember.api.Routes;
+import dev.chojo.ember.feature.events.entity.EventField;
 import dev.chojo.ember.feature.events.service.EventFederationService;
 import dev.chojo.ember.feature.events.service.EventFieldService;
 import dev.chojo.ember.feature.events.service.EventService;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
+import dev.chojo.ember.feature.federation.entity.FederationShare;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.federation.service.FederationSigningService;
@@ -32,6 +34,8 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 /**
  * Unauthenticated HTTP endpoints for cross-instance federation.
@@ -85,6 +89,7 @@ public class FederationRemoteRoutes implements Routes {
 
         // KB endpoints (signature required)
         routes.get(base + "/kb/browse", this::browseKb);
+        routes.get(base + "/kb/search", this::searchKb);
         routes.get(base + "/kb/file/{id}", this::getKbFile);
         routes.get(base + "/kb/file/{id}/content", this::getKbFileContent);
 
@@ -240,6 +245,34 @@ public class FederationRemoteRoutes implements Routes {
                         "updatedAt", file.updatedAt().toString()))
                 .toList();
         ctx.json(result);
+    }
+
+    private void searchKb(Context ctx) {
+        var partner = verifySignature(ctx);
+        String query = ctx.queryParam("q");
+        if (query == null || query.isBlank()) {
+            ctx.json(List.of());
+            return;
+        }
+        var results = kbService.searchWithSnippets(partner.stationId(), query);
+        // Only return results for files shared with this partner
+        var shares = repository.findKbShares(partner.stationId());
+        var sharedFileIds = shares.stream()
+                .filter(s -> s.fileId() != null)
+                .map(FederationShare::fileId)
+                .collect(Collectors.toSet());
+        ctx.json(results.stream()
+                .filter(r -> sharedFileIds.contains(r.file().id()))
+                .map(r -> Map.<String, Object>of(
+                        "id",
+                        r.file().id(),
+                        "name",
+                        r.file().name(),
+                        "description",
+                        r.file().description() != null ? r.file().description() : "",
+                        "snippet",
+                        r.snippet() != null ? r.snippet() : ""))
+                .toList());
     }
 
     private void getKbFile(Context ctx) {
@@ -414,7 +447,7 @@ public class FederationRemoteRoutes implements Routes {
         var eventIds = eventFederationService.findSharedEventIds(partner.id(), partner.stationId());
         var events = eventIds.stream()
                 .map(id -> eventService.findById(id).orElse(null))
-                .filter(e -> e != null)
+                .filter(Objects::nonNull)
                 .map(e -> Map.of(
                         "id", e.id(),
                         "name", e.name(),
@@ -438,7 +471,7 @@ public class FederationRemoteRoutes implements Routes {
         }
         var event = eventService.findById(eventId).orElseThrow(NotFoundResponse::new);
         var fields = eventFieldService.findByEvent(eventId).stream()
-                .filter(f -> f.isPublic())
+                .filter(EventField::isPublic)
                 .toList();
         ctx.json(Map.of(
                 "id",

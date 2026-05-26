@@ -10,6 +10,7 @@ import de.chojo.sadu.queries.api.query.Query;
 import de.chojo.sadu.queries.api.results.writing.insertion.InsertionResult;
 import dev.chojo.ember.feature.members.entity.ProfileField;
 import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
+import dev.chojo.ember.feature.members.entity.ProfileFieldType;
 import dev.chojo.ember.feature.members.entity.ProfileFieldValue;
 import jakarta.inject.Singleton;
 
@@ -62,7 +63,7 @@ public class ProfileFieldRepository {
      * Creates a new profile field definition for a station.
      */
     public ProfileField create(
-            int stationId, String name, String fieldType, String config, int position, ProfileFieldScope scope) {
+            int stationId, String name, ProfileFieldType fieldType, String config, int position, ProfileFieldScope scope) {
         return Query.query("""
                             INSERT INTO profile_field(station_id, name, field_type, config, position, scope)
                             VALUES (:station_id, :name, :field_type, :config::JSONB, :position, :scope)
@@ -82,7 +83,7 @@ public class ProfileFieldRepository {
     /**
      * Updates an existing profile field definition.
      */
-    public boolean update(int id, String name, String fieldType, String config, int position, boolean keepOnArchive) {
+    public boolean update(int id, String name, ProfileFieldType fieldType, String config, int position, boolean keepOnArchive) {
         return Query.query("""
                             UPDATE profile_field
                             SET

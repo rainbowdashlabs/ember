@@ -7,11 +7,14 @@ package dev.chojo.ember.feature.federation.repository;
 
 import de.chojo.sadu.queries.api.call.Call;
 import de.chojo.sadu.queries.api.query.Query;
+import dev.chojo.ember.feature.federation.entity.CapabilityType;
+import dev.chojo.ember.feature.federation.entity.Direction;
 import dev.chojo.ember.feature.federation.entity.FederationCapability;
 import dev.chojo.ember.feature.federation.entity.FederationChangeLog;
 import dev.chojo.ember.feature.federation.entity.FederationMetadataCache;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.entity.FederationShare;
+import dev.chojo.ember.feature.federation.entity.ShareScope;
 import jakarta.inject.Singleton;
 
 import java.time.Instant;
@@ -139,7 +142,7 @@ public class FederationRepository {
                 .all();
     }
 
-    public void upsertCapability(int partnerId, String capability, String direction, boolean enabled) {
+    public void upsertCapability(int partnerId, CapabilityType capability, Direction direction, boolean enabled) {
         Query.query("""
                         INSERT INTO federation_capability(partner_id, capability, direction, enabled)
                         VALUES (:partner_id, :capability, :direction, :enabled)
@@ -161,7 +164,7 @@ public class FederationRepository {
                 .all();
     }
 
-    public FederationShare createKbShare(int stationId, Integer fileId, Integer folderId, String shareScope) {
+    public FederationShare createKbShare(int stationId, Integer fileId, Integer folderId, ShareScope shareScope) {
         return Query.query("""
                         INSERT INTO federation_kb_share(station_id, file_id, folder_id, share_scope)
                         VALUES (:station_id, :file_id, :folder_id, :share_scope) RETURNING *;""")
@@ -191,7 +194,7 @@ public class FederationRepository {
                 .all();
     }
 
-    public FederationShare createQuizShare(int stationId, int catalogId, String shareScope) {
+    public FederationShare createQuizShare(int stationId, int catalogId, ShareScope shareScope) {
         return Query.query("""
                         INSERT INTO federation_quiz_share(station_id, catalog_id, share_scope)
                         VALUES (:station_id, :catalog_id, :share_scope) RETURNING *;""")
@@ -220,7 +223,7 @@ public class FederationRepository {
                 .all();
     }
 
-    public FederationShare createProtocolShare(int stationId, int protocolId, String shareScope) {
+    public FederationShare createProtocolShare(int stationId, int protocolId, ShareScope shareScope) {
         return Query.query("""
                         INSERT INTO federation_protocol_share(station_id, protocol_id, share_scope)
                         VALUES (:station_id, :protocol_id, :share_scope) RETURNING *;""")

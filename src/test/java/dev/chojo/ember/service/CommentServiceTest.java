@@ -6,6 +6,8 @@
 package dev.chojo.ember.service;
 
 import dev.chojo.ember.event.DomainEventBus;
+import dev.chojo.ember.event.events.CommentCreated;
+import dev.chojo.ember.event.events.MentionedInComment;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.comment.service.CommentService;
 import dev.chojo.ember.feature.events.entity.StationEvent;
@@ -22,6 +24,7 @@ import org.junit.jupiter.api.TestMethodOrder;
 import java.time.Instant;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
@@ -102,11 +105,34 @@ class CommentServiceTest extends RepositoryTestBase {
 
     @Test
     @Order(4)
-    void createReply() {
+    void createReplyNotifiesParentAuthor() {
+        reset(eventBus);
         var reply = service.create(station.id(), eventId, commentId, member2.id(), "Bob", "Nice comment!");
         assertNotNull(reply);
         assertEquals(commentId, reply.parentId());
         replyId = reply.id();
+
+        // Verify a CommentCreated event was published to notify the parent comment author (member1)
+        verify(eventBus).publish(argThat(event -> {
+            if (!(event instanceof CommentCreated c)) return false;
+            return c.stationId() == station.id()
+                    && "event".equals(c.entityType())
+                    && c.entityId() == eventId
+                    && c.parentAuthorId() == member1.id()
+                    && c.authorMemberId() == member2.id()
+                    && "Bob".equals(c.authorName());
+        }));
+    }
+
+    @Test
+    @Order(4)
+    void createReplyToOwnCommentDoesNotNotify() {
+        reset(eventBus);
+        // Reply to own comment — should NOT publish CommentCreated
+        var selfReply = service.create(station.id(), eventId, commentId, member1.id(), "Alice", "Replying to myself");
+        assertNotNull(selfReply);
+        verify(eventBus, never()).publish(argThat(event -> event instanceof CommentCreated));
+        service.delete(selfReply.id());
     }
 
     @Test
@@ -118,20 +144,36 @@ class CommentServiceTest extends RepositoryTestBase {
 
     @Test
     @Order(6)
-    void createWithMention() {
+    void createWithMentionPublishesEvent() {
+        reset(eventBus);
         String content = "Hey @[" + member2.id() + ":Bob] check this out!";
         var comment = service.create(station.id(), eventId, null, member1.id(), "Alice", content);
         assertNotNull(comment);
         assertEquals(content, comment.content());
+
+        // Verify that a MentionedInComment event was published for member2
+        verify(eventBus).publish(argThat(event -> {
+            if (!(event instanceof MentionedInComment m)) return false;
+            return m.stationId() == station.id()
+                    && m.mentionedMemberId() == member2.id()
+                    && m.authorMemberId() == member1.id()
+                    && "Alice".equals(m.authorName())
+                    && "event".equals(m.entityType())
+                    && m.entityId() == eventId;
+        }));
     }
 
     @Test
     @Order(7)
-    void createWithSelfMention() {
+    void createWithSelfMentionDoesNotPublish() {
+        reset(eventBus);
         String content = "Talking about @[" + member1.id() + ":Alice] myself";
         var comment = service.create(station.id(), eventId, null, member1.id(), "Alice", content);
         assertNotNull(comment);
         assertEquals(content, comment.content());
+
+        // Self-mention should NOT trigger a notification
+        verify(eventBus, never()).publish(any());
     }
 
     @Test
@@ -178,18 +220,18 @@ class CommentServiceTest extends RepositoryTestBase {
     @Test
     @Order(14)
     void createWithMultipleMentions() {
-        // Create fresh comment since commentId was deleted
-        var baseComment = service.create(station.id(), eventId, null, member1.id(), "Alice", "Base comment");
+        reset(eventBus);
 
         // Multiple mentions in one comment — both different from author
-        String content = "Hey @[" + member2.id() + "] and @[" + member2.id() + "] again";
+        String content = "Hey @[" + member2.id() + ":Bob] and @[" + member2.id() + ":Bob] again";
         var comment = service.create(station.id(), eventId, null, member1.id(), "Alice", content);
         assertNotNull(comment);
-        // eventBus should have been called for member2 (possibly twice)
-        verify(eventBus, atLeast(1)).publish(any());
+        // eventBus should have been called for member2 twice
+        verify(eventBus, times(2))
+                .publish(argThat(
+                        event -> event instanceof MentionedInComment m && m.mentionedMemberId() == member2.id()));
 
         service.delete(comment.id());
-        service.delete(baseComment.id());
     }
 
     @Test
@@ -215,6 +257,36 @@ class CommentServiceTest extends RepositoryTestBase {
 
     @Test
     @Order(17)
+    void deleteCommentWithChildrenSoftDeletes() {
+        // Create parent and child comments
+        var parent = service.create(station.id(), eventId, null, member1.id(), "Alice", "Parent comment");
+        var child = service.create(station.id(), eventId, parent.id(), member2.id(), "Bob", "Child comment");
+
+        // Delete parent — should soft-delete since it has children
+        assertTrue(service.delete(parent.id()));
+        var deleted = service.findById(parent.id());
+        assertTrue(deleted.isPresent());
+        assertTrue(deleted.get().deleted());
+        assertEquals("", deleted.get().content());
+
+        // Child should still exist
+        assertTrue(service.findById(child.id()).isPresent());
+
+        // Clean up
+        service.delete(child.id());
+        service.delete(parent.id());
+    }
+
+    @Test
+    @Order(18)
+    void deleteCommentWithoutChildrenHardDeletes() {
+        var comment = service.create(station.id(), eventId, null, member1.id(), "Alice", "Standalone");
+        assertTrue(service.delete(comment.id()));
+        assertTrue(service.findById(comment.id()).isEmpty());
+    }
+
+    @Test
+    @Order(19)
     void findByEventReturnsEmpty() {
         // Create a separate event with no comments
         var event2 = eventRepo.create(

@@ -346,15 +346,6 @@ class LendingServiceTest extends RepositoryTestBase {
     }
 
     @Test
-    @Order(54)
-    @SuppressWarnings("deprecation")
-    void getMessagesDeprecated() {
-        // Deprecated overload without stationId — just verify no exception
-        var msgs = service.getMessages(requestId);
-        assertNotNull(msgs);
-    }
-
-    @Test
     @Order(55)
     void isBlockedReturnsFalseWhenNotBlocked() {
         // Date range well in the future with no block configured

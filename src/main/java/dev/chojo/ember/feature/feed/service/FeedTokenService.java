@@ -49,6 +49,20 @@ public class FeedTokenService {
     }
 
     /**
+     * Records that the iCal feed was polled for the given member.
+     */
+    public void recordIcalPoll(int memberId) {
+        tokenRepository.updateIcalPolled(memberId);
+    }
+
+    /**
+     * Records that a notification feed (RSS/Atom) was polled for the given member.
+     */
+    public void recordNotificationPoll(int memberId) {
+        tokenRepository.updateNotificationPolled(memberId);
+    }
+
+    /**
      * Deletes the feed token for the given member.
      */
     public boolean revoke(int memberId) {

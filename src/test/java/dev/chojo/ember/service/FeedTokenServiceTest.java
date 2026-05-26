@@ -104,6 +104,29 @@ class FeedTokenServiceTest extends RepositoryTestBase {
     }
 
     @Test
+    @Order(8)
+    void recordIcalPollUpdatesTimestamp() {
+        var feedToken = service.getOrCreate(member.id());
+        assertNull(feedToken.icalPolledAt());
+
+        service.recordIcalPoll(member.id());
+
+        var updated = service.findByMember(member.id()).orElseThrow();
+        assertNotNull(updated.icalPolledAt());
+        assertNull(updated.notificationPolledAt());
+    }
+
+    @Test
+    @Order(8)
+    void recordNotificationPollUpdatesTimestamp() {
+        service.recordNotificationPoll(member.id());
+
+        var updated = service.findByMember(member.id()).orElseThrow();
+        assertNotNull(updated.notificationPolledAt());
+        assertNotNull(updated.icalPolledAt());
+    }
+
+    @Test
     @Order(9)
     void revoke() {
         assertTrue(service.revoke(member.id()));

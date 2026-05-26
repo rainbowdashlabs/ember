@@ -159,7 +159,11 @@ public class EventRoutes implements Routes {
         routes.get(prefix + "/events/{id}/fields", this::getFields, Roles.USER);
         routes.put(prefix + "/events/{id}/fields", this::setFields, Roles.EVENT_MANAGER);
 
-        routes.get(prefix + "/events/{id}/absences", this::listAbsencesForDate, Roles.EVENT_MANAGER);
+        routes.get(
+                prefix + "/events/{id}/absences",
+                this::listAbsencesForDate,
+                Roles.EVENT_MANAGER,
+                Roles.ATTENDANCE_MANAGER);
     }
 
     private String resolveCreatedByName(Integer createdBy) {

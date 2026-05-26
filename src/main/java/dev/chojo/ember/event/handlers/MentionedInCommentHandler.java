@@ -14,6 +14,8 @@ import dev.chojo.ember.feature.notifications.service.NotificationService;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
+import java.util.Map;
+
 /**
  * Handles {@link MentionedInComment} events by sending a notification to the mentioned member.
  */
@@ -33,9 +35,11 @@ public class MentionedInCommentHandler implements DomainEventHandler<MentionedIn
 
     @Override
     public void handle(MentionedInComment event) {
+        var link = "news".equals(event.entityType())
+                ? new NotificationData.NotificationLink("news-detail", Map.of("id", event.entityId()))
+                : new NotificationData.NotificationLink("events");
         var data = NotificationData.of(
-                new NotificationParams.NewsComment("", event.authorName(), "mentioned you in a comment"),
-                new NotificationData.NotificationLink("events"));
+                new NotificationParams.NewsComment("", event.authorName(), "mentioned you in a comment"), link);
         notificationService.notifyIfAbsent(event.mentionedMemberId(), NotificationType.NEWS_COMMENT, data);
     }
 }

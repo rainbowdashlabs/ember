@@ -526,7 +526,7 @@ public class EventRepository {
      */
     public List<EventRegistration> findRegistrationsByMember(int memberId) {
         return Query.query(
-                        "SELECT id, event_id, member_id, event_date, status, created_at, created_by FROM event_registration WHERE member_id = :member_id ORDER BY event_date;")
+                        "SELECT id, event_id, member_id, event_date, status, created_at, created_by FROM event_registration WHERE member_id = :member_id AND (event_date IS NULL OR event_date >= CURRENT_DATE) ORDER BY event_date;")
                 .single(Call.of().bind("member_id", memberId))
                 .map(EventRegistration.map())
                 .all();

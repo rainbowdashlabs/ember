@@ -26,6 +26,7 @@ import type {EventBreak, EventCategory, EventField, StationEvent, StationMember}
 import {EventTypes, RegistrationStatus, isRecurringEvent} from '@/api/types'
 import {events, managedMembers as managedMembersApi} from '@/api'
 import type {EventRegistrationEntry, RegistrationCount} from '@/api/events'
+import FederatedEventsSection from './upcomingview/FederatedEventsSection.vue'
 import {useSession} from '@/composables/useSession'
 import MutedText from '@/components/typography/MutedText.vue'
 import MutedIcon from '@/components/display/MutedIcon.vue'
@@ -53,9 +54,7 @@ const loading = ref(true)
 const error = ref('')
 const registering = ref<string | null>(null)
 const selectedMemberForEvent = ref<Map<string, string>>(new Map())
-
 const dayNames = ['', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag']
-
 const currentMemberId = computed(() => sessionInfo.value?.member?.id ?? 0)
 
 interface UpcomingEvent {
@@ -72,7 +71,6 @@ function isEventRelevant(eventId: number): boolean {
 }
 
 const pad2 = (n: number) => String(n).padStart(2, '0')
-
 function formatTime(iso?: string): string {
   if (!iso) return ''
   const d = new Date(iso)
@@ -96,7 +94,6 @@ function matchesFilter(ev: StationEvent): boolean {
   }
   return true
 }
-
 const filteredTodayEvents = computed(() =>
     todayEvents.value.filter(ev => isEventRelevant(ev.id) && matchesFilter(ev)))
 
@@ -381,6 +378,9 @@ watch(loaded, (isLoaded) => {
         </div>
 
         <EmptyState compact v-if="filteredTodayEvents.length === 0">{{ t('eventsUpcoming.noToday') }}</EmptyState>
+
+        <!-- Federated Events -->
+        <FederatedEventsSection/>
 
         <!-- Upcoming -->
         <div v-if="upcomingEvents.length > 0" class="space-y-3">

@@ -6,7 +6,8 @@
 <script setup lang="ts">
 import {onMounted, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
-import type {Comment, StationMember} from '@/api/types'
+import type {Comment} from '@/api/types'
+import type {MemberCompletion} from '@/api/stationMembers'
 import {news, stationMembers} from '@/api'
 import CommentThread from './CommentThread.vue'
 import MentionInput from './MentionInput.vue'
@@ -17,12 +18,13 @@ import Alert from '@/components/feedback/Alert.vue'
 
 const props = defineProps<{
   newsId: number
+  highlightCommentId?: number | null
 }>()
 
 const {t} = useI18n()
 
 const commentsList = ref<Comment[]>([])
-const members = ref<StationMember[]>([])
+const members = ref<MemberCompletion[]>([])
 const loading = ref(true)
 const error = ref('')
 const newComment = ref('')
@@ -33,7 +35,7 @@ async function loadComments() {
   try {
     const [rawComments, m] = await Promise.all([
       news.listComments(props.newsId),
-      stationMembers.listMembers(),
+      stationMembers.listCompletions(),
     ])
     // Adapt NewsComment to generic Comment interface
     commentsList.value = rawComments.map(c => ({
@@ -41,6 +43,7 @@ async function loadComments() {
       parentId: c.parentId,
       authorId: c.authorId,
       content: c.content,
+      deleted: c.deleted,
       createdAt: c.createdAt,
       updatedAt: null,
     }))
@@ -98,6 +101,7 @@ onMounted(loadComments)
       <CommentThread
         :comments="commentsList"
         :members="members"
+        :highlight-id="highlightCommentId"
         @create="createComment"
         @update="updateComment"
         @delete="deleteComment"

@@ -206,9 +206,9 @@ public class NewsService {
             }
             eventBus.publish(new CommentCreated(
                     stationId,
+                    "news",
                     newsId,
                     news.title(),
-                    news.authorId(),
                     comment.id(),
                     parentId,
                     parentAuthorId,

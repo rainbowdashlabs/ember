@@ -296,11 +296,11 @@ public class DemoService {
 
         // -- Profile fields: TEAM scope (Betreuer) --
         var fieldJuleica =
-                profileFieldRepository.create(station.id(), "Juleica", "boolean", "{}", 0, ProfileFieldScope.TEAM);
+                profileFieldRepository.create(station.id(), "Juleica", ProfileFieldType.BOOLEAN, "{}", 0, ProfileFieldScope.TEAM);
         var fieldJuleicaAblauf = profileFieldRepository.create(
                 station.id(), "Juleica Ablaufdatum", "date", "{}", 1, ProfileFieldScope.TEAM);
         var fieldFuehrerschein =
-                profileFieldRepository.create(station.id(), "Führerschein", "boolean", "{}", 2, ProfileFieldScope.TEAM);
+                profileFieldRepository.create(station.id(), "Führerschein", ProfileFieldType.BOOLEAN, "{}", 2, ProfileFieldScope.TEAM);
         var fieldFuehrerscheinAblauf = profileFieldRepository.create(
                 station.id(), "Führerschein Ablaufdatum", "date", "{}", 3, ProfileFieldScope.TEAM);
 
@@ -313,7 +313,7 @@ public class DemoService {
                 0,
                 ProfileFieldScope.GUARDIAN);
         var fieldFestnetz =
-                profileFieldRepository.create(station.id(), "Festnetz", "text", "{}", 1, ProfileFieldScope.GUARDIAN);
+                profileFieldRepository.create(station.id(), "Festnetz", ProfileFieldType.TEXT, "{}", 1, ProfileFieldScope.GUARDIAN);
         var fieldNewsletter = profileFieldRepository.create(
                 station.id(),
                 "Newsletter per Mail",
@@ -1446,7 +1446,8 @@ public class DemoService {
                 anfaengerMembers,
                 fortgeschrittenMembers,
                 tagDerOffenenTuer.id(),
-                stadtfest.id());
+                stadtfest.id(),
+                news1.id());
         log.info("Demo: Created Notifications");
 
         // -- Waiting List --

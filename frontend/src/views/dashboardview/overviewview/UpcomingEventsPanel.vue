@@ -8,12 +8,15 @@ import {computed, onMounted, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRouter} from 'vue-router'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
+import InfoContainer from '@/components/container/InfoContainer.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import type {EventBreak, StationEvent} from '@/api/types'
 import {EventTypes, isRecurringEvent} from '@/api/types'
 import {events} from '@/api'
+import {getFeedStatus} from '@/api/feedToken'
+import type {FeedStatusResponse} from '@/api/feedToken'
 import {useSession} from '@/composables/useSession'
 
 const {t} = useI18n()
@@ -23,6 +26,18 @@ const {sessionInfo} = useSession()
 const allEvents = ref<StationEvent[]>([])
 const eventBreaks = ref<EventBreak[]>([])
 const eligibleMembers = ref<Record<number, number[]>>({})
+const feedStatus = ref<FeedStatusResponse | null>(null)
+
+const showFeedCta = computed(() => {
+  if (!feedStatus.value) return false
+  return !feedStatus.value.hasToken || !feedStatus.value.icalActive
+})
+
+const feedCtaMessage = computed(() => {
+  if (!feedStatus.value) return ''
+  if (!feedStatus.value.hasToken) return t('dashboard.feedIcalSetupHint')
+  return t('dashboard.feedIcalInactiveHint')
+})
 
 const dayNames = ['', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag']
 
@@ -100,14 +115,16 @@ function formatTime(iso?: string): string {
 
 async function loadData() {
   try {
-    const [ev, br, elig] = await Promise.all([
+    const [ev, br, elig, fs] = await Promise.all([
       events.listEvents(),
       events.listBreaks().catch(() => []),
       events.listEligibleMembers().catch(() => ({})),
+      getFeedStatus().catch(() => null),
     ])
     allEvents.value = ev
     eventBreaks.value = br
     eligibleMembers.value = elig
+    feedStatus.value = fs
   } catch { /* ignore */ }
 }
 
@@ -115,7 +132,7 @@ onMounted(loadData)
 </script>
 
 <template>
-  <NeutralContainer v-if="upcomingEvents.length > 0" class="flex flex-col max-h-[66vh]">
+  <NeutralContainer v-if="upcomingEvents.length > 0 || showFeedCta" class="flex flex-col max-h-[66vh]">
     <div class="flex items-center justify-between mb-3 shrink-0">
       <SectionHeader>
         <font-awesome-icon :icon="['fas', 'calendar-plus']" class="mr-2"/>
@@ -126,9 +143,18 @@ onMounted(loadData)
       </SecondaryButton>
     </div>
     <div class="overflow-y-auto flex-1 space-y-2">
+      <InfoContainer v-if="showFeedCta" class="flex items-center justify-between gap-3 py-2 px-3">
+        <div class="flex items-center gap-2">
+          <font-awesome-icon :icon="['fas', 'calendar-days']" class="text-info shrink-0"/>
+          <p class="text-xs">{{ feedCtaMessage }}</p>
+        </div>
+        <SecondaryButton class="shrink-0 text-xs" compact @click="router.push({ name: 'profile-notifications' })">
+          {{ t('dashboard.feedSetup') }}
+        </SecondaryButton>
+      </InfoContainer>
       <NeutralContainer v-for="item in upcomingEvents" :key="`${item.event.id}-${item.date}`"
                         class="py-2 px-3 cursor-pointer hover:bg-(--bg-accent)"
-                        @click="router.push({ name: 'events-upcoming' })">
+                        @click="router.push({ name: 'event-detail', params: { id: item.event.id } })">
         <div class="flex items-center justify-between gap-2">
           <div>
             <p class="text-sm font-medium">{{ item.event.name }}</p>
