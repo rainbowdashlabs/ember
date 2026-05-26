@@ -6,6 +6,7 @@
 package dev.chojo.ember.service;
 
 import dev.chojo.ember.conf.file.elements.Api;
+import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.federation.entity.LendingMessage;
 import dev.chojo.ember.feature.federation.entity.LendingStatus;
@@ -25,8 +26,10 @@ import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
@@ -60,12 +63,7 @@ class LendingServiceTest extends RepositoryTestBase {
         federationService = new FederationService(federationRepo, stationRepo, new Api());
         httpClient = mock(FederationHttpClient.class);
         service = new LendingService(
-                lendingRepo,
-                httpClient,
-                federationService,
-                stationRepo,
-                inventoryRepo,
-                new dev.chojo.ember.event.DomainEventBus(java.util.Set.of()));
+                lendingRepo, httpClient, federationService, stationRepo, inventoryRepo, new DomainEventBus(Set.of()));
 
         stationA = stationRepo.create("LendSvcTestStationA");
         stationB = stationRepo.create("LendSvcTestStationB");
@@ -229,7 +227,7 @@ class LendingServiceTest extends RepositoryTestBase {
 
         // Mock remote messages from C
         var remoteMsg = new LendingMessage(
-                9999, req.id(), stationC.id(), memberC.id(), "Remote msg from C", false, java.time.Instant.now());
+                9999, req.id(), stationC.id(), memberC.id(), "Remote msg from C", false, Instant.now());
         when(httpClient.fetchRemoteMessages(eq("https://remote.example.com"), eq(req.id()), eq(stationA.id()), any()))
                 .thenReturn(List.of(remoteMsg));
 
@@ -307,5 +305,70 @@ class LendingServiceTest extends RepositoryTestBase {
                 itemIdA,
                 LocalDate.now(),
                 LocalDate.now().plusDays(1)));
+    }
+
+    @Test
+    @Order(50)
+    void findRequestsByStation() {
+        var requests = service.findRequestsByStation(stationA.id());
+        assertNotNull(requests);
+        // stationA is the owning station — the requests should include our main requestId
+        assertTrue(requests.stream().anyMatch(r -> r.id() == requestId));
+    }
+
+    @Test
+    @Order(51)
+    void getLocalMessages() {
+        var msgs = service.getLocalMessages(requestId, stationA.id());
+        assertNotNull(msgs);
+        // We sent at least one message from stationA in order 20/21
+        assertTrue(msgs.stream().anyMatch(m -> m.senderStationId() == stationA.id()));
+    }
+
+    @Test
+    @Order(52)
+    void declineRequestWithNoReason() {
+        var req = service.createRequest(
+                stationB.id(), stationA.id(), LocalDate.now(), LocalDate.now().plusDays(2), memberB.id());
+        assertTrue(service.declineRequest(req.id(), stationA.id(), null));
+        var found = service.findRequest(req.id()).orElseThrow();
+        assertEquals(dev.chojo.ember.feature.federation.entity.LendingStatus.DECLINED, found.status());
+    }
+
+    @Test
+    @Order(53)
+    void declineRequestWithBlankReason() {
+        var req = service.createRequest(
+                stationB.id(), stationA.id(), LocalDate.now(), LocalDate.now().plusDays(2), memberB.id());
+        assertTrue(service.declineRequest(req.id(), stationA.id(), ""));
+        var found = service.findRequest(req.id()).orElseThrow();
+        assertEquals(dev.chojo.ember.feature.federation.entity.LendingStatus.DECLINED, found.status());
+    }
+
+    @Test
+    @Order(54)
+    @SuppressWarnings("deprecation")
+    void getMessagesDeprecated() {
+        // Deprecated overload without stationId — just verify no exception
+        var msgs = service.getMessages(requestId);
+        assertNotNull(msgs);
+    }
+
+    @Test
+    @Order(55)
+    void isBlockedReturnsFalseWhenNotBlocked() {
+        // Date range well in the future with no block configured
+        assertFalse(service.isBlocked(
+                stationA.id(),
+                inventoryIdA,
+                itemIdA,
+                LocalDate.now().plusYears(5),
+                LocalDate.now().plusYears(5).plusDays(1)));
+    }
+
+    @Test
+    @Order(56)
+    void findRequestNotFound() {
+        assertTrue(service.findRequest(999999).isEmpty());
     }
 }

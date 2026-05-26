@@ -7,6 +7,7 @@ package dev.chojo.ember.repository;
 
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.restriction.RestrictionRepository;
 import dev.chojo.ember.feature.station.entity.Station;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -83,7 +84,7 @@ class NewsRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(10)
     void setAndFindRestrictions() {
-        var restrictionRepo = new dev.chojo.ember.feature.restriction.RestrictionRepository();
+        var restrictionRepo = new RestrictionRepository();
         var group = memberGroupRepo.create(station.id(), "News Group");
         restrictionRepo.setRestrictions(
                 "news_restriction", "news_id", newsId, List.of(), List.of(group.id()), List.of(), List.of());
@@ -154,8 +155,42 @@ class NewsRepositoryTest extends RepositoryTestBase {
         assertEquals(0, newsRepo.countComments(newsId));
     }
 
-    // Note: acknowledge, isAcknowledged, countUnacknowledged are not tested here
-    // because the news_acknowledgement table has not been created in the schema yet.
+    // -- Acknowledgements --
+
+    @Test
+    @Order(30)
+    void acknowledge() {
+        assertDoesNotThrow(() -> newsRepo.acknowledge(newsId, member.id()));
+        // Idempotent — calling again should not throw
+        assertDoesNotThrow(() -> newsRepo.acknowledge(newsId, member.id()));
+    }
+
+    @Test
+    @Order(31)
+    void isAcknowledged() {
+        assertTrue(newsRepo.isAcknowledged(newsId, member.id()));
+        assertFalse(newsRepo.isAcknowledged(newsId, 99999));
+    }
+
+    @Test
+    @Order(32)
+    void countUnacknowledged() {
+        // Create a second account/member that has not acknowledged
+        var account2 = accountRepo.create("news2@test.com", "News2", "User2");
+        var member2 = stationMemberRepo.create(station.id(), account2.id());
+        int unacked = newsRepo.countUnacknowledged(station.id(), member2.id());
+        // There is one published news article that member2 has not acknowledged
+        assertEquals(1, unacked);
+        accountRepo.delete(account2.id());
+    }
+
+    @Test
+    @Order(33)
+    void countUnacknowledgedWhenAcknowledged() {
+        // member already acknowledged the article in Order(30)
+        int unacked = newsRepo.countUnacknowledged(station.id(), member.id());
+        assertEquals(0, unacked);
+    }
 
     @Test
     @Order(99)

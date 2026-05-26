@@ -144,6 +144,30 @@ class AttendanceRepositoryTest extends RepositoryTestBase {
         assertTrue(attendanceRepo.updateSession(sessionId, newStart, newEnd, "Updated"));
     }
 
+    @Test
+    @Order(24)
+    void findSessionSummariesByStation() {
+        var summaries = attendanceRepo.findSessionSummariesByStation(station.id());
+        assertNotNull(summaries);
+        assertTrue(summaries.stream().anyMatch(s -> s.id() == sessionId));
+    }
+
+    @Test
+    @Order(24)
+    void findSessionsByStationInRange() {
+        Instant from = Instant.now().minus(1, ChronoUnit.DAYS);
+        Instant to = Instant.now().plus(3, ChronoUnit.DAYS);
+        var sessions = attendanceRepo.findSessionsByStationInRange(station.id(), from, to);
+        assertNotNull(sessions);
+    }
+
+    @Test
+    @Order(24)
+    void findRecentSessions() {
+        var recent = attendanceRepo.findRecentSessions(station.id(), 5);
+        assertNotNull(recent);
+    }
+
     // -- Session Fields --
 
     @Test
@@ -206,6 +230,16 @@ class AttendanceRepositoryTest extends RepositoryTestBase {
     }
 
     @Test
+    @Order(33)
+    void resetTimes() {
+        // entry already has check-in/check-out from previous test; reset them
+        assertTrue(attendanceRepo.resetTimes(entryId));
+        AttendanceEntry entry = attendanceRepo.findEntry(sessionId, member.id()).orElseThrow();
+        assertNull(entry.checkIn());
+        assertNull(entry.checkOut());
+    }
+
+    @Test
     @Order(34)
     void deleteEntry() {
         assertTrue(attendanceRepo.deleteEntry(entryId));
@@ -260,6 +294,51 @@ class AttendanceRepositoryTest extends RepositoryTestBase {
         memberGroupRepo.delete(group2.id());
     }
 
+    // -- Member IDs by role / group --
+
+    @Test
+    @Order(41)
+    void findMemberIdsByRole() {
+        var ids = attendanceRepo.findMemberIdsByRole(station.id(), "MEMBER");
+        assertNotNull(ids);
+    }
+
+    @Test
+    @Order(42)
+    void findMemberIdsByGroup() {
+        MemberGroup group = memberGroupRepo.create(station.id(), "QueryGroup");
+        var ids = attendanceRepo.findMemberIdsByGroup(group.id());
+        assertNotNull(ids);
+        memberGroupRepo.delete(group.id());
+    }
+
+    // -- Report Presets --
+
+    private static int presetId;
+
+    @Test
+    @Order(43)
+    void createPreset() {
+        var preset = attendanceRepo.createPreset(station.id(), "Weekly Report", null, null, "weekly", "none");
+        assertNotNull(preset);
+        assertEquals("Weekly Report", preset.name());
+        presetId = preset.id();
+    }
+
+    @Test
+    @Order(44)
+    void findPresets() {
+        var presets = attendanceRepo.findPresets(station.id());
+        assertTrue(presets.stream().anyMatch(p -> p.id() == presetId));
+    }
+
+    @Test
+    @Order(45)
+    void deletePreset() {
+        assertTrue(attendanceRepo.deletePreset(presetId));
+        assertTrue(attendanceRepo.findPresets(station.id()).stream().noneMatch(p -> p.id() == presetId));
+    }
+
     // -- Absences --
 
     private static int absenceId;
@@ -296,6 +375,13 @@ class AttendanceRepositoryTest extends RepositoryTestBase {
     }
 
     @Test
+    @Order(53)
+    void findAbsencesByStationOnDate() {
+        var absences = attendanceRepo.findAbsencesByStationOnDate(station.id(), LocalDate.now());
+        assertTrue(absences.stream().anyMatch(a -> a.id() == absenceId));
+    }
+
+    @Test
     @Order(54)
     void isAbsent() {
         assertTrue(attendanceRepo.isAbsent(member.id()));
@@ -314,6 +400,16 @@ class AttendanceRepositoryTest extends RepositoryTestBase {
         attendanceRepo.createAbsence(
                 member.id(), LocalDate.now().minusDays(2), LocalDate.now().minusDays(1), "Past", null);
         assertTrue(attendanceRepo.deleteExpiredAbsences());
+        assertFalse(attendanceRepo.isAbsent(member.id()));
+    }
+
+    @Test
+    @Order(57)
+    void deleteAbsencesByMember() {
+        attendanceRepo.createAbsence(
+                member.id(), LocalDate.now(), LocalDate.now().plusDays(1), "Short leave", null);
+        assertTrue(attendanceRepo.isAbsent(member.id()));
+        attendanceRepo.deleteAbsencesByMember(member.id());
         assertFalse(attendanceRepo.isAbsent(member.id()));
     }
 

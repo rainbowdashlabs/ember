@@ -10,6 +10,7 @@ import dev.chojo.ember.feature.form.entity.Form;
 import dev.chojo.ember.feature.form.entity.FormQuestion;
 import dev.chojo.ember.feature.form.entity.FormResponse;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.restriction.RestrictionRepository;
 import dev.chojo.ember.feature.station.entity.Station;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -191,7 +192,7 @@ class FormRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(40)
     void setAndFindRestrictions() {
-        var restrictionRepo = new dev.chojo.ember.feature.restriction.RestrictionRepository();
+        var restrictionRepo = new RestrictionRepository();
         restrictionRepo.setRestrictions(
                 "form_restriction", "form_id", formId, List.of(1, 2), List.of(), List.of(), List.of());
         var restrictions = restrictionRepo.findRestrictions("form_restriction", "form_id", formId);

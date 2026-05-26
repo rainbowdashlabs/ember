@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.service;
 
+import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.inventory.entity.ExchangeStatus;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
@@ -19,6 +20,8 @@ import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
+
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -35,11 +38,7 @@ class ExchangeServiceTest extends RepositoryTestBase {
     @BeforeAll
     static void setup() {
         var inventoryService = new InventoryService(inventoryRepo);
-        service = new ExchangeService(
-                exchangeRepo,
-                inventoryRepo,
-                inventoryService,
-                new dev.chojo.ember.event.DomainEventBus(java.util.Set.of()));
+        service = new ExchangeService(exchangeRepo, inventoryRepo, inventoryService, new DomainEventBus(Set.of()));
         station = stationRepo.create("ExchStation");
         account = accountRepo.create("exch-svc@test.com", "Exch", "Tester");
         member = stationMemberRepo.create(station.id(), account.id());
@@ -114,9 +113,49 @@ class ExchangeServiceTest extends RepositoryTestBase {
     }
 
     @Test
+    @Order(11)
+    void findLogs() {
+        var logs = service.findLogs(exchangeId);
+        assertFalse(logs.isEmpty());
+    }
+
+    @Test
+    @Order(15)
+    void updateStatusToExchanged() {
+        // Create a new item to serve as the exchange replacement
+        var sizes = inventoryRepo.findSizes(inventoryId);
+        var sizeL =
+                sizes.stream().filter(s -> "L".equals(s.label())).findFirst().orElseThrow();
+        var newItem = inventoryRepo.createItem(inventoryId, "B-002", "Blouson L", sizeL.id(), "{}");
+
+        var updated =
+                service.updateStatus(exchangeId, ExchangeStatus.EXCHANGED, member.id(), "Completed", newItem.id());
+        assertNotNull(updated);
+        assertEquals(ExchangeStatus.EXCHANGED, updated.status());
+    }
+
+    @Test
     @Order(20)
     void cancel() {
-        assertTrue(service.delete(exchangeId));
-        assertTrue(service.findById(exchangeId).isEmpty());
+        // Create a new exchange for delete testing since the previous one was EXCHANGED
+        var sizes = inventoryRepo.findSizes(inventoryId);
+        var sizeM =
+                sizes.stream().filter(s -> "M".equals(s.label())).findFirst().orElseThrow();
+        var exchange = service.create(
+                station.id(), member.id(), "Exch Tester", null, inventoryId, sizeM.id(), null, "Delete test", null);
+        assertTrue(service.delete(exchange.id()));
+        assertTrue(service.findById(exchange.id()).isEmpty());
+    }
+
+    @Test
+    @Order(25)
+    void updateStatusWithNote() {
+        var exchange = service.create(
+                station.id(), member.id(), "Exch Tester", null, inventoryId, null, null, "Note test", null);
+        var updated = service.updateStatus(exchange.id(), ExchangeStatus.SHIPPED, member.id(), "Shipped note");
+        assertEquals(ExchangeStatus.SHIPPED, updated.status());
+        var logs = service.findLogs(exchange.id());
+        assertTrue(logs.stream().anyMatch(l -> "Shipped note".equals(l.note())));
+        service.delete(exchange.id());
     }
 }

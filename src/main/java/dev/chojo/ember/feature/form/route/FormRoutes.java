@@ -14,6 +14,7 @@ import dev.chojo.ember.feature.form.entity.Form;
 import dev.chojo.ember.feature.form.entity.FormAnswer;
 import dev.chojo.ember.feature.form.entity.FormQuestion;
 import dev.chojo.ember.feature.form.entity.FormResponse;
+import dev.chojo.ember.feature.form.entity.QuestionEntry;
 import dev.chojo.ember.feature.form.service.FormService;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
@@ -359,7 +360,7 @@ public class FormRoutes implements Routes {
         formService.replaceQuestions(
                 id,
                 Arrays.stream(questions)
-                        .map(q -> new FormService.QuestionEntry(
+                        .map(q -> new QuestionEntry(
                                 FormQuestion.QuestionType.valueOf(q.questionType()),
                                 q.title(),
                                 q.description() != null ? q.description() : "",

@@ -17,6 +17,7 @@ import dev.chojo.ember.feature.quiz.entity.QuizTestAttemptQuestion;
 import dev.chojo.ember.feature.quiz.entity.QuizTestFrozenQuestion;
 import dev.chojo.ember.feature.quiz.entity.QuizTestSection;
 import dev.chojo.ember.feature.quiz.entity.QuizTestSectionSource;
+import dev.chojo.ember.feature.quiz.entity.SectionEntry;
 import dev.chojo.ember.feature.quiz.entity.TestStatus;
 import dev.chojo.ember.feature.quiz.repository.QuizCatalogRepository;
 import dev.chojo.ember.feature.quiz.repository.QuizTestRepository;
@@ -452,7 +453,7 @@ public class QuizService {
             throw new IllegalStateException("Test has no frozen questions — was it activated properly?");
         }
 
-        int totalMaxPoints = 0;
+        double totalMaxPoints = 0;
         for (var fq : frozenQuestions) {
             var question = catalogRepository.findQuestionById(fq.questionId());
             if (question.isPresent()) {
@@ -533,7 +534,7 @@ public class QuizService {
         }
 
         double points = (correct * pointsPerCorrect) - (wrong * pointsPerCorrect);
-        return Math.max(0, Math.min(points, maxPoints));
+        return Math.clamp(points, 0, maxPoints);
     }
 
     private double gradeTrueFalse(JsonNode config, JsonNode answer, double maxPoints) {
@@ -725,12 +726,6 @@ public class QuizService {
     public boolean canMemberAccess(int testId, int memberId) {
         return restrictionRepository.checkRestriction(RestrictionType.QUIZ_TEST, testId, memberId);
     }
-
-    // -- Records --
-
-    public record SectionEntry(String title, String description, List<SourceEntry> sources) {}
-
-    public record SourceEntry(int catalogId, Integer categoryId, int questionCount) {}
 
     private record AttemptQuestionEntry(int questionId, Integer sectionId) {}
 }

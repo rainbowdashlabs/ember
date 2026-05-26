@@ -10,8 +10,10 @@ import dev.chojo.ember.feature.knowledgebase.entity.KbFile;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFileType;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFileVersion;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFolder;
+import dev.chojo.ember.feature.knowledgebase.entity.KbSearchResult;
 import dev.chojo.ember.feature.knowledgebase.entity.KbTag;
 import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
+import dev.chojo.ember.feature.knowledgebase.entity.UrlMetadata;
 import dev.chojo.ember.feature.knowledgebase.repository.KnowledgeBaseRepository;
 import dev.chojo.ember.feature.restriction.Restriction;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
@@ -233,8 +235,6 @@ public class KnowledgeBaseService {
         var matcher = pattern.matcher(json);
         return matcher.find() ? matcher.group(1) : null;
     }
-
-    public record UrlMetadata(String title, String description) {}
 
     public UrlMetadata fetchUrlMetadata(String url) {
         try {
@@ -526,7 +526,7 @@ public class KnowledgeBaseService {
         return repository.search(stationId, query, resolveTsConfig(stationId));
     }
 
-    public List<KnowledgeBaseRepository.SearchResult> searchWithSnippets(int stationId, String query) {
+    public List<KbSearchResult> searchWithSnippets(int stationId, String query) {
         if (query == null || query.isBlank()) return List.of();
         return repository.searchWithSnippets(stationId, query, resolveTsConfig(stationId));
     }

@@ -16,10 +16,10 @@ import dev.chojo.ember.conf.file.elements.Demo;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.attendance.repository.AttendanceRepository;
 import dev.chojo.ember.feature.events.entity.EventRegistration;
+import dev.chojo.ember.feature.events.entity.EventTemplateFieldData;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventFieldRepository;
 import dev.chojo.ember.feature.events.repository.EventRepository;
-import dev.chojo.ember.feature.events.repository.EventTemplateRepository;
 import dev.chojo.ember.feature.events.service.EventService;
 import dev.chojo.ember.feature.events.service.EventTemplateService;
 import dev.chojo.ember.feature.feed.service.FeedTokenService;
@@ -1505,18 +1505,16 @@ public class DemoService {
         eventTemplateService.replaceFields(
                 tplStandard.id(),
                 List.of(
-                        new EventTemplateRepository.EventTemplateFieldData("Ort", "string", "{}", 0, true, true, null),
-                        new EventTemplateRepository.EventTemplateFieldData(
-                                "Treffpunkt", "string", "{}", 1, true, true, null)));
+                        new EventTemplateFieldData("Ort", "string", "{}", 0, true, true, null),
+                        new EventTemplateFieldData("Treffpunkt", "string", "{}", 1, true, true, null)));
         var tplWettbewerb = eventTemplateService.create(station.id(), "Wettbewerb");
         eventTemplateService.update(
                 tplWettbewerb.id(), "Wettbewerb", null, null, null, "ONE_TIME", true, null, true, null, null, null);
         eventTemplateService.replaceFields(
                 tplWettbewerb.id(),
                 List.of(
-                        new EventTemplateRepository.EventTemplateFieldData("Ort", "string", "{}", 0, true, true, null),
-                        new EventTemplateRepository.EventTemplateFieldData(
-                                "Thema", "string", "{}", 1, true, false, null)));
+                        new EventTemplateFieldData("Ort", "string", "{}", 0, true, true, null),
+                        new EventTemplateFieldData("Thema", "string", "{}", 1, true, false, null)));
         log.info("Demo: Created event templates");
 
         // -- Feed Tokens --

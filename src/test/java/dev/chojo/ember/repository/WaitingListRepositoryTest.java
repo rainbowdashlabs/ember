@@ -199,4 +199,117 @@ class WaitingListRepositoryTest extends RepositoryTestBase {
         var confirmed = waitingListRepo.findEntryById(entry.id()).orElseThrow();
         assertNull(confirmed.reminderSentAt());
     }
+
+    @Test
+    void deleteField() {
+        var list = waitingListRepo.create(stationId, "DelField List", "", null, 180, null, null, null, 5);
+        var field = waitingListRepo.createField(list.id(), "ToDelete", "TEXT", "{}", 0, false);
+        waitingListRepo.deleteField(field.id());
+        assertTrue(waitingListRepo.findFieldsByList(list.id()).isEmpty());
+    }
+
+    @Test
+    void deleteInvite() {
+        var list = waitingListRepo.create(stationId, "DelInvite List", "", null, 180, null, null, null, 5);
+        var invite = waitingListRepo.createInvite(list.id(), UUID.randomUUID().toString(), 5, null);
+        waitingListRepo.deleteInvite(invite.id());
+        assertTrue(waitingListRepo.findInviteByCode(invite.code()).isEmpty());
+    }
+
+    @Test
+    void deleteEntry() {
+        var list = waitingListRepo.create(stationId, "DelEntry List", "", null, 180, null, null, null, 5);
+        var entry = waitingListRepo.createEntry(
+                list.id(), "Max", "", "", "test@test.com", UUID.randomUUID().toString(), "");
+        waitingListRepo.deleteEntry(entry.id());
+        assertTrue(waitingListRepo.findEntryById(entry.id()).isEmpty());
+    }
+
+    @Test
+    void updateEntryStatusWithTimestamp() {
+        var list = waitingListRepo.create(stationId, "StatusTs List", "", null, 180, null, null, null, 5);
+        var entry = waitingListRepo.createEntry(
+                list.id(), "Max", "", "", "test@test.com", UUID.randomUUID().toString(), "");
+        waitingListRepo.updateEntryStatusWithTimestamp(entry.id(), WaitingListEntryStatus.WITHDRAWN, "withdrawn_at");
+        var found = waitingListRepo.findEntryById(entry.id()).orElseThrow();
+        assertEquals(WaitingListEntryStatus.WITHDRAWN, found.status());
+    }
+
+    @Test
+    void updateEntry() {
+        var list = waitingListRepo.create(stationId, "UpdEntry List", "", null, 180, null, null, null, 5);
+        var entry = waitingListRepo.createEntry(
+                list.id(),
+                "Old",
+                "Name",
+                "Parent",
+                "old@test.com",
+                UUID.randomUUID().toString(),
+                "old");
+        waitingListRepo.updateEntry(entry.id(), "New", "Name", "NewParent", "new@test.com", "new notes");
+        var found = waitingListRepo.findEntryById(entry.id()).orElseThrow();
+        assertEquals("New", found.firstname());
+        assertEquals("new@test.com", found.email());
+    }
+
+    @Test
+    void linkMember() {
+        var list = waitingListRepo.create(stationId, "Link List", "", null, 180, null, null, null, 5);
+        var entry = waitingListRepo.createEntry(
+                list.id(), "Max", "", "", "test@test.com", UUID.randomUUID().toString(), "");
+        // Create a station member to link
+        var account = accountRepo.create("wl-link@test.com", "WL", "Link");
+        var member = stationMemberRepo.create(stationId, account.id());
+        waitingListRepo.linkMember(entry.id(), member.id());
+        var found = waitingListRepo.findEntryById(entry.id()).orElseThrow();
+        assertEquals(member.id(), found.memberId());
+        stationMemberRepo.delete(member.id());
+        accountRepo.delete(account.id());
+    }
+
+    @Test
+    void incrementAttendanceCount() {
+        var list = waitingListRepo.create(stationId, "Attendance List", "", null, 180, null, null, null, 5);
+        var entry = waitingListRepo.createEntry(
+                list.id(), "Max", "", "", "test@test.com", UUID.randomUUID().toString(), "");
+        waitingListRepo.incrementAttendanceCount(entry.id());
+        var found = waitingListRepo.findEntryById(entry.id()).orElseThrow();
+        assertEquals(1, found.attendanceCount());
+    }
+
+    @Test
+    void findEntriesByStatus() {
+        var list = waitingListRepo.create(stationId, "ByStatus List", "", null, 180, null, null, null, 5);
+        waitingListRepo.createEntry(
+                list.id(), "A", "", "", "a@test.com", UUID.randomUUID().toString(), "");
+        var waiting = waitingListRepo.findEntriesByStatus(list.id(), WaitingListEntryStatus.WAITING);
+        assertFalse(waiting.isEmpty());
+        var joined = waitingListRepo.findEntriesByStatus(list.id(), WaitingListEntryStatus.JOINED);
+        assertTrue(joined.isEmpty());
+    }
+
+    @Test
+    void updateVisibleFields() {
+        var list = waitingListRepo.create(stationId, "VisField List", "", null, 180, null, null, null, 5);
+        var updated = waitingListRepo.updateVisibleFields(list.id(), "[\"name\"]");
+        assertTrue(updated.isPresent());
+    }
+
+    @Test
+    void updateCreatedAt() {
+        var list = waitingListRepo.create(stationId, "CreatedAt List", "", null, 180, null, null, null, 5);
+        var entry = waitingListRepo.createEntry(
+                list.id(), "Max", "", "", "test@test.com", UUID.randomUUID().toString(), "");
+        var newCreatedAt = Instant.parse("2020-06-15T10:00:00Z");
+        waitingListRepo.updateCreatedAt(entry.id(), newCreatedAt);
+        var found = waitingListRepo.findEntryById(entry.id()).orElseThrow();
+        assertNotNull(found.createdAt());
+    }
+
+    @Test
+    void findAll() {
+        // Should return at least the lists we've created
+        var all = waitingListRepo.findAll();
+        assertFalse(all.isEmpty());
+    }
 }

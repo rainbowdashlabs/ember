@@ -7,6 +7,7 @@ package dev.chojo.ember;
 
 import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
+import com.google.inject.TypeLiteral;
 import com.google.inject.multibindings.Multibinder;
 import de.chojo.sadu.datasource.DataSourceCreator;
 import de.chojo.sadu.mapper.RowMapperRegistry;
@@ -177,8 +178,7 @@ public class EmberModule extends AbstractModule {
         routesBinder.addBinding().to(NoteRoutes.class);
 
         // Domain event handlers
-        Multibinder<DomainEventHandler<?>> eventBinder =
-                Multibinder.newSetBinder(binder(), new com.google.inject.TypeLiteral<DomainEventHandler<?>>() {});
+        Multibinder<DomainEventHandler<?>> eventBinder = Multibinder.newSetBinder(binder(), new TypeLiteral<>() {});
         eventBinder.addBinding().to(EventCreatedHandler.class);
         eventBinder.addBinding().to(EventDeletedHandler.class);
         eventBinder.addBinding().to(EventRegistrationStatusHandler.class);

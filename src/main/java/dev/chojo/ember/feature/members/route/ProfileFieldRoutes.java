@@ -9,6 +9,7 @@ import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.Roles;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.feature.members.entity.FieldValueEntry;
 import dev.chojo.ember.feature.members.entity.ProfileField;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
 import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
@@ -22,7 +23,6 @@ import io.javalin.http.NotFoundResponse;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
 import io.javalin.openapi.OpenApiContent;
-import io.javalin.openapi.OpenApiName;
 import io.javalin.openapi.OpenApiParam;
 import io.javalin.openapi.OpenApiRequestBody;
 import io.javalin.openapi.OpenApiResponse;
@@ -207,7 +207,7 @@ public class ProfileFieldRoutes implements Routes {
         var request = ctx.bodyAsClass(SetValuesRequest.class);
         boolean canEditReadonly = session.hasRole(Roles.MEMBER_MANAGER);
 
-        List<ProfileFieldService.FieldValueEntry> entries = request.values() != null
+        List<FieldValueEntry> entries = request.values() != null
                 ? request.values().stream()
                         .filter(v -> {
                             if (!canEditReadonly) {
@@ -220,7 +220,7 @@ public class ProfileFieldRoutes implements Routes {
                             }
                             return true;
                         })
-                        .map(v -> new ProfileFieldService.FieldValueEntry(v.fieldId(), v.value()))
+                        .map(v -> new FieldValueEntry(v.fieldId(), v.value()))
                         .toList()
                 : List.of();
         ctx.json(profileFieldService.setValues(
@@ -236,9 +236,6 @@ public class ProfileFieldRoutes implements Routes {
             int position,
             ProfileFieldScope scope,
             Boolean keepOnArchive) {}
-
-    @OpenApiName("ProfileFieldValueEntry")
-    public record FieldValueEntry(int fieldId, String value) {}
 
     public record SetValuesRequest(List<FieldValueEntry> values) {}
 }

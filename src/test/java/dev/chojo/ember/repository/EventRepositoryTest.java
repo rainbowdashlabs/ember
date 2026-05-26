@@ -8,9 +8,11 @@ package dev.chojo.ember.repository;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.events.entity.EventBreak;
 import dev.chojo.ember.feature.events.entity.EventCategory;
+import dev.chojo.ember.feature.events.entity.EventFieldDefault;
 import dev.chojo.ember.feature.events.entity.EventRegistration;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.feature.station.entity.Station;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -21,6 +23,7 @@ import org.junit.jupiter.api.TestMethodOrder;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -283,6 +286,148 @@ class EventRepositoryTest extends RepositoryTestBase {
     void deleteRegistration() {
         assertTrue(eventRepo.deleteRegistration(registrationId));
         assertTrue(eventRepo.findRegistrationById(registrationId).isEmpty());
+    }
+
+    // -- findByStationForMember --
+
+    @Test
+    @Order(37)
+    void findByStationForMember() {
+        var events = eventRepo.findByStationForMember(station.id(), member.id());
+        assertNotNull(events);
+    }
+
+    // -- findCategoryById --
+
+    @Test
+    @Order(38)
+    void findCategoryById() {
+        assertTrue(eventRepo.findCategoryById(categoryId).isPresent());
+        assertTrue(eventRepo.findCategoryById(99999).isEmpty());
+    }
+
+    // -- findAllRegistrations --
+
+    @Test
+    @Order(39)
+    void findAllRegistrations() {
+        // Create a registration first
+        LocalDate date = LocalDate.of(2026, 8, 1);
+        var reg = eventRepo.createRegistration(
+                eventId, member.id(), date, EventRegistration.RegistrationStatus.ACCEPTED, member.id());
+        var all = eventRepo.findAllRegistrations(eventId);
+        assertFalse(all.isEmpty());
+        eventRepo.deleteRegistration(reg.id());
+    }
+
+    // -- findPendingRegistrations --
+
+    @Test
+    @Order(40)
+    void findPendingRegistrations() {
+        LocalDate date = LocalDate.of(2026, 9, 1);
+        var reg = eventRepo.createRegistration(eventId, member.id(), date);
+        var pending = eventRepo.findPendingRegistrations(eventId);
+        assertFalse(pending.isEmpty());
+        eventRepo.deleteRegistration(reg.id());
+    }
+
+    // -- findRegistrationCounts --
+
+    @Test
+    @Order(41)
+    void findRegistrationCounts() {
+        LocalDate date = LocalDate.of(2026, 10, 1);
+        var reg = eventRepo.createRegistration(eventId, member.id(), date);
+        var counts = eventRepo.findRegistrationCounts(station.id());
+        assertNotNull(counts);
+        eventRepo.deleteRegistration(reg.id());
+    }
+
+    // -- findDeclinedMemberIds --
+
+    @Test
+    @Order(42)
+    void findDeclinedMemberIds() {
+        LocalDate date = LocalDate.of(2026, 11, 1);
+        var reg = eventRepo.createRegistration(
+                eventId, member.id(), date, EventRegistration.RegistrationStatus.DECLINED, null);
+        var declined = eventRepo.findDeclinedMemberIds(eventId, date);
+        assertTrue(declined.contains(member.id()));
+        eventRepo.deleteRegistration(reg.id());
+    }
+
+    // -- findRegistrationStatsByEvent --
+
+    @Test
+    @Order(43)
+    void findRegistrationStatsByEvent() {
+        var stats = eventRepo.findRegistrationStatsByEvent(eventId, null, 12);
+        assertNotNull(stats);
+    }
+
+    // -- markDeadlineNotified --
+
+    @Test
+    @Order(44)
+    void markDeadlineNotified() {
+        assertDoesNotThrow(() -> eventRepo.markDeadlineNotified(eventId));
+    }
+
+    // -- reorderCategories --
+
+    @Test
+    @Order(45)
+    void reorderCategories() {
+        var cat2 = eventRepo.createCategory(station.id(), "Cat2", 2);
+        assertDoesNotThrow(() -> eventRepo.reorderCategories(List.of(categoryId, cat2.id())));
+        eventRepo.deleteCategory(cat2.id());
+    }
+
+    // -- setFieldDefaults / findFieldDefaults --
+
+    @Test
+    @Order(46)
+    void setAndFindFieldDefaults() {
+        // event_field_default.field_id references attendance_template_field
+        var template = attendanceRepo.createTemplate(station.id(), "FDTemplate");
+        attendanceRepo.createTemplateField(template.id(), "SignedBy", "string", "{}", 0);
+        var templateFields = attendanceRepo.findTemplateFields(template.id());
+        int templateFieldId = templateFields.getFirst().id();
+
+        var tmpEvent = eventRepo.create(
+                station.id(),
+                "FieldDefault Event",
+                "",
+                StationEvent.EventType.ONE_TIME,
+                null,
+                Instant.parse("2026-12-01T10:00:00Z"),
+                Instant.parse("2026-12-01T12:00:00Z"),
+                template.id(),
+                false,
+                null,
+                false,
+                null,
+                null);
+        var defaults = List.of(new EventFieldDefault(tmpEvent.id(), templateFieldId, "VALUE", "value1"));
+        assertDoesNotThrow(() -> eventRepo.setFieldDefaults(tmpEvent.id(), defaults));
+        var found = eventRepo.findFieldDefaults(tmpEvent.id());
+        assertFalse(found.isEmpty());
+        assertEquals(templateFieldId, found.getFirst().fieldId());
+        // Clear
+        eventRepo.setFieldDefaults(tmpEvent.id(), List.of());
+        assertTrue(eventRepo.findFieldDefaults(tmpEvent.id()).isEmpty());
+        eventRepo.delete(tmpEvent.id());
+        attendanceRepo.deleteTemplate(template.id());
+    }
+
+    // -- updateRestrictionMode --
+
+    @Test
+    @Order(47)
+    void updateRestrictionMode() {
+        assertTrue(eventRepo.updateRestrictionMode(eventId, RestrictionMode.OR));
+        assertTrue(eventRepo.updateRestrictionMode(eventId, RestrictionMode.AND));
     }
 
     // -- Cleanup --

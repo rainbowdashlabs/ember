@@ -16,6 +16,7 @@ import dev.chojo.ember.feature.members.entity.Role;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.station.entity.DiscoveryVisibility;
+import dev.chojo.ember.feature.station.entity.ManagerInfo;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.feature.station.entity.ThemeFeel;
@@ -376,14 +377,4 @@ public class StationService {
             stationRepository.setOwner(stationId, member.id());
         }
     }
-
-    /**
-     * Summary information about a station's manager.
-     *
-     * @param email        the manager's email address
-     * @param firstName    the manager's first name
-     * @param lastName     the manager's last name
-     * @param accountReady whether the manager's account is fully set up (has password, email verified)
-     */
-    public record ManagerInfo(String email, String firstName, String lastName, boolean accountReady) {}
 }

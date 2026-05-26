@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.events.service;
 
 import dev.chojo.ember.feature.events.entity.EventLayout;
 import dev.chojo.ember.feature.events.entity.EventLayoutField;
+import dev.chojo.ember.feature.events.entity.LayoutFieldEntry;
 import dev.chojo.ember.feature.events.repository.EventLayoutRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -47,7 +48,7 @@ public class EventLayoutService {
         return repository.findFieldsByLayout(layoutId);
     }
 
-    public void replaceLayoutFields(int layoutId, List<EventLayoutRepository.LayoutFieldEntry> fields) {
+    public void replaceLayoutFields(int layoutId, List<LayoutFieldEntry> fields) {
         repository.replaceLayoutFields(layoutId, fields);
     }
 }

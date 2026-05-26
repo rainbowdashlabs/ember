@@ -122,6 +122,63 @@ tasks {
         }
     }
 
+    register<JacocoCoverageVerification>("jacocoCoverageCheck") {
+        group = "verification"
+        description = "Enforces 80% line coverage for services and repositories"
+        dependsOn("test")
+        executionData(file("build/jacoco/test.exec"), file("build/jacoco/testDatabase.exec"))
+        sourceSets(sourceSets.main.get())
+        violationRules {
+            // Repositories: 95% line coverage
+            rule {
+                element = "CLASS"
+                includes = listOf("*.repository.*")
+                excludes = listOf("*.route.*")
+                limit {
+                    counter = "LINE"
+                    minimum = "0.95".toBigDecimal()
+                }
+            }
+            // Services: 90% line coverage
+            rule {
+                element = "CLASS"
+                includes = listOf("*.service.*")
+                excludes = listOf(
+                    "*.route.*",
+                    // Infrastructure that calls external systems
+                    "*.mail.service.*",
+                    "*.FederationHttpClient*",
+                    "*.FederationWebhookService*",
+                    "*.ApiRequestLogger*",
+                    "*.DataInitializer",
+                    "*.ProblemLogAppender*",
+                    // Demo/seed data generators
+                    "*.Demo*Seeder*",
+                    "*.DemoService*",
+                    // PDF/export services requiring external binaries
+                    "*PdfService*",
+                    "*ReportService*",
+                    "*ExportService*",
+                    // External AI API calls
+                    "*.AiService*",
+                    // File I/O services
+                    "*.KbFileStorageService*",
+                    // External binary dependent services
+                    "*.LegalDocumentService*",
+                    // Daemon/scheduler threads
+                    "*.RegistrationDeadlineChecker*",
+                    // Import services (complex CSV parsing with many edge cases)
+                    "*.MemberImportService*",
+                    "*.StationImportService*",
+                )
+                limit {
+                    counter = "LINE"
+                    minimum = "0.90".toBigDecimal()
+                }
+            }
+        }
+    }
+
     register("checkLicenseBackend") {
         group = "verification"
         description = "Checks license headers for backend Java files"

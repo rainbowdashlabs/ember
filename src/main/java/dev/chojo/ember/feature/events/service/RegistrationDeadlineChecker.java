@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.events.service;
 
+import de.chojo.sadu.queries.api.call.Call;
+import de.chojo.sadu.queries.api.query.Query;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.RegistrationDeadlineExpired;
 import dev.chojo.ember.feature.events.repository.EventRepository;
@@ -46,6 +48,7 @@ public class RegistrationDeadlineChecker {
         scheduler.scheduleWithFixedDelay(this::check, 5, 5, TimeUnit.MINUTES);
     }
 
+    // TODO most of those checks can be done in the database query already.
     private void check() {
         try {
             var now = Instant.now();
@@ -79,9 +82,8 @@ public class RegistrationDeadlineChecker {
     }
 
     private boolean isDeadlineNotified(int eventId) {
-        return de.chojo.sadu.queries.api.query.Query.query(
-                        "SELECT deadline_notified FROM station_event WHERE id = :id;")
-                .single(de.chojo.sadu.queries.api.call.Call.of().bind("id", eventId))
+        return Query.query("SELECT deadline_notified FROM station_event WHERE id = :id;")
+                .single(Call.of().bind("id", eventId))
                 .map(row -> row.getBoolean("deadline_notified"))
                 .first()
                 .orElse(false);

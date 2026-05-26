@@ -9,6 +9,7 @@ import de.chojo.sadu.queries.api.call.Call;
 import de.chojo.sadu.queries.api.query.Query;
 import dev.chojo.ember.feature.events.entity.EventTemplate;
 import dev.chojo.ember.feature.events.entity.EventTemplateField;
+import dev.chojo.ember.feature.events.entity.EventTemplateFieldData;
 import jakarta.inject.Singleton;
 
 import java.util.List;
@@ -19,7 +20,7 @@ public class EventTemplateRepository {
 
     public List<EventTemplate> findByStation(int stationId) {
         return Query.query("SELECT id, station_id, name, title, description, category_id, event_type,"
-                        + " requires_registration, registration_deadline_offset, requires_confirmation, restriction_mode, attendance_template_id"
+                        + " requires_registration, registration_deadline_offset, requires_confirmation, restriction_mode, attendance_template_id, registration_limit"
                         + " FROM event_template WHERE station_id = :station_id ORDER BY name;")
                 .single(Call.of().bind("station_id", stationId))
                 .map(EventTemplate.map())
@@ -28,7 +29,7 @@ public class EventTemplateRepository {
 
     public Optional<EventTemplate> findById(int id) {
         return Query.query("SELECT id, station_id, name, title, description, category_id, event_type,"
-                        + " requires_registration, registration_deadline_offset, requires_confirmation, restriction_mode, attendance_template_id"
+                        + " requires_registration, registration_deadline_offset, requires_confirmation, restriction_mode, attendance_template_id, registration_limit"
                         + " FROM event_template WHERE id = :id;")
                 .single(Call.of().bind("id", id))
                 .map(EventTemplate.map())
@@ -40,7 +41,7 @@ public class EventTemplateRepository {
                         "INSERT INTO event_template(station_id, name)"
                                 + " VALUES (:station_id, :name)"
                                 + " RETURNING id, station_id, name, title, description, category_id, event_type,"
-                                + " requires_registration, registration_deadline_offset, requires_confirmation, restriction_mode, attendance_template_id;")
+                                + " requires_registration, registration_deadline_offset, requires_confirmation, restriction_mode, attendance_template_id, registration_limit;")
                 .single(Call.of().bind("station_id", stationId).bind("name", name))
                 .map(EventTemplate.map())
                 .first()
@@ -110,8 +111,7 @@ public class EventTemplateRepository {
         Query.query("DELETE FROM event_template_field WHERE template_id = :template_id;")
                 .single(Call.of().bind("template_id", templateId))
                 .delete();
-        for (int i = 0; i < fields.size(); i++) {
-            var f = fields.get(i);
+        for (EventTemplateFieldData f : fields) {
             Query.query(
                             "INSERT INTO event_template_field(template_id, name, field_type, config, position, overview, public, attendance_field_id)"
                                     + " VALUES (:template_id, :name, :field_type, :config::jsonb, :position, :overview, :public, :attendance_field_id);")
@@ -145,13 +145,4 @@ public class EventTemplateRepository {
                     .insert();
         }
     }
-
-    public record EventTemplateFieldData(
-            String name,
-            String fieldType,
-            String config,
-            int position,
-            boolean overview,
-            boolean isPublic,
-            Integer attendanceFieldId) {}
 }

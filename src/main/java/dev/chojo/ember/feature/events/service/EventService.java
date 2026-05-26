@@ -14,6 +14,7 @@ import dev.chojo.ember.feature.events.entity.EventCategory;
 import dev.chojo.ember.feature.events.entity.EventFieldDefault;
 import dev.chojo.ember.feature.events.entity.EventRegistration;
 import dev.chojo.ember.feature.events.entity.MemberRegistrationStats;
+import dev.chojo.ember.feature.events.entity.RegistrationCount;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventRepository;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
@@ -552,7 +553,7 @@ public class EventService {
                 eventId, memberId, eventDate, EventRegistration.RegistrationStatus.DECLINED, createdBy);
     }
 
-    public List<EventRepository.RegistrationCount> findRegistrationCounts(int stationId) {
+    public List<RegistrationCount> findRegistrationCounts(int stationId) {
         return eventRepository.findRegistrationCounts(stationId);
     }
 

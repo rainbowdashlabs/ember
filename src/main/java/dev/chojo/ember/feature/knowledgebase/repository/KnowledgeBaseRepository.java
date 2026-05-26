@@ -12,6 +12,7 @@ import dev.chojo.ember.feature.knowledgebase.entity.KbFile;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFileType;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFileVersion;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFolder;
+import dev.chojo.ember.feature.knowledgebase.entity.KbSearchResult;
 import dev.chojo.ember.feature.knowledgebase.entity.KbTag;
 import jakarta.inject.Singleton;
 
@@ -296,9 +297,7 @@ public class KnowledgeBaseRepository {
                 .all();
     }
 
-    public record SearchResult(KbFile file, String snippet) {}
-
-    public List<SearchResult> searchWithSnippets(int stationId, String query, String tsConfig) {
+    public List<KbSearchResult> searchWithSnippets(int stationId, String query, String tsConfig) {
         String cfg = sanitizeTsConfig(tsConfig);
         String tsq = buildPrefixTsQuery(cfg, query);
         // Strip markdown/HTML from text_content before generating headline snippet
@@ -316,7 +315,7 @@ public class KnowledgeBaseRepository {
                         + " WHERE f.station_id = :station_id AND si.search_text @@ " + tsq
                         + " ORDER BY ts_rank(si.search_text, " + tsq + ") DESC LIMIT 50;")
                 .single(Call.of().bind("station_id", stationId).bind("tsquery", preparePrefixQuery(query)))
-                .map(row -> new SearchResult(KbFile.map().map(row), row.getString("snippet")))
+                .map(row -> new KbSearchResult(KbFile.map().map(row), row.getString("snippet")))
                 .all();
     }
 

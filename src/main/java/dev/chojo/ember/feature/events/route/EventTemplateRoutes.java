@@ -10,7 +10,7 @@ import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.feature.events.entity.EventTemplate;
 import dev.chojo.ember.feature.events.entity.EventTemplateField;
-import dev.chojo.ember.feature.events.repository.EventTemplateRepository;
+import dev.chojo.ember.feature.events.entity.EventTemplateFieldData;
 import dev.chojo.ember.feature.events.service.EventTemplateService;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
@@ -151,7 +151,7 @@ public class EventTemplateRoutes implements Routes {
     public record TemplateDetailResponse(
             EventTemplate template, List<EventTemplateField> fields, List<Integer> restrictionRoleIds) {}
 
-    public record SetFieldsRequest(List<EventTemplateRepository.EventTemplateFieldData> fields) {}
+    public record SetFieldsRequest(List<EventTemplateFieldData> fields) {}
 
     public record SetRestrictionsRequest(List<Integer> roleIds) {}
 }

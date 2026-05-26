@@ -7,6 +7,8 @@ package dev.chojo.ember.feature.members.service;
 
 import dev.chojo.ember.api.Roles;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
+import dev.chojo.ember.feature.members.entity.FieldValueEntry;
+import dev.chojo.ember.feature.members.entity.PagedChanges;
 import dev.chojo.ember.feature.members.entity.ProfileField;
 import dev.chojo.ember.feature.members.entity.ProfileFieldChange;
 import dev.chojo.ember.feature.members.entity.ProfileFieldChangeAcknowledgement;
@@ -287,8 +289,4 @@ public class ProfileFieldService {
             changeRepository.create(fieldId, memberId, oldValue, newValue, changedBy, requiresAcknowledgement);
         }
     }
-
-    public record PagedChanges(List<ProfileFieldChange> changes, int total) {}
-
-    public record FieldValueEntry(int fieldId, String value) {}
 }

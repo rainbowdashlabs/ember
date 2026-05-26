@@ -13,6 +13,7 @@ import java.security.KeyPairGenerator;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.time.Instant;
+import java.util.Base64;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -84,8 +85,8 @@ class FederationSigningServiceTest {
         Instant timestamp = Instant.now();
 
         // Encode keys to Base64
-        String encodedPublic = java.util.Base64.getEncoder().encodeToString(publicKey.getEncoded());
-        String encodedPrivate = java.util.Base64.getEncoder().encodeToString(privateKey.getEncoded());
+        String encodedPublic = Base64.getEncoder().encodeToString(publicKey.getEncoded());
+        String encodedPrivate = Base64.getEncoder().encodeToString(privateKey.getEncoded());
 
         // Decode them back
         PublicKey decodedPublic = signingService.decodePublicKey(encodedPublic);
@@ -109,5 +110,40 @@ class FederationSigningServiceTest {
         var otherKeyPair = generator.generateKeyPair();
 
         assertFalse(signingService.verify(body, signature, otherKeyPair.getPublic(), timestamp));
+    }
+
+    @Test
+    void signEmptyBody() {
+        String body = "";
+        Instant timestamp = Instant.now();
+        String signature = signingService.sign(body, timestamp.toString(), privateKey);
+        assertNotNull(signature);
+        assertTrue(signingService.verify(body, signature, publicKey, timestamp));
+    }
+
+    @Test
+    void verifyRejectsInvalidBase64Signature() {
+        String body = "{\"test\":true}";
+        Instant timestamp = Instant.now();
+        // Invalid base64 — should return false (not throw)
+        assertFalse(signingService.verify(body, "not-valid-base64!!!", publicKey, timestamp));
+    }
+
+    @Test
+    void decodePublicKeyInvalid() {
+        assertThrows(RuntimeException.class, () -> signingService.decodePublicKey("not-a-valid-key"));
+    }
+
+    @Test
+    void decodePrivateKeyInvalid() {
+        assertThrows(RuntimeException.class, () -> signingService.decodePrivateKey("not-a-valid-key"));
+    }
+
+    @Test
+    void signAndVerifyLargeBody() {
+        String body = "x".repeat(10000);
+        Instant timestamp = Instant.now();
+        String signature = signingService.sign(body, timestamp.toString(), privateKey);
+        assertTrue(signingService.verify(body, signature, publicKey, timestamp));
     }
 }

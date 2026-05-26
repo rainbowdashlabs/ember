@@ -13,6 +13,7 @@ import dev.chojo.ember.feature.federation.service.FederationHttpClient;
 import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFile;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFileType;
+import dev.chojo.ember.feature.knowledgebase.entity.KbFolder;
 import dev.chojo.ember.feature.knowledgebase.repository.KnowledgeBaseRepository;
 import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseService;
 import dev.chojo.ember.feature.members.entity.StationMember;
@@ -355,5 +356,328 @@ class FederatedContentServiceTest extends RepositoryTestBase {
         var cached = federationRepo.findCachedMetadata(partnerIdAtoB, "PROTOCOL");
         assertTrue(cached.stream()
                 .anyMatch(c -> c.remoteId() == realProtocolId && c.title().equals("SharedProtocol")));
+    }
+
+    // -- Browse with no partners returns empty --
+
+    @Test
+    @Order(50)
+    void browseSharedKbNoPartnersReturnsEmpty() {
+        // Create isolated station with no federation
+        var isolated = stationRepo.create("FedContentIsolated");
+        assertTrue(contentService.browseSharedKb(isolated.id()).isEmpty());
+        assertTrue(contentService.browseSharedQuiz(isolated.id()).isEmpty());
+        assertTrue(contentService.browseSharedProtocols(isolated.id()).isEmpty());
+        stationRepo.delete(isolated.id());
+    }
+
+    // -- Browse KB with folder share --
+
+    @Test
+    @Order(51)
+    void browseSharedKbWithFolderShare() {
+        // Create a folder share
+        var folder = kbRepo.createFolder(stationB.id(), null, "SharedFolder", "desc", memberB.id());
+        var folderFile = kbRepo.createFile(
+                stationB.id(),
+                folder.id(),
+                "FolderFile",
+                "File in folder",
+                KbFileType.MARKDOWN,
+                "text/markdown",
+                100,
+                null,
+                memberB.id());
+
+        federationRepo.createKbShare(stationB.id(), null, folder.id(), "ALL_PARTNERS");
+
+        // Mock folder and file lookups
+        var now = Instant.now();
+        var mockFolder = new KbFolder(
+                folder.id(), stationB.id(), null, "SharedFolder", "desc", null, 0, memberB.id(), now, now, null, false);
+        when(kbService.findFolder(folder.id())).thenReturn(Optional.of(mockFolder));
+
+        var mockFile = new KbFile(
+                folderFile.id(),
+                stationB.id(),
+                folder.id(),
+                "FolderFile",
+                "File in folder",
+                KbFileType.MARKDOWN,
+                "text/markdown",
+                100,
+                null,
+                null,
+                null,
+                0,
+                memberB.id(),
+                now,
+                now,
+                null,
+                null,
+                RestrictionMode.AND,
+                false);
+        when(kbService.findFiles(stationB.id(), folder.id())).thenReturn(List.of(mockFile));
+
+        var items = contentService.browseSharedKb(stationA.id());
+        // Should contain both the folder and the file
+        assertTrue(items.stream().anyMatch(i -> i.folder() != null && i.folder().id() == folder.id()));
+        assertTrue(items.stream().anyMatch(i -> i.file() != null && i.file().id() == folderFile.id()));
+
+        kbRepo.deleteFile(folderFile.id());
+        kbRepo.deleteFolder(folder.id());
+    }
+
+    // -- Copy KB file records source reference --
+
+    @Test
+    @Order(52)
+    void copyKbFileWithFavourite() {
+        when(kbService.isFavourite(1, realKbFileId)).thenReturn(true);
+        var copied = contentService.copyKbFile(realKbFileId, stationA.id(), 1);
+        assertNotNull(copied);
+        verify(kbService).addFavourite(1, 9999);
+    }
+
+    // -- HTTP partner browse --
+
+    @Test
+    @Order(60)
+    void browseSharedKbViaHttpReturnsItems() {
+        // Create a new partner with a remote host so the HTTP path is taken
+        var httpClient = mock(FederationHttpClient.class);
+        var svc = new FederatedContentService(
+                federationRepo, federationService, httpClient, kbService, quizService, protocolService, stationRepo);
+
+        var stationC = stationRepo.create("FedHttpStationC");
+        var stationD = stationRepo.create("FedHttpStationD");
+
+        // Set acceptingRemoteHost so the partner from stationC's POV is remote
+        var keyPair = federationService.generateKeyPair();
+        var partner = federationService.acceptInvite(
+                stationD.id(),
+                stationC.id(),
+                federationService.encodePublicKey(keyPair),
+                null,
+                "https://remote.example.com");
+
+        // Enable KB capability
+        federationService.setCapability(partner.id(), "KB_SHARE", "IMPORT", true);
+
+        // Mock HTTP client to return a file
+        var remoteFile = new FederationHttpClient.RemoteKbFile(realKbFileId, "RemoteShared", "Desc", "MARKDOWN");
+        when(httpClient.fetchSharedKbFiles(anyString(), anyInt(), any())).thenReturn(List.of(remoteFile));
+
+        var items = svc.browseSharedKb(stationC.id());
+        assertFalse(items.isEmpty());
+        assertTrue(
+                items.stream().anyMatch(i -> i.file() != null && i.file().name().equals("RemoteShared")));
+
+        stationRepo.delete(stationC.id());
+        stationRepo.delete(stationD.id());
+    }
+
+    @Test
+    @Order(61)
+    void browseSharedQuizViaHttpReturnsItems() {
+        var httpClient = mock(FederationHttpClient.class);
+        var svc = new FederatedContentService(
+                federationRepo, federationService, httpClient, kbService, quizService, protocolService, stationRepo);
+
+        var stationE = stationRepo.create("FedHttpStationE");
+        var stationF = stationRepo.create("FedHttpStationF");
+
+        var keyPair = federationService.generateKeyPair();
+        var partner = federationService.acceptInvite(
+                stationF.id(),
+                stationE.id(),
+                federationService.encodePublicKey(keyPair),
+                null,
+                "https://remote2.example.com");
+
+        federationService.setCapability(partner.id(), "QUIZ_SHARE", "IMPORT", true);
+
+        var remoteCatalog = new FederationHttpClient.RemoteQuizCatalog(realQuizCatalogId, "RemoteCatalog", "CatDesc");
+        when(httpClient.fetchSharedQuizCatalogs(anyString(), anyInt(), any())).thenReturn(List.of(remoteCatalog));
+
+        // quizService.findCatalog is already mocked to return the catalog for realQuizCatalogId
+        var items = svc.browseSharedQuiz(stationE.id());
+        assertFalse(items.isEmpty());
+        assertTrue(items.stream().anyMatch(i -> i.catalog().id() == realQuizCatalogId));
+
+        stationRepo.delete(stationE.id());
+        stationRepo.delete(stationF.id());
+    }
+
+    @Test
+    @Order(62)
+    void browseSharedProtocolsViaHttpReturnsItems() {
+        var httpClient = mock(FederationHttpClient.class);
+        var svc = new FederatedContentService(
+                federationRepo, federationService, httpClient, kbService, quizService, protocolService, stationRepo);
+
+        var stationG = stationRepo.create("FedHttpStationG");
+        var stationH = stationRepo.create("FedHttpStationH");
+
+        var keyPair = federationService.generateKeyPair();
+        var partner = federationService.acceptInvite(
+                stationH.id(),
+                stationG.id(),
+                federationService.encodePublicKey(keyPair),
+                null,
+                "https://remote3.example.com");
+
+        federationService.setCapability(partner.id(), "PROTOCOL_SHARE", "IMPORT", true);
+
+        var remoteProto = new FederationHttpClient.RemoteProtocol(realProtocolId, "RemoteProto", "ProtoDesc");
+        when(httpClient.fetchSharedProtocols(anyString(), anyInt(), any())).thenReturn(List.of(remoteProto));
+
+        // protocolService.findProtocol is already mocked to return the protocol for realProtocolId
+        var items = svc.browseSharedProtocols(stationG.id());
+        assertFalse(items.isEmpty());
+        assertTrue(items.stream().anyMatch(i -> i.protocol().id() == realProtocolId));
+
+        stationRepo.delete(stationG.id());
+        stationRepo.delete(stationH.id());
+    }
+
+    @Test
+    @Order(63)
+    void browseSharedKbViaHttpEmptyResponse() {
+        var httpClient = mock(FederationHttpClient.class);
+        var svc = new FederatedContentService(
+                federationRepo, federationService, httpClient, kbService, quizService, protocolService, stationRepo);
+
+        var stationI = stationRepo.create("FedHttpEmptyI");
+        var stationJ = stationRepo.create("FedHttpEmptyJ");
+
+        var keyPair = federationService.generateKeyPair();
+        var partner = federationService.acceptInvite(
+                stationJ.id(),
+                stationI.id(),
+                federationService.encodePublicKey(keyPair),
+                null,
+                "https://remote4.example.com");
+
+        federationService.setCapability(partner.id(), "KB_SHARE", "IMPORT", true);
+
+        // Return empty list from HTTP
+        when(httpClient.fetchSharedKbFiles(anyString(), anyInt(), any())).thenReturn(List.of());
+
+        var items = svc.browseSharedKb(stationI.id());
+        assertTrue(items.isEmpty());
+
+        stationRepo.delete(stationI.id());
+        stationRepo.delete(stationJ.id());
+    }
+
+    @Test
+    @Order(64)
+    void copyKbFileViaHttp() {
+        var httpClient = mock(FederationHttpClient.class);
+        var svc = new FederatedContentService(
+                federationRepo, federationService, httpClient, kbService, quizService, protocolService, stationRepo);
+
+        var stationK = stationRepo.create("FedHttpCopyK");
+        var stationL = stationRepo.create("FedHttpCopyL");
+
+        var keyPair = federationService.generateKeyPair();
+        // stationL has the file (remoteStationId = stationL), stationK wants to copy it
+        // acceptingRemoteHost is stationL's host from stationK's perspective
+        var partner = federationService.acceptInvite(
+                stationL.id(),
+                stationK.id(),
+                federationService.encodePublicKey(keyPair),
+                null,
+                "https://remote5.example.com");
+
+        // kbService.findFile returns a file with stationL's id
+        var now = Instant.now();
+        var remoteFile = new KbFile(
+                realKbFileId,
+                stationL.id(),
+                null,
+                "RemoteFile",
+                "Remote desc",
+                KbFileType.MARKDOWN,
+                "text/markdown",
+                100,
+                null,
+                null,
+                null,
+                0,
+                1,
+                now,
+                now,
+                null,
+                null,
+                RestrictionMode.AND,
+                false);
+        when(kbService.findFile(realKbFileId)).thenReturn(Optional.of(remoteFile));
+        when(httpClient.fetchKbFileContent(anyString(), anyInt(), anyInt(), any()))
+                .thenReturn("# Remote Content");
+
+        var copied = svc.copyKbFile(realKbFileId, stationK.id(), 1);
+        assertNotNull(copied);
+        verify(httpClient).fetchKbFileContent(anyString(), eq(realKbFileId), eq(stationK.id()), any());
+
+        // Restore mock
+        var originalFile = new KbFile(
+                realKbFileId,
+                stationB.id(),
+                null,
+                "SharedFile",
+                "A shared file",
+                KbFileType.MARKDOWN,
+                "text/markdown",
+                1024,
+                null,
+                null,
+                null,
+                0,
+                memberB.id(),
+                now,
+                now,
+                null,
+                null,
+                RestrictionMode.AND,
+                false);
+        when(kbService.findFile(realKbFileId)).thenReturn(Optional.of(originalFile));
+
+        stationRepo.delete(stationK.id());
+        stationRepo.delete(stationL.id());
+    }
+
+    @Test
+    @Order(65)
+    void browseSharedKbViaHttpNullFileType() {
+        // Verify that a remote KB file with null fileType defaults to MARKDOWN
+        var httpClient = mock(FederationHttpClient.class);
+        var svc = new FederatedContentService(
+                federationRepo, federationService, httpClient, kbService, quizService, protocolService, stationRepo);
+
+        var stationM = stationRepo.create("FedHttpNullTypeM");
+        var stationN = stationRepo.create("FedHttpNullTypeN");
+
+        var keyPair = federationService.generateKeyPair();
+        var partner = federationService.acceptInvite(
+                stationN.id(),
+                stationM.id(),
+                federationService.encodePublicKey(keyPair),
+                null,
+                "https://remote6.example.com");
+
+        federationService.setCapability(partner.id(), "KB_SHARE", "IMPORT", true);
+
+        // fileType is null — should default to MARKDOWN
+        var remoteFile = new FederationHttpClient.RemoteKbFile(realKbFileId + 100, "NullTypeFile", "desc", null);
+        when(httpClient.fetchSharedKbFiles(anyString(), anyInt(), any())).thenReturn(List.of(remoteFile));
+
+        var items = svc.browseSharedKb(stationM.id());
+        assertFalse(items.isEmpty());
+        assertEquals(KbFileType.MARKDOWN, items.get(0).file().fileType());
+
+        stationRepo.delete(stationM.id());
+        stationRepo.delete(stationN.id());
     }
 }

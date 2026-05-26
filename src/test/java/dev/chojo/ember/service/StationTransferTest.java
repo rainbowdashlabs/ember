@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.service;
 
+import dev.chojo.ember.api.Roles;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.form.entity.FormQuestion;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
@@ -21,9 +22,11 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
@@ -65,8 +68,7 @@ class StationTransferTest extends RepositoryTestBase {
         sourceStationId = station.id();
         stationRepo.updateTimezone(sourceStationId, "Europe/Berlin");
         stationRepo.updateLocale(sourceStationId, "de-DE");
-        stationRepo.setDisabledModules(
-                sourceStationId, java.util.Set.of(dev.chojo.ember.feature.station.entity.StationModule.LOST_AND_FOUND));
+        stationRepo.setDisabledModules(sourceStationId, Set.of(StationModule.LOST_AND_FOUND));
 
         // --- Accounts & Members ---
         // Manager with full account
@@ -93,20 +95,12 @@ class StationTransferTest extends RepositoryTestBase {
         var former = stationMemberRepo.create(sourceStationId, formerAccount.id());
 
         // --- Roles ---
-        Role managerRole = stationMemberRepo
-                .findRoleByName(dev.chojo.ember.api.Roles.MANAGER)
-                .orElseThrow();
-        Role teamRole =
-                stationMemberRepo.findRoleByName(dev.chojo.ember.api.Roles.TEAM).orElseThrow();
-        Role memberRole = stationMemberRepo
-                .findRoleByName(dev.chojo.ember.api.Roles.MEMBER)
-                .orElseThrow();
-        Role guardianRole = stationMemberRepo
-                .findRoleByName(dev.chojo.ember.api.Roles.GUARDIAN)
-                .orElseThrow();
-        Role attendanceRole = stationMemberRepo
-                .findRoleByName(dev.chojo.ember.api.Roles.ATTENDANCE_MANAGER)
-                .orElseThrow();
+        Role managerRole = stationMemberRepo.findRoleByName(Roles.MANAGER).orElseThrow();
+        Role teamRole = stationMemberRepo.findRoleByName(Roles.TEAM).orElseThrow();
+        Role memberRole = stationMemberRepo.findRoleByName(Roles.MEMBER).orElseThrow();
+        Role guardianRole = stationMemberRepo.findRoleByName(Roles.GUARDIAN).orElseThrow();
+        Role attendanceRole =
+                stationMemberRepo.findRoleByName(Roles.ATTENDANCE_MANAGER).orElseThrow();
 
         stationMemberRepo.addRole(manager.id(), managerRole.id());
         stationMemberRepo.addRole(trainer.id(), teamRole.id());
@@ -405,7 +399,7 @@ class StationTransferTest extends RepositoryTestBase {
 
         // Build custom export data with a member having that email
         var customData = new HashMap<>(exportedData);
-        var members = new java.util.ArrayList<>((List<Map<String, Object>>) customData.get("members"));
+        var members = new ArrayList<>((List<Map<String, Object>>) customData.get("members"));
         members.add(Map.of(
                 "id", 9999,
                 "display_name", "Reimport User",

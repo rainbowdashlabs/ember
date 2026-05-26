@@ -10,6 +10,7 @@ import dev.chojo.ember.feature.federation.entity.ContentType;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.service.FederationService;
+import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.AfterAll;
@@ -31,6 +32,7 @@ class FederationServiceTest extends RepositoryTestBase {
     private static Station stationA;
     private static Station stationB;
     private static int partnerIdAtoB;
+    private static StationMember memberA;
 
     @BeforeAll
     static void setup() {
@@ -39,6 +41,9 @@ class FederationServiceTest extends RepositoryTestBase {
 
         stationA = stationRepo.create("FedSvcTestStationA");
         stationB = stationRepo.create("FedSvcTestStationB");
+
+        var accountA = accountRepo.create("fed-svc-a@test.com", "Fed", "A");
+        memberA = stationMemberRepo.create(stationA.id(), accountA.id());
     }
 
     @AfterAll
@@ -294,6 +299,152 @@ class FederationServiceTest extends RepositoryTestBase {
 
     // -- End Federation --
 
+    // -- Pairing Code Parsing --
+
+    @Test
+    @Order(70)
+    void parsePairingCodeInvalid() {
+        assertTrue(service.parsePairingCode("not-ember-prefix").isEmpty());
+        assertTrue(service.parsePairingCode("ember-").isEmpty());
+        assertTrue(service.parsePairingCode("ember-bad").isEmpty());
+        assertTrue(service.parsePairingCode("").isEmpty());
+    }
+
+    @Test
+    @Order(71)
+    void generateStationInviteCode() {
+        var code = service.generateStationInvite(stationA.id(), stationA.uid());
+        assertNotNull(code);
+        assertTrue(code.startsWith("ember-"));
+        var parts = service.parsePairingCode(code);
+        assertTrue(parts.isPresent());
+        assertTrue(parts.get().isStationInvite());
+        assertEquals(stationA.uid(), parts.get().stationUid());
+        assertNotNull(parts.get().token());
+    }
+
+    @Test
+    @Order(72)
+    void consumeInviteTokenValid() {
+        var code = service.generateStationInvite(stationA.id(), stationA.uid());
+        var parts = service.parsePairingCode(code).orElseThrow();
+        assertTrue(service.consumeInviteToken(stationA.id(), parts.token()));
+        // Consuming again should fail
+        assertFalse(service.consumeInviteToken(stationA.id(), parts.token()));
+    }
+
+    @Test
+    @Order(73)
+    void consumeInviteTokenInvalid() {
+        assertFalse(service.consumeInviteToken(stationA.id(), "nonexistent-token"));
+    }
+
+    @Test
+    @Order(74)
+    void getInstanceHost() {
+        assertNotNull(service.getInstanceHost());
+    }
+
+    @Test
+    @Order(75)
+    void encodePrivateKey() {
+        var keyPair = service.generateKeyPair();
+        String encoded = service.encodePrivateKey(keyPair);
+        assertNotNull(encoded);
+        assertFalse(encoded.isEmpty());
+    }
+
+    // -- Pair request flow --
+
+    @Test
+    @Order(80)
+    void createAndAcceptPairRequest() {
+        var stationG = stationRepo.create("FedSvcTestStationG");
+        var stationH = stationRepo.create("FedSvcTestStationH");
+
+        var request = service.createPairRequest(stationG.id(), stationH.id());
+        assertNotNull(request);
+        assertEquals(FederationPartner.FederationStatus.PENDING, request.status());
+
+        // Find pending requests for target station
+        var pending = service.findPendingRequests(stationH.id());
+        assertTrue(pending.stream().anyMatch(p -> p.stationId() == stationG.id()));
+
+        // Accept the request
+        var accepted = service.acceptPairRequest(request.id());
+        assertNotNull(accepted);
+        assertEquals(FederationPartner.FederationStatus.ACTIVE, accepted.status());
+
+        // Cleanup
+        service.endFederation(accepted.id());
+        stationRepo.delete(stationG.id());
+        stationRepo.delete(stationH.id());
+    }
+
+    @Test
+    @Order(81)
+    void declinePairRequest() {
+        var stationI = stationRepo.create("FedSvcTestStationI");
+        var stationJ = stationRepo.create("FedSvcTestStationJ");
+
+        var request = service.createPairRequest(stationI.id(), stationJ.id());
+        service.declinePairRequest(request.id());
+        assertTrue(service.findPartner(request.id()).isEmpty());
+
+        stationRepo.delete(stationI.id());
+        stationRepo.delete(stationJ.id());
+    }
+
+    // -- KB/Quiz/Protocol shares --
+
+    @Test
+    @Order(85)
+    void kbShareCrud() {
+        var shares = service.findKbShares(stationA.id());
+        assertNotNull(shares);
+    }
+
+    @Test
+    @Order(86)
+    void quizShareCrud() {
+        var shares = service.findQuizShares(stationA.id());
+        assertNotNull(shares);
+    }
+
+    @Test
+    @Order(87)
+    void protocolShareCrud() {
+        var shares = service.findProtocolShares(stationA.id());
+        assertNotNull(shares);
+    }
+
+    // -- Metadata Cache --
+
+    @Test
+    @Order(88)
+    void metadataCacheOperations() {
+        // Use the existing partner between stationA and stationB (created at order 4)
+        var cached = service.getCachedMetadata(partnerIdAtoB, "KB");
+        assertNotNull(cached);
+
+        service.refreshMetadataCache(
+                partnerIdAtoB,
+                "KB",
+                java.util.List.of(new dev.chojo.ember.feature.federation.entity.FederationMetadataCache(
+                        0, partnerIdAtoB, ContentType.KB, 42, "Test File", "Description", Instant.now())));
+
+        var refreshed = service.getCachedMetadata(partnerIdAtoB, "KB");
+        assertTrue(refreshed.stream().anyMatch(c -> c.remoteId() == 42));
+    }
+
+    // -- End Federation --
+
+    @Test
+    @Order(89)
+    void endFederationNonExistent() {
+        assertFalse(service.endFederation(99999));
+    }
+
     @Test
     @Order(99)
     void endFederationDeletesBothDirections() {
@@ -303,5 +454,70 @@ class FederationServiceTest extends RepositoryTestBase {
         // Reverse partner should also be deleted
         var reversePartners = service.findPartners(stationB.id());
         assertTrue(reversePartners.stream().noneMatch(p -> p.partnerStationId() == stationA.id()));
+    }
+
+    @Test
+    @Order(100)
+    void acceptPairRequestRejectsNonPending() {
+        var stationK = stationRepo.create("FedSvcTestStationK");
+        var stationL = stationRepo.create("FedSvcTestStationL");
+
+        // Create a pair request and then activate it (so it is no longer PENDING)
+        var keyPair = service.generateKeyPair();
+        var partner = service.acceptInvite(stationK.id(), stationL.id(), service.encodePublicKey(keyPair), null, null);
+
+        // Trying to acceptPairRequest on an ACTIVE partner should throw
+        assertThrows(IllegalStateException.class, () -> service.acceptPairRequest(partner.id()));
+
+        service.endFederation(partner.id());
+        stationRepo.delete(stationK.id());
+        stationRepo.delete(stationL.id());
+    }
+
+    @Test
+    @Order(101)
+    void pairingCodePartsIsStationInviteWithNullToken() {
+        // PairingCodeParts with null token — isStationInvite should be false
+        var parts = new FederationService.PairingCodeParts(stationA.uid(), "localhost", null);
+        assertFalse(parts.isStationInvite());
+    }
+
+    @Test
+    @Order(102)
+    void pairingCodePartsIsStationInviteWithBlankToken() {
+        var parts = new FederationService.PairingCodeParts(stationA.uid(), "localhost", "");
+        assertFalse(parts.isStationInvite());
+    }
+
+    @Test
+    @Order(103)
+    void kbShareCreateAndDelete() {
+        // KB share requires either a file_id or folder_id (CHECK constraint)
+        var folder = knowledgeBaseRepo.createFolder(stationA.id(), null, "FedTestFolder", "", memberA.id());
+        var share = service.createKbShare(stationA.id(), null, folder.id(), "ALL_PARTNERS");
+        assertNotNull(share);
+        assertTrue(service.deleteKbShare(share.id()));
+        assertFalse(service.deleteKbShare(share.id())); // Already deleted
+        knowledgeBaseRepo.deleteFolder(folder.id());
+    }
+
+    @Test
+    @Order(104)
+    void quizShareCreateAndDelete() {
+        // Create a quiz catalog to reference
+        var catalog = quizCatalogRepo.create(stationA.id(), "Test Quiz Catalog", "desc", false);
+        var share = service.createQuizShare(stationA.id(), catalog.id(), "ALL_PARTNERS");
+        assertNotNull(share);
+        assertTrue(service.deleteQuizShare(share.id()));
+    }
+
+    @Test
+    @Order(105)
+    void protocolShareCreateAndDelete() {
+        // Create a protocol to reference (description must not be null)
+        var protocol = testProtocolRepo.createProtocol(stationA.id(), "Test Protocol", "", null);
+        var share = service.createProtocolShare(stationA.id(), protocol.id(), "ALL_PARTNERS");
+        assertNotNull(share);
+        assertTrue(service.deleteProtocolShare(share.id()));
     }
 }

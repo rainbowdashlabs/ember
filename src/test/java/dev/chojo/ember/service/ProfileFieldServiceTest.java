@@ -1,0 +1,233 @@
+/*
+ *     SPDX-License-Identifier: AGPL-3.0-only
+ *
+ *     Copyright (C) RainbowDashLabs and Contributor
+ */
+package dev.chojo.ember.service;
+
+import dev.chojo.ember.feature.account.entity.Account;
+import dev.chojo.ember.feature.members.entity.FieldValueEntry;
+import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
+import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.members.service.ProfileFieldService;
+import dev.chojo.ember.feature.notifications.service.NotificationService;
+import dev.chojo.ember.feature.station.entity.Station;
+import dev.chojo.ember.repository.RepositoryTestBase;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.Order;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestMethodOrder;
+
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.mock;
+
+@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
+class ProfileFieldServiceTest extends RepositoryTestBase {
+    private static ProfileFieldService service;
+    private static Station station;
+    private static Account account;
+    private static StationMember member;
+    private static int fieldId;
+
+    @BeforeAll
+    static void setup() {
+        service = new ProfileFieldService(
+                profileFieldRepo,
+                profileFieldChangeRepo,
+                mock(NotificationService.class),
+                stationMemberRepo,
+                accountRepo);
+        station = stationRepo.create("ProfileField Station");
+        account = accountRepo.create("pfield-svc@test.com", "Profile", "Tester");
+        member = stationMemberRepo.create(station.id(), account.id());
+    }
+
+    @AfterAll
+    static void cleanup() {
+        stationRepo.delete(station.id());
+        accountRepo.delete(account.id());
+    }
+
+    @Test
+    @Order(1)
+    void create() {
+        var field = service.create(station.id(), "Phone", "text", "{}", 1, ProfileFieldScope.MEMBER);
+        assertNotNull(field);
+        assertEquals("Phone", field.name());
+        assertEquals(ProfileFieldScope.MEMBER, field.scope());
+        fieldId = field.id();
+    }
+
+    @Test
+    @Order(2)
+    void findById() {
+        assertTrue(service.findById(fieldId).isPresent());
+        assertTrue(service.findById(99999).isEmpty());
+    }
+
+    @Test
+    @Order(3)
+    void findByStation() {
+        var fields = service.findByStation(station.id());
+        assertFalse(fields.isEmpty());
+        assertTrue(fields.stream().anyMatch(f -> f.id() == fieldId));
+    }
+
+    @Test
+    @Order(4)
+    void findByStationAndScope() {
+        var memberFields = service.findByStationAndScope(station.id(), ProfileFieldScope.MEMBER);
+        assertFalse(memberFields.isEmpty());
+        var teamFields = service.findByStationAndScope(station.id(), ProfileFieldScope.TEAM);
+        assertTrue(teamFields.isEmpty());
+    }
+
+    @Test
+    @Order(5)
+    void update() {
+        var updated = service.update(fieldId, "Mobile", "text", "{}", 2, false);
+        assertTrue(updated.isPresent());
+        assertEquals("Mobile", updated.get().name());
+        assertEquals(2, updated.get().position());
+    }
+
+    @Test
+    @Order(6)
+    void updateNonExistent() {
+        var result = service.update(99999, "X", "text", "{}", 1, false);
+        assertTrue(result.isEmpty());
+    }
+
+    // -- Values --
+
+    @Test
+    @Order(10)
+    void findValuesEmpty() {
+        var values = service.findValues(member.id());
+        assertTrue(values.isEmpty());
+    }
+
+    @Test
+    @Order(11)
+    void setValuesAndFind() {
+        var entries = List.of(new FieldValueEntry(fieldId, "\"555-1234\""));
+        var result = service.setValues(member.id(), entries, member.id());
+        assertFalse(result.isEmpty());
+        assertEquals("\"555-1234\"", result.getFirst().value());
+    }
+
+    @Test
+    @Order(12)
+    void setValuesTwiceRecordsChange() {
+        // Second call with a different value should record a change
+        var entries = List.of(new FieldValueEntry(fieldId, "\"555-9999\""));
+        var result = service.setValues(member.id(), entries, member.id());
+        assertFalse(result.isEmpty());
+        assertEquals("\"555-9999\"", result.getFirst().value());
+    }
+
+    @Test
+    @Order(13)
+    void findChanges() {
+        var changes = service.findChanges(member.id());
+        // At least one change was recorded (initial set)
+        assertFalse(changes.isEmpty());
+    }
+
+    @Test
+    @Order(14)
+    void findChangesByStation() {
+        var paged = service.findChangesByStation(station.id(), 10, 0);
+        assertNotNull(paged);
+        assertTrue(paged.total() > 0);
+    }
+
+    @Test
+    @Order(15)
+    void findChangesByStationEmpty() {
+        var paged = service.findChangesByStation(station.id(), 10, 9999);
+        assertNotNull(paged);
+        assertTrue(paged.changes().isEmpty());
+    }
+
+    @Test
+    @Order(16)
+    void acknowledge() {
+        var changes = service.findChanges(member.id());
+        if (!changes.isEmpty()) {
+            var ack = service.acknowledge(changes.getFirst().id(), member.id(), "OK");
+            assertNotNull(ack);
+            assertEquals(member.id(), ack.acknowledgedBy());
+        }
+    }
+
+    @Test
+    @Order(17)
+    void acknowledgeAll() {
+        // Set a value again to create a new unacknowledged change
+        var entries = List.of(new FieldValueEntry(fieldId, "\"555-0000\""));
+        service.setValues(member.id(), entries, member.id());
+
+        var acks = service.acknowledgeAll(member.id(), member.id(), "Bulk ack");
+        assertNotNull(acks);
+    }
+
+    @Test
+    @Order(18)
+    void findUnacknowledgedSummary() {
+        var summary = service.findUnacknowledgedSummary(station.id(), member.id());
+        assertNotNull(summary);
+    }
+
+    // -- Profile completeness --
+
+    @Test
+    @Order(20)
+    void isProfileCompleteEmptyRoles() {
+        // No roles → no applicable scopes → complete by default
+        assertTrue(service.isProfileComplete(member.id(), station.id(), List.of()));
+    }
+
+    @Test
+    @Order(21)
+    void isProfileCompleteWithMemberRole() {
+        // Member has a MEMBER-scope field with value — should be complete
+        // The field has default config (not required), so should be complete
+        assertTrue(service.isProfileComplete(member.id(), station.id(), List.of("MEMBER")));
+    }
+
+    @Test
+    @Order(22)
+    void isProfileCompleteRequiredFieldMissing() {
+        // Create a required field with no value for a new member
+        var reqField = service.create(
+                station.id(), "Required Field", "text", "{\"required\":true}", 10, ProfileFieldScope.MEMBER);
+        var account2 = accountRepo.create("pfield-empty@test.com", "Empty", "Member");
+        var member2 = stationMemberRepo.create(station.id(), account2.id());
+
+        assertFalse(service.isProfileComplete(member2.id(), station.id(), List.of("MEMBER")));
+
+        // Cleanup
+        service.delete(reqField.id());
+        stationMemberRepo.delete(member2.id());
+        accountRepo.delete(account2.id());
+    }
+
+    @Test
+    @Order(25)
+    void deleteValue() {
+        assertTrue(service.deleteValue(member.id(), fieldId));
+        assertTrue(service.findValues(member.id()).isEmpty());
+    }
+
+    @Test
+    @Order(99)
+    void delete() {
+        assertTrue(service.delete(fieldId));
+        assertTrue(service.findById(fieldId).isEmpty());
+    }
+}

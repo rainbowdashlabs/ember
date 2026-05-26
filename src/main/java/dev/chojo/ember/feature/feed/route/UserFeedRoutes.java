@@ -44,6 +44,7 @@ import net.fortuna.ical4j.model.property.immutable.ImmutableVersion;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -91,7 +92,7 @@ public class UserFeedRoutes implements Routes {
         var station = stationRepository.findById(member.stationId()).orElseThrow(NotFoundResponse::new);
 
         var categories = eventService.findCategoriesByStation(station.id());
-        var categoryMap = new java.util.HashMap<Integer, EventCategory>();
+        var categoryMap = new HashMap<Integer, EventCategory>();
         for (var cat : categories) categoryMap.put(cat.id(), cat);
 
         var registrations = eventService.findRegistrationsByMember(member.id());

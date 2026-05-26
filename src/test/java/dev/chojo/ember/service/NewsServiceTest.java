@@ -5,9 +5,11 @@
  */
 package dev.chojo.ember.service;
 
+import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.news.service.NewsService;
+import dev.chojo.ember.feature.restriction.RestrictionRepository;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.AfterAll;
@@ -18,6 +20,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 
 import java.util.List;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -32,10 +35,7 @@ class NewsServiceTest extends RepositoryTestBase {
 
     @BeforeAll
     static void setup() {
-        service = new NewsService(
-                newsRepo,
-                new dev.chojo.ember.feature.restriction.RestrictionRepository(),
-                new dev.chojo.ember.event.DomainEventBus(java.util.Set.of()));
+        service = new NewsService(newsRepo, new RestrictionRepository(), new DomainEventBus(Set.of()));
         station = stationRepo.create("NewsStation");
         account = accountRepo.create("news-svc@test.com", "News", "Author");
         member = stationMemberRepo.create(station.id(), account.id());
@@ -110,11 +110,74 @@ class NewsServiceTest extends RepositoryTestBase {
     }
 
     @Test
+    @Order(4)
+    void findVisibleForMember() {
+        var list = service.findVisibleForMember(station.id(), member.id(), 0, 100);
+        assertTrue(list.stream().anyMatch(n -> n.id() == newsId));
+    }
+
+    @Test
+    @Order(5)
+    void countComments() {
+        assertEquals(0, service.countComments(newsId));
+    }
+
+    @Test
+    @Order(6)
+    void findRestrictions() {
+        var restrictions = service.findRestrictions(newsId);
+        assertNotNull(restrictions);
+    }
+
+    @Test
+    @Order(21)
+    void findCommentById() {
+        var comment = service.findCommentById(commentId);
+        assertTrue(comment.isPresent());
+        assertEquals("Great article!", comment.get().content());
+    }
+
+    @Test
     @Order(22)
+    void updateComment() {
+        assertTrue(service.updateComment(commentId, "Updated comment!"));
+        var comment = service.findCommentById(commentId);
+        assertTrue(comment.isPresent());
+        assertEquals("Updated comment!", comment.get().content());
+    }
+
+    @Test
+    @Order(23)
+    void createReply() {
+        var reply =
+                service.createComment(station.id(), newsId, commentId, member.id(), "News Author", "This is a reply");
+        assertNotNull(reply);
+        assertEquals(commentId, reply.parentId());
+    }
+
+    @Test
+    @Order(24)
+    void countCommentsAfterCreation() {
+        assertTrue(service.countComments(newsId) >= 2);
+    }
+
+    @Test
+    @Order(25)
+    void deleteNonExistentComment() {
+        assertFalse(service.deleteComment(station.id(), -999));
+    }
+
+    @Test
+    @Order(26)
     void deleteComment() {
         assertTrue(service.deleteComment(station.id(), commentId));
-        var comments = service.findComments(newsId);
-        assertFalse(comments.stream().anyMatch(c -> c.id() == commentId));
+        assertTrue(service.findCommentById(commentId).isEmpty());
+    }
+
+    @Test
+    @Order(29)
+    void deleteNonExistentNews() {
+        assertFalse(service.delete(-999));
     }
 
     @Test

@@ -31,6 +31,7 @@ import net.fortuna.ical4j.model.property.immutable.ImmutableCalScale;
 import net.fortuna.ical4j.model.property.immutable.ImmutableVersion;
 
 import java.time.Instant;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -86,7 +87,7 @@ public class PublicEventRoutes implements Routes {
     private void listPublicEvents(Context ctx) {
         var station = resolveStation(ctx);
         var categories = eventService.findCategoriesByStation(station.id());
-        var categoryMap = new java.util.HashMap<Integer, EventCategory>();
+        var categoryMap = new HashMap<Integer, EventCategory>();
         for (var cat : categories) categoryMap.put(cat.id(), cat);
 
         var allEvents = eventService.findByStation(station.id());
@@ -114,7 +115,7 @@ public class PublicEventRoutes implements Routes {
         if (event.stationId() != station.id()) throw new NotFoundResponse();
 
         var categories = eventService.findCategoriesByStation(station.id());
-        var categoryMap = new java.util.HashMap<Integer, EventCategory>();
+        var categoryMap = new HashMap<Integer, EventCategory>();
         for (var cat : categories) categoryMap.put(cat.id(), cat);
 
         if (!isEventPublic(event, categoryMap)) throw new NotFoundResponse();
@@ -146,7 +147,7 @@ public class PublicEventRoutes implements Routes {
     private void icalFeed(Context ctx) {
         var station = resolveStation(ctx);
         var categories = eventService.findCategoriesByStation(station.id());
-        var categoryMap = new java.util.HashMap<Integer, EventCategory>();
+        var categoryMap = new HashMap<Integer, EventCategory>();
         for (var cat : categories) categoryMap.put(cat.id(), cat);
 
         var allEvents = eventService.findByStation(station.id());

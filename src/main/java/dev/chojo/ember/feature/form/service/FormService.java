@@ -12,6 +12,7 @@ import dev.chojo.ember.feature.form.entity.Form;
 import dev.chojo.ember.feature.form.entity.FormAnswer;
 import dev.chojo.ember.feature.form.entity.FormQuestion;
 import dev.chojo.ember.feature.form.entity.FormResponse;
+import dev.chojo.ember.feature.form.entity.QuestionEntry;
 import dev.chojo.ember.feature.form.repository.FormRepository;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
 import dev.chojo.ember.feature.members.entity.Role;
@@ -420,22 +421,4 @@ public class FormService {
                 tagIds != null ? tagIds : List.of(),
                 memberIds != null ? memberIds : List.of());
     }
-
-    /**
-     * Data transfer object for creating questions during a bulk replace operation.
-     *
-     * @param questionType the type of question
-     * @param title        the question text
-     * @param description  optional description
-     * @param required     whether an answer is mandatory
-     * @param shuffle      whether answer options should be randomized
-     * @param config       type-specific configuration as JSON
-     */
-    public record QuestionEntry(
-            FormQuestion.QuestionType questionType,
-            String title,
-            String description,
-            boolean required,
-            boolean shuffle,
-            String config) {}
 }

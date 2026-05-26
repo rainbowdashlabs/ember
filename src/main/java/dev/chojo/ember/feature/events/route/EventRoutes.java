@@ -12,12 +12,15 @@ import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.attendance.service.AttendanceService;
+import dev.chojo.ember.feature.events.entity.BatchRequest;
+import dev.chojo.ember.feature.events.entity.BatchRow;
 import dev.chojo.ember.feature.events.entity.EventBreak;
 import dev.chojo.ember.feature.events.entity.EventCategory;
 import dev.chojo.ember.feature.events.entity.EventField;
 import dev.chojo.ember.feature.events.entity.EventFieldDefault;
 import dev.chojo.ember.feature.events.entity.EventLayoutField;
 import dev.chojo.ember.feature.events.entity.EventRegistration;
+import dev.chojo.ember.feature.events.entity.IntervalConfig;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventFieldRepository;
 import dev.chojo.ember.feature.events.service.BatchEventService;
@@ -1027,7 +1030,7 @@ public class EventRoutes implements Routes {
     private void generateDates(Context ctx) {
         var session = UserSession.from(ctx);
         var req = ctx.bodyAsClass(GenerateDatesRequest.class);
-        var interval = new BatchEventService.IntervalConfig(
+        var interval = new IntervalConfig(
                 req.intervalType(),
                 req.dayOfWeek() != null ? req.dayOfWeek() : 1,
                 LocalDate.parse(req.startDate()),
@@ -1059,10 +1062,10 @@ public class EventRoutes implements Routes {
                         .toList()
                 : null;
         var batchRows = req.rows().stream()
-                .map(r -> new BatchEventService.BatchRow(
+                .map(r -> new BatchRow(
                         r.name(), r.startTime(), r.endTime(), r.fieldValues() != null ? r.fieldValues() : Map.of()))
                 .toList();
-        var batchReq = new BatchEventService.BatchRequest(
+        var batchReq = new BatchRequest(
                 req.name(),
                 req.description(),
                 req.templateId(),
@@ -1306,7 +1309,7 @@ public class EventRoutes implements Routes {
         var event = eventService.findById(id).orElseThrow(NotFoundResponse::new);
         if (event.stationId() != session.stationId()) throw new ForbiddenResponse();
         String dateParam = ctx.queryParam("date");
-        java.time.LocalDate date = dateParam != null ? java.time.LocalDate.parse(dateParam) : null;
+        LocalDate date = dateParam != null ? LocalDate.parse(dateParam) : null;
         var registrations = date != null
                 ? eventFederationService.findRegistrations(id, date)
                 : eventFederationService.findRegistrations(id, null);

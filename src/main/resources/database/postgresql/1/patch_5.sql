@@ -137,3 +137,22 @@ CREATE TABLE ember_schema.user_feed_token
     token      TEXT        NOT NULL UNIQUE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- News acknowledgements (track which members have read a news article)
+CREATE TABLE ember_schema.news_acknowledgement
+(
+    news_id    INTEGER     NOT NULL REFERENCES ember_schema.news (id) ON DELETE CASCADE,
+    member_id  INTEGER     NOT NULL REFERENCES ember_schema.station_member (id) ON DELETE CASCADE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    PRIMARY KEY (news_id, member_id)
+);
+CREATE INDEX idx_news_acknowledgement_member ON ember_schema.news_acknowledgement (member_id);
+
+-- Knowledge base favourites
+CREATE TABLE ember_schema.kb_favourite
+(
+    member_id  INTEGER     NOT NULL REFERENCES ember_schema.station_member (id) ON DELETE CASCADE,
+    file_id    INTEGER     NOT NULL REFERENCES ember_schema.kb_file (id) ON DELETE CASCADE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    PRIMARY KEY (member_id, file_id)
+);

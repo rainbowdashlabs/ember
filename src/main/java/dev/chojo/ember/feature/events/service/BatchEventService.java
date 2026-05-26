@@ -5,7 +5,10 @@
  */
 package dev.chojo.ember.feature.events.service;
 
+import dev.chojo.ember.feature.events.entity.BatchRequest;
+import dev.chojo.ember.feature.events.entity.BatchRow;
 import dev.chojo.ember.feature.events.entity.EventLayoutField;
+import dev.chojo.ember.feature.events.entity.IntervalConfig;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventFieldRepository;
 import dev.chojo.ember.feature.events.repository.EventRepository;
@@ -174,29 +177,4 @@ public class BatchEventService {
             default -> dates;
         };
     }
-
-    public record BatchRequest(
-            String name,
-            String description,
-            Integer templateId,
-            Integer categoryId,
-            Integer layoutId,
-            List<EventLayoutField> inlineFields,
-            List<BatchRow> rows,
-            Boolean requiresRegistration,
-            Boolean requiresConfirmation,
-            Instant registrationDeadline,
-            List<Integer> restrictedRoleIds,
-            List<Integer> restrictedGroupIds,
-            List<Integer> restrictedTagIds) {}
-
-    public record BatchRow(String name, Instant startTime, Instant endTime, Map<String, String> fieldValues) {}
-
-    public record IntervalConfig(
-            String intervalType,
-            int dayOfWeek,
-            LocalDate startDate,
-            LocalDate endDate,
-            LocalTime startTime,
-            LocalTime endTime) {}
 }

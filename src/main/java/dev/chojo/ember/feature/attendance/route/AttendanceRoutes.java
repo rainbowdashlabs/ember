@@ -11,6 +11,7 @@ import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.attendance.entity.AttendanceEntry;
+import dev.chojo.ember.feature.attendance.entity.AttendanceFieldValueEntry;
 import dev.chojo.ember.feature.attendance.entity.AttendanceReportPreset;
 import dev.chojo.ember.feature.attendance.entity.AttendanceSession;
 import dev.chojo.ember.feature.attendance.entity.AttendanceSessionField;
@@ -585,9 +586,9 @@ public class AttendanceRoutes implements Routes {
         int sessionId = ctx.pathParamAsClass("sessionId", Integer.class).get();
         verifySessionOwnership(sessionId, UserSession.from(ctx));
         var request = ctx.bodyAsClass(SetSessionFieldsRequest.class);
-        List<AttendanceService.FieldValueEntry> entries = request.fields() != null
+        List<AttendanceFieldValueEntry> entries = request.fields() != null
                 ? request.fields().stream()
-                        .map(f -> new AttendanceService.FieldValueEntry(f.fieldId(), f.value()))
+                        .map(f -> new AttendanceFieldValueEntry(f.fieldId(), f.value()))
                         .toList()
                 : List.of();
         ctx.json(attendanceService.setSessionFields(sessionId, entries));

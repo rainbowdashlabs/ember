@@ -22,6 +22,8 @@ import dev.chojo.ember.feature.quiz.entity.QuizTestAnswer;
 import dev.chojo.ember.feature.quiz.entity.QuizTestAttempt;
 import dev.chojo.ember.feature.quiz.entity.QuizTestAttemptQuestion;
 import dev.chojo.ember.feature.quiz.entity.QuizTestSectionSource;
+import dev.chojo.ember.feature.quiz.entity.SectionEntry;
+import dev.chojo.ember.feature.quiz.entity.SourceEntry;
 import dev.chojo.ember.feature.quiz.entity.TestStatus;
 import dev.chojo.ember.feature.quiz.service.QuizPdfService;
 import dev.chojo.ember.feature.quiz.service.QuizService;
@@ -692,13 +694,13 @@ public class QuizRoutes implements Routes {
         int testId = ctx.pathParamAsClass("id", Integer.class).get();
         var req = ctx.bodyAsClass(SectionRequest[].class);
         var entries = Arrays.stream(req)
-                .map(s -> new QuizService.SectionEntry(
+                .map(s -> new SectionEntry(
                         s.title() != null ? s.title() : "",
                         s.description() != null ? s.description() : "",
                         s.sources() != null
                                 ? s.sources().stream()
-                                        .map(src -> new QuizService.SourceEntry(
-                                                src.catalogId(), src.categoryId(), src.questionCount()))
+                                        .map(src ->
+                                                new SourceEntry(src.catalogId(), src.categoryId(), src.questionCount()))
                                         .toList()
                                 : List.of()))
                 .toList();

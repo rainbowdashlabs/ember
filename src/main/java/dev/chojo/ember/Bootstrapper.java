@@ -12,6 +12,7 @@ import dev.chojo.ember.auth.PasswordHasher;
 import dev.chojo.ember.conf.Conf;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
+import dev.chojo.ember.feature.events.service.RegistrationDeadlineChecker;
 import dev.chojo.ember.feature.legal.service.ConsentService;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.station.repository.StationRepository;
@@ -84,7 +85,7 @@ public class Bootstrapper {
         // Initialize domain event bus (registers all handlers)
         injector.getInstance(DomainEventBus.class);
         // Start registration deadline checker (daemon thread)
-        injector.getInstance(dev.chojo.ember.feature.events.service.RegistrationDeadlineChecker.class);
+        injector.getInstance(RegistrationDeadlineChecker.class);
 
         // Initialize data directory from templates if empty
         injector.getInstance(DataInitializer.class).initialize();

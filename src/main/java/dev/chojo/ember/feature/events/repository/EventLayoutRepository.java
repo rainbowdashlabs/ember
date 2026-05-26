@@ -9,6 +9,7 @@ import de.chojo.sadu.queries.api.call.Call;
 import de.chojo.sadu.queries.api.query.Query;
 import dev.chojo.ember.feature.events.entity.EventLayout;
 import dev.chojo.ember.feature.events.entity.EventLayoutField;
+import dev.chojo.ember.feature.events.entity.LayoutFieldEntry;
 import jakarta.inject.Singleton;
 
 import java.util.List;
@@ -83,7 +84,4 @@ public class EventLayoutRepository {
                     .insert();
         }
     }
-
-    public record LayoutFieldEntry(
-            String name, String fieldType, String config, boolean overview, Integer attendanceFieldId) {}
 }

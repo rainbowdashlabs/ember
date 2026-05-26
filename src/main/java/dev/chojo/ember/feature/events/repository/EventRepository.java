@@ -12,6 +12,7 @@ import dev.chojo.ember.feature.events.entity.EventCategory;
 import dev.chojo.ember.feature.events.entity.EventFieldDefault;
 import dev.chojo.ember.feature.events.entity.EventRegistration;
 import dev.chojo.ember.feature.events.entity.MemberRegistrationStats;
+import dev.chojo.ember.feature.events.entity.RegistrationCount;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 import jakarta.inject.Singleton;
@@ -671,14 +672,4 @@ public class EventRepository {
                 .map(EventRegistration.map())
                 .first();
     }
-
-    /**
-     * Aggregated registration count for an event on a specific date with a given status.
-     *
-     * @param eventId   the event ID
-     * @param eventDate the event occurrence date
-     * @param status    the registration status name
-     * @param count     the number of registrations
-     */
-    public record RegistrationCount(int eventId, LocalDate eventDate, String status, int count) {}
 }

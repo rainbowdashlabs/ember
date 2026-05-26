@@ -29,6 +29,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 
@@ -531,5 +532,5 @@ public class FederationRemoteRoutes implements Routes {
 
     public record WebhookRegisterRequest(String webhookUrl) {}
 
-    public record FederatedRegistrationRequest(String remoteMemberId, java.time.LocalDate eventDate) {}
+    public record FederatedRegistrationRequest(String remoteMemberId, LocalDate eventDate) {}
 }

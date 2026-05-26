@@ -7,10 +7,12 @@ package dev.chojo.ember.feature.attendance.service;
 
 import dev.chojo.ember.feature.attendance.entity.AttendanceEntry;
 import dev.chojo.ember.feature.attendance.entity.AttendanceFieldConfig;
+import dev.chojo.ember.feature.attendance.entity.AttendanceFieldValueEntry;
 import dev.chojo.ember.feature.attendance.entity.AttendanceSession;
 import dev.chojo.ember.feature.attendance.entity.AttendanceSessionField;
 import dev.chojo.ember.feature.attendance.entity.AttendanceTemplate;
 import dev.chojo.ember.feature.attendance.entity.AttendanceTemplateField;
+import dev.chojo.ember.feature.attendance.entity.SessionSummary;
 import dev.chojo.ember.feature.attendance.repository.AttendanceRepository;
 import dev.chojo.ember.feature.attendance.repository.AttendanceRepository.TemplateGroup;
 import dev.chojo.ember.feature.events.repository.EventFieldRepository;
@@ -122,7 +124,7 @@ public class AttendanceService {
 
     // -- Sessions --
 
-    public List<AttendanceRepository.SessionSummary> findSessionSummaries(int stationId) {
+    public List<SessionSummary> findSessionSummaries(int stationId) {
         return attendanceRepository.findSessionSummariesByStation(stationId);
     }
 
@@ -244,7 +246,7 @@ public class AttendanceService {
 
     // -- Session Fields (batch) --
 
-    public List<AttendanceSessionField> setSessionFields(int sessionId, List<FieldValueEntry> fields) {
+    public List<AttendanceSessionField> setSessionFields(int sessionId, List<AttendanceFieldValueEntry> fields) {
         for (var field : fields) {
             attendanceRepository.setSessionField(sessionId, field.fieldId(), field.value());
         }
@@ -437,6 +439,4 @@ public class AttendanceService {
         }
         return ids;
     }
-
-    public record FieldValueEntry(int fieldId, String value) {}
 }

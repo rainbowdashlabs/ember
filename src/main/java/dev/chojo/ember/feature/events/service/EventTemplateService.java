@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.events.service;
 
 import dev.chojo.ember.feature.events.entity.EventTemplate;
 import dev.chojo.ember.feature.events.entity.EventTemplateField;
+import dev.chojo.ember.feature.events.entity.EventTemplateFieldData;
 import dev.chojo.ember.feature.events.repository.EventTemplateRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -71,7 +72,7 @@ public class EventTemplateService {
         return repository.findFields(templateId);
     }
 
-    public void replaceFields(int templateId, List<EventTemplateRepository.EventTemplateFieldData> fields) {
+    public void replaceFields(int templateId, List<EventTemplateFieldData> fields) {
         repository.replaceFields(templateId, fields);
     }
 

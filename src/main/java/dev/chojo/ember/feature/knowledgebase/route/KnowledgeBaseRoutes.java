@@ -335,8 +335,8 @@ public class KnowledgeBaseRoutes implements Routes {
         Integer folderId = null;
         String folderIdStr = ctx.formParam("folderId");
         if (folderIdStr != null && !folderIdStr.isBlank()) folderId = Integer.parseInt(folderIdStr);
-        try {
-            byte[] data = file.content().readAllBytes();
+        try (var content = file.content()) {
+            byte[] data = content.readAllBytes();
             ctx.json(service.createUploadedFile(
                     session.stationId(),
                     folderId,
@@ -375,8 +375,8 @@ public class KnowledgeBaseRoutes implements Routes {
             throw new BadRequestResponse("Unsupported document format. Supported: .docx, .odt, .html, .rtf");
         }
 
-        try {
-            byte[] data = file.content().readAllBytes();
+        try (var content = file.content()) {
+            byte[] data = content.readAllBytes();
             String markdown = PandocConverter.toMarkdown(data, format);
             ctx.json(service.createMarkdownFile(
                     session.stationId(),

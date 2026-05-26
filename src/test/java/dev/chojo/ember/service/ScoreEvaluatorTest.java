@@ -8,6 +8,7 @@ package dev.chojo.ember.service;
 import dev.chojo.ember.feature.waitinglist.service.ScoreEvaluator;
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -142,5 +143,76 @@ class ScoreEvaluatorTest {
     @Test
     void invalidFormulaReturnsZero() {
         assertEquals(0.0, ScoreEvaluator.evaluate("invalid stuff", Map.of()));
+    }
+
+    @Test
+    void validateValidFormula() {
+        assertDoesNotThrow(() -> ScoreEvaluator.validate("2 + 3", List.of()));
+        assertDoesNotThrow(() -> ScoreEvaluator.validate("[age] * 2", List.of("age")));
+        assertDoesNotThrow(() -> ScoreEvaluator.validate("[a] > 5 ? [a] : 0", List.of("a")));
+    }
+
+    @Test
+    void validateNullOrBlank() {
+        assertDoesNotThrow(() -> ScoreEvaluator.validate(null, List.of()));
+        assertDoesNotThrow(() -> ScoreEvaluator.validate("", List.of()));
+        assertDoesNotThrow(() -> ScoreEvaluator.validate("   ", List.of()));
+    }
+
+    @Test
+    void validateInvalidFormula() {
+        assertThrows(IllegalArgumentException.class, () -> ScoreEvaluator.validate("invalid stuff", List.of()));
+    }
+
+    @Test
+    void validateUnexpectedTokenAfterExpression() {
+        assertThrows(IllegalArgumentException.class, () -> ScoreEvaluator.validate("2 + 3 4", List.of()));
+    }
+
+    @Test
+    void validateWithBuiltInVariables() {
+        assertDoesNotThrow(() -> ScoreEvaluator.validate("[wartezeit_tage] * 2", List.of()));
+        assertDoesNotThrow(() -> ScoreEvaluator.validate("[wartezeit_monate] + [wartezeit_jahre]", List.of()));
+    }
+
+    @Test
+    void validateWithAgeFunction() {
+        assertDoesNotThrow(() -> ScoreEvaluator.validate("age([birthdate]) * 2", List.of("birthdate")));
+    }
+
+    @Test
+    void unclosedBracket() {
+        assertEquals(0.0, ScoreEvaluator.evaluate("[unclosed", Map.of()));
+    }
+
+    @Test
+    void unclosedString() {
+        assertEquals(0.0, ScoreEvaluator.evaluate("\"unclosed", Map.of()));
+    }
+
+    @Test
+    void decimalNumber() {
+        assertEquals(3.14, ScoreEvaluator.evaluate("3.14", Map.of()), 0.001);
+        assertEquals(6.28, ScoreEvaluator.evaluate(".14 + 6.14", Map.of()), 0.001);
+    }
+
+    @Test
+    void subtraction() {
+        assertEquals(2.0, ScoreEvaluator.evaluate("5 - 3", Map.of()));
+    }
+
+    @Test
+    void lessThanComparison() {
+        assertEquals(0.0, ScoreEvaluator.evaluate("5 < 3", Map.of()));
+    }
+
+    @Test
+    void nestedParentheses() {
+        assertEquals(9.0, ScoreEvaluator.evaluate("((1 + 2)) * 3", Map.of()));
+    }
+
+    @Test
+    void variableWithNonNumericValue() {
+        assertEquals(0.0, ScoreEvaluator.evaluate("[name] + 1", Map.of("name", "abc")));
     }
 }
