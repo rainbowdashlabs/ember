@@ -576,6 +576,17 @@ class BoardRepositoryTest extends RepositoryTestBase {
         boardRepo.delete(tempBoardId);
     }
 
+    // -- History --
+
+    @Test
+    @Order(84)
+    void logAndFindHistory() {
+        boardTicketRepo.logHistory(ticketId1, "TEST_ACTION", "test detail", member.id());
+        var history = boardTicketRepo.findHistory(ticketId1);
+        assertFalse(history.isEmpty());
+        assertEquals("TEST_ACTION", history.getLast().action());
+    }
+
     // -- Ticket deletion --
 
     @Test

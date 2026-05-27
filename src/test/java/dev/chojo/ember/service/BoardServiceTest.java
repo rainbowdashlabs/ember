@@ -677,6 +677,83 @@ class BoardServiceTest extends RepositoryTestBase {
         assertTrue(ticketService.unwatchTicket(ticketId1, member.id()));
     }
 
+    // -- History --
+
+    @Test
+    @Order(890)
+    void ticketHistoryLogging() {
+        ticketService.logHistory(ticketId1, "TEST", "detail", member.id());
+        var history = ticketService.findHistory(ticketId1);
+        assertFalse(history.isEmpty());
+        assertTrue(history.stream().anyMatch(h -> "TEST".equals(h.action())));
+    }
+
+    // -- KB Links --
+
+    @Test
+    @Order(891)
+    void kbLinksCrud() {
+        // KB links depend on a kb_file existing - skip if no KB infrastructure
+        // Test the service delegation at minimum
+        var links = ticketService.findKbLinks(ticketId1);
+        assertNotNull(links);
+    }
+
+    // -- Attachment path --
+
+    @Test
+    @Order(892)
+    void attachmentPathResolution() {
+        var att =
+                ticketService.uploadAttachment(ticketId1, "pathtest.txt", "text/plain", "data".getBytes(), member.id());
+        var path = ticketService.getAttachmentPath(att);
+        assertNotNull(path);
+        assertTrue(path.toString().contains("pathtest.txt"));
+        ticketService.deleteAttachment(att.id());
+    }
+
+    // -- Move with lane_assignee field --
+
+    @Test
+    @Order(893)
+    void moveTicketWithLaneAssigneeField() {
+        var lanes = boardService.findLanes(boardId);
+        if (lanes.size() >= 2) {
+            // Create a lane_assignee field pointing to lanes[1]
+            boardService.replaceFields(
+                    boardId,
+                    List.of(new dev.chojo.ember.feature.board.entity.BoardField(
+                            0,
+                            boardId,
+                            "Reviewer",
+                            "lane_assignee",
+                            new dev.chojo.ember.feature.board.entity.BoardFieldConfig(
+                                    false, List.of(), lanes.get(1).id()),
+                            0)));
+            var fields = boardService.findFields(boardId);
+            int fieldId = fields.getFirst().id();
+            // Set field value to member id
+            ticketService.setFieldValue(ticketId1, fieldId, member.id());
+            // Move ticket to lane[1]
+            ticketService.moveTicket(ticketId1, lanes.get(0).id(), lanes.get(1).id(), 0, member.id());
+            var tk = ticketService.findById(ticketId1).orElseThrow();
+            assertEquals(member.id(), tk.assignedMemberId());
+            // Move back
+            ticketService.moveTicket(ticketId1, lanes.get(1).id(), lanes.get(0).id(), 0, member.id());
+            ticketService.deleteFieldValue(ticketId1, fieldId);
+        }
+    }
+
+    // -- Comment with mentions --
+
+    @Test
+    @Order(894)
+    void commentWithMentions() {
+        var comment = ticketService.createComment(ticketId1, null, member.id(), "Hello @[" + member.id() + ":Test]!");
+        assertNotNull(comment);
+        ticketService.deleteComment(comment.id());
+    }
+
     // -- Cleanup --
 
     @Test
