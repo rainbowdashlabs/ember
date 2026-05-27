@@ -11,6 +11,7 @@ const model = defineModel<string>()
 defineProps<{
   placeholder?: string
   disabled?: boolean
+  borderless?: boolean
 }>()
 </script>
 
@@ -19,6 +20,7 @@ defineProps<{
       v-model="model"
       :disabled="disabled"
       :placeholder="placeholder"
+      :borderless="borderless"
       type="text"
   />
 </template>

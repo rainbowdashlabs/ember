@@ -104,6 +104,7 @@ public class DemoService {
     private final DemoProtocolSeeder protocolSeeder;
     private final DemoFederationSeeder federationSeeder;
     private final DemoLendingSeeder lendingSeeder;
+    private final DemoBoardSeeder boardSeeder;
     private final ApplicationSettingRepository applicationSettingRepository;
     private final EventService eventService;
     private final NewsService newsService;
@@ -144,6 +145,7 @@ public class DemoService {
             DemoProtocolSeeder protocolSeeder,
             DemoFederationSeeder federationSeeder,
             DemoLendingSeeder lendingSeeder,
+            DemoBoardSeeder boardSeeder,
             ApplicationSettingRepository applicationSettingRepository,
             EventService eventService,
             NewsService newsService,
@@ -178,6 +180,7 @@ public class DemoService {
         this.protocolSeeder = protocolSeeder;
         this.federationSeeder = federationSeeder;
         this.lendingSeeder = lendingSeeder;
+        this.boardSeeder = boardSeeder;
         this.applicationSettingRepository = applicationSettingRepository;
         this.eventService = eventService;
         this.newsService = newsService;
@@ -1706,6 +1709,10 @@ public class DemoService {
         // -- Lending --
         lendingSeeder.seed(station.id(), partnerStationId, adminMember.id());
         log.info("Demo: Created lending data");
+
+        // -- Boards --
+        boardSeeder.seed(station.id(), adminMember, betreuerMembers, teamRole.id(), memberRole.id(), rng);
+        log.info("Demo: Created board data");
 
         // -- Public Knowledge Base --
         stationRepository.updatePublicKbMode(station.id(), PublicKbMode.ALLOW_ALL);

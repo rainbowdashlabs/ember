@@ -640,6 +640,42 @@ const router = createRouter({
                     name: 'protocol-evaluation',
                     component: () => import('@/views/stationview/protocol/EvaluationView.vue'),
                 },
+                // -- Boards --
+                {
+                    path: 'boards',
+                    name: 'board-overview',
+                    component: () => import('@/views/stationview/boards/BoardOverviewView.vue'),
+                },
+                {
+                    path: 'boards/manage',
+                    name: 'board-manage',
+                    component: () => import('@/views/stationview/boards/BoardListView.vue'),
+                },
+                {
+                    path: 'boards/:boardId',
+                    name: 'board-view',
+                    component: () => import('@/views/stationview/boards/BoardView.vue'),
+                },
+                {
+                    path: 'boards/:boardId/tickets/:ticketId',
+                    name: 'ticket-detail',
+                    component: () => import('@/views/stationview/boards/TicketDetailView.vue'),
+                },
+                {
+                    path: 'boards/:boardId/archived',
+                    name: 'board-archived',
+                    component: () => import('@/views/stationview/boards/ArchivedView.vue'),
+                },
+                {
+                    path: 'boards/:boardId/backlog',
+                    name: 'board-backlog',
+                    component: () => import('@/views/stationview/boards/BacklogView.vue'),
+                },
+                {
+                    path: 'boards/:boardId/settings',
+                    name: 'board-settings',
+                    component: () => import('@/views/stationview/boards/BoardSettingsView.vue'),
+                },
                 {
                     path: ':pathMatch(.*)*',
                     name: 'station-not-found',
@@ -1330,6 +1366,42 @@ const router = createRouter({
                     path: 'knowledge/file/:id/versions',
                     name: 'help-kb-versions',
                     component: () => import('@/views/helpcenter/stationview/knowledge/VersionsHelp.vue')
+                },
+                // Boards
+                {
+                    path: 'boards',
+                    name: 'help-board-overview',
+                    component: () => import('@/views/helpcenter/stationview/boards/BoardsHelp.vue')
+                },
+                {
+                    path: 'boards/manage',
+                    name: 'help-board-manage',
+                    component: () => import('@/views/helpcenter/stationview/boards/BoardManageHelp.vue')
+                },
+                {
+                    path: 'boards/:boardId',
+                    name: 'help-board-view',
+                    component: () => import('@/views/helpcenter/stationview/boards/BoardViewHelp.vue')
+                },
+                {
+                    path: 'boards/:boardId/archived',
+                    name: 'help-board-archived',
+                    component: () => import('@/views/helpcenter/stationview/boards/ArchivedHelp.vue')
+                },
+                {
+                    path: 'boards/:boardId/backlog',
+                    name: 'help-board-backlog',
+                    component: () => import('@/views/helpcenter/stationview/boards/BacklogHelp.vue')
+                },
+                {
+                    path: 'boards/:boardId/settings',
+                    name: 'help-board-settings',
+                    component: () => import('@/views/helpcenter/stationview/boards/BoardSettingsHelp.vue')
+                },
+                {
+                    path: 'boards/:boardId/tickets/:ticketId',
+                    name: 'help-ticket-detail',
+                    component: () => import('@/views/helpcenter/stationview/boards/TicketDetailHelp.vue')
                 },
                 {
                     path: ':pathMatch(.*)*',

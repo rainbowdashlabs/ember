@@ -6,6 +6,7 @@
 package dev.chojo.ember.handler;
 
 import dev.chojo.ember.api.Roles;
+import dev.chojo.ember.event.events.BoardTicketChanged;
 import dev.chojo.ember.event.events.CommentCreated;
 import dev.chojo.ember.event.events.CommentDeleted;
 import dev.chojo.ember.event.events.EventCreated;
@@ -25,6 +26,7 @@ import dev.chojo.ember.event.events.NewsDeleted;
 import dev.chojo.ember.event.events.ProcurementCreated;
 import dev.chojo.ember.event.events.ProcurementFulfilled;
 import dev.chojo.ember.event.events.RegistrationDeadlineExpired;
+import dev.chojo.ember.event.handlers.BoardTicketChangedHandler;
 import dev.chojo.ember.event.handlers.CommentCreatedHandler;
 import dev.chojo.ember.event.handlers.CommentDeletedHandler;
 import dev.chojo.ember.event.handlers.EventCreatedHandler;
@@ -517,5 +519,38 @@ class DomainEventHandlerTest {
                         eq(List.of(20, 21)),
                         eq(NotificationType.EVENT_REGISTRATION_STATUS),
                         any(NotificationData.class));
+    }
+
+    // -- BoardTicketChangedHandler --
+
+    @Test
+    void boardTicketChangedNotifiesWatchers() {
+        var handler = new BoardTicketChangedHandler(notificationService);
+        assertEquals(BoardTicketChanged.class, handler.eventType());
+
+        handler.handle(new BoardTicketChanged(
+                STATION_ID, 1, 42, "Dev Board", "DEV-42", "Neuer Kommentar", MEMBER_ID, List.of(20, 21)));
+
+        verify(notificationService)
+                .notifyMembersIfAbsent(
+                        eq(List.of(20, 21)),
+                        eq(NotificationType.BOARD_TICKET_UPDATE),
+                        any(NotificationData.class),
+                        eq(MEMBER_ID));
+    }
+
+    @Test
+    void boardTicketChangedSkipsEmptyWatchers() {
+        var handler = new BoardTicketChangedHandler(notificationService);
+
+        handler.handle(
+                new BoardTicketChanged(STATION_ID, 1, 42, "Dev Board", "DEV-42", "Update", MEMBER_ID, List.of()));
+
+        verify(notificationService)
+                .notifyMembersIfAbsent(
+                        eq(List.of()),
+                        eq(NotificationType.BOARD_TICKET_UPDATE),
+                        any(NotificationData.class),
+                        eq(MEMBER_ID));
     }
 }

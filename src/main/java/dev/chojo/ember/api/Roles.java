@@ -97,6 +97,10 @@ public enum Roles implements RouteRole {
      */
     FEDERATION_MANAGER(STATION_PERMISSION),
     /**
+     * Create and manage boards
+     */
+    BOARD_MANAGER(STATION_PERMISSION),
+    /**
      * Create and manage test protocols (Prüfungsbögen)
      */
     PROTOCOL_MANAGER(STATION_PERMISSION),
@@ -121,6 +125,7 @@ public enum Roles implements RouteRole {
             WAITLIST_MANAGER,
             QUIZ_MANAGER,
             KNOWLEDGE_MANAGER,
+            BOARD_MANAGER,
             PROTOCOL_MANAGER,
             PROTOCOL_TESTER,
             FEDERATION_MANAGER),
@@ -155,6 +160,7 @@ public enum Roles implements RouteRole {
                     WAITLIST_MANAGER,
                     QUIZ_MANAGER,
                     KNOWLEDGE_MANAGER,
+                    BOARD_MANAGER,
                     PROTOCOL_MANAGER,
                     PROTOCOL_TESTER,
                     FEDERATION_MANAGER),

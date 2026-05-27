@@ -1,0 +1,430 @@
+/*
+ *     SPDX-License-Identifier: AGPL-3.0-only
+ *
+ *     Copyright (C) RainbowDashLabs and Contributor
+ */
+package dev.chojo.ember.feature.board.service;
+
+import dev.chojo.ember.event.DomainEventBus;
+import dev.chojo.ember.event.events.BoardTicketChanged;
+import dev.chojo.ember.event.events.MentionedInComment;
+import dev.chojo.ember.feature.board.entity.BoardChecklistItem;
+import dev.chojo.ember.feature.board.entity.BoardComment;
+import dev.chojo.ember.feature.board.entity.BoardTicket;
+import dev.chojo.ember.feature.board.entity.BoardTicketAttachment;
+import dev.chojo.ember.feature.board.entity.BoardTicketFieldValue;
+import dev.chojo.ember.feature.board.entity.BoardTicketHistory;
+import dev.chojo.ember.feature.board.entity.BoardTicketKbLink;
+import dev.chojo.ember.feature.board.entity.BoardTicketLink;
+import dev.chojo.ember.feature.board.entity.BoardTicketTransition;
+import dev.chojo.ember.feature.board.entity.BoardWeblink;
+import dev.chojo.ember.feature.board.entity.LinkType;
+import dev.chojo.ember.feature.board.entity.TicketPriority;
+import dev.chojo.ember.feature.board.repository.BoardRepository;
+import dev.chojo.ember.feature.board.repository.BoardTicketRepository;
+import dev.chojo.ember.feature.comment.entity.CommentEntityType;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
+
+import java.nio.file.Path;
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.regex.Pattern;
+
+@Singleton
+public class BoardTicketService {
+    private static final Pattern MENTION_PATTERN = Pattern.compile("@\\[(\\d+):([^\\]]+)]");
+
+    private final BoardTicketRepository ticketRepository;
+    private final BoardRepository boardRepository;
+    private final DomainEventBus eventBus;
+
+    @Inject
+    public BoardTicketService(
+            BoardTicketRepository ticketRepository, BoardRepository boardRepository, DomainEventBus eventBus) {
+        this.ticketRepository = ticketRepository;
+        this.boardRepository = boardRepository;
+        this.eventBus = eventBus;
+    }
+
+    private void notifyWatchers(int ticketId, int boardId, String changeDescription, int actorMemberId) {
+        var watchers = ticketRepository.findWatchers(ticketId);
+        if (watchers.isEmpty()) return;
+        var board = boardRepository.findById(boardId).orElse(null);
+        var ticket = ticketRepository.findById(ticketId).orElse(null);
+        if (board == null || ticket == null) return;
+        var ticketKey = board.shortKey() + "-" + ticket.ticketNumber();
+        eventBus.publish(new BoardTicketChanged(
+                board.stationId(),
+                boardId,
+                ticketId,
+                board.name(),
+                ticketKey,
+                changeDescription,
+                actorMemberId,
+                watchers));
+    }
+
+    // -- Ticket CRUD --
+
+    public List<BoardTicket> findByBoard(int boardId) {
+        return ticketRepository.findByBoard(boardId);
+    }
+
+    public List<BoardTicket> findByBoardAndLane(int boardId, int laneId) {
+        return ticketRepository.findByBoardAndLane(boardId, laneId);
+    }
+
+    public Optional<BoardTicket> findById(int id) {
+        return ticketRepository.findById(id);
+    }
+
+    public Optional<BoardTicket> findByBoardAndNumber(int boardId, int ticketNumber) {
+        return ticketRepository.findByBoardAndNumber(boardId, ticketNumber);
+    }
+
+    public List<BoardTicket> search(int boardId, String query) {
+        return ticketRepository.search(boardId, query);
+    }
+
+    public List<BoardTicket> findByAssignee(int boardId, int memberId) {
+        return ticketRepository.findByAssignee(boardId, memberId);
+    }
+
+    public BoardTicket createTicket(
+            int boardId,
+            int laneId,
+            String title,
+            String description,
+            Integer assignedMemberId,
+            TicketPriority priority,
+            LocalDate dueDate,
+            int createdBy) {
+        int ticketNumber = boardRepository.nextTicketNumber(boardId);
+        int position = ticketRepository.findByBoardAndLane(boardId, laneId).size();
+        return ticketRepository.createTicket(
+                boardId,
+                laneId,
+                ticketNumber,
+                title,
+                description,
+                assignedMemberId,
+                priority,
+                dueDate,
+                position,
+                createdBy);
+    }
+
+    public boolean updateTicket(
+            int id,
+            String title,
+            String description,
+            Integer assignedMemberId,
+            TicketPriority priority,
+            LocalDate dueDate,
+            int actorMemberId) {
+        var oldTicket = ticketRepository.findById(id).orElse(null);
+        boolean updated = ticketRepository.updateTicket(id, title, description, assignedMemberId, priority, dueDate);
+        if (updated && oldTicket != null) {
+            if (oldTicket.priority() != priority)
+                ticketRepository.logHistory(
+                        id, "PRIORITY_CHANGED", oldTicket.priority().name() + " → " + priority.name(), actorMemberId);
+            if (!java.util.Objects.equals(oldTicket.title(), title))
+                ticketRepository.logHistory(id, "TITLE_CHANGED", oldTicket.title() + " → " + title, actorMemberId);
+            if (!java.util.Objects.equals(oldTicket.description(), description))
+                ticketRepository.logHistory(id, "DESCRIPTION_CHANGED", null, actorMemberId);
+            if (!java.util.Objects.equals(oldTicket.dueDate(), dueDate))
+                ticketRepository.logHistory(
+                        id, "DUE_DATE_CHANGED", (dueDate != null ? dueDate.toString() : "entfernt"), actorMemberId);
+            notifyWatchers(id, oldTicket.boardId(), "Ticket aktualisiert", actorMemberId);
+        }
+        return updated;
+    }
+
+    public boolean assignTicket(int ticketId, Integer assignedMemberId, int actorMemberId) {
+        boolean updated = ticketRepository.assignTicket(ticketId, assignedMemberId);
+        if (updated) {
+            var ticket = ticketRepository.findById(ticketId).orElse(null);
+            if (ticket != null) {
+                notifyWatchers(ticketId, ticket.boardId(), "Zuweisung geändert", actorMemberId);
+            }
+        }
+        return updated;
+    }
+
+    public boolean deleteTicket(int id) {
+        return ticketRepository.deleteTicket(id);
+    }
+
+    public boolean moveTicket(int ticketId, int fromLaneId, int toLaneId, int position, int movedBy) {
+        boolean moved = ticketRepository.moveTicket(ticketId, toLaneId, position);
+        if (moved) {
+            ticketRepository.logTransition(ticketId, fromLaneId, toLaneId, movedBy);
+            var ticket = ticketRepository.findById(ticketId).orElse(null);
+            var toLane = ticket != null
+                    ? boardRepository.findLanes(ticket.boardId()).stream()
+                            .filter(l -> l.id() == toLaneId)
+                            .findFirst()
+                            .orElse(null)
+                    : null;
+            if (ticket != null) {
+                notifyWatchers(
+                        ticketId,
+                        ticket.boardId(),
+                        "Verschoben nach " + (toLane != null ? toLane.name() : "?"),
+                        movedBy);
+            }
+            // Auto-assign from lane_assignee fields
+            if (ticket != null) {
+                var fields = boardRepository.findFields(ticket.boardId());
+                var fieldValues = ticketRepository.findFieldValues(ticketId);
+                var fvMap = new java.util.HashMap<Integer, Object>();
+                for (var fv : fieldValues) fvMap.put(fv.fieldId(), fv.value());
+                for (var field : fields) {
+                    if ("lane_assignee".equals(field.fieldType())
+                            && field.config().laneId() != null
+                            && field.config().laneId() == toLaneId) {
+                        var memberIdVal = fvMap.get(field.id());
+                        if (memberIdVal instanceof Number n) {
+                            ticketRepository.assignTicket(ticketId, n.intValue());
+                        }
+                    }
+                }
+            }
+        }
+        return moved;
+    }
+
+    public void reorderTickets(int laneId, List<Integer> orderedIds) {
+        ticketRepository.reorderTickets(laneId, orderedIds);
+    }
+
+    // -- Links --
+
+    public List<BoardTicketLink> findLinks(int ticketId) {
+        return ticketRepository.findLinks(ticketId);
+    }
+
+    public void linkTickets(int ticketId, int linkedTicketId, LinkType linkType) {
+        ticketRepository.createLink(ticketId, linkedTicketId, linkType);
+    }
+
+    public boolean unlinkTickets(int ticketId, int linkedTicketId) {
+        return ticketRepository.deleteLink(ticketId, linkedTicketId);
+    }
+
+    // -- Transitions --
+
+    public List<BoardTicketTransition> findTransitions(int ticketId) {
+        return ticketRepository.findTransitions(ticketId);
+    }
+
+    // -- Checklist --
+
+    public List<BoardChecklistItem> findChecklistItems(int ticketId) {
+        return ticketRepository.findChecklistItems(ticketId);
+    }
+
+    public BoardChecklistItem addChecklistItem(int ticketId, String title, int actorMemberId) {
+        int position = ticketRepository.findChecklistItems(ticketId).size();
+        var item = ticketRepository.createChecklistItem(ticketId, title, position);
+        var ticket = ticketRepository.findById(ticketId).orElse(null);
+        if (ticket != null) {
+            notifyWatchers(ticketId, ticket.boardId(), "Checkliste geändert", actorMemberId);
+        }
+        return item;
+    }
+
+    public boolean updateChecklistItem(int id, int ticketId, String title, boolean checked, int actorMemberId) {
+        boolean updated = ticketRepository.updateChecklistItem(id, title, checked);
+        if (updated) {
+            var ticket = ticketRepository.findById(ticketId).orElse(null);
+            if (ticket != null) {
+                notifyWatchers(ticketId, ticket.boardId(), "Checkliste geändert", actorMemberId);
+            }
+        }
+        return updated;
+    }
+
+    public boolean deleteChecklistItem(int id, int ticketId, int actorMemberId) {
+        boolean deleted = ticketRepository.deleteChecklistItem(id);
+        if (deleted) {
+            var ticket = ticketRepository.findById(ticketId).orElse(null);
+            if (ticket != null) {
+                notifyWatchers(ticketId, ticket.boardId(), "Checkliste geändert", actorMemberId);
+            }
+        }
+        return deleted;
+    }
+
+    public void reorderChecklistItems(int ticketId, List<Integer> orderedIds) {
+        ticketRepository.reorderChecklistItems(ticketId, orderedIds);
+    }
+
+    // -- Comments --
+
+    public List<BoardComment> findComments(int ticketId) {
+        return ticketRepository.findComments(ticketId);
+    }
+
+    public BoardComment createComment(int ticketId, Integer parentId, int authorId, String content) {
+        var comment = ticketRepository.createComment(ticketId, parentId, authorId, content);
+        var ticket = ticketRepository.findById(ticketId).orElse(null);
+        if (ticket != null) {
+            notifyWatchers(ticketId, ticket.boardId(), "Neuer Kommentar", authorId);
+            var board = boardRepository.findById(ticket.boardId()).orElse(null);
+            var authorName = board != null ? board.shortKey() + "-" + ticket.ticketNumber() : "?";
+            for (int mentionedId : parseMentions(content)) {
+                if (mentionedId != authorId) {
+                    eventBus.publish(new MentionedInComment(
+                            board != null ? board.stationId() : 0,
+                            mentionedId,
+                            authorId,
+                            authorName,
+                            CommentEntityType.BOARD_TICKET,
+                            ticketId));
+                }
+            }
+        }
+        return comment;
+    }
+
+    private List<Integer> parseMentions(String content) {
+        var mentions = new ArrayList<Integer>();
+        var matcher = MENTION_PATTERN.matcher(content);
+        while (matcher.find()) {
+            mentions.add(Integer.parseInt(matcher.group(1)));
+        }
+        return mentions;
+    }
+
+    public boolean updateComment(int id, String content) {
+        return ticketRepository.updateComment(id, content);
+    }
+
+    public boolean deleteComment(int id) {
+        return ticketRepository.softDeleteComment(id);
+    }
+
+    // -- Weblinks --
+
+    public List<BoardWeblink> findWeblinks(int ticketId) {
+        return ticketRepository.findWeblinks(ticketId);
+    }
+
+    public BoardWeblink addWeblink(int ticketId, String url, String title) {
+        int position = ticketRepository.findWeblinks(ticketId).size();
+        return ticketRepository.createWeblink(ticketId, url, title, position);
+    }
+
+    public boolean deleteWeblink(int id) {
+        return ticketRepository.deleteWeblink(id);
+    }
+
+    // -- Attachments --
+
+    private static final Path ATTACHMENT_DIR = Path.of("data", "attachments", "board");
+
+    public List<BoardTicketAttachment> findAttachments(int ticketId) {
+        return ticketRepository.findAttachments(ticketId);
+    }
+
+    public Optional<BoardTicketAttachment> findAttachmentById(int id) {
+        return ticketRepository.findAttachmentById(id);
+    }
+
+    public BoardTicketAttachment uploadAttachment(
+            int ticketId, String originalName, String contentType, byte[] data, int uploadedBy) {
+        String filename = java.util.UUID.randomUUID() + "_" + originalName.replaceAll("[^a-zA-Z0-9._-]", "_");
+        var dir = ATTACHMENT_DIR.resolve(String.valueOf(ticketId));
+        try {
+            java.nio.file.Files.createDirectories(dir);
+            java.nio.file.Files.write(dir.resolve(filename), data);
+        } catch (java.io.IOException e) {
+            throw new RuntimeException("Failed to store attachment", e);
+        }
+        return ticketRepository.createAttachment(
+                ticketId, filename, originalName, contentType, data.length, uploadedBy);
+    }
+
+    public boolean deleteAttachment(int id) {
+        var att = ticketRepository.findAttachmentById(id).orElse(null);
+        if (att == null) return false;
+        var file = ATTACHMENT_DIR.resolve(String.valueOf(att.ticketId())).resolve(att.filename());
+        try {
+            java.nio.file.Files.deleteIfExists(file);
+        } catch (java.io.IOException e) {
+            // log but don't fail
+        }
+        return ticketRepository.deleteAttachment(id);
+    }
+
+    public Path getAttachmentPath(BoardTicketAttachment att) {
+        return ATTACHMENT_DIR.resolve(String.valueOf(att.ticketId())).resolve(att.filename());
+    }
+
+    // -- Watchers --
+
+    public List<Integer> findWatchers(int ticketId) {
+        return ticketRepository.findWatchers(ticketId);
+    }
+
+    public void watchTicket(int ticketId, int memberId) {
+        ticketRepository.addWatcher(ticketId, memberId);
+    }
+
+    public boolean unwatchTicket(int ticketId, int memberId) {
+        return ticketRepository.removeWatcher(ticketId, memberId);
+    }
+
+    public boolean isWatching(int ticketId, int memberId) {
+        return ticketRepository.isWatching(ticketId, memberId);
+    }
+
+    // -- Field values --
+
+    public List<BoardTicketFieldValue> findFieldValues(int ticketId) {
+        return ticketRepository.findFieldValues(ticketId);
+    }
+
+    public void setFieldValue(int ticketId, int fieldId, Object value) {
+        var fv = new BoardTicketFieldValue(ticketId, fieldId, value);
+        ticketRepository.setFieldValue(ticketId, fieldId, fv.valueToJson());
+    }
+
+    public boolean deleteFieldValue(int ticketId, int fieldId) {
+        return ticketRepository.deleteFieldValue(ticketId, fieldId);
+    }
+
+    // -- KB Links --
+
+    public List<BoardTicketKbLink> findKbLinks(int ticketId) {
+        return ticketRepository.findKbLinks(ticketId);
+    }
+
+    public BoardTicketKbLink addKbLink(int ticketId, int kbFileId) {
+        return ticketRepository.addKbLink(ticketId, kbFileId);
+    }
+
+    public boolean removeKbLink(int id) {
+        return ticketRepository.removeKbLink(id);
+    }
+
+    // -- History --
+
+    public void logHistory(int ticketId, String action, String detail, int actorMemberId) {
+        ticketRepository.logHistory(ticketId, action, detail, actorMemberId);
+    }
+
+    public List<BoardTicketHistory> findHistory(int ticketId) {
+        return ticketRepository.findHistory(ticketId);
+    }
+
+    // -- Activity feed --
+
+    public List<BoardTicketRepository.ActivityEntry> findActivity(int ticketId) {
+        return ticketRepository.findActivity(ticketId);
+    }
+}

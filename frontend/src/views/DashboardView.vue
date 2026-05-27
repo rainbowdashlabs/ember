@@ -14,7 +14,8 @@ import SidebarExpandableLink from '@/components/navigation/SidebarExpandableLink
 import StationSwitcher from '@/components/navigation/StationSwitcher.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import IconButton from '@/components/button/IconButton.vue'
-import {auth, notifications, events} from '@/api'
+import {auth, notifications, events, boards} from '@/api'
+import type {Board} from '@/api/boards'
 import client from '@/api/client'
 import Alert from '@/components/feedback/Alert.vue'
 import {getItem} from '@/api/storage'
@@ -48,6 +49,7 @@ const {
   canManageWaitlist,
   canManageQuiz,
   canManageProtocol,
+  canManageBoards,
   canManageFederation,
   canTestProtocol,
   isGuardian,
@@ -61,6 +63,7 @@ const {pendingChangesCount, refresh: refreshPendingChanges} = usePendingChanges(
 const isDemo = ref(false)
 const notificationCount = ref(0)
 const pendingRegistrationCount = ref(0)
+const visibleBoards = ref<Board[]>([])
 const openGroup = ref<string | null>(null)
 const isDesktop = ref(window.matchMedia('(min-width: 1024px)').matches)
 
@@ -77,6 +80,12 @@ async function refreshNotificationCount() {
 }
 
 const {checkFirstLogin} = useOnboardingTour()
+
+async function refreshBoards() {
+  try {
+    visibleBoards.value = await boards.listBoards(true)
+  } catch { /* ignore */ }
+}
 
 async function refreshPendingRegistrationCount() {
   try {
@@ -100,6 +109,7 @@ watch(loaded, (isLoaded) => {
   if (isLoaded && (canManageMembers() || isGuardian())) refreshPendingChanges()
   if (isLoaded) refreshNotificationCount()
   if (isLoaded && canManageEvents()) refreshPendingRegistrationCount()
+  if (isLoaded && isModuleEnabled(StationModules.BOARDS)) refreshBoards()
   if (isLoaded) checkFirstLogin()
 }, {immediate: true})
 
@@ -321,6 +331,15 @@ async function handleLogout() {
         </SidebarLink>
         <SidebarLink v-if="canTestProtocol()" :icon="['fas', 'clipboard-check']" name="protocol-run-list" to="/station/protocols/runs" @navigate="close">
           {{ t('sidebar.protocolRuns') }}
+        </SidebarLink>
+      </SidebarGroup>
+
+      <SidebarGroup :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => openGroup = v" v-if="isModuleEnabled(StationModules.BOARDS)" :icon="['fas', 'table-columns']" :label="t('sidebar.boards')" prefix="/station/boards" to="/station/boards" name="board-list" @navigate="close">
+        <SidebarLink v-for="board in visibleBoards" :key="board.id" :icon="['fas', 'table-columns']" :name="`board-${board.id}`" :to="`/station/boards/${board.id}`" :active="route.path.startsWith(`/station/boards/${board.id}`)" @navigate="close">
+          {{ board.name }}
+        </SidebarLink>
+        <SidebarLink v-if="canManageBoards()" :icon="['fas', 'gears']" name="board-manage" to="/station/boards/manage" @navigate="close">
+          {{ t('sidebar.boardManage') }}
         </SidebarLink>
       </SidebarGroup>
 

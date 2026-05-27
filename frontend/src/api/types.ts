@@ -24,6 +24,7 @@ export const Roles = {
     QUIZ_MANAGER: 'QUIZ_MANAGER',
     KNOWLEDGE_MANAGER: 'KNOWLEDGE_MANAGER',
     FEDERATION_MANAGER: 'FEDERATION_MANAGER',
+    BOARD_MANAGER: 'BOARD_MANAGER',
     PROTOCOL_MANAGER: 'PROTOCOL_MANAGER',
     PROTOCOL_TESTER: 'PROTOCOL_TESTER',
     MANAGER: 'MANAGER',
@@ -164,6 +165,7 @@ export const StationModules = {
     QUIZ: 'QUIZ',
     KNOWLEDGE_BASE: 'KNOWLEDGE_BASE',
     TEST_PROTOCOL: 'TEST_PROTOCOL',
+    BOARDS: 'BOARDS',
 } as const
 
 export type StationModuleName = (typeof StationModules)[keyof typeof StationModules]

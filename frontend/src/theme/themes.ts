@@ -36,9 +36,9 @@ export const THEMES: Record<string, ThemeDefinition> = {
     ember: {
         label: 'Ember',
         colors: {
-            primary: '#FF6421',
+            primary: '#fd4f00',
             primaryAccent: '#C71100',
-            secondary: '#73CEFF',
+            secondary: '#092e6e',
             secondaryAccent: '#3694FF',
             info: '#c8ab03',
             infoAccent: '#af7501',

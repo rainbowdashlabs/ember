@@ -85,7 +85,7 @@ public class StationMemberRepository {
      */
     public List<MemberCompletion> findCompletions(int stationId) {
         return Query.query(
-                        "SELECT id, display_name FROM station_member WHERE station_id = :station_id AND former = FALSE AND display_name != '' ORDER BY display_name;")
+                        "SELECT sm.id, COALESCE(NULLIF(sm.display_name, ''), TRIM(CONCAT(a.first_name, ' ', a.last_name)), 'Mitglied ' || sm.id) AS display_name FROM station_member sm LEFT JOIN account a ON sm.account_id = a.id WHERE sm.station_id = :station_id AND sm.former = FALSE ORDER BY display_name;")
                 .single(Call.of().bind("station_id", stationId))
                 .map(row -> new MemberCompletion(row.getInt("id"), row.getString("display_name")))
                 .all();

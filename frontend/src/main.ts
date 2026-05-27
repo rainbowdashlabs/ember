@@ -12,7 +12,13 @@ import i18n from './i18n'
 import {library} from '@fortawesome/fontawesome-svg-core'
 import {FontAwesomeIcon} from '@fortawesome/vue-fontawesome'
 import {
+    faAngleDown,
+    faAngleUp,
+    faAnglesDown,
+    faAnglesUp,
     faArrowRight,
+    faEllipsis,
+    faEquals,
     faAsterisk,
     faBan,
     faBars,
@@ -129,6 +135,8 @@ import {
     faArrowDown,
     faBug,
     faFlag,
+    faPaperclip,
+    faInbox,
     faShareNodes,
     faHandshake,
     faRobot,
@@ -189,7 +197,7 @@ import {
 } from '@fortawesome/free-brands-svg-icons'
 import {initTokenRefresh} from '@/api/client'
 
-library.add(faSun, faMoon, faCheck, faXmark, faXmarkCircle, faSpinner, faCircleInfo, faCircleCheck, faCircle, faCircleDot, faTriangleExclamation, faDownload, faUpload, faTrash, faPen, faLock, faRightFromBracket, faBars, faGauge, faChevronDown, faChevronRight, faHouse, faChartLine, faShield, faBuilding, faGears, faUsers, faUserPlus, faList, faLayerGroup, faBoxesStacked, faBoxOpen, faClipboardUser, faCalendarPlus, faClockRotateLeft, faClipboardCheck, faUsersGear, faPlus, faChevronLeft, faChevronUp, faGripVertical, faCopy, faBell, faPhone, faMobileScreen, faIdCard, faHashtag, faFire, faMedal, faRainbow, faCalendarDays, faPenToSquare, faFolderPlus, faClipboardList, faUser, faSort, faSortUp, faSortDown, faAsterisk, faEye, faLink, faTableColumns, faBan, faComment, faCheckDouble, faMinus, faRotate, faRss, faScissors, faNewspaper, faGear, faPeopleGroup, faArrowRight, faFileExport, faGithub, faWindows, faApple, faLinux, faAndroid, faChrome, faFirefoxBrowser, faSafari, faEdge, faOpera, faGlobe, faUserSlash, faUserCheck, faCircleQuestion, faFilter, faTags, faSquarePollVertical, faStar, faHeart, faThumbsUp, faGripLines, faLocationDot, faCamera, faToggleOn, faArrowRightArrowLeft, faPuzzlePiece, faBook, faServer, faDatabase, faEnvelope, faArrowDown, faUserGear, faCalendar, faChartBar, faChartPie, faClock, faHand, faImage, faPaperPlane, faPlug, faTag, faUmbrellaBeach, faUserShield, faUserTie, faListCheck, faScaleBalanced, faSliders, faCircleHalfStroke, faPalette, faSquare, faSquareCheck, faGraduationCap, faBrain, faFileLines, faFilePdf, faFileImport, faFlask, faShuffle, faPlay, faBookOpen, faFolder, faFolderOpen, faFile, faMagnifyingGlass, faYoutube, faBold, faItalic, faUnderline, faStrikethrough, faCode, faListUl, faListOl, faQuoteLeft, faFileCode, faParagraph, faHeading, faHighlighter, faLinkSlash, faAlignLeft, faAlignCenter, faAlignRight, faBug, faShareNodes, faHandshake, faCompass, faRobot, faCircleXmark, faRotateLeft, faCodeCompare, faTrophy, faRedo, faArrowLeft, faHandHolding, faCalendarXmark, faCheckCircle, faEyeSlash, faDesktop, faFlag)
+library.add(faSun, faMoon, faCheck, faAngleDown, faAngleUp, faAnglesDown, faAnglesUp, faEllipsis, faEquals, faXmark, faXmarkCircle, faSpinner, faCircleInfo, faCircleCheck, faCircle, faCircleDot, faTriangleExclamation, faDownload, faUpload, faTrash, faPen, faLock, faRightFromBracket, faBars, faGauge, faChevronDown, faChevronRight, faHouse, faChartLine, faShield, faBuilding, faGears, faUsers, faUserPlus, faList, faLayerGroup, faBoxesStacked, faBoxOpen, faClipboardUser, faCalendarPlus, faClockRotateLeft, faClipboardCheck, faUsersGear, faPlus, faChevronLeft, faChevronUp, faGripVertical, faCopy, faBell, faPhone, faMobileScreen, faIdCard, faHashtag, faFire, faMedal, faRainbow, faCalendarDays, faPenToSquare, faFolderPlus, faClipboardList, faUser, faSort, faSortUp, faSortDown, faAsterisk, faEye, faLink, faTableColumns, faBan, faComment, faCheckDouble, faMinus, faRotate, faRss, faScissors, faNewspaper, faGear, faPeopleGroup, faArrowRight, faFileExport, faGithub, faWindows, faApple, faLinux, faAndroid, faChrome, faFirefoxBrowser, faSafari, faEdge, faOpera, faGlobe, faUserSlash, faUserCheck, faCircleQuestion, faFilter, faTags, faSquarePollVertical, faStar, faHeart, faThumbsUp, faGripLines, faLocationDot, faCamera, faToggleOn, faArrowRightArrowLeft, faPuzzlePiece, faBook, faServer, faDatabase, faEnvelope, faArrowDown, faUserGear, faCalendar, faChartBar, faChartPie, faClock, faHand, faImage, faPaperPlane, faPlug, faTag, faUmbrellaBeach, faUserShield, faUserTie, faListCheck, faScaleBalanced, faSliders, faCircleHalfStroke, faPalette, faSquare, faSquareCheck, faGraduationCap, faBrain, faFileLines, faFilePdf, faFileImport, faFlask, faShuffle, faPlay, faBookOpen, faFolder, faFolderOpen, faFile, faMagnifyingGlass, faYoutube, faBold, faItalic, faUnderline, faStrikethrough, faCode, faListUl, faListOl, faQuoteLeft, faFileCode, faParagraph, faHeading, faHighlighter, faLinkSlash, faAlignLeft, faAlignCenter, faAlignRight, faBug, faShareNodes, faHandshake, faCompass, faRobot, faCircleXmark, faRotateLeft, faCodeCompare, faTrophy, faRedo, faArrowLeft, faHandHolding, faCalendarXmark, faCheckCircle, faEyeSlash, faDesktop, faFlag, faPaperclip, faInbox)
 
 import {useTheme} from '@/composables/useTheme'
 

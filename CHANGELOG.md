@@ -1,5 +1,102 @@
 # Changelog
 
+## v26.6.0
+
+### New Features
+
+#### Boards (Planer)
+- **Kanban boards** — per-station scrum/kanban boards with customizable lanes, drag-and-drop ticket reordering between lanes, and position indicators
+- **Ticket management** — create, edit, delete tickets with title, rich markdown description (tiptap editor), priority (5 levels with icons), assignee, due date, and custom fields
+- **Checklists** — add checklists to tickets with drag-and-drop reordering, progress bar, and bulk delete
+- **Ticket links** — link tickets with typed relationships (Relates to, Blocks, Blocked by, Causes, Caused by) with confluence-style display
+- **Weblinks** — add external URLs to tickets
+- **File attachments** — upload files to tickets with tile-based preview grid; image thumbnails, PDF viewer, and CSV table preview in a fullscreen overlay with keyboard navigation (arrow keys)
+- **Labels** — color-coded labels per board with multi-select dropdown, inline creation, and label filter on the board and archived views
+- **Knowledge base links** — link KB pages to tickets with title search and folder path display
+- **Comments** — threaded comments using CommentThread component with @mentions, reply, edit, delete
+- **Watch/unwatch** — subscribe to ticket changes and receive notifications
+- **Activity feed** — interleaved timeline of comments, lane transitions, and history entries (priority changes, label assignments, title/description/due date changes, field changes) with rich formatting (lane color pills, priority icons, label badges)
+- **Lane colors** — assign colors to lanes; used for lane column top borders and the ticket status button
+- **Lane assignee** — custom field type `lane_assignee` that auto-assigns a member when a ticket moves to the referenced lane
+- **Backlog** — board-level toggle that creates a hidden backlog lane; dedicated table view at `/station/boards/:boardId/backlog`
+- **Archived view** — dedicated table view for tickets past the hide-done-after-days threshold at `/station/boards/:boardId/archived` with label filtering
+- **Board overview** — `/station/boards` shows only boards accessible to the user
+- **Board management** — `/station/boards/manage` for managers to create, edit, delete boards with settings icon per card
+- **Board settings** — lane editor with color picker, field editor (string, number, boolean, enum, date, lane_assignee), backlog toggle, view/edit access restrictions
+- **Due date reminders** — daily notification to assignee for overdue tickets not in the last lane
+- **Full-text search** — PostgreSQL tsvector/tsquery on ticket title and description with relevance ranking
+- **Read-only access** — users with view-only access see all content but cannot edit; all edit controls hidden
+- **Drag-and-drop** — tickets between lanes with visual drop indicator; checklist items with grip handles
+
+#### Board Access & Permissions
+- **Role hierarchy in board access** — MANAGER role now correctly grants access to TEAM-restricted boards via transitive role expansion
+- **Dedicated can-edit endpoint** — `GET /boards/{id}/can-edit` for frontend to check edit permission
+- **View/edit access restrictions** — per-board role, group, and tag based access control
+
+### Improvements
+
+- **Borderless input fields** — new `borderless` prop on BaseInput/TextInput for clean inline editing
+- **Click-to-edit title** — ticket title renders as heading, switches to borderless input on click
+- **MemberSelectInput auto-open** — opens dropdown and focuses search immediately on mount
+- **IconSelectInput auto-open** — priority selector opens dropdown immediately
+- **Click-outside handling** — all sidebar editors (lane, priority, assignee, due date) close when clicking outside the right column
+- **Color input component** — new ColorInput.vue for lane color selection in settings
+- **SelectInput min-w-0** — global fix for dropdown width issues in flex containers
+- **Checklist progress bar** — fixed invisible bar (was using undefined `--accent`, now uses `bg-primary`)
+- **Overdue due dates** — highlighted in red on ticket tiles
+- **Attachment count on tiles** — paperclip icon with count in ticket tile bottom row
+- **Description save button** — replaced checkmark icon with proper "Speichern" PrimaryButton
+- **Comment submit button** — changed to "Absenden" matching news comment pattern
+- **Sidebar boards** — only shows boards the user can view (managers see all in manage view)
+
+### Bug Fixes
+
+- Fixed getViewAccess/getEditAccess returning empty lists instead of actual stored restriction IDs
+- Fixed manage view not showing create/edit controls
+- Fixed board managers seeing all boards in sidebar instead of only accessible ones
+- Fixed role hierarchy not applied in board access checks (MANAGER not matching TEAM restrictions)
+- Fixed file download throwing unauthorized (switched from direct URL to authenticated blob download)
+- Fixed `createTicket` CTE missing `attachment_count` column causing runtime error
+- Fixed KB link `folderPath` showing double `/` for root-level files
+- Fixed KB links not loading on initial ticket detail page load
+- Fixed checklist progress bar invisible (undefined CSS variable)
+- Fixed lane top border using undefined `--accent` variable
+
+---
+
+### Technical Changes
+
+#### Database
+- **Patch 6** — 15 new tables: `board`, `board_lane` (with color), `board_field`, `board_view_access`, `board_edit_access`, `board_ticket` (with full-text search vector), `board_ticket_field_value`, `board_ticket_link`, `board_ticket_checklist_item`, `board_ticket_transition`, `board_ticket_comment`, `board_ticket_watcher`, `board_ticket_weblink`, `board_ticket_attachment`, `board_ticket_history`, `board_label`, `board_ticket_label`, `board_ticket_kb_link`
+- Generated tsvector column with GIN index for full-text search
+- Board-level `backlog_lane_id` FK for backlog support
+
+#### Backend Architecture
+- **18 new entity records** with RowMapping: Board, BoardLane, BoardField, BoardFieldConfig, BoardTicket, BoardTicketLink, LinkType, BoardTicketTransition, BoardChecklistItem, BoardComment, BoardWeblink, BoardTicketAttachment, BoardTicketFieldValue, BoardTicketWatcher, BoardTicketHistory, BoardLabel, BoardTicketKbLink, TicketPriority
+- **BoardRepository** — CRUD for boards, lanes, fields, labels, access restrictions, backlog management
+- **BoardTicketRepository** — CRUD for tickets, links, checklist, comments, weblinks, attachments, field values, watchers, history, KB links, activity feed (UNION ALL query)
+- **BoardService** — access control with role hierarchy expansion via `Roles.expand()`, label management, backlog toggle
+- **BoardTicketService** — ticket lifecycle, lane_assignee auto-assignment on move, @mention parsing in comments, watcher notifications, history logging for all changes
+- **BoardRoutes / BoardTicketRoutes** — 50+ REST endpoints
+- **DueDateReminderChecker** — scheduled executor for daily due date notifications
+- **BoardTicketChanged** domain event — consolidated watcher notification for all ticket changes
+- **MentionedInComment** extended — `BOARD_TICKET` entity type with ticket-detail link
+- **LaneData, AccessData, TicketLabelMapping** — extracted to top-level records by spotless
+
+#### Frontend Architecture
+- **15 new views**: BoardOverviewView, BoardListView, BoardView, TicketDetailView, BoardSettingsView, BacklogView, ArchivedView + 5 help center pages
+- **7 new components**: TicketTile, TicketChecklist, TicketActivity, TicketLinksSection, LabelSelectInput, ColorInput, DragList (reused)
+- **boards.ts API** — 40+ functions for all board, ticket, label, attachment, KB link, and history operations
+- **Authenticated file handling** — blob download/preview via axios instead of direct URLs
+
+#### Test Coverage
+- **Board repository tests** — 20+ tests covering tickets, lanes, labels, attachments, field values, weblinks, search, history, backlog, KB links
+- **Board service tests** — 25+ tests covering CRUD, access control with role hierarchy, labels, backlog, field values, attachments, comments, watchers, move/reorder/link operations
+- **JaCoCo exclusion** — DueDateReminderChecker excluded (daemon pattern, like RegistrationDeadlineChecker)
+- All coverage thresholds met: 95% repositories, 90% services, 80% handlers
+
+---
+
 ## v26.5.0
 
 ### New Features

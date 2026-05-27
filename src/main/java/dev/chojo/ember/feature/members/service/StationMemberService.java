@@ -74,6 +74,10 @@ public class StationMemberService {
         return memberRepository.findRoles(memberId);
     }
 
+    public List<Role> findAllRoles() {
+        return memberRepository.findAllRoles();
+    }
+
     public List<Role> setRoles(int memberId, List<Integer> desiredRoleIds, Set<Roles> callerRoles) {
         List<Role> allRoles = memberRepository.findAllRoles();
         List<Role> currentRoles = memberRepository.findRoles(memberId);

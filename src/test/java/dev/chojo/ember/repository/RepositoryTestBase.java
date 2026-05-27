@@ -15,6 +15,8 @@ import de.chojo.sadu.updater.QueryReplacement;
 import de.chojo.sadu.updater.SqlUpdater;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.attendance.repository.AttendanceRepository;
+import dev.chojo.ember.feature.board.repository.BoardRepository;
+import dev.chojo.ember.feature.board.repository.BoardTicketRepository;
 import dev.chojo.ember.feature.comment.repository.EventCommentRepository;
 import dev.chojo.ember.feature.comment.repository.NoteRepository;
 import dev.chojo.ember.feature.events.repository.EventFieldRepository;
@@ -106,6 +108,8 @@ public abstract class RepositoryTestBase {
     protected static RestrictionRepository restrictionRepo;
     protected static ApplicationSettingRepository applicationSettingRepo;
     protected static ProblemReportRepository problemReportRepo;
+    protected static BoardRepository boardRepo;
+    protected static BoardTicketRepository boardTicketRepo;
 
     @BeforeAll
     static void setupDatabase() throws Exception {
@@ -191,5 +195,7 @@ public abstract class RepositoryTestBase {
         restrictionRepo = new RestrictionRepository();
         applicationSettingRepo = new ApplicationSettingRepository();
         problemReportRepo = new ProblemReportRepository();
+        boardRepo = new BoardRepository();
+        boardTicketRepo = new BoardTicketRepository();
     }
 }

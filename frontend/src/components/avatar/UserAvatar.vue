@@ -67,6 +67,7 @@ watch(() => props.memberId, loadAvatar, {immediate: true})
 <template>
   <div
       :class="sizeClasses"
+      :title="name"
       class="shrink-0 rounded-full overflow-hidden bg-primary/15 text-primary font-bold flex items-center justify-center"
   >
     <img v-if="hasAvatar" :src="imgSrc" alt="" class="h-full w-full object-cover"/>

@@ -20,7 +20,7 @@ application {
 
 group = "dev.chojo"
 // CalVer as YY.MINOR.MICRO -> https://calver.org/
-version = "26.5.0"
+version = "26.6.0"
 
 repositories {
     mavenCentral()
@@ -226,6 +226,7 @@ tasks {
                     "*.LegalDocumentService*",
                     // Daemon/scheduler threads
                     "*.RegistrationDeadlineChecker*",
+                    "*.DueDateReminderChecker*",
                     // Import services (complex CSV parsing with many edge cases)
                     "*.MemberImportService*",
                     "*.StationImportService*",

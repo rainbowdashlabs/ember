@@ -12,6 +12,7 @@ import dev.chojo.ember.auth.PasswordHasher;
 import dev.chojo.ember.conf.Conf;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
+import dev.chojo.ember.feature.board.service.DueDateReminderChecker;
 import dev.chojo.ember.feature.events.service.RegistrationDeadlineChecker;
 import dev.chojo.ember.feature.legal.service.ConsentService;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
@@ -86,6 +87,8 @@ public class Bootstrapper {
         injector.getInstance(DomainEventBus.class);
         // Start registration deadline checker (daemon thread)
         injector.getInstance(RegistrationDeadlineChecker.class);
+        // Start board due date reminder checker (daemon thread)
+        injector.getInstance(DueDateReminderChecker.class);
 
         // Initialize data directory from templates if empty
         injector.getInstance(DataInitializer.class).initialize();

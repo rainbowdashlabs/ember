@@ -100,6 +100,10 @@ export function useSession() {
         return !(sessionInfo.value?.disabledModules?.includes(module) ?? false)
     }
 
+    function canManageBoards(): boolean {
+        return hasRole(Roles.BOARD_MANAGER)
+    }
+
     function canManageFederation(): boolean {
         return hasRole(Roles.FEDERATION_MANAGER)
     }
@@ -134,6 +138,7 @@ export function useSession() {
         canManageWaitlist,
         canManageQuiz,
         canManageKnowledge,
+        canManageBoards,
         canManageFederation,
         canManageProtocol,
         canTestProtocol,

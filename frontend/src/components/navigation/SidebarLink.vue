@@ -13,6 +13,7 @@ const props = defineProps<{
   name: string
   icon?: string[]
   badge?: number
+  active?: boolean
 }>()
 
 defineEmits<{
@@ -22,7 +23,7 @@ defineEmits<{
 
 <template>
   <router-link
-      :class="route.name === name
+      :class="(active !== undefined ? active : route.name === name)
       ? 'bg-primary/15 !text-primary'
       : '!text-[var(--text)] hover:bg-primary/5'"
       :to="to"

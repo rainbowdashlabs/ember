@@ -37,6 +37,9 @@ public sealed interface NotificationParams {
 
     record NewForm(String title) implements NotificationParams {}
 
+    record BoardTicketUpdate(String boardName, String ticketKey, String changeDescription)
+            implements NotificationParams {}
+
     record LostAndFoundNew(String description) implements NotificationParams {}
 
     record LostAndFoundClaimed(String name, String description) implements NotificationParams {}
