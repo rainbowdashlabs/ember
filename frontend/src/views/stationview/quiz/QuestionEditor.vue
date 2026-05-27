@@ -131,13 +131,13 @@ function onTypeChange(val: QuizQuestionTypeName | string | undefined) {
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
       <div>
         <FieldLabel hint class="mb-1">{{ t('quiz.questions.type') }}</FieldLabel>
-        <SelectInput :model-value="questionType" :disabled="isEditing" @update:model-value="onTypeChange">
+        <SelectInput :model-value="questionType" :disabled="isEditing" class="w-full" @update:model-value="onTypeChange">
           <option v-for="qt in allQuestionTypes" :key="qt" :value="qt">{{ t(`quiz.questionTypes.${qt}`) }}</option>
         </SelectInput>
       </div>
       <div>
         <FieldLabel hint class="mb-1">{{ t('quiz.questions.category') }}</FieldLabel>
-        <SelectInput v-model="categoryIdStr">
+        <SelectInput v-model="categoryIdStr" class="w-full">
           <option value="">{{ t('quiz.questions.noCategory') }}</option>
           <option v-for="cat in categories" :key="cat.id" :value="String(cat.id)">{{ cat.name }}</option>
         </SelectInput>

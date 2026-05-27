@@ -40,6 +40,7 @@ const title = ref('')
 const description = ref('')
 const shuffleQuestions = ref(false)
 const allowEdit = ref(true)
+const forced = ref(false)
 const startAt = ref('')
 const endAt = ref('')
 
@@ -116,6 +117,7 @@ async function loadForm() {
     description.value = form.description
     shuffleQuestions.value = form.shuffleQuestions
     allowEdit.value = form.allowEdit
+    forced.value = form.forced ?? false
     startAt.value = form.startAt ? form.startAt.slice(0, 16) : ''
     endAt.value = form.endAt ? form.endAt.slice(0, 16) : ''
 
@@ -130,7 +132,7 @@ async function loadForm() {
       description: q.description,
       required: q.required,
       shuffle: q.shuffle,
-      config: JSON.parse(q.config || '{}'),
+      config: typeof q.config === 'string' ? JSON.parse(q.config || '{}') : (q.config ?? {}),
     }))
   } catch {
     error.value = t('common.error')
@@ -148,6 +150,7 @@ async function save() {
       description: description.value,
       shuffleQuestions: shuffleQuestions.value,
       allowEdit: allowEdit.value,
+      forced: forced.value,
       startAt: startAt.value ? new Date(startAt.value).toISOString() : null,
       endAt: endAt.value ? new Date(endAt.value).toISOString() : null,
     }
@@ -206,7 +209,7 @@ onMounted(loadForm)
                 <DateTimeInput v-model="endAt" />
               </div>
             </div>
-            <div class="flex gap-6">
+            <div class="flex gap-6 flex-wrap">
               <FieldLabel inline>
                 <ToggleInput v-model="shuffleQuestions" />
                 {{ t('forms.shuffleQuestions') }}
@@ -214,6 +217,10 @@ onMounted(loadForm)
               <FieldLabel inline>
                 <ToggleInput v-model="allowEdit" />
                 {{ t('forms.allowEdit') }}
+              </FieldLabel>
+              <FieldLabel inline>
+                <ToggleInput v-model="forced" />
+                {{ t('forms.forced') }}
               </FieldLabel>
             </div>
           </div>

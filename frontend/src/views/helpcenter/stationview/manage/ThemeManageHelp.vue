@@ -39,7 +39,7 @@ const themeOptions = Object.entries(THEMES).map(([key, theme]) => ({value: key, 
       <SectionHeader>{{ t('theme.stationTheme') }}</SectionHeader>
       <div class="space-y-1">
         <FieldLabel>{{ t('theme.stationDefaultTheme') }}</FieldLabel>
-        <SelectInput v-model="dummyTheme">
+        <SelectInput v-model="dummyTheme" class="w-full">
           <option v-for="opt in themeOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
         </SelectInput>
         <p class="text-xs text-(--text-muted)">{{ t('theme.stationDefaultThemeHint') }}</p>

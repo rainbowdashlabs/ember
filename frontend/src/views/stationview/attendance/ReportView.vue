@@ -271,7 +271,7 @@ watch(loaded, (isLoaded) => {
           <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             <div class="space-y-1">
               <FieldLabel>{{ t('attendanceReport.filterBy') }}</FieldLabel>
-              <SelectInput v-model="filterType">
+              <SelectInput v-model="filterType" class="w-full">
                 <option value="role">{{ t('attendanceReport.byRole') }}</option>
                 <option value="group">{{ t('attendanceReport.byGroup') }}</option>
               </SelectInput>
@@ -280,18 +280,18 @@ watch(loaded, (isLoaded) => {
               <FieldLabel>{{
                   filterType === 'role' ? t('attendanceReport.role') : t('attendanceReport.group')
                 }}</FieldLabel>
-              <SelectInput v-if="filterType === 'role'" v-model="selectedRole">
+              <SelectInput v-if="filterType === 'role'" v-model="selectedRole" class="w-full">
                 <option disabled value="">{{ t('attendanceReport.selectRole') }}</option>
                 <option v-for="role in roles" :key="role.id" :value="role.role">{{ role.role }}</option>
               </SelectInput>
-              <SelectInput v-else v-model="selectedGroupId">
+              <SelectInput v-else v-model="selectedGroupId" class="w-full">
                 <option disabled value="">{{ t('attendanceReport.selectGroup') }}</option>
                 <option v-for="group in groups" :key="group.id" :value="String(group.id)">{{ group.name }}</option>
               </SelectInput>
             </div>
             <div class="space-y-1">
               <FieldLabel>{{ t('attendanceReport.rounding') }}</FieldLabel>
-              <SelectInput v-model="selectedRounding">
+              <SelectInput v-model="selectedRounding" class="w-full">
                 <option v-for="opt in roundingOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
               </SelectInput>
             </div>
@@ -300,25 +300,25 @@ watch(loaded, (isLoaded) => {
           <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             <div class="space-y-1">
               <FieldLabel>{{ t('attendanceReport.period') }}</FieldLabel>
-              <SelectInput v-model="selectedPeriod">
+              <SelectInput v-model="selectedPeriod" class="w-full">
                 <option v-for="opt in periodOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
               </SelectInput>
             </div>
             <div class="space-y-1">
               <FieldLabel>{{ t('attendanceReport.year') }}</FieldLabel>
-              <SelectInput :model-value="String(selectedYear)" @update:model-value="selectedYear = Number($event)">
+              <SelectInput :model-value="String(selectedYear)" class="w-full" @update:model-value="selectedYear = Number($event)">
                 <option v-for="y in yearOptions" :key="y" :value="String(y)">{{ y }}</option>
               </SelectInput>
             </div>
             <div v-if="selectedPeriod === 'month'" class="space-y-1">
               <FieldLabel>{{ t('attendanceReport.month') }}</FieldLabel>
-              <SelectInput :model-value="String(selectedMonth)" @update:model-value="selectedMonth = Number($event)">
+              <SelectInput :model-value="String(selectedMonth)" class="w-full" @update:model-value="selectedMonth = Number($event)">
                 <option v-for="m in monthOptions" :key="m.value" :value="String(m.value)">{{ m.label }}</option>
               </SelectInput>
             </div>
             <div v-if="selectedPeriod === 'week'" class="space-y-1">
               <FieldLabel>{{ t('attendanceReport.week') }}</FieldLabel>
-              <SelectInput :model-value="String(selectedWeek)" @update:model-value="selectedWeek = Number($event)">
+              <SelectInput :model-value="String(selectedWeek)" class="w-full" @update:model-value="selectedWeek = Number($event)">
                 <option v-for="w in weekOptions" :key="w" :value="String(w)">KW {{ w }}</option>
               </SelectInput>
             </div>

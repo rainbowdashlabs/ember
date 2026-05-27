@@ -124,7 +124,7 @@ onMounted(() => { if (loaded.value) loadData() })
       <form @submit.prevent="handleCreate" class="space-y-3">
         <div>
           <FieldLabel class="mb-1">{{ t('protocol.selectProtocol') }}</FieldLabel>
-          <SelectInput v-model="newProtocolId">
+          <SelectInput v-model="newProtocolId" class="w-full">
             <option value="" disabled>{{ t('protocol.selectProtocol') }}</option>
             <option v-for="p in protocols" :key="p.id" :value="p.id">{{ p.name }}</option>
           </SelectInput>

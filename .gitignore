@@ -39,6 +39,7 @@ bin/
 ### Mac OS ###
 .DS_Store
 .direnv
+.demo-schema-hash
 CLAUDE*.md
 .claude
 .ai

@@ -94,6 +94,7 @@ function getMemberOptions(field: AttendanceTemplateField): { value: string; labe
           />
           <SelectInput
               v-else
+              class="w-full"
               :model-value="getFieldValue(field.id)"
               @update:model-value="emit('fieldMemberIds', field.id, $event ? [$event] : [])"
           >

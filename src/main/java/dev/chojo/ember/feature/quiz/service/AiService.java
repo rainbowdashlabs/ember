@@ -516,8 +516,8 @@ public class AiService {
         var page = client.models().list();
         var result = new ArrayList<ModelInfo>();
         for (var m : page.data()) {
-            String name = m.displayName() != null ? m.displayName() : m.id();
-            result.add(new ModelInfo(m.id(), name));
+            m.displayName();
+            result.add(new ModelInfo(m.id(), m.displayName()));
         }
         result.sort(Comparator.comparing(ModelInfo::name));
         return result;

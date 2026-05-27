@@ -163,14 +163,14 @@ onMounted(async () => {
 
           <div class="space-y-1">
             <FieldLabel>{{ t('adminSettings.theme.defaultTheme') }}</FieldLabel>
-            <SelectInput v-model="instanceDefaultTheme">
+            <SelectInput v-model="instanceDefaultTheme" class="w-full">
               <option v-for="opt in themeOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
             </SelectInput>
           </div>
 
           <div class="space-y-1">
             <FieldLabel>{{ t('adminSettings.theme.defaultFeel') }}</FieldLabel>
-            <SelectInput v-model="instanceDefaultFeel">
+            <SelectInput v-model="instanceDefaultFeel" class="w-full">
               <option :value="Feel.ROUNDED">{{ t('theme.feelROUNDED') }}</option>
               <option :value="Feel.CORNERS">{{ t('theme.feelCORNERS') }}</option>
             </SelectInput>

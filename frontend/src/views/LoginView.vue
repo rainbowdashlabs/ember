@@ -144,11 +144,11 @@ async function resolveStationAndRedirect() {
   const stations = await session.getStations()
   if (stations.length === 1) {
     setActiveStation(stations[0].stationId)
-    await router.push(redirectPath || {name: 'dashboard-overview'})
+    await router.push(redirectPath || {name: 'requirements'})
   } else if (stations.length > 1) {
     await router.push({name: 'station-select', query: redirectPath ? {redirect: redirectPath} : undefined})
   } else {
-    await router.push(redirectPath || {name: 'dashboard-overview'})
+    await router.push(redirectPath || {name: 'requirements'})
   }
 }
 

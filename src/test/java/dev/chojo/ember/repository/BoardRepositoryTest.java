@@ -23,6 +23,7 @@ import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 
+import java.time.Instant;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -118,7 +119,7 @@ class BoardRepositoryTest extends RepositoryTestBase {
     void updateLane() {
         assertTrue(boardRepo.updateLane(laneId1, "To Do", 0));
         var lanes = boardRepo.findLanes(boardId);
-        assertEquals("To Do", lanes.get(0).name());
+        assertEquals("To Do", lanes.getFirst().name());
     }
 
     // -- Fields --
@@ -505,7 +506,7 @@ class BoardRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(84)
     void setLaneEnteredAt() {
-        boardTicketRepo.setLaneEnteredAt(ticketId1, java.time.Instant.now().minusSeconds(86400));
+        boardTicketRepo.setLaneEnteredAt(ticketId1, Instant.now().minusSeconds(86400));
         var ticket = boardTicketRepo.findById(ticketId1).orElseThrow();
         assertNotNull(ticket.laneEnteredAt());
     }

@@ -210,6 +210,7 @@ onMounted(loadInviteInfo)
             </div>
             <SelectInput
               v-else-if="field.fieldType === 'ENUM'"
+              class="w-full"
               :model-value="getFieldValue(field.id)"
               @update:model-value="setFieldValue(field.id, $event)"
             >

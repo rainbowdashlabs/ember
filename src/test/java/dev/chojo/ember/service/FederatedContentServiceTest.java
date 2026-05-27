@@ -22,10 +22,15 @@ import dev.chojo.ember.feature.knowledgebase.repository.KnowledgeBaseRepository;
 import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseService;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.protocol.entity.TestProtocol;
+import dev.chojo.ember.feature.protocol.entity.TestProtocolItem;
+import dev.chojo.ember.feature.protocol.entity.TestProtocolSection;
 import dev.chojo.ember.feature.protocol.repository.TestProtocolRepository;
 import dev.chojo.ember.feature.protocol.service.TestProtocolService;
+import dev.chojo.ember.feature.quiz.entity.QuestionConfig;
+import dev.chojo.ember.feature.quiz.entity.QuestionType;
 import dev.chojo.ember.feature.quiz.entity.QuizCatalog;
 import dev.chojo.ember.feature.quiz.entity.QuizCategory;
+import dev.chojo.ember.feature.quiz.entity.QuizQuestion;
 import dev.chojo.ember.feature.quiz.repository.QuizCatalogRepository;
 import dev.chojo.ember.feature.quiz.service.QuizService;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
@@ -43,7 +48,6 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
@@ -659,11 +663,11 @@ class FederatedContentServiceTest extends RepositoryTestBase {
         var now = Instant.now();
         when(quizService.findQuestions(realQuizCatalogId))
                 .thenReturn(List.of(
-                        new dev.chojo.ember.feature.quiz.entity.QuizQuestion(
+                        new QuizQuestion(
                                 100,
                                 realQuizCatalogId,
                                 10,
-                                dev.chojo.ember.feature.quiz.entity.QuestionType.MULTIPLE_CHOICE,
+                                QuestionType.MULTIPLE_CHOICE,
                                 "Q1",
                                 "Desc Q1",
                                 null,
@@ -674,11 +678,11 @@ class FederatedContentServiceTest extends RepositoryTestBase {
                                 0,
                                 now,
                                 now),
-                        new dev.chojo.ember.feature.quiz.entity.QuizQuestion(
+                        new QuizQuestion(
                                 101,
                                 realQuizCatalogId,
                                 null,
-                                dev.chojo.ember.feature.quiz.entity.QuestionType.FREE_ANSWER,
+                                QuestionType.FREE_ANSWER,
                                 "Q2",
                                 "Desc Q2",
                                 null,
@@ -703,7 +707,7 @@ class FederatedContentServiceTest extends RepositoryTestBase {
                         any(),
                         anyDouble(),
                         anyBoolean(),
-                        any(dev.chojo.ember.feature.quiz.entity.QuestionConfig.class),
+                        any(QuestionConfig.class),
                         anyInt());
         verify(quizService, atLeastOnce())
                 .createQuestion(
@@ -715,7 +719,7 @@ class FederatedContentServiceTest extends RepositoryTestBase {
                         any(),
                         anyDouble(),
                         anyBoolean(),
-                        any(dev.chojo.ember.feature.quiz.entity.QuestionConfig.class),
+                        any(QuestionConfig.class),
                         anyInt());
 
         // Restore empty questions mock
@@ -727,22 +731,18 @@ class FederatedContentServiceTest extends RepositoryTestBase {
     void copyProtocolWithSectionsAndItems() {
         // Set up mock to return sections (root + child) and items to cover lines 314-348
         var now = Instant.now();
-        var rootSection = new dev.chojo.ember.feature.protocol.entity.TestProtocolSection(
-                1, realProtocolId, null, "Root Section", "Root desc", 100, 70, 0);
-        var childSection = new dev.chojo.ember.feature.protocol.entity.TestProtocolSection(
-                2, realProtocolId, 1, "Child Section", "Child desc", 50, 40, 0);
+        var rootSection = new TestProtocolSection(1, realProtocolId, null, "Root Section", "Root desc", 100, 70, 0);
+        var childSection = new TestProtocolSection(2, realProtocolId, 1, "Child Section", "Child desc", 50, 40, 0);
         when(protocolService.findSections(realProtocolId)).thenReturn(List.of(rootSection, childSection));
 
-        var newRootSection = new dev.chojo.ember.feature.protocol.entity.TestProtocolSection(
-                10, 9997, null, "Root Section", "Root desc", 100, 70, 0);
-        var newChildSection = new dev.chojo.ember.feature.protocol.entity.TestProtocolSection(
-                11, 9997, 10, "Child Section", "Child desc", 50, 40, 0);
+        var newRootSection = new TestProtocolSection(10, 9997, null, "Root Section", "Root desc", 100, 70, 0);
+        var newChildSection = new TestProtocolSection(11, 9997, 10, "Child Section", "Child desc", 50, 40, 0);
         when(protocolService.createSection(eq(9997), isNull(), eq("Root Section"), anyString(), any(), any(), anyInt()))
                 .thenReturn(newRootSection);
         when(protocolService.createSection(eq(9997), eq(10), eq("Child Section"), anyString(), any(), any(), anyInt()))
                 .thenReturn(newChildSection);
 
-        var item = new dev.chojo.ember.feature.protocol.entity.TestProtocolItem(100, 1, "Item 1", "Item desc", 10.0, 0);
+        var item = new TestProtocolItem(100, 1, "Item 1", "Item desc", 10.0, 0);
         when(protocolService.findAllItemsByProtocol(realProtocolId)).thenReturn(List.of(item));
 
         var copied = contentService.copyProtocol(realProtocolId, stationA.id());
@@ -786,7 +786,7 @@ class FederatedContentServiceTest extends RepositoryTestBase {
 
         var items = svc.browseSharedKb(stationM.id());
         assertFalse(items.isEmpty());
-        assertEquals(KbFileType.MARKDOWN, items.get(0).file().fileType());
+        assertEquals(KbFileType.MARKDOWN, items.getFirst().file().fileType());
 
         stationRepo.delete(stationM.id());
         stationRepo.delete(stationN.id());

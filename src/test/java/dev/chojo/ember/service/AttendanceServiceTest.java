@@ -14,6 +14,7 @@ import dev.chojo.ember.feature.attendance.repository.AttendanceRepository;
 import dev.chojo.ember.feature.attendance.service.AttendanceService;
 import dev.chojo.ember.feature.events.entity.EventFieldConfig;
 import dev.chojo.ember.feature.events.entity.EventFieldType;
+import dev.chojo.ember.feature.events.entity.EventRegistration;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.station.entity.Station;
@@ -448,7 +449,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
                 station.id(),
                 "Sync Event",
                 "desc",
-                dev.chojo.ember.feature.events.entity.StationEvent.EventType.ONE_TIME,
+                StationEvent.EventType.ONE_TIME,
                 null,
                 Instant.now().plus(2, ChronoUnit.DAYS),
                 Instant.now().plus(2, ChronoUnit.DAYS).plus(2, ChronoUnit.HOURS),
@@ -463,11 +464,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
         var member2 = stationMemberRepo.create(station.id(), account2.id());
 
         eventRepo.createRegistration(
-                event.id(),
-                member2.id(),
-                LocalDate.now(),
-                dev.chojo.ember.feature.events.entity.EventRegistration.RegistrationStatus.ACCEPTED,
-                null);
+                event.id(), member2.id(), LocalDate.now(), EventRegistration.RegistrationStatus.ACCEPTED, null);
 
         var session = service.createSession(templateId, null, null, event.id(), null);
         var entries = service.syncFromEvent(session.id());
@@ -487,7 +484,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
                 station.id(),
                 "Declined Sync",
                 "",
-                dev.chojo.ember.feature.events.entity.StationEvent.EventType.ONE_TIME,
+                StationEvent.EventType.ONE_TIME,
                 null,
                 Instant.now().plus(3, ChronoUnit.DAYS),
                 Instant.now().plus(3, ChronoUnit.DAYS).plus(1, ChronoUnit.HOURS),
@@ -502,11 +499,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
         var member3 = stationMemberRepo.create(station.id(), account3.id());
 
         eventRepo.createRegistration(
-                event.id(),
-                member3.id(),
-                LocalDate.now(),
-                dev.chojo.ember.feature.events.entity.EventRegistration.RegistrationStatus.DECLINED,
-                null);
+                event.id(), member3.id(), LocalDate.now(), EventRegistration.RegistrationStatus.DECLINED, null);
 
         var session = service.createSession(templateId, null, null, event.id(), null);
         var entries = service.syncFromEvent(session.id());
@@ -527,7 +520,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
                 station.id(),
                 "Absent Sync",
                 "",
-                dev.chojo.ember.feature.events.entity.StationEvent.EventType.ONE_TIME,
+                StationEvent.EventType.ONE_TIME,
                 null,
                 Instant.now().plus(4, ChronoUnit.DAYS),
                 Instant.now().plus(4, ChronoUnit.DAYS).plus(1, ChronoUnit.HOURS),
@@ -542,11 +535,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
                 member.id(), LocalDate.now().minusDays(1), LocalDate.now().plusDays(1), "Sick", null);
 
         eventRepo.createRegistration(
-                event.id(),
-                member.id(),
-                LocalDate.now(),
-                dev.chojo.ember.feature.events.entity.EventRegistration.RegistrationStatus.ACCEPTED,
-                null);
+                event.id(), member.id(), LocalDate.now(), EventRegistration.RegistrationStatus.ACCEPTED, null);
 
         var session = service.createSession(templateId, null, null, event.id(), null);
         var entries = service.syncFromEvent(session.id());
@@ -569,10 +558,10 @@ class AttendanceServiceTest extends RepositoryTestBase {
                 station.id(),
                 "Upgrade Sync",
                 "",
-                dev.chojo.ember.feature.events.entity.StationEvent.EventType.ONE_TIME,
+                StationEvent.EventType.ONE_TIME,
                 null,
-                Instant.now().plus(5, java.time.temporal.ChronoUnit.DAYS),
-                Instant.now().plus(5, java.time.temporal.ChronoUnit.DAYS).plus(1, java.time.temporal.ChronoUnit.HOURS),
+                Instant.now().plus(5, ChronoUnit.DAYS),
+                Instant.now().plus(5, ChronoUnit.DAYS).plus(1, ChronoUnit.HOURS),
                 null,
                 true,
                 null,
@@ -624,10 +613,10 @@ class AttendanceServiceTest extends RepositoryTestBase {
                 station.id(),
                 "Absent Upgrade",
                 "",
-                dev.chojo.ember.feature.events.entity.StationEvent.EventType.ONE_TIME,
+                StationEvent.EventType.ONE_TIME,
                 null,
-                Instant.now().plus(6, java.time.temporal.ChronoUnit.DAYS),
-                Instant.now().plus(6, java.time.temporal.ChronoUnit.DAYS).plus(1, java.time.temporal.ChronoUnit.HOURS),
+                Instant.now().plus(6, ChronoUnit.DAYS),
+                Instant.now().plus(6, ChronoUnit.DAYS).plus(1, ChronoUnit.HOURS),
                 templateId,
                 true,
                 null,
@@ -672,10 +661,10 @@ class AttendanceServiceTest extends RepositoryTestBase {
                 station.id(),
                 "Field Defaults Event",
                 "Event description here",
-                dev.chojo.ember.feature.events.entity.StationEvent.EventType.ONE_TIME,
+                StationEvent.EventType.ONE_TIME,
                 null,
-                Instant.now().plus(7, java.time.temporal.ChronoUnit.DAYS),
-                Instant.now().plus(7, java.time.temporal.ChronoUnit.DAYS).plus(1, java.time.temporal.ChronoUnit.HOURS),
+                Instant.now().plus(7, ChronoUnit.DAYS),
+                Instant.now().plus(7, ChronoUnit.DAYS).plus(1, ChronoUnit.HOURS),
                 null,
                 false,
                 null,
@@ -729,10 +718,10 @@ class AttendanceServiceTest extends RepositoryTestBase {
                 station.id(),
                 "Decline Test Event",
                 "",
-                dev.chojo.ember.feature.events.entity.StationEvent.EventType.ONE_TIME,
+                StationEvent.EventType.ONE_TIME,
                 null,
-                Instant.now().plus(8, java.time.temporal.ChronoUnit.DAYS),
-                Instant.now().plus(8, java.time.temporal.ChronoUnit.DAYS).plus(1, java.time.temporal.ChronoUnit.HOURS),
+                Instant.now().plus(8, ChronoUnit.DAYS),
+                Instant.now().plus(8, ChronoUnit.DAYS).plus(1, ChronoUnit.HOURS),
                 null,
                 true,
                 null,
@@ -741,11 +730,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
                 null);
 
         eventRepo.createRegistration(
-                event.id(),
-                member7.id(),
-                LocalDate.now(),
-                dev.chojo.ember.feature.events.entity.EventRegistration.RegistrationStatus.DECLINED,
-                null);
+                event.id(), member7.id(), LocalDate.now(), EventRegistration.RegistrationStatus.DECLINED, null);
 
         var session = service.createSession(templateId, null, null, event.id(), null);
 
@@ -780,11 +765,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
         var member8 = stationMemberRepo.create(station.id(), account8.id());
 
         var session = service.createSession(
-                autoAttendTemplate2.id(),
-                Instant.now(),
-                Instant.now().plus(1, java.time.temporal.ChronoUnit.HOURS),
-                null,
-                "ParseTest");
+                autoAttendTemplate2.id(), Instant.now(), Instant.now().plus(1, ChronoUnit.HOURS), null, "ParseTest");
 
         // Single number format (quoted string)
         service.setSessionFields(
@@ -796,11 +777,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
 
         // Test with JSON array format with quoted numbers
         var session2 = service.createSession(
-                autoAttendTemplate2.id(),
-                Instant.now(),
-                Instant.now().plus(1, java.time.temporal.ChronoUnit.HOURS),
-                null,
-                "ParseTest2");
+                autoAttendTemplate2.id(), Instant.now(), Instant.now().plus(1, ChronoUnit.HOURS), null, "ParseTest2");
 
         service.setSessionFields(
                 session2.id(), List.of(new AttendanceFieldValueEntry(fieldId2, "[\"" + member8.id() + "\"]")));
@@ -824,11 +801,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
         var templateFields = service.findTemplateFields(defaultTemplate.id());
 
         var session = service.createSession(
-                defaultTemplate.id(),
-                Instant.now(),
-                Instant.now().plus(1, java.time.temporal.ChronoUnit.HOURS),
-                null,
-                "Defaults Session");
+                defaultTemplate.id(), Instant.now(), Instant.now().plus(1, ChronoUnit.HOURS), null, "Defaults Session");
         assertNotNull(session);
 
         var sessionFields = service.findSessionFields(session.id());

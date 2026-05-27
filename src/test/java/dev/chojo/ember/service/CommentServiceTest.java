@@ -25,7 +25,6 @@ import org.junit.jupiter.api.TestMethodOrder;
 import java.time.Instant;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
@@ -154,13 +153,21 @@ class CommentServiceTest extends RepositoryTestBase {
 
         // Verify that a MentionedInComment event was published for member2
         verify(eventBus).publish(argThat(event -> {
-            if (!(event instanceof MentionedInComment m)) return false;
-            return m.stationId() == station.id()
-                    && m.mentionedMemberId() == member2.id()
-                    && m.authorMemberId() == member1.id()
-                    && "Alice".equals(m.authorName())
-                    && m.entityType() == CommentEntityType.EVENT
-                    && m.entityId() == eventId;
+            if (!(event
+                    instanceof
+                    MentionedInComment(
+                            int stationId,
+                            int mentionedMemberId,
+                            int authorMemberId,
+                            String authorName,
+                            CommentEntityType entityType,
+                            int entityId))) return false;
+            return stationId == station.id()
+                    && mentionedMemberId == member2.id()
+                    && authorMemberId == member1.id()
+                    && "Alice".equals(authorName)
+                    && entityType == CommentEntityType.EVENT
+                    && entityId == eventId;
         }));
     }
 

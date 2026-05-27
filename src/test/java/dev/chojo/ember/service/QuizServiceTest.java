@@ -23,6 +23,7 @@ import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 
+import java.time.Instant;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -513,8 +514,7 @@ class QuizServiceTest extends RepositoryTestBase {
     void isTestAccessibleWithTimeWindow() {
         var test2 = service.createTest(station.id(), "Timed", "", null, false, member.id());
         // Set start_at in the future
-        service.updateTest(
-                test2.id(), "Timed", "", null, false, java.time.Instant.now().plusSeconds(86400), null);
+        service.updateTest(test2.id(), "Timed", "", null, false, Instant.now().plusSeconds(86400), null);
         service.replaceSections(
                 test2.id(), List.of(new SectionEntry("S", "", List.of(new SourceEntry(catalogId, categoryId, 1)))));
         service.activateTest(test2.id());
@@ -534,8 +534,8 @@ class QuizServiceTest extends RepositoryTestBase {
                 "",
                 null,
                 false,
-                java.time.Instant.now().minusSeconds(86400),
-                java.time.Instant.now().minusSeconds(3600));
+                Instant.now().minusSeconds(86400),
+                Instant.now().minusSeconds(3600));
         service.replaceSections(
                 test2.id(), List.of(new SectionEntry("S", "", List.of(new SourceEntry(catalogId, categoryId, 1)))));
         service.activateTest(test2.id());

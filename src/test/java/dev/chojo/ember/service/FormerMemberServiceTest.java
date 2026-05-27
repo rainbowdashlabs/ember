@@ -7,6 +7,7 @@ package dev.chojo.ember.service;
 
 import dev.chojo.ember.api.Roles;
 import dev.chojo.ember.feature.account.entity.Account;
+import dev.chojo.ember.feature.inventory.entity.InventoryType;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.service.FormerMemberService;
 import dev.chojo.ember.feature.station.entity.Station;
@@ -123,8 +124,7 @@ class FormerMemberServiceTest extends RepositoryTestBase {
         var mem = stationMemberRepo.create(station.id(), acc.id());
         stationMemberRepo.findRoleByName(Roles.MEMBER).ifPresent(r -> stationMemberRepo.addRole(mem.id(), r.id()));
 
-        var inv = inventoryRepo.create(
-                station.id(), "FormerTestInv", dev.chojo.ember.feature.inventory.entity.InventoryType.INTERNAL, false);
+        var inv = inventoryRepo.create(station.id(), "FormerTestInv", InventoryType.INTERNAL, false);
         var item = inventoryRepo.createItem(inv.id(), "FT-001", "Former Test Item", null, "{}");
         inventoryRepo.assignItem(item.id(), mem.id());
 

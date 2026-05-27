@@ -32,7 +32,6 @@ import java.util.List;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
@@ -332,7 +331,7 @@ class LendingServiceTest extends RepositoryTestBase {
                 stationB.id(), stationA.id(), LocalDate.now(), LocalDate.now().plusDays(2), memberB.id());
         assertTrue(service.declineRequest(req.id(), stationA.id(), null));
         var found = service.findRequest(req.id()).orElseThrow();
-        assertEquals(dev.chojo.ember.feature.federation.entity.LendingStatus.DECLINED, found.status());
+        assertEquals(LendingStatus.DECLINED, found.status());
     }
 
     @Test
@@ -342,7 +341,7 @@ class LendingServiceTest extends RepositoryTestBase {
                 stationB.id(), stationA.id(), LocalDate.now(), LocalDate.now().plusDays(2), memberB.id());
         assertTrue(service.declineRequest(req.id(), stationA.id(), ""));
         var found = service.findRequest(req.id()).orElseThrow();
-        assertEquals(dev.chojo.ember.feature.federation.entity.LendingStatus.DECLINED, found.status());
+        assertEquals(LendingStatus.DECLINED, found.status());
     }
 
     @Test

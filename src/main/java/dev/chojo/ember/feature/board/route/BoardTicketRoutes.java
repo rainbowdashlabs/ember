@@ -16,11 +16,14 @@ import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.ForbiddenResponse;
 import io.javalin.http.HttpStatus;
+import io.javalin.http.InternalServerErrorResponse;
 import io.javalin.http.NotFoundResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
+import java.io.IOException;
+import java.nio.file.Files;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -415,8 +418,8 @@ public class BoardTicketRoutes implements Routes {
                     data,
                     session.member().id());
             ctx.status(HttpStatus.CREATED).json(att);
-        } catch (java.io.IOException e) {
-            throw new io.javalin.http.InternalServerErrorResponse("Failed to read uploaded file");
+        } catch (IOException e) {
+            throw new InternalServerErrorResponse("Failed to read uploaded file");
         }
     }
 
@@ -427,13 +430,13 @@ public class BoardTicketRoutes implements Routes {
         int attachmentId = ctx.pathParamAsClass("attachmentId", Integer.class).get();
         var att = ticketService.findAttachmentById(attachmentId).orElseThrow(NotFoundResponse::new);
         var path = ticketService.getAttachmentPath(att);
-        if (!java.nio.file.Files.exists(path)) throw new NotFoundResponse();
+        if (!Files.exists(path)) throw new NotFoundResponse();
         ctx.contentType(att.contentType());
         ctx.header("Content-Disposition", "attachment; filename=\"" + att.originalName() + "\"");
         try {
-            ctx.result(java.nio.file.Files.newInputStream(path));
-        } catch (java.io.IOException e) {
-            throw new io.javalin.http.InternalServerErrorResponse("Failed to read file");
+            ctx.result(Files.newInputStream(path));
+        } catch (IOException e) {
+            throw new InternalServerErrorResponse("Failed to read file");
         }
     }
 

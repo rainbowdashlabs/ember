@@ -140,7 +140,7 @@ onMounted(loadData)
 
           <div v-else class="space-y-1">
             <FieldLabel>{{ t('profileManaged.selectMember') }}</FieldLabel>
-            <SelectInput v-model="selectedMemberId" @update:model-value="loadMemberProfile">
+            <SelectInput v-model="selectedMemberId" class="w-full" @update:model-value="loadMemberProfile">
               <option value="" disabled>{{ t('profileManaged.selectMemberPlaceholder') }}</option>
               <option v-for="member in members" :key="member.id" :value="String(member.id)">
                 {{ memberDisplayName(member) }}

@@ -239,6 +239,14 @@ public class QuizService {
         return testRepository.findById(id);
     }
 
+    public List<dev.chojo.ember.feature.system.service.RequirementsService.RequirementItem> findForcedPending(
+            int stationId, int memberId) {
+        return testRepository.findForcedPending(stationId, memberId).stream()
+                .map(t -> new dev.chojo.ember.feature.system.service.RequirementsService.RequirementItem(
+                        t.id(), t.title()))
+                .toList();
+    }
+
     public QuizTest createTest(
             int stationId, String title, String description, Integer timeLimit, boolean shuffle, int createdBy) {
         return testRepository.create(stationId, title, description, timeLimit, shuffle, createdBy);

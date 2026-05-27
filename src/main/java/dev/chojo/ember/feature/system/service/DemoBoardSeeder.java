@@ -15,6 +15,8 @@ import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Random;
@@ -388,13 +390,13 @@ public class DemoBoardSeeder {
         // Set varying lane_entered_at for time-in-lane dot indicators
         var allBoard1 = ticketRepo.findByBoard(board1.id());
         var allBoard2 = ticketRepo.findByBoard(board2.id());
-        var now = java.time.Instant.now();
+        var now = Instant.now();
         int[] daysAgo = {0, 1, 2, 4, 6, 8, 10, 14, 20, 30, 45, 60};
         for (var tickets : List.of(allBoard1, allBoard2)) {
             for (int i = 0; i < tickets.size(); i++) {
                 int days = daysAgo[i % daysAgo.length];
                 if (days > 0) {
-                    ticketRepo.setLaneEnteredAt(tickets.get(i).id(), now.minus(java.time.Duration.ofDays(days)));
+                    ticketRepo.setLaneEnteredAt(tickets.get(i).id(), now.minus(Duration.ofDays(days)));
                 }
             }
         }

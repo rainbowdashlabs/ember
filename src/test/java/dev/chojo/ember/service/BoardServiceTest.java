@@ -5,9 +5,14 @@
  */
 package dev.chojo.ember.service;
 
+import dev.chojo.ember.api.Roles;
+import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.board.entity.BoardChecklistItem;
+import dev.chojo.ember.feature.board.entity.BoardField;
+import dev.chojo.ember.feature.board.entity.BoardFieldConfig;
 import dev.chojo.ember.feature.board.entity.BoardTicket;
+import dev.chojo.ember.feature.board.entity.LaneData;
 import dev.chojo.ember.feature.board.entity.LanePreset;
 import dev.chojo.ember.feature.board.entity.LinkType;
 import dev.chojo.ember.feature.board.entity.TicketPriority;
@@ -30,6 +35,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 
 import java.util.List;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -52,15 +58,12 @@ class BoardServiceTest extends RepositoryTestBase {
     @BeforeAll
     static void setup() {
         memberService = mock(StationMemberService.class);
-        when(memberService.findAllRoles())
-                .thenReturn(List.of(
-                        new Role(1, dev.chojo.ember.api.Roles.LOGIN), new Role(99, dev.chojo.ember.api.Roles.USER)));
+        when(memberService.findAllRoles()).thenReturn(List.of(new Role(1, Roles.LOGIN), new Role(99, Roles.USER)));
         groupService = mock(MemberGroupService.class);
         tagService = mock(UserTagService.class);
 
         boardService = new BoardService(boardRepo, memberService, groupService, tagService);
-        ticketService = new BoardTicketService(
-                boardTicketRepo, boardRepo, new dev.chojo.ember.event.DomainEventBus(java.util.Set.of()));
+        ticketService = new BoardTicketService(boardTicketRepo, boardRepo, new DomainEventBus(Set.of()));
 
         station = stationRepo.create("BoardSvcStation");
         account = accountRepo.create("board-svc@test.com", "Board", "Svc");
@@ -359,7 +362,7 @@ class BoardServiceTest extends RepositoryTestBase {
     @Order(61)
     void canViewWithRoleRestriction() {
         boardService.setViewAccess(boardId, List.of(99), List.of(), List.of());
-        when(memberService.findRoles(member.id())).thenReturn(List.of(new Role(99, dev.chojo.ember.api.Roles.USER)));
+        when(memberService.findRoles(member.id())).thenReturn(List.of(new Role(99, Roles.USER)));
         assertTrue(boardService.canView(boardId, member.id()));
     }
 
@@ -367,7 +370,7 @@ class BoardServiceTest extends RepositoryTestBase {
     @Order(62)
     void cannotViewWithWrongRole() {
         boardService.setViewAccess(boardId, List.of(99), List.of(), List.of());
-        when(memberService.findRoles(member.id())).thenReturn(List.of(new Role(1, dev.chojo.ember.api.Roles.LOGIN)));
+        when(memberService.findRoles(member.id())).thenReturn(List.of(new Role(1, Roles.LOGIN)));
         assertFalse(boardService.canView(boardId, member.id()));
     }
 
@@ -395,7 +398,7 @@ class BoardServiceTest extends RepositoryTestBase {
     @Order(65)
     void canEditWithRestriction() {
         boardService.setEditAccess(boardId, List.of(99), List.of(), List.of());
-        when(memberService.findRoles(member.id())).thenReturn(List.of(new Role(99, dev.chojo.ember.api.Roles.USER)));
+        when(memberService.findRoles(member.id())).thenReturn(List.of(new Role(99, Roles.USER)));
         assertTrue(boardService.canEdit(boardId, member.id()));
     }
 
@@ -425,23 +428,11 @@ class BoardServiceTest extends RepositoryTestBase {
         boardService.replaceFields(
                 boardId,
                 List.of(
-                        new dev.chojo.ember.feature.board.entity.BoardField(
-                                0,
-                                boardId,
-                                "Component",
-                                "string",
-                                dev.chojo.ember.feature.board.entity.BoardFieldConfig.parse("{}"),
-                                0),
-                        new dev.chojo.ember.feature.board.entity.BoardField(
-                                0,
-                                boardId,
-                                "Effort",
-                                "number",
-                                dev.chojo.ember.feature.board.entity.BoardFieldConfig.parse("{}"),
-                                1)));
+                        new BoardField(0, boardId, "Component", "string", BoardFieldConfig.parse("{}"), 0),
+                        new BoardField(0, boardId, "Effort", "number", BoardFieldConfig.parse("{}"), 1)));
         var fields = boardService.findFields(boardId);
         assertEquals(2, fields.size());
-        assertEquals("Component", fields.get(0).name());
+        assertEquals("Component", fields.getFirst().name());
     }
 
     // -- Replace lanes on fresh board --
@@ -452,11 +443,11 @@ class BoardServiceTest extends RepositoryTestBase {
         var freshBoard = boardService.create(station.id(), "Temp Board", "", "TMP");
         boardService.replaceLanes(
                 freshBoard.id(),
-                java.util.List.of(
-                        new dev.chojo.ember.feature.board.entity.LaneData("Backlog", null),
-                        new dev.chojo.ember.feature.board.entity.LaneData("In Progress", null),
-                        new dev.chojo.ember.feature.board.entity.LaneData("Review", null),
-                        new dev.chojo.ember.feature.board.entity.LaneData("Done", null)));
+                List.of(
+                        new LaneData("Backlog", null),
+                        new LaneData("In Progress", null),
+                        new LaneData("Review", null),
+                        new LaneData("Done", null)));
         var lanes = boardService.findLanes(freshBoard.id());
         assertEquals(4, lanes.size());
         assertEquals("Backlog", lanes.get(0).name());
@@ -512,14 +503,7 @@ class BoardServiceTest extends RepositoryTestBase {
     @Order(82)
     void ticketFieldValues() {
         boardService.replaceFields(
-                boardId,
-                List.of(new dev.chojo.ember.feature.board.entity.BoardField(
-                        0,
-                        boardId,
-                        "F",
-                        "string",
-                        dev.chojo.ember.feature.board.entity.BoardFieldConfig.parse("{}"),
-                        0)));
+                boardId, List.of(new BoardField(0, boardId, "F", "string", BoardFieldConfig.parse("{}"), 0)));
         var fields = boardService.findFields(boardId);
         int fid = fields.getFirst().id();
         ticketService.setFieldValue(ticketId1, fid, "test");
@@ -598,15 +582,7 @@ class BoardServiceTest extends RepositoryTestBase {
     @Test
     @Order(874)
     void ticketCreateAndDelete() {
-        var tk = ticketService.createTicket(
-                boardId,
-                laneId,
-                "Temp",
-                null,
-                null,
-                dev.chojo.ember.feature.board.entity.TicketPriority.LOW,
-                null,
-                member.id());
+        var tk = ticketService.createTicket(boardId, laneId, "Temp", null, null, TicketPriority.LOW, null, member.id());
         assertTrue(ticketService.deleteTicket(tk.id()));
     }
 
@@ -614,29 +590,15 @@ class BoardServiceTest extends RepositoryTestBase {
     @Order(876)
     void ticketUpdateWithNotify() {
         ticketService.watchTicket(ticketId1, member.id());
-        assertTrue(ticketService.updateTicket(
-                ticketId1,
-                "Updated",
-                "Desc",
-                null,
-                dev.chojo.ember.feature.board.entity.TicketPriority.HIGH,
-                null,
-                member.id()));
+        assertTrue(
+                ticketService.updateTicket(ticketId1, "Updated", "Desc", null, TicketPriority.HIGH, null, member.id()));
         ticketService.unwatchTicket(ticketId1, member.id());
     }
 
     @Test
     @Order(877)
     void ticketReorderAndLinks() {
-        var tmp = ticketService.createTicket(
-                boardId,
-                laneId,
-                "Tmp",
-                null,
-                null,
-                dev.chojo.ember.feature.board.entity.TicketPriority.LOW,
-                null,
-                member.id());
+        var tmp = ticketService.createTicket(boardId, laneId, "Tmp", null, null, TicketPriority.LOW, null, member.id());
         ticketService.reorderTickets(laneId, List.of(ticketId1, tmp.id()));
         ticketService.linkTickets(ticketId1, tmp.id(), dev.chojo.ember.feature.board.entity.LinkType.RELATES_TO);
         assertFalse(ticketService.findLinks(ticketId1).isEmpty());
@@ -722,13 +684,12 @@ class BoardServiceTest extends RepositoryTestBase {
             // Create a lane_assignee field pointing to lanes[1]
             boardService.replaceFields(
                     boardId,
-                    List.of(new dev.chojo.ember.feature.board.entity.BoardField(
+                    List.of(new BoardField(
                             0,
                             boardId,
                             "Reviewer",
                             "lane_assignee",
-                            new dev.chojo.ember.feature.board.entity.BoardFieldConfig(
-                                    false, List.of(), lanes.get(1).id()),
+                            new BoardFieldConfig(false, List.of(), lanes.get(1).id()),
                             0)));
             var fields = boardService.findFields(boardId);
             int fieldId = fields.getFirst().id();

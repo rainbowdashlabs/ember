@@ -55,6 +55,11 @@ const router = createRouter({
             component: LoginView,
         },
         {
+            path: '/requirements',
+            name: 'requirements',
+            component: () => import('@/views/PostLoginRequirementsView.vue'),
+        },
+        {
             path: '/forgot-password',
             name: 'forgot-password',
             component: ForgotPasswordView,
@@ -655,6 +660,11 @@ const router = createRouter({
                     path: 'boards/:boardId',
                     name: 'board-view',
                     component: () => import('@/views/stationview/boards/BoardView.vue'),
+                },
+                {
+                    path: 'boards/:boardId/tickets/new',
+                    name: 'ticket-create',
+                    component: () => import('@/views/stationview/boards/TicketCreateView.vue'),
                 },
                 {
                     path: 'boards/:boardId/tickets/:ticketId',
@@ -1399,6 +1409,11 @@ const router = createRouter({
                     component: () => import('@/views/helpcenter/stationview/boards/BoardSettingsHelp.vue')
                 },
                 {
+                    path: 'boards/:boardId/tickets/new',
+                    name: 'help-ticket-create',
+                    component: () => import('@/views/helpcenter/stationview/boards/TicketCreateHelp.vue')
+                },
+                {
                     path: 'boards/:boardId/tickets/:ticketId',
                     name: 'help-ticket-detail',
                     component: () => import('@/views/helpcenter/stationview/boards/TicketDetailHelp.vue')
@@ -1534,7 +1549,7 @@ const router = createRouter({
 })
 
 router.beforeEach((to) => {
-    const publicRoutes = ['home', 'login', 'forgot-password', 'set-password', 'reset-password', 'apply', 'apply-verify', 'waitlist-register', 'waitlist-status', 'style', 'privacy', 'terms', 'imprint', 'patch-notes', 'not-found']
+    const publicRoutes = ['home', 'login', 'requirements', 'forgot-password', 'set-password', 'reset-password', 'apply', 'apply-verify', 'waitlist-register', 'waitlist-status', 'style', 'privacy', 'terms', 'imprint', 'patch-notes', 'not-found']
     if (publicRoutes.includes(to.name as string)) {
         return true
     }
@@ -1556,6 +1571,14 @@ router.beforeEach((to) => {
     const {needsReconsent} = useConsentGuard()
     if (needsReconsent.value && to.name !== 'reconsent') {
         return {name: 'reconsent'}
+    }
+
+    // Redirect to requirements if inactive for more than 1 hour
+    const lastActivity = localStorage.getItem('ember_last_activity')
+    const now = Date.now()
+    localStorage.setItem('ember_last_activity', String(now))
+    if (lastActivity && now - Number(lastActivity) > 3600000 && to.name !== 'requirements') {
+        return {name: 'requirements', query: {redirect: to.fullPath}}
     }
 
     return true

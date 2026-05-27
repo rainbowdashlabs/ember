@@ -607,8 +607,11 @@ public class EventRoutes implements Routes {
             memberId = session.member().id();
         }
 
-        // Check eligibility using restrictions (DB resolves roles/groups/tags + manager bypass)
-        if (!eventService.isMemberEligible(eventId, memberId)) {
+        // Check eligibility — skip when an event manager registers on behalf of another member
+        boolean isManagerRegistration = req.memberId() != null
+                && req.memberId() != session.member().id()
+                && session.hasRole(Roles.EVENT_MANAGER);
+        if (!isManagerRegistration && !eventService.isMemberEligible(eventId, memberId)) {
             throw new BadRequestResponse("Member is not eligible for this event");
         }
 

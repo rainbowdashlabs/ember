@@ -462,6 +462,7 @@ export interface Form {
     status: FormStatusName
     shuffleQuestions: boolean
     allowEdit: boolean
+    forced?: boolean
     startAt?: string | null
     endAt?: string | null
     closedAt?: string | null

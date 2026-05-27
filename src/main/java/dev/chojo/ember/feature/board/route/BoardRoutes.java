@@ -23,7 +23,10 @@ import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
+import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
+import java.util.Random;
 
 @Singleton
 public class BoardRoutes implements Routes {
@@ -107,7 +110,7 @@ public class BoardRoutes implements Routes {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
         boolean editable = session.member() != null
                 && boardService.canEdit(id, session.member().id());
-        ctx.json(java.util.Map.of("canEdit", editable));
+        ctx.json(Map.of("canEdit", editable));
     }
 
     private void update(Context ctx) {
@@ -150,9 +153,7 @@ public class BoardRoutes implements Routes {
         var req = ctx.bodyAsClass(LaneRequest[].class);
         boardService.replaceLanes(
                 id,
-                java.util.Arrays.stream(req)
-                        .map(l -> new LaneData(l.name(), l.color()))
-                        .toList());
+                Arrays.stream(req).map(l -> new LaneData(l.name(), l.color())).toList());
         ctx.json(boardService.findLanes(id));
     }
 
@@ -170,7 +171,7 @@ public class BoardRoutes implements Routes {
         var req = ctx.bodyAsClass(FieldRequest[].class);
         boardService.replaceFields(
                 id,
-                java.util.Arrays.stream(req)
+                Arrays.stream(req)
                         .map(f -> new BoardField(
                                 0,
                                 id,
@@ -266,7 +267,7 @@ public class BoardRoutes implements Routes {
     private static String randomColor() {
         var colors =
                 new String[] {"#ef4444", "#f59e0b", "#22c55e", "#3b82f6", "#8b5cf6", "#ec4899", "#14b8a6", "#f97316"};
-        return colors[new java.util.Random().nextInt(colors.length)];
+        return colors[new Random().nextInt(colors.length)];
     }
 
     // -- Request/Response records --

@@ -252,12 +252,12 @@ class ConsentServiceTest extends RepositoryTestBase {
 
         var service2 = new ConsentService(accountRepo, apiConfig2);
         // First init — all documents are new, so changed=true
-        assertDoesNotThrow(() -> service2.initialize());
+        assertDoesNotThrow(service2::initialize);
         // Second init — same content, so changed=false (exercises the else branch)
-        assertDoesNotThrow(() -> service2.initialize());
+        assertDoesNotThrow(service2::initialize);
 
         // Modify one doc and re-init to trigger the log.warn with mixed changed/unchanged
         Files.writeString(freshPrivacy.resolve("de").resolve("01-privacy.md"), "# Privacy v3\nUpdated again.");
-        assertDoesNotThrow(() -> service2.initialize());
+        assertDoesNotThrow(service2::initialize);
     }
 }

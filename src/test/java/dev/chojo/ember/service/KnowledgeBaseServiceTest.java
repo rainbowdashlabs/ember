@@ -20,6 +20,7 @@ import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -355,18 +356,18 @@ class KnowledgeBaseServiceTest extends RepositoryTestBase {
         var file = service.createLinkFile(
                 station.id(), null, "Google", "Search engine", "https://google.com", member.id());
         assertNotNull(file);
-        assertEquals(dev.chojo.ember.feature.knowledgebase.entity.KbFileType.LINK, file.fileType());
+        assertEquals(KbFileType.LINK, file.fileType());
         service.deleteFile(file.id());
     }
 
     @Test
     @Order(93)
     void createUploadedTextFile() {
-        byte[] data = "plain text content".getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        byte[] data = "plain text content".getBytes(StandardCharsets.UTF_8);
         var file = service.createUploadedFile(
                 station.id(), null, "notes.txt", "Some notes", data, "text/plain", member.id());
         assertNotNull(file);
-        assertEquals(dev.chojo.ember.feature.knowledgebase.entity.KbFileType.TEXT, file.fileType());
+        assertEquals(KbFileType.TEXT, file.fileType());
         var content = service.getMarkdownContent(file.id());
         assertTrue(content.isPresent());
         assertEquals("plain text content", content.get());
@@ -380,7 +381,7 @@ class KnowledgeBaseServiceTest extends RepositoryTestBase {
         var file =
                 service.createUploadedFile(station.id(), null, "photo.png", "A photo", data, "image/png", member.id());
         assertNotNull(file);
-        assertEquals(dev.chojo.ember.feature.knowledgebase.entity.KbFileType.IMAGE, file.fileType());
+        assertEquals(KbFileType.IMAGE, file.fileType());
         service.deleteFile(file.id());
     }
 
@@ -449,11 +450,11 @@ class KnowledgeBaseServiceTest extends RepositoryTestBase {
     @Test
     @Order(89)
     void createUploadedMarkdownFile() {
-        byte[] data = "# Markdown Content".getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        byte[] data = "# Markdown Content".getBytes(StandardCharsets.UTF_8);
         var file = service.createUploadedFile(
                 station.id(), null, "doc.md", "Markdown upload", data, "text/markdown", member.id());
         assertNotNull(file);
-        assertEquals(dev.chojo.ember.feature.knowledgebase.entity.KbFileType.MARKDOWN, file.fileType());
+        assertEquals(KbFileType.MARKDOWN, file.fileType());
         service.deleteFile(file.id());
     }
 
@@ -466,7 +467,7 @@ class KnowledgeBaseServiceTest extends RepositoryTestBase {
         var file = service.createUploadedFile(
                 station.id(), null, "file.dat", "Binary data", data, "application/octet-stream", member.id());
         assertNotNull(file);
-        assertEquals(dev.chojo.ember.feature.knowledgebase.entity.KbFileType.OTHER, file.fileType());
+        assertEquals(KbFileType.OTHER, file.fileType());
         service.deleteFile(file.id());
     }
 
@@ -482,8 +483,7 @@ class KnowledgeBaseServiceTest extends RepositoryTestBase {
     @Order(93)
     void isPubliclyVisibleDenyAllWithOverride() {
         service.setPublicVisibility(folderId, null, true);
-        assertTrue(service.isPubliclyVisible(
-                dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode.DENY_ALL, folderId, null));
+        assertTrue(service.isPubliclyVisible(PublicKbMode.DENY_ALL, folderId, null));
         service.removePublicVisibility(folderId, null);
     }
 
@@ -491,8 +491,7 @@ class KnowledgeBaseServiceTest extends RepositoryTestBase {
     @Order(94)
     void isPubliclyVisibleAllowAllWithOptOut() {
         service.setPublicVisibility(folderId, null, false);
-        assertFalse(service.isPubliclyVisible(
-                dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode.ALLOW_ALL, folderId, null));
+        assertFalse(service.isPubliclyVisible(PublicKbMode.ALLOW_ALL, folderId, null));
         service.removePublicVisibility(folderId, null);
     }
 
@@ -510,7 +509,7 @@ class KnowledgeBaseServiceTest extends RepositoryTestBase {
                 "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
                 member.id());
         assertNotNull(file);
-        assertEquals(dev.chojo.ember.feature.knowledgebase.entity.KbFileType.YOUTUBE, file.fileType());
+        assertEquals(KbFileType.YOUTUBE, file.fileType());
         service.deleteFile(file.id());
     }
 
@@ -536,11 +535,11 @@ class KnowledgeBaseServiceTest extends RepositoryTestBase {
     @Order(103)
     void createUploadedPdfFile() {
         // Minimal valid-looking PDF (won't actually parse) — should create PDF type entry
-        byte[] pdfHeader = "%PDF-1.4\n%%EOF\n".getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        byte[] pdfHeader = "%PDF-1.4\n%%EOF\n".getBytes(StandardCharsets.UTF_8);
         var file = service.createUploadedFile(
                 station.id(), null, "document.pdf", "A PDF", pdfHeader, "application/pdf", member.id());
         assertNotNull(file);
-        assertEquals(dev.chojo.ember.feature.knowledgebase.entity.KbFileType.PDF, file.fileType());
+        assertEquals(KbFileType.PDF, file.fileType());
         service.deleteFile(file.id());
     }
 
@@ -551,28 +550,28 @@ class KnowledgeBaseServiceTest extends RepositoryTestBase {
         byte[] data = new byte[] {0x01, 0x02, 0x03};
         var file = service.createUploadedFile(station.id(), null, "report.pdf", "PDF by ext", data, null, member.id());
         assertNotNull(file);
-        assertEquals(dev.chojo.ember.feature.knowledgebase.entity.KbFileType.PDF, file.fileType());
+        assertEquals(KbFileType.PDF, file.fileType());
         service.deleteFile(file.id());
     }
 
     @Test
     @Order(105)
     void createUploadedFileByExtensionMarkdown() {
-        byte[] data = "# MD".getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        byte[] data = "# MD".getBytes(StandardCharsets.UTF_8);
         var file = service.createUploadedFile(
                 station.id(), null, "readme.markdown", "Markdown by ext", data, null, member.id());
         assertNotNull(file);
-        assertEquals(dev.chojo.ember.feature.knowledgebase.entity.KbFileType.MARKDOWN, file.fileType());
+        assertEquals(KbFileType.MARKDOWN, file.fileType());
         service.deleteFile(file.id());
     }
 
     @Test
     @Order(106)
     void createUploadedFileByExtensionTxt() {
-        byte[] data = "plain".getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        byte[] data = "plain".getBytes(StandardCharsets.UTF_8);
         var file = service.createUploadedFile(station.id(), null, "notes.txt", "Text by ext", data, null, member.id());
         assertNotNull(file);
-        assertEquals(dev.chojo.ember.feature.knowledgebase.entity.KbFileType.TEXT, file.fileType());
+        assertEquals(KbFileType.TEXT, file.fileType());
         service.deleteFile(file.id());
     }
 
@@ -583,7 +582,7 @@ class KnowledgeBaseServiceTest extends RepositoryTestBase {
         for (String ext : new String[] {"jpg", "jpeg", "gif", "webp", "svg"}) {
             var file = service.createUploadedFile(station.id(), null, "img." + ext, "Img", data, null, member.id());
             assertNotNull(file);
-            assertEquals(dev.chojo.ember.feature.knowledgebase.entity.KbFileType.IMAGE, file.fileType());
+            assertEquals(KbFileType.IMAGE, file.fileType());
             service.deleteFile(file.id());
         }
     }

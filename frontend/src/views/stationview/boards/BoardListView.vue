@@ -156,7 +156,7 @@ onMounted(loadBoards)
                 </div>
                 <div>
                     <FieldLabel class="mb-1">{{ t('boards.preset') }}</FieldLabel>
-                    <SelectInput v-model="createPreset">
+                    <SelectInput v-model="createPreset" class="w-full">
                         <option :value="LanePreset.SIMPLE">{{ t('boards.presetSimple') }}</option>
                         <option :value="LanePreset.FEEDBACK">{{ t('boards.presetFeedback') }}</option>
                         <option value="">{{ t('boards.presetNone') }}</option>

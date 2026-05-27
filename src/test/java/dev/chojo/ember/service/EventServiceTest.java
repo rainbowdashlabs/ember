@@ -9,6 +9,7 @@ import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.attendance.entity.AttendanceFieldConfig;
 import dev.chojo.ember.feature.attendance.entity.AttendanceFieldType;
+import dev.chojo.ember.feature.events.entity.EventFieldDefault;
 import dev.chojo.ember.feature.events.entity.EventRegistration;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.service.EventService;
@@ -26,6 +27,7 @@ import org.junit.jupiter.api.TestMethodOrder;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Set;
@@ -704,10 +706,8 @@ class EventServiceTest extends RepositoryTestBase {
         service.setFieldDefaults(
                 event.id(),
                 List.of(
-                        new dev.chojo.ember.feature.events.entity.EventFieldDefault(
-                                event.id(), fieldAId, "VALUE", "\"hardcoded\""),
-                        new dev.chojo.ember.feature.events.entity.EventFieldDefault(
-                                event.id(), fieldBId, "EVENT_NAME", null)));
+                        new EventFieldDefault(event.id(), fieldAId, "VALUE", "\"hardcoded\""),
+                        new EventFieldDefault(event.id(), fieldBId, "EVENT_NAME", null)));
 
         var resolved = service.resolveFieldDefaults(event.id());
         assertNotNull(resolved);
@@ -743,9 +743,7 @@ class EventServiceTest extends RepositoryTestBase {
                 null);
 
         service.setFieldDefaults(
-                event.id(),
-                List.of(new dev.chojo.ember.feature.events.entity.EventFieldDefault(
-                        event.id(), attendanceFieldId, "UNKNOWN_SOURCE", null)));
+                event.id(), List.of(new EventFieldDefault(event.id(), attendanceFieldId, "UNKNOWN_SOURCE", null)));
 
         var resolved = service.resolveFieldDefaults(event.id());
         // UNKNOWN_SOURCE returns null, so field should NOT be in result
@@ -779,9 +777,7 @@ class EventServiceTest extends RepositoryTestBase {
                 null);
 
         service.setFieldDefaults(
-                event.id(),
-                List.of(new dev.chojo.ember.feature.events.entity.EventFieldDefault(
-                        event.id(), attendanceFieldId, "EVENT_DESCRIPTION", null)));
+                event.id(), List.of(new EventFieldDefault(event.id(), attendanceFieldId, "EVENT_DESCRIPTION", null)));
 
         var resolved = service.resolveFieldDefaults(event.id());
         assertNotNull(resolved);
@@ -798,9 +794,8 @@ class EventServiceTest extends RepositoryTestBase {
     @Order(102)
     void findTodayEventsWithOneTimeMatchingToday() {
         // Create a ONE_TIME event with start time = today UTC
-        var todayStart = java.time.LocalDate.now(java.time.ZoneOffset.UTC)
-                .atStartOfDay(java.time.ZoneOffset.UTC)
-                .toInstant();
+        var todayStart =
+                LocalDate.now(ZoneOffset.UTC).atStartOfDay(ZoneOffset.UTC).toInstant();
         var todayEnd = todayStart.plus(2, ChronoUnit.HOURS);
 
         var event = service.create(

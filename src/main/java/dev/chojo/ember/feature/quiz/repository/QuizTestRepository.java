@@ -28,9 +28,9 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
 public class QuizTestRepository {
 
     private static final String TEST_COLUMNS =
-            "t.id, t.station_id, t.title, t.description, t.status, t.time_limit, t.shuffle, t.start_at, t.end_at, t.created_by, t.created_at, t.updated_at, t.restriction_mode, EXISTS(SELECT 1 FROM quiz_test_restriction r WHERE r.test_id = t.id) AS restricted";
+            "t.id, t.station_id, t.title, t.description, t.status, t.time_limit, t.shuffle, t.forced, t.start_at, t.end_at, t.created_by, t.created_at, t.updated_at, t.restriction_mode, EXISTS(SELECT 1 FROM quiz_test_restriction r WHERE r.test_id = t.id) AS restricted";
     private static final String TEST_COLUMNS_BARE =
-            "id, station_id, title, description, status, time_limit, shuffle, start_at, end_at, created_by, created_at, updated_at, restriction_mode, EXISTS(SELECT 1 FROM quiz_test_restriction r WHERE r.test_id = id) AS restricted";
+            "id, station_id, title, description, status, time_limit, shuffle, forced, start_at, end_at, created_by, created_at, updated_at, restriction_mode, EXISTS(SELECT 1 FROM quiz_test_restriction r WHERE r.test_id = id) AS restricted";
 
     // -- Tests --
 
@@ -57,6 +57,17 @@ public class QuizTestRepository {
                 .single(Call.of().bind("id", id))
                 .map(QuizTest.map())
                 .first();
+    }
+
+    public List<QuizTest> findForcedPending(int stationId, int memberId) {
+        return Query.query("SELECT " + TEST_COLUMNS
+                        + " FROM quiz_test t WHERE t.station_id = :station_id AND t.forced = true AND t.status = 'ACTIVE'"
+                        + " AND (t.start_at IS NULL OR t.start_at <= now()) AND (t.end_at IS NULL OR t.end_at >= now())"
+                        + " AND NOT EXISTS (SELECT 1 FROM quiz_test_attempt a WHERE a.test_id = t.id AND a.member_id = :member_id AND a.status IN ('SUBMITTED', 'GRADED'))"
+                        + " ORDER BY t.title;")
+                .single(Call.of().bind("station_id", stationId).bind("member_id", memberId))
+                .map(QuizTest.map())
+                .all();
     }
 
     public QuizTest create(

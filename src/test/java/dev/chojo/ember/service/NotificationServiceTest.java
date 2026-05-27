@@ -23,12 +23,12 @@ import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
@@ -533,7 +533,7 @@ class NotificationServiceTest extends RepositoryTestBase {
             Method m = NotificationService.class.getDeclaredMethod("processDigest");
             m.setAccessible(true);
             m.invoke(svc);
-        } catch (java.lang.reflect.InvocationTargetException e) {
+        } catch (InvocationTargetException e) {
             if (e.getCause() instanceof RuntimeException re) throw re;
             throw new RuntimeException(e.getCause());
         } catch (Exception e) {

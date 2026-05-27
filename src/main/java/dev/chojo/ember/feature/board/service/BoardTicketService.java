@@ -26,11 +26,15 @@ import dev.chojo.ember.feature.comment.entity.CommentEntityType;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.regex.Pattern;
 
 @Singleton
@@ -180,7 +184,7 @@ public class BoardTicketService {
             if (ticket != null) {
                 var fields = boardRepository.findFields(ticket.boardId());
                 var fieldValues = ticketRepository.findFieldValues(ticketId);
-                var fvMap = new java.util.HashMap<Integer, Object>();
+                var fvMap = new HashMap<Integer, Object>();
                 for (var fv : fieldValues) fvMap.put(fv.fieldId(), fv.value());
                 for (var field : fields) {
                     if ("lane_assignee".equals(field.fieldType())
@@ -337,12 +341,12 @@ public class BoardTicketService {
 
     public BoardTicketAttachment uploadAttachment(
             int ticketId, String originalName, String contentType, byte[] data, int uploadedBy) {
-        String filename = java.util.UUID.randomUUID() + "_" + originalName.replaceAll("[^a-zA-Z0-9._-]", "_");
+        String filename = UUID.randomUUID() + "_" + originalName.replaceAll("[^a-zA-Z0-9._-]", "_");
         var dir = ATTACHMENT_DIR.resolve(String.valueOf(ticketId));
         try {
-            java.nio.file.Files.createDirectories(dir);
-            java.nio.file.Files.write(dir.resolve(filename), data);
-        } catch (java.io.IOException e) {
+            Files.createDirectories(dir);
+            Files.write(dir.resolve(filename), data);
+        } catch (IOException e) {
             throw new RuntimeException("Failed to store attachment", e);
         }
         return ticketRepository.createAttachment(
@@ -354,8 +358,8 @@ public class BoardTicketService {
         if (att == null) return false;
         var file = ATTACHMENT_DIR.resolve(String.valueOf(att.ticketId())).resolve(att.filename());
         try {
-            java.nio.file.Files.deleteIfExists(file);
-        } catch (java.io.IOException e) {
+            Files.deleteIfExists(file);
+        } catch (IOException e) {
             // log but don't fail
         }
         return ticketRepository.deleteAttachment(id);

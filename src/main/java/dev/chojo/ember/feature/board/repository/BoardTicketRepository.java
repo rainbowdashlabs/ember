@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.board.repository;
 
 import de.chojo.sadu.queries.api.call.Call;
 import de.chojo.sadu.queries.api.query.Query;
+import de.chojo.sadu.queries.converter.StandardValueConverter;
 import dev.chojo.ember.feature.board.entity.BoardChecklistItem;
 import dev.chojo.ember.feature.board.entity.BoardComment;
 import dev.chojo.ember.feature.board.entity.BoardTicket;
@@ -24,8 +25,10 @@ import jakarta.inject.Singleton;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Singleton
 public class BoardTicketRepository {
@@ -168,10 +171,7 @@ public class BoardTicketRepository {
         Query.query("UPDATE board_ticket SET lane_entered_at = :entered WHERE id = :id;")
                 .single(Call.of()
                         .bind("id", ticketId)
-                        .bind(
-                                "entered",
-                                laneEnteredAt,
-                                de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIMESTAMP))
+                        .bind("entered", laneEnteredAt, StandardValueConverter.INSTANT_TIMESTAMP))
                 .update();
     }
 
@@ -452,12 +452,19 @@ public class BoardTicketRepository {
     // -- Search --
 
     public List<BoardTicket> search(int boardId, String query) {
-        return Query.query(TICKET_SELECT
-                        + " WHERE t.board_id = :board_id AND t.search_vector @@ plainto_tsquery('german', :query)"
-                        + " ORDER BY ts_rank(t.search_vector, plainto_tsquery('german', :query)) DESC, t.position;")
-                .single(Call.of().bind("board_id", boardId).bind("query", query))
+        String tsq = "to_tsquery('german', :tsquery)";
+        return Query.query(TICKET_SELECT + " WHERE t.board_id = :board_id AND t.search_vector @@ " + tsq
+                        + " ORDER BY ts_rank(t.search_vector, " + tsq + ") DESC, t.position LIMIT 10;")
+                .single(Call.of().bind("board_id", boardId).bind("tsquery", preparePrefixQuery(query)))
                 .map(BoardTicket.map())
                 .all();
+    }
+
+    private static String preparePrefixQuery(String query) {
+        return Arrays.stream(query.trim().split("\\s+"))
+                .filter(w -> !w.isBlank())
+                .map(w -> w.replaceAll("[^\\w\\p{L}]", "") + ":*")
+                .collect(Collectors.joining(" & "));
     }
 
     // -- Field values --
@@ -559,7 +566,7 @@ public class BoardTicketRepository {
                 .map(row -> new ActivityEntry(
                         row.getString("type"),
                         row.getInt("id"),
-                        row.get("ts", de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIMESTAMP)))
+                        row.get("ts", StandardValueConverter.INSTANT_TIMESTAMP)))
                 .all();
     }
 }

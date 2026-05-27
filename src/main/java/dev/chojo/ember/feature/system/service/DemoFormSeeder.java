@@ -20,6 +20,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 
 /**
@@ -164,8 +165,8 @@ public class DemoFormSeeder {
             formRepository.upsertAnswer(
                     existingResponse.id(),
                     surveyQuestions.get(5).id(),
-                    new FormAnswerValue.Likert(java.util.Map.of(
-                            "0", 3 + rng.nextInt(3), "1", 3 + rng.nextInt(3), "2", 2 + rng.nextInt(4))));
+                    new FormAnswerValue.Likert(
+                            Map.of("0", 3 + rng.nextInt(3), "1", 3 + rng.nextInt(3), "2", 2 + rng.nextInt(4))));
         }
 
         // Form 2: CLOSED comprehensive form with ALL types + responses
@@ -264,7 +265,7 @@ public class DemoFormSeeder {
             formRepository.upsertAnswer(
                     response.id(),
                     feedbackQuestions.get(5).id(),
-                    new FormAnswerValue.Likert(java.util.Map.of(
+                    new FormAnswerValue.Likert(Map.of(
                             "0",
                             3 + rng.nextInt(3),
                             "1",

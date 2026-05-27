@@ -199,3 +199,7 @@ CREATE INDEX idx_board_ticket_attachment ON ember_schema.board_ticket_attachment
 CREATE INDEX idx_board_label_board ON ember_schema.board_label(board_id);
 CREATE INDEX idx_board_ticket_label ON ember_schema.board_ticket_label(ticket_id);
 CREATE INDEX idx_board_ticket_history ON ember_schema.board_ticket_history(ticket_id);
+
+-- Forced forms and quizzes
+ALTER TABLE ember_schema.form ADD COLUMN IF NOT EXISTS forced BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE ember_schema.quiz_test ADD COLUMN IF NOT EXISTS forced BOOLEAN NOT NULL DEFAULT FALSE;

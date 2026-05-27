@@ -247,7 +247,7 @@ onMounted(loadData)
                             <div class="flex items-center gap-2">
                                 <font-awesome-icon :icon="['fas', 'grip-vertical']" class="text-[var(--text-muted)] cursor-grab" />
                                 <TextInput v-model="field.name" :placeholder="t('boards.fieldName')" class="flex-1" />
-                                <SelectInput v-model="field.fieldType" class="w-32">
+                                <SelectInput v-model="field.fieldType">
                                     <option v-for="ft in fieldTypeOptions" :key="ft.value" :value="ft.value">{{ t(ft.label) }}</option>
                                 </SelectInput>
                                 <IconButton :icon="['fas', 'chevron-up']" label="Move up" :disabled="index === 0" @click="moveField(index, -1)" />
@@ -273,7 +273,7 @@ onMounted(loadData)
                     </div>
                     <div class="flex gap-2 mt-3">
                         <TextInput v-model="newFieldName" :placeholder="t('boards.addField')" class="flex-1" @keydown.enter="addField" />
-                        <SelectInput v-model="newFieldType" class="w-32">
+                        <SelectInput v-model="newFieldType">
                             <option v-for="ft in fieldTypeOptions" :key="ft.value" :value="ft.value">{{ t(ft.label) }}</option>
                         </SelectInput>
                         <SecondaryButton @click="addField">

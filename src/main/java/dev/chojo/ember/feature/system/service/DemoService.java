@@ -52,13 +52,17 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
+import java.util.HexFormat;
 import java.util.List;
 import java.util.Random;
 import java.util.UUID;
@@ -196,8 +200,13 @@ public class DemoService {
 
     public void initialize() {
         if (demoConfig.dev()) {
-            log.info("Dev mode enabled. Seeding database once...");
+            if (schemaUnchanged()) {
+                log.info("Dev mode: schema unchanged, skipping seed.");
+                return;
+            }
+            log.info("Dev mode: schema changed, re-seeding database...");
             resetAndSeed();
+            writeSchemaHash();
             return;
         }
         if (!demoConfig.enabled()) return;
@@ -223,6 +232,47 @@ public class DemoService {
             log.info("Demo: {} minutes idle, resetting data...", idleMinutes);
             needsReset = false;
             resetAndSeed();
+        }
+    }
+
+    private static final Path SCHEMA_HASH_FILE = Path.of(".demo-schema-hash");
+
+    private boolean schemaUnchanged() {
+        try {
+            if (!Files.exists(SCHEMA_HASH_FILE)) return false;
+            var stored = Files.readString(SCHEMA_HASH_FILE).strip();
+            return stored.equals(computeSchemaHash());
+        } catch (Exception e) {
+            log.warn("Could not read schema hash, will re-seed", e);
+            return false;
+        }
+    }
+
+    private void writeSchemaHash() {
+        try {
+            Files.writeString(SCHEMA_HASH_FILE, computeSchemaHash());
+        } catch (Exception e) {
+            log.warn("Could not write schema hash file", e);
+        }
+    }
+
+    private String computeSchemaHash() {
+        try {
+            var digest = MessageDigest.getInstance("SHA-256");
+            // Hash the version file
+            try (InputStream is = getClass().getResourceAsStream("/database/version")) {
+                if (is != null) digest.update(is.readAllBytes());
+            }
+            // Hash all patch files in order
+            for (int i = 1; ; i++) {
+                try (InputStream is = getClass().getResourceAsStream("/database/postgresql/1/patch_" + i + ".sql")) {
+                    if (is == null) break;
+                    digest.update(is.readAllBytes());
+                }
+            }
+            return HexFormat.of().formatHex(digest.digest());
+        } catch (NoSuchAlgorithmException | IOException e) {
+            throw new RuntimeException("Failed to compute schema hash", e);
         }
     }
 
@@ -746,21 +796,18 @@ public class DemoService {
         }
 
         // -- Attendance templates --
-        var templateAnfaenger = attendanceRepository.createTemplate(station.id(), "Übung Anfänger");
+        var templateUebung = attendanceRepository.createTemplate(station.id(), "Übung");
         attendanceRepository.setTemplateGroups(
-                templateAnfaenger.id(), List.of(new AttendanceRepository.TemplateGroup(groupAnfaenger.id(), 0)));
+                templateUebung.id(),
+                List.of(
+                        new AttendanceRepository.TemplateGroup(groupAnfaenger.id(), 0),
+                        new AttendanceRepository.TemplateGroup(groupFortgeschritten.id(), 1)));
         attendanceRepository.createTemplateField(
-                templateAnfaenger.id(),
+                templateUebung.id(),
                 "Thema",
                 AttendanceFieldType.STRING,
                 AttendanceFieldConfig.parse("{\"defaultValue\":\"Grundausbildung\"}"),
                 0);
-
-        var templateFort = attendanceRepository.createTemplate(station.id(), "Übung Fortgeschritten");
-        attendanceRepository.setTemplateGroups(
-                templateFort.id(), List.of(new AttendanceRepository.TemplateGroup(groupFortgeschritten.id(), 0)));
-        attendanceRepository.createTemplateField(
-                templateFort.id(), "Thema", AttendanceFieldType.STRING, AttendanceFieldConfig.parse("{}"), 0);
 
         var templateGesamt = attendanceRepository.createTemplate(station.id(), "Gesamtübung");
         attendanceRepository.setTemplateGroups(
@@ -780,34 +827,18 @@ public class DemoService {
         // -- Events --
         Instant monStart = LocalDate.now().atTime(17, 30).toInstant(ZoneOffset.UTC);
         Instant monEnd = LocalDate.now().atTime(19, 0).toInstant(ZoneOffset.UTC);
-        Instant wedStart = LocalDate.now().atTime(18, 0).toInstant(ZoneOffset.UTC);
-        Instant wedEnd = LocalDate.now().atTime(19, 30).toInstant(ZoneOffset.UTC);
         Instant satStart = LocalDate.now().atTime(10, 0).toInstant(ZoneOffset.UTC);
         Instant satEnd = LocalDate.now().atTime(13, 0).toInstant(ZoneOffset.UTC);
 
-        var evAnfaenger = eventService.create(
+        var evUebung = eventService.create(
                 station.id(),
-                "Übung Anfänger",
-                "Grundausbildung für Anfänger",
+                "Übung",
+                "Wöchentliche Übung für alle Gruppen",
                 StationEvent.EventType.RECURRING,
                 1,
                 monStart,
                 monEnd,
-                templateAnfaenger.id(),
-                false,
-                null,
-                false,
-                catUebung.id(),
-                null);
-        var evFort = eventService.create(
-                station.id(),
-                "Übung Fortgeschritten",
-                "Training für Fortgeschrittene",
-                StationEvent.EventType.RECURRING,
-                3,
-                wedStart,
-                wedEnd,
-                templateFort.id(),
+                templateUebung.id(),
                 false,
                 null,
                 false,
@@ -883,11 +914,9 @@ public class DemoService {
 
         attendanceSeeder.seedAttendanceSessions(
                 rng,
-                templateAnfaenger,
-                templateFort,
+                templateUebung,
                 templateGesamt,
-                evAnfaenger,
-                evFort,
+                evUebung,
                 evGesamt,
                 anfaengerMembers,
                 fortgeschrittenMembers,
@@ -1278,7 +1307,7 @@ public class DemoService {
                 false);
         // Recurring event fields
         eventFieldRepository.create(
-                evAnfaenger.id(),
+                evUebung.id(),
                 "Ort",
                 EventFieldType.STRING,
                 EventFieldConfig.parse("{}"),
@@ -1288,31 +1317,11 @@ public class DemoService {
                 null,
                 true);
         eventFieldRepository.create(
-                evAnfaenger.id(),
+                evUebung.id(),
                 "Hinweis",
                 EventFieldType.STRING,
                 EventFieldConfig.parse("{}"),
                 "Sportkleidung mitbringen",
-                1,
-                false,
-                null,
-                false);
-        eventFieldRepository.create(
-                evFort.id(),
-                "Ort",
-                EventFieldType.STRING,
-                EventFieldConfig.parse("{}"),
-                "Feuerwehrhaus Musterstadt",
-                0,
-                true,
-                null,
-                true);
-        eventFieldRepository.create(
-                evFort.id(),
-                "Hinweis",
-                EventFieldType.STRING,
-                EventFieldConfig.parse("{}"),
-                "Schutzausrüstung wird gestellt",
                 1,
                 false,
                 null,

@@ -499,7 +499,7 @@ class AuthServiceTest extends RepositoryTestBase {
         // Create account with credentials and force_password_change flag
         var account2 = accountRepo.create("force-pw@test.com", "Force", "Pw");
         accountRepo.setEmailVerified(account2.id());
-        var hasher = new dev.chojo.ember.auth.PasswordHasher();
+        var hasher = new PasswordHasher();
         accountRepo.createCredential(account2.id(), hasher.hash("TestPass123!"));
         accountRepo.setForcePasswordChange(account2.id(), true);
 

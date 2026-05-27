@@ -167,14 +167,14 @@ async function save() {
             </div>
             <div class="space-y-1">
               <FieldLabel>{{ t('eventTemplates.category') }}</FieldLabel>
-              <SelectInput v-model="categoryId">
+              <SelectInput v-model="categoryId" class="w-full">
                 <option value="">{{ t('eventTemplates.noCategory') }}</option>
                 <option v-for="cat in categories" :key="cat.id" :value="String(cat.id)">{{ cat.name }}</option>
               </SelectInput>
             </div>
             <div class="space-y-1">
               <FieldLabel>{{ t('eventTemplates.eventType') }}</FieldLabel>
-              <SelectInput v-model="eventType">
+              <SelectInput v-model="eventType" class="w-full">
                 <option value="">{{ t('eventTemplates.noDefault') }}</option>
                 <option :value="EventTypes.ONE_TIME">{{ t('events.typeOneTime') }}</option>
                 <option :value="EventTypes.RECURRING">{{ t('events.typeRecurring') }}</option>
@@ -185,7 +185,7 @@ async function save() {
             </div>
             <div class="space-y-1">
               <FieldLabel>{{ t('eventTemplates.attendanceTemplate') }}</FieldLabel>
-              <SelectInput v-model="attendanceTemplateId">
+              <SelectInput v-model="attendanceTemplateId" class="w-full">
                 <option value="">{{ t('eventTemplates.noDefault') }}</option>
                 <option v-for="tpl in attendanceTemplates" :key="tpl.id" :value="String(tpl.id)">{{ tpl.name }}</option>
               </SelectInput>

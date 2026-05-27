@@ -466,7 +466,7 @@ watch(ticketId, loadData)
                             <TextInput v-if="field.fieldType === 'string'" :model-value="(fieldValues[field.id] as string) ?? ''" @blur="(e: Event) => saveFieldValue(field.id, (e.target as HTMLInputElement).value || null)" />
                             <NumberInput v-else-if="field.fieldType === 'number'" :model-value="(fieldValues[field.id] as number) ?? 0" @blur="(e: Event) => saveFieldValue(field.id, Number((e.target as HTMLInputElement).value) || null)" />
                             <CheckboxInput v-else-if="field.fieldType === 'boolean'" :model-value="!!fieldValues[field.id]" @update:model-value="(v: boolean) => saveFieldValue(field.id, v)" />
-                            <SelectInput v-else-if="field.fieldType === 'enum'" :model-value="(fieldValues[field.id] as string) ?? ''" @update:model-value="(v: any) => saveFieldValue(field.id, v || null)">
+                            <SelectInput v-else-if="field.fieldType === 'enum'" class="w-full" :model-value="(fieldValues[field.id] as string) ?? ''" @update:model-value="(v: any) => saveFieldValue(field.id, v || null)">
                                 <option value="">—</option>
                                 <option v-for="opt in (field.config?.options ?? [])" :key="opt" :value="opt">{{ opt }}</option>
                             </SelectInput>

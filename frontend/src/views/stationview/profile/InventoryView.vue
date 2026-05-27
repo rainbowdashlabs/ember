@@ -244,7 +244,7 @@ async function submitExchange() {
           </p>
           <div v-if="exchangeSizes.length > 0" class="space-y-1">
             <FieldLabel>{{ t('exchanges.newSize') }}</FieldLabel>
-            <SelectInput v-model="exchangeNewSizeId">
+            <SelectInput v-model="exchangeNewSizeId" class="w-full">
               <option value="" disabled>{{ t('exchanges.selectNewSize') }}</option>
               <option v-for="size in exchangeSizes" :key="size.id" :value="String(size.id)">{{ size.label }}</option>
             </SelectInput>

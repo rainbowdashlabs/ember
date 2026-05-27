@@ -12,6 +12,8 @@ import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.form.entity.FormQuestionConfig;
 import dev.chojo.ember.feature.form.entity.QuestionType;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
+import dev.chojo.ember.feature.members.entity.MemberGroup;
+import dev.chojo.ember.feature.members.entity.ProfileField;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
 import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
 import dev.chojo.ember.feature.members.entity.ProfileFieldType;
@@ -381,7 +383,7 @@ class StationTransferTest extends RepositoryTestBase {
         // Groups
         var importedGroups = memberGroupRepo.findByStation(result.stationId());
         assertEquals(2, importedGroups.size());
-        var groupNames = importedGroups.stream().map(g -> g.name()).sorted().toList();
+        var groupNames = importedGroups.stream().map(MemberGroup::name).sorted().toList();
         assertEquals(List.of("Anfänger", "Fortgeschrittene"), groupNames);
 
         // Tags
@@ -391,7 +393,8 @@ class StationTransferTest extends RepositoryTestBase {
         // Profile fields
         var importedFields = profileFieldRepo.findByStation(result.stationId());
         assertEquals(3, importedFields.size());
-        var fieldNames = importedFields.stream().map(f -> f.name()).sorted().toList();
+        var fieldNames =
+                importedFields.stream().map(ProfileField::name).sorted().toList();
         assertEquals(List.of("Geburtstag", "Notizen", "Telefon"), fieldNames);
 
         // Events

@@ -19,6 +19,7 @@ import Modal from '@/components/feedback/Modal.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
+import MultiSelectDropdown from '@/components/input/select/MultiSelectDropdown.vue'
 import MemberSelectInput from '@/components/input/select/MemberSelectInput.vue'
 import DateInput from '@/components/input/datetime/DateInput.vue'
 import MarkdownEditor from '@/components/input/MarkdownEditor.vue'
@@ -43,7 +44,7 @@ const loading = ref(true)
 const error = ref('')
 
 const assigneeFilter = ref<Set<number>>(new Set())
-const labelFilter = ref<Set<number>>(new Set())
+const labelFilter = ref<string[]>([])
 const allLabels = ref<BoardLabel[]>([])
 const ticketLabelMap = ref<Map<number, number[]>>(new Map())
 const showCreateModal = ref(false)
@@ -54,8 +55,6 @@ const createPriority = ref<TicketPriorityName>(TicketPriority.MEDIUM)
 const createAssignee = ref('')
 const createDueDate = ref('')
 const createError = ref('')
-
-
 const searchQuery = ref('')
 const searchResults = ref<BoardTicket[] | null>(null)
 const searching = ref(false)
@@ -82,8 +81,9 @@ async function loadData() {
         const map = new Map<number, number[]>()
         for (const { ticketId, labelId } of tlm) { if (!map.has(ticketId)) map.set(ticketId, []); map.get(ticketId)!.push(labelId) }
         ticketLabelMap.value = map
-        if (l.length > 0 && !createLaneId.value) {
-            createLaneId.value = String(l[0].id)
+        if (!createLaneId.value) {
+            const firstAllowed = b.backlogLaneId ?? l.find(la => la.id !== b.backlogLaneId)?.id
+            if (firstAllowed) createLaneId.value = String(firstAllowed)
         }
     } catch {
         error.value = t('common.error')
@@ -100,8 +100,9 @@ function ticketsForLane(laneId: number): BoardTicket[] {
     if (assigneeFilter.value.size > 0) {
         filtered = filtered.filter(t => t.assignedMemberId !== null && assigneeFilter.value.has(t.assignedMemberId))
     }
-    if (labelFilter.value.size > 0) {
-        filtered = filtered.filter(t => { const ids = ticketLabelMap.value.get(t.id) ?? []; return ids.some(id => labelFilter.value.has(id)) })
+    if (labelFilter.value.length > 0) {
+        const filterIds = new Set(labelFilter.value.map(Number))
+        filtered = filtered.filter(t => { const ids = ticketLabelMap.value.get(t.id) ?? []; return ids.some(id => filterIds.has(id)) })
     }
     return filtered.sort((a, b) => a.position - b.position)
 }
@@ -111,11 +112,15 @@ function labelsForTicket(ticketId: number): BoardLabel[] {
     return allLabels.value.filter(l => ids.includes(l.id))
 }
 
-function toggleLabelFilter(labelId: number) {
-    const next = new Set(labelFilter.value)
-    if (next.has(labelId)) next.delete(labelId); else next.add(labelId)
-    labelFilter.value = next
-}
+const labelFilterOptions = computed(() => allLabels.value.map(l => ({ value: String(l.id), label: l.name })))
+
+const createLaneOptions = computed(() => {
+    const options: BoardLane[] = []
+    if (backlogLane.value) options.push(backlogLane.value)
+    const firstVisible = visibleLanes.value[0]
+    if (firstVisible) options.push(firstVisible)
+    return options
+})
 
 function isLastLane(laneId: number): boolean {
     const vl = visibleLanes.value
@@ -151,7 +156,7 @@ async function handleCreateTicket() {
         return
     }
     try {
-        await boards.createTicket(boardId.value, {
+        const created = await boards.createTicket(boardId.value, {
             laneId: Number(createLaneId.value),
             title: createTitle.value.trim(),
             description: createDescription.value.trim() || undefined,
@@ -165,7 +170,7 @@ async function handleCreateTicket() {
         createPriority.value = TicketPriority.MEDIUM
         createAssignee.value = ''
         createDueDate.value = ''
-        await loadData()
+        router.push(`/station/boards/${boardId.value}/tickets/${created.id}`)
     } catch {
         createError.value = t('common.error')
     }
@@ -199,6 +204,32 @@ function onSearchInput() {
 
 function openTicketDetail(ticket: BoardTicket) {
     router.push(`/station/boards/${boardId.value}/tickets/${ticket.id}`)
+}
+
+function laneName(laneId: number): string {
+    return lanes.value.find(l => l.id === laneId)?.name ?? ''
+}
+
+function priorityIcon(priority: TicketPriorityName): string[] {
+    switch (priority) {
+        case TicketPriority.HIGHEST: return ['fas', 'angles-up']
+        case TicketPriority.HIGH: return ['fas', 'angle-up']
+        case TicketPriority.MEDIUM: return ['fas', 'equals']
+        case TicketPriority.LOW: return ['fas', 'angle-down']
+        case TicketPriority.LOWEST: return ['fas', 'angles-down']
+        default: return ['fas', 'minus']
+    }
+}
+
+function priorityColor(priority: TicketPriorityName): string {
+    switch (priority) {
+        case TicketPriority.HIGHEST: return 'text-red-500'
+        case TicketPriority.HIGH: return 'text-orange-500'
+        case TicketPriority.MEDIUM: return 'text-yellow-500'
+        case TicketPriority.LOW: return 'text-blue-400'
+        case TicketPriority.LOWEST: return 'text-gray-400'
+        default: return 'text-gray-400'
+    }
 }
 
 // -- Drag and drop --
@@ -244,18 +275,25 @@ async function onLaneDrop(laneId: number) {
     dropLaneId.value = null
     dropPosition.value = null
 
+    // Optimistic update: apply changes locally first to avoid flicker
+    const otherTickets = tickets.value.filter(t => t.laneId === laneId && t.id !== ticket.id).sort((a, b) => a.position - b.position)
+    otherTickets.splice(pos, 0, ticket)
+    // Update positions and lane assignment in local state
+    const updatedTicket = { ...ticket, laneId, laneEnteredAt: ticket.laneId !== laneId ? new Date().toISOString() : ticket.laneEnteredAt }
+    tickets.value = tickets.value.filter(t => t.id !== ticket.id).map(t => {
+        const idx = otherTickets.findIndex(ot => ot.id === t.id)
+        return idx >= 0 ? { ...t, position: idx } : t
+    })
+    tickets.value.push({ ...updatedTicket, position: pos })
+
     if (ticket.laneId === laneId) {
-        const laneTickets = ticketsForLane(laneId).filter(t => t.id !== ticket.id)
-        laneTickets.splice(pos, 0, ticket)
         try {
-            await boards.reorderTickets(boardId.value, ticket.id, { laneId, orderedIds: laneTickets.map(t => t.id) })
-            await loadData()
-        } catch { /* ignore */ }
+            await boards.reorderTickets(boardId.value, ticket.id, { laneId, orderedIds: otherTickets.map(t => t.id) })
+        } catch { await loadData() }
     } else {
         try {
             await boards.moveTicket(boardId.value, ticket.id, { toLaneId: laneId, position: pos })
-            await loadData()
-        } catch { /* ignore */ }
+        } catch { await loadData() }
     }
 }
 
@@ -282,16 +320,30 @@ watch(boardId, loadData)
                 </div>
                 <div class="flex items-center gap-2">
                     <div class="relative">
-                        <TextInput v-model="searchQuery" :placeholder="t('boards.searchTickets')" class="w-64" @input="onSearchInput" />
-                        <div v-if="searchResults && searchResults.length > 0" class="absolute z-20 mt-1 w-full rounded-theme border border-(--border) bg-(--bg) shadow-lg overflow-hidden max-h-48 overflow-y-auto">
+                        <TextInput v-model="searchQuery" :placeholder="t('boards.searchTickets')" class="w-96" @input="onSearchInput" />
+                        <div v-if="searchResults && searchResults.length > 0" class="absolute z-20 mt-1 w-[28rem] right-0 rounded-theme border border-(--border) bg-(--bg) shadow-lg overflow-hidden">
                             <div
                                 v-for="result in searchResults"
                                 :key="result.id"
                                 class="px-3 py-2 text-sm cursor-pointer hover:bg-primary/5 flex items-center gap-2"
                                 @click="openTicketDetail(result); searchQuery = ''; searchResults = null"
                             >
-                                <span class="font-mono text-(--text-muted)">{{ board.shortKey }}-{{ result.ticketNumber }}</span>
-                                <span class="truncate">{{ result.title }}</span>
+                                <!-- Left: id + title + labels -->
+                                <div class="flex-1 min-w-0">
+                                    <div class="flex items-center gap-1.5">
+                                        <span class="font-mono text-xs text-(--text-muted) shrink-0">{{ board.shortKey }}-{{ result.ticketNumber }}</span>
+                                        <span class="truncate">{{ result.title }}</span>
+                                    </div>
+                                    <div v-if="labelsForTicket(result.id).length > 0" class="flex flex-wrap gap-1 mt-0.5">
+                                        <span v-for="label in labelsForTicket(result.id)" :key="label.id" class="text-[0.6rem] leading-tight px-1.5 py-px rounded-full text-white font-medium" :style="{ backgroundColor: label.color }">{{ label.name }}</span>
+                                    </div>
+                                </div>
+                                <!-- Right: lane, priority, avatar -->
+                                <div class="flex items-center gap-2 shrink-0 text-xs text-(--text-muted)">
+                                    <span class="px-1.5 py-0.5 rounded bg-(--bg-accent) text-[0.65rem]">{{ laneName(result.laneId) }}</span>
+                                    <font-awesome-icon :icon="priorityIcon(result.priority)" :class="priorityColor(result.priority)" />
+                                    <UserAvatar v-if="result.assignedMemberId" :member-id="result.assignedMemberId" :name="members.find(m => m.id === result.assignedMemberId)?.name" size="sm" />
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -322,16 +374,12 @@ watch(boardId, loadData)
                     </div>
                 </div>
                 <!-- Label filter -->
-                <div v-if="allLabels.length > 0" class="flex flex-wrap gap-1 items-center">
-                    <span v-for="label in allLabels" :key="label.id"
-                        class="text-xs px-2 py-0.5 rounded-full cursor-pointer transition-all"
-                        :class="labelFilter.has(label.id) ? 'ring-2 ring-offset-1 ring-[var(--text)]' : 'opacity-70 hover:opacity-100'"
-                        :style="{ backgroundColor: label.color, color: 'white' }"
-                        @click="toggleLabelFilter(label.id)">{{ label.name }}</span>
-                    <span v-if="labelFilter.size > 0" class="text-xs text-(--text-muted) cursor-pointer hover:underline ml-1" @click="labelFilter = new Set()">
-                        <font-awesome-icon :icon="['fas', 'xmark']" class="text-[0.6rem]" />
-                    </span>
-                </div>
+                <MultiSelectDropdown
+                    v-if="allLabels.length > 0"
+                    v-model="labelFilter"
+                    :options="labelFilterOptions"
+                    :placeholder="t('boards.labels')"
+                />
             </div>
 
             <!-- Kanban board -->
@@ -410,13 +458,13 @@ watch(boardId, loadData)
                     <div class="grid grid-cols-2 gap-4">
                         <div>
                             <FieldLabel class="mb-1">{{ t('boards.lanes') }}</FieldLabel>
-                            <SelectInput v-model="createLaneId">
-                                <option v-for="lane in lanes" :key="lane.id" :value="lane.id">{{ lane.name }}</option>
+                            <SelectInput v-model="createLaneId" class="w-full">
+                                <option v-for="lane in createLaneOptions" :key="lane.id" :value="lane.id">{{ lane.name }}</option>
                             </SelectInput>
                         </div>
                         <div>
                             <FieldLabel class="mb-1">{{ t('boards.priority') }}</FieldLabel>
-                            <SelectInput v-model="createPriority">
+                            <SelectInput v-model="createPriority" class="w-full">
                                 <option :value="TicketPriority.LOWEST">{{ t('boards.priorityLowest') }}</option>
                                 <option :value="TicketPriority.LOW">{{ t('boards.priorityLow') }}</option>
                                 <option :value="TicketPriority.MEDIUM">{{ t('boards.priorityMedium') }}</option>
@@ -436,7 +484,11 @@ watch(boardId, loadData)
                         </div>
                     </div>
                     <Alert v-if="createError" variant="error">{{ createError }}</Alert>
-                    <div class="flex justify-end">
+                    <div class="flex items-center justify-between">
+                        <SecondaryButton @click="showCreateModal = false; router.push({ path: `/station/boards/${board!.id}/tickets/new`, query: { title: createTitle || undefined, description: createDescription || undefined, laneId: createLaneId || undefined, priority: createPriority !== TicketPriority.MEDIUM ? createPriority : undefined, assignee: createAssignee || undefined, dueDate: createDueDate || undefined } })">
+                            <font-awesome-icon :icon="['fas', 'expand']" class="mr-1" />
+                            {{ t('boards.moreOptions') }}
+                        </SecondaryButton>
                         <PrimaryButton @click="handleCreateTicket">{{ t('common.create') }}</PrimaryButton>
                     </div>
                 </div>

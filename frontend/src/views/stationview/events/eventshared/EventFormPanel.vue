@@ -73,14 +73,14 @@ const {t} = useI18n()
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
       <div class="space-y-1">
         <FieldLabel>{{ t('events.category') }}</FieldLabel>
-        <SelectInput v-model="categoryId">
+        <SelectInput v-model="categoryId" class="w-full">
           <option value="">—</option>
           <option v-for="cat in categories" :key="cat.id" :value="String(cat.id)">{{ cat.name }}</option>
         </SelectInput>
       </div>
       <div class="space-y-1">
         <FieldLabel>{{ t('events.template') }}</FieldLabel>
-        <SelectInput v-model="templateId">
+        <SelectInput v-model="templateId" class="w-full">
           <option value="">—</option>
           <option v-for="tpl in templates" :key="tpl.id" :value="String(tpl.id)">{{ tpl.name }}</option>
         </SelectInput>
@@ -100,7 +100,7 @@ const {t} = useI18n()
             :label-b="t('events.typeRecurringShort')"
             @update:model-value="eventType = $event === 'onetime' ? EventTypes.ONE_TIME : EventTypes.RECURRING"
         />
-        <SelectInput v-if="eventType !== EventTypes.ONE_TIME" v-model="eventType">
+        <SelectInput v-if="eventType !== EventTypes.ONE_TIME" v-model="eventType" class="w-full">
           <option :value="EventTypes.RECURRING">{{ t('events.typeRecurring') }}</option>
           <option :value="EventTypes.MONTHLY_FIRST">{{ t('events.typeMonthlyFirst') }}</option>
           <option :value="EventTypes.QUARTERLY">{{ t('events.typeQuarterly') }}</option>
@@ -110,7 +110,7 @@ const {t} = useI18n()
 
       <div v-if="needsDayOfWeek(eventType)" class="space-y-1">
         <FieldLabel>{{ t('events.dayOfWeek') }}</FieldLabel>
-        <SelectInput v-model="dayOfWeek">
+        <SelectInput v-model="dayOfWeek" class="w-full">
           <option value="1">Montag</option>
           <option value="2">Dienstag</option>
           <option value="3">Mittwoch</option>

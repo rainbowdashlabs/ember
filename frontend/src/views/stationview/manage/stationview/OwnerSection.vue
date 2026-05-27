@@ -89,7 +89,7 @@ onMounted(loadManagers)
     <SectionHeader>{{ t('stationManage.ownerHandoverTitle') }}</SectionHeader>
     <p class="text-sm text-(--text-muted)">{{ t('stationManage.ownerHandoverHint') }}</p>
     <div v-if="managerMembers.length > 0" class="space-y-3">
-      <SelectInput v-model="newOwnerId">
+      <SelectInput v-model="newOwnerId" class="w-full">
         <option value="">{{ t('stationManage.ownerHandoverSelect') }}</option>
         <option v-for="m in managerMembers" :key="m.id" :value="m.id">{{ m.name }}</option>
       </SelectInput>

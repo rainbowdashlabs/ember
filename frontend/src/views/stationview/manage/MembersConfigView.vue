@@ -303,7 +303,7 @@ onMounted(loadFields)
         <!-- Group selector for GROUP tab -->
         <div v-if="activeTab === 'GROUP'" class="space-y-2">
           <FieldLabel>{{ t('membersConfig.selectGroup') }}</FieldLabel>
-          <SelectInput v-model="selectedGroupId">
+          <SelectInput v-model="selectedGroupId" class="w-full">
             <option disabled value="">{{ t('membersConfig.selectGroupPlaceholder') }}</option>
             <option v-for="group in availableGroups" :key="group.id" :value="String(group.id)">{{ group.name }}</option>
           </SelectInput>

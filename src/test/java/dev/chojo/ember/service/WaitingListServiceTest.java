@@ -5,7 +5,9 @@
  */
 package dev.chojo.ember.service;
 
+import dev.chojo.ember.api.Roles;
 import dev.chojo.ember.feature.mail.service.EmailService;
+import dev.chojo.ember.feature.members.entity.Role;
 import dev.chojo.ember.feature.notifications.service.NotificationService;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListEntryStatus;
@@ -391,7 +393,7 @@ class WaitingListServiceTest extends RepositoryTestBase {
         var invited = service.inviteEntry(entry.id());
         assertNotNull(invited.memberId());
         var withdrawn = service.withdrawEntry(invited.id());
-        assertEquals(dev.chojo.ember.feature.waitinglist.entity.WaitingListEntryStatus.WITHDRAWN, withdrawn.status());
+        assertEquals(WaitingListEntryStatus.WITHDRAWN, withdrawn.status());
     }
 
     @Test
@@ -424,10 +426,8 @@ class WaitingListServiceTest extends RepositoryTestBase {
         // Create testing group and join group
         var testingGroup = memberGroupRepo.create(station.id(), "WL Testing Group");
         var joinGroup = memberGroupRepo.create(station.id(), "WL Join Group");
-        var joinRole = stationMemberRepo
-                .findRoleByName(dev.chojo.ember.api.Roles.MEMBER)
-                .map(r -> r.id())
-                .orElse(null);
+        var joinRole =
+                stationMemberRepo.findRoleByName(Roles.MEMBER).map(Role::id).orElse(null);
 
         var list = service.create(
                 station.id(),

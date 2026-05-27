@@ -138,6 +138,14 @@ public class FormService {
         return repository.findById(id);
     }
 
+    public List<dev.chojo.ember.feature.system.service.RequirementsService.RequirementItem> findForcedPending(
+            int stationId, int memberId) {
+        return repository.findForcedPending(stationId, memberId).stream()
+                .map(f -> new dev.chojo.ember.feature.system.service.RequirementsService.RequirementItem(
+                        f.id(), f.title()))
+                .toList();
+    }
+
     /**
      * Creates a new form in DRAFT status.
      *

@@ -10,6 +10,7 @@ import dev.chojo.ember.feature.federation.entity.CapabilityType;
 import dev.chojo.ember.feature.federation.entity.ChangeType;
 import dev.chojo.ember.feature.federation.entity.ContentType;
 import dev.chojo.ember.feature.federation.entity.Direction;
+import dev.chojo.ember.feature.federation.entity.FederationMetadataCache;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.entity.ShareScope;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
@@ -25,6 +26,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 
 import java.time.Instant;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -434,7 +436,7 @@ class FederationServiceTest extends RepositoryTestBase {
         service.refreshMetadataCache(
                 partnerIdAtoB,
                 ContentType.KB,
-                java.util.List.of(new dev.chojo.ember.feature.federation.entity.FederationMetadataCache(
+                List.of(new FederationMetadataCache(
                         0, partnerIdAtoB, ContentType.KB, 42, "Test File", "Description", Instant.now())));
 
         var refreshed = service.getCachedMetadata(partnerIdAtoB, ContentType.KB);
