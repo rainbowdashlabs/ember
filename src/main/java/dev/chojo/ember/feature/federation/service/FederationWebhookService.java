@@ -145,6 +145,19 @@ public class FederationWebhookService {
     /**
      * Webhook event types for federation notifications.
      */
+    /**
+     * Fires a webhook event to a specific partner.
+     */
+    public void fireEventToPartner(int partnerId, WebhookEvent event, Map<String, Object> payload) {
+        var partner = repository.findPartnerById(partnerId);
+        if (partner.isEmpty()) return;
+        var p = partner.get();
+        if (p.status() != FederationPartner.FederationStatus.ACTIVE) return;
+        String webhookUrl = repository.getWebhookUrl(p.id());
+        if (webhookUrl == null || webhookUrl.isBlank()) return;
+        executor.submit(() -> deliverWebhook(p, webhookUrl, event, payload));
+    }
+
     public enum WebhookEvent {
         CONTENT_UPDATED,
         CONTENT_DELETED,
@@ -152,6 +165,13 @@ public class FederationWebhookService {
         FEDERATION_SUSPENDED,
         EVENT_REGISTRATION_ACCEPTED,
         EVENT_REGISTRATION_DENIED,
-        MEMBER_NAME_CHANGED
+        MEMBER_NAME_CHANGED,
+        BOARD_TICKET_CHANGED,
+        BOARD_MENTION,
+        BOARD_ASSIGNMENT,
+        BOARD_UNASSIGNMENT,
+        BOARD_RENAMED,
+        BOARD_UNSHARED,
+        BOARD_SHARE_MODE_CHANGED
     }
 }

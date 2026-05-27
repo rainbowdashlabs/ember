@@ -17,6 +17,7 @@ import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.attendance.repository.AttendanceRepository;
 import dev.chojo.ember.feature.board.repository.BoardRepository;
 import dev.chojo.ember.feature.board.repository.BoardTicketRepository;
+import dev.chojo.ember.feature.board.repository.FederatedBoardRepository;
 import dev.chojo.ember.feature.comment.repository.EventCommentRepository;
 import dev.chojo.ember.feature.comment.repository.NoteRepository;
 import dev.chojo.ember.feature.events.repository.EventFieldRepository;
@@ -110,6 +111,7 @@ public abstract class RepositoryTestBase {
     protected static ProblemReportRepository problemReportRepo;
     protected static BoardRepository boardRepo;
     protected static BoardTicketRepository boardTicketRepo;
+    protected static FederatedBoardRepository federatedBoardRepo;
 
     @BeforeAll
     static void setupDatabase() throws Exception {
@@ -197,5 +199,6 @@ public abstract class RepositoryTestBase {
         problemReportRepo = new ProblemReportRepository();
         boardRepo = new BoardRepository();
         boardTicketRepo = new BoardTicketRepository();
+        federatedBoardRepo = new FederatedBoardRepository();
     }
 }

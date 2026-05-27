@@ -50,6 +50,8 @@ import dev.chojo.ember.feature.account.route.SessionRoutes;
 import dev.chojo.ember.feature.attendance.route.AttendanceRoutes;
 import dev.chojo.ember.feature.board.route.BoardRoutes;
 import dev.chojo.ember.feature.board.route.BoardTicketRoutes;
+import dev.chojo.ember.feature.board.route.FederatedBoardLocalRoutes;
+import dev.chojo.ember.feature.board.route.FederatedBoardRemoteRoutes;
 import dev.chojo.ember.feature.comment.route.EventCommentRoutes;
 import dev.chojo.ember.feature.comment.route.NoteRoutes;
 import dev.chojo.ember.feature.events.route.EventRoutes;
@@ -184,6 +186,8 @@ public class EmberModule extends AbstractModule {
         routesBinder.addBinding().to(NoteRoutes.class);
         routesBinder.addBinding().to(BoardRoutes.class);
         routesBinder.addBinding().to(BoardTicketRoutes.class);
+        routesBinder.addBinding().to(FederatedBoardRemoteRoutes.class);
+        routesBinder.addBinding().to(FederatedBoardLocalRoutes.class);
         routesBinder.addBinding().to(RequirementsRoutes.class);
 
         // Domain event handlers

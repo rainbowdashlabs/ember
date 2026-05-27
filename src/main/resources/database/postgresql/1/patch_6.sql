@@ -203,3 +203,102 @@ CREATE INDEX idx_board_ticket_history ON ember_schema.board_ticket_history(ticke
 -- Forced forms and quizzes
 ALTER TABLE ember_schema.form ADD COLUMN IF NOT EXISTS forced BOOLEAN NOT NULL DEFAULT FALSE;
 ALTER TABLE ember_schema.quiz_test ADD COLUMN IF NOT EXISTS forced BOOLEAN NOT NULL DEFAULT FALSE;
+
+-- =====================================================
+-- Board Federation
+-- =====================================================
+
+-- Board sharing (which boards are shared with federation partners)
+CREATE TABLE ember_schema.federation_board_share (
+    id SERIAL PRIMARY KEY,
+    board_id INTEGER NOT NULL REFERENCES ember_schema.board(id) ON DELETE CASCADE,
+    UNIQUE(board_id)
+);
+
+-- Which partners the board is shared with + their access mode
+CREATE TABLE ember_schema.federation_board_share_target (
+    share_id INTEGER NOT NULL REFERENCES ember_schema.federation_board_share(id) ON DELETE CASCADE,
+    partner_id INTEGER NOT NULL REFERENCES ember_schema.federation_partner(id) ON DELETE CASCADE,
+    share_mode TEXT NOT NULL DEFAULT 'READ_ONLY', -- READ_ONLY, FULL
+    PRIMARY KEY (share_id, partner_id)
+);
+
+-- Role-based edit restrictions for federated partners (on the owning station)
+-- Only applies to FULL mode. Empty = all federated members can edit.
+CREATE TABLE ember_schema.federation_board_edit_role (
+    board_id INTEGER NOT NULL REFERENCES ember_schema.board(id) ON DELETE CASCADE,
+    role_id INTEGER NOT NULL,
+    PRIMARY KEY (board_id, role_id)
+);
+
+-- Federated ticket assignment (remote member assigned to a ticket on the owning station)
+CREATE TABLE ember_schema.board_ticket_federated_assignee (
+    ticket_id INTEGER NOT NULL REFERENCES ember_schema.board_ticket(id) ON DELETE CASCADE PRIMARY KEY,
+    partner_id INTEGER NOT NULL REFERENCES ember_schema.federation_partner(id) ON DELETE CASCADE,
+    remote_member_id TEXT NOT NULL
+);
+
+-- Federated comment authorship (comments created by remote members)
+CREATE TABLE ember_schema.board_ticket_federated_comment_author (
+    comment_id INTEGER NOT NULL REFERENCES ember_schema.board_ticket_comment(id) ON DELETE CASCADE PRIMARY KEY,
+    partner_id INTEGER NOT NULL REFERENCES ember_schema.federation_partner(id) ON DELETE CASCADE,
+    remote_member_id TEXT NOT NULL
+);
+
+-- Federated ticket creator (tickets created by remote members)
+CREATE TABLE ember_schema.board_ticket_federated_creator (
+    ticket_id INTEGER NOT NULL REFERENCES ember_schema.board_ticket(id) ON DELETE CASCADE PRIMARY KEY,
+    partner_id INTEGER NOT NULL REFERENCES ember_schema.federation_partner(id) ON DELETE CASCADE,
+    remote_member_id TEXT NOT NULL
+);
+
+-- Federated ticket watchers (remote members watching a ticket on the owning station)
+CREATE TABLE ember_schema.board_ticket_federated_watcher (
+    ticket_id INTEGER NOT NULL REFERENCES ember_schema.board_ticket(id) ON DELETE CASCADE,
+    partner_id INTEGER NOT NULL REFERENCES ember_schema.federation_partner(id) ON DELETE CASCADE,
+    remote_member_id TEXT NOT NULL,
+    PRIMARY KEY (ticket_id, partner_id, remote_member_id)
+);
+
+-- Local access override for federated boards (partner station restricts its own members)
+CREATE TABLE ember_schema.federation_board_local_view_override (
+    id SERIAL PRIMARY KEY,
+    partner_id INTEGER NOT NULL REFERENCES ember_schema.federation_partner(id) ON DELETE CASCADE,
+    remote_board_id INTEGER NOT NULL,
+    role_id INTEGER,
+    group_id INTEGER,
+    tag_id INTEGER
+);
+CREATE UNIQUE INDEX idx_fed_board_local_view_unique
+    ON ember_schema.federation_board_local_view_override(partner_id, remote_board_id, COALESCE(role_id, -1), COALESCE(group_id, -1), COALESCE(tag_id, -1));
+
+CREATE TABLE ember_schema.federation_board_local_edit_override (
+    id SERIAL PRIMARY KEY,
+    partner_id INTEGER NOT NULL REFERENCES ember_schema.federation_partner(id) ON DELETE CASCADE,
+    remote_board_id INTEGER NOT NULL,
+    role_id INTEGER,
+    group_id INTEGER,
+    tag_id INTEGER
+);
+CREATE UNIQUE INDEX idx_fed_board_local_edit_unique
+    ON ember_schema.federation_board_local_edit_override(partner_id, remote_board_id, COALESCE(role_id, -1), COALESCE(group_id, -1), COALESCE(tag_id, -1));
+
+-- User bookmarks for federated boards (appear in sidebar)
+CREATE TABLE ember_schema.federation_board_bookmark (
+    id SERIAL PRIMARY KEY,
+    member_id INTEGER NOT NULL REFERENCES ember_schema.station_member(id) ON DELETE CASCADE,
+    partner_id INTEGER NOT NULL REFERENCES ember_schema.federation_partner(id) ON DELETE CASCADE,
+    remote_board_id INTEGER NOT NULL,
+    remote_board_name TEXT NOT NULL,
+    remote_board_short_key TEXT NOT NULL,
+    share_mode TEXT NOT NULL DEFAULT 'READ_ONLY',
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    UNIQUE(member_id, partner_id, remote_board_id)
+);
+
+-- Board federation indexes
+CREATE INDEX idx_fed_board_share_target_partner ON ember_schema.federation_board_share_target(partner_id);
+CREATE INDEX idx_fed_board_bookmark_member ON ember_schema.federation_board_bookmark(member_id);
+CREATE INDEX idx_fed_board_bookmark_partner ON ember_schema.federation_board_bookmark(partner_id);
+CREATE INDEX idx_board_ticket_fed_assignee_partner ON ember_schema.board_ticket_federated_assignee(partner_id);
+CREATE INDEX idx_board_ticket_fed_watcher_partner ON ember_schema.board_ticket_federated_watcher(partner_id);

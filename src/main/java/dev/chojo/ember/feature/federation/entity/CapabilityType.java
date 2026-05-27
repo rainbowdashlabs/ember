@@ -10,5 +10,6 @@ public enum CapabilityType {
     QUIZ_SHARE,
     PROTOCOL_SHARE,
     INVENTORY_LEND,
-    EVENT_SHARE
+    EVENT_SHARE,
+    BOARD_SHARE
 }

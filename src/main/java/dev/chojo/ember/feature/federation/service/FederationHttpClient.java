@@ -20,6 +20,7 @@ import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 
 /**
  * HTTP client for cross-instance federation communication.
@@ -186,6 +187,27 @@ public class FederationHttpClient {
                 .build();
 
         return httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+    }
+
+    /**
+     * Performs a signed GET request and parses the response as a JSON list of maps.
+     */
+    @SuppressWarnings("unchecked")
+    public List<Map<String, Object>> signedGetList(
+            String remoteHost, String path, int localStationId, String localPrivateKeyBase64) {
+        try {
+            String url = apiUrl(remoteHost) + path;
+            var response = signedGet(url, localStationId, localPrivateKeyBase64);
+            if (response.statusCode() != 200) {
+                log.warn("Signed GET list failed for {}: HTTP {}", url, response.statusCode());
+                return List.of();
+            }
+            var type = mapper.getTypeFactory().constructCollectionType(List.class, Map.class);
+            return mapper.readValue(response.body(), type);
+        } catch (Exception e) {
+            log.error("Failed to fetch list from {} {}", remoteHost, path, e);
+            return List.of();
+        }
     }
 
     private HttpResponse<String> signedPost(String url, String body, int localStationId, String localPrivateKeyBase64)
