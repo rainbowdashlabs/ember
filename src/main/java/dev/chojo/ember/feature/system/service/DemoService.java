@@ -1721,6 +1721,8 @@ public class DemoService {
 
         // -- Boards --
         boardSeeder.seed(station.id(), adminMember, betreuerMembers, teamRole.id(), memberRole.id(), rng);
+        boardSeeder.seedSharedBoard(
+                station.id(), partnerStationId, adminMember, betreuerMembers, teamRole.id(), memberRole.id(), rng);
         log.info("Demo: Created board data");
 
         // -- Public Knowledge Base --

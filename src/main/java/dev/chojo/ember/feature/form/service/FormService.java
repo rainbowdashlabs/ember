@@ -27,6 +27,7 @@ import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.feature.restriction.RestrictionRepository;
 import dev.chojo.ember.feature.restriction.RestrictionSet;
 import dev.chojo.ember.feature.restriction.RestrictionType;
+import dev.chojo.ember.feature.system.service.RequirementsService;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
@@ -138,11 +139,9 @@ public class FormService {
         return repository.findById(id);
     }
 
-    public List<dev.chojo.ember.feature.system.service.RequirementsService.RequirementItem> findForcedPending(
-            int stationId, int memberId) {
+    public List<RequirementsService.RequirementItem> findForcedPending(int stationId, int memberId) {
         return repository.findForcedPending(stationId, memberId).stream()
-                .map(f -> new dev.chojo.ember.feature.system.service.RequirementsService.RequirementItem(
-                        f.id(), f.title()))
+                .map(f -> new RequirementsService.RequirementItem(f.id(), f.title()))
                 .toList();
     }
 

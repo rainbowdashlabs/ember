@@ -104,7 +104,7 @@ public class FederationWebhookService {
                             .header("X-Federation-Timestamp", timestamp)
                             .header("X-Federation-Signature", signature)
                             .header("X-Federation-Event", event.name())
-                            .header("X-Federation-Version", String.valueOf(FederationService.FEDERATION_VERSION))
+                            .header("X-Federation-Version", FederationService.FEDERATION_VERSION)
                             .POST(HttpRequest.BodyPublishers.ofString(body))
                             .timeout(Duration.ofSeconds(15))
                             .build();

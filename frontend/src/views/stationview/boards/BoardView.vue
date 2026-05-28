@@ -13,6 +13,7 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import IconButton from '@/components/button/IconButton.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
+import { contrastTextColor } from '@/theme/contrast'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import Modal from '@/components/feedback/Modal.vue'
@@ -335,7 +336,7 @@ watch(boardId, loadData)
                                         <span class="truncate">{{ result.title }}</span>
                                     </div>
                                     <div v-if="labelsForTicket(result.id).length > 0" class="flex flex-wrap gap-1 mt-0.5">
-                                        <span v-for="label in labelsForTicket(result.id)" :key="label.id" class="text-[0.6rem] leading-tight px-1.5 py-px rounded-full text-white font-medium" :style="{ backgroundColor: label.color }">{{ label.name }}</span>
+                                        <span v-for="label in labelsForTicket(result.id)" :key="label.id" class="text-[0.6rem] leading-tight px-1.5 py-px rounded-full font-medium" :style="{ backgroundColor: label.color, color: contrastTextColor(label.color) }">{{ label.name }}</span>
                                     </div>
                                 </div>
                                 <!-- Right: lane, priority, avatar -->
@@ -493,7 +494,6 @@ watch(boardId, loadData)
                     </div>
                 </div>
             </Modal>
-
         </template>
     </ViewContent>
 </template>

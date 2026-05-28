@@ -55,13 +55,13 @@ public class DiscoveryRoutes implements Routes {
     private void listDiscoverable(Context ctx) {
         // Determine exclude station and partner set (if authenticated)
         int excludeStationId = 0;
-        Set<Integer> partnerStationIds = Collections.emptySet();
+        Set<UUID> partnerStationUids = Collections.emptySet();
 
         UserSession session = ctx.attribute(ApiServer.ATTR_SESSION);
         if (session != null && session.stationId() != null) {
             excludeStationId = session.stationId();
             var existingPartners = federationService.findPartners(excludeStationId);
-            partnerStationIds = new HashSet<>(existingPartners.stream()
+            partnerStationUids = new HashSet<>(existingPartners.stream()
                     .map(FederationPartner::partnerStationId)
                     .toList());
         }
@@ -70,21 +70,21 @@ public class DiscoveryRoutes implements Routes {
         var discoverable = stationService.findDiscoverable(excludeStationId);
         var publicStations = stationService.findWithPublicContent(excludeStationId);
         var seen = new HashSet<Integer>();
-        Set<Integer> finalPartnerStationIds = partnerStationIds;
+        Set<UUID> finalPartnerStationUids = partnerStationUids;
 
         List<DiscoveryEntry> entries = new ArrayList<>();
         for (var s : discoverable) {
-            if (seen.add(s.id())) entries.add(toDiscoveryEntry(s, finalPartnerStationIds, false));
+            if (seen.add(s.id())) entries.add(toDiscoveryEntry(s, finalPartnerStationUids, false));
         }
         for (var s : publicStations) {
-            if (seen.add(s.id())) entries.add(toDiscoveryEntry(s, finalPartnerStationIds, false));
+            if (seen.add(s.id())) entries.add(toDiscoveryEntry(s, finalPartnerStationUids, false));
         }
 
         // Include own station at the top, marked as own
         if (session != null && session.stationId() != null) {
             stationService
                     .findById(session.stationId())
-                    .ifPresent(own -> entries.addFirst(toDiscoveryEntry(own, finalPartnerStationIds, true)));
+                    .ifPresent(own -> entries.addFirst(toDiscoveryEntry(own, finalPartnerStationUids, true)));
         }
 
         ctx.json(entries);
@@ -120,7 +120,8 @@ public class DiscoveryRoutes implements Routes {
                 .orElseThrow(() -> new NotFoundResponse("Station not found or not discoverable"));
 
         var existingPartners = federationService.findPartners(session.stationId());
-        boolean alreadyFederated = existingPartners.stream().anyMatch(p -> p.partnerStationId() == targetStation.id());
+        boolean alreadyFederated =
+                existingPartners.stream().anyMatch(p -> p.partnerStationId().equals(targetStation.uid()));
         if (alreadyFederated) {
             throw new BadRequestResponse("Already federated with this station");
         }
@@ -137,7 +138,7 @@ public class DiscoveryRoutes implements Routes {
         ctx.json(new MessageResponse("Federation request sent"));
     }
 
-    private DiscoveryEntry toDiscoveryEntry(Station s, Set<Integer> partnerIds, boolean isOwnStation) {
+    private DiscoveryEntry toDiscoveryEntry(Station s, Set<UUID> partnerUids, boolean isOwnStation) {
         return new DiscoveryEntry(
                 s.uid(),
                 s.name(),
@@ -145,7 +146,7 @@ public class DiscoveryRoutes implements Routes {
                 stationService.getLogo(s.id()).isPresent(),
                 s.discoveryShowKb() && s.publicKbMode() != PublicKbMode.OFF,
                 s.publicCalendarEnabled(),
-                partnerIds.contains(s.id()),
+                partnerUids.contains(s.uid()),
                 isOwnStation);
     }
 

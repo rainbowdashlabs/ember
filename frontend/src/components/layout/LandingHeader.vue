@@ -4,12 +4,13 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {onMounted} from 'vue'
+import {onMounted, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRouter} from 'vue-router'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import IconButton from '@/components/button/IconButton.vue'
 import {auth} from '@/api'
+import client from '@/api/client'
 import {getItem} from '@/api/storage'
 import {useSession} from '@/composables/useSession'
 import {useTheme} from '@/composables/useTheme'
@@ -18,12 +19,17 @@ import UserAvatar from '@/components/avatar/UserAvatar.vue'
 const {t} = useI18n()
 const router = useRouter()
 const {loaded, load, fullName, clear, sessionInfo} = useSession()
+const isDemo = ref(false)
 
-onMounted(() => {
+onMounted(async () => {
   const token = getItem('session_token')
   if (token && !loaded.value) {
     load()
   }
+  try {
+    const res = await client.get<{ demo?: boolean }>('/public/config')
+    isDemo.value = res.data.demo ?? false
+  } catch { /* ignore */ }
 })
 
 async function handleLogout() {
@@ -67,7 +73,7 @@ async function handleLogout() {
 
     <router-link v-else to="/login">
       <PrimaryButton>
-        {{ t('header.login') }}
+        {{ isDemo ? t('landing.tryNow') : t('header.login') }}
       </PrimaryButton>
     </router-link>
   </header>

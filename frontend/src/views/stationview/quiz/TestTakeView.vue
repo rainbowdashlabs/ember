@@ -395,7 +395,7 @@ onUnmounted(() => {
             :label="String(idx + 1)"
             class="w-7 h-7 rounded-full text-xs font-medium transition-colors"
             :class="{
-              'bg-primary text-white': idx === currentIndex,
+              'bg-primary text-primary-text': idx === currentIndex,
               'bg-primary/20 text-primary': idx !== currentIndex && answers.has(q.questionId) && answers.get(q.questionId) !== '',
               'bg-bg-light-accent dark:bg-bg-dark-accent text-(--text-muted)': idx !== currentIndex && (!answers.has(q.questionId) || answers.get(q.questionId) === ''),
             }"

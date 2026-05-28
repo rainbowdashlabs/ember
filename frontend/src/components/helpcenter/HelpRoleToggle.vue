@@ -66,7 +66,7 @@ const hint = computed(() => {
         v-for="role in roles"
         :key="role.key"
         :class="activeRole === role.key
-          ? 'bg-primary text-white'
+          ? 'bg-primary text-primary-text'
           : 'bg-[var(--bg-accent)] text-[var(--text)] hover:bg-primary/20'"
         class="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
         @click="activeRole = role.key"

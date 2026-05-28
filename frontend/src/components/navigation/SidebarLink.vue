@@ -33,7 +33,7 @@ defineEmits<{
     <font-awesome-icon v-if="icon" :icon="icon" class="w-4"/>
     <span class="flex-1"><slot/></span>
     <span v-if="badge && badge > 0"
-          class="inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full text-xs font-bold bg-error text-white">{{
+          class="inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full text-xs font-bold bg-error text-error-text">{{
         badge
       }}</span>
   </router-link>

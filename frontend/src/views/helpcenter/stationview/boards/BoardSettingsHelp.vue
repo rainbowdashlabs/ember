@@ -31,6 +31,15 @@ import HelpTip from '@/components/helpcenter/HelpTip.vue'
             <p>Tickets können miteinander verknüpft werden: „Blockiert", „Blockiert von", „Bezieht sich auf", „Verursacht" und „Verursacht von".</p>
         </HelpSection>
 
+        <HelpSection title="Föderation">
+            <p>In den Board-Einstellungen kannst du ein Board mit Partnerwachen teilen. Wähle die Partner aus und lege für jeden den Zugriffsmodus fest:</p>
+            <ul class="list-disc ml-4 space-y-1">
+                <li><strong>Nur Lesen:</strong> Die Partnerwache kann das Board sehen, aber nichts bearbeiten.</li>
+                <li><strong>Vollzugriff:</strong> Die Partnerwache kann Tickets erstellen, bearbeiten und kommentieren.</li>
+            </ul>
+            <p class="mt-2">Optional kannst du bei Vollzugriff festlegen, welche Rollen bearbeiten dürfen.</p>
+        </HelpSection>
+
         <HelpTip>
             Boards können über die Wachen-Einstellungen als Modul aktiviert oder deaktiviert werden. Zum Erstellen und Verwalten von Boards wird die Rolle „Board-Verwalter" benötigt.
         </HelpTip>

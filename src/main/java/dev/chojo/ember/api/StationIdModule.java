@@ -19,12 +19,11 @@ import java.util.Set;
 
 /**
  * Jackson module that converts integer stationId fields to UUID strings in JSON output.
- * Any int/Integer field named "stationId", "sourceStationId", "partnerStationId", or
+ * Any int/Integer field named "stationId", "sourceStationId", or
  * "owningStationId" will be serialized as the station's UUID string.
  */
 public class StationIdModule extends SimpleModule {
-    private static final Set<String> STATION_ID_FIELDS =
-            Set.of("stationId", "sourceStationId", "partnerStationId", "owningStationId");
+    private static final Set<String> STATION_ID_FIELDS = Set.of("stationId", "sourceStationId", "owningStationId");
 
     public StationIdModule() {
         super("StationIdModule");

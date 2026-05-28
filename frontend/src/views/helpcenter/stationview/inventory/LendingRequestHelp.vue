@@ -75,7 +75,7 @@ const {t} = useI18n()
             <p class="text-xs text-[var(--text-muted)] mb-0.5">DLRG Musterstadt</p>
             <p>Werden die Ringe in gutem Zustand zurückgegeben?</p>
           </div>
-          <div class="self-end bg-[var(--accent)] text-white rounded-lg px-3 py-2 text-sm max-w-xs">
+          <div class="self-end bg-primary text-primary-text rounded-lg px-3 py-2 text-sm max-w-xs">
             <p>Ja, wir passen gut auf die Ausrüstung auf.</p>
           </div>
           <SuccessBadge class="self-start">{{ t('helpCenter.inventoryLendingRequest.statusReturned') }}</SuccessBadge>

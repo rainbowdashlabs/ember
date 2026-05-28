@@ -283,7 +283,7 @@ onMounted(loadItems)
               <IconButton
                 :icon="['fas', 'xmark']"
                 label="Remove image"
-                class="absolute top-2 right-2 bg-error text-white rounded-full h-6 w-6 hover:bg-error/80"
+                class="absolute top-2 right-2 bg-error text-error-text rounded-full h-6 w-6 hover:bg-error/80"
                 @click="clearNewImage"
               />
             </div>

@@ -13,6 +13,7 @@ import SectionHeader from '@/components/typography/SectionHeader.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
+import { contrastTextColor } from '@/theme/contrast'
 import UserAvatar from '@/components/avatar/UserAvatar.vue'
 import { boards, stationMembers } from '@/api'
 import type { Board, BoardTicket, BoardLabel } from '@/api/boards'
@@ -91,7 +92,7 @@ onMounted(loadData)
                     <tr v-for="ticket in filteredTickets" :key="ticket.id" class="border-b border-(--border) last:border-0 cursor-pointer hover:bg-primary/5" @click="router.push(`/station/boards/${board.id}/tickets/${ticket.id}`)">
                         <td class="py-2 pr-3 font-mono text-(--text-muted) whitespace-nowrap">{{ board.shortKey }}-{{ ticket.ticketNumber }}</td>
                         <td class="py-2 pr-3">{{ ticket.title }}</td>
-                        <td class="py-2 pr-3"><div class="flex gap-1"><span v-for="l in labelsForTicket(ticket.id)" :key="l.id" class="text-[0.6rem] px-1.5 py-0.5 rounded-full text-white" :style="{ backgroundColor: l.color }">{{ l.name }}</span></div></td>
+                        <td class="py-2 pr-3"><div class="flex gap-1"><span v-for="l in labelsForTicket(ticket.id)" :key="l.id" class="text-[0.6rem] px-1.5 py-0.5 rounded-full" :style="{ backgroundColor: l.color, color: contrastTextColor(l.color) }">{{ l.name }}</span></div></td>
                         <td class="py-2 pr-3"><font-awesome-icon :icon="priorityIcon(ticket.priority)" :class="priorityColor(ticket.priority)" class="text-xs" /></td>
                         <td class="py-2 pr-3"><div v-if="ticket.assignedMemberId" class="flex items-center gap-1"><UserAvatar :member-id="ticket.assignedMemberId" size="sm" /><span class="text-xs whitespace-nowrap">{{ memberName(ticket.assignedMemberId) }}</span></div></td>
                         <td class="py-2 text-xs whitespace-nowrap">{{ ticket.dueDate ? new Date(ticket.dueDate).toLocaleDateString('de-DE') : '' }}</td>

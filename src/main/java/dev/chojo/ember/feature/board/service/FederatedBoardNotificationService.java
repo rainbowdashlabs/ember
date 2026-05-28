@@ -15,6 +15,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * Handles webhook notifications to federated partners for board changes.
@@ -42,8 +43,7 @@ public class FederatedBoardNotificationService {
         if (watchers.isEmpty()) return;
 
         // Group watchers by partner
-        var byPartner = watchers.stream()
-                .collect(java.util.stream.Collectors.groupingBy(BoardTicketFederatedWatcher::partnerId));
+        var byPartner = watchers.stream().collect(Collectors.groupingBy(BoardTicketFederatedWatcher::partnerId));
 
         for (var entry : byPartner.entrySet()) {
             int partnerId = entry.getKey();

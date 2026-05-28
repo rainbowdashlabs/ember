@@ -13,6 +13,7 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import UserAvatar from '@/components/avatar/UserAvatar.vue'
 import type { BoardComment, BoardTicketTransition, BoardTicketHistoryEntry, BoardLane, BoardLabel } from '@/api/boards'
 import type { Comment } from '@/api/types'
+import { contrastTextColor } from '@/theme/contrast'
 
 const props = defineProps<{
     comments: BoardComment[]
@@ -108,9 +109,9 @@ function handleAddComment() {
                 <UserAvatar :member-id="tr.movedBy" :name="memberName(tr.movedBy)" size="sm" />
                 <span>{{ memberName(tr.movedBy) }}</span>
                 <span>{{ t('boards.movedFrom') }}</span>
-                <span class="font-medium text-white text-xs px-2 py-0.5 rounded-full" :style="{ backgroundColor: lanes.find(l => l.id === tr.fromLaneId)?.color ?? 'var(--primary)' }">{{ laneName(tr.fromLaneId) }}</span>
+                <span class="font-medium text-xs px-2 py-0.5 rounded-full" :style="{ backgroundColor: lanes.find(l => l.id === tr.fromLaneId)?.color ?? 'var(--primary)', color: contrastTextColor(lanes.find(l => l.id === tr.fromLaneId)?.color ?? '#fd4f00') }">{{ laneName(tr.fromLaneId) }}</span>
                 <span>{{ t('boards.movedTo') }}</span>
-                <span class="font-medium text-white text-xs px-2 py-0.5 rounded-full" :style="{ backgroundColor: lanes.find(l => l.id === tr.toLaneId)?.color ?? 'var(--primary)' }">{{ laneName(tr.toLaneId) }}</span>
+                <span class="font-medium text-xs px-2 py-0.5 rounded-full" :style="{ backgroundColor: lanes.find(l => l.id === tr.toLaneId)?.color ?? 'var(--primary)', color: contrastTextColor(lanes.find(l => l.id === tr.toLaneId)?.color ?? '#fd4f00') }">{{ laneName(tr.toLaneId) }}</span>
                 <span class="ml-auto text-xs">{{ formatDate(tr.movedAt) }}</span>
             </div>
             <template v-for="h in history" :key="`h-${h.id}`">
@@ -127,7 +128,7 @@ function handleAddComment() {
                     </template>
                     <!-- Label: show colored pill -->
                     <template v-else-if="(h.action === 'LABEL_ADDED' || h.action === 'LABEL_REMOVED') && h.detail">
-                        <span class="text-xs px-2 py-0.5 rounded-full text-white" :style="{ backgroundColor: findLabel(h.detail)?.color ?? '#6b7280' }">{{ h.detail }}</span>
+                        <span class="text-xs px-2 py-0.5 rounded-full" :style="{ backgroundColor: findLabel(h.detail)?.color ?? '#6b7280', color: contrastTextColor(findLabel(h.detail)?.color ?? '#6b7280') }">{{ h.detail }}</span>
                     </template>
                     <!-- Due date -->
                     <template v-else-if="h.action === 'DUE_DATE_CHANGED' && h.detail">
@@ -158,9 +159,9 @@ function handleAddComment() {
                     <UserAvatar :member-id="(item.data as BoardTicketTransition).movedBy" :name="memberName((item.data as BoardTicketTransition).movedBy)" size="sm" />
                     <span>{{ memberName((item.data as BoardTicketTransition).movedBy) }}</span>
                     <span>{{ t('boards.movedFrom') }}</span>
-                    <span class="font-medium text-white text-xs px-2 py-0.5 rounded-full" :style="{ backgroundColor: lanes.find(l => l.id === (item.data as BoardTicketTransition).fromLaneId)?.color ?? 'var(--primary)' }">{{ laneName((item.data as BoardTicketTransition).fromLaneId) }}</span>
+                    <span class="font-medium text-xs px-2 py-0.5 rounded-full" :style="{ backgroundColor: lanes.find(l => l.id === (item.data as BoardTicketTransition).fromLaneId)?.color ?? 'var(--primary)', color: contrastTextColor(lanes.find(l => l.id === (item.data as BoardTicketTransition).fromLaneId)?.color ?? '#fd4f00') }">{{ laneName((item.data as BoardTicketTransition).fromLaneId) }}</span>
                     <span>{{ t('boards.movedTo') }}</span>
-                    <span class="font-medium text-white text-xs px-2 py-0.5 rounded-full" :style="{ backgroundColor: lanes.find(l => l.id === (item.data as BoardTicketTransition).toLaneId)?.color ?? 'var(--primary)' }">{{ laneName((item.data as BoardTicketTransition).toLaneId) }}</span>
+                    <span class="font-medium text-xs px-2 py-0.5 rounded-full" :style="{ backgroundColor: lanes.find(l => l.id === (item.data as BoardTicketTransition).toLaneId)?.color ?? 'var(--primary)', color: contrastTextColor(lanes.find(l => l.id === (item.data as BoardTicketTransition).toLaneId)?.color ?? '#fd4f00') }">{{ laneName((item.data as BoardTicketTransition).toLaneId) }}</span>
                     <span class="ml-auto text-xs">{{ formatDate(item.ts) }}</span>
                 </div>
                 <div v-else-if="item.type === 'history'" class="flex items-center gap-2 text-sm text-(--text-muted) flex-wrap">
@@ -174,7 +175,7 @@ function handleAddComment() {
                         </template>
                     </template>
                     <template v-else-if="((item.data as BoardTicketHistoryEntry).action === 'LABEL_ADDED' || (item.data as BoardTicketHistoryEntry).action === 'LABEL_REMOVED') && (item.data as BoardTicketHistoryEntry).detail">
-                        <span class="text-xs px-2 py-0.5 rounded-full text-white" :style="{ backgroundColor: findLabel((item.data as BoardTicketHistoryEntry).detail!)?.color ?? '#6b7280' }">{{ (item.data as BoardTicketHistoryEntry).detail }}</span>
+                        <span class="text-xs px-2 py-0.5 rounded-full" :style="{ backgroundColor: findLabel((item.data as BoardTicketHistoryEntry).detail!)?.color ?? '#6b7280', color: contrastTextColor(findLabel((item.data as BoardTicketHistoryEntry).detail!)?.color ?? '#6b7280') }">{{ (item.data as BoardTicketHistoryEntry).detail }}</span>
                     </template>
                     <span v-else-if="(item.data as BoardTicketHistoryEntry).detail" class="text-(--text)">{{ (item.data as BoardTicketHistoryEntry).detail }}</span>
                     <span class="ml-auto text-xs">{{ formatDate(item.ts) }}</span>

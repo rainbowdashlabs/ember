@@ -5,15 +5,17 @@
  */
 package dev.chojo.ember.feature.knowledgebase.route;
 
+import dev.chojo.ember.api.FederationSession;
 import dev.chojo.ember.api.MessageResponse;
 import dev.chojo.ember.api.Roles;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
-import dev.chojo.ember.feature.federation.entity.CapabilityType;
-import dev.chojo.ember.feature.federation.entity.Direction;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
+import dev.chojo.ember.feature.federation.entity.FederationShare;
+import dev.chojo.ember.feature.federation.repository.FederationRepository;
+import dev.chojo.ember.feature.federation.service.FederatedContentService;
 import dev.chojo.ember.feature.federation.service.FederationHttpClient;
 import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.knowledgebase.entity.KbAccessRestriction;
@@ -47,8 +49,11 @@ import java.io.IOException;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
 
 import static org.slf4j.LoggerFactory.getLogger;
 
@@ -66,6 +71,8 @@ public class KnowledgeBaseRoutes implements Routes {
     private final UserTagRepository userTagRepository;
     private final ImageService imageService;
     private final FederationService federationService;
+    private final FederatedContentService federatedContentService;
+    private final FederationRepository federationRepository;
     private final FederationHttpClient federationHttpClient;
     private final StationRepository stationRepository;
 
@@ -78,6 +85,8 @@ public class KnowledgeBaseRoutes implements Routes {
             UserTagRepository userTagRepository,
             ImageService imageService,
             FederationService federationService,
+            FederatedContentService federatedContentService,
+            FederationRepository federationRepository,
             FederationHttpClient federationHttpClient,
             StationRepository stationRepository) {
         this.service = service;
@@ -87,6 +96,8 @@ public class KnowledgeBaseRoutes implements Routes {
         this.userTagRepository = userTagRepository;
         this.imageService = imageService;
         this.federationService = federationService;
+        this.federatedContentService = federatedContentService;
+        this.federationRepository = federationRepository;
         this.federationHttpClient = federationHttpClient;
         this.stationRepository = stationRepository;
     }
@@ -185,6 +196,22 @@ public class KnowledgeBaseRoutes implements Routes {
         routes.put(prefix + "/kb/files/{id}/tags", this::setFileTags, Roles.KNOWLEDGE_MANAGER);
         routes.get(prefix + "/kb/folders/{id}/tags", this::getFolderTags, Roles.USER);
         routes.put(prefix + "/kb/folders/{id}/tags", this::setFolderTags, Roles.KNOWLEDGE_MANAGER);
+
+        // Federated (user-facing, bearer token auth)
+        routes.get(prefix + "/federated/kb", this::federatedBrowseKb, Roles.USER);
+        routes.get(prefix + "/federated/{stationuid}/kb/files/{id}", this::federatedGetFile, Roles.USER);
+        routes.get(prefix + "/federated/{stationuid}/kb/files/{id}/content", this::federatedGetFileContent, Roles.USER);
+        routes.post(prefix + "/federated/kb/files/{id}/copy", this::federatedCopyFile, Roles.KNOWLEDGE_MANAGER);
+        routes.post(
+                prefix + "/federated/{stationuid}/kb/files/{id}/copy",
+                this::federatedCopyFile,
+                Roles.KNOWLEDGE_MANAGER);
+
+        // Remote (server-to-server, RSA signature auth)
+        routes.get(prefix + "/remote/kb/browse", this::remoteBrowseKb);
+        routes.get(prefix + "/remote/kb/search", this::remoteSearchKb);
+        routes.get(prefix + "/remote/kb/files/{id}", this::remoteGetFile);
+        routes.get(prefix + "/remote/kb/files/{id}/content", this::remoteGetFileContent);
     }
 
     // -- Folders --
@@ -560,72 +587,10 @@ public class KnowledgeBaseRoutes implements Routes {
     }
 
     private List<SearchResultResponse> searchFederated(int stationId, String query) {
-        var results = new ArrayList<SearchResultResponse>();
-        var partners = federationService.findPartners(stationId).stream()
-                .filter(p -> p.status() == FederationPartner.FederationStatus.ACTIVE)
-                .filter(p -> federationService.hasCapability(p.id(), CapabilityType.KB_SHARE, Direction.IMPORT))
+        return federatedContentService.searchFederatedKb(stationId, query).stream()
+                .map(r ->
+                        new SearchResultResponse(r.file().toKbFile(), r.snippet(), "", r.stationName(), r.stationUid()))
                 .toList();
-
-        var futures = new ArrayList<CompletableFuture<Void>>();
-        for (var partner : partners) {
-            int remoteStationId = partner.stationId() == stationId ? partner.partnerStationId() : partner.stationId();
-            String stationName = stationRepository
-                    .findById(remoteStationId)
-                    .map(Station::name)
-                    .orElse("?");
-            String stationUid = stationRepository
-                    .findById(remoteStationId)
-                    .map(s -> s.uid().toString())
-                    .orElse("");
-
-            futures.add(CompletableFuture.runAsync(() -> {
-                List<SearchResultResponse> partnerResults;
-                if (partner.isRemote()) {
-                    var station = stationRepository.findById(stationId).orElse(null);
-                    if (station == null || station.federationPrivateKey() == null) return;
-                    var remote = federationHttpClient.searchKb(
-                            partner.remoteHost(), stationId, station.federationPrivateKey(), query);
-                    partnerResults = remote.stream()
-                            .map(r -> new SearchResultResponse(
-                                    new KbFile(
-                                            r.id(),
-                                            remoteStationId,
-                                            null,
-                                            r.name(),
-                                            r.description(),
-                                            null,
-                                            null,
-                                            0,
-                                            null,
-                                            null,
-                                            null,
-                                            0,
-                                            0,
-                                            Instant.now(),
-                                            Instant.now(),
-                                            null,
-                                            null,
-                                            null,
-                                            false),
-                                    r.snippet(),
-                                    "",
-                                    stationName,
-                                    stationUid))
-                            .toList();
-                } else {
-                    var local = service.searchWithSnippets(remoteStationId, query);
-                    partnerResults = local.stream()
-                            .map(r -> new SearchResultResponse(r.file(), r.snippet(), "", stationName, stationUid))
-                            .toList();
-                }
-                synchronized (results) {
-                    results.addAll(partnerResults);
-                }
-            }));
-        }
-
-        CompletableFuture.allOf(futures.toArray(CompletableFuture[]::new)).join();
-        return results;
     }
 
     // -- Browse (combined) --
@@ -900,4 +865,127 @@ public class KnowledgeBaseRoutes implements Routes {
             KbFile file, String snippet, String folderPath, String stationName, String sourceStationId) {}
 
     public record ImageUploadResponse(String imageId) {}
+
+    // -- Federated endpoints (user-facing, aggregates from partners) --
+
+    private void federatedBrowseKb(Context ctx) {
+        var session = UserSession.from(ctx);
+        var items = federatedContentService.browseSharedKb(session.stationId());
+        ctx.json(items.stream()
+                .map(i -> {
+                    String name = stationRepository
+                            .findById(i.sourceStationId())
+                            .map(Station::name)
+                            .orElse("Unknown");
+                    return Map.of(
+                            "remoteId", i.file().id(),
+                            "title", i.file().name(),
+                            "description",
+                                    i.file().description() != null ? i.file().description() : "",
+                            "stationName", name,
+                            "stationId", i.sourceStationId(),
+                            "partnerId", i.partnerId());
+                })
+                .toList());
+    }
+
+    private void federatedGetFile(Context ctx) {
+        var session = UserSession.from(ctx);
+        var stationUid = UUID.fromString(ctx.pathParam("stationuid"));
+        int fileId = ctx.pathParamAsClass("id", Integer.class).get();
+        ctx.json(federatedContentService.getFederatedKbFile(session.stationId(), stationUid, fileId));
+    }
+
+    private void federatedGetFileContent(Context ctx) {
+        var session = UserSession.from(ctx);
+        var stationUid = UUID.fromString(ctx.pathParam("stationuid"));
+        int fileId = ctx.pathParamAsClass("id", Integer.class).get();
+        var content = federatedContentService.getFederatedKbFileContent(session.stationId(), stationUid, fileId);
+        ctx.json(Map.of("fileId", fileId, "content", content));
+    }
+
+    private void federatedCopyFile(Context ctx) {
+        var session = UserSession.from(ctx);
+        int fileId = ctx.pathParamAsClass("id", Integer.class).get();
+        var copied = federatedContentService.copyKbFile(
+                fileId, session.stationId(), session.member().id());
+        ctx.status(HttpStatus.CREATED).json(copied);
+    }
+
+    // -- Remote endpoints (server-to-server, RSA signature auth) --
+
+    private void remoteBrowseKb(Context ctx) {
+        var partner = requireFederationPartner(ctx);
+        var shares = federationRepository.findKbShares(partner.stationId());
+        var result = shares.stream()
+                .filter(s -> s.fileId() != null)
+                .flatMap(s -> service.findFile(s.fileId()).stream())
+                .filter(file -> file.stationId() == partner.stationId())
+                .map(file -> Map.<String, Object>of(
+                        "id", file.id(),
+                        "name", file.name(),
+                        "description", file.description() != null ? file.description() : "",
+                        "fileType", file.fileType().name(),
+                        "updatedAt", file.updatedAt().toString()))
+                .toList();
+        ctx.json(result);
+    }
+
+    private void remoteSearchKb(Context ctx) {
+        var partner = requireFederationPartner(ctx);
+        String query = ctx.queryParam("q");
+        if (query == null || query.isBlank()) {
+            ctx.json(List.of());
+            return;
+        }
+        var results = service.searchWithSnippets(partner.stationId(), query);
+        var shares = federationRepository.findKbShares(partner.stationId());
+        var sharedFileIds = shares.stream()
+                .filter(s -> s.fileId() != null)
+                .map(FederationShare::fileId)
+                .collect(Collectors.toSet());
+        ctx.json(results.stream()
+                .filter(r -> sharedFileIds.contains(r.file().id()))
+                .map(r -> Map.<String, Object>of(
+                        "id",
+                        r.file().id(),
+                        "name",
+                        r.file().name(),
+                        "description",
+                        r.file().description() != null ? r.file().description() : "",
+                        "snippet",
+                        r.snippet() != null ? r.snippet() : ""))
+                .toList());
+    }
+
+    private void remoteGetFile(Context ctx) {
+        var partner = requireFederationPartner(ctx);
+        int fileId = ctx.pathParamAsClass("id", Integer.class).get();
+        var file = service.findFile(fileId).orElseThrow(NotFoundResponse::new);
+        if (file.stationId() != partner.stationId()) {
+            throw new ForbiddenResponse("File not shared with this partner");
+        }
+        ctx.json(file);
+    }
+
+    private void remoteGetFileContent(Context ctx) {
+        var partner = requireFederationPartner(ctx);
+        int fileId = ctx.pathParamAsClass("id", Integer.class).get();
+        var file = service.findFile(fileId).orElseThrow(NotFoundResponse::new);
+        if (file.stationId() != partner.stationId()) {
+            throw new ForbiddenResponse("File not shared with this partner");
+        }
+        var content = service.getMarkdownContent(fileId).orElse("");
+        ctx.json(Map.of("fileId", fileId, "content", content));
+    }
+
+    // -- Federation helpers --
+
+    private FederationPartner requireFederationPartner(Context ctx) {
+        var session = FederationSession.from(ctx);
+        if (session == null) {
+            throw new ForbiddenResponse("Missing or invalid federation signature");
+        }
+        return session.partner();
+    }
 }

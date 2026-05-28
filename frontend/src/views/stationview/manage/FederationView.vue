@@ -25,6 +25,7 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import { useSession } from '@/composables/useSession'
 import { federation } from '@/api'
 import type { PartnerResponse, PairRequest } from '@/api/federation'
+import { resolveFederationVersion } from '@/util/federationVersion'
 
 const { t } = useI18n()
 const router = useRouter()
@@ -32,7 +33,7 @@ const { canManageFederation, loaded } = useSession()
 
 const partners = ref<PartnerResponse[]>([])
 const pairRequests = ref<PairRequest[]>([])
-const localVersion = ref(0)
+const localVersion = ref('')
 const loading = ref(true)
 const error = ref('')
 const success = ref('')
@@ -136,9 +137,9 @@ onMounted(() => { if (loaded.value) loadData() })
       <NeutralContainer v-for="p in partners" :key="p.partner.id" class="flex items-center gap-2">
         <div class="flex-1 min-w-0">
           <div class="font-medium">{{ p.partnerStationName }}</div>
-          <div class="text-xs text-[var(--text-muted)]">v{{ p.partner.federationVersion }}</div>
+          <div class="text-xs text-[var(--text-muted)]">v{{ resolveFederationVersion(p.partner.federationVersion) }}</div>
         </div>
-        <InfoBadge v-if="localVersion > 0 && p.partner.federationVersion !== localVersion" :title="t('federation.versionMismatchHint')">
+        <InfoBadge v-if="localVersion && p.partner.federationVersion !== localVersion" :title="t('federation.versionMismatchHint')">
           <font-awesome-icon :icon="['fas', 'triangle-exclamation']" class="mr-1"/>
           {{ t('federation.versionMismatch') }}
         </InfoBadge>

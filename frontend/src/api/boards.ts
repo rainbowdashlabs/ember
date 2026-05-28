@@ -252,6 +252,27 @@ export async function setFields(
     return res.data
 }
 
+// -- Federation config (owning station) --
+
+export interface FederationTarget {
+    partnerId: number
+    shareMode: 'READ_ONLY' | 'FULL'
+}
+
+export interface BoardFederationConfig {
+    targets: FederationTarget[]
+    editRoleIds: number[]
+}
+
+export async function getBoardFederationConfig(boardId: number): Promise<BoardFederationConfig> {
+    const res = await client.get<BoardFederationConfig>(`/boards/${boardId}/federation`)
+    return res.data
+}
+
+export async function setBoardFederationConfig(boardId: number, data: BoardFederationConfig): Promise<void> {
+    await client.put(`/boards/${boardId}/federation`, data)
+}
+
 // -- Access --
 
 export async function getViewAccess(boardId: number): Promise<AccessConfig> {

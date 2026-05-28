@@ -33,6 +33,7 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.regex.Pattern;
@@ -135,11 +136,11 @@ public class BoardTicketService {
             if (oldTicket.priority() != priority)
                 ticketRepository.logHistory(
                         id, "PRIORITY_CHANGED", oldTicket.priority().name() + " → " + priority.name(), actorMemberId);
-            if (!java.util.Objects.equals(oldTicket.title(), title))
+            if (!Objects.equals(oldTicket.title(), title))
                 ticketRepository.logHistory(id, "TITLE_CHANGED", oldTicket.title() + " → " + title, actorMemberId);
-            if (!java.util.Objects.equals(oldTicket.description(), description))
+            if (!Objects.equals(oldTicket.description(), description))
                 ticketRepository.logHistory(id, "DESCRIPTION_CHANGED", null, actorMemberId);
-            if (!java.util.Objects.equals(oldTicket.dueDate(), dueDate))
+            if (!Objects.equals(oldTicket.dueDate(), dueDate))
                 ticketRepository.logHistory(
                         id, "DUE_DATE_CHANGED", (dueDate != null ? dueDate.toString() : "entfernt"), actorMemberId);
             notifyWatchers(id, oldTicket.boardId(), "Ticket aktualisiert", actorMemberId);

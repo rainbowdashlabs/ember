@@ -237,7 +237,9 @@ public class LendingService {
     private FederationPartner findPartnerForStation(int localStationId, int partnerStationId) {
         var partners = federationService.findPartners(localStationId);
         for (var p : partners) {
-            int remoteId = p.stationId() == localStationId ? p.partnerStationId() : p.stationId();
+            var partnerStation =
+                    stationRepository.findByUid(p.partnerStationId()).orElse(null);
+            int remoteId = partnerStation != null ? partnerStation.id() : 0;
             if (remoteId == partnerStationId && p.status() == FederationPartner.FederationStatus.ACTIVE) {
                 return p;
             }

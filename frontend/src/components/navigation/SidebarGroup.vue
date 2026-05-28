@@ -10,7 +10,7 @@ import {useRoute} from 'vue-router'
 const props = defineProps<{
   icon?: string[]
   label: string
-  prefix: string
+  prefix: string | string[]
   to?: string
   name?: string
   badge?: number
@@ -25,11 +25,12 @@ const emit = defineEmits<{
 
 const route = useRoute()
 const slots = useSlots()
-const isActive = computed(() => (route.path + '/').startsWith(props.prefix + '/') || route.path === props.prefix)
+const prefixes = computed(() => Array.isArray(props.prefix) ? props.prefix : [props.prefix])
+const isActive = computed(() => prefixes.value.some(p => (route.path + '/').startsWith(p + '/') || route.path === p))
 const hasChildren = computed(() => !!slots.default)
 
 const localExpanded = ref(isActive.value)
-const key = computed(() => props.groupKey ?? props.prefix)
+const key = computed(() => props.groupKey ?? (Array.isArray(props.prefix) ? props.prefix[0] : props.prefix))
 const accordionMode = computed(() => props.openGroup !== undefined)
 
 const expanded = computed(() => {
@@ -74,7 +75,7 @@ function toggle() {
         <font-awesome-icon v-if="icon" :icon="icon" class="w-4"/>
         <span class="flex-1 text-left">{{ label }}</span>
         <span v-if="badge && badge > 0"
-              class="inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full text-xs font-bold bg-error text-white">{{
+              class="inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full text-xs font-bold bg-error text-error-text">{{
             badge
           }}</span>
       </component>

@@ -24,14 +24,14 @@ defineProps<{
     <!-- Inactive icon (cross) -->
     <span
         :class="model ? 'opacity-0' : 'opacity-100'"
-        class="absolute inset-0 flex items-center justify-end pr-1.5 pointer-events-none transition-opacity duration-200 text-white"
+        class="absolute inset-0 flex items-center justify-end pr-1.5 pointer-events-none transition-opacity duration-200 text-error-text"
     >
       <font-awesome-icon :icon="['fas', 'xmark']" class="h-3 w-3"/>
     </span>
     <!-- Active icon (check) -->
     <span
         :class="model ? 'opacity-100' : 'opacity-0'"
-        class="absolute inset-0 flex items-center justify-start pl-1.5 pointer-events-none transition-opacity duration-200 text-white"
+        class="absolute inset-0 flex items-center justify-start pl-1.5 pointer-events-none transition-opacity duration-200 text-success-text"
     >
       <font-awesome-icon :icon="['fas', 'check']" class="h-3 w-3"/>
     </span>

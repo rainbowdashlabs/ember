@@ -20,9 +20,9 @@ defineProps<{
   >
     <font-awesome-icon
         :class="{
-        'text-info-accent dark:text-info': variant === 'info',
-        'text-success': variant === 'success',
-        'text-error': variant === 'error',
+        'text-info-badge': variant === 'info',
+        'text-success-badge': variant === 'success',
+        'text-error-badge': variant === 'error',
       }"
         :icon="['fas', variant === 'success' ? 'circle-check' : variant === 'error' ? 'triangle-exclamation' : 'circle-info']"
         class="mt-0.5 shrink-0"

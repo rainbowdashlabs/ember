@@ -12,6 +12,7 @@ import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.legal.service.GdprDeletionService;
+import dev.chojo.ember.feature.members.entity.RichMember;
 import dev.chojo.ember.feature.members.entity.Role;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
@@ -73,6 +74,7 @@ public class StationMemberRoutes implements Routes {
         routes.get(prefix + "/station-members", this::listByStation, Roles.MEMBER_MANAGER);
         routes.get(prefix + "/station-members/former", this::listFormer, Roles.MEMBER_MANAGER);
         routes.get(prefix + "/station-members/all-roles", this::getAllMemberRoles, Roles.MEMBER_MANAGER);
+        routes.get(prefix + "/station-members/rich", this::listRichMembers, Roles.MEMBER_MANAGER);
         routes.get(prefix + "/station-members/{id}", this::get, Roles.MEMBER_MANAGER);
         routes.post(prefix + "/station-members", this::create, Roles.MEMBER_MANAGER);
         routes.delete(prefix + "/station-members/{id}", this::delete, Roles.MEMBER_MANAGER);
@@ -110,6 +112,19 @@ public class StationMemberRoutes implements Routes {
         ctx.json(memberService.findByStation(stationId, includeFormer).stream()
                 .map(this::toMemberWithName)
                 .toList());
+    }
+
+    @OpenApi(
+            path = "/api/v1/station-members/rich",
+            methods = HttpMethod.GET,
+            summary = "List all members with roles, groups, tags, and profile values in a single response",
+            tags = {"Station Members"},
+            queryParams = @OpenApiParam(name = "includeFormer", type = Boolean.class),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = RichMember[].class)))
+    private void listRichMembers(Context ctx) {
+        var session = UserSession.from(ctx);
+        boolean includeFormer = "true".equals(ctx.queryParam("includeFormer"));
+        ctx.json(stationMemberRepository.findRichMembers(session.stationId(), includeFormer));
     }
 
     @OpenApi(

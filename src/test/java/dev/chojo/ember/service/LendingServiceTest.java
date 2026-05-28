@@ -57,6 +57,7 @@ class LendingServiceTest extends RepositoryTestBase {
 
     @BeforeAll
     static void setup() {
+        dev.chojo.ember.api.StationUidResolver.instance().clearCache();
         lendingRepo = new LendingRepository();
         federationRepo = new FederationRepository();
         federationService = new FederationService(federationRepo, stationRepo, new Api());

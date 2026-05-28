@@ -25,6 +25,7 @@ import type { PartnerResponse, FederationCapability } from '@/api/federation'
 import Td from '@/components/table/Td.vue'
 import Th from '@/components/table/Th.vue'
 import MutedText from '@/components/typography/MutedText.vue'
+import { resolveFederationVersion } from '@/util/federationVersion'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -126,7 +127,7 @@ onMounted(() => { if (loaded.value) loadData() })
 
     <template v-if="!loading && partner">
       <MutedText tag="p" size="sm">
-        {{ t('federation.version') }}: v{{ partner.partner.federationVersion }}
+        {{ t('federation.version') }}: v{{ resolveFederationVersion(partner.partner.federationVersion) }}
         &mdash; {{ t('federation.since') }}: {{ new Date(partner.partner.createdAt).toLocaleDateString('de-DE') }}
       </MutedText>
 

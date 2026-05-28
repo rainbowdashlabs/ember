@@ -13,7 +13,7 @@ export interface FederationPartner {
     publicKey: string | null
     partnerPublicKey: string | null
     status: 'PENDING' | 'ACTIVE' | 'SUSPENDED'
-    federationVersion: number
+    federationVersion: string
     createdAt: string
     updatedAt: string
 }
@@ -145,34 +145,34 @@ export async function deleteProtocolShare(id: number): Promise<void> {
 // -- Browse shared content --
 
 export async function browseSharedKb(): Promise<SharedContentItem[]> {
-    const res = await client.get<SharedContentItem[]>('/federation/shared/kb')
+    const res = await client.get<SharedContentItem[]>('/federated/kb')
     return res.data
 }
 
 export async function browseSharedQuiz(): Promise<SharedContentItem[]> {
-    const res = await client.get<SharedContentItem[]>('/federation/shared/quiz')
+    const res = await client.get<SharedContentItem[]>('/federated/quiz/catalogs')
     return res.data
 }
 
 export async function browseSharedProtocols(): Promise<SharedContentItem[]> {
-    const res = await client.get<SharedContentItem[]>('/federation/shared/protocols')
+    const res = await client.get<SharedContentItem[]>('/federated/protocols')
     return res.data
 }
 
 // -- Copy --
 
 export async function copyKbFile(fileId: number): Promise<unknown> {
-    const res = await client.post(`/federation/copy/kb/${fileId}`)
+    const res = await client.post(`/federated/kb/files/${fileId}/copy`)
     return res.data
 }
 
 export async function copyQuizCatalog(catalogId: number): Promise<unknown> {
-    const res = await client.post(`/federation/copy/quiz/${catalogId}`)
+    const res = await client.post(`/federated/quiz/catalogs/${catalogId}/copy`)
     return res.data
 }
 
 export async function copyProtocol(protocolId: number): Promise<unknown> {
-    const res = await client.post(`/federation/copy/protocol/${protocolId}`)
+    const res = await client.post(`/federated/protocols/${protocolId}/copy`)
     return res.data
 }
 
@@ -199,7 +199,7 @@ export async function declinePairRequest(id: number): Promise<void> {
 
 // -- Info --
 
-export async function getFederationInfo(): Promise<{ federationVersion: number; supportedCapabilities: string[] }> {
-    const res = await client.get<{ federationVersion: number; supportedCapabilities: string[] }>('/federation/info')
+export async function getFederationInfo(): Promise<{ federationVersion: string; supportedCapabilities: string[] }> {
+    const res = await client.get<{ federationVersion: string; supportedCapabilities: string[] }>('/federation/info')
     return res.data
 }

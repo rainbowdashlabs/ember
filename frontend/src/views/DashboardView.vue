@@ -14,8 +14,10 @@ import SidebarExpandableLink from '@/components/navigation/SidebarExpandableLink
 import StationSwitcher from '@/components/navigation/StationSwitcher.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import IconButton from '@/components/button/IconButton.vue'
-import {auth, notifications, events, boards} from '@/api'
+import {auth, notifications, events, boards, federatedBoards} from '@/api'
 import type {Board} from '@/api/boards'
+import type {FederatedBoardBookmark} from '@/api/federatedBoards'
+import {BoardShareMode} from '@/api/federatedBoards'
 import client from '@/api/client'
 import Alert from '@/components/feedback/Alert.vue'
 import {getItem} from '@/api/storage'
@@ -64,6 +66,7 @@ const isDemo = ref(false)
 const notificationCount = ref(0)
 const pendingRegistrationCount = ref(0)
 const visibleBoards = ref<Board[]>([])
+const bookmarkedBoards = ref<FederatedBoardBookmark[]>([])
 const openGroup = ref<string | null>(null)
 const isDesktop = ref(window.matchMedia('(min-width: 1024px)').matches)
 
@@ -84,6 +87,12 @@ const {checkFirstLogin} = useOnboardingTour()
 async function refreshBoards() {
   try {
     visibleBoards.value = await boards.listBoards(true)
+  } catch { /* ignore */ }
+}
+
+async function refreshBookmarkedBoards() {
+  try {
+    bookmarkedBoards.value = await federatedBoards.listBookmarks()
   } catch { /* ignore */ }
 }
 
@@ -110,6 +119,7 @@ watch(loaded, (isLoaded) => {
   if (isLoaded) refreshNotificationCount()
   if (isLoaded && canManageEvents()) refreshPendingRegistrationCount()
   if (isLoaded && isModuleEnabled(StationModules.BOARDS)) refreshBoards()
+  if (isLoaded && isModuleEnabled(StationModules.BOARDS) && canManageFederation()) refreshBookmarkedBoards()
   if (isLoaded) checkFirstLogin()
 }, {immediate: true})
 
@@ -334,9 +344,18 @@ async function handleLogout() {
         </SidebarLink>
       </SidebarGroup>
 
-      <SidebarGroup :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => openGroup = v" v-if="isModuleEnabled(StationModules.BOARDS)" :icon="['fas', 'table-columns']" :label="t('sidebar.boards')" prefix="/station/boards" to="/station/boards" name="board-list" @navigate="close">
+      <SidebarGroup :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => openGroup = v" v-if="isModuleEnabled(StationModules.BOARDS)" :icon="['fas', 'table-columns']" :label="t('sidebar.boards')" :prefix="['/station/boards', '/station/federation/boards']" to="/station/boards" name="board-list" @navigate="close">
         <SidebarLink v-for="board in visibleBoards" :key="board.id" :icon="['fas', 'table-columns']" :name="`board-${board.id}`" :to="`/station/boards/${board.id}`" :active="route.path.startsWith(`/station/boards/${board.id}`)" @navigate="close">
           {{ board.name }}
+        </SidebarLink>
+        <SidebarLink v-for="bm in bookmarkedBoards" :key="`fed-${bm.id}`" :icon="['fas', 'globe']" :name="`fed-board-${bm.id}`" :to="`/station/federation/boards/${bm.partnerStationUid}/${bm.remoteBoardId}`" :active="route.path.startsWith(`/station/federation/boards/${bm.partnerStationUid}/${bm.remoteBoardId}`)" @navigate="close">
+          <span class="flex items-center gap-1.5">
+            <span class="opacity-70">{{ bm.remoteBoardName }}</span>
+            <font-awesome-icon :icon="['fas', bm.shareMode === BoardShareMode.FULL ? 'pen' : 'lock']" class="w-3 h-3 opacity-50"/>
+          </span>
+        </SidebarLink>
+        <SidebarLink :icon="['fas', 'globe']" name="federated-boards" to="/station/federation/boards" @navigate="close">
+          {{ t('boards.federatedBoards') }}
         </SidebarLink>
         <SidebarLink v-if="canManageBoards()" :icon="['fas', 'gears']" name="board-manage" to="/station/boards/manage" @navigate="close">
           {{ t('sidebar.boardManage') }}

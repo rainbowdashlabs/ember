@@ -7,7 +7,7 @@ import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { ProfileField, StationMember, MemberGroup, UserTag, Role } from '@/api/types'
 import { Roles, hasTeamRole } from '@/api/types'
-import { profileFields, stationMembers, memberGroups, userTags } from '@/api'
+import { profileFields, stationMembers } from '@/api'
 
 export function parseConfig(configStr: string | undefined): Record<string, unknown> {
   if (!configStr) return {}
@@ -113,51 +113,61 @@ export function useMemberData() {
     loading.value = true
     error.value = ''
     try {
-      const [allFields, allMembers, groups, tags, roles] = await Promise.all([
+      const [richMembers, allFields, roles] = await Promise.all([
+        stationMembers.listRichMembers(),
         profileFields.listFields(),
-        stationMembers.listMembers(),
-        memberGroups.listGroups(),
-        userTags.listTags(),
         stationMembers.listAllRoles(),
       ])
       fields.value = allFields
-      members.value = allMembers
-      allGroups.value = groups
-      allTags.value = tags
       allRoles.value = roles
 
+      const memberList: StationMember[] = []
       const valMap = new Map<number, Map<number, string>>()
       const rolesMap = new Map<number, string[]>()
       const groupsMap = new Map<number, string[]>()
       const tagsMap = new Map<number, string[]>()
-      for (const m of allMembers) {
-        try {
-          const [vals, roles, mTags] = await Promise.all([
-            profileFields.getValues(m.id),
-            stationMembers.getRoles(m.id),
-            userTags.getMemberTags(m.id),
-          ])
-          const fieldMap = new Map<number, string>()
-          for (const v of vals) { fieldMap.set(v.fieldId, v.value ?? '') }
-          valMap.set(m.id, fieldMap)
-          rolesMap.set(m.id, roles.map(r => r.role))
-          tagsMap.set(m.id, mTags.map(tag => tag.name))
-        } catch { /* skip */ }
-      }
-      for (const group of groups) {
-        try {
-          const groupMembers = await memberGroups.getGroupMembers(group.id)
-          for (const gm of groupMembers) {
-            const existing = groupsMap.get(gm.id) ?? []
-            existing.push(group.name ?? '')
-            groupsMap.set(gm.id, existing)
+      const groupSet = new Map<number, MemberGroup>()
+      const tagSet = new Map<number, UserTag>()
+
+      for (const rm of richMembers) {
+        memberList.push({
+          id: rm.id,
+          stationId: String(rm.stationId),
+          accountId: rm.accountId ?? 0,
+          name: rm.name,
+          email: rm.email,
+        })
+
+        rolesMap.set(rm.id, rm.roles)
+
+        const fieldMap = new Map<number, string>()
+        for (const [key, val] of Object.entries(rm.profileValues)) {
+          fieldMap.set(Number(key), val != null ? String(val) : '')
+        }
+        valMap.set(rm.id, fieldMap)
+
+        groupsMap.set(rm.id, rm.groups.map(g => g.name))
+        for (const g of rm.groups) {
+          if (!groupSet.has(g.id)) {
+            groupSet.set(g.id, { id: g.id, stationId: String(rm.stationId), name: g.name })
           }
-        } catch { /* skip */ }
+        }
+
+        tagsMap.set(rm.id, rm.tags.map(t => t.name))
+        for (const tag of rm.tags) {
+          if (!tagSet.has(tag.id)) {
+            tagSet.set(tag.id, { id: tag.id, stationId: String(rm.stationId), name: tag.name })
+          }
+        }
       }
+
+      members.value = memberList
       memberValues.value = valMap
       memberRolesMap.value = rolesMap
       memberGroupsMap.value = groupsMap
       memberTagsMap.value = tagsMap
+      allGroups.value = Array.from(groupSet.values())
+      allTags.value = Array.from(tagSet.values())
     } catch {
       error.value = t('common.error')
     } finally {

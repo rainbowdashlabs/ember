@@ -378,7 +378,7 @@ public class SessionRoutes implements Routes {
                             ctx.header("Cache-Control", "private, max-age=300");
                             ctx.result(img.data());
                         },
-                        () -> ctx.status(HttpStatus.NOT_FOUND));
+                        () -> ctx.status(HttpStatus.NO_CONTENT));
     }
 
     private void uploadAvatar(Context ctx) {

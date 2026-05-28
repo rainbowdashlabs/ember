@@ -189,6 +189,9 @@ public class ApiServer {
             // Cache-control headers
             config.routes.after(this::applyCacheHeaders);
 
+            // Federation response headers
+            config.routes.after(this::applyFederationHeaders);
+
             // API request timing
             config.routes.before(ctx -> ctx.attribute("_requestStart", System.currentTimeMillis()));
             config.routes.after(ctx -> {
@@ -213,6 +216,8 @@ public class ApiServer {
                     ctx -> ctx.json(Map.of(
                             "demoUrl",
                             apiConfig.demoUrl() != null ? apiConfig.demoUrl() : "",
+                            "demo",
+                            demoConfig.enabled() || demoConfig.dev(),
                             "version",
                             loadAppVersion())));
 
@@ -317,8 +322,15 @@ public class ApiServer {
     private void handleAccess(@NotNull Context ctx) {
         Set<RouteRole> routeRoles = ctx.routeRoles();
 
-        // Routes with no roles defined are public — still populate session if token is present (best effort)
+        // Routes with no roles defined are public — still populate session if token or federation headers present
         if (routeRoles.isEmpty()) {
+            // Try federation signature auth for /remote/ endpoints
+            if (ctx.header("X-Federation-Station-Id") != null) {
+                accessManager
+                        .resolveFederationSession(ctx)
+                        .ifPresent(s -> ctx.attribute(FederationSession.ATTR_FEDERATION_SESSION, s));
+            }
+            // Try bearer token auth (best effort)
             String publicAuthHeader = ctx.header("Authorization");
             if (publicAuthHeader != null && publicAuthHeader.startsWith("Bearer ")) {
                 String publicToken = publicAuthHeader.substring(7);
@@ -506,6 +518,26 @@ public class ApiServer {
         if (path.startsWith(API_PREFIX + "/")) {
             ctx.header("Cache-Control", "private, no-cache");
             addETag(ctx);
+        }
+    }
+
+    /**
+     * After-handler that sets federation station identity headers on responses from
+     * {@code /federated/} and {@code /remote/} endpoints.
+     * For remote endpoints (server-to-server), the headers identify this station.
+     * For federated endpoints, route handlers set these headers themselves per entity.
+     */
+    private void applyFederationHeaders(@NotNull Context ctx) {
+        String path = ctx.path();
+        if (!path.startsWith(API_PREFIX + "/remote/")) return;
+
+        // For /remote/ responses, identify this station (the one serving the data)
+        FederationSession fedSession = ctx.attribute(FederationSession.ATTR_FEDERATION_SESSION);
+        if (fedSession != null) {
+            var station = stationRepository.findById(fedSession.stationId()).orElse(null);
+            if (station != null) {
+                FederationHeaders.setStationHeaders(ctx, station);
+            }
         }
     }
 

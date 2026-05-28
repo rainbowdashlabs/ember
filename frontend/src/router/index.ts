@@ -645,6 +645,17 @@ const router = createRouter({
                     name: 'protocol-evaluation',
                     component: () => import('@/views/stationview/protocol/EvaluationView.vue'),
                 },
+                // -- Federated Boards --
+                {
+                    path: 'federation/boards',
+                    name: 'federated-boards',
+                    component: () => import('@/views/stationview/federation/FederatedBoardsView.vue'),
+                },
+                {
+                    path: 'federation/boards/:partnerUid/:boardId',
+                    name: 'federated-board-view',
+                    component: () => import('@/views/stationview/federation/FederatedBoardView.vue'),
+                },
                 // -- Boards --
                 {
                     path: 'boards',
@@ -1378,6 +1389,16 @@ const router = createRouter({
                     component: () => import('@/views/helpcenter/stationview/knowledge/VersionsHelp.vue')
                 },
                 // Boards
+                {
+                    path: 'federation/boards',
+                    name: 'help-federated-boards',
+                    component: () => import('@/views/helpcenter/stationview/boards/FederatedBoardsHelp.vue'),
+                },
+                {
+                    path: 'federation/boards/:partnerUid/:boardId',
+                    name: 'help-federated-board-view',
+                    redirect: { name: 'help-federated-boards' },
+                },
                 {
                     path: 'boards',
                     name: 'help-board-overview',

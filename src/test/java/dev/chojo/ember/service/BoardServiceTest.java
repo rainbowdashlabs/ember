@@ -600,7 +600,7 @@ class BoardServiceTest extends RepositoryTestBase {
     void ticketReorderAndLinks() {
         var tmp = ticketService.createTicket(boardId, laneId, "Tmp", null, null, TicketPriority.LOW, null, member.id());
         ticketService.reorderTickets(laneId, List.of(ticketId1, tmp.id()));
-        ticketService.linkTickets(ticketId1, tmp.id(), dev.chojo.ember.feature.board.entity.LinkType.RELATES_TO);
+        ticketService.linkTickets(ticketId1, tmp.id(), LinkType.RELATES_TO);
         assertFalse(ticketService.findLinks(ticketId1).isEmpty());
         assertTrue(ticketService.unlinkTickets(ticketId1, tmp.id()));
         ticketService.deleteTicket(tmp.id());

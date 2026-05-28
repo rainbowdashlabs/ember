@@ -24,9 +24,12 @@ import Alert from '@/components/feedback/Alert.vue'
 import SuccessButton from '@/components/button/SuccessButton.vue'
 import RestrictionPicker from '@/components/input/RestrictionPicker.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
-import { boards, stationMembers, memberGroups, userTags } from '@/api'
-import type { Board, BoardFieldConfig } from '@/api/boards'
+import MultiSelectDropdown from '@/components/input/select/MultiSelectDropdown.vue'
+import DeleteButton from '@/components/button/DeleteButton.vue'
+import { boards, stationMembers, memberGroups, userTags, federation } from '@/api'
+import type { Board, BoardFieldConfig, FederationTarget } from '@/api/boards'
 import type { Role, MemberGroup, UserTag } from '@/api/types'
+import type { PartnerResponse } from '@/api/federation'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -59,11 +62,49 @@ const editRoleIds = ref<number[]>([])
 const editGroupIds = ref<number[]>([])
 const editTagIds = ref<number[]>([])
 
+// Federation
+const allPartners = ref<PartnerResponse[]>([])
+const federationTargets = ref<FederationTarget[]>([])
+const federatedEditRoleIds = ref<string[]>([])
+const addPartnerId = ref<number | null>(null)
+
+const activePartners = computed(() =>
+    allPartners.value.filter(p => p.partner.status === 'ACTIVE'),
+)
+
+const availablePartners = computed(() => {
+    const sharedIds = new Set(federationTargets.value.map(t => t.partnerId))
+    return activePartners.value.filter(p => !sharedIds.has(p.partner.id))
+})
+
+const hasFullMode = computed(() =>
+    federationTargets.value.some(t => t.shareMode === 'FULL'),
+)
+
+const roleOptions = computed(() =>
+    allRoles.value.map(r => ({ value: String(r.id), label: r.role })),
+)
+
+function partnerName(partnerId: number): string {
+    const p = allPartners.value.find(p => p.partner.id === partnerId)
+    return p?.partnerStationName ?? `Partner #${partnerId}`
+}
+
+function addPartner() {
+    if (addPartnerId.value == null) return
+    federationTargets.value.push({ partnerId: addPartnerId.value, shareMode: 'READ_ONLY' })
+    addPartnerId.value = null
+}
+
+function removePartner(index: number) {
+    federationTargets.value.splice(index, 1)
+}
+
 
 async function loadData() {
     loading.value = true
     try {
-        const [b, l, f, r, g, tg, va, ea] = await Promise.all([
+        const [b, l, f, r, g, tg, va, ea, fedConfig, partners] = await Promise.all([
             boards.getBoard(boardId.value),
             boards.getLanes(boardId.value),
             boards.getFields(boardId.value),
@@ -72,6 +113,8 @@ async function loadData() {
             userTags.listTags(),
             boards.getViewAccess(boardId.value),
             boards.getEditAccess(boardId.value),
+            boards.getBoardFederationConfig(boardId.value),
+            federation.listPartners(),
         ])
         board.value = b
         name.value = b.name
@@ -89,6 +132,9 @@ async function loadData() {
         editRoleIds.value = ea.roleIds ?? []
         editGroupIds.value = ea.groupIds ?? []
         editTagIds.value = ea.tagIds ?? []
+        federationTargets.value = fedConfig.targets ?? []
+        federatedEditRoleIds.value = (fedConfig.editRoleIds ?? []).map(String)
+        allPartners.value = partners
     } catch {
         error.value = t('common.error')
     } finally {
@@ -117,6 +163,10 @@ async function save() {
         })
         await boards.setEditAccess(boardId.value, {
             roleIds: editRoleIds.value, groupIds: editGroupIds.value, tagIds: editTagIds.value,
+        })
+        await boards.setBoardFederationConfig(boardId.value, {
+            targets: federationTargets.value,
+            editRoleIds: federatedEditRoleIds.value.map(Number),
         })
         saved.value = true
         setTimeout(() => saved.value = false, 2000)
@@ -314,6 +364,48 @@ onMounted(loadData)
                         @update:selected-group-ids="editGroupIds = $event"
                         @update:selected-tag-ids="editTagIds = $event"
                     />
+                </NeutralContainer>
+
+                <!-- Federation -->
+                <NeutralContainer>
+                    <SubHeader class="text-sm mb-3">{{ t('boards.federation') }}</SubHeader>
+                    <p class="text-xs text-[var(--text-muted)] mb-3">{{ t('boards.federationShareDesc') }}</p>
+
+                    <!-- Existing share targets -->
+                    <div class="space-y-2">
+                        <div v-for="(target, index) in federationTargets" :key="target.partnerId" class="flex items-center gap-2">
+                            <span class="flex-1 text-sm">{{ partnerName(target.partnerId) }}</span>
+                            <SelectInput :model-value="target.shareMode" @update:model-value="(v: any) => target.shareMode = v">
+                                <option value="READ_ONLY">{{ t('boards.shareModeReadOnly') }}</option>
+                                <option value="FULL">{{ t('boards.shareModeFull') }}</option>
+                            </SelectInput>
+                            <DeleteButton @click="removePartner(index)" />
+                        </div>
+                    </div>
+
+                    <!-- Add partner -->
+                    <div v-if="availablePartners.length > 0" class="flex gap-2 mt-3">
+                        <SelectInput :model-value="String(addPartnerId ?? '')" class="flex-1" @update:model-value="(v: any) => addPartnerId = v ? Number(v) : null">
+                            <option value="">{{ t('boards.federationShare') }}...</option>
+                            <option v-for="p in availablePartners" :key="p.partner.id" :value="String(p.partner.id)">
+                                {{ p.partnerStationName }}
+                            </option>
+                        </SelectInput>
+                        <SecondaryButton :disabled="addPartnerId == null" @click="addPartner">
+                            <font-awesome-icon :icon="['fas', 'plus']" />
+                        </SecondaryButton>
+                    </div>
+
+                    <!-- Federated edit roles -->
+                    <div v-if="hasFullMode" class="mt-4">
+                        <FieldLabel class="mb-1">{{ t('boards.federatedEditRoles') }}</FieldLabel>
+                        <p class="text-xs text-[var(--text-muted)] mb-2">{{ t('boards.federatedEditRolesDesc') }}</p>
+                        <MultiSelectDropdown
+                            :options="roleOptions"
+                            :model-value="federatedEditRoleIds"
+                            @update:model-value="federatedEditRoleIds = $event"
+                        />
+                    </div>
                 </NeutralContainer>
             </div>
         </template>

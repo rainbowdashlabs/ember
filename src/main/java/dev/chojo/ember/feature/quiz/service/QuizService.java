@@ -25,6 +25,7 @@ import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.feature.restriction.RestrictionRepository;
 import dev.chojo.ember.feature.restriction.RestrictionSet;
 import dev.chojo.ember.feature.restriction.RestrictionType;
+import dev.chojo.ember.feature.system.service.RequirementsService;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import tools.jackson.databind.JsonNode;
@@ -239,11 +240,9 @@ public class QuizService {
         return testRepository.findById(id);
     }
 
-    public List<dev.chojo.ember.feature.system.service.RequirementsService.RequirementItem> findForcedPending(
-            int stationId, int memberId) {
+    public List<RequirementsService.RequirementItem> findForcedPending(int stationId, int memberId) {
         return testRepository.findForcedPending(stationId, memberId).stream()
-                .map(t -> new dev.chojo.ember.feature.system.service.RequirementsService.RequirementItem(
-                        t.id(), t.title()))
+                .map(t -> new RequirementsService.RequirementItem(t.id(), t.title()))
                 .toList();
     }
 

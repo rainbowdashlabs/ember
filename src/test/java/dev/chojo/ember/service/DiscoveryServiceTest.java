@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.service;
 
+import dev.chojo.ember.api.StationUidResolver;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.service.FederationService;
@@ -30,6 +31,7 @@ class DiscoveryServiceTest extends RepositoryTestBase {
 
     @BeforeAll
     static void setup() {
+        StationUidResolver.instance().clearCache();
         var federationRepo = new FederationRepository();
         federationService = new FederationService(federationRepo, stationRepo, new Api());
 
@@ -129,7 +131,7 @@ class DiscoveryServiceTest extends RepositoryTestBase {
         var partner = federationService.createPairRequest(stationA.id(), stationB.id());
         assertNotNull(partner);
         assertEquals(stationA.id(), partner.stationId());
-        assertEquals(stationB.id(), partner.partnerStationId());
+        assertEquals(stationB.uid(), partner.partnerStationId());
         assertEquals("PENDING", partner.status().name());
     }
 
@@ -156,12 +158,12 @@ class DiscoveryServiceTest extends RepositoryTestBase {
         // Both sides should have ACTIVE partners
         var partnersA = federationService.findPartners(stationA.id());
         assertTrue(partnersA.stream()
-                .anyMatch(p -> p.partnerStationId() == stationB.id()
+                .anyMatch(p -> p.partnerStationId().equals(stationB.uid())
                         && p.status().name().equals("ACTIVE")));
 
         var partnersB = federationService.findPartners(stationB.id());
         assertTrue(partnersB.stream()
-                .anyMatch(p -> p.partnerStationId() == stationA.id()
+                .anyMatch(p -> p.partnerStationId().equals(stationA.uid())
                         && p.status().name().equals("ACTIVE")));
     }
 

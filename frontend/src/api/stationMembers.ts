@@ -21,6 +21,26 @@ export async function listCompletions(): Promise<MemberCompletion[]> {
     return res.data
 }
 
+export interface RichMember {
+    id: number
+    stationId: number
+    accountId: number | null
+    name: string
+    email: string
+    former: boolean
+    roles: string[]
+    groups: { id: number; name: string }[]
+    tags: { id: number; name: string }[]
+    profileValues: Record<string, unknown>
+}
+
+export async function listRichMembers(includeFormer = false): Promise<RichMember[]> {
+    const params: Record<string, unknown> = {}
+    if (includeFormer) params.includeFormer = true
+    const res = await client.get<RichMember[]>('/station-members/rich', { params })
+    return res.data
+}
+
 export async function listMembers(includeFormer = false): Promise<StationMember[]> {
     const params: Record<string, unknown> = {}
     if (includeFormer) params.includeFormer = true

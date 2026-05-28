@@ -18,6 +18,7 @@ import { marked } from 'marked'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import IconSelectInput from '@/components/input/select/IconSelectInput.vue'
 import MemberSelectInput from '@/components/input/select/MemberSelectInput.vue'
+import { contrastTextColor } from '@/theme/contrast'
 import NumberInput from '@/components/input/number/NumberInput.vue'
 import DateInput from '@/components/input/datetime/DateInput.vue'
 import CheckboxInput from '@/components/input/toggle/CheckboxInput.vue'
@@ -409,9 +410,9 @@ watch(ticketId, loadData)
                 <div ref="rightColRef" class="space-y-4">
                     <!-- Lane status -->
                     <div class="relative">
-                        <div class="px-3 py-2 rounded-theme text-sm font-medium text-white text-center cursor-pointer" :style="{ backgroundColor: lanes.find(l => l.id === ticket?.laneId)?.color ?? 'var(--primary)' }" @click.stop="canEdit && (closeAllEditors(), editingLane = true)">{{ lanes.find(l => l.id === ticket?.laneId)?.name }}</div>
+                        <div class="px-3 py-2 rounded-theme text-sm font-medium text-center cursor-pointer" :style="{ backgroundColor: lanes.find(l => l.id === ticket?.laneId)?.color ?? 'var(--primary)', color: contrastTextColor(lanes.find(l => l.id === ticket?.laneId)?.color ?? '#fd4f00') }" @click.stop="canEdit && (closeAllEditors(), editingLane = true)">{{ lanes.find(l => l.id === ticket?.laneId)?.name }}</div>
                         <div v-if="editingLane && canEdit" class="absolute z-20 mt-1 w-full rounded-theme border border-[var(--border)] bg-[var(--bg)] shadow-lg overflow-hidden">
-                            <div v-for="lane in availableLanes.filter(l => l.id !== ticket?.laneId)" :key="lane.id" class="px-3 py-2 text-sm font-medium text-white text-center cursor-pointer hover:opacity-90" :style="{ backgroundColor: lane.color ?? 'var(--primary)' }" @click="moveTo(lane.id); editingLane = false">{{ lane.name }}</div>
+                            <div v-for="lane in availableLanes.filter(l => l.id !== ticket?.laneId)" :key="lane.id" class="px-3 py-2 text-sm font-medium text-center cursor-pointer hover:opacity-90" :style="{ backgroundColor: lane.color ?? 'var(--primary)', color: contrastTextColor(lane.color ?? '#fd4f00') }" @click="moveTo(lane.id); editingLane = false">{{ lane.name }}</div>
                         </div>
                     </div>
 
@@ -420,7 +421,7 @@ watch(ticketId, loadData)
                         <FieldLabel class="mb-1">Labels</FieldLabel>
                         <LabelSelectInput v-if="canEdit" :labels="allLabels" :selected="ticketLabels" @toggle="toggleLabel" @create="createAndAddLabel" />
                         <div v-else class="flex flex-wrap gap-1">
-                            <span v-for="label in ticketLabels" :key="label.id" class="text-xs px-2 py-0.5 rounded-full text-white" :style="{ backgroundColor: label.color }">{{ label.name }}</span>
+                            <span v-for="label in ticketLabels" :key="label.id" class="text-xs px-2 py-0.5 rounded-full" :style="{ backgroundColor: label.color, color: contrastTextColor(label.color) }">{{ label.name }}</span>
                             <span v-if="ticketLabels.length === 0" class="text-sm text-(--text-muted)">—</span>
                         </div>
                     </div>

@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.federation.route;
 
+import dev.chojo.ember.api.FederationSession;
 import dev.chojo.ember.api.Roles;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
@@ -25,6 +26,7 @@ import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
+import io.javalin.http.ForbiddenResponse;
 import io.javalin.http.HttpStatus;
 import io.javalin.http.NotFoundResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
@@ -34,6 +36,7 @@ import jakarta.inject.Singleton;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * Routes for cross-station inventory lending, chat messages, and date blocking.
@@ -69,9 +72,14 @@ public class LendingRoutes implements Routes {
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
+        // Federated available inventory (aggregated from partners)
+        routes.get(prefix + "/federated/lending/available", this::listAvailable, Roles.INVENTORY_MANAGER);
+
+        // Remote (server-to-server, RSA signature auth)
+        routes.get(prefix + "/remote/lending/messages/{requestId}", this::remoteGetMessages);
+
         // Lending requests
         routes.get(prefix + "/lending/requests", this::listRequests, Roles.INVENTORY_MANAGER);
-        routes.get(prefix + "/lending/available", this::listAvailable, Roles.INVENTORY_MANAGER);
         routes.post(prefix + "/lending/requests", this::createRequest, Roles.INVENTORY_MANAGER);
         routes.get(prefix + "/lending/requests/{id}", this::getRequest, Roles.INVENTORY_MANAGER);
         routes.post(prefix + "/lending/requests/{id}/approve", this::approveRequest, Roles.INVENTORY_MANAGER);
@@ -342,47 +350,65 @@ public class LendingRoutes implements Routes {
                 .filter(p -> p.status() == FederationPartner.FederationStatus.ACTIVE)
                 .toList();
 
-        var results = new ArrayList<AvailableInventoryEntry>();
+        var futures = new ArrayList<CompletableFuture<List<AvailableInventoryEntry>>>();
         for (var partner : partners) {
-            int partnerStationId = partner.partnerStationId();
-            String stationName = stationRepository
-                    .findById(partnerStationId)
-                    .map(Station::name)
-                    .orElse("Unknown");
+            futures.add(CompletableFuture.supplyAsync(() -> findAvailableForPartner(partner, query, dateFrom, dateTo)));
+        }
 
-            // Skip if station-wide block for the requested period
-            if (dateFrom != null && service.isBlocked(partnerStationId, null, null, dateFrom, dateTo)) {
-                continue;
-            }
-
-            var inventories = inventoryRepository.findByStation(partnerStationId);
-            for (var inv : inventories) {
-                if (query != null && !query.isBlank()) {
-                    if (!inv.name().toLowerCase().contains(query.toLowerCase())) {
-                        continue;
-                    }
-                }
-                // Skip if inventory type is blocked
-                if (dateFrom != null && service.isBlocked(partnerStationId, inv.id(), null, dateFrom, dateTo)) {
-                    continue;
-                }
-
-                var unassigned = inventoryRepository.findUnassignedItems(inv.id());
-                int availableCount;
-                if (dateFrom != null) {
-                    availableCount = (int) unassigned.stream()
-                            .filter(item -> !service.isBlocked(partnerStationId, null, item.id(), dateFrom, dateTo))
-                            .count();
-                } else {
-                    availableCount = unassigned.size();
-                }
-                if (availableCount > 0) {
-                    results.add(new AvailableInventoryEntry(
-                            inv.id(), inv.name(), partnerStationId, stationName, availableCount));
-                }
+        var results = new ArrayList<AvailableInventoryEntry>();
+        var allFuture = CompletableFuture.allOf(futures.toArray(CompletableFuture[]::new));
+        try {
+            allFuture.join();
+        } catch (Exception ignored) {
+        }
+        for (var future : futures) {
+            try {
+                results.addAll(future.get());
+            } catch (Exception ignored) {
             }
         }
         ctx.json(results);
+    }
+
+    private List<AvailableInventoryEntry> findAvailableForPartner(
+            FederationPartner partner, String query, LocalDate dateFrom, LocalDate dateTo) {
+        var partnerStation =
+                stationRepository.findByUid(partner.partnerStationId()).orElse(null);
+        if (partnerStation == null) return List.of();
+        int partnerStationId = partnerStation.id();
+        String stationName = partnerStation.name();
+
+        if (dateFrom != null && service.isBlocked(partnerStationId, null, null, dateFrom, dateTo)) {
+            return List.of();
+        }
+
+        var entries = new ArrayList<AvailableInventoryEntry>();
+        var inventories = inventoryRepository.findByStation(partnerStationId);
+        for (var inv : inventories) {
+            if (query != null && !query.isBlank()) {
+                if (!inv.name().toLowerCase().contains(query.toLowerCase())) {
+                    continue;
+                }
+            }
+            if (dateFrom != null && service.isBlocked(partnerStationId, inv.id(), null, dateFrom, dateTo)) {
+                continue;
+            }
+
+            var unassigned = inventoryRepository.findUnassignedItems(inv.id());
+            int availableCount;
+            if (dateFrom != null) {
+                availableCount = (int) unassigned.stream()
+                        .filter(item -> !service.isBlocked(partnerStationId, null, item.id(), dateFrom, dateTo))
+                        .count();
+            } else {
+                availableCount = unassigned.size();
+            }
+            if (availableCount > 0) {
+                entries.add(new AvailableInventoryEntry(
+                        inv.id(), inv.name(), partnerStationId, stationName, availableCount));
+            }
+        }
+        return entries;
     }
 
     // -- Helpers --
@@ -498,4 +524,21 @@ public class LendingRoutes implements Routes {
     public record AssignItemsRequest(List<ItemAssignment> items) {}
 
     public record ItemAssignment(int requestItemId, int itemId) {}
+
+    // -- Remote endpoints (server-to-server, RSA signature auth) --
+
+    private void remoteGetMessages(Context ctx) {
+        var partner = requireFederationPartner(ctx);
+        int requestId = ctx.pathParamAsClass("requestId", Integer.class).get();
+        var messages = service.getLocalMessages(requestId, partner.stationId());
+        ctx.json(messages);
+    }
+
+    private FederationPartner requireFederationPartner(Context ctx) {
+        var session = FederationSession.from(ctx);
+        if (session == null) {
+            throw new ForbiddenResponse("Missing or invalid federation signature");
+        }
+        return session.partner();
+    }
 }

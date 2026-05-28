@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.events.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
+import dev.chojo.ember.api.FederationSession;
 import dev.chojo.ember.api.MessageResponse;
 import dev.chojo.ember.api.Roles;
 import dev.chojo.ember.api.Routes;
@@ -30,9 +31,16 @@ import dev.chojo.ember.feature.events.service.EventExportService;
 import dev.chojo.ember.feature.events.service.EventFederationService;
 import dev.chojo.ember.feature.events.service.EventFieldService;
 import dev.chojo.ember.feature.events.service.EventService;
+import dev.chojo.ember.feature.federation.entity.FederationPartner;
+import dev.chojo.ember.feature.federation.entity.FederationPartner.FederationStatus;
+import dev.chojo.ember.feature.federation.repository.FederationRepository;
+import dev.chojo.ember.feature.federation.service.FederationHttpClient;
+import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.StationMemberService;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
+import dev.chojo.ember.feature.station.entity.Station;
+import dev.chojo.ember.feature.station.repository.StationRepository;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.ForbiddenResponse;
@@ -59,6 +67,9 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * Routes for event management including CRUD operations on events, categories, breaks,
@@ -75,6 +86,10 @@ public class EventRoutes implements Routes {
     private final AttendanceService attendanceService;
     private final EventExportService eventExportService;
     private final EventFederationService eventFederationService;
+    private final FederationService federationService;
+    private final FederationHttpClient federationHttpClient;
+    private final FederationRepository federationRepository;
+    private final StationRepository stationRepository;
 
     @Inject
     public EventRoutes(
@@ -86,7 +101,11 @@ public class EventRoutes implements Routes {
             AccountRepository accountRepository,
             AttendanceService attendanceService,
             EventExportService eventExportService,
-            EventFederationService eventFederationService) {
+            EventFederationService eventFederationService,
+            FederationService federationService,
+            FederationHttpClient federationHttpClient,
+            FederationRepository federationRepository,
+            StationRepository stationRepository) {
         this.eventService = eventService;
         this.eventFieldService = eventFieldService;
         this.batchEventService = batchEventService;
@@ -96,6 +115,10 @@ public class EventRoutes implements Routes {
         this.attendanceService = attendanceService;
         this.eventExportService = eventExportService;
         this.eventFederationService = eventFederationService;
+        this.federationService = federationService;
+        this.federationHttpClient = federationHttpClient;
+        this.federationRepository = federationRepository;
+        this.stationRepository = stationRepository;
     }
 
     @Override
@@ -166,6 +189,20 @@ public class EventRoutes implements Routes {
                 this::listAbsencesForDate,
                 Roles.EVENT_MANAGER,
                 Roles.ATTENDANCE_MANAGER);
+
+        // Federated (user-facing, bearer token auth)
+        routes.get(prefix + "/federated/events", this::federatedListEvents, Roles.USER);
+        routes.get(prefix + "/federated/{stationuid}/events/{id}", this::federatedGetEvent, Roles.USER);
+        routes.post(prefix + "/federated/{stationuid}/events/{id}/register", this::federatedRegister, Roles.USER);
+        routes.delete(prefix + "/federated/{stationuid}/events/{id}/register", this::federatedWithdraw, Roles.USER);
+
+        // Remote (server-to-server, RSA signature auth)
+        routes.get(prefix + "/remote/events", this::remoteListEvents);
+        routes.get(prefix + "/remote/events/{id}", this::remoteGetEvent);
+        routes.post(prefix + "/remote/events/{id}/register", this::remoteRegister);
+        routes.delete(prefix + "/remote/events/{id}/register", this::remoteWithdraw);
+        routes.get(prefix + "/remote/events/{id}/registrations", this::remoteListRegistrations);
+        routes.post(prefix + "/remote/webhook/event-registration-status", this::remoteOnRegistrationStatus);
     }
 
     private String resolveCreatedByName(Integer createdBy) {
@@ -1339,4 +1376,235 @@ public class EventRoutes implements Routes {
     }
 
     public record SetFederationShareRequest(String scope, List<Integer> partnerIds) {}
+
+    // -- Federated endpoints (user-facing, aggregates from partners with parallel fetch) --
+
+    private void federatedListEvents(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        var station = stationRepository.findById(session.stationId()).orElseThrow();
+        var partners = federationService.findPartners(session.stationId()).stream()
+                .filter(p -> p.status() == FederationStatus.ACTIVE)
+                .toList();
+
+        var futures = new ArrayList<CompletableFuture<List<Map<String, Object>>>>();
+        for (var partner : partners) {
+            futures.add(CompletableFuture.supplyAsync(() -> {
+                var events = new ArrayList<Map<String, Object>>();
+                if (partner.isRemote()) {
+                    var remoteEvents = federationHttpClient.fetchFederatedEvents(
+                            partner.remoteHost(), station.id(), station.federationPrivateKey());
+                    for (var event : remoteEvents) {
+                        events.add(Map.of(
+                                "partnerId", partner.id(),
+                                "partnerStationName", partnerStationName(partner),
+                                "event", event));
+                    }
+                } else {
+                    int partnerStationId = stationRepository
+                            .findByUid(partner.partnerStationId())
+                            .map(Station::id)
+                            .orElse(0);
+                    var eventIds = eventFederationService.findSharedEventIds(partner.id(), partnerStationId);
+                    for (int eventId : eventIds) {
+                        eventService
+                                .findById(eventId)
+                                .ifPresent(e -> events.add(Map.of(
+                                        "partnerId", partner.id(),
+                                        "partnerStationName", partnerStationName(partner),
+                                        "event", toRemoteEvent(e))));
+                    }
+                }
+                return events;
+            }));
+        }
+
+        var allEvents = new ArrayList<Map<String, Object>>();
+        var allFuture = CompletableFuture.allOf(futures.toArray(CompletableFuture[]::new));
+        try {
+            allFuture.join();
+        } catch (Exception ignored) {
+        }
+        for (var future : futures) {
+            try {
+                allEvents.addAll(future.get());
+            } catch (Exception ignored) {
+            }
+        }
+        ctx.json(allEvents);
+    }
+
+    private void federatedGetEvent(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        var partner = resolvePartner(ctx, session.stationId());
+        int eventId = ctx.pathParamAsClass("id", Integer.class).get();
+        int partnerStationId = stationRepository
+                .findByUid(partner.partnerStationId())
+                .map(Station::id)
+                .orElseThrow(NotFoundResponse::new);
+        var eventIds = eventFederationService.findSharedEventIds(partner.id(), partnerStationId);
+        if (!eventIds.contains(eventId)) {
+            throw new NotFoundResponse();
+        }
+        var event = eventService.findById(eventId).orElseThrow(NotFoundResponse::new);
+        var fields = eventFieldService.findByEvent(eventId).stream()
+                .filter(EventField::isPublic)
+                .toList();
+        ctx.json(Map.of("event", toRemoteEvent(event), "publicFields", fields));
+    }
+
+    private void federatedRegister(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        var station = stationRepository.findById(session.stationId()).orElseThrow();
+        var partner = resolvePartner(ctx, session.stationId());
+        int eventId = ctx.pathParamAsClass("id", Integer.class).get();
+        var req = ctx.bodyAsClass(FederatedRegBody.class);
+        String remoteMemberId = String.valueOf(session.member().id());
+
+        if (partner.isRemote()) {
+            boolean success = federationHttpClient.registerForFederatedEvent(
+                    partner.remoteHost(),
+                    eventId,
+                    remoteMemberId,
+                    req.eventDate(),
+                    station.id(),
+                    station.federationPrivateKey());
+            if (!success) throw new BadRequestResponse("Registration failed");
+        } else {
+            eventFederationService.registerFederated(
+                    eventId, partner.id(), remoteMemberId, LocalDate.parse(req.eventDate()));
+        }
+        ctx.status(HttpStatus.CREATED).json(Map.of("status", "PENDING"));
+    }
+
+    private void federatedWithdraw(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        var station = stationRepository.findById(session.stationId()).orElseThrow();
+        var partner = resolvePartner(ctx, session.stationId());
+        int eventId = ctx.pathParamAsClass("id", Integer.class).get();
+        var req = ctx.bodyAsClass(FederatedRegBody.class);
+        String remoteMemberId = String.valueOf(session.member().id());
+
+        if (partner.isRemote()) {
+            federationHttpClient.withdrawFederatedRegistration(
+                    partner.remoteHost(),
+                    eventId,
+                    remoteMemberId,
+                    req.eventDate(),
+                    station.id(),
+                    station.federationPrivateKey());
+        } else {
+            eventFederationService.withdrawRegistration(
+                    eventId, partner.id(), remoteMemberId, LocalDate.parse(req.eventDate()));
+        }
+        ctx.status(HttpStatus.NO_CONTENT);
+    }
+
+    // -- Remote endpoints (server-to-server, RSA signature auth) --
+
+    private void remoteListEvents(Context ctx) {
+        var partner = requireFederationPartner(ctx);
+        var eventIds = eventFederationService.findSharedEventIds(partner.id(), partner.stationId());
+        var events = eventIds.stream()
+                .map(id -> eventService.findById(id).orElse(null))
+                .filter(Objects::nonNull)
+                .map(this::toRemoteEvent)
+                .toList();
+        ctx.json(events);
+    }
+
+    private void remoteGetEvent(Context ctx) {
+        var partner = requireFederationPartner(ctx);
+        int eventId = ctx.pathParamAsClass("id", Integer.class).get();
+        var eventIds = eventFederationService.findSharedEventIds(partner.id(), partner.stationId());
+        if (!eventIds.contains(eventId)) {
+            throw new NotFoundResponse();
+        }
+        var event = eventService.findById(eventId).orElseThrow(NotFoundResponse::new);
+        var fields = eventFieldService.findByEvent(eventId).stream()
+                .filter(EventField::isPublic)
+                .toList();
+        var result = new HashMap<>(toRemoteEvent(event));
+        result.put("publicFields", fields);
+        ctx.json(result);
+    }
+
+    private void remoteRegister(Context ctx) {
+        var partner = requireFederationPartner(ctx);
+        int eventId = ctx.pathParamAsClass("id", Integer.class).get();
+        var eventIds = eventFederationService.findSharedEventIds(partner.id(), partner.stationId());
+        if (!eventIds.contains(eventId)) {
+            throw new NotFoundResponse();
+        }
+        var req = ctx.bodyAsClass(RemoteRegistrationRequest.class);
+        var reg =
+                eventFederationService.registerFederated(eventId, partner.id(), req.remoteMemberId(), req.eventDate());
+        ctx.status(HttpStatus.CREATED).json(reg);
+    }
+
+    private void remoteWithdraw(Context ctx) {
+        var partner = requireFederationPartner(ctx);
+        int eventId = ctx.pathParamAsClass("id", Integer.class).get();
+        var req = ctx.bodyAsClass(RemoteRegistrationRequest.class);
+        eventFederationService.withdrawRegistration(eventId, partner.id(), req.remoteMemberId(), req.eventDate());
+        ctx.status(HttpStatus.NO_CONTENT);
+    }
+
+    private void remoteListRegistrations(Context ctx) {
+        var partner = requireFederationPartner(ctx);
+        int eventId = ctx.pathParamAsClass("id", Integer.class).get();
+        var eventIds = eventFederationService.findSharedEventIds(partner.id(), partner.stationId());
+        if (!eventIds.contains(eventId)) {
+            throw new NotFoundResponse();
+        }
+        var registrations = eventFederationService.findRegistrationsByPartner(partner.id()).stream()
+                .filter(r -> r.eventId() == eventId)
+                .toList();
+        ctx.json(registrations);
+    }
+
+    private void remoteOnRegistrationStatus(Context ctx) {
+        requireFederationPartner(ctx);
+        ctx.json(Map.of("status", "ok"));
+    }
+
+    // -- Federation helpers --
+
+    private FederationPartner resolvePartner(Context ctx, int stationId) {
+        var partnerUid = UUID.fromString(ctx.pathParam("stationuid"));
+        return federationRepository
+                .findPartnerByStationAndRemoteUid(stationId, partnerUid)
+                .orElseThrow(() -> new NotFoundResponse("Unknown partner"));
+    }
+
+    private FederationPartner requireFederationPartner(Context ctx) {
+        var session = FederationSession.from(ctx);
+        if (session == null) {
+            throw new ForbiddenResponse("Missing or invalid federation signature");
+        }
+        return session.partner();
+    }
+
+    private String partnerStationName(FederationPartner partner) {
+        return stationRepository
+                .findByUid(partner.partnerStationId())
+                .map(Station::name)
+                .orElse("?");
+    }
+
+    private Map<String, Object> toRemoteEvent(StationEvent e) {
+        return Map.of(
+                "id", e.id(),
+                "name", e.name(),
+                "description", e.description() != null ? e.description() : "",
+                "eventType", e.eventType() != null ? e.eventType().name() : "",
+                "dayOfWeek", e.dayOfWeek() != null ? e.dayOfWeek() : 0,
+                "startTime", e.startTime() != null ? e.startTime().toString() : "",
+                "endTime", e.endTime() != null ? e.endTime().toString() : "",
+                "requiresRegistration", e.requiresRegistration(),
+                "requiresConfirmation", true);
+    }
+
+    public record FederatedRegBody(String eventDate) {}
+
+    public record RemoteRegistrationRequest(String remoteMemberId, LocalDate eventDate) {}
 }

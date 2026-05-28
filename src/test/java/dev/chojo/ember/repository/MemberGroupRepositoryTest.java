@@ -111,7 +111,7 @@ class MemberGroupRepositoryTest extends RepositoryTestBase {
         memberGroupRepo.addGroupRole(groupId, teamRole.id());
 
         // Resolve effective roles through AccessManager (the same path used for session resolution)
-        var accessManager = new AccessManager(accountRepo, stationMemberRepo, memberGroupRepo);
+        var accessManager = new AccessManager(accountRepo, stationMemberRepo, memberGroupRepo, null, null);
         Set<Roles> resolved = accessManager.resolveExpandedMemberRoles(member.id());
 
         assertTrue(resolved.contains(Roles.TEAM), "Member in a group with TEAM role should have TEAM");

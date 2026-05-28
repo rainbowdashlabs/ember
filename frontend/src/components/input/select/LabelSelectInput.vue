@@ -6,6 +6,7 @@
 <script lang="ts" setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import type { BoardLabel } from '@/api/boards'
+import { contrastTextColor } from '@/theme/contrast'
 
 const props = defineProps<{
     labels: BoardLabel[]
@@ -52,7 +53,7 @@ onBeforeUnmount(() => document.removeEventListener('click', handleClickOutside))
             :class="{ 'opacity-50 pointer-events-none': disabled }"
             @click.stop="open = !open"
         >
-            <span v-for="label in selected" :key="label.id" class="text-xs px-2 py-0.5 rounded-full text-white inline-flex items-center gap-1" :style="{ backgroundColor: label.color }">
+            <span v-for="label in selected" :key="label.id" class="text-xs px-2 py-0.5 rounded-full inline-flex items-center gap-1" :style="{ backgroundColor: label.color, color: contrastTextColor(label.color) }">
                 {{ label.name }}
                 <span class="opacity-70 cursor-pointer" @click.stop="toggle(label.id)">x</span>
             </span>

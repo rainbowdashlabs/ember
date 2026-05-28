@@ -12,7 +12,7 @@ defineProps<{
 </script>
 
 <template>
-  <BaseBadge :class="lost ? 'bg-error/15 text-error' : 'bg-secondary-accent/15 text-secondary-accent'">
+  <BaseBadge :class="lost ? 'bg-error/15 text-error-badge' : 'bg-secondary-accent/15 text-secondary-badge'">
     <slot/>
   </BaseBadge>
 </template>

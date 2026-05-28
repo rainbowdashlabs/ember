@@ -8,6 +8,7 @@ import {computed} from 'vue'
 import {useRoute} from 'vue-router'
 import AppFooter from '@/components/layout/AppFooter.vue'
 import LandingHeader from '@/components/layout/LandingHeader.vue'
+import ToastContainer from '@/components/feedback/ToastContainer.vue'
 
 const route = useRoute()
 const publicRoutes = ['home', 'login', 'forgot-password', 'set-password', 'reset-password', 'apply', 'apply-verify', 'style', 'station-select', 'privacy', 'terms', 'imprint', 'reconsent', 'patch-notes', 'public-discovery']
@@ -25,4 +26,5 @@ const isPublic = computed(() => publicRoutes.includes(route.name as string))
     </div>
   </template>
   <RouterView v-else/>
+  <ToastContainer />
 </template>

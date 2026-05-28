@@ -19,12 +19,14 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 
 const {t} = useI18n()
 const demoUrl = ref('')
+const isDemo = ref(false)
 const registrationEnabled = ref(true)
 
 onMounted(async () => {
   try {
-    const res = await client.get<{ demoUrl?: string }>('/public/config')
+    const res = await client.get<{ demoUrl?: string; demo?: boolean }>('/public/config')
     demoUrl.value = res.data.demoUrl ?? ''
+    isDemo.value = res.data.demo ?? false
   } catch { /* ignore */ }
   adminSettings.isRegistrationEnabled().then(v => registrationEnabled.value = v).catch(() => {})
 
@@ -94,12 +96,17 @@ const highlights = [
               {{ t('landing.cta') }}
             </PrimaryButton>
           </router-link>
-          <router-link to="/login">
+          <router-link v-if="!isDemo" to="/login">
             <SecondaryButton class="text-base px-6 py-3">
               {{ t('landing.login') }}
             </SecondaryButton>
           </router-link>
-          <a v-if="demoUrl" :href="demoUrl" target="_blank" rel="noopener noreferrer">
+          <router-link v-if="isDemo" to="/login">
+            <PrimaryButton :icon="['fas', 'rocket']" class="text-base px-6 py-3">
+              {{ t('landing.tryNow') }}
+            </PrimaryButton>
+          </router-link>
+          <a v-if="demoUrl && !isDemo" :href="demoUrl" target="_blank" rel="noopener noreferrer">
             <InfoButton :icon="['fas', 'eye']" class="text-base px-6 py-3">
               {{ t('landing.demo') }}
             </InfoButton>
@@ -203,7 +210,12 @@ const highlights = [
               {{ t('landing.selfHostCta') }}
             </PrimaryButton>
           </router-link>
-          <a v-if="demoUrl" :href="demoUrl" target="_blank" rel="noopener noreferrer">
+          <router-link v-if="isDemo" to="/login">
+            <PrimaryButton :icon="['fas', 'rocket']" class="text-base px-6 py-3">
+              {{ t('landing.tryNow') }}
+            </PrimaryButton>
+          </router-link>
+          <a v-if="demoUrl && !isDemo" :href="demoUrl" target="_blank" rel="noopener noreferrer">
             <SecondaryButton :icon="['fas', 'eye']" class="text-base px-6 py-3">
               {{ t('landing.demo') }}
             </SecondaryButton>

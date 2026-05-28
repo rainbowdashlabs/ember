@@ -18,6 +18,7 @@ import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFile;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFileType;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFolder;
+import dev.chojo.ember.feature.knowledgebase.entity.KbSearchResult;
 import dev.chojo.ember.feature.knowledgebase.repository.KnowledgeBaseRepository;
 import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseService;
 import dev.chojo.ember.feature.members.entity.StationMember;
@@ -46,6 +47,7 @@ import org.junit.jupiter.api.TestMethodOrder;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -77,6 +79,7 @@ class FederatedContentServiceTest extends RepositoryTestBase {
 
     @BeforeAll
     static void setup() {
+        dev.chojo.ember.api.StationUidResolver.instance().clearCache();
         federationRepo = new FederationRepository();
         federationService = new FederationService(federationRepo, stationRepo, new Api());
         kbService = mock(KnowledgeBaseService.class);
@@ -217,7 +220,7 @@ class FederatedContentServiceTest extends RepositoryTestBase {
     void browseSharedKbReturnsFiles() {
         var items = contentService.browseSharedKb(stationA.id());
         assertFalse(items.isEmpty());
-        assertTrue(items.stream().anyMatch(i -> i.file() != null && i.file().id() == realKbFileId));
+        assertTrue(items.stream().anyMatch(i -> i.file().id() == realKbFileId));
     }
 
     @Test
@@ -225,7 +228,7 @@ class FederatedContentServiceTest extends RepositoryTestBase {
     void browseSharedQuizReturnsCatalogs() {
         var items = contentService.browseSharedQuiz(stationA.id());
         assertFalse(items.isEmpty());
-        assertTrue(items.stream().anyMatch(i -> i.catalog().id() == realQuizCatalogId));
+        assertTrue(items.stream().anyMatch(i -> i.id() == realQuizCatalogId));
     }
 
     @Test
@@ -233,7 +236,7 @@ class FederatedContentServiceTest extends RepositoryTestBase {
     void browseSharedProtocolsReturnsProtocols() {
         var items = contentService.browseSharedProtocols(stationA.id());
         assertFalse(items.isEmpty());
-        assertTrue(items.stream().anyMatch(i -> i.protocol().id() == realProtocolId));
+        assertTrue(items.stream().anyMatch(i -> i.id() == realProtocolId));
     }
 
     // -- No results when suspended --
@@ -428,9 +431,8 @@ class FederatedContentServiceTest extends RepositoryTestBase {
         when(kbService.findFiles(stationB.id(), folder.id())).thenReturn(List.of(mockFile));
 
         var items = contentService.browseSharedKb(stationA.id());
-        // Should contain both the folder and the file
-        assertTrue(items.stream().anyMatch(i -> i.folder() != null && i.folder().id() == folder.id()));
-        assertTrue(items.stream().anyMatch(i -> i.file() != null && i.file().id() == folderFile.id()));
+        // Should contain the file from the shared folder
+        assertTrue(items.stream().anyMatch(i -> i.file().id() == folderFile.id()));
 
         kbRepo.deleteFile(folderFile.id());
         kbRepo.deleteFolder(folder.id());
@@ -478,8 +480,7 @@ class FederatedContentServiceTest extends RepositoryTestBase {
 
         var items = svc.browseSharedKb(stationC.id());
         assertFalse(items.isEmpty());
-        assertTrue(
-                items.stream().anyMatch(i -> i.file() != null && i.file().name().equals("RemoteShared")));
+        assertTrue(items.stream().anyMatch(i -> i.file().name().equals("RemoteShared")));
 
         stationRepo.delete(stationC.id());
         stationRepo.delete(stationD.id());
@@ -511,7 +512,7 @@ class FederatedContentServiceTest extends RepositoryTestBase {
         // quizService.findCatalog is already mocked to return the catalog for realQuizCatalogId
         var items = svc.browseSharedQuiz(stationE.id());
         assertFalse(items.isEmpty());
-        assertTrue(items.stream().anyMatch(i -> i.catalog().id() == realQuizCatalogId));
+        assertTrue(items.stream().anyMatch(i -> i.id() == realQuizCatalogId));
 
         stationRepo.delete(stationE.id());
         stationRepo.delete(stationF.id());
@@ -543,7 +544,7 @@ class FederatedContentServiceTest extends RepositoryTestBase {
         // protocolService.findProtocol is already mocked to return the protocol for realProtocolId
         var items = svc.browseSharedProtocols(stationG.id());
         assertFalse(items.isEmpty());
-        assertTrue(items.stream().anyMatch(i -> i.protocol().id() == realProtocolId));
+        assertTrue(items.stream().anyMatch(i -> i.id() == realProtocolId));
 
         stationRepo.delete(stationG.id());
         stationRepo.delete(stationH.id());
@@ -790,5 +791,279 @@ class FederatedContentServiceTest extends RepositoryTestBase {
 
         stationRepo.delete(stationM.id());
         stationRepo.delete(stationN.id());
+    }
+
+    // -- searchFederatedKb (local path) --
+
+    @Test
+    @Order(70)
+    void searchFederatedKbReturnsResultsFromLocalPartner() {
+        var now = Instant.now();
+        var kbFile = new KbFile(
+                realKbFileId,
+                stationB.id(),
+                null,
+                "SharedFile",
+                "A shared file",
+                KbFileType.MARKDOWN,
+                "text/markdown",
+                1024,
+                null,
+                null,
+                null,
+                0,
+                memberB.id(),
+                now,
+                now,
+                null,
+                null,
+                RestrictionMode.AND,
+                false);
+        when(kbService.searchWithSnippets(stationB.id(), "shared"))
+                .thenReturn(List.of(new KbSearchResult(kbFile, "...shared content snippet...")));
+
+        var results = contentService.searchFederatedKb(stationA.id(), "shared");
+        assertFalse(results.isEmpty());
+        var first = results.getFirst();
+        assertEquals(realKbFileId, first.file().id());
+        assertEquals("...shared content snippet...", first.snippet());
+        assertEquals(stationB.name(), first.stationName());
+        assertNotNull(first.stationUid());
+    }
+
+    @Test
+    @Order(71)
+    void searchFederatedKbReturnsEmptyForNoMatches() {
+        when(kbService.searchWithSnippets(stationB.id(), "nonexistent")).thenReturn(List.of());
+
+        var results = contentService.searchFederatedKb(stationA.id(), "nonexistent");
+        assertTrue(results.isEmpty());
+    }
+
+    @Test
+    @Order(72)
+    void searchFederatedKbReturnsEmptyWhenSuspended() {
+        federationService.suspendPartner(partnerIdAtoB);
+        var results = contentService.searchFederatedKb(stationA.id(), "shared");
+        assertTrue(results.isEmpty());
+        federationService.resumePartner(partnerIdAtoB);
+    }
+
+    @Test
+    @Order(73)
+    void searchFederatedKbReturnsEmptyWhenCapabilityDisabled() {
+        federationService.setCapability(partnerIdAtoB, CapabilityType.KB_SHARE, Direction.IMPORT, false);
+        var results = contentService.searchFederatedKb(stationA.id(), "shared");
+        assertTrue(results.isEmpty());
+        federationService.setCapability(partnerIdAtoB, CapabilityType.KB_SHARE, Direction.IMPORT, true);
+    }
+
+    @Test
+    @Order(74)
+    void federatedSearchResultRecordFieldsAccessible() {
+        var now = Instant.now();
+        var summary = new dev.chojo.ember.feature.knowledgebase.entity.KbFileSummary(
+                42, stationB.id(), null, "TestFile", "TestDesc", KbFileType.MARKDOWN, now, false);
+        var result = new FederatedContentService.FederatedSearchResult(summary, "snippet text", "StationB", "some-uid");
+        assertEquals(42, result.file().id());
+        assertEquals("snippet text", result.snippet());
+        assertEquals("StationB", result.stationName());
+        assertEquals("some-uid", result.stationUid());
+    }
+
+    // -- getFederatedKbFile (local path) --
+
+    @Test
+    @Order(80)
+    void getFederatedKbFileReturnsFileFromLocalPartner() {
+        var partnerUid = stationB.uid();
+        var file = contentService.getFederatedKbFile(stationA.id(), partnerUid, realKbFileId);
+        assertNotNull(file);
+        assertEquals(realKbFileId, file.id());
+        assertEquals(stationB.id(), file.stationId());
+    }
+
+    @Test
+    @Order(81)
+    void getFederatedKbFileThrowsForWrongStation() {
+        // Create a file mock that belongs to a different station
+        var now = Instant.now();
+        var wrongFile = new KbFile(
+                realKbFileId,
+                stationA.id(),
+                null,
+                "WrongFile",
+                "Wrong station",
+                KbFileType.MARKDOWN,
+                "text/markdown",
+                100,
+                null,
+                null,
+                null,
+                0,
+                1,
+                now,
+                now,
+                null,
+                null,
+                RestrictionMode.AND,
+                false);
+        when(kbService.findFile(realKbFileId)).thenReturn(Optional.of(wrongFile));
+
+        assertThrows(IllegalArgumentException.class, () -> {
+            contentService.getFederatedKbFile(stationA.id(), stationB.uid(), realKbFileId);
+        });
+
+        // Restore the original mock
+        setupMocks();
+    }
+
+    @Test
+    @Order(82)
+    void getFederatedKbFileThrowsForUnknownPartner() {
+        var randomUid = UUID.randomUUID();
+        assertThrows(IllegalArgumentException.class, () -> {
+            contentService.getFederatedKbFile(stationA.id(), randomUid, realKbFileId);
+        });
+    }
+
+    @Test
+    @Order(83)
+    void getFederatedKbFileThrowsForSuspendedPartner() {
+        federationService.suspendPartner(partnerIdAtoB);
+        assertThrows(IllegalArgumentException.class, () -> {
+            contentService.getFederatedKbFile(stationA.id(), stationB.uid(), realKbFileId);
+        });
+        federationService.resumePartner(partnerIdAtoB);
+    }
+
+    // -- getFederatedKbFileContent (local path) --
+
+    @Test
+    @Order(90)
+    void getFederatedKbFileContentReturnsContentFromLocalPartner() {
+        var content = contentService.getFederatedKbFileContent(stationA.id(), stationB.uid(), realKbFileId);
+        assertEquals("# Shared Content", content);
+    }
+
+    @Test
+    @Order(91)
+    void getFederatedKbFileContentThrowsForWrongStation() {
+        var now = Instant.now();
+        var wrongFile = new KbFile(
+                realKbFileId,
+                stationA.id(),
+                null,
+                "WrongFile",
+                "Wrong station",
+                KbFileType.MARKDOWN,
+                "text/markdown",
+                100,
+                null,
+                null,
+                null,
+                0,
+                1,
+                now,
+                now,
+                null,
+                null,
+                RestrictionMode.AND,
+                false);
+        when(kbService.findFile(realKbFileId)).thenReturn(Optional.of(wrongFile));
+
+        assertThrows(IllegalArgumentException.class, () -> {
+            contentService.getFederatedKbFileContent(stationA.id(), stationB.uid(), realKbFileId);
+        });
+
+        // Restore
+        setupMocks();
+    }
+
+    // -- getFederatedQuizCatalog (local path) --
+
+    @Test
+    @Order(100)
+    void getFederatedQuizCatalogReturnsDataFromLocalPartner() {
+        var result = contentService.getFederatedQuizCatalog(stationA.id(), stationB.uid(), realQuizCatalogId);
+        assertNotNull(result);
+        assertTrue(result.containsKey("catalog"));
+        assertTrue(result.containsKey("categories"));
+        assertTrue(result.containsKey("questions"));
+        var catalog = (QuizCatalog) result.get("catalog");
+        assertEquals(realQuizCatalogId, catalog.id());
+    }
+
+    @Test
+    @Order(101)
+    void getFederatedQuizCatalogThrowsForWrongStation() {
+        var now = Instant.now();
+        var wrongCatalog = new QuizCatalog(realQuizCatalogId, stationA.id(), "Wrong", "Wrong station", false, now, now);
+        when(quizService.findCatalog(realQuizCatalogId)).thenReturn(Optional.of(wrongCatalog));
+
+        assertThrows(IllegalArgumentException.class, () -> {
+            contentService.getFederatedQuizCatalog(stationA.id(), stationB.uid(), realQuizCatalogId);
+        });
+
+        // Restore
+        setupMocks();
+    }
+
+    @Test
+    @Order(102)
+    void getFederatedQuizCatalogThrowsForUnknownPartner() {
+        assertThrows(IllegalArgumentException.class, () -> {
+            contentService.getFederatedQuizCatalog(stationA.id(), UUID.randomUUID(), realQuizCatalogId);
+        });
+    }
+
+    // -- getFederatedProtocol (local path) --
+
+    @Test
+    @Order(110)
+    void getFederatedProtocolReturnsDataFromLocalPartner() {
+        var result = contentService.getFederatedProtocol(stationA.id(), stationB.uid(), realProtocolId);
+        assertNotNull(result);
+        assertTrue(result.containsKey("protocol"));
+        assertTrue(result.containsKey("sections"));
+        assertTrue(result.containsKey("items"));
+        var protocol = (TestProtocol) result.get("protocol");
+        assertEquals(realProtocolId, protocol.id());
+    }
+
+    @Test
+    @Order(111)
+    void getFederatedProtocolThrowsForWrongStation() {
+        var now = Instant.now();
+        var wrongProto = new TestProtocol(realProtocolId, stationA.id(), "Wrong", "Wrong station", 70, now, now);
+        when(protocolService.findProtocol(realProtocolId)).thenReturn(Optional.of(wrongProto));
+
+        assertThrows(IllegalArgumentException.class, () -> {
+            contentService.getFederatedProtocol(stationA.id(), stationB.uid(), realProtocolId);
+        });
+
+        // Restore
+        setupMocks();
+    }
+
+    @Test
+    @Order(112)
+    void getFederatedProtocolThrowsForSuspendedPartner() {
+        federationService.suspendPartner(partnerIdAtoB);
+        assertThrows(IllegalArgumentException.class, () -> {
+            contentService.getFederatedProtocol(stationA.id(), stationB.uid(), realProtocolId);
+        });
+        federationService.resumePartner(partnerIdAtoB);
+    }
+
+    // -- searchFederatedKb with no partners --
+
+    @Test
+    @Order(120)
+    void searchFederatedKbNoPartnersReturnsEmpty() {
+        var isolated = stationRepo.create("FedContentSearchIsolated");
+        var results = contentService.searchFederatedKb(isolated.id(), "anything");
+        assertTrue(results.isEmpty());
+        stationRepo.delete(isolated.id());
     }
 }

@@ -14,6 +14,8 @@ import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
+import java.util.List;
+
 @Singleton
 public class RequirementsRoutes implements Routes {
     private final RequirementsService requirementsService;
@@ -31,7 +33,7 @@ public class RequirementsRoutes implements Routes {
     private void getRequirements(Context ctx) {
         UserSession session = UserSession.from(ctx);
         if (session.member() == null || session.stationId() == null) {
-            ctx.json(new RequirementsService.RequirementsResponse(java.util.List.of(), java.util.List.of(), false));
+            ctx.json(new RequirementsService.RequirementsResponse(List.of(), List.of(), false));
             return;
         }
         ctx.json(requirementsService.getRequirements(

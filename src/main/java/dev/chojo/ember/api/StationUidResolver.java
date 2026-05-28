@@ -55,4 +55,11 @@ public class StationUidResolver {
     public void invalidate(int stationId) {
         cache.remove(stationId);
     }
+
+    /**
+     * Clears the entire cache. Used in tests to prevent stale entries between test classes.
+     */
+    public void clearCache() {
+        cache.clear();
+    }
 }

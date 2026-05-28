@@ -105,7 +105,7 @@ const toolbarButtons: ToolbarButton[][] = [
         :key="btn.label"
         type="button"
         :title="btn.label"
-        :class="['p-1.5 rounded text-sm transition-colors', btn.active() ? 'bg-[var(--primary)] text-white' : 'text-[var(--text)] hover:bg-[var(--bg-accent)]']"
+        :class="['p-1.5 rounded text-sm transition-colors', btn.active() ? 'bg-[var(--primary)] text-[var(--color-primary-text)]' : 'text-[var(--text)] hover:bg-[var(--bg-accent)]']"
         :disabled="showRawMarkdown"
         @mousedown.prevent
         @click="btn.action()"
@@ -118,7 +118,7 @@ const toolbarButtons: ToolbarButton[][] = [
     <!-- Highlight picker -->
     <div class="w-px h-5 bg-[var(--border)] mx-1" />
     <div class="relative">
-      <button type="button" title="Hervorhebung" :class="['p-1.5 rounded text-sm transition-colors', isActive('highlight') ? 'bg-[var(--primary)] text-white' : 'text-[var(--text)] hover:bg-[var(--bg-accent)]']" :disabled="showRawMarkdown" @mousedown.prevent @click="showHighlightPicker = !showHighlightPicker; showColorPicker = false">
+      <button type="button" title="Hervorhebung" :class="['p-1.5 rounded text-sm transition-colors', isActive('highlight') ? 'bg-[var(--primary)] text-[var(--color-primary-text)]' : 'text-[var(--text)] hover:bg-[var(--bg-accent)]']" :disabled="showRawMarkdown" @mousedown.prevent @click="showHighlightPicker = !showHighlightPicker; showColorPicker = false">
         <font-awesome-icon :icon="['fas', 'highlighter']" class="w-3.5 h-3.5" />
       </button>
       <div v-if="showHighlightPicker" class="absolute top-full left-0 mt-1 z-30 p-2 rounded-lg shadow-lg border border-[var(--border)] bg-[var(--bg)] grid grid-cols-5 gap-2" style="min-width: 160px">
@@ -142,7 +142,7 @@ const toolbarButtons: ToolbarButton[][] = [
 
     <!-- Raw toggle -->
     <div class="w-px h-5 bg-[var(--border)] mx-1" />
-    <button type="button" title="Markdown anzeigen" :class="['p-1.5 rounded text-sm transition-colors cursor-pointer', showRawMarkdown ? 'bg-[var(--primary)] text-white' : 'text-[var(--text)] hover:bg-[var(--bg-accent)]']" @click.stop="$emit('toggleRaw')">
+    <button type="button" title="Markdown anzeigen" :class="['p-1.5 rounded text-sm transition-colors cursor-pointer', showRawMarkdown ? 'bg-[var(--primary)] text-[var(--color-primary-text)]' : 'text-[var(--text)] hover:bg-[var(--bg-accent)]']" @click.stop="$emit('toggleRaw')">
       <font-awesome-icon :icon="['fas', 'file-code']" class="w-3.5 h-3.5" />
     </button>
   </div>

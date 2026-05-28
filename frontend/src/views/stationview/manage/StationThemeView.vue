@@ -21,7 +21,7 @@ import Alert from '@/components/feedback/Alert.vue'
 import ThemeSelector from '@/components/theme/ThemeSelector.vue'
 import {stationManage} from '@/api'
 import {THEMES} from '@/theme/themes'
-import type {ThemeColors} from '@/theme/themes'
+import type {ThemeColors, ModeColors} from '@/theme/themes'
 import {useTheme} from '@/composables/useTheme'
 
 const {t} = useI18n()
@@ -41,22 +41,24 @@ const lockFeel = ref(false)
 // Custom colors
 const customEnabled = ref(false)
 const presetKey = ref('')
-const customColors = ref<ThemeColors>({
-  primary: '#FF6421',
-  primaryAccent: '#C71100',
-  secondary: '#73CEFF',
-  secondaryAccent: '#3694FF',
-  info: '#c8ab03',
-  infoAccent: '#af7501',
-  success: '#00C507',
-  error: '#ec2929',
-  bgLight: '#eaeaea',
-  bgLightAccent: '#CFCFCF',
-  bgDark: '#212121',
-  bgDarkAccent: '#191919',
-})
 
-const colorFields: { key: keyof ThemeColors; label: string }[] = [
+function defaultColors(): ThemeColors {
+  const mode: ModeColors = {
+    primary: '#FF6421', primaryAccent: '#C71100',
+    secondary: '#73CEFF', secondaryAccent: '#3694FF',
+    info: '#c8ab03', infoAccent: '#af7501',
+    success: '#00C507', error: '#ec2929',
+  }
+  return {
+    light: {...mode}, dark: {...mode},
+    bgLight: '#eaeaea', bgLightAccent: '#CFCFCF',
+    bgDark: '#212121', bgDarkAccent: '#191919',
+  }
+}
+
+const customColors = ref<ThemeColors>(defaultColors())
+
+const modeColorFields: { key: keyof ModeColors; label: string }[] = [
   {key: 'primary', label: 'colorPrimary'},
   {key: 'primaryAccent', label: 'colorPrimaryAccent'},
   {key: 'secondary', label: 'colorSecondary'},
@@ -65,6 +67,9 @@ const colorFields: { key: keyof ThemeColors; label: string }[] = [
   {key: 'infoAccent', label: 'colorInfoAccent'},
   {key: 'success', label: 'colorSuccess'},
   {key: 'error', label: 'colorError'},
+]
+
+const bgFields: { key: 'bgLight' | 'bgLightAccent' | 'bgDark' | 'bgDarkAccent'; label: string }[] = [
   {key: 'bgLight', label: 'colorBgLight'},
   {key: 'bgLightAccent', label: 'colorBgLightAccent'},
   {key: 'bgDark', label: 'colorBgDark'},
@@ -74,7 +79,7 @@ const colorFields: { key: keyof ThemeColors; label: string }[] = [
 function loadPreset() {
   const theme = THEMES[presetKey.value]
   if (!theme) return
-  customColors.value = {...theme.colors}
+  customColors.value = JSON.parse(JSON.stringify(theme.colors)) as ThemeColors
 }
 
 async function loadStation() {
@@ -178,9 +183,42 @@ onMounted(loadStation)
               <SecondaryButton :disabled="!presetKey" @click="loadPreset">{{ t('theme.applyPreset') }}</SecondaryButton>
             </div>
 
-            <!-- Color grid -->
+            <!-- Light mode colors -->
+            <SubHeader class="!mt-4">{{ t('theme.lightModeColors') }}</SubHeader>
             <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-              <div v-for="field in colorFields" :key="field.key" class="space-y-1">
+              <div v-for="field in modeColorFields" :key="'light-' + field.key" class="space-y-1">
+                <FieldLabel class="text-xs">{{ t(`theme.${field.label}`) }}</FieldLabel>
+                <div class="flex items-center gap-2">
+                  <input
+                    v-model="customColors.light[field.key]"
+                    type="color"
+                    class="h-9 w-12 rounded-theme border border-(--border) cursor-pointer bg-transparent"
+                  />
+                  <span class="text-xs text-(--text-muted) font-mono">{{ customColors.light[field.key] }}</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Dark mode colors -->
+            <SubHeader class="!mt-4">{{ t('theme.darkModeColors') }}</SubHeader>
+            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+              <div v-for="field in modeColorFields" :key="'dark-' + field.key" class="space-y-1">
+                <FieldLabel class="text-xs">{{ t(`theme.${field.label}`) }}</FieldLabel>
+                <div class="flex items-center gap-2">
+                  <input
+                    v-model="customColors.dark[field.key]"
+                    type="color"
+                    class="h-9 w-12 rounded-theme border border-(--border) cursor-pointer bg-transparent"
+                  />
+                  <span class="text-xs text-(--text-muted) font-mono">{{ customColors.dark[field.key] }}</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Background colors -->
+            <SubHeader class="!mt-4">{{ t('theme.backgrounds') }}</SubHeader>
+            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+              <div v-for="field in bgFields" :key="field.key" class="space-y-1">
                 <FieldLabel class="text-xs">{{ t(`theme.${field.label}`) }}</FieldLabel>
                 <div class="flex items-center gap-2">
                   <input

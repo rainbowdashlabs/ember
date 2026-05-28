@@ -12,7 +12,6 @@ import dev.chojo.ember.feature.federation.entity.CapabilityType;
 import dev.chojo.ember.feature.federation.entity.Direction;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.entity.ShareScope;
-import dev.chojo.ember.feature.federation.service.FederatedContentService;
 import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
@@ -26,19 +25,17 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
 import java.util.Map;
+import java.util.UUID;
 
 @Singleton
 public class FederationRoutes implements Routes {
 
     private final FederationService service;
-    private final FederatedContentService contentService;
     private final StationRepository stationRepository;
 
     @Inject
-    public FederationRoutes(
-            FederationService service, FederatedContentService contentService, StationRepository stationRepository) {
+    public FederationRoutes(FederationService service, StationRepository stationRepository) {
         this.service = service;
-        this.contentService = contentService;
         this.stationRepository = stationRepository;
     }
 
@@ -71,16 +68,6 @@ public class FederationRoutes implements Routes {
         routes.post(prefix + "/federation/shares/protocol", this::createProtocolShare, Roles.FEDERATION_MANAGER);
         routes.delete(prefix + "/federation/shares/protocol/{id}", this::deleteProtocolShare, Roles.FEDERATION_MANAGER);
 
-        // Browse shared content (available to all users)
-        routes.get(prefix + "/federation/shared/kb", this::browseSharedKb, Roles.USER);
-        routes.get(prefix + "/federation/shared/quiz", this::browseSharedQuiz, Roles.USER);
-        routes.get(prefix + "/federation/shared/protocols", this::browseSharedProtocols, Roles.USER);
-
-        // Copy shared content to own station
-        routes.post(prefix + "/federation/copy/kb/{fileId}", this::copyKbFile, Roles.KNOWLEDGE_MANAGER);
-        routes.post(prefix + "/federation/copy/quiz/{catalogId}", this::copyQuizCatalog, Roles.QUIZ_MANAGER);
-        routes.post(prefix + "/federation/copy/protocol/{protocolId}", this::copyProtocol, Roles.PROTOCOL_MANAGER);
-
         // Version/capabilities info
         routes.get(prefix + "/federation/info", this::getInfo, Roles.FEDERATION_MANAGER);
     }
@@ -94,7 +81,7 @@ public class FederationRoutes implements Routes {
         ctx.json(partners.stream()
                 .map(p -> {
                     String partnerName = stationRepository
-                            .findById(p.stationId() == session.stationId() ? p.partnerStationId() : p.stationId())
+                            .findByUid(p.partnerStationId())
                             .map(Station::name)
                             .orElse("Unknown");
                     return new PartnerResponse(p, partnerName);
@@ -141,7 +128,7 @@ public class FederationRoutes implements Routes {
 
         // Check not already federated
         var existingPartners = service.findPartners(session.stationId());
-        if (existingPartners.stream().anyMatch(p -> p.partnerStationId() == targetStation.id())) {
+        if (existingPartners.stream().anyMatch(p -> p.partnerStationId().equals(targetStation.uid()))) {
             throw new BadRequestResponse("Already federated with this station");
         }
 
@@ -185,7 +172,11 @@ public class FederationRoutes implements Routes {
         int requestId = ctx.pathParamAsClass("id", Integer.class).get();
         // Verify the request targets this station
         var partner = service.findPartner(requestId).orElseThrow(NotFoundResponse::new);
-        if (partner.partnerStationId() != session.stationId()) {
+        UUID sessionStationUid = stationRepository
+                .findById(session.stationId())
+                .map(Station::uid)
+                .orElse(null);
+        if (!partner.partnerStationId().equals(sessionStationUid)) {
             throw new ForbiddenResponse("This request is not for your station");
         }
         var result = service.acceptPairRequest(requestId);
@@ -196,7 +187,11 @@ public class FederationRoutes implements Routes {
         var session = UserSession.from(ctx);
         int requestId = ctx.pathParamAsClass("id", Integer.class).get();
         var partner = service.findPartner(requestId).orElseThrow(NotFoundResponse::new);
-        if (partner.partnerStationId() != session.stationId()) {
+        UUID sessionStationUid = stationRepository
+                .findById(session.stationId())
+                .map(Station::uid)
+                .orElse(null);
+        if (!partner.partnerStationId().equals(sessionStationUid)) {
             throw new ForbiddenResponse("This request is not for your station");
         }
         service.declinePairRequest(requestId);
@@ -207,7 +202,7 @@ public class FederationRoutes implements Routes {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
         var partner = service.findPartner(id).orElseThrow(NotFoundResponse::new);
         String partnerName = stationRepository
-                .findById(partner.partnerStationId())
+                .findByUid(partner.partnerStationId())
                 .map(Station::name)
                 .orElse("Unknown");
         ctx.json(new PartnerResponse(partner, partnerName));
@@ -313,93 +308,6 @@ public class FederationRoutes implements Routes {
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
-    // -- Browse Shared Content (uses same-instance service layer) --
-
-    private void browseSharedKb(Context ctx) {
-        var session = UserSession.from(ctx);
-        var items = contentService.browseSharedKb(session.stationId());
-        ctx.json(items.stream()
-                .filter(i -> i.file() != null)
-                .map(i -> {
-                    String name = stationRepository
-                            .findById(i.sourceStationId())
-                            .map(Station::name)
-                            .orElse("Unknown");
-                    return new SharedContentItem(
-                            i.file().id(),
-                            i.file().name(),
-                            i.file().description(),
-                            name,
-                            i.sourceStationId(),
-                            i.partnerId());
-                })
-                .toList());
-    }
-
-    private void browseSharedQuiz(Context ctx) {
-        var session = UserSession.from(ctx);
-        var items = contentService.browseSharedQuiz(session.stationId());
-        ctx.json(items.stream()
-                .map(i -> {
-                    String name = stationRepository
-                            .findById(i.sourceStationId())
-                            .map(Station::name)
-                            .orElse("Unknown");
-                    return new SharedContentItem(
-                            i.catalog().id(),
-                            i.catalog().name(),
-                            i.catalog().description(),
-                            name,
-                            i.sourceStationId(),
-                            i.partnerId());
-                })
-                .toList());
-    }
-
-    private void browseSharedProtocols(Context ctx) {
-        var session = UserSession.from(ctx);
-        var items = contentService.browseSharedProtocols(session.stationId());
-        ctx.json(items.stream()
-                .map(i -> {
-                    String name = stationRepository
-                            .findById(i.sourceStationId())
-                            .map(Station::name)
-                            .orElse("Unknown");
-                    return new SharedContentItem(
-                            i.protocol().id(),
-                            i.protocol().name(),
-                            i.protocol().description(),
-                            name,
-                            i.sourceStationId(),
-                            i.partnerId());
-                })
-                .toList());
-    }
-
-    // -- Copy Shared Content --
-
-    private void copyKbFile(Context ctx) {
-        var session = UserSession.from(ctx);
-        int fileId = ctx.pathParamAsClass("fileId", Integer.class).get();
-        var copied = contentService.copyKbFile(
-                fileId, session.stationId(), session.member().id());
-        ctx.status(HttpStatus.CREATED).json(copied);
-    }
-
-    private void copyQuizCatalog(Context ctx) {
-        var session = UserSession.from(ctx);
-        int catalogId = ctx.pathParamAsClass("catalogId", Integer.class).get();
-        var copied = contentService.copyQuizCatalog(catalogId, session.stationId());
-        ctx.status(HttpStatus.CREATED).json(copied);
-    }
-
-    private void copyProtocol(Context ctx) {
-        var session = UserSession.from(ctx);
-        int protocolId = ctx.pathParamAsClass("protocolId", Integer.class).get();
-        var copied = contentService.copyProtocol(protocolId, session.stationId());
-        ctx.status(HttpStatus.CREATED).json(copied);
-    }
-
     // -- Info --
 
     private void getInfo(Context ctx) {
@@ -425,7 +333,4 @@ public class FederationRoutes implements Routes {
     public record PartnerResponse(FederationPartner partner, String partnerStationName) {}
 
     public record PairRequestResponse(int id, String stationName, String createdAt) {}
-
-    public record SharedContentItem(
-            int remoteId, String title, String description, String stationName, int stationId, int partnerId) {}
 }

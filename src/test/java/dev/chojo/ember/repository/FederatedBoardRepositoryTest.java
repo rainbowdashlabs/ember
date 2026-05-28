@@ -7,6 +7,7 @@ package dev.chojo.ember.repository;
 
 import de.chojo.sadu.queries.api.call.Call;
 import de.chojo.sadu.queries.api.query.Query;
+import de.chojo.sadu.queries.converter.StandardValueConverter;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.board.entity.AccessData;
 import dev.chojo.ember.feature.board.entity.Board;
@@ -73,8 +74,10 @@ class FederatedBoardRepositoryTest extends RepositoryTestBase {
         commentId = comment.id();
 
         partnerId = Query.query(
-                        "INSERT INTO federation_partner(station_id, partner_station_id, status, federation_version) VALUES (:s, :p, 'ACTIVE', 1) RETURNING id;")
-                .single(Call.of().bind("s", owningStation.id()).bind("p", partnerStation.id()))
+                        "INSERT INTO federation_partner(station_id, partner_station_id, status, federation_version) VALUES (:s, :p::uuid, 'ACTIVE', 1) RETURNING id;")
+                .single(Call.of()
+                        .bind("s", owningStation.id())
+                        .bind("p", partnerStation.uid(), StandardValueConverter.UUID_STRING))
                 .map(row -> row.getInt("id"))
                 .first()
                 .orElseThrow();

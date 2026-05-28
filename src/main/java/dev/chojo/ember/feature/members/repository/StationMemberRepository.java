@@ -10,6 +10,7 @@ import de.chojo.sadu.queries.api.query.Query;
 import de.chojo.sadu.queries.api.results.writing.insertion.InsertionResult;
 import dev.chojo.ember.api.Roles;
 import dev.chojo.ember.feature.members.entity.MemberCompletion;
+import dev.chojo.ember.feature.members.entity.RichMember;
 import dev.chojo.ember.feature.members.entity.Role;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import jakarta.inject.Singleton;
@@ -74,6 +75,32 @@ public class StationMemberRepository {
                         "SELECT * FROM station_member WHERE station_id = :station_id AND (former = FALSE OR :include_former);")
                 .single(Call.of().bind("station_id", stationId).bind("include_former", includeFormer))
                 .map(StationMember.map())
+                .all();
+    }
+
+    /**
+     * Finds members of a station with all associated data (roles, groups, tags, profile values)
+     * aggregated in a single query. Avoids N+1 queries when loading the member list.
+     *
+     * @param stationId     the station identifier
+     * @param includeFormer whether to include former members
+     * @return the list of rich members
+     */
+    public List<RichMember> findRichMembers(int stationId, boolean includeFormer) {
+        return Query.query("""
+                        SELECT sm.id, sm.station_id, sm.account_id, sm.former,
+                               COALESCE(NULLIF(sm.display_name, ''), TRIM(CONCAT(a.first_name, ' ', a.last_name)), '') AS name,
+                               COALESCE(a.email, '') AS email,
+                               COALESCE((SELECT json_agg(r.name) FROM station_member_role smr JOIN role r ON r.id = smr.role_id WHERE smr.member_id = sm.id), '[]'::json)::text AS roles,
+                               COALESCE((SELECT json_agg(json_build_object('id', mg.id, 'name', mg.name)) FROM member_group_entry mge JOIN member_group mg ON mg.id = mge.group_id WHERE mge.member_id = sm.id), '[]'::json)::text AS groups,
+                               COALESCE((SELECT json_agg(json_build_object('id', ut.id, 'name', ut.name)) FROM user_tag_entry ute JOIN user_tag ut ON ut.id = ute.tag_id WHERE ute.member_id = sm.id), '[]'::json)::text AS tags,
+                               COALESCE((SELECT json_object_agg(pfv.field_id, pfv.value) FROM profile_field_value pfv WHERE pfv.member_id = sm.id), '{}'::json)::text AS profile_values
+                        FROM station_member sm
+                        LEFT JOIN account a ON a.id = sm.account_id
+                        WHERE sm.station_id = :station_id AND (sm.former = FALSE OR :include_former)
+                        ORDER BY a.last_name, a.first_name, sm.display_name;""")
+                .single(Call.of().bind("station_id", stationId).bind("include_former", includeFormer))
+                .map(RichMember.map())
                 .all();
     }
 

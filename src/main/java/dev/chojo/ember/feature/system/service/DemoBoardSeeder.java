@@ -5,10 +5,14 @@
  */
 package dev.chojo.ember.feature.system.service;
 
+import dev.chojo.ember.feature.board.entity.BoardShareMode;
 import dev.chojo.ember.feature.board.entity.LinkType;
 import dev.chojo.ember.feature.board.entity.TicketPriority;
 import dev.chojo.ember.feature.board.repository.BoardRepository;
 import dev.chojo.ember.feature.board.repository.BoardTicketRepository;
+import dev.chojo.ember.feature.board.repository.FederatedBoardRepository;
+import dev.chojo.ember.feature.board.service.FederatedBoardService;
+import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -27,11 +31,22 @@ public class DemoBoardSeeder {
 
     private final BoardRepository boardRepo;
     private final BoardTicketRepository ticketRepo;
+    private final FederatedBoardService federatedBoardService;
+    private final FederatedBoardRepository federatedBoardRepo;
+    private final FederationService federationService;
 
     @Inject
-    public DemoBoardSeeder(BoardRepository boardRepo, BoardTicketRepository ticketRepo) {
+    public DemoBoardSeeder(
+            BoardRepository boardRepo,
+            BoardTicketRepository ticketRepo,
+            FederatedBoardService federatedBoardService,
+            FederatedBoardRepository federatedBoardRepo,
+            FederationService federationService) {
         this.boardRepo = boardRepo;
         this.ticketRepo = ticketRepo;
+        this.federatedBoardService = federatedBoardService;
+        this.federatedBoardRepo = federatedBoardRepo;
+        this.federationService = federationService;
     }
 
     public void seed(
@@ -543,6 +558,192 @@ public class DemoBoardSeeder {
             ticketRepo.createLink(allTickets.get(11).id(), allTickets.get(18).id(), LinkType.CAUSES);
             ticketRepo.createLink(allTickets.get(14).id(), allTickets.get(20).id(), LinkType.RELATES_TO);
         }
+    }
+
+    /**
+     * Seeds a shared board between primary and partner stations.
+     * The board is owned by the primary station, shared with FULL mode to the partner.
+     * View: all members, Edit: TEAM only.
+     */
+    public void seedSharedBoard(
+            int stationId,
+            int partnerStationId,
+            StationMember admin,
+            List<StationMember> teamMembers,
+            int teamRoleId,
+            int memberRoleId,
+            Random rng) {
+        // Find the federation partner ID
+        var partners = federationService.findPartners(stationId);
+        var partner = partners.stream().findFirst().orElse(null);
+        if (partner == null) {
+            log.warn("Demo: No federation partner found, skipping shared board");
+            return;
+        }
+
+        var board = boardRepo.create(stationId, "Gemeinsame Planung", "Gemeinsames Board mit der Partnerwache", "GEM");
+        var laneOpen = boardRepo.createLane(board.id(), "Offen", "#3b82f6", 0);
+        var laneWork = boardRepo.createLane(board.id(), "In Arbeit", "#f59e0b", 1);
+        var laneDone = boardRepo.createLane(board.id(), "Erledigt", "#22c55e", 2);
+
+        // View: MEMBER + TEAM (all members can see), Edit: TEAM only
+        boardRepo.setEditAccess(board.id(), List.of(teamRoleId), List.of(), List.of());
+        // No view restrictions = visible to all station members
+
+        // Share with partner in FULL mode
+        federatedBoardService.shareBoard(
+                board.id(), List.of(new FederatedBoardService.PartnerShareConfig(partner.id(), BoardShareMode.FULL)));
+
+        // Labels
+        var labelGemeinsam = boardRepo.createLabel(board.id(), "Gemeinsam", "#8b5cf6");
+        var labelUebung = boardRepo.createLabel(board.id(), "Übung", "#3b82f6");
+        var labelOrga = boardRepo.createLabel(board.id(), "Organisation", "#f59e0b");
+
+        // -- Tickets from primary station members --
+        var t1 = createTicket(
+                board.id(),
+                laneOpen.id(),
+                1,
+                "Gemeinsame Übung planen",
+                "Termin und Thema für die nächste gemeinsame Übung mit der Partnerwache abstimmen.",
+                admin.id(),
+                TicketPriority.HIGH,
+                LocalDate.now().plusDays(14),
+                admin.id());
+        boardRepo.addLabelToTicket(t1, labelGemeinsam.id());
+        boardRepo.addLabelToTicket(t1, labelUebung.id());
+
+        var t2 = createTicket(
+                board.id(),
+                laneWork.id(),
+                2,
+                "Funkkanal-Abstimmung",
+                "Gemeinsamen Funkkanal für die Übung festlegen und testen.",
+                teamMember(teamMembers, rng),
+                TicketPriority.MEDIUM,
+                LocalDate.now().plusDays(7),
+                admin.id());
+        ticketRepo.logTransition(t2, laneOpen.id(), laneWork.id(), admin.id());
+        boardRepo.addLabelToTicket(t2, labelOrga.id());
+
+        var t3 = createTicket(
+                board.id(),
+                laneDone.id(),
+                3,
+                "Ansprechpartner ausgetauscht",
+                "Kontaktdaten der Jugendwarte beider Wehren ausgetauscht.",
+                admin.id(),
+                TicketPriority.LOW,
+                null,
+                admin.id());
+        ticketRepo.logTransition(t3, laneOpen.id(), laneDone.id(), admin.id());
+        boardRepo.addLabelToTicket(t3, labelOrga.id());
+
+        var t4 = createTicket(
+                board.id(),
+                laneOpen.id(),
+                4,
+                "Wettkampf-Team zusammenstellen",
+                "Gemeinsames Team für den Kreiswettbewerb aufstellen.",
+                null,
+                TicketPriority.HIGHEST,
+                LocalDate.now().plusDays(21),
+                admin.id());
+        boardRepo.addLabelToTicket(t4, labelGemeinsam.id());
+
+        var t5 = createTicket(
+                board.id(),
+                laneWork.id(),
+                5,
+                "Materialien für Übung zusammenstellen",
+                "Welche Materialien bringt welche Wache mit?",
+                teamMember(teamMembers, rng),
+                TicketPriority.MEDIUM,
+                LocalDate.now().plusDays(10),
+                admin.id());
+        ticketRepo.logTransition(t5, laneOpen.id(), laneWork.id(), teamMember(teamMembers, rng));
+        boardRepo.addLabelToTicket(t5, labelUebung.id());
+
+        // -- Comments from primary station --
+        ticketRepo.createComment(t1, null, admin.id(), "Ich schlage den 20. Juli vor. Passt das bei euch?");
+        if (!teamMembers.isEmpty()) {
+            ticketRepo.createComment(t1, null, teamMembers.getFirst().id(), "Bei uns passt es, gute Idee!");
+            ticketRepo.createComment(t2, null, teamMembers.getFirst().id(), "Kanal 4 wäre frei, teste ich morgen.");
+        }
+        ticketRepo.createComment(t4, null, admin.id(), "Wir können 5 Jugendliche stellen. Wie viele kommen von euch?");
+        ticketRepo.createComment(
+                t5, null, admin.id(), "Wir bringen die Schläuche mit. Könnt ihr Strahlrohre organisieren?");
+
+        // -- Simulate federated tickets from partner station --
+        // Use admin as local creator (FK constraint), mark as federated via creator table
+        var t6 = createTicket(
+                board.id(),
+                laneOpen.id(),
+                6,
+                "Verpflegung für gemeinsame Übung",
+                "Wir kümmern uns um Getränke und Snacks für die Übungsteilnehmer.",
+                null,
+                TicketPriority.LOW,
+                LocalDate.now().plusDays(12),
+                admin.id());
+        federatedBoardRepo.setFederatedCreator(t6, partner.id(), "partner-member-1");
+        boardRepo.addLabelToTicket(t6, labelGemeinsam.id());
+
+        var t7 = createTicket(
+                board.id(),
+                laneWork.id(),
+                7,
+                "Übungsgelände vorbereiten",
+                "Wir bereiten das Gelände bei uns vor. Anfahrt wird noch geteilt.",
+                null,
+                TicketPriority.HIGH,
+                LocalDate.now().plusDays(5),
+                admin.id());
+        federatedBoardRepo.setFederatedCreator(t7, partner.id(), "partner-member-1");
+        ticketRepo.logTransition(t7, laneOpen.id(), laneWork.id(), admin.id());
+        boardRepo.addLabelToTicket(t7, labelUebung.id());
+
+        // Federated comments (from partner members — use admin as local author, mark as federated)
+        var fc1 = ticketRepo.createComment(t1, null, admin.id(), "Bei uns passt der 20. Juli auch! Wir sind dabei.");
+        federatedBoardRepo.setFederatedCommentAuthor(fc1.id(), partner.id(), "partner-member-1");
+
+        var fc2 =
+                ticketRepo.createComment(t4, null, admin.id(), "Wir können 4 Jugendliche und einen Betreuer schicken.");
+        federatedBoardRepo.setFederatedCommentAuthor(fc2.id(), partner.id(), "partner-member-1");
+
+        var fc3 = ticketRepo.createComment(
+                t5, null, admin.id(), "Strahlrohre sind kein Problem, wir bringen 3 Stück mit.");
+        federatedBoardRepo.setFederatedCommentAuthor(fc3.id(), partner.id(), "partner-member-2");
+
+        var fc4 = ticketRepo.createComment(t6, null, admin.id(), "Wasser und Apfelsaft sind bestellt.");
+        federatedBoardRepo.setFederatedCommentAuthor(fc4.id(), partner.id(), "partner-member-1");
+
+        // Checklist on t1
+        ticketRepo.createChecklistItem(t1, "Termin abstimmen", 0);
+        ticketRepo.createChecklistItem(t1, "Thema festlegen", 1);
+        ticketRepo.createChecklistItem(t1, "Materialien klären", 2);
+        ticketRepo.createChecklistItem(t1, "Anfahrt kommunizieren", 3);
+
+        // Checklist on t4 — partially done
+        var cl1 = ticketRepo.createChecklistItem(t4, "Teilnehmer unserer Wache", 0);
+        ticketRepo.updateChecklistItem(cl1.id(), "Teilnehmer unserer Wache", true);
+        ticketRepo.createChecklistItem(t4, "Teilnehmer Partnerwache", 1);
+        ticketRepo.createChecklistItem(t4, "Positionen festlegen", 2);
+        ticketRepo.createChecklistItem(t4, "Training planen", 3);
+
+        // Links
+        ticketRepo.createLink(t1, t5, LinkType.RELATES_TO);
+        ticketRepo.createLink(t4, t1, LinkType.BLOCKED_BY);
+        ticketRepo.createLink(t6, t1, LinkType.RELATES_TO);
+
+        // Vary lane_entered_at for time indicators
+        var now = Instant.now();
+        ticketRepo.setLaneEnteredAt(t2, now.minus(Duration.ofDays(3)));
+        ticketRepo.setLaneEnteredAt(t3, now.minus(Duration.ofDays(14)));
+        ticketRepo.setLaneEnteredAt(t5, now.minus(Duration.ofDays(5)));
+        ticketRepo.setLaneEnteredAt(t7, now.minus(Duration.ofDays(2)));
+
+        log.info("Demo: Created shared board 'Gemeinsame Planung' with 7 tickets");
     }
 
     private int createTicket(

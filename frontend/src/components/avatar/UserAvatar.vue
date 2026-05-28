@@ -52,7 +52,7 @@ async function loadAvatar() {
   try {
     const res = await client.get(`/members/${props.memberId}/avatar?size=128`, {
       responseType: 'blob',
-      validateStatus: (status) => status === 200 || status === 404,
+      validateStatus: (status) => status === 200 || status === 204 || status === 404,
     })
     if (res.status === 200 && res.data) {
       imgSrc.value = URL.createObjectURL(res.data)
@@ -70,7 +70,7 @@ watch(() => props.memberId, loadAvatar, {immediate: true})
       :title="name"
       class="shrink-0 rounded-full overflow-hidden bg-primary/15 text-primary font-bold flex items-center justify-center"
   >
-    <img v-if="hasAvatar" :src="imgSrc" alt="" class="h-full w-full object-cover"/>
+    <img v-if="hasAvatar" :src="imgSrc" alt="" loading="lazy" class="h-full w-full object-cover"/>
     <span v-else>{{ initials }}</span>
   </div>
 </template>

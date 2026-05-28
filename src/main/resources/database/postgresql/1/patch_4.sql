@@ -13,7 +13,7 @@ CREATE UNIQUE INDEX account_email_key ON ember_schema.account (email) WHERE emai
 CREATE TABLE ember_schema.federation_partner (
     id                SERIAL PRIMARY KEY,
     station_id        INT       NOT NULL REFERENCES ember_schema.station (id) ON DELETE CASCADE,
-    partner_station_id INT      NOT NULL REFERENCES ember_schema.station (id) ON DELETE CASCADE,
+    partner_station_id UUID     NOT NULL,
     invite_code       TEXT      UNIQUE,
     public_key        TEXT,
     partner_public_key TEXT,
@@ -21,8 +21,7 @@ CREATE TABLE ember_schema.federation_partner (
     federation_version INT     NOT NULL DEFAULT 1,
     created_at        TIMESTAMP NOT NULL DEFAULT now(),
     updated_at        TIMESTAMP NOT NULL DEFAULT now(),
-    UNIQUE (station_id, partner_station_id),
-    CHECK (station_id != partner_station_id)
+    UNIQUE (station_id, partner_station_id)
 );
 
 -- Capabilities per federation partner (what is shared and in which direction)

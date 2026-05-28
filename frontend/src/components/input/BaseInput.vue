@@ -23,7 +23,7 @@ const props = defineProps<{
       :step="step"
       :type="type ?? 'text'"
       :class="props.borderless
-        ? 'w-full px-2 py-1 bg-transparent text-[var(--text)] placeholder-[var(--text-muted)] transition-colors duration-150 outline-none rounded-theme hover:bg-[var(--bg-accent)] focus:bg-[var(--bg)] focus:ring-1 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed'
-        : 'w-full px-3 py-2 rounded-theme border border-bg-light-accent bg-bg-light text-[var(--text)] placeholder-[var(--text-muted)] transition-colors duration-150 outline-none focus:border-primary focus:ring-1 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed dark:border-bg-dark-accent dark:bg-bg-dark'"
+        ? 'w-full px-2 py-1 bg-transparent text-[var(--text)] transition-colors duration-150 outline-none rounded-theme hover:bg-[var(--bg-accent)] focus:bg-[var(--bg)] focus:ring-1 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed'
+        : 'w-full px-3 py-2 rounded-theme border border-bg-light-accent bg-bg-light text-[var(--text)] transition-colors duration-150 outline-none focus:border-primary focus:ring-1 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed dark:border-bg-dark-accent dark:bg-bg-dark'"
   />
 </template>

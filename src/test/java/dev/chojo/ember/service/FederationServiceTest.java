@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.service;
 
+import dev.chojo.ember.api.StationUidResolver;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.federation.entity.CapabilityType;
 import dev.chojo.ember.feature.federation.entity.ChangeType;
@@ -42,6 +43,7 @@ class FederationServiceTest extends RepositoryTestBase {
 
     @BeforeAll
     static void setup() {
+        StationUidResolver.instance().clearCache();
         federationRepo = new FederationRepository();
         service = new FederationService(federationRepo, stationRepo, new Api());
 
@@ -97,7 +99,7 @@ class FederationServiceTest extends RepositoryTestBase {
         assertNotNull(partner);
         assertEquals(FederationPartner.FederationStatus.ACTIVE, partner.status());
         assertEquals(stationA.id(), partner.stationId());
-        assertEquals(stationB.id(), partner.partnerStationId());
+        assertEquals(stationB.uid(), partner.partnerStationId());
         assertNotNull(partner.partnerPublicKey());
         assertNull(partner.remoteHost());
         assertFalse(partner.isRemote());
@@ -106,7 +108,7 @@ class FederationServiceTest extends RepositoryTestBase {
         // Verify reverse partner exists
         var reversePartners = service.findPartners(stationB.id());
         assertTrue(reversePartners.stream()
-                .anyMatch(p -> p.partnerStationId() == stationA.id()
+                .anyMatch(p -> p.partnerStationId().equals(stationA.uid())
                         && p.status() == FederationPartner.FederationStatus.ACTIVE));
     }
 
@@ -196,9 +198,10 @@ class FederationServiceTest extends RepositoryTestBase {
     void supportedCapabilitiesNotEmpty() {
         var caps = service.getSupportedCapabilities();
         assertFalse(caps.isEmpty());
-        assertTrue(caps.contains("KB_SHARE"));
-        assertTrue(caps.contains("QUIZ_SHARE"));
-        assertTrue(caps.contains("PROTOCOL_SHARE"));
+        assertTrue(caps.contains(CapabilityType.KB_SHARE));
+        assertTrue(caps.contains(CapabilityType.QUIZ_SHARE));
+        assertTrue(caps.contains(CapabilityType.PROTOCOL_SHARE));
+        assertTrue(caps.contains(CapabilityType.BOARD_SHARE));
     }
 
     // -- Keypair --
@@ -241,7 +244,7 @@ class FederationServiceTest extends RepositoryTestBase {
         // The reverse partner (A -> C) should show C as remote
         var reversePartners = service.findPartners(stationA.id());
         var reverse = reversePartners.stream()
-                .filter(p -> p.partnerStationId() == stationC.id())
+                .filter(p -> p.partnerStationId().equals(stationC.uid()))
                 .findFirst()
                 .orElseThrow();
         assertEquals("https://remote-c.example.com", reverse.remoteHost());
@@ -261,17 +264,17 @@ class FederationServiceTest extends RepositoryTestBase {
 
         // Initially local
         var reverse = service.findPartners(stationA.id()).stream()
-                .filter(p -> p.partnerStationId() == stationD.id())
+                .filter(p -> p.partnerStationId().equals(stationD.uid()))
                 .findFirst()
                 .orElseThrow();
         assertFalse(reverse.isRemote());
 
         // Update remote host for stationD (it moved to a remote server)
-        service.updateRemoteHost(stationD.id(), "https://new-host.example.com");
+        service.updateRemoteHost(stationD.uid(), "https://new-host.example.com");
 
         // Now the partner record pointing at stationD should have the new host
         var updated = service.findPartners(stationA.id()).stream()
-                .filter(p -> p.partnerStationId() == stationD.id())
+                .filter(p -> p.partnerStationId().equals(stationD.uid()))
                 .findFirst()
                 .orElseThrow();
         assertEquals("https://new-host.example.com", updated.remoteHost());
@@ -288,13 +291,13 @@ class FederationServiceTest extends RepositoryTestBase {
         var stationE = stationRepo.create("FedSvcTestStationE");
         var stationF = stationRepo.create("FedSvcTestStationF");
 
-        var local = federationRepo.createPartner(stationE.id(), stationF.id(), "LOCAL-CODE", "pubKey", null);
+        var local = federationRepo.createPartner(stationE.id(), stationF.uid(), "LOCAL-CODE", "pubKey", null);
         assertFalse(local.isRemote());
         assertNull(local.remoteHost());
         federationRepo.deletePartner(local.id());
 
         var remote = federationRepo.createPartner(
-                stationE.id(), stationF.id(), "REMOTE-CODE", "pubKey", "https://remote.example.com");
+                stationE.id(), stationF.uid(), "REMOTE-CODE", "pubKey", "https://remote.example.com");
         assertTrue(remote.isRemote());
         assertEquals("https://remote.example.com", remote.remoteHost());
         federationRepo.deletePartner(remote.id());
@@ -459,7 +462,7 @@ class FederationServiceTest extends RepositoryTestBase {
 
         // Reverse partner should also be deleted
         var reversePartners = service.findPartners(stationB.id());
-        assertTrue(reversePartners.stream().noneMatch(p -> p.partnerStationId() == stationA.id()));
+        assertTrue(reversePartners.stream().noneMatch(p -> p.partnerStationId().equals(stationA.uid())));
     }
 
     @Test

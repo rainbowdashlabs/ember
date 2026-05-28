@@ -8,7 +8,8 @@ import {ref, watchEffect} from 'vue'
 import {useRoute} from 'vue-router'
 
 import ThemeSelector from '@/components/theme/ThemeSelector.vue'
-import type {ThemeColors} from '@/theme/themes'
+import type { ThemeColors } from '@/theme/themes'
+import { contrastTextColor, ensureContrast } from '@/theme/contrast'
 
 const route = useRoute()
 const hasCustomParam = ref(false)
@@ -26,19 +27,35 @@ const samplePatch = `--- a/notes.md
  Next meeting in two weeks.`
 
 function applyCustomColors(colors: ThemeColors) {
+  const isDark = document.documentElement.classList.contains('dark')
+  const mode = isDark ? colors.dark : colors.light
   const root = document.documentElement.style
-  root.setProperty('--color-primary', colors.primary)
-  root.setProperty('--color-primary-accent', colors.primaryAccent)
-  root.setProperty('--color-secondary', colors.secondary)
-  root.setProperty('--color-secondary-accent', colors.secondaryAccent)
-  root.setProperty('--color-info', colors.info)
-  root.setProperty('--color-info-accent', colors.infoAccent)
-  root.setProperty('--color-success', colors.success)
-  root.setProperty('--color-error', colors.error)
+  root.setProperty('--color-primary', mode.primary)
+  root.setProperty('--color-primary-accent', mode.primaryAccent)
+  root.setProperty('--color-secondary', mode.secondary)
+  root.setProperty('--color-secondary-accent', mode.secondaryAccent)
+  root.setProperty('--color-info', mode.info)
+  root.setProperty('--color-info-accent', mode.infoAccent)
+  root.setProperty('--color-success', mode.success)
+  root.setProperty('--color-error', mode.error)
   root.setProperty('--color-bg-light', colors.bgLight)
   root.setProperty('--color-bg-light-accent', colors.bgLightAccent)
   root.setProperty('--color-bg-dark', colors.bgDark)
   root.setProperty('--color-bg-dark-accent', colors.bgDarkAccent)
+  root.setProperty('--color-primary-text', contrastTextColor(mode.primary))
+  root.setProperty('--color-primary-accent-text', contrastTextColor(mode.primaryAccent))
+  root.setProperty('--color-secondary-text', contrastTextColor(mode.secondary))
+  root.setProperty('--color-secondary-accent-text', contrastTextColor(mode.secondaryAccent))
+  root.setProperty('--color-info-text', contrastTextColor(mode.info))
+  root.setProperty('--color-info-accent-text', contrastTextColor(mode.infoAccent))
+  root.setProperty('--color-success-text', contrastTextColor(mode.success))
+  root.setProperty('--color-error-text', contrastTextColor(mode.error))
+  const pageBg = isDark ? colors.bgDark : colors.bgLight
+  root.setProperty('--color-primary-badge', ensureContrast(mode.primaryAccent, pageBg))
+  root.setProperty('--color-secondary-badge', ensureContrast(mode.secondaryAccent, pageBg))
+  root.setProperty('--color-info-badge', ensureContrast(mode.infoAccent, pageBg))
+  root.setProperty('--color-success-badge', ensureContrast(mode.success, pageBg))
+  root.setProperty('--color-error-badge', ensureContrast(mode.error, pageBg))
 }
 
 // Apply custom colors from query param — use watchEffect with post flush
@@ -87,6 +104,9 @@ import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import SizeBadge from '@/components/badge/SizeBadge.vue'
+import StationBadge from '@/components/badge/StationBadge.vue'
+import ExchangeStatusBadge from '@/views/stationview/inventory/exchangeview/ExchangeStatusBadge.vue'
+import { ExchangeStatus } from '@/api/types'
 
 import THead from '@/components/table/THead.vue'
 import TRow from '@/components/table/TRow.vue'
@@ -203,6 +223,15 @@ const toggleStates = ref(new Set([1, 3]))
         <InfoBadge>Info</InfoBadge>
         <SizeBadge>M</SizeBadge>
         <SizeBadge lost>M (lost)</SizeBadge>
+        <StationBadge station-name="DLRG Musterstadt" />
+      </div>
+      <SubHeader>Exchange Status</SubHeader>
+      <div class="flex flex-wrap gap-2 items-center">
+        <ExchangeStatusBadge :status="ExchangeStatus.ANNOUNCED" />
+        <ExchangeStatusBadge :status="ExchangeStatus.RECEIVED" />
+        <ExchangeStatusBadge :status="ExchangeStatus.SHIPPED" />
+        <ExchangeStatusBadge :status="ExchangeStatus.ARRIVED" />
+        <ExchangeStatusBadge :status="ExchangeStatus.EXCHANGED" />
       </div>
     </section>
 

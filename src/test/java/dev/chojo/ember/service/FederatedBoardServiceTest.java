@@ -7,6 +7,7 @@ package dev.chojo.ember.service;
 
 import de.chojo.sadu.queries.api.call.Call;
 import de.chojo.sadu.queries.api.query.Query;
+import de.chojo.sadu.queries.converter.StandardValueConverter;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.board.entity.AccessData;
@@ -83,8 +84,10 @@ class FederatedBoardServiceTest extends RepositoryTestBase {
 
         // Create federation partners via direct SQL
         partnerId = Query.query(
-                        "INSERT INTO federation_partner(station_id, partner_station_id, status, federation_version) VALUES (:s, :p, 'ACTIVE', 1) RETURNING id;")
-                .single(Call.of().bind("s", station.id()).bind("p", partnerStation.id()))
+                        "INSERT INTO federation_partner(station_id, partner_station_id, status, federation_version) VALUES (:s, :p::uuid, 'ACTIVE', 1) RETURNING id;")
+                .single(Call.of()
+                        .bind("s", station.id())
+                        .bind("p", partnerStation.uid(), StandardValueConverter.UUID_STRING))
                 .map(row -> row.getInt("id"))
                 .first()
                 .orElseThrow();
@@ -92,8 +95,10 @@ class FederatedBoardServiceTest extends RepositoryTestBase {
         // Create second partner station and partner for multi-partner tests
         var partnerStation2 = stationRepo.create("FedBoardPartner2");
         partner2Id = Query.query(
-                        "INSERT INTO federation_partner(station_id, partner_station_id, status, federation_version) VALUES (:s, :p, 'ACTIVE', 1) RETURNING id;")
-                .single(Call.of().bind("s", station.id()).bind("p", partnerStation2.id()))
+                        "INSERT INTO federation_partner(station_id, partner_station_id, status, federation_version) VALUES (:s, :p::uuid, 'ACTIVE', 1) RETURNING id;")
+                .single(Call.of()
+                        .bind("s", station.id())
+                        .bind("p", partnerStation2.uid(), StandardValueConverter.UUID_STRING))
                 .map(row -> row.getInt("id"))
                 .first()
                 .orElseThrow();

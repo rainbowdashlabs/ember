@@ -5,6 +5,7 @@
  */
 import axios, {type InternalAxiosRequestConfig} from 'axios'
 import {getItem, removeItem, setItem} from './storage'
+import {useToast} from '@/composables/useToast'
 
 // -- Request history for problem reports --
 interface RequestHistoryEntry {
@@ -105,6 +106,11 @@ client.interceptors.response.use(
                     : ''
                 window.location.href = '/login' + redirect
             }
+        }
+        if (error.response?.status === 403) {
+            const { show } = useToast()
+            const message = error.response?.data?.message ?? 'Kein Zugriff auf diesen Inhalt.'
+            show(message, 'error')
         }
         return Promise.reject(error)
     },

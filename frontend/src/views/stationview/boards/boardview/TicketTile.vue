@@ -8,6 +8,7 @@ import { computed } from 'vue'
 import type { BoardTicket, BoardLabel } from '@/api/boards'
 import { TicketPriority } from '@/api/boards'
 import UserAvatar from '@/components/avatar/UserAvatar.vue'
+import { contrastTextColor } from '@/theme/contrast'
 
 const props = defineProps<{
     ticket: BoardTicket
@@ -90,7 +91,7 @@ const isOverdue = computed(() => {
 
         <!-- Labels -->
         <div v-if="labels && labels.length > 0" class="flex flex-wrap gap-1 mb-2">
-            <span v-for="label in labels" :key="label.id" class="text-[0.65rem] leading-tight px-1.5 py-0.5 rounded-full text-white font-medium" :style="{ backgroundColor: label.color }">{{ label.name }}</span>
+            <span v-for="label in labels" :key="label.id" class="text-[0.65rem] leading-tight px-1.5 py-0.5 rounded-full font-medium" :style="{ backgroundColor: label.color, color: contrastTextColor(label.color) }">{{ label.name }}</span>
         </div>
 
         <!-- Checklist progress -->

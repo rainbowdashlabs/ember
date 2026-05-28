@@ -50,13 +50,10 @@ import dev.chojo.ember.feature.account.route.SessionRoutes;
 import dev.chojo.ember.feature.attendance.route.AttendanceRoutes;
 import dev.chojo.ember.feature.board.route.BoardRoutes;
 import dev.chojo.ember.feature.board.route.BoardTicketRoutes;
-import dev.chojo.ember.feature.board.route.FederatedBoardLocalRoutes;
-import dev.chojo.ember.feature.board.route.FederatedBoardRemoteRoutes;
 import dev.chojo.ember.feature.comment.route.EventCommentRoutes;
 import dev.chojo.ember.feature.comment.route.NoteRoutes;
 import dev.chojo.ember.feature.events.route.EventRoutes;
 import dev.chojo.ember.feature.events.route.EventTemplateRoutes;
-import dev.chojo.ember.feature.events.route.FederatedEventRoutes;
 import dev.chojo.ember.feature.events.route.PublicEventRoutes;
 import dev.chojo.ember.feature.federation.route.FederationRemoteRoutes;
 import dev.chojo.ember.feature.federation.route.FederationRoutes;
@@ -146,7 +143,6 @@ public class EmberModule extends AbstractModule {
         routesBinder.addBinding().to(StationManageRoutes.class);
         routesBinder.addBinding().to(EventRoutes.class);
         routesBinder.addBinding().to(EventTemplateRoutes.class);
-        routesBinder.addBinding().to(FederatedEventRoutes.class);
         routesBinder.addBinding().to(SavedFilterRoutes.class);
         routesBinder.addBinding().to(InventoryCheckRoutes.class);
         routesBinder.addBinding().to(ManagedMemberRoutes.class);
@@ -186,8 +182,6 @@ public class EmberModule extends AbstractModule {
         routesBinder.addBinding().to(NoteRoutes.class);
         routesBinder.addBinding().to(BoardRoutes.class);
         routesBinder.addBinding().to(BoardTicketRoutes.class);
-        routesBinder.addBinding().to(FederatedBoardRemoteRoutes.class);
-        routesBinder.addBinding().to(FederatedBoardLocalRoutes.class);
         routesBinder.addBinding().to(RequirementsRoutes.class);
 
         // Domain event handlers

@@ -143,6 +143,20 @@ tasks {
         }
     }
 
+    register<JavaExec>("generateFederationVersion") {
+        group = "build"
+        description = "Generates the federation version hash from the API contract"
+        dependsOn("compileJava")
+        mainClass = "dev.chojo.ember.feature.federation.version.FederationVersionComputer"
+        classpath = sourceSets.main.get().runtimeClasspath
+        args = listOf(
+            file("src/main/resources/federation_version").absolutePath,
+            file("src/main/resources/federation_versions.json").absolutePath,
+            project.version.toString(),
+            file("frontend/src/federation_versions.json").absolutePath
+        )
+    }
+
     register("verifyJavadoc") {
         group = "verification"
         description = "Verifies Javadoc generation succeeds"
@@ -208,6 +222,7 @@ tasks {
                     "*.mail.service.*",
                     "*.FederationHttpClient*",
                     "*.FederationWebhookService*",
+                    "*.FederatedContentService*",
                     "*.ApiRequestLogger*",
                     "*.DataInitializer",
                     "*.ProblemLogAppender*",

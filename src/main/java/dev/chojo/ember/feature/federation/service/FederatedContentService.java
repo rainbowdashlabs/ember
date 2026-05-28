@@ -11,15 +11,14 @@ import dev.chojo.ember.feature.federation.entity.Direction;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFile;
+import dev.chojo.ember.feature.knowledgebase.entity.KbFileSummary;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFileType;
-import dev.chojo.ember.feature.knowledgebase.entity.KbFolder;
 import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseService;
 import dev.chojo.ember.feature.protocol.entity.TestProtocol;
 import dev.chojo.ember.feature.protocol.service.TestProtocolService;
 import dev.chojo.ember.feature.quiz.entity.QuestionConfig;
 import dev.chojo.ember.feature.quiz.entity.QuizCatalog;
 import dev.chojo.ember.feature.quiz.service.QuizService;
-import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import jakarta.inject.Inject;
@@ -31,6 +30,8 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
 /**
@@ -80,8 +81,8 @@ public class FederatedContentService {
         var futures = new ArrayList<CompletableFuture<List<SharedKbItem>>>();
         for (var partner : federationService.findPartners(stationId)) {
             if (partner.status() != FederationPartner.FederationStatus.ACTIVE) continue;
-            int remoteStationId = partner.stationId() == stationId ? partner.partnerStationId() : partner.stationId();
             if (!federationService.hasCapability(partner.id(), CapabilityType.KB_SHARE, Direction.IMPORT)) continue;
+            int remoteStationId = resolvePartnerStationId(partner);
 
             futures.add(CompletableFuture.supplyAsync(() -> {
                 var items = new ArrayList<SharedKbItem>();
@@ -100,26 +101,19 @@ public class FederatedContentService {
         var shares = federationRepository.findKbShares(remoteStationId);
         for (var share : shares) {
             if (share.fileId() != null) {
-                kbService
-                        .findFile(share.fileId())
-                        .ifPresent(file -> result.add(new SharedKbItem(file, null, remoteStationId, partner.id())));
-            } else if (share.folderId() != null) {
-                kbService.findFolder(share.folderId()).ifPresent(folder -> {
-                    result.add(new SharedKbItem(null, folder, remoteStationId, partner.id()));
-                    for (var file : kbService.findFiles(remoteStationId, share.folderId())) {
-                        result.add(new SharedKbItem(file, null, remoteStationId, partner.id()));
-                    }
+                kbService.findFile(share.fileId()).ifPresent(file -> {
+                    var summary = KbFileSummary.of(file);
+                    result.add(new SharedKbItem(summary, remoteStationId, partner.id()));
+                    federationRepository.upsertMetadataCache(
+                            partner.id(), ContentType.KB, file.id(), file.name(), file.description());
                 });
-            }
-        }
-        for (var item : result) {
-            if (item.file() != null) {
-                federationRepository.upsertMetadataCache(
-                        partner.id(),
-                        ContentType.KB,
-                        item.file().id(),
-                        item.file().name(),
-                        item.file().description());
+            } else if (share.folderId() != null) {
+                for (var file : kbService.findFiles(remoteStationId, share.folderId())) {
+                    var summary = KbFileSummary.of(file);
+                    result.add(new SharedKbItem(summary, remoteStationId, partner.id()));
+                    federationRepository.upsertMetadataCache(
+                            partner.id(), ContentType.KB, file.id(), file.name(), file.description());
+                }
             }
         }
     }
@@ -128,27 +122,16 @@ public class FederatedContentService {
             int localStationId, FederationPartner partner, int remoteStationId, List<SharedKbItem> result) {
         var files = httpClient.fetchSharedKbFiles(partner.remoteHost(), localStationId, getPrivateKey(localStationId));
         for (var remoteFile : files) {
-            var file = new KbFile(
+            var summary = new KbFileSummary(
                     remoteFile.id(),
                     remoteStationId,
                     null,
                     remoteFile.name(),
                     remoteFile.description(),
                     KbFileType.valueOf(remoteFile.fileType() != null ? remoteFile.fileType() : "MARKDOWN"),
-                    null,
-                    0,
-                    null,
-                    null,
-                    null,
-                    0,
-                    0,
                     Instant.now(),
-                    Instant.now(),
-                    null,
-                    null,
-                    RestrictionMode.AND,
                     false);
-            result.add(new SharedKbItem(file, null, remoteStationId, partner.id()));
+            result.add(new SharedKbItem(summary, remoteStationId, partner.id()));
             federationRepository.upsertMetadataCache(
                     partner.id(), ContentType.KB, remoteFile.id(), remoteFile.name(), remoteFile.description());
         }
@@ -160,8 +143,8 @@ public class FederatedContentService {
         var futures = new ArrayList<CompletableFuture<List<SharedQuizItem>>>();
         for (var partner : federationService.findPartners(stationId)) {
             if (partner.status() != FederationPartner.FederationStatus.ACTIVE) continue;
-            int remoteStationId = partner.stationId() == stationId ? partner.partnerStationId() : partner.stationId();
             if (!federationService.hasCapability(partner.id(), CapabilityType.QUIZ_SHARE, Direction.IMPORT)) continue;
+            int remoteStationId = resolvePartnerStationId(partner);
 
             futures.add(CompletableFuture.supplyAsync(() -> {
                 var items = new ArrayList<SharedQuizItem>();
@@ -180,16 +163,12 @@ public class FederatedContentService {
         var shares = federationRepository.findQuizShares(remoteStationId);
         for (var share : shares) {
             if (share.catalogId() != null) {
-                var catalog = quizService.findCatalog(share.catalogId());
-                if (catalog.isPresent()) {
-                    result.add(new SharedQuizItem(catalog.get(), remoteStationId, partner.id()));
+                quizService.findCatalog(share.catalogId()).ifPresent(catalog -> {
+                    result.add(new SharedQuizItem(
+                            catalog.id(), catalog.name(), catalog.description(), remoteStationId, partner.id()));
                     federationRepository.upsertMetadataCache(
-                            partner.id(),
-                            ContentType.QUIZ,
-                            catalog.get().id(),
-                            catalog.get().name(),
-                            catalog.get().description());
-                }
+                            partner.id(), ContentType.QUIZ, catalog.id(), catalog.name(), catalog.description());
+                });
             }
         }
     }
@@ -199,15 +178,18 @@ public class FederatedContentService {
         var catalogs =
                 httpClient.fetchSharedQuizCatalogs(partner.remoteHost(), localStationId, getPrivateKey(localStationId));
         for (var remoteCatalog : catalogs) {
-            quizService.findCatalog(remoteCatalog.id()).ifPresent(catalog -> {
-                result.add(new SharedQuizItem(catalog, remoteStationId, partner.id()));
-                federationRepository.upsertMetadataCache(
-                        partner.id(),
-                        ContentType.QUIZ,
-                        remoteCatalog.id(),
-                        remoteCatalog.name(),
-                        remoteCatalog.description());
-            });
+            result.add(new SharedQuizItem(
+                    remoteCatalog.id(),
+                    remoteCatalog.name(),
+                    remoteCatalog.description(),
+                    remoteStationId,
+                    partner.id()));
+            federationRepository.upsertMetadataCache(
+                    partner.id(),
+                    ContentType.QUIZ,
+                    remoteCatalog.id(),
+                    remoteCatalog.name(),
+                    remoteCatalog.description());
         }
     }
 
@@ -217,9 +199,9 @@ public class FederatedContentService {
         var futures = new ArrayList<CompletableFuture<List<SharedProtocolItem>>>();
         for (var partner : federationService.findPartners(stationId)) {
             if (partner.status() != FederationPartner.FederationStatus.ACTIVE) continue;
-            int remoteStationId = partner.stationId() == stationId ? partner.partnerStationId() : partner.stationId();
             if (!federationService.hasCapability(partner.id(), CapabilityType.PROTOCOL_SHARE, Direction.IMPORT))
                 continue;
+            int remoteStationId = resolvePartnerStationId(partner);
 
             futures.add(CompletableFuture.supplyAsync(() -> {
                 var items = new ArrayList<SharedProtocolItem>();
@@ -240,7 +222,8 @@ public class FederatedContentService {
         for (var share : shares) {
             if (share.protocolId() != null) {
                 protocolService.findProtocol(share.protocolId()).ifPresent(proto -> {
-                    result.add(new SharedProtocolItem(proto, remoteStationId, partner.id()));
+                    result.add(new SharedProtocolItem(
+                            proto.id(), proto.name(), proto.description(), remoteStationId, partner.id()));
                     federationRepository.upsertMetadataCache(
                             partner.id(), ContentType.PROTOCOL, proto.id(), proto.name(), proto.description());
                 });
@@ -253,16 +236,177 @@ public class FederatedContentService {
         var protocols =
                 httpClient.fetchSharedProtocols(partner.remoteHost(), localStationId, getPrivateKey(localStationId));
         for (var remoteProto : protocols) {
-            protocolService.findProtocol(remoteProto.id()).ifPresent(proto -> {
-                result.add(new SharedProtocolItem(proto, remoteStationId, partner.id()));
-                federationRepository.upsertMetadataCache(
-                        partner.id(),
-                        ContentType.PROTOCOL,
-                        remoteProto.id(),
-                        remoteProto.name(),
-                        remoteProto.description());
-            });
+            result.add(new SharedProtocolItem(
+                    remoteProto.id(), remoteProto.name(), remoteProto.description(), remoteStationId, partner.id()));
+            federationRepository.upsertMetadataCache(
+                    partner.id(),
+                    ContentType.PROTOCOL,
+                    remoteProto.id(),
+                    remoteProto.name(),
+                    remoteProto.description());
         }
+    }
+
+    // -- KB Search --
+
+    public List<FederatedSearchResult> searchFederatedKb(int stationId, String query) {
+        var futures = new ArrayList<CompletableFuture<List<FederatedSearchResult>>>();
+        for (var partner : federationService.findPartners(stationId)) {
+            if (partner.status() != FederationPartner.FederationStatus.ACTIVE) continue;
+            if (!federationService.hasCapability(partner.id(), CapabilityType.KB_SHARE, Direction.IMPORT)) continue;
+            int remoteStationId = resolvePartnerStationId(partner);
+            String stationName = stationRepository
+                    .findByUid(partner.partnerStationId())
+                    .map(Station::name)
+                    .orElse("?");
+            String stationUid = partner.partnerStationId().toString();
+
+            futures.add(CompletableFuture.supplyAsync(() -> {
+                if (partner.isRemote()) {
+                    return searchKbViaHttp(stationId, partner, remoteStationId, stationName, stationUid, query);
+                } else {
+                    return searchKbDirect(remoteStationId, stationName, stationUid, query);
+                }
+            }));
+        }
+        return collectResults(futures);
+    }
+
+    private List<FederatedSearchResult> searchKbDirect(
+            int remoteStationId, String stationName, String stationUid, String query) {
+        return kbService.searchWithSnippets(remoteStationId, query).stream()
+                .map(r -> new FederatedSearchResult(KbFileSummary.of(r.file()), r.snippet(), stationName, stationUid))
+                .toList();
+    }
+
+    private List<FederatedSearchResult> searchKbViaHttp(
+            int localStationId,
+            FederationPartner partner,
+            int remoteStationId,
+            String stationName,
+            String stationUid,
+            String query) {
+        String privateKey = getPrivateKey(localStationId);
+        if (privateKey == null) return List.of();
+        var results = httpClient.searchKb(partner.remoteHost(), localStationId, privateKey, query);
+        return results.stream()
+                .map(r -> new FederatedSearchResult(
+                        new KbFileSummary(
+                                r.id(), remoteStationId, null, r.name(), r.description(), null, Instant.now(), false),
+                        r.snippet(),
+                        stationName,
+                        stationUid))
+                .toList();
+    }
+
+    // -- Single-entity fetch (local or remote, transparent to caller) --
+
+    /**
+     * Fetches a single KB file from a federated partner, transparently handling local/remote.
+     */
+    public KbFile getFederatedKbFile(int localStationId, UUID partnerStationUid, int fileId) {
+        var partner = resolveActivePartner(localStationId, partnerStationUid);
+        if (partner.isRemote()) {
+            String json = httpClient.signedGetJson(
+                    partner.remoteHost(), "/remote/kb/files/" + fileId, localStationId, getPrivateKey(localStationId));
+            if (json == null) throw new IllegalStateException("Failed to fetch file from remote partner");
+            try {
+                return httpClient.getMapper().readValue(json, KbFile.class);
+            } catch (Exception e) {
+                throw new IllegalStateException("Failed to parse remote KB file response", e);
+            }
+        }
+        var file = kbService.findFile(fileId).orElseThrow();
+        int partnerStationId = resolvePartnerStationId(partner);
+        if (file.stationId() != partnerStationId) {
+            throw new IllegalArgumentException("File does not belong to this partner");
+        }
+        return file;
+    }
+
+    /**
+     * Fetches KB file content from a federated partner, transparently handling local/remote.
+     */
+    public String getFederatedKbFileContent(int localStationId, UUID partnerStationUid, int fileId) {
+        var partner = resolveActivePartner(localStationId, partnerStationUid);
+        if (partner.isRemote()) {
+            return httpClient.fetchKbFileContent(
+                    partner.remoteHost(), fileId, localStationId, getPrivateKey(localStationId));
+        }
+        var file = kbService.findFile(fileId).orElseThrow();
+        int partnerStationId = resolvePartnerStationId(partner);
+        if (file.stationId() != partnerStationId) {
+            throw new IllegalArgumentException("File does not belong to this partner");
+        }
+        return kbService.getMarkdownContent(fileId).orElse("");
+    }
+
+    /**
+     * Fetches a single quiz catalog with categories and questions from a federated partner.
+     */
+    @SuppressWarnings("unchecked")
+    public Map<String, Object> getFederatedQuizCatalog(int localStationId, UUID partnerStationUid, int catalogId) {
+        var partner = resolveActivePartner(localStationId, partnerStationUid);
+        if (partner.isRemote()) {
+            String json = httpClient.signedGetJson(
+                    partner.remoteHost(),
+                    "/remote/quiz/catalogs/" + catalogId,
+                    localStationId,
+                    getPrivateKey(localStationId));
+            if (json == null) throw new IllegalStateException("Failed to fetch catalog from remote partner");
+            try {
+                return httpClient.getMapper().readValue(json, Map.class);
+            } catch (Exception e) {
+                throw new IllegalStateException("Failed to parse remote catalog response", e);
+            }
+        }
+        var catalog = quizService.findCatalog(catalogId).orElseThrow();
+        int partnerStationId = resolvePartnerStationId(partner);
+        if (catalog.stationId() != partnerStationId) {
+            throw new IllegalArgumentException("Catalog does not belong to this partner");
+        }
+        var categories = quizService.findCategories(catalog.stationId());
+        var questions = quizService.findQuestions(catalog.id());
+        return Map.of("catalog", catalog, "categories", categories, "questions", questions);
+    }
+
+    /**
+     * Fetches a single test protocol with sections and items from a federated partner.
+     */
+    @SuppressWarnings("unchecked")
+    public Map<String, Object> getFederatedProtocol(int localStationId, UUID partnerStationUid, int protocolId) {
+        var partner = resolveActivePartner(localStationId, partnerStationUid);
+        if (partner.isRemote()) {
+            String json = httpClient.signedGetJson(
+                    partner.remoteHost(),
+                    "/remote/protocols/" + protocolId,
+                    localStationId,
+                    getPrivateKey(localStationId));
+            if (json == null) throw new IllegalStateException("Failed to fetch protocol from remote partner");
+            try {
+                return httpClient.getMapper().readValue(json, Map.class);
+            } catch (Exception e) {
+                throw new IllegalStateException("Failed to parse remote protocol response", e);
+            }
+        }
+        var protocol = protocolService.findProtocol(protocolId).orElseThrow();
+        int partnerStationId = resolvePartnerStationId(partner);
+        if (protocol.stationId() != partnerStationId) {
+            throw new IllegalArgumentException("Protocol does not belong to this partner");
+        }
+        var sections = protocolService.findSections(protocolId);
+        var items = protocolService.findAllItemsByProtocol(protocolId);
+        return Map.of("protocol", protocol, "sections", sections, "items", items);
+    }
+
+    private FederationPartner resolveActivePartner(int localStationId, UUID partnerStationUid) {
+        var partner = federationRepository
+                .findPartnerByStationAndRemoteUid(localStationId, partnerStationUid)
+                .orElseThrow(() -> new IllegalArgumentException("Unknown partner"));
+        if (partner.status() != FederationPartner.FederationStatus.ACTIVE) {
+            throw new IllegalArgumentException("Partner is not active");
+        }
+        return partner;
     }
 
     // -- Copy operations --
@@ -368,8 +512,7 @@ public class FederatedContentService {
     private FederationPartner findPartnerForStation(int localStationId, int remoteStationId) {
         var partners = federationService.findPartners(localStationId);
         for (var partner : partners) {
-            int partnerRemoteId =
-                    partner.stationId() == localStationId ? partner.partnerStationId() : partner.stationId();
+            int partnerRemoteId = resolvePartnerStationId(partner);
             if (partnerRemoteId == remoteStationId && partner.status() == FederationPartner.FederationStatus.ACTIVE) {
                 return partner;
             }
@@ -395,9 +538,21 @@ public class FederatedContentService {
         return result;
     }
 
-    public record SharedKbItem(KbFile file, KbFolder folder, int sourceStationId, int partnerId) {}
+    /**
+     * Resolves the partner station UUID to its internal int ID.
+     */
+    private int resolvePartnerStationId(FederationPartner partner) {
+        return stationRepository
+                .findByUid(partner.partnerStationId())
+                .map(Station::id)
+                .orElse(0);
+    }
 
-    public record SharedQuizItem(QuizCatalog catalog, int sourceStationId, int partnerId) {}
+    public record SharedKbItem(KbFileSummary file, int sourceStationId, int partnerId) {}
 
-    public record SharedProtocolItem(TestProtocol protocol, int sourceStationId, int partnerId) {}
+    public record SharedQuizItem(int id, String name, String description, int sourceStationId, int partnerId) {}
+
+    public record SharedProtocolItem(int id, String name, String description, int sourceStationId, int partnerId) {}
+
+    public record FederatedSearchResult(KbFileSummary file, String snippet, String stationName, String stationUid) {}
 }
