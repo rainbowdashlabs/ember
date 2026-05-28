@@ -103,7 +103,7 @@ export async function getBoard(partnerUid: string, boardId: number): Promise<Fed
     const res = await client.get<FederatedBoardDetail>(`/federated/boards/${partnerUid}/${boardId}`)
     const data = res.data
     if (!data.stationName) {
-        data.stationName = res.headers['x-station-name'] ?? ''
+        data.stationName = res.headers['x-federation-station-name'] ?? ''
     }
     return data
 }

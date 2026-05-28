@@ -10,6 +10,8 @@ import dev.chojo.ember.event.events.BoardTicketChanged;
 import dev.chojo.ember.event.events.MentionedInComment;
 import dev.chojo.ember.feature.board.entity.BoardChecklistItem;
 import dev.chojo.ember.feature.board.entity.BoardComment;
+import dev.chojo.ember.feature.board.entity.BoardFieldConfig;
+import dev.chojo.ember.feature.board.entity.BoardFieldValue;
 import dev.chojo.ember.feature.board.entity.BoardTicket;
 import dev.chojo.ember.feature.board.entity.BoardTicketAttachment;
 import dev.chojo.ember.feature.board.entity.BoardTicketFieldValue;
@@ -185,15 +187,12 @@ public class BoardTicketService {
             if (ticket != null) {
                 var fields = boardRepository.findFields(ticket.boardId());
                 var fieldValues = ticketRepository.findFieldValues(ticketId);
-                var fvMap = new HashMap<Integer, Object>();
+                var fvMap = new HashMap<Integer, BoardFieldValue>();
                 for (var fv : fieldValues) fvMap.put(fv.fieldId(), fv.value());
                 for (var field : fields) {
-                    if ("lane_assignee".equals(field.fieldType())
-                            && field.config().laneId() != null
-                            && field.config().laneId() == toLaneId) {
-                        var memberIdVal = fvMap.get(field.id());
-                        if (memberIdVal instanceof Number n) {
-                            ticketRepository.assignTicket(ticketId, n.intValue());
+                    if (field.config() instanceof BoardFieldConfig.LaneAssignee lac && lac.laneId() == toLaneId) {
+                        if (fvMap.get(field.id()) instanceof BoardFieldValue.LaneAssignee assignee) {
+                            ticketRepository.assignTicket(ticketId, assignee.memberId());
                         }
                     }
                 }
@@ -394,9 +393,8 @@ public class BoardTicketService {
         return ticketRepository.findFieldValues(ticketId);
     }
 
-    public void setFieldValue(int ticketId, int fieldId, Object value) {
-        var fv = new BoardTicketFieldValue(ticketId, fieldId, value);
-        ticketRepository.setFieldValue(ticketId, fieldId, fv.valueToJson());
+    public void setFieldValue(int ticketId, int fieldId, BoardFieldValue value) {
+        ticketRepository.setFieldValue(ticketId, fieldId, value.toJson());
     }
 
     public boolean deleteFieldValue(int ticketId, int fieldId) {

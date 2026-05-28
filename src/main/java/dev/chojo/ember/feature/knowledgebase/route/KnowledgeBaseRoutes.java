@@ -15,11 +15,9 @@ import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.entity.FederationShare;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
-import dev.chojo.ember.feature.federation.service.FederatedContentService;
-import dev.chojo.ember.feature.federation.service.FederationHttpClient;
-import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.knowledgebase.entity.KbAccessRestriction;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFile;
+import dev.chojo.ember.feature.knowledgebase.entity.KbFileSummary;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFolder;
 import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseService;
 import dev.chojo.ember.feature.media.service.ImageCategory;
@@ -70,10 +68,7 @@ public class KnowledgeBaseRoutes implements Routes {
     private final MemberGroupRepository memberGroupRepository;
     private final UserTagRepository userTagRepository;
     private final ImageService imageService;
-    private final FederationService federationService;
-    private final FederatedContentService federatedContentService;
     private final FederationRepository federationRepository;
-    private final FederationHttpClient federationHttpClient;
     private final StationRepository stationRepository;
 
     @Inject
@@ -84,10 +79,7 @@ public class KnowledgeBaseRoutes implements Routes {
             MemberGroupRepository memberGroupRepository,
             UserTagRepository userTagRepository,
             ImageService imageService,
-            FederationService federationService,
-            FederatedContentService federatedContentService,
             FederationRepository federationRepository,
-            FederationHttpClient federationHttpClient,
             StationRepository stationRepository) {
         this.service = service;
         this.stationMemberRepository = stationMemberRepository;
@@ -95,10 +87,7 @@ public class KnowledgeBaseRoutes implements Routes {
         this.memberGroupRepository = memberGroupRepository;
         this.userTagRepository = userTagRepository;
         this.imageService = imageService;
-        this.federationService = federationService;
-        this.federatedContentService = federatedContentService;
         this.federationRepository = federationRepository;
-        this.federationHttpClient = federationHttpClient;
         this.stationRepository = stationRepository;
     }
 
@@ -282,7 +271,9 @@ public class KnowledgeBaseRoutes implements Routes {
         Integer folderId = ctx.queryParam("folderId") != null
                 ? ctx.queryParamAsClass("folderId", Integer.class).get()
                 : null;
-        ctx.json(service.findFiles(session.stationId(), folderId));
+        ctx.json(service.findFiles(session.stationId(), folderId).stream()
+                .map(KbFileSummary::of)
+                .toList());
     }
 
     private void getFile(Context ctx) {
@@ -587,7 +578,7 @@ public class KnowledgeBaseRoutes implements Routes {
     }
 
     private List<SearchResultResponse> searchFederated(int stationId, String query) {
-        return federatedContentService.searchFederatedKb(stationId, query).stream()
+        return service.searchFederatedKb(stationId, query).stream()
                 .map(r ->
                         new SearchResultResponse(r.file().toKbFile(), r.snippet(), "", r.stationName(), r.stationUid()))
                 .toList();
@@ -625,7 +616,8 @@ public class KnowledgeBaseRoutes implements Routes {
                     .toList();
         }
 
-        ctx.json(new BrowseResponse(currentFolder, folders, files));
+        ctx.json(new BrowseResponse(
+                currentFolder, folders, files.stream().map(KbFileSummary::of).toList()));
     }
 
     // -- Access Restrictions --
@@ -724,7 +716,7 @@ public class KnowledgeBaseRoutes implements Routes {
     public record RestrictionResponse(
             List<Integer> roleIds, List<Integer> groupIds, List<Integer> tagIds, List<Integer> memberIds) {}
 
-    public record BrowseResponse(KbFolder currentFolder, List<KbFolder> folders, List<KbFile> files) {}
+    public record BrowseResponse(KbFolder currentFolder, List<KbFolder> folders, List<KbFileSummary> files) {}
 
     // -- Folder Icons --
 
@@ -870,7 +862,7 @@ public class KnowledgeBaseRoutes implements Routes {
 
     private void federatedBrowseKb(Context ctx) {
         var session = UserSession.from(ctx);
-        var items = federatedContentService.browseSharedKb(session.stationId());
+        var items = service.browseSharedKb(session.stationId());
         ctx.json(items.stream()
                 .map(i -> {
                     String name = stationRepository
@@ -893,22 +885,22 @@ public class KnowledgeBaseRoutes implements Routes {
         var session = UserSession.from(ctx);
         var stationUid = UUID.fromString(ctx.pathParam("stationuid"));
         int fileId = ctx.pathParamAsClass("id", Integer.class).get();
-        ctx.json(federatedContentService.getFederatedKbFile(session.stationId(), stationUid, fileId));
+        ctx.json(service.getFederatedKbFile(session.stationId(), stationUid, fileId));
     }
 
     private void federatedGetFileContent(Context ctx) {
         var session = UserSession.from(ctx);
         var stationUid = UUID.fromString(ctx.pathParam("stationuid"));
         int fileId = ctx.pathParamAsClass("id", Integer.class).get();
-        var content = federatedContentService.getFederatedKbFileContent(session.stationId(), stationUid, fileId);
+        var content = service.getFederatedKbFileContent(session.stationId(), stationUid, fileId);
         ctx.json(Map.of("fileId", fileId, "content", content));
     }
 
     private void federatedCopyFile(Context ctx) {
         var session = UserSession.from(ctx);
         int fileId = ctx.pathParamAsClass("id", Integer.class).get();
-        var copied = federatedContentService.copyKbFile(
-                fileId, session.stationId(), session.member().id());
+        var copied =
+                service.copyKbFile(fileId, session.stationId(), session.member().id());
         ctx.status(HttpStatus.CREATED).json(copied);
     }
 

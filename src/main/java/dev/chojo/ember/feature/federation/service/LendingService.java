@@ -31,6 +31,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * Business logic for cross-station inventory lending.
@@ -265,4 +266,80 @@ public class LendingService {
     public boolean isBlocked(int stationId, Integer inventoryId, Integer itemId, LocalDate dateFrom, LocalDate dateTo) {
         return repository.isBlocked(stationId, inventoryId, itemId, dateFrom, dateTo);
     }
+
+    // -- Federated available inventory (parallel fetch from all partners) --
+
+    /**
+     * Finds available inventory across all active federation partners, with parallel fetching.
+     */
+    public List<AvailableInventoryEntry> findAvailableInventory(
+            int stationId, String query, LocalDate dateFrom, LocalDate dateTo) {
+        var partners = federationService.findPartners(stationId).stream()
+                .filter(p -> p.status() == FederationPartner.FederationStatus.ACTIVE)
+                .toList();
+
+        var futures = new ArrayList<CompletableFuture<List<AvailableInventoryEntry>>>();
+        for (var partner : partners) {
+            futures.add(CompletableFuture.supplyAsync(() -> findAvailableForPartner(partner, query, dateFrom, dateTo)));
+        }
+
+        var results = new ArrayList<AvailableInventoryEntry>();
+        var allFuture = CompletableFuture.allOf(futures.toArray(CompletableFuture[]::new));
+        try {
+            allFuture.join();
+        } catch (Exception e) {
+            log.error("Error during parallel available inventory fetch", e);
+        }
+        for (var future : futures) {
+            try {
+                results.addAll(future.get());
+            } catch (Exception e) {
+                log.error("Error collecting available inventory results", e);
+            }
+        }
+        return results;
+    }
+
+    private List<AvailableInventoryEntry> findAvailableForPartner(
+            FederationPartner partner, String query, LocalDate dateFrom, LocalDate dateTo) {
+        var partnerStation =
+                stationRepository.findByUid(partner.partnerStationId()).orElse(null);
+        if (partnerStation == null) return List.of();
+        int partnerStationId = partnerStation.id();
+        String name = partnerStation.name();
+
+        if (dateFrom != null && isBlocked(partnerStationId, null, null, dateFrom, dateTo)) {
+            return List.of();
+        }
+
+        var entries = new ArrayList<AvailableInventoryEntry>();
+        var inventories = inventoryRepository.findByStation(partnerStationId);
+        for (var inv : inventories) {
+            if (query != null && !query.isBlank()) {
+                if (!inv.name().toLowerCase().contains(query.toLowerCase())) {
+                    continue;
+                }
+            }
+            if (dateFrom != null && isBlocked(partnerStationId, inv.id(), null, dateFrom, dateTo)) {
+                continue;
+            }
+
+            var unassigned = inventoryRepository.findUnassignedItems(inv.id());
+            int availableCount;
+            if (dateFrom != null) {
+                availableCount = (int) unassigned.stream()
+                        .filter(item -> !isBlocked(partnerStationId, null, item.id(), dateFrom, dateTo))
+                        .count();
+            } else {
+                availableCount = unassigned.size();
+            }
+            if (availableCount > 0) {
+                entries.add(new AvailableInventoryEntry(inv.id(), inv.name(), partnerStationId, name, availableCount));
+            }
+        }
+        return entries;
+    }
+
+    public record AvailableInventoryEntry(
+            int inventoryId, String inventoryName, int stationId, String stationName, int availableCount) {}
 }

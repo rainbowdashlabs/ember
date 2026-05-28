@@ -10,46 +10,42 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import org.slf4j.Logger;
 import tools.jackson.databind.DeserializationFeature;
 import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.SerializationFeature;
 import tools.jackson.databind.json.JsonMapper;
-
-import java.util.List;
 
 import static org.slf4j.LoggerFactory.getLogger;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public sealed interface BoardFieldConfig {
-    Logger log = getLogger(BoardFieldConfig.class);
+public sealed interface BoardFieldValue {
+    Logger log = getLogger(BoardFieldValue.class);
     ObjectMapper MAPPER = JsonMapper.builder()
             .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
             .disable(DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES)
+            .disable(SerializationFeature.FAIL_ON_EMPTY_BEANS)
             .changeDefaultVisibility(v -> v.withFieldVisibility(JsonAutoDetect.Visibility.ANY)
                     .withGetterVisibility(JsonAutoDetect.Visibility.NONE))
             .build();
 
-    boolean required();
+    record StringValue(String value) implements BoardFieldValue {}
 
-    record Simple(boolean required) implements BoardFieldConfig {}
+    record NumberValue(double value) implements BoardFieldValue {}
 
-    record Enum(boolean required, List<String> options) implements BoardFieldConfig {}
+    record BooleanValue(boolean value) implements BoardFieldValue {}
 
-    record LaneAssignee(boolean required, int laneId) implements BoardFieldConfig {}
+    record EnumValue(String value) implements BoardFieldValue {}
 
-    static BoardFieldConfig parse(BoardFieldType fieldType, String json) {
-        if (json == null || json.isBlank()) return empty(fieldType);
+    record DateValue(String value) implements BoardFieldValue {}
+
+    record LaneAssignee(int memberId) implements BoardFieldValue {}
+
+    static BoardFieldValue parse(BoardFieldType fieldType, String json) {
+        if (json == null || json.isBlank()) return null;
         try {
-            return MAPPER.readValue(json, fieldType.configClass());
+            return MAPPER.readValue(json, fieldType.valueClass());
         } catch (Exception e) {
-            log.error("Failed to parse board field config for type {}: {}", fieldType, json, e);
-            return empty(fieldType);
+            log.error("Failed to parse board field value for type {}: {}", fieldType, json, e);
+            return null;
         }
-    }
-
-    static BoardFieldConfig empty(BoardFieldType fieldType) {
-        return switch (fieldType) {
-            case STRING, NUMBER, BOOLEAN, DATE -> new Simple(false);
-            case ENUM -> new Enum(false, List.of());
-            case LANE_ASSIGNEE -> new LaneAssignee(false, 0);
-        };
     }
 
     default String toJson() {

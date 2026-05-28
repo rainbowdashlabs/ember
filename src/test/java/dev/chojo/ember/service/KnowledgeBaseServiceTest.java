@@ -5,7 +5,15 @@
  */
 package dev.chojo.ember.service;
 
+import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.account.entity.Account;
+import dev.chojo.ember.feature.federation.entity.CapabilityType;
+import dev.chojo.ember.feature.federation.entity.Direction;
+import dev.chojo.ember.feature.federation.entity.ShareScope;
+import dev.chojo.ember.feature.federation.repository.FederationRepository;
+import dev.chojo.ember.feature.federation.service.FederationHttpClient;
+import dev.chojo.ember.feature.federation.service.FederationService;
+import dev.chojo.ember.feature.knowledgebase.entity.KbFileSummary;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFileType;
 import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
 import dev.chojo.ember.feature.knowledgebase.service.KbFileStorageService;
@@ -21,6 +29,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -34,19 +43,42 @@ class KnowledgeBaseServiceTest extends RepositoryTestBase {
     private static StationMember member;
     private static int folderId;
     private static int fileId;
+    private static FederationRepository federationRepo;
+    private static FederationService federationService;
+    private static Station stationB;
+    private static int partnerIdAtoB;
 
     @BeforeAll
     static void setup() {
         var fileStorage = mock(KbFileStorageService.class);
-        service = new KnowledgeBaseService(knowledgeBaseRepo, stationRepo, fileStorage);
+        federationRepo = new FederationRepository();
+        federationService = new FederationService(federationRepo, stationRepo, new Api());
+        service = new KnowledgeBaseService(
+                knowledgeBaseRepo,
+                stationRepo,
+                fileStorage,
+                federationService,
+                federationRepo,
+                mock(FederationHttpClient.class));
         station = stationRepo.create("KbSvcStation");
+        stationB = stationRepo.create("KbSvcStationB");
         account = accountRepo.create("kb-svc@test.com", "Kb", "SvcTester");
         member = stationMemberRepo.create(station.id(), account.id());
+
+        // Create bidirectional federation partnership
+        var keyPair = federationService.generateKeyPair();
+        var partner = federationService.acceptInvite(
+                station.id(), stationB.id(), federationService.encodePublicKey(keyPair), null, null);
+        partnerIdAtoB = partner.id();
+
+        // Enable KB_SHARE capability
+        federationService.setCapability(partnerIdAtoB, CapabilityType.KB_SHARE, Direction.IMPORT, true);
     }
 
     @AfterAll
     static void cleanup() {
         stationRepo.delete(station.id());
+        stationRepo.delete(stationB.id());
         accountRepo.delete(account.id());
     }
 
@@ -733,5 +765,119 @@ class KnowledgeBaseServiceTest extends RepositoryTestBase {
     void deleteFileAndFolder() {
         assertTrue(service.deleteFile(fileId));
         assertTrue(service.deleteFolder(folderId));
+    }
+
+    // -- Federation Tests --
+
+    @Test
+    @Order(200)
+    void browseSharedKbWithShare() {
+        var file = knowledgeBaseRepo.createFile(
+                stationB.id(), null, "FedFile", "desc", KbFileType.MARKDOWN, "text/markdown", 0, null, member.id());
+        var share = federationRepo.createKbShare(stationB.id(), file.id(), null, ShareScope.ALL_PARTNERS);
+
+        var items = service.browseSharedKb(station.id());
+        assertTrue(items.stream().anyMatch(i -> i.file().id() == file.id()));
+
+        federationRepo.deleteKbShare(share.id());
+        knowledgeBaseRepo.deleteFile(file.id());
+    }
+
+    @Test
+    @Order(201)
+    void browseSharedKbEmptyNoShares() {
+        var items = service.browseSharedKb(station.id());
+        assertTrue(items.isEmpty());
+    }
+
+    @Test
+    @Order(202)
+    void getFederatedKbFileLocal() {
+        var file = knowledgeBaseRepo.createFile(
+                stationB.id(), null, "FedFile2", "desc2", KbFileType.MARKDOWN, "text/markdown", 0, null, member.id());
+
+        var result = service.getFederatedKbFile(station.id(), stationB.uid(), file.id());
+        assertNotNull(result);
+        assertEquals(file.id(), result.id());
+
+        knowledgeBaseRepo.deleteFile(file.id());
+    }
+
+    @Test
+    @Order(203)
+    void getFederatedKbFileWrongStation() {
+        var file = knowledgeBaseRepo.createFile(
+                station.id(), null, "LocalFile", "local", KbFileType.MARKDOWN, "text/markdown", 0, null, member.id());
+
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> service.getFederatedKbFile(station.id(), stationB.uid(), file.id()));
+
+        knowledgeBaseRepo.deleteFile(file.id());
+    }
+
+    @Test
+    @Order(204)
+    void getFederatedKbFileContentLocal() {
+        var file = knowledgeBaseRepo.createFile(
+                stationB.id(), null, "FedMdFile", "desc", KbFileType.MARKDOWN, "text/markdown", 0, null, member.id());
+        knowledgeBaseRepo.storeTextContent(file.id(), "# Content");
+
+        var content = service.getFederatedKbFileContent(station.id(), stationB.uid(), file.id());
+        assertNotNull(content);
+        assertTrue(content.contains("Content"));
+
+        knowledgeBaseRepo.deleteFile(file.id());
+    }
+
+    @Test
+    @Order(205)
+    void copyKbFile() {
+        var file = knowledgeBaseRepo.createFile(
+                stationB.id(),
+                null,
+                "CopySource",
+                "copy desc",
+                KbFileType.MARKDOWN,
+                "text/markdown",
+                0,
+                null,
+                member.id());
+        knowledgeBaseRepo.storeTextContent(file.id(), "# Copy Me");
+
+        var copied = service.copyKbFile(file.id(), station.id(), member.id());
+        assertNotNull(copied);
+        assertEquals("CopySource", copied.name());
+        assertEquals(station.id(), copied.stationId());
+        assertNotEquals(file.id(), copied.id());
+
+        var content = service.getMarkdownContent(copied.id());
+        assertTrue(content.isPresent());
+        assertTrue(content.get().contains("Copy Me"));
+
+        knowledgeBaseRepo.deleteFile(copied.id());
+        knowledgeBaseRepo.deleteFile(file.id());
+    }
+
+    @Test
+    @Order(206)
+    void sharedKbItemRecord() {
+        var summary = new KbFileSummary(1, 2, null, "Test", "Desc", KbFileType.MARKDOWN, Instant.now(), false);
+        var item = new KnowledgeBaseService.SharedKbItem(summary, 2, 3);
+        assertEquals(1, item.file().id());
+        assertEquals(2, item.sourceStationId());
+        assertEquals(3, item.partnerId());
+        assertEquals("Test", item.file().name());
+    }
+
+    @Test
+    @Order(207)
+    void federatedSearchResultRecord() {
+        var summary = new KbFileSummary(10, 20, null, "Search", "Desc", KbFileType.MARKDOWN, Instant.now(), false);
+        var result = new KnowledgeBaseService.FederatedSearchResult(summary, "snippet text", "StationName", "uid-123");
+        assertEquals(10, result.file().id());
+        assertEquals("snippet text", result.snippet());
+        assertEquals("StationName", result.stationName());
+        assertEquals("uid-123", result.stationUid());
     }
 }

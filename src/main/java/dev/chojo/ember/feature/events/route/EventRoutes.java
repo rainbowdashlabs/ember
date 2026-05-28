@@ -23,6 +23,7 @@ import dev.chojo.ember.feature.events.entity.EventFieldDefault;
 import dev.chojo.ember.feature.events.entity.EventFieldType;
 import dev.chojo.ember.feature.events.entity.EventLayoutField;
 import dev.chojo.ember.feature.events.entity.EventRegistration;
+import dev.chojo.ember.feature.events.entity.EventSummary;
 import dev.chojo.ember.feature.events.entity.IntervalConfig;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventFieldRepository;
@@ -32,7 +33,6 @@ import dev.chojo.ember.feature.events.service.EventFederationService;
 import dev.chojo.ember.feature.events.service.EventFieldService;
 import dev.chojo.ember.feature.events.service.EventService;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
-import dev.chojo.ember.feature.federation.entity.FederationPartner.FederationStatus;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.service.FederationHttpClient;
 import dev.chojo.ember.feature.federation.service.FederationService;
@@ -69,7 +69,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 
 /**
  * Routes for event management including CRUD operations on events, categories, breaks,
@@ -224,14 +223,16 @@ public class EventRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = StationEvent[].class)))
     private void list(Context ctx) {
         UserSession session = UserSession.from(ctx);
+        List<StationEvent> events;
         if (session.hasRole(Roles.EVENT_MANAGER)) {
-            ctx.json(eventService.findByStation(session.stationId()));
+            events = eventService.findByStation(session.stationId());
         } else if (session.member() != null) {
-            ctx.json(eventService.findByStationForMember(
-                    session.stationId(), session.member().id()));
+            events = eventService.findByStationForMember(
+                    session.stationId(), session.member().id());
         } else {
-            ctx.json(List.of());
+            events = List.of();
         }
+        ctx.json(events.stream().map(EventSummary::of).toList());
     }
 
     @OpenApi(
@@ -242,7 +243,9 @@ public class EventRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = StationEvent[].class)))
     private void listToday(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        ctx.json(eventService.findTodayEvents(session.stationId()));
+        ctx.json(eventService.findTodayEvents(session.stationId()).stream()
+                .map(EventSummary::of)
+                .toList());
     }
 
     @OpenApi(
@@ -1381,75 +1384,18 @@ public class EventRoutes implements Routes {
 
     private void federatedListEvents(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        var station = stationRepository.findById(session.stationId()).orElseThrow();
-        var partners = federationService.findPartners(session.stationId()).stream()
-                .filter(p -> p.status() == FederationStatus.ACTIVE)
-                .toList();
-
-        var futures = new ArrayList<CompletableFuture<List<Map<String, Object>>>>();
-        for (var partner : partners) {
-            futures.add(CompletableFuture.supplyAsync(() -> {
-                var events = new ArrayList<Map<String, Object>>();
-                if (partner.isRemote()) {
-                    var remoteEvents = federationHttpClient.fetchFederatedEvents(
-                            partner.remoteHost(), station.id(), station.federationPrivateKey());
-                    for (var event : remoteEvents) {
-                        events.add(Map.of(
-                                "partnerId", partner.id(),
-                                "partnerStationName", partnerStationName(partner),
-                                "event", event));
-                    }
-                } else {
-                    int partnerStationId = stationRepository
-                            .findByUid(partner.partnerStationId())
-                            .map(Station::id)
-                            .orElse(0);
-                    var eventIds = eventFederationService.findSharedEventIds(partner.id(), partnerStationId);
-                    for (int eventId : eventIds) {
-                        eventService
-                                .findById(eventId)
-                                .ifPresent(e -> events.add(Map.of(
-                                        "partnerId", partner.id(),
-                                        "partnerStationName", partnerStationName(partner),
-                                        "event", toRemoteEvent(e))));
-                    }
-                }
-                return events;
-            }));
-        }
-
-        var allEvents = new ArrayList<Map<String, Object>>();
-        var allFuture = CompletableFuture.allOf(futures.toArray(CompletableFuture[]::new));
-        try {
-            allFuture.join();
-        } catch (Exception ignored) {
-        }
-        for (var future : futures) {
-            try {
-                allEvents.addAll(future.get());
-            } catch (Exception ignored) {
-            }
-        }
-        ctx.json(allEvents);
+        ctx.json(eventFederationService.browseFederatedEvents(session.stationId()));
     }
 
     private void federatedGetEvent(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        var partner = resolvePartner(ctx, session.stationId());
+        var stationUid = UUID.fromString(ctx.pathParam("stationuid"));
         int eventId = ctx.pathParamAsClass("id", Integer.class).get();
-        int partnerStationId = stationRepository
-                .findByUid(partner.partnerStationId())
-                .map(Station::id)
-                .orElseThrow(NotFoundResponse::new);
-        var eventIds = eventFederationService.findSharedEventIds(partner.id(), partnerStationId);
-        if (!eventIds.contains(eventId)) {
-            throw new NotFoundResponse();
-        }
-        var event = eventService.findById(eventId).orElseThrow(NotFoundResponse::new);
+        var event = eventFederationService.getFederatedEvent(session.stationId(), stationUid, eventId);
         var fields = eventFieldService.findByEvent(eventId).stream()
                 .filter(EventField::isPublic)
                 .toList();
-        ctx.json(Map.of("event", toRemoteEvent(event), "publicFields", fields));
+        ctx.json(Map.of("event", event, "publicFields", fields));
     }
 
     private void federatedRegister(Context ctx) {

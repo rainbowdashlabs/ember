@@ -11,6 +11,8 @@ import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.board.entity.BoardChecklistItem;
 import dev.chojo.ember.feature.board.entity.BoardField;
 import dev.chojo.ember.feature.board.entity.BoardFieldConfig;
+import dev.chojo.ember.feature.board.entity.BoardFieldType;
+import dev.chojo.ember.feature.board.entity.BoardFieldValue;
 import dev.chojo.ember.feature.board.entity.BoardTicket;
 import dev.chojo.ember.feature.board.entity.LaneData;
 import dev.chojo.ember.feature.board.entity.LanePreset;
@@ -428,8 +430,10 @@ class BoardServiceTest extends RepositoryTestBase {
         boardService.replaceFields(
                 boardId,
                 List.of(
-                        new BoardField(0, boardId, "Component", "string", BoardFieldConfig.parse("{}"), 0),
-                        new BoardField(0, boardId, "Effort", "number", BoardFieldConfig.parse("{}"), 1)));
+                        new BoardField(
+                                0, boardId, "Component", BoardFieldType.STRING, new BoardFieldConfig.Simple(false), 0),
+                        new BoardField(
+                                0, boardId, "Effort", BoardFieldType.NUMBER, new BoardFieldConfig.Simple(false), 1)));
         var fields = boardService.findFields(boardId);
         assertEquals(2, fields.size());
         assertEquals("Component", fields.getFirst().name());
@@ -503,10 +507,11 @@ class BoardServiceTest extends RepositoryTestBase {
     @Order(82)
     void ticketFieldValues() {
         boardService.replaceFields(
-                boardId, List.of(new BoardField(0, boardId, "F", "string", BoardFieldConfig.parse("{}"), 0)));
+                boardId,
+                List.of(new BoardField(0, boardId, "F", BoardFieldType.STRING, new BoardFieldConfig.Simple(false), 0)));
         var fields = boardService.findFields(boardId);
         int fid = fields.getFirst().id();
-        ticketService.setFieldValue(ticketId1, fid, "test");
+        ticketService.setFieldValue(ticketId1, fid, new BoardFieldValue.StringValue("test"));
         assertEquals(1, ticketService.findFieldValues(ticketId1).size());
         assertTrue(ticketService.deleteFieldValue(ticketId1, fid));
     }
@@ -688,13 +693,14 @@ class BoardServiceTest extends RepositoryTestBase {
                             0,
                             boardId,
                             "Reviewer",
-                            "lane_assignee",
-                            new BoardFieldConfig(false, List.of(), lanes.get(1).id()),
+                            BoardFieldType.LANE_ASSIGNEE,
+                            new BoardFieldConfig.LaneAssignee(
+                                    false, lanes.get(1).id()),
                             0)));
             var fields = boardService.findFields(boardId);
             int fieldId = fields.getFirst().id();
             // Set field value to member id
-            ticketService.setFieldValue(ticketId1, fieldId, member.id());
+            ticketService.setFieldValue(ticketId1, fieldId, new BoardFieldValue.LaneAssignee(member.id()));
             // Move ticket to lane[1]
             ticketService.moveTicket(ticketId1, lanes.get(0).id(), lanes.get(1).id(), 0, member.id());
             var tk = ticketService.findById(ticketId1).orElseThrow();

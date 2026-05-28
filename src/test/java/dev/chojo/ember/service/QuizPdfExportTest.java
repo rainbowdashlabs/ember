@@ -96,7 +96,7 @@ class QuizPdfExportTest {
         stationRepo = new StationRepository();
         catalogRepo = new QuizCatalogRepository();
         testRepo = new QuizTestRepository();
-        quizService = new QuizService(catalogRepo, testRepo, new RestrictionRepository());
+        quizService = new QuizService(catalogRepo, testRepo, new RestrictionRepository(), null, null, null, null);
         pdfService = new QuizPdfService(testRepo, catalogRepo, quizService);
     }
 

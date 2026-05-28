@@ -222,7 +222,7 @@ tasks {
                     "*.mail.service.*",
                     "*.FederationHttpClient*",
                     "*.FederationWebhookService*",
-                    "*.FederatedContentService*",
+                    "*.FederatedBoardProxyService*",
                     "*.ApiRequestLogger*",
                     "*.DataInitializer",
                     "*.ProblemLogAppender*",

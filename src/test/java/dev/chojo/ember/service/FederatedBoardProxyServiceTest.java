@@ -977,6 +977,17 @@ class FederatedBoardProxyServiceTest extends RepositoryTestBase {
     }
 
     @Test
+    @Order(135)
+    void proxySearchTicketsLocalNullQuery() {
+        when(federationRepository.findPartnerById(partnerId)).thenReturn(Optional.of(localPartner()));
+
+        var results = proxyService.proxySearchTickets(partnerId, boardId, null);
+        assertNotNull(results);
+        // Null query returns all tickets
+        assertFalse(results.isEmpty());
+    }
+
+    @Test
     @Order(140)
     void proxyDeleteTicketLocal() {
         when(federationRepository.findPartnerById(partnerId)).thenReturn(Optional.of(localPartner()));
@@ -984,6 +995,64 @@ class FederatedBoardProxyServiceTest extends RepositoryTestBase {
         proxyService.proxyDeleteTicket(partnerId, boardId, ticketId);
         var result = ticketService.findById(ticketId);
         assertTrue(result.isEmpty());
+    }
+
+    @Test
+    @Order(141)
+    void getEffectiveShareModeReverseLookup() {
+        // Test the reverse lookup path in getEffectiveShareMode
+        // Set up federationRepository to return a partner when queried by findPartnerById
+        when(federationRepository.findPartnerById(partnerId)).thenReturn(Optional.of(localPartner()));
+        // findPartnerByStationAndRemoteUid should return a partner for the owning station
+        when(federationRepository.findPartnerByStationAndRemoteUid(eq(station1.id()), eq(station1.uid())))
+                .thenReturn(Optional.of(localPartner()));
+
+        // The direct lookup (without federationRepository) already works from DB.
+        // To force reverse lookup, we need a partner ID that doesn't match the direct share.
+        // Create a second partner via SQL that has no shares
+        int partner2Id = Query.query(
+                        "INSERT INTO federation_partner(station_id, partner_station_id, status, federation_version) VALUES (:s, :p::uuid, 'ACTIVE', 1) RETURNING id;")
+                .single(Call.of()
+                        .bind("s", station2.id())
+                        .bind("p", station1.uid(), StandardValueConverter.UUID_STRING))
+                .map(row -> row.getInt("id"))
+                .first()
+                .orElseThrow();
+
+        // partner2 is on station2, so findPartnerById returns it
+        var partner2 = new FederationPartner(
+                partner2Id,
+                station2.id(),
+                station1.uid(),
+                null,
+                null,
+                null,
+                FederationPartner.FederationStatus.ACTIVE,
+                "1",
+                Instant.now(),
+                Instant.now(),
+                null);
+        when(federationRepository.findPartnerById(partner2Id)).thenReturn(Optional.of(partner2));
+        // The board is on station1, partner2 is on station2 looking at station1
+        // Reverse lookup: find owning station's partner that points to station2's uid
+        when(federationRepository.findPartnerByStationAndRemoteUid(eq(station1.id()), eq(station2.uid())))
+                .thenReturn(Optional.of(localPartner()));
+
+        var mode = proxyService.getEffectiveShareMode(partner2Id, boardId);
+        assertTrue(mode.isPresent());
+
+        // Cleanup
+        Query.query("DELETE FROM federation_partner WHERE id = :id;")
+                .single(Call.of().bind("id", partner2Id))
+                .delete();
+    }
+
+    @Test
+    @Order(142)
+    void getEffectiveShareModeReverseLookupPartnerNotFound() {
+        when(federationRepository.findPartnerById(999)).thenReturn(Optional.empty());
+        var mode = proxyService.getEffectiveShareMode(999, 999999);
+        assertTrue(mode.isEmpty());
     }
 
     // -- Remote proxy tests (mocked HTTP) --
@@ -1563,5 +1632,97 @@ class FederatedBoardProxyServiceTest extends RepositoryTestBase {
         when(federationRepository.findPartnerById(999)).thenReturn(Optional.empty());
 
         assertThrows(io.javalin.http.NotFoundResponse.class, () -> proxyService.proxyGetBoard(999, boardId));
+    }
+
+    @Test
+    @Order(233)
+    void remotePutReturnsEmptyThrows() {
+        when(federationRepository.findPartnerById(partnerId)).thenReturn(Optional.of(remotePartner()));
+        when(httpClient.signedPutJson(
+                        eq("https://remote.example.com"),
+                        eq("/remote/boards/" + boardId + "/tickets/1"),
+                        any(),
+                        anyInt(),
+                        any()))
+                .thenReturn("");
+
+        assertThrows(
+                io.javalin.http.NotFoundResponse.class,
+                () -> proxyService.proxyUpdateTicket(partnerId, boardId, 1, "X", null, null, null, null));
+    }
+
+    @Test
+    @Order(234)
+    void remoteGetInvalidJsonReturnsEmptyList() {
+        when(federationRepository.findPartnerById(partnerId)).thenReturn(Optional.of(remotePartner()));
+        when(httpClient.signedGetJson(
+                        eq("https://remote.example.com"), eq("/remote/boards/" + boardId + "/lanes"), anyInt(), any()))
+                .thenReturn("invalid json{{{");
+
+        var lanes = proxyService.proxyGetLanes(partnerId, boardId);
+        assertNotNull(lanes);
+        assertTrue(lanes.isEmpty());
+    }
+
+    @Test
+    @Order(235)
+    void remoteGetInvalidJsonThrowsForSingle() {
+        when(federationRepository.findPartnerById(partnerId)).thenReturn(Optional.of(remotePartner()));
+        when(httpClient.signedGetJson(
+                        eq("https://remote.example.com"), eq("/remote/boards/" + boardId), anyInt(), any()))
+                .thenReturn("invalid json{{{");
+
+        assertThrows(io.javalin.http.NotFoundResponse.class, () -> proxyService.proxyGetBoard(partnerId, boardId));
+    }
+
+    @Test
+    @Order(236)
+    void remotePostListReturnsEmptyOnNull() {
+        when(federationRepository.findPartnerById(partnerId)).thenReturn(Optional.of(remotePartner()));
+        when(httpClient.signedPostJson(
+                        eq("https://remote.example.com"),
+                        eq("/remote/boards/" + boardId + "/tickets/1/labels/5"),
+                        any(),
+                        anyInt(),
+                        any()))
+                .thenReturn(null);
+
+        var result = proxyService.proxyAddTicketLabel(partnerId, boardId, 1, 5);
+        assertNotNull(result);
+        assertTrue(result.isEmpty());
+    }
+
+    @Test
+    @Order(237)
+    void remotePostThrowsOnError() {
+        when(federationRepository.findPartnerById(partnerId)).thenReturn(Optional.of(remotePartner()));
+        when(httpClient.signedPostJson(
+                        eq("https://remote.example.com"),
+                        eq("/remote/boards/" + boardId + "/tickets"),
+                        any(),
+                        anyInt(),
+                        any()))
+                .thenThrow(new RuntimeException("Connection refused"));
+
+        assertThrows(
+                io.javalin.http.NotFoundResponse.class,
+                () -> proxyService.proxyCreateTicket(partnerId, boardId, 1, "X", "D", "HIGH", null, "remote-1"));
+    }
+
+    @Test
+    @Order(238)
+    void remotePutThrowsOnError() {
+        when(federationRepository.findPartnerById(partnerId)).thenReturn(Optional.of(remotePartner()));
+        when(httpClient.signedPutJson(
+                        eq("https://remote.example.com"),
+                        eq("/remote/boards/" + boardId + "/tickets/1/move"),
+                        any(),
+                        anyInt(),
+                        any()))
+                .thenThrow(new RuntimeException("Timeout"));
+
+        assertThrows(
+                io.javalin.http.NotFoundResponse.class,
+                () -> proxyService.proxyMoveTicket(partnerId, boardId, 1, 2, 0));
     }
 }

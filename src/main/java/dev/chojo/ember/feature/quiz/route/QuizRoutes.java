@@ -12,7 +12,6 @@ import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
-import dev.chojo.ember.feature.federation.service.FederatedContentService;
 import dev.chojo.ember.feature.media.service.ImageCategory;
 import dev.chojo.ember.feature.media.service.ImageService;
 import dev.chojo.ember.feature.quiz.entity.AttemptStatus;
@@ -69,7 +68,6 @@ public class QuizRoutes implements Routes {
     private final QuizService quizService;
     private final QuizPdfService pdfService;
     private final ImageService imageService;
-    private final FederatedContentService federatedContentService;
     private final FederationRepository federationRepository;
     private final StationRepository stationRepository;
     private final Api apiConfig;
@@ -79,14 +77,12 @@ public class QuizRoutes implements Routes {
             QuizService quizService,
             QuizPdfService pdfService,
             ImageService imageService,
-            FederatedContentService federatedContentService,
             FederationRepository federationRepository,
             StationRepository stationRepository,
             Api apiConfig) {
         this.quizService = quizService;
         this.pdfService = pdfService;
         this.imageService = imageService;
-        this.federatedContentService = federatedContentService;
         this.federationRepository = federationRepository;
         this.stationRepository = stationRepository;
         this.apiConfig = apiConfig;
@@ -200,7 +196,7 @@ public class QuizRoutes implements Routes {
     private void listCatalogs(Context ctx) {
         var session = UserSession.from(ctx);
         var catalogs = quizService.findCatalogs(session.stationId());
-        var sharedItems = federatedContentService.browseSharedQuiz(session.stationId());
+        var sharedItems = quizService.browseSharedQuiz(session.stationId());
         var sharedCatalogs = sharedItems.stream()
                 .map(i -> {
                     String name = stationRepository
@@ -1335,7 +1331,7 @@ public class QuizRoutes implements Routes {
 
     private void federatedBrowseCatalogs(Context ctx) {
         var session = UserSession.from(ctx);
-        var items = federatedContentService.browseSharedQuiz(session.stationId());
+        var items = quizService.browseSharedQuiz(session.stationId());
         ctx.json(items.stream()
                 .map(i -> {
                     String name = stationRepository
@@ -1351,13 +1347,13 @@ public class QuizRoutes implements Routes {
         var session = UserSession.from(ctx);
         var stationUid = java.util.UUID.fromString(ctx.pathParam("stationuid"));
         int catalogId = ctx.pathParamAsClass("id", Integer.class).get();
-        ctx.json(federatedContentService.getFederatedQuizCatalog(session.stationId(), stationUid, catalogId));
+        ctx.json(quizService.getFederatedQuizCatalog(session.stationId(), stationUid, catalogId));
     }
 
     private void federatedCopyCatalog(Context ctx) {
         var session = UserSession.from(ctx);
         int catalogId = ctx.pathParamAsClass("id", Integer.class).get();
-        var copied = federatedContentService.copyQuizCatalog(catalogId, session.stationId());
+        var copied = quizService.copyQuizCatalog(catalogId, session.stationId());
         ctx.status(HttpStatus.CREATED).json(copied);
     }
 

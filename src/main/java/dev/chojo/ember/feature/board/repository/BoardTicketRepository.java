@@ -470,7 +470,11 @@ public class BoardTicketRepository {
     // -- Field values --
 
     public List<BoardTicketFieldValue> findFieldValues(int ticketId) {
-        return Query.query("SELECT * FROM board_ticket_field_value WHERE ticket_id = :ticket_id;")
+        return Query.query("""
+                        SELECT fv.ticket_id, fv.field_id, f.field_type, fv.value
+                        FROM board_ticket_field_value fv
+                        JOIN board_field f ON f.id = fv.field_id
+                        WHERE fv.ticket_id = :ticket_id;""")
                 .single(Call.of().bind("ticket_id", ticketId))
                 .map(BoardTicketFieldValue.map())
                 .all();

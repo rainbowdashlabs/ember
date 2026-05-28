@@ -161,7 +161,7 @@ async function loadDetails() {
         comments.value = co
         weblinks.value = wl
         attachments.value = at
-        fieldValues.value = Object.fromEntries(fv.map(v => [v.fieldId, v.value]))
+        fieldValues.value = Object.fromEntries(fv.map(v => [v.fieldId, !v.value ? null : v.fieldType === 'LANE_ASSIGNEE' ? (v.value.memberId ?? null) : (v.value.value ?? null)]))
         ticketLabels.value = await boards.getTicketLabels(boardId.value, ticketId.value)
         kbLinks.value = await boards.getKbLinks(boardId.value, ticketId.value)
     } catch { /* ignore */ }
@@ -180,13 +180,13 @@ async function updateComment(commentId: number, content: string) { try { await b
 
 // -- Field values --
 
-async function saveFieldValue(fieldId: number, value: unknown) {
+async function saveFieldValue(fieldId: number, fieldType: boards.BoardFieldTypeName, value: unknown) {
     try {
         if (value === null || value === undefined || value === '') {
             await boards.deleteFieldValue(boardId.value, ticketId.value, fieldId)
             delete fieldValues.value[fieldId]
         } else {
-            await boards.setFieldValue(boardId.value, ticketId.value, fieldId, value)
+            await boards.setFieldValue(boardId.value, ticketId.value, fieldId, fieldType, value)
             fieldValues.value[fieldId] = value
         }
     } catch { /* ignore */ }
@@ -464,22 +464,22 @@ watch(ticketId, loadData)
                     <div v-for="field in boardFields" :key="field.id">
                         <FieldLabel class="mb-1">{{ field.name }}</FieldLabel>
                         <template v-if="canEdit">
-                            <TextInput v-if="field.fieldType === 'string'" :model-value="(fieldValues[field.id] as string) ?? ''" @blur="(e: Event) => saveFieldValue(field.id, (e.target as HTMLInputElement).value || null)" />
-                            <NumberInput v-else-if="field.fieldType === 'number'" :model-value="(fieldValues[field.id] as number) ?? 0" @blur="(e: Event) => saveFieldValue(field.id, Number((e.target as HTMLInputElement).value) || null)" />
-                            <CheckboxInput v-else-if="field.fieldType === 'boolean'" :model-value="!!fieldValues[field.id]" @update:model-value="(v: boolean) => saveFieldValue(field.id, v)" />
-                            <SelectInput v-else-if="field.fieldType === 'enum'" class="w-full" :model-value="(fieldValues[field.id] as string) ?? ''" @update:model-value="(v: any) => saveFieldValue(field.id, v || null)">
+                            <TextInput v-if="field.fieldType === 'STRING'" :model-value="(fieldValues[field.id] as string) ?? ''" @blur="(e: Event) => saveFieldValue(field.id, 'STRING', (e.target as HTMLInputElement).value || null)" />
+                            <NumberInput v-else-if="field.fieldType === 'NUMBER'" :model-value="(fieldValues[field.id] as number) ?? 0" @blur="(e: Event) => saveFieldValue(field.id, 'NUMBER', Number((e.target as HTMLInputElement).value) || null)" />
+                            <CheckboxInput v-else-if="field.fieldType === 'BOOLEAN'" :model-value="!!fieldValues[field.id]" @update:model-value="(v: boolean) => saveFieldValue(field.id, 'BOOLEAN', v)" />
+                            <SelectInput v-else-if="field.fieldType === 'ENUM'" class="w-full" :model-value="(fieldValues[field.id] as string) ?? ''" @update:model-value="(v: any) => saveFieldValue(field.id, 'ENUM', v || null)">
                                 <option value="">—</option>
                                 <option v-for="opt in (field.config?.options ?? [])" :key="opt" :value="opt">{{ opt }}</option>
                             </SelectInput>
-                            <DateInput v-else-if="field.fieldType === 'date'" :model-value="(fieldValues[field.id] as string) ?? ''" @change="(e: Event) => saveFieldValue(field.id, (e.target as HTMLInputElement).value || null)" />
-                            <MemberSelectInput v-else-if="field.fieldType === 'lane_assignee'" :model-value="String(fieldValues[field.id] ?? '')" :members="members" :placeholder="t('boards.unassigned')" @change="saveFieldValue(field.id, Number(fieldValues[field.id]) || null)" @update:model-value="(v: any) => { fieldValues[field.id] = v ? Number(v) : null; saveFieldValue(field.id, v ? Number(v) : null) }" />
+                            <DateInput v-else-if="field.fieldType === 'DATE'" :model-value="(fieldValues[field.id] as string) ?? ''" @change="(e: Event) => saveFieldValue(field.id, 'DATE', (e.target as HTMLInputElement).value || null)" />
+                            <MemberSelectInput v-else-if="field.fieldType === 'LANE_ASSIGNEE'" :model-value="String(fieldValues[field.id] ?? '')" :members="members" :placeholder="t('boards.unassigned')" @change="saveFieldValue(field.id, 'LANE_ASSIGNEE', Number(fieldValues[field.id]) || null)" @update:model-value="(v: any) => { fieldValues[field.id] = v ? Number(v) : null; saveFieldValue(field.id, 'LANE_ASSIGNEE', v ? Number(v) : null) }" />
                         </template>
                         <div v-else class="text-sm px-2 py-1">{{ fieldValues[field.id] ?? '—' }}</div>
                     </div>
 
                     <div class="text-xs text-[var(--text-muted)] space-y-1 pt-4 border-t border-[var(--border)]">
-                        <p>Erstellt: {{ formatDate(ticket.createdAt) }}</p>
-                        <p>Geändert: {{ formatDate(ticket.updatedAt) }}</p>
+                        <p v-if="ticket.createdAt">Erstellt: {{ formatDate(ticket.createdAt) }}</p>
+                        <p v-if="ticket.updatedAt">Geändert: {{ formatDate(ticket.updatedAt) }}</p>
                     </div>
 
                     <Alert v-if="error" variant="error">{{ error }}</Alert>

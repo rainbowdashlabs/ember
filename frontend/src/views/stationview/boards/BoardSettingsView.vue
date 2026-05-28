@@ -213,12 +213,12 @@ function moveField(index: number, dir: -1 | 1) {
 }
 
 const fieldTypeOptions = [
-    { value: 'string', label: 'boards.fieldTypeString' },
-    { value: 'number', label: 'boards.fieldTypeNumber' },
-    { value: 'boolean', label: 'boards.fieldTypeBoolean' },
-    { value: 'enum', label: 'boards.fieldTypeEnum' },
-    { value: 'date', label: 'boards.fieldTypeDate' },
-    { value: 'lane_assignee', label: 'boards.fieldTypeLaneAssignee' },
+    { value: 'STRING', label: 'boards.fieldTypeString' },
+    { value: 'NUMBER', label: 'boards.fieldTypeNumber' },
+    { value: 'BOOLEAN', label: 'boards.fieldTypeBoolean' },
+    { value: 'ENUM', label: 'boards.fieldTypeEnum' },
+    { value: 'DATE', label: 'boards.fieldTypeDate' },
+    { value: 'LANE_ASSIGNEE', label: 'boards.fieldTypeLaneAssignee' },
 ]
 
 onMounted(loadData)
@@ -304,7 +304,7 @@ onMounted(loadData)
                                 <IconButton :icon="['fas', 'chevron-down']" label="Move down" :disabled="index === fields.length - 1" @click="moveField(index, 1)" />
                                 <IconButton :icon="['fas', 'xmark']" label="Remove" @click="removeField(index)" />
                             </div>
-                            <div v-if="field.fieldType === 'enum'" class="pl-6">
+                            <div v-if="field.fieldType === 'ENUM'" class="pl-6">
                                 <TextInput
                                     :model-value="field.config.options?.join(', ') ?? ''"
                                     :placeholder="t('boards.fieldOptions')"
@@ -312,7 +312,7 @@ onMounted(loadData)
                                     @update:model-value="v => field.config = { ...field.config, options: (v as string).split(',').map(s => s.trim()).filter(Boolean) }"
                                 />
                             </div>
-                            <div v-if="field.fieldType === 'lane_assignee'" class="pl-6">
+                            <div v-if="field.fieldType === 'LANE_ASSIGNEE'" class="pl-6">
                                 <FieldLabel class="text-xs mb-1">{{ t('boards.fieldLane') }}</FieldLabel>
                                 <SelectInput :model-value="String(field.config.laneId ?? '')" @update:model-value="(v: any) => field.config = { ...field.config, laneId: v ? Number(v) : null }">
                                     <option value="">—</option>

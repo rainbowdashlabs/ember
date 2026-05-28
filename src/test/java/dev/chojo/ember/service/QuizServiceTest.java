@@ -5,7 +5,12 @@
  */
 package dev.chojo.ember.service;
 
+import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.account.entity.Account;
+import dev.chojo.ember.feature.federation.entity.ShareScope;
+import dev.chojo.ember.feature.federation.repository.FederationRepository;
+import dev.chojo.ember.feature.federation.service.FederationHttpClient;
+import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.quiz.entity.QuestionType;
 import dev.chojo.ember.feature.quiz.entity.SectionEntry;
@@ -27,6 +32,7 @@ import java.time.Instant;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.mock;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class QuizServiceTest extends RepositoryTestBase {
@@ -40,17 +46,42 @@ class QuizServiceTest extends RepositoryTestBase {
     private static int testId;
     private static int attemptId;
 
+    // Federation fields
+    private static FederationRepository federationRepo;
+    private static FederationService federationService;
+    private static Station stationB;
+    private static int partnerIdAtoB;
+
     @BeforeAll
     static void setup() {
-        service = new QuizService(quizCatalogRepo, quizTestRepo, new RestrictionRepository());
+        federationRepo = new FederationRepository();
+        federationService = new FederationService(federationRepo, stationRepo, new Api());
+
+        service = new QuizService(
+                quizCatalogRepo,
+                quizTestRepo,
+                new RestrictionRepository(),
+                federationService,
+                federationRepo,
+                mock(FederationHttpClient.class),
+                stationRepo);
+
         station = stationRepo.create("QuizSvcStation");
+        stationB = stationRepo.create("QuizSvcStationB");
         account = accountRepo.create("quiz-svc@test.com", "Quiz", "Tester");
         member = stationMemberRepo.create(station.id(), account.id());
+
+        // Create bidirectional federation partnership (all capabilities enabled by default)
+        var keyPair = federationService.generateKeyPair();
+        var partner = federationService.acceptInvite(
+                station.id(), stationB.id(), federationService.encodePublicKey(keyPair), null, null);
+        partnerIdAtoB = partner.id();
     }
 
     @AfterAll
     static void cleanup() {
         stationRepo.delete(station.id());
+        stationRepo.delete(stationB.id());
         accountRepo.delete(account.id());
     }
 
@@ -919,5 +950,124 @@ class QuizServiceTest extends RepositoryTestBase {
         // Category may already be deleted by order 98 in original; try without assertion
         service.deleteCategory(categoryId);
         assertTrue(service.deleteCatalog(catalogId));
+    }
+
+    // -- Federated Quiz Tests --
+
+    @Test
+    @Order(200)
+    void browseSharedQuizWithShare() {
+        // Create a catalog on stationB and share it
+        var fedCatalog = quizCatalogRepo.create(stationB.id(), "FedCatalog", "Federated catalog", false);
+        var share = federationRepo.createQuizShare(stationB.id(), fedCatalog.id(), ShareScope.ALL_PARTNERS);
+
+        // Browse shared quizzes from station's perspective
+        var shared = service.browseSharedQuiz(station.id());
+        assertTrue(shared.stream().anyMatch(s -> s.id() == fedCatalog.id()));
+
+        // Cleanup
+        federationRepo.deleteQuizShare(share.id());
+        quizCatalogRepo.delete(fedCatalog.id());
+    }
+
+    @Test
+    @Order(201)
+    void browseSharedQuizEmptyNoShares() {
+        // No shares exist — should return empty
+        var shared = service.browseSharedQuiz(station.id());
+        assertTrue(shared.isEmpty());
+    }
+
+    @Test
+    @Order(202)
+    void getFederatedQuizCatalogLocal() {
+        // Create catalog with a question on stationB
+        var fedCatalog = quizCatalogRepo.create(stationB.id(), "FedDetail", "Detailed catalog", false);
+        var fedQuestion = quizCatalogRepo.createQuestion(
+                fedCatalog.id(),
+                null,
+                QuestionType.TRUE_FALSE,
+                "FedQ1",
+                "desc",
+                null,
+                2.0,
+                false,
+                "{\"correctAnswer\":true}",
+                0);
+
+        // Fetch federated catalog detail
+        @SuppressWarnings("unchecked")
+        var result = service.getFederatedQuizCatalog(station.id(), stationB.uid(), fedCatalog.id());
+        assertNotNull(result);
+        assertTrue(result.containsKey("catalog"));
+        assertTrue(result.containsKey("categories"));
+        assertTrue(result.containsKey("questions"));
+
+        // Cleanup
+        quizCatalogRepo.deleteQuestion(fedQuestion.id());
+        quizCatalogRepo.delete(fedCatalog.id());
+    }
+
+    @Test
+    @Order(203)
+    void getFederatedQuizCatalogWrongStation() {
+        // Create catalog on station (not stationB) — fetching via stationB should fail
+        var localCatalog = quizCatalogRepo.create(station.id(), "LocalOnly", "Not on stationB", false);
+
+        assertThrows(IllegalArgumentException.class, () -> {
+            service.getFederatedQuizCatalog(station.id(), stationB.uid(), localCatalog.id());
+        });
+
+        quizCatalogRepo.delete(localCatalog.id());
+    }
+
+    @Test
+    @Order(204)
+    void copyQuizCatalog() {
+        // Create catalog with category and question on stationB
+        var srcCatalog = quizCatalogRepo.create(stationB.id(), "CopySrc", "Source for copy", true);
+        var srcCat = quizCatalogRepo.createCategory(stationB.id(), "CopyCat", "Category to copy", 0);
+        var srcQ = quizCatalogRepo.createQuestion(
+                srcCatalog.id(),
+                srcCat.id(),
+                QuestionType.TRUE_FALSE,
+                "CopyQ1",
+                "desc",
+                null,
+                3.0,
+                false,
+                "{\"correctAnswer\":true}",
+                0);
+
+        // Copy catalog to station
+        var copied = service.copyQuizCatalog(srcCatalog.id(), station.id());
+        assertNotNull(copied);
+        assertEquals("CopySrc", copied.name());
+        assertNotEquals(srcCatalog.id(), copied.id());
+
+        // Verify questions were copied
+        var copiedQuestions = service.findQuestions(copied.id());
+        assertFalse(copiedQuestions.isEmpty());
+        assertEquals("CopyQ1", copiedQuestions.getFirst().title());
+
+        // Cleanup
+        for (var q : copiedQuestions) {
+            quizCatalogRepo.deleteQuestion(q.id());
+        }
+        quizCatalogRepo.delete(copied.id());
+        quizCatalogRepo.deleteQuestion(srcQ.id());
+        quizCatalogRepo.deleteCategory(srcCat.id());
+        quizCatalogRepo.delete(srcCatalog.id());
+    }
+
+    @Test
+    @Order(205)
+    void sharedQuizItemRecord() {
+        var item = new QuizService.SharedQuizItem(42, "Test Catalog", "A description", 7, 3);
+        assertEquals(42, item.id());
+        assertEquals("Test Catalog", item.name());
+        assertEquals("A description", item.description());
+        assertEquals(7, item.sourceStationId());
+        assertEquals(3, item.partnerId());
     }
 }

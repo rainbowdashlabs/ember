@@ -5,7 +5,12 @@
  */
 package dev.chojo.ember.service;
 
+import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.account.entity.Account;
+import dev.chojo.ember.feature.federation.entity.ShareScope;
+import dev.chojo.ember.feature.federation.repository.FederationRepository;
+import dev.chojo.ember.feature.federation.service.FederationHttpClient;
+import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.protocol.service.TestProtocolService;
 import dev.chojo.ember.feature.station.entity.Station;
@@ -22,29 +27,45 @@ import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.mock;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class TestProtocolServiceTest extends RepositoryTestBase {
     private static TestProtocolService service;
+    private static FederationRepository federationRepo;
+    private static FederationService federationService;
     private static Station station;
+    private static Station stationB;
     private static Account account;
     private static StationMember member;
     private static int protocolId;
     private static int sectionId;
     private static int itemId;
     private static int runId;
+    private static int partnerIdAtoB;
 
     @BeforeAll
     static void setup() {
-        service = new TestProtocolService(testProtocolRepo);
+        federationRepo = new FederationRepository();
+        federationService = new FederationService(federationRepo, stationRepo, new Api());
+        var httpClient = mock(FederationHttpClient.class);
+        service = new TestProtocolService(testProtocolRepo, federationService, federationRepo, httpClient, stationRepo);
         station = stationRepo.create("ProtocolSvcStation");
+        stationB = stationRepo.create("ProtocolSvcStationB");
         account = accountRepo.create("protocol-svc@test.com", "Protocol", "SvcTester");
         member = stationMemberRepo.create(station.id(), account.id());
+
+        // Create bidirectional federation partnership (capabilities enabled by default)
+        var keyPair = federationService.generateKeyPair();
+        var partner = federationService.acceptInvite(
+                station.id(), stationB.id(), federationService.encodePublicKey(keyPair), null, null);
+        partnerIdAtoB = partner.id();
     }
 
     @AfterAll
     static void cleanup() {
         stationRepo.delete(station.id());
+        stationRepo.delete(stationB.id());
         accountRepo.delete(account.id());
     }
 
@@ -320,5 +341,105 @@ class TestProtocolServiceTest extends RepositoryTestBase {
     @Order(99)
     void deleteProtocol() {
         assertTrue(service.deleteProtocol(protocolId));
+    }
+
+    // -- Federation: browseSharedProtocols --
+
+    @Test
+    @Order(200)
+    void browseSharedProtocolsWithShare() {
+        // Create a protocol on stationB and share it
+        var fedProto = testProtocolRepo.createProtocol(stationB.id(), "FedProtocol", "shared desc", 70);
+        federationRepo.createProtocolShare(stationB.id(), fedProto.id(), ShareScope.ALL_PARTNERS);
+
+        var shared = service.browseSharedProtocols(station.id());
+        assertTrue(shared.stream().anyMatch(s -> s.name().equals("FedProtocol")));
+
+        // Cleanup
+        testProtocolRepo.deleteProtocol(fedProto.id());
+    }
+
+    @Test
+    @Order(201)
+    void browseSharedProtocolsEmptyNoShares() {
+        var shared = service.browseSharedProtocols(station.id());
+        assertTrue(shared.isEmpty());
+    }
+
+    // -- Federation: getFederatedProtocol --
+
+    @Test
+    @Order(210)
+    void getFederatedProtocolLocal() {
+        // Create protocol on stationB with sections and items
+        var fedProto = testProtocolRepo.createProtocol(stationB.id(), "FedDetailProto", "detail desc", 80);
+        var sec = testProtocolRepo.createSection(fedProto.id(), null, "FedSection", "sec desc", 100, 50, 0);
+        testProtocolRepo.createItem(sec.id(), "FedItem", "item desc", 10.0, 0);
+
+        var result = service.getFederatedProtocol(station.id(), stationB.uid(), fedProto.id());
+        assertNotNull(result);
+        assertTrue(result.containsKey("protocol"));
+        assertTrue(result.containsKey("sections"));
+        assertTrue(result.containsKey("items"));
+
+        // Cleanup
+        testProtocolRepo.deleteProtocol(fedProto.id());
+    }
+
+    @Test
+    @Order(211)
+    void getFederatedProtocolWrongStation() {
+        // Create protocol on station (not stationB) — should fail when queried via stationB uid
+        var localProto = testProtocolRepo.createProtocol(station.id(), "LocalOnly", "local", 60);
+
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> service.getFederatedProtocol(station.id(), stationB.uid(), localProto.id()));
+
+        // Cleanup
+        testProtocolRepo.deleteProtocol(localProto.id());
+    }
+
+    // -- Federation: copyProtocol --
+
+    @Test
+    @Order(220)
+    void copyProtocol() {
+        // Create protocol on stationB with sections (including nested) and items
+        var srcProto = testProtocolRepo.createProtocol(stationB.id(), "CopySource", "copy desc", 75);
+        var parentSec = testProtocolRepo.createSection(srcProto.id(), null, "ParentSection", "parent desc", 100, 50, 0);
+        var childSec =
+                testProtocolRepo.createSection(srcProto.id(), parentSec.id(), "ChildSection", "child desc", 50, 25, 1);
+        testProtocolRepo.createItem(parentSec.id(), "ParentItem", "parent item", 10.0, 0);
+        testProtocolRepo.createItem(childSec.id(), "ChildItem", "child item", 5.0, 0);
+
+        var copied = service.copyProtocol(srcProto.id(), station.id());
+        assertNotNull(copied);
+        assertEquals("CopySource", copied.name());
+        assertEquals(station.id(), copied.stationId());
+
+        // Verify sections and items were copied
+        var copiedSections = service.findSections(copied.id());
+        assertEquals(2, copiedSections.size());
+
+        var copiedItems = service.findAllItemsByProtocol(copied.id());
+        assertEquals(2, copiedItems.size());
+
+        // Cleanup
+        testProtocolRepo.deleteProtocol(srcProto.id());
+        testProtocolRepo.deleteProtocol(copied.id());
+    }
+
+    // -- Federation: SharedProtocolItem record --
+
+    @Test
+    @Order(230)
+    void sharedProtocolItemRecord() {
+        var item = new TestProtocolService.SharedProtocolItem(1, "Test Protocol", "A description", 42, 7);
+        assertEquals(1, item.id());
+        assertEquals("Test Protocol", item.name());
+        assertEquals("A description", item.description());
+        assertEquals(42, item.sourceStationId());
+        assertEquals(7, item.partnerId());
     }
 }

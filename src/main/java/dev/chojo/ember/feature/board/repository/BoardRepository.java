@@ -10,6 +10,7 @@ import de.chojo.sadu.queries.api.query.Query;
 import dev.chojo.ember.feature.board.entity.Board;
 import dev.chojo.ember.feature.board.entity.BoardField;
 import dev.chojo.ember.feature.board.entity.BoardFieldConfig;
+import dev.chojo.ember.feature.board.entity.BoardFieldType;
 import dev.chojo.ember.feature.board.entity.BoardLabel;
 import dev.chojo.ember.feature.board.entity.BoardLane;
 import dev.chojo.ember.feature.board.entity.TicketLabelMapping;
@@ -230,7 +231,8 @@ public class BoardRepository {
                 .all();
     }
 
-    public BoardField createField(int boardId, String name, String fieldType, BoardFieldConfig config, int position) {
+    public BoardField createField(
+            int boardId, String name, BoardFieldType fieldType, BoardFieldConfig config, int position) {
         return Query.query("""
                         INSERT INTO board_field(board_id, name, field_type, config, position)
                         VALUES (:board_id, :name, :field_type, :config::JSONB, :position)

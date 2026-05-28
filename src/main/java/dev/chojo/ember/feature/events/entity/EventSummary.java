@@ -22,7 +22,9 @@ public record EventSummary(
         Instant endTime,
         boolean requiresRegistration,
         Instant registrationDeadline,
-        Integer categoryId) {
+        Integer categoryId,
+        Integer templateId,
+        boolean restricted) {
 
     public static EventSummary of(StationEvent event) {
         return new EventSummary(
@@ -36,6 +38,8 @@ public record EventSummary(
                 event.endTime(),
                 event.requiresRegistration(),
                 event.registrationDeadline(),
-                event.categoryId());
+                event.categoryId(),
+                event.templateId(),
+                event.restricted());
     }
 }

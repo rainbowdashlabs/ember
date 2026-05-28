@@ -36,7 +36,6 @@ import jakarta.inject.Singleton;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
 
 /**
  * Routes for cross-station inventory lending, chat messages, and date blocking.
@@ -345,70 +344,7 @@ public class LendingRoutes implements Routes {
         String toParam = ctx.queryParam("to");
         LocalDate dateFrom = fromParam != null && !fromParam.isBlank() ? LocalDate.parse(fromParam) : null;
         LocalDate dateTo = toParam != null && !toParam.isBlank() ? LocalDate.parse(toParam) : dateFrom;
-
-        var partners = federationService.findPartners(session.stationId()).stream()
-                .filter(p -> p.status() == FederationPartner.FederationStatus.ACTIVE)
-                .toList();
-
-        var futures = new ArrayList<CompletableFuture<List<AvailableInventoryEntry>>>();
-        for (var partner : partners) {
-            futures.add(CompletableFuture.supplyAsync(() -> findAvailableForPartner(partner, query, dateFrom, dateTo)));
-        }
-
-        var results = new ArrayList<AvailableInventoryEntry>();
-        var allFuture = CompletableFuture.allOf(futures.toArray(CompletableFuture[]::new));
-        try {
-            allFuture.join();
-        } catch (Exception ignored) {
-        }
-        for (var future : futures) {
-            try {
-                results.addAll(future.get());
-            } catch (Exception ignored) {
-            }
-        }
-        ctx.json(results);
-    }
-
-    private List<AvailableInventoryEntry> findAvailableForPartner(
-            FederationPartner partner, String query, LocalDate dateFrom, LocalDate dateTo) {
-        var partnerStation =
-                stationRepository.findByUid(partner.partnerStationId()).orElse(null);
-        if (partnerStation == null) return List.of();
-        int partnerStationId = partnerStation.id();
-        String stationName = partnerStation.name();
-
-        if (dateFrom != null && service.isBlocked(partnerStationId, null, null, dateFrom, dateTo)) {
-            return List.of();
-        }
-
-        var entries = new ArrayList<AvailableInventoryEntry>();
-        var inventories = inventoryRepository.findByStation(partnerStationId);
-        for (var inv : inventories) {
-            if (query != null && !query.isBlank()) {
-                if (!inv.name().toLowerCase().contains(query.toLowerCase())) {
-                    continue;
-                }
-            }
-            if (dateFrom != null && service.isBlocked(partnerStationId, inv.id(), null, dateFrom, dateTo)) {
-                continue;
-            }
-
-            var unassigned = inventoryRepository.findUnassignedItems(inv.id());
-            int availableCount;
-            if (dateFrom != null) {
-                availableCount = (int) unassigned.stream()
-                        .filter(item -> !service.isBlocked(partnerStationId, null, item.id(), dateFrom, dateTo))
-                        .count();
-            } else {
-                availableCount = unassigned.size();
-            }
-            if (availableCount > 0) {
-                entries.add(new AvailableInventoryEntry(
-                        inv.id(), inv.name(), partnerStationId, stationName, availableCount));
-            }
-        }
-        return entries;
+        ctx.json(service.findAvailableInventory(session.stationId(), query, dateFrom, dateTo));
     }
 
     // -- Helpers --
@@ -507,9 +443,6 @@ public class LendingRoutes implements Routes {
     public record EnrichedItem(LendingRequestItem item, String inventoryName) {}
 
     public record LendingRequestDetail(LendingRequestResponse request, List<EnrichedItem> items) {}
-
-    public record AvailableInventoryEntry(
-            int inventoryId, String inventoryName, int stationId, String stationName, int availableCount) {}
 
     public record AvailableItemDetail(
             int itemId,

@@ -10,6 +10,8 @@ import dev.chojo.ember.feature.board.entity.Board;
 import dev.chojo.ember.feature.board.entity.BoardChecklistItem;
 import dev.chojo.ember.feature.board.entity.BoardComment;
 import dev.chojo.ember.feature.board.entity.BoardFieldConfig;
+import dev.chojo.ember.feature.board.entity.BoardFieldType;
+import dev.chojo.ember.feature.board.entity.BoardFieldValue;
 import dev.chojo.ember.feature.board.entity.BoardLane;
 import dev.chojo.ember.feature.board.entity.BoardTicket;
 import dev.chojo.ember.feature.board.entity.LinkType;
@@ -127,7 +129,7 @@ class BoardRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(15)
     void createAndFindFields() {
-        boardRepo.createField(boardId, "Component", "string", BoardFieldConfig.parse("{}"), 0);
+        boardRepo.createField(boardId, "Component", BoardFieldType.STRING, new BoardFieldConfig.Simple(false), 0);
         var fields = boardRepo.findFields(boardId);
         assertEquals(1, fields.size());
         assertEquals("Component", fields.getFirst().name());
@@ -471,12 +473,13 @@ class BoardRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(84)
     void setAndFindFieldValues() {
-        boardRepo.createField(boardId, "TestField", "string", BoardFieldConfig.parse("{}"), 0);
+        boardRepo.createField(boardId, "TestField", BoardFieldType.STRING, new BoardFieldConfig.Simple(false), 0);
         var fields = boardRepo.findFields(boardId);
         int fieldId = fields.getFirst().id();
-        boardTicketRepo.setFieldValue(ticketId1, fieldId, "\"hello\"");
+        boardTicketRepo.setFieldValue(ticketId1, fieldId, "{\"value\":\"hello\"}");
         var values = boardTicketRepo.findFieldValues(ticketId1);
         assertEquals(1, values.size());
+        assertInstanceOf(BoardFieldValue.StringValue.class, values.getFirst().value());
         assertTrue(boardTicketRepo.deleteFieldValue(ticketId1, fieldId));
         boardRepo.deleteAllFields(boardId);
     }

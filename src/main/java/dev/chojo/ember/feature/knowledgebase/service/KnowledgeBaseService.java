@@ -5,8 +5,16 @@
  */
 package dev.chojo.ember.feature.knowledgebase.service;
 
+import dev.chojo.ember.feature.federation.entity.CapabilityType;
+import dev.chojo.ember.feature.federation.entity.ContentType;
+import dev.chojo.ember.feature.federation.entity.Direction;
+import dev.chojo.ember.feature.federation.entity.FederationPartner;
+import dev.chojo.ember.feature.federation.repository.FederationRepository;
+import dev.chojo.ember.feature.federation.service.FederationHttpClient;
+import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.knowledgebase.entity.KbAccessRestriction;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFile;
+import dev.chojo.ember.feature.knowledgebase.entity.KbFileSummary;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFileType;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFileVersion;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFolder;
@@ -18,6 +26,7 @@ import dev.chojo.ember.feature.knowledgebase.repository.KnowledgeBaseRepository;
 import dev.chojo.ember.feature.restriction.Restriction;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.feature.restriction.RestrictionSet;
+import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.util.TextDiff;
 import jakarta.inject.Inject;
@@ -41,10 +50,14 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -71,15 +84,26 @@ public class KnowledgeBaseService {
     private final KnowledgeBaseRepository repository;
     private final StationRepository stationRepository;
     private final KbFileStorageService fileStorage;
+    private final FederationService federationService;
+    private final FederationRepository federationRepository;
+    private final FederationHttpClient federationHttpClient;
     private final Parser markdownParser;
     private final HtmlRenderer htmlRenderer;
 
     @Inject
     public KnowledgeBaseService(
-            KnowledgeBaseRepository repository, StationRepository stationRepository, KbFileStorageService fileStorage) {
+            KnowledgeBaseRepository repository,
+            StationRepository stationRepository,
+            KbFileStorageService fileStorage,
+            FederationService federationService,
+            FederationRepository federationRepository,
+            FederationHttpClient federationHttpClient) {
         this.repository = repository;
         this.stationRepository = stationRepository;
         this.fileStorage = fileStorage;
+        this.federationService = federationService;
+        this.federationRepository = federationRepository;
+        this.federationHttpClient = federationHttpClient;
         List<Extension> extensions = List.of(
                 TablesExtension.create(),
                 HeadingAnchorExtension.create(),
@@ -657,4 +681,234 @@ public class KnowledgeBaseService {
         }
         return KbFileType.OTHER;
     }
+
+    // -- Federated KB --
+
+    public List<SharedKbItem> browseSharedKb(int stationId) {
+        var futures = new ArrayList<CompletableFuture<List<SharedKbItem>>>();
+        for (var partner : federationService.findPartners(stationId)) {
+            if (partner.status() != FederationPartner.FederationStatus.ACTIVE) continue;
+            if (!federationService.hasCapability(partner.id(), CapabilityType.KB_SHARE, Direction.IMPORT)) continue;
+            int remoteStationId = resolvePartnerStationId(partner);
+
+            futures.add(CompletableFuture.supplyAsync(() -> {
+                var items = new ArrayList<SharedKbItem>();
+                if (partner.isRemote()) {
+                    browseSharedKbViaHttp(stationId, partner, remoteStationId, items);
+                } else {
+                    browseSharedKbDirect(remoteStationId, partner, items);
+                }
+                return items;
+            }));
+        }
+        return collectResults(futures);
+    }
+
+    private void browseSharedKbDirect(int remoteStationId, FederationPartner partner, List<SharedKbItem> result) {
+        var shares = federationRepository.findKbShares(remoteStationId);
+        for (var share : shares) {
+            if (share.fileId() != null) {
+                findFile(share.fileId()).ifPresent(file -> {
+                    var summary = KbFileSummary.of(file);
+                    result.add(new SharedKbItem(summary, remoteStationId, partner.id()));
+                    federationRepository.upsertMetadataCache(
+                            partner.id(), ContentType.KB, file.id(), file.name(), file.description());
+                });
+            } else if (share.folderId() != null) {
+                for (var file : findFiles(remoteStationId, share.folderId())) {
+                    var summary = KbFileSummary.of(file);
+                    result.add(new SharedKbItem(summary, remoteStationId, partner.id()));
+                    federationRepository.upsertMetadataCache(
+                            partner.id(), ContentType.KB, file.id(), file.name(), file.description());
+                }
+            }
+        }
+    }
+
+    private void browseSharedKbViaHttp(
+            int localStationId, FederationPartner partner, int remoteStationId, List<SharedKbItem> result) {
+        var files = federationHttpClient.fetchSharedKbFiles(
+                partner.remoteHost(), localStationId, getPrivateKey(localStationId));
+        for (var remoteFile : files) {
+            var summary = new KbFileSummary(
+                    remoteFile.id(),
+                    remoteStationId,
+                    null,
+                    remoteFile.name(),
+                    remoteFile.description(),
+                    KbFileType.valueOf(remoteFile.fileType() != null ? remoteFile.fileType() : "MARKDOWN"),
+                    Instant.now(),
+                    false);
+            result.add(new SharedKbItem(summary, remoteStationId, partner.id()));
+            federationRepository.upsertMetadataCache(
+                    partner.id(), ContentType.KB, remoteFile.id(), remoteFile.name(), remoteFile.description());
+        }
+    }
+
+    public List<FederatedSearchResult> searchFederatedKb(int stationId, String query) {
+        var futures = new ArrayList<CompletableFuture<List<FederatedSearchResult>>>();
+        for (var partner : federationService.findPartners(stationId)) {
+            if (partner.status() != FederationPartner.FederationStatus.ACTIVE) continue;
+            if (!federationService.hasCapability(partner.id(), CapabilityType.KB_SHARE, Direction.IMPORT)) continue;
+            int remoteStationId = resolvePartnerStationId(partner);
+            String stationName = stationRepository
+                    .findByUid(partner.partnerStationId())
+                    .map(Station::name)
+                    .orElse("?");
+            String stationUid = partner.partnerStationId().toString();
+
+            futures.add(CompletableFuture.supplyAsync(() -> {
+                if (partner.isRemote()) {
+                    return searchKbViaHttp(stationId, partner, remoteStationId, stationName, stationUid, query);
+                } else {
+                    return searchKbDirect(remoteStationId, stationName, stationUid, query);
+                }
+            }));
+        }
+        return collectResults(futures);
+    }
+
+    private List<FederatedSearchResult> searchKbDirect(
+            int remoteStationId, String stationName, String stationUid, String query) {
+        return searchWithSnippets(remoteStationId, query).stream()
+                .map(r -> new FederatedSearchResult(KbFileSummary.of(r.file()), r.snippet(), stationName, stationUid))
+                .toList();
+    }
+
+    private List<FederatedSearchResult> searchKbViaHttp(
+            int localStationId,
+            FederationPartner partner,
+            int remoteStationId,
+            String stationName,
+            String stationUid,
+            String query) {
+        String privateKey = getPrivateKey(localStationId);
+        if (privateKey == null) return List.of();
+        var results = federationHttpClient.searchKb(partner.remoteHost(), localStationId, privateKey, query);
+        return results.stream()
+                .map(r -> new FederatedSearchResult(
+                        new KbFileSummary(
+                                r.id(), remoteStationId, null, r.name(), r.description(), null, Instant.now(), false),
+                        r.snippet(),
+                        stationName,
+                        stationUid))
+                .toList();
+    }
+
+    /**
+     * Fetches a single KB file from a federated partner, transparently handling local/remote.
+     */
+    public KbFile getFederatedKbFile(int localStationId, UUID partnerStationUid, int fileId) {
+        var partner = resolveActivePartner(localStationId, partnerStationUid);
+        if (partner.isRemote()) {
+            String json = federationHttpClient.signedGetJson(
+                    partner.remoteHost(), "/remote/kb/files/" + fileId, localStationId, getPrivateKey(localStationId));
+            if (json == null) throw new IllegalStateException("Failed to fetch file from remote partner");
+            try {
+                return federationHttpClient.getMapper().readValue(json, KbFile.class);
+            } catch (Exception e) {
+                throw new IllegalStateException("Failed to parse remote KB file response", e);
+            }
+        }
+        var file = findFile(fileId).orElseThrow();
+        int partnerStationId = resolvePartnerStationId(partner);
+        if (file.stationId() != partnerStationId) {
+            throw new IllegalArgumentException("File does not belong to this partner");
+        }
+        return file;
+    }
+
+    /**
+     * Fetches KB file content from a federated partner, transparently handling local/remote.
+     */
+    public String getFederatedKbFileContent(int localStationId, UUID partnerStationUid, int fileId) {
+        var partner = resolveActivePartner(localStationId, partnerStationUid);
+        if (partner.isRemote()) {
+            return federationHttpClient.fetchKbFileContent(
+                    partner.remoteHost(), fileId, localStationId, getPrivateKey(localStationId));
+        }
+        var file = findFile(fileId).orElseThrow();
+        int partnerStationId = resolvePartnerStationId(partner);
+        if (file.stationId() != partnerStationId) {
+            throw new IllegalArgumentException("File does not belong to this partner");
+        }
+        return getMarkdownContent(fileId).orElse("");
+    }
+
+    public KbFile copyKbFile(int fileId, int targetStationId, int createdBy) {
+        var source = findFile(fileId).orElseThrow();
+        String content;
+        var partner = findPartnerForStation(targetStationId, source.stationId());
+        if (partner != null && partner.isRemote()) {
+            content = federationHttpClient.fetchKbFileContent(
+                    partner.remoteHost(), fileId, targetStationId, getPrivateKey(targetStationId));
+        } else {
+            content = getMarkdownContent(fileId).orElse("");
+        }
+        var copied = createMarkdownFile(targetStationId, null, source.name(), source.description(), content, createdBy);
+        setSourceReference(copied.id(), source.id(), source.stationId());
+        if (isFavourite(createdBy, fileId)) {
+            addFavourite(createdBy, copied.id());
+        }
+        return findFile(copied.id()).orElseThrow();
+    }
+
+    // -- Federation helpers --
+
+    private String getPrivateKey(int stationId) {
+        return stationRepository
+                .findById(stationId)
+                .map(Station::federationPrivateKey)
+                .orElse(null);
+    }
+
+    private int resolvePartnerStationId(FederationPartner partner) {
+        return stationRepository
+                .findByUid(partner.partnerStationId())
+                .map(Station::id)
+                .orElse(0);
+    }
+
+    private FederationPartner resolveActivePartner(int localStationId, UUID partnerStationUid) {
+        var partner = federationRepository
+                .findPartnerByStationAndRemoteUid(localStationId, partnerStationUid)
+                .orElseThrow(() -> new IllegalArgumentException("Unknown partner"));
+        if (partner.status() != FederationPartner.FederationStatus.ACTIVE) {
+            throw new IllegalArgumentException("Partner is not active");
+        }
+        return partner;
+    }
+
+    private FederationPartner findPartnerForStation(int localStationId, int remoteStationId) {
+        var partners = federationService.findPartners(localStationId);
+        for (var partner : partners) {
+            int partnerRemoteId = resolvePartnerStationId(partner);
+            if (partnerRemoteId == remoteStationId && partner.status() == FederationPartner.FederationStatus.ACTIVE) {
+                return partner;
+            }
+        }
+        return null;
+    }
+
+    private <T> List<T> collectResults(List<CompletableFuture<List<T>>> futures) {
+        var allFuture = CompletableFuture.allOf(futures.toArray(CompletableFuture[]::new));
+        try {
+            allFuture.join();
+        } catch (Exception e) {
+            log.error("Error during parallel federation fetch", e);
+        }
+        var result = new ArrayList<T>();
+        for (var future : futures) {
+            try {
+                result.addAll(future.get());
+            } catch (Exception e) {
+                log.error("Error collecting federation results", e);
+            }
+        }
+        return result;
+    }
+
+    public record SharedKbItem(KbFileSummary file, int sourceStationId, int partnerId) {}
+
+    public record FederatedSearchResult(KbFileSummary file, String snippet, String stationName, String stationUid) {}
 }

@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.board.route;
 
+import dev.chojo.ember.api.FederationHeaders;
 import dev.chojo.ember.api.FederationSession;
 import dev.chojo.ember.api.Roles;
 import dev.chojo.ember.api.Routes;
@@ -13,6 +14,7 @@ import dev.chojo.ember.feature.board.entity.AccessData;
 import dev.chojo.ember.feature.board.entity.Board;
 import dev.chojo.ember.feature.board.entity.BoardField;
 import dev.chojo.ember.feature.board.entity.BoardFieldConfig;
+import dev.chojo.ember.feature.board.entity.BoardFieldType;
 import dev.chojo.ember.feature.board.entity.BoardShareMode;
 import dev.chojo.ember.feature.board.entity.LaneData;
 import dev.chojo.ember.feature.board.entity.LanePreset;
@@ -348,13 +350,7 @@ public class BoardRoutes implements Routes {
         boardService.replaceFields(
                 id,
                 Arrays.stream(req)
-                        .map(f -> new BoardField(
-                                0,
-                                id,
-                                f.name(),
-                                f.fieldType(),
-                                f.config() != null ? f.config() : new BoardFieldConfig(false, List.of(), null),
-                                0))
+                        .map(f -> new BoardField(0, id, f.name(), f.fieldType(), f.parsedConfig(), 0))
                         .toList());
         ctx.json(boardService.findFields(id));
     }
@@ -567,9 +563,8 @@ public class BoardRoutes implements Routes {
         int boardId = ctx.pathParamAsClass("boardId", Integer.class).get();
         requireView(partnerId, boardId, session);
         var result = proxyService.proxyGetBoard(partnerId, boardId);
-        // Also send station name as header for easy access
         if (result.stationName() != null) {
-            ctx.header("X-Station-Name", result.stationName());
+            ctx.header(FederationHeaders.HEADER_STATION_NAME, result.stationName());
         }
         ctx.json(result);
     }
@@ -1306,7 +1301,12 @@ public class BoardRoutes implements Routes {
 
     public record LaneRequest(String name, String color) {}
 
-    public record FieldRequest(String name, String fieldType, BoardFieldConfig config) {}
+    public record FieldRequest(String name, BoardFieldType fieldType, tools.jackson.databind.JsonNode config) {
+        public BoardFieldConfig parsedConfig() {
+            if (config == null || config.isNull()) return BoardFieldConfig.empty(fieldType);
+            return BoardFieldConfig.parse(fieldType, config.toString());
+        }
+    }
 
     public record LabelRequest(String name, String color) {}
 

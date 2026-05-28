@@ -428,6 +428,79 @@ class LendingServiceTest extends RepositoryTestBase {
         stationRepo.delete(stationD.id());
     }
 
+    // -- Federation: Available Inventory --
+
+    @Test
+    @Order(200)
+    void findAvailableInventoryFromPartner() {
+        // stationA has inventory with an unassigned item (created in setup).
+        // stationB has an active partnership with stationA.
+        // Querying from stationB should see stationA's inventory.
+        var results = service.findAvailableInventory(stationB.id(), null, null, null);
+        assertFalse(results.isEmpty());
+        assertTrue(results.stream().anyMatch(e -> e.inventoryId() == inventoryIdA && e.stationId() == stationA.id()));
+    }
+
+    @Test
+    @Order(201)
+    void findAvailableInventoryWithQuery() {
+        // Query matching the inventory name
+        var results = service.findAvailableInventory(stationB.id(), "LendSvc", null, null);
+        assertFalse(results.isEmpty());
+        assertTrue(results.stream().anyMatch(e -> e.inventoryId() == inventoryIdA));
+
+        // Non-matching query
+        var empty = service.findAvailableInventory(stationB.id(), "NonExistentXYZ", null, null);
+        assertTrue(empty.stream().noneMatch(e -> e.inventoryId() == inventoryIdA));
+    }
+
+    @Test
+    @Order(202)
+    void findAvailableInventoryNoItems() {
+        // Create an inventory on stationA with no items
+        var emptyInv = inventoryRepo.create(stationA.id(), "EmptyInvForLending", InventoryType.INTERNAL, false);
+        var results = service.findAvailableInventory(stationB.id(), "EmptyInvForLending", null, null);
+        // Should NOT appear — no unassigned items means availableCount == 0
+        assertTrue(results.stream().noneMatch(e -> e.inventoryId() == emptyInv.id()));
+        // Cleanup
+        inventoryRepo.delete(emptyInv.id());
+    }
+
+    @Test
+    @Order(203)
+    void getMessagesLocalPartner() {
+        // Create a fresh lending request between stationB (requesting) and stationA (owning)
+        var req = service.createRequest(
+                stationB.id(), stationA.id(), LocalDate.now(), LocalDate.now().plusDays(5), memberB.id());
+
+        // Add messages from both sides using the repo directly
+        lendingRepo.createMessage(req.id(), stationA.id(), memberA.id(), "Msg from A side", false);
+        lendingRepo.createMessage(req.id(), stationB.id(), memberB.id(), "Msg from B side", false);
+
+        // getMessages from stationA's perspective should return both local and partner messages
+        var messages = service.getMessages(req.id(), stationA.id());
+        assertFalse(messages.isEmpty());
+        assertTrue(messages.stream().anyMatch(m -> m.message().equals("Msg from A side")));
+        assertTrue(messages.stream().anyMatch(m -> m.message().equals("Msg from B side")));
+        // Messages should be sorted by createdAt
+        for (int i = 1; i < messages.size(); i++) {
+            assertTrue(
+                    !messages.get(i).createdAt().isBefore(messages.get(i - 1).createdAt()),
+                    "Messages should be sorted by createdAt");
+        }
+    }
+
+    @Test
+    @Order(204)
+    void availableInventoryEntryRecord() {
+        var entry = new LendingService.AvailableInventoryEntry(42, "Test Inv", 7, "Station X", 5);
+        assertEquals(42, entry.inventoryId());
+        assertEquals("Test Inv", entry.inventoryName());
+        assertEquals(7, entry.stationId());
+        assertEquals("Station X", entry.stationName());
+        assertEquals(5, entry.availableCount());
+    }
+
     @Test
     @Order(60)
     void getMessagesWithNoPartner() {

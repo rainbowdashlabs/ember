@@ -8,8 +8,10 @@ package dev.chojo.ember.feature.board.route;
 import dev.chojo.ember.api.Roles;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.feature.board.entity.BoardFieldValue;
 import dev.chojo.ember.feature.board.entity.LinkType;
 import dev.chojo.ember.feature.board.entity.TicketPriority;
+import dev.chojo.ember.feature.board.entity.TicketSummary;
 import dev.chojo.ember.feature.board.service.BoardService;
 import dev.chojo.ember.feature.board.service.BoardTicketService;
 import io.javalin.http.BadRequestResponse;
@@ -127,18 +129,18 @@ public class BoardTicketRoutes implements Routes {
         int boardId = ctx.pathParamAsClass("boardId", Integer.class).get();
         requireViewAccess(boardId, session);
         String q = ctx.queryParam("q");
-        if (q == null || q.isBlank()) {
-            ctx.json(ticketService.findByBoard(boardId));
-        } else {
-            ctx.json(ticketService.search(boardId, q));
-        }
+        var tickets =
+                (q == null || q.isBlank()) ? ticketService.findByBoard(boardId) : ticketService.search(boardId, q);
+        ctx.json(tickets.stream().map(TicketSummary::of).toList());
     }
 
     private void listTickets(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int boardId = ctx.pathParamAsClass("boardId", Integer.class).get();
         requireViewAccess(boardId, session);
-        ctx.json(ticketService.findByBoard(boardId));
+        ctx.json(ticketService.findByBoard(boardId).stream()
+                .map(TicketSummary::of)
+                .toList());
     }
 
     private void createTicket(Context ctx) {
@@ -496,8 +498,13 @@ public class BoardTicketRoutes implements Routes {
         requireEditAccess(boardId, session);
         int ticketId = ctx.pathParamAsClass("ticketId", Integer.class).get();
         int fieldId = ctx.pathParamAsClass("fieldId", Integer.class).get();
-        var req = ctx.bodyAsClass(FieldValueRequest.class);
-        ticketService.setFieldValue(ticketId, fieldId, req.value());
+        var field = boardService.findFields(boardId).stream()
+                .filter(f -> f.id() == fieldId)
+                .findFirst()
+                .orElseThrow(() -> new NotFoundResponse("Field not found"));
+        var value = BoardFieldValue.parse(field.fieldType(), ctx.body());
+        if (value == null) throw new BadRequestResponse("Invalid value for field type " + field.fieldType());
+        ticketService.setFieldValue(ticketId, fieldId, value);
         ticketService.logHistory(
                 ticketId, "FIELD_CHANGED", "Feld #" + fieldId, session.member().id());
         ctx.status(HttpStatus.OK);
@@ -629,8 +636,6 @@ public class BoardTicketRoutes implements Routes {
     public record ReorderChecklistRequest(List<Integer> orderedIds) {}
 
     public record AssignRequest(Integer assignedMemberId) {}
-
-    public record FieldValueRequest(Object value) {}
 
     public record CommentRequest(Integer parentId, String content) {}
 

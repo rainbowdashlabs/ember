@@ -72,14 +72,14 @@ export interface BoardTicket {
     laneId: number
     ticketNumber: number
     title: string
-    description: string | null
+    description?: string | null
     assignedMemberId: number | null
     priority: TicketPriorityName
     dueDate: string | null
     position: number
-    createdBy: number
-    createdAt: string
-    updatedAt: string
+    createdBy?: number
+    createdAt?: string
+    updatedAt?: string
     laneEnteredAt: string
     checklistTotal: number
     checklistChecked: number
@@ -653,10 +653,21 @@ export async function getHistory(boardId: number, ticketId: number): Promise<Boa
 
 // -- Field values --
 
+export const BoardFieldType = {
+    STRING: 'STRING',
+    NUMBER: 'NUMBER',
+    BOOLEAN: 'BOOLEAN',
+    ENUM: 'ENUM',
+    DATE: 'DATE',
+    LANE_ASSIGNEE: 'LANE_ASSIGNEE',
+} as const
+export type BoardFieldTypeName = (typeof BoardFieldType)[keyof typeof BoardFieldType]
+
 export interface BoardTicketFieldValue {
     ticketId: number
     fieldId: number
-    value: unknown
+    fieldType: BoardFieldTypeName
+    value: { value?: unknown; memberId?: number } | null
 }
 
 export async function getFieldValues(boardId: number, ticketId: number): Promise<BoardTicketFieldValue[]> {
@@ -664,13 +675,19 @@ export async function getFieldValues(boardId: number, ticketId: number): Promise
     return res.data
 }
 
+export function buildFieldValueBody(fieldType: BoardFieldTypeName, rawValue: unknown): Record<string, unknown> {
+    if (fieldType === BoardFieldType.LANE_ASSIGNEE) return { memberId: Number(rawValue) }
+    return { value: rawValue }
+}
+
 export async function setFieldValue(
     boardId: number,
     ticketId: number,
     fieldId: number,
-    value: unknown,
+    fieldType: BoardFieldTypeName,
+    rawValue: unknown,
 ): Promise<void> {
-    await client.put(`/boards/${boardId}/tickets/${ticketId}/fields/${fieldId}`, { value })
+    await client.put(`/boards/${boardId}/tickets/${ticketId}/fields/${fieldId}`, buildFieldValueBody(fieldType, rawValue))
 }
 
 export async function deleteFieldValue(

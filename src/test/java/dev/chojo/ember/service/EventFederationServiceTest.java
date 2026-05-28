@@ -6,9 +6,11 @@
 package dev.chojo.ember.service;
 
 import dev.chojo.ember.conf.file.elements.Api;
+import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
 import dev.chojo.ember.feature.events.service.EventFederationService;
+import dev.chojo.ember.feature.events.service.EventService;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.station.entity.Station;
@@ -24,6 +26,8 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -31,6 +35,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class EventFederationServiceTest extends RepositoryTestBase {
 
     private static EventFederationService service;
+    private static EventService eventService;
     private static FederationService federationService;
     private static FederationRepository federationRepo;
     private static EventFederationRepository eventFederationRepo;
@@ -45,7 +50,10 @@ class EventFederationServiceTest extends RepositoryTestBase {
         federationRepo = new FederationRepository();
         eventFederationRepo = new EventFederationRepository();
         federationService = new FederationService(federationRepo, stationRepo, new Api());
-        service = new EventFederationService(eventFederationRepo);
+        var eventBus = new DomainEventBus(Set.of());
+        eventService = new EventService(eventRepo, restrictionRepo, eventBus);
+        service = new EventFederationService(
+                eventFederationRepo, federationService, null, federationRepo, stationRepo, eventService);
 
         stationA = stationRepo.create("EventFedSvcStationA");
         stationB = stationRepo.create("EventFedSvcStationB");
@@ -242,5 +250,64 @@ class EventFederationServiceTest extends RepositoryTestBase {
         service.cacheName(partnerId, "to-invalidate", "Bob");
         service.invalidateName(partnerId, "to-invalidate");
         assertTrue(service.getCachedName(partnerId, "to-invalidate").isEmpty());
+    }
+
+    // -- Federated browsing / get --
+
+    @Test
+    @Order(30)
+    void browseFederatedEventsWithShare() {
+        service.setShare(eventId, "ALL_PARTNERS", List.of());
+        var items = service.browseFederatedEvents(stationB.id());
+        assertFalse(items.isEmpty(), "Should find shared events from stationA when browsing from stationB");
+        assertTrue(
+                items.stream().anyMatch(item -> {
+                    @SuppressWarnings("unchecked")
+                    var eventMap = (Map<String, Object>) item.event();
+                    return eventId == (int) eventMap.get("id");
+                }),
+                "Should contain the shared event");
+    }
+
+    @Test
+    @Order(31)
+    void browseFederatedEventsNoShares() {
+        service.removeShare(eventId);
+        var items = service.browseFederatedEvents(stationB.id());
+        assertTrue(
+                items.stream().noneMatch(item -> {
+                    @SuppressWarnings("unchecked")
+                    var eventMap = (Map<String, Object>) item.event();
+                    return eventId == (int) eventMap.get("id");
+                }),
+                "Should not find the event when share is removed");
+    }
+
+    @Test
+    @Order(32)
+    void getFederatedEventLocal() {
+        service.setShare(eventId, "ALL_PARTNERS", List.of());
+        var result = service.getFederatedEvent(stationB.id(), stationA.uid(), eventId);
+        assertNotNull(result);
+        assertEquals(eventId, result.get("id"));
+        assertEquals("Federated Event", result.get("name"));
+    }
+
+    @Test
+    @Order(33)
+    void getFederatedEventNotShared() {
+        service.removeShare(eventId);
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> service.getFederatedEvent(stationB.id(), stationA.uid(), eventId));
+    }
+
+    @Test
+    @Order(34)
+    void federatedEventItemRecord() {
+        var item = new EventFederationService.FederatedEventItem(42, "TestStation", Map.of("id", 1));
+        assertEquals(42, item.partnerId());
+        assertEquals("TestStation", item.partnerStationName());
+        assertEquals(Map.of("id", 1), item.event());
     }
 }

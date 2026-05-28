@@ -12,7 +12,6 @@ import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
-import dev.chojo.ember.feature.federation.service.FederatedContentService;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.protocol.entity.TestProtocol;
 import dev.chojo.ember.feature.protocol.entity.TestProtocolItem;
@@ -54,7 +53,6 @@ public class TestProtocolRoutes implements Routes {
     private final TestProtocolPdfService pdfService;
     private final StationMemberRepository stationMemberRepository;
     private final AccountRepository accountRepository;
-    private final FederatedContentService federatedContentService;
     private final FederationRepository federationRepository;
     private final StationRepository stationRepository;
 
@@ -64,14 +62,12 @@ public class TestProtocolRoutes implements Routes {
             TestProtocolPdfService pdfService,
             StationMemberRepository stationMemberRepository,
             AccountRepository accountRepository,
-            FederatedContentService federatedContentService,
             FederationRepository federationRepository,
             StationRepository stationRepository) {
         this.service = service;
         this.pdfService = pdfService;
         this.stationMemberRepository = stationMemberRepository;
         this.accountRepository = accountRepository;
-        this.federatedContentService = federatedContentService;
         this.federationRepository = federationRepository;
         this.stationRepository = stationRepository;
     }
@@ -158,7 +154,7 @@ public class TestProtocolRoutes implements Routes {
     private void listProtocols(Context ctx) {
         var session = UserSession.from(ctx);
         var protocols = service.findProtocols(session.stationId());
-        var sharedItems = federatedContentService.browseSharedProtocols(session.stationId());
+        var sharedItems = service.browseSharedProtocols(session.stationId());
         var shared = sharedItems.stream()
                 .map(item -> {
                     String stationName = stationRepository
@@ -557,7 +553,7 @@ public class TestProtocolRoutes implements Routes {
 
     private void federatedBrowseProtocols(Context ctx) {
         var session = UserSession.from(ctx);
-        var items = federatedContentService.browseSharedProtocols(session.stationId());
+        var items = service.browseSharedProtocols(session.stationId());
         ctx.json(items.stream()
                 .map(i -> {
                     String stationName = stationRepository
@@ -573,13 +569,13 @@ public class TestProtocolRoutes implements Routes {
         var session = UserSession.from(ctx);
         var stationUid = java.util.UUID.fromString(ctx.pathParam("stationuid"));
         int protocolId = ctx.pathParamAsClass("id", Integer.class).get();
-        ctx.json(federatedContentService.getFederatedProtocol(session.stationId(), stationUid, protocolId));
+        ctx.json(service.getFederatedProtocol(session.stationId(), stationUid, protocolId));
     }
 
     private void federatedCopyProtocol(Context ctx) {
         var session = UserSession.from(ctx);
         int protocolId = ctx.pathParamAsClass("id", Integer.class).get();
-        var copied = federatedContentService.copyProtocol(protocolId, session.stationId());
+        var copied = service.copyProtocol(protocolId, session.stationId());
         ctx.status(HttpStatus.CREATED).json(copied);
     }
 
