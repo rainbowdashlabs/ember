@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.comment.route;
 
+import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.Roles;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
@@ -18,6 +19,13 @@ import io.javalin.http.Context;
 import io.javalin.http.ForbiddenResponse;
 import io.javalin.http.HttpStatus;
 import io.javalin.http.NotFoundResponse;
+import io.javalin.openapi.HttpMethod;
+import io.javalin.openapi.OpenApi;
+import io.javalin.openapi.OpenApiContent;
+import io.javalin.openapi.OpenApiName;
+import io.javalin.openapi.OpenApiParam;
+import io.javalin.openapi.OpenApiRequestBody;
+import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -52,12 +60,27 @@ public class EventCommentRoutes implements Routes {
         routes.delete(prefix + "/events/comments/{commentId}", this::delete, Roles.LOGIN);
     }
 
+    @OpenApi(
+            path = "/api/v1/events/{eventId}/comments",
+            methods = HttpMethod.GET,
+            summary = "List comments for an event",
+            tags = {"Event Comments"},
+            pathParams = @OpenApiParam(name = "eventId", type = Integer.class, required = true),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = CommentResponse[].class)))
     private void list(Context ctx) {
         int eventId = ctx.pathParamAsClass("eventId", Integer.class).get();
         var comments = commentService.findByEvent(eventId);
         ctx.json(comments.stream().map(this::toResponse).toList());
     }
 
+    @OpenApi(
+            path = "/api/v1/events/{eventId}/comments",
+            methods = HttpMethod.POST,
+            summary = "Add a comment to an event",
+            tags = {"Event Comments"},
+            pathParams = @OpenApiParam(name = "eventId", type = Integer.class, required = true),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = CreateCommentRequest.class)),
+            responses = @OpenApiResponse(status = "201", content = @OpenApiContent(from = CommentResponse.class)))
     private void create(Context ctx) {
         int eventId = ctx.pathParamAsClass("eventId", Integer.class).get();
         UserSession session = UserSession.from(ctx);
@@ -75,6 +98,17 @@ public class EventCommentRoutes implements Routes {
         ctx.status(HttpStatus.CREATED).json(toResponse(comment));
     }
 
+    @OpenApi(
+            path = "/api/v1/events/comments/{commentId}",
+            methods = HttpMethod.PUT,
+            summary = "Update own comment on an event",
+            tags = {"Event Comments"},
+            pathParams = @OpenApiParam(name = "commentId", type = Integer.class, required = true),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = UpdateCommentRequest.class)),
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = CommentResponse.class)),
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
     private void update(Context ctx) {
         int commentId = ctx.pathParamAsClass("commentId", Integer.class).get();
         UserSession session = UserSession.from(ctx);
@@ -91,6 +125,16 @@ public class EventCommentRoutes implements Routes {
         ctx.json(toResponse(updated));
     }
 
+    @OpenApi(
+            path = "/api/v1/events/comments/{commentId}",
+            methods = HttpMethod.DELETE,
+            summary = "Delete a comment (own or EVENT_MANAGER)",
+            tags = {"Event Comments"},
+            pathParams = @OpenApiParam(name = "commentId", type = Integer.class, required = true),
+            responses = {
+                @OpenApiResponse(status = "204"),
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
     private void delete(Context ctx) {
         int commentId = ctx.pathParamAsClass("commentId", Integer.class).get();
         UserSession session = UserSession.from(ctx);
@@ -143,6 +187,7 @@ public class EventCommentRoutes implements Routes {
     /**
      * API response representing a comment with resolved author information.
      */
+    @OpenApiName("EventCommentResponse")
     public record CommentResponse(
             int id,
             Integer parentId,

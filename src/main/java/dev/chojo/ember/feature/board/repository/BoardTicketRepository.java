@@ -28,6 +28,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Singleton
@@ -237,15 +238,27 @@ public class BoardTicketRepository {
 
     // -- Transitions --
 
-    public void logTransition(int ticketId, Integer fromLaneId, Integer toLaneId, int movedBy) {
+    public void logTransition(int ticketId, int fromLaneId, int toLaneId, int movedBy) {
+        logTransition(ticketId, fromLaneId, toLaneId, movedBy, null, null);
+    }
+
+    public void logTransition(
+            int ticketId,
+            Integer fromLaneId,
+            Integer toLaneId,
+            Integer movedBy,
+            UUID federatedStationId,
+            UUID federatedMemberId) {
         Query.query("""
-                     INSERT INTO board_ticket_transition(ticket_id, from_lane_id, to_lane_id, moved_by)
-                     VALUES (:ticket_id, :from_lane_id, :to_lane_id, :moved_by);""")
+                     INSERT INTO board_ticket_transition(ticket_id, from_lane_id, to_lane_id, moved_by, federated_station_id, federated_member_id)
+                     VALUES (:ticket_id, :from_lane_id, :to_lane_id, :moved_by, :federated_station_id, :federated_member_id);""")
                 .single(Call.of()
                         .bind("ticket_id", ticketId)
                         .bind("from_lane_id", fromLaneId)
                         .bind("to_lane_id", toLaneId)
-                        .bind("moved_by", movedBy))
+                        .bind("moved_by", movedBy)
+                        .bind("federated_station_id", federatedStationId, StandardValueConverter.UUID_STRING)
+                        .bind("federated_member_id", federatedMemberId, StandardValueConverter.UUID_STRING))
                 .insert();
     }
 
@@ -537,13 +550,26 @@ public class BoardTicketRepository {
     // -- History --
 
     public void logHistory(int ticketId, String action, String detail, int actorMemberId) {
-        Query.query(
-                        "INSERT INTO board_ticket_history(ticket_id, action, detail, actor_member_id) VALUES (:ticket_id, :action, :detail, :actor)")
+        logHistory(ticketId, action, detail, actorMemberId, null, null);
+    }
+
+    public void logHistory(
+            int ticketId,
+            String action,
+            String detail,
+            Integer actorMemberId,
+            UUID federatedStationId,
+            UUID federatedMemberId) {
+        Query.query("""
+                        INSERT INTO board_ticket_history(ticket_id, action, detail, actor_member_id, federated_station_id, federated_member_id)
+                        VALUES (:ticket_id, :action, :detail, :actor, :federated_station_id, :federated_member_id)""")
                 .single(Call.of()
                         .bind("ticket_id", ticketId)
                         .bind("action", action)
                         .bind("detail", detail)
-                        .bind("actor", actorMemberId))
+                        .bind("actor", actorMemberId)
+                        .bind("federated_station_id", federatedStationId, StandardValueConverter.UUID_STRING)
+                        .bind("federated_member_id", federatedMemberId, StandardValueConverter.UUID_STRING))
                 .insert();
     }
 

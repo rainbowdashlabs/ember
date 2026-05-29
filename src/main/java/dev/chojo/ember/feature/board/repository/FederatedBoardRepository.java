@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.board.repository;
 
 import de.chojo.sadu.queries.api.call.Call;
 import de.chojo.sadu.queries.api.query.Query;
+import de.chojo.sadu.queries.converter.StandardValueConverter;
 import dev.chojo.ember.feature.board.entity.AccessData;
 import dev.chojo.ember.feature.board.entity.BoardShareMode;
 import dev.chojo.ember.feature.board.entity.BoardTicketFederatedAssignee;
@@ -20,6 +21,7 @@ import jakarta.inject.Singleton;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Singleton
 public class FederatedBoardRepository {
@@ -131,7 +133,7 @@ public class FederatedBoardRepository {
 
     // -- Federated Assignees --
 
-    public void setFederatedAssignee(int ticketId, int partnerId, String remoteMemberId) {
+    public void setFederatedAssignee(int ticketId, int partnerId, UUID remoteMemberId) {
         Query.query("""
                         INSERT INTO board_ticket_federated_assignee(ticket_id, partner_id, remote_member_id)
                         VALUES (:ticket_id, :partner_id, :remote_member_id)
@@ -139,7 +141,7 @@ public class FederatedBoardRepository {
                 .single(Call.of()
                         .bind("ticket_id", ticketId)
                         .bind("partner_id", partnerId)
-                        .bind("remote_member_id", remoteMemberId))
+                        .bind("remote_member_id", remoteMemberId, StandardValueConverter.UUID_STRING))
                 .insert();
     }
 
@@ -158,14 +160,14 @@ public class FederatedBoardRepository {
 
     // -- Federated Comment Authors --
 
-    public void setFederatedCommentAuthor(int commentId, int partnerId, String remoteMemberId) {
+    public void setFederatedCommentAuthor(int commentId, int partnerId, UUID remoteMemberId) {
         Query.query("""
                         INSERT INTO board_ticket_federated_comment_author(comment_id, partner_id, remote_member_id)
                         VALUES (:comment_id, :partner_id, :remote_member_id);""")
                 .single(Call.of()
                         .bind("comment_id", commentId)
                         .bind("partner_id", partnerId)
-                        .bind("remote_member_id", remoteMemberId))
+                        .bind("remote_member_id", remoteMemberId, StandardValueConverter.UUID_STRING))
                 .insert();
     }
 
@@ -178,14 +180,14 @@ public class FederatedBoardRepository {
 
     // -- Federated Creators --
 
-    public void setFederatedCreator(int ticketId, int partnerId, String remoteMemberId) {
+    public void setFederatedCreator(int ticketId, int partnerId, UUID remoteMemberId) {
         Query.query("""
                         INSERT INTO board_ticket_federated_creator(ticket_id, partner_id, remote_member_id)
                         VALUES (:ticket_id, :partner_id, :remote_member_id);""")
                 .single(Call.of()
                         .bind("ticket_id", ticketId)
                         .bind("partner_id", partnerId)
-                        .bind("remote_member_id", remoteMemberId))
+                        .bind("remote_member_id", remoteMemberId, StandardValueConverter.UUID_STRING))
                 .insert();
     }
 
@@ -198,25 +200,25 @@ public class FederatedBoardRepository {
 
     // -- Federated Watchers --
 
-    public void addFederatedWatcher(int ticketId, int partnerId, String remoteMemberId) {
+    public void addFederatedWatcher(int ticketId, int partnerId, UUID remoteMemberId) {
         Query.query("""
                         INSERT INTO board_ticket_federated_watcher(ticket_id, partner_id, remote_member_id)
                         VALUES (:ticket_id, :partner_id, :remote_member_id) ON CONFLICT DO NOTHING;""")
                 .single(Call.of()
                         .bind("ticket_id", ticketId)
                         .bind("partner_id", partnerId)
-                        .bind("remote_member_id", remoteMemberId))
+                        .bind("remote_member_id", remoteMemberId, StandardValueConverter.UUID_STRING))
                 .insert();
     }
 
-    public void removeFederatedWatcher(int ticketId, int partnerId, String remoteMemberId) {
+    public void removeFederatedWatcher(int ticketId, int partnerId, UUID remoteMemberId) {
         Query.query("""
                         DELETE FROM board_ticket_federated_watcher
                         WHERE ticket_id = :ticket_id AND partner_id = :partner_id AND remote_member_id = :remote_member_id;""")
                 .single(Call.of()
                         .bind("ticket_id", ticketId)
                         .bind("partner_id", partnerId)
-                        .bind("remote_member_id", remoteMemberId))
+                        .bind("remote_member_id", remoteMemberId, StandardValueConverter.UUID_STRING))
                 .delete();
     }
 
@@ -227,14 +229,14 @@ public class FederatedBoardRepository {
                 .all();
     }
 
-    public boolean isFederatedWatching(int ticketId, int partnerId, String remoteMemberId) {
+    public boolean isFederatedWatching(int ticketId, int partnerId, UUID remoteMemberId) {
         return Query.query("""
                         SELECT 1 FROM board_ticket_federated_watcher
                         WHERE ticket_id = :ticket_id AND partner_id = :partner_id AND remote_member_id = :remote_member_id;""")
                 .single(Call.of()
                         .bind("ticket_id", ticketId)
                         .bind("partner_id", partnerId)
-                        .bind("remote_member_id", remoteMemberId))
+                        .bind("remote_member_id", remoteMemberId, StandardValueConverter.UUID_STRING))
                 .map(row -> true)
                 .first()
                 .orElse(false);

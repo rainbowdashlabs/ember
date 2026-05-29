@@ -5,10 +5,22 @@
  */
 package dev.chojo.ember.feature.board.route;
 
+import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.Roles;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.feature.board.entity.BoardChecklistItem;
+import dev.chojo.ember.feature.board.entity.BoardComment;
 import dev.chojo.ember.feature.board.entity.BoardFieldValue;
+import dev.chojo.ember.feature.board.entity.BoardLabel;
+import dev.chojo.ember.feature.board.entity.BoardTicket;
+import dev.chojo.ember.feature.board.entity.BoardTicketAttachment;
+import dev.chojo.ember.feature.board.entity.BoardTicketFieldValue;
+import dev.chojo.ember.feature.board.entity.BoardTicketHistory;
+import dev.chojo.ember.feature.board.entity.BoardTicketKbLink;
+import dev.chojo.ember.feature.board.entity.BoardTicketLink;
+import dev.chojo.ember.feature.board.entity.BoardTicketTransition;
+import dev.chojo.ember.feature.board.entity.BoardWeblink;
 import dev.chojo.ember.feature.board.entity.LinkType;
 import dev.chojo.ember.feature.board.entity.TicketPriority;
 import dev.chojo.ember.feature.board.entity.TicketSummary;
@@ -20,6 +32,13 @@ import io.javalin.http.ForbiddenResponse;
 import io.javalin.http.HttpStatus;
 import io.javalin.http.InternalServerErrorResponse;
 import io.javalin.http.NotFoundResponse;
+import io.javalin.openapi.HttpMethod;
+import io.javalin.openapi.OpenApi;
+import io.javalin.openapi.OpenApiContent;
+import io.javalin.openapi.OpenApiName;
+import io.javalin.openapi.OpenApiParam;
+import io.javalin.openapi.OpenApiRequestBody;
+import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -124,6 +143,14 @@ public class BoardTicketRoutes implements Routes {
 
     // -- Tickets --
 
+    @OpenApi(
+            path = "/api/v1/boards/{boardId}/tickets/search",
+            methods = HttpMethod.GET,
+            summary = "Search tickets on a board",
+            tags = {"Board Tickets"},
+            pathParams = @OpenApiParam(name = "boardId", type = Integer.class, required = true),
+            queryParams = @OpenApiParam(name = "q", type = String.class),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = TicketSummary[].class)))
     private void searchTickets(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int boardId = ctx.pathParamAsClass("boardId", Integer.class).get();
@@ -134,6 +161,13 @@ public class BoardTicketRoutes implements Routes {
         ctx.json(tickets.stream().map(TicketSummary::of).toList());
     }
 
+    @OpenApi(
+            path = "/api/v1/boards/{boardId}/tickets",
+            methods = HttpMethod.GET,
+            summary = "List all tickets on a board",
+            tags = {"Board Tickets"},
+            pathParams = @OpenApiParam(name = "boardId", type = Integer.class, required = true),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = TicketSummary[].class)))
     private void listTickets(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int boardId = ctx.pathParamAsClass("boardId", Integer.class).get();
@@ -143,6 +177,17 @@ public class BoardTicketRoutes implements Routes {
                 .toList());
     }
 
+    @OpenApi(
+            path = "/api/v1/boards/{boardId}/tickets",
+            methods = HttpMethod.POST,
+            summary = "Create a new ticket on a board",
+            tags = {"Board Tickets"},
+            pathParams = @OpenApiParam(name = "boardId", type = Integer.class, required = true),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = CreateTicketRequest.class)),
+            responses = {
+                @OpenApiResponse(status = "201", content = @OpenApiContent(from = BoardTicket.class)),
+                @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
     private void createTicket(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int boardId = ctx.pathParamAsClass("boardId", Integer.class).get();
@@ -161,6 +206,19 @@ public class BoardTicketRoutes implements Routes {
         ctx.status(HttpStatus.CREATED).json(ticket);
     }
 
+    @OpenApi(
+            path = "/api/v1/boards/{boardId}/tickets/{ticketId}",
+            methods = HttpMethod.GET,
+            summary = "Get a ticket by ID",
+            tags = {"Board Tickets"},
+            pathParams = {
+                @OpenApiParam(name = "boardId", type = Integer.class, required = true),
+                @OpenApiParam(name = "ticketId", type = Integer.class, required = true)
+            },
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = BoardTicket.class)),
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
     private void getTicket(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int boardId = ctx.pathParamAsClass("boardId", Integer.class).get();
@@ -171,6 +229,20 @@ public class BoardTicketRoutes implements Routes {
         });
     }
 
+    @OpenApi(
+            path = "/api/v1/boards/{boardId}/tickets/{ticketId}",
+            methods = HttpMethod.PUT,
+            summary = "Update a ticket",
+            tags = {"Board Tickets"},
+            pathParams = {
+                @OpenApiParam(name = "boardId", type = Integer.class, required = true),
+                @OpenApiParam(name = "ticketId", type = Integer.class, required = true)
+            },
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = UpdateTicketRequest.class)),
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = BoardTicket.class)),
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
     private void updateTicket(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int boardId = ctx.pathParamAsClass("boardId", Integer.class).get();
@@ -190,6 +262,19 @@ public class BoardTicketRoutes implements Routes {
         });
     }
 
+    @OpenApi(
+            path = "/api/v1/boards/{boardId}/tickets/{ticketId}",
+            methods = HttpMethod.DELETE,
+            summary = "Delete a ticket",
+            tags = {"Board Tickets"},
+            pathParams = {
+                @OpenApiParam(name = "boardId", type = Integer.class, required = true),
+                @OpenApiParam(name = "ticketId", type = Integer.class, required = true)
+            },
+            responses = {
+                @OpenApiResponse(status = "204"),
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
     private void deleteTicket(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int boardId = ctx.pathParamAsClass("boardId", Integer.class).get();
@@ -202,6 +287,20 @@ public class BoardTicketRoutes implements Routes {
         }
     }
 
+    @OpenApi(
+            path = "/api/v1/boards/{boardId}/tickets/{ticketId}/move",
+            methods = HttpMethod.PUT,
+            summary = "Move a ticket to a different lane",
+            tags = {"Board Tickets"},
+            pathParams = {
+                @OpenApiParam(name = "boardId", type = Integer.class, required = true),
+                @OpenApiParam(name = "ticketId", type = Integer.class, required = true)
+            },
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = MoveTicketRequest.class)),
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = BoardTicket.class)),
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
     private void moveTicket(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int boardId = ctx.pathParamAsClass("boardId", Integer.class).get();
@@ -220,6 +319,17 @@ public class BoardTicketRoutes implements Routes {
         });
     }
 
+    @OpenApi(
+            path = "/api/v1/boards/{boardId}/tickets/{ticketId}/reorder",
+            methods = HttpMethod.PUT,
+            summary = "Reorder tickets within a lane",
+            tags = {"Board Tickets"},
+            pathParams = {
+                @OpenApiParam(name = "boardId", type = Integer.class, required = true),
+                @OpenApiParam(name = "ticketId", type = Integer.class, required = true)
+            },
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = ReorderRequest.class)),
+            responses = @OpenApiResponse(status = "200"))
     private void reorderTickets(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int boardId = ctx.pathParamAsClass("boardId", Integer.class).get();
@@ -229,6 +339,20 @@ public class BoardTicketRoutes implements Routes {
         ctx.status(HttpStatus.OK);
     }
 
+    @OpenApi(
+            path = "/api/v1/boards/{boardId}/tickets/{ticketId}/assign",
+            methods = HttpMethod.PUT,
+            summary = "Assign a ticket to a member",
+            tags = {"Board Tickets"},
+            pathParams = {
+                @OpenApiParam(name = "boardId", type = Integer.class, required = true),
+                @OpenApiParam(name = "ticketId", type = Integer.class, required = true)
+            },
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = AssignRequest.class)),
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = BoardTicket.class)),
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
     private void assignTicket(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int boardId = ctx.pathParamAsClass("boardId", Integer.class).get();
@@ -244,11 +368,32 @@ public class BoardTicketRoutes implements Routes {
 
     // -- Links --
 
+    @OpenApi(
+            path = "/api/v1/boards/{boardId}/tickets/{ticketId}/links",
+            methods = HttpMethod.GET,
+            summary = "List links for a ticket",
+            tags = {"Board Tickets"},
+            pathParams = {
+                @OpenApiParam(name = "boardId", type = Integer.class, required = true),
+                @OpenApiParam(name = "ticketId", type = Integer.class, required = true)
+            },
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = BoardTicketLink[].class)))
     private void getLinks(Context ctx) {
         int ticketId = ctx.pathParamAsClass("ticketId", Integer.class).get();
         ctx.json(ticketService.findLinks(ticketId));
     }
 
+    @OpenApi(
+            path = "/api/v1/boards/{boardId}/tickets/{ticketId}/links",
+            methods = HttpMethod.POST,
+            summary = "Create a link between tickets",
+            tags = {"Board Tickets"},
+            pathParams = {
+                @OpenApiParam(name = "boardId", type = Integer.class, required = true),
+                @OpenApiParam(name = "ticketId", type = Integer.class, required = true)
+            },
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = LinkRequest.class)),
+            responses = @OpenApiResponse(status = "201", content = @OpenApiContent(from = BoardTicketLink[].class)))
     private void createLink(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int boardId = ctx.pathParamAsClass("boardId", Integer.class).get();
@@ -259,6 +404,17 @@ public class BoardTicketRoutes implements Routes {
         ctx.status(HttpStatus.CREATED).json(ticketService.findLinks(ticketId));
     }
 
+    @OpenApi(
+            path = "/api/v1/boards/{boardId}/tickets/{ticketId}/links/{linkedId}",
+            methods = HttpMethod.DELETE,
+            summary = "Remove a link between tickets",
+            tags = {"Board Tickets"},
+            pathParams = {
+                @OpenApiParam(name = "boardId", type = Integer.class, required = true),
+                @OpenApiParam(name = "ticketId", type = Integer.class, required = true),
+                @OpenApiParam(name = "linkedId", type = Integer.class, required = true)
+            },
+            responses = @OpenApiResponse(status = "204"))
     private void deleteLink(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int boardId = ctx.pathParamAsClass("boardId", Integer.class).get();
@@ -271,11 +427,35 @@ public class BoardTicketRoutes implements Routes {
 
     // -- Checklist --
 
+    @OpenApi(
+            path = "/api/v1/boards/{boardId}/tickets/{ticketId}/checklist",
+            methods = HttpMethod.GET,
+            summary = "List checklist items for a ticket",
+            tags = {"Board Tickets"},
+            pathParams = {
+                @OpenApiParam(name = "boardId", type = Integer.class, required = true),
+                @OpenApiParam(name = "ticketId", type = Integer.class, required = true)
+            },
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = BoardChecklistItem[].class)))
     private void getChecklist(Context ctx) {
         int ticketId = ctx.pathParamAsClass("ticketId", Integer.class).get();
         ctx.json(ticketService.findChecklistItems(ticketId));
     }
 
+    @OpenApi(
+            path = "/api/v1/boards/{boardId}/tickets/{ticketId}/checklist",
+            methods = HttpMethod.POST,
+            summary = "Add a checklist item to a ticket",
+            tags = {"Board Tickets"},
+            pathParams = {
+                @OpenApiParam(name = "boardId", type = Integer.class, required = true),
+                @OpenApiParam(name = "ticketId", type = Integer.class, required = true)
+            },
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = ChecklistItemRequest.class)),
+            responses = {
+                @OpenApiResponse(status = "201", content = @OpenApiContent(from = BoardChecklistItem.class)),
+                @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
     private void addChecklistItem(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int boardId = ctx.pathParamAsClass("boardId", Integer.class).get();
@@ -288,6 +468,18 @@ public class BoardTicketRoutes implements Routes {
                         ticketId, req.title(), session.member().id()));
     }
 
+    @OpenApi(
+            path = "/api/v1/boards/{boardId}/tickets/{ticketId}/checklist/{itemId}",
+            methods = HttpMethod.PUT,
+            summary = "Update a checklist item",
+            tags = {"Board Tickets"},
+            pathParams = {
+                @OpenApiParam(name = "boardId", type = Integer.class, required = true),
+                @OpenApiParam(name = "ticketId", type = Integer.class, required = true),
+                @OpenApiParam(name = "itemId", type = Integer.class, required = true)
+            },
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = ChecklistItemRequest.class)),
+            responses = @OpenApiResponse(status = "200"))
     private void updateChecklistItem(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int boardId = ctx.pathParamAsClass("boardId", Integer.class).get();
@@ -304,6 +496,17 @@ public class BoardTicketRoutes implements Routes {
         ctx.status(HttpStatus.OK);
     }
 
+    @OpenApi(
+            path = "/api/v1/boards/{boardId}/tickets/{ticketId}/checklist/{itemId}",
+            methods = HttpMethod.DELETE,
+            summary = "Delete a checklist item",
+            tags = {"Board Tickets"},
+            pathParams = {
+                @OpenApiParam(name = "boardId", type = Integer.class, required = true),
+                @OpenApiParam(name = "ticketId", type = Integer.class, required = true),
+                @OpenApiParam(name = "itemId", type = Integer.class, required = true)
+            },
+            responses = @OpenApiResponse(status = "204"))
     private void deleteChecklistItem(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int boardId = ctx.pathParamAsClass("boardId", Integer.class).get();
@@ -314,6 +517,17 @@ public class BoardTicketRoutes implements Routes {
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
+    @OpenApi(
+            path = "/api/v1/boards/{boardId}/tickets/{ticketId}/checklist/reorder",
+            methods = HttpMethod.PUT,
+            summary = "Reorder checklist items",
+            tags = {"Board Tickets"},
+            pathParams = {
+                @OpenApiParam(name = "boardId", type = Integer.class, required = true),
+                @OpenApiParam(name = "ticketId", type = Integer.class, required = true)
+            },
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = ReorderChecklistRequest.class)),
+            responses = @OpenApiResponse(status = "200"))
     private void reorderChecklist(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int boardId = ctx.pathParamAsClass("boardId", Integer.class).get();
@@ -326,16 +540,51 @@ public class BoardTicketRoutes implements Routes {
 
     // -- Activity & Comments --
 
+    @OpenApi(
+            path = "/api/v1/boards/{boardId}/tickets/{ticketId}/transitions",
+            methods = HttpMethod.GET,
+            summary = "List lane transitions for a ticket",
+            tags = {"Board Tickets"},
+            pathParams = {
+                @OpenApiParam(name = "boardId", type = Integer.class, required = true),
+                @OpenApiParam(name = "ticketId", type = Integer.class, required = true)
+            },
+            responses =
+                    @OpenApiResponse(status = "200", content = @OpenApiContent(from = BoardTicketTransition[].class)))
     private void getTransitions(Context ctx) {
         int ticketId = ctx.pathParamAsClass("ticketId", Integer.class).get();
         ctx.json(ticketService.findTransitions(ticketId));
     }
 
+    @OpenApi(
+            path = "/api/v1/boards/{boardId}/tickets/{ticketId}/comments",
+            methods = HttpMethod.GET,
+            summary = "List comments on a ticket",
+            tags = {"Board Tickets"},
+            pathParams = {
+                @OpenApiParam(name = "boardId", type = Integer.class, required = true),
+                @OpenApiParam(name = "ticketId", type = Integer.class, required = true)
+            },
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = BoardComment[].class)))
     private void getComments(Context ctx) {
         int ticketId = ctx.pathParamAsClass("ticketId", Integer.class).get();
         ctx.json(ticketService.findComments(ticketId));
     }
 
+    @OpenApi(
+            path = "/api/v1/boards/{boardId}/tickets/{ticketId}/comments",
+            methods = HttpMethod.POST,
+            summary = "Add a comment to a ticket",
+            tags = {"Board Tickets"},
+            pathParams = {
+                @OpenApiParam(name = "boardId", type = Integer.class, required = true),
+                @OpenApiParam(name = "ticketId", type = Integer.class, required = true)
+            },
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = CommentRequest.class)),
+            responses = {
+                @OpenApiResponse(status = "201", content = @OpenApiContent(from = BoardComment.class)),
+                @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
     private void createComment(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int boardId = ctx.pathParamAsClass("boardId", Integer.class).get();
@@ -348,6 +597,18 @@ public class BoardTicketRoutes implements Routes {
                         ticketId, req.parentId(), session.member().id(), req.content()));
     }
 
+    @OpenApi(
+            path = "/api/v1/boards/{boardId}/tickets/{ticketId}/comments/{commentId}",
+            methods = HttpMethod.PUT,
+            summary = "Update a comment on a ticket",
+            tags = {"Board Tickets"},
+            pathParams = {
+                @OpenApiParam(name = "boardId", type = Integer.class, required = true),
+                @OpenApiParam(name = "ticketId", type = Integer.class, required = true),
+                @OpenApiParam(name = "commentId", type = Integer.class, required = true)
+            },
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = CommentRequest.class)),
+            responses = @OpenApiResponse(status = "200"))
     private void updateComment(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int boardId = ctx.pathParamAsClass("boardId", Integer.class).get();
@@ -358,6 +619,17 @@ public class BoardTicketRoutes implements Routes {
         ctx.status(HttpStatus.OK);
     }
 
+    @OpenApi(
+            path = "/api/v1/boards/{boardId}/tickets/{ticketId}/comments/{commentId}",
+            methods = HttpMethod.DELETE,
+            summary = "Delete a comment on a ticket",
+            tags = {"Board Tickets"},
+            pathParams = {
+                @OpenApiParam(name = "boardId", type = Integer.class, required = true),
+                @OpenApiParam(name = "ticketId", type = Integer.class, required = true),
+                @OpenApiParam(name = "commentId", type = Integer.class, required = true)
+            },
+            responses = @OpenApiResponse(status = "204"))
     private void deleteComment(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int boardId = ctx.pathParamAsClass("boardId", Integer.class).get();
@@ -369,11 +641,35 @@ public class BoardTicketRoutes implements Routes {
 
     // -- Weblinks --
 
+    @OpenApi(
+            path = "/api/v1/boards/{boardId}/tickets/{ticketId}/weblinks",
+            methods = HttpMethod.GET,
+            summary = "List weblinks on a ticket",
+            tags = {"Board Tickets"},
+            pathParams = {
+                @OpenApiParam(name = "boardId", type = Integer.class, required = true),
+                @OpenApiParam(name = "ticketId", type = Integer.class, required = true)
+            },
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = BoardWeblink[].class)))
     private void getWeblinks(Context ctx) {
         int ticketId = ctx.pathParamAsClass("ticketId", Integer.class).get();
         ctx.json(ticketService.findWeblinks(ticketId));
     }
 
+    @OpenApi(
+            path = "/api/v1/boards/{boardId}/tickets/{ticketId}/weblinks",
+            methods = HttpMethod.POST,
+            summary = "Add a weblink to a ticket",
+            tags = {"Board Tickets"},
+            pathParams = {
+                @OpenApiParam(name = "boardId", type = Integer.class, required = true),
+                @OpenApiParam(name = "ticketId", type = Integer.class, required = true)
+            },
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = WeblinkRequest.class)),
+            responses = {
+                @OpenApiResponse(status = "201", content = @OpenApiContent(from = BoardWeblink.class)),
+                @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
     private void addWeblink(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int boardId = ctx.pathParamAsClass("boardId", Integer.class).get();
@@ -385,6 +681,17 @@ public class BoardTicketRoutes implements Routes {
                 .json(ticketService.addWeblink(ticketId, req.url(), req.title() != null ? req.title() : ""));
     }
 
+    @OpenApi(
+            path = "/api/v1/boards/{boardId}/tickets/{ticketId}/weblinks/{weblinkId}",
+            methods = HttpMethod.DELETE,
+            summary = "Delete a weblink from a ticket",
+            tags = {"Board Tickets"},
+            pathParams = {
+                @OpenApiParam(name = "boardId", type = Integer.class, required = true),
+                @OpenApiParam(name = "ticketId", type = Integer.class, required = true),
+                @OpenApiParam(name = "weblinkId", type = Integer.class, required = true)
+            },
+            responses = @OpenApiResponse(status = "204"))
     private void deleteWeblink(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int boardId = ctx.pathParamAsClass("boardId", Integer.class).get();
@@ -396,6 +703,17 @@ public class BoardTicketRoutes implements Routes {
 
     // -- Attachments --
 
+    @OpenApi(
+            path = "/api/v1/boards/{boardId}/tickets/{ticketId}/attachments",
+            methods = HttpMethod.GET,
+            summary = "List attachments on a ticket",
+            tags = {"Board Tickets"},
+            pathParams = {
+                @OpenApiParam(name = "boardId", type = Integer.class, required = true),
+                @OpenApiParam(name = "ticketId", type = Integer.class, required = true)
+            },
+            responses =
+                    @OpenApiResponse(status = "200", content = @OpenApiContent(from = BoardTicketAttachment[].class)))
     private void getAttachments(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int boardId = ctx.pathParamAsClass("boardId", Integer.class).get();
@@ -404,6 +722,19 @@ public class BoardTicketRoutes implements Routes {
         ctx.json(ticketService.findAttachments(ticketId));
     }
 
+    @OpenApi(
+            path = "/api/v1/boards/{boardId}/tickets/{ticketId}/attachments",
+            methods = HttpMethod.POST,
+            summary = "Upload an attachment to a ticket",
+            tags = {"Board Tickets"},
+            pathParams = {
+                @OpenApiParam(name = "boardId", type = Integer.class, required = true),
+                @OpenApiParam(name = "ticketId", type = Integer.class, required = true)
+            },
+            responses = {
+                @OpenApiResponse(status = "201", content = @OpenApiContent(from = BoardTicketAttachment.class)),
+                @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
     private void uploadAttachment(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int boardId = ctx.pathParamAsClass("boardId", Integer.class).get();
@@ -425,6 +756,20 @@ public class BoardTicketRoutes implements Routes {
         }
     }
 
+    @OpenApi(
+            path = "/api/v1/boards/{boardId}/tickets/{ticketId}/attachments/{attachmentId}/download",
+            methods = HttpMethod.GET,
+            summary = "Download an attachment",
+            tags = {"Board Tickets"},
+            pathParams = {
+                @OpenApiParam(name = "boardId", type = Integer.class, required = true),
+                @OpenApiParam(name = "ticketId", type = Integer.class, required = true),
+                @OpenApiParam(name = "attachmentId", type = Integer.class, required = true)
+            },
+            responses = {
+                @OpenApiResponse(status = "200"),
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
     private void downloadAttachment(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int boardId = ctx.pathParamAsClass("boardId", Integer.class).get();
@@ -442,6 +787,20 @@ public class BoardTicketRoutes implements Routes {
         }
     }
 
+    @OpenApi(
+            path = "/api/v1/boards/{boardId}/tickets/{ticketId}/attachments/{attachmentId}",
+            methods = HttpMethod.DELETE,
+            summary = "Delete an attachment",
+            tags = {"Board Tickets"},
+            pathParams = {
+                @OpenApiParam(name = "boardId", type = Integer.class, required = true),
+                @OpenApiParam(name = "ticketId", type = Integer.class, required = true),
+                @OpenApiParam(name = "attachmentId", type = Integer.class, required = true)
+            },
+            responses = {
+                @OpenApiResponse(status = "204"),
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
     private void deleteAttachment(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int boardId = ctx.pathParamAsClass("boardId", Integer.class).get();
@@ -456,6 +815,16 @@ public class BoardTicketRoutes implements Routes {
 
     // -- Watchers --
 
+    @OpenApi(
+            path = "/api/v1/boards/{boardId}/tickets/{ticketId}/watchers",
+            methods = HttpMethod.GET,
+            summary = "List watchers of a ticket",
+            tags = {"Board Tickets"},
+            pathParams = {
+                @OpenApiParam(name = "boardId", type = Integer.class, required = true),
+                @OpenApiParam(name = "ticketId", type = Integer.class, required = true)
+            },
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = Integer[].class)))
     private void getWatchers(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int boardId = ctx.pathParamAsClass("boardId", Integer.class).get();
@@ -464,6 +833,16 @@ public class BoardTicketRoutes implements Routes {
         ctx.json(ticketService.findWatchers(ticketId));
     }
 
+    @OpenApi(
+            path = "/api/v1/boards/{boardId}/tickets/{ticketId}/watch",
+            methods = HttpMethod.POST,
+            summary = "Watch a ticket",
+            tags = {"Board Tickets"},
+            pathParams = {
+                @OpenApiParam(name = "boardId", type = Integer.class, required = true),
+                @OpenApiParam(name = "ticketId", type = Integer.class, required = true)
+            },
+            responses = @OpenApiResponse(status = "201"))
     private void watchTicket(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int boardId = ctx.pathParamAsClass("boardId", Integer.class).get();
@@ -473,6 +852,16 @@ public class BoardTicketRoutes implements Routes {
         ctx.status(HttpStatus.CREATED);
     }
 
+    @OpenApi(
+            path = "/api/v1/boards/{boardId}/tickets/{ticketId}/watch",
+            methods = HttpMethod.DELETE,
+            summary = "Unwatch a ticket",
+            tags = {"Board Tickets"},
+            pathParams = {
+                @OpenApiParam(name = "boardId", type = Integer.class, required = true),
+                @OpenApiParam(name = "ticketId", type = Integer.class, required = true)
+            },
+            responses = @OpenApiResponse(status = "204"))
     private void unwatchTicket(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int boardId = ctx.pathParamAsClass("boardId", Integer.class).get();
@@ -484,6 +873,17 @@ public class BoardTicketRoutes implements Routes {
 
     // -- Field values --
 
+    @OpenApi(
+            path = "/api/v1/boards/{boardId}/tickets/{ticketId}/fields",
+            methods = HttpMethod.GET,
+            summary = "List field values for a ticket",
+            tags = {"Board Tickets"},
+            pathParams = {
+                @OpenApiParam(name = "boardId", type = Integer.class, required = true),
+                @OpenApiParam(name = "ticketId", type = Integer.class, required = true)
+            },
+            responses =
+                    @OpenApiResponse(status = "200", content = @OpenApiContent(from = BoardTicketFieldValue[].class)))
     private void getFieldValues(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int boardId = ctx.pathParamAsClass("boardId", Integer.class).get();
@@ -492,6 +892,21 @@ public class BoardTicketRoutes implements Routes {
         ctx.json(ticketService.findFieldValues(ticketId));
     }
 
+    @OpenApi(
+            path = "/api/v1/boards/{boardId}/tickets/{ticketId}/fields/{fieldId}",
+            methods = HttpMethod.PUT,
+            summary = "Set a field value on a ticket",
+            tags = {"Board Tickets"},
+            pathParams = {
+                @OpenApiParam(name = "boardId", type = Integer.class, required = true),
+                @OpenApiParam(name = "ticketId", type = Integer.class, required = true),
+                @OpenApiParam(name = "fieldId", type = Integer.class, required = true)
+            },
+            responses = {
+                @OpenApiResponse(status = "200"),
+                @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class)),
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
     private void setFieldValue(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int boardId = ctx.pathParamAsClass("boardId", Integer.class).get();
@@ -510,6 +925,17 @@ public class BoardTicketRoutes implements Routes {
         ctx.status(HttpStatus.OK);
     }
 
+    @OpenApi(
+            path = "/api/v1/boards/{boardId}/tickets/{ticketId}/fields/{fieldId}",
+            methods = HttpMethod.DELETE,
+            summary = "Delete a field value from a ticket",
+            tags = {"Board Tickets"},
+            pathParams = {
+                @OpenApiParam(name = "boardId", type = Integer.class, required = true),
+                @OpenApiParam(name = "ticketId", type = Integer.class, required = true),
+                @OpenApiParam(name = "fieldId", type = Integer.class, required = true)
+            },
+            responses = @OpenApiResponse(status = "204"))
     private void deleteFieldValue(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int boardId = ctx.pathParamAsClass("boardId", Integer.class).get();
@@ -522,11 +948,32 @@ public class BoardTicketRoutes implements Routes {
 
     // -- Ticket Labels --
 
+    @OpenApi(
+            path = "/api/v1/boards/{boardId}/tickets/{ticketId}/labels",
+            methods = HttpMethod.GET,
+            summary = "List labels on a ticket",
+            tags = {"Board Tickets"},
+            pathParams = {
+                @OpenApiParam(name = "boardId", type = Integer.class, required = true),
+                @OpenApiParam(name = "ticketId", type = Integer.class, required = true)
+            },
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = BoardLabel[].class)))
     private void getTicketLabels(Context ctx) {
         int ticketId = ctx.pathParamAsClass("ticketId", Integer.class).get();
         ctx.json(boardService.findLabelsForTicket(ticketId));
     }
 
+    @OpenApi(
+            path = "/api/v1/boards/{boardId}/tickets/{ticketId}/labels/{labelId}",
+            methods = HttpMethod.POST,
+            summary = "Add a label to a ticket",
+            tags = {"Board Tickets"},
+            pathParams = {
+                @OpenApiParam(name = "boardId", type = Integer.class, required = true),
+                @OpenApiParam(name = "ticketId", type = Integer.class, required = true),
+                @OpenApiParam(name = "labelId", type = Integer.class, required = true)
+            },
+            responses = @OpenApiResponse(status = "201", content = @OpenApiContent(from = BoardLabel[].class)))
     private void addTicketLabel(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int boardId = ctx.pathParamAsClass("boardId", Integer.class).get();
@@ -546,6 +993,17 @@ public class BoardTicketRoutes implements Routes {
         ctx.status(HttpStatus.CREATED).json(boardService.findLabelsForTicket(ticketId));
     }
 
+    @OpenApi(
+            path = "/api/v1/boards/{boardId}/tickets/{ticketId}/labels/{labelId}",
+            methods = HttpMethod.DELETE,
+            summary = "Remove a label from a ticket",
+            tags = {"Board Tickets"},
+            pathParams = {
+                @OpenApiParam(name = "boardId", type = Integer.class, required = true),
+                @OpenApiParam(name = "ticketId", type = Integer.class, required = true),
+                @OpenApiParam(name = "labelId", type = Integer.class, required = true)
+            },
+            responses = @OpenApiResponse(status = "204"))
     private void removeTicketLabel(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int boardId = ctx.pathParamAsClass("boardId", Integer.class).get();
@@ -567,11 +1025,35 @@ public class BoardTicketRoutes implements Routes {
 
     // -- KB Links --
 
+    @OpenApi(
+            path = "/api/v1/boards/{boardId}/tickets/{ticketId}/kb-links",
+            methods = HttpMethod.GET,
+            summary = "List knowledge base links on a ticket",
+            tags = {"Board Tickets"},
+            pathParams = {
+                @OpenApiParam(name = "boardId", type = Integer.class, required = true),
+                @OpenApiParam(name = "ticketId", type = Integer.class, required = true)
+            },
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = BoardTicketKbLink[].class)))
     private void getKbLinks(Context ctx) {
         int ticketId = ctx.pathParamAsClass("ticketId", Integer.class).get();
         ctx.json(ticketService.findKbLinks(ticketId));
     }
 
+    @OpenApi(
+            path = "/api/v1/boards/{boardId}/tickets/{ticketId}/kb-links/{kbFileId}",
+            methods = HttpMethod.POST,
+            summary = "Link a knowledge base file to a ticket",
+            tags = {"Board Tickets"},
+            pathParams = {
+                @OpenApiParam(name = "boardId", type = Integer.class, required = true),
+                @OpenApiParam(name = "ticketId", type = Integer.class, required = true),
+                @OpenApiParam(name = "kbFileId", type = Integer.class, required = true)
+            },
+            responses = {
+                @OpenApiResponse(status = "201", content = @OpenApiContent(from = BoardTicketKbLink.class)),
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = BoardTicketKbLink[].class))
+            })
     private void addKbLink(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int boardId = ctx.pathParamAsClass("boardId", Integer.class).get();
@@ -583,6 +1065,17 @@ public class BoardTicketRoutes implements Routes {
         else ctx.status(HttpStatus.OK).json(ticketService.findKbLinks(ticketId));
     }
 
+    @OpenApi(
+            path = "/api/v1/boards/{boardId}/tickets/{ticketId}/kb-links/{linkId}",
+            methods = HttpMethod.DELETE,
+            summary = "Remove a knowledge base link from a ticket",
+            tags = {"Board Tickets"},
+            pathParams = {
+                @OpenApiParam(name = "boardId", type = Integer.class, required = true),
+                @OpenApiParam(name = "ticketId", type = Integer.class, required = true),
+                @OpenApiParam(name = "linkId", type = Integer.class, required = true)
+            },
+            responses = @OpenApiResponse(status = "204"))
     private void removeKbLink(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int boardId = ctx.pathParamAsClass("boardId", Integer.class).get();
@@ -594,6 +1087,16 @@ public class BoardTicketRoutes implements Routes {
 
     // -- History --
 
+    @OpenApi(
+            path = "/api/v1/boards/{boardId}/tickets/{ticketId}/history",
+            methods = HttpMethod.GET,
+            summary = "List history entries for a ticket",
+            tags = {"Board Tickets"},
+            pathParams = {
+                @OpenApiParam(name = "boardId", type = Integer.class, required = true),
+                @OpenApiParam(name = "ticketId", type = Integer.class, required = true)
+            },
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = BoardTicketHistory[].class)))
     private void getHistory(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int boardId = ctx.pathParamAsClass("boardId", Integer.class).get();
@@ -604,6 +1107,16 @@ public class BoardTicketRoutes implements Routes {
 
     // -- Activity --
 
+    @OpenApi(
+            path = "/api/v1/boards/{boardId}/tickets/{ticketId}/activity",
+            methods = HttpMethod.GET,
+            summary = "List activity entries for a ticket",
+            tags = {"Board Tickets"},
+            pathParams = {
+                @OpenApiParam(name = "boardId", type = Integer.class, required = true),
+                @OpenApiParam(name = "ticketId", type = Integer.class, required = true)
+            },
+            responses = @OpenApiResponse(status = "200"))
     private void getActivity(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int boardId = ctx.pathParamAsClass("boardId", Integer.class).get();
@@ -635,8 +1148,10 @@ public class BoardTicketRoutes implements Routes {
 
     public record ReorderChecklistRequest(List<Integer> orderedIds) {}
 
+    @OpenApiName("BoardTicketAssignRequest")
     public record AssignRequest(Integer assignedMemberId) {}
 
+    @OpenApiName("BoardTicketCommentRequest")
     public record CommentRequest(Integer parentId, String content) {}
 
     public record WeblinkRequest(String url, String title) {}

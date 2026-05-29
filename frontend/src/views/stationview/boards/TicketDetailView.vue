@@ -6,7 +6,7 @@
 <script lang="ts" setup>
 import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useRoute, useRouter } from 'vue-router'
+import { useRouter } from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
@@ -32,7 +32,8 @@ import Alert from '@/components/feedback/Alert.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import UserAvatar from '@/components/avatar/UserAvatar.vue'
-import { boards, stationMembers, knowledgeBase } from '@/api'
+import { knowledgeBase } from '@/api'
+import { boards } from '@/api'
 import type {
     Board, BoardLane, BoardField, BoardLabel, BoardTicket, BoardChecklistItem,
     BoardTicketLink, BoardTicketTransition, BoardTicketHistoryEntry, BoardComment,
@@ -41,14 +42,15 @@ import type {
 import { TicketPriority } from '@/api/boards'
 import type { TicketPriorityName } from '@/api/boards'
 import { useSession } from '@/composables/useSession'
+import { useBoardApi } from '@/composables/useBoardApi'
 
 const { t } = useI18n()
-const route = useRoute()
 const router = useRouter()
 const { sessionInfo } = useSession()
+const api = useBoardApi()
 
-const boardId = computed(() => Number(route.params.boardId))
-const ticketId = computed(() => Number(route.params.ticketId))
+const boardId = api.boardId
+const ticketId = api.ticketId
 
 const board = ref<Board | null>(null)
 const ticket = ref<BoardTicket | null>(null)
@@ -109,30 +111,29 @@ const ticketLabels = ref<BoardLabel[]>([])
 async function loadData() {
     loading.value = true
     try {
-        const [b, tk, l, m, bf, ce] = await Promise.all([
-            boards.getBoard(boardId.value),
-            boards.getTicket(boardId.value, ticketId.value),
-            boards.getLanes(boardId.value),
-            stationMembers.listCompletions(),
-            boards.getFields(boardId.value),
-            boards.canEditBoard(boardId.value),
+        const [boardResult, tk, l, m, bf] = await Promise.all([
+            api.getBoard(),
+            api.getTicket(),
+            api.getLanes(),
+            api.getMembers(),
+            api.getFields(),
         ])
-        board.value = b
+        board.value = boardResult.board as Board
         ticket.value = tk
         lanes.value = l
         members.value = m
         boardFields.value = bf
-        canEdit.value = ce
-        allLabels.value = await boards.getLabels(boardId.value)
+        canEdit.value = boardResult.canEdit
+        allLabels.value = await api.getLabels()
         title.value = tk.title
         description.value = tk.description ?? ''
         priority.value = tk.priority
         assignedMemberId.value = tk.assignedMemberId?.toString() ?? ''
         dueDate.value = tk.dueDate ?? ''
         await loadDetails()
-        allTickets.value = await boards.listTickets(boardId.value)
+        allTickets.value = await api.listTickets()
         if (sessionInfo.value?.member) {
-            isWatching.value = (await boards.getWatchers(boardId.value, ticketId.value))
+            isWatching.value = (await api.getWatchers())
                 .includes(sessionInfo.value.member.id)
         }
     } catch {
@@ -145,14 +146,14 @@ async function loadData() {
 async function loadDetails() {
     try {
         const [cl, li, tr, hi, co, wl, at, fv] = await Promise.all([
-            boards.getChecklist(boardId.value, ticketId.value),
-            boards.getLinks(boardId.value, ticketId.value),
-            boards.getTransitions(boardId.value, ticketId.value),
-            boards.getHistory(boardId.value, ticketId.value),
-            boards.getComments(boardId.value, ticketId.value),
-            boards.getWeblinks(boardId.value, ticketId.value),
-            boards.getAttachments(boardId.value, ticketId.value),
-            boards.getFieldValues(boardId.value, ticketId.value),
+            api.getChecklist(),
+            api.getLinks(),
+            api.getTransitions(),
+            api.getHistory(),
+            api.getComments(),
+            api.getWeblinks(),
+            api.getAttachments(),
+            api.getFieldValues(),
         ])
         checklist.value = cl
         links.value = li
@@ -162,31 +163,31 @@ async function loadDetails() {
         weblinks.value = wl
         attachments.value = at
         fieldValues.value = Object.fromEntries(fv.map(v => [v.fieldId, !v.value ? null : v.fieldType === 'LANE_ASSIGNEE' ? (v.value.memberId ?? null) : (v.value.value ?? null)]))
-        ticketLabels.value = await boards.getTicketLabels(boardId.value, ticketId.value)
-        kbLinks.value = await boards.getKbLinks(boardId.value, ticketId.value)
+        ticketLabels.value = await api.getTicketLabels()
+        kbLinks.value = await api.getKbLinks()
     } catch { /* ignore */ }
 }
 
-async function saveTicket() { error.value = ''; try { await boards.updateTicket(boardId.value, ticketId.value, { title: title.value, description: description.value || null, assignedMemberId: assignedMemberId.value ? Number(assignedMemberId.value) : null, priority: priority.value, dueDate: dueDate.value || null }); ticket.value = await boards.getTicket(boardId.value, ticketId.value); await loadDetails() } catch { error.value = t('common.error') } }
-async function deleteTicket() { try { await boards.deleteTicket(boardId.value, ticketId.value); await router.push(`/station/boards/${boardId.value}`) } catch { error.value = t('common.error') } }
-async function moveTo(laneId: number) { try { await boards.moveTicket(boardId.value, ticketId.value, { toLaneId: laneId, position: 0 }); ticket.value = await boards.getTicket(boardId.value, ticketId.value); await loadDetails() } catch { /* ignore */ } }
-async function addChecklistItem() { if (!newChecklistTitle.value.trim()) return; try { await boards.addChecklistItem(boardId.value, ticketId.value, { title: newChecklistTitle.value.trim() }); newChecklistTitle.value = ''; await loadDetails() } catch { /* ignore */ } }
-async function toggleChecklistItem(item: BoardChecklistItem) { try { await boards.updateChecklistItem(boardId.value, ticketId.value, item.id, { title: item.title, checked: !item.checked }); await loadDetails() } catch { /* ignore */ } }
-async function reorderChecklist(fromIndex: number, toIndex: number) { const items = [...checklist.value]; const [moved] = items.splice(fromIndex, 1); items.splice(toIndex, 0, moved); checklist.value = items; try { await boards.reorderChecklist(boardId.value, ticketId.value, { orderedIds: items.map(i => i.id) }) } catch { await loadDetails() } }
-async function removeAllChecklistItems() { try { for (const item of checklist.value) { await boards.deleteChecklistItem(boardId.value, ticketId.value, item.id) }; showChecklist.value = false; await loadDetails() } catch { /* ignore */ } }
-async function removeChecklistItem(itemId: number) { try { await boards.deleteChecklistItem(boardId.value, ticketId.value, itemId); await loadDetails() } catch { /* ignore */ } }
-async function createComment(parentId: number | null, content: string) { try { await boards.createComment(boardId.value, ticketId.value, { parentId, content }); await loadDetails() } catch { /* ignore */ } }
-async function updateComment(commentId: number, content: string) { try { await boards.updateComment(boardId.value, ticketId.value, commentId, { content }); await loadDetails() } catch { /* ignore */ } }
+async function saveTicket() { error.value = ''; try { await api.updateTicket({ title: title.value, description: description.value || null, assignedMemberId: assignedMemberId.value ? Number(assignedMemberId.value) : null, priority: priority.value, dueDate: dueDate.value || null }); ticket.value = await api.getTicket(); await loadDetails() } catch { error.value = t('common.error') } }
+async function deleteTicketFn() { try { await api.deleteTicket(); await router.push(api.backRoute.value) } catch { error.value = t('common.error') } }
+async function moveTo(laneId: number) { try { await api.moveTicket({ toLaneId: laneId, position: 0 }); ticket.value = await api.getTicket(); await loadDetails() } catch { /* ignore */ } }
+async function addChecklistItem() { if (!newChecklistTitle.value.trim()) return; try { await api.addChecklistItem({ title: newChecklistTitle.value.trim() }); newChecklistTitle.value = ''; await loadDetails() } catch { /* ignore */ } }
+async function toggleChecklistItem(item: BoardChecklistItem) { try { await api.updateChecklistItem(item.id, { title: item.title, checked: !item.checked }); await loadDetails() } catch { /* ignore */ } }
+async function reorderChecklist(fromIndex: number, toIndex: number) { const items = [...checklist.value]; const [moved] = items.splice(fromIndex, 1); items.splice(toIndex, 0, moved); checklist.value = items; try { await api.reorderChecklist({ orderedIds: items.map(i => i.id) }) } catch { await loadDetails() } }
+async function removeAllChecklistItems() { try { for (const item of checklist.value) { await api.deleteChecklistItem(item.id) }; showChecklist.value = false; await loadDetails() } catch { /* ignore */ } }
+async function removeChecklistItem(itemId: number) { try { await api.deleteChecklistItem(itemId); await loadDetails() } catch { /* ignore */ } }
+async function createComment(parentId: number | null, content: string) { try { await api.createComment({ parentId, content }); await loadDetails() } catch { /* ignore */ } }
+async function updateComment(commentId: number, content: string) { try { await api.updateComment(commentId, { content }); await loadDetails() } catch { /* ignore */ } }
 
 // -- Field values --
 
 async function saveFieldValue(fieldId: number, fieldType: boards.BoardFieldTypeName, value: unknown) {
     try {
         if (value === null || value === undefined || value === '') {
-            await boards.deleteFieldValue(boardId.value, ticketId.value, fieldId)
+            await api.deleteFieldValue(fieldId)
             delete fieldValues.value[fieldId]
         } else {
-            await boards.setFieldValue(boardId.value, ticketId.value, fieldId, fieldType, value)
+            await api.setFieldValue(fieldId, fieldType, value)
             fieldValues.value[fieldId] = value
         }
     } catch { /* ignore */ }
@@ -195,18 +196,18 @@ async function saveFieldValue(fieldId: number, fieldType: boards.BoardFieldTypeN
 // -- KB Links --
 let kbSearchTimeout: ReturnType<typeof setTimeout> | null = null
 function onKbSearch() { if (kbSearchTimeout) clearTimeout(kbSearchTimeout); if (!kbSearchQuery.value.trim()) { kbSearchResults.value = []; return }; kbSearchTimeout = setTimeout(async () => { try { const results = await knowledgeBase.search(kbSearchQuery.value.trim(), { federated: false }); kbSearchResults.value = results.map(r => ({ id: r.file.id, title: r.file.name, path: r.folderPath })).filter(r => !kbLinks.value.some(l => l.kbFileId === r.id)) } catch { /* ignore */ } }, 300) }
-async function addKbLinkFn(kbFileId: number) { try { await boards.addKbLink(boardId.value, ticketId.value, kbFileId); kbLinks.value = await boards.getKbLinks(boardId.value, ticketId.value); kbSearchQuery.value = ''; kbSearchResults.value = []; showKbSearch.value = false } catch { /* ignore */ } }
-async function removeKbLinkFn(linkId: number) { try { await boards.removeKbLink(boardId.value, ticketId.value, linkId); kbLinks.value = await boards.getKbLinks(boardId.value, ticketId.value) } catch { /* ignore */ } }
+async function addKbLinkFn(kbFileId: number) { try { await boards.addKbLink(boardId.value, ticketId.value, kbFileId); kbLinks.value = await api.getKbLinks(); kbSearchQuery.value = ''; kbSearchResults.value = []; showKbSearch.value = false } catch { /* ignore */ } }
+async function removeKbLinkFn(linkId: number) { try { await boards.removeKbLink(boardId.value, ticketId.value, linkId); kbLinks.value = await api.getKbLinks() } catch { /* ignore */ } }
 
 // -- Labels --
-async function createAndAddLabel(name: string) { try { const label = await boards.createLabel(boardId.value, { name }); allLabels.value = await boards.getLabels(boardId.value); await boards.addTicketLabel(boardId.value, ticketId.value, label.id); ticketLabels.value = await boards.getTicketLabels(boardId.value, ticketId.value) } catch { /* ignore */ } }
+async function createAndAddLabel(name: string) { try { const label = await api.createLabel({ name }); allLabels.value = await api.getLabels(); await api.addTicketLabel(label.id); ticketLabels.value = await api.getTicketLabels() } catch { /* ignore */ } }
 async function toggleLabel(labelId: number) {
     try {
-        if (ticketLabels.value.some(l => l.id === labelId)) { await boards.removeTicketLabel(boardId.value, ticketId.value, labelId) }
-        else { await boards.addTicketLabel(boardId.value, ticketId.value, labelId) }
-        ticketLabels.value = await boards.getTicketLabels(boardId.value, ticketId.value)
-        ticketHistory.value = await boards.getHistory(boardId.value, ticketId.value)
-        kbLinks.value = await boards.getKbLinks(boardId.value, ticketId.value)
+        if (ticketLabels.value.some(l => l.id === labelId)) { await api.removeTicketLabel(labelId) }
+        else { await api.addTicketLabel(labelId) }
+        ticketLabels.value = await api.getTicketLabels()
+        ticketHistory.value = await api.getHistory()
+        kbLinks.value = await api.getKbLinks()
     } catch { /* ignore */ }
 }
 // -- File upload --
@@ -215,7 +216,7 @@ const fileInputRef = ref<InstanceType<typeof FileUploadButton> | null>(null)
 
 async function handleFileUpload(file: File) {
     try {
-        await boards.uploadAttachment(boardId.value, ticketId.value, file)
+        await api.uploadAttachment(file)
         await loadDetails()
     } catch { /* ignore */ }
 }
@@ -225,9 +226,9 @@ async function handleFileUpload(file: File) {
 async function toggleWatch() {
     try {
         if (isWatching.value) {
-            await boards.unwatchTicket(boardId.value, ticketId.value)
+            await api.unwatchTicket()
         } else {
-            await boards.watchTicket(boardId.value, ticketId.value)
+            await api.watchTicket()
         }
         isWatching.value = !isWatching.value
     } catch { /* ignore */ }
@@ -235,7 +236,7 @@ async function toggleWatch() {
 
 async function deleteCommentFn(commentId: number) {
     try {
-        await boards.deleteComment(boardId.value, ticketId.value, commentId)
+        await api.deleteComment(commentId)
         await loadDetails()
     } catch { /* ignore */ }
 }
@@ -274,7 +275,7 @@ watch(ticketId, loadData)
         <Alert v-else-if="error && !ticket" variant="error">{{ error }}</Alert>
         <template v-else-if="board && ticket">
             <div class="flex items-center gap-3 mb-6">
-                <IconButton :icon="['fas', 'chevron-left']" label="Back" @click="router.push(`/station/boards/${board.id}`)" />
+                <IconButton :icon="['fas', 'chevron-left']" label="Back" @click="router.push(api.backRoute.value)" />
                 <span class="font-mono text-[var(--text-muted)]">{{ board.shortKey }}-{{ ticket.ticketNumber }}</span>
                 <div class="ml-auto flex items-center gap-1">
                     <IconButton
@@ -490,7 +491,7 @@ watch(ticketId, loadData)
                 <SubHeader class="mb-4">{{ t('common.delete') }}</SubHeader>
                 <p class="mb-4">Soll dieses Ticket wirklich gelöscht werden?</p>
                 <div class="flex justify-end gap-2">
-                    <DeleteButton @click="deleteTicket">{{ t('common.delete') }}</DeleteButton>
+                    <DeleteButton @click="deleteTicketFn">{{ t('common.delete') }}</DeleteButton>
                 </div>
             </Modal>
         </template>

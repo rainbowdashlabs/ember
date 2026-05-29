@@ -166,9 +166,21 @@ public class BoardTicketService {
     }
 
     public boolean moveTicket(int ticketId, int fromLaneId, int toLaneId, int position, int movedBy) {
+        return moveTicket(ticketId, fromLaneId, toLaneId, position, movedBy, null, null);
+    }
+
+    public boolean moveTicket(
+            int ticketId,
+            int fromLaneId,
+            int toLaneId,
+            int position,
+            Integer movedBy,
+            UUID federatedStationId,
+            UUID federatedMemberId) {
         boolean moved = ticketRepository.moveTicket(ticketId, toLaneId, position);
         if (moved) {
-            ticketRepository.logTransition(ticketId, fromLaneId, toLaneId, movedBy);
+            ticketRepository.logTransition(
+                    ticketId, fromLaneId, toLaneId, movedBy, federatedStationId, federatedMemberId);
             var ticket = ticketRepository.findById(ticketId).orElse(null);
             var toLane = ticket != null
                     ? boardRepository.findLanes(ticket.boardId()).stream()
@@ -418,7 +430,12 @@ public class BoardTicketService {
     // -- History --
 
     public void logHistory(int ticketId, String action, String detail, int actorMemberId) {
-        ticketRepository.logHistory(ticketId, action, detail, actorMemberId);
+        ticketRepository.logHistory(ticketId, action, detail, actorMemberId, null, null);
+    }
+
+    public void logHistory(
+            int ticketId, String action, String detail, UUID federatedStationId, UUID federatedMemberId) {
+        ticketRepository.logHistory(ticketId, action, detail, null, federatedStationId, federatedMemberId);
     }
 
     public List<BoardTicketHistory> findHistory(int ticketId) {

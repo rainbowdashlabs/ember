@@ -20,6 +20,7 @@ import jakarta.inject.Singleton;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 /**
  * Manages board sharing configuration and federated operations on the owning station.
@@ -104,7 +105,7 @@ public class FederatedBoardService {
 
     // -- Federated Assignees --
 
-    public void setFederatedAssignee(int ticketId, int partnerId, String remoteMemberId) {
+    public void setFederatedAssignee(int ticketId, int partnerId, UUID remoteMemberId) {
         repository.setFederatedAssignee(ticketId, partnerId, remoteMemberId);
     }
 
@@ -118,7 +119,7 @@ public class FederatedBoardService {
 
     // -- Federated Comment Authors --
 
-    public void setFederatedCommentAuthor(int commentId, int partnerId, String remoteMemberId) {
+    public void setFederatedCommentAuthor(int commentId, int partnerId, UUID remoteMemberId) {
         repository.setFederatedCommentAuthor(commentId, partnerId, remoteMemberId);
     }
 
@@ -128,7 +129,7 @@ public class FederatedBoardService {
 
     // -- Federated Creators --
 
-    public void setFederatedCreator(int ticketId, int partnerId, String remoteMemberId) {
+    public void setFederatedCreator(int ticketId, int partnerId, UUID remoteMemberId) {
         repository.setFederatedCreator(ticketId, partnerId, remoteMemberId);
     }
 
@@ -138,11 +139,11 @@ public class FederatedBoardService {
 
     // -- Federated Watchers --
 
-    public void addFederatedWatcher(int ticketId, int partnerId, String remoteMemberId) {
+    public void addFederatedWatcher(int ticketId, int partnerId, UUID remoteMemberId) {
         repository.addFederatedWatcher(ticketId, partnerId, remoteMemberId);
     }
 
-    public void removeFederatedWatcher(int ticketId, int partnerId, String remoteMemberId) {
+    public void removeFederatedWatcher(int ticketId, int partnerId, UUID remoteMemberId) {
         repository.removeFederatedWatcher(ticketId, partnerId, remoteMemberId);
     }
 
@@ -150,7 +151,7 @@ public class FederatedBoardService {
         return repository.findFederatedWatchers(ticketId);
     }
 
-    public boolean isFederatedWatching(int ticketId, int partnerId, String remoteMemberId) {
+    public boolean isFederatedWatching(int ticketId, int partnerId, UUID remoteMemberId) {
         return repository.isFederatedWatching(ticketId, partnerId, remoteMemberId);
     }
 

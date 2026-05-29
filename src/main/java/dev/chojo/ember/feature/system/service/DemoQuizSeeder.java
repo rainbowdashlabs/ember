@@ -8,8 +8,8 @@ package dev.chojo.ember.feature.system.service;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.chojo.ember.feature.media.service.ImageCategory;
 import dev.chojo.ember.feature.media.service.ImageService;
-import dev.chojo.ember.feature.quiz.entity.QuestionType;
 import dev.chojo.ember.feature.quiz.entity.QuizQuestion;
+import dev.chojo.ember.feature.quiz.entity.QuizQuestionType;
 import dev.chojo.ember.feature.quiz.repository.QuizCatalogRepository;
 import dev.chojo.ember.feature.quiz.repository.QuizTestRepository;
 import dev.chojo.ember.feature.quiz.service.QuizService;
@@ -622,7 +622,7 @@ public class DemoQuizSeeder {
         var imageTextQuestion = quizCatalogRepository.createQuestion(
                 showcaseCatalog.id(),
                 catShowcase.id(),
-                QuestionType.IMAGE_TEXT,
+                QuizQuestionType.IMAGE_TEXT,
                 "Was siehst du auf dem Bild?",
                 "Beschreibe das abgebildete Logo.",
                 "uploaded",
@@ -740,7 +740,7 @@ public class DemoQuizSeeder {
     private String generateShowcaseAnswer(QuizQuestion q) {
         try {
             var cfg = q.configNode();
-            return switch (q.questionType()) {
+            return switch (q.quizQuestionType()) {
                 case MULTIPLE_CHOICE -> {
                     // Select all correct options
                     var options = cfg.get("options");
@@ -828,7 +828,7 @@ public class DemoQuizSeeder {
     private String generateDemoAnswer(QuizQuestion q, boolean correct) {
         try {
             var cfg = q.configNode();
-            return switch (q.questionType()) {
+            return switch (q.quizQuestionType()) {
                 case MULTIPLE_CHOICE -> {
                     var options = cfg.get("options");
                     if (options == null) yield null;
@@ -934,7 +934,7 @@ public class DemoQuizSeeder {
         quizCatalogRepository.createQuestion(
                 catalogId,
                 categoryId,
-                QuestionType.MULTIPLE_CHOICE,
+                QuizQuestionType.MULTIPLE_CHOICE,
                 title,
                 "",
                 null,
@@ -947,7 +947,7 @@ public class DemoQuizSeeder {
     private void createTfQuestion(int catalogId, int categoryId, String title, int position, boolean correctAnswer) {
         var config = "{\"correctAnswer\":" + correctAnswer + "}";
         quizCatalogRepository.createQuestion(
-                catalogId, categoryId, QuestionType.TRUE_FALSE, title, "", null, 1, true, config, position);
+                catalogId, categoryId, QuizQuestionType.TRUE_FALSE, title, "", null, 1, true, config, position);
     }
 
     private void createFreeQuestion(
@@ -965,7 +965,7 @@ public class DemoQuizSeeder {
         quizCatalogRepository.createQuestion(
                 catalogId,
                 categoryId,
-                QuestionType.FREE_ANSWER,
+                QuizQuestionType.FREE_ANSWER,
                 title,
                 "",
                 null,
@@ -990,7 +990,7 @@ public class DemoQuizSeeder {
         quizCatalogRepository.createQuestion(
                 catalogId,
                 categoryId,
-                QuestionType.CONNECT,
+                QuizQuestionType.CONNECT,
                 title,
                 "",
                 null,
@@ -1010,7 +1010,7 @@ public class DemoQuizSeeder {
         quizCatalogRepository.createQuestion(
                 catalogId,
                 categoryId,
-                QuestionType.ORDERING,
+                QuizQuestionType.ORDERING,
                 title,
                 "",
                 null,
@@ -1038,7 +1038,7 @@ public class DemoQuizSeeder {
         quizCatalogRepository.createQuestion(
                 catalogId,
                 categoryId,
-                QuestionType.FILL_IN_THE_BLANK,
+                QuizQuestionType.FILL_IN_THE_BLANK,
                 title,
                 "",
                 null,
@@ -1072,7 +1072,7 @@ public class DemoQuizSeeder {
         quizCatalogRepository.createQuestion(
                 catalogId,
                 categoryId,
-                QuestionType.FILL_IN_THE_BLANK,
+                QuizQuestionType.FILL_IN_THE_BLANK,
                 title,
                 "",
                 null,

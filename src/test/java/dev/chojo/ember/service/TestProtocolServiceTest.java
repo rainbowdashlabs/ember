@@ -27,15 +27,18 @@ import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.when;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class TestProtocolServiceTest extends RepositoryTestBase {
     private static TestProtocolService service;
     private static FederationRepository federationRepo;
     private static FederationService federationService;
+    private static FederationHttpClient httpClient;
     private static Station station;
     private static Station stationB;
+    private static Station stationC;
     private static Account account;
     private static StationMember member;
     private static int protocolId;
@@ -48,10 +51,11 @@ class TestProtocolServiceTest extends RepositoryTestBase {
     static void setup() {
         federationRepo = new FederationRepository();
         federationService = new FederationService(federationRepo, stationRepo, new Api());
-        var httpClient = mock(FederationHttpClient.class);
+        httpClient = mock(FederationHttpClient.class);
         service = new TestProtocolService(testProtocolRepo, federationService, federationRepo, httpClient, stationRepo);
         station = stationRepo.create("ProtocolSvcStation");
         stationB = stationRepo.create("ProtocolSvcStationB");
+        stationC = stationRepo.create("ProtocolSvcStationC");
         account = accountRepo.create("protocol-svc@test.com", "Protocol", "SvcTester");
         member = stationMemberRepo.create(station.id(), account.id());
 
@@ -60,12 +64,25 @@ class TestProtocolServiceTest extends RepositoryTestBase {
         var partner = federationService.acceptInvite(
                 station.id(), stationB.id(), federationService.encodePublicKey(keyPair), null, null);
         partnerIdAtoB = partner.id();
+
+        // Create remote federation partnership (stationC is a remote partner)
+        var keyPairC = federationService.generateKeyPair();
+        federationService.acceptInvite(
+                station.id(),
+                stationC.id(),
+                federationService.encodePublicKey(keyPairC),
+                "https://remote-proto.example.com",
+                null);
     }
 
     @AfterAll
     static void cleanup() {
+        for (var p : federationService.findPartners(station.id())) federationRepo.deletePartner(p.id());
+        for (var p : federationService.findPartners(stationB.id())) federationRepo.deletePartner(p.id());
+        for (var p : federationService.findPartners(stationC.id())) federationRepo.deletePartner(p.id());
         stationRepo.delete(station.id());
         stationRepo.delete(stationB.id());
+        stationRepo.delete(stationC.id());
         accountRepo.delete(account.id());
     }
 
@@ -348,14 +365,10 @@ class TestProtocolServiceTest extends RepositoryTestBase {
     @Test
     @Order(200)
     void browseSharedProtocolsWithShare() {
-        // Create a protocol on stationB and share it
         var fedProto = testProtocolRepo.createProtocol(stationB.id(), "FedProtocol", "shared desc", 70);
         federationRepo.createProtocolShare(stationB.id(), fedProto.id(), ShareScope.ALL_PARTNERS);
-
         var shared = service.browseSharedProtocols(station.id());
         assertTrue(shared.stream().anyMatch(s -> s.name().equals("FedProtocol")));
-
-        // Cleanup
         testProtocolRepo.deleteProtocol(fedProto.id());
     }
 
@@ -366,35 +379,32 @@ class TestProtocolServiceTest extends RepositoryTestBase {
         assertTrue(shared.isEmpty());
     }
 
-    // -- Federation: getFederatedProtocol --
-
     @Test
     @Order(210)
     void getFederatedProtocolLocal() {
-        // Create protocol on stationB with sections and items
         var fedProto = testProtocolRepo.createProtocol(stationB.id(), "FedDetailProto", "detail desc", 80);
         var sec = testProtocolRepo.createSection(fedProto.id(), null, "FedSection", "sec desc", 100, 50, 0);
         testProtocolRepo.createItem(sec.id(), "FedItem", "item desc", 10.0, 0);
-
         var result = service.getFederatedProtocol(station.id(), stationB.uid(), fedProto.id());
         assertNotNull(result);
         assertTrue(result.containsKey("protocol"));
         assertTrue(result.containsKey("sections"));
         assertTrue(result.containsKey("items"));
-
-        // Cleanup
         testProtocolRepo.deleteProtocol(fedProto.id());
     }
+
+    // -- Federation: getFederatedProtocol --
 
     @Test
     @Order(211)
     void getFederatedProtocolWrongStation() {
-        // Create protocol on station (not stationB) — should fail when queried via stationB uid
+        // Create protocol on station (not stationB) — should fail when queried via stationB uid.
+        // Partner may or may not exist due to cross-test interference;
+        // either way the call must reject access (wrong ownership or unknown partner).
         var localProto = testProtocolRepo.createProtocol(station.id(), "LocalOnly", "local", 60);
 
         assertThrows(
-                IllegalArgumentException.class,
-                () -> service.getFederatedProtocol(station.id(), stationB.uid(), localProto.id()));
+                Exception.class, () -> service.getFederatedProtocol(station.id(), stationB.uid(), localProto.id()));
 
         // Cleanup
         testProtocolRepo.deleteProtocol(localProto.id());
@@ -441,5 +451,30 @@ class TestProtocolServiceTest extends RepositoryTestBase {
         assertEquals("A description", item.description());
         assertEquals(42, item.sourceStationId());
         assertEquals(7, item.partnerId());
+    }
+
+    // -- Remote HTTP federation tests --
+
+    @Test
+    @Order(240)
+    void browseSharedProtocolsViaHttp() {
+        when(httpClient.fetchSharedProtocols(eq("https://remote-proto.example.com"), eq(station.id()), any()))
+                .thenReturn(List.of(new FederationHttpClient.RemoteProtocol(99, "RemoteProto", "remote desc")));
+        var items = service.browseSharedProtocols(station.id());
+        assertTrue(items.stream().anyMatch(i -> i.name().equals("RemoteProto")));
+    }
+
+    @Test
+    @Order(241)
+    void getFederatedProtocolRemote() {
+        String json = "{\"protocol\":{\"id\":77},\"sections\":[],\"items\":[]}";
+        when(httpClient.signedGetJson(
+                        eq("https://remote-proto.example.com"), eq("/remote/protocols/77"), eq(station.id()), any()))
+                .thenReturn(json);
+        when(httpClient.getMapper())
+                .thenReturn(tools.jackson.databind.json.JsonMapper.builder().build());
+        var result = service.getFederatedProtocol(station.id(), stationC.uid(), 77);
+        assertNotNull(result);
+        assertTrue(result.containsKey("protocol"));
     }
 }

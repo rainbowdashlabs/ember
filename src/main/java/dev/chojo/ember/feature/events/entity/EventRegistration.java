@@ -45,14 +45,4 @@ public record EventRegistration(
                 row.get("created_at", INSTANT_TIMESTAMP),
                 row.getObject("created_by", Integer.class));
     }
-
-    /**
-     * The possible states of an event registration.
-     */
-    public enum RegistrationStatus {
-        PENDING,
-        ACCEPTED,
-        DENIED,
-        DECLINED
-    }
 }

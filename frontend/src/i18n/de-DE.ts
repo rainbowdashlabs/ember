@@ -3137,6 +3137,7 @@ volumes:
         accepted: 'zugesagt',
         pendingCount: 'ausstehend',
         declinedCount: 'abgesagt',
+        loadMore: 'Weitere laden',
     },
     events: {
         today: 'Heute',
@@ -3813,6 +3814,8 @@ volumes:
         stationRegistration: 'Wachenregistrierung',
         stationRegistrationHint: 'Erlaubt neuen Nutzern, eine Wache über das Antragsformular zu beantragen.',
         saved: 'Einstellungen gespeichert.',
+        forcePrideFlag: 'Pride-Flagge erzwingen',
+        forcePrideFlagHint: 'Zeigt die Regenbogen-Flagge im Logo ganzjährig an. Im Juni und Juli wird sie automatisch angezeigt.',
         theme: {
             title: 'Instanz-Erscheinungsbild',
             hint: 'Standard-Farbschema und -Stil für alle Nutzer der Instanz. Wird von Wach- und Benutzer-Einstellungen überschrieben.',
@@ -4292,6 +4295,7 @@ volumes:
         lendingNewRequest: 'Neue Leihanfrage von {stationName}: {itemSummary}',
         lendingStatusChange: 'Leihanfrage von {stationName}: {status}',
         lendingNewMessage: 'Neue Nachricht von {senderName} ({stationName})',
+        registrationDeadlineExpired: '{eventName}: {pendingCount} offene Anmeldungen nach Fristende',
         typeLabel: {
             NEW_NEWS: 'Neuigkeit',
             NEWS_COMMENT: 'Kommentar',
@@ -4309,6 +4313,7 @@ volumes:
             LENDING_NEW_REQUEST: 'Neue Leihanfrage',
             LENDING_STATUS_CHANGE: 'Leihanfrage aktualisiert',
             LENDING_NEW_MESSAGE: 'Neue Nachricht',
+            REGISTRATION_DEADLINE_EXPIRED: 'Anmeldefrist abgelaufen',
         },
     },
     comments: {

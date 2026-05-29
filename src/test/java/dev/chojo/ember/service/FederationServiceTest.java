@@ -56,6 +56,8 @@ class FederationServiceTest extends RepositoryTestBase {
 
     @AfterAll
     static void cleanup() {
+        for (var p : service.findPartners(stationA.id())) federationRepo.deletePartner(p.id());
+        for (var p : service.findPartners(stationB.id())) federationRepo.deletePartner(p.id());
         stationRepo.delete(stationA.id());
         stationRepo.delete(stationB.id());
     }

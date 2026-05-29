@@ -13,7 +13,7 @@ import de.chojo.sadu.postgresql.mapper.PostgresqlMapper;
 import de.chojo.sadu.queries.api.configuration.QueryConfiguration;
 import de.chojo.sadu.updater.QueryReplacement;
 import de.chojo.sadu.updater.SqlUpdater;
-import dev.chojo.ember.feature.quiz.entity.QuestionType;
+import dev.chojo.ember.feature.quiz.entity.QuizQuestionType;
 import dev.chojo.ember.feature.quiz.repository.QuizCatalogRepository;
 import dev.chojo.ember.feature.quiz.repository.QuizTestRepository;
 import dev.chojo.ember.feature.quiz.service.QuizPdfService;
@@ -120,7 +120,7 @@ class QuizPdfExportTest {
         catalogRepo.createQuestion(
                 catalog.id(),
                 category.id(),
-                QuestionType.MULTIPLE_CHOICE,
+                QuizQuestionType.MULTIPLE_CHOICE,
                 "Welche Farbe hat ein Feuerwehrauto?",
                 "",
                 null,
@@ -133,7 +133,7 @@ class QuizPdfExportTest {
         catalogRepo.createQuestion(
                 catalog.id(),
                 category.id(),
-                QuestionType.TRUE_FALSE,
+                QuizQuestionType.TRUE_FALSE,
                 "Die Notrufnummer in Deutschland ist 112.",
                 "",
                 null,
@@ -146,7 +146,7 @@ class QuizPdfExportTest {
         catalogRepo.createQuestion(
                 catalog.id(),
                 category.id(),
-                QuestionType.FILL_IN_THE_BLANK,
+                QuizQuestionType.FILL_IN_THE_BLANK,
                 "Die Feuerwehr löscht ___ und rettet ___.",
                 "",
                 null,
@@ -159,7 +159,7 @@ class QuizPdfExportTest {
         catalogRepo.createQuestion(
                 catalog.id(),
                 category.id(),
-                QuestionType.FILL_IN_THE_BLANK,
+                QuizQuestionType.FILL_IN_THE_BLANK,
                 "Setze die richtigen Wörter ein.",
                 "",
                 null,
@@ -172,7 +172,7 @@ class QuizPdfExportTest {
         catalogRepo.createQuestion(
                 catalog.id(),
                 category.id(),
-                QuestionType.CONNECT,
+                QuizQuestionType.CONNECT,
                 "Ordne die Begriffe zu",
                 "",
                 null,
@@ -185,7 +185,7 @@ class QuizPdfExportTest {
         catalogRepo.createQuestion(
                 catalog.id(),
                 category.id(),
-                QuestionType.ORDERING,
+                QuizQuestionType.ORDERING,
                 "Bringe die Schritte in die richtige Reihenfolge",
                 "",
                 null,
@@ -198,7 +198,7 @@ class QuizPdfExportTest {
         catalogRepo.createQuestion(
                 catalog.id(),
                 category.id(),
-                QuestionType.FREE_ANSWER,
+                QuizQuestionType.FREE_ANSWER,
                 "Beschreibe die Aufgaben der Feuerwehr.",
                 "",
                 null,
@@ -211,7 +211,7 @@ class QuizPdfExportTest {
         catalogRepo.createQuestion(
                 catalog.id(),
                 category.id(),
-                QuestionType.IMAGE_TEXT,
+                QuizQuestionType.IMAGE_TEXT,
                 "Was siehst du auf dem Bild?",
                 "Beschreibe das Fahrzeug.",
                 null,

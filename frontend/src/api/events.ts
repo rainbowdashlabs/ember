@@ -25,8 +25,30 @@ import type {
 
 // -- Events --
 
-export async function listEvents(): Promise<StationEvent[]> {
-    const res = await client.get<StationEvent[]>('/events')
+export interface EventListParams {
+    categoryId?: number
+    requiresRegistration?: boolean
+}
+
+export interface UpcomingParams {
+    categoryId?: number
+    requiresRegistration?: boolean
+    limit?: number
+    offset?: number
+}
+
+export interface UpcomingEventOccurrence {
+    event: StationEvent
+    date: string
+}
+
+export async function listUpcomingOccurrences(params?: UpcomingParams): Promise<UpcomingEventOccurrence[]> {
+    const res = await client.get<UpcomingEventOccurrence[]>('/events/upcoming', { params })
+    return res.data
+}
+
+export async function listEvents(params?: EventListParams): Promise<StationEvent[]> {
+    const res = await client.get<StationEvent[]>('/events', { params })
     return res.data
 }
 

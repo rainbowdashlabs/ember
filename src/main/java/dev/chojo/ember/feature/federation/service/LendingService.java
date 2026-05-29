@@ -82,7 +82,7 @@ public class LendingService {
         return String.join(", ", parts);
     }
 
-    private void publishStatusChange(LendingRequest request, int actingStationId, String status) {
+    private void publishStatusChange(LendingRequest request, int actingStationId, LendingStatus status) {
         int targetStationId = request.requestingStationId() == actingStationId
                 ? request.owningStationId()
                 : request.requestingStationId();
@@ -135,7 +135,9 @@ public class LendingService {
         boolean updated = repository.updateRequestStatus(requestId, LendingStatus.APPROVED);
         if (updated) {
             repository.createMessage(requestId, stationId, null, "Anfrage genehmigt", true);
-            repository.findRequestById(requestId).ifPresent(r -> publishStatusChange(r, stationId, "APPROVED"));
+            repository
+                    .findRequestById(requestId)
+                    .ifPresent(r -> publishStatusChange(r, stationId, LendingStatus.APPROVED));
         }
         return updated;
     }
@@ -144,7 +146,9 @@ public class LendingService {
         boolean updated = repository.updateRequestStatus(requestId, LendingStatus.DECLINED);
         if (updated) {
             String msg = "Anfrage abgelehnt" + (reason != null && !reason.isBlank() ? ": " + reason : "");
-            repository.findRequestById(requestId).ifPresent(r -> publishStatusChange(r, stationId, "DECLINED"));
+            repository
+                    .findRequestById(requestId)
+                    .ifPresent(r -> publishStatusChange(r, stationId, LendingStatus.DECLINED));
             repository.createMessage(requestId, stationId, null, msg, true);
         }
         return updated;
@@ -154,7 +158,7 @@ public class LendingService {
         boolean updated = repository.updateRequestStatus(requestId, LendingStatus.LENT);
         if (updated) {
             repository.createMessage(requestId, stationId, null, "Ausrüstung ausgeliehen", true);
-            repository.findRequestById(requestId).ifPresent(r -> publishStatusChange(r, stationId, "LENT"));
+            repository.findRequestById(requestId).ifPresent(r -> publishStatusChange(r, stationId, LendingStatus.LENT));
         }
         return updated;
     }
@@ -163,7 +167,9 @@ public class LendingService {
         boolean updated = repository.updateRequestStatus(requestId, LendingStatus.RETURNED);
         if (updated) {
             repository.createMessage(requestId, stationId, null, "Ausrüstung zurückgegeben", true);
-            repository.findRequestById(requestId).ifPresent(r -> publishStatusChange(r, stationId, "RETURNED"));
+            repository
+                    .findRequestById(requestId)
+                    .ifPresent(r -> publishStatusChange(r, stationId, LendingStatus.RETURNED));
         }
         return updated;
     }
@@ -172,7 +178,9 @@ public class LendingService {
         boolean updated = repository.updateRequestStatus(requestId, LendingStatus.CLOSED);
         if (updated) {
             repository.createMessage(requestId, stationId, null, "Anfrage geschlossen", true);
-            repository.findRequestById(requestId).ifPresent(r -> publishStatusChange(r, stationId, "CLOSED"));
+            repository
+                    .findRequestById(requestId)
+                    .ifPresent(r -> publishStatusChange(r, stationId, LendingStatus.CLOSED));
         }
         return updated;
     }

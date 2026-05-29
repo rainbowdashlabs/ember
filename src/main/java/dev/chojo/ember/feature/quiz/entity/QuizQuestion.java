@@ -18,7 +18,7 @@ public record QuizQuestion(
         int id,
         int catalogId,
         Integer categoryId,
-        QuestionType questionType,
+        QuizQuestionType quizQuestionType,
         String title,
         String description,
         String imageUrl,
@@ -49,7 +49,7 @@ public record QuizQuestion(
 
     public static RowMapping<QuizQuestion> map() {
         return row -> {
-            var type = row.getEnum("question_type", QuestionType.class);
+            var type = row.getEnum("question_type", QuizQuestionType.class);
             String raw = row.getString("config");
             var config = type.parseConfig(raw != null ? raw : "{}");
             return new QuizQuestion(

@@ -8,7 +8,7 @@ package dev.chojo.ember.feature.system.service;
 import dev.chojo.ember.feature.form.entity.Form;
 import dev.chojo.ember.feature.form.entity.FormAnswerValue;
 import dev.chojo.ember.feature.form.entity.FormQuestionConfig;
-import dev.chojo.ember.feature.form.entity.QuestionType;
+import dev.chojo.ember.feature.form.entity.FormQuestionType;
 import dev.chojo.ember.feature.form.repository.FormRepository;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.restriction.RestrictionRepository;
@@ -63,7 +63,7 @@ public class DemoFormSeeder {
         formRepository.createQuestion(
                 survey.id(),
                 0,
-                QuestionType.RATING,
+                FormQuestionType.RATING,
                 "Wie zufrieden bist du insgesamt?",
                 "1 = sehr unzufrieden, 5 = sehr zufrieden",
                 true,
@@ -72,7 +72,7 @@ public class DemoFormSeeder {
         formRepository.createQuestion(
                 survey.id(),
                 1,
-                QuestionType.CHOICE,
+                FormQuestionType.CHOICE,
                 "Was gefällt dir am besten?",
                 "",
                 false,
@@ -87,7 +87,7 @@ public class DemoFormSeeder {
         formRepository.createQuestion(
                 survey.id(),
                 2,
-                QuestionType.TEXT,
+                FormQuestionType.TEXT,
                 "Hast du Verbesserungsvorschläge?",
                 "",
                 false,
@@ -120,7 +120,7 @@ public class DemoFormSeeder {
         formRepository.createQuestion(
                 survey.id(),
                 3,
-                QuestionType.DATE,
+                FormQuestionType.DATE,
                 "Wann bist du der Jugendfeuerwehr beigetreten?",
                 "",
                 false,
@@ -129,7 +129,7 @@ public class DemoFormSeeder {
         formRepository.createQuestion(
                 survey.id(),
                 4,
-                QuestionType.RANKING,
+                FormQuestionType.RANKING,
                 "Ordne die Aktivitäten nach Beliebtheit",
                 "",
                 false,
@@ -138,13 +138,13 @@ public class DemoFormSeeder {
         formRepository.createQuestion(
                 survey.id(),
                 5,
-                QuestionType.LIKERT,
+                FormQuestionType.LIKERT,
                 "Wie bewertest du die folgenden Bereiche?",
                 "",
                 false,
                 false,
                 FormQuestionConfig.parse(
-                        QuestionType.LIKERT,
+                        FormQuestionType.LIKERT,
                         "{\"statements\":[\"Ausrüstung\",\"Betreuung\",\"Abwechslung\"],\"scaleMin\":1,\"scaleMax\":5,\"scaleLabels\":[]}"));
 
         // Re-fetch questions after adding more
@@ -183,18 +183,18 @@ public class DemoFormSeeder {
         formRepository.createQuestion(
                 feedback.id(),
                 0,
-                QuestionType.CHOICE,
+                FormQuestionType.CHOICE,
                 "Würdest du wieder teilnehmen?",
                 "",
                 true,
                 false,
                 FormQuestionConfig.parse(
-                        QuestionType.CHOICE,
+                        FormQuestionType.CHOICE,
                         "{\"multiSelect\":false,\"dropdown\":false,\"allowOther\":false,\"options\":[\"Ja\",\"Vielleicht\",\"Nein\"],\"multiLimitType\":\"NONE\"}"));
         formRepository.createQuestion(
                 feedback.id(),
                 1,
-                QuestionType.TEXT,
+                FormQuestionType.TEXT,
                 "Was hat dir besonders gefallen?",
                 "",
                 false,
@@ -203,7 +203,7 @@ public class DemoFormSeeder {
         formRepository.createQuestion(
                 feedback.id(),
                 2,
-                QuestionType.RATING,
+                FormQuestionType.RATING,
                 "Gesamtbewertung",
                 "1 = schlecht, 10 = super",
                 true,
@@ -212,7 +212,7 @@ public class DemoFormSeeder {
         formRepository.createQuestion(
                 feedback.id(),
                 3,
-                QuestionType.DATE,
+                FormQuestionType.DATE,
                 "An welchem Datum warst du dabei?",
                 "",
                 false,
@@ -221,7 +221,7 @@ public class DemoFormSeeder {
         formRepository.createQuestion(
                 feedback.id(),
                 4,
-                QuestionType.RANKING,
+                FormQuestionType.RANKING,
                 "Was war am wichtigsten?",
                 "",
                 false,
@@ -230,13 +230,13 @@ public class DemoFormSeeder {
         formRepository.createQuestion(
                 feedback.id(),
                 5,
-                QuestionType.LIKERT,
+                FormQuestionType.LIKERT,
                 "Bewerte die folgenden Aspekte",
                 "",
                 true,
                 false,
                 FormQuestionConfig.parse(
-                        QuestionType.LIKERT,
+                        FormQuestionType.LIKERT,
                         "{\"statements\":[\"Organisation\",\"Lerninhalte\",\"Spaßfaktor\",\"Zeitdauer\"],\"scaleMin\":1,\"scaleMax\":5,\"scaleLabels\":[]}"));
 
         var feedbackQuestions = formRepository.findQuestions(feedback.id());
@@ -291,7 +291,7 @@ public class DemoFormSeeder {
         formRepository.createQuestion(
                 memberOnly.id(),
                 0,
-                QuestionType.RATING,
+                FormQuestionType.RATING,
                 "Wie wohl fühlst du dich in der Gruppe?",
                 "1 = gar nicht, 5 = sehr wohl",
                 true,
@@ -300,7 +300,7 @@ public class DemoFormSeeder {
         formRepository.createQuestion(
                 memberOnly.id(),
                 1,
-                QuestionType.TEXT,
+                FormQuestionType.TEXT,
                 "Was wünschst du dir für die nächsten Monate?",
                 "",
                 false,
@@ -309,13 +309,13 @@ public class DemoFormSeeder {
         formRepository.createQuestion(
                 memberOnly.id(),
                 2,
-                QuestionType.CHOICE,
+                FormQuestionType.CHOICE,
                 "Möchtest du an einem Wettbewerb teilnehmen?",
                 "",
                 true,
                 false,
                 FormQuestionConfig.parse(
-                        QuestionType.CHOICE,
+                        FormQuestionType.CHOICE,
                         "{\"multiSelect\":false,\"dropdown\":false,\"allowOther\":false,\"options\":[\"Ja, unbedingt!\",\"Vielleicht\",\"Nein, lieber nicht\"],\"multiLimitType\":\"NONE\"}"));
         restrictionRepository.setRestrictions(
                 RestrictionType.FORM.table(),
@@ -340,7 +340,7 @@ public class DemoFormSeeder {
         formRepository.createQuestion(
                 bothRoles.id(),
                 0,
-                QuestionType.DATE,
+                FormQuestionType.DATE,
                 "An welchem Wochenende passt es dir am besten?",
                 "",
                 true,
@@ -349,13 +349,13 @@ public class DemoFormSeeder {
         formRepository.createQuestion(
                 bothRoles.id(),
                 1,
-                QuestionType.CHOICE,
+                FormQuestionType.CHOICE,
                 "Kannst du beim Aufbau helfen?",
                 "",
                 false,
                 false,
                 FormQuestionConfig.parse(
-                        QuestionType.CHOICE,
+                        FormQuestionType.CHOICE,
                         "{\"multiSelect\":false,\"dropdown\":false,\"allowOther\":false,\"options\":[\"Ja\",\"Nein\",\"Vielleicht\"],\"multiLimitType\":\"NONE\"}"));
         restrictionRepository.setRestrictions(
                 RestrictionType.FORM.table(),
@@ -380,7 +380,7 @@ public class DemoFormSeeder {
         formRepository.createQuestion(
                 wettkampfForm.id(),
                 0,
-                QuestionType.RATING,
+                FormQuestionType.RATING,
                 "Wie fit fühlst du dich für den Wettkampf?",
                 "1 = gar nicht, 5 = top vorbereitet",
                 true,
@@ -389,7 +389,7 @@ public class DemoFormSeeder {
         formRepository.createQuestion(
                 wettkampfForm.id(),
                 1,
-                QuestionType.CHOICE,
+                FormQuestionType.CHOICE,
                 "Welche Disziplin möchtest du übernehmen?",
                 "",
                 true,
@@ -424,18 +424,18 @@ public class DemoFormSeeder {
         formRepository.createQuestion(
                 anfaengerForm.id(),
                 0,
-                QuestionType.LIKERT,
+                FormQuestionType.LIKERT,
                 "Bewerte deine bisherige Erfahrung",
                 "",
                 true,
                 false,
                 FormQuestionConfig.parse(
-                        QuestionType.LIKERT,
+                        FormQuestionType.LIKERT,
                         "{\"statements\":[\"Ich verstehe die Übungen\",\"Ich fühle mich willkommen\",\"Ich lerne viel Neues\"],\"scaleMin\":1,\"scaleMax\":5,\"scaleLabels\":[]}"));
         formRepository.createQuestion(
                 anfaengerForm.id(),
                 1,
-                QuestionType.TEXT,
+                FormQuestionType.TEXT,
                 "Was können wir für dich verbessern?",
                 "",
                 false,

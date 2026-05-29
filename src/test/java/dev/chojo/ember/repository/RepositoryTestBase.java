@@ -13,6 +13,7 @@ import de.chojo.sadu.postgresql.mapper.PostgresqlMapper;
 import de.chojo.sadu.queries.api.configuration.QueryConfiguration;
 import de.chojo.sadu.updater.QueryReplacement;
 import de.chojo.sadu.updater.SqlUpdater;
+import dev.chojo.ember.api.StationUidResolver;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.attendance.repository.AttendanceRepository;
 import dev.chojo.ember.feature.board.repository.BoardRepository;
@@ -64,7 +65,8 @@ import javax.sql.DataSource;
 @Tag("database")
 @Testcontainers
 public abstract class RepositoryTestBase {
-    private static final String SCHEMA = "ember";
+    private static final java.util.concurrent.atomic.AtomicInteger SCHEMA_COUNTER =
+            new java.util.concurrent.atomic.AtomicInteger(0);
 
     @Container
     static final PostgreSQLContainer<?> PG = new PostgreSQLContainer<>("postgres:17")
@@ -115,6 +117,8 @@ public abstract class RepositoryTestBase {
 
     @BeforeAll
     static void setupDatabase() throws Exception {
+        // Each test class gets its own schema to prevent cross-class interference
+        String SCHEMA = "ember_t" + SCHEMA_COUNTER.incrementAndGet();
         DatabaseConfig dbConfig = new DatabaseConfig() {
             @Override
             public String host() {
@@ -146,7 +150,7 @@ public abstract class RepositoryTestBase {
                 .configure(config ->
                         config.withConfig(dbConfig).currentSchema(SCHEMA).applicationName("EmberTest"))
                 .create()
-                .withMaximumPoolSize(2)
+                .withMaximumPoolSize(5)
                 .build();
 
         SqlUpdater.builder(dataSource, PostgreSql.get())
@@ -159,6 +163,7 @@ public abstract class RepositoryTestBase {
                 .setRowMapperRegistry(new RowMapperRegistry().register(PostgresqlMapper.getDefaultMapper()))
                 .build();
         QueryConfiguration.setDefault(config);
+        StationUidResolver.instance().clearCache();
 
         accountRepo = new AccountRepository();
         stationRepo = new StationRepository();

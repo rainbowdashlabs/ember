@@ -8,7 +8,8 @@ package dev.chojo.ember.feature.form.entity;
 /**
  * Supported question types for form questions.
  */
-public enum QuestionType {
+@io.javalin.openapi.OpenApiName("FormQuestionType")
+public enum FormQuestionType {
     CHOICE(FormAnswerValue.Choice.class, FormQuestionConfig.Choice.class),
     TEXT(FormAnswerValue.Text.class, FormQuestionConfig.Text.class),
     RATING(FormAnswerValue.Rating.class, FormQuestionConfig.Rating.class),
@@ -20,7 +21,7 @@ public enum QuestionType {
     private final Class<? extends FormAnswerValue> answerClass;
     private final Class<? extends FormQuestionConfig> questionClass;
 
-    QuestionType(Class<? extends FormAnswerValue> answerClass, Class<? extends FormQuestionConfig> questionClass) {
+    FormQuestionType(Class<? extends FormAnswerValue> answerClass, Class<? extends FormQuestionConfig> questionClass) {
         this.answerClass = answerClass;
         this.questionClass = questionClass;
     }

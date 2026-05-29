@@ -19,8 +19,8 @@ import dev.chojo.ember.feature.attendance.entity.AttendanceFieldType;
 import dev.chojo.ember.feature.attendance.repository.AttendanceRepository;
 import dev.chojo.ember.feature.events.entity.EventFieldConfig;
 import dev.chojo.ember.feature.events.entity.EventFieldType;
-import dev.chojo.ember.feature.events.entity.EventRegistration;
 import dev.chojo.ember.feature.events.entity.EventTemplateFieldData;
+import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventFieldRepository;
 import dev.chojo.ember.feature.events.repository.EventRepository;
@@ -961,11 +961,7 @@ public class DemoService {
         LocalDate todayDate = LocalDate.now();
         for (int i = 0; i < 5 && i < anfaengerMembers.size(); i++) {
             eventRepository.createRegistration(
-                    theorieabend.id(),
-                    anfaengerMembers.get(i).id(),
-                    todayDate,
-                    EventRegistration.RegistrationStatus.DECLINED,
-                    null);
+                    theorieabend.id(), anfaengerMembers.get(i).id(), todayDate, RegistrationStatus.DECLINED, null);
         }
 
         // -- Registration-required events --
@@ -1041,44 +1037,32 @@ public class DemoService {
                     tagDerOffenenTuer.id(),
                     fortgeschrittenMembers.get(i).id(),
                     tagDate,
-                    EventRegistration.RegistrationStatus.ACCEPTED,
+                    RegistrationStatus.ACCEPTED,
                     null);
         }
         for (int i = 0; i < 5 && i < anfaengerMembers.size(); i++) {
             eventRepository.createRegistration(
-                    stadtfest.id(),
-                    anfaengerMembers.get(i).id(),
-                    stadtfestDate,
-                    EventRegistration.RegistrationStatus.ACCEPTED,
-                    null);
+                    stadtfest.id(), anfaengerMembers.get(i).id(), stadtfestDate, RegistrationStatus.ACCEPTED, null);
         }
         for (int i = 0; i < 3 && i < fortgeschrittenMembers.size(); i++) {
             eventRepository.createRegistration(
                     stadtfest.id(),
                     fortgeschrittenMembers.get(i).id(),
                     stadtfestDate,
-                    EventRegistration.RegistrationStatus.ACCEPTED,
+                    RegistrationStatus.ACCEPTED,
                     null);
         }
         // Some pending registrations for Kreiswettbewerb
         LocalDate kwDate = LocalDate.now().plusMonths(2).withDayOfMonth(20);
         for (int i = 0; i < 6 && i < fortgeschrittenMembers.size(); i++) {
             eventRepository.createRegistration(
-                    kreisWettbewerb.id(),
-                    fortgeschrittenMembers.get(i).id(),
-                    kwDate,
-                    EventRegistration.RegistrationStatus.PENDING,
-                    null);
+                    kreisWettbewerb.id(), fortgeschrittenMembers.get(i).id(), kwDate, RegistrationStatus.PENDING, null);
         }
 
         // Declined registrations for Stadtfest
         for (int i = 5; i < 8 && i < anfaengerMembers.size(); i++) {
             eventRepository.createRegistration(
-                    stadtfest.id(),
-                    anfaengerMembers.get(i).id(),
-                    stadtfestDate,
-                    EventRegistration.RegistrationStatus.DECLINED,
-                    null);
+                    stadtfest.id(), anfaengerMembers.get(i).id(), stadtfestDate, RegistrationStatus.DECLINED, null);
         }
         // Declined registrations for Kreiswettbewerb
         for (int i = 6; i < 9 && i < fortgeschrittenMembers.size(); i++) {
@@ -1086,17 +1070,13 @@ public class DemoService {
                     kreisWettbewerb.id(),
                     fortgeschrittenMembers.get(i).id(),
                     kwDate,
-                    EventRegistration.RegistrationStatus.DECLINED,
+                    RegistrationStatus.DECLINED,
                     null);
         }
         // Denied registration for Tag der offenen Tür
         if (anfaengerMembers.size() > 9) {
             eventRepository.createRegistration(
-                    tagDerOffenenTuer.id(),
-                    anfaengerMembers.get(9).id(),
-                    tagDate,
-                    EventRegistration.RegistrationStatus.DENIED,
-                    null);
+                    tagDerOffenenTuer.id(), anfaengerMembers.get(9).id(), tagDate, RegistrationStatus.DENIED, null);
         }
 
         // -- Öffentlichkeitsarbeit events --
@@ -1167,9 +1147,7 @@ public class DemoService {
             int acceptOffset = e * 3; // shift which members get accepted each event
             for (int i = 0; i < count; i++) {
                 int rotatedIdx = (i + acceptOffset) % allMembers.size();
-                var status = i < 6
-                        ? EventRegistration.RegistrationStatus.ACCEPTED
-                        : EventRegistration.RegistrationStatus.DENIED;
+                var status = i < 6 ? RegistrationStatus.ACCEPTED : RegistrationStatus.DENIED;
                 eventRepository.createRegistration(
                         oeEvent.id(), allMembers.get(rotatedIdx).id(), eventDate, status, null);
             }
@@ -1227,9 +1205,7 @@ public class DemoService {
         // 14 registrations: 6 accepted, 8 pending (not yet confirmed)
         int openCount = Math.min(14, allMembers.size());
         for (int i = 0; i < openCount; i++) {
-            var status = i < 6
-                    ? EventRegistration.RegistrationStatus.ACCEPTED
-                    : EventRegistration.RegistrationStatus.PENDING;
+            var status = i < 6 ? RegistrationStatus.ACCEPTED : RegistrationStatus.PENDING;
             eventRepository.createRegistration(oeOpen.id(), allMembers.get(i).id(), openDate, status, null);
         }
 

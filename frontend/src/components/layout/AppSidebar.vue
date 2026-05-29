@@ -4,6 +4,9 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
+import PrideText from '@/components/display/PrideText.vue'
+import {usePride} from '@/composables/usePride'
+
 defineProps<{
   open: boolean
   stationName?: string
@@ -13,6 +16,8 @@ defineProps<{
 defineEmits<{
   close: []
 }>()
+
+const {prideActive, prideVariant} = usePride()
 </script>
 
 <template>
@@ -31,7 +36,7 @@ defineEmits<{
     <div class="flex items-center gap-3 h-14 px-4 border-b border-bg-light dark:border-bg-dark shrink-0">
       <img :src="stationLogoUrl || '/api/v1/public/logo/IconBG?size=128'" alt="Ember" class="h-8 w-8 rounded object-contain shrink-0"/>
       <div class="flex flex-col justify-center">
-        <span class="text-lg font-bold text-primary leading-tight">Ember</span>
+        <PrideText :active="prideActive" :variant="prideVariant" class="text-lg font-bold text-primary leading-tight">Ember</PrideText>
         <span v-if="stationName" class="text-xs text-(--text-muted) leading-tight">{{ stationName }}</span>
       </div>
     </div>

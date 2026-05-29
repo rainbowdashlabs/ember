@@ -79,7 +79,7 @@ onMounted(loadData)
             </div>
 
             <div v-if="allLabels.length > 0" class="flex flex-wrap gap-1 mb-4 items-center">
-                <span v-for="label in allLabels" :key="label.id" class="text-xs px-2 py-0.5 rounded-full cursor-pointer transition-all" :class="labelFilter.has(label.id) ? 'ring-2 ring-offset-1 ring-[var(--text)]' : 'opacity-70 hover:opacity-100'" :style="{ backgroundColor: label.color, color: 'white' }" @click="toggleLabelFilter(label.id)">{{ label.name }}</span>
+                <span v-for="label in allLabels" :key="label.id" class="text-xs px-2 py-0.5 rounded-full cursor-pointer transition-all" :class="labelFilter.has(label.id) ? 'ring-2 ring-offset-1 ring-[var(--text)]' : 'opacity-70 hover:opacity-100'" :style="{ backgroundColor: label.color, color: contrastTextColor(label.color) }" @click="toggleLabelFilter(label.id)">{{ label.name }}</span>
                 <span v-if="labelFilter.size > 0" class="text-xs text-(--text-muted) cursor-pointer ml-1" @click="labelFilter = new Set()"><font-awesome-icon :icon="['fas', 'xmark']" class="text-[0.6rem]" /></span>
             </div>
 

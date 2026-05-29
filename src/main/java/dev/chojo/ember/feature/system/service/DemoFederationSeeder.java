@@ -21,7 +21,7 @@ import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseService;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.protocol.service.TestProtocolService;
 import dev.chojo.ember.feature.quiz.entity.QuestionConfig;
-import dev.chojo.ember.feature.quiz.entity.QuestionType;
+import dev.chojo.ember.feature.quiz.entity.QuizQuestionType;
 import dev.chojo.ember.feature.quiz.service.QuizService;
 import dev.chojo.ember.feature.station.entity.DiscoveryVisibility;
 import dev.chojo.ember.feature.station.repository.StationRepository;
@@ -223,7 +223,7 @@ public class DemoFederationSeeder {
         quizService.createQuestion(
                 partnerCatalog.id(),
                 partnerCategory.id(),
-                QuestionType.MULTIPLE_CHOICE,
+                QuizQuestionType.MULTIPLE_CHOICE,
                 "Was bedeutet RLBS?",
                 "Die vier Grundaufgaben der Feuerwehr",
                 null,
@@ -239,7 +239,7 @@ public class DemoFederationSeeder {
         quizService.createQuestion(
                 partnerCatalog.id(),
                 partnerCategory.id(),
-                QuestionType.TRUE_FALSE,
+                QuizQuestionType.TRUE_FALSE,
                 "Der Notruf 112 ist kostenlos",
                 "Gilt in ganz Europa",
                 null,

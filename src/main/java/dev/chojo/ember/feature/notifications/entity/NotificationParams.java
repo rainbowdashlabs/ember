@@ -6,6 +6,9 @@
 package dev.chojo.ember.feature.notifications.entity;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import dev.chojo.ember.feature.events.entity.RegistrationStatus;
+import dev.chojo.ember.feature.federation.entity.LendingStatus;
+import dev.chojo.ember.feature.inventory.entity.ExchangeStatus;
 
 /**
  * Sealed interface for type-safe notification parameters.
@@ -20,12 +23,13 @@ public sealed interface NotificationParams {
 
     record NewEvent(String title, String eventDescription) implements NotificationParams {}
 
-    record EventRegistrationStatus(String eventName, String status, String eventDescription)
+    record EventRegistrationStatus(String eventName, RegistrationStatus status, String eventDescription)
             implements NotificationParams {}
 
     record ExchangeNewRequest(String memberName, String inventoryName, String reason) implements NotificationParams {}
 
-    record ExchangeStatusChange(String status, String inventoryName, String reason) implements NotificationParams {}
+    record ExchangeStatusChange(ExchangeStatus status, String inventoryName, String reason)
+            implements NotificationParams {}
 
     record MemberAddedToGroup(String groupName) implements NotificationParams {}
 
@@ -48,7 +52,9 @@ public sealed interface NotificationParams {
 
     record LendingNewRequest(String stationName, String itemSummary) implements NotificationParams {}
 
-    record LendingStatusChange(String stationName, String status) implements NotificationParams {}
+    record LendingStatusChange(String stationName, LendingStatus status) implements NotificationParams {}
 
     record LendingNewMessage(String stationName, String senderName) implements NotificationParams {}
+
+    record RegistrationDeadlineExpired(String eventName, int pendingCount) implements NotificationParams {}
 }

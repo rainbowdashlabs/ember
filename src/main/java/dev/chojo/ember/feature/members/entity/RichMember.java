@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.members.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
+import de.chojo.sadu.queries.converter.StandardValueConverter;
 import org.slf4j.Logger;
 import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.ObjectMapper;
@@ -13,6 +14,7 @@ import tools.jackson.databind.json.JsonMapper;
 
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import static org.slf4j.LoggerFactory.getLogger;
 
@@ -22,6 +24,7 @@ import static org.slf4j.LoggerFactory.getLogger;
  *
  * @param id            the station member identifier
  * @param stationId     the station this member belongs to
+ * @param uid           the stable UUID for federation identity
  * @param accountId     the linked account identifier, or null for decoupled former members
  * @param name          the display name (from account first/last name or display_name fallback)
  * @param email         the account email address
@@ -34,6 +37,7 @@ import static org.slf4j.LoggerFactory.getLogger;
 public record RichMember(
         int id,
         int stationId,
+        UUID uid,
         Integer accountId,
         String name,
         String email,
@@ -57,6 +61,7 @@ public record RichMember(
         return row -> new RichMember(
                 row.getInt("id"),
                 row.getInt("station_id"),
+                row.get("uid", StandardValueConverter.UUID_STRING),
                 row.getObject("account_id", Integer.class),
                 row.getString("name"),
                 row.getString("email"),

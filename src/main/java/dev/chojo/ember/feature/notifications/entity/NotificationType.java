@@ -28,7 +28,9 @@ public enum NotificationType {
     LENDING_NEW_REQUEST(NotificationParams.LendingNewRequest.class, "notification.lendingNewRequest"),
     LENDING_STATUS_CHANGE(NotificationParams.LendingStatusChange.class, "notification.lendingStatusChange"),
     LENDING_NEW_MESSAGE(NotificationParams.LendingNewMessage.class, "notification.lendingNewMessage"),
-    BOARD_TICKET_UPDATE(NotificationParams.BoardTicketUpdate.class, "notification.boardTicketUpdate");
+    BOARD_TICKET_UPDATE(NotificationParams.BoardTicketUpdate.class, "notification.boardTicketUpdate"),
+    REGISTRATION_DEADLINE_EXPIRED(
+            NotificationParams.RegistrationDeadlineExpired.class, "notification.registrationDeadlineExpired");
 
     private final Class<? extends NotificationParams> paramsType;
     private final String localeKey;

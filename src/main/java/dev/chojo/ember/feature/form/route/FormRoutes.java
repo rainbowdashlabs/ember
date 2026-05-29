@@ -15,9 +15,9 @@ import dev.chojo.ember.feature.form.entity.FormAnswer;
 import dev.chojo.ember.feature.form.entity.FormAnswerValue;
 import dev.chojo.ember.feature.form.entity.FormQuestion;
 import dev.chojo.ember.feature.form.entity.FormQuestionConfig;
+import dev.chojo.ember.feature.form.entity.FormQuestionType;
 import dev.chojo.ember.feature.form.entity.FormResponse;
 import dev.chojo.ember.feature.form.entity.QuestionEntry;
-import dev.chojo.ember.feature.form.entity.QuestionType;
 import dev.chojo.ember.feature.form.service.FormService;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
@@ -364,7 +364,7 @@ public class FormRoutes implements Routes {
                 id,
                 Arrays.stream(questions)
                         .map(q -> new QuestionEntry(
-                                QuestionType.valueOf(q.questionType()),
+                                FormQuestionType.valueOf(q.questionType()),
                                 q.title(),
                                 q.description() != null ? q.description() : "",
                                 q.required() != null && q.required(),
@@ -625,7 +625,7 @@ public class FormRoutes implements Routes {
                 .map(q -> {
                     var answers = formService.findAllAnswersForQuestion(q.id());
                     var values = answers.stream().map(FormAnswer::value).toList();
-                    return new QuestionAnalytics(q.id(), q.questionType().name(), q.title(), q.config(), values);
+                    return new QuestionAnalytics(q.id(), q.formQuestionType().name(), q.title(), q.config(), values);
                 })
                 .toList();
         ctx.json(new FormAnalytics(id, formService.countResponses(id), questionAnalytics));
@@ -716,7 +716,7 @@ public class FormRoutes implements Routes {
     /**
      * Request body for creating a form question.
      *
-     * @param questionType the question type name (must match {@link QuestionType})
+     * @param questionType the question type name (must match {@link FormQuestionType})
      * @param title        the question text
      * @param description  optional description
      * @param required     whether an answer is mandatory

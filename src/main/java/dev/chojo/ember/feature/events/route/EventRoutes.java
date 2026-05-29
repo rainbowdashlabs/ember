@@ -25,7 +25,9 @@ import dev.chojo.ember.feature.events.entity.EventLayoutField;
 import dev.chojo.ember.feature.events.entity.EventRegistration;
 import dev.chojo.ember.feature.events.entity.EventSummary;
 import dev.chojo.ember.feature.events.entity.IntervalConfig;
+import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
+import dev.chojo.ember.feature.events.entity.UpcomingEventOccurrence;
 import dev.chojo.ember.feature.events.repository.EventFieldRepository;
 import dev.chojo.ember.feature.events.service.BatchEventService;
 import dev.chojo.ember.feature.events.service.EventExportService;
@@ -123,6 +125,7 @@ public class EventRoutes implements Routes {
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
         routes.get(prefix + "/events", this::list, Roles.USER);
+        routes.get(prefix + "/events/upcoming", this::listUpcoming, Roles.USER);
         routes.get(prefix + "/events/today", this::listToday, Roles.USER);
         routes.post(prefix + "/events", this::create, Roles.EVENT_MANAGER);
 
@@ -218,20 +221,26 @@ public class EventRoutes implements Routes {
     @OpenApi(
             path = "/api/v1/events",
             methods = HttpMethod.GET,
-            summary = "List all events",
+            summary = "List events with optional server-side filters",
             tags = {"Events"},
+            queryParams = {
+                @OpenApiParam(name = "categoryId", type = Integer.class, description = "Filter by category ID"),
+                @OpenApiParam(
+                        name = "requiresRegistration",
+                        type = Boolean.class,
+                        description = "Filter by registration requirement")
+            },
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = StationEvent[].class)))
     private void list(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        List<StationEvent> events;
-        if (session.hasRole(Roles.EVENT_MANAGER)) {
-            events = eventService.findByStation(session.stationId());
-        } else if (session.member() != null) {
-            events = eventService.findByStationForMember(
-                    session.stationId(), session.member().id());
-        } else {
-            events = List.of();
-        }
+        String catParam = ctx.queryParam("categoryId");
+        Integer categoryId = catParam != null ? Integer.valueOf(catParam) : null;
+        String regParam = ctx.queryParam("requiresRegistration");
+        Boolean requiresRegistration = regParam != null ? Boolean.valueOf(regParam) : null;
+        Integer memberId = session.hasRole(Roles.EVENT_MANAGER)
+                ? null
+                : (session.member() != null ? session.member().id() : -1);
+        var events = eventService.findFiltered(session.stationId(), memberId, categoryId, requiresRegistration);
         ctx.json(events.stream().map(EventSummary::of).toList());
     }
 
@@ -246,6 +255,40 @@ public class EventRoutes implements Routes {
         ctx.json(eventService.findTodayEvents(session.stationId()).stream()
                 .map(EventSummary::of)
                 .toList());
+    }
+
+    @OpenApi(
+            path = "/api/v1/events/upcoming",
+            methods = HttpMethod.GET,
+            summary = "List upcoming event occurrences with server-side filters and pagination",
+            tags = {"Events"},
+            queryParams = {
+                @OpenApiParam(name = "categoryId", type = Integer.class, description = "Filter by category ID"),
+                @OpenApiParam(
+                        name = "requiresRegistration",
+                        type = Boolean.class,
+                        description = "Filter by registration requirement"),
+                @OpenApiParam(
+                        name = "limit",
+                        type = Integer.class,
+                        description = "Max number of occurrences (default 10)"),
+                @OpenApiParam(name = "offset", type = Integer.class, description = "Pagination offset (default 0)")
+            },
+            responses =
+                    @OpenApiResponse(status = "200", content = @OpenApiContent(from = UpcomingEventOccurrence[].class)))
+    private void listUpcoming(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        String catParam = ctx.queryParam("categoryId");
+        Integer categoryId = catParam != null ? Integer.valueOf(catParam) : null;
+        String regParam = ctx.queryParam("requiresRegistration");
+        Boolean requiresRegistration = regParam != null ? Boolean.valueOf(regParam) : null;
+        int limit = ctx.queryParamAsClass("limit", Integer.class).getOrDefault(10);
+        int offset = ctx.queryParamAsClass("offset", Integer.class).getOrDefault(0);
+        Integer memberId = session.hasRole(Roles.EVENT_MANAGER)
+                ? null
+                : (session.member() != null ? session.member().id() : -1);
+        ctx.json(eventService.findUpcomingOccurrences(
+                session.stationId(), memberId, categoryId, requiresRegistration, limit, offset));
     }
 
     @OpenApi(
@@ -725,9 +768,8 @@ public class EventRoutes implements Routes {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
         UserSession session = UserSession.from(ctx);
         var req = ctx.bodyAsClass(StatusUpdateRequest.class);
-        var status = EventRegistration.RegistrationStatus.valueOf(req.status());
-        if (status != EventRegistration.RegistrationStatus.ACCEPTED
-                && status != EventRegistration.RegistrationStatus.DENIED) {
+        var status = RegistrationStatus.valueOf(req.status());
+        if (status != RegistrationStatus.ACCEPTED && status != RegistrationStatus.DENIED) {
             throw new BadRequestResponse("status must be ACCEPTED or DENIED");
         }
         var registration = eventService.findRegistrationById(id).orElseThrow(NotFoundResponse::new);
@@ -1404,7 +1446,7 @@ public class EventRoutes implements Routes {
         var partner = resolvePartner(ctx, session.stationId());
         int eventId = ctx.pathParamAsClass("id", Integer.class).get();
         var req = ctx.bodyAsClass(FederatedRegBody.class);
-        String remoteMemberId = String.valueOf(session.member().id());
+        UUID remoteMemberId = session.member().uid();
 
         if (partner.isRemote()) {
             boolean success = federationHttpClient.registerForFederatedEvent(
@@ -1428,7 +1470,7 @@ public class EventRoutes implements Routes {
         var partner = resolvePartner(ctx, session.stationId());
         int eventId = ctx.pathParamAsClass("id", Integer.class).get();
         var req = ctx.bodyAsClass(FederatedRegBody.class);
-        String remoteMemberId = String.valueOf(session.member().id());
+        UUID remoteMemberId = session.member().uid();
 
         if (partner.isRemote()) {
             federationHttpClient.withdrawFederatedRegistration(
@@ -1552,5 +1594,5 @@ public class EventRoutes implements Routes {
 
     public record FederatedRegBody(String eventDate) {}
 
-    public record RemoteRegistrationRequest(String remoteMemberId, LocalDate eventDate) {}
+    public record RemoteRegistrationRequest(UUID remoteMemberId, LocalDate eventDate) {}
 }

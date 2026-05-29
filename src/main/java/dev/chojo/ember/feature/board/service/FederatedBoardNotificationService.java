@@ -15,6 +15,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Map;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
@@ -70,7 +71,7 @@ public class FederatedBoardNotificationService {
     /**
      * Notifies a partner about a mention in a board comment.
      */
-    public void notifyMention(int partnerId, int boardId, int ticketId, String ticketKey, String remoteMemberId) {
+    public void notifyMention(int partnerId, int boardId, int ticketId, String ticketKey, UUID remoteMemberId) {
         if (!isFullMode(boardId, partnerId)) return;
         webhookService.fireEventToPartner(
                 partnerId,
@@ -85,7 +86,7 @@ public class FederatedBoardNotificationService {
     /**
      * Notifies a partner that a remote member was assigned to a ticket.
      */
-    public void notifyAssignment(int partnerId, int boardId, int ticketId, String ticketKey, String remoteMemberId) {
+    public void notifyAssignment(int partnerId, int boardId, int ticketId, String ticketKey, UUID remoteMemberId) {
         if (!isFullMode(boardId, partnerId)) return;
         webhookService.fireEventToPartner(
                 partnerId,
@@ -100,7 +101,7 @@ public class FederatedBoardNotificationService {
     /**
      * Notifies a partner that a remote member was unassigned from a ticket.
      */
-    public void notifyUnassignment(int partnerId, int boardId, int ticketId, String ticketKey, String remoteMemberId) {
+    public void notifyUnassignment(int partnerId, int boardId, int ticketId, String ticketKey, UUID remoteMemberId) {
         if (!isFullMode(boardId, partnerId)) return;
         webhookService.fireEventToPartner(
                 partnerId,

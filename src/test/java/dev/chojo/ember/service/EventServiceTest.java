@@ -10,7 +10,7 @@ import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.attendance.entity.AttendanceFieldConfig;
 import dev.chojo.ember.feature.attendance.entity.AttendanceFieldType;
 import dev.chojo.ember.feature.events.entity.EventFieldDefault;
-import dev.chojo.ember.feature.events.entity.EventRegistration;
+import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.service.EventService;
 import dev.chojo.ember.feature.members.entity.StationMember;
@@ -302,13 +302,13 @@ class EventServiceTest extends RepositoryTestBase {
                 null);
 
         var reg = service.register(event.id(), member.id(), LocalDate.of(2026, 10, 1), false, null);
-        assertEquals(EventRegistration.RegistrationStatus.PENDING, reg.status());
+        assertEquals(RegistrationStatus.PENDING, reg.status());
 
-        boolean updated = service.updateRegistrationStatus(reg.id(), EventRegistration.RegistrationStatus.ACCEPTED);
+        boolean updated = service.updateRegistrationStatus(reg.id(), RegistrationStatus.ACCEPTED);
         assertTrue(updated);
 
         var found = service.findRegistrationById(reg.id()).orElseThrow();
-        assertEquals(EventRegistration.RegistrationStatus.ACCEPTED, found.status());
+        assertEquals(RegistrationStatus.ACCEPTED, found.status());
     }
 
     @Test
@@ -358,7 +358,7 @@ class EventServiceTest extends RepositoryTestBase {
 
         var reg = service.decline(event.id(), member.id(), LocalDate.of(2026, 10, 3), null);
         assertNotNull(reg);
-        assertEquals(EventRegistration.RegistrationStatus.DECLINED, reg.status());
+        assertEquals(RegistrationStatus.DECLINED, reg.status());
     }
 
     @Test
@@ -573,7 +573,7 @@ class EventServiceTest extends RepositoryTestBase {
                 null);
 
         var reg = service.register(event.id(), member.id(), LocalDate.of(2027, 1, 1), true, null);
-        assertEquals(EventRegistration.RegistrationStatus.ACCEPTED, reg.status());
+        assertEquals(RegistrationStatus.ACCEPTED, reg.status());
     }
 
     @Test
@@ -787,7 +787,7 @@ class EventServiceTest extends RepositoryTestBase {
     @Test
     @Order(101)
     void updateRegistrationStatusNotFound() {
-        assertFalse(service.updateRegistrationStatus(999999, EventRegistration.RegistrationStatus.ACCEPTED));
+        assertFalse(service.updateRegistrationStatus(999999, RegistrationStatus.ACCEPTED));
     }
 
     @Test

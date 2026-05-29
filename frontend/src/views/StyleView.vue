@@ -117,7 +117,88 @@ import StyleTypography from '@/views/styleview/StyleTypography.vue'
 import StyleInputs from '@/views/styleview/StyleInputs.vue'
 import StyleFeedback from '@/views/styleview/StyleFeedback.vue'
 
+import LayeredEmberLogo from '@/components/display/LayeredEmberLogo.vue'
+import type { EyeDirection } from '@/components/display/LayeredEmberLogo.vue'
+import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
+import PrideText from '@/components/display/PrideText.vue'
+import type { LogoLayer } from '@/components/display/LayeredEmberLogo.vue'
+
 const toggleStates = ref(new Set([1, 3]))
+const pridePreview = ref(true)
+
+const logoLayers: LogoLayer[] = [
+  { name: 'fire_glow', label: 'Glow' },
+  { name: 'fire_blank', label: 'Flame' },
+  { name: 'fire_blush', label: 'Blush' },
+  { name: 'fire_eyes_left', label: 'Left Open' },
+  { name: 'fire_eyes_left_half', label: 'Left Half' },
+  { name: 'fire_blink_left', label: 'Left Blink' },
+  { name: 'fire_eyes_mid', label: 'Mid Open' },
+  { name: 'fire_eyes_mid_half', label: 'Mid Half' },
+  { name: 'fire_blink', label: 'Mid Blink' },
+  { name: 'fire_eyes_right', label: 'Right Open' },
+  { name: 'fire_eyes_right_half', label: 'Right Half' },
+  { name: 'fire_blink_right', label: 'Right Blink' },
+  { name: 'fire_eyes_blink', label: 'Squint' },
+  { name: 'fire_faq', label: 'FAQ' },
+]
+
+const allEyeLayerNames = new Set([
+  'fire_eyes_left', 'fire_eyes_left_half', 'fire_blink_left',
+  'fire_eyes_mid', 'fire_eyes_mid_half', 'fire_blink',
+  'fire_eyes_right', 'fire_eyes_right_half', 'fire_blink_right',
+  'fire_eyes_blink',
+])
+
+const eyeDirections = ['Left', 'Mid', 'Right'] as const
+const eyeOpenness = ['Open', 'Half', 'Blink'] as const
+const eyeMatrix: Record<string, Record<string, string>> = {
+  Left:  { Open: 'fire_eyes_left',  Half: 'fire_eyes_left_half',  Blink: 'fire_blink_left' },
+  Mid:   { Open: 'fire_eyes_mid',   Half: 'fire_eyes_mid_half',   Blink: 'fire_blink' },
+  Right: { Open: 'fire_eyes_right', Half: 'fire_eyes_right_half', Blink: 'fire_blink_right' },
+}
+
+const decorationLayers: LogoLayer[] = [
+  { name: 'fire_glow', label: 'Glow' },
+  { name: 'fire_blush', label: 'Blush' },
+  { name: 'fire_faq', label: 'FAQ' },
+]
+
+const activeLogoLayers = ref(new Set(['fire_glow', 'fire_blank', 'fire_eyes_mid']))
+const logoAutoBlink = ref(false)
+const logoGazePositions = ref<EyeDirection[]>([])
+
+const gazeDirectionOptions: { key: EyeDirection; label: string }[] = [
+  { key: 'left', label: 'Links' },
+  { key: 'mid', label: 'Mitte' },
+  { key: 'right', label: 'Rechts' },
+]
+
+function toggleGazePosition(dir: EyeDirection) {
+  const idx = logoGazePositions.value.indexOf(dir)
+  if (idx >= 0) {
+    logoGazePositions.value.splice(idx, 1)
+  } else {
+    logoGazePositions.value.push(dir)
+  }
+}
+
+function selectEye(fragment: string) {
+  for (const eye of allEyeLayerNames) activeLogoLayers.value.delete(eye)
+  if (fragment) activeLogoLayers.value.add(fragment)
+}
+
+function isEyeSelected(fragment: string): boolean {
+  return activeLogoLayers.value.has(fragment)
+}
+
+function toggleDecoration(name: string) {
+  if (activeLogoLayers.value.has(name)) {
+    activeLogoLayers.value.delete(name)
+  } else {
+    activeLogoLayers.value.add(name)
+  }
+}
 </script>
 
 <template>
@@ -127,6 +208,110 @@ const toggleStates = ref(new Set([1, 3]))
       <PageHeader>Style Guide</PageHeader>
       <ThemeSelector/>
     </div>
+
+    <!-- Pride Text -->
+    <section class="space-y-4">
+      <SectionHeader>Pride Text</SectionHeader>
+      <div class="flex items-center gap-4 mb-2">
+        <ToggleInput v-model="pridePreview"/>
+        <span class="text-sm text-(--text-muted)">Aktiv</span>
+      </div>
+      <SubHeader>Text</SubHeader>
+      <div class="flex flex-wrap items-baseline gap-6">
+        <PrideText :active="pridePreview" class="text-4xl font-bold">Ember</PrideText>
+        <PrideText :active="pridePreview" class="text-2xl font-bold">Ember</PrideText>
+        <PrideText :active="pridePreview" class="text-lg font-bold">Ember</PrideText>
+        <PrideText :active="pridePreview" class="text-sm font-semibold">Ember</PrideText>
+      </div>
+      <SubHeader>Banner</SubHeader>
+      <div class="flex flex-wrap items-baseline gap-6">
+        <PrideText :active="pridePreview" variant="banner" class="text-4xl font-bold">Ember</PrideText>
+        <PrideText :active="pridePreview" variant="banner" class="text-2xl font-bold">Ember</PrideText>
+        <PrideText :active="pridePreview" variant="banner" class="text-lg font-bold">Ember</PrideText>
+        <PrideText :active="pridePreview" variant="banner" class="text-sm font-semibold">Ember</PrideText>
+      </div>
+      <PrideText :active="pridePreview" variant="banner" class="text-xl font-bold">Happy Pride Month!</PrideText>
+    </section>
+
+    <!-- Layered Ember Logo -->
+    <section class="space-y-4">
+      <SectionHeader>Layered Ember Logo</SectionHeader>
+      <div class="flex flex-col sm:flex-row items-center gap-6">
+        <LayeredEmberLogo
+          :layers="logoLayers"
+          :active-layers="activeLogoLayers"
+          :auto-blink="logoAutoBlink"
+          :gaze-positions="logoGazePositions"
+          size="w-48 h-48"
+          :pixel-size="512"
+          @update:active-layers="activeLogoLayers = $event"
+        />
+        <div class="space-y-3">
+          <label class="flex items-center gap-2 mb-1">
+            <ToggleInput v-model="logoAutoBlink"/>
+            <span class="text-xs font-medium text-(--text-muted)">Blinzeln</span>
+          </label>
+          <div>
+            <p class="text-xs font-medium text-(--text-muted) mb-1">Blickrichtung</p>
+            <div class="flex flex-wrap gap-2">
+              <SelectionToggleButton
+                v-for="opt in gazeDirectionOptions"
+                :key="opt.key"
+                size="sm"
+                :selected="logoGazePositions.includes(opt.key)"
+                @toggle="toggleGazePosition(opt.key)"
+              >
+                {{ opt.label }}
+              </SelectionToggleButton>
+            </div>
+            <p v-if="logoGazePositions.length === 1" class="text-xs text-(--text-muted) mt-1">
+              Noch eine Richtung hinzufuegen um die Animation zu starten.
+            </p>
+          </div>
+          <div :class="{ 'opacity-40 pointer-events-none': logoGazePositions.length >= 2 }">
+            <p class="text-xs font-medium text-(--text-muted) mb-1">Augen</p>
+            <div class="grid grid-cols-4 gap-1 text-xs">
+              <div/>
+              <div v-for="o in eyeOpenness" :key="o" class="text-center text-(--text-muted) font-medium py-1">{{ o }}</div>
+              <template v-for="d in eyeDirections" :key="d">
+                <div class="text-(--text-muted) font-medium flex items-center">{{ d }}</div>
+                <SelectionToggleButton
+                  v-for="o in eyeOpenness"
+                  :key="eyeMatrix[d][o]"
+                  size="sm"
+                  :selected="isEyeSelected(eyeMatrix[d][o])"
+                  @toggle="isEyeSelected(eyeMatrix[d][o]) ? selectEye('') : selectEye(eyeMatrix[d][o])"
+                >
+                  {{ o }}
+                </SelectionToggleButton>
+              </template>
+            </div>
+            <div class="mt-2">
+              <SelectionToggleButton
+                size="sm"
+                :selected="isEyeSelected('fire_eyes_blink')"
+                @toggle="isEyeSelected('fire_eyes_blink') ? selectEye('') : selectEye('fire_eyes_blink')"
+              >
+                Squint
+              </SelectionToggleButton>
+            </div>
+          </div>
+          <div>
+            <p class="text-xs font-medium text-(--text-muted) mb-1">Dekoration</p>
+            <div class="flex flex-wrap gap-2">
+              <SelectionToggleButton
+                v-for="layer in decorationLayers"
+                :key="layer.name"
+                :selected="activeLogoLayers.has(layer.name)"
+                @toggle="toggleDecoration(layer.name)"
+              >
+                {{ layer.label }}
+              </SelectionToggleButton>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
 
     <StyleTypography/>
 

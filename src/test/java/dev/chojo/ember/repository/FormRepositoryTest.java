@@ -10,8 +10,8 @@ import dev.chojo.ember.feature.form.entity.Form;
 import dev.chojo.ember.feature.form.entity.FormAnswerValue;
 import dev.chojo.ember.feature.form.entity.FormQuestion;
 import dev.chojo.ember.feature.form.entity.FormQuestionConfig;
+import dev.chojo.ember.feature.form.entity.FormQuestionType;
 import dev.chojo.ember.feature.form.entity.FormResponse;
-import dev.chojo.ember.feature.form.entity.QuestionType;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.restriction.RestrictionRepository;
 import dev.chojo.ember.feature.station.entity.Station;
@@ -106,7 +106,7 @@ class FormRepositoryTest extends RepositoryTestBase {
         FormQuestion q = formRepo.createQuestion(
                 formId,
                 0,
-                QuestionType.TEXT,
+                FormQuestionType.TEXT,
                 "Your name?",
                 "Enter name",
                 true,
@@ -114,7 +114,7 @@ class FormRepositoryTest extends RepositoryTestBase {
                 new FormQuestionConfig.Text(false));
         assertNotNull(q);
         assertEquals("Your name?", q.title());
-        assertEquals(QuestionType.TEXT, q.questionType());
+        assertEquals(FormQuestionType.TEXT, q.formQuestionType());
         questionId = q.id();
     }
 

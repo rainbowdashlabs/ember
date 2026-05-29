@@ -18,7 +18,7 @@ import com.openai.client.OpenAIClient;
 import com.openai.client.okhttp.OpenAIOkHttpClient;
 import com.openai.models.chat.completions.ChatCompletionCreateParams;
 import dev.chojo.ember.feature.quiz.entity.QuestionConfig;
-import dev.chojo.ember.feature.quiz.entity.QuestionType;
+import dev.chojo.ember.feature.quiz.entity.QuizQuestionType;
 import dev.chojo.ember.feature.quiz.entity.StationAiProvider;
 import dev.chojo.ember.feature.quiz.repository.AiProviderRepository;
 import jakarta.inject.Inject;
@@ -233,7 +233,7 @@ public class AiService {
             String provider,
             String transientKey,
             String model,
-            QuestionType questionType,
+            QuizQuestionType quizQuestionType,
             String userPrompt,
             String locale,
             String categoryName,
@@ -245,7 +245,7 @@ public class AiService {
         String effectiveLocale = locale != null ? locale : "de";
 
         String systemPrompt =
-                loadPromptFile(questionType.promptFile(), effectiveLocale).replace("{count}", "1");
+                loadPromptFile(quizQuestionType.promptFile(), effectiveLocale).replace("{count}", "1");
         systemPrompt +=
                 "\n\nWICHTIG: Erstelle KEINE Fragen die identisch oder ähnlich zu bereits genannten Fragen sind.";
 
@@ -273,11 +273,11 @@ public class AiService {
         return session;
     }
 
-    public List<GeneratedQuestion> generateNextQuestion(ChatSession session, QuestionType questionType) {
+    public List<GeneratedQuestion> generateNextQuestion(ChatSession session, QuizQuestionType quizQuestionType) {
         try {
             String text = chatWithSession(session);
             session.addAssistantMessage(text);
-            var parsed = parseAndValidate(text, questionType);
+            var parsed = parseAndValidate(text, quizQuestionType);
             if (!parsed.isEmpty()) {
                 // Next turn: just ask for another one — AI has full context
                 session.addUserMessage("Erstelle eine weitere einzigartige Frage. Wiederhole keine der bisherigen.");
@@ -325,7 +325,7 @@ public class AiService {
 
     public record GeneratedQuestion(String title, String config) {}
 
-    private List<GeneratedQuestion> parseAndValidate(String text, QuestionType questionType) throws Exception {
+    private List<GeneratedQuestion> parseAndValidate(String text, QuizQuestionType quizQuestionType) throws Exception {
         // Strip markdown fences
         text = text.trim();
         if (text.startsWith("```")) {
@@ -347,18 +347,18 @@ public class AiService {
             String configJson = MAPPER.writeValueAsString(configNode);
 
             // Validate by mapping to the typed POJO
-            if (validateConfig(configJson, questionType)) {
+            if (validateConfig(configJson, quizQuestionType)) {
                 results.add(new GeneratedQuestion(title, configJson));
             } else {
-                log.debug("Skipping invalid question '{}' for type {}", title, questionType);
+                log.debug("Skipping invalid question '{}' for type {}", title, quizQuestionType);
             }
         }
         return results;
     }
 
-    private boolean validateConfig(String configJson, QuestionType questionType) {
+    private boolean validateConfig(String configJson, QuizQuestionType quizQuestionType) {
         try {
-            return switch (questionType) {
+            return switch (quizQuestionType) {
                 case MULTIPLE_CHOICE -> {
                     var cfg = MAPPER.readValue(configJson, QuestionConfig.MultipleChoice.class);
                     yield cfg.options() != null
@@ -407,7 +407,7 @@ public class AiService {
                 }
             };
         } catch (Exception e) {
-            log.debug("Config validation failed for type {}: {}", questionType, e.getMessage());
+            log.debug("Config validation failed for type {}: {}", quizQuestionType, e.getMessage());
             return false;
         }
     }

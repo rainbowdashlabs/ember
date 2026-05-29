@@ -5,12 +5,13 @@
  */
 package dev.chojo.ember.feature.quiz.route;
 
+import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.Roles;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.feature.quiz.entity.QuestionConfig;
-import dev.chojo.ember.feature.quiz.entity.QuestionType;
 import dev.chojo.ember.feature.quiz.entity.QuizCategory;
+import dev.chojo.ember.feature.quiz.entity.QuizQuestionType;
 import dev.chojo.ember.feature.quiz.entity.StationAiProvider;
 import dev.chojo.ember.feature.quiz.service.AiService;
 import dev.chojo.ember.feature.quiz.service.QuizService;
@@ -18,6 +19,13 @@ import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.http.NotFoundResponse;
+import io.javalin.openapi.HttpMethod;
+import io.javalin.openapi.OpenApi;
+import io.javalin.openapi.OpenApiContent;
+import io.javalin.openapi.OpenApiName;
+import io.javalin.openapi.OpenApiParam;
+import io.javalin.openapi.OpenApiRequestBody;
+import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -67,6 +75,12 @@ public class AiRoutes implements Routes {
         routes.post(prefix + "/ai/batch-generate/{catalogId}", this::batchGenerate, Roles.QUIZ_MANAGER);
     }
 
+    @OpenApi(
+            path = "/api/v1/ai/settings",
+            methods = HttpMethod.GET,
+            summary = "Get AI settings including providers and prompt",
+            tags = {"Quiz AI"},
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = SettingsResponse.class)))
     private void getSettings(Context ctx) {
         var session = UserSession.from(ctx);
         var providers = aiService.getProviders(session.stationId()).stream()
@@ -76,6 +90,13 @@ public class AiRoutes implements Routes {
         ctx.json(new SettingsResponse(providers, prompt, aiService.getDefaultPrompt()));
     }
 
+    @OpenApi(
+            path = "/api/v1/ai/settings/prompt",
+            methods = HttpMethod.PUT,
+            summary = "Save the AI generation prompt",
+            tags = {"Quiz AI"},
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = PromptRequest.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = SuccessResponse.class)))
     private void savePrompt(Context ctx) {
         var session = UserSession.from(ctx);
         var req = ctx.bodyAsClass(PromptRequest.class);
@@ -83,6 +104,17 @@ public class AiRoutes implements Routes {
         ctx.json(new SuccessResponse(true));
     }
 
+    @OpenApi(
+            path = "/api/v1/ai/providers/{provider}",
+            methods = HttpMethod.PUT,
+            summary = "Save an AI provider configuration",
+            tags = {"Quiz AI"},
+            pathParams = @OpenApiParam(name = "provider", type = String.class, required = true),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = ProviderRequest.class)),
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = SuccessResponse.class)),
+                @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
     private void saveProvider(Context ctx) {
         var session = UserSession.from(ctx);
         String provider = ctx.pathParam("provider");
@@ -94,6 +126,13 @@ public class AiRoutes implements Routes {
         ctx.json(new SuccessResponse(true));
     }
 
+    @OpenApi(
+            path = "/api/v1/ai/providers/{provider}",
+            methods = HttpMethod.DELETE,
+            summary = "Delete an AI provider configuration",
+            tags = {"Quiz AI"},
+            pathParams = @OpenApiParam(name = "provider", type = String.class, required = true),
+            responses = @OpenApiResponse(status = "204"))
     private void deleteProvider(Context ctx) {
         var session = UserSession.from(ctx);
         String provider = ctx.pathParam("provider");
@@ -101,6 +140,17 @@ public class AiRoutes implements Routes {
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
+    @OpenApi(
+            path = "/api/v1/ai/providers/{provider}/models",
+            methods = HttpMethod.POST,
+            summary = "Fetch available models for an AI provider",
+            tags = {"Quiz AI"},
+            pathParams = @OpenApiParam(name = "provider", type = String.class, required = true),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = TransientKeyRequest.class)),
+            responses = {
+                @OpenApiResponse(status = "200"),
+                @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
     private void fetchModels(Context ctx) {
         var session = UserSession.from(ctx);
         String provider = ctx.pathParam("provider");
@@ -117,6 +167,16 @@ public class AiRoutes implements Routes {
         }
     }
 
+    @OpenApi(
+            path = "/api/v1/ai/generate",
+            methods = HttpMethod.POST,
+            summary = "Generate distractor answers for a question",
+            tags = {"Quiz AI"},
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = GenerateRequest.class)),
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = GenerateResponse.class)),
+                @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
     private void generate(Context ctx) {
         var session = UserSession.from(ctx);
         var req = ctx.bodyAsClass(GenerateRequest.class);
@@ -145,6 +205,16 @@ public class AiRoutes implements Routes {
         }
     }
 
+    @OpenApi(
+            path = "/api/v1/ai/generate-questions",
+            methods = HttpMethod.POST,
+            summary = "Start async question generation job",
+            tags = {"Quiz AI"},
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = GenerateQuestionsRequest.class)),
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = JobIdResponse.class)),
+                @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
     private void generateQuestions(Context ctx) {
         var session = UserSession.from(ctx);
         var req = ctx.bodyAsClass(GenerateQuestionsRequest.class);
@@ -173,8 +243,8 @@ public class AiRoutes implements Routes {
         Thread.startVirtualThread(() -> {
             try {
                 for (var entry : req.entries()) {
-                    if (entry.questionType() == null || entry.count() == null || entry.count() < 1) continue;
-                    var type = entry.questionType();
+                    if (entry.quizQuestionType() == null || entry.count() == null || entry.count() < 1) continue;
+                    var type = entry.quizQuestionType();
                     String catName = null;
                     String catDesc = null;
                     if (entry.categoryId() != null) {
@@ -223,6 +293,16 @@ public class AiRoutes implements Routes {
         ctx.json(new JobIdResponse(jobId));
     }
 
+    @OpenApi(
+            path = "/api/v1/ai/generate-questions/{jobId}",
+            methods = HttpMethod.GET,
+            summary = "Poll for question generation results",
+            tags = {"Quiz AI"},
+            pathParams = @OpenApiParam(name = "jobId", type = String.class, required = true),
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = GenerationPollResponse.class)),
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
     private void pollGeneration(Context ctx) {
         String jobId = ctx.pathParam("jobId");
         var job = generationJobs.get(jobId);
@@ -233,6 +313,14 @@ public class AiRoutes implements Routes {
         ctx.json(new GenerationPollResponse(results, done));
     }
 
+    @OpenApi(
+            path = "/api/v1/ai/batch-generate/{catalogId}",
+            methods = HttpMethod.POST,
+            summary = "Batch generate distractor options for all MC questions in a catalog",
+            tags = {"Quiz AI"},
+            pathParams = @OpenApiParam(name = "catalogId", type = Integer.class, required = true),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = BatchGenerateRequest.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = BatchResult.class)))
     private void batchGenerate(Context ctx) {
         var session = UserSession.from(ctx);
         int catalogId = ctx.pathParamAsClass("catalogId", Integer.class).get();
@@ -297,10 +385,12 @@ public class AiRoutes implements Routes {
 
     // -- Records --
 
+    @OpenApiName("AiSuccessResponse")
     public record SuccessResponse(boolean success) {}
 
     public record JobIdResponse(String jobId) {}
 
+    @OpenApiName("AiSettingsResponse")
     public record SettingsResponse(List<StationAiProvider> providers, String prompt, String defaultPrompt) {}
 
     public record PromptRequest(String prompt) {}
@@ -325,10 +415,10 @@ public class AiRoutes implements Routes {
             Integer catalogId,
             List<GenerateEntry> entries) {}
 
-    public record GenerateEntry(QuestionType questionType, Integer count, Integer categoryId) {}
+    public record GenerateEntry(QuizQuestionType quizQuestionType, Integer count, Integer categoryId) {}
 
     public record GeneratedQuestionWithMeta(
-            String title, String config, QuestionType questionType, Integer categoryId) {}
+            String title, String config, QuizQuestionType quizQuestionType, Integer categoryId) {}
 
     public record GenerateQuestionsResponse(List<GeneratedQuestionWithMeta> questions) {}
 

@@ -12,8 +12,8 @@ import dev.chojo.ember.feature.form.entity.FormAnswer;
 import dev.chojo.ember.feature.form.entity.FormAnswerValue;
 import dev.chojo.ember.feature.form.entity.FormQuestion;
 import dev.chojo.ember.feature.form.entity.FormQuestionConfig;
+import dev.chojo.ember.feature.form.entity.FormQuestionType;
 import dev.chojo.ember.feature.form.entity.FormResponse;
-import dev.chojo.ember.feature.form.entity.QuestionType;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 import jakarta.inject.Singleton;
 
@@ -218,7 +218,7 @@ public class FormRepository {
      *
      * @param formId       the form to add the question to
      * @param position     display order position
-     * @param questionType the type of question
+     * @param formQuestionType the type of question
      * @param title        the question text
      * @param description  optional description
      * @param required     whether an answer is mandatory
@@ -229,7 +229,7 @@ public class FormRepository {
     public FormQuestion createQuestion(
             int formId,
             int position,
-            QuestionType questionType,
+            FormQuestionType formQuestionType,
             String title,
             String description,
             boolean required,
@@ -242,7 +242,7 @@ public class FormRepository {
                 .single(Call.of()
                         .bind("form_id", formId)
                         .bind("position", position)
-                        .bind("question_type", questionType.name())
+                        .bind("question_type", formQuestionType.name())
                         .bind("title", title)
                         .bind("description", description)
                         .bind("required", required)

@@ -24,6 +24,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 /**
  * HTTP client for cross-instance federation communication.
@@ -44,7 +45,10 @@ public class FederationHttpClient {
         this.signingService = signingService;
         this.stationRepository = stationRepository;
         this.httpClient = HttpClient.newHttpClient();
-        this.mapper = JsonMapper.builder().build();
+        this.mapper = JsonMapper.builder()
+                .disable(tools.jackson.databind.DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
+                .disable(tools.jackson.databind.DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES)
+                .build();
     }
 
     private String resolveStationName(int stationId) {
@@ -363,7 +367,7 @@ public class FederationHttpClient {
     public boolean registerForFederatedEvent(
             String remoteHost,
             int eventId,
-            String remoteMemberId,
+            UUID remoteMemberId,
             String eventDate,
             int localStationId,
             String localPrivateKeyBase64) {
@@ -381,7 +385,7 @@ public class FederationHttpClient {
     public boolean withdrawFederatedRegistration(
             String remoteHost,
             int eventId,
-            String remoteMemberId,
+            UUID remoteMemberId,
             String eventDate,
             int localStationId,
             String localPrivateKeyBase64) {
@@ -415,5 +419,5 @@ public class FederationHttpClient {
             boolean requiresRegistration,
             boolean requiresConfirmation) {}
 
-    private record FederatedRegBody(String remoteMemberId, String eventDate) {}
+    private record FederatedRegBody(UUID remoteMemberId, String eventDate) {}
 }

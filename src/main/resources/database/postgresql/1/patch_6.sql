@@ -102,7 +102,9 @@ CREATE TABLE ember_schema.board_ticket_transition (
     ticket_id INTEGER NOT NULL REFERENCES ember_schema.board_ticket(id) ON DELETE CASCADE,
     from_lane_id INTEGER REFERENCES ember_schema.board_lane(id) ON DELETE SET NULL,
     to_lane_id INTEGER REFERENCES ember_schema.board_lane(id) ON DELETE SET NULL,
-    moved_by INTEGER NOT NULL REFERENCES ember_schema.station_member(id),
+    moved_by INTEGER REFERENCES ember_schema.station_member(id),
+    federated_partner_id INTEGER REFERENCES ember_schema.federation_partner(id) ON DELETE SET NULL,
+    federated_member_id INTEGER,
     moved_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
 );
 
@@ -176,7 +178,9 @@ CREATE TABLE ember_schema.board_ticket_history (
     ticket_id INTEGER NOT NULL REFERENCES ember_schema.board_ticket(id) ON DELETE CASCADE,
     action TEXT NOT NULL,
     detail TEXT,
-    actor_member_id INTEGER NOT NULL REFERENCES ember_schema.station_member(id),
+    actor_member_id INTEGER REFERENCES ember_schema.station_member(id),
+    federated_partner_id INTEGER REFERENCES ember_schema.federation_partner(id) ON DELETE SET NULL,
+    federated_member_id INTEGER,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
 );
 
@@ -1820,3 +1824,47 @@ COMMENT ON COLUMN ember_schema.federation_board_bookmark.remote_board_name IS 'C
 COMMENT ON COLUMN ember_schema.federation_board_bookmark.remote_board_short_key IS 'Cached short key from the remote station.';
 COMMENT ON COLUMN ember_schema.federation_board_bookmark.share_mode IS 'Access mode: READ_ONLY or FULL.';
 COMMENT ON COLUMN ember_schema.federation_board_bookmark.created_at IS 'When the bookmark was created.';
+
+-- ============================================================
+-- Phase 10: Member UUIDs for federation identity
+-- ============================================================
+
+-- 10.1 Add UUID column to station_member
+ALTER TABLE ember_schema.station_member ADD COLUMN uid UUID NOT NULL DEFAULT gen_random_uuid();
+CREATE UNIQUE INDEX idx_station_member_uid ON ember_schema.station_member (station_id, uid);
+
+-- 10.3 Migrate remote_member_id columns from TEXT to native UUID
+ALTER TABLE ember_schema.board_ticket_federated_assignee
+    ALTER COLUMN remote_member_id TYPE UUID USING remote_member_id::uuid;
+
+ALTER TABLE ember_schema.board_ticket_federated_creator
+    ALTER COLUMN remote_member_id TYPE UUID USING remote_member_id::uuid;
+
+ALTER TABLE ember_schema.board_ticket_federated_watcher
+    ALTER COLUMN remote_member_id TYPE UUID USING remote_member_id::uuid;
+
+ALTER TABLE ember_schema.board_ticket_federated_comment_author
+    ALTER COLUMN remote_member_id TYPE UUID USING remote_member_id::uuid;
+
+ALTER TABLE ember_schema.event_federation_registration
+    ALTER COLUMN remote_member_id TYPE UUID USING remote_member_id::uuid;
+
+ALTER TABLE ember_schema.federation_member_name_cache
+    ALTER COLUMN remote_member_id TYPE UUID USING remote_member_id::uuid;
+
+-- Migrate federated_member_id columns from INTEGER to UUID
+ALTER TABLE ember_schema.board_ticket_transition
+    ALTER COLUMN federated_member_id TYPE UUID USING NULL;
+
+ALTER TABLE ember_schema.board_ticket_history
+    ALTER COLUMN federated_member_id TYPE UUID USING NULL;
+
+COMMENT ON COLUMN ember_schema.station_member.uid IS 'Stable UUID for federation identity. Unique within a station.';
+COMMENT ON COLUMN ember_schema.board_ticket_transition.federated_member_id IS 'Member UUID on the federated station that moved the ticket.';
+COMMENT ON COLUMN ember_schema.board_ticket_history.federated_member_id IS 'Member UUID on the federated station that performed the action.';
+COMMENT ON COLUMN ember_schema.federation_member_name_cache.remote_member_id IS 'Member UUID on the remote station.';
+COMMENT ON COLUMN ember_schema.event_federation_registration.remote_member_id IS 'Member UUID on the remote station.';
+COMMENT ON COLUMN ember_schema.board_ticket_federated_assignee.remote_member_id IS 'Member UUID on the remote station.';
+COMMENT ON COLUMN ember_schema.board_ticket_federated_comment_author.remote_member_id IS 'Member UUID on the remote station.';
+COMMENT ON COLUMN ember_schema.board_ticket_federated_creator.remote_member_id IS 'Member UUID on the remote station.';
+COMMENT ON COLUMN ember_schema.board_ticket_federated_watcher.remote_member_id IS 'Member UUID on the remote station.';

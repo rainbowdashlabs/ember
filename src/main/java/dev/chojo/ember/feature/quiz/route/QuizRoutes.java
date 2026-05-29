@@ -15,10 +15,10 @@ import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.media.service.ImageCategory;
 import dev.chojo.ember.feature.media.service.ImageService;
 import dev.chojo.ember.feature.quiz.entity.AttemptStatus;
-import dev.chojo.ember.feature.quiz.entity.QuestionType;
 import dev.chojo.ember.feature.quiz.entity.QuizCatalog;
 import dev.chojo.ember.feature.quiz.entity.QuizCategory;
 import dev.chojo.ember.feature.quiz.entity.QuizQuestion;
+import dev.chojo.ember.feature.quiz.entity.QuizQuestionType;
 import dev.chojo.ember.feature.quiz.entity.QuizTest;
 import dev.chojo.ember.feature.quiz.entity.QuizTestAnswer;
 import dev.chojo.ember.feature.quiz.entity.QuizTestAttempt;
@@ -219,7 +219,7 @@ public class QuizRoutes implements Routes {
                             var categories = quizService.findCategories(catalog.stationId());
                             var typeCounts = new LinkedHashMap<String, Integer>();
                             for (var q : questions) {
-                                typeCounts.merge(q.questionType().name(), 1, Integer::sum);
+                                typeCounts.merge(q.quizQuestionType().name(), 1, Integer::sum);
                             }
                             ctx.json(new CatalogDetail(
                                     catalog.id(),
@@ -358,18 +358,18 @@ public class QuizRoutes implements Routes {
         result.put("id", question.id());
         result.put("catalogId", question.catalogId());
         result.put("categoryId", question.categoryId());
-        result.put("questionType", question.questionType().name());
+        result.put("questionType", question.quizQuestionType().name());
         result.put("title", question.title());
         result.put("description", question.description());
         result.put("imageUrl", question.imageUrl());
         result.put("points", question.points());
         result.put("position", question.position());
-        result.put("config", sanitizeConfig(question.questionType(), question.configNode()));
+        result.put("config", sanitizeConfig(question.quizQuestionType(), question.configNode()));
         return result;
     }
 
     @SuppressWarnings("unchecked")
-    private String sanitizeConfig(QuestionType type, JsonNode node) {
+    private String sanitizeConfig(QuizQuestionType type, JsonNode node) {
         try {
             var mapper = new ObjectMapper();
             return switch (type) {
@@ -444,17 +444,17 @@ public class QuizRoutes implements Routes {
         int catalogId = ctx.pathParamAsClass("id", Integer.class).get();
         var req = ctx.bodyAsClass(QuestionRequest.class);
         if (req.title() == null || req.title().isBlank()) throw new BadRequestResponse("title is required");
-        if (req.questionType() == null) throw new BadRequestResponse("questionType is required");
+        if (req.quizQuestionType() == null) throw new BadRequestResponse("questionType is required");
         var question = quizService.createQuestion(
                 catalogId,
                 req.categoryId(),
-                req.questionType(),
+                req.quizQuestionType(),
                 req.title(),
                 req.description() != null ? req.description() : "",
                 req.imageUrl(),
                 req.points() != null ? req.points() : 1.0,
                 req.autoPoints() == null || req.autoPoints(),
-                req.questionType().parseConfig(req.configString()),
+                req.quizQuestionType().parseConfig(req.configString()),
                 req.position() != null ? req.position() : 0);
         ctx.status(HttpStatus.CREATED).json(question);
     }
@@ -963,13 +963,13 @@ public class QuizRoutes implements Routes {
                 quizService.createQuestion(
                         catalog.id(),
                         newCategoryId,
-                        q.questionType(),
+                        q.quizQuestionType(),
                         q.title(),
                         q.description(),
                         q.imageUrl(),
                         q.points(),
                         q.autoPoints(),
-                        q.questionType().parseConfig(q.configString()),
+                        q.quizQuestionType().parseConfig(q.configString()),
                         q.position());
             }
         }
@@ -1054,11 +1054,11 @@ public class QuizRoutes implements Routes {
                     : "";
 
             // Determine question type
-            QuestionType questionType = mappings.defaultType() != null
+            QuizQuestionType quizQuestionType = mappings.defaultType() != null
                     ? parseQuestionType(mappings.defaultType())
-                    : QuestionType.MULTIPLE_CHOICE;
+                    : QuizQuestionType.MULTIPLE_CHOICE;
             if (!typeStr.isEmpty()) {
-                questionType = parseQuestionType(typeStr);
+                quizQuestionType = parseQuestionType(typeStr);
             }
 
             // Determine points
@@ -1085,18 +1085,18 @@ public class QuizRoutes implements Routes {
             }
 
             // Build config JSON
-            String config = buildCsvConfig(questionType, answer, answerSep);
+            String config = buildCsvConfig(quizQuestionType, answer, answerSep);
 
             quizService.createQuestion(
                     catalogId,
                     categoryId2,
-                    questionType,
+                    quizQuestionType,
                     title,
                     "",
                     null,
                     points,
                     true,
-                    questionType.parseConfig(config),
+                    quizQuestionType.parseConfig(config),
                     i);
             imported++;
         }
@@ -1104,21 +1104,21 @@ public class QuizRoutes implements Routes {
         ctx.json(Map.of("imported", imported));
     }
 
-    private QuestionType parseQuestionType(String type) {
+    private QuizQuestionType parseQuestionType(String type) {
         return switch (type.toUpperCase().replace(" ", "_").replace("-", "_")) {
-            case "MULTIPLE_CHOICE", "MC" -> QuestionType.MULTIPLE_CHOICE;
-            case "TRUE_FALSE", "TF", "WAHR_FALSCH" -> QuestionType.TRUE_FALSE;
-            case "FREE_ANSWER", "FREE", "FREITEXT" -> QuestionType.FREE_ANSWER;
-            case "FILL_IN_THE_BLANK", "FILL_BLANK", "LUECKENTEXT", "LÜCKENTEXT" -> QuestionType.FILL_IN_THE_BLANK;
-            case "CONNECT", "ZUORDNUNG" -> QuestionType.CONNECT;
-            case "ORDERING", "REIHENFOLGE" -> QuestionType.ORDERING;
-            case "IMAGE_TEXT" -> QuestionType.IMAGE_TEXT;
-            case "ENUMERATION", "AUFZÄHLUNG", "AUFZAEHLUNG" -> QuestionType.ENUMERATION;
-            default -> QuestionType.MULTIPLE_CHOICE;
+            case "MULTIPLE_CHOICE", "MC" -> QuizQuestionType.MULTIPLE_CHOICE;
+            case "TRUE_FALSE", "TF", "WAHR_FALSCH" -> QuizQuestionType.TRUE_FALSE;
+            case "FREE_ANSWER", "FREE", "FREITEXT" -> QuizQuestionType.FREE_ANSWER;
+            case "FILL_IN_THE_BLANK", "FILL_BLANK", "LUECKENTEXT", "LÜCKENTEXT" -> QuizQuestionType.FILL_IN_THE_BLANK;
+            case "CONNECT", "ZUORDNUNG" -> QuizQuestionType.CONNECT;
+            case "ORDERING", "REIHENFOLGE" -> QuizQuestionType.ORDERING;
+            case "IMAGE_TEXT" -> QuizQuestionType.IMAGE_TEXT;
+            case "ENUMERATION", "AUFZÄHLUNG", "AUFZAEHLUNG" -> QuizQuestionType.ENUMERATION;
+            default -> QuizQuestionType.MULTIPLE_CHOICE;
         };
     }
 
-    private String buildCsvConfig(QuestionType type, String answer, String answerSep) {
+    private String buildCsvConfig(QuizQuestionType type, String answer, String answerSep) {
         var mapper = new ObjectMapper();
         try {
             return switch (type) {
@@ -1248,7 +1248,7 @@ public class QuizRoutes implements Routes {
     public record CategoryRequest(String name, String description, Integer position) {}
 
     public record QuestionRequest(
-            QuestionType questionType,
+            QuizQuestionType quizQuestionType,
             Integer categoryId,
             String title,
             String description,

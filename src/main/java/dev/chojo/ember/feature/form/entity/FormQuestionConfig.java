@@ -21,7 +21,7 @@ import static java.lang.Boolean.TRUE;
 import static org.slf4j.LoggerFactory.getLogger;
 
 /**
- * Typed question config records for form questions, parsed per {@link QuestionType}.
+ * Typed question config records for form questions, parsed per {@link FormQuestionType}.
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public sealed interface FormQuestionConfig {
@@ -185,12 +185,12 @@ public sealed interface FormQuestionConfig {
     /**
      * Parses a JSON string into the appropriate config for the given question type.
      */
-    static FormQuestionConfig parse(QuestionType questionType, String json) {
+    static FormQuestionConfig parse(FormQuestionType formQuestionType, String json) {
         if (json == null || json.isBlank() || "{}".equals(json)) return new Unknown();
         try {
-            return MAPPER.readValue(json, questionType.questionClass());
+            return MAPPER.readValue(json, formQuestionType.questionClass());
         } catch (Exception e) {
-            log.error("Failed to parse form question config for type {}: {}", questionType, json, e);
+            log.error("Failed to parse form question config for type {}: {}", formQuestionType, json, e);
             return new Unknown();
         }
     }

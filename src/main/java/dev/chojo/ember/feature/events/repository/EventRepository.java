@@ -13,6 +13,7 @@ import dev.chojo.ember.feature.events.entity.EventFieldDefault;
 import dev.chojo.ember.feature.events.entity.EventRegistration;
 import dev.chojo.ember.feature.events.entity.MemberRegistrationStats;
 import dev.chojo.ember.feature.events.entity.RegistrationCount;
+import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 import jakarta.inject.Singleton;
@@ -68,6 +69,28 @@ public class EventRepository {
                 .single(Call.of().bind("station_id", stationId).bind("member_id", memberId))
                 .map(StationEvent.map())
                 .all();
+    }
+
+    public List<StationEvent> findFiltered(
+            int stationId, Integer memberId, Integer categoryId, Boolean requiresRegistration) {
+        var sql =
+                new StringBuilder("SELECT " + EVENT_COLUMNS + " FROM station_event e WHERE e.station_id = :station_id");
+        if (memberId != null) {
+            sql.append(
+                    " AND check_restriction('event_restriction', 'event_id', 'station_event', 'id', e.id, :member_id, 'EVENT_MANAGER')");
+        }
+        if (categoryId != null) {
+            sql.append(" AND e.category_id = :category_id");
+        }
+        if (requiresRegistration != null) {
+            sql.append(" AND e.requires_registration = :requires_registration");
+        }
+        sql.append(" ORDER BY e.event_type, e.name;");
+        var call = Call.of().bind("station_id", stationId);
+        if (memberId != null) call = call.bind("member_id", memberId);
+        if (categoryId != null) call = call.bind("category_id", categoryId);
+        if (requiresRegistration != null) call = call.bind("requires_registration", requiresRegistration);
+        return Query.query(sql.toString()).single(call).map(StationEvent.map()).all();
     }
 
     /**
@@ -541,7 +564,7 @@ public class EventRepository {
      * @return the created registration
      */
     public EventRegistration createRegistration(int eventId, int memberId, LocalDate eventDate) {
-        return createRegistration(eventId, memberId, eventDate, EventRegistration.RegistrationStatus.PENDING, null);
+        return createRegistration(eventId, memberId, eventDate, RegistrationStatus.PENDING, null);
     }
 
     /**
@@ -556,11 +579,7 @@ public class EventRepository {
      * @return the created or updated registration
      */
     public EventRegistration createRegistration(
-            int eventId,
-            int memberId,
-            LocalDate eventDate,
-            EventRegistration.RegistrationStatus status,
-            Integer createdBy) {
+            int eventId, int memberId, LocalDate eventDate, RegistrationStatus status, Integer createdBy) {
         return Query.query("""
                             INSERT INTO event_registration(event_id, member_id, event_date, status, created_by)
                             VALUES (:event_id, :member_id, :event_date, :status, :created_by)
@@ -639,7 +658,7 @@ public class EventRepository {
      * @param status the new status
      * @return true if a row was updated
      */
-    public boolean updateRegistrationStatus(int id, EventRegistration.RegistrationStatus status) {
+    public boolean updateRegistrationStatus(int id, RegistrationStatus status) {
         return Query.query("UPDATE event_registration SET status = :status WHERE id = :id;")
                 .single(Call.of().bind("status", status.name()).bind("id", id))
                 .update()

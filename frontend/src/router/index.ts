@@ -656,6 +656,11 @@ const router = createRouter({
                     name: 'federated-board-view',
                     component: () => import('@/views/stationview/federation/FederatedBoardView.vue'),
                 },
+                {
+                    path: 'federation/boards/:partnerUid/:boardId/tickets/:ticketId',
+                    name: 'federated-ticket-detail',
+                    component: () => import('@/views/stationview/boards/TicketDetailView.vue'),
+                },
                 // -- Boards --
                 {
                     path: 'boards',
@@ -1397,6 +1402,11 @@ const router = createRouter({
                 {
                     path: 'federation/boards/:partnerUid/:boardId',
                     name: 'help-federated-board-view',
+                    redirect: { name: 'help-federated-boards' },
+                },
+                {
+                    path: 'federation/boards/:partnerUid/:boardId/tickets/:ticketId',
+                    name: 'help-federated-ticket-detail',
                     redirect: { name: 'help-federated-boards' },
                 },
                 {

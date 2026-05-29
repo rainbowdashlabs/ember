@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.events.repository;
 
 import de.chojo.sadu.queries.api.call.Call;
 import de.chojo.sadu.queries.api.query.Query;
+import de.chojo.sadu.queries.converter.StandardValueConverter;
 import dev.chojo.ember.feature.events.entity.EventFederationRegistration;
 import dev.chojo.ember.feature.events.entity.EventFederationShare;
 import jakarta.inject.Singleton;
@@ -14,6 +15,7 @@ import jakarta.inject.Singleton;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 /**
  * Repository for managing federated event sharing, registrations, and member name caching.
@@ -129,12 +131,12 @@ public class EventFederationRepository {
      *
      * @param eventId        the event ID
      * @param partnerId      the federation partner ID
-     * @param remoteMemberId the remote member identifier
+     * @param remoteMemberId the remote member UUID
      * @param eventDate      the event occurrence date
      * @return the created registration
      */
     public EventFederationRegistration createRegistration(
-            int eventId, int partnerId, String remoteMemberId, LocalDate eventDate) {
+            int eventId, int partnerId, UUID remoteMemberId, LocalDate eventDate) {
         return Query.query("""
                         INSERT INTO event_federation_registration(event_id, partner_id, remote_member_id, event_date)
                         VALUES (:event_id, :partner_id, :remote_member_id, :event_date)
@@ -142,7 +144,7 @@ public class EventFederationRepository {
                 .single(Call.of()
                         .bind("event_id", eventId)
                         .bind("partner_id", partnerId)
-                        .bind("remote_member_id", remoteMemberId)
+                        .bind("remote_member_id", remoteMemberId, StandardValueConverter.UUID_STRING)
                         .bind("event_date", eventDate))
                 .map(EventFederationRegistration.map())
                 .first()
@@ -211,11 +213,11 @@ public class EventFederationRepository {
      *
      * @param eventId        the event ID
      * @param partnerId      the federation partner ID
-     * @param remoteMemberId the remote member identifier
+     * @param remoteMemberId the remote member UUID
      * @param eventDate      the event occurrence date
      * @return true if a row was deleted
      */
-    public boolean deleteRegistration(int eventId, int partnerId, String remoteMemberId, LocalDate eventDate) {
+    public boolean deleteRegistration(int eventId, int partnerId, UUID remoteMemberId, LocalDate eventDate) {
         return Query.query("""
                         DELETE FROM event_federation_registration
                         WHERE event_id = :event_id AND partner_id = :partner_id
@@ -223,7 +225,7 @@ public class EventFederationRepository {
                 .single(Call.of()
                         .bind("event_id", eventId)
                         .bind("partner_id", partnerId)
-                        .bind("remote_member_id", remoteMemberId)
+                        .bind("remote_member_id", remoteMemberId, StandardValueConverter.UUID_STRING)
                         .bind("event_date", eventDate))
                 .delete()
                 .changed();
@@ -235,17 +237,17 @@ public class EventFederationRepository {
      * Caches the display name for a federated member.
      *
      * @param partnerId      the federation partner ID
-     * @param remoteMemberId the remote member identifier
+     * @param remoteMemberId the remote member UUID
      * @param displayName    the display name to cache
      */
-    public void cacheName(int partnerId, String remoteMemberId, String displayName) {
+    public void cacheName(int partnerId, UUID remoteMemberId, String displayName) {
         Query.query("""
                         INSERT INTO federation_member_name_cache(partner_id, remote_member_id, display_name)
                         VALUES (:partner_id, :remote_member_id, :display_name)
                         ON CONFLICT (partner_id, remote_member_id) DO UPDATE SET display_name = :display_name, cached_at = now();""")
                 .single(Call.of()
                         .bind("partner_id", partnerId)
-                        .bind("remote_member_id", remoteMemberId)
+                        .bind("remote_member_id", remoteMemberId, StandardValueConverter.UUID_STRING)
                         .bind("display_name", displayName))
                 .insert();
     }
@@ -254,13 +256,15 @@ public class EventFederationRepository {
      * Retrieves the cached display name for a federated member.
      *
      * @param partnerId      the federation partner ID
-     * @param remoteMemberId the remote member identifier
+     * @param remoteMemberId the remote member UUID
      * @return the display name, if cached
      */
-    public Optional<String> getCachedName(int partnerId, String remoteMemberId) {
+    public Optional<String> getCachedName(int partnerId, UUID remoteMemberId) {
         return Query.query(
                         "SELECT display_name FROM federation_member_name_cache WHERE partner_id = :partner_id AND remote_member_id = :remote_member_id;")
-                .single(Call.of().bind("partner_id", partnerId).bind("remote_member_id", remoteMemberId))
+                .single(Call.of()
+                        .bind("partner_id", partnerId)
+                        .bind("remote_member_id", remoteMemberId, StandardValueConverter.UUID_STRING))
                 .map(row -> row.getString("display_name"))
                 .first();
     }
@@ -269,12 +273,14 @@ public class EventFederationRepository {
      * Invalidates the cached name for a federated member.
      *
      * @param partnerId      the federation partner ID
-     * @param remoteMemberId the remote member identifier
+     * @param remoteMemberId the remote member UUID
      */
-    public void invalidateName(int partnerId, String remoteMemberId) {
+    public void invalidateName(int partnerId, UUID remoteMemberId) {
         Query.query(
                         "DELETE FROM federation_member_name_cache WHERE partner_id = :partner_id AND remote_member_id = :remote_member_id;")
-                .single(Call.of().bind("partner_id", partnerId).bind("remote_member_id", remoteMemberId))
+                .single(Call.of()
+                        .bind("partner_id", partnerId)
+                        .bind("remote_member_id", remoteMemberId, StandardValueConverter.UUID_STRING))
                 .delete();
     }
 }

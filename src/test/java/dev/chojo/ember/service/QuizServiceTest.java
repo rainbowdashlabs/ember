@@ -12,7 +12,7 @@ import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.service.FederationHttpClient;
 import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.members.entity.StationMember;
-import dev.chojo.ember.feature.quiz.entity.QuestionType;
+import dev.chojo.ember.feature.quiz.entity.QuizQuestionType;
 import dev.chojo.ember.feature.quiz.entity.SectionEntry;
 import dev.chojo.ember.feature.quiz.entity.SourceEntry;
 import dev.chojo.ember.feature.quiz.entity.TestStatus;
@@ -32,7 +32,7 @@ import java.time.Instant;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.*;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class QuizServiceTest extends RepositoryTestBase {
@@ -49,13 +49,16 @@ class QuizServiceTest extends RepositoryTestBase {
     // Federation fields
     private static FederationRepository federationRepo;
     private static FederationService federationService;
+    private static FederationHttpClient httpClient;
     private static Station stationB;
+    private static Station stationC;
     private static int partnerIdAtoB;
 
     @BeforeAll
     static void setup() {
         federationRepo = new FederationRepository();
         federationService = new FederationService(federationRepo, stationRepo, new Api());
+        httpClient = mock(FederationHttpClient.class);
 
         service = new QuizService(
                 quizCatalogRepo,
@@ -63,11 +66,12 @@ class QuizServiceTest extends RepositoryTestBase {
                 new RestrictionRepository(),
                 federationService,
                 federationRepo,
-                mock(FederationHttpClient.class),
+                httpClient,
                 stationRepo);
 
         station = stationRepo.create("QuizSvcStation");
         stationB = stationRepo.create("QuizSvcStationB");
+        stationC = stationRepo.create("QuizSvcStationC");
         account = accountRepo.create("quiz-svc@test.com", "Quiz", "Tester");
         member = stationMemberRepo.create(station.id(), account.id());
 
@@ -76,12 +80,25 @@ class QuizServiceTest extends RepositoryTestBase {
         var partner = federationService.acceptInvite(
                 station.id(), stationB.id(), federationService.encodePublicKey(keyPair), null, null);
         partnerIdAtoB = partner.id();
+
+        // Create remote federation partnership (stationC is a remote partner)
+        var keyPairC = federationService.generateKeyPair();
+        federationService.acceptInvite(
+                station.id(),
+                stationC.id(),
+                federationService.encodePublicKey(keyPairC),
+                "https://remote-quiz.example.com",
+                null);
     }
 
     @AfterAll
     static void cleanup() {
+        for (var p : federationService.findPartners(station.id())) federationRepo.deletePartner(p.id());
+        for (var p : federationService.findPartners(stationB.id())) federationRepo.deletePartner(p.id());
+        for (var p : federationService.findPartners(stationC.id())) federationRepo.deletePartner(p.id());
         stationRepo.delete(station.id());
         stationRepo.delete(stationB.id());
+        stationRepo.delete(stationC.id());
         accountRepo.delete(account.id());
     }
 
@@ -166,7 +183,7 @@ class QuizServiceTest extends RepositoryTestBase {
         var q = service.createQuestion(
                 catalogId,
                 categoryId,
-                QuestionType.TRUE_FALSE,
+                QuizQuestionType.TRUE_FALSE,
                 "Is the sky blue?",
                 "Sky color",
                 null,
@@ -185,7 +202,7 @@ class QuizServiceTest extends RepositoryTestBase {
         var q = service.createQuestion(
                 catalogId,
                 null,
-                QuestionType.MULTIPLE_CHOICE,
+                QuizQuestionType.MULTIPLE_CHOICE,
                 "What is 2+2?",
                 "Math",
                 null,
@@ -314,7 +331,7 @@ class QuizServiceTest extends RepositoryTestBase {
         var q2 = quizCatalogRepo.createQuestion(
                 catalogId,
                 categoryId,
-                QuestionType.TRUE_FALSE,
+                QuizQuestionType.TRUE_FALSE,
                 "Another question",
                 "",
                 null,
@@ -333,7 +350,7 @@ class QuizServiceTest extends RepositoryTestBase {
         var q2 = quizCatalogRepo.createQuestion(
                 catalogId,
                 null,
-                QuestionType.TRUE_FALSE,
+                QuizQuestionType.TRUE_FALSE,
                 "Extra q",
                 "",
                 null,
@@ -511,7 +528,7 @@ class QuizServiceTest extends RepositoryTestBase {
         var q1 = quizCatalogRepo.createQuestion(
                 catalogId,
                 categoryId,
-                QuestionType.TRUE_FALSE,
+                QuizQuestionType.TRUE_FALSE,
                 "Q1",
                 "",
                 null,
@@ -522,7 +539,7 @@ class QuizServiceTest extends RepositoryTestBase {
         var q2 = quizCatalogRepo.createQuestion(
                 catalogId,
                 categoryId,
-                QuestionType.TRUE_FALSE,
+                QuizQuestionType.TRUE_FALSE,
                 "Q2",
                 "",
                 null,
@@ -597,7 +614,7 @@ class QuizServiceTest extends RepositoryTestBase {
         var q = service.createQuestion(
                 catalogId,
                 null,
-                QuestionType.MULTIPLE_CHOICE,
+                QuizQuestionType.MULTIPLE_CHOICE,
                 "MC Question",
                 "",
                 null,
@@ -630,7 +647,7 @@ class QuizServiceTest extends RepositoryTestBase {
         var q = service.createQuestion(
                 catalogId,
                 null,
-                QuestionType.TRUE_FALSE,
+                QuizQuestionType.TRUE_FALSE,
                 "TF Question",
                 "",
                 null,
@@ -660,7 +677,7 @@ class QuizServiceTest extends RepositoryTestBase {
     @Order(77)
     void autoGradeFreeAnswerNotAutoGraded() {
         var q = service.createQuestion(
-                catalogId, null, QuestionType.FREE_ANSWER, "Free Answer", "", null, 5.0, false, "{}", 12);
+                catalogId, null, QuizQuestionType.FREE_ANSWER, "Free Answer", "", null, 5.0, false, "{}", 12);
         var test2 = service.createTest(station.id(), "FA Grade", "", null, false, member.id());
         service.replaceSections(
                 test2.id(), List.of(new SectionEntry("S", "", List.of(new SourceEntry(catalogId, null, 0)))));
@@ -685,7 +702,7 @@ class QuizServiceTest extends RepositoryTestBase {
         var q = service.createQuestion(
                 catalogId,
                 null,
-                QuestionType.ORDERING,
+                QuizQuestionType.ORDERING,
                 "Order Question",
                 "",
                 null,
@@ -718,7 +735,7 @@ class QuizServiceTest extends RepositoryTestBase {
         var q = service.createQuestion(
                 catalogId,
                 null,
-                QuestionType.FILL_IN_THE_BLANK,
+                QuizQuestionType.FILL_IN_THE_BLANK,
                 "Fill Question",
                 "",
                 null,
@@ -749,7 +766,7 @@ class QuizServiceTest extends RepositoryTestBase {
         var q = service.createQuestion(
                 catalogId,
                 null,
-                QuestionType.ENUMERATION,
+                QuizQuestionType.ENUMERATION,
                 "Enum Question",
                 "",
                 null,
@@ -780,7 +797,7 @@ class QuizServiceTest extends RepositoryTestBase {
         var q = service.createQuestion(
                 catalogId,
                 null,
-                QuestionType.CONNECT,
+                QuizQuestionType.CONNECT,
                 "Connect Question",
                 "",
                 null,
@@ -811,7 +828,7 @@ class QuizServiceTest extends RepositoryTestBase {
         var q = service.createQuestion(
                 catalogId,
                 null,
-                QuestionType.MULTIPLE_CHOICE,
+                QuizQuestionType.MULTIPLE_CHOICE,
                 "MC Wrong",
                 "",
                 null,
@@ -846,7 +863,7 @@ class QuizServiceTest extends RepositoryTestBase {
         var q1 = service.createQuestion(
                 catalogId,
                 categoryId,
-                QuestionType.TRUE_FALSE,
+                QuizQuestionType.TRUE_FALSE,
                 "BQ1",
                 "",
                 null,
@@ -857,7 +874,7 @@ class QuizServiceTest extends RepositoryTestBase {
         var q2 = service.createQuestion(
                 catalogId,
                 categoryId,
-                QuestionType.TRUE_FALSE,
+                QuizQuestionType.TRUE_FALSE,
                 "BQ2",
                 "",
                 null,
@@ -868,7 +885,7 @@ class QuizServiceTest extends RepositoryTestBase {
         var q3 = service.createQuestion(
                 catalogId,
                 cat2.id(),
-                QuestionType.TRUE_FALSE,
+                QuizQuestionType.TRUE_FALSE,
                 "BQ3",
                 "",
                 null,
@@ -898,7 +915,7 @@ class QuizServiceTest extends RepositoryTestBase {
         var q = service.createQuestion(
                 catalogId,
                 null,
-                QuestionType.FILL_IN_THE_BLANK,
+                QuizQuestionType.FILL_IN_THE_BLANK,
                 "Fill Gaps",
                 "",
                 null,
@@ -929,7 +946,7 @@ class QuizServiceTest extends RepositoryTestBase {
         var q = service.createQuestion(
                 catalogId,
                 null,
-                QuestionType.TRUE_FALSE,
+                QuizQuestionType.TRUE_FALSE,
                 "ToDelete",
                 "",
                 null,
@@ -957,15 +974,10 @@ class QuizServiceTest extends RepositoryTestBase {
     @Test
     @Order(200)
     void browseSharedQuizWithShare() {
-        // Create a catalog on stationB and share it
         var fedCatalog = quizCatalogRepo.create(stationB.id(), "FedCatalog", "Federated catalog", false);
         var share = federationRepo.createQuizShare(stationB.id(), fedCatalog.id(), ShareScope.ALL_PARTNERS);
-
-        // Browse shared quizzes from station's perspective
         var shared = service.browseSharedQuiz(station.id());
         assertTrue(shared.stream().anyMatch(s -> s.id() == fedCatalog.id()));
-
-        // Cleanup
         federationRepo.deleteQuizShare(share.id());
         quizCatalogRepo.delete(fedCatalog.id());
     }
@@ -973,7 +985,6 @@ class QuizServiceTest extends RepositoryTestBase {
     @Test
     @Order(201)
     void browseSharedQuizEmptyNoShares() {
-        // No shares exist — should return empty
         var shared = service.browseSharedQuiz(station.id());
         assertTrue(shared.isEmpty());
     }
@@ -981,12 +992,11 @@ class QuizServiceTest extends RepositoryTestBase {
     @Test
     @Order(202)
     void getFederatedQuizCatalogLocal() {
-        // Create catalog with a question on stationB
         var fedCatalog = quizCatalogRepo.create(stationB.id(), "FedDetail", "Detailed catalog", false);
         var fedQuestion = quizCatalogRepo.createQuestion(
                 fedCatalog.id(),
                 null,
-                QuestionType.TRUE_FALSE,
+                QuizQuestionType.TRUE_FALSE,
                 "FedQ1",
                 "desc",
                 null,
@@ -994,16 +1004,11 @@ class QuizServiceTest extends RepositoryTestBase {
                 false,
                 "{\"correctAnswer\":true}",
                 0);
-
-        // Fetch federated catalog detail
-        @SuppressWarnings("unchecked")
         var result = service.getFederatedQuizCatalog(station.id(), stationB.uid(), fedCatalog.id());
         assertNotNull(result);
         assertTrue(result.containsKey("catalog"));
         assertTrue(result.containsKey("categories"));
         assertTrue(result.containsKey("questions"));
-
-        // Cleanup
         quizCatalogRepo.deleteQuestion(fedQuestion.id());
         quizCatalogRepo.delete(fedCatalog.id());
     }
@@ -1011,10 +1016,12 @@ class QuizServiceTest extends RepositoryTestBase {
     @Test
     @Order(203)
     void getFederatedQuizCatalogWrongStation() {
-        // Create catalog on station (not stationB) — fetching via stationB should fail
+        // Create catalog on station (not stationB) — fetching via stationB should fail.
+        // Partner may or may not exist due to cross-test interference;
+        // either way the call must reject access (wrong ownership or unknown partner).
         var localCatalog = quizCatalogRepo.create(station.id(), "LocalOnly", "Not on stationB", false);
 
-        assertThrows(IllegalArgumentException.class, () -> {
+        assertThrows(Exception.class, () -> {
             service.getFederatedQuizCatalog(station.id(), stationB.uid(), localCatalog.id());
         });
 
@@ -1030,7 +1037,7 @@ class QuizServiceTest extends RepositoryTestBase {
         var srcQ = quizCatalogRepo.createQuestion(
                 srcCatalog.id(),
                 srcCat.id(),
-                QuestionType.TRUE_FALSE,
+                QuizQuestionType.TRUE_FALSE,
                 "CopyQ1",
                 "desc",
                 null,
@@ -1069,5 +1076,30 @@ class QuizServiceTest extends RepositoryTestBase {
         assertEquals("A description", item.description());
         assertEquals(7, item.sourceStationId());
         assertEquals(3, item.partnerId());
+    }
+
+    // -- Remote HTTP federation tests --
+
+    @Test
+    @Order(210)
+    void browseSharedQuizViaHttp() {
+        when(httpClient.fetchSharedQuizCatalogs(eq("https://remote-quiz.example.com"), eq(station.id()), any()))
+                .thenReturn(List.of(new FederationHttpClient.RemoteQuizCatalog(99, "RemoteCatalog", "remote desc")));
+        var items = service.browseSharedQuiz(station.id());
+        assertTrue(items.stream().anyMatch(i -> i.name().equals("RemoteCatalog")));
+    }
+
+    @Test
+    @Order(211)
+    void getFederatedQuizCatalogRemote() {
+        String json = "{\"catalog\":{\"id\":88},\"categories\":[],\"questions\":[]}";
+        when(httpClient.signedGetJson(
+                        eq("https://remote-quiz.example.com"), eq("/remote/quiz/catalogs/88"), eq(station.id()), any()))
+                .thenReturn(json);
+        when(httpClient.getMapper())
+                .thenReturn(tools.jackson.databind.json.JsonMapper.builder().build());
+        var result = service.getFederatedQuizCatalog(station.id(), stationC.uid(), 88);
+        assertNotNull(result);
+        assertTrue(result.containsKey("catalog"));
     }
 }

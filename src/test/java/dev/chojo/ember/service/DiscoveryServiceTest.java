@@ -25,6 +25,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class DiscoveryServiceTest extends RepositoryTestBase {
 
     private static FederationService federationService;
+    private static FederationRepository federationRepo;
     private static Station stationA;
     private static Station stationB;
     private static Station stationC;
@@ -32,7 +33,7 @@ class DiscoveryServiceTest extends RepositoryTestBase {
     @BeforeAll
     static void setup() {
         StationUidResolver.instance().clearCache();
-        var federationRepo = new FederationRepository();
+        federationRepo = new FederationRepository();
         federationService = new FederationService(federationRepo, stationRepo, new Api());
 
         stationA = stationRepo.create("DiscTestStationA");
@@ -48,6 +49,9 @@ class DiscoveryServiceTest extends RepositoryTestBase {
 
     @AfterAll
     static void cleanup() {
+        for (var p : federationService.findPartners(stationA.id())) federationRepo.deletePartner(p.id());
+        for (var p : federationService.findPartners(stationB.id())) federationRepo.deletePartner(p.id());
+        for (var p : federationService.findPartners(stationC.id())) federationRepo.deletePartner(p.id());
         stationRepo.delete(stationA.id());
         stationRepo.delete(stationB.id());
         stationRepo.delete(stationC.id());

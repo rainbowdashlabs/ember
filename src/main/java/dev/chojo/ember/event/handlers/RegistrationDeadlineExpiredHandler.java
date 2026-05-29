@@ -17,6 +17,8 @@ import dev.chojo.ember.feature.notifications.service.NotificationService;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
+import java.util.Map;
+
 @Singleton
 public class RegistrationDeadlineExpiredHandler implements DomainEventHandler<RegistrationDeadlineExpired> {
     private final NotificationService notificationService;
@@ -37,12 +39,11 @@ public class RegistrationDeadlineExpiredHandler implements DomainEventHandler<Re
     @Override
     public void handle(RegistrationDeadlineExpired event) {
         var data = NotificationData.of(
-                new NotificationParams.EventRegistrationStatus(
-                        event.eventName(), event.pendingCount() + " offene Anmeldungen nach Fristende", null),
-                new NotificationData.NotificationLink("events-registrations"));
+                new NotificationParams.RegistrationDeadlineExpired(event.eventName(), event.pendingCount()),
+                new NotificationData.NotificationLink("events-registrations", Map.of("id", event.eventId())));
         var eventMgmtIds = stationMemberRepository.findMembersWithRole(event.stationId(), Roles.EVENT_MANAGER).stream()
                 .map(StationMember::id)
                 .toList();
-        notificationService.notifyMembers(eventMgmtIds, NotificationType.EVENT_REGISTRATION_STATUS, data);
+        notificationService.notifyMembers(eventMgmtIds, NotificationType.REGISTRATION_DEADLINE_EXPIRED, data);
     }
 }

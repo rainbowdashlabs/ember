@@ -10,7 +10,7 @@ import dev.chojo.ember.feature.attendance.entity.AttendanceFieldConfig;
 import dev.chojo.ember.feature.attendance.entity.AttendanceFieldType;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.form.entity.FormQuestionConfig;
-import dev.chojo.ember.feature.form.entity.QuestionType;
+import dev.chojo.ember.feature.form.entity.FormQuestionType;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
 import dev.chojo.ember.feature.members.entity.ProfileField;
@@ -251,7 +251,7 @@ class StationTransferTest extends RepositoryTestBase {
         formRepo.createQuestion(
                 form.id(),
                 0,
-                QuestionType.RATING,
+                FormQuestionType.RATING,
                 "Gesamtzufriedenheit",
                 "Bewerte von 1-5",
                 true,
@@ -260,7 +260,7 @@ class StationTransferTest extends RepositoryTestBase {
         formRepo.createQuestion(
                 form.id(),
                 1,
-                QuestionType.TEXT,
+                FormQuestionType.TEXT,
                 "Verbesserungsvorschläge",
                 "Was können wir besser machen?",
                 false,
@@ -269,13 +269,14 @@ class StationTransferTest extends RepositoryTestBase {
         formRepo.createQuestion(
                 form.id(),
                 2,
-                QuestionType.CHOICE,
+                FormQuestionType.CHOICE,
                 "Lieblingsübung",
                 "",
                 false,
                 false,
                 FormQuestionConfig.parse(
-                        QuestionType.CHOICE, "{\"options\":[\"Löschangriff\",\"Knoten\",\"Erste Hilfe\",\"Sport\"]}"));
+                        FormQuestionType.CHOICE,
+                        "{\"options\":[\"Löschangriff\",\"Knoten\",\"Erste Hilfe\",\"Sport\"]}"));
     }
 
     // ==================== Export tests ====================

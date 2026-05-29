@@ -15,10 +15,13 @@ import {getItem} from '@/api/storage'
 import {useSession} from '@/composables/useSession'
 import {useTheme} from '@/composables/useTheme'
 import UserAvatar from '@/components/avatar/UserAvatar.vue'
+import PrideText from '@/components/display/PrideText.vue'
+import {usePride} from '@/composables/usePride'
 
 const {t} = useI18n()
 const router = useRouter()
 const {loaded, load, fullName, clear, sessionInfo} = useSession()
+const {prideActive, prideVariant} = usePride()
 const isDemo = ref(false)
 
 onMounted(async () => {
@@ -52,7 +55,7 @@ async function handleLogout() {
       class="flex h-14 items-center justify-between border-b border-bg-light-accent dark:border-bg-dark-accent px-4">
     <router-link class="flex items-center gap-2 text-lg font-bold text-primary no-underline hover:no-underline" to="/">
       <img :src="'/api/v1/public/logo/NoBG_OrangeGlow?size=128'" alt="Ember" class="h-7 w-7" />
-      Ember
+      <PrideText :active="prideActive" :variant="prideVariant">Ember</PrideText>
     </router-link>
 
     <div v-if="loaded && fullName()" class="flex items-center gap-3">

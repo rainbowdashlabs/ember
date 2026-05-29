@@ -6,11 +6,16 @@
 package dev.chojo.ember.feature.board.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
+import de.chojo.sadu.queries.converter.StandardValueConverter;
 
-public record BoardTicketFederatedCommentAuthor(int commentId, int partnerId, String remoteMemberId) {
+import java.util.UUID;
+
+public record BoardTicketFederatedCommentAuthor(int commentId, int partnerId, UUID remoteMemberId) {
 
     public static RowMapping<BoardTicketFederatedCommentAuthor> map() {
         return row -> new BoardTicketFederatedCommentAuthor(
-                row.getInt("comment_id"), row.getInt("partner_id"), row.getString("remote_member_id"));
+                row.getInt("comment_id"),
+                row.getInt("partner_id"),
+                row.get("remote_member_id", StandardValueConverter.UUID_STRING));
     }
 }

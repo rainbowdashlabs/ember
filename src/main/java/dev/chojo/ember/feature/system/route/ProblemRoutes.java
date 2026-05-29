@@ -5,12 +5,18 @@
  */
 package dev.chojo.ember.feature.system.route;
 
+import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.Roles;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.feature.system.service.ProblemLogAppender;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.http.NotFoundResponse;
+import io.javalin.openapi.HttpMethod;
+import io.javalin.openapi.OpenApi;
+import io.javalin.openapi.OpenApiContent;
+import io.javalin.openapi.OpenApiParam;
+import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Singleton;
 
@@ -30,6 +36,16 @@ public class ProblemRoutes implements Routes {
         routes.post(prefix + "/admin/problems/acknowledge-all", this::acknowledgeAll, Roles.ADMIN);
     }
 
+    @OpenApi(
+            path = "/api/v1/admin/problems",
+            methods = HttpMethod.GET,
+            summary = "List application problems (errors and warnings)",
+            tags = {"Problems"},
+            queryParams = @OpenApiParam(name = "includeAcknowledged", type = Boolean.class),
+            responses =
+                    @OpenApiResponse(
+                            status = "200",
+                            content = @OpenApiContent(from = ProblemLogAppender.ProblemEntry[].class)))
     private void listProblems(Context ctx) {
         boolean includeAcknowledged = "true".equals(ctx.queryParam("includeAcknowledged"));
         var appender = ProblemLogAppender.instance();
@@ -40,6 +56,16 @@ public class ProblemRoutes implements Routes {
         ctx.json(appender.getProblems(includeAcknowledged).stream().toList());
     }
 
+    @OpenApi(
+            path = "/api/v1/admin/problems/{id}/acknowledge",
+            methods = HttpMethod.POST,
+            summary = "Acknowledge a specific problem",
+            tags = {"Problems"},
+            pathParams = @OpenApiParam(name = "id", type = Long.class, required = true),
+            responses = {
+                @OpenApiResponse(status = "204"),
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
     private void acknowledge(Context ctx) {
         long id = ctx.pathParamAsClass("id", Long.class).get();
         var appender = ProblemLogAppender.instance();
@@ -49,6 +75,12 @@ public class ProblemRoutes implements Routes {
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
+    @OpenApi(
+            path = "/api/v1/admin/problems/acknowledge-all",
+            methods = HttpMethod.POST,
+            summary = "Acknowledge all unacknowledged problems",
+            tags = {"Problems"},
+            responses = @OpenApiResponse(status = "200"))
     private void acknowledgeAll(Context ctx) {
         var appender = ProblemLogAppender.instance();
         int count = appender != null ? appender.acknowledgeAll() : 0;

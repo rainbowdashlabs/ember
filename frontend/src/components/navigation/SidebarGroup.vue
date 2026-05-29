@@ -6,6 +6,7 @@
 <script lang="ts" setup>
 import {computed, ref, useSlots, watch} from 'vue'
 import {useRoute} from 'vue-router'
+import type {VNode} from 'vue'
 
 const props = defineProps<{
   icon?: string[]
@@ -27,7 +28,26 @@ const route = useRoute()
 const slots = useSlots()
 const prefixes = computed(() => Array.isArray(props.prefix) ? props.prefix : [props.prefix])
 const isActive = computed(() => prefixes.value.some(p => (route.path + '/').startsWith(p + '/') || route.path === p))
-const hasChildren = computed(() => !!slots.default)
+
+function countVisibleVNodes(vnodes: VNode[]): number {
+  let count = 0
+  for (const vnode of vnodes) {
+    if (vnode.type === Comment) continue
+    if (typeof vnode.type === 'symbol' && Array.isArray(vnode.children)) {
+      // Fragment — recurse into children
+      count += countVisibleVNodes(vnode.children as VNode[])
+    } else {
+      count++
+    }
+  }
+  return count
+}
+
+const hasVisibleChildren = computed(() => {
+  const slotFn = slots.default
+  if (!slotFn) return false
+  return countVisibleVNodes(slotFn()) > 0
+})
 
 const localExpanded = ref(isActive.value)
 const key = computed(() => props.groupKey ?? (Array.isArray(props.prefix) ? props.prefix[0] : props.prefix))
@@ -80,7 +100,7 @@ function toggle() {
           }}</span>
       </component>
       <button
-          v-if="hasChildren"
+          v-if="hasVisibleChildren"
           class="flex items-center justify-center w-8 h-8 rounded-theme text-[var(--text)] transition-colors duration-150"
           @click="toggle"
       >
@@ -91,7 +111,7 @@ function toggle() {
       </button>
     </div>
 
-    <div v-if="hasChildren && expanded" class="ml-4 flex flex-col gap-1 mt-1">
+    <div v-if="hasVisibleChildren && expanded" class="ml-4 flex flex-col gap-1 mt-1">
       <slot/>
     </div>
   </div>

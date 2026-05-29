@@ -13,10 +13,10 @@ import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.service.FederationHttpClient;
 import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.quiz.entity.QuestionConfig;
-import dev.chojo.ember.feature.quiz.entity.QuestionType;
 import dev.chojo.ember.feature.quiz.entity.QuizCatalog;
 import dev.chojo.ember.feature.quiz.entity.QuizCategory;
 import dev.chojo.ember.feature.quiz.entity.QuizQuestion;
+import dev.chojo.ember.feature.quiz.entity.QuizQuestionType;
 import dev.chojo.ember.feature.quiz.entity.QuizTest;
 import dev.chojo.ember.feature.quiz.entity.QuizTestAnswer;
 import dev.chojo.ember.feature.quiz.entity.QuizTestAttempt;
@@ -148,7 +148,7 @@ public class QuizService {
     public QuizQuestion createQuestion(
             int catalogId,
             Integer categoryId,
-            QuestionType questionType,
+            QuizQuestionType quizQuestionType,
             String title,
             String description,
             String imageUrl,
@@ -157,11 +157,11 @@ public class QuizService {
             QuestionConfig config,
             int position) {
         String configStr = serializeConfig(config);
-        double effectivePoints = autoPoints ? calculateAutoPoints(questionType, configStr, points) : points;
+        double effectivePoints = autoPoints ? calculateAutoPoints(quizQuestionType, configStr, points) : points;
         return catalogRepository.createQuestion(
                 catalogId,
                 categoryId,
-                questionType,
+                quizQuestionType,
                 title,
                 description,
                 imageUrl,
@@ -178,7 +178,7 @@ public class QuizService {
     public QuizQuestion createQuestion(
             int catalogId,
             Integer categoryId,
-            QuestionType questionType,
+            QuizQuestionType quizQuestionType,
             String title,
             String description,
             String imageUrl,
@@ -189,13 +189,13 @@ public class QuizService {
         return createQuestion(
                 catalogId,
                 categoryId,
-                questionType,
+                quizQuestionType,
                 title,
                 description,
                 imageUrl,
                 points,
                 autoPoints,
-                questionType.parseConfig(configJson != null ? configJson : "{}"),
+                quizQuestionType.parseConfig(configJson != null ? configJson : "{}"),
                 position);
     }
 
@@ -223,7 +223,7 @@ public class QuizService {
             // Determine question type from existing record
             var existing = catalogRepository.findQuestionById(id);
             if (existing.isPresent()) {
-                effectivePoints = calculateAutoPoints(existing.get().questionType(), config, points);
+                effectivePoints = calculateAutoPoints(existing.get().quizQuestionType(), config, points);
             }
         }
         return catalogRepository.updateQuestion(
@@ -232,10 +232,10 @@ public class QuizService {
 
     /**
      * Calculates auto-points from the question config based on type.
-     * Uses {@link QuestionType#parseConfig} for typed deserialization and
+     * Uses {@link QuizQuestionType#parseConfig} for typed deserialization and
      * {@link QuestionConfig#autoPoints} for the calculation.
      */
-    private double calculateAutoPoints(QuestionType type, String configStr, double fallback) {
+    private double calculateAutoPoints(QuizQuestionType type, String configStr, double fallback) {
         var config = type.parseConfig(configStr);
         if (config instanceof QuestionConfig.Unknown) return fallback;
         double points = config.autoPoints();
@@ -574,7 +574,7 @@ public class QuizService {
         try {
             var config = q.configNode();
             var answer = mapper.readTree(answerJson);
-            return switch (q.questionType()) {
+            return switch (q.quizQuestionType()) {
                 case MULTIPLE_CHOICE -> gradeMultipleChoice(config, answer, q.points());
                 case TRUE_FALSE -> gradeTrueFalse(config, answer, q.points());
                 case CONNECT -> gradeConnect(config, answer, q.points());
@@ -904,7 +904,7 @@ public class QuizService {
             createQuestion(
                     newCatalog.id(),
                     newCatId,
-                    q.questionType(),
+                    q.quizQuestionType(),
                     q.title(),
                     q.description(),
                     q.imageUrl(),

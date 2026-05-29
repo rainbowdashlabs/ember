@@ -32,12 +32,22 @@ import org.junit.jupiter.api.TestMethodOrder;
 
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class FederatedBoardServiceTest extends RepositoryTestBase {
+    private static final UUID REMOTE_MEMBER_1 = UUID.fromString("00000000-0000-0000-0000-000000000001");
+    private static final UUID REMOTE_MEMBER_2 = UUID.fromString("00000000-0000-0000-0000-000000000002");
+    private static final UUID REMOTE_AUTHOR_1 = UUID.fromString("00000000-0000-0000-0000-000000000003");
+    private static final UUID REMOTE_CREATOR_1 = UUID.fromString("00000000-0000-0000-0000-000000000004");
+    private static final UUID REMOTE_WATCHER_1 = UUID.fromString("00000000-0000-0000-0000-000000000005");
+    private static final UUID REMOTE_WATCHER_2 = UUID.fromString("00000000-0000-0000-0000-000000000006");
+    private static final UUID REMOTE_WATCHER_3 = UUID.fromString("00000000-0000-0000-0000-000000000007");
+    private static final UUID REMOTE_ASSIGNEE = UUID.fromString("00000000-0000-0000-0000-000000000008");
+
     private static FederatedBoardService service;
     private static FederatedBoardNotificationService notificationService;
     private static FederationWebhookService webhookService;
@@ -250,21 +260,21 @@ class FederatedBoardServiceTest extends RepositoryTestBase {
     @Test
     @Order(20)
     void setAndFindFederatedAssignee() {
-        service.setFederatedAssignee(ticketId, partnerId, "remote-member-1");
+        service.setFederatedAssignee(ticketId, partnerId, REMOTE_MEMBER_1);
         var assignee = service.findFederatedAssignee(ticketId);
         assertTrue(assignee.isPresent());
         assertEquals(partnerId, assignee.get().partnerId());
-        assertEquals("remote-member-1", assignee.get().remoteMemberId());
+        assertEquals(REMOTE_MEMBER_1, assignee.get().remoteMemberId());
     }
 
     @Test
     @Order(21)
     void setFederatedAssigneeOverwrites() {
-        service.setFederatedAssignee(ticketId, partner2Id, "remote-member-2");
+        service.setFederatedAssignee(ticketId, partner2Id, REMOTE_MEMBER_2);
         var assignee = service.findFederatedAssignee(ticketId);
         assertTrue(assignee.isPresent());
         assertEquals(partner2Id, assignee.get().partnerId());
-        assertEquals("remote-member-2", assignee.get().remoteMemberId());
+        assertEquals(REMOTE_MEMBER_2, assignee.get().remoteMemberId());
     }
 
     @Test
@@ -279,11 +289,11 @@ class FederatedBoardServiceTest extends RepositoryTestBase {
     @Test
     @Order(30)
     void setAndFindFederatedCommentAuthor() {
-        service.setFederatedCommentAuthor(commentId, partnerId, "remote-author-1");
+        service.setFederatedCommentAuthor(commentId, partnerId, REMOTE_AUTHOR_1);
         var author = service.findFederatedCommentAuthor(commentId);
         assertTrue(author.isPresent());
         assertEquals(partnerId, author.get().partnerId());
-        assertEquals("remote-author-1", author.get().remoteMemberId());
+        assertEquals(REMOTE_AUTHOR_1, author.get().remoteMemberId());
     }
 
     // -- Federated Creators --
@@ -291,11 +301,11 @@ class FederatedBoardServiceTest extends RepositoryTestBase {
     @Test
     @Order(40)
     void setAndFindFederatedCreator() {
-        service.setFederatedCreator(ticketId, partnerId, "remote-creator-1");
+        service.setFederatedCreator(ticketId, partnerId, REMOTE_CREATOR_1);
         var creator = service.findFederatedCreator(ticketId);
         assertTrue(creator.isPresent());
         assertEquals(partnerId, creator.get().partnerId());
-        assertEquals("remote-creator-1", creator.get().remoteMemberId());
+        assertEquals(REMOTE_CREATOR_1, creator.get().remoteMemberId());
     }
 
     // -- Federated Watchers --
@@ -303,9 +313,9 @@ class FederatedBoardServiceTest extends RepositoryTestBase {
     @Test
     @Order(50)
     void addAndFindFederatedWatchers() {
-        service.addFederatedWatcher(ticketId, partnerId, "remote-watcher-1");
-        service.addFederatedWatcher(ticketId, partnerId, "remote-watcher-2");
-        service.addFederatedWatcher(ticketId, partner2Id, "remote-watcher-3");
+        service.addFederatedWatcher(ticketId, partnerId, REMOTE_WATCHER_1);
+        service.addFederatedWatcher(ticketId, partnerId, REMOTE_WATCHER_2);
+        service.addFederatedWatcher(ticketId, partner2Id, REMOTE_WATCHER_3);
 
         var watchers = service.findFederatedWatchers(ticketId);
         assertEquals(3, watchers.size());
@@ -314,15 +324,15 @@ class FederatedBoardServiceTest extends RepositoryTestBase {
     @Test
     @Order(51)
     void isFederatedWatching() {
-        assertTrue(service.isFederatedWatching(ticketId, partnerId, "remote-watcher-1"));
-        assertFalse(service.isFederatedWatching(ticketId, partnerId, "non-existent"));
+        assertTrue(service.isFederatedWatching(ticketId, partnerId, REMOTE_WATCHER_1));
+        assertFalse(service.isFederatedWatching(ticketId, partnerId, UUID.randomUUID()));
     }
 
     @Test
     @Order(52)
     void removeFederatedWatcher() {
-        service.removeFederatedWatcher(ticketId, partnerId, "remote-watcher-2");
-        assertFalse(service.isFederatedWatching(ticketId, partnerId, "remote-watcher-2"));
+        service.removeFederatedWatcher(ticketId, partnerId, REMOTE_WATCHER_2);
+        assertFalse(service.isFederatedWatching(ticketId, partnerId, REMOTE_WATCHER_2));
         assertEquals(2, service.findFederatedWatchers(ticketId).size());
     }
 
@@ -497,7 +507,7 @@ class FederatedBoardServiceTest extends RepositoryTestBase {
                         eq(WebhookEvent.BOARD_TICKET_CHANGED),
                         argThat(map -> map.get("ticketKey").equals("FTB-1")
                                 && map.get("changeDescription").equals("Updated title")
-                                && ((List<?>) map.get("remoteMemberIds")).contains("remote-watcher-1")));
+                                && ((List<?>) map.get("remoteMemberIds")).contains(REMOTE_WATCHER_1)));
         verify(webhookService, never())
                 .fireEventToPartner(eq(partner2Id), eq(WebhookEvent.BOARD_TICKET_CHANGED), any());
     }
@@ -519,14 +529,14 @@ class FederatedBoardServiceTest extends RepositoryTestBase {
     void notifyMentionOnlyForFullMode() {
         reset(webhookService);
         // partnerId is FULL
-        notificationService.notifyMention(partnerId, boardId, ticketId, "FTB-1", "remote-member-1");
+        notificationService.notifyMention(partnerId, boardId, ticketId, "FTB-1", REMOTE_MEMBER_1);
         verify(webhookService).fireEventToPartner(eq(partnerId), eq(WebhookEvent.BOARD_MENTION), argThat(map -> map.get(
                         "remoteMemberId")
-                .equals("remote-member-1")));
+                .equals(REMOTE_MEMBER_1)));
 
         reset(webhookService);
         // partner2Id is READ_ONLY
-        notificationService.notifyMention(partner2Id, boardId, ticketId, "FTB-1", "remote-member-2");
+        notificationService.notifyMention(partner2Id, boardId, ticketId, "FTB-1", REMOTE_MEMBER_2);
         verifyNoInteractions(webhookService);
     }
 
@@ -534,18 +544,18 @@ class FederatedBoardServiceTest extends RepositoryTestBase {
     @Order(120)
     void notifyAssignment() {
         reset(webhookService);
-        notificationService.notifyAssignment(partnerId, boardId, ticketId, "FTB-1", "remote-assignee");
+        notificationService.notifyAssignment(partnerId, boardId, ticketId, "FTB-1", REMOTE_ASSIGNEE);
         verify(webhookService)
                 .fireEventToPartner(
                         eq(partnerId), eq(WebhookEvent.BOARD_ASSIGNMENT), argThat(map -> map.get("remoteMemberId")
-                                .equals("remote-assignee")));
+                                .equals(REMOTE_ASSIGNEE)));
     }
 
     @Test
     @Order(121)
     void notifyAssignmentReadOnlySkipped() {
         reset(webhookService);
-        notificationService.notifyAssignment(partner2Id, boardId, ticketId, "FTB-1", "remote-assignee");
+        notificationService.notifyAssignment(partner2Id, boardId, ticketId, "FTB-1", REMOTE_ASSIGNEE);
         verifyNoInteractions(webhookService);
     }
 
@@ -553,18 +563,18 @@ class FederatedBoardServiceTest extends RepositoryTestBase {
     @Order(130)
     void notifyUnassignment() {
         reset(webhookService);
-        notificationService.notifyUnassignment(partnerId, boardId, ticketId, "FTB-1", "remote-assignee");
+        notificationService.notifyUnassignment(partnerId, boardId, ticketId, "FTB-1", REMOTE_ASSIGNEE);
         verify(webhookService)
                 .fireEventToPartner(
                         eq(partnerId), eq(WebhookEvent.BOARD_UNASSIGNMENT), argThat(map -> map.get("remoteMemberId")
-                                .equals("remote-assignee")));
+                                .equals(REMOTE_ASSIGNEE)));
     }
 
     @Test
     @Order(131)
     void notifyUnassignmentReadOnlySkipped() {
         reset(webhookService);
-        notificationService.notifyUnassignment(partner2Id, boardId, ticketId, "FTB-1", "remote-assignee");
+        notificationService.notifyUnassignment(partner2Id, boardId, ticketId, "FTB-1", REMOTE_ASSIGNEE);
         verifyNoInteractions(webhookService);
     }
 

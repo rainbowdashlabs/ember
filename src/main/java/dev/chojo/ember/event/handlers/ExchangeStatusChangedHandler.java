@@ -37,7 +37,7 @@ public class ExchangeStatusChangedHandler implements DomainEventHandler<Exchange
     @Override
     public void handle(ExchangeStatusChanged event) {
         var data = NotificationData.of(
-                new NotificationParams.ExchangeStatusChange(event.newStatus().name(), event.inventoryName(), null),
+                new NotificationParams.ExchangeStatusChange(event.newStatus(), event.inventoryName(), null),
                 new NotificationData.NotificationLink("inventory-exchanges"));
         notificationService.notify(event.memberId(), NotificationType.EXCHANGE_STATUS_CHANGE, data);
         var invMgmtIds =

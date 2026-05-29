@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.events.route;
 
+import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.feature.events.entity.EventCategory;
 import dev.chojo.ember.feature.events.entity.EventField;
@@ -16,6 +17,11 @@ import dev.chojo.ember.feature.station.repository.StationRepository;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.NotFoundResponse;
+import io.javalin.openapi.HttpMethod;
+import io.javalin.openapi.OpenApi;
+import io.javalin.openapi.OpenApiContent;
+import io.javalin.openapi.OpenApiParam;
+import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -84,6 +90,16 @@ public class PublicEventRoutes implements Routes {
         return false;
     }
 
+    @OpenApi(
+            path = "/api/v1/public/events/{stationUid}",
+            methods = HttpMethod.GET,
+            summary = "List all public events for a station",
+            tags = {"Public Events"},
+            pathParams = @OpenApiParam(name = "stationUid", type = String.class, required = true),
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = PublicEventResponse[].class)),
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
     private void listPublicEvents(Context ctx) {
         var station = resolveStation(ctx);
         var categories = eventService.findCategoriesByStation(station.id());
@@ -108,6 +124,19 @@ public class PublicEventRoutes implements Routes {
                 .toList());
     }
 
+    @OpenApi(
+            path = "/api/v1/public/events/{stationUid}/{id}",
+            methods = HttpMethod.GET,
+            summary = "Get a single public event by ID",
+            tags = {"Public Events"},
+            pathParams = {
+                @OpenApiParam(name = "stationUid", type = String.class, required = true),
+                @OpenApiParam(name = "id", type = Integer.class, required = true)
+            },
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = PublicEventDetail.class)),
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
     private void getPublicEvent(Context ctx) {
         var station = resolveStation(ctx);
         int id = ctx.pathParamAsClass("id", Integer.class).get();
@@ -136,6 +165,16 @@ public class PublicEventRoutes implements Routes {
                 fields));
     }
 
+    @OpenApi(
+            path = "/api/v1/public/events/{stationUid}/categories",
+            methods = HttpMethod.GET,
+            summary = "List public event categories for a station",
+            tags = {"Public Events"},
+            pathParams = @OpenApiParam(name = "stationUid", type = String.class, required = true),
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = EventCategory[].class)),
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
     private void listPublicCategories(Context ctx) {
         var station = resolveStation(ctx);
         var categories = eventService.findCategoriesByStation(station.id()).stream()
@@ -144,6 +183,19 @@ public class PublicEventRoutes implements Routes {
         ctx.json(categories);
     }
 
+    @OpenApi(
+            path = "/api/v1/public/events/{stationUid}/feed/ical",
+            methods = HttpMethod.GET,
+            summary = "Get an iCal feed of public events for a station",
+            tags = {"Public Events"},
+            pathParams = @OpenApiParam(name = "stationUid", type = String.class, required = true),
+            responses = {
+                @OpenApiResponse(
+                        status = "200",
+                        description = "iCal calendar file. Content-Disposition: attachment; filename=\"calendar.ics\"",
+                        content = @OpenApiContent(type = "text/calendar")),
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
     private void icalFeed(Context ctx) {
         var station = resolveStation(ctx);
         var categories = eventService.findCategoriesByStation(station.id());

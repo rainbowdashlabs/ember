@@ -8,6 +8,7 @@ import { THEMES, DarkMode, Feel, FEEL_RADIUS, type ThemeColors, type ModeColors,
 import { contrastTextColor, ensureContrast } from '@/theme/contrast'
 import { getItem, setItem } from '@/api/storage'
 import { userSettings } from '@/api'
+import { usePride } from '@/composables/usePride'
 
 const activeTheme = ref<string>('ember')
 const activeFeel = ref<FeelValue>(Feel.ROUNDED)
@@ -145,6 +146,7 @@ async function fetchPublicTheme() {
         const pub = await getPublicTheme()
         instanceTheme.value = pub.defaultTheme
         instanceFeel.value = (pub.defaultFeel ?? 'ROUNDED') as FeelValue
+        usePride().setForcePrideFlag(pub.forcePrideFlag ?? false)
 
         // Apply instance defaults only if no session/user theme has been set
         const savedTheme = getItem('theme_name')

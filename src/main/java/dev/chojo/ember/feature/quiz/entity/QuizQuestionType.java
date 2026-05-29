@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.quiz.entity;
 
+import io.javalin.openapi.OpenApiName;
 import org.slf4j.Logger;
 import tools.jackson.databind.DeserializationFeature;
 import tools.jackson.databind.ObjectMapper;
@@ -12,7 +13,8 @@ import tools.jackson.databind.json.JsonMapper;
 
 import static org.slf4j.LoggerFactory.getLogger;
 
-public enum QuestionType {
+@OpenApiName("QuizQuestionType")
+public enum QuizQuestionType {
     MULTIPLE_CHOICE("multiple_choice", QuestionConfig.MultipleChoice.class),
     FILL_IN_THE_BLANK("fill_blank", QuestionConfig.FillInTheBlank.class),
     FREE_ANSWER("free_answer", QuestionConfig.FreeAnswer.class),
@@ -22,7 +24,7 @@ public enum QuestionType {
     ORDERING("ordering", QuestionConfig.Ordering.class),
     ENUMERATION("enumeration", QuestionConfig.Enumeration.class);
 
-    private static final Logger log = getLogger(QuestionType.class);
+    private static final Logger log = getLogger(QuizQuestionType.class);
     private static final ObjectMapper MAPPER = JsonMapper.builder()
             .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
             .disable(DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES)
@@ -31,7 +33,7 @@ public enum QuestionType {
     private final String promptFile;
     private final Class<? extends QuestionConfig> configClass;
 
-    QuestionType(String promptFile, Class<? extends QuestionConfig> configClass) {
+    QuizQuestionType(String promptFile, Class<? extends QuestionConfig> configClass) {
         this.promptFile = promptFile;
         this.configClass = configClass;
     }

@@ -60,6 +60,7 @@ import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -78,7 +79,7 @@ class DomainEventHandlerTest {
     }
 
     private StationMember member(int id) {
-        return new StationMember(id, STATION_ID, id, false, "Member " + id);
+        return new StationMember(id, STATION_ID, UUID.randomUUID(), id, false, "Member " + id);
     }
 
     // -- EventCreatedHandler --

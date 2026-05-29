@@ -10,7 +10,7 @@ import java.util.List;
 /**
  * Typed question config records for Jackson deserialization.
  * Each record maps directly to the JSON config structure of its question type.
- * The config class is stored on {@link QuestionType} for direct parsing.
+ * The config class is stored on {@link QuizQuestionType} for direct parsing.
  */
 public sealed interface QuestionConfig {
 

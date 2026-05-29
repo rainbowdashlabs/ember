@@ -10,6 +10,7 @@ export interface ApplicationSettings {
     instanceDefaultTheme: string
     instanceDefaultFeel: string
     instanceLockFeel: boolean
+    forcePrideFlag: boolean
 }
 
 export interface RegistrationStatus {
@@ -62,6 +63,7 @@ export interface PublicTheme {
     defaultTheme: string
     defaultFeel: string
     lockFeel: boolean
+    forcePrideFlag: boolean
 }
 
 export async function getPublicTheme(): Promise<PublicTheme> {

@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.members.repository;
 import de.chojo.sadu.queries.api.call.Call;
 import de.chojo.sadu.queries.api.query.Query;
 import de.chojo.sadu.queries.api.results.writing.insertion.InsertionResult;
+import de.chojo.sadu.queries.converter.StandardValueConverter;
 import dev.chojo.ember.api.Roles;
 import dev.chojo.ember.feature.members.entity.MemberCompletion;
 import dev.chojo.ember.feature.members.entity.RichMember;
@@ -17,6 +18,7 @@ import jakarta.inject.Singleton;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 /**
  * Repository for station members, their roles, manager relations, and avatars.
@@ -32,6 +34,16 @@ public class StationMemberRepository {
     public Optional<StationMember> findById(int id) {
         return Query.query("SELECT * FROM station_member WHERE id = :id;")
                 .single(Call.of().bind("id", id))
+                .map(StationMember.map())
+                .first();
+    }
+
+    /**
+     * Finds a station member by its UUID within a station.
+     */
+    public Optional<StationMember> findByUid(int stationId, UUID uid) {
+        return Query.query("SELECT * FROM station_member WHERE station_id = :station_id AND uid = :uid;")
+                .single(Call.of().bind("station_id", stationId).bind("uid", uid, StandardValueConverter.UUID_STRING))
                 .map(StationMember.map())
                 .first();
     }
@@ -88,7 +100,7 @@ public class StationMemberRepository {
      */
     public List<RichMember> findRichMembers(int stationId, boolean includeFormer) {
         return Query.query("""
-                        SELECT sm.id, sm.station_id, sm.account_id, sm.former,
+                        SELECT sm.id, sm.station_id, sm.uid, sm.account_id, sm.former,
                                COALESCE(NULLIF(sm.display_name, ''), TRIM(CONCAT(a.first_name, ' ', a.last_name)), '') AS name,
                                COALESCE(a.email, '') AS email,
                                COALESCE((SELECT json_agg(r.name) FROM station_member_role smr JOIN role r ON r.id = smr.role_id WHERE smr.member_id = sm.id), '[]'::json)::text AS roles,

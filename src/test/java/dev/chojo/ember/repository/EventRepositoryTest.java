@@ -12,6 +12,7 @@ import dev.chojo.ember.feature.events.entity.EventBreak;
 import dev.chojo.ember.feature.events.entity.EventCategory;
 import dev.chojo.ember.feature.events.entity.EventFieldDefault;
 import dev.chojo.ember.feature.events.entity.EventRegistration;
+import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
@@ -241,7 +242,7 @@ class EventRepositoryTest extends RepositoryTestBase {
         assertNotNull(reg);
         assertEquals(eventId, reg.eventId());
         assertEquals(member.id(), reg.memberId());
-        assertEquals(EventRegistration.RegistrationStatus.PENDING, reg.status());
+        assertEquals(RegistrationStatus.PENDING, reg.status());
         registrationId = reg.id();
     }
 
@@ -269,16 +270,15 @@ class EventRepositoryTest extends RepositoryTestBase {
     void findPendingRegistrationsByStation() {
         var pending = eventRepo.findPendingRegistrationsByStation(station.id());
         assertEquals(1, pending.size());
-        assertEquals(
-                EventRegistration.RegistrationStatus.PENDING, pending.getFirst().status());
+        assertEquals(RegistrationStatus.PENDING, pending.getFirst().status());
     }
 
     @Test
     @Order(35)
     void updateRegistrationStatus() {
-        assertTrue(eventRepo.updateRegistrationStatus(registrationId, EventRegistration.RegistrationStatus.ACCEPTED));
+        assertTrue(eventRepo.updateRegistrationStatus(registrationId, RegistrationStatus.ACCEPTED));
         var reg = eventRepo.findRegistrationById(registrationId).orElseThrow();
-        assertEquals(EventRegistration.RegistrationStatus.ACCEPTED, reg.status());
+        assertEquals(RegistrationStatus.ACCEPTED, reg.status());
         // No longer pending
         assertTrue(eventRepo.findPendingRegistrationsByStation(station.id()).isEmpty());
     }
@@ -315,8 +315,7 @@ class EventRepositoryTest extends RepositoryTestBase {
     void findAllRegistrations() {
         // Create a registration first
         LocalDate date = LocalDate.of(2026, 8, 1);
-        var reg = eventRepo.createRegistration(
-                eventId, member.id(), date, EventRegistration.RegistrationStatus.ACCEPTED, member.id());
+        var reg = eventRepo.createRegistration(eventId, member.id(), date, RegistrationStatus.ACCEPTED, member.id());
         var all = eventRepo.findAllRegistrations(eventId);
         assertFalse(all.isEmpty());
         eventRepo.deleteRegistration(reg.id());
@@ -352,8 +351,7 @@ class EventRepositoryTest extends RepositoryTestBase {
     @Order(42)
     void findDeclinedMemberIds() {
         LocalDate date = LocalDate.of(2026, 11, 1);
-        var reg = eventRepo.createRegistration(
-                eventId, member.id(), date, EventRegistration.RegistrationStatus.DECLINED, null);
+        var reg = eventRepo.createRegistration(eventId, member.id(), date, RegistrationStatus.DECLINED, null);
         var declined = eventRepo.findDeclinedMemberIds(eventId, date);
         assertTrue(declined.contains(member.id()));
         eventRepo.deleteRegistration(reg.id());

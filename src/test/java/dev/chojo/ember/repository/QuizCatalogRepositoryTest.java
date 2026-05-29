@@ -5,7 +5,7 @@
  */
 package dev.chojo.ember.repository;
 
-import dev.chojo.ember.feature.quiz.entity.QuestionType;
+import dev.chojo.ember.feature.quiz.entity.QuizQuestionType;
 import dev.chojo.ember.feature.station.entity.Station;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -122,7 +122,7 @@ class QuizCatalogRepositoryTest extends RepositoryTestBase {
         var q = quizCatalogRepo.createQuestion(
                 catalogId,
                 categoryId,
-                QuestionType.MULTIPLE_CHOICE,
+                QuizQuestionType.MULTIPLE_CHOICE,
                 "What is 2+2?",
                 "Math question",
                 null,
@@ -132,7 +132,7 @@ class QuizCatalogRepositoryTest extends RepositoryTestBase {
                 0);
         assertNotNull(q);
         assertEquals("What is 2+2?", q.title());
-        assertEquals(QuestionType.MULTIPLE_CHOICE, q.questionType());
+        assertEquals(QuizQuestionType.MULTIPLE_CHOICE, q.quizQuestionType());
         questionId = q.id();
     }
 

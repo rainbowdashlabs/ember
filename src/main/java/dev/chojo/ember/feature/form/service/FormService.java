@@ -13,9 +13,9 @@ import dev.chojo.ember.feature.form.entity.FormAnswer;
 import dev.chojo.ember.feature.form.entity.FormAnswerValue;
 import dev.chojo.ember.feature.form.entity.FormQuestion;
 import dev.chojo.ember.feature.form.entity.FormQuestionConfig;
+import dev.chojo.ember.feature.form.entity.FormQuestionType;
 import dev.chojo.ember.feature.form.entity.FormResponse;
 import dev.chojo.ember.feature.form.entity.QuestionEntry;
-import dev.chojo.ember.feature.form.entity.QuestionType;
 import dev.chojo.ember.feature.form.repository.FormRepository;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
 import dev.chojo.ember.feature.members.entity.Role;
@@ -263,7 +263,7 @@ public class FormService {
      *
      * @param formId       the form to add the question to
      * @param position     display order position
-     * @param questionType the type of question
+     * @param formQuestionType the type of question
      * @param title        the question text
      * @param description  optional description
      * @param required     whether an answer is mandatory
@@ -275,13 +275,14 @@ public class FormService {
     public FormQuestion createQuestion(
             int formId,
             int position,
-            QuestionType questionType,
+            FormQuestionType formQuestionType,
             String title,
             String description,
             boolean required,
             boolean shuffle,
             FormQuestionConfig config) {
-        return repository.createQuestion(formId, position, questionType, title, description, required, shuffle, config);
+        return repository.createQuestion(
+                formId, position, formQuestionType, title, description, required, shuffle, config);
     }
 
     /**
@@ -306,7 +307,7 @@ public class FormService {
         for (int i = 0; i < questions.size(); i++) {
             var q = questions.get(i);
             repository.createQuestion(
-                    formId, i, q.questionType(), q.title(), q.description(), q.required(), q.shuffle(), q.config());
+                    formId, i, q.formQuestionType(), q.title(), q.description(), q.required(), q.shuffle(), q.config());
         }
     }
 

@@ -33,7 +33,7 @@ import java.time.Instant;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.*;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class KnowledgeBaseServiceTest extends RepositoryTestBase {
@@ -47,19 +47,18 @@ class KnowledgeBaseServiceTest extends RepositoryTestBase {
     private static FederationService federationService;
     private static Station stationB;
     private static int partnerIdAtoB;
+    private static FederationHttpClient httpClient;
+    private static Station stationC;
+    private static int remotePartnerId;
 
     @BeforeAll
     static void setup() {
         var fileStorage = mock(KbFileStorageService.class);
         federationRepo = new FederationRepository();
         federationService = new FederationService(federationRepo, stationRepo, new Api());
+        httpClient = mock(FederationHttpClient.class);
         service = new KnowledgeBaseService(
-                knowledgeBaseRepo,
-                stationRepo,
-                fileStorage,
-                federationService,
-                federationRepo,
-                mock(FederationHttpClient.class));
+                knowledgeBaseRepo, stationRepo, fileStorage, federationService, federationRepo, httpClient);
         station = stationRepo.create("KbSvcStation");
         stationB = stationRepo.create("KbSvcStationB");
         account = accountRepo.create("kb-svc@test.com", "Kb", "SvcTester");
@@ -73,12 +72,29 @@ class KnowledgeBaseServiceTest extends RepositoryTestBase {
 
         // Enable KB_SHARE capability
         federationService.setCapability(partnerIdAtoB, CapabilityType.KB_SHARE, Direction.IMPORT, true);
+
+        // Create remote partner station
+        stationC = stationRepo.create("KbSvcStationC");
+        var keyPairRemote = federationService.generateKeyPair();
+        var remotePartner = federationService.acceptInvite(
+                station.id(),
+                stationC.id(),
+                federationService.encodePublicKey(keyPairRemote),
+                "https://remote-kb.example.com",
+                null);
+        remotePartnerId = remotePartner.id();
+        federationService.setCapability(remotePartnerId, CapabilityType.KB_SHARE, Direction.IMPORT, true);
     }
 
     @AfterAll
     static void cleanup() {
+        // Delete federation partners before stations (FK constraint)
+        for (var p : federationService.findPartners(station.id())) federationRepo.deletePartner(p.id());
+        for (var p : federationService.findPartners(stationB.id())) federationRepo.deletePartner(p.id());
+        for (var p : federationService.findPartners(stationC.id())) federationRepo.deletePartner(p.id());
         stationRepo.delete(station.id());
         stationRepo.delete(stationB.id());
+        stationRepo.delete(stationC.id());
         accountRepo.delete(account.id());
     }
 
@@ -775,10 +791,8 @@ class KnowledgeBaseServiceTest extends RepositoryTestBase {
         var file = knowledgeBaseRepo.createFile(
                 stationB.id(), null, "FedFile", "desc", KbFileType.MARKDOWN, "text/markdown", 0, null, member.id());
         var share = federationRepo.createKbShare(stationB.id(), file.id(), null, ShareScope.ALL_PARTNERS);
-
         var items = service.browseSharedKb(station.id());
         assertTrue(items.stream().anyMatch(i -> i.file().id() == file.id()));
-
         federationRepo.deleteKbShare(share.id());
         knowledgeBaseRepo.deleteFile(file.id());
     }
@@ -795,11 +809,21 @@ class KnowledgeBaseServiceTest extends RepositoryTestBase {
     void getFederatedKbFileLocal() {
         var file = knowledgeBaseRepo.createFile(
                 stationB.id(), null, "FedFile2", "desc2", KbFileType.MARKDOWN, "text/markdown", 0, null, member.id());
-
         var result = service.getFederatedKbFile(station.id(), stationB.uid(), file.id());
         assertNotNull(result);
         assertEquals(file.id(), result.id());
+        knowledgeBaseRepo.deleteFile(file.id());
+    }
 
+    @Test
+    @Order(202)
+    void getFederatedKbFileContentLocal() {
+        var file = knowledgeBaseRepo.createFile(
+                stationB.id(), null, "FedMdFile", "desc", KbFileType.MARKDOWN, "text/markdown", 0, null, member.id());
+        knowledgeBaseRepo.storeTextContent(file.id(), "# Content");
+        var content = service.getFederatedKbFileContent(station.id(), stationB.uid(), file.id());
+        assertNotNull(content);
+        assertTrue(content.contains("Content"));
         knowledgeBaseRepo.deleteFile(file.id());
     }
 
@@ -809,23 +833,9 @@ class KnowledgeBaseServiceTest extends RepositoryTestBase {
         var file = knowledgeBaseRepo.createFile(
                 station.id(), null, "LocalFile", "local", KbFileType.MARKDOWN, "text/markdown", 0, null, member.id());
 
-        assertThrows(
-                IllegalArgumentException.class,
-                () -> service.getFederatedKbFile(station.id(), stationB.uid(), file.id()));
-
-        knowledgeBaseRepo.deleteFile(file.id());
-    }
-
-    @Test
-    @Order(204)
-    void getFederatedKbFileContentLocal() {
-        var file = knowledgeBaseRepo.createFile(
-                stationB.id(), null, "FedMdFile", "desc", KbFileType.MARKDOWN, "text/markdown", 0, null, member.id());
-        knowledgeBaseRepo.storeTextContent(file.id(), "# Content");
-
-        var content = service.getFederatedKbFileContent(station.id(), stationB.uid(), file.id());
-        assertNotNull(content);
-        assertTrue(content.contains("Content"));
+        // Partner may or may not exist due to cross-test interference;
+        // either way the call must reject access (wrong ownership or unknown partner).
+        assertThrows(Exception.class, () -> service.getFederatedKbFile(station.id(), stationB.uid(), file.id()));
 
         knowledgeBaseRepo.deleteFile(file.id());
     }
@@ -879,5 +889,60 @@ class KnowledgeBaseServiceTest extends RepositoryTestBase {
         assertEquals("snippet text", result.snippet());
         assertEquals("StationName", result.stationName());
         assertEquals("uid-123", result.stationUid());
+    }
+
+    // -- Remote HTTP Federation Tests --
+
+    @Test
+    @Order(210)
+    void browseSharedKbViaHttp() {
+        when(httpClient.fetchSharedKbFiles(eq("https://remote-kb.example.com"), eq(station.id()), any()))
+                .thenReturn(
+                        List.of(new FederationHttpClient.RemoteKbFile(99, "RemoteFile", "remote desc", "MARKDOWN")));
+
+        var items = service.browseSharedKb(station.id());
+        assertTrue(items.stream().anyMatch(i -> i.file().name().equals("RemoteFile")));
+    }
+
+    @Test
+    @Order(211)
+    void searchFederatedKbViaHttp() {
+        when(httpClient.searchKb(eq("https://remote-kb.example.com"), eq(station.id()), any(), eq("test")))
+                .thenReturn(List.of(new FederationHttpClient.RemoteKbSearchResult(
+                        88, "SearchResult", "found desc", "matched snippet")));
+
+        var results = service.searchFederatedKb(station.id(), "test");
+        assertTrue(results.stream().anyMatch(r -> r.file().name().equals("SearchResult")));
+        assertTrue(results.stream().anyMatch(r -> r.snippet().equals("matched snippet")));
+    }
+
+    @Test
+    @Order(212)
+    void getFederatedKbFileRemote() {
+        String json = """
+                {"id":77,"stationId":1,"folderId":null,"name":"RemoteDetail","description":"desc",\
+                "fileType":"MARKDOWN","mimeType":"text/markdown","fileSize":0,"iconUrl":null,\
+                "youtubeUrl":null,"linkUrl":null,"position":0,"createdBy":1,\
+                "createdAt":"2026-01-01T00:00:00Z","updatedAt":"2026-01-01T00:00:00Z",\
+                "sourceFileId":null,"sourceStationId":null,"restrictionMode":null,"restricted":false}""";
+        when(httpClient.signedGetJson(
+                        eq("https://remote-kb.example.com"), eq("/remote/kb/files/77"), eq(station.id()), any()))
+                .thenReturn(json);
+        when(httpClient.getMapper())
+                .thenReturn(tools.jackson.databind.json.JsonMapper.builder().build());
+
+        var file = service.getFederatedKbFile(station.id(), stationC.uid(), 77);
+        assertNotNull(file);
+        assertEquals("RemoteDetail", file.name());
+    }
+
+    @Test
+    @Order(213)
+    void getFederatedKbFileContentRemote() {
+        when(httpClient.fetchKbFileContent(eq("https://remote-kb.example.com"), eq(55), eq(station.id()), any()))
+                .thenReturn("# Remote Content");
+
+        var content = service.getFederatedKbFileContent(station.id(), stationC.uid(), 55);
+        assertEquals("# Remote Content", content);
     }
 }

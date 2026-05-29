@@ -57,12 +57,12 @@ public sealed interface FormAnswerValue {
     record Likert(Map<String, Integer> ratings) implements FormAnswerValue {}
 
     /** Parses a JSON string into the appropriate answer value for the given question type. */
-    static FormAnswerValue parse(QuestionType questionType, String json) {
+    static FormAnswerValue parse(FormQuestionType formQuestionType, String json) {
         if (json == null || json.isBlank()) return null;
         try {
-            return MAPPER.readValue(json, questionType.answerClass());
+            return MAPPER.readValue(json, formQuestionType.answerClass());
         } catch (Exception e) {
-            log.error("Failed to parse form answer for type {}: {}", questionType, json, e);
+            log.error("Failed to parse form answer for type {}: {}", formQuestionType, json, e);
             return null;
         }
     }

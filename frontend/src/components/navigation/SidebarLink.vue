@@ -4,16 +4,11 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {useRoute} from 'vue-router'
-
-const route = useRoute()
-
-const props = defineProps<{
+defineProps<{
   to: string
   name: string
   icon?: string[]
   badge?: number
-  active?: boolean
 }>()
 
 defineEmits<{
@@ -23,11 +18,8 @@ defineEmits<{
 
 <template>
   <router-link
-      :class="(active !== undefined ? active : route.name === name)
-      ? 'bg-primary/15 !text-primary'
-      : '!text-[var(--text)] hover:bg-primary/5'"
       :to="to"
-      class="flex items-center gap-3 rounded-theme px-3 py-2 text-sm font-medium no-underline transition-colors duration-150"
+      class="sidebar-link flex items-center gap-3 rounded-theme px-3 py-2 text-sm font-medium no-underline transition-colors duration-150"
       @click="$emit('navigate')"
   >
     <font-awesome-icon v-if="icon" :icon="icon" class="w-4"/>
@@ -38,3 +30,16 @@ defineEmits<{
       }}</span>
   </router-link>
 </template>
+
+<style scoped>
+.sidebar-link {
+  color: var(--text);
+}
+.sidebar-link:hover {
+  background-color: color-mix(in srgb, var(--color-primary) 5%, transparent);
+}
+.sidebar-link.router-link-exact-active {
+  color: var(--color-primary);
+  background-color: color-mix(in srgb, var(--color-primary) 15%, transparent);
+}
+</style>

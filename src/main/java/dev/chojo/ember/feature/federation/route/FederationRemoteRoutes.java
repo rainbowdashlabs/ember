@@ -179,7 +179,7 @@ public class FederationRemoteRoutes implements Routes {
 
     // -- Request/Response Records --
 
-    public record MemberNameChangedWebhook(String remoteMemberId) {}
+    public record MemberNameChangedWebhook(UUID remoteMemberId) {}
 
     public record AnnounceRequest(String newHost) {}
 

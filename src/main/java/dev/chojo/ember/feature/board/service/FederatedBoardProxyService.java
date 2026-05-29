@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.board.service;
 
+import dev.chojo.ember.api.StationUidResolver;
 import dev.chojo.ember.feature.board.entity.AccessData;
 import dev.chojo.ember.feature.board.entity.Board;
 import dev.chojo.ember.feature.board.entity.BoardChecklistItem;
@@ -21,6 +22,7 @@ import dev.chojo.ember.feature.board.entity.BoardTicketLink;
 import dev.chojo.ember.feature.board.entity.BoardTicketTransition;
 import dev.chojo.ember.feature.board.entity.FederationBoardBookmark;
 import dev.chojo.ember.feature.board.entity.TicketPriority;
+import dev.chojo.ember.feature.board.entity.TicketSummary;
 import dev.chojo.ember.feature.board.repository.FederatedBoardRepository;
 import dev.chojo.ember.feature.federation.entity.CapabilityType;
 import dev.chojo.ember.feature.federation.entity.Direction;
@@ -47,10 +49,12 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
 /**
@@ -183,7 +187,7 @@ public class FederatedBoardProxyService {
                 .findById(board.stationId())
                 .map(Station::name)
                 .orElse("Station #" + board.stationId());
-        return new FederatedBoardDetail(board, mode.name(), stationName);
+        return FederatedBoardDetail.of(board, mode.name(), stationName);
     }
 
     public List<BoardLane> proxyGetLanes(int partnerId, int boardId) {
@@ -210,27 +214,33 @@ public class FederatedBoardProxyService {
         return boardService.findFields(boardId);
     }
 
-    public List<BoardTicket> proxyListTickets(int partnerId, int boardId) {
+    public List<TicketSummary> proxyListTickets(int partnerId, int boardId) {
         var partner = findPartner(partnerId);
         if (partner.isRemote()) {
-            return remoteGetList(partner, "/remote/boards/" + boardId + "/tickets", BoardTicket.class);
+            return remoteGetList(partner, "/remote/boards/" + boardId + "/tickets", TicketSummary.class);
         }
-        return ticketService.findByBoard(boardId);
+        return ticketService.findByBoard(boardId).stream()
+                .map(TicketSummary::of)
+                .toList();
     }
 
-    public List<BoardTicket> proxySearchTickets(int partnerId, int boardId, String query) {
+    public List<TicketSummary> proxySearchTickets(int partnerId, int boardId, String query) {
         var partner = findPartner(partnerId);
         if (partner.isRemote()) {
             String path = "/remote/boards/" + boardId + "/tickets/search";
             if (query != null && !query.isBlank()) {
                 path += "?q=" + URLEncoder.encode(query, StandardCharsets.UTF_8);
             }
-            return remoteGetList(partner, path, BoardTicket.class);
+            return remoteGetList(partner, path, TicketSummary.class);
         }
         if (query == null || query.isBlank()) {
-            return ticketService.findByBoard(boardId);
+            return ticketService.findByBoard(boardId).stream()
+                    .map(TicketSummary::of)
+                    .toList();
         }
-        return ticketService.search(boardId, query);
+        return ticketService.search(boardId, query).stream()
+                .map(TicketSummary::of)
+                .toList();
     }
 
     public BoardTicket proxyGetTicket(int partnerId, int boardId, int ticketId) {
@@ -335,7 +345,7 @@ public class FederatedBoardProxyService {
             String description,
             String priority,
             String dueDate,
-            String remoteMemberId) {
+            UUID remoteMemberId) {
         var partner = findPartner(partnerId);
         if (partner.isRemote()) {
             var body = Map.of(
@@ -374,7 +384,7 @@ public class FederatedBoardProxyService {
             String dueDate) {
         var partner = findPartner(partnerId);
         if (partner.isRemote()) {
-            var body = new java.util.HashMap<String, Object>();
+            var body = new HashMap<String, Object>();
             if (title != null) body.put("title", title);
             if (description != null) body.put("description", description);
             if (assignedMemberId != null) body.put("assignedMemberId", assignedMemberId);
@@ -402,7 +412,14 @@ public class FederatedBoardProxyService {
         ticketService.deleteTicket(ticketId);
     }
 
-    public BoardTicket proxyMoveTicket(int partnerId, int boardId, int ticketId, int toLaneId, int position) {
+    public BoardTicket proxyMoveTicket(
+            int partnerId,
+            int boardId,
+            int ticketId,
+            int toLaneId,
+            int position,
+            UUID federatedStationId,
+            UUID federatedMemberId) {
         var partner = findPartner(partnerId);
         if (partner.isRemote()) {
             var body = Map.of("toLaneId", toLaneId, "position", position);
@@ -410,7 +427,8 @@ public class FederatedBoardProxyService {
                     partner, "/remote/boards/" + boardId + "/tickets/" + ticketId + "/move", body, BoardTicket.class);
         }
         var ticket = ticketService.findById(ticketId).orElseThrow(NotFoundResponse::new);
-        ticketService.moveTicket(ticketId, ticket.laneId(), toLaneId, position, 0);
+        ticketService.moveTicket(
+                ticketId, ticket.laneId(), toLaneId, position, null, federatedStationId, federatedMemberId);
         return ticketService.findById(ticketId).orElseThrow(NotFoundResponse::new);
     }
 
@@ -425,7 +443,7 @@ public class FederatedBoardProxyService {
     }
 
     public BoardComment proxyAddComment(
-            int partnerId, int boardId, int ticketId, Integer parentId, String content, String remoteMemberId) {
+            int partnerId, int boardId, int ticketId, Integer parentId, String content, UUID remoteMemberId) {
         var partner = findPartner(partnerId);
         if (partner.isRemote()) {
             var body = Map.of(
@@ -507,7 +525,7 @@ public class FederatedBoardProxyService {
         return boardService.createLabel(boardId, name, color != null ? color : "#6b7280");
     }
 
-    public void proxyWatchTicket(int partnerId, int boardId, int ticketId, String remoteMemberId) {
+    public void proxyWatchTicket(int partnerId, int boardId, int ticketId, UUID remoteMemberId) {
         var partner = findPartner(partnerId);
         if (partner.isRemote()) {
             var body = Map.of("remoteMemberId", remoteMemberId);
@@ -517,7 +535,7 @@ public class FederatedBoardProxyService {
         federatedBoardService.addFederatedWatcher(ticketId, partnerId, remoteMemberId);
     }
 
-    public void proxyUnwatchTicket(int partnerId, int boardId, int ticketId, String remoteMemberId) {
+    public void proxyUnwatchTicket(int partnerId, int boardId, int ticketId, UUID remoteMemberId) {
         var partner = findPartner(partnerId);
         if (partner.isRemote()) {
             remoteDelete(partner, "/remote/boards/" + boardId + "/tickets/" + ticketId + "/watch");
@@ -528,11 +546,6 @@ public class FederatedBoardProxyService {
 
     // -- Access Control --
 
-    /**
-     * Returns the effective share mode, which is the ceiling of the owning station's mode
-     * and the local override. Local overrides can only restrict, not escalate.
-     * For local partners, reads the share mode directly. For remote, it was cached in the bookmark.
-     */
     /**
      * Returns the effective share mode. The share target is stored on the owning station's
      * partner record. When queried from the partner station, the local partner record ID
@@ -827,7 +840,47 @@ public class FederatedBoardProxyService {
             BoardShareMode shareMode,
             String partnerStationName) {}
 
-    public record FederatedBoardDetail(Board board, String shareMode, String stationName) {}
+    /**
+     * Board representation for remote federation responses where stationId is a UUID string.
+     */
+    public record RemoteBoard(
+            int id,
+            String stationId,
+            String name,
+            String description,
+            String shortKey,
+            int hideDoneAfterDays,
+            int ticketCounter,
+            Integer backlogLaneId,
+            String createdAt) {
+
+        public boolean hasBacklog() {
+            return backlogLaneId != null;
+        }
+    }
+
+    public record FederatedBoardDetail(RemoteBoard board, String shareMode, String stationName) {
+
+        /**
+         * Creates a FederatedBoardDetail from a local Board entity.
+         */
+        public static FederatedBoardDetail of(Board board, String shareMode, String stationName) {
+            var stationUid = StationUidResolver.instance().resolveToString(board.stationId());
+            return new FederatedBoardDetail(
+                    new RemoteBoard(
+                            board.id(),
+                            stationUid != null ? stationUid : String.valueOf(board.stationId()),
+                            board.name(),
+                            board.description(),
+                            board.shortKey(),
+                            board.hideDoneAfterDays(),
+                            board.ticketCounter(),
+                            board.backlogLaneId(),
+                            board.createdAt() != null ? board.createdAt().toString() : null),
+                    shareMode,
+                    stationName);
+        }
+    }
 
     public record FederatedWatcherData(List<Integer> local, List<BoardTicketFederatedWatcher> federated) {}
 }

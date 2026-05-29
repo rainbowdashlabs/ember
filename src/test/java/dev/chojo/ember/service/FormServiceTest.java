@@ -10,8 +10,8 @@ import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.form.entity.Form;
 import dev.chojo.ember.feature.form.entity.FormAnswerValue;
 import dev.chojo.ember.feature.form.entity.FormQuestionConfig;
+import dev.chojo.ember.feature.form.entity.FormQuestionType;
 import dev.chojo.ember.feature.form.entity.QuestionEntry;
-import dev.chojo.ember.feature.form.entity.QuestionType;
 import dev.chojo.ember.feature.form.service.FormService;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.service.MemberGroupService;
@@ -152,7 +152,7 @@ class FormServiceTest extends RepositoryTestBase {
         var q = service.createQuestion(
                 formId,
                 0,
-                QuestionType.TEXT,
+                FormQuestionType.TEXT,
                 "Your name?",
                 "Enter name",
                 true,
@@ -176,9 +176,14 @@ class FormServiceTest extends RepositoryTestBase {
     void replaceQuestions() {
         var entries = List.of(
                 new QuestionEntry(
-                        QuestionType.TEXT, "Question A", "Desc A", true, false, new FormQuestionConfig.Text(false)),
+                        FormQuestionType.TEXT, "Question A", "Desc A", true, false, new FormQuestionConfig.Text(false)),
                 new QuestionEntry(
-                        QuestionType.TEXT, "Question B", "Desc B", false, false, new FormQuestionConfig.Text(false)));
+                        FormQuestionType.TEXT,
+                        "Question B",
+                        "Desc B",
+                        false,
+                        false,
+                        new FormQuestionConfig.Text(false)));
         service.replaceQuestions(formId, entries);
         var qs = service.findQuestions(formId);
         assertEquals(2, qs.size());

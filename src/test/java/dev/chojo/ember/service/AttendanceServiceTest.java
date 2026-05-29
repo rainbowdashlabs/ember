@@ -14,7 +14,7 @@ import dev.chojo.ember.feature.attendance.repository.AttendanceRepository;
 import dev.chojo.ember.feature.attendance.service.AttendanceService;
 import dev.chojo.ember.feature.events.entity.EventFieldConfig;
 import dev.chojo.ember.feature.events.entity.EventFieldType;
-import dev.chojo.ember.feature.events.entity.EventRegistration;
+import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.station.entity.Station;
@@ -463,8 +463,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
         var account2 = accountRepo.create("attend-svc2@test.com", "Attend2", "User");
         var member2 = stationMemberRepo.create(station.id(), account2.id());
 
-        eventRepo.createRegistration(
-                event.id(), member2.id(), LocalDate.now(), EventRegistration.RegistrationStatus.ACCEPTED, null);
+        eventRepo.createRegistration(event.id(), member2.id(), LocalDate.now(), RegistrationStatus.ACCEPTED, null);
 
         var session = service.createSession(templateId, null, null, event.id(), null);
         var entries = service.syncFromEvent(session.id());
@@ -498,8 +497,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
         var account3 = accountRepo.create("attend-dec@test.com", "Dec", "User");
         var member3 = stationMemberRepo.create(station.id(), account3.id());
 
-        eventRepo.createRegistration(
-                event.id(), member3.id(), LocalDate.now(), EventRegistration.RegistrationStatus.DECLINED, null);
+        eventRepo.createRegistration(event.id(), member3.id(), LocalDate.now(), RegistrationStatus.DECLINED, null);
 
         var session = service.createSession(templateId, null, null, event.id(), null);
         var entries = service.syncFromEvent(session.id());
@@ -534,8 +532,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
         var absence = service.createAbsence(
                 member.id(), LocalDate.now().minusDays(1), LocalDate.now().plusDays(1), "Sick", null);
 
-        eventRepo.createRegistration(
-                event.id(), member.id(), LocalDate.now(), EventRegistration.RegistrationStatus.ACCEPTED, null);
+        eventRepo.createRegistration(event.id(), member.id(), LocalDate.now(), RegistrationStatus.ACCEPTED, null);
 
         var session = service.createSession(templateId, null, null, event.id(), null);
         var entries = service.syncFromEvent(session.id());
@@ -729,8 +726,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
                 null,
                 null);
 
-        eventRepo.createRegistration(
-                event.id(), member7.id(), LocalDate.now(), EventRegistration.RegistrationStatus.DECLINED, null);
+        eventRepo.createRegistration(event.id(), member7.id(), LocalDate.now(), RegistrationStatus.DECLINED, null);
 
         var session = service.createSession(templateId, null, null, event.id(), null);
 

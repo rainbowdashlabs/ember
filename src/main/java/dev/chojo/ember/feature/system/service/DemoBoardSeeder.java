@@ -24,6 +24,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Random;
+import java.util.UUID;
 
 @Singleton
 public class DemoBoardSeeder {
@@ -599,6 +600,9 @@ public class DemoBoardSeeder {
         var labelUebung = boardRepo.createLabel(board.id(), "Übung", "#3b82f6");
         var labelOrga = boardRepo.createLabel(board.id(), "Organisation", "#f59e0b");
 
+        var partnerMember1 = UUID.fromString("00000000-0000-0000-0000-000000000001");
+        var partnerMember2 = UUID.fromString("00000000-0000-0000-0000-000000000002");
+
         // -- Tickets from primary station members --
         var t1 = createTicket(
                 board.id(),
@@ -686,7 +690,7 @@ public class DemoBoardSeeder {
                 TicketPriority.LOW,
                 LocalDate.now().plusDays(12),
                 admin.id());
-        federatedBoardRepo.setFederatedCreator(t6, partner.id(), "partner-member-1");
+        federatedBoardRepo.setFederatedCreator(t6, partner.id(), partnerMember1);
         boardRepo.addLabelToTicket(t6, labelGemeinsam.id());
 
         var t7 = createTicket(
@@ -699,24 +703,24 @@ public class DemoBoardSeeder {
                 TicketPriority.HIGH,
                 LocalDate.now().plusDays(5),
                 admin.id());
-        federatedBoardRepo.setFederatedCreator(t7, partner.id(), "partner-member-1");
+        federatedBoardRepo.setFederatedCreator(t7, partner.id(), partnerMember1);
         ticketRepo.logTransition(t7, laneOpen.id(), laneWork.id(), admin.id());
         boardRepo.addLabelToTicket(t7, labelUebung.id());
 
         // Federated comments (from partner members — use admin as local author, mark as federated)
         var fc1 = ticketRepo.createComment(t1, null, admin.id(), "Bei uns passt der 20. Juli auch! Wir sind dabei.");
-        federatedBoardRepo.setFederatedCommentAuthor(fc1.id(), partner.id(), "partner-member-1");
+        federatedBoardRepo.setFederatedCommentAuthor(fc1.id(), partner.id(), partnerMember1);
 
         var fc2 =
                 ticketRepo.createComment(t4, null, admin.id(), "Wir können 4 Jugendliche und einen Betreuer schicken.");
-        federatedBoardRepo.setFederatedCommentAuthor(fc2.id(), partner.id(), "partner-member-1");
+        federatedBoardRepo.setFederatedCommentAuthor(fc2.id(), partner.id(), partnerMember1);
 
         var fc3 = ticketRepo.createComment(
                 t5, null, admin.id(), "Strahlrohre sind kein Problem, wir bringen 3 Stück mit.");
-        federatedBoardRepo.setFederatedCommentAuthor(fc3.id(), partner.id(), "partner-member-2");
+        federatedBoardRepo.setFederatedCommentAuthor(fc3.id(), partner.id(), partnerMember2);
 
         var fc4 = ticketRepo.createComment(t6, null, admin.id(), "Wasser und Apfelsaft sind bestellt.");
-        federatedBoardRepo.setFederatedCommentAuthor(fc4.id(), partner.id(), "partner-member-1");
+        federatedBoardRepo.setFederatedCommentAuthor(fc4.id(), partner.id(), partnerMember1);
 
         // Checklist on t1
         ticketRepo.createChecklistItem(t1, "Termin abstimmen", 0);

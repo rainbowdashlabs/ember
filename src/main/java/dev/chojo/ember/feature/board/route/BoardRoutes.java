@@ -5,10 +5,12 @@
  */
 package dev.chojo.ember.feature.board.route;
 
+import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.FederationHeaders;
 import dev.chojo.ember.api.FederationSession;
 import dev.chojo.ember.api.Roles;
 import dev.chojo.ember.api.Routes;
+import dev.chojo.ember.api.StationUidResolver;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.feature.board.entity.AccessData;
 import dev.chojo.ember.feature.board.entity.Board;
@@ -31,6 +33,12 @@ import io.javalin.http.Context;
 import io.javalin.http.ForbiddenResponse;
 import io.javalin.http.HttpStatus;
 import io.javalin.http.NotFoundResponse;
+import io.javalin.openapi.HttpMethod;
+import io.javalin.openapi.OpenApi;
+import io.javalin.openapi.OpenApiContent;
+import io.javalin.openapi.OpenApiParam;
+import io.javalin.openapi.OpenApiRequestBody;
+import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -241,6 +249,13 @@ public class BoardRoutes implements Routes {
 
     // ==================== Local board handlers ====================
 
+    @OpenApi(
+            path = "/api/v1/boards",
+            methods = HttpMethod.GET,
+            summary = "List boards visible to the current user",
+            tags = {"Boards"},
+            queryParams = @OpenApiParam(name = "visible", type = Boolean.class),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = Board[].class)))
     private void list(Context ctx) {
         UserSession session = UserSession.from(ctx);
         if (session.member() == null) {
@@ -256,6 +271,16 @@ public class BoardRoutes implements Routes {
         }
     }
 
+    @OpenApi(
+            path = "/api/v1/boards",
+            methods = HttpMethod.POST,
+            summary = "Create a new board",
+            tags = {"Boards"},
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = CreateBoardRequest.class)),
+            responses = {
+                @OpenApiResponse(status = "201", content = @OpenApiContent(from = Board.class)),
+                @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
     private void create(Context ctx) {
         UserSession session = UserSession.from(ctx);
         var req = ctx.bodyAsClass(CreateBoardRequest.class);
@@ -271,6 +296,16 @@ public class BoardRoutes implements Routes {
         ctx.status(HttpStatus.CREATED).json(board);
     }
 
+    @OpenApi(
+            path = "/api/v1/boards/{id}",
+            methods = HttpMethod.GET,
+            summary = "Get a board by ID",
+            tags = {"Boards"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = Board.class)),
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
     private void get(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int id = ctx.pathParamAsClass("id", Integer.class).get();
@@ -283,6 +318,13 @@ public class BoardRoutes implements Routes {
         ctx.json(board);
     }
 
+    @OpenApi(
+            path = "/api/v1/boards/{id}/can-edit",
+            methods = HttpMethod.GET,
+            summary = "Check if the current user can edit a board",
+            tags = {"Boards"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            responses = @OpenApiResponse(status = "200"))
     private void canEdit(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int id = ctx.pathParamAsClass("id", Integer.class).get();
@@ -291,6 +333,17 @@ public class BoardRoutes implements Routes {
         ctx.json(Map.of("canEdit", editable));
     }
 
+    @OpenApi(
+            path = "/api/v1/boards/{id}",
+            methods = HttpMethod.PUT,
+            summary = "Update a board",
+            tags = {"Boards"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = UpdateBoardRequest.class)),
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = Board.class)),
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
     private void update(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int id = ctx.pathParamAsClass("id", Integer.class).get();
@@ -304,6 +357,16 @@ public class BoardRoutes implements Routes {
         });
     }
 
+    @OpenApi(
+            path = "/api/v1/boards/{id}",
+            methods = HttpMethod.DELETE,
+            summary = "Delete a board",
+            tags = {"Boards"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            responses = {
+                @OpenApiResponse(status = "204"),
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
     private void delete(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int id = ctx.pathParamAsClass("id", Integer.class).get();
@@ -317,11 +380,29 @@ public class BoardRoutes implements Routes {
         }
     }
 
+    @OpenApi(
+            path = "/api/v1/boards/{id}/lanes",
+            methods = HttpMethod.GET,
+            summary = "Get lanes for a board",
+            tags = {"Boards"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            responses = @OpenApiResponse(status = "200"))
     private void getLanes(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
         ctx.json(boardService.findLanes(id));
     }
 
+    @OpenApi(
+            path = "/api/v1/boards/{id}/lanes",
+            methods = HttpMethod.PUT,
+            summary = "Replace lanes for a board",
+            tags = {"Boards"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = LaneRequest[].class)),
+            responses = {
+                @OpenApiResponse(status = "200"),
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
     private void setLanes(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int id = ctx.pathParamAsClass("id", Integer.class).get();
@@ -335,11 +416,29 @@ public class BoardRoutes implements Routes {
         ctx.json(boardService.findLanes(id));
     }
 
+    @OpenApi(
+            path = "/api/v1/boards/{id}/fields",
+            methods = HttpMethod.GET,
+            summary = "Get custom fields for a board",
+            tags = {"Boards"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = BoardField[].class)))
     private void getFields(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
         ctx.json(boardService.findFields(id));
     }
 
+    @OpenApi(
+            path = "/api/v1/boards/{id}/fields",
+            methods = HttpMethod.PUT,
+            summary = "Replace custom fields for a board",
+            tags = {"Boards"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = FieldRequest[].class)),
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = BoardField[].class)),
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
     private void setFields(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int id = ctx.pathParamAsClass("id", Integer.class).get();
@@ -355,6 +454,16 @@ public class BoardRoutes implements Routes {
         ctx.json(boardService.findFields(id));
     }
 
+    @OpenApi(
+            path = "/api/v1/boards/{id}/access/view",
+            methods = HttpMethod.GET,
+            summary = "Get view access restrictions for a board",
+            tags = {"Boards"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = AccessData.class)),
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
     private void getViewAccess(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
         boardService.findById(id).orElseThrow(NotFoundResponse::new);
@@ -362,6 +471,14 @@ public class BoardRoutes implements Routes {
         ctx.json(access);
     }
 
+    @OpenApi(
+            path = "/api/v1/boards/{id}/access/view",
+            methods = HttpMethod.PUT,
+            summary = "Set view access restrictions for a board",
+            tags = {"Boards"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = AccessRequest.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = AccessRequest.class)))
     private void setViewAccess(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
         var req = ctx.bodyAsClass(AccessRequest.class);
@@ -373,6 +490,16 @@ public class BoardRoutes implements Routes {
         ctx.status(HttpStatus.OK).json(req);
     }
 
+    @OpenApi(
+            path = "/api/v1/boards/{id}/access/edit",
+            methods = HttpMethod.GET,
+            summary = "Get edit access restrictions for a board",
+            tags = {"Boards"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = AccessData.class)),
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
     private void getEditAccess(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
         boardService.findById(id).orElseThrow(NotFoundResponse::new);
@@ -380,6 +507,14 @@ public class BoardRoutes implements Routes {
         ctx.json(access);
     }
 
+    @OpenApi(
+            path = "/api/v1/boards/{id}/access/edit",
+            methods = HttpMethod.PUT,
+            summary = "Set edit access restrictions for a board",
+            tags = {"Boards"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = AccessRequest.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = AccessRequest.class)))
     private void setEditAccess(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
         var req = ctx.bodyAsClass(AccessRequest.class);
@@ -391,12 +526,26 @@ public class BoardRoutes implements Routes {
         ctx.status(HttpStatus.OK).json(req);
     }
 
+    @OpenApi(
+            path = "/api/v1/boards/{id}/backlog",
+            methods = HttpMethod.POST,
+            summary = "Enable backlog lane for a board",
+            tags = {"Boards"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            responses = @OpenApiResponse(status = "201"))
     private void enableBacklog(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
         var lane = boardService.enableBacklog(id);
         ctx.status(HttpStatus.CREATED).json(lane);
     }
 
+    @OpenApi(
+            path = "/api/v1/boards/{id}/backlog",
+            methods = HttpMethod.DELETE,
+            summary = "Disable backlog lane for a board",
+            tags = {"Boards"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            responses = @OpenApiResponse(status = "204"))
     private void disableBacklog(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
         boardService.disableBacklog(id);
@@ -405,11 +554,29 @@ public class BoardRoutes implements Routes {
 
     // -- Labels --
 
+    @OpenApi(
+            path = "/api/v1/boards/{id}/labels",
+            methods = HttpMethod.GET,
+            summary = "Get labels for a board",
+            tags = {"Boards"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            responses = @OpenApiResponse(status = "200"))
     private void getLabels(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
         ctx.json(boardService.findLabels(id));
     }
 
+    @OpenApi(
+            path = "/api/v1/boards/{id}/labels",
+            methods = HttpMethod.POST,
+            summary = "Create a label for a board",
+            tags = {"Boards"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = LabelRequest.class)),
+            responses = {
+                @OpenApiResponse(status = "201"),
+                @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
     private void createLabel(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
         var req = ctx.bodyAsClass(LabelRequest.class);
@@ -418,6 +585,17 @@ public class BoardRoutes implements Routes {
         ctx.status(HttpStatus.CREATED).json(label);
     }
 
+    @OpenApi(
+            path = "/api/v1/boards/{id}/labels/{labelId}",
+            methods = HttpMethod.PUT,
+            summary = "Update a label",
+            tags = {"Boards"},
+            pathParams = {
+                @OpenApiParam(name = "id", type = Integer.class, required = true),
+                @OpenApiParam(name = "labelId", type = Integer.class, required = true)
+            },
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = LabelRequest.class)),
+            responses = @OpenApiResponse(status = "200"))
     private void updateLabel(Context ctx) {
         int labelId = ctx.pathParamAsClass("labelId", Integer.class).get();
         var req = ctx.bodyAsClass(LabelRequest.class);
@@ -425,12 +603,29 @@ public class BoardRoutes implements Routes {
         ctx.status(HttpStatus.OK);
     }
 
+    @OpenApi(
+            path = "/api/v1/boards/{id}/labels/{labelId}",
+            methods = HttpMethod.DELETE,
+            summary = "Delete a label",
+            tags = {"Boards"},
+            pathParams = {
+                @OpenApiParam(name = "id", type = Integer.class, required = true),
+                @OpenApiParam(name = "labelId", type = Integer.class, required = true)
+            },
+            responses = @OpenApiResponse(status = "204"))
     private void deleteLabel(Context ctx) {
         int labelId = ctx.pathParamAsClass("labelId", Integer.class).get();
         boardService.deleteLabel(labelId);
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
+    @OpenApi(
+            path = "/api/v1/boards/{id}/ticket-labels",
+            methods = HttpMethod.GET,
+            summary = "Get all ticket-label assignments for a board",
+            tags = {"Boards"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            responses = @OpenApiResponse(status = "200"))
     private void getAllTicketLabels(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
         ctx.json(boardService.findAllTicketLabels(id));
@@ -438,6 +633,16 @@ public class BoardRoutes implements Routes {
 
     // -- Federation config --
 
+    @OpenApi(
+            path = "/api/v1/boards/{id}/federation",
+            methods = HttpMethod.GET,
+            summary = "Get federation sharing configuration for a board",
+            tags = {"Boards"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = FederationConfigResponse.class)),
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
     private void getFederationConfig(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int id = ctx.pathParamAsClass("id", Integer.class).get();
@@ -451,6 +656,17 @@ public class BoardRoutes implements Routes {
         ctx.json(new FederationConfigResponse(targets, editRoleIds));
     }
 
+    @OpenApi(
+            path = "/api/v1/boards/{id}/federation",
+            methods = HttpMethod.PUT,
+            summary = "Set federation sharing configuration for a board",
+            tags = {"Boards"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = FederationConfigRequest.class)),
+            responses = {
+                @OpenApiResponse(status = "200"),
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
     private void setFederationConfig(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int id = ctx.pathParamAsClass("id", Integer.class).get();
@@ -504,11 +720,23 @@ public class BoardRoutes implements Routes {
 
     // -- Discovery & Bookmarks --
 
+    @OpenApi(
+            path = "/api/v1/federated/boards",
+            methods = HttpMethod.GET,
+            summary = "Discover federated boards from all partners",
+            tags = {"Federated Boards"},
+            responses = @OpenApiResponse(status = "200"))
     private void federatedLocalDiscoverBoards(Context ctx) {
         var session = UserSession.from(ctx);
         ctx.json(proxyService.discoverBoards(session.stationId()));
     }
 
+    @OpenApi(
+            path = "/api/v1/federated/boards/bookmarks",
+            methods = HttpMethod.GET,
+            summary = "List federated board bookmarks for the current user",
+            tags = {"Federated Boards"},
+            responses = @OpenApiResponse(status = "200"))
     private void federatedLocalListBookmarks(Context ctx) {
         var session = UserSession.from(ctx);
         var bookmarks = proxyService.findBookmarks(session.member().id());
@@ -532,6 +760,13 @@ public class BoardRoutes implements Routes {
         ctx.json(enriched);
     }
 
+    @OpenApi(
+            path = "/api/v1/federated/boards/bookmarks",
+            methods = HttpMethod.POST,
+            summary = "Create a federated board bookmark",
+            tags = {"Federated Boards"},
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = LocalBookmarkRequest.class)),
+            responses = @OpenApiResponse(status = "200"))
     private void federatedLocalCreateBookmark(Context ctx) {
         var session = UserSession.from(ctx);
         var req = ctx.bodyAsClass(LocalBookmarkRequest.class);
@@ -549,6 +784,13 @@ public class BoardRoutes implements Routes {
                 BoardShareMode.valueOf(req.shareMode())));
     }
 
+    @OpenApi(
+            path = "/api/v1/federated/boards/bookmarks/{bookmarkId}",
+            methods = HttpMethod.DELETE,
+            summary = "Delete a federated board bookmark",
+            tags = {"Federated Boards"},
+            pathParams = @OpenApiParam(name = "bookmarkId", type = Integer.class, required = true),
+            responses = @OpenApiResponse(status = "204"))
     private void federatedLocalDeleteBookmark(Context ctx) {
         int bookmarkId = ctx.pathParamAsClass("bookmarkId", Integer.class).get();
         proxyService.deleteBookmark(bookmarkId);
@@ -557,6 +799,16 @@ public class BoardRoutes implements Routes {
 
     // -- Read proxies --
 
+    @OpenApi(
+            path = "/api/v1/federated/boards/{partnerUid}/{boardId}",
+            methods = HttpMethod.GET,
+            summary = "Get a federated board via proxy",
+            tags = {"Federated Boards"},
+            pathParams = {
+                @OpenApiParam(name = "partnerUid", type = String.class, required = true),
+                @OpenApiParam(name = "boardId", type = Integer.class, required = true)
+            },
+            responses = @OpenApiResponse(status = "200"))
     private void federatedLocalGetBoard(Context ctx) {
         var session = UserSession.from(ctx);
         int partnerId = resolvePartnerId(ctx);
@@ -569,6 +821,16 @@ public class BoardRoutes implements Routes {
         ctx.json(result);
     }
 
+    @OpenApi(
+            path = "/api/v1/federated/boards/{partnerUid}/{boardId}/lanes",
+            methods = HttpMethod.GET,
+            summary = "Get lanes for a federated board",
+            tags = {"Federated Boards"},
+            pathParams = {
+                @OpenApiParam(name = "partnerUid", type = String.class, required = true),
+                @OpenApiParam(name = "boardId", type = Integer.class, required = true)
+            },
+            responses = @OpenApiResponse(status = "200"))
     private void federatedLocalGetLanes(Context ctx) {
         var session = UserSession.from(ctx);
         int partnerId = resolvePartnerId(ctx);
@@ -577,6 +839,16 @@ public class BoardRoutes implements Routes {
         ctx.json(proxyService.proxyGetLanes(partnerId, boardId));
     }
 
+    @OpenApi(
+            path = "/api/v1/federated/boards/{partnerUid}/{boardId}/labels",
+            methods = HttpMethod.GET,
+            summary = "Get labels for a federated board",
+            tags = {"Federated Boards"},
+            pathParams = {
+                @OpenApiParam(name = "partnerUid", type = String.class, required = true),
+                @OpenApiParam(name = "boardId", type = Integer.class, required = true)
+            },
+            responses = @OpenApiResponse(status = "200"))
     private void federatedLocalGetLabels(Context ctx) {
         var session = UserSession.from(ctx);
         int partnerId = resolvePartnerId(ctx);
@@ -585,6 +857,16 @@ public class BoardRoutes implements Routes {
         ctx.json(proxyService.proxyGetLabels(partnerId, boardId));
     }
 
+    @OpenApi(
+            path = "/api/v1/federated/boards/{partnerUid}/{boardId}/fields",
+            methods = HttpMethod.GET,
+            summary = "Get custom fields for a federated board",
+            tags = {"Federated Boards"},
+            pathParams = {
+                @OpenApiParam(name = "partnerUid", type = String.class, required = true),
+                @OpenApiParam(name = "boardId", type = Integer.class, required = true)
+            },
+            responses = @OpenApiResponse(status = "200"))
     private void federatedLocalGetFields(Context ctx) {
         var session = UserSession.from(ctx);
         int partnerId = resolvePartnerId(ctx);
@@ -593,6 +875,16 @@ public class BoardRoutes implements Routes {
         ctx.json(proxyService.proxyGetFields(partnerId, boardId));
     }
 
+    @OpenApi(
+            path = "/api/v1/federated/boards/{partnerUid}/{boardId}/tickets",
+            methods = HttpMethod.GET,
+            summary = "List tickets on a federated board",
+            tags = {"Federated Boards"},
+            pathParams = {
+                @OpenApiParam(name = "partnerUid", type = String.class, required = true),
+                @OpenApiParam(name = "boardId", type = Integer.class, required = true)
+            },
+            responses = @OpenApiResponse(status = "200"))
     private void federatedLocalListTickets(Context ctx) {
         var session = UserSession.from(ctx);
         int partnerId = resolvePartnerId(ctx);
@@ -601,6 +893,17 @@ public class BoardRoutes implements Routes {
         ctx.json(proxyService.proxyListTickets(partnerId, boardId));
     }
 
+    @OpenApi(
+            path = "/api/v1/federated/boards/{partnerUid}/{boardId}/tickets/search",
+            methods = HttpMethod.GET,
+            summary = "Search tickets on a federated board",
+            tags = {"Federated Boards"},
+            pathParams = {
+                @OpenApiParam(name = "partnerUid", type = String.class, required = true),
+                @OpenApiParam(name = "boardId", type = Integer.class, required = true)
+            },
+            queryParams = @OpenApiParam(name = "q", type = String.class),
+            responses = @OpenApiResponse(status = "200"))
     private void federatedLocalSearchTickets(Context ctx) {
         var session = UserSession.from(ctx);
         int partnerId = resolvePartnerId(ctx);
@@ -610,6 +913,17 @@ public class BoardRoutes implements Routes {
         ctx.json(proxyService.proxySearchTickets(partnerId, boardId, q));
     }
 
+    @OpenApi(
+            path = "/api/v1/federated/boards/{partnerUid}/{boardId}/tickets/{ticketId}",
+            methods = HttpMethod.GET,
+            summary = "Get a ticket on a federated board",
+            tags = {"Federated Boards"},
+            pathParams = {
+                @OpenApiParam(name = "partnerUid", type = String.class, required = true),
+                @OpenApiParam(name = "boardId", type = Integer.class, required = true),
+                @OpenApiParam(name = "ticketId", type = Integer.class, required = true)
+            },
+            responses = @OpenApiResponse(status = "200"))
     private void federatedLocalGetTicket(Context ctx) {
         var session = UserSession.from(ctx);
         int partnerId = resolvePartnerId(ctx);
@@ -619,6 +933,17 @@ public class BoardRoutes implements Routes {
         ctx.json(proxyService.proxyGetTicket(partnerId, boardId, ticketId));
     }
 
+    @OpenApi(
+            path = "/api/v1/federated/boards/{partnerUid}/{boardId}/tickets/{ticketId}/comments",
+            methods = HttpMethod.GET,
+            summary = "Get comments for a ticket on a federated board",
+            tags = {"Federated Boards"},
+            pathParams = {
+                @OpenApiParam(name = "partnerUid", type = String.class, required = true),
+                @OpenApiParam(name = "boardId", type = Integer.class, required = true),
+                @OpenApiParam(name = "ticketId", type = Integer.class, required = true)
+            },
+            responses = @OpenApiResponse(status = "200"))
     private void federatedLocalGetComments(Context ctx) {
         var session = UserSession.from(ctx);
         int partnerId = resolvePartnerId(ctx);
@@ -628,6 +953,17 @@ public class BoardRoutes implements Routes {
         ctx.json(proxyService.proxyGetComments(partnerId, boardId, ticketId));
     }
 
+    @OpenApi(
+            path = "/api/v1/federated/boards/{partnerUid}/{boardId}/tickets/{ticketId}/checklist",
+            methods = HttpMethod.GET,
+            summary = "Get checklist for a ticket on a federated board",
+            tags = {"Federated Boards"},
+            pathParams = {
+                @OpenApiParam(name = "partnerUid", type = String.class, required = true),
+                @OpenApiParam(name = "boardId", type = Integer.class, required = true),
+                @OpenApiParam(name = "ticketId", type = Integer.class, required = true)
+            },
+            responses = @OpenApiResponse(status = "200"))
     private void federatedLocalGetChecklist(Context ctx) {
         var session = UserSession.from(ctx);
         int partnerId = resolvePartnerId(ctx);
@@ -637,6 +973,17 @@ public class BoardRoutes implements Routes {
         ctx.json(proxyService.proxyGetChecklist(partnerId, boardId, ticketId));
     }
 
+    @OpenApi(
+            path = "/api/v1/federated/boards/{partnerUid}/{boardId}/tickets/{ticketId}/links",
+            methods = HttpMethod.GET,
+            summary = "Get links for a ticket on a federated board",
+            tags = {"Federated Boards"},
+            pathParams = {
+                @OpenApiParam(name = "partnerUid", type = String.class, required = true),
+                @OpenApiParam(name = "boardId", type = Integer.class, required = true),
+                @OpenApiParam(name = "ticketId", type = Integer.class, required = true)
+            },
+            responses = @OpenApiResponse(status = "200"))
     private void federatedLocalGetLinks(Context ctx) {
         var session = UserSession.from(ctx);
         int partnerId = resolvePartnerId(ctx);
@@ -646,6 +993,17 @@ public class BoardRoutes implements Routes {
         ctx.json(proxyService.proxyGetLinks(partnerId, boardId, ticketId));
     }
 
+    @OpenApi(
+            path = "/api/v1/federated/boards/{partnerUid}/{boardId}/tickets/{ticketId}/labels",
+            methods = HttpMethod.GET,
+            summary = "Get labels for a ticket on a federated board",
+            tags = {"Federated Boards"},
+            pathParams = {
+                @OpenApiParam(name = "partnerUid", type = String.class, required = true),
+                @OpenApiParam(name = "boardId", type = Integer.class, required = true),
+                @OpenApiParam(name = "ticketId", type = Integer.class, required = true)
+            },
+            responses = @OpenApiResponse(status = "200"))
     private void federatedLocalGetTicketLabels(Context ctx) {
         var session = UserSession.from(ctx);
         int partnerId = resolvePartnerId(ctx);
@@ -655,6 +1013,17 @@ public class BoardRoutes implements Routes {
         ctx.json(proxyService.proxyGetTicketLabels(partnerId, boardId, ticketId));
     }
 
+    @OpenApi(
+            path = "/api/v1/federated/boards/{partnerUid}/{boardId}/tickets/{ticketId}/transitions",
+            methods = HttpMethod.GET,
+            summary = "Get transitions for a ticket on a federated board",
+            tags = {"Federated Boards"},
+            pathParams = {
+                @OpenApiParam(name = "partnerUid", type = String.class, required = true),
+                @OpenApiParam(name = "boardId", type = Integer.class, required = true),
+                @OpenApiParam(name = "ticketId", type = Integer.class, required = true)
+            },
+            responses = @OpenApiResponse(status = "200"))
     private void federatedLocalGetTransitions(Context ctx) {
         var session = UserSession.from(ctx);
         int partnerId = resolvePartnerId(ctx);
@@ -664,6 +1033,17 @@ public class BoardRoutes implements Routes {
         ctx.json(proxyService.proxyGetTransitions(partnerId, boardId, ticketId));
     }
 
+    @OpenApi(
+            path = "/api/v1/federated/boards/{partnerUid}/{boardId}/tickets/{ticketId}/history",
+            methods = HttpMethod.GET,
+            summary = "Get history for a ticket on a federated board",
+            tags = {"Federated Boards"},
+            pathParams = {
+                @OpenApiParam(name = "partnerUid", type = String.class, required = true),
+                @OpenApiParam(name = "boardId", type = Integer.class, required = true),
+                @OpenApiParam(name = "ticketId", type = Integer.class, required = true)
+            },
+            responses = @OpenApiResponse(status = "200"))
     private void federatedLocalGetHistory(Context ctx) {
         var session = UserSession.from(ctx);
         int partnerId = resolvePartnerId(ctx);
@@ -673,6 +1053,17 @@ public class BoardRoutes implements Routes {
         ctx.json(proxyService.proxyGetHistory(partnerId, boardId, ticketId));
     }
 
+    @OpenApi(
+            path = "/api/v1/federated/boards/{partnerUid}/{boardId}/tickets/{ticketId}/attachments",
+            methods = HttpMethod.GET,
+            summary = "Get attachments for a ticket on a federated board",
+            tags = {"Federated Boards"},
+            pathParams = {
+                @OpenApiParam(name = "partnerUid", type = String.class, required = true),
+                @OpenApiParam(name = "boardId", type = Integer.class, required = true),
+                @OpenApiParam(name = "ticketId", type = Integer.class, required = true)
+            },
+            responses = @OpenApiResponse(status = "200"))
     private void federatedLocalGetAttachments(Context ctx) {
         var session = UserSession.from(ctx);
         int partnerId = resolvePartnerId(ctx);
@@ -682,6 +1073,17 @@ public class BoardRoutes implements Routes {
         ctx.json(proxyService.proxyGetAttachments(partnerId, boardId, ticketId));
     }
 
+    @OpenApi(
+            path = "/api/v1/federated/boards/{partnerUid}/{boardId}/tickets/{ticketId}/watchers",
+            methods = HttpMethod.GET,
+            summary = "Get watchers for a ticket on a federated board",
+            tags = {"Federated Boards"},
+            pathParams = {
+                @OpenApiParam(name = "partnerUid", type = String.class, required = true),
+                @OpenApiParam(name = "boardId", type = Integer.class, required = true),
+                @OpenApiParam(name = "ticketId", type = Integer.class, required = true)
+            },
+            responses = @OpenApiResponse(status = "200"))
     private void federatedLocalGetWatchers(Context ctx) {
         var session = UserSession.from(ctx);
         int partnerId = resolvePartnerId(ctx);
@@ -693,6 +1095,17 @@ public class BoardRoutes implements Routes {
 
     // -- Write proxies (FULL mode only) --
 
+    @OpenApi(
+            path = "/api/v1/federated/boards/{partnerUid}/{boardId}/tickets",
+            methods = HttpMethod.POST,
+            summary = "Create a ticket on a federated board",
+            tags = {"Federated Boards"},
+            pathParams = {
+                @OpenApiParam(name = "partnerUid", type = String.class, required = true),
+                @OpenApiParam(name = "boardId", type = Integer.class, required = true)
+            },
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = LocalCreateTicketRequest.class)),
+            responses = @OpenApiResponse(status = "200"))
     private void federatedLocalCreateTicket(Context ctx) {
         var session = UserSession.from(ctx);
         int partnerId = resolvePartnerId(ctx);
@@ -707,9 +1120,21 @@ public class BoardRoutes implements Routes {
                 req.description(),
                 req.priority(),
                 req.dueDate(),
-                String.valueOf(session.member().id())));
+                session.member().uid()));
     }
 
+    @OpenApi(
+            path = "/api/v1/federated/boards/{partnerUid}/{boardId}/tickets/{ticketId}",
+            methods = HttpMethod.PUT,
+            summary = "Update a ticket on a federated board",
+            tags = {"Federated Boards"},
+            pathParams = {
+                @OpenApiParam(name = "partnerUid", type = String.class, required = true),
+                @OpenApiParam(name = "boardId", type = Integer.class, required = true),
+                @OpenApiParam(name = "ticketId", type = Integer.class, required = true)
+            },
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = LocalUpdateTicketRequest.class)),
+            responses = @OpenApiResponse(status = "200"))
     private void federatedLocalUpdateTicket(Context ctx) {
         var session = UserSession.from(ctx);
         int partnerId = resolvePartnerId(ctx);
@@ -728,6 +1153,17 @@ public class BoardRoutes implements Routes {
                 req.dueDate()));
     }
 
+    @OpenApi(
+            path = "/api/v1/federated/boards/{partnerUid}/{boardId}/tickets/{ticketId}",
+            methods = HttpMethod.DELETE,
+            summary = "Delete a ticket on a federated board",
+            tags = {"Federated Boards"},
+            pathParams = {
+                @OpenApiParam(name = "partnerUid", type = String.class, required = true),
+                @OpenApiParam(name = "boardId", type = Integer.class, required = true),
+                @OpenApiParam(name = "ticketId", type = Integer.class, required = true)
+            },
+            responses = @OpenApiResponse(status = "204"))
     private void federatedLocalDeleteTicket(Context ctx) {
         var session = UserSession.from(ctx);
         int partnerId = resolvePartnerId(ctx);
@@ -738,6 +1174,18 @@ public class BoardRoutes implements Routes {
         ctx.status(204);
     }
 
+    @OpenApi(
+            path = "/api/v1/federated/boards/{partnerUid}/{boardId}/tickets/{ticketId}/move",
+            methods = HttpMethod.PUT,
+            summary = "Move a ticket to a different lane on a federated board",
+            tags = {"Federated Boards"},
+            pathParams = {
+                @OpenApiParam(name = "partnerUid", type = String.class, required = true),
+                @OpenApiParam(name = "boardId", type = Integer.class, required = true),
+                @OpenApiParam(name = "ticketId", type = Integer.class, required = true)
+            },
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = LocalMoveTicketRequest.class)),
+            responses = @OpenApiResponse(status = "200"))
     private void federatedLocalMoveTicket(Context ctx) {
         var session = UserSession.from(ctx);
         int partnerId = resolvePartnerId(ctx);
@@ -745,9 +1193,24 @@ public class BoardRoutes implements Routes {
         requireWrite(partnerId, boardId, session);
         int ticketId = ctx.pathParamAsClass("ticketId", Integer.class).get();
         var req = ctx.bodyAsClass(LocalMoveTicketRequest.class);
-        ctx.json(proxyService.proxyMoveTicket(partnerId, boardId, ticketId, req.toLaneId(), req.position()));
+        var stationUid = StationUidResolver.instance().resolve(session.stationId());
+        UUID memberUid = session.member() != null ? session.member().uid() : null;
+        ctx.json(proxyService.proxyMoveTicket(
+                partnerId, boardId, ticketId, req.toLaneId(), req.position(), stationUid, memberUid));
     }
 
+    @OpenApi(
+            path = "/api/v1/federated/boards/{partnerUid}/{boardId}/tickets/{ticketId}/reorder",
+            methods = HttpMethod.PUT,
+            summary = "Reorder tickets in a lane on a federated board",
+            tags = {"Federated Boards"},
+            pathParams = {
+                @OpenApiParam(name = "partnerUid", type = String.class, required = true),
+                @OpenApiParam(name = "boardId", type = Integer.class, required = true),
+                @OpenApiParam(name = "ticketId", type = Integer.class, required = true)
+            },
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = LocalReorderRequest.class)),
+            responses = @OpenApiResponse(status = "204"))
     private void federatedLocalReorderTickets(Context ctx) {
         var session = UserSession.from(ctx);
         int partnerId = resolvePartnerId(ctx);
@@ -758,6 +1221,18 @@ public class BoardRoutes implements Routes {
         ctx.status(204);
     }
 
+    @OpenApi(
+            path = "/api/v1/federated/boards/{partnerUid}/{boardId}/tickets/{ticketId}/comments",
+            methods = HttpMethod.POST,
+            summary = "Add a comment to a ticket on a federated board",
+            tags = {"Federated Boards"},
+            pathParams = {
+                @OpenApiParam(name = "partnerUid", type = String.class, required = true),
+                @OpenApiParam(name = "boardId", type = Integer.class, required = true),
+                @OpenApiParam(name = "ticketId", type = Integer.class, required = true)
+            },
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = LocalCommentRequest.class)),
+            responses = @OpenApiResponse(status = "200"))
     private void federatedLocalAddComment(Context ctx) {
         var session = UserSession.from(ctx);
         int partnerId = resolvePartnerId(ctx);
@@ -771,9 +1246,21 @@ public class BoardRoutes implements Routes {
                 ticketId,
                 req.parentId(),
                 req.content(),
-                String.valueOf(session.member().id())));
+                session.member().uid()));
     }
 
+    @OpenApi(
+            path = "/api/v1/federated/boards/{partnerUid}/{boardId}/tickets/{ticketId}/checklist",
+            methods = HttpMethod.POST,
+            summary = "Add a checklist item to a ticket on a federated board",
+            tags = {"Federated Boards"},
+            pathParams = {
+                @OpenApiParam(name = "partnerUid", type = String.class, required = true),
+                @OpenApiParam(name = "boardId", type = Integer.class, required = true),
+                @OpenApiParam(name = "ticketId", type = Integer.class, required = true)
+            },
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = LocalChecklistItemRequest.class)),
+            responses = @OpenApiResponse(status = "200"))
     private void federatedLocalAddChecklistItem(Context ctx) {
         var session = UserSession.from(ctx);
         int partnerId = resolvePartnerId(ctx);
@@ -784,6 +1271,19 @@ public class BoardRoutes implements Routes {
         ctx.json(proxyService.proxyAddChecklistItem(partnerId, boardId, ticketId, req.title()));
     }
 
+    @OpenApi(
+            path = "/api/v1/federated/boards/{partnerUid}/{boardId}/tickets/{ticketId}/checklist/{itemId}",
+            methods = HttpMethod.PUT,
+            summary = "Update a checklist item on a federated board",
+            tags = {"Federated Boards"},
+            pathParams = {
+                @OpenApiParam(name = "partnerUid", type = String.class, required = true),
+                @OpenApiParam(name = "boardId", type = Integer.class, required = true),
+                @OpenApiParam(name = "ticketId", type = Integer.class, required = true),
+                @OpenApiParam(name = "itemId", type = Integer.class, required = true)
+            },
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = LocalUpdateChecklistItemRequest.class)),
+            responses = @OpenApiResponse(status = "204"))
     private void federatedLocalUpdateChecklistItem(Context ctx) {
         var session = UserSession.from(ctx);
         int partnerId = resolvePartnerId(ctx);
@@ -796,6 +1296,18 @@ public class BoardRoutes implements Routes {
         ctx.status(204);
     }
 
+    @OpenApi(
+            path = "/api/v1/federated/boards/{partnerUid}/{boardId}/tickets/{ticketId}/checklist/{itemId}",
+            methods = HttpMethod.DELETE,
+            summary = "Delete a checklist item on a federated board",
+            tags = {"Federated Boards"},
+            pathParams = {
+                @OpenApiParam(name = "partnerUid", type = String.class, required = true),
+                @OpenApiParam(name = "boardId", type = Integer.class, required = true),
+                @OpenApiParam(name = "ticketId", type = Integer.class, required = true),
+                @OpenApiParam(name = "itemId", type = Integer.class, required = true)
+            },
+            responses = @OpenApiResponse(status = "204"))
     private void federatedLocalDeleteChecklistItem(Context ctx) {
         var session = UserSession.from(ctx);
         int partnerId = resolvePartnerId(ctx);
@@ -807,6 +1319,18 @@ public class BoardRoutes implements Routes {
         ctx.status(204);
     }
 
+    @OpenApi(
+            path = "/api/v1/federated/boards/{partnerUid}/{boardId}/tickets/{ticketId}/labels/{labelId}",
+            methods = HttpMethod.POST,
+            summary = "Add a label to a ticket on a federated board",
+            tags = {"Federated Boards"},
+            pathParams = {
+                @OpenApiParam(name = "partnerUid", type = String.class, required = true),
+                @OpenApiParam(name = "boardId", type = Integer.class, required = true),
+                @OpenApiParam(name = "ticketId", type = Integer.class, required = true),
+                @OpenApiParam(name = "labelId", type = Integer.class, required = true)
+            },
+            responses = @OpenApiResponse(status = "200"))
     private void federatedLocalAddTicketLabel(Context ctx) {
         var session = UserSession.from(ctx);
         int partnerId = resolvePartnerId(ctx);
@@ -817,6 +1341,18 @@ public class BoardRoutes implements Routes {
         ctx.json(proxyService.proxyAddTicketLabel(partnerId, boardId, ticketId, labelId));
     }
 
+    @OpenApi(
+            path = "/api/v1/federated/boards/{partnerUid}/{boardId}/tickets/{ticketId}/labels/{labelId}",
+            methods = HttpMethod.DELETE,
+            summary = "Remove a label from a ticket on a federated board",
+            tags = {"Federated Boards"},
+            pathParams = {
+                @OpenApiParam(name = "partnerUid", type = String.class, required = true),
+                @OpenApiParam(name = "boardId", type = Integer.class, required = true),
+                @OpenApiParam(name = "ticketId", type = Integer.class, required = true),
+                @OpenApiParam(name = "labelId", type = Integer.class, required = true)
+            },
+            responses = @OpenApiResponse(status = "204"))
     private void federatedLocalRemoveTicketLabel(Context ctx) {
         var session = UserSession.from(ctx);
         int partnerId = resolvePartnerId(ctx);
@@ -828,6 +1364,17 @@ public class BoardRoutes implements Routes {
         ctx.status(204);
     }
 
+    @OpenApi(
+            path = "/api/v1/federated/boards/{partnerUid}/{boardId}/labels",
+            methods = HttpMethod.POST,
+            summary = "Create a label on a federated board",
+            tags = {"Federated Boards"},
+            pathParams = {
+                @OpenApiParam(name = "partnerUid", type = String.class, required = true),
+                @OpenApiParam(name = "boardId", type = Integer.class, required = true)
+            },
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = LocalCreateLabelRequest.class)),
+            responses = @OpenApiResponse(status = "200"))
     private void federatedLocalCreateLabel(Context ctx) {
         var session = UserSession.from(ctx);
         int partnerId = resolvePartnerId(ctx);
@@ -837,6 +1384,17 @@ public class BoardRoutes implements Routes {
         ctx.json(proxyService.proxyCreateLabel(partnerId, boardId, req.name(), req.color()));
     }
 
+    @OpenApi(
+            path = "/api/v1/federated/boards/{partnerUid}/{boardId}/tickets/{ticketId}/watch",
+            methods = HttpMethod.POST,
+            summary = "Watch a ticket on a federated board",
+            tags = {"Federated Boards"},
+            pathParams = {
+                @OpenApiParam(name = "partnerUid", type = String.class, required = true),
+                @OpenApiParam(name = "boardId", type = Integer.class, required = true),
+                @OpenApiParam(name = "ticketId", type = Integer.class, required = true)
+            },
+            responses = @OpenApiResponse(status = "204"))
     private void federatedLocalWatchTicket(Context ctx) {
         var session = UserSession.from(ctx);
         int partnerId = resolvePartnerId(ctx);
@@ -844,10 +1402,21 @@ public class BoardRoutes implements Routes {
         requireWrite(partnerId, boardId, session);
         int ticketId = ctx.pathParamAsClass("ticketId", Integer.class).get();
         proxyService.proxyWatchTicket(
-                partnerId, boardId, ticketId, String.valueOf(session.member().id()));
+                partnerId, boardId, ticketId, session.member().uid());
         ctx.status(204);
     }
 
+    @OpenApi(
+            path = "/api/v1/federated/boards/{partnerUid}/{boardId}/tickets/{ticketId}/watch",
+            methods = HttpMethod.DELETE,
+            summary = "Unwatch a ticket on a federated board",
+            tags = {"Federated Boards"},
+            pathParams = {
+                @OpenApiParam(name = "partnerUid", type = String.class, required = true),
+                @OpenApiParam(name = "boardId", type = Integer.class, required = true),
+                @OpenApiParam(name = "ticketId", type = Integer.class, required = true)
+            },
+            responses = @OpenApiResponse(status = "204"))
     private void federatedLocalUnwatchTicket(Context ctx) {
         var session = UserSession.from(ctx);
         int partnerId = resolvePartnerId(ctx);
@@ -855,12 +1424,22 @@ public class BoardRoutes implements Routes {
         requireWrite(partnerId, boardId, session);
         int ticketId = ctx.pathParamAsClass("ticketId", Integer.class).get();
         proxyService.proxyUnwatchTicket(
-                partnerId, boardId, ticketId, String.valueOf(session.member().id()));
+                partnerId, boardId, ticketId, session.member().uid());
         ctx.status(204);
     }
 
     // -- Local access override management --
 
+    @OpenApi(
+            path = "/api/v1/federated/boards/{partnerUid}/{boardId}/access/override",
+            methods = HttpMethod.GET,
+            summary = "Get local access overrides for a federated board",
+            tags = {"Federated Boards"},
+            pathParams = {
+                @OpenApiParam(name = "partnerUid", type = String.class, required = true),
+                @OpenApiParam(name = "boardId", type = Integer.class, required = true)
+            },
+            responses = @OpenApiResponse(status = "200"))
     private void federatedLocalGetOverride(Context ctx) {
         int partnerId = resolvePartnerId(ctx);
         int boardId = ctx.pathParamAsClass("boardId", Integer.class).get();
@@ -869,6 +1448,17 @@ public class BoardRoutes implements Routes {
         ctx.json(Map.of("view", view, "edit", edit));
     }
 
+    @OpenApi(
+            path = "/api/v1/federated/boards/{partnerUid}/{boardId}/access/override",
+            methods = HttpMethod.PUT,
+            summary = "Set local access overrides for a federated board",
+            tags = {"Federated Boards"},
+            pathParams = {
+                @OpenApiParam(name = "partnerUid", type = String.class, required = true),
+                @OpenApiParam(name = "boardId", type = Integer.class, required = true)
+            },
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = LocalOverrideRequest.class)),
+            responses = @OpenApiResponse(status = "204"))
     private void federatedLocalSetOverride(Context ctx) {
         int partnerId = resolvePartnerId(ctx);
         int boardId = ctx.pathParamAsClass("boardId", Integer.class).get();
@@ -910,6 +1500,12 @@ public class BoardRoutes implements Routes {
 
     // -- Read endpoints --
 
+    @OpenApi(
+            path = "/api/v1/remote/boards",
+            methods = HttpMethod.GET,
+            summary = "List boards shared with the requesting partner",
+            tags = {"Boards Remote"},
+            responses = @OpenApiResponse(status = "200"))
     private void federatedRemoteListSharedBoards(Context ctx) {
         var partner = requireFederationPartner(ctx);
         var boardIds = federatedBoardService.findSharedBoardIds(partner.id());
@@ -931,6 +1527,16 @@ public class BoardRoutes implements Routes {
         ctx.json(boards);
     }
 
+    @OpenApi(
+            path = "/api/v1/remote/boards/{boardId}",
+            methods = HttpMethod.GET,
+            summary = "Get a shared board",
+            tags = {"Boards Remote"},
+            pathParams = @OpenApiParam(name = "boardId", type = Integer.class, required = true),
+            responses = {
+                @OpenApiResponse(status = "200"),
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
     private void federatedRemoteGetBoard(Context ctx) {
         var partner = requireFederationPartner(ctx);
         int boardId = ctx.pathParamAsClass("boardId", Integer.class).get();
@@ -940,6 +1546,13 @@ public class BoardRoutes implements Routes {
         ctx.json(Map.of("board", board, "shareMode", mode.name()));
     }
 
+    @OpenApi(
+            path = "/api/v1/remote/boards/{boardId}/lanes",
+            methods = HttpMethod.GET,
+            summary = "Get lanes for a shared board",
+            tags = {"Boards Remote"},
+            pathParams = @OpenApiParam(name = "boardId", type = Integer.class, required = true),
+            responses = @OpenApiResponse(status = "200"))
     private void federatedRemoteGetLanes(Context ctx) {
         var partner = requireFederationPartner(ctx);
         int boardId = ctx.pathParamAsClass("boardId", Integer.class).get();
@@ -1044,6 +1657,16 @@ public class BoardRoutes implements Routes {
         ctx.json(ticketService.findAttachments(ticketId));
     }
 
+    @OpenApi(
+            path = "/api/v1/remote/boards/{boardId}/tickets/{ticketId}/watchers",
+            methods = HttpMethod.GET,
+            summary = "Get watchers for a ticket on a shared board",
+            tags = {"Boards Remote"},
+            pathParams = {
+                @OpenApiParam(name = "boardId", type = Integer.class, required = true),
+                @OpenApiParam(name = "ticketId", type = Integer.class, required = true)
+            },
+            responses = @OpenApiResponse(status = "200"))
     private void federatedRemoteGetWatchers(Context ctx) {
         var partner = requireFederationPartner(ctx);
         int boardId = ctx.pathParamAsClass("boardId", Integer.class).get();
@@ -1054,6 +1677,13 @@ public class BoardRoutes implements Routes {
         ctx.json(Map.of("local", localWatchers, "federated", federatedWatchers));
     }
 
+    @OpenApi(
+            path = "/api/v1/remote/boards/{boardId}/access",
+            methods = HttpMethod.GET,
+            summary = "Get access configuration for a shared board",
+            tags = {"Boards Remote"},
+            pathParams = @OpenApiParam(name = "boardId", type = Integer.class, required = true),
+            responses = @OpenApiResponse(status = "200"))
     private void federatedRemoteGetAccess(Context ctx) {
         var partner = requireFederationPartner(ctx);
         int boardId = ctx.pathParamAsClass("boardId", Integer.class).get();
@@ -1065,6 +1695,14 @@ public class BoardRoutes implements Routes {
 
     // -- Write endpoints (FULL mode only) --
 
+    @OpenApi(
+            path = "/api/v1/remote/boards/{boardId}/tickets",
+            methods = HttpMethod.POST,
+            summary = "Create a ticket on a shared board",
+            tags = {"Boards Remote"},
+            pathParams = @OpenApiParam(name = "boardId", type = Integer.class, required = true),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = RemoteCreateTicketRequest.class)),
+            responses = @OpenApiResponse(status = "200"))
     private void federatedRemoteCreateTicket(Context ctx) {
         var partner = requireFederationPartner(ctx);
         int boardId = ctx.pathParamAsClass("boardId", Integer.class).get();
@@ -1088,6 +1726,20 @@ public class BoardRoutes implements Routes {
         ctx.json(ticket);
     }
 
+    @OpenApi(
+            path = "/api/v1/remote/boards/{boardId}/tickets/{ticketId}",
+            methods = HttpMethod.PUT,
+            summary = "Update a ticket on a shared board",
+            tags = {"Boards Remote"},
+            pathParams = {
+                @OpenApiParam(name = "boardId", type = Integer.class, required = true),
+                @OpenApiParam(name = "ticketId", type = Integer.class, required = true)
+            },
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = RemoteUpdateTicketRequest.class)),
+            responses = {
+                @OpenApiResponse(status = "200"),
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
     private void federatedRemoteUpdateTicket(Context ctx) {
         var partner = requireFederationPartner(ctx);
         int boardId = ctx.pathParamAsClass("boardId", Integer.class).get();
@@ -1105,6 +1757,16 @@ public class BoardRoutes implements Routes {
         ctx.json(ticketService.findById(ticketId).orElseThrow(NotFoundResponse::new));
     }
 
+    @OpenApi(
+            path = "/api/v1/remote/boards/{boardId}/tickets/{ticketId}",
+            methods = HttpMethod.DELETE,
+            summary = "Delete a ticket on a shared board",
+            tags = {"Boards Remote"},
+            pathParams = {
+                @OpenApiParam(name = "boardId", type = Integer.class, required = true),
+                @OpenApiParam(name = "ticketId", type = Integer.class, required = true)
+            },
+            responses = @OpenApiResponse(status = "204"))
     private void federatedRemoteDeleteTicket(Context ctx) {
         var partner = requireFederationPartner(ctx);
         int boardId = ctx.pathParamAsClass("boardId", Integer.class).get();
@@ -1114,6 +1776,20 @@ public class BoardRoutes implements Routes {
         ctx.status(204);
     }
 
+    @OpenApi(
+            path = "/api/v1/remote/boards/{boardId}/tickets/{ticketId}/move",
+            methods = HttpMethod.PUT,
+            summary = "Move a ticket to a different lane on a shared board",
+            tags = {"Boards Remote"},
+            pathParams = {
+                @OpenApiParam(name = "boardId", type = Integer.class, required = true),
+                @OpenApiParam(name = "ticketId", type = Integer.class, required = true)
+            },
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = RemoteMoveTicketRequest.class)),
+            responses = {
+                @OpenApiResponse(status = "200"),
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
     private void federatedRemoteMoveTicket(Context ctx) {
         var partner = requireFederationPartner(ctx);
         int boardId = ctx.pathParamAsClass("boardId", Integer.class).get();
@@ -1121,10 +1797,30 @@ public class BoardRoutes implements Routes {
         int ticketId = ctx.pathParamAsClass("ticketId", Integer.class).get();
         var req = ctx.bodyAsClass(RemoteMoveTicketRequest.class);
         var ticket = ticketService.findById(ticketId).orElseThrow(NotFoundResponse::new);
-        ticketService.moveTicket(ticketId, ticket.laneId(), req.toLaneId(), req.position(), 0);
+        ticketService.moveTicket(
+                ticketId,
+                ticket.laneId(),
+                req.toLaneId(),
+                req.position(),
+                null,
+                partner.partnerStationId(),
+                ctx.header("X-Federation-Member-Id") != null
+                        ? UUID.fromString(ctx.header("X-Federation-Member-Id"))
+                        : null);
         ctx.json(ticketService.findById(ticketId).orElseThrow(NotFoundResponse::new));
     }
 
+    @OpenApi(
+            path = "/api/v1/remote/boards/{boardId}/tickets/{ticketId}/reorder",
+            methods = HttpMethod.PUT,
+            summary = "Reorder tickets in a lane on a shared board",
+            tags = {"Boards Remote"},
+            pathParams = {
+                @OpenApiParam(name = "boardId", type = Integer.class, required = true),
+                @OpenApiParam(name = "ticketId", type = Integer.class, required = true)
+            },
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = RemoteReorderRequest.class)),
+            responses = @OpenApiResponse(status = "204"))
     private void federatedRemoteReorderTickets(Context ctx) {
         var partner = requireFederationPartner(ctx);
         int boardId = ctx.pathParamAsClass("boardId", Integer.class).get();
@@ -1135,6 +1831,17 @@ public class BoardRoutes implements Routes {
         ctx.status(204);
     }
 
+    @OpenApi(
+            path = "/api/v1/remote/boards/{boardId}/tickets/{ticketId}/comments",
+            methods = HttpMethod.POST,
+            summary = "Add a comment to a ticket on a shared board",
+            tags = {"Boards Remote"},
+            pathParams = {
+                @OpenApiParam(name = "boardId", type = Integer.class, required = true),
+                @OpenApiParam(name = "ticketId", type = Integer.class, required = true)
+            },
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = RemoteCommentRequest.class)),
+            responses = @OpenApiResponse(status = "200"))
     private void federatedRemoteAddComment(Context ctx) {
         var partner = requireFederationPartner(ctx);
         int boardId = ctx.pathParamAsClass("boardId", Integer.class).get();
@@ -1146,6 +1853,18 @@ public class BoardRoutes implements Routes {
         ctx.json(comment);
     }
 
+    @OpenApi(
+            path = "/api/v1/remote/boards/{boardId}/tickets/{ticketId}/comments/{commentId}",
+            methods = HttpMethod.PUT,
+            summary = "Edit a comment on a shared board",
+            tags = {"Boards Remote"},
+            pathParams = {
+                @OpenApiParam(name = "boardId", type = Integer.class, required = true),
+                @OpenApiParam(name = "ticketId", type = Integer.class, required = true),
+                @OpenApiParam(name = "commentId", type = Integer.class, required = true)
+            },
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = RemoteEditCommentRequest.class)),
+            responses = @OpenApiResponse(status = "204"))
     private void federatedRemoteEditComment(Context ctx) {
         var partner = requireFederationPartner(ctx);
         int boardId = ctx.pathParamAsClass("boardId", Integer.class).get();
@@ -1156,6 +1875,17 @@ public class BoardRoutes implements Routes {
         ctx.status(204);
     }
 
+    @OpenApi(
+            path = "/api/v1/remote/boards/{boardId}/tickets/{ticketId}/comments/{commentId}",
+            methods = HttpMethod.DELETE,
+            summary = "Delete a comment on a shared board",
+            tags = {"Boards Remote"},
+            pathParams = {
+                @OpenApiParam(name = "boardId", type = Integer.class, required = true),
+                @OpenApiParam(name = "ticketId", type = Integer.class, required = true),
+                @OpenApiParam(name = "commentId", type = Integer.class, required = true)
+            },
+            responses = @OpenApiResponse(status = "204"))
     private void federatedRemoteDeleteComment(Context ctx) {
         var partner = requireFederationPartner(ctx);
         int boardId = ctx.pathParamAsClass("boardId", Integer.class).get();
@@ -1165,6 +1895,17 @@ public class BoardRoutes implements Routes {
         ctx.status(204);
     }
 
+    @OpenApi(
+            path = "/api/v1/remote/boards/{boardId}/tickets/{ticketId}/checklist",
+            methods = HttpMethod.POST,
+            summary = "Add a checklist item to a ticket on a shared board",
+            tags = {"Boards Remote"},
+            pathParams = {
+                @OpenApiParam(name = "boardId", type = Integer.class, required = true),
+                @OpenApiParam(name = "ticketId", type = Integer.class, required = true)
+            },
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = RemoteChecklistItemRequest.class)),
+            responses = @OpenApiResponse(status = "200"))
     private void federatedRemoteAddChecklistItem(Context ctx) {
         var partner = requireFederationPartner(ctx);
         int boardId = ctx.pathParamAsClass("boardId", Integer.class).get();
@@ -1174,6 +1915,18 @@ public class BoardRoutes implements Routes {
         ctx.json(ticketService.addChecklistItem(ticketId, req.title(), 0));
     }
 
+    @OpenApi(
+            path = "/api/v1/remote/boards/{boardId}/tickets/{ticketId}/checklist/{itemId}",
+            methods = HttpMethod.PUT,
+            summary = "Update a checklist item on a shared board",
+            tags = {"Boards Remote"},
+            pathParams = {
+                @OpenApiParam(name = "boardId", type = Integer.class, required = true),
+                @OpenApiParam(name = "ticketId", type = Integer.class, required = true),
+                @OpenApiParam(name = "itemId", type = Integer.class, required = true)
+            },
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = RemoteUpdateChecklistItemRequest.class)),
+            responses = @OpenApiResponse(status = "204"))
     private void federatedRemoteUpdateChecklistItem(Context ctx) {
         var partner = requireFederationPartner(ctx);
         int boardId = ctx.pathParamAsClass("boardId", Integer.class).get();
@@ -1185,6 +1938,17 @@ public class BoardRoutes implements Routes {
         ctx.status(204);
     }
 
+    @OpenApi(
+            path = "/api/v1/remote/boards/{boardId}/tickets/{ticketId}/checklist/{itemId}",
+            methods = HttpMethod.DELETE,
+            summary = "Delete a checklist item on a shared board",
+            tags = {"Boards Remote"},
+            pathParams = {
+                @OpenApiParam(name = "boardId", type = Integer.class, required = true),
+                @OpenApiParam(name = "ticketId", type = Integer.class, required = true),
+                @OpenApiParam(name = "itemId", type = Integer.class, required = true)
+            },
+            responses = @OpenApiResponse(status = "204"))
     private void federatedRemoteDeleteChecklistItem(Context ctx) {
         var partner = requireFederationPartner(ctx);
         int boardId = ctx.pathParamAsClass("boardId", Integer.class).get();
@@ -1195,6 +1959,17 @@ public class BoardRoutes implements Routes {
         ctx.status(204);
     }
 
+    @OpenApi(
+            path = "/api/v1/remote/boards/{boardId}/tickets/{ticketId}/labels/{labelId}",
+            methods = HttpMethod.POST,
+            summary = "Add a label to a ticket on a shared board",
+            tags = {"Boards Remote"},
+            pathParams = {
+                @OpenApiParam(name = "boardId", type = Integer.class, required = true),
+                @OpenApiParam(name = "ticketId", type = Integer.class, required = true),
+                @OpenApiParam(name = "labelId", type = Integer.class, required = true)
+            },
+            responses = @OpenApiResponse(status = "200"))
     private void federatedRemoteAddTicketLabel(Context ctx) {
         var partner = requireFederationPartner(ctx);
         int boardId = ctx.pathParamAsClass("boardId", Integer.class).get();
@@ -1205,6 +1980,17 @@ public class BoardRoutes implements Routes {
         ctx.json(boardService.findLabelsForTicket(ticketId));
     }
 
+    @OpenApi(
+            path = "/api/v1/remote/boards/{boardId}/tickets/{ticketId}/labels/{labelId}",
+            methods = HttpMethod.DELETE,
+            summary = "Remove a label from a ticket on a shared board",
+            tags = {"Boards Remote"},
+            pathParams = {
+                @OpenApiParam(name = "boardId", type = Integer.class, required = true),
+                @OpenApiParam(name = "ticketId", type = Integer.class, required = true),
+                @OpenApiParam(name = "labelId", type = Integer.class, required = true)
+            },
+            responses = @OpenApiResponse(status = "204"))
     private void federatedRemoteRemoveTicketLabel(Context ctx) {
         var partner = requireFederationPartner(ctx);
         int boardId = ctx.pathParamAsClass("boardId", Integer.class).get();
@@ -1215,6 +2001,14 @@ public class BoardRoutes implements Routes {
         ctx.status(204);
     }
 
+    @OpenApi(
+            path = "/api/v1/remote/boards/{boardId}/labels",
+            methods = HttpMethod.POST,
+            summary = "Create a label on a shared board",
+            tags = {"Boards Remote"},
+            pathParams = @OpenApiParam(name = "boardId", type = Integer.class, required = true),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = RemoteCreateLabelRequest.class)),
+            responses = @OpenApiResponse(status = "200"))
     private void federatedRemoteCreateLabel(Context ctx) {
         var partner = requireFederationPartner(ctx);
         int boardId = ctx.pathParamAsClass("boardId", Integer.class).get();
@@ -1223,6 +2017,17 @@ public class BoardRoutes implements Routes {
         ctx.json(boardService.createLabel(boardId, req.name(), req.color() != null ? req.color() : "#6b7280"));
     }
 
+    @OpenApi(
+            path = "/api/v1/remote/boards/{boardId}/tickets/{ticketId}/watch",
+            methods = HttpMethod.POST,
+            summary = "Watch a ticket on a shared board",
+            tags = {"Boards Remote"},
+            pathParams = {
+                @OpenApiParam(name = "boardId", type = Integer.class, required = true),
+                @OpenApiParam(name = "ticketId", type = Integer.class, required = true)
+            },
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = RemoteWatchRequest.class)),
+            responses = @OpenApiResponse(status = "204"))
     private void federatedRemoteWatchTicket(Context ctx) {
         var partner = requireFederationPartner(ctx);
         int boardId = ctx.pathParamAsClass("boardId", Integer.class).get();
@@ -1233,6 +2038,17 @@ public class BoardRoutes implements Routes {
         ctx.status(204);
     }
 
+    @OpenApi(
+            path = "/api/v1/remote/boards/{boardId}/tickets/{ticketId}/watch",
+            methods = HttpMethod.DELETE,
+            summary = "Unwatch a ticket on a shared board",
+            tags = {"Boards Remote"},
+            pathParams = {
+                @OpenApiParam(name = "boardId", type = Integer.class, required = true),
+                @OpenApiParam(name = "ticketId", type = Integer.class, required = true)
+            },
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = RemoteWatchRequest.class)),
+            responses = @OpenApiResponse(status = "204"))
     private void federatedRemoteUnwatchTicket(Context ctx) {
         var partner = requireFederationPartner(ctx);
         int boardId = ctx.pathParamAsClass("boardId", Integer.class).get();
@@ -1245,6 +2061,12 @@ public class BoardRoutes implements Routes {
 
     // -- Webhook receivers (partner station receives these from owning station) --
 
+    @OpenApi(
+            path = "/api/v1/remote/boards/webhook/ticket-changed",
+            methods = HttpMethod.POST,
+            summary = "Webhook: ticket changed notification",
+            tags = {"Boards Remote"},
+            responses = @OpenApiResponse(status = "204"))
     private void federatedRemoteOnTicketChanged(Context ctx) {
         requireFederationPartner(ctx);
         // Payload contains remoteMemberIds to notify — handled by the partner's notification system
@@ -1252,24 +2074,49 @@ public class BoardRoutes implements Routes {
         ctx.status(204);
     }
 
+    @OpenApi(
+            path = "/api/v1/remote/boards/webhook/mention",
+            methods = HttpMethod.POST,
+            summary = "Webhook: mention notification",
+            tags = {"Boards Remote"},
+            responses = @OpenApiResponse(status = "204"))
     private void federatedRemoteOnMention(Context ctx) {
         requireFederationPartner(ctx);
         log.info("Received board mention webhook");
         ctx.status(204);
     }
 
+    @OpenApi(
+            path = "/api/v1/remote/boards/webhook/assignment",
+            methods = HttpMethod.POST,
+            summary = "Webhook: assignment notification",
+            tags = {"Boards Remote"},
+            responses = @OpenApiResponse(status = "204"))
     private void federatedRemoteOnAssignment(Context ctx) {
         requireFederationPartner(ctx);
         log.info("Received board assignment webhook");
         ctx.status(204);
     }
 
+    @OpenApi(
+            path = "/api/v1/remote/boards/webhook/unassignment",
+            methods = HttpMethod.POST,
+            summary = "Webhook: unassignment notification",
+            tags = {"Boards Remote"},
+            responses = @OpenApiResponse(status = "204"))
     private void federatedRemoteOnUnassignment(Context ctx) {
         requireFederationPartner(ctx);
         log.info("Received board unassignment webhook");
         ctx.status(204);
     }
 
+    @OpenApi(
+            path = "/api/v1/remote/boards/webhook/board-renamed",
+            methods = HttpMethod.POST,
+            summary = "Webhook: board renamed notification",
+            tags = {"Boards Remote"},
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = RemoteBoardRenamedWebhook.class)),
+            responses = @OpenApiResponse(status = "204"))
     private void federatedRemoteOnBoardRenamed(Context ctx) {
         var partner = requireFederationPartner(ctx);
         var req = ctx.bodyAsClass(RemoteBoardRenamedWebhook.class);
@@ -1277,6 +2124,13 @@ public class BoardRoutes implements Routes {
         ctx.status(204);
     }
 
+    @OpenApi(
+            path = "/api/v1/remote/boards/webhook/board-unshared",
+            methods = HttpMethod.POST,
+            summary = "Webhook: board unshared notification",
+            tags = {"Boards Remote"},
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = RemoteBoardUnsharedWebhook.class)),
+            responses = @OpenApiResponse(status = "204"))
     private void federatedRemoteOnBoardUnshared(Context ctx) {
         var partner = requireFederationPartner(ctx);
         var req = ctx.bodyAsClass(RemoteBoardUnsharedWebhook.class);
@@ -1284,6 +2138,13 @@ public class BoardRoutes implements Routes {
         ctx.status(204);
     }
 
+    @OpenApi(
+            path = "/api/v1/remote/boards/webhook/share-mode-changed",
+            methods = HttpMethod.POST,
+            summary = "Webhook: share mode changed notification",
+            tags = {"Boards Remote"},
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = RemoteShareModeChangedWebhook.class)),
+            responses = @OpenApiResponse(status = "204"))
     private void federatedRemoteOnShareModeChanged(Context ctx) {
         var partner = requireFederationPartner(ctx);
         var req = ctx.bodyAsClass(RemoteShareModeChangedWebhook.class);
@@ -1358,7 +2219,7 @@ public class BoardRoutes implements Routes {
     // -- Federated remote records --
 
     record RemoteCreateTicketRequest(
-            String remoteMemberId, Integer laneId, String title, String description, String priority, String dueDate) {}
+            UUID remoteMemberId, Integer laneId, String title, String description, String priority, String dueDate) {}
 
     record RemoteUpdateTicketRequest(
             String title, String description, Integer assignedMemberId, String priority, String dueDate) {}
@@ -1367,7 +2228,7 @@ public class BoardRoutes implements Routes {
 
     record RemoteReorderRequest(int laneId, List<Integer> orderedIds) {}
 
-    record RemoteCommentRequest(String remoteMemberId, Integer parentId, String content) {}
+    record RemoteCommentRequest(UUID remoteMemberId, Integer parentId, String content) {}
 
     record RemoteEditCommentRequest(String content) {}
 
@@ -1377,7 +2238,7 @@ public class BoardRoutes implements Routes {
 
     record RemoteCreateLabelRequest(String name, String color) {}
 
-    record RemoteWatchRequest(String remoteMemberId) {}
+    record RemoteWatchRequest(UUID remoteMemberId) {}
 
     record RemoteBoardRenamedWebhook(int boardId, String newName, String newShortKey) {}
 

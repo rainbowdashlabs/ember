@@ -122,12 +122,12 @@ public class EventFederationService {
      *
      * @param eventId        the event ID
      * @param partnerId      the federation partner ID
-     * @param remoteMemberId the remote member identifier
+     * @param remoteMemberId the remote member UUID
      * @param eventDate      the event occurrence date
      * @return the created registration
      */
     public EventFederationRegistration registerFederated(
-            int eventId, int partnerId, String remoteMemberId, LocalDate eventDate) {
+            int eventId, int partnerId, UUID remoteMemberId, LocalDate eventDate) {
         return federationRepository.createRegistration(eventId, partnerId, remoteMemberId, eventDate);
     }
 
@@ -178,11 +178,11 @@ public class EventFederationService {
      *
      * @param eventId        the event ID
      * @param partnerId      the federation partner ID
-     * @param remoteMemberId the remote member identifier
+     * @param remoteMemberId the remote member UUID
      * @param eventDate      the event occurrence date
      * @return true if a registration was deleted
      */
-    public boolean withdrawRegistration(int eventId, int partnerId, String remoteMemberId, LocalDate eventDate) {
+    public boolean withdrawRegistration(int eventId, int partnerId, UUID remoteMemberId, LocalDate eventDate) {
         return federationRepository.deleteRegistration(eventId, partnerId, remoteMemberId, eventDate);
     }
 
@@ -192,10 +192,10 @@ public class EventFederationService {
      * Caches the display name for a federated member.
      *
      * @param partnerId      the federation partner ID
-     * @param remoteMemberId the remote member identifier
+     * @param remoteMemberId the remote member UUID
      * @param displayName    the display name to cache
      */
-    public void cacheName(int partnerId, String remoteMemberId, String displayName) {
+    public void cacheName(int partnerId, UUID remoteMemberId, String displayName) {
         federationRepository.cacheName(partnerId, remoteMemberId, displayName);
     }
 
@@ -203,10 +203,10 @@ public class EventFederationService {
      * Retrieves the cached display name for a federated member.
      *
      * @param partnerId      the federation partner ID
-     * @param remoteMemberId the remote member identifier
+     * @param remoteMemberId the remote member UUID
      * @return the display name, if cached
      */
-    public Optional<String> getCachedName(int partnerId, String remoteMemberId) {
+    public Optional<String> getCachedName(int partnerId, UUID remoteMemberId) {
         return federationRepository.getCachedName(partnerId, remoteMemberId);
     }
 
@@ -214,9 +214,9 @@ public class EventFederationService {
      * Invalidates the cached name for a federated member.
      *
      * @param partnerId      the federation partner ID
-     * @param remoteMemberId the remote member identifier
+     * @param remoteMemberId the remote member UUID
      */
-    public void invalidateName(int partnerId, String remoteMemberId) {
+    public void invalidateName(int partnerId, UUID remoteMemberId) {
         federationRepository.invalidateName(partnerId, remoteMemberId);
     }
 
