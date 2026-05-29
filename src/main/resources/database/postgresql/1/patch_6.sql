@@ -1868,3 +1868,15 @@ COMMENT ON COLUMN ember_schema.board_ticket_federated_assignee.remote_member_id 
 COMMENT ON COLUMN ember_schema.board_ticket_federated_comment_author.remote_member_id IS 'Member UUID on the remote station.';
 COMMENT ON COLUMN ember_schema.board_ticket_federated_creator.remote_member_id IS 'Member UUID on the remote station.';
 COMMENT ON COLUMN ember_schema.board_ticket_federated_watcher.remote_member_id IS 'Member UUID on the remote station.';
+
+-- Federated event comment author tracking
+CREATE TABLE ember_schema.event_comment_federated_author (
+    comment_id INTEGER NOT NULL REFERENCES ember_schema.event_comment(id) ON DELETE CASCADE PRIMARY KEY,
+    partner_id INTEGER NOT NULL REFERENCES ember_schema.federation_partner(id) ON DELETE CASCADE,
+    remote_member_id UUID NOT NULL
+);
+
+COMMENT ON TABLE ember_schema.event_comment_federated_author IS 'Maps event comments from federated users to their remote identity.';
+COMMENT ON COLUMN ember_schema.event_comment_federated_author.comment_id IS 'References the local event comment.';
+COMMENT ON COLUMN ember_schema.event_comment_federated_author.partner_id IS 'References the federation partner.';
+COMMENT ON COLUMN ember_schema.event_comment_federated_author.remote_member_id IS 'Member UUID on the remote station.';

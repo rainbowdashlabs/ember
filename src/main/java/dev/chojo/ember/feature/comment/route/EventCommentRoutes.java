@@ -11,9 +11,14 @@ import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.comment.entity.Comment;
+import dev.chojo.ember.feature.comment.repository.EventCommentRepository;
 import dev.chojo.ember.feature.comment.service.CommentService;
+import dev.chojo.ember.feature.events.repository.EventFederationRepository;
+import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
+import dev.chojo.ember.feature.station.entity.Station;
+import dev.chojo.ember.feature.station.repository.StationRepository;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.ForbiddenResponse;
@@ -31,6 +36,7 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
 import java.time.Instant;
+import java.util.UUID;
 
 /**
  * HTTP route definitions for event comments.
@@ -39,17 +45,29 @@ import java.time.Instant;
 @Singleton
 public class EventCommentRoutes implements Routes {
     private final CommentService commentService;
+    private final EventCommentRepository commentRepository;
     private final StationMemberRepository stationMemberRepository;
     private final AccountRepository accountRepository;
+    private final EventFederationRepository eventFederationRepository;
+    private final FederationRepository federationRepository;
+    private final StationRepository stationRepository;
 
     @Inject
     public EventCommentRoutes(
             CommentService commentService,
+            EventCommentRepository commentRepository,
             StationMemberRepository stationMemberRepository,
-            AccountRepository accountRepository) {
+            AccountRepository accountRepository,
+            EventFederationRepository eventFederationRepository,
+            FederationRepository federationRepository,
+            StationRepository stationRepository) {
         this.commentService = commentService;
+        this.commentRepository = commentRepository;
         this.stationMemberRepository = stationMemberRepository;
         this.accountRepository = accountRepository;
+        this.eventFederationRepository = eventFederationRepository;
+        this.federationRepository = federationRepository;
+        this.stationRepository = stationRepository;
     }
 
     @Override
@@ -154,8 +172,37 @@ public class EventCommentRoutes implements Routes {
     private CommentResponse toResponse(Comment comment) {
         if (comment.deleted()) {
             return new CommentResponse(
-                    comment.id(), comment.parentId(), 0, null, null, "", true, comment.createdAt(), null);
+                    comment.id(), comment.parentId(), 0, null, null, "", true, comment.createdAt(), null, null);
         }
+
+        // Check for federated author
+        var fedAuthor = commentRepository.findFederatedAuthor(comment.id());
+        if (fedAuthor.isPresent()) {
+            var fa = fedAuthor.get();
+            String displayName = eventFederationRepository
+                    .getCachedName(fa.partnerId(), fa.remoteMemberId())
+                    .orElse("Unknown");
+            String stationName = federationRepository
+                    .findPartnerById(fa.partnerId())
+                    .map(p -> stationRepository
+                            .findByUid(p.partnerStationId())
+                            .map(Station::name)
+                            .orElse(""))
+                    .orElse("");
+            return new CommentResponse(
+                    comment.id(),
+                    comment.parentId(),
+                    0,
+                    null,
+                    displayName,
+                    comment.content(),
+                    false,
+                    comment.createdAt(),
+                    comment.updatedAt(),
+                    new FederatedAuthorInfo(fa.remoteMemberId(), displayName, stationName));
+        }
+
+        // Local author
         var memberOpt = stationMemberRepository.findById(comment.authorId());
         Integer authorAccountId = memberOpt.map(StationMember::accountId).orElse(null);
         String authorName = memberOpt
@@ -171,7 +218,8 @@ public class EventCommentRoutes implements Routes {
                 comment.content(),
                 false,
                 comment.createdAt(),
-                comment.updatedAt());
+                comment.updatedAt(),
+                null);
     }
 
     /**
@@ -183,6 +231,11 @@ public class EventCommentRoutes implements Routes {
      * Request body for updating a comment.
      */
     public record UpdateCommentRequest(String content) {}
+
+    /**
+     * Information about a federated comment author from a partner station.
+     */
+    public record FederatedAuthorInfo(UUID memberUid, String displayName, String stationName) {}
 
     /**
      * API response representing a comment with resolved author information.
@@ -197,5 +250,6 @@ public class EventCommentRoutes implements Routes {
             String content,
             boolean deleted,
             Instant createdAt,
-            Instant updatedAt) {}
+            Instant updatedAt,
+            FederatedAuthorInfo federatedAuthor) {}
 }

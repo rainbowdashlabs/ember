@@ -1642,14 +1642,22 @@ export interface QuizCatalogExport {
 
 // -- Comments --
 
+export interface FederatedAuthorInfo {
+    memberUid: string
+    displayName: string
+    stationName: string
+}
+
 export interface Comment {
     id: number
     parentId?: number | null
     authorId: number
+    authorName?: string
     content: string
     deleted?: boolean
     createdAt: string
     updatedAt?: string | null
+    federatedAuthor?: FederatedAuthorInfo | null
 }
 
 export interface EntityNote {

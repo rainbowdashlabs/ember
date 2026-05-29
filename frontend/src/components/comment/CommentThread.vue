@@ -49,10 +49,14 @@ function childrenOf(commentId: number): Comment[] {
   return props.comments.filter(c => c.parentId === commentId)
 }
 
-function memberName(memberId: number): string {
-  const m = props.members.find(m => m.id === memberId)
-  if (!m) return `#${memberId}`
-  return m.name.trim() || `#${memberId}`
+function memberName(comment: Comment): string {
+  if (comment.federatedAuthor) {
+    return `${comment.federatedAuthor.displayName} (${comment.federatedAuthor.stationName})`
+  }
+  if (comment.authorName) return comment.authorName
+  const m = props.members.find(m => m.id === comment.authorId)
+  if (!m) return `#${comment.authorId}`
+  return m.name.trim() || `#${comment.authorId}`
 }
 
 function resolveMentions(text: string): Array<{ type: 'text'; value: string } | { type: 'mention'; name: string }> {
@@ -134,7 +138,7 @@ const maxDepth = 6
       <!-- Comment content -->
       <div v-else-if="editingId !== comment.id" class="space-y-1">
         <div class="flex items-center gap-2">
-          <MemberName :name="memberName(comment.authorId)" :member-id="comment.authorId" class="text-sm font-medium"/>
+          <MemberName :name="memberName(comment)" :member-id="comment.authorId" class="text-sm font-medium"/>
           <MutedText size="xs">{{ formatDate(comment.createdAt) }}</MutedText>
           <MutedText v-if="comment.updatedAt" size="xs">({{ t('comments.edited') }})</MutedText>
         </div>

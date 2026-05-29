@@ -42,6 +42,7 @@ async function loadComments() {
       id: c.id,
       parentId: c.parentId,
       authorId: c.authorId,
+      authorName: c.authorName,
       content: c.content,
       deleted: c.deleted,
       createdAt: c.createdAt,

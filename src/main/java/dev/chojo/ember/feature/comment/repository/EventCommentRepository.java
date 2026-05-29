@@ -7,11 +7,14 @@ package dev.chojo.ember.feature.comment.repository;
 
 import de.chojo.sadu.queries.api.call.Call;
 import de.chojo.sadu.queries.api.query.Query;
+import de.chojo.sadu.queries.converter.StandardValueConverter;
 import dev.chojo.ember.feature.comment.entity.Comment;
+import dev.chojo.ember.feature.comment.entity.EventCommentFederatedAuthor;
 import jakarta.inject.Singleton;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 /**
  * Repository for managing event comments with threaded reply support.
@@ -117,5 +120,36 @@ public class EventCommentRepository {
                 .map(row -> row.getBoolean(1))
                 .first()
                 .orElse(false);
+    }
+
+    /**
+     * Records the federated author identity for a comment.
+     *
+     * @param commentId      the local comment ID
+     * @param partnerId      the federation partner ID
+     * @param remoteMemberId the member UUID on the remote station
+     */
+    public void setFederatedAuthor(int commentId, int partnerId, UUID remoteMemberId) {
+        Query.query("""
+                        INSERT INTO event_comment_federated_author(comment_id, partner_id, remote_member_id)
+                        VALUES (:comment_id, :partner_id, :remote_member_id);""")
+                .single(Call.of()
+                        .bind("comment_id", commentId)
+                        .bind("partner_id", partnerId)
+                        .bind("remote_member_id", remoteMemberId, StandardValueConverter.UUID_STRING))
+                .insert();
+    }
+
+    /**
+     * Finds the federated author record for a comment.
+     *
+     * @param commentId the comment ID
+     * @return the federated author, if present
+     */
+    public Optional<EventCommentFederatedAuthor> findFederatedAuthor(int commentId) {
+        return Query.query("SELECT * FROM event_comment_federated_author WHERE comment_id = :comment_id;")
+                .single(Call.of().bind("comment_id", commentId))
+                .map(EventCommentFederatedAuthor.map())
+                .first();
     }
 }
