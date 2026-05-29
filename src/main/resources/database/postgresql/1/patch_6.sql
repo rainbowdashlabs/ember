@@ -1880,3 +1880,30 @@ COMMENT ON TABLE ember_schema.event_comment_federated_author IS 'Maps event comm
 COMMENT ON COLUMN ember_schema.event_comment_federated_author.comment_id IS 'References the local event comment.';
 COMMENT ON COLUMN ember_schema.event_comment_federated_author.partner_id IS 'References the federation partner.';
 COMMENT ON COLUMN ember_schema.event_comment_federated_author.remote_member_id IS 'Member UUID on the remote station.';
+
+-- News federation sharing
+CREATE TABLE ember_schema.news_federation_share (
+    id              SERIAL PRIMARY KEY,
+    news_id         INTEGER NOT NULL REFERENCES ember_schema.news(id) ON DELETE CASCADE,
+    scope           TEXT NOT NULL DEFAULT 'ALL_PARTNERS',
+    visibility_role TEXT NOT NULL DEFAULT 'MEMBER',
+    UNIQUE(news_id)
+);
+
+CREATE TABLE ember_schema.news_federation_share_target (
+    share_id   INTEGER NOT NULL REFERENCES ember_schema.news_federation_share(id) ON DELETE CASCADE,
+    partner_id INTEGER NOT NULL REFERENCES ember_schema.federation_partner(id) ON DELETE CASCADE,
+    PRIMARY KEY (share_id, partner_id)
+);
+
+-- Federated news comment author tracking
+CREATE TABLE ember_schema.news_comment_federated_author (
+    comment_id       INTEGER NOT NULL REFERENCES ember_schema.news_comment(id) ON DELETE CASCADE PRIMARY KEY,
+    partner_id       INTEGER NOT NULL REFERENCES ember_schema.federation_partner(id) ON DELETE CASCADE,
+    remote_member_id UUID NOT NULL
+);
+
+COMMENT ON TABLE ember_schema.news_federation_share IS 'Per-post federation sharing config for news.';
+COMMENT ON COLUMN ember_schema.news_federation_share.scope IS 'ALL_PARTNERS or SPECIFIC.';
+COMMENT ON COLUMN ember_schema.news_federation_share.visibility_role IS 'Minimum role on partner station: MEMBER, TEAM, or MANAGER.';
+COMMENT ON TABLE ember_schema.news_comment_federated_author IS 'Maps news comments from federated users to their remote identity.';

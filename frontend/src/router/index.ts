@@ -168,6 +168,11 @@ const router = createRouter({
                     component: () => import('@/views/stationview/news/EditView.vue'),
                 },
                 {
+                    path: 'federation/news/:stationUid/:newsId',
+                    name: 'federated-news-detail',
+                    component: () => import('@/views/stationview/news/FederatedDetailView.vue'),
+                },
+                {
                     path: 'manage',
                     name: 'station-manage',
                     component: StationManageView,
@@ -851,6 +856,11 @@ const router = createRouter({
                     path: 'news/:id/edit',
                     name: 'help-news-edit',
                     component: () => import('@/views/helpcenter/stationview/news/EditHelp.vue')
+                },
+                {
+                    path: 'federation/news/:stationUid/:newsId',
+                    name: 'help-federated-news-detail',
+                    redirect: { name: 'help-news-module-overview' },
                 },
                 // Profile
                 {

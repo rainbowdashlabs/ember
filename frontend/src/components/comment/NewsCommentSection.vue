@@ -19,6 +19,7 @@ import Alert from '@/components/feedback/Alert.vue'
 const props = defineProps<{
   newsId: number
   highlightCommentId?: number | null
+  stationUid?: string
 }>()
 
 const {t} = useI18n()
@@ -33,10 +34,10 @@ const posting = ref(false)
 async function loadComments() {
   loading.value = true
   try {
-    const [rawComments, m] = await Promise.all([
-      news.listComments(props.newsId),
-      stationMembers.listCompletions(),
-    ])
+    const rawComments = props.stationUid
+      ? await news.listFederatedNewsComments(props.stationUid, props.newsId)
+      : await news.listComments(props.newsId)
+    const m = await stationMembers.listCompletions()
     // Adapt NewsComment to generic Comment interface
     commentsList.value = rawComments.map(c => ({
       id: c.id,
@@ -46,7 +47,8 @@ async function loadComments() {
       content: c.content,
       deleted: c.deleted,
       createdAt: c.createdAt,
-      updatedAt: null,
+      updatedAt: c.updatedAt ?? null,
+      federatedAuthor: c.federatedAuthor ?? null,
     }))
     members.value = m
   } catch { error.value = t('common.error') }
@@ -55,21 +57,33 @@ async function loadComments() {
 
 async function createComment(parentId: number | null, content: string) {
   try {
-    await news.createComment(props.newsId, {parentId, content})
+    if (props.stationUid) {
+      await news.createFederatedNewsComment(props.stationUid, props.newsId, {parentId, content})
+    } else {
+      await news.createComment(props.newsId, {parentId, content})
+    }
     await loadComments()
   } catch { error.value = t('common.error') }
 }
 
 async function updateComment(commentId: number, content: string) {
   try {
-    await news.updateComment(commentId, {content})
+    if (props.stationUid) {
+      await news.updateFederatedNewsComment(props.stationUid, commentId, {content})
+    } else {
+      await news.updateComment(commentId, {content})
+    }
     await loadComments()
   } catch { error.value = t('common.error') }
 }
 
 async function deleteComment(commentId: number) {
   try {
-    await news.deleteComment(commentId)
+    if (props.stationUid) {
+      await news.deleteFederatedNewsComment(props.stationUid, commentId)
+    } else {
+      await news.deleteComment(commentId)
+    }
     await loadComments()
   } catch { error.value = t('common.error') }
 }

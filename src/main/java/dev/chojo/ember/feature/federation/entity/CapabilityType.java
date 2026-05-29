@@ -11,5 +11,6 @@ public enum CapabilityType {
     PROTOCOL_SHARE,
     INVENTORY_LEND,
     EVENT_SHARE,
-    BOARD_SHARE
+    BOARD_SHARE,
+    NEWS_SHARE
 }

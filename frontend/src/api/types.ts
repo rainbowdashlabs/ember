@@ -1186,6 +1186,8 @@ export interface NewsComment {
     content: string
     deleted?: boolean
     createdAt: string
+    updatedAt?: string | null
+    federatedAuthor?: FederatedAuthorInfo | null
 }
 
 export interface CommentRequest {

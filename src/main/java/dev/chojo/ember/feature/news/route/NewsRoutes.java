@@ -6,23 +6,34 @@
 package dev.chojo.ember.feature.news.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
+import dev.chojo.ember.api.FederationSession;
 import dev.chojo.ember.api.Roles;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
+import dev.chojo.ember.feature.events.repository.EventFederationRepository;
+import dev.chojo.ember.feature.federation.entity.FederationPartner;
+import dev.chojo.ember.feature.federation.repository.FederationRepository;
+import dev.chojo.ember.feature.federation.service.FederationHttpClient;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.news.entity.News;
 import dev.chojo.ember.feature.news.entity.NewsComment;
+import dev.chojo.ember.feature.news.repository.NewsFederationRepository;
+import dev.chojo.ember.feature.news.service.NewsFederationService;
 import dev.chojo.ember.feature.news.service.NewsService;
+import dev.chojo.ember.feature.station.entity.Station;
+import dev.chojo.ember.feature.station.repository.StationRepository;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.ForbiddenResponse;
 import io.javalin.http.HttpStatus;
+import io.javalin.http.InternalServerErrorResponse;
 import io.javalin.http.NotFoundResponse;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
 import io.javalin.openapi.OpenApiContent;
+import io.javalin.openapi.OpenApiName;
 import io.javalin.openapi.OpenApiParam;
 import io.javalin.openapi.OpenApiRequestBody;
 import io.javalin.openapi.OpenApiResponse;
@@ -32,26 +43,47 @@ import jakarta.inject.Singleton;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.UUID;
 
 /**
  * HTTP route definitions for the news feature.
  * Provides endpoints for CRUD operations on news articles and comments,
- * with role-based access control and notification dispatch.
+ * with role-based access control, notification dispatch, and federation support.
  */
 @Singleton
 public class NewsRoutes implements Routes {
     private final NewsService newsService;
+    private final NewsFederationService newsFederationService;
     private final AccountRepository accountRepository;
     private final StationMemberRepository stationMemberRepository;
+    private final FederationRepository federationRepository;
+    private final FederationHttpClient federationHttpClient;
+    private final StationRepository stationRepository;
+    private final NewsFederationRepository newsFederationRepository;
+    private final EventFederationRepository eventFederationRepository;
 
     @Inject
     public NewsRoutes(
             NewsService newsService,
+            NewsFederationService newsFederationService,
             AccountRepository accountRepository,
-            StationMemberRepository stationMemberRepository) {
+            StationMemberRepository stationMemberRepository,
+            FederationRepository federationRepository,
+            FederationHttpClient federationHttpClient,
+            StationRepository stationRepository,
+            NewsFederationRepository newsFederationRepository,
+            EventFederationRepository eventFederationRepository) {
         this.newsService = newsService;
+        this.newsFederationService = newsFederationService;
         this.accountRepository = accountRepository;
         this.stationMemberRepository = stationMemberRepository;
+        this.federationRepository = federationRepository;
+        this.federationHttpClient = federationHttpClient;
+        this.stationRepository = stationRepository;
+        this.newsFederationRepository = newsFederationRepository;
+        this.eventFederationRepository = eventFederationRepository;
     }
 
     @Override
@@ -65,6 +97,34 @@ public class NewsRoutes implements Routes {
         routes.post(prefix + "/news/{id}/comments", this::createComment, Roles.LOGIN);
         routes.put(prefix + "/news/comments/{commentId}", this::updateComment, Roles.LOGIN);
         routes.delete(prefix + "/news/comments/{commentId}", this::deleteComment, Roles.LOGIN);
+
+        // Federation sharing management
+        routes.get(prefix + "/news/{id}/federation", this::getFederationShare, Roles.NEWS_MANAGER);
+        routes.put(prefix + "/news/{id}/federation", this::setFederationShare, Roles.NEWS_MANAGER);
+        routes.delete(prefix + "/news/{id}/federation", this::removeFederationShare, Roles.NEWS_MANAGER);
+
+        // Federated (user-facing, bearer token auth)
+        routes.get(prefix + "/federated/news", this::federatedListNews, Roles.LOGIN);
+        routes.get(prefix + "/federated/{stationuid}/news/{newsId}", this::federatedGetNews, Roles.LOGIN);
+        routes.get(prefix + "/federated/{stationuid}/news/{newsId}/comments", this::federatedListComments, Roles.LOGIN);
+        routes.post(
+                prefix + "/federated/{stationuid}/news/{newsId}/comments", this::federatedCreateComment, Roles.LOGIN);
+        routes.put(
+                prefix + "/federated/{stationuid}/news/comments/{commentId}",
+                this::federatedUpdateComment,
+                Roles.LOGIN);
+        routes.delete(
+                prefix + "/federated/{stationuid}/news/comments/{commentId}",
+                this::federatedDeleteComment,
+                Roles.LOGIN);
+
+        // Remote (server-to-server, RSA signature auth)
+        routes.get(prefix + "/remote/news", this::remoteListNews);
+        routes.get(prefix + "/remote/news/{newsId}", this::remoteGetNews);
+        routes.get(prefix + "/remote/news/{newsId}/comments", this::remoteListComments);
+        routes.post(prefix + "/remote/news/{newsId}/comments", this::remoteCreateComment);
+        routes.put(prefix + "/remote/news/comments/{commentId}", this::remoteUpdateComment);
+        routes.delete(prefix + "/remote/news/comments/{commentId}", this::remoteDeleteComment);
     }
 
     @OpenApi(
@@ -336,6 +396,7 @@ public class NewsRoutes implements Routes {
 
     /**
      * Converts a {@link NewsComment} entity to an API response, resolving the author name.
+     * For federated comments (authorId == 0), resolves the federated author info from the name cache.
      *
      * @param comment the comment entity
      * @return the comment response DTO
@@ -343,8 +404,46 @@ public class NewsRoutes implements Routes {
     private CommentResponse toCommentResponse(NewsComment comment) {
         if (comment.deleted()) {
             return new CommentResponse(
-                    comment.id(), comment.newsId(), comment.parentId(), 0, null, null, "", true, comment.createdAt());
+                    comment.id(),
+                    comment.newsId(),
+                    comment.parentId(),
+                    0,
+                    null,
+                    null,
+                    "",
+                    true,
+                    comment.createdAt(),
+                    null);
         }
+
+        // Check for federated author
+        var fedAuthor = newsFederationRepository.findFederatedCommentAuthor(comment.id());
+        if (fedAuthor.isPresent()) {
+            var fa = fedAuthor.get();
+            String displayName = eventFederationRepository
+                    .getCachedName(fa.partnerId(), fa.remoteMemberId())
+                    .orElse("Unknown");
+            String stationName = federationRepository
+                    .findPartnerById(fa.partnerId())
+                    .map(p -> stationRepository
+                            .findByUid(p.partnerStationId())
+                            .map(Station::name)
+                            .orElse(""))
+                    .orElse("");
+            return new CommentResponse(
+                    comment.id(),
+                    comment.newsId(),
+                    comment.parentId(),
+                    0,
+                    null,
+                    displayName,
+                    comment.content(),
+                    false,
+                    comment.createdAt(),
+                    new FederatedAuthorInfo(fa.remoteMemberId(), displayName, stationName));
+        }
+
+        // Local author
         var memberOpt = stationMemberRepository.findById(comment.authorId());
         Integer authorAccountId = memberOpt.map(StationMember::accountId).orElse(null);
         String authorName = memberOpt
@@ -360,16 +459,335 @@ public class NewsRoutes implements Routes {
                 authorName,
                 comment.content(),
                 false,
-                comment.createdAt());
+                comment.createdAt(),
+                null);
     }
+
+    // -- Federation sharing management --
+
+    private void getFederationShare(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        var news = newsService.findById(id).orElseThrow(NotFoundResponse::new);
+        if (news.stationId() != session.stationId()) throw new ForbiddenResponse();
+        var share = newsFederationService.findShareByNews(id);
+        if (share.isEmpty()) {
+            ctx.json(Map.of("shared", false));
+            return;
+        }
+        var targets = newsFederationService.findShareTargets(share.get().id());
+        ctx.json(Map.of(
+                "shared",
+                true,
+                "scope",
+                share.get().scope(),
+                "visibilityRole",
+                share.get().visibilityRole(),
+                "partnerIds",
+                targets));
+    }
+
+    private void setFederationShare(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        var news = newsService.findById(id).orElseThrow(NotFoundResponse::new);
+        if (news.stationId() != session.stationId()) throw new ForbiddenResponse();
+        var req = ctx.bodyAsClass(SetNewsFederationShareRequest.class);
+        newsFederationService.setShare(
+                id,
+                req.scope(),
+                req.visibilityRole() != null ? req.visibilityRole() : "MEMBER",
+                req.partnerIds() != null ? req.partnerIds() : List.of());
+        ctx.json(Map.of(
+                "shared",
+                true,
+                "scope",
+                req.scope(),
+                "visibilityRole",
+                req.visibilityRole() != null ? req.visibilityRole() : "MEMBER"));
+    }
+
+    private void removeFederationShare(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        var news = newsService.findById(id).orElseThrow(NotFoundResponse::new);
+        if (news.stationId() != session.stationId()) throw new ForbiddenResponse();
+        newsFederationService.removeShare(id);
+        ctx.status(HttpStatus.NO_CONTENT);
+    }
+
+    // -- Remote endpoints (server-to-server, RSA signature auth) --
+
+    private void remoteListNews(Context ctx) {
+        var partner = requireFederationPartner(ctx);
+        var newsIds = newsFederationService.findSharedNewsIds(partner.id(), partner.stationId());
+        var newsList = newsIds.stream()
+                .map(id -> newsService.findById(id).orElse(null))
+                .filter(Objects::nonNull)
+                .map(n -> {
+                    String visibilityRole =
+                            newsFederationService.findVisibilityRole(n.id()).orElse("MEMBER");
+                    return Map.of(
+                            "id",
+                            (Object) n.id(),
+                            "title",
+                            n.title(),
+                            "publishedAt",
+                            n.publishedAt() != null ? n.publishedAt().toString() : "",
+                            "commentCount",
+                            newsService.countComments(n.id()),
+                            "visibilityRole",
+                            visibilityRole);
+                })
+                .toList();
+        ctx.json(newsList);
+    }
+
+    private void remoteGetNews(Context ctx) {
+        var partner = requireFederationPartner(ctx);
+        int newsId = ctx.pathParamAsClass("newsId", Integer.class).get();
+        var newsIds = newsFederationService.findSharedNewsIds(partner.id(), partner.stationId());
+        if (!newsIds.contains(newsId)) {
+            throw new NotFoundResponse();
+        }
+        var news = newsService.findById(newsId).orElseThrow(NotFoundResponse::new);
+        var memberOpt = stationMemberRepository.findById(news.authorId());
+        String authorName = memberOpt
+                .flatMap(m -> accountRepository.findById(m.accountId()))
+                .map(a -> (a.firstName() + " " + a.lastName()).trim())
+                .orElse("");
+        String visibilityRole = newsFederationService.findVisibilityRole(newsId).orElse("MEMBER");
+        ctx.json(Map.of(
+                "id",
+                news.id(),
+                "title",
+                news.title(),
+                "contentMarkdown",
+                news.contentMarkdown() != null ? news.contentMarkdown() : "",
+                "contentHtml",
+                news.contentHtml() != null ? news.contentHtml() : "",
+                "authorName",
+                authorName,
+                "publishedAt",
+                news.publishedAt() != null ? news.publishedAt().toString() : "",
+                "commentCount",
+                newsService.countComments(newsId),
+                "visibilityRole",
+                visibilityRole));
+    }
+
+    private void remoteListComments(Context ctx) {
+        requireFederationPartner(ctx);
+        int newsId = ctx.pathParamAsClass("newsId", Integer.class).get();
+        var comments = newsService.findComments(newsId);
+        ctx.json(comments.stream().map(this::toCommentResponse).toList());
+    }
+
+    private void remoteCreateComment(Context ctx) {
+        var partner = requireFederationPartner(ctx);
+        int newsId = ctx.pathParamAsClass("newsId", Integer.class).get();
+        var req = ctx.bodyAsClass(RemoteNewsCommentRequest.class);
+        if (req.content() == null || req.content().isBlank()) {
+            throw new BadRequestResponse("content is required");
+        }
+        var comment = newsService.createComment(
+                partner.stationId(), newsId, req.parentId(), 0, req.displayName(), req.content());
+        newsFederationRepository.setFederatedCommentAuthor(comment.id(), partner.id(), req.remoteMemberUid());
+        eventFederationRepository.cacheName(partner.id(), req.remoteMemberUid(), req.displayName());
+        ctx.status(HttpStatus.CREATED).json(toCommentResponse(comment));
+    }
+
+    private void remoteUpdateComment(Context ctx) {
+        var partner = requireFederationPartner(ctx);
+        int commentId = ctx.pathParamAsClass("commentId", Integer.class).get();
+        var req = ctx.bodyAsClass(RemoteNewsCommentUpdateRequest.class);
+        if (req.content() == null || req.content().isBlank()) {
+            throw new BadRequestResponse("content is required");
+        }
+        var fedAuthor = newsFederationRepository
+                .findFederatedCommentAuthor(commentId)
+                .orElseThrow(() -> new ForbiddenResponse("Not a federated comment"));
+        if (fedAuthor.partnerId() != partner.id() || !fedAuthor.remoteMemberId().equals(req.remoteMemberUid())) {
+            throw new ForbiddenResponse("You can only edit your own comments");
+        }
+        newsService.updateComment(commentId, req.content());
+        var updated = newsService.findCommentById(commentId).orElseThrow(NotFoundResponse::new);
+        ctx.json(toCommentResponse(updated));
+    }
+
+    private void remoteDeleteComment(Context ctx) {
+        var partner = requireFederationPartner(ctx);
+        int commentId = ctx.pathParamAsClass("commentId", Integer.class).get();
+        var req = ctx.bodyAsClass(RemoteNewsCommentDeleteRequest.class);
+        var fedAuthor = newsFederationRepository
+                .findFederatedCommentAuthor(commentId)
+                .orElseThrow(() -> new ForbiddenResponse("Not a federated comment"));
+        if (fedAuthor.partnerId() != partner.id() || !fedAuthor.remoteMemberId().equals(req.remoteMemberUid())) {
+            throw new ForbiddenResponse("You can only delete your own comments");
+        }
+        if (newsService.deleteComment(partner.stationId(), commentId)) {
+            ctx.status(HttpStatus.NO_CONTENT);
+        } else {
+            throw new NotFoundResponse();
+        }
+    }
+
+    // -- Federated proxy endpoints (user-facing, bearer auth) --
+
+    private void federatedListNews(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        ctx.json(newsFederationService.browseFederatedNews(session.stationId()));
+    }
+
+    private void federatedGetNews(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        var stationUid = UUID.fromString(ctx.pathParam("stationuid"));
+        int newsId = ctx.pathParamAsClass("newsId", Integer.class).get();
+        var news = newsFederationService.getFederatedNews(session.stationId(), stationUid, newsId);
+        ctx.json(news);
+    }
+
+    private void federatedListComments(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        var station = stationRepository.findById(session.stationId()).orElseThrow();
+        var partner = resolvePartner(ctx, session.stationId());
+        int newsId = ctx.pathParamAsClass("newsId", Integer.class).get();
+
+        if (partner.isRemote()) {
+            String json = federationHttpClient.signedGetJson(
+                    partner.remoteHost(),
+                    "/remote/news/" + newsId + "/comments",
+                    station.id(),
+                    station.federationPrivateKey());
+            if (json == null) throw new InternalServerErrorResponse("Failed to fetch comments from partner");
+            ctx.contentType("application/json").result(json);
+        } else {
+            var comments = newsService.findComments(newsId);
+            ctx.json(comments.stream().map(this::toCommentResponse).toList());
+        }
+    }
+
+    private void federatedCreateComment(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        var station = stationRepository.findById(session.stationId()).orElseThrow();
+        var partner = resolvePartner(ctx, session.stationId());
+        int newsId = ctx.pathParamAsClass("newsId", Integer.class).get();
+        var req = ctx.bodyAsClass(CommentRequest.class);
+        if (req.content() == null || req.content().isBlank()) {
+            throw new BadRequestResponse("content is required");
+        }
+
+        UUID memberUid = session.member().uid();
+        String displayName = session.account().fullName().trim();
+
+        if (partner.isRemote()) {
+            var body = new RemoteNewsCommentRequest(memberUid, displayName, req.parentId(), req.content());
+            String jsonBody = federationHttpClient.getMapper().writeValueAsString(body);
+            String json = federationHttpClient.signedPostJson(
+                    partner.remoteHost(),
+                    "/remote/news/" + newsId + "/comments",
+                    jsonBody,
+                    station.id(),
+                    station.federationPrivateKey());
+            if (json == null) throw new InternalServerErrorResponse("Failed to create comment on partner");
+            ctx.status(HttpStatus.CREATED).contentType("application/json").result(json);
+        } else {
+            var comment = newsService.createComment(
+                    partner.stationId(), newsId, req.parentId(), 0, displayName, req.content());
+            newsFederationRepository.setFederatedCommentAuthor(comment.id(), partner.id(), memberUid);
+            eventFederationRepository.cacheName(partner.id(), memberUid, displayName);
+            ctx.status(HttpStatus.CREATED).json(toCommentResponse(comment));
+        }
+    }
+
+    private void federatedUpdateComment(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        var station = stationRepository.findById(session.stationId()).orElseThrow();
+        var partner = resolvePartner(ctx, session.stationId());
+        int commentId = ctx.pathParamAsClass("commentId", Integer.class).get();
+        var req = ctx.bodyAsClass(CommentRequest.class);
+        if (req.content() == null || req.content().isBlank()) {
+            throw new BadRequestResponse("content is required");
+        }
+
+        UUID memberUid = session.member().uid();
+
+        if (partner.isRemote()) {
+            var body = new RemoteNewsCommentUpdateRequest(memberUid, req.content());
+            String jsonBody = federationHttpClient.getMapper().writeValueAsString(body);
+            String json = federationHttpClient.signedPutJson(
+                    partner.remoteHost(),
+                    "/remote/news/comments/" + commentId,
+                    jsonBody,
+                    station.id(),
+                    station.federationPrivateKey());
+            if (json == null) throw new InternalServerErrorResponse("Failed to update comment on partner");
+            ctx.contentType("application/json").result(json);
+        } else {
+            var fedAuthor = newsFederationRepository
+                    .findFederatedCommentAuthor(commentId)
+                    .orElseThrow(() -> new ForbiddenResponse("Not a federated comment"));
+            if (!fedAuthor.remoteMemberId().equals(memberUid)) {
+                throw new ForbiddenResponse("You can only edit your own comments");
+            }
+            newsService.updateComment(commentId, req.content());
+            var updated = newsService.findCommentById(commentId).orElseThrow(NotFoundResponse::new);
+            ctx.json(toCommentResponse(updated));
+        }
+    }
+
+    private void federatedDeleteComment(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        var station = stationRepository.findById(session.stationId()).orElseThrow();
+        var partner = resolvePartner(ctx, session.stationId());
+        int commentId = ctx.pathParamAsClass("commentId", Integer.class).get();
+
+        UUID memberUid = session.member().uid();
+
+        if (partner.isRemote()) {
+            boolean success = federationHttpClient.signedDeleteRequest(
+                    partner.remoteHost(),
+                    "/remote/news/comments/" + commentId,
+                    station.id(),
+                    station.federationPrivateKey());
+            if (!success) throw new InternalServerErrorResponse("Failed to delete comment on partner");
+            ctx.status(HttpStatus.NO_CONTENT);
+        } else {
+            var fedAuthor = newsFederationRepository
+                    .findFederatedCommentAuthor(commentId)
+                    .orElseThrow(() -> new ForbiddenResponse("Not a federated comment"));
+            if (!fedAuthor.remoteMemberId().equals(memberUid)) {
+                throw new ForbiddenResponse("You can only delete your own comments");
+            }
+            if (newsService.deleteComment(partner.stationId(), commentId)) {
+                ctx.status(HttpStatus.NO_CONTENT);
+            } else {
+                throw new NotFoundResponse();
+            }
+        }
+    }
+
+    // -- Federation helpers --
+
+    private FederationPartner resolvePartner(Context ctx, int stationId) {
+        var partnerUid = UUID.fromString(ctx.pathParam("stationuid"));
+        return federationRepository
+                .findPartnerByStationAndRemoteUid(stationId, partnerUid)
+                .orElseThrow(() -> new NotFoundResponse("Unknown partner"));
+    }
+
+    private FederationPartner requireFederationPartner(Context ctx) {
+        var session = FederationSession.from(ctx);
+        if (session == null) {
+            throw new ForbiddenResponse("Missing or invalid federation signature");
+        }
+        return session.partner();
+    }
+
+    // -- Request / Response records --
 
     /**
      * Request body for creating or updating a news article.
-     *
-     * @param title           article title
-     * @param contentMarkdown article body in Markdown
-     * @param contentHtml     article body as HTML
-     * @param groupIds        group IDs to restrict visibility to
      */
     public record NewsRequest(
             String title,
@@ -382,19 +800,6 @@ public class NewsRoutes implements Routes {
 
     /**
      * API response representing a news article with resolved author information.
-     *
-     * @param id              unique article ID
-     * @param stationId       the station this article belongs to
-     * @param title           article title
-     * @param contentMarkdown article body in Markdown
-     * @param contentHtml     article body as HTML
-     * @param authorId        member ID of the author
-     * @param authorAccountId account ID of the author, or {@code null} if unresolved
-     * @param authorName      display name of the author
-     * @param publishedAt     publication timestamp
-     * @param createdAt       creation timestamp
-     * @param groupIds        group restriction IDs (empty if unrestricted or excluded)
-     * @param commentCount    total number of comments on this article
      */
     public record NewsResponse(
             int id,
@@ -415,23 +820,11 @@ public class NewsRoutes implements Routes {
 
     /**
      * Request body for creating or updating a comment.
-     *
-     * @param parentId parent comment ID for replies, or {@code null} for top-level comments
-     * @param content  comment text
      */
     public record CommentRequest(Integer parentId, String content) {}
 
     /**
      * API response representing a comment with resolved author information.
-     *
-     * @param id              unique comment ID
-     * @param newsId          the news article this comment belongs to
-     * @param parentId        parent comment ID, or {@code null} for top-level comments
-     * @param authorId        member ID of the comment author
-     * @param authorAccountId account ID of the author, or {@code null} if unresolved
-     * @param authorName      display name of the author
-     * @param content         comment text
-     * @param createdAt       creation timestamp
      */
     public record CommentResponse(
             int id,
@@ -442,5 +835,33 @@ public class NewsRoutes implements Routes {
             String authorName,
             String content,
             boolean deleted,
-            Instant createdAt) {}
+            Instant createdAt,
+            FederatedAuthorInfo federatedAuthor) {}
+
+    /**
+     * Information about a federated comment author from a partner station.
+     */
+    @OpenApiName("NewsFederatedAuthorInfo")
+    public record FederatedAuthorInfo(UUID memberUid, String displayName, String stationName) {}
+
+    /**
+     * Request body for setting news federation sharing.
+     */
+    public record SetNewsFederationShareRequest(String scope, String visibilityRole, List<Integer> partnerIds) {}
+
+    /**
+     * Request body for creating a comment from a remote federated partner.
+     */
+    public record RemoteNewsCommentRequest(
+            UUID remoteMemberUid, String displayName, Integer parentId, String content) {}
+
+    /**
+     * Request body for updating a comment from a remote federated partner.
+     */
+    public record RemoteNewsCommentUpdateRequest(UUID remoteMemberUid, String content) {}
+
+    /**
+     * Request body for deleting a comment from a remote federated partner.
+     */
+    public record RemoteNewsCommentDeleteRequest(UUID remoteMemberUid) {}
 }

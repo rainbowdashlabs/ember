@@ -23,8 +23,10 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 
 import NewsCommentSection from '@/components/comment/NewsCommentSection.vue'
 import type { NewsEntry } from '@/api/types'
+import type { FederatedNewsItem } from '@/api/news'
 import { news } from '@/api'
 import UserAvatar from '@/components/avatar/UserAvatar.vue'
+import StationBadge from '@/components/badge/StationBadge.vue'
 import { useSession } from '@/composables/useSession'
 
 const { t } = useI18n()
@@ -40,6 +42,10 @@ const hasMore = ref(true)
 const error = ref('')
 const showDeleteModal = ref(false)
 const deleteTarget = ref<NewsEntry | null>(null)
+
+// Partner news
+const federatedNews = ref<FederatedNewsItem[]>([])
+const federatedLoading = ref(false)
 
 // Comments
 const commentsOpenId = ref<number | null>(null)
@@ -81,6 +87,17 @@ function onScroll() {
   }
 }
 
+async function loadFederatedNews() {
+  federatedLoading.value = true
+  try {
+    federatedNews.value = await news.listFederatedNews()
+  } catch {
+    // silently ignore — partner news is optional
+  } finally {
+    federatedLoading.value = false
+  }
+}
+
 function toggleComments(entry: NewsEntry) {
   if (commentsOpenId.value === entry.id) {
     commentsOpenId.value = null
@@ -115,6 +132,7 @@ async function confirmDelete() {
 
 onMounted(() => {
   loadData()
+  loadFederatedNews()
   window.addEventListener('scroll', onScroll)
 })
 
@@ -189,6 +207,35 @@ onUnmounted(() => {
       </div>
 
       <Spinner v-if="loadingMore" size="md" />
+
+      <!-- Partner News -->
+      <template v-if="federatedNews.length > 0 || federatedLoading">
+        <SectionHeader class="mt-8">{{ t('news.partnerNews') }}</SectionHeader>
+        <Spinner v-if="federatedLoading" size="md" />
+        <div class="space-y-3">
+          <NeutralContainer
+            v-for="fn in federatedNews"
+            :key="`fed-${fn.stationId}-${fn.id}`"
+            class="cursor-pointer hover:ring-1 hover:ring-primary transition-all"
+            @click="router.push({ name: 'federated-news-detail', params: { stationUid: fn.stationId, newsId: fn.id } })"
+          >
+            <div class="flex items-start justify-between gap-3">
+              <div>
+                <SubHeader>{{ fn.title }}</SubHeader>
+                <p class="text-xs text-(--text-muted) flex items-center gap-1.5">
+                  <StationBadge :station-name="fn.stationName" />
+                  <span>&middot;</span>
+                  <span>{{ formatDate(fn.publishedAt) }}</span>
+                </p>
+              </div>
+              <div class="flex items-center gap-1.5 text-xs text-(--text-muted)">
+                <font-awesome-icon :icon="['fas', 'comment']" class="h-3 w-3" />
+                {{ fn.commentCount }}
+              </div>
+            </div>
+          </NeutralContainer>
+        </div>
+      </template>
 
       <Modal v-model="showDeleteModal">
         <div class="space-y-4">

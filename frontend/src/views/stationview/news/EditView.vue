@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter, useRoute } from 'vue-router'
 import { marked } from 'marked'
@@ -21,11 +21,16 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import RestrictionPicker from '@/components/input/RestrictionPicker.vue'
 import type { MemberGroup, Role, UserTag } from '@/api/types'
-import { news, memberGroups, stationMembers, userTags } from '@/api'
+import type { PartnerResponse } from '@/api/federation'
+import { news, memberGroups, stationMembers, userTags, federation } from '@/api'
+import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
+import SelectInput from '@/components/input/select/SelectInput.vue'
+import { useSession } from '@/composables/useSession'
 
 const { t } = useI18n()
 const router = useRouter()
 const route = useRoute()
+const { loaded, canManageFederation } = useSession()
 
 const isEdit = computed(() => !!route.params.id)
 const newsId = computed(() => isEdit.value ? Number(route.params.id) : null)
@@ -38,9 +43,16 @@ const selectedTagIds = ref<number[]>([])
 const roles = ref<Role[]>([])
 const groups = ref<MemberGroup[]>([])
 const tags = ref<UserTag[]>([])
-const loading = ref(false)
+const loading = ref(true)
 const saving = ref(false)
 const error = ref('')
+
+// Federation sharing
+const federationShared = ref(false)
+const federationScope = ref('ALL_PARTNERS')
+const federationVisibilityRole = ref('MEMBER')
+const federationPartnerIds = ref<number[]>([])
+const partners = ref<PartnerResponse[]>([])
 
 const contentHtml = computed(() => {
   try {
@@ -61,6 +73,10 @@ async function loadData() {
     groups.value = groupList
     roles.value = roleList
     tags.value = tagList
+    if (canManageFederation()) {
+      partners.value = (await federation.listPartners()).filter(p => p.partner.status === 'ACTIVE')
+    }
+
     if (newsId.value) {
       const entry = await news.getNews(newsId.value)
       title.value = entry.title
@@ -68,6 +84,16 @@ async function loadData() {
       selectedRoleIds.value = entry.roleIds ?? []
       selectedGroupIds.value = entry.groupIds ?? []
       selectedTagIds.value = entry.tagIds ?? []
+
+      if (canManageFederation()) {
+        const fedShare = await news.getFederationShare(newsId.value)
+        federationShared.value = fedShare.shared
+        if (fedShare.shared) {
+          federationScope.value = fedShare.scope ?? 'ALL_PARTNERS'
+          federationVisibilityRole.value = fedShare.visibilityRole ?? 'MEMBER'
+          federationPartnerIds.value = fedShare.partnerIds ?? []
+        }
+      }
     }
   } catch {
     error.value = t('common.error')
@@ -90,11 +116,24 @@ async function save() {
       tagIds: selectedTagIds.value,
       memberIds: [] as number[],
     }
+    let savedId: number
     if (newsId.value) {
       await news.updateNews(newsId.value, data)
+      savedId = newsId.value
     } else {
-      await news.createNews(data)
+      const created = await news.createNews(data)
+      savedId = created.id
     }
+
+    if (canManageFederation()) {
+      if (federationShared.value) {
+        const pIds = federationScope.value === 'SPECIFIC_PARTNERS' ? federationPartnerIds.value : undefined
+        await news.setFederationShare(savedId, federationScope.value, federationVisibilityRole.value, pIds)
+      } else {
+        await news.removeFederationShare(savedId).catch(() => {})
+      }
+    }
+
     await router.push({ name: 'news-list' })
   } catch {
     error.value = t('common.error')
@@ -103,7 +142,13 @@ async function save() {
   }
 }
 
-onMounted(loadData)
+onMounted(() => {
+  if (loaded.value) loadData()
+})
+
+watch(loaded, (isLoaded) => {
+  if (isLoaded && loading.value) loadData()
+})
 </script>
 
 <template>
@@ -146,6 +191,54 @@ onMounted(loadData)
               @update:selected-group-ids="v => selectedGroupIds = v"
               @update:selected-tag-ids="v => selectedTagIds = v"
           />
+        </NeutralContainer>
+
+        <NeutralContainer v-if="canManageFederation()" class="space-y-3">
+          <SubHeader>{{ t('news.federation') }}</SubHeader>
+          <label class="flex items-center gap-3">
+            <ToggleInput v-model="federationShared"/>
+            <span class="text-sm">{{ t('news.federationShare') }}</span>
+          </label>
+          <p class="text-xs text-(--text-muted)">{{ t('news.federationShareHint') }}</p>
+
+          <template v-if="federationShared">
+            <div class="space-y-1">
+              <FieldLabel>{{ t('news.federationScope') }}</FieldLabel>
+              <SelectInput v-model="federationScope">
+                <option value="ALL_PARTNERS">{{ t('news.scopeAllPartners') }}</option>
+                <option value="SPECIFIC_PARTNERS">{{ t('news.scopeSpecificPartners') }}</option>
+              </SelectInput>
+            </div>
+
+            <div v-if="federationScope === 'SPECIFIC_PARTNERS'" class="space-y-1">
+              <FieldLabel>{{ t('news.federationPartners') }}</FieldLabel>
+              <div class="space-y-1">
+                <label v-for="p in partners" :key="p.partner.id" class="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    :value="p.partner.id"
+                    :checked="federationPartnerIds.includes(p.partner.id)"
+                    @change="(e: Event) => {
+                      const checked = (e.target as HTMLInputElement).checked
+                      if (checked) federationPartnerIds.push(p.partner.id)
+                      else federationPartnerIds = federationPartnerIds.filter(id => id !== p.partner.id)
+                    }"
+                    class="accent-primary"
+                  />
+                  {{ p.partnerStationName }}
+                </label>
+              </div>
+            </div>
+
+            <div class="space-y-1">
+              <FieldLabel>{{ t('news.federationVisibility') }}</FieldLabel>
+              <SelectInput v-model="federationVisibilityRole">
+                <option value="MEMBER">{{ t('news.visibilityAllMembers') }}</option>
+                <option value="TEAM">{{ t('news.visibilityTeam') }}</option>
+                <option value="MANAGER">{{ t('news.visibilityManager') }}</option>
+              </SelectInput>
+            </div>
+          </template>
         </NeutralContainer>
 
         <div class="flex justify-end gap-3">
