@@ -3139,6 +3139,12 @@ volumes:
         declinedCount: 'abgesagt',
         loadMore: 'Weitere laden',
     },
+    federatedEventDetail: {
+        partnerEvent: 'Partnerwache',
+        recurring: 'Wiederkehrend',
+        oneTime: 'Einmalig',
+        fields: 'Felder',
+    },
     events: {
         today: 'Heute',
         manageAttendance: 'Anwesenheit erfassen',
@@ -5218,6 +5224,9 @@ volumes:
             kb: 'Lernsammlung',
             quiz: 'Quiz-Kataloge',
             protocol: 'Prüfungsprotokolle',
+            event: 'Veranstaltungen',
+            board: 'Boards',
+            news: 'Neuigkeiten',
             inventory: 'Inventar-Ausleihe',
         },
         shared: 'Geteilt',

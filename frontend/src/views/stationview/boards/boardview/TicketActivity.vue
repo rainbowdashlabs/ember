@@ -40,10 +40,16 @@ const commentsAsGeneric = computed<Comment[]>(() =>
         id: c.id,
         parentId: c.parentId,
         authorId: c.authorId,
+        authorName: c.authorName,
         content: c.content,
         deleted: c.deleted,
         createdAt: c.createdAt,
         updatedAt: c.updatedAt,
+        federatedAuthor: c.federatedAuthor ? {
+            memberUid: c.federatedAuthor.memberUid,
+            displayName: c.federatedAuthor.displayName,
+            stationName: c.federatedAuthor.stationName,
+        } : undefined,
     })),
 )
 

@@ -9,6 +9,7 @@ import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.FederationSession;
 import dev.chojo.ember.api.Roles;
 import dev.chojo.ember.api.Routes;
+import dev.chojo.ember.api.StationUidResolver;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
@@ -413,6 +414,8 @@ public class NewsRoutes implements Routes {
                     "",
                     true,
                     comment.createdAt(),
+                    null,
+                    null,
                     null);
         }
 
@@ -423,13 +426,14 @@ public class NewsRoutes implements Routes {
             String displayName = eventFederationRepository
                     .getCachedName(fa.partnerId(), fa.remoteMemberId())
                     .orElse("Unknown");
-            String stationName = federationRepository
-                    .findPartnerById(fa.partnerId())
-                    .map(p -> stationRepository
+            var partner = federationRepository.findPartnerById(fa.partnerId());
+            String stationName = partner.map(p -> stationRepository
                             .findByUid(p.partnerStationId())
                             .map(Station::name)
                             .orElse(""))
                     .orElse("");
+            String fedStationId =
+                    partner.map(p -> p.partnerStationId().toString()).orElse(null);
             return new CommentResponse(
                     comment.id(),
                     comment.newsId(),
@@ -440,7 +444,9 @@ public class NewsRoutes implements Routes {
                     comment.content(),
                     false,
                     comment.createdAt(),
-                    new FederatedAuthorInfo(fa.remoteMemberId(), displayName, stationName));
+                    new FederatedAuthorInfo(fa.remoteMemberId(), displayName, stationName),
+                    fedStationId,
+                    stationName);
         }
 
         // Local author
@@ -450,6 +456,10 @@ public class NewsRoutes implements Routes {
                 .flatMap(m -> accountRepository.findById(m.accountId()))
                 .map(a -> (a.firstName() + " " + a.lastName()).trim())
                 .orElse("");
+        int authorStationId = memberOpt.map(StationMember::stationId).orElse(0);
+        String authorStationUid = StationUidResolver.instance().resolveToString(authorStationId);
+        String authorStationName =
+                stationRepository.findById(authorStationId).map(Station::name).orElse("");
         return new CommentResponse(
                 comment.id(),
                 comment.newsId(),
@@ -460,7 +470,9 @@ public class NewsRoutes implements Routes {
                 comment.content(),
                 false,
                 comment.createdAt(),
-                null);
+                null,
+                authorStationUid,
+                authorStationName);
     }
 
     // -- Federation sharing management --
@@ -527,11 +539,20 @@ public class NewsRoutes implements Routes {
                 .map(n -> {
                     String visibilityRole =
                             newsFederationService.findVisibilityRole(n.id()).orElse("MEMBER");
+                    String authorName = stationMemberRepository
+                            .findById(n.authorId())
+                            .flatMap(m -> accountRepository.findById(m.accountId()))
+                            .map(a -> (a.firstName() + " " + a.lastName()).trim())
+                            .orElse("");
                     return Map.of(
                             "id",
                             (Object) n.id(),
                             "title",
                             n.title(),
+                            "contentHtml",
+                            n.contentHtml() != null ? n.contentHtml() : "",
+                            "authorName",
+                            authorName,
                             "publishedAt",
                             n.publishedAt() != null ? n.publishedAt().toString() : "",
                             "commentCount",
@@ -591,7 +612,7 @@ public class NewsRoutes implements Routes {
             throw new BadRequestResponse("content is required");
         }
         var comment = newsService.createComment(
-                partner.stationId(), newsId, req.parentId(), 0, req.displayName(), req.content());
+                partner.stationId(), newsId, req.parentId(), null, req.displayName(), req.content());
         newsFederationRepository.setFederatedCommentAuthor(comment.id(), partner.id(), req.remoteMemberUid());
         eventFederationRepository.cacheName(partner.id(), req.remoteMemberUid(), req.displayName());
         ctx.status(HttpStatus.CREATED).json(toCommentResponse(comment));
@@ -654,13 +675,13 @@ public class NewsRoutes implements Routes {
         int newsId = ctx.pathParamAsClass("newsId", Integer.class).get();
 
         if (partner.isRemote()) {
-            String json = federationHttpClient.signedGetJson(
+            var result = federationHttpClient.getList(
                     partner.remoteHost(),
                     "/remote/news/" + newsId + "/comments",
                     station.id(),
-                    station.federationPrivateKey());
-            if (json == null) throw new InternalServerErrorResponse("Failed to fetch comments from partner");
-            ctx.contentType("application/json").result(json);
+                    station.federationPrivateKey(),
+                    CommentResponse.class);
+            ctx.json(result);
         } else {
             var comments = newsService.findComments(newsId);
             ctx.json(comments.stream().map(this::toCommentResponse).toList());
@@ -682,18 +703,18 @@ public class NewsRoutes implements Routes {
 
         if (partner.isRemote()) {
             var body = new RemoteNewsCommentRequest(memberUid, displayName, req.parentId(), req.content());
-            String jsonBody = federationHttpClient.getMapper().writeValueAsString(body);
-            String json = federationHttpClient.signedPostJson(
+            var result = federationHttpClient.post(
                     partner.remoteHost(),
                     "/remote/news/" + newsId + "/comments",
-                    jsonBody,
+                    body,
                     station.id(),
-                    station.federationPrivateKey());
-            if (json == null) throw new InternalServerErrorResponse("Failed to create comment on partner");
-            ctx.status(HttpStatus.CREATED).contentType("application/json").result(json);
+                    station.federationPrivateKey(),
+                    CommentResponse.class);
+            if (result == null) throw new InternalServerErrorResponse("Failed to create comment on partner");
+            ctx.status(HttpStatus.CREATED).json(result);
         } else {
             var comment = newsService.createComment(
-                    partner.stationId(), newsId, req.parentId(), 0, displayName, req.content());
+                    partner.stationId(), newsId, req.parentId(), null, displayName, req.content());
             newsFederationRepository.setFederatedCommentAuthor(comment.id(), partner.id(), memberUid);
             eventFederationRepository.cacheName(partner.id(), memberUid, displayName);
             ctx.status(HttpStatus.CREATED).json(toCommentResponse(comment));
@@ -714,15 +735,15 @@ public class NewsRoutes implements Routes {
 
         if (partner.isRemote()) {
             var body = new RemoteNewsCommentUpdateRequest(memberUid, req.content());
-            String jsonBody = federationHttpClient.getMapper().writeValueAsString(body);
-            String json = federationHttpClient.signedPutJson(
+            var result = federationHttpClient.put(
                     partner.remoteHost(),
                     "/remote/news/comments/" + commentId,
-                    jsonBody,
+                    body,
                     station.id(),
-                    station.federationPrivateKey());
-            if (json == null) throw new InternalServerErrorResponse("Failed to update comment on partner");
-            ctx.contentType("application/json").result(json);
+                    station.federationPrivateKey(),
+                    CommentResponse.class);
+            if (result == null) throw new InternalServerErrorResponse("Failed to update comment on partner");
+            ctx.json(result);
         } else {
             var fedAuthor = newsFederationRepository
                     .findFederatedCommentAuthor(commentId)
@@ -745,7 +766,7 @@ public class NewsRoutes implements Routes {
         UUID memberUid = session.member().uid();
 
         if (partner.isRemote()) {
-            boolean success = federationHttpClient.signedDeleteRequest(
+            boolean success = federationHttpClient.delete(
                     partner.remoteHost(),
                     "/remote/news/comments/" + commentId,
                     station.id(),
@@ -836,7 +857,9 @@ public class NewsRoutes implements Routes {
             String content,
             boolean deleted,
             Instant createdAt,
-            FederatedAuthorInfo federatedAuthor) {}
+            FederatedAuthorInfo federatedAuthor,
+            String authorStationId,
+            String authorStationName) {}
 
     /**
      * Information about a federated comment author from a partner station.

@@ -40,6 +40,7 @@ public class MentionedInCommentHandler implements DomainEventHandler<MentionedIn
                     case NEWS -> new NotificationData.NotificationLink("news-detail", Map.of("id", event.entityId()));
                     case BOARD_TICKET ->
                         new NotificationData.NotificationLink("ticket-detail", Map.of("ticketId", event.entityId()));
+                    case KB -> new NotificationData.NotificationLink("kb-file", Map.of("id", event.entityId()));
                     case EVENT -> new NotificationData.NotificationLink("events");
                 };
         var data = NotificationData.of(

@@ -1655,6 +1655,8 @@ export interface Comment {
     parentId?: number | null
     authorId: number
     authorName?: string
+    authorStationId?: string
+    authorStationName?: string
     content: string
     deleted?: boolean
     createdAt: string

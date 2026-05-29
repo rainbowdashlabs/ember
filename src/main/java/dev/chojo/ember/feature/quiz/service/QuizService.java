@@ -843,8 +843,7 @@ public class QuizService {
 
     private void browseSharedQuizViaHttp(
             int localStationId, FederationPartner partner, int remoteStationId, List<SharedQuizItem> result) {
-        var catalogs = federationHttpClient.fetchSharedQuizCatalogs(
-                partner.remoteHost(), localStationId, getPrivateKey(localStationId));
+        var catalogs = fetchSharedQuizCatalogs(partner.remoteHost(), localStationId, getPrivateKey(localStationId));
         for (var remoteCatalog : catalogs) {
             result.add(new SharedQuizItem(
                     remoteCatalog.id(),
@@ -865,17 +864,14 @@ public class QuizService {
     public Map<String, Object> getFederatedQuizCatalog(int localStationId, UUID partnerStationUid, int catalogId) {
         var partner = resolveActivePartner(localStationId, partnerStationUid);
         if (partner.isRemote()) {
-            String json = federationHttpClient.signedGetJson(
+            var result = federationHttpClient.get(
                     partner.remoteHost(),
                     "/remote/quiz/catalogs/" + catalogId,
                     localStationId,
-                    getPrivateKey(localStationId));
-            if (json == null) throw new IllegalStateException("Failed to fetch catalog from remote partner");
-            try {
-                return federationHttpClient.getMapper().readValue(json, Map.class);
-            } catch (Exception e) {
-                throw new IllegalStateException("Failed to parse remote catalog response", e);
-            }
+                    getPrivateKey(localStationId),
+                    Map.class);
+            if (result == null) throw new IllegalStateException("Failed to fetch catalog from remote partner");
+            return result;
         }
         var catalog = findCatalog(catalogId).orElseThrow();
         int partnerStationId = resolvePartnerStationId(partner);
@@ -961,4 +957,14 @@ public class QuizService {
     }
 
     public record SharedQuizItem(int id, String name, String description, int sourceStationId, int partnerId) {}
+
+    // -- Federation HTTP convenience methods --
+
+    public List<RemoteQuizCatalog> fetchSharedQuizCatalogs(
+            String remoteHost, int localStationId, String localPrivateKeyBase64) {
+        return federationHttpClient.getList(
+                remoteHost, "/remote/quiz/catalogs", localStationId, localPrivateKeyBase64, RemoteQuizCatalog.class);
+    }
+
+    public record RemoteQuizCatalog(int id, String name, String description) {}
 }

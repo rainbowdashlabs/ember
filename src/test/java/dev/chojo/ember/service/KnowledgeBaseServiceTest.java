@@ -57,8 +57,11 @@ class KnowledgeBaseServiceTest extends RepositoryTestBase {
         federationRepo = new FederationRepository();
         federationService = new FederationService(federationRepo, stationRepo, new Api());
         httpClient = mock(FederationHttpClient.class);
+        var kbCommentRepo = mock(dev.chojo.ember.feature.knowledgebase.repository.KbCommentRepository.class);
+        var eventFedRepo = mock(dev.chojo.ember.feature.events.repository.EventFederationRepository.class);
         service = new KnowledgeBaseService(
-                knowledgeBaseRepo, stationRepo, fileStorage, federationService, federationRepo, httpClient);
+                knowledgeBaseRepo, stationRepo, fileStorage, federationService, federationRepo, httpClient,
+                kbCommentRepo, eventFedRepo);
         station = stationRepo.create("KbSvcStation");
         stationB = stationRepo.create("KbSvcStationB");
         account = accountRepo.create("kb-svc@test.com", "Kb", "SvcTester");
@@ -896,9 +899,14 @@ class KnowledgeBaseServiceTest extends RepositoryTestBase {
     @Test
     @Order(210)
     void browseSharedKbViaHttp() {
-        when(httpClient.fetchSharedKbFiles(eq("https://remote-kb.example.com"), eq(station.id()), any()))
+        when(httpClient.getList(
+                        eq("https://remote-kb.example.com"),
+                        eq("/remote/kb/browse"),
+                        eq(station.id()),
+                        any(),
+                        eq(KnowledgeBaseService.RemoteKbFile.class)))
                 .thenReturn(
-                        List.of(new FederationHttpClient.RemoteKbFile(99, "RemoteFile", "remote desc", "MARKDOWN")));
+                        List.of(new KnowledgeBaseService.RemoteKbFile(99, "RemoteFile", "remote desc", "MARKDOWN")));
 
         var items = service.browseSharedKb(station.id());
         assertTrue(items.stream().anyMatch(i -> i.file().name().equals("RemoteFile")));
@@ -907,8 +915,13 @@ class KnowledgeBaseServiceTest extends RepositoryTestBase {
     @Test
     @Order(211)
     void searchFederatedKbViaHttp() {
-        when(httpClient.searchKb(eq("https://remote-kb.example.com"), eq(station.id()), any(), eq("test")))
-                .thenReturn(List.of(new FederationHttpClient.RemoteKbSearchResult(
+        when(httpClient.getList(
+                        eq("https://remote-kb.example.com"),
+                        contains("/remote/kb/search"),
+                        eq(station.id()),
+                        any(),
+                        eq(KnowledgeBaseService.RemoteKbSearchResult.class)))
+                .thenReturn(List.of(new KnowledgeBaseService.RemoteKbSearchResult(
                         88, "SearchResult", "found desc", "matched snippet")));
 
         var results = service.searchFederatedKb(station.id(), "test");
@@ -919,17 +932,29 @@ class KnowledgeBaseServiceTest extends RepositoryTestBase {
     @Test
     @Order(212)
     void getFederatedKbFileRemote() {
-        String json = """
-                {"id":77,"stationId":1,"folderId":null,"name":"RemoteDetail","description":"desc",\
-                "fileType":"MARKDOWN","mimeType":"text/markdown","fileSize":0,"iconUrl":null,\
-                "youtubeUrl":null,"linkUrl":null,"position":0,"createdBy":1,\
-                "createdAt":"2026-01-01T00:00:00Z","updatedAt":"2026-01-01T00:00:00Z",\
-                "sourceFileId":null,"sourceStationId":null,"restrictionMode":null,"restricted":false}""";
-        when(httpClient.signedGetJson(
-                        eq("https://remote-kb.example.com"), eq("/remote/kb/files/77"), eq(station.id()), any()))
-                .thenReturn(json);
-        when(httpClient.getMapper())
-                .thenReturn(tools.jackson.databind.json.JsonMapper.builder().build());
+        var remoteFile = new dev.chojo.ember.feature.knowledgebase.entity.KbFile(
+                77,
+                1,
+                null,
+                "RemoteDetail",
+                "desc",
+                dev.chojo.ember.feature.knowledgebase.entity.KbFileType.MARKDOWN,
+                "text/markdown",
+                0,
+                null,
+                null,
+                null,
+                0,
+                1,
+                java.time.Instant.parse("2026-01-01T00:00:00Z"),
+                java.time.Instant.parse("2026-01-01T00:00:00Z"),
+                null,
+                null,
+                null,
+                false);
+        when(httpClient.get(
+                        eq("https://remote-kb.example.com"), eq("/remote/kb/files/77"), eq(station.id()), any(), any()))
+                .thenReturn(remoteFile);
 
         var file = service.getFederatedKbFile(station.id(), stationC.uid(), 77);
         assertNotNull(file);
@@ -939,8 +964,13 @@ class KnowledgeBaseServiceTest extends RepositoryTestBase {
     @Test
     @Order(213)
     void getFederatedKbFileContentRemote() {
-        when(httpClient.fetchKbFileContent(eq("https://remote-kb.example.com"), eq(55), eq(station.id()), any()))
-                .thenReturn("# Remote Content");
+        when(httpClient.get(
+                        eq("https://remote-kb.example.com"),
+                        eq("/remote/kb/file/55/content"),
+                        eq(station.id()),
+                        any(),
+                        eq(KnowledgeBaseService.RemoteKbContent.class)))
+                .thenReturn(new KnowledgeBaseService.RemoteKbContent(55, "# Remote Content"));
 
         var content = service.getFederatedKbFileContent(station.id(), stationC.uid(), 55);
         assertEquals("# Remote Content", content);

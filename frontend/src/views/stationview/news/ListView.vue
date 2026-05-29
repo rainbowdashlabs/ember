@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
@@ -45,19 +45,69 @@ const deleteTarget = ref<NewsEntry | null>(null)
 
 // Partner news
 const federatedNews = ref<FederatedNewsItem[]>([])
-const federatedLoading = ref(false)
 
 // Comments
-const commentsOpenId = ref<number | null>(null)
+const commentsOpenId = ref<string | null>(null)
 
+interface UnifiedNewsItem {
+  kind: 'local' | 'federated'
+  id: number
+  title: string
+  contentHtml?: string
+  authorId?: number
+  authorName?: string
+  publishedAt?: string
+  commentCount: number
+  restricted?: boolean
+  // federated only
+  stationName?: string
+  stationUid?: string
+  // local only
+  localEntry?: NewsEntry
+}
+
+const allNews = computed<UnifiedNewsItem[]>(() => {
+  const local: UnifiedNewsItem[] = entries.value.map(e => ({
+    kind: 'local',
+    id: e.id,
+    title: e.title,
+    contentHtml: e.contentHtml,
+    authorId: e.authorId,
+    authorName: e.authorName,
+    publishedAt: e.publishedAt,
+    commentCount: e.commentCount,
+    restricted: e.restricted,
+    localEntry: e,
+  }))
+  const federated: UnifiedNewsItem[] = federatedNews.value.map(fn => ({
+    kind: 'federated',
+    id: fn.id,
+    title: fn.title,
+    contentHtml: fn.contentHtml,
+    authorName: fn.authorName,
+    publishedAt: fn.publishedAt,
+    commentCount: fn.commentCount,
+    stationName: fn.stationName,
+    stationUid: fn.stationId,
+  }))
+  return [...local, ...federated].sort((a, b) => {
+    const da = a.publishedAt ? new Date(a.publishedAt).getTime() : 0
+    const db = b.publishedAt ? new Date(b.publishedAt).getTime() : 0
+    return db - da
+  })
+})
 
 async function loadData() {
   loading.value = true
   error.value = ''
   try {
-    const batch = await news.listNews(0, PAGE_SIZE)
+    const [batch, fed] = await Promise.all([
+      news.listNews(0, PAGE_SIZE),
+      news.listFederatedNews().catch(() => [] as FederatedNewsItem[]),
+    ])
     entries.value = batch
     hasMore.value = batch.length >= PAGE_SIZE
+    federatedNews.value = fed
   } catch {
     error.value = t('common.error')
   } finally {
@@ -87,23 +137,13 @@ function onScroll() {
   }
 }
 
-async function loadFederatedNews() {
-  federatedLoading.value = true
-  try {
-    federatedNews.value = await news.listFederatedNews()
-  } catch {
-    // silently ignore — partner news is optional
-  } finally {
-    federatedLoading.value = false
-  }
+function itemKey(item: UnifiedNewsItem): string {
+  return `${item.kind}-${item.stationUid ?? 'local'}-${item.id}`
 }
 
-function toggleComments(entry: NewsEntry) {
-  if (commentsOpenId.value === entry.id) {
-    commentsOpenId.value = null
-    return
-  }
-  commentsOpenId.value = entry.id
+function toggleComments(item: UnifiedNewsItem) {
+  const key = itemKey(item)
+  commentsOpenId.value = commentsOpenId.value === key ? null : key
 }
 
 function formatDate(dateStr?: string): string {
@@ -128,11 +168,8 @@ async function confirmDelete() {
   }
 }
 
-
-
 onMounted(() => {
   loadData()
-  loadFederatedNews()
   window.addEventListener('scroll', onScroll)
 })
 
@@ -154,88 +191,74 @@ onUnmounted(() => {
       <Spinner v-if="loading" size="lg" />
       <Alert v-if="error" variant="error">{{ error }}</Alert>
 
-      <EmptyState v-if="!loading && entries.length === 0">{{ t('news.empty') }}</EmptyState>
+      <EmptyState v-if="!loading && allNews.length === 0">{{ t('news.empty') }}</EmptyState>
 
       <div class="space-y-4">
-        <NeutralContainer v-for="entry in entries" :key="entry.id" class="space-y-3">
+        <NeutralContainer
+          v-for="item in allNews"
+          :key="itemKey(item)"
+          class="space-y-3"
+          :class="{ 'cursor-pointer hover:ring-1 hover:ring-primary transition-all': item.kind === 'federated' }"
+          @click="item.kind === 'federated' ? router.push({ name: 'federated-news-detail', params: { stationUid: item.stationUid, newsId: item.id } }) : undefined"
+        >
           <!-- Header -->
           <div class="flex items-start justify-between gap-3">
             <div class="flex items-center gap-2">
-              <UserAvatar :member-id="entry.authorId" :name="entry.authorName" size="md"/>
+              <UserAvatar v-if="item.authorName" :member-id="item.authorId ?? 0" :name="item.authorName" size="md"/>
               <div>
-                <SubHeader class="flex items-center gap-1"><router-link :to="{name: 'news-detail', params: {id: entry.id}}" class="hover:text-primary hover:underline">{{ entry.title }}</router-link><font-awesome-icon v-if="entry.restricted" :icon="['fas', 'lock']" class="ml-1 h-3 w-3 text-[var(--text-muted)]"/></SubHeader>
+                <SubHeader class="flex items-center gap-1">
+                  <router-link v-if="item.kind === 'local'" :to="{name: 'news-detail', params: {id: item.id}}" class="hover:text-primary hover:underline">{{ item.title }}</router-link>
+                  <span v-else>{{ item.title }}</span>
+                  <font-awesome-icon v-if="item.restricted" :icon="['fas', 'lock']" class="ml-1 h-3 w-3 text-[var(--text-muted)]"/>
+                  <StationBadge v-if="item.kind === 'federated'" :station-name="item.stationName!" class="ml-1"/>
+                </SubHeader>
                 <p class="text-xs text-(--text-muted)">
-                  {{ entry.authorName }} &middot; {{ formatDate(entry.publishedAt) }}
+                  <template v-if="item.authorName">{{ item.authorName }} &middot; </template>
+                  {{ formatDate(item.publishedAt) }}
                 </p>
               </div>
             </div>
-            <div v-if="canManageNews()" class="flex items-center gap-1 shrink-0">
-              <EditButton @click="router.push({ name: 'news-edit', params: { id: entry.id } })" />
-              <DeleteButton @click="requestDelete(entry)" />
+            <div v-if="item.kind === 'local' && canManageNews()" class="flex items-center gap-1 shrink-0">
+              <EditButton @click.stop="router.push({ name: 'news-edit', params: { id: item.id } })" />
+              <DeleteButton @click.stop="requestDelete(item.localEntry!)" />
             </div>
           </div>
 
-          <!-- Content always visible -->
-          <div class="prose prose-sm dark:prose-invert max-w-none" v-html="entry.contentHtml" />
+          <!-- Content (local only — federated shows on detail page) -->
+          <div v-if="item.contentHtml" class="prose prose-sm dark:prose-invert max-w-none" v-html="item.contentHtml" />
 
           <!-- Comments toggle -->
-          <div class="pt-2 border-t border-bg-light-accent dark:border-bg-dark-accent">
+          <div class="pt-2 border-t border-bg-light-accent dark:border-bg-dark-accent" @click.stop>
             <button
               type="button"
               class="text-sm text-(--text-muted) hover:text-primary transition-colors flex items-center gap-1.5"
-              @click="toggleComments(entry)"
+              @click="toggleComments(item)"
             >
               <font-awesome-icon :icon="['fas', 'comment']" class="h-3.5 w-3.5" />
-              <template v-if="entry.commentCount > 0">
-                {{ t('news.commentsCount', { count: entry.commentCount }) }}
+              <template v-if="item.commentCount > 0">
+                {{ t('news.commentsCount', { count: item.commentCount }) }}
               </template>
               <template v-else>
                 {{ t('news.addComment') }}
               </template>
               <font-awesome-icon
-                :icon="['fas', commentsOpenId === entry.id ? 'chevron-up' : 'chevron-down']"
+                :icon="['fas', commentsOpenId === itemKey(item) ? 'chevron-up' : 'chevron-down']"
                 class="h-2.5 w-2.5 ml-0.5"
               />
             </button>
 
             <!-- Comments section (toggled) -->
-            <div v-if="commentsOpenId === entry.id" class="mt-3">
-              <NewsCommentSection :news-id="entry.id"/>
+            <div v-if="commentsOpenId === itemKey(item)" class="mt-3">
+              <NewsCommentSection
+                :news-id="item.id"
+                :station-uid="item.kind === 'federated' ? item.stationUid : undefined"
+              />
             </div>
           </div>
         </NeutralContainer>
       </div>
 
       <Spinner v-if="loadingMore" size="md" />
-
-      <!-- Partner News -->
-      <template v-if="federatedNews.length > 0 || federatedLoading">
-        <SectionHeader class="mt-8">{{ t('news.partnerNews') }}</SectionHeader>
-        <Spinner v-if="federatedLoading" size="md" />
-        <div class="space-y-3">
-          <NeutralContainer
-            v-for="fn in federatedNews"
-            :key="`fed-${fn.stationId}-${fn.id}`"
-            class="cursor-pointer hover:ring-1 hover:ring-primary transition-all"
-            @click="router.push({ name: 'federated-news-detail', params: { stationUid: fn.stationId, newsId: fn.id } })"
-          >
-            <div class="flex items-start justify-between gap-3">
-              <div>
-                <SubHeader>{{ fn.title }}</SubHeader>
-                <p class="text-xs text-(--text-muted) flex items-center gap-1.5">
-                  <StationBadge :station-name="fn.stationName" />
-                  <span>&middot;</span>
-                  <span>{{ formatDate(fn.publishedAt) }}</span>
-                </p>
-              </div>
-              <div class="flex items-center gap-1.5 text-xs text-(--text-muted)">
-                <font-awesome-icon :icon="['fas', 'comment']" class="h-3 w-3" />
-                {{ fn.commentCount }}
-              </div>
-            </div>
-          </NeutralContainer>
-        </div>
-      </template>
 
       <Modal v-model="showDeleteModal">
         <div class="space-y-4">

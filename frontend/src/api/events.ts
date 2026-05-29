@@ -433,6 +433,7 @@ export async function getRegistrationStats(eventId: number, categoryId?: number,
 export interface FederatedEvent {
     partnerId: number
     partnerStationName: string
+    partnerStationUid: string
     event: {
         id: number
         name: string
@@ -449,6 +450,24 @@ export interface FederatedEvent {
 export async function listFederatedEvents(): Promise<FederatedEvent[]> {
     const res = await client.get<FederatedEvent[]>('/federated/events')
     return res.data
+}
+
+export interface FederatedEventDetail {
+    event: Record<string, unknown>
+    publicFields: { id: number; name: string; value: string; fieldType: string; isPublic: boolean }[]
+}
+
+export async function getFederatedEvent(stationUid: string, eventId: number): Promise<FederatedEventDetail> {
+    const res = await client.get<FederatedEventDetail>(`/federated/${stationUid}/events/${eventId}`)
+    return res.data
+}
+
+export async function registerForFederatedEvent(stationUid: string, eventId: number, eventDate: string): Promise<void> {
+    await client.post(`/federated/${stationUid}/events/${eventId}/register`, { eventDate })
+}
+
+export async function withdrawFederatedRegistration(stationUid: string, eventId: number, eventDate: string): Promise<void> {
+    await client.delete(`/federated/${stationUid}/events/${eventId}/register`, { data: { eventDate } })
 }
 
 export interface EventFederationShareInfo {

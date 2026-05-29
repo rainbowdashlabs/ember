@@ -60,7 +60,7 @@ public class EventCommentRepository {
      * @param content  the comment text
      * @return the created comment
      */
-    public Comment create(int eventId, Integer parentId, int authorId, String content) {
+    public Comment create(int eventId, Integer parentId, Integer authorId, String content) {
         return Query.query("INSERT INTO event_comment (event_id, parent_id, author_id, content)"
                         + " VALUES (:event_id, :parent_id, :author_id, :content)"
                         + " RETURNING id, parent_id, author_id, content, deleted, created_at, updated_at;")
@@ -132,7 +132,7 @@ public class EventCommentRepository {
     public void setFederatedAuthor(int commentId, int partnerId, UUID remoteMemberId) {
         Query.query("""
                         INSERT INTO event_comment_federated_author(comment_id, partner_id, remote_member_id)
-                        VALUES (:comment_id, :partner_id, :remote_member_id);""")
+                        VALUES (:comment_id, :partner_id, :remote_member_id::uuid);""")
                 .single(Call.of()
                         .bind("comment_id", commentId)
                         .bind("partner_id", partnerId)

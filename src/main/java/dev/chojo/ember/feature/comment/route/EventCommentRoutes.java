@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.comment.route;
 import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.Roles;
 import dev.chojo.ember.api.Routes;
+import dev.chojo.ember.api.StationUidResolver;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.comment.entity.Comment;
@@ -172,7 +173,18 @@ public class EventCommentRoutes implements Routes {
     private CommentResponse toResponse(Comment comment) {
         if (comment.deleted()) {
             return new CommentResponse(
-                    comment.id(), comment.parentId(), 0, null, null, "", true, comment.createdAt(), null, null);
+                    comment.id(),
+                    comment.parentId(),
+                    0,
+                    null,
+                    null,
+                    "",
+                    true,
+                    comment.createdAt(),
+                    null,
+                    null,
+                    null,
+                    null);
         }
 
         // Check for federated author
@@ -182,13 +194,14 @@ public class EventCommentRoutes implements Routes {
             String displayName = eventFederationRepository
                     .getCachedName(fa.partnerId(), fa.remoteMemberId())
                     .orElse("Unknown");
-            String stationName = federationRepository
-                    .findPartnerById(fa.partnerId())
-                    .map(p -> stationRepository
+            var partner = federationRepository.findPartnerById(fa.partnerId());
+            String stationName = partner.map(p -> stationRepository
                             .findByUid(p.partnerStationId())
                             .map(Station::name)
                             .orElse(""))
                     .orElse("");
+            String fedStationId =
+                    partner.map(p -> p.partnerStationId().toString()).orElse(null);
             return new CommentResponse(
                     comment.id(),
                     comment.parentId(),
@@ -199,7 +212,9 @@ public class EventCommentRoutes implements Routes {
                     false,
                     comment.createdAt(),
                     comment.updatedAt(),
-                    new FederatedAuthorInfo(fa.remoteMemberId(), displayName, stationName));
+                    new FederatedAuthorInfo(fa.remoteMemberId(), displayName, stationName),
+                    fedStationId,
+                    stationName);
         }
 
         // Local author
@@ -209,6 +224,10 @@ public class EventCommentRoutes implements Routes {
                 .flatMap(m -> accountRepository.findById(m.accountId()))
                 .map(a -> (a.firstName() + " " + a.lastName()).trim())
                 .orElse("");
+        int authorStationId = memberOpt.map(StationMember::stationId).orElse(0);
+        String authorStationUid = StationUidResolver.instance().resolveToString(authorStationId);
+        String authorStationName =
+                stationRepository.findById(authorStationId).map(Station::name).orElse("");
         return new CommentResponse(
                 comment.id(),
                 comment.parentId(),
@@ -219,7 +238,9 @@ public class EventCommentRoutes implements Routes {
                 false,
                 comment.createdAt(),
                 comment.updatedAt(),
-                null);
+                null,
+                authorStationUid,
+                authorStationName);
     }
 
     /**
@@ -251,5 +272,7 @@ public class EventCommentRoutes implements Routes {
             boolean deleted,
             Instant createdAt,
             Instant updatedAt,
-            FederatedAuthorInfo federatedAuthor) {}
+            FederatedAuthorInfo federatedAuthor,
+            String authorStationId,
+            String authorStationName) {}
 }

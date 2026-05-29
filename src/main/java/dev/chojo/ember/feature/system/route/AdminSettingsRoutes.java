@@ -180,7 +180,7 @@ public class AdminSettingsRoutes implements Routes {
                             ctx.header("Cache-Control", "public, max-age=86400");
                             ctx.result(img.data());
                         },
-                        () -> ctx.status(HttpStatus.NOT_FOUND));
+                        () -> ctx.status(HttpStatus.NO_CONTENT));
     }
 
     @OpenApi(

@@ -1552,13 +1552,46 @@ public class DemoService {
             if (memberItems.isEmpty()) continue;
             var item = memberItems.get(rng.nextInt(memberItems.size()));
             var reason = exchangeReasons.get(rng.nextInt(exchangeReasons.size()));
-            // Determine new size (sometimes same, sometimes different)
+            // Determine new size based on reason
             Integer newSizeId = item.sizeId();
-            if (item.sizeId() != null && rng.nextBoolean()) {
-                var sizes = inventoryRepository.findSizes(item.inventoryId());
-                if (!sizes.isEmpty()) {
-                    newSizeId = sizes.get(rng.nextInt(sizes.size())).id();
+            var sizes = item.sizeId() != null
+                    ? inventoryRepository.findSizes(item.inventoryId())
+                    : List.<dev.chojo.ember.feature.inventory.entity.InventorySize>of();
+            int currentIdx = -1;
+            for (int si = 0; si < sizes.size(); si++) {
+                if (sizes.get(si).id() == item.sizeId()) {
+                    currentIdx = si;
+                    break;
                 }
+            }
+            switch (reason) {
+                case "Zu klein geworden" -> {
+                    if (currentIdx >= 0 && currentIdx < sizes.size() - 1) {
+                        newSizeId = sizes.get(currentIdx + 1).id();
+                    } else {
+                        // Already at largest size — change reason to damage instead
+                        reason = "Beschädigt";
+                    }
+                }
+                case "Beschädigt",
+                        "Verschlissen",
+                        "Riss im Material",
+                        "Reißverschluss defekt",
+                        "Verloren und brauche Ersatz" -> {
+                    // Same size — replacement, not size change
+                }
+                case "Falsche Größe erhalten" -> {
+                    // Pick a different size (up or down)
+                    if (sizes.size() > 1 && currentIdx >= 0) {
+                        int offset = rng.nextBoolean() && currentIdx > 0 ? -1 : 1;
+                        int newIdx = Math.min(Math.max(currentIdx + offset, 0), sizes.size() - 1);
+                        if (newIdx == currentIdx) {
+                            newIdx = currentIdx > 0 ? currentIdx - 1 : currentIdx + 1;
+                        }
+                        newSizeId = sizes.get(newIdx).id();
+                    }
+                }
+                default -> {}
             }
             var exchange = exchangeService.create(
                     station.id(),

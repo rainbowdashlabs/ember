@@ -67,13 +67,13 @@ public class CommentService {
      * @return the created comment
      */
     public Comment create(
-            int stationId, int eventId, Integer parentId, int authorId, String authorName, String content) {
+            int stationId, int eventId, Integer parentId, Integer authorId, String authorName, String content) {
         var comment = commentRepository.create(eventId, parentId, authorId, content);
 
-        // Notify parent comment author on reply
-        if (parentId != null) {
+        // Notify parent comment author on reply (skip for federated comments without a local author)
+        if (parentId != null && authorId != null) {
             commentRepository.findById(parentId).ifPresent(parent -> {
-                if (parent.authorId() != authorId) {
+                if (!java.util.Objects.equals(parent.authorId(), authorId)) {
                     String preview = content.length() > 100 ? content.substring(0, 100) + "…" : content;
                     eventBus.publish(new CommentCreated(
                             stationId,
@@ -90,12 +90,14 @@ public class CommentService {
             });
         }
 
-        // Parse @mentions and publish events
-        var mentionedIds = parseMentions(content);
-        for (int mentionedId : mentionedIds) {
-            if (mentionedId != authorId) {
-                eventBus.publish(new MentionedInComment(
-                        stationId, mentionedId, authorId, authorName, CommentEntityType.EVENT, eventId));
+        // Parse @mentions and publish events (skip for federated comments without a local author)
+        if (authorId != null) {
+            var mentionedIds = parseMentions(content);
+            for (int mentionedId : mentionedIds) {
+                if (mentionedId != authorId) {
+                    eventBus.publish(new MentionedInComment(
+                            stationId, mentionedId, authorId, authorName, CommentEntityType.EVENT, eventId));
+                }
             }
         }
 

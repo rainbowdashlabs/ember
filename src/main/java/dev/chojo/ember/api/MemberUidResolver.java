@@ -51,7 +51,7 @@ public class MemberUidResolver {
         Integer cached = uidToId.get(key);
         if (cached != null) return Optional.of(cached);
 
-        return Query.query("SELECT id FROM station_member WHERE station_id = :station_id AND uid = :uid;")
+        return Query.query("SELECT id FROM station_member WHERE station_id = :station_id AND uid = :uid::uuid;")
                 .single(Call.of().bind("station_id", stationId).bind("uid", uid, StandardValueConverter.UUID_STRING))
                 .map(row -> row.getInt("id"))
                 .first()

@@ -453,6 +453,11 @@ const router = createRouter({
                     component: () => import('@/views/stationview/events/BatchCreateView.vue'),
                 },
                 {
+                    path: 'federation/events/:stationUid/:eventId',
+                    name: 'federated-event-detail',
+                    component: () => import('@/views/stationview/events/FederatedEventDetailView.vue'),
+                },
+                {
                     path: 'forms',
                     name: 'forms-list',
                     component: () => import('@/views/stationview/forms/ListView.vue'),
@@ -1232,6 +1237,11 @@ const router = createRouter({
                     path: 'events/batch',
                     name: 'help-event-batch',
                     component: () => import('@/views/helpcenter/stationview/events/BatchHelp.vue')
+                },
+                {
+                    path: 'federation/events/:stationUid/:eventId',
+                    name: 'help-federated-event-detail',
+                    redirect: { name: 'help-events-upcoming' },
                 },
                 // Forms
                 {

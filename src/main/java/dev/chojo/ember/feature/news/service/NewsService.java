@@ -193,7 +193,7 @@ public class NewsService {
      * @return the newly created comment
      */
     public NewsComment createComment(
-            int stationId, int newsId, Integer parentId, int authorId, String authorName, String content) {
+            int stationId, int newsId, Integer parentId, Integer authorId, String authorName, String content) {
         var comment = newsRepository.createComment(newsId, parentId, authorId, content);
         var news = newsRepository.findById(newsId).orElse(null);
         if (news != null) {

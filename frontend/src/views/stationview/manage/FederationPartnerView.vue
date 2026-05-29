@@ -46,11 +46,14 @@ interface CapRow {
 }
 
 const capRows = computed<CapRow[]>(() => {
-  const types = ['KB_SHARE', 'QUIZ_SHARE', 'PROTOCOL_SHARE', 'INVENTORY_LEND']
+  const types = ['KB_SHARE', 'QUIZ_SHARE', 'PROTOCOL_SHARE', 'EVENT_SHARE', 'BOARD_SHARE', 'NEWS_SHARE', 'INVENTORY_LEND']
   const labels: Record<string, string> = {
     KB_SHARE: t('federation.cap.kb'),
     QUIZ_SHARE: t('federation.cap.quiz'),
     PROTOCOL_SHARE: t('federation.cap.protocol'),
+    EVENT_SHARE: t('federation.cap.event'),
+    BOARD_SHARE: t('federation.cap.board'),
+    NEWS_SHARE: t('federation.cap.news'),
     INVENTORY_LEND: t('federation.cap.inventory'),
   }
   return types.map(cap => ({

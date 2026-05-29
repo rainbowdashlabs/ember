@@ -23,7 +23,13 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
  * @param updatedAt timestamp when the comment was last updated, or {@code null}
  */
 public record Comment(
-        int id, Integer parentId, int authorId, String content, boolean deleted, Instant createdAt, Instant updatedAt) {
+        int id,
+        Integer parentId,
+        Integer authorId,
+        String content,
+        boolean deleted,
+        Instant createdAt,
+        Instant updatedAt) {
     /**
      * Creates a row mapping for database result set conversion.
      */
@@ -31,7 +37,7 @@ public record Comment(
         return row -> new Comment(
                 row.getInt("id"),
                 row.getObject("parent_id", Integer.class),
-                row.getInt("author_id"),
+                row.getObject("author_id", Integer.class),
                 row.getString("content"),
                 row.getBoolean("deleted"),
                 row.get("created_at", INSTANT_TIMESTAMP),

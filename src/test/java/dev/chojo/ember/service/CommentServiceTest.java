@@ -158,7 +158,7 @@ class CommentServiceTest extends RepositoryTestBase {
                     MentionedInComment(
                             int stationId,
                             int mentionedMemberId,
-                            int authorMemberId,
+                            Integer authorMemberId,
                             String authorName,
                             CommentEntityType entityType,
                             int entityId))) return false;

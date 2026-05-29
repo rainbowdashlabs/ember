@@ -5,6 +5,9 @@
  */
 package dev.chojo.ember.service;
 
+import dev.chojo.ember.feature.events.entity.RegistrationStatus;
+import dev.chojo.ember.feature.federation.entity.LendingStatus;
+import dev.chojo.ember.feature.inventory.entity.ExchangeStatus;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
 import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
@@ -66,7 +69,8 @@ class NotificationDataTest {
 
     @Test
     void paramsAsMapConvertsToFlatMap() {
-        var params = new NotificationParams.EventRegistrationStatus("Event Name", "ACCEPTED", "Description");
+        var params = new NotificationParams.EventRegistrationStatus(
+                "Event Name", RegistrationStatus.ACCEPTED, "Description");
         var data = NotificationData.of(params);
 
         Map<String, String> map = data.paramsAsMap();
@@ -77,7 +81,7 @@ class NotificationDataTest {
 
     @Test
     void paramsAsMapOmitsNullValues() {
-        var params = new NotificationParams.ExchangeStatusChange("SHIPPED", "Helm", null);
+        var params = new NotificationParams.ExchangeStatusChange(ExchangeStatus.SHIPPED, "Helm", null);
         var data = NotificationData.of(params);
 
         Map<String, String> map = data.paramsAsMap();
@@ -125,9 +129,10 @@ class NotificationDataTest {
                 NotificationType.NEWS_COMMENT, new NotificationParams.NewsComment("t", "a", "p"),
                 NotificationType.NEW_EVENT, new NotificationParams.NewEvent("t", "d"),
                 NotificationType.EVENT_REGISTRATION_STATUS,
-                        new NotificationParams.EventRegistrationStatus("e", "s", "d"),
+                        new NotificationParams.EventRegistrationStatus("e", RegistrationStatus.ACCEPTED, "d"),
                 NotificationType.EXCHANGE_NEW_REQUEST, new NotificationParams.ExchangeNewRequest("m", "i", "r"),
-                NotificationType.EXCHANGE_STATUS_CHANGE, new NotificationParams.ExchangeStatusChange("s", "i", "r"),
+                NotificationType.EXCHANGE_STATUS_CHANGE,
+                        new NotificationParams.ExchangeStatusChange(ExchangeStatus.SHIPPED, "i", "r"),
                 NotificationType.MEMBER_ADDED_TO_GROUP, new NotificationParams.MemberAddedToGroup("g"),
                 NotificationType.PROFILE_FIELD_CHANGED, new NotificationParams.ProfileFieldChanged("m", "f"),
                 NotificationType.PROCUREMENT_REQUESTED, new NotificationParams.ProcurementRequested("i"),
@@ -138,7 +143,8 @@ class NotificationDataTest {
                 NotificationType.LOST_AND_FOUND_NEW, new NotificationParams.LostAndFoundNew("d"),
                 NotificationType.LOST_AND_FOUND_CLAIMED, new NotificationParams.LostAndFoundClaimed("n", "d"),
                 NotificationType.LENDING_NEW_REQUEST, new NotificationParams.LendingNewRequest("s", "items"),
-                NotificationType.LENDING_STATUS_CHANGE, new NotificationParams.LendingStatusChange("s", "APPROVED"),
+                NotificationType.LENDING_STATUS_CHANGE,
+                        new NotificationParams.LendingStatusChange("s", LendingStatus.APPROVED),
                 NotificationType.LENDING_NEW_MESSAGE, new NotificationParams.LendingNewMessage("s", "sender"));
 
         for (var entry : testParams.entrySet()) {

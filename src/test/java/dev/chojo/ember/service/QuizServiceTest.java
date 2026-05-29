@@ -1083,8 +1083,13 @@ class QuizServiceTest extends RepositoryTestBase {
     @Test
     @Order(210)
     void browseSharedQuizViaHttp() {
-        when(httpClient.fetchSharedQuizCatalogs(eq("https://remote-quiz.example.com"), eq(station.id()), any()))
-                .thenReturn(List.of(new FederationHttpClient.RemoteQuizCatalog(99, "RemoteCatalog", "remote desc")));
+        when(httpClient.getList(
+                        eq("https://remote-quiz.example.com"),
+                        eq("/remote/quiz/catalogs"),
+                        eq(station.id()),
+                        any(),
+                        eq(QuizService.RemoteQuizCatalog.class)))
+                .thenReturn(List.of(new QuizService.RemoteQuizCatalog(99, "RemoteCatalog", "remote desc")));
         var items = service.browseSharedQuiz(station.id());
         assertTrue(items.stream().anyMatch(i -> i.name().equals("RemoteCatalog")));
     }
@@ -1092,12 +1097,20 @@ class QuizServiceTest extends RepositoryTestBase {
     @Test
     @Order(211)
     void getFederatedQuizCatalogRemote() {
-        String json = "{\"catalog\":{\"id\":88},\"categories\":[],\"questions\":[]}";
-        when(httpClient.signedGetJson(
-                        eq("https://remote-quiz.example.com"), eq("/remote/quiz/catalogs/88"), eq(station.id()), any()))
-                .thenReturn(json);
-        when(httpClient.getMapper())
-                .thenReturn(tools.jackson.databind.json.JsonMapper.builder().build());
+        var remoteResult = java.util.Map.of(
+                "catalog",
+                (Object) java.util.Map.of("id", 88),
+                "categories",
+                java.util.List.of(),
+                "questions",
+                java.util.List.of());
+        when(httpClient.get(
+                        eq("https://remote-quiz.example.com"),
+                        eq("/remote/quiz/catalogs/88"),
+                        eq(station.id()),
+                        any(),
+                        any()))
+                .thenReturn(remoteResult);
         var result = service.getFederatedQuizCatalog(station.id(), stationC.uid(), 88);
         assertNotNull(result);
         assertTrue(result.containsKey("catalog"));

@@ -247,17 +247,17 @@ public class BoardTicketRepository {
             Integer fromLaneId,
             Integer toLaneId,
             Integer movedBy,
-            UUID federatedStationId,
+            Integer federatedPartnerId,
             UUID federatedMemberId) {
         Query.query("""
-                     INSERT INTO board_ticket_transition(ticket_id, from_lane_id, to_lane_id, moved_by, federated_station_id, federated_member_id)
-                     VALUES (:ticket_id, :from_lane_id, :to_lane_id, :moved_by, :federated_station_id, :federated_member_id);""")
+                     INSERT INTO board_ticket_transition(ticket_id, from_lane_id, to_lane_id, moved_by, federated_partner_id, federated_member_id)
+                     VALUES (:ticket_id, :from_lane_id, :to_lane_id, :moved_by, :federated_partner_id, :federated_member_id::uuid);""")
                 .single(Call.of()
                         .bind("ticket_id", ticketId)
                         .bind("from_lane_id", fromLaneId)
                         .bind("to_lane_id", toLaneId)
                         .bind("moved_by", movedBy)
-                        .bind("federated_station_id", federatedStationId, StandardValueConverter.UUID_STRING)
+                        .bind("federated_partner_id", federatedPartnerId)
                         .bind("federated_member_id", federatedMemberId, StandardValueConverter.UUID_STRING))
                 .insert();
     }
@@ -327,7 +327,7 @@ public class BoardTicketRepository {
                 .all();
     }
 
-    public BoardComment createComment(int ticketId, Integer parentId, int authorId, String content) {
+    public BoardComment createComment(int ticketId, Integer parentId, Integer authorId, String content) {
         return Query.query("""
                         INSERT INTO board_ticket_comment(ticket_id, parent_id, author_id, content)
                         VALUES (:ticket_id, :parent_id, :author_id, :content)
@@ -558,17 +558,17 @@ public class BoardTicketRepository {
             String action,
             String detail,
             Integer actorMemberId,
-            UUID federatedStationId,
+            Integer federatedPartnerId,
             UUID federatedMemberId) {
         Query.query("""
-                        INSERT INTO board_ticket_history(ticket_id, action, detail, actor_member_id, federated_station_id, federated_member_id)
-                        VALUES (:ticket_id, :action, :detail, :actor, :federated_station_id, :federated_member_id)""")
+                        INSERT INTO board_ticket_history(ticket_id, action, detail, actor_member_id, federated_partner_id, federated_member_id)
+                        VALUES (:ticket_id, :action, :detail, :actor, :federated_partner_id, :federated_member_id::uuid)""")
                 .single(Call.of()
                         .bind("ticket_id", ticketId)
                         .bind("action", action)
                         .bind("detail", detail)
                         .bind("actor", actorMemberId)
-                        .bind("federated_station_id", federatedStationId, StandardValueConverter.UUID_STRING)
+                        .bind("federated_partner_id", federatedPartnerId)
                         .bind("federated_member_id", federatedMemberId, StandardValueConverter.UUID_STRING))
                 .insert();
     }

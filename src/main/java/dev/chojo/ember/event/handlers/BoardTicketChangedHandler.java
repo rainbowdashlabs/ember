@@ -39,6 +39,9 @@ public class BoardTicketChangedHandler implements DomainEventHandler<BoardTicket
                         "ticket-detail", Map.of("boardId", event.boardId(), "ticketId", event.ticketId())));
 
         notificationService.notifyMembersIfAbsent(
-                event.watcherMemberIds(), NotificationType.BOARD_TICKET_UPDATE, data, event.actorMemberId());
+                event.watcherMemberIds(),
+                NotificationType.BOARD_TICKET_UPDATE,
+                data,
+                event.actorMemberId() != null ? event.actorMemberId() : -1);
     }
 }

@@ -27,6 +27,7 @@ import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.ForbiddenResponse;
 import io.javalin.http.HttpStatus;
+import io.javalin.http.NoContentResponse;
 import io.javalin.http.NotFoundResponse;
 import io.javalin.http.UploadedFile;
 import io.javalin.openapi.HttpMethod;
@@ -247,7 +248,7 @@ public class StationManageRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         Optional<StationLogo> logoOpt = stationService.getLogo(session.stationId());
         if (logoOpt.isEmpty()) {
-            throw new NotFoundResponse("No logo set");
+            throw new NoContentResponse("No logo set");
         }
         StationLogo logo = logoOpt.get();
         ctx.contentType(logo.contentType());
@@ -262,14 +263,14 @@ public class StationManageRoutes implements Routes {
             pathParams = @OpenApiParam(name = "stationId", type = Integer.class, required = true),
             responses = {
                 @OpenApiResponse(status = "200"),
-                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+                @OpenApiResponse(status = "204", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void getLogoByStation(Context ctx) {
         String uidParam = ctx.pathParam("stationId");
         var station = stationService.findByUid(UUID.fromString(uidParam)).orElseThrow(NotFoundResponse::new);
         Optional<StationLogo> logoOpt = stationService.getLogo(station.id());
         if (logoOpt.isEmpty()) {
-            throw new NotFoundResponse("No logo set");
+            throw new NoContentResponse("No logo set");
         }
         StationLogo logo = logoOpt.get();
         ctx.contentType(logo.contentType());

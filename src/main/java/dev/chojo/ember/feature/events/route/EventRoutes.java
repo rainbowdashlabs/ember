@@ -13,9 +13,7 @@ import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.attendance.service.AttendanceService;
-import dev.chojo.ember.feature.comment.repository.EventCommentRepository;
 import dev.chojo.ember.feature.comment.route.EventCommentRoutes;
-import dev.chojo.ember.feature.comment.service.CommentService;
 import dev.chojo.ember.feature.events.entity.BatchRequest;
 import dev.chojo.ember.feature.events.entity.BatchRow;
 import dev.chojo.ember.feature.events.entity.EventBreak;
@@ -31,7 +29,6 @@ import dev.chojo.ember.feature.events.entity.IntervalConfig;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.entity.UpcomingEventOccurrence;
-import dev.chojo.ember.feature.events.repository.EventFederationRepository;
 import dev.chojo.ember.feature.events.repository.EventFieldRepository;
 import dev.chojo.ember.feature.events.service.BatchEventService;
 import dev.chojo.ember.feature.events.service.EventExportService;
@@ -40,7 +37,6 @@ import dev.chojo.ember.feature.events.service.EventFieldService;
 import dev.chojo.ember.feature.events.service.EventService;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
-import dev.chojo.ember.feature.federation.service.FederationHttpClient;
 import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.StationMemberService;
@@ -92,12 +88,8 @@ public class EventRoutes implements Routes {
     private final EventExportService eventExportService;
     private final EventFederationService eventFederationService;
     private final FederationService federationService;
-    private final FederationHttpClient federationHttpClient;
     private final FederationRepository federationRepository;
     private final StationRepository stationRepository;
-    private final CommentService commentService;
-    private final EventCommentRepository commentRepository;
-    private final EventFederationRepository eventFederationRepository;
 
     @Inject
     public EventRoutes(
@@ -111,12 +103,8 @@ public class EventRoutes implements Routes {
             EventExportService eventExportService,
             EventFederationService eventFederationService,
             FederationService federationService,
-            FederationHttpClient federationHttpClient,
             FederationRepository federationRepository,
-            StationRepository stationRepository,
-            CommentService commentService,
-            EventCommentRepository commentRepository,
-            EventFederationRepository eventFederationRepository) {
+            StationRepository stationRepository) {
         this.eventService = eventService;
         this.eventFieldService = eventFieldService;
         this.batchEventService = batchEventService;
@@ -127,12 +115,8 @@ public class EventRoutes implements Routes {
         this.eventExportService = eventExportService;
         this.eventFederationService = eventFederationService;
         this.federationService = federationService;
-        this.federationHttpClient = federationHttpClient;
         this.federationRepository = federationRepository;
         this.stationRepository = stationRepository;
-        this.commentService = commentService;
-        this.commentRepository = commentRepository;
-        this.eventFederationRepository = eventFederationRepository;
     }
 
     @Override
@@ -1484,7 +1468,7 @@ public class EventRoutes implements Routes {
         UUID remoteMemberId = session.member().uid();
 
         if (partner.isRemote()) {
-            boolean success = federationHttpClient.registerForFederatedEvent(
+            boolean success = eventFederationService.registerForFederatedEvent(
                     partner.remoteHost(),
                     eventId,
                     remoteMemberId,
@@ -1508,7 +1492,7 @@ public class EventRoutes implements Routes {
         UUID remoteMemberId = session.member().uid();
 
         if (partner.isRemote()) {
-            federationHttpClient.withdrawFederatedRegistration(
+            eventFederationService.withdrawFederatedRegistration(
                     partner.remoteHost(),
                     eventId,
                     remoteMemberId,
@@ -1633,61 +1617,10 @@ public class EventRoutes implements Routes {
 
     // -- Remote event comment endpoints (server-to-server) --
 
-    private EventCommentRoutes.CommentResponse toCommentResponse(
-            dev.chojo.ember.feature.comment.entity.Comment comment) {
-        if (comment.deleted()) {
-            return new EventCommentRoutes.CommentResponse(
-                    comment.id(), comment.parentId(), 0, null, null, "", true, comment.createdAt(), null, null);
-        }
-        var fedAuthor = commentRepository.findFederatedAuthor(comment.id());
-        if (fedAuthor.isPresent()) {
-            var fa = fedAuthor.get();
-            String displayName = eventFederationRepository
-                    .getCachedName(fa.partnerId(), fa.remoteMemberId())
-                    .orElse("Unknown");
-            String stationName = federationRepository
-                    .findPartnerById(fa.partnerId())
-                    .map(p -> stationRepository
-                            .findByUid(p.partnerStationId())
-                            .map(Station::name)
-                            .orElse(""))
-                    .orElse("");
-            return new EventCommentRoutes.CommentResponse(
-                    comment.id(),
-                    comment.parentId(),
-                    0,
-                    null,
-                    displayName,
-                    comment.content(),
-                    false,
-                    comment.createdAt(),
-                    comment.updatedAt(),
-                    new EventCommentRoutes.FederatedAuthorInfo(fa.remoteMemberId(), displayName, stationName));
-        }
-        var memberOpt = stationMemberRepository.findById(comment.authorId());
-        Integer authorAccountId = memberOpt.map(m -> m.accountId()).orElse(null);
-        String authorName = memberOpt
-                .flatMap(m -> accountRepository.findById(m.accountId()))
-                .map(a -> (a.firstName() + " " + a.lastName()).trim())
-                .orElse("");
-        return new EventCommentRoutes.CommentResponse(
-                comment.id(),
-                comment.parentId(),
-                comment.authorId(),
-                authorAccountId,
-                authorName,
-                comment.content(),
-                false,
-                comment.createdAt(),
-                comment.updatedAt(),
-                null);
-    }
-
     private void remoteListComments(Context ctx) {
         requireFederationPartner(ctx);
         int eventId = ctx.pathParamAsClass("eventId", Integer.class).get();
-        var comments = commentService.findByEvent(eventId);
-        ctx.json(comments.stream().map(this::toCommentResponse).toList());
+        ctx.json(eventFederationService.listComments(eventId));
     }
 
     private void remoteCreateComment(Context ctx) {
@@ -1697,10 +1630,9 @@ public class EventRoutes implements Routes {
         if (req.content() == null || req.content().isBlank()) {
             throw new BadRequestResponse("content is required");
         }
-        var comment = commentRepository.create(eventId, req.parentId(), 0, req.content());
-        commentRepository.setFederatedAuthor(comment.id(), partner.id(), req.remoteMemberUid());
-        eventFederationRepository.cacheName(partner.id(), req.remoteMemberUid(), req.displayName());
-        ctx.status(HttpStatus.CREATED).json(toCommentResponse(comment));
+        ctx.status(HttpStatus.CREATED)
+                .json(eventFederationService.createRemoteComment(
+                        partner, eventId, req.remoteMemberUid(), req.displayName(), req.parentId(), req.content()));
     }
 
     private void remoteUpdateComment(Context ctx) {
@@ -1710,28 +1642,14 @@ public class EventRoutes implements Routes {
         if (req.content() == null || req.content().isBlank()) {
             throw new BadRequestResponse("content is required");
         }
-        var fedAuthor = commentRepository
-                .findFederatedAuthor(commentId)
-                .orElseThrow(() -> new ForbiddenResponse("Not a federated comment"));
-        if (fedAuthor.partnerId() != partner.id() || !fedAuthor.remoteMemberId().equals(req.remoteMemberUid())) {
-            throw new ForbiddenResponse("You can only edit your own comments");
-        }
-        commentRepository.update(commentId, req.content());
-        var updated = commentService.findById(commentId).orElseThrow(NotFoundResponse::new);
-        ctx.json(toCommentResponse(updated));
+        ctx.json(eventFederationService.updateRemoteComment(partner, commentId, req.remoteMemberUid(), req.content()));
     }
 
     private void remoteDeleteComment(Context ctx) {
         var partner = requireFederationPartner(ctx);
         int commentId = ctx.pathParamAsClass("commentId", Integer.class).get();
         var req = ctx.bodyAsClass(RemoteCommentDeleteRequest.class);
-        var fedAuthor = commentRepository
-                .findFederatedAuthor(commentId)
-                .orElseThrow(() -> new ForbiddenResponse("Not a federated comment"));
-        if (fedAuthor.partnerId() != partner.id() || !fedAuthor.remoteMemberId().equals(req.remoteMemberUid())) {
-            throw new ForbiddenResponse("You can only delete your own comments");
-        }
-        if (commentService.delete(commentId)) {
+        if (eventFederationService.deleteRemoteComment(partner, commentId, req.remoteMemberUid())) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
             throw new NotFoundResponse();
@@ -1748,120 +1666,61 @@ public class EventRoutes implements Routes {
 
     private void federatedListComments(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        var station = stationRepository.findById(session.stationId()).orElseThrow();
-        var partner = resolvePartner(ctx, session.stationId());
+        var partnerUid = UUID.fromString(ctx.pathParam("stationuid"));
         int eventId = ctx.pathParamAsClass("eventId", Integer.class).get();
-
-        if (partner.isRemote()) {
-            String json = federationHttpClient.signedGetJson(
-                    partner.remoteHost(),
-                    "/remote/events/" + eventId + "/comments",
-                    station.id(),
-                    station.federationPrivateKey());
-            if (json == null) throw new InternalServerErrorResponse("Failed to fetch comments from partner");
-            ctx.contentType("application/json").result(json);
-        } else {
-            var comments = commentService.findByEvent(eventId);
-            ctx.json(comments.stream().map(this::toCommentResponse).toList());
+        var result = eventFederationService.listFederatedComments(session.stationId(), partnerUid, eventId);
+        switch (result) {
+            case EventFederationService.FederatedCommentResult.ListResult r -> ctx.json(r.comments());
+            case EventFederationService.FederatedCommentResult.SingleResult r -> ctx.json(r.comment());
         }
     }
 
     private void federatedCreateComment(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        var station = stationRepository.findById(session.stationId()).orElseThrow();
-        var partner = resolvePartner(ctx, session.stationId());
+        var partnerUid = UUID.fromString(ctx.pathParam("stationuid"));
         int eventId = ctx.pathParamAsClass("eventId", Integer.class).get();
         var req = ctx.bodyAsClass(EventCommentRoutes.CreateCommentRequest.class);
         if (req.content() == null || req.content().isBlank()) {
             throw new BadRequestResponse("content is required");
         }
-
-        UUID memberUid = session.member().uid();
-        String displayName = session.account().fullName().trim();
-
-        if (partner.isRemote()) {
-            var body = new RemoteCommentRequest(memberUid, displayName, req.parentId(), req.content());
-            String jsonBody = federationHttpClient.getMapper().writeValueAsString(body);
-            String json = federationHttpClient.signedPostJson(
-                    partner.remoteHost(),
-                    "/remote/events/" + eventId + "/comments",
-                    jsonBody,
-                    station.id(),
-                    station.federationPrivateKey());
-            if (json == null) throw new InternalServerErrorResponse("Failed to create comment on partner");
-            ctx.status(HttpStatus.CREATED).contentType("application/json").result(json);
-        } else {
-            var comment = commentRepository.create(eventId, req.parentId(), 0, req.content());
-            commentRepository.setFederatedAuthor(comment.id(), partner.id(), memberUid);
-            eventFederationRepository.cacheName(partner.id(), memberUid, displayName);
-            ctx.status(HttpStatus.CREATED).json(toCommentResponse(comment));
+        var result = eventFederationService.createFederatedComment(
+                session.stationId(),
+                partnerUid,
+                eventId,
+                session.member().uid(),
+                session.account().fullName().trim(),
+                req.parentId(),
+                req.content());
+        switch (result) {
+            case EventFederationService.FederatedCommentResult.SingleResult r ->
+                ctx.status(HttpStatus.CREATED).json(r.comment());
+            case EventFederationService.FederatedCommentResult.ListResult r ->
+                ctx.status(HttpStatus.CREATED).json(r.comments());
         }
     }
 
     private void federatedUpdateComment(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        var station = stationRepository.findById(session.stationId()).orElseThrow();
-        var partner = resolvePartner(ctx, session.stationId());
+        var partnerUid = UUID.fromString(ctx.pathParam("stationuid"));
         int commentId = ctx.pathParamAsClass("commentId", Integer.class).get();
         var req = ctx.bodyAsClass(EventCommentRoutes.UpdateCommentRequest.class);
         if (req.content() == null || req.content().isBlank()) {
             throw new BadRequestResponse("content is required");
         }
-
-        UUID memberUid = session.member().uid();
-
-        if (partner.isRemote()) {
-            var body = new RemoteCommentUpdateRequest(memberUid, req.content());
-            String jsonBody = federationHttpClient.getMapper().writeValueAsString(body);
-            String json = federationHttpClient.signedPutJson(
-                    partner.remoteHost(),
-                    "/remote/events/comments/" + commentId,
-                    jsonBody,
-                    station.id(),
-                    station.federationPrivateKey());
-            if (json == null) throw new InternalServerErrorResponse("Failed to update comment on partner");
-            ctx.contentType("application/json").result(json);
-        } else {
-            var fedAuthor = commentRepository
-                    .findFederatedAuthor(commentId)
-                    .orElseThrow(() -> new ForbiddenResponse("Not a federated comment"));
-            if (!fedAuthor.remoteMemberId().equals(memberUid)) {
-                throw new ForbiddenResponse("You can only edit your own comments");
-            }
-            commentRepository.update(commentId, req.content());
-            var updated = commentService.findById(commentId).orElseThrow(NotFoundResponse::new);
-            ctx.json(toCommentResponse(updated));
+        var result = eventFederationService.updateFederatedComment(
+                session.stationId(), partnerUid, commentId, session.member().uid(), req.content());
+        switch (result) {
+            case EventFederationService.FederatedCommentResult.SingleResult r -> ctx.json(r.comment());
+            case EventFederationService.FederatedCommentResult.ListResult r -> ctx.json(r.comments());
         }
     }
 
     private void federatedDeleteComment(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        var station = stationRepository.findById(session.stationId()).orElseThrow();
-        var partner = resolvePartner(ctx, session.stationId());
+        var partnerUid = UUID.fromString(ctx.pathParam("stationuid"));
         int commentId = ctx.pathParamAsClass("commentId", Integer.class).get();
-
-        UUID memberUid = session.member().uid();
-
-        if (partner.isRemote()) {
-            boolean success = federationHttpClient.signedDeleteRequest(
-                    partner.remoteHost(),
-                    "/remote/events/comments/" + commentId,
-                    station.id(),
-                    station.federationPrivateKey());
-            if (!success) throw new InternalServerErrorResponse("Failed to delete comment on partner");
-            ctx.status(HttpStatus.NO_CONTENT);
-        } else {
-            var fedAuthor = commentRepository
-                    .findFederatedAuthor(commentId)
-                    .orElseThrow(() -> new ForbiddenResponse("Not a federated comment"));
-            if (!fedAuthor.remoteMemberId().equals(memberUid)) {
-                throw new ForbiddenResponse("You can only delete your own comments");
-            }
-            if (commentService.delete(commentId)) {
-                ctx.status(HttpStatus.NO_CONTENT);
-            } else {
-                throw new NotFoundResponse();
-            }
-        }
+        eventFederationService.deleteFederatedComment(
+                session.stationId(), partnerUid, commentId, session.member().uid());
+        ctx.status(HttpStatus.NO_CONTENT);
     }
 }

@@ -43,7 +43,6 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import tools.jackson.databind.json.JsonMapper;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -77,7 +76,6 @@ public class FederatedBoardProxyService {
     private final StationMemberService memberService;
     private final MemberGroupService groupService;
     private final UserTagService tagService;
-    private final JsonMapper mapper;
 
     @Inject
     public FederatedBoardProxyService(
@@ -103,7 +101,6 @@ public class FederatedBoardProxyService {
         this.memberService = memberService;
         this.groupService = groupService;
         this.tagService = tagService;
-        this.mapper = httpClient.getMapper();
     }
 
     // -- Discovery --
@@ -154,24 +151,23 @@ public class FederatedBoardProxyService {
     }
 
     private List<DiscoveredBoard> discoverBoardsViaHttp(int localStationId, FederationPartner partner) {
-        try {
-            var remoteBoards = httpClient.signedGetList(
-                    partner.remoteHost(), "/remote/boards", localStationId, getPrivateKey(localStationId));
-            return remoteBoards.stream()
-                    .map(m -> new DiscoveredBoard(
-                            partner.id(),
-                            partner.partnerStationId().toString(),
-                            ((Number) m.get("id")).intValue(),
-                            (String) m.get("name"),
-                            (String) m.get("shortKey"),
-                            (String) m.get("description"),
-                            BoardShareMode.valueOf((String) m.get("shareMode")),
-                            partnerStationName(partner)))
-                    .toList();
-        } catch (Exception e) {
-            log.error("Failed to discover boards from partner {}", partner.id(), e);
-            return List.of();
-        }
+        var remoteBoards = httpClient.getList(
+                partner.remoteHost(),
+                "/remote/boards",
+                localStationId,
+                getPrivateKey(localStationId),
+                RemoteDiscoveredBoard.class);
+        return remoteBoards.stream()
+                .map(b -> new DiscoveredBoard(
+                        partner.id(),
+                        partner.partnerStationId().toString(),
+                        b.id(),
+                        b.name(),
+                        b.shortKey(),
+                        b.description(),
+                        BoardShareMode.valueOf(b.shareMode()),
+                        partnerStationName(partner)))
+                .toList();
     }
 
     // -- Read Proxy Methods --
@@ -447,13 +443,7 @@ public class FederatedBoardProxyService {
     }
 
     public BoardTicket proxyMoveTicket(
-            int partnerId,
-            String boardKey,
-            int ticketNumber,
-            int toLaneId,
-            int position,
-            UUID federatedStationId,
-            UUID federatedMemberId) {
+            int partnerId, String boardKey, int ticketNumber, int toLaneId, int position, UUID federatedMemberId) {
         var partner = findPartner(partnerId);
         if (partner.isRemote()) {
             var body = Map.of("toLaneId", toLaneId, "position", position);
@@ -466,8 +456,7 @@ public class FederatedBoardProxyService {
         int boardId = resolveBoardId(boardKey, partner);
         int ticketId = resolveTicketId(boardId, ticketNumber);
         var ticket = ticketService.findById(ticketId).orElseThrow(NotFoundResponse::new);
-        ticketService.moveTicket(
-                ticketId, ticket.laneId(), toLaneId, position, null, federatedStationId, federatedMemberId);
+        ticketService.moveTicket(ticketId, ticket.laneId(), toLaneId, position, null, partnerId, federatedMemberId);
         return ticketService.findById(ticketId).orElseThrow(NotFoundResponse::new);
     }
 
@@ -497,7 +486,7 @@ public class FederatedBoardProxyService {
         }
         int boardId = resolveBoardId(boardKey, partner);
         int ticketId = resolveTicketId(boardId, ticketNumber);
-        var comment = ticketService.createComment(ticketId, parentId, 0, content);
+        var comment = ticketService.createComment(ticketId, parentId, null, content);
         federatedBoardService.setFederatedCommentAuthor(comment.id(), partnerId, remoteMemberId);
         return comment;
     }
@@ -774,97 +763,46 @@ public class FederatedBoardProxyService {
     }
 
     private <T> T remoteGet(FederationPartner partner, String path, Class<T> type) {
-        String json = httpClient.signedGetJson(
-                partner.remoteHost(), path, partner.stationId(), getPrivateKey(partner.stationId()));
-        if (json == null) throw new NotFoundResponse("Empty response from remote partner");
-        try {
-            return mapper.readValue(json, type);
-        } catch (Exception e) {
-            log.error("Failed to parse remote response for {}", path, e);
-            throw new NotFoundResponse("Failed to parse remote response");
-        }
+        var result = httpClient.get(
+                partner.remoteHost(), path, partner.stationId(), getPrivateKey(partner.stationId()), type);
+        if (result == null) throw new NotFoundResponse("Empty response from remote partner");
+        return result;
     }
 
     private <T> List<T> remoteGetList(FederationPartner partner, String path, Class<T> elementType) {
-        String json = httpClient.signedGetJson(
-                partner.remoteHost(), path, partner.stationId(), getPrivateKey(partner.stationId()));
-        if (json == null) return List.of();
-        try {
-            var type = mapper.getTypeFactory().constructCollectionType(List.class, elementType);
-            return mapper.readValue(json, type);
-        } catch (Exception e) {
-            log.error("Failed to parse remote list response for {}", path, e);
-            return List.of();
-        }
+        return httpClient.getList(
+                partner.remoteHost(), path, partner.stationId(), getPrivateKey(partner.stationId()), elementType);
     }
 
     private <T> T remotePost(FederationPartner partner, String path, Object body, Class<T> type) {
-        try {
-            String jsonBody = mapper.writeValueAsString(body);
-            String json = httpClient.signedPostJson(
-                    partner.remoteHost(), path, jsonBody, partner.stationId(), getPrivateKey(partner.stationId()));
-            if (json == null || json.isBlank()) throw new NotFoundResponse("Empty response from remote partner");
-            return mapper.readValue(json, type);
-        } catch (NotFoundResponse e) {
-            throw e;
-        } catch (Exception e) {
-            log.error("Failed remote POST for {}", path, e);
-            throw new NotFoundResponse("Failed remote POST");
-        }
+        var result = httpClient.post(
+                partner.remoteHost(), path, body, partner.stationId(), getPrivateKey(partner.stationId()), type);
+        if (result == null) throw new NotFoundResponse("Empty response from remote partner");
+        return result;
     }
 
     private <T> List<T> remotePostList(FederationPartner partner, String path, Object body, Class<T> elementType) {
-        try {
-            String jsonBody = mapper.writeValueAsString(body);
-            String json = httpClient.signedPostJson(
-                    partner.remoteHost(), path, jsonBody, partner.stationId(), getPrivateKey(partner.stationId()));
-            if (json == null || json.isBlank()) return List.of();
-            var type = mapper.getTypeFactory().constructCollectionType(List.class, elementType);
-            return mapper.readValue(json, type);
-        } catch (Exception e) {
-            log.error("Failed remote POST for {}", path, e);
-            return List.of();
-        }
+        return httpClient.postList(
+                partner.remoteHost(), path, body, partner.stationId(), getPrivateKey(partner.stationId()), elementType);
     }
 
     private <T> T remotePut(FederationPartner partner, String path, Object body, Class<T> type) {
-        try {
-            String jsonBody = mapper.writeValueAsString(body);
-            String json = httpClient.signedPutJson(
-                    partner.remoteHost(), path, jsonBody, partner.stationId(), getPrivateKey(partner.stationId()));
-            if (json == null || json.isBlank()) throw new NotFoundResponse("Empty response from remote partner");
-            return mapper.readValue(json, type);
-        } catch (NotFoundResponse e) {
-            throw e;
-        } catch (Exception e) {
-            log.error("Failed remote PUT for {}", path, e);
-            throw new NotFoundResponse("Failed remote PUT");
-        }
+        var result = httpClient.put(
+                partner.remoteHost(), path, body, partner.stationId(), getPrivateKey(partner.stationId()), type);
+        if (result == null) throw new NotFoundResponse("Empty response from remote partner");
+        return result;
     }
 
     private void remotePut(FederationPartner partner, String path, Object body) {
-        try {
-            String jsonBody = mapper.writeValueAsString(body);
-            httpClient.signedPutJson(
-                    partner.remoteHost(), path, jsonBody, partner.stationId(), getPrivateKey(partner.stationId()));
-        } catch (Exception e) {
-            log.error("Failed remote PUT for {}", path, e);
-        }
+        httpClient.put(partner.remoteHost(), path, body, partner.stationId(), getPrivateKey(partner.stationId()));
     }
 
     private void remotePost(FederationPartner partner, String path, Object body) {
-        try {
-            String jsonBody = mapper.writeValueAsString(body);
-            httpClient.signedPostJson(
-                    partner.remoteHost(), path, jsonBody, partner.stationId(), getPrivateKey(partner.stationId()));
-        } catch (Exception e) {
-            log.error("Failed remote POST for {}", path, e);
-        }
+        httpClient.post(partner.remoteHost(), path, body, partner.stationId(), getPrivateKey(partner.stationId()));
     }
 
     private void remoteDelete(FederationPartner partner, String path) {
-        httpClient.signedDeleteRequest(
-                partner.remoteHost(), path, partner.stationId(), getPrivateKey(partner.stationId()));
+        httpClient.delete(partner.remoteHost(), path, partner.stationId(), getPrivateKey(partner.stationId()));
     }
 
     private boolean matchesAccess(int memberId, AccessData access) {
@@ -973,4 +911,6 @@ public class FederatedBoardProxyService {
     }
 
     public record FederatedWatcherData(List<Integer> local, List<BoardTicketFederatedWatcher> federated) {}
+
+    public record RemoteDiscoveredBoard(int id, String name, String shortKey, String description, String shareMode) {}
 }

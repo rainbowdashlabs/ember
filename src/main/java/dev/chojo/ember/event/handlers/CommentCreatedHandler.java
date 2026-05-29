@@ -39,14 +39,18 @@ public class CommentCreatedHandler implements DomainEventHandler<CommentCreated>
 
     @Override
     public void handle(CommentCreated event) {
-        var link = CommentEntityType.NEWS.equals(event.entityType())
-                ? new NotificationData.NotificationLink("news-detail", Map.of("id", event.entityId()))
-                : new NotificationData.NotificationLink("events");
+        var link =
+                switch (event.entityType()) {
+                    case NEWS -> new NotificationData.NotificationLink("news-detail", Map.of("id", event.entityId()));
+                    case KB -> new NotificationData.NotificationLink("kb-file", Map.of("id", event.entityId()));
+                    default -> new NotificationData.NotificationLink("events");
+                };
         var data = NotificationData.of(
                 new NotificationParams.NewsComment(event.entityTitle(), event.authorName(), event.preview()), link);
 
         // Notify the parent comment author (if this is a reply and they didn't write this comment)
-        if (event.parentAuthorId() != null && event.parentAuthorId() != event.authorMemberId()) {
+        if (event.parentAuthorId() != null
+                && !java.util.Objects.equals(event.parentAuthorId(), event.authorMemberId())) {
             notificationService.notifyIfAbsent(event.parentAuthorId(), NotificationType.NEWS_COMMENT, data);
         }
 
@@ -57,7 +61,10 @@ public class CommentCreatedHandler implements DomainEventHandler<CommentCreated>
                             .map(StationMember::id)
                             .toList();
             notificationService.notifyMembersIfAbsent(
-                    newsMgmtIds, NotificationType.NEWS_COMMENT, data, event.authorMemberId());
+                    newsMgmtIds,
+                    NotificationType.NEWS_COMMENT,
+                    data,
+                    event.authorMemberId() != null ? event.authorMemberId() : -1);
         }
     }
 }

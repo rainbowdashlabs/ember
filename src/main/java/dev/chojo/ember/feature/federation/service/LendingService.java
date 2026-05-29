@@ -239,8 +239,12 @@ public class LendingService {
             log.warn("No private key found for station {}, cannot fetch remote messages", localStationId);
             return List.of();
         }
-        return httpClient.fetchRemoteMessages(
-                partner.remoteHost(), requestId, localStationId, station.federationPrivateKey());
+        return httpClient.getList(
+                partner.remoteHost(),
+                "/remote/lending/messages/" + requestId,
+                localStationId,
+                station.federationPrivateKey(),
+                LendingMessage.class);
     }
 
     private FederationPartner findPartnerForStation(int localStationId, int partnerStationId) {

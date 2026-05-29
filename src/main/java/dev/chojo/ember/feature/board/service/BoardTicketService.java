@@ -56,7 +56,7 @@ public class BoardTicketService {
         this.eventBus = eventBus;
     }
 
-    private void notifyWatchers(int ticketId, int boardId, String changeDescription, int actorMemberId) {
+    private void notifyWatchers(int ticketId, int boardId, String changeDescription, Integer actorMemberId) {
         var watchers = ticketRepository.findWatchers(ticketId);
         if (watchers.isEmpty()) return;
         var board = boardRepository.findById(boardId).orElse(null);
@@ -175,12 +175,12 @@ public class BoardTicketService {
             int toLaneId,
             int position,
             Integer movedBy,
-            UUID federatedStationId,
+            Integer federatedPartnerId,
             UUID federatedMemberId) {
         boolean moved = ticketRepository.moveTicket(ticketId, toLaneId, position);
         if (moved) {
             ticketRepository.logTransition(
-                    ticketId, fromLaneId, toLaneId, movedBy, federatedStationId, federatedMemberId);
+                    ticketId, fromLaneId, toLaneId, movedBy, federatedPartnerId, federatedMemberId);
             var ticket = ticketRepository.findById(ticketId).orElse(null);
             var toLane = ticket != null
                     ? boardRepository.findLanes(ticket.boardId()).stream()
@@ -285,7 +285,7 @@ public class BoardTicketService {
         return ticketRepository.findComments(ticketId);
     }
 
-    public BoardComment createComment(int ticketId, Integer parentId, int authorId, String content) {
+    public BoardComment createComment(int ticketId, Integer parentId, Integer authorId, String content) {
         var comment = ticketRepository.createComment(ticketId, parentId, authorId, content);
         var ticket = ticketRepository.findById(ticketId).orElse(null);
         if (ticket != null) {
@@ -293,7 +293,7 @@ public class BoardTicketService {
             var board = boardRepository.findById(ticket.boardId()).orElse(null);
             var authorName = board != null ? board.shortKey() + "-" + ticket.ticketNumber() : "?";
             for (int mentionedId : parseMentions(content)) {
-                if (mentionedId != authorId) {
+                if (authorId == null || mentionedId != authorId) {
                     eventBus.publish(new MentionedInComment(
                             board != null ? board.stationId() : 0,
                             mentionedId,
@@ -434,8 +434,8 @@ public class BoardTicketService {
     }
 
     public void logHistory(
-            int ticketId, String action, String detail, UUID federatedStationId, UUID federatedMemberId) {
-        ticketRepository.logHistory(ticketId, action, detail, null, federatedStationId, federatedMemberId);
+            int ticketId, String action, String detail, Integer federatedPartnerId, UUID federatedMemberId) {
+        ticketRepository.logHistory(ticketId, action, detail, null, federatedPartnerId, federatedMemberId);
     }
 
     public List<BoardTicketHistory> findHistory(int ticketId) {

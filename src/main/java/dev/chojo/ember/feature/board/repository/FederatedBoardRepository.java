@@ -136,8 +136,8 @@ public class FederatedBoardRepository {
     public void setFederatedAssignee(int ticketId, int partnerId, UUID remoteMemberId) {
         Query.query("""
                         INSERT INTO board_ticket_federated_assignee(ticket_id, partner_id, remote_member_id)
-                        VALUES (:ticket_id, :partner_id, :remote_member_id)
-                        ON CONFLICT (ticket_id) DO UPDATE SET partner_id = :partner_id, remote_member_id = :remote_member_id;""")
+                        VALUES (:ticket_id, :partner_id, :remote_member_id::uuid)
+                        ON CONFLICT (ticket_id) DO UPDATE SET partner_id = :partner_id, remote_member_id = :remote_member_id::uuid;""")
                 .single(Call.of()
                         .bind("ticket_id", ticketId)
                         .bind("partner_id", partnerId)
@@ -163,7 +163,7 @@ public class FederatedBoardRepository {
     public void setFederatedCommentAuthor(int commentId, int partnerId, UUID remoteMemberId) {
         Query.query("""
                         INSERT INTO board_ticket_federated_comment_author(comment_id, partner_id, remote_member_id)
-                        VALUES (:comment_id, :partner_id, :remote_member_id);""")
+                        VALUES (:comment_id, :partner_id, :remote_member_id::uuid);""")
                 .single(Call.of()
                         .bind("comment_id", commentId)
                         .bind("partner_id", partnerId)
@@ -183,7 +183,7 @@ public class FederatedBoardRepository {
     public void setFederatedCreator(int ticketId, int partnerId, UUID remoteMemberId) {
         Query.query("""
                         INSERT INTO board_ticket_federated_creator(ticket_id, partner_id, remote_member_id)
-                        VALUES (:ticket_id, :partner_id, :remote_member_id);""")
+                        VALUES (:ticket_id, :partner_id, :remote_member_id::uuid);""")
                 .single(Call.of()
                         .bind("ticket_id", ticketId)
                         .bind("partner_id", partnerId)
@@ -203,7 +203,7 @@ public class FederatedBoardRepository {
     public void addFederatedWatcher(int ticketId, int partnerId, UUID remoteMemberId) {
         Query.query("""
                         INSERT INTO board_ticket_federated_watcher(ticket_id, partner_id, remote_member_id)
-                        VALUES (:ticket_id, :partner_id, :remote_member_id) ON CONFLICT DO NOTHING;""")
+                        VALUES (:ticket_id, :partner_id, :remote_member_id::uuid) ON CONFLICT DO NOTHING;""")
                 .single(Call.of()
                         .bind("ticket_id", ticketId)
                         .bind("partner_id", partnerId)
@@ -214,7 +214,7 @@ public class FederatedBoardRepository {
     public void removeFederatedWatcher(int ticketId, int partnerId, UUID remoteMemberId) {
         Query.query("""
                         DELETE FROM board_ticket_federated_watcher
-                        WHERE ticket_id = :ticket_id AND partner_id = :partner_id AND remote_member_id = :remote_member_id;""")
+                        WHERE ticket_id = :ticket_id AND partner_id = :partner_id AND remote_member_id = :remote_member_id::uuid;""")
                 .single(Call.of()
                         .bind("ticket_id", ticketId)
                         .bind("partner_id", partnerId)
@@ -232,7 +232,7 @@ public class FederatedBoardRepository {
     public boolean isFederatedWatching(int ticketId, int partnerId, UUID remoteMemberId) {
         return Query.query("""
                         SELECT 1 FROM board_ticket_federated_watcher
-                        WHERE ticket_id = :ticket_id AND partner_id = :partner_id AND remote_member_id = :remote_member_id;""")
+                        WHERE ticket_id = :ticket_id AND partner_id = :partner_id AND remote_member_id = :remote_member_id::uuid;""")
                 .single(Call.of()
                         .bind("ticket_id", ticketId)
                         .bind("partner_id", partnerId)

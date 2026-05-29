@@ -8,6 +8,9 @@ package dev.chojo.ember.service;
 import dev.chojo.ember.api.Roles;
 import dev.chojo.ember.conf.file.elements.Mailing;
 import dev.chojo.ember.feature.account.entity.Account;
+import dev.chojo.ember.feature.events.entity.RegistrationStatus;
+import dev.chojo.ember.feature.federation.entity.LendingStatus;
+import dev.chojo.ember.feature.inventory.entity.ExchangeStatus;
 import dev.chojo.ember.feature.mail.service.EmailService;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
@@ -379,7 +382,7 @@ class NotificationServiceTest extends RepositoryTestBase {
     void notifyMembersSkipsWhenAppDisabled() {
         notificationSettingsRepo.upsert(member1.id(), NotificationType.LENDING_STATUS_CHANGE, false, false, false);
         service.acknowledgeAll(member1.id());
-        var data = NotificationData.of(new NotificationParams.LendingStatusChange("Station Y", "approved"));
+        var data = NotificationData.of(new NotificationParams.LendingStatusChange("Station Y", LendingStatus.APPROVED));
         service.notifyMembers(List.of(member1.id()), NotificationType.LENDING_STATUS_CHANGE, data);
         // member1 has app disabled — no new notification
         assertFalse(service.findUnacknowledged(member1.id()).stream()
@@ -405,7 +408,7 @@ class NotificationServiceTest extends RepositoryTestBase {
         service.acknowledgeAll(member1.id());
         // Exchange types
         var exchStatus = NotificationData.of(
-                new NotificationParams.ExchangeStatusChange("approved", "Helmet", "all good"),
+                new NotificationParams.ExchangeStatusChange(ExchangeStatus.RECEIVED, "Helmet", "all good"),
                 new NotificationData.NotificationLink("inventory-exchanges"));
         service.notify(member1.id(), NotificationType.EXCHANGE_STATUS_CHANGE, exchStatus);
 
@@ -435,7 +438,7 @@ class NotificationServiceTest extends RepositoryTestBase {
         service.notify(member1.id(), NotificationType.PROCUREMENT_FULFILLED, procFulfilled);
 
         var evtReg = NotificationData.of(
-                new NotificationParams.EventRegistrationStatus("Marathon", "ACCEPTED", "Run 10km"),
+                new NotificationParams.EventRegistrationStatus("Marathon", RegistrationStatus.ACCEPTED, "Run 10km"),
                 new NotificationData.NotificationLink("events-registrations"));
         service.notify(member1.id(), NotificationType.EVENT_REGISTRATION_STATUS, evtReg);
 
@@ -449,7 +452,8 @@ class NotificationServiceTest extends RepositoryTestBase {
                 new NotificationData.NotificationLink("lending-request", Map.of("id", 7)));
         service.notify(member1.id(), NotificationType.LENDING_NEW_REQUEST, lendReq);
 
-        var lendStatus = NotificationData.of(new NotificationParams.LendingStatusChange("Partner", "denied"));
+        var lendStatus =
+                NotificationData.of(new NotificationParams.LendingStatusChange("Partner", LendingStatus.DECLINED));
         service.notify(member1.id(), NotificationType.LENDING_STATUS_CHANGE, lendStatus);
 
         var lendMsg = NotificationData.of(new NotificationParams.LendingNewMessage("Partner", "Alice"));

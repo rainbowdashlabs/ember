@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.knowledgebase.service;
 
+import dev.chojo.ember.feature.events.repository.EventFederationRepository;
 import dev.chojo.ember.feature.federation.entity.CapabilityType;
 import dev.chojo.ember.feature.federation.entity.ContentType;
 import dev.chojo.ember.feature.federation.entity.Direction;
@@ -13,6 +14,7 @@ import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.service.FederationHttpClient;
 import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.knowledgebase.entity.KbAccessRestriction;
+import dev.chojo.ember.feature.knowledgebase.entity.KbComment;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFile;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFileSummary;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFileType;
@@ -22,6 +24,7 @@ import dev.chojo.ember.feature.knowledgebase.entity.KbSearchResult;
 import dev.chojo.ember.feature.knowledgebase.entity.KbTag;
 import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
 import dev.chojo.ember.feature.knowledgebase.entity.UrlMetadata;
+import dev.chojo.ember.feature.knowledgebase.repository.KbCommentRepository;
 import dev.chojo.ember.feature.knowledgebase.repository.KnowledgeBaseRepository;
 import dev.chojo.ember.feature.restriction.Restriction;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
@@ -87,6 +90,8 @@ public class KnowledgeBaseService {
     private final FederationService federationService;
     private final FederationRepository federationRepository;
     private final FederationHttpClient federationHttpClient;
+    private final KbCommentRepository kbCommentRepository;
+    private final EventFederationRepository eventFederationRepository;
     private final Parser markdownParser;
     private final HtmlRenderer htmlRenderer;
 
@@ -97,13 +102,17 @@ public class KnowledgeBaseService {
             KbFileStorageService fileStorage,
             FederationService federationService,
             FederationRepository federationRepository,
-            FederationHttpClient federationHttpClient) {
+            FederationHttpClient federationHttpClient,
+            KbCommentRepository kbCommentRepository,
+            EventFederationRepository eventFederationRepository) {
         this.repository = repository;
         this.stationRepository = stationRepository;
         this.fileStorage = fileStorage;
         this.federationService = federationService;
         this.federationRepository = federationRepository;
         this.federationHttpClient = federationHttpClient;
+        this.kbCommentRepository = kbCommentRepository;
+        this.eventFederationRepository = eventFederationRepository;
         List<Extension> extensions = List.of(
                 TablesExtension.create(),
                 HeadingAnchorExtension.create(),
@@ -727,8 +736,7 @@ public class KnowledgeBaseService {
 
     private void browseSharedKbViaHttp(
             int localStationId, FederationPartner partner, int remoteStationId, List<SharedKbItem> result) {
-        var files = federationHttpClient.fetchSharedKbFiles(
-                partner.remoteHost(), localStationId, getPrivateKey(localStationId));
+        var files = fetchSharedKbFiles(partner.remoteHost(), localStationId, getPrivateKey(localStationId));
         for (var remoteFile : files) {
             var summary = new KbFileSummary(
                     remoteFile.id(),
@@ -784,7 +792,7 @@ public class KnowledgeBaseService {
             String query) {
         String privateKey = getPrivateKey(localStationId);
         if (privateKey == null) return List.of();
-        var results = federationHttpClient.searchKb(partner.remoteHost(), localStationId, privateKey, query);
+        var results = searchKb(partner.remoteHost(), localStationId, privateKey, query);
         return results.stream()
                 .map(r -> new FederatedSearchResult(
                         new KbFileSummary(
@@ -801,14 +809,14 @@ public class KnowledgeBaseService {
     public KbFile getFederatedKbFile(int localStationId, UUID partnerStationUid, int fileId) {
         var partner = resolveActivePartner(localStationId, partnerStationUid);
         if (partner.isRemote()) {
-            String json = federationHttpClient.signedGetJson(
-                    partner.remoteHost(), "/remote/kb/files/" + fileId, localStationId, getPrivateKey(localStationId));
-            if (json == null) throw new IllegalStateException("Failed to fetch file from remote partner");
-            try {
-                return federationHttpClient.getMapper().readValue(json, KbFile.class);
-            } catch (Exception e) {
-                throw new IllegalStateException("Failed to parse remote KB file response", e);
-            }
+            var result = federationHttpClient.get(
+                    partner.remoteHost(),
+                    "/remote/kb/files/" + fileId,
+                    localStationId,
+                    getPrivateKey(localStationId),
+                    KbFile.class);
+            if (result == null) throw new IllegalStateException("Failed to fetch file from remote partner");
+            return result;
         }
         var file = findFile(fileId).orElseThrow();
         int partnerStationId = resolvePartnerStationId(partner);
@@ -824,8 +832,7 @@ public class KnowledgeBaseService {
     public String getFederatedKbFileContent(int localStationId, UUID partnerStationUid, int fileId) {
         var partner = resolveActivePartner(localStationId, partnerStationUid);
         if (partner.isRemote()) {
-            return federationHttpClient.fetchKbFileContent(
-                    partner.remoteHost(), fileId, localStationId, getPrivateKey(localStationId));
+            return fetchKbFileContent(partner.remoteHost(), fileId, localStationId, getPrivateKey(localStationId));
         }
         var file = findFile(fileId).orElseThrow();
         int partnerStationId = resolvePartnerStationId(partner);
@@ -840,8 +847,7 @@ public class KnowledgeBaseService {
         String content;
         var partner = findPartnerForStation(targetStationId, source.stationId());
         if (partner != null && partner.isRemote()) {
-            content = federationHttpClient.fetchKbFileContent(
-                    partner.remoteHost(), fileId, targetStationId, getPrivateKey(targetStationId));
+            content = fetchKbFileContent(partner.remoteHost(), fileId, targetStationId, getPrivateKey(targetStationId));
         } else {
             content = getMarkdownContent(fileId).orElse("");
         }
@@ -911,4 +917,52 @@ public class KnowledgeBaseService {
     public record SharedKbItem(KbFileSummary file, int sourceStationId, int partnerId) {}
 
     public record FederatedSearchResult(KbFileSummary file, String snippet, String stationName, String stationUid) {}
+
+    // -- Federation HTTP convenience methods --
+
+    public List<RemoteKbFile> fetchSharedKbFiles(String remoteHost, int localStationId, String localPrivateKeyBase64) {
+        return federationHttpClient.getList(
+                remoteHost, "/remote/kb/browse", localStationId, localPrivateKeyBase64, RemoteKbFile.class);
+    }
+
+    public List<RemoteKbSearchResult> searchKb(
+            String remoteHost, int localStationId, String localPrivateKeyBase64, String query) {
+        return federationHttpClient.getList(
+                remoteHost,
+                "/remote/kb/search?q=" + URLEncoder.encode(query, StandardCharsets.UTF_8),
+                localStationId,
+                localPrivateKeyBase64,
+                RemoteKbSearchResult.class);
+    }
+
+    public String fetchKbFileContent(String remoteHost, int fileId, int localStationId, String localPrivateKeyBase64) {
+        var remoteContent = federationHttpClient.get(
+                remoteHost,
+                "/remote/kb/file/" + fileId + "/content",
+                localStationId,
+                localPrivateKeyBase64,
+                RemoteKbContent.class);
+        if (remoteContent == null || remoteContent.content() == null) return "";
+        return remoteContent.content();
+    }
+
+    public record RemoteKbSearchResult(int id, String name, String description, String snippet) {}
+
+    public record RemoteKbFile(int id, String name, String description, String fileType) {}
+
+    public record RemoteKbContent(int fileId, String content) {}
+
+    // -- KB Comments --
+
+    public KbComment createComment(int fileId, Integer parentId, int authorId, String content) {
+        return kbCommentRepository.create(fileId, parentId, authorId, content);
+    }
+
+    public KbComment createRemoteComment(
+            int fileId, int partnerId, UUID remoteMemberUid, String displayName, Integer parentId, String content) {
+        var comment = kbCommentRepository.create(fileId, parentId, null, content);
+        kbCommentRepository.setFederatedAuthor(comment.id(), partnerId, remoteMemberUid);
+        eventFederationRepository.cacheName(partnerId, remoteMemberUid, displayName);
+        return comment;
+    }
 }

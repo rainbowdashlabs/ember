@@ -708,19 +708,31 @@ public class DemoBoardSeeder {
         boardRepo.addLabelToTicket(t7, labelUebung.id());
 
         // Federated comments (from partner members — use admin as local author, mark as federated)
-        var fc1 = ticketRepo.createComment(t1, null, admin.id(), "Bei uns passt der 20. Juli auch! Wir sind dabei.");
+        var fc1 = ticketRepo.createComment(t1, null, null, "Bei uns passt der 20. Juli auch! Wir sind dabei.");
         federatedBoardRepo.setFederatedCommentAuthor(fc1.id(), partner.id(), partnerMember1);
 
-        var fc2 =
-                ticketRepo.createComment(t4, null, admin.id(), "Wir können 4 Jugendliche und einen Betreuer schicken.");
+        var fc2 = ticketRepo.createComment(t4, null, null, "Wir können 4 Jugendliche und einen Betreuer schicken.");
         federatedBoardRepo.setFederatedCommentAuthor(fc2.id(), partner.id(), partnerMember1);
 
-        var fc3 = ticketRepo.createComment(
-                t5, null, admin.id(), "Strahlrohre sind kein Problem, wir bringen 3 Stück mit.");
+        var fc3 = ticketRepo.createComment(t5, null, null, "Strahlrohre sind kein Problem, wir bringen 3 Stück mit.");
         federatedBoardRepo.setFederatedCommentAuthor(fc3.id(), partner.id(), partnerMember2);
 
-        var fc4 = ticketRepo.createComment(t6, null, admin.id(), "Wasser und Apfelsaft sind bestellt.");
+        var fc4 = ticketRepo.createComment(t6, null, null, "Wasser und Apfelsaft sind bestellt.");
         federatedBoardRepo.setFederatedCommentAuthor(fc4.id(), partner.id(), partnerMember1);
+
+        // -- Comments from primary station members on federated tickets --
+        ticketRepo.createComment(
+                t6, null, admin.id(), "Könntet ihr auch vegetarische Optionen einplanen? Wir haben zwei Vegetarier.");
+        if (!teamMembers.isEmpty()) {
+            ticketRepo.createComment(
+                    t7, null, teamMembers.getFirst().id(), "Super, wir kommen am Samstag um 8 Uhr zum Aufbauen.");
+        }
+
+        // Reply thread: local member posts, partner replies
+        var localComment =
+                ticketRepo.createComment(t1, null, admin.id(), "Termin steht: 20. Juli, passt das bei euch?");
+        var partnerReply = ticketRepo.createComment(t1, localComment.id(), null, "Passt perfekt! Wir blocken den Tag.");
+        federatedBoardRepo.setFederatedCommentAuthor(partnerReply.id(), partner.id(), partnerMember1);
 
         // Checklist on t1
         ticketRepo.createChecklistItem(t1, "Termin abstimmen", 0);

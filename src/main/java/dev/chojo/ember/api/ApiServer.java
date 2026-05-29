@@ -19,6 +19,7 @@ import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.system.service.ApiRequestLogger;
 import dev.chojo.ember.feature.system.service.DemoService;
+import dev.chojo.ember.util.DevErrorWriter;
 import io.javalin.Javalin;
 import io.javalin.config.RoutesConfig;
 import io.javalin.http.BadRequestResponse;
@@ -230,6 +231,10 @@ public class ApiServer {
                 config.routes.get(API_PREFIX + "/demo/accounts", this::handleDemoAccounts);
             }
 
+            if (demoConfig.dev()) {
+                config.routes.post(API_PREFIX + "/dev/errors", this::handleDevErrorReport);
+            }
+
             for (Routes route : routes) {
                 route.register(config.routes, API_PREFIX);
             }
@@ -266,6 +271,17 @@ public class ApiServer {
     /**
      * Serves the list of demo accounts with their roles, groups, and tags for the demo login page.
      */
+    private void handleDevErrorReport(@NotNull Context ctx) {
+        record ErrorReport(String source, String message, String stack, String context) {}
+        var report = ctx.bodyAsClass(ErrorReport.class);
+        DevErrorWriter.writeFrontend(
+                report.source() != null ? report.source() : "unknown",
+                report.message() != null ? report.message() : "",
+                report.stack() != null ? report.stack() : "",
+                report.context() != null ? report.context() : "");
+        ctx.status(HttpStatus.NO_CONTENT);
+    }
+
     private void handleDemoAccounts(@NotNull Context ctx) {
         var allStations = stationRepository.findAll();
         if (allStations.isEmpty()) {
@@ -453,10 +469,16 @@ public class ApiServer {
      * Registers exception handlers that convert exceptions into standardized JSON error responses.
      */
     private void setupExceptionHandlers(RoutesConfig routes) {
+        boolean devErrors = demoConfig.dev();
+
         routes.exception(ApiException.class, (err, ctx) -> {
             int code = err.status().getCode();
             if (code >= 500) {
                 log.error("API error {} on {} {}: {}", code, ctx.method(), ctx.path(), err.getMessage(), err);
+                if (devErrors) DevErrorWriter.write(err, ctx.method() + " " + ctx.path());
+            } else if (code == 404) {
+                log.warn("API 404 on {} {}: {}", ctx.method(), ctx.path(), err.getMessage());
+                if (devErrors) DevErrorWriter.write(err, ctx.method() + " " + ctx.path());
             } else if (code >= 400 && code != 401) {
                 log.warn("API error {} on {} {}: {}", code, ctx.method(), ctx.path(), err.getMessage());
             }
@@ -468,6 +490,10 @@ public class ApiServer {
             int code = err.getStatus();
             if (code >= 500) {
                 log.error("HTTP {} on {} {}: {}", code, ctx.method(), ctx.path(), err.getMessage(), err);
+                if (devErrors) DevErrorWriter.write(err, ctx.method() + " " + ctx.path());
+            } else if (code == 404) {
+                log.warn("HTTP 404 on {} {}: {}", ctx.method(), ctx.path(), err.getMessage());
+                if (devErrors) DevErrorWriter.write(err, ctx.method() + " " + ctx.path());
             } else if (code >= 400 && code != 401) {
                 log.warn("HTTP {} on {} {}: {}", code, ctx.method(), ctx.path(), err.getMessage());
             }
@@ -483,6 +509,7 @@ public class ApiServer {
 
         routes.exception(Exception.class, (err, ctx) -> {
             log.error("Unhandled exception on route {} {}", ctx.method(), ctx.path(), err);
+            if (devErrors) DevErrorWriter.write(err, ctx.method() + " " + ctx.path());
             ctx.json(new ErrorResponseWrapper("Internal Server Error")).status(HttpStatus.INTERNAL_SERVER_ERROR);
         });
     }

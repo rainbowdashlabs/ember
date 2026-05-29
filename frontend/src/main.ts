@@ -203,11 +203,19 @@ library.add(faSun, faMoon, faCheck, faAngleDown, faAngleUp, faAnglesDown, faAngl
 
 import {useTheme} from '@/composables/useTheme'
 
+import {installDevErrorHandlers} from '@/util/devErrorReporter'
+
 initTokenRefresh()
 useTheme().initFromLocalStorage()
 
-createApp(App)
+const app = createApp(App)
     .component('font-awesome-icon', FontAwesomeIcon)
     .use(router)
     .use(i18n)
-    .mount('#app')
+
+const devErrorHandler = installDevErrorHandlers()
+if (devErrorHandler) {
+    app.config.errorHandler = devErrorHandler
+}
+
+app.mount('#app')

@@ -139,7 +139,7 @@ public class EventFederationRepository {
             int eventId, int partnerId, UUID remoteMemberId, LocalDate eventDate) {
         return Query.query("""
                         INSERT INTO event_federation_registration(event_id, partner_id, remote_member_id, event_date)
-                        VALUES (:event_id, :partner_id, :remote_member_id, :event_date)
+                        VALUES (:event_id, :partner_id, :remote_member_id::uuid, :event_date)
                         RETURNING id, event_id, partner_id, remote_member_id, event_date, status, created_at;""")
                 .single(Call.of()
                         .bind("event_id", eventId)
@@ -221,7 +221,7 @@ public class EventFederationRepository {
         return Query.query("""
                         DELETE FROM event_federation_registration
                         WHERE event_id = :event_id AND partner_id = :partner_id
-                          AND remote_member_id = :remote_member_id AND event_date = :event_date;""")
+                          AND remote_member_id = :remote_member_id::uuid AND event_date = :event_date;""")
                 .single(Call.of()
                         .bind("event_id", eventId)
                         .bind("partner_id", partnerId)
@@ -243,7 +243,7 @@ public class EventFederationRepository {
     public void cacheName(int partnerId, UUID remoteMemberId, String displayName) {
         Query.query("""
                         INSERT INTO federation_member_name_cache(partner_id, remote_member_id, display_name)
-                        VALUES (:partner_id, :remote_member_id, :display_name)
+                        VALUES (:partner_id, :remote_member_id::uuid, :display_name)
                         ON CONFLICT (partner_id, remote_member_id) DO UPDATE SET display_name = :display_name, cached_at = now();""")
                 .single(Call.of()
                         .bind("partner_id", partnerId)
@@ -261,7 +261,7 @@ public class EventFederationRepository {
      */
     public Optional<String> getCachedName(int partnerId, UUID remoteMemberId) {
         return Query.query(
-                        "SELECT display_name FROM federation_member_name_cache WHERE partner_id = :partner_id AND remote_member_id = :remote_member_id;")
+                        "SELECT display_name FROM federation_member_name_cache WHERE partner_id = :partner_id AND remote_member_id = :remote_member_id::uuid;")
                 .single(Call.of()
                         .bind("partner_id", partnerId)
                         .bind("remote_member_id", remoteMemberId, StandardValueConverter.UUID_STRING))
@@ -277,7 +277,7 @@ public class EventFederationRepository {
      */
     public void invalidateName(int partnerId, UUID remoteMemberId) {
         Query.query(
-                        "DELETE FROM federation_member_name_cache WHERE partner_id = :partner_id AND remote_member_id = :remote_member_id;")
+                        "DELETE FROM federation_member_name_cache WHERE partner_id = :partner_id AND remote_member_id = :remote_member_id::uuid;")
                 .single(Call.of()
                         .bind("partner_id", partnerId)
                         .bind("remote_member_id", remoteMemberId, StandardValueConverter.UUID_STRING))

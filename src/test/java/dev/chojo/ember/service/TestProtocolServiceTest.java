@@ -458,8 +458,13 @@ class TestProtocolServiceTest extends RepositoryTestBase {
     @Test
     @Order(240)
     void browseSharedProtocolsViaHttp() {
-        when(httpClient.fetchSharedProtocols(eq("https://remote-proto.example.com"), eq(station.id()), any()))
-                .thenReturn(List.of(new FederationHttpClient.RemoteProtocol(99, "RemoteProto", "remote desc")));
+        when(httpClient.getList(
+                        eq("https://remote-proto.example.com"),
+                        eq("/remote/protocols"),
+                        eq(station.id()),
+                        any(),
+                        eq(TestProtocolService.RemoteProtocol.class)))
+                .thenReturn(List.of(new TestProtocolService.RemoteProtocol(99, "RemoteProto", "remote desc")));
         var items = service.browseSharedProtocols(station.id());
         assertTrue(items.stream().anyMatch(i -> i.name().equals("RemoteProto")));
     }
@@ -467,12 +472,14 @@ class TestProtocolServiceTest extends RepositoryTestBase {
     @Test
     @Order(241)
     void getFederatedProtocolRemote() {
-        String json = "{\"protocol\":{\"id\":77},\"sections\":[],\"items\":[]}";
-        when(httpClient.signedGetJson(
-                        eq("https://remote-proto.example.com"), eq("/remote/protocols/77"), eq(station.id()), any()))
-                .thenReturn(json);
-        when(httpClient.getMapper())
-                .thenReturn(tools.jackson.databind.json.JsonMapper.builder().build());
+        var remoteResult = Map.of("protocol", (Object) Map.of("id", 77), "sections", List.of(), "items", List.of());
+        when(httpClient.get(
+                        eq("https://remote-proto.example.com"),
+                        eq("/remote/protocols/77"),
+                        eq(station.id()),
+                        any(),
+                        any()))
+                .thenReturn(remoteResult);
         var result = service.getFederatedProtocol(station.id(), stationC.uid(), 77);
         assertNotNull(result);
         assertTrue(result.containsKey("protocol"));

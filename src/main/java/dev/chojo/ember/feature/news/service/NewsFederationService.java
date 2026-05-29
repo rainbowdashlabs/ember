@@ -5,12 +5,16 @@
  */
 package dev.chojo.ember.feature.news.service;
 
+import dev.chojo.ember.feature.account.repository.AccountRepository;
+import dev.chojo.ember.feature.events.repository.EventFederationRepository;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.entity.FederationPartner.FederationStatus;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.service.FederationHttpClient;
 import dev.chojo.ember.feature.federation.service.FederationService;
+import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.news.entity.News;
+import dev.chojo.ember.feature.news.entity.NewsComment;
 import dev.chojo.ember.feature.news.entity.NewsCommentFederatedAuthor;
 import dev.chojo.ember.feature.news.entity.NewsFederationShare;
 import dev.chojo.ember.feature.news.repository.NewsFederationRepository;
@@ -22,9 +26,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -42,6 +44,9 @@ public class NewsFederationService {
     private final FederationHttpClient httpClient;
     private final StationRepository stationRepository;
     private final NewsService newsService;
+    private final StationMemberRepository stationMemberRepository;
+    private final AccountRepository accountRepository;
+    private final EventFederationRepository eventFederationRepository;
 
     @Inject
     public NewsFederationService(
@@ -50,13 +55,19 @@ public class NewsFederationService {
             FederationRepository partnerRepository,
             FederationHttpClient httpClient,
             StationRepository stationRepository,
-            NewsService newsService) {
+            NewsService newsService,
+            StationMemberRepository stationMemberRepository,
+            AccountRepository accountRepository,
+            EventFederationRepository eventFederationRepository) {
         this.federationRepository = federationRepository;
         this.federationService = federationService;
         this.partnerRepository = partnerRepository;
         this.httpClient = httpClient;
         this.stationRepository = stationRepository;
         this.newsService = newsService;
+        this.stationMemberRepository = stationMemberRepository;
+        this.accountRepository = accountRepository;
+        this.eventFederationRepository = eventFederationRepository;
     }
 
     // -- Share management --
@@ -140,6 +151,25 @@ public class NewsFederationService {
     }
 
     /**
+     * Creates a comment from a remote federated member on a news article.
+     * Stores the comment with {@code authorId=null}, records the federated author mapping,
+     * and caches the display name.
+     */
+    public NewsComment createRemoteComment(
+            int stationId,
+            int newsId,
+            int partnerId,
+            UUID remoteMemberUid,
+            String displayName,
+            Integer parentId,
+            String content) {
+        var comment = newsService.createComment(stationId, newsId, parentId, null, displayName, content);
+        federationRepository.setFederatedCommentAuthor(comment.id(), partnerId, remoteMemberUid);
+        eventFederationRepository.cacheName(partnerId, remoteMemberUid, displayName);
+        return comment;
+    }
+
+    /**
      * Finds the federated author for a news comment.
      *
      * @param commentId the local comment ID
@@ -184,19 +214,40 @@ public class NewsFederationService {
         for (int newsId : newsIds) {
             newsService.findById(newsId).ifPresent(n -> {
                 String visibilityRole = findVisibilityRole(newsId).orElse("MEMBER");
-                items.add(
-                        new FederatedNewsItem(partner.id(), partnerStationName(partner), toNewsMap(n, visibilityRole)));
+                items.add(new FederatedNewsItem(
+                        partner.id(),
+                        partnerStationName(partner),
+                        partner.partnerStationId().toString(),
+                        toNewsData(n, visibilityRole)));
             });
         }
         return items;
     }
 
-    @SuppressWarnings("unchecked")
     private List<FederatedNewsItem> browseNewsViaHttp(Station localStation, FederationPartner partner) {
-        var remoteNews = httpClient.signedGetList(
-                partner.remoteHost(), "/remote/news", localStation.id(), localStation.federationPrivateKey());
+        var remoteNews = httpClient.getList(
+                partner.remoteHost(),
+                "/remote/news",
+                localStation.id(),
+                localStation.federationPrivateKey(),
+                RemoteNewsListEntry.class);
         return remoteNews.stream()
-                .map(news -> new FederatedNewsItem(partner.id(), partnerStationName(partner), news))
+                .map(entry -> {
+                    var data = new FederatedNewsData(
+                            entry.id(),
+                            entry.title(),
+                            "",
+                            entry.contentHtml() != null ? entry.contentHtml() : "",
+                            entry.authorName() != null ? entry.authorName() : "",
+                            entry.publishedAt(),
+                            entry.commentCount(),
+                            entry.visibilityRole());
+                    return new FederatedNewsItem(
+                            partner.id(),
+                            partnerStationName(partner),
+                            partner.partnerStationId().toString(),
+                            data);
+                })
                 .toList();
     }
 
@@ -204,8 +255,7 @@ public class NewsFederationService {
      * Fetches a single federated news article by partner station UUID and news ID.
      * Transparently handles local and remote partners.
      */
-    @SuppressWarnings("unchecked")
-    public Map<String, Object> getFederatedNews(int localStationId, UUID partnerStationUid, int newsId) {
+    public FederatedNewsData getFederatedNews(int localStationId, UUID partnerStationUid, int newsId) {
         var partner = partnerRepository
                 .findPartnerByStationAndRemoteUid(localStationId, partnerStationUid)
                 .orElseThrow(() -> new IllegalArgumentException("Unknown partner"));
@@ -213,20 +263,17 @@ public class NewsFederationService {
             throw new IllegalArgumentException("Partner is not active");
         }
         if (partner.isRemote()) {
-            String json = httpClient.signedGetJson(
+            var result = httpClient.get(
                     partner.remoteHost(),
                     "/remote/news/" + newsId,
                     localStationId,
                     stationRepository
                             .findById(localStationId)
                             .map(Station::federationPrivateKey)
-                            .orElse(null));
-            if (json == null) throw new IllegalStateException("Failed to fetch news from remote partner");
-            try {
-                return httpClient.getMapper().readValue(json, Map.class);
-            } catch (Exception e) {
-                throw new IllegalStateException("Failed to parse remote news response", e);
-            }
+                            .orElse(null),
+                    FederatedNewsData.class);
+            if (result == null) throw new IllegalStateException("Failed to fetch news from remote partner");
+            return result;
         }
         int partnerStationId = stationRepository
                 .findByUid(partner.partnerStationId())
@@ -240,7 +287,7 @@ public class NewsFederationService {
                 .findById(newsId)
                 .map(n -> {
                     String visibilityRole = findVisibilityRole(newsId).orElse("MEMBER");
-                    return toNewsMap(n, visibilityRole);
+                    return toNewsData(n, visibilityRole);
                 })
                 .orElseThrow();
     }
@@ -252,16 +299,21 @@ public class NewsFederationService {
                 .orElse("?");
     }
 
-    private Map<String, Object> toNewsMap(News n, String visibilityRole) {
-        var map = new HashMap<String, Object>();
-        map.put("id", n.id());
-        map.put("title", n.title());
-        map.put("contentMarkdown", n.contentMarkdown() != null ? n.contentMarkdown() : "");
-        map.put("contentHtml", n.contentHtml() != null ? n.contentHtml() : "");
-        map.put("publishedAt", n.publishedAt() != null ? n.publishedAt().toString() : "");
-        map.put("commentCount", newsService.countComments(n.id()));
-        map.put("visibilityRole", visibilityRole);
-        return map;
+    private FederatedNewsData toNewsData(News n, String visibilityRole) {
+        String authorName = stationMemberRepository
+                .findById(n.authorId())
+                .flatMap(m -> accountRepository.findById(m.accountId()))
+                .map(a -> (a.firstName() + " " + a.lastName()).trim())
+                .orElse("");
+        return new FederatedNewsData(
+                n.id(),
+                n.title(),
+                n.contentMarkdown() != null ? n.contentMarkdown() : "",
+                n.contentHtml() != null ? n.contentHtml() : "",
+                authorName,
+                n.publishedAt() != null ? n.publishedAt().toString() : "",
+                newsService.countComments(n.id()),
+                visibilityRole);
     }
 
     private <T> List<T> collectResults(List<CompletableFuture<List<T>>> futures) {
@@ -285,5 +337,25 @@ public class NewsFederationService {
     /**
      * A federated news item with partner info.
      */
-    public record FederatedNewsItem(int partnerId, String partnerStationName, Object news) {}
+    public record FederatedNewsItem(
+            int partnerId, String partnerStationName, String partnerStationUid, FederatedNewsData news) {}
+
+    public record FederatedNewsData(
+            int id,
+            String title,
+            String contentMarkdown,
+            String contentHtml,
+            String authorName,
+            String publishedAt,
+            int commentCount,
+            String visibilityRole) {}
+
+    private record RemoteNewsListEntry(
+            int id,
+            String title,
+            String contentHtml,
+            String authorName,
+            String publishedAt,
+            int commentCount,
+            String visibilityRole) {}
 }

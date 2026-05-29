@@ -13,6 +13,7 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import IconButton from '@/components/button/IconButton.vue'
 import MemberName from '@/components/avatar/MemberName.vue'
+import StationBadge from '@/components/badge/StationBadge.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import {useSession} from '@/composables/useSession'
 
@@ -33,7 +34,13 @@ const emit = defineEmits<{
 const {t} = useI18n()
 const {sessionInfo, hasRole} = useSession()
 const currentMemberId = computed(() => sessionInfo.value?.member?.id ?? 0)
+const currentStationId = computed(() => sessionInfo.value?.stationId ?? '')
 const isManager = computed(() => hasRole('EVENT_MANAGER') || hasRole('MANAGER'))
+
+function isExternalAuthor(comment: Comment): boolean {
+  if (!comment.authorStationId) return false
+  return comment.authorStationId !== currentStationId.value
+}
 
 const replyingTo = ref<number | null>(null)
 const replyContent = ref('')
@@ -50,9 +57,7 @@ function childrenOf(commentId: number): Comment[] {
 }
 
 function memberName(comment: Comment): string {
-  if (comment.federatedAuthor) {
-    return `${comment.federatedAuthor.displayName} (${comment.federatedAuthor.stationName})`
-  }
+  if (comment.federatedAuthor) return comment.federatedAuthor.displayName
   if (comment.authorName) return comment.authorName
   const m = props.members.find(m => m.id === comment.authorId)
   if (!m) return `#${comment.authorId}`
@@ -139,6 +144,7 @@ const maxDepth = 6
       <div v-else-if="editingId !== comment.id" class="space-y-1">
         <div class="flex items-center gap-2">
           <MemberName :name="memberName(comment)" :member-id="comment.authorId" class="text-sm font-medium"/>
+          <StationBadge v-if="isExternalAuthor(comment)" :station-name="comment.authorStationName ?? comment.federatedAuthor?.stationName ?? ''"/>
           <MutedText size="xs">{{ formatDate(comment.createdAt) }}</MutedText>
           <MutedText v-if="comment.updatedAt" size="xs">({{ t('comments.edited') }})</MutedText>
         </div>

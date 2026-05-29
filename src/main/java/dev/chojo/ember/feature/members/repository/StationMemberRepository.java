@@ -42,7 +42,7 @@ public class StationMemberRepository {
      * Finds a station member by its UUID within a station.
      */
     public Optional<StationMember> findByUid(int stationId, UUID uid) {
-        return Query.query("SELECT * FROM station_member WHERE station_id = :station_id AND uid = :uid;")
+        return Query.query("SELECT * FROM station_member WHERE station_id = :station_id AND uid = :uid::uuid;")
                 .single(Call.of().bind("station_id", stationId).bind("uid", uid, StandardValueConverter.UUID_STRING))
                 .map(StationMember.map())
                 .first();

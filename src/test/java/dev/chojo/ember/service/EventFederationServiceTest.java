@@ -7,6 +7,7 @@ package dev.chojo.ember.service;
 
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.event.DomainEventBus;
+import dev.chojo.ember.feature.comment.service.CommentService;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
 import dev.chojo.ember.feature.events.service.EventFederationService;
@@ -46,6 +47,7 @@ class EventFederationServiceTest extends RepositoryTestBase {
     private static FederationRepository federationRepo;
     private static EventFederationRepository eventFederationRepo;
     private static FederationHttpClient httpClient;
+    private static CommentService commentService;
 
     private static Station stationA;
     private static Station stationB;
@@ -61,8 +63,18 @@ class EventFederationServiceTest extends RepositoryTestBase {
         httpClient = mock(FederationHttpClient.class);
         var eventBus = new DomainEventBus(Set.of());
         eventService = new EventService(eventRepo, restrictionRepo, eventBus);
+        commentService = new CommentService(eventCommentRepo, eventBus);
         service = new EventFederationService(
-                eventFederationRepo, federationService, httpClient, federationRepo, stationRepo, eventService);
+                eventFederationRepo,
+                federationService,
+                httpClient,
+                federationRepo,
+                stationRepo,
+                eventService,
+                commentService,
+                eventCommentRepo,
+                stationMemberRepo,
+                accountRepo);
 
         stationA = stationRepo.create("EventFedSvcStationA");
         stationB = stationRepo.create("EventFedSvcStationB");
@@ -327,7 +339,8 @@ class EventFederationServiceTest extends RepositoryTestBase {
     @Test
     @Order(34)
     void federatedEventItemRecord() {
-        var item = new EventFederationService.FederatedEventItem(42, "TestStation", Map.of("id", 1));
+        var item = new EventFederationService.FederatedEventItem(
+                42, "TestStation", "00000000-0000-0000-0000-000000000042", Map.of("id", 1));
         assertEquals(42, item.partnerId());
         assertEquals("TestStation", item.partnerStationName());
         assertEquals(Map.of("id", 1), item.event());
@@ -342,7 +355,7 @@ class EventFederationServiceTest extends RepositoryTestBase {
         service.setShare(eventId, "ALL_PARTNERS", List.of());
 
         // Mock HTTP response for remote partner (stationC)
-        var remoteEvent = new FederationHttpClient.RemoteFederatedEvent(
+        var remoteEvent = new EventFederationService.RemoteFederatedEvent(
                 9999,
                 "Remote Event",
                 "Remote desc",
@@ -352,7 +365,12 @@ class EventFederationServiceTest extends RepositoryTestBase {
                 Instant.now().plus(2, ChronoUnit.HOURS).toString(),
                 true,
                 false);
-        when(httpClient.fetchFederatedEvents(eq("https://remote-event.example.com"), eq(stationA.id()), any()))
+        when(httpClient.getList(
+                        eq("https://remote-event.example.com"),
+                        eq("/remote/events"),
+                        eq(stationA.id()),
+                        any(),
+                        eq(EventFederationService.RemoteFederatedEvent.class)))
                 .thenReturn(List.of(remoteEvent));
 
         // browseFederatedEvents(stationA.id()) finds partners: stationB (local) and stationC (remote)
@@ -360,12 +378,18 @@ class EventFederationServiceTest extends RepositoryTestBase {
         assertFalse(items.isEmpty(), "Should include events from local and/or remote partners");
 
         // Verify HTTP client was called for the remote partner
-        verify(httpClient).fetchFederatedEvents(eq("https://remote-event.example.com"), eq(stationA.id()), any());
+        verify(httpClient)
+                .getList(
+                        eq("https://remote-event.example.com"),
+                        eq("/remote/events"),
+                        eq(stationA.id()),
+                        any(),
+                        eq(EventFederationService.RemoteFederatedEvent.class));
 
         // Should contain the remote event
         assertTrue(
                 items.stream().anyMatch(i -> {
-                    if (i.event() instanceof FederationHttpClient.RemoteFederatedEvent re) {
+                    if (i.event() instanceof EventFederationService.RemoteFederatedEvent re) {
                         return re.id() == 9999 && re.name().equals("Remote Event");
                     }
                     return false;
@@ -379,15 +403,14 @@ class EventFederationServiceTest extends RepositoryTestBase {
         // stationA sees stationC as remote partner
         // getFederatedEvent(stationA.id(), stationC.uid(), eventId) should call HTTP
 
-        String json = "{\"id\":" + eventId + ",\"name\":\"Remote Event\",\"description\":\"desc\"}";
-        when(httpClient.signedGetJson(
+        var remoteEvent = java.util.Map.of("id", (Object) eventId, "name", "Remote Event", "description", "desc");
+        when(httpClient.get(
                         eq("https://remote-event.example.com"),
                         eq("/remote/events/" + eventId),
                         eq(stationA.id()),
+                        any(),
                         any()))
-                .thenReturn(json);
-        when(httpClient.getMapper())
-                .thenReturn(tools.jackson.databind.json.JsonMapper.builder().build());
+                .thenReturn(remoteEvent);
 
         var result = service.getFederatedEvent(stationA.id(), stationC.uid(), eventId);
         assertNotNull(result);
@@ -395,10 +418,11 @@ class EventFederationServiceTest extends RepositoryTestBase {
         assertEquals("Remote Event", result.get("name"));
 
         verify(httpClient)
-                .signedGetJson(
+                .get(
                         eq("https://remote-event.example.com"),
                         eq("/remote/events/" + eventId),
                         eq(stationA.id()),
+                        any(),
                         any());
     }
 
@@ -406,10 +430,11 @@ class EventFederationServiceTest extends RepositoryTestBase {
     @Order(42)
     void getFederatedEventRemoteReturnsNull() {
         // When the HTTP call returns null, the service should throw
-        when(httpClient.signedGetJson(
+        when(httpClient.get(
                         eq("https://remote-event.example.com"),
                         eq("/remote/events/" + eventId),
                         eq(stationA.id()),
+                        any(),
                         any()))
                 .thenReturn(null);
 
@@ -440,7 +465,12 @@ class EventFederationServiceTest extends RepositoryTestBase {
     void browseFederatedEventsRemoteReturnsEmptyLocalHasNone() {
         // stationA has stationB (local, no events) and stationC (remote)
         // When remote returns empty, result should be empty (stationB has no events to share)
-        when(httpClient.fetchFederatedEvents(eq("https://remote-event.example.com"), eq(stationA.id()), any()))
+        when(httpClient.getList(
+                        eq("https://remote-event.example.com"),
+                        eq("/remote/events"),
+                        eq(stationA.id()),
+                        any(),
+                        eq(EventFederationService.RemoteFederatedEvent.class)))
                 .thenReturn(List.of());
 
         var items = service.browseFederatedEvents(stationA.id());

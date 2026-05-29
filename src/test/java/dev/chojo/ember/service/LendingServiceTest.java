@@ -204,7 +204,7 @@ class LendingServiceTest extends RepositoryTestBase {
         assertTrue(messages.stream().anyMatch(m -> m.senderStationId() == stationB.id()));
 
         // Verify HTTP client was never called (local partner)
-        verify(httpClient, never()).fetchRemoteMessages(anyString(), anyInt(), anyInt(), anyString());
+        verify(httpClient, never()).getList(anyString(), anyString(), anyInt(), anyString(), any());
     }
 
     @Test
@@ -230,7 +230,12 @@ class LendingServiceTest extends RepositoryTestBase {
         // Mock remote messages from C
         var remoteMsg = new LendingMessage(
                 9999, req.id(), stationC.id(), memberC.id(), "Remote msg from C", false, Instant.now());
-        when(httpClient.fetchRemoteMessages(eq("https://remote.example.com"), eq(req.id()), eq(stationA.id()), any()))
+        when(httpClient.getList(
+                        eq("https://remote.example.com"),
+                        eq("/remote/lending/messages/" + req.id()),
+                        eq(stationA.id()),
+                        any(),
+                        eq(LendingMessage.class)))
                 .thenReturn(List.of(remoteMsg));
 
         // Set federation private key on station A so the service can call HTTP
@@ -244,7 +249,12 @@ class LendingServiceTest extends RepositoryTestBase {
 
         // Verify HTTP client was called for the remote partner
         verify(httpClient)
-                .fetchRemoteMessages(eq("https://remote.example.com"), eq(req.id()), eq(stationA.id()), any());
+                .getList(
+                        eq("https://remote.example.com"),
+                        eq("/remote/lending/messages/" + req.id()),
+                        eq(stationA.id()),
+                        any(),
+                        eq(LendingMessage.class));
 
         // Cleanup
         federationService.endFederation(partner.id());
@@ -530,8 +540,12 @@ class LendingServiceTest extends RepositoryTestBase {
                 8001, req.id(), stationR.id(), memberR.id(), "Remote early", false, now.minusSeconds(60));
         var lateMsg = new LendingMessage(
                 8002, req.id(), stationR.id(), memberR.id(), "Remote late", false, now.plusSeconds(60));
-        when(httpClient.fetchRemoteMessages(
-                        eq("https://remote-sort.example.com"), eq(req.id()), eq(stationA.id()), any()))
+        when(httpClient.getList(
+                        eq("https://remote-sort.example.com"),
+                        eq("/remote/lending/messages/" + req.id()),
+                        eq(stationA.id()),
+                        any(),
+                        eq(LendingMessage.class)))
                 .thenReturn(List.of(lateMsg, earlyMsg));
 
         // Set federation private key so HTTP call proceeds

@@ -39,7 +39,13 @@ onMounted(async () => {
       {{ t('eventsUpcoming.federated') }}
     </SectionHeader>
     <div class="space-y-2">
-      <NeutralContainer v-for="fed in federatedEvents" :key="`fed-${fed.partnerId}-${fed.event.id}`" class="space-y-1">
+      <router-link
+          v-for="fed in federatedEvents"
+          :key="`fed-${fed.partnerId}-${fed.event.id}`"
+          :to="{ name: 'federated-event-detail', params: { stationUid: fed.partnerStationUid, eventId: fed.event.id } }"
+          class="block"
+      >
+      <NeutralContainer class="space-y-1 hover:border-(--accent) transition-colors">
         <div class="flex items-center justify-between flex-wrap gap-2">
           <div>
             <span class="font-medium">{{ fed.event.name }}</span>
@@ -50,6 +56,7 @@ onMounted(async () => {
         </div>
         <p v-if="fed.event.description" class="text-sm text-(--text-muted)">{{ fed.event.description }}</p>
       </NeutralContainer>
+      </router-link>
     </div>
   </div>
 </template>

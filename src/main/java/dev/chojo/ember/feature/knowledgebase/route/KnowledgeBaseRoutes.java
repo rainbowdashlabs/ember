@@ -9,9 +9,14 @@ import dev.chojo.ember.api.FederationSession;
 import dev.chojo.ember.api.MessageResponse;
 import dev.chojo.ember.api.Roles;
 import dev.chojo.ember.api.Routes;
+import dev.chojo.ember.api.StationUidResolver;
 import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.event.DomainEventBus;
+import dev.chojo.ember.event.events.CommentCreated;
+import dev.chojo.ember.event.events.MentionedInComment;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
+import dev.chojo.ember.feature.comment.entity.CommentEntityType;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.entity.FederationShare;
@@ -56,6 +61,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import static org.slf4j.LoggerFactory.getLogger;
@@ -66,6 +72,7 @@ public class KnowledgeBaseRoutes implements Routes {
     private static final long MAX_UPLOAD_SIZE = 50 * 1024 * 1024; // 50 MB
 
     private static final Set<String> ALLOWED_IMAGE_TYPES = Set.of("image/png", "image/jpeg", "image/webp");
+    private static final Pattern MENTION_PATTERN = Pattern.compile("@\\[(\\d+):([^\\]]+)]");
 
     private final KnowledgeBaseService service;
     private final StationMemberRepository stationMemberRepository;
@@ -78,6 +85,7 @@ public class KnowledgeBaseRoutes implements Routes {
     private final KbCommentRepository kbCommentRepository;
     private final EventFederationRepository eventFederationRepository;
     private final FederationHttpClient federationHttpClient;
+    private final DomainEventBus eventBus;
 
     @Inject
     public KnowledgeBaseRoutes(
@@ -91,7 +99,8 @@ public class KnowledgeBaseRoutes implements Routes {
             StationRepository stationRepository,
             KbCommentRepository kbCommentRepository,
             EventFederationRepository eventFederationRepository,
-            FederationHttpClient federationHttpClient) {
+            FederationHttpClient federationHttpClient,
+            DomainEventBus eventBus) {
         this.service = service;
         this.stationMemberRepository = stationMemberRepository;
         this.accountRepository = accountRepository;
@@ -103,6 +112,7 @@ public class KnowledgeBaseRoutes implements Routes {
         this.kbCommentRepository = kbCommentRepository;
         this.eventFederationRepository = eventFederationRepository;
         this.federationHttpClient = federationHttpClient;
+        this.eventBus = eventBus;
     }
 
     private String resolveFolderPath(Integer folderId) {
@@ -1026,6 +1036,43 @@ public class KnowledgeBaseRoutes implements Routes {
         }
         var comment = kbCommentRepository.create(
                 fileId, req.parentId(), session.member().id(), req.content());
+
+        // Publish domain events for notifications
+        int authorId = session.member().id();
+        String authorName = resolveMemberName(authorId);
+        var file = service.findFile(fileId).orElse(null);
+        String fileTitle = file != null ? file.name() : "";
+        String preview = req.content().length() > 100 ? req.content().substring(0, 100) + "..." : req.content();
+
+        Integer parentAuthorId = null;
+        if (req.parentId() != null) {
+            parentAuthorId = kbCommentRepository
+                    .findById(req.parentId())
+                    .map(KbComment::authorId)
+                    .orElse(null);
+        }
+        eventBus.publish(new CommentCreated(
+                session.stationId(),
+                CommentEntityType.KB,
+                fileId,
+                fileTitle,
+                comment.id(),
+                req.parentId(),
+                parentAuthorId,
+                authorId,
+                authorName,
+                preview));
+
+        // Parse @mentions and publish events
+        var matcher = MENTION_PATTERN.matcher(req.content());
+        while (matcher.find()) {
+            int mentionedId = Integer.parseInt(matcher.group(1));
+            if (mentionedId != authorId) {
+                eventBus.publish(new MentionedInComment(
+                        session.stationId(), mentionedId, authorId, authorName, CommentEntityType.KB, fileId));
+            }
+        }
+
         ctx.status(HttpStatus.CREATED).json(toCommentResponse(comment));
     }
 
@@ -1077,7 +1124,7 @@ public class KnowledgeBaseRoutes implements Routes {
         if (req.content() == null || req.content().isBlank()) {
             throw new BadRequestResponse("content is required");
         }
-        var comment = kbCommentRepository.create(fileId, req.parentId(), 0, req.content());
+        var comment = kbCommentRepository.create(fileId, req.parentId(), null, req.content());
         kbCommentRepository.setFederatedAuthor(comment.id(), partner.id(), req.remoteMemberUid());
         eventFederationRepository.cacheName(partner.id(), req.remoteMemberUid(), req.displayName());
         ctx.status(HttpStatus.CREATED).json(toCommentResponse(comment));
@@ -1127,13 +1174,13 @@ public class KnowledgeBaseRoutes implements Routes {
         int fileId = ctx.pathParamAsClass("fileId", Integer.class).get();
 
         if (partner.isRemote()) {
-            String json = federationHttpClient.signedGetJson(
+            var result = federationHttpClient.getList(
                     partner.remoteHost(),
                     "/remote/kb/files/" + fileId + "/comments",
                     station.id(),
-                    station.federationPrivateKey());
-            if (json == null) throw new InternalServerErrorResponse("Failed to fetch comments from partner");
-            ctx.contentType("application/json").result(json);
+                    station.federationPrivateKey(),
+                    KbCommentResponse.class);
+            ctx.json(result);
         } else {
             var comments = kbCommentRepository.findByFile(fileId);
             ctx.json(comments.stream().map(this::toCommentResponse).toList());
@@ -1155,17 +1202,17 @@ public class KnowledgeBaseRoutes implements Routes {
 
         if (partner.isRemote()) {
             var body = new RemoteKbCommentRequest(memberUid, displayName, req.parentId(), req.content());
-            String jsonBody = federationHttpClient.getMapper().writeValueAsString(body);
-            String json = federationHttpClient.signedPostJson(
+            var result = federationHttpClient.post(
                     partner.remoteHost(),
                     "/remote/kb/files/" + fileId + "/comments",
-                    jsonBody,
+                    body,
                     station.id(),
-                    station.federationPrivateKey());
-            if (json == null) throw new InternalServerErrorResponse("Failed to create comment on partner");
-            ctx.status(HttpStatus.CREATED).contentType("application/json").result(json);
+                    station.federationPrivateKey(),
+                    KbCommentResponse.class);
+            if (result == null) throw new InternalServerErrorResponse("Failed to create comment on partner");
+            ctx.status(HttpStatus.CREATED).json(result);
         } else {
-            var comment = kbCommentRepository.create(fileId, req.parentId(), 0, req.content());
+            var comment = kbCommentRepository.create(fileId, req.parentId(), null, req.content());
             kbCommentRepository.setFederatedAuthor(comment.id(), partner.id(), memberUid);
             eventFederationRepository.cacheName(partner.id(), memberUid, displayName);
             ctx.status(HttpStatus.CREATED).json(toCommentResponse(comment));
@@ -1186,15 +1233,15 @@ public class KnowledgeBaseRoutes implements Routes {
 
         if (partner.isRemote()) {
             var body = new RemoteKbCommentUpdateRequest(memberUid, req.content());
-            String jsonBody = federationHttpClient.getMapper().writeValueAsString(body);
-            String json = federationHttpClient.signedPutJson(
+            var result = federationHttpClient.put(
                     partner.remoteHost(),
                     "/remote/kb/comments/" + commentId,
-                    jsonBody,
+                    body,
                     station.id(),
-                    station.federationPrivateKey());
-            if (json == null) throw new InternalServerErrorResponse("Failed to update comment on partner");
-            ctx.contentType("application/json").result(json);
+                    station.federationPrivateKey(),
+                    KbCommentResponse.class);
+            if (result == null) throw new InternalServerErrorResponse("Failed to update comment on partner");
+            ctx.json(result);
         } else {
             var fedAuthor = kbCommentRepository
                     .findFederatedAuthor(commentId)
@@ -1217,7 +1264,7 @@ public class KnowledgeBaseRoutes implements Routes {
         UUID memberUid = session.member().uid();
 
         if (partner.isRemote()) {
-            boolean success = federationHttpClient.signedDeleteRequest(
+            boolean success = federationHttpClient.delete(
                     partner.remoteHost(),
                     "/remote/kb/comments/" + commentId,
                     station.id(),
@@ -1271,6 +1318,8 @@ public class KnowledgeBaseRoutes implements Routes {
                     true,
                     comment.createdAt(),
                     null,
+                    null,
+                    null,
                     null);
         }
 
@@ -1280,13 +1329,14 @@ public class KnowledgeBaseRoutes implements Routes {
             String displayName = eventFederationRepository
                     .getCachedName(fa.partnerId(), fa.remoteMemberId())
                     .orElse("Unknown");
-            String stationName = federationRepository
-                    .findPartnerById(fa.partnerId())
-                    .map(p -> stationRepository
+            var partner = federationRepository.findPartnerById(fa.partnerId());
+            String stationName = partner.map(p -> stationRepository
                             .findByUid(p.partnerStationId())
                             .map(Station::name)
                             .orElse(""))
                     .orElse("");
+            String fedStationId =
+                    partner.map(p -> p.partnerStationId().toString()).orElse(null);
             return new KbCommentResponse(
                     comment.id(),
                     comment.fileId(),
@@ -1298,7 +1348,9 @@ public class KnowledgeBaseRoutes implements Routes {
                     false,
                     comment.createdAt(),
                     comment.updatedAt(),
-                    new KbFederatedAuthorInfo(fa.remoteMemberId(), displayName, stationName));
+                    new KbFederatedAuthorInfo(fa.remoteMemberId(), displayName, stationName),
+                    fedStationId,
+                    stationName);
         }
 
         // Local author
@@ -1308,6 +1360,10 @@ public class KnowledgeBaseRoutes implements Routes {
                 .flatMap(m -> accountRepository.findById(m.accountId()))
                 .map(a -> (a.firstName() + " " + a.lastName()).trim())
                 .orElse("");
+        int authorStationId = memberOpt.map(StationMember::stationId).orElse(0);
+        String authorStationUid = StationUidResolver.instance().resolveToString(authorStationId);
+        String authorStationName =
+                stationRepository.findById(authorStationId).map(Station::name).orElse("");
         return new KbCommentResponse(
                 comment.id(),
                 comment.fileId(),
@@ -1319,7 +1375,9 @@ public class KnowledgeBaseRoutes implements Routes {
                 false,
                 comment.createdAt(),
                 comment.updatedAt(),
-                null);
+                null,
+                authorStationUid,
+                authorStationName);
     }
 
     // -- KB Comment request/response records --
@@ -1347,5 +1405,7 @@ public class KnowledgeBaseRoutes implements Routes {
             boolean deleted,
             Instant createdAt,
             Instant updatedAt,
-            KbFederatedAuthorInfo federatedAuthor) {}
+            KbFederatedAuthorInfo federatedAuthor,
+            String authorStationId,
+            String authorStationName) {}
 }

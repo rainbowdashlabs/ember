@@ -302,8 +302,7 @@ public class TestProtocolService {
 
     private void browseSharedProtocolsViaHttp(
             int localStationId, FederationPartner partner, int remoteStationId, List<SharedProtocolItem> result) {
-        var protocols = federationHttpClient.fetchSharedProtocols(
-                partner.remoteHost(), localStationId, getPrivateKey(localStationId));
+        var protocols = fetchSharedProtocols(partner.remoteHost(), localStationId, getPrivateKey(localStationId));
         for (var remoteProto : protocols) {
             result.add(new SharedProtocolItem(
                     remoteProto.id(), remoteProto.name(), remoteProto.description(), remoteStationId, partner.id()));
@@ -320,17 +319,14 @@ public class TestProtocolService {
     public Map<String, Object> getFederatedProtocol(int localStationId, UUID partnerStationUid, int protocolId) {
         var partner = resolveActivePartner(localStationId, partnerStationUid);
         if (partner.isRemote()) {
-            String json = federationHttpClient.signedGetJson(
+            var result = federationHttpClient.get(
                     partner.remoteHost(),
                     "/remote/protocols/" + protocolId,
                     localStationId,
-                    getPrivateKey(localStationId));
-            if (json == null) throw new IllegalStateException("Failed to fetch protocol from remote partner");
-            try {
-                return federationHttpClient.getMapper().readValue(json, Map.class);
-            } catch (Exception e) {
-                throw new IllegalStateException("Failed to parse remote protocol response", e);
-            }
+                    getPrivateKey(localStationId),
+                    Map.class);
+            if (result == null) throw new IllegalStateException("Failed to fetch protocol from remote partner");
+            return result;
         }
         var protocol = findProtocol(protocolId).orElseThrow();
         int partnerStationId = resolvePartnerStationId(partner);
@@ -432,4 +428,14 @@ public class TestProtocolService {
     }
 
     public record SharedProtocolItem(int id, String name, String description, int sourceStationId, int partnerId) {}
+
+    // -- Federation HTTP convenience methods --
+
+    public List<RemoteProtocol> fetchSharedProtocols(
+            String remoteHost, int localStationId, String localPrivateKeyBase64) {
+        return federationHttpClient.getList(
+                remoteHost, "/remote/protocols", localStationId, localPrivateKeyBase64, RemoteProtocol.class);
+    }
+
+    public record RemoteProtocol(int id, String name, String description) {}
 }

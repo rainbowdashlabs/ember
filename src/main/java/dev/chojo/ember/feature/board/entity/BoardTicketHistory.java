@@ -19,7 +19,7 @@ public record BoardTicketHistory(
         String action,
         String detail,
         Integer actorMemberId,
-        UUID federatedStationId,
+        Integer federatedPartnerId,
         UUID federatedMemberId,
         Instant createdAt) {
 
@@ -30,7 +30,7 @@ public record BoardTicketHistory(
                 row.getString("action"),
                 row.getString("detail"),
                 row.getObject("actor_member_id", Integer.class),
-                row.get("federated_station_id", StandardValueConverter.UUID_STRING),
+                row.getObject("federated_partner_id", Integer.class),
                 row.get("federated_member_id", StandardValueConverter.UUID_STRING),
                 row.get("created_at", INSTANT_TIMESTAMP));
     }

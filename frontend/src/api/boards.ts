@@ -109,15 +109,24 @@ export interface BoardChecklistItem {
     position: number
 }
 
+export interface BoardFederatedAuthorInfo {
+    memberUid: string
+    displayName: string
+    stationName: string
+}
+
 export interface BoardComment {
     id: number
     ticketId: number
     parentId: number | null
     authorId: number
+    authorAccountId?: number | null
+    authorName?: string
     content: string
     deleted: boolean
     createdAt: string
     updatedAt: string | null
+    federatedAuthor?: BoardFederatedAuthorInfo | null
 }
 
 export interface AccessConfig {

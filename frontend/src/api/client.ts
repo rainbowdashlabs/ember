@@ -6,6 +6,7 @@
 import axios, {type InternalAxiosRequestConfig} from 'axios'
 import {getItem, removeItem, setItem} from './storage'
 import {useToast} from '@/composables/useToast'
+import {reportApiError} from '@/util/devErrorReporter'
 
 // -- Request history for problem reports --
 interface RequestHistoryEntry {
@@ -94,6 +95,15 @@ client.interceptors.response.use(
                 error: error?.response?.data?.message ?? error?.message,
             })
             if (requestHistory.length > MAX_HISTORY) requestHistory.shift()
+        }
+        const status = error?.response?.status
+        if (status && status !== 401 && status !== 403) {
+            reportApiError(
+                config?.method ?? 'GET',
+                config?.url ?? '',
+                status,
+                error?.response?.data?.message ?? error?.message ?? '',
+            )
         }
         if (error.response?.status === 401) {
             const token = getItem('session_token')

@@ -1913,7 +1913,7 @@ CREATE TABLE ember_schema.kb_comment (
     id         SERIAL PRIMARY KEY,
     file_id    INTEGER     NOT NULL REFERENCES ember_schema.kb_file(id) ON DELETE CASCADE,
     parent_id  INTEGER              REFERENCES ember_schema.kb_comment(id) ON DELETE SET NULL,
-    author_id  INTEGER     NOT NULL REFERENCES ember_schema.station_member(id) ON DELETE CASCADE,
+    author_id  INTEGER              REFERENCES ember_schema.station_member(id) ON DELETE CASCADE,
     content    TEXT        NOT NULL,
     deleted    BOOLEAN     NOT NULL DEFAULT FALSE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -1931,3 +1931,8 @@ CREATE TABLE ember_schema.kb_comment_federated_author (
 
 COMMENT ON TABLE ember_schema.kb_comment IS 'Threaded comments on knowledge base files.';
 COMMENT ON TABLE ember_schema.kb_comment_federated_author IS 'Maps KB comments from federated users to their remote identity.';
+
+-- Make comment author_id nullable for federated comments (authorId=NULL, identity in federated_author table)
+ALTER TABLE ember_schema.event_comment ALTER COLUMN author_id DROP NOT NULL;
+ALTER TABLE ember_schema.news_comment ALTER COLUMN author_id DROP NOT NULL;
+ALTER TABLE ember_schema.board_ticket_comment ALTER COLUMN author_id DROP NOT NULL;

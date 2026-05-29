@@ -33,6 +33,8 @@ export async function removeFederationShare(newsId: number): Promise<void> {
 export interface FederatedNewsItem {
     id: number
     title: string
+    contentHtml?: string
+    authorName?: string
     publishedAt: string
     commentCount: number
     visibilityRole: string
@@ -40,9 +42,34 @@ export interface FederatedNewsItem {
     stationId: string
 }
 
+interface RawFederatedNewsItem {
+    partnerId: number
+    partnerStationName: string
+    partnerStationUid?: string
+    news: {
+        id: number
+        title: string
+        contentHtml?: string
+        authorName?: string
+        publishedAt: string
+        commentCount: number
+        visibilityRole: string
+    }
+}
+
 export async function listFederatedNews(): Promise<FederatedNewsItem[]> {
-    const res = await client.get<FederatedNewsItem[]>('/federated/news')
-    return res.data
+    const res = await client.get<RawFederatedNewsItem[]>('/federated/news')
+    return res.data.map(item => ({
+        id: item.news.id,
+        title: item.news.title,
+        contentHtml: item.news.contentHtml ?? '',
+        authorName: item.news.authorName ?? '',
+        publishedAt: item.news.publishedAt,
+        commentCount: item.news.commentCount,
+        visibilityRole: item.news.visibilityRole,
+        stationName: item.partnerStationName,
+        stationId: item.partnerStationUid ?? String(item.partnerId),
+    }))
 }
 
 export interface FederatedNewsDetail {

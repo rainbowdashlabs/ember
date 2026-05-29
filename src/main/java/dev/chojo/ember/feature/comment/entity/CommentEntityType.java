@@ -11,5 +11,6 @@ package dev.chojo.ember.feature.comment.entity;
 public enum CommentEntityType {
     EVENT,
     NEWS,
-    BOARD_TICKET
+    BOARD_TICKET,
+    KB
 }

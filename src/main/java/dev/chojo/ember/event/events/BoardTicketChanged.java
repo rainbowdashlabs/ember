@@ -28,6 +28,6 @@ public record BoardTicketChanged(
         String boardName,
         String ticketKey,
         String changeDescription,
-        int actorMemberId,
+        Integer actorMemberId,
         List<Integer> watcherMemberIds)
         implements DomainEvent {}

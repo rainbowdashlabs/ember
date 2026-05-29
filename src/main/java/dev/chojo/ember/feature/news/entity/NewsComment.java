@@ -23,7 +23,7 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
  * @param createdAt timestamp when the comment was created
  */
 public record NewsComment(
-        int id, int newsId, Integer parentId, int authorId, String content, boolean deleted, Instant createdAt) {
+        int id, int newsId, Integer parentId, Integer authorId, String content, boolean deleted, Instant createdAt) {
     /**
      * Creates a row mapping for database result set conversion.
      */
@@ -32,7 +32,7 @@ public record NewsComment(
                 row.getInt("id"),
                 row.getInt("news_id"),
                 row.getObject("parent_id", Integer.class),
-                row.getInt("author_id"),
+                row.getObject("author_id", Integer.class),
                 row.getString("content"),
                 row.getBoolean("deleted"),
                 row.get("created_at", INSTANT_TIMESTAMP));

@@ -152,8 +152,8 @@ public class NewsFederationRepository {
     public void setFederatedCommentAuthor(int commentId, int partnerId, UUID remoteMemberId) {
         Query.query("""
                         INSERT INTO news_comment_federated_author(comment_id, partner_id, remote_member_id)
-                        VALUES (:comment_id, :partner_id, :remote_member_id)
-                        ON CONFLICT (comment_id) DO UPDATE SET partner_id = :partner_id, remote_member_id = :remote_member_id;""")
+                        VALUES (:comment_id, :partner_id, :remote_member_id::uuid)
+                        ON CONFLICT (comment_id) DO UPDATE SET partner_id = :partner_id, remote_member_id = :remote_member_id::uuid;""")
                 .single(Call.of()
                         .bind("comment_id", commentId)
                         .bind("partner_id", partnerId)

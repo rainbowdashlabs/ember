@@ -160,7 +160,7 @@ public class NewsRepository {
      * @param content  comment text
      * @return the newly created comment
      */
-    public NewsComment createComment(int newsId, Integer parentId, int authorId, String content) {
+    public NewsComment createComment(int newsId, Integer parentId, Integer authorId, String content) {
         return Query.query("""
                             INSERT INTO news_comment(news_id, parent_id, author_id, content)
                             VALUES(:news_id, :parent_id, :author_id, :content)

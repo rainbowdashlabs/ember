@@ -47,7 +47,9 @@ import dev.chojo.ember.event.handlers.ProcurementCreatedHandler;
 import dev.chojo.ember.event.handlers.ProcurementFulfilledHandler;
 import dev.chojo.ember.event.handlers.RegistrationDeadlineExpiredHandler;
 import dev.chojo.ember.feature.comment.entity.CommentEntityType;
+import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
+import dev.chojo.ember.feature.federation.entity.LendingStatus;
 import dev.chojo.ember.feature.inventory.entity.ExchangeStatus;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
@@ -192,7 +194,8 @@ class DomainEventHandlerTest {
         when(memberRepository.findMembersWithRole(STATION_ID, Roles.EVENT_MANAGER))
                 .thenReturn(List.of(member(20), member(21)));
 
-        handler.handle(new EventRegistrationStatusChanged(STATION_ID, 42, "Übungsabend", MEMBER_ID, "CONFIRMED"));
+        handler.handle(new EventRegistrationStatusChanged(
+                STATION_ID, 42, "Übungsabend", MEMBER_ID, RegistrationStatus.ACCEPTED));
 
         verify(notificationService)
                 .notify(eq(MEMBER_ID), eq(NotificationType.EVENT_REGISTRATION_STATUS), any(NotificationData.class));
@@ -474,7 +477,12 @@ class DomainEventHandlerTest {
 
         int targetStationId = 3;
         handler.handle(new LendingStatusChanged(
-                STATION_ID, targetStationId, 99, NotificationType.LENDING_STATUS_CHANGE, "Feuerwehr West", "APPROVED"));
+                STATION_ID,
+                targetStationId,
+                99,
+                NotificationType.LENDING_STATUS_CHANGE,
+                "Feuerwehr West",
+                LendingStatus.APPROVED));
 
         verify(notificationService)
                 .notifyMembersWithRole(

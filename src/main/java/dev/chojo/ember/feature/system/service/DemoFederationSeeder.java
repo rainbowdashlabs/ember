@@ -10,7 +10,9 @@ import dev.chojo.ember.auth.PasswordHasher;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.conf.file.elements.Demo;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
+import dev.chojo.ember.feature.comment.service.CommentService;
 import dev.chojo.ember.feature.events.entity.StationEvent;
+import dev.chojo.ember.feature.events.repository.EventFederationRepository;
 import dev.chojo.ember.feature.events.service.EventFederationService;
 import dev.chojo.ember.feature.events.service.EventService;
 import dev.chojo.ember.feature.federation.entity.CapabilityType;
@@ -19,6 +21,8 @@ import dev.chojo.ember.feature.federation.entity.ShareScope;
 import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseService;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
+import dev.chojo.ember.feature.news.service.NewsFederationService;
+import dev.chojo.ember.feature.news.service.NewsService;
 import dev.chojo.ember.feature.protocol.service.TestProtocolService;
 import dev.chojo.ember.feature.quiz.entity.QuestionConfig;
 import dev.chojo.ember.feature.quiz.entity.QuizQuestionType;
@@ -34,6 +38,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.List;
+import java.util.UUID;
 
 /**
  * Seeds a second demo station and federates it with the primary station.
@@ -50,9 +55,13 @@ public class DemoFederationSeeder {
     private final TestProtocolService protocolService;
     private final EventService eventService;
     private final EventFederationService eventFederationService;
+    private final EventFederationRepository eventFederationRepository;
     private final AccountRepository accountRepository;
     private final StationMemberRepository stationMemberRepository;
     private final PasswordHasher passwordHasher;
+    private final NewsService newsService;
+    private final NewsFederationService newsFederationService;
+    private final CommentService commentService;
     private final Demo demoConfig;
     private final Api apiConfig;
 
@@ -65,9 +74,13 @@ public class DemoFederationSeeder {
             TestProtocolService protocolService,
             EventService eventService,
             EventFederationService eventFederationService,
+            EventFederationRepository eventFederationRepository,
             AccountRepository accountRepository,
             StationMemberRepository stationMemberRepository,
             PasswordHasher passwordHasher,
+            NewsService newsService,
+            NewsFederationService newsFederationService,
+            CommentService commentService,
             Demo demoConfig,
             Api apiConfig) {
         this.stationRepository = stationRepository;
@@ -77,9 +90,13 @@ public class DemoFederationSeeder {
         this.protocolService = protocolService;
         this.eventService = eventService;
         this.eventFederationService = eventFederationService;
+        this.eventFederationRepository = eventFederationRepository;
         this.accountRepository = accountRepository;
         this.stationMemberRepository = stationMemberRepository;
         this.passwordHasher = passwordHasher;
+        this.newsService = newsService;
+        this.newsFederationService = newsFederationService;
+        this.commentService = commentService;
         this.demoConfig = demoConfig;
         this.apiConfig = apiConfig;
     }
@@ -260,9 +277,16 @@ public class DemoFederationSeeder {
         protocolService.createItem(protoSection.id(), "Dienstgrade", "Dienstgrade der Feuerwehr", 5, 3);
         federationService.createProtocolShare(partnerStation.id(), partnerProtocol.id(), ShareScope.ALL_PARTNERS);
 
-        // Enable EVENT_SHARE capability
-        federationService.setCapability(partner.id(), CapabilityType.EVENT_SHARE, Direction.IMPORT, true);
-        federationService.setCapability(partner.id(), CapabilityType.EVENT_SHARE, Direction.EXPORT, true);
+        // Enable federation capabilities
+        for (var cap : List.of(
+                CapabilityType.EVENT_SHARE,
+                CapabilityType.BOARD_SHARE,
+                CapabilityType.KB_SHARE,
+                CapabilityType.NEWS_SHARE,
+                CapabilityType.INVENTORY_LEND)) {
+            federationService.setCapability(partner.id(), cap, Direction.IMPORT, true);
+            federationService.setCapability(partner.id(), cap, Direction.EXPORT, true);
+        }
 
         // Create a public event on the partner station (visible via federation)
         var eventCategory = eventService.createCategory(partnerStation.id(), "Gemeinsame Übung", 0);
@@ -286,6 +310,192 @@ public class DemoFederationSeeder {
                 eventCategory.id(),
                 null);
         eventFederationService.setShare(fedEvent.id(), "ALL_PARTNERS", List.of());
+
+        // -- Share news with partner --
+        var partnerMember1Uid = UUID.fromString("00000000-0000-0000-0000-000000000001");
+        var partnerMember2Uid = UUID.fromString("00000000-0000-0000-0000-000000000002");
+
+        // Cache display names for federated partner members
+        eventFederationRepository.cacheName(partner.id(), partnerMember1Uid, "Max Feuermann");
+        eventFederationRepository.cacheName(partner.id(), partnerMember2Uid, "Sabine Lösch");
+
+        var primaryNews = newsService.findByStation(primaryStationId, 0, 10);
+        // news1 = "Willkommen..." (most recent last in DESC order, so reverse lookup)
+        var news1 = primaryNews.stream()
+                .filter(n -> n.title().startsWith("Willkommen"))
+                .findFirst()
+                .orElse(null);
+        var news2 = primaryNews.stream()
+                .filter(n -> n.title().startsWith("Kreiswettbewerb"))
+                .findFirst()
+                .orElse(null);
+
+        if (news1 != null) {
+            // Share news1 with all partners, visibility MEMBER
+            newsFederationService.setShare(news1.id(), "ALL_PARTNERS", "MEMBER", List.of());
+            // Federated comment from partner member on news1
+            var nc1 = newsFederationService.createRemoteComment(
+                    primaryStationId,
+                    news1.id(),
+                    partner.id(),
+                    partnerMember1Uid,
+                    "Max Feuermann",
+                    null,
+                    "Toll, dass es jetzt so eine Plattform gibt! Wir nutzen das bei uns auch seit Kurzem.");
+            // Reply from local admin
+            newsService.createComment(
+                    primaryStationId,
+                    news1.id(),
+                    nc1.id(),
+                    createdBy,
+                    "Admin",
+                    "Freut uns! Vielleicht können wir mal Erfahrungen austauschen.");
+        }
+        if (news2 != null) {
+            // Share news2 with specific partner, visibility TEAM
+            newsFederationService.setShare(news2.id(), "SPECIFIC", "TEAM", List.of(partner.id()));
+            // Federated comment from partner member on news2
+            newsFederationService.createRemoteComment(
+                    primaryStationId,
+                    news2.id(),
+                    partner.id(),
+                    partnerMember2Uid,
+                    "Sabine Lösch",
+                    null,
+                    "Dürfen wir auch ein Team zum Kreiswettbewerb schicken? Wäre super!");
+        }
+        // Create a news post on the PARTNER station and share it back
+        var partnerNews = newsService.create(
+                partnerStation.id(),
+                "Neue Drehleiter für die Partnerwache",
+                """
+                Wir haben eine neue **Drehleiter DLA(K) 23/12** erhalten! Das Fahrzeug wird in den nächsten Wochen in den Dienst gestellt.
+
+                ## Besichtigung
+
+                Alle Partnereinheiten sind herzlich eingeladen, sich das Fahrzeug bei der nächsten gemeinsamen Übung anzuschauen.
+
+                Wir freuen uns auf euren Besuch! 🚒
+                """,
+                "<p>Wir haben eine neue <strong>Drehleiter DLA(K) 23/12</strong> erhalten! Das Fahrzeug wird in den nächsten Wochen in den Dienst gestellt.</p><h2>Besichtigung</h2><p>Alle Partnereinheiten sind herzlich eingeladen, sich das Fahrzeug bei der nächsten gemeinsamen Übung anzuschauen.</p><p>Wir freuen uns auf euren Besuch! 🚒</p>",
+                partnerMember.id(),
+                List.of(),
+                List.of(),
+                List.of(),
+                List.of());
+        newsFederationService.setShare(partnerNews.id(), "ALL_PARTNERS", "MEMBER", List.of());
+        // Find the reverse partner record (partner station's view of the primary station)
+        var reversePartner = federationService.findPartners(partnerStation.id()).stream()
+                .filter(p -> p.stationId() == partnerStation.id())
+                .findFirst()
+                .orElse(null);
+        if (reversePartner != null) {
+            // Comment from primary station admin on partner's news (stored on partner station)
+            var primaryAdmin = stationMemberRepository.findById(createdBy).orElseThrow();
+            String primaryAdminName = accountRepository
+                    .findById(primaryAdmin.accountId())
+                    .map(a -> (a.firstName() + " " + a.lastName()).trim())
+                    .orElse("Admin");
+            var pnc1 = newsFederationService.createRemoteComment(
+                    partnerStation.id(),
+                    partnerNews.id(),
+                    reversePartner.id(),
+                    primaryAdmin.uid(),
+                    primaryAdminName,
+                    null,
+                    "Glückwunsch! Können wir die bei der Übung auch mal testen?");
+            // Reply from partner station
+            newsService.createComment(
+                    partnerStation.id(),
+                    partnerNews.id(),
+                    pnc1.id(),
+                    partnerMember.id(),
+                    "Partner Manager",
+                    "Natürlich, das lässt sich einrichten!");
+        }
+
+        log.info("Demo: Shared news with partner and added federated comments");
+
+        // -- Event comments (local + federated) --
+        var primaryEvents = eventService.findByStation(primaryStationId);
+        var evUebung = primaryEvents.stream()
+                .filter(e -> "Übung".equals(e.name()) && e.eventType() == StationEvent.EventType.RECURRING)
+                .findFirst()
+                .orElse(null);
+        if (evUebung != null) {
+            commentService.create(
+                    primaryStationId,
+                    evUebung.id(),
+                    null,
+                    createdBy,
+                    "Admin",
+                    "Nächste Woche üben wir den Löschangriff — bitte Sportkleidung mitbringen!");
+        }
+
+        // Federated comments on the shared event "Gemeinsame Großübung" (event lives on partner station)
+        var primaryAdmin = stationMemberRepository.findById(createdBy).orElseThrow();
+        String primaryAdminName = accountRepository
+                .findById(primaryAdmin.accountId())
+                .map(a -> (a.firstName() + " " + a.lastName()).trim())
+                .orElse("Admin");
+
+        // Find reverse partner (partner station's view of primary station)
+        var reversePartnerForEvents = federationService.findPartners(partnerStation.id()).stream()
+                .filter(p -> p.stationId() == partnerStation.id())
+                .findFirst()
+                .orElse(null);
+        if (reversePartnerForEvents != null) {
+            var fc1 = eventFederationService.createRemoteComment(
+                    reversePartnerForEvents,
+                    fedEvent.id(),
+                    primaryAdmin.uid(),
+                    primaryAdminName,
+                    null,
+                    "Wir kommen mit 6 Leuten! Brauchen wir eigene Schläuche?");
+            // Local reply from partner station member
+            commentService.create(
+                    partnerStation.id(),
+                    fedEvent.id(),
+                    fc1.id(),
+                    partnerMember.id(),
+                    "Partner Manager",
+                    "Nein, wir haben genug Material da. Einfach nur Schutzkleidung mitbringen.");
+            eventFederationService.createRemoteComment(
+                    reversePartnerForEvents,
+                    fedEvent.id(),
+                    primaryAdmin.uid(),
+                    primaryAdminName,
+                    null,
+                    "Gibt es eine Lageskizze vorab?");
+        }
+        log.info("Demo: Added event comments (local + federated)");
+
+        // -- KB comments (local + federated) --
+        var primaryKbFilesForComments = kbService.findFiles(primaryStationId, null);
+        if (!primaryKbFilesForComments.isEmpty()) {
+            var kbFile = primaryKbFilesForComments.getFirst();
+            // Local comment on a KB file
+            kbService.createComment(kbFile.id(), null, createdBy, "Sehr hilfreich, danke!");
+        }
+        var partnerKbFiles = kbService.findFiles(partnerStation.id(), null);
+        if (!partnerKbFiles.isEmpty() && reversePartnerForEvents != null) {
+            // Federated comment from primary station admin on partner's shared KB file
+            var sharedKbFile = partnerKbFiles.getFirst();
+            var kc1 = kbService.createRemoteComment(
+                    sharedKbFile.id(),
+                    reversePartnerForEvents.id(),
+                    primaryAdmin.uid(),
+                    primaryAdminName,
+                    null,
+                    "Können wir den Ausbildungsleitfaden auch als PDF bekommen?");
+            // Reply from the partner station member (local on partner station)
+            kbService.createComment(
+                    sharedKbFile.id(),
+                    kc1.id(),
+                    partnerMember.id(),
+                    "Klar, ich lade diese Woche eine PDF-Version hoch.");
+        }
+        log.info("Demo: Added KB comments (local + federated)");
 
         log.info("Demo: Federated station {} with partner station {}", primaryStationId, partnerStation.id());
 

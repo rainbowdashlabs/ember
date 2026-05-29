@@ -16,7 +16,7 @@ public record CommentCreated(
         int commentId,
         Integer parentCommentId,
         Integer parentAuthorId,
-        int authorMemberId,
+        Integer authorMemberId,
         String authorName,
         String preview)
         implements DomainEvent {}

@@ -12,8 +12,10 @@ import dev.chojo.ember.api.Roles;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.StationUidResolver;
 import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.board.entity.AccessData;
 import dev.chojo.ember.feature.board.entity.Board;
+import dev.chojo.ember.feature.board.entity.BoardComment;
 import dev.chojo.ember.feature.board.entity.BoardField;
 import dev.chojo.ember.feature.board.entity.BoardFieldConfig;
 import dev.chojo.ember.feature.board.entity.BoardFieldType;
@@ -22,12 +24,18 @@ import dev.chojo.ember.feature.board.entity.LaneData;
 import dev.chojo.ember.feature.board.entity.LanePreset;
 import dev.chojo.ember.feature.board.entity.TicketPriority;
 import dev.chojo.ember.feature.board.entity.TicketSummary;
+import dev.chojo.ember.feature.board.repository.FederatedBoardRepository;
 import dev.chojo.ember.feature.board.service.BoardService;
 import dev.chojo.ember.feature.board.service.BoardTicketService;
 import dev.chojo.ember.feature.board.service.FederatedBoardProxyService;
 import dev.chojo.ember.feature.board.service.FederatedBoardService;
+import dev.chojo.ember.feature.events.repository.EventFederationRepository;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
+import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.members.repository.StationMemberRepository;
+import dev.chojo.ember.feature.station.entity.Station;
+import dev.chojo.ember.feature.station.repository.StationRepository;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.ForbiddenResponse;
@@ -45,6 +53,7 @@ import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.List;
@@ -62,6 +71,11 @@ public class BoardRoutes implements Routes {
     private final FederatedBoardProxyService proxyService;
     private final FederationRepository federationRepository;
     private final BoardTicketService ticketService;
+    private final FederatedBoardRepository federatedBoardRepository;
+    private final EventFederationRepository eventFederationRepository;
+    private final StationMemberRepository stationMemberRepository;
+    private final AccountRepository accountRepository;
+    private final StationRepository stationRepository;
 
     @Inject
     public BoardRoutes(
@@ -69,12 +83,22 @@ public class BoardRoutes implements Routes {
             FederatedBoardService federatedBoardService,
             FederatedBoardProxyService proxyService,
             FederationRepository federationRepository,
-            BoardTicketService ticketService) {
+            BoardTicketService ticketService,
+            FederatedBoardRepository federatedBoardRepository,
+            EventFederationRepository eventFederationRepository,
+            StationMemberRepository stationMemberRepository,
+            AccountRepository accountRepository,
+            StationRepository stationRepository) {
         this.boardService = boardService;
         this.federatedBoardService = federatedBoardService;
         this.proxyService = proxyService;
         this.federationRepository = federationRepository;
         this.ticketService = ticketService;
+        this.federatedBoardRepository = federatedBoardRepository;
+        this.eventFederationRepository = eventFederationRepository;
+        this.stationMemberRepository = stationMemberRepository;
+        this.accountRepository = accountRepository;
+        this.stationRepository = stationRepository;
     }
 
     private Board resolveBoard(Context ctx, int stationId) {
@@ -968,7 +992,9 @@ public class BoardRoutes implements Routes {
         String boardKey = ctx.pathParam("boardKey");
         requireView(partnerId, boardKey, session);
         int ticketNumber = ctx.pathParamAsClass("ticketNumber", Integer.class).get();
-        ctx.json(proxyService.proxyGetComments(partnerId, boardKey, ticketNumber));
+        ctx.json(proxyService.proxyGetComments(partnerId, boardKey, ticketNumber).stream()
+                .map(this::toCommentResponse)
+                .toList());
     }
 
     @OpenApi(
@@ -1211,10 +1237,9 @@ public class BoardRoutes implements Routes {
         requireWrite(partnerId, boardKey, session);
         int ticketNumber = ctx.pathParamAsClass("ticketNumber", Integer.class).get();
         var req = ctx.bodyAsClass(LocalMoveTicketRequest.class);
-        var stationUid = StationUidResolver.instance().resolve(session.stationId());
         UUID memberUid = session.member() != null ? session.member().uid() : null;
         ctx.json(proxyService.proxyMoveTicket(
-                partnerId, boardKey, ticketNumber, req.toLaneId(), req.position(), stationUid, memberUid));
+                partnerId, boardKey, ticketNumber, req.toLaneId(), req.position(), memberUid));
     }
 
     @OpenApi(
@@ -1643,7 +1668,9 @@ public class BoardRoutes implements Routes {
         int boardId = resolveRemoteBoardId(ctx, partner);
         requireRemoteView(boardId, partner);
         int ticketId = resolveRemoteTicketId(ctx, boardId);
-        ctx.json(ticketService.findComments(ticketId));
+        ctx.json(ticketService.findComments(ticketId).stream()
+                .map(this::toCommentResponse)
+                .toList());
     }
 
     private void federatedRemoteGetChecklist(Context ctx) {
@@ -1840,7 +1867,7 @@ public class BoardRoutes implements Routes {
                 req.toLaneId(),
                 req.position(),
                 null,
-                partner.partnerStationId(),
+                partner.id(),
                 ctx.header("X-Federation-Member-Id") != null
                         ? UUID.fromString(ctx.header("X-Federation-Member-Id"))
                         : null);
@@ -1881,7 +1908,7 @@ public class BoardRoutes implements Routes {
         requireRemoteWrite(boardId, partner);
         int ticketId = resolveRemoteTicketId(ctx, boardId);
         var req = ctx.bodyAsClass(RemoteCommentRequest.class);
-        var comment = ticketService.createComment(ticketId, req.parentId(), 0, req.content());
+        var comment = ticketService.createComment(ticketId, req.parentId(), null, req.content());
         federatedBoardService.setFederatedCommentAuthor(comment.id(), partner.id(), req.remoteMemberId());
         ctx.json(comment);
     }
@@ -2184,6 +2211,99 @@ public class BoardRoutes implements Routes {
         proxyService.onShareModeChanged(partner.id(), req.boardId(), BoardShareMode.valueOf(req.shareMode()));
         ctx.status(204);
     }
+
+    // -- Comment enrichment --
+
+    private BoardCommentResponse toCommentResponse(BoardComment comment) {
+        if (comment.deleted()) {
+            return new BoardCommentResponse(
+                    comment.id(),
+                    comment.ticketId(),
+                    comment.parentId(),
+                    0,
+                    null,
+                    null,
+                    "",
+                    true,
+                    comment.createdAt(),
+                    null,
+                    null,
+                    null,
+                    null);
+        }
+        var fedAuthor = federatedBoardRepository.findFederatedCommentAuthor(comment.id());
+        if (fedAuthor.isPresent()) {
+            var fa = fedAuthor.get();
+            String displayName = eventFederationRepository
+                    .getCachedName(fa.partnerId(), fa.remoteMemberId())
+                    .orElse("Unknown");
+            var partner = federationRepository.findPartnerById(fa.partnerId());
+            String stationName = partner.map(p -> stationRepository
+                            .findByUid(p.partnerStationId())
+                            .map(Station::name)
+                            .orElse(""))
+                    .orElse("");
+            String fedStationId =
+                    partner.map(p -> p.partnerStationId().toString()).orElse(null);
+            return new BoardCommentResponse(
+                    comment.id(),
+                    comment.ticketId(),
+                    comment.parentId(),
+                    0,
+                    null,
+                    displayName,
+                    comment.content(),
+                    false,
+                    comment.createdAt(),
+                    comment.updatedAt(),
+                    new BoardFederatedAuthorInfo(fa.remoteMemberId(), displayName, stationName),
+                    fedStationId,
+                    stationName);
+        }
+        // Local author
+        var memberOpt = stationMemberRepository.findById(comment.authorId());
+        Integer authorAccountId = memberOpt.map(StationMember::accountId).orElse(null);
+        String authorName = memberOpt
+                .filter(m -> m.accountId() != null)
+                .flatMap(m -> accountRepository.findById(m.accountId()))
+                .map(a -> (a.firstName() + " " + a.lastName()).trim())
+                .orElse("");
+        int authorStationId = memberOpt.map(StationMember::stationId).orElse(0);
+        String authorStationUid = StationUidResolver.instance().resolveToString(authorStationId);
+        String authorStationName =
+                stationRepository.findById(authorStationId).map(Station::name).orElse("");
+        return new BoardCommentResponse(
+                comment.id(),
+                comment.ticketId(),
+                comment.parentId(),
+                comment.authorId(),
+                authorAccountId,
+                authorName,
+                comment.content(),
+                false,
+                comment.createdAt(),
+                comment.updatedAt(),
+                null,
+                authorStationUid,
+                authorStationName);
+    }
+
+    public record BoardCommentResponse(
+            int id,
+            int ticketId,
+            Integer parentId,
+            int authorId,
+            Integer authorAccountId,
+            String authorName,
+            String content,
+            boolean deleted,
+            Instant createdAt,
+            Instant updatedAt,
+            BoardFederatedAuthorInfo federatedAuthor,
+            String authorStationId,
+            String authorStationName) {}
+
+    public record BoardFederatedAuthorInfo(UUID memberUid, String displayName, String stationName) {}
 
     // ==================== Request/Response records ====================
 
