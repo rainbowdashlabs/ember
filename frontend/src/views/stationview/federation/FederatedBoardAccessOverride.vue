@@ -19,7 +19,7 @@ const { t } = useI18n()
 
 const props = defineProps<{
     partnerUid: string
-    boardId: number
+    boardKey: string
     modelValue: boolean
 }>()
 
@@ -47,7 +47,7 @@ async function loadData() {
             stationMembers.listAllRoles(),
             memberGroups.listGroups(),
             userTags.listTags(),
-            federatedBoards.getAccessOverride(props.partnerUid, props.boardId),
+            federatedBoards.getAccessOverride(props.partnerUid, props.boardKey),
         ])
         allRoles.value = roles
         allGroups.value = groups
@@ -67,7 +67,7 @@ async function save() {
     error.value = ''
     saved.value = false
     try {
-        await federatedBoards.setAccessOverride(props.partnerUid, props.boardId, {
+        await federatedBoards.setAccessOverride(props.partnerUid, props.boardKey, {
             viewRoleIds: viewRoleIds.value,
             viewGroupIds: viewGroupIds.value,
             viewTagIds: viewTagIds.value,

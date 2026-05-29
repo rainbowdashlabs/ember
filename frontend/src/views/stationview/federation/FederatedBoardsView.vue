@@ -109,7 +109,7 @@ async function toggleBookmark(board: DiscoveredBoard) {
 }
 
 function navigateToBoard(board: DiscoveredBoard) {
-    router.push(`/station/federation/boards/${board.partnerStationUid}/${board.remoteBoardId}`)
+    router.push(`/station/federation/boards/${board.partnerStationUid}/${board.shortKey}`)
 }
 
 onMounted(() => {

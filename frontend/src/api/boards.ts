@@ -133,13 +133,13 @@ export async function listBoards(visibleOnly?: boolean): Promise<Board[]> {
     return res.data
 }
 
-export async function getBoard(id: number): Promise<Board> {
-    const res = await client.get<Board>(`/boards/${id}`)
+export async function getBoard(boardKey: string): Promise<Board> {
+    const res = await client.get<Board>(`/boards/${boardKey}`)
     return res.data
 }
 
-export async function canEditBoard(id: number): Promise<boolean> {
-    const res = await client.get<{ canEdit: boolean }>(`/boards/${id}/can-edit`)
+export async function canEditBoard(boardKey: string): Promise<boolean> {
+    const res = await client.get<{ canEdit: boolean }>(`/boards/${boardKey}/can-edit`)
     return res.data.canEdit
 }
 
@@ -154,29 +154,29 @@ export async function createBoard(data: {
 }
 
 export async function updateBoard(
-    id: number,
+    boardKey: string,
     data: { name: string; description: string; hideDoneAfterDays: number },
 ): Promise<Board> {
-    const res = await client.put<Board>(`/boards/${id}`, data)
+    const res = await client.put<Board>(`/boards/${boardKey}`, data)
     return res.data
 }
 
-export async function deleteBoard(id: number): Promise<void> {
-    await client.delete(`/boards/${id}`)
+export async function deleteBoard(boardKey: string): Promise<void> {
+    await client.delete(`/boards/${boardKey}`)
 }
 
 // -- Lanes --
 
-export async function getLanes(boardId: number): Promise<BoardLane[]> {
-    const res = await client.get<BoardLane[]>(`/boards/${boardId}/lanes`)
+export async function getLanes(boardKey: string): Promise<BoardLane[]> {
+    const res = await client.get<BoardLane[]>(`/boards/${boardKey}/lanes`)
     return res.data
 }
 
 export async function setLanes(
-    boardId: number,
+    boardKey: string,
     lanes: { name: string; color?: string | null }[],
 ): Promise<BoardLane[]> {
-    const res = await client.put<BoardLane[]>(`/boards/${boardId}/lanes`, lanes)
+    const res = await client.put<BoardLane[]>(`/boards/${boardKey}/lanes`, lanes)
     return res.data
 }
 
@@ -189,66 +189,66 @@ export interface BoardLabel {
     color: string
 }
 
-export async function getLabels(boardId: number): Promise<BoardLabel[]> {
-    const res = await client.get<BoardLabel[]>(`/boards/${boardId}/labels`)
+export async function getLabels(boardKey: string): Promise<BoardLabel[]> {
+    const res = await client.get<BoardLabel[]>(`/boards/${boardKey}/labels`)
     return res.data
 }
 
-export async function createLabel(boardId: number, data: { name: string; color?: string }): Promise<BoardLabel> {
-    const res = await client.post<BoardLabel>(`/boards/${boardId}/labels`, data)
+export async function createLabel(boardKey: string, data: { name: string; color?: string }): Promise<BoardLabel> {
+    const res = await client.post<BoardLabel>(`/boards/${boardKey}/labels`, data)
     return res.data
 }
 
-export async function updateLabel(boardId: number, labelId: number, data: { name: string; color: string }): Promise<void> {
-    await client.put(`/boards/${boardId}/labels/${labelId}`, data)
+export async function updateLabel(boardKey: string, labelId: number, data: { name: string; color: string }): Promise<void> {
+    await client.put(`/boards/${boardKey}/labels/${labelId}`, data)
 }
 
-export async function deleteLabel(boardId: number, labelId: number): Promise<void> {
-    await client.delete(`/boards/${boardId}/labels/${labelId}`)
+export async function deleteLabel(boardKey: string, labelId: number): Promise<void> {
+    await client.delete(`/boards/${boardKey}/labels/${labelId}`)
 }
 
-export async function getTicketLabels(boardId: number, ticketId: number): Promise<BoardLabel[]> {
-    const res = await client.get<BoardLabel[]>(`/boards/${boardId}/tickets/${ticketId}/labels`)
+export async function getTicketLabels(boardKey: string, ticketNumber: number): Promise<BoardLabel[]> {
+    const res = await client.get<BoardLabel[]>(`/boards/${boardKey}/tickets/${ticketNumber}/labels`)
     return res.data
 }
 
-export async function addTicketLabel(boardId: number, ticketId: number, labelId: number): Promise<BoardLabel[]> {
-    const res = await client.post<BoardLabel[]>(`/boards/${boardId}/tickets/${ticketId}/labels/${labelId}`)
+export async function addTicketLabel(boardKey: string, ticketNumber: number, labelId: number): Promise<BoardLabel[]> {
+    const res = await client.post<BoardLabel[]>(`/boards/${boardKey}/tickets/${ticketNumber}/labels/${labelId}`)
     return res.data
 }
 
-export async function removeTicketLabel(boardId: number, ticketId: number, labelId: number): Promise<void> {
-    await client.delete(`/boards/${boardId}/tickets/${ticketId}/labels/${labelId}`)
+export async function removeTicketLabel(boardKey: string, ticketNumber: number, labelId: number): Promise<void> {
+    await client.delete(`/boards/${boardKey}/tickets/${ticketNumber}/labels/${labelId}`)
 }
 
-export async function getAllTicketLabels(boardId: number): Promise<{ ticketId: number; labelId: number }[]> {
-    const res = await client.get<{ ticketId: number; labelId: number }[]>(`/boards/${boardId}/ticket-labels`)
+export async function getAllTicketLabels(boardKey: string): Promise<{ ticketId: number; labelId: number }[]> {
+    const res = await client.get<{ ticketId: number; labelId: number }[]>(`/boards/${boardKey}/ticket-labels`)
     return res.data
 }
 
 // -- Backlog --
 
-export async function enableBacklog(boardId: number): Promise<BoardLane> {
-    const res = await client.post<BoardLane>(`/boards/${boardId}/backlog`)
+export async function enableBacklog(boardKey: string): Promise<BoardLane> {
+    const res = await client.post<BoardLane>(`/boards/${boardKey}/backlog`)
     return res.data
 }
 
-export async function disableBacklog(boardId: number): Promise<void> {
-    await client.delete(`/boards/${boardId}/backlog`)
+export async function disableBacklog(boardKey: string): Promise<void> {
+    await client.delete(`/boards/${boardKey}/backlog`)
 }
 
 // -- Fields --
 
-export async function getFields(boardId: number): Promise<BoardField[]> {
-    const res = await client.get<BoardField[]>(`/boards/${boardId}/fields`)
+export async function getFields(boardKey: string): Promise<BoardField[]> {
+    const res = await client.get<BoardField[]>(`/boards/${boardKey}/fields`)
     return res.data
 }
 
 export async function setFields(
-    boardId: number,
+    boardKey: string,
     fields: { name: string; fieldType: string; config?: BoardFieldConfig }[],
 ): Promise<BoardField[]> {
-    const res = await client.put<BoardField[]>(`/boards/${boardId}/fields`, fields)
+    const res = await client.put<BoardField[]>(`/boards/${boardKey}/fields`, fields)
     return res.data
 }
 
@@ -264,56 +264,56 @@ export interface BoardFederationConfig {
     editRoleIds: number[]
 }
 
-export async function getBoardFederationConfig(boardId: number): Promise<BoardFederationConfig> {
-    const res = await client.get<BoardFederationConfig>(`/boards/${boardId}/federation`)
+export async function getBoardFederationConfig(boardKey: string): Promise<BoardFederationConfig> {
+    const res = await client.get<BoardFederationConfig>(`/boards/${boardKey}/federation`)
     return res.data
 }
 
-export async function setBoardFederationConfig(boardId: number, data: BoardFederationConfig): Promise<void> {
-    await client.put(`/boards/${boardId}/federation`, data)
+export async function setBoardFederationConfig(boardKey: string, data: BoardFederationConfig): Promise<void> {
+    await client.put(`/boards/${boardKey}/federation`, data)
 }
 
 // -- Access --
 
-export async function getViewAccess(boardId: number): Promise<AccessConfig> {
-    const res = await client.get<AccessConfig>(`/boards/${boardId}/access/view`)
+export async function getViewAccess(boardKey: string): Promise<AccessConfig> {
+    const res = await client.get<AccessConfig>(`/boards/${boardKey}/access/view`)
     return res.data
 }
 
-export async function setViewAccess(boardId: number, data: AccessConfig): Promise<void> {
-    await client.put(`/boards/${boardId}/access/view`, data)
+export async function setViewAccess(boardKey: string, data: AccessConfig): Promise<void> {
+    await client.put(`/boards/${boardKey}/access/view`, data)
 }
 
-export async function getEditAccess(boardId: number): Promise<AccessConfig> {
-    const res = await client.get<AccessConfig>(`/boards/${boardId}/access/edit`)
+export async function getEditAccess(boardKey: string): Promise<AccessConfig> {
+    const res = await client.get<AccessConfig>(`/boards/${boardKey}/access/edit`)
     return res.data
 }
 
-export async function setEditAccess(boardId: number, data: AccessConfig): Promise<void> {
-    await client.put(`/boards/${boardId}/access/edit`, data)
+export async function setEditAccess(boardKey: string, data: AccessConfig): Promise<void> {
+    await client.put(`/boards/${boardKey}/access/edit`, data)
 }
 
 // -- Tickets --
 
-export async function searchTickets(boardId: number, query: string): Promise<BoardTicket[]> {
-    const res = await client.get<BoardTicket[]>(`/boards/${boardId}/tickets/search`, {
+export async function searchTickets(boardKey: string, query: string): Promise<BoardTicket[]> {
+    const res = await client.get<BoardTicket[]>(`/boards/${boardKey}/tickets/search`, {
         params: { q: query },
     })
     return res.data
 }
 
-export async function listTickets(boardId: number): Promise<BoardTicket[]> {
-    const res = await client.get<BoardTicket[]>(`/boards/${boardId}/tickets`)
+export async function listTickets(boardKey: string): Promise<BoardTicket[]> {
+    const res = await client.get<BoardTicket[]>(`/boards/${boardKey}/tickets`)
     return res.data
 }
 
-export async function getTicket(boardId: number, ticketId: number): Promise<BoardTicket> {
-    const res = await client.get<BoardTicket>(`/boards/${boardId}/tickets/${ticketId}`)
+export async function getTicket(boardKey: string, ticketNumber: number): Promise<BoardTicket> {
+    const res = await client.get<BoardTicket>(`/boards/${boardKey}/tickets/${ticketNumber}`)
     return res.data
 }
 
 export async function createTicket(
-    boardId: number,
+    boardKey: string,
     data: {
         laneId: number
         title: string
@@ -323,13 +323,13 @@ export async function createTicket(
         dueDate?: string | null
     },
 ): Promise<BoardTicket> {
-    const res = await client.post<BoardTicket>(`/boards/${boardId}/tickets`, data)
+    const res = await client.post<BoardTicket>(`/boards/${boardKey}/tickets`, data)
     return res.data
 }
 
 export async function updateTicket(
-    boardId: number,
-    ticketId: number,
+    boardKey: string,
+    ticketNumber: number,
     data: {
         title: string
         description?: string | null
@@ -338,126 +338,126 @@ export async function updateTicket(
         dueDate?: string | null
     },
 ): Promise<BoardTicket> {
-    const res = await client.put<BoardTicket>(`/boards/${boardId}/tickets/${ticketId}`, data)
+    const res = await client.put<BoardTicket>(`/boards/${boardKey}/tickets/${ticketNumber}`, data)
     return res.data
 }
 
-export async function deleteTicket(boardId: number, ticketId: number): Promise<void> {
-    await client.delete(`/boards/${boardId}/tickets/${ticketId}`)
+export async function deleteTicket(boardKey: string, ticketNumber: number): Promise<void> {
+    await client.delete(`/boards/${boardKey}/tickets/${ticketNumber}`)
 }
 
 export async function assignTicket(
-    boardId: number,
-    ticketId: number,
+    boardKey: string,
+    ticketNumber: number,
     assignedMemberId: number | null,
 ): Promise<BoardTicket> {
-    const res = await client.put<BoardTicket>(`/boards/${boardId}/tickets/${ticketId}/assign`, { assignedMemberId })
+    const res = await client.put<BoardTicket>(`/boards/${boardKey}/tickets/${ticketNumber}/assign`, { assignedMemberId })
     return res.data
 }
 
 export async function moveTicket(
-    boardId: number,
-    ticketId: number,
+    boardKey: string,
+    ticketNumber: number,
     data: { toLaneId: number; position: number },
 ): Promise<BoardTicket> {
-    const res = await client.put<BoardTicket>(`/boards/${boardId}/tickets/${ticketId}/move`, data)
+    const res = await client.put<BoardTicket>(`/boards/${boardKey}/tickets/${ticketNumber}/move`, data)
     return res.data
 }
 
 export async function reorderTickets(
-    boardId: number,
-    ticketId: number,
+    boardKey: string,
+    ticketNumber: number,
     data: { laneId: number; orderedIds: number[] },
 ): Promise<void> {
-    await client.put(`/boards/${boardId}/tickets/${ticketId}/reorder`, data)
+    await client.put(`/boards/${boardKey}/tickets/${ticketNumber}/reorder`, data)
 }
 
 // -- Links --
 
-export async function getLinks(boardId: number, ticketId: number): Promise<BoardTicketLink[]> {
+export async function getLinks(boardKey: string, ticketNumber: number): Promise<BoardTicketLink[]> {
     const res = await client.get<BoardTicketLink[]>(
-        `/boards/${boardId}/tickets/${ticketId}/links`,
+        `/boards/${boardKey}/tickets/${ticketNumber}/links`,
     )
     return res.data
 }
 
 export async function createLink(
-    boardId: number,
-    ticketId: number,
+    boardKey: string,
+    ticketNumber: number,
     data: { linkedTicketId: number; linkType: LinkTypeName },
 ): Promise<BoardTicketLink[]> {
     const res = await client.post<BoardTicketLink[]>(
-        `/boards/${boardId}/tickets/${ticketId}/links`,
+        `/boards/${boardKey}/tickets/${ticketNumber}/links`,
         data,
     )
     return res.data
 }
 
 export async function deleteLink(
-    boardId: number,
-    ticketId: number,
+    boardKey: string,
+    ticketNumber: number,
     linkedId: number,
 ): Promise<void> {
-    await client.delete(`/boards/${boardId}/tickets/${ticketId}/links/${linkedId}`)
+    await client.delete(`/boards/${boardKey}/tickets/${ticketNumber}/links/${linkedId}`)
 }
 
 // -- Checklist --
 
 export async function getChecklist(
-    boardId: number,
-    ticketId: number,
+    boardKey: string,
+    ticketNumber: number,
 ): Promise<BoardChecklistItem[]> {
     const res = await client.get<BoardChecklistItem[]>(
-        `/boards/${boardId}/tickets/${ticketId}/checklist`,
+        `/boards/${boardKey}/tickets/${ticketNumber}/checklist`,
     )
     return res.data
 }
 
 export async function addChecklistItem(
-    boardId: number,
-    ticketId: number,
+    boardKey: string,
+    ticketNumber: number,
     data: { title: string },
 ): Promise<BoardChecklistItem> {
     const res = await client.post<BoardChecklistItem>(
-        `/boards/${boardId}/tickets/${ticketId}/checklist`,
+        `/boards/${boardKey}/tickets/${ticketNumber}/checklist`,
         data,
     )
     return res.data
 }
 
 export async function updateChecklistItem(
-    boardId: number,
-    ticketId: number,
+    boardKey: string,
+    ticketNumber: number,
     itemId: number,
     data: { title: string; checked: boolean },
 ): Promise<void> {
-    await client.put(`/boards/${boardId}/tickets/${ticketId}/checklist/${itemId}`, data)
+    await client.put(`/boards/${boardKey}/tickets/${ticketNumber}/checklist/${itemId}`, data)
 }
 
 export async function deleteChecklistItem(
-    boardId: number,
-    ticketId: number,
+    boardKey: string,
+    ticketNumber: number,
     itemId: number,
 ): Promise<void> {
-    await client.delete(`/boards/${boardId}/tickets/${ticketId}/checklist/${itemId}`)
+    await client.delete(`/boards/${boardKey}/tickets/${ticketNumber}/checklist/${itemId}`)
 }
 
 export async function reorderChecklist(
-    boardId: number,
-    ticketId: number,
+    boardKey: string,
+    ticketNumber: number,
     data: { orderedIds: number[] },
 ): Promise<void> {
-    await client.put(`/boards/${boardId}/tickets/${ticketId}/checklist/reorder`, data)
+    await client.put(`/boards/${boardKey}/tickets/${ticketNumber}/checklist/reorder`, data)
 }
 
 // -- Transitions --
 
 export async function getTransitions(
-    boardId: number,
-    ticketId: number,
+    boardKey: string,
+    ticketNumber: number,
 ): Promise<BoardTicketTransition[]> {
     const res = await client.get<BoardTicketTransition[]>(
-        `/boards/${boardId}/tickets/${ticketId}/transitions`,
+        `/boards/${boardKey}/tickets/${ticketNumber}/transitions`,
     )
     return res.data
 }
@@ -465,42 +465,42 @@ export async function getTransitions(
 // -- Comments --
 
 export async function getComments(
-    boardId: number,
-    ticketId: number,
+    boardKey: string,
+    ticketNumber: number,
 ): Promise<BoardComment[]> {
     const res = await client.get<BoardComment[]>(
-        `/boards/${boardId}/tickets/${ticketId}/comments`,
+        `/boards/${boardKey}/tickets/${ticketNumber}/comments`,
     )
     return res.data
 }
 
 export async function createComment(
-    boardId: number,
-    ticketId: number,
+    boardKey: string,
+    ticketNumber: number,
     data: { parentId?: number | null; content: string },
 ): Promise<BoardComment> {
     const res = await client.post<BoardComment>(
-        `/boards/${boardId}/tickets/${ticketId}/comments`,
+        `/boards/${boardKey}/tickets/${ticketNumber}/comments`,
         data,
     )
     return res.data
 }
 
 export async function updateComment(
-    boardId: number,
-    ticketId: number,
+    boardKey: string,
+    ticketNumber: number,
     commentId: number,
     data: { content: string },
 ): Promise<void> {
-    await client.put(`/boards/${boardId}/tickets/${ticketId}/comments/${commentId}`, data)
+    await client.put(`/boards/${boardKey}/tickets/${ticketNumber}/comments/${commentId}`, data)
 }
 
 export async function deleteComment(
-    boardId: number,
-    ticketId: number,
+    boardKey: string,
+    ticketNumber: number,
     commentId: number,
 ): Promise<void> {
-    await client.delete(`/boards/${boardId}/tickets/${ticketId}/comments/${commentId}`)
+    await client.delete(`/boards/${boardKey}/tickets/${ticketNumber}/comments/${commentId}`)
 }
 
 // -- Weblinks --
@@ -513,29 +513,29 @@ export interface BoardWeblink {
     position: number
 }
 
-export async function getWeblinks(boardId: number, ticketId: number): Promise<BoardWeblink[]> {
-    const res = await client.get<BoardWeblink[]>(`/boards/${boardId}/tickets/${ticketId}/weblinks`)
+export async function getWeblinks(boardKey: string, ticketNumber: number): Promise<BoardWeblink[]> {
+    const res = await client.get<BoardWeblink[]>(`/boards/${boardKey}/tickets/${ticketNumber}/weblinks`)
     return res.data
 }
 
 export async function addWeblink(
-    boardId: number,
-    ticketId: number,
+    boardKey: string,
+    ticketNumber: number,
     data: { url: string; title?: string },
 ): Promise<BoardWeblink> {
     const res = await client.post<BoardWeblink>(
-        `/boards/${boardId}/tickets/${ticketId}/weblinks`,
+        `/boards/${boardKey}/tickets/${ticketNumber}/weblinks`,
         data,
     )
     return res.data
 }
 
 export async function deleteWeblink(
-    boardId: number,
-    ticketId: number,
+    boardKey: string,
+    ticketNumber: number,
     weblinkId: number,
 ): Promise<void> {
-    await client.delete(`/boards/${boardId}/tickets/${ticketId}/weblinks/${weblinkId}`)
+    await client.delete(`/boards/${boardKey}/tickets/${ticketNumber}/weblinks/${weblinkId}`)
 }
 
 // -- Attachments --
@@ -551,65 +551,65 @@ export interface BoardTicketAttachment {
     createdAt: string
 }
 
-export async function getAttachments(boardId: number, ticketId: number): Promise<BoardTicketAttachment[]> {
-    const res = await client.get<BoardTicketAttachment[]>(`/boards/${boardId}/tickets/${ticketId}/attachments`)
+export async function getAttachments(boardKey: string, ticketNumber: number): Promise<BoardTicketAttachment[]> {
+    const res = await client.get<BoardTicketAttachment[]>(`/boards/${boardKey}/tickets/${ticketNumber}/attachments`)
     return res.data
 }
 
 export async function uploadAttachment(
-    boardId: number,
-    ticketId: number,
+    boardKey: string,
+    ticketNumber: number,
     file: File,
 ): Promise<BoardTicketAttachment> {
     const formData = new FormData()
     formData.append('file', file)
     const res = await client.post<BoardTicketAttachment>(
-        `/boards/${boardId}/tickets/${ticketId}/attachments`,
+        `/boards/${boardKey}/tickets/${ticketNumber}/attachments`,
         formData,
         { headers: { 'Content-Type': 'multipart/form-data' } },
     )
     return res.data
 }
 
-export async function downloadAttachmentBlob(boardId: number, ticketId: number, attachmentId: number, filename: string): Promise<void> {
-    const res = await client.get(`/boards/${boardId}/tickets/${ticketId}/attachments/${attachmentId}/download`, { responseType: 'blob' })
+export async function downloadAttachmentBlob(boardKey: string, ticketNumber: number, attachmentId: number, filename: string): Promise<void> {
+    const res = await client.get(`/boards/${boardKey}/tickets/${ticketNumber}/attachments/${attachmentId}/download`, { responseType: 'blob' })
     const url = URL.createObjectURL(res.data as Blob)
     const a = document.createElement('a')
     a.href = url; a.download = filename; a.click()
     URL.revokeObjectURL(url)
 }
 
-export async function getAttachmentBlobUrl(boardId: number, ticketId: number, attachmentId: number): Promise<string> {
-    const res = await client.get(`/boards/${boardId}/tickets/${ticketId}/attachments/${attachmentId}/download`, { responseType: 'blob' })
+export async function getAttachmentBlobUrl(boardKey: string, ticketNumber: number, attachmentId: number): Promise<string> {
+    const res = await client.get(`/boards/${boardKey}/tickets/${ticketNumber}/attachments/${attachmentId}/download`, { responseType: 'blob' })
     return URL.createObjectURL(res.data as Blob)
 }
 
-export async function getAttachmentText(boardId: number, ticketId: number, attachmentId: number): Promise<string> {
-    const res = await client.get(`/boards/${boardId}/tickets/${ticketId}/attachments/${attachmentId}/download`, { responseType: 'text' })
+export async function getAttachmentText(boardKey: string, ticketNumber: number, attachmentId: number): Promise<string> {
+    const res = await client.get(`/boards/${boardKey}/tickets/${ticketNumber}/attachments/${attachmentId}/download`, { responseType: 'text' })
     return res.data as string
 }
 
 export async function deleteAttachment(
-    boardId: number,
-    ticketId: number,
+    boardKey: string,
+    ticketNumber: number,
     attachmentId: number,
 ): Promise<void> {
-    await client.delete(`/boards/${boardId}/tickets/${ticketId}/attachments/${attachmentId}`)
+    await client.delete(`/boards/${boardKey}/tickets/${ticketNumber}/attachments/${attachmentId}`)
 }
 
 // -- Watchers --
 
-export async function getWatchers(boardId: number, ticketId: number): Promise<number[]> {
-    const res = await client.get<number[]>(`/boards/${boardId}/tickets/${ticketId}/watchers`)
+export async function getWatchers(boardKey: string, ticketNumber: number): Promise<number[]> {
+    const res = await client.get<number[]>(`/boards/${boardKey}/tickets/${ticketNumber}/watchers`)
     return res.data
 }
 
-export async function watchTicket(boardId: number, ticketId: number): Promise<void> {
-    await client.post(`/boards/${boardId}/tickets/${ticketId}/watch`)
+export async function watchTicket(boardKey: string, ticketNumber: number): Promise<void> {
+    await client.post(`/boards/${boardKey}/tickets/${ticketNumber}/watch`)
 }
 
-export async function unwatchTicket(boardId: number, ticketId: number): Promise<void> {
-    await client.delete(`/boards/${boardId}/tickets/${ticketId}/watch`)
+export async function unwatchTicket(boardKey: string, ticketNumber: number): Promise<void> {
+    await client.delete(`/boards/${boardKey}/tickets/${ticketNumber}/watch`)
 }
 
 // -- KB Links --
@@ -622,17 +622,17 @@ export interface BoardTicketKbLink {
     folderPath: string
 }
 
-export async function getKbLinks(boardId: number, ticketId: number): Promise<BoardTicketKbLink[]> {
-    const res = await client.get<BoardTicketKbLink[]>(`/boards/${boardId}/tickets/${ticketId}/kb-links`)
+export async function getKbLinks(boardKey: string, ticketNumber: number): Promise<BoardTicketKbLink[]> {
+    const res = await client.get<BoardTicketKbLink[]>(`/boards/${boardKey}/tickets/${ticketNumber}/kb-links`)
     return res.data
 }
 
-export async function addKbLink(boardId: number, ticketId: number, kbFileId: number): Promise<void> {
-    await client.post(`/boards/${boardId}/tickets/${ticketId}/kb-links/${kbFileId}`)
+export async function addKbLink(boardKey: string, ticketNumber: number, kbFileId: number): Promise<void> {
+    await client.post(`/boards/${boardKey}/tickets/${ticketNumber}/kb-links/${kbFileId}`)
 }
 
-export async function removeKbLink(boardId: number, ticketId: number, linkId: number): Promise<void> {
-    await client.delete(`/boards/${boardId}/tickets/${ticketId}/kb-links/${linkId}`)
+export async function removeKbLink(boardKey: string, ticketNumber: number, linkId: number): Promise<void> {
+    await client.delete(`/boards/${boardKey}/tickets/${ticketNumber}/kb-links/${linkId}`)
 }
 
 // -- History --
@@ -646,8 +646,8 @@ export interface BoardTicketHistoryEntry {
     createdAt: string
 }
 
-export async function getHistory(boardId: number, ticketId: number): Promise<BoardTicketHistoryEntry[]> {
-    const res = await client.get<BoardTicketHistoryEntry[]>(`/boards/${boardId}/tickets/${ticketId}/history`)
+export async function getHistory(boardKey: string, ticketNumber: number): Promise<BoardTicketHistoryEntry[]> {
+    const res = await client.get<BoardTicketHistoryEntry[]>(`/boards/${boardKey}/tickets/${ticketNumber}/history`)
     return res.data
 }
 
@@ -670,8 +670,8 @@ export interface BoardTicketFieldValue {
     value: { value?: unknown; memberId?: number } | null
 }
 
-export async function getFieldValues(boardId: number, ticketId: number): Promise<BoardTicketFieldValue[]> {
-    const res = await client.get<BoardTicketFieldValue[]>(`/boards/${boardId}/tickets/${ticketId}/fields`)
+export async function getFieldValues(boardKey: string, ticketNumber: number): Promise<BoardTicketFieldValue[]> {
+    const res = await client.get<BoardTicketFieldValue[]>(`/boards/${boardKey}/tickets/${ticketNumber}/fields`)
     return res.data
 }
 
@@ -681,21 +681,21 @@ export function buildFieldValueBody(fieldType: BoardFieldTypeName, rawValue: unk
 }
 
 export async function setFieldValue(
-    boardId: number,
-    ticketId: number,
+    boardKey: string,
+    ticketNumber: number,
     fieldId: number,
     fieldType: BoardFieldTypeName,
     rawValue: unknown,
 ): Promise<void> {
-    await client.put(`/boards/${boardId}/tickets/${ticketId}/fields/${fieldId}`, buildFieldValueBody(fieldType, rawValue))
+    await client.put(`/boards/${boardKey}/tickets/${ticketNumber}/fields/${fieldId}`, buildFieldValueBody(fieldType, rawValue))
 }
 
 export async function deleteFieldValue(
-    boardId: number,
-    ticketId: number,
+    boardKey: string,
+    ticketNumber: number,
     fieldId: number,
 ): Promise<void> {
-    await client.delete(`/boards/${boardId}/tickets/${ticketId}/fields/${fieldId}`)
+    await client.delete(`/boards/${boardKey}/tickets/${ticketNumber}/fields/${fieldId}`)
 }
 
 // -- Activity --
@@ -707,11 +707,11 @@ export interface ActivityEntry {
 }
 
 export async function getActivity(
-    boardId: number,
-    ticketId: number,
+    boardKey: string,
+    ticketNumber: number,
 ): Promise<ActivityEntry[]> {
     const res = await client.get<ActivityEntry[]>(
-        `/boards/${boardId}/tickets/${ticketId}/activity`,
+        `/boards/${boardKey}/tickets/${ticketNumber}/activity`,
     )
     return res.data
 }

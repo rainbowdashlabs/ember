@@ -652,12 +652,12 @@ const router = createRouter({
                     component: () => import('@/views/stationview/federation/FederatedBoardsView.vue'),
                 },
                 {
-                    path: 'federation/boards/:partnerUid/:boardId',
+                    path: 'federation/boards/:partnerUid/:boardKey',
                     name: 'federated-board-view',
                     component: () => import('@/views/stationview/federation/FederatedBoardView.vue'),
                 },
                 {
-                    path: 'federation/boards/:partnerUid/:boardId/tickets/:ticketId',
+                    path: 'federation/boards/:partnerUid/:boardKey/tickets/:ticketNumber',
                     name: 'federated-ticket-detail',
                     component: () => import('@/views/stationview/boards/TicketDetailView.vue'),
                 },
@@ -673,32 +673,32 @@ const router = createRouter({
                     component: () => import('@/views/stationview/boards/BoardListView.vue'),
                 },
                 {
-                    path: 'boards/:boardId',
+                    path: 'boards/:boardKey',
                     name: 'board-view',
                     component: () => import('@/views/stationview/boards/BoardView.vue'),
                 },
                 {
-                    path: 'boards/:boardId/tickets/new',
+                    path: 'boards/:boardKey/tickets/new',
                     name: 'ticket-create',
                     component: () => import('@/views/stationview/boards/TicketCreateView.vue'),
                 },
                 {
-                    path: 'boards/:boardId/tickets/:ticketId',
+                    path: 'boards/:boardKey/tickets/:ticketNumber',
                     name: 'ticket-detail',
                     component: () => import('@/views/stationview/boards/TicketDetailView.vue'),
                 },
                 {
-                    path: 'boards/:boardId/archived',
+                    path: 'boards/:boardKey/archived',
                     name: 'board-archived',
                     component: () => import('@/views/stationview/boards/ArchivedView.vue'),
                 },
                 {
-                    path: 'boards/:boardId/backlog',
+                    path: 'boards/:boardKey/backlog',
                     name: 'board-backlog',
                     component: () => import('@/views/stationview/boards/BacklogView.vue'),
                 },
                 {
-                    path: 'boards/:boardId/settings',
+                    path: 'boards/:boardKey/settings',
                     name: 'board-settings',
                     component: () => import('@/views/stationview/boards/BoardSettingsView.vue'),
                 },
@@ -1400,12 +1400,12 @@ const router = createRouter({
                     component: () => import('@/views/helpcenter/stationview/boards/FederatedBoardsHelp.vue'),
                 },
                 {
-                    path: 'federation/boards/:partnerUid/:boardId',
+                    path: 'federation/boards/:partnerUid/:boardKey',
                     name: 'help-federated-board-view',
                     redirect: { name: 'help-federated-boards' },
                 },
                 {
-                    path: 'federation/boards/:partnerUid/:boardId/tickets/:ticketId',
+                    path: 'federation/boards/:partnerUid/:boardKey/tickets/:ticketNumber',
                     name: 'help-federated-ticket-detail',
                     redirect: { name: 'help-federated-boards' },
                 },
@@ -1420,32 +1420,32 @@ const router = createRouter({
                     component: () => import('@/views/helpcenter/stationview/boards/BoardManageHelp.vue')
                 },
                 {
-                    path: 'boards/:boardId',
+                    path: 'boards/:boardKey',
                     name: 'help-board-view',
                     component: () => import('@/views/helpcenter/stationview/boards/BoardViewHelp.vue')
                 },
                 {
-                    path: 'boards/:boardId/archived',
+                    path: 'boards/:boardKey/archived',
                     name: 'help-board-archived',
                     component: () => import('@/views/helpcenter/stationview/boards/ArchivedHelp.vue')
                 },
                 {
-                    path: 'boards/:boardId/backlog',
+                    path: 'boards/:boardKey/backlog',
                     name: 'help-board-backlog',
                     component: () => import('@/views/helpcenter/stationview/boards/BacklogHelp.vue')
                 },
                 {
-                    path: 'boards/:boardId/settings',
+                    path: 'boards/:boardKey/settings',
                     name: 'help-board-settings',
                     component: () => import('@/views/helpcenter/stationview/boards/BoardSettingsHelp.vue')
                 },
                 {
-                    path: 'boards/:boardId/tickets/new',
+                    path: 'boards/:boardKey/tickets/new',
                     name: 'help-ticket-create',
                     component: () => import('@/views/helpcenter/stationview/boards/TicketCreateHelp.vue')
                 },
                 {
-                    path: 'boards/:boardId/tickets/:ticketId',
+                    path: 'boards/:boardKey/tickets/:ticketNumber',
                     name: 'help-ticket-detail',
                     component: () => import('@/views/helpcenter/stationview/boards/TicketDetailHelp.vue')
                 },

@@ -41,7 +41,7 @@ const route = useRoute()
 const router = useRouter()
 
 const partnerUid = computed(() => route.params.partnerUid as string)
-const boardId = computed(() => Number(route.params.boardId))
+const boardKey = computed(() => route.params.boardKey as string)
 
 const boardDetail = ref<FederatedBoardDetail | null>(null)
 const lanes = ref<BoardLane[]>([])
@@ -69,10 +69,10 @@ async function loadData() {
     error.value = ''
     try {
         const [bd, l, tix, lb] = await Promise.all([
-            fedGetBoard(partnerUid.value, boardId.value),
-            fedGetLanes(partnerUid.value, boardId.value),
-            fedListTickets(partnerUid.value, boardId.value),
-            fedGetLabels(partnerUid.value, boardId.value),
+            fedGetBoard(partnerUid.value, boardKey.value),
+            fedGetLanes(partnerUid.value, boardKey.value),
+            fedListTickets(partnerUid.value, boardKey.value),
+            fedGetLabels(partnerUid.value, boardKey.value),
         ])
         boardDetail.value = bd
         lanes.value = l
@@ -165,14 +165,14 @@ function onSearchInput() {
     searchTimeout = setTimeout(async () => {
         searching.value = true
         try {
-            searchResults.value = await fedSearchTickets(partnerUid.value, boardId.value, searchQuery.value.trim())
+            searchResults.value = await fedSearchTickets(partnerUid.value, boardKey.value, searchQuery.value.trim())
         } catch { /* ignore */ }
         finally { searching.value = false }
     }, 300)
 }
 
 function openTicketDetail(ticket: BoardTicket) {
-    router.push(`/station/federation/boards/${partnerUid.value}/${boardId.value}/tickets/${ticket.id}`)
+    router.push(`/station/federation/boards/${partnerUid.value}/${boardKey.value}/tickets/${ticket.ticketNumber}`)
 }
 
 // -- Create ticket (FULL mode only) --
@@ -183,7 +183,7 @@ async function handleCreateTicket() {
         return
     }
     try {
-        const created = await fedCreateTicket(partnerUid.value, boardId.value, {
+        const created = await fedCreateTicket(partnerUid.value, boardKey.value, {
             laneId: Number(createLaneId.value),
             title: createTitle.value.trim(),
             description: createDescription.value.trim() || undefined,
@@ -193,7 +193,7 @@ async function handleCreateTicket() {
         createTitle.value = ''
         createDescription.value = ''
         createPriority.value = TicketPriority.MEDIUM
-        router.push(`/station/federation/boards/${partnerUid.value}/${boardId.value}/tickets/${created.id}`)
+        router.push(`/station/federation/boards/${partnerUid.value}/${boardKey.value}/tickets/${created.ticketNumber}`)
     } catch {
         createError.value = t('common.error')
     }
@@ -255,11 +255,11 @@ async function onLaneDrop(laneId: number) {
 
     if (ticket.laneId === laneId) {
         try {
-            await fedReorderTickets(partnerUid.value, boardId.value, ticket.id, { laneId, orderedIds: otherTickets.map(t => t.id) })
+            await fedReorderTickets(partnerUid.value, boardKey.value, ticket.ticketNumber, { laneId, orderedIds: otherTickets.map(t => t.id) })
         } catch { await loadData() }
     } else {
         try {
-            await fedMoveTicket(partnerUid.value, boardId.value, ticket.id, { toLaneId: laneId, position: pos })
+            await fedMoveTicket(partnerUid.value, boardKey.value, ticket.ticketNumber, { toLaneId: laneId, position: pos })
         } catch { await loadData() }
     }
 }
@@ -271,7 +271,7 @@ function onDragEnd() {
 }
 
 onMounted(loadData)
-watch([partnerUid, boardId], loadData)
+watch([partnerUid, boardKey], loadData)
 </script>
 
 <template>

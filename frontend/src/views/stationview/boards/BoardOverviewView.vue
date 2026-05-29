@@ -52,7 +52,7 @@ onMounted(loadBoards)
                 v-for="board in boardList"
                 :key="board.id"
                 class="cursor-pointer hover:border-[var(--accent)] transition-colors"
-                @click="router.push(`/station/boards/${board.id}`)"
+                @click="router.push(`/station/boards/${board.shortKey}`)"
             >
                 <div class="flex items-center gap-2 mb-1">
                     <span class="text-xs font-mono text-[var(--text-muted)] bg-[var(--bg-muted)] px-1.5 py-0.5 rounded">{{ board.shortKey }}</span>

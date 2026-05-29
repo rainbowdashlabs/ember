@@ -22,7 +22,7 @@ const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
 
-const boardId = computed(() => Number(route.params.boardId))
+const boardKey = computed(() => route.params.boardKey as string)
 const board = ref<Board | null>(null)
 const tickets = ref<BoardTicket[]>([])
 const members = ref<{ id: number; name: string }[]>([])
@@ -32,7 +32,7 @@ const error = ref('')
 async function loadData() {
     loading.value = true
     try {
-        const [b, t, m] = await Promise.all([boards.getBoard(boardId.value), boards.listTickets(boardId.value), stationMembers.listCompletions()])
+        const [b, t, m] = await Promise.all([boards.getBoard(boardKey.value), boards.listTickets(boardKey.value), stationMembers.listCompletions()])
         board.value = b
         members.value = m
         if (b.backlogLaneId) {
@@ -55,7 +55,7 @@ onMounted(loadData)
         <Alert v-else-if="error" variant="error">{{ error }}</Alert>
         <template v-else-if="board">
             <div class="flex items-center gap-3 mb-6">
-                <IconButton :icon="['fas', 'chevron-left']" label="Back" @click="router.push(`/station/boards/${board.id}`)" />
+                <IconButton :icon="['fas', 'chevron-left']" label="Back" @click="router.push(`/station/boards/${board.shortKey}`)" />
                 <SectionHeader>{{ board.name }} — {{ t('boards.backlogTitle') }}</SectionHeader>
             </div>
 
@@ -74,7 +74,7 @@ onMounted(loadData)
                 <tbody>
                     <tr v-for="ticket in tickets" :key="ticket.id"
                         class="border-b border-(--border) last:border-0 cursor-pointer hover:bg-primary/5"
-                        @click="router.push(`/station/boards/${board.id}/tickets/${ticket.id}`)">
+                        @click="router.push(`/station/boards/${board.shortKey}/tickets/${ticket.ticketNumber}`)">
                         <td class="py-2 pr-3 font-mono text-(--text-muted) whitespace-nowrap">{{ board.shortKey }}-{{ ticket.ticketNumber }}</td>
                         <td class="py-2 pr-3">{{ ticket.title }}</td>
                         <td class="py-2 pr-3"><font-awesome-icon :icon="priorityIcon(ticket.priority)" :class="priorityColor(ticket.priority)" class="text-xs" /></td>

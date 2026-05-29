@@ -72,7 +72,7 @@ async function handleCreate() {
         createDescription.value = ''
         createShortKey.value = ''
         createPreset.value = LanePreset.SIMPLE
-        await router.push(`/station/boards/${board.id}`)
+        await router.push(`/station/boards/${board.shortKey}`)
     } catch {
         createError.value = t('common.error')
     }
@@ -81,7 +81,7 @@ async function handleCreate() {
 async function handleDelete() {
     if (!deleteTarget.value) return
     try {
-        await boards.deleteBoard(deleteTarget.value.id)
+        await boards.deleteBoard(deleteTarget.value.shortKey)
         showDeleteModal.value = false
         deleteTarget.value = null
         await loadBoards()
@@ -117,7 +117,7 @@ onMounted(loadBoards)
                 v-for="board in boardList"
                 :key="board.id"
                 class="cursor-pointer hover:border-[var(--accent)] transition-colors"
-                @click="router.push(`/station/boards/${board.id}`)"
+                @click="router.push(`/station/boards/${board.shortKey}`)"
             >
                 <div class="flex items-start justify-between">
                     <div>
@@ -128,7 +128,7 @@ onMounted(loadBoards)
                         <p v-if="board.description" class="text-sm text-[var(--text-muted)] line-clamp-2">{{ board.description }}</p>
                     </div>
                     <div class="flex items-center gap-1 shrink-0">
-                        <IconButton :icon="['fas', 'gears']" label="Settings" @click.stop="router.push(`/station/boards/${board.id}/settings`)" />
+                        <IconButton :icon="['fas', 'gears']" label="Settings" @click.stop="router.push(`/station/boards/${board.shortKey}/settings`)" />
                         <DeleteButton @click.stop="confirmDelete(board)" />
                     </div>
                 </div>

@@ -22,7 +22,7 @@ const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
 
-const boardId = computed(() => Number(route.params.boardId))
+const boardKey = computed(() => route.params.boardKey as string)
 const board = ref<Board | null>(null)
 const tickets = ref<BoardTicket[]>([])
 const members = ref<{ id: number; name: string }[]>([])
@@ -36,8 +36,8 @@ async function loadData() {
     loading.value = true
     try {
         const [b, lns, tks, m, lb, tlm] = await Promise.all([
-            boards.getBoard(boardId.value), boards.getLanes(boardId.value), boards.listTickets(boardId.value),
-            stationMembers.listCompletions(), boards.getLabels(boardId.value), boards.getAllTicketLabels(boardId.value),
+            boards.getBoard(boardKey.value), boards.getLanes(boardKey.value), boards.listTickets(boardKey.value),
+            stationMembers.listCompletions(), boards.getLabels(boardKey.value), boards.getAllTicketLabels(boardKey.value),
         ])
         board.value = b; members.value = m; allLabels.value = lb
         const map = new Map<number, number[]>()
@@ -74,7 +74,7 @@ onMounted(loadData)
         <Alert v-else-if="error" variant="error">{{ error }}</Alert>
         <template v-else-if="board">
             <div class="flex items-center gap-3 mb-4">
-                <IconButton :icon="['fas', 'chevron-left']" label="Back" @click="router.push(`/station/boards/${board.id}`)" />
+                <IconButton :icon="['fas', 'chevron-left']" label="Back" @click="router.push(`/station/boards/${board.shortKey}`)" />
                 <SectionHeader>{{ board.name }} — {{ t('boards.archived') }}</SectionHeader>
             </div>
 
@@ -89,7 +89,7 @@ onMounted(loadData)
                     <th class="py-2 pr-3">ID</th><th class="py-2 pr-3 w-full">{{ t('boards.ticketTitle') }}</th><th class="py-2 pr-3">Labels</th><th class="py-2 pr-3">{{ t('boards.priority') }}</th><th class="py-2 pr-3">{{ t('boards.assignee') }}</th><th class="py-2">{{ t('boards.dueDate') }}</th>
                 </tr></thead>
                 <tbody>
-                    <tr v-for="ticket in filteredTickets" :key="ticket.id" class="border-b border-(--border) last:border-0 cursor-pointer hover:bg-primary/5" @click="router.push(`/station/boards/${board.id}/tickets/${ticket.id}`)">
+                    <tr v-for="ticket in filteredTickets" :key="ticket.id" class="border-b border-(--border) last:border-0 cursor-pointer hover:bg-primary/5" @click="router.push(`/station/boards/${board.shortKey}/tickets/${ticket.ticketNumber}`)">
                         <td class="py-2 pr-3 font-mono text-(--text-muted) whitespace-nowrap">{{ board.shortKey }}-{{ ticket.ticketNumber }}</td>
                         <td class="py-2 pr-3">{{ ticket.title }}</td>
                         <td class="py-2 pr-3"><div class="flex gap-1"><span v-for="l in labelsForTicket(ticket.id)" :key="l.id" class="text-[0.6rem] px-1.5 py-0.5 rounded-full" :style="{ backgroundColor: l.color, color: contrastTextColor(l.color) }">{{ l.name }}</span></div></td>

@@ -37,7 +37,7 @@ const route = useRoute()
 const router = useRouter()
 const { canManageBoards } = useSession()
 
-const boardId = computed(() => Number(route.params.boardId))
+const boardKey = computed(() => route.params.boardKey as string)
 const board = ref<Board | null>(null)
 const lanes = ref<BoardLane[]>([])
 const tickets = ref<BoardTicket[]>([])
@@ -67,12 +67,12 @@ async function loadData() {
     error.value = ''
     try {
         const [b, l, t, m, lb, tlm] = await Promise.all([
-            boards.getBoard(boardId.value),
-            boards.getLanes(boardId.value),
-            boards.listTickets(boardId.value),
+            boards.getBoard(boardKey.value),
+            boards.getLanes(boardKey.value),
+            boards.listTickets(boardKey.value),
             stationMembers.listCompletions(),
-            boards.getLabels(boardId.value),
-            boards.getAllTicketLabels(boardId.value),
+            boards.getLabels(boardKey.value),
+            boards.getAllTicketLabels(boardKey.value),
         ])
         board.value = b
         lanes.value = l
@@ -157,7 +157,7 @@ async function handleCreateTicket() {
         return
     }
     try {
-        const created = await boards.createTicket(boardId.value, {
+        const created = await boards.createTicket(boardKey.value, {
             laneId: Number(createLaneId.value),
             title: createTitle.value.trim(),
             description: createDescription.value.trim() || undefined,
@@ -171,7 +171,7 @@ async function handleCreateTicket() {
         createPriority.value = TicketPriority.MEDIUM
         createAssignee.value = ''
         createDueDate.value = ''
-        router.push(`/station/boards/${boardId.value}/tickets/${created.id}`)
+        router.push(`/station/boards/${boardKey.value}/tickets/${created.ticketNumber}`)
     } catch {
         createError.value = t('common.error')
     }
@@ -197,14 +197,14 @@ function onSearchInput() {
     searchTimeout = setTimeout(async () => {
         searching.value = true
         try {
-            searchResults.value = await boards.searchTickets(boardId.value, searchQuery.value.trim())
+            searchResults.value = await boards.searchTickets(boardKey.value, searchQuery.value.trim())
         } catch { /* ignore */ }
         finally { searching.value = false }
     }, 300)
 }
 
 function openTicketDetail(ticket: BoardTicket) {
-    router.push(`/station/boards/${boardId.value}/tickets/${ticket.id}`)
+    router.push(`/station/boards/${boardKey.value}/tickets/${ticket.ticketNumber}`)
 }
 
 function laneName(laneId: number): string {
@@ -289,11 +289,11 @@ async function onLaneDrop(laneId: number) {
 
     if (ticket.laneId === laneId) {
         try {
-            await boards.reorderTickets(boardId.value, ticket.id, { laneId, orderedIds: otherTickets.map(t => t.id) })
+            await boards.reorderTickets(boardKey.value, ticket.ticketNumber, { laneId, orderedIds: otherTickets.map(t => t.id) })
         } catch { await loadData() }
     } else {
         try {
-            await boards.moveTicket(boardId.value, ticket.id, { toLaneId: laneId, position: pos })
+            await boards.moveTicket(boardKey.value, ticket.ticketNumber, { toLaneId: laneId, position: pos })
         } catch { await loadData() }
     }
 }
@@ -305,7 +305,7 @@ function onDragEnd() {
 }
 
 onMounted(loadData)
-watch(boardId, loadData)
+watch(boardKey, loadData)
 </script>
 
 <template>
@@ -356,14 +356,14 @@ watch(boardId, loadData)
                         v-if="canManageBoards()"
                         :icon="['fas', 'gears']"
                         :label="t('boards.settings')"
-                        @click="router.push(`/station/boards/${board.id}/settings`)"
+                        @click="router.push(`/station/boards/${board.shortKey}/settings`)"
                     />
                 </div>
             </div>
 
             <!-- Backlog + Assignee filter bar -->
             <div class="flex items-center mb-4 gap-3">
-                <IconButton v-if="backlogLane" :icon="['fas', 'inbox']" :label="t('boards.showBacklog')" class="text-(--text-muted)" @click="router.push(`/station/boards/${board.id}/backlog`)" />
+                <IconButton v-if="backlogLane" :icon="['fas', 'inbox']" :label="t('boards.showBacklog')" class="text-(--text-muted)" @click="router.push(`/station/boards/${board.shortKey}/backlog`)" />
                 <div v-if="assignees.length > 0" class="flex items-center">
                     <div class="cursor-pointer rounded-full transition-all" :class="assigneeFilter.size === 0 ? 'ring-2 ring-primary' : 'opacity-60 hover:opacity-100'" :title="t('boards.allMembers')" @click="assigneeFilter = new Set()">
                         <div class="h-8 w-8 rounded-full bg-primary/15 text-primary font-bold flex items-center justify-center text-xs">
@@ -432,7 +432,7 @@ watch(boardId, loadData)
 
                     <!-- Archived count -->
                     <div v-if="isLastLane(lane.id) && archivedCountForLane(lane.id) > 0" class="mt-2">
-                        <SecondaryButton class="w-full text-xs" @click="router.push(`/station/boards/${board.id}/archived`)">
+                        <SecondaryButton class="w-full text-xs" @click="router.push(`/station/boards/${board.shortKey}/archived`)">
                             {{ archivedCountForLane(lane.id) }} {{ t('boards.archived') }}
                         </SecondaryButton>
                     </div>
@@ -486,7 +486,7 @@ watch(boardId, loadData)
                     </div>
                     <Alert v-if="createError" variant="error">{{ createError }}</Alert>
                     <div class="flex items-center justify-between">
-                        <SecondaryButton @click="showCreateModal = false; router.push({ path: `/station/boards/${board!.id}/tickets/new`, query: { title: createTitle || undefined, description: createDescription || undefined, laneId: createLaneId || undefined, priority: createPriority !== TicketPriority.MEDIUM ? createPriority : undefined, assignee: createAssignee || undefined, dueDate: createDueDate || undefined } })">
+                        <SecondaryButton @click="showCreateModal = false; router.push({ path: `/station/boards/${board!.shortKey}/tickets/new`, query: { title: createTitle || undefined, description: createDescription || undefined, laneId: createLaneId || undefined, priority: createPriority !== TicketPriority.MEDIUM ? createPriority : undefined, assignee: createAssignee || undefined, dueDate: createDueDate || undefined } })">
                             <font-awesome-icon :icon="['fas', 'expand']" class="mr-1" />
                             {{ t('boards.moreOptions') }}
                         </SecondaryButton>

@@ -38,6 +38,13 @@ public class BoardRepository {
                 .first();
     }
 
+    public Optional<Board> findByShortKey(int stationId, String shortKey) {
+        return Query.query("SELECT * FROM board WHERE station_id = :station_id AND short_key = :short_key;")
+                .single(Call.of().bind("station_id", stationId).bind("short_key", shortKey))
+                .map(Board.map())
+                .first();
+    }
+
     public Board create(int stationId, String name, String description, String shortKey) {
         return Query.query("""
                         INSERT INTO board(station_id, name, description, short_key)

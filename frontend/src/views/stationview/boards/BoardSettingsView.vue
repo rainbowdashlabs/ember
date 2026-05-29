@@ -35,7 +35,7 @@ const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
 
-const boardId = computed(() => Number(route.params.boardId))
+const boardKey = computed(() => route.params.boardKey as string)
 const board = ref<Board | null>(null)
 const loading = ref(true)
 const error = ref('')
@@ -105,15 +105,15 @@ async function loadData() {
     loading.value = true
     try {
         const [b, l, f, r, g, tg, va, ea, fedConfig, partners] = await Promise.all([
-            boards.getBoard(boardId.value),
-            boards.getLanes(boardId.value),
-            boards.getFields(boardId.value),
+            boards.getBoard(boardKey.value),
+            boards.getLanes(boardKey.value),
+            boards.getFields(boardKey.value),
             stationMembers.listAllRoles(),
             memberGroups.listGroups(),
             userTags.listTags(),
-            boards.getViewAccess(boardId.value),
-            boards.getEditAccess(boardId.value),
-            boards.getBoardFederationConfig(boardId.value),
+            boards.getViewAccess(boardKey.value),
+            boards.getEditAccess(boardKey.value),
+            boards.getBoardFederationConfig(boardKey.value),
             federation.listPartners(),
         ])
         board.value = b
@@ -146,25 +146,25 @@ async function save() {
     error.value = ''
     saved.value = false
     try {
-        await boards.updateBoard(boardId.value, {
+        await boards.updateBoard(boardKey.value, {
             name: name.value,
             description: description.value,
             hideDoneAfterDays: hideDoneAfterDays.value,
         })
-        await boards.setLanes(boardId.value, lanes.value.map(l => ({ name: l.name, color: l.color })))
+        await boards.setLanes(boardKey.value, lanes.value.map(l => ({ name: l.name, color: l.color })))
         if (hasBacklog.value && !board.value?.backlogLaneId) {
-            await boards.enableBacklog(boardId.value)
+            await boards.enableBacklog(boardKey.value)
         } else if (!hasBacklog.value && board.value?.backlogLaneId) {
-            await boards.disableBacklog(boardId.value)
+            await boards.disableBacklog(boardKey.value)
         }
-        await boards.setFields(boardId.value, fields.value)
-        await boards.setViewAccess(boardId.value, {
+        await boards.setFields(boardKey.value, fields.value)
+        await boards.setViewAccess(boardKey.value, {
             roleIds: viewRoleIds.value, groupIds: viewGroupIds.value, tagIds: viewTagIds.value,
         })
-        await boards.setEditAccess(boardId.value, {
+        await boards.setEditAccess(boardKey.value, {
             roleIds: editRoleIds.value, groupIds: editGroupIds.value, tagIds: editTagIds.value,
         })
-        await boards.setBoardFederationConfig(boardId.value, {
+        await boards.setBoardFederationConfig(boardKey.value, {
             targets: federationTargets.value,
             editRoleIds: federatedEditRoleIds.value.map(Number),
         })
@@ -231,7 +231,7 @@ onMounted(loadData)
         <template v-else-if="board">
             <div class="flex items-center justify-between mb-6">
                 <div class="flex items-center gap-3">
-                    <IconButton :icon="['fas', 'chevron-left']" label="Back" @click="router.push(`/station/boards/${board.id}`)" />
+                    <IconButton :icon="['fas', 'chevron-left']" label="Back" @click="router.push(`/station/boards/${board.shortKey}`)" />
                     <SectionHeader>{{ t('boards.settings') }}</SectionHeader>
                     <span class="text-xs font-mono text-[var(--text-muted)] bg-[var(--bg-muted)] px-1.5 py-0.5 rounded">{{ board.shortKey }}</span>
                 </div>

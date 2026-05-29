@@ -176,11 +176,12 @@ public class FederatedBoardProxyService {
 
     // -- Read Proxy Methods --
 
-    public FederatedBoardDetail proxyGetBoard(int partnerId, int boardId) {
+    public FederatedBoardDetail proxyGetBoard(int partnerId, String boardKey) {
         var partner = findPartner(partnerId);
         if (partner.isRemote()) {
-            return remoteGet(partner, "/remote/boards/" + boardId, FederatedBoardDetail.class);
+            return remoteGet(partner, "/remote/boards/" + boardKey, FederatedBoardDetail.class);
         }
+        int boardId = resolveBoardId(boardKey, partner);
         var board = boardService.findById(boardId).orElseThrow(NotFoundResponse::new);
         var mode = getEffectiveShareMode(partnerId, boardId).orElse(BoardShareMode.READ_ONLY);
         String stationName = stationRepository
@@ -190,49 +191,54 @@ public class FederatedBoardProxyService {
         return FederatedBoardDetail.of(board, mode.name(), stationName);
     }
 
-    public List<BoardLane> proxyGetLanes(int partnerId, int boardId) {
+    public List<BoardLane> proxyGetLanes(int partnerId, String boardKey) {
         var partner = findPartner(partnerId);
         if (partner.isRemote()) {
-            return remoteGetList(partner, "/remote/boards/" + boardId + "/lanes", BoardLane.class);
+            return remoteGetList(partner, "/remote/boards/" + boardKey + "/lanes", BoardLane.class);
         }
+        int boardId = resolveBoardId(boardKey, partner);
         return boardService.findLanes(boardId);
     }
 
-    public List<BoardLabel> proxyGetLabels(int partnerId, int boardId) {
+    public List<BoardLabel> proxyGetLabels(int partnerId, String boardKey) {
         var partner = findPartner(partnerId);
         if (partner.isRemote()) {
-            return remoteGetList(partner, "/remote/boards/" + boardId + "/labels", BoardLabel.class);
+            return remoteGetList(partner, "/remote/boards/" + boardKey + "/labels", BoardLabel.class);
         }
+        int boardId = resolveBoardId(boardKey, partner);
         return boardService.findLabels(boardId);
     }
 
-    public List<BoardField> proxyGetFields(int partnerId, int boardId) {
+    public List<BoardField> proxyGetFields(int partnerId, String boardKey) {
         var partner = findPartner(partnerId);
         if (partner.isRemote()) {
-            return remoteGetList(partner, "/remote/boards/" + boardId + "/fields", BoardField.class);
+            return remoteGetList(partner, "/remote/boards/" + boardKey + "/fields", BoardField.class);
         }
+        int boardId = resolveBoardId(boardKey, partner);
         return boardService.findFields(boardId);
     }
 
-    public List<TicketSummary> proxyListTickets(int partnerId, int boardId) {
+    public List<TicketSummary> proxyListTickets(int partnerId, String boardKey) {
         var partner = findPartner(partnerId);
         if (partner.isRemote()) {
-            return remoteGetList(partner, "/remote/boards/" + boardId + "/tickets", TicketSummary.class);
+            return remoteGetList(partner, "/remote/boards/" + boardKey + "/tickets", TicketSummary.class);
         }
+        int boardId = resolveBoardId(boardKey, partner);
         return ticketService.findByBoard(boardId).stream()
                 .map(TicketSummary::of)
                 .toList();
     }
 
-    public List<TicketSummary> proxySearchTickets(int partnerId, int boardId, String query) {
+    public List<TicketSummary> proxySearchTickets(int partnerId, String boardKey, String query) {
         var partner = findPartner(partnerId);
         if (partner.isRemote()) {
-            String path = "/remote/boards/" + boardId + "/tickets/search";
+            String path = "/remote/boards/" + boardKey + "/tickets/search";
             if (query != null && !query.isBlank()) {
                 path += "?q=" + URLEncoder.encode(query, StandardCharsets.UTF_8);
             }
             return remoteGetList(partner, path, TicketSummary.class);
         }
+        int boardId = resolveBoardId(boardKey, partner);
         if (query == null || query.isBlank()) {
             return ticketService.findByBoard(boardId).stream()
                     .map(TicketSummary::of)
@@ -243,93 +249,115 @@ public class FederatedBoardProxyService {
                 .toList();
     }
 
-    public BoardTicket proxyGetTicket(int partnerId, int boardId, int ticketId) {
+    public BoardTicket proxyGetTicket(int partnerId, String boardKey, int ticketNumber) {
         var partner = findPartner(partnerId);
         if (partner.isRemote()) {
-            return remoteGet(partner, "/remote/boards/" + boardId + "/tickets/" + ticketId, BoardTicket.class);
+            return remoteGet(partner, "/remote/boards/" + boardKey + "/tickets/" + ticketNumber, BoardTicket.class);
         }
+        int boardId = resolveBoardId(boardKey, partner);
+        int ticketId = resolveTicketId(boardId, ticketNumber);
         return ticketService.findById(ticketId).orElseThrow(NotFoundResponse::new);
     }
 
-    public List<BoardComment> proxyGetComments(int partnerId, int boardId, int ticketId) {
+    public List<BoardComment> proxyGetComments(int partnerId, String boardKey, int ticketNumber) {
         var partner = findPartner(partnerId);
         if (partner.isRemote()) {
             return remoteGetList(
-                    partner, "/remote/boards/" + boardId + "/tickets/" + ticketId + "/comments", BoardComment.class);
+                    partner,
+                    "/remote/boards/" + boardKey + "/tickets/" + ticketNumber + "/comments",
+                    BoardComment.class);
         }
+        int boardId = resolveBoardId(boardKey, partner);
+        int ticketId = resolveTicketId(boardId, ticketNumber);
         return ticketService.findComments(ticketId);
     }
 
-    public List<BoardChecklistItem> proxyGetChecklist(int partnerId, int boardId, int ticketId) {
+    public List<BoardChecklistItem> proxyGetChecklist(int partnerId, String boardKey, int ticketNumber) {
         var partner = findPartner(partnerId);
         if (partner.isRemote()) {
             return remoteGetList(
                     partner,
-                    "/remote/boards/" + boardId + "/tickets/" + ticketId + "/checklist",
+                    "/remote/boards/" + boardKey + "/tickets/" + ticketNumber + "/checklist",
                     BoardChecklistItem.class);
         }
+        int boardId = resolveBoardId(boardKey, partner);
+        int ticketId = resolveTicketId(boardId, ticketNumber);
         return ticketService.findChecklistItems(ticketId);
     }
 
-    public List<BoardTicketLink> proxyGetLinks(int partnerId, int boardId, int ticketId) {
+    public List<BoardTicketLink> proxyGetLinks(int partnerId, String boardKey, int ticketNumber) {
         var partner = findPartner(partnerId);
         if (partner.isRemote()) {
             return remoteGetList(
-                    partner, "/remote/boards/" + boardId + "/tickets/" + ticketId + "/links", BoardTicketLink.class);
+                    partner,
+                    "/remote/boards/" + boardKey + "/tickets/" + ticketNumber + "/links",
+                    BoardTicketLink.class);
         }
+        int boardId = resolveBoardId(boardKey, partner);
+        int ticketId = resolveTicketId(boardId, ticketNumber);
         return ticketService.findLinks(ticketId);
     }
 
-    public List<BoardLabel> proxyGetTicketLabels(int partnerId, int boardId, int ticketId) {
+    public List<BoardLabel> proxyGetTicketLabels(int partnerId, String boardKey, int ticketNumber) {
         var partner = findPartner(partnerId);
         if (partner.isRemote()) {
             return remoteGetList(
-                    partner, "/remote/boards/" + boardId + "/tickets/" + ticketId + "/labels", BoardLabel.class);
+                    partner, "/remote/boards/" + boardKey + "/tickets/" + ticketNumber + "/labels", BoardLabel.class);
         }
+        int boardId = resolveBoardId(boardKey, partner);
+        int ticketId = resolveTicketId(boardId, ticketNumber);
         return boardService.findLabelsForTicket(ticketId);
     }
 
-    public List<BoardTicketTransition> proxyGetTransitions(int partnerId, int boardId, int ticketId) {
+    public List<BoardTicketTransition> proxyGetTransitions(int partnerId, String boardKey, int ticketNumber) {
         var partner = findPartner(partnerId);
         if (partner.isRemote()) {
             return remoteGetList(
                     partner,
-                    "/remote/boards/" + boardId + "/tickets/" + ticketId + "/transitions",
+                    "/remote/boards/" + boardKey + "/tickets/" + ticketNumber + "/transitions",
                     BoardTicketTransition.class);
         }
+        int boardId = resolveBoardId(boardKey, partner);
+        int ticketId = resolveTicketId(boardId, ticketNumber);
         return ticketService.findTransitions(ticketId);
     }
 
-    public List<BoardTicketHistory> proxyGetHistory(int partnerId, int boardId, int ticketId) {
+    public List<BoardTicketHistory> proxyGetHistory(int partnerId, String boardKey, int ticketNumber) {
         var partner = findPartner(partnerId);
         if (partner.isRemote()) {
             return remoteGetList(
                     partner,
-                    "/remote/boards/" + boardId + "/tickets/" + ticketId + "/history",
+                    "/remote/boards/" + boardKey + "/tickets/" + ticketNumber + "/history",
                     BoardTicketHistory.class);
         }
+        int boardId = resolveBoardId(boardKey, partner);
+        int ticketId = resolveTicketId(boardId, ticketNumber);
         return ticketService.findHistory(ticketId);
     }
 
-    public List<BoardTicketAttachment> proxyGetAttachments(int partnerId, int boardId, int ticketId) {
+    public List<BoardTicketAttachment> proxyGetAttachments(int partnerId, String boardKey, int ticketNumber) {
         var partner = findPartner(partnerId);
         if (partner.isRemote()) {
             return remoteGetList(
                     partner,
-                    "/remote/boards/" + boardId + "/tickets/" + ticketId + "/attachments",
+                    "/remote/boards/" + boardKey + "/tickets/" + ticketNumber + "/attachments",
                     BoardTicketAttachment.class);
         }
+        int boardId = resolveBoardId(boardKey, partner);
+        int ticketId = resolveTicketId(boardId, ticketNumber);
         return ticketService.findAttachments(ticketId);
     }
 
-    public FederatedWatcherData proxyGetWatchers(int partnerId, int boardId, int ticketId) {
+    public FederatedWatcherData proxyGetWatchers(int partnerId, String boardKey, int ticketNumber) {
         var partner = findPartner(partnerId);
         if (partner.isRemote()) {
             return remoteGet(
                     partner,
-                    "/remote/boards/" + boardId + "/tickets/" + ticketId + "/watchers",
+                    "/remote/boards/" + boardKey + "/tickets/" + ticketNumber + "/watchers",
                     FederatedWatcherData.class);
         }
+        int boardId = resolveBoardId(boardKey, partner);
+        int ticketId = resolveTicketId(boardId, ticketNumber);
         var localWatchers = ticketService.findWatchers(ticketId);
         var federatedWatchers = federatedBoardService.findFederatedWatchers(ticketId);
         return new FederatedWatcherData(localWatchers, federatedWatchers);
@@ -339,7 +367,7 @@ public class FederatedBoardProxyService {
 
     public BoardTicket proxyCreateTicket(
             int partnerId,
-            int boardId,
+            String boardKey,
             Integer laneId,
             String title,
             String description,
@@ -355,8 +383,9 @@ public class FederatedBoardProxyService {
                     "description", description != null ? description : "",
                     "priority", priority != null ? priority : "",
                     "dueDate", dueDate != null ? dueDate : "");
-            return remotePost(partner, "/remote/boards/" + boardId + "/tickets", body, BoardTicket.class);
+            return remotePost(partner, "/remote/boards/" + boardKey + "/tickets", body, BoardTicket.class);
         }
+        int boardId = resolveBoardId(boardKey, partner);
         int effectiveLaneId = laneId != null
                 ? laneId
                 : boardService.findLanes(boardId).getFirst().id();
@@ -375,8 +404,8 @@ public class FederatedBoardProxyService {
 
     public BoardTicket proxyUpdateTicket(
             int partnerId,
-            int boardId,
-            int ticketId,
+            String boardKey,
+            int ticketNumber,
             String title,
             String description,
             Integer assignedMemberId,
@@ -390,8 +419,11 @@ public class FederatedBoardProxyService {
             if (assignedMemberId != null) body.put("assignedMemberId", assignedMemberId);
             if (priority != null) body.put("priority", priority);
             if (dueDate != null) body.put("dueDate", dueDate);
-            return remotePut(partner, "/remote/boards/" + boardId + "/tickets/" + ticketId, body, BoardTicket.class);
+            return remotePut(
+                    partner, "/remote/boards/" + boardKey + "/tickets/" + ticketNumber, body, BoardTicket.class);
         }
+        int boardId = resolveBoardId(boardKey, partner);
+        int ticketId = resolveTicketId(boardId, ticketNumber);
         ticketService.updateTicket(
                 ticketId,
                 title,
@@ -403,19 +435,21 @@ public class FederatedBoardProxyService {
         return ticketService.findById(ticketId).orElseThrow(NotFoundResponse::new);
     }
 
-    public void proxyDeleteTicket(int partnerId, int boardId, int ticketId) {
+    public void proxyDeleteTicket(int partnerId, String boardKey, int ticketNumber) {
         var partner = findPartner(partnerId);
         if (partner.isRemote()) {
-            remoteDelete(partner, "/remote/boards/" + boardId + "/tickets/" + ticketId);
+            remoteDelete(partner, "/remote/boards/" + boardKey + "/tickets/" + ticketNumber);
             return;
         }
+        int boardId = resolveBoardId(boardKey, partner);
+        int ticketId = resolveTicketId(boardId, ticketNumber);
         ticketService.deleteTicket(ticketId);
     }
 
     public BoardTicket proxyMoveTicket(
             int partnerId,
-            int boardId,
-            int ticketId,
+            String boardKey,
+            int ticketNumber,
             int toLaneId,
             int position,
             UUID federatedStationId,
@@ -424,26 +458,31 @@ public class FederatedBoardProxyService {
         if (partner.isRemote()) {
             var body = Map.of("toLaneId", toLaneId, "position", position);
             return remotePut(
-                    partner, "/remote/boards/" + boardId + "/tickets/" + ticketId + "/move", body, BoardTicket.class);
+                    partner,
+                    "/remote/boards/" + boardKey + "/tickets/" + ticketNumber + "/move",
+                    body,
+                    BoardTicket.class);
         }
+        int boardId = resolveBoardId(boardKey, partner);
+        int ticketId = resolveTicketId(boardId, ticketNumber);
         var ticket = ticketService.findById(ticketId).orElseThrow(NotFoundResponse::new);
         ticketService.moveTicket(
                 ticketId, ticket.laneId(), toLaneId, position, null, federatedStationId, federatedMemberId);
         return ticketService.findById(ticketId).orElseThrow(NotFoundResponse::new);
     }
 
-    public void proxyReorderTickets(int partnerId, int boardId, int laneId, List<Integer> orderedIds) {
+    public void proxyReorderTickets(int partnerId, String boardKey, int laneId, List<Integer> orderedIds) {
         var partner = findPartner(partnerId);
         if (partner.isRemote()) {
             var body = Map.of("laneId", laneId, "orderedIds", orderedIds);
-            remotePut(partner, "/remote/boards/" + boardId + "/tickets/0/reorder", body);
+            remotePut(partner, "/remote/boards/" + boardKey + "/tickets/reorder", body);
             return;
         }
         ticketService.reorderTickets(laneId, orderedIds);
     }
 
     public BoardComment proxyAddComment(
-            int partnerId, int boardId, int ticketId, Integer parentId, String content, UUID remoteMemberId) {
+            int partnerId, String boardKey, int ticketNumber, Integer parentId, String content, UUID remoteMemberId) {
         var partner = findPartner(partnerId);
         if (partner.isRemote()) {
             var body = Map.of(
@@ -452,95 +491,113 @@ public class FederatedBoardProxyService {
                     "content", content != null ? content : "");
             return remotePost(
                     partner,
-                    "/remote/boards/" + boardId + "/tickets/" + ticketId + "/comments",
+                    "/remote/boards/" + boardKey + "/tickets/" + ticketNumber + "/comments",
                     body,
                     BoardComment.class);
         }
+        int boardId = resolveBoardId(boardKey, partner);
+        int ticketId = resolveTicketId(boardId, ticketNumber);
         var comment = ticketService.createComment(ticketId, parentId, 0, content);
         federatedBoardService.setFederatedCommentAuthor(comment.id(), partnerId, remoteMemberId);
         return comment;
     }
 
-    public BoardChecklistItem proxyAddChecklistItem(int partnerId, int boardId, int ticketId, String title) {
+    public BoardChecklistItem proxyAddChecklistItem(int partnerId, String boardKey, int ticketNumber, String title) {
         var partner = findPartner(partnerId);
         if (partner.isRemote()) {
             var body = Map.of("title", title);
             return remotePost(
                     partner,
-                    "/remote/boards/" + boardId + "/tickets/" + ticketId + "/checklist",
+                    "/remote/boards/" + boardKey + "/tickets/" + ticketNumber + "/checklist",
                     body,
                     BoardChecklistItem.class);
         }
+        int boardId = resolveBoardId(boardKey, partner);
+        int ticketId = resolveTicketId(boardId, ticketNumber);
         return ticketService.addChecklistItem(ticketId, title, 0);
     }
 
     public void proxyUpdateChecklistItem(
-            int partnerId, int boardId, int ticketId, int itemId, String title, boolean checked) {
+            int partnerId, String boardKey, int ticketNumber, int itemId, String title, boolean checked) {
         var partner = findPartner(partnerId);
         if (partner.isRemote()) {
             var body = Map.of("title", title, "checked", checked);
-            remotePut(partner, "/remote/boards/" + boardId + "/tickets/" + ticketId + "/checklist/" + itemId, body);
+            remotePut(
+                    partner, "/remote/boards/" + boardKey + "/tickets/" + ticketNumber + "/checklist/" + itemId, body);
             return;
         }
+        int boardId = resolveBoardId(boardKey, partner);
+        int ticketId = resolveTicketId(boardId, ticketNumber);
         ticketService.updateChecklistItem(itemId, ticketId, title, checked, 0);
     }
 
-    public void proxyDeleteChecklistItem(int partnerId, int boardId, int ticketId, int itemId) {
+    public void proxyDeleteChecklistItem(int partnerId, String boardKey, int ticketNumber, int itemId) {
         var partner = findPartner(partnerId);
         if (partner.isRemote()) {
-            remoteDelete(partner, "/remote/boards/" + boardId + "/tickets/" + ticketId + "/checklist/" + itemId);
+            remoteDelete(partner, "/remote/boards/" + boardKey + "/tickets/" + ticketNumber + "/checklist/" + itemId);
             return;
         }
+        int boardId = resolveBoardId(boardKey, partner);
+        int ticketId = resolveTicketId(boardId, ticketNumber);
         ticketService.deleteChecklistItem(itemId, ticketId, 0);
     }
 
-    public List<BoardLabel> proxyAddTicketLabel(int partnerId, int boardId, int ticketId, int labelId) {
+    public List<BoardLabel> proxyAddTicketLabel(int partnerId, String boardKey, int ticketNumber, int labelId) {
         var partner = findPartner(partnerId);
         if (partner.isRemote()) {
             return remotePostList(
                     partner,
-                    "/remote/boards/" + boardId + "/tickets/" + ticketId + "/labels/" + labelId,
+                    "/remote/boards/" + boardKey + "/tickets/" + ticketNumber + "/labels/" + labelId,
                     Map.of(),
                     BoardLabel.class);
         }
+        int boardId = resolveBoardId(boardKey, partner);
+        int ticketId = resolveTicketId(boardId, ticketNumber);
         boardService.addLabelToTicket(ticketId, labelId);
         return boardService.findLabelsForTicket(ticketId);
     }
 
-    public void proxyRemoveTicketLabel(int partnerId, int boardId, int ticketId, int labelId) {
+    public void proxyRemoveTicketLabel(int partnerId, String boardKey, int ticketNumber, int labelId) {
         var partner = findPartner(partnerId);
         if (partner.isRemote()) {
-            remoteDelete(partner, "/remote/boards/" + boardId + "/tickets/" + ticketId + "/labels/" + labelId);
+            remoteDelete(partner, "/remote/boards/" + boardKey + "/tickets/" + ticketNumber + "/labels/" + labelId);
             return;
         }
+        int boardId = resolveBoardId(boardKey, partner);
+        int ticketId = resolveTicketId(boardId, ticketNumber);
         boardService.removeLabelFromTicket(ticketId, labelId);
     }
 
-    public BoardLabel proxyCreateLabel(int partnerId, int boardId, String name, String color) {
+    public BoardLabel proxyCreateLabel(int partnerId, String boardKey, String name, String color) {
         var partner = findPartner(partnerId);
         if (partner.isRemote()) {
             var body = Map.of("name", name, "color", color != null ? color : "#6b7280");
-            return remotePost(partner, "/remote/boards/" + boardId + "/labels", body, BoardLabel.class);
+            return remotePost(partner, "/remote/boards/" + boardKey + "/labels", body, BoardLabel.class);
         }
+        int boardId = resolveBoardId(boardKey, partner);
         return boardService.createLabel(boardId, name, color != null ? color : "#6b7280");
     }
 
-    public void proxyWatchTicket(int partnerId, int boardId, int ticketId, UUID remoteMemberId) {
+    public void proxyWatchTicket(int partnerId, String boardKey, int ticketNumber, UUID remoteMemberId) {
         var partner = findPartner(partnerId);
         if (partner.isRemote()) {
             var body = Map.of("remoteMemberId", remoteMemberId);
-            remotePost(partner, "/remote/boards/" + boardId + "/tickets/" + ticketId + "/watch", body);
+            remotePost(partner, "/remote/boards/" + boardKey + "/tickets/" + ticketNumber + "/watch", body);
             return;
         }
+        int boardId = resolveBoardId(boardKey, partner);
+        int ticketId = resolveTicketId(boardId, ticketNumber);
         federatedBoardService.addFederatedWatcher(ticketId, partnerId, remoteMemberId);
     }
 
-    public void proxyUnwatchTicket(int partnerId, int boardId, int ticketId, UUID remoteMemberId) {
+    public void proxyUnwatchTicket(int partnerId, String boardKey, int ticketNumber, UUID remoteMemberId) {
         var partner = findPartner(partnerId);
         if (partner.isRemote()) {
-            remoteDelete(partner, "/remote/boards/" + boardId + "/tickets/" + ticketId + "/watch");
+            remoteDelete(partner, "/remote/boards/" + boardKey + "/tickets/" + ticketNumber + "/watch");
             return;
         }
+        int boardId = resolveBoardId(boardKey, partner);
+        int ticketId = resolveTicketId(boardId, ticketNumber);
         federatedBoardService.removeFederatedWatcher(ticketId, partnerId, remoteMemberId);
     }
 
@@ -681,6 +738,39 @@ public class FederatedBoardProxyService {
         return federationRepository
                 .findPartnerById(partnerId)
                 .orElseThrow(() -> new NotFoundResponse("Partner not found: " + partnerId));
+    }
+
+    /**
+     * Resolves a boardKey to a remote board ID for the given partner.
+     * For local partners, resolves via DB. For remote partners, returns -1
+     * (the remote station handles access control).
+     */
+    public int resolveFederatedBoardId(int partnerId, String boardKey) {
+        var partner = federationRepository.findPartnerById(partnerId).orElse(null);
+        if (partner == null || partner.isRemote()) return -1;
+        return stationRepository
+                .findByUid(partner.partnerStationId())
+                .flatMap(station -> boardService.findByShortKey(station.id(), boardKey))
+                .map(board -> board.id())
+                .orElse(-1);
+    }
+
+    private int resolveBoardId(String boardKey, FederationPartner partner) {
+        int partnerStationId = stationRepository
+                .findByUid(partner.partnerStationId())
+                .orElseThrow(() -> new NotFoundResponse("Partner station not found"))
+                .id();
+        return boardService
+                .findByShortKey(partnerStationId, boardKey)
+                .orElseThrow(() -> new NotFoundResponse("Board not found: " + boardKey))
+                .id();
+    }
+
+    private int resolveTicketId(int boardId, int ticketNumber) {
+        return ticketService
+                .findByBoardAndNumber(boardId, ticketNumber)
+                .orElseThrow(() -> new NotFoundResponse("Ticket not found: " + ticketNumber))
+                .id();
     }
 
     private <T> T remoteGet(FederationPartner partner, String path, Class<T> type) {

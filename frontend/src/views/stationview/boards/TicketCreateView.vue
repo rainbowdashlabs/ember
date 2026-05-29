@@ -34,7 +34,7 @@ const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
 
-const boardId = computed(() => Number(route.params.boardId))
+const boardKey = computed(() => route.params.boardKey as string)
 
 const board = ref<Board | null>(null)
 const lanes = ref<BoardLane[]>([])
@@ -86,8 +86,8 @@ function toggleLabel(labelId: number) {
 
 async function createAndSelectLabel(name: string) {
     try {
-        const label = await boards.createLabel(boardId.value, { name })
-        allLabels.value = await boards.getLabels(boardId.value)
+        const label = await boards.createLabel(boardKey.value, { name })
+        allLabels.value = await boards.getLabels(boardKey.value)
         const next = new Set(selectedLabelIds.value)
         next.add(label.id)
         selectedLabelIds.value = next
@@ -150,11 +150,11 @@ async function loadData() {
     loading.value = true
     try {
         const [b, l, m, lb, tks] = await Promise.all([
-            boards.getBoard(boardId.value),
-            boards.getLanes(boardId.value),
+            boards.getBoard(boardKey.value),
+            boards.getLanes(boardKey.value),
             stationMembers.listCompletions(),
-            boards.getLabels(boardId.value),
-            boards.listTickets(boardId.value),
+            boards.getLabels(boardKey.value),
+            boards.listTickets(boardKey.value),
         ])
         board.value = b
         lanes.value = l
@@ -191,7 +191,7 @@ async function handleSubmit() {
     submitting.value = true
     error.value = ''
     try {
-        const created = await boards.createTicket(boardId.value, {
+        const created = await boards.createTicket(boardKey.value, {
             laneId: Number(laneId.value),
             title: title.value.trim(),
             description: description.value.trim() || undefined,
@@ -199,26 +199,26 @@ async function handleSubmit() {
             assignedMemberId: assignee.value ? Number(assignee.value) : undefined,
             dueDate: dueDate.value || undefined,
         })
-        const ticketId = created.id
+        const ticketNumber = created.ticketNumber
 
         // Create all extras in parallel where possible
         const ops: Promise<unknown>[] = []
 
         for (const item of checklistItems.value) {
-            ops.push(boards.addChecklistItem(boardId.value, ticketId, { title: item.title }))
+            ops.push(boards.addChecklistItem(boardKey.value, ticketNumber, { title: item.title }))
         }
         for (const labelId of selectedLabelIds.value) {
-            ops.push(boards.addTicketLabel(boardId.value, ticketId, labelId))
+            ops.push(boards.addTicketLabel(boardKey.value, ticketNumber, labelId))
         }
         for (const wl of weblinks.value) {
-            ops.push(boards.addWeblink(boardId.value, ticketId, { url: wl.url, title: wl.title || undefined }))
+            ops.push(boards.addWeblink(boardKey.value, ticketNumber, { url: wl.url, title: wl.title || undefined }))
         }
         for (const link of ticketLinks.value) {
-            ops.push(boards.createLink(boardId.value, ticketId, { linkedTicketId: link.linkedTicketId, linkType: link.linkType }))
+            ops.push(boards.createLink(boardKey.value, ticketNumber, { linkedTicketId: link.linkedTicketId, linkType: link.linkType }))
         }
 
         await Promise.all(ops)
-        await router.push(`/station/boards/${boardId.value}/tickets/${ticketId}`)
+        await router.push(`/station/boards/${boardKey.value}/tickets/${ticketNumber}`)
     } catch {
         error.value = t('common.error')
     } finally {
@@ -235,7 +235,7 @@ onMounted(loadData)
         <Alert v-else-if="error && !board" variant="error">{{ error }}</Alert>
         <template v-else-if="board">
             <div class="flex items-center gap-3 mb-6">
-                <IconButton :icon="['fas', 'chevron-left']" label="Back" @click="router.push(`/station/boards/${board.id}`)" />
+                <IconButton :icon="['fas', 'chevron-left']" label="Back" @click="router.push(`/station/boards/${board.shortKey}`)" />
                 <SectionHeader>{{ t('boards.createTicket') }}</SectionHeader>
                 <span class="text-xs font-mono text-(--text-muted) bg-(--bg-accent) px-1.5 py-0.5 rounded">{{ board.shortKey }}</span>
             </div>
@@ -347,7 +347,7 @@ onMounted(loadData)
                     <Alert v-if="error" variant="error">{{ error }}</Alert>
 
                     <div class="flex gap-2">
-                        <SecondaryButton class="flex-1" @click="router.push(`/station/boards/${board.id}`)">{{ t('common.cancel') }}</SecondaryButton>
+                        <SecondaryButton class="flex-1" @click="router.push(`/station/boards/${board.shortKey}`)">{{ t('common.cancel') }}</SecondaryButton>
                         <PrimaryButton class="flex-1" :disabled="submitting" @click="handleSubmit">
                             <Spinner v-if="submitting" size="sm" class="mr-1" />
                             {{ t('common.create') }}

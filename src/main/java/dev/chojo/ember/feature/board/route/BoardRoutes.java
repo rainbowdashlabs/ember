@@ -77,34 +77,45 @@ public class BoardRoutes implements Routes {
         this.ticketService = ticketService;
     }
 
+    private Board resolveBoard(Context ctx, int stationId) {
+        String boardKey = ctx.pathParam("boardKey");
+        return boardService
+                .findByShortKey(stationId, boardKey)
+                .orElseThrow(() -> new NotFoundResponse("Board not found: " + boardKey));
+    }
+
+    private int resolveBoardId(Context ctx, int stationId) {
+        return resolveBoard(ctx, stationId).id();
+    }
+
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
         // -- Local board CRUD --
         routes.get(prefix + "/boards", this::list, Roles.USER);
         routes.post(prefix + "/boards", this::create, Roles.BOARD_MANAGER);
-        routes.get(prefix + "/boards/{id}", this::get, Roles.USER);
-        routes.put(prefix + "/boards/{id}", this::update, Roles.BOARD_MANAGER);
-        routes.delete(prefix + "/boards/{id}", this::delete, Roles.BOARD_MANAGER);
-        routes.get(prefix + "/boards/{id}/can-edit", this::canEdit, Roles.USER);
-        routes.get(prefix + "/boards/{id}/lanes", this::getLanes, Roles.USER);
-        routes.put(prefix + "/boards/{id}/lanes", this::setLanes, Roles.BOARD_MANAGER);
-        routes.get(prefix + "/boards/{id}/fields", this::getFields, Roles.USER);
-        routes.put(prefix + "/boards/{id}/fields", this::setFields, Roles.BOARD_MANAGER);
-        routes.get(prefix + "/boards/{id}/access/view", this::getViewAccess, Roles.BOARD_MANAGER);
-        routes.put(prefix + "/boards/{id}/access/view", this::setViewAccess, Roles.BOARD_MANAGER);
-        routes.get(prefix + "/boards/{id}/access/edit", this::getEditAccess, Roles.BOARD_MANAGER);
-        routes.put(prefix + "/boards/{id}/access/edit", this::setEditAccess, Roles.BOARD_MANAGER);
-        routes.post(prefix + "/boards/{id}/backlog", this::enableBacklog, Roles.BOARD_MANAGER);
-        routes.delete(prefix + "/boards/{id}/backlog", this::disableBacklog, Roles.BOARD_MANAGER);
+        routes.get(prefix + "/boards/{boardKey}", this::get, Roles.USER);
+        routes.put(prefix + "/boards/{boardKey}", this::update, Roles.BOARD_MANAGER);
+        routes.delete(prefix + "/boards/{boardKey}", this::delete, Roles.BOARD_MANAGER);
+        routes.get(prefix + "/boards/{boardKey}/can-edit", this::canEdit, Roles.USER);
+        routes.get(prefix + "/boards/{boardKey}/lanes", this::getLanes, Roles.USER);
+        routes.put(prefix + "/boards/{boardKey}/lanes", this::setLanes, Roles.BOARD_MANAGER);
+        routes.get(prefix + "/boards/{boardKey}/fields", this::getFields, Roles.USER);
+        routes.put(prefix + "/boards/{boardKey}/fields", this::setFields, Roles.BOARD_MANAGER);
+        routes.get(prefix + "/boards/{boardKey}/access/view", this::getViewAccess, Roles.BOARD_MANAGER);
+        routes.put(prefix + "/boards/{boardKey}/access/view", this::setViewAccess, Roles.BOARD_MANAGER);
+        routes.get(prefix + "/boards/{boardKey}/access/edit", this::getEditAccess, Roles.BOARD_MANAGER);
+        routes.put(prefix + "/boards/{boardKey}/access/edit", this::setEditAccess, Roles.BOARD_MANAGER);
+        routes.post(prefix + "/boards/{boardKey}/backlog", this::enableBacklog, Roles.BOARD_MANAGER);
+        routes.delete(prefix + "/boards/{boardKey}/backlog", this::disableBacklog, Roles.BOARD_MANAGER);
         // Labels
-        routes.get(prefix + "/boards/{id}/labels", this::getLabels, Roles.USER);
-        routes.post(prefix + "/boards/{id}/labels", this::createLabel, Roles.USER);
-        routes.put(prefix + "/boards/{id}/labels/{labelId}", this::updateLabel, Roles.BOARD_MANAGER);
-        routes.delete(prefix + "/boards/{id}/labels/{labelId}", this::deleteLabel, Roles.BOARD_MANAGER);
-        routes.get(prefix + "/boards/{id}/ticket-labels", this::getAllTicketLabels, Roles.USER);
+        routes.get(prefix + "/boards/{boardKey}/labels", this::getLabels, Roles.USER);
+        routes.post(prefix + "/boards/{boardKey}/labels", this::createLabel, Roles.USER);
+        routes.put(prefix + "/boards/{boardKey}/labels/{labelId}", this::updateLabel, Roles.BOARD_MANAGER);
+        routes.delete(prefix + "/boards/{boardKey}/labels/{labelId}", this::deleteLabel, Roles.BOARD_MANAGER);
+        routes.get(prefix + "/boards/{boardKey}/ticket-labels", this::getAllTicketLabels, Roles.USER);
         // Federation sharing config
-        routes.get(prefix + "/boards/{id}/federation", this::getFederationConfig, Roles.BOARD_MANAGER);
-        routes.put(prefix + "/boards/{id}/federation", this::setFederationConfig, Roles.BOARD_MANAGER);
+        routes.get(prefix + "/boards/{boardKey}/federation", this::getFederationConfig, Roles.BOARD_MANAGER);
+        routes.put(prefix + "/boards/{boardKey}/federation", this::setFederationConfig, Roles.BOARD_MANAGER);
 
         // -- Federated board local proxy endpoints --
         String fp = prefix + "/federated/boards";
@@ -118,124 +129,138 @@ public class BoardRoutes implements Routes {
         routes.delete(fp + "/bookmarks/{bookmarkId}", this::federatedLocalDeleteBookmark, Roles.USER);
 
         // Board read (proxied)
-        routes.get(fp + "/{partnerUid}/{boardId}", this::federatedLocalGetBoard, Roles.USER);
-        routes.get(fp + "/{partnerUid}/{boardId}/lanes", this::federatedLocalGetLanes, Roles.USER);
-        routes.get(fp + "/{partnerUid}/{boardId}/labels", this::federatedLocalGetLabels, Roles.USER);
-        routes.get(fp + "/{partnerUid}/{boardId}/fields", this::federatedLocalGetFields, Roles.USER);
-        routes.get(fp + "/{partnerUid}/{boardId}/tickets", this::federatedLocalListTickets, Roles.USER);
-        routes.get(fp + "/{partnerUid}/{boardId}/tickets/search", this::federatedLocalSearchTickets, Roles.USER);
-        routes.get(fp + "/{partnerUid}/{boardId}/tickets/{ticketId}", this::federatedLocalGetTicket, Roles.USER);
+        routes.get(fp + "/{partnerUid}/{boardKey}", this::federatedLocalGetBoard, Roles.USER);
+        routes.get(fp + "/{partnerUid}/{boardKey}/lanes", this::federatedLocalGetLanes, Roles.USER);
+        routes.get(fp + "/{partnerUid}/{boardKey}/labels", this::federatedLocalGetLabels, Roles.USER);
+        routes.get(fp + "/{partnerUid}/{boardKey}/fields", this::federatedLocalGetFields, Roles.USER);
+        routes.get(fp + "/{partnerUid}/{boardKey}/tickets", this::federatedLocalListTickets, Roles.USER);
+        routes.get(fp + "/{partnerUid}/{boardKey}/tickets/search", this::federatedLocalSearchTickets, Roles.USER);
+        routes.get(fp + "/{partnerUid}/{boardKey}/tickets/{ticketNumber}", this::federatedLocalGetTicket, Roles.USER);
         routes.get(
-                fp + "/{partnerUid}/{boardId}/tickets/{ticketId}/comments",
+                fp + "/{partnerUid}/{boardKey}/tickets/{ticketNumber}/comments",
                 this::federatedLocalGetComments,
                 Roles.USER);
         routes.get(
-                fp + "/{partnerUid}/{boardId}/tickets/{ticketId}/checklist",
+                fp + "/{partnerUid}/{boardKey}/tickets/{ticketNumber}/checklist",
                 this::federatedLocalGetChecklist,
                 Roles.USER);
-        routes.get(fp + "/{partnerUid}/{boardId}/tickets/{ticketId}/links", this::federatedLocalGetLinks, Roles.USER);
         routes.get(
-                fp + "/{partnerUid}/{boardId}/tickets/{ticketId}/labels",
+                fp + "/{partnerUid}/{boardKey}/tickets/{ticketNumber}/links", this::federatedLocalGetLinks, Roles.USER);
+        routes.get(
+                fp + "/{partnerUid}/{boardKey}/tickets/{ticketNumber}/labels",
                 this::federatedLocalGetTicketLabels,
                 Roles.USER);
         routes.get(
-                fp + "/{partnerUid}/{boardId}/tickets/{ticketId}/transitions",
+                fp + "/{partnerUid}/{boardKey}/tickets/{ticketNumber}/transitions",
                 this::federatedLocalGetTransitions,
                 Roles.USER);
         routes.get(
-                fp + "/{partnerUid}/{boardId}/tickets/{ticketId}/history", this::federatedLocalGetHistory, Roles.USER);
+                fp + "/{partnerUid}/{boardKey}/tickets/{ticketNumber}/history",
+                this::federatedLocalGetHistory,
+                Roles.USER);
         routes.get(
-                fp + "/{partnerUid}/{boardId}/tickets/{ticketId}/attachments",
+                fp + "/{partnerUid}/{boardKey}/tickets/{ticketNumber}/attachments",
                 this::federatedLocalGetAttachments,
                 Roles.USER);
         routes.get(
-                fp + "/{partnerUid}/{boardId}/tickets/{ticketId}/watchers",
+                fp + "/{partnerUid}/{boardKey}/tickets/{ticketNumber}/watchers",
                 this::federatedLocalGetWatchers,
                 Roles.USER);
 
         // Board write (FULL mode only, proxied)
-        routes.post(fp + "/{partnerUid}/{boardId}/tickets", this::federatedLocalCreateTicket, Roles.USER);
-        routes.put(fp + "/{partnerUid}/{boardId}/tickets/{ticketId}", this::federatedLocalUpdateTicket, Roles.USER);
-        routes.delete(fp + "/{partnerUid}/{boardId}/tickets/{ticketId}", this::federatedLocalDeleteTicket, Roles.USER);
-        routes.put(fp + "/{partnerUid}/{boardId}/tickets/{ticketId}/move", this::federatedLocalMoveTicket, Roles.USER);
+        routes.post(fp + "/{partnerUid}/{boardKey}/tickets", this::federatedLocalCreateTicket, Roles.USER);
         routes.put(
-                fp + "/{partnerUid}/{boardId}/tickets/{ticketId}/reorder",
-                this::federatedLocalReorderTickets,
+                fp + "/{partnerUid}/{boardKey}/tickets/{ticketNumber}", this::federatedLocalUpdateTicket, Roles.USER);
+        routes.delete(
+                fp + "/{partnerUid}/{boardKey}/tickets/{ticketNumber}", this::federatedLocalDeleteTicket, Roles.USER);
+        routes.put(
+                fp + "/{partnerUid}/{boardKey}/tickets/{ticketNumber}/move",
+                this::federatedLocalMoveTicket,
+                Roles.USER);
+        routes.put(fp + "/{partnerUid}/{boardKey}/tickets/reorder", this::federatedLocalReorderTickets, Roles.USER);
+        routes.post(
+                fp + "/{partnerUid}/{boardKey}/tickets/{ticketNumber}/comments",
+                this::federatedLocalAddComment,
                 Roles.USER);
         routes.post(
-                fp + "/{partnerUid}/{boardId}/tickets/{ticketId}/comments", this::federatedLocalAddComment, Roles.USER);
-        routes.post(
-                fp + "/{partnerUid}/{boardId}/tickets/{ticketId}/checklist",
+                fp + "/{partnerUid}/{boardKey}/tickets/{ticketNumber}/checklist",
                 this::federatedLocalAddChecklistItem,
                 Roles.USER);
         routes.put(
-                fp + "/{partnerUid}/{boardId}/tickets/{ticketId}/checklist/{itemId}",
+                fp + "/{partnerUid}/{boardKey}/tickets/{ticketNumber}/checklist/{itemId}",
                 this::federatedLocalUpdateChecklistItem,
                 Roles.USER);
         routes.delete(
-                fp + "/{partnerUid}/{boardId}/tickets/{ticketId}/checklist/{itemId}",
+                fp + "/{partnerUid}/{boardKey}/tickets/{ticketNumber}/checklist/{itemId}",
                 this::federatedLocalDeleteChecklistItem,
                 Roles.USER);
         routes.post(
-                fp + "/{partnerUid}/{boardId}/tickets/{ticketId}/labels/{labelId}",
+                fp + "/{partnerUid}/{boardKey}/tickets/{ticketNumber}/labels/{labelId}",
                 this::federatedLocalAddTicketLabel,
                 Roles.USER);
         routes.delete(
-                fp + "/{partnerUid}/{boardId}/tickets/{ticketId}/labels/{labelId}",
+                fp + "/{partnerUid}/{boardKey}/tickets/{ticketNumber}/labels/{labelId}",
                 this::federatedLocalRemoveTicketLabel,
                 Roles.USER);
-        routes.post(fp + "/{partnerUid}/{boardId}/labels", this::federatedLocalCreateLabel, Roles.USER);
+        routes.post(fp + "/{partnerUid}/{boardKey}/labels", this::federatedLocalCreateLabel, Roles.USER);
         routes.post(
-                fp + "/{partnerUid}/{boardId}/tickets/{ticketId}/watch", this::federatedLocalWatchTicket, Roles.USER);
+                fp + "/{partnerUid}/{boardKey}/tickets/{ticketNumber}/watch",
+                this::federatedLocalWatchTicket,
+                Roles.USER);
         routes.delete(
-                fp + "/{partnerUid}/{boardId}/tickets/{ticketId}/watch", this::federatedLocalUnwatchTicket, Roles.USER);
+                fp + "/{partnerUid}/{boardKey}/tickets/{ticketNumber}/watch",
+                this::federatedLocalUnwatchTicket,
+                Roles.USER);
 
         // Local access override management
         routes.get(
-                fp + "/{partnerUid}/{boardId}/access/override", this::federatedLocalGetOverride, Roles.BOARD_MANAGER);
+                fp + "/{partnerUid}/{boardKey}/access/override", this::federatedLocalGetOverride, Roles.BOARD_MANAGER);
         routes.put(
-                fp + "/{partnerUid}/{boardId}/access/override", this::federatedLocalSetOverride, Roles.BOARD_MANAGER);
+                fp + "/{partnerUid}/{boardKey}/access/override", this::federatedLocalSetOverride, Roles.BOARD_MANAGER);
 
         // -- Federated board remote endpoints (unauthenticated, RSA-signed) --
         String rp = prefix + "/remote/boards";
 
         // Read endpoints (both modes)
         routes.get(rp, this::federatedRemoteListSharedBoards);
-        routes.get(rp + "/{boardId}", this::federatedRemoteGetBoard);
-        routes.get(rp + "/{boardId}/lanes", this::federatedRemoteGetLanes);
-        routes.get(rp + "/{boardId}/labels", this::federatedRemoteGetLabels);
-        routes.get(rp + "/{boardId}/fields", this::federatedRemoteGetFields);
-        routes.get(rp + "/{boardId}/tickets", this::federatedRemoteListTickets);
-        routes.get(rp + "/{boardId}/tickets/search", this::federatedRemoteSearchTickets);
-        routes.get(rp + "/{boardId}/tickets/{ticketId}", this::federatedRemoteGetTicket);
-        routes.get(rp + "/{boardId}/tickets/{ticketId}/comments", this::federatedRemoteGetComments);
-        routes.get(rp + "/{boardId}/tickets/{ticketId}/checklist", this::federatedRemoteGetChecklist);
-        routes.get(rp + "/{boardId}/tickets/{ticketId}/links", this::federatedRemoteGetLinks);
-        routes.get(rp + "/{boardId}/tickets/{ticketId}/labels", this::federatedRemoteGetTicketLabels);
-        routes.get(rp + "/{boardId}/tickets/{ticketId}/transitions", this::federatedRemoteGetTransitions);
-        routes.get(rp + "/{boardId}/tickets/{ticketId}/history", this::federatedRemoteGetHistory);
-        routes.get(rp + "/{boardId}/tickets/{ticketId}/attachments", this::federatedRemoteGetAttachments);
-        routes.get(rp + "/{boardId}/tickets/{ticketId}/watchers", this::federatedRemoteGetWatchers);
-        routes.get(rp + "/{boardId}/access", this::federatedRemoteGetAccess);
+        routes.get(rp + "/{boardKey}", this::federatedRemoteGetBoard);
+        routes.get(rp + "/{boardKey}/lanes", this::federatedRemoteGetLanes);
+        routes.get(rp + "/{boardKey}/labels", this::federatedRemoteGetLabels);
+        routes.get(rp + "/{boardKey}/fields", this::federatedRemoteGetFields);
+        routes.get(rp + "/{boardKey}/tickets", this::federatedRemoteListTickets);
+        routes.get(rp + "/{boardKey}/tickets/search", this::federatedRemoteSearchTickets);
+        routes.get(rp + "/{boardKey}/tickets/{ticketNumber}", this::federatedRemoteGetTicket);
+        routes.get(rp + "/{boardKey}/tickets/{ticketNumber}/comments", this::federatedRemoteGetComments);
+        routes.get(rp + "/{boardKey}/tickets/{ticketNumber}/checklist", this::federatedRemoteGetChecklist);
+        routes.get(rp + "/{boardKey}/tickets/{ticketNumber}/links", this::federatedRemoteGetLinks);
+        routes.get(rp + "/{boardKey}/tickets/{ticketNumber}/labels", this::federatedRemoteGetTicketLabels);
+        routes.get(rp + "/{boardKey}/tickets/{ticketNumber}/transitions", this::federatedRemoteGetTransitions);
+        routes.get(rp + "/{boardKey}/tickets/{ticketNumber}/history", this::federatedRemoteGetHistory);
+        routes.get(rp + "/{boardKey}/tickets/{ticketNumber}/attachments", this::federatedRemoteGetAttachments);
+        routes.get(rp + "/{boardKey}/tickets/{ticketNumber}/watchers", this::federatedRemoteGetWatchers);
+        routes.get(rp + "/{boardKey}/access", this::federatedRemoteGetAccess);
 
         // Write endpoints (FULL mode only)
-        routes.post(rp + "/{boardId}/tickets", this::federatedRemoteCreateTicket);
-        routes.put(rp + "/{boardId}/tickets/{ticketId}", this::federatedRemoteUpdateTicket);
-        routes.delete(rp + "/{boardId}/tickets/{ticketId}", this::federatedRemoteDeleteTicket);
-        routes.put(rp + "/{boardId}/tickets/{ticketId}/move", this::federatedRemoteMoveTicket);
-        routes.put(rp + "/{boardId}/tickets/{ticketId}/reorder", this::federatedRemoteReorderTickets);
-        routes.post(rp + "/{boardId}/tickets/{ticketId}/comments", this::federatedRemoteAddComment);
-        routes.put(rp + "/{boardId}/tickets/{ticketId}/comments/{commentId}", this::federatedRemoteEditComment);
-        routes.delete(rp + "/{boardId}/tickets/{ticketId}/comments/{commentId}", this::federatedRemoteDeleteComment);
-        routes.post(rp + "/{boardId}/tickets/{ticketId}/checklist", this::federatedRemoteAddChecklistItem);
-        routes.put(rp + "/{boardId}/tickets/{ticketId}/checklist/{itemId}", this::federatedRemoteUpdateChecklistItem);
+        routes.post(rp + "/{boardKey}/tickets", this::federatedRemoteCreateTicket);
+        routes.put(rp + "/{boardKey}/tickets/{ticketNumber}", this::federatedRemoteUpdateTicket);
+        routes.delete(rp + "/{boardKey}/tickets/{ticketNumber}", this::federatedRemoteDeleteTicket);
+        routes.put(rp + "/{boardKey}/tickets/{ticketNumber}/move", this::federatedRemoteMoveTicket);
+        routes.put(rp + "/{boardKey}/tickets/reorder", this::federatedRemoteReorderTickets);
+        routes.post(rp + "/{boardKey}/tickets/{ticketNumber}/comments", this::federatedRemoteAddComment);
+        routes.put(rp + "/{boardKey}/tickets/{ticketNumber}/comments/{commentId}", this::federatedRemoteEditComment);
         routes.delete(
-                rp + "/{boardId}/tickets/{ticketId}/checklist/{itemId}", this::federatedRemoteDeleteChecklistItem);
-        routes.post(rp + "/{boardId}/tickets/{ticketId}/labels/{labelId}", this::federatedRemoteAddTicketLabel);
-        routes.delete(rp + "/{boardId}/tickets/{ticketId}/labels/{labelId}", this::federatedRemoteRemoveTicketLabel);
-        routes.post(rp + "/{boardId}/labels", this::federatedRemoteCreateLabel);
-        routes.post(rp + "/{boardId}/tickets/{ticketId}/watch", this::federatedRemoteWatchTicket);
-        routes.delete(rp + "/{boardId}/tickets/{ticketId}/watch", this::federatedRemoteUnwatchTicket);
+                rp + "/{boardKey}/tickets/{ticketNumber}/comments/{commentId}", this::federatedRemoteDeleteComment);
+        routes.post(rp + "/{boardKey}/tickets/{ticketNumber}/checklist", this::federatedRemoteAddChecklistItem);
+        routes.put(
+                rp + "/{boardKey}/tickets/{ticketNumber}/checklist/{itemId}", this::federatedRemoteUpdateChecklistItem);
+        routes.delete(
+                rp + "/{boardKey}/tickets/{ticketNumber}/checklist/{itemId}", this::federatedRemoteDeleteChecklistItem);
+        routes.post(rp + "/{boardKey}/tickets/{ticketNumber}/labels/{labelId}", this::federatedRemoteAddTicketLabel);
+        routes.delete(
+                rp + "/{boardKey}/tickets/{ticketNumber}/labels/{labelId}", this::federatedRemoteRemoveTicketLabel);
+        routes.post(rp + "/{boardKey}/labels", this::federatedRemoteCreateLabel);
+        routes.post(rp + "/{boardKey}/tickets/{ticketNumber}/watch", this::federatedRemoteWatchTicket);
+        routes.delete(rp + "/{boardKey}/tickets/{ticketNumber}/watch", this::federatedRemoteUnwatchTicket);
 
         // Webhook receivers (called by owning station to notify this partner)
         routes.post(rp + "/webhook/ticket-changed", this::federatedRemoteOnTicketChanged);
@@ -297,48 +322,45 @@ public class BoardRoutes implements Routes {
     }
 
     @OpenApi(
-            path = "/api/v1/boards/{id}",
+            path = "/api/v1/boards/{boardKey}",
             methods = HttpMethod.GET,
-            summary = "Get a board by ID",
+            summary = "Get a board by short key",
             tags = {"Boards"},
-            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            pathParams = @OpenApiParam(name = "boardKey", type = String.class, required = true),
             responses = {
                 @OpenApiResponse(status = "200", content = @OpenApiContent(from = Board.class)),
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void get(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
-        var board = boardService.findById(id).orElseThrow(NotFoundResponse::new);
-        if (board.stationId() != session.stationId())
-            throw new ForbiddenResponse("Cannot access resources from another station");
+        var board = resolveBoard(ctx, session.stationId());
         if (session.member() != null
-                && !boardService.canView(id, session.member().id()))
+                && !boardService.canView(board.id(), session.member().id()))
             throw new ForbiddenResponse("No access to this board");
         ctx.json(board);
     }
 
     @OpenApi(
-            path = "/api/v1/boards/{id}/can-edit",
+            path = "/api/v1/boards/{boardKey}/can-edit",
             methods = HttpMethod.GET,
             summary = "Check if the current user can edit a board",
             tags = {"Boards"},
-            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            pathParams = @OpenApiParam(name = "boardKey", type = String.class, required = true),
             responses = @OpenApiResponse(status = "200"))
     private void canEdit(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        int id = resolveBoardId(ctx, session.stationId());
         boolean editable = session.member() != null
                 && boardService.canEdit(id, session.member().id());
         ctx.json(Map.of("canEdit", editable));
     }
 
     @OpenApi(
-            path = "/api/v1/boards/{id}",
+            path = "/api/v1/boards/{boardKey}",
             methods = HttpMethod.PUT,
             summary = "Update a board",
             tags = {"Boards"},
-            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            pathParams = @OpenApiParam(name = "boardKey", type = String.class, required = true),
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = UpdateBoardRequest.class)),
             responses = {
                 @OpenApiResponse(status = "200", content = @OpenApiContent(from = Board.class)),
@@ -346,33 +368,27 @@ public class BoardRoutes implements Routes {
             })
     private void update(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
-        var board = boardService.findById(id).orElseThrow(NotFoundResponse::new);
-        if (board.stationId() != session.stationId())
-            throw new ForbiddenResponse("Cannot access resources from another station");
+        var board = resolveBoard(ctx, session.stationId());
         var req = ctx.bodyAsClass(UpdateBoardRequest.class);
-        boardService.update(id, req.name(), req.description(), req.hideDoneAfterDays());
-        boardService.findById(id).ifPresentOrElse(ctx::json, () -> {
+        boardService.update(board.id(), req.name(), req.description(), req.hideDoneAfterDays());
+        boardService.findById(board.id()).ifPresentOrElse(ctx::json, () -> {
             throw new NotFoundResponse();
         });
     }
 
     @OpenApi(
-            path = "/api/v1/boards/{id}",
+            path = "/api/v1/boards/{boardKey}",
             methods = HttpMethod.DELETE,
             summary = "Delete a board",
             tags = {"Boards"},
-            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            pathParams = @OpenApiParam(name = "boardKey", type = String.class, required = true),
             responses = {
                 @OpenApiResponse(status = "204"),
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void delete(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
-        var board = boardService.findById(id).orElseThrow(NotFoundResponse::new);
-        if (board.stationId() != session.stationId())
-            throw new ForbiddenResponse("Cannot access resources from another station");
+        int id = resolveBoardId(ctx, session.stationId());
         if (boardService.delete(id)) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
@@ -381,23 +397,24 @@ public class BoardRoutes implements Routes {
     }
 
     @OpenApi(
-            path = "/api/v1/boards/{id}/lanes",
+            path = "/api/v1/boards/{boardKey}/lanes",
             methods = HttpMethod.GET,
             summary = "Get lanes for a board",
             tags = {"Boards"},
-            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            pathParams = @OpenApiParam(name = "boardKey", type = String.class, required = true),
             responses = @OpenApiResponse(status = "200"))
     private void getLanes(Context ctx) {
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        UserSession session = UserSession.from(ctx);
+        int id = resolveBoardId(ctx, session.stationId());
         ctx.json(boardService.findLanes(id));
     }
 
     @OpenApi(
-            path = "/api/v1/boards/{id}/lanes",
+            path = "/api/v1/boards/{boardKey}/lanes",
             methods = HttpMethod.PUT,
             summary = "Replace lanes for a board",
             tags = {"Boards"},
-            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            pathParams = @OpenApiParam(name = "boardKey", type = String.class, required = true),
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = LaneRequest[].class)),
             responses = {
                 @OpenApiResponse(status = "200"),
@@ -405,10 +422,7 @@ public class BoardRoutes implements Routes {
             })
     private void setLanes(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
-        var board = boardService.findById(id).orElseThrow(NotFoundResponse::new);
-        if (board.stationId() != session.stationId())
-            throw new ForbiddenResponse("Cannot access resources from another station");
+        int id = resolveBoardId(ctx, session.stationId());
         var req = ctx.bodyAsClass(LaneRequest[].class);
         boardService.replaceLanes(
                 id,
@@ -417,23 +431,24 @@ public class BoardRoutes implements Routes {
     }
 
     @OpenApi(
-            path = "/api/v1/boards/{id}/fields",
+            path = "/api/v1/boards/{boardKey}/fields",
             methods = HttpMethod.GET,
             summary = "Get custom fields for a board",
             tags = {"Boards"},
-            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            pathParams = @OpenApiParam(name = "boardKey", type = String.class, required = true),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = BoardField[].class)))
     private void getFields(Context ctx) {
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        UserSession session = UserSession.from(ctx);
+        int id = resolveBoardId(ctx, session.stationId());
         ctx.json(boardService.findFields(id));
     }
 
     @OpenApi(
-            path = "/api/v1/boards/{id}/fields",
+            path = "/api/v1/boards/{boardKey}/fields",
             methods = HttpMethod.PUT,
             summary = "Replace custom fields for a board",
             tags = {"Boards"},
-            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            pathParams = @OpenApiParam(name = "boardKey", type = String.class, required = true),
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = FieldRequest[].class)),
             responses = {
                 @OpenApiResponse(status = "200", content = @OpenApiContent(from = BoardField[].class)),
@@ -441,10 +456,7 @@ public class BoardRoutes implements Routes {
             })
     private void setFields(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
-        var board = boardService.findById(id).orElseThrow(NotFoundResponse::new);
-        if (board.stationId() != session.stationId())
-            throw new ForbiddenResponse("Cannot access resources from another station");
+        int id = resolveBoardId(ctx, session.stationId());
         var req = ctx.bodyAsClass(FieldRequest[].class);
         boardService.replaceFields(
                 id,
@@ -455,32 +467,33 @@ public class BoardRoutes implements Routes {
     }
 
     @OpenApi(
-            path = "/api/v1/boards/{id}/access/view",
+            path = "/api/v1/boards/{boardKey}/access/view",
             methods = HttpMethod.GET,
             summary = "Get view access restrictions for a board",
             tags = {"Boards"},
-            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            pathParams = @OpenApiParam(name = "boardKey", type = String.class, required = true),
             responses = {
                 @OpenApiResponse(status = "200", content = @OpenApiContent(from = AccessData.class)),
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void getViewAccess(Context ctx) {
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
-        boardService.findById(id).orElseThrow(NotFoundResponse::new);
+        UserSession session = UserSession.from(ctx);
+        int id = resolveBoardId(ctx, session.stationId());
         var access = boardService.getViewAccess(id);
         ctx.json(access);
     }
 
     @OpenApi(
-            path = "/api/v1/boards/{id}/access/view",
+            path = "/api/v1/boards/{boardKey}/access/view",
             methods = HttpMethod.PUT,
             summary = "Set view access restrictions for a board",
             tags = {"Boards"},
-            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            pathParams = @OpenApiParam(name = "boardKey", type = String.class, required = true),
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = AccessRequest.class)),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = AccessRequest.class)))
     private void setViewAccess(Context ctx) {
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        UserSession session = UserSession.from(ctx);
+        int id = resolveBoardId(ctx, session.stationId());
         var req = ctx.bodyAsClass(AccessRequest.class);
         boardService.setViewAccess(
                 id,
@@ -491,32 +504,33 @@ public class BoardRoutes implements Routes {
     }
 
     @OpenApi(
-            path = "/api/v1/boards/{id}/access/edit",
+            path = "/api/v1/boards/{boardKey}/access/edit",
             methods = HttpMethod.GET,
             summary = "Get edit access restrictions for a board",
             tags = {"Boards"},
-            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            pathParams = @OpenApiParam(name = "boardKey", type = String.class, required = true),
             responses = {
                 @OpenApiResponse(status = "200", content = @OpenApiContent(from = AccessData.class)),
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void getEditAccess(Context ctx) {
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
-        boardService.findById(id).orElseThrow(NotFoundResponse::new);
+        UserSession session = UserSession.from(ctx);
+        int id = resolveBoardId(ctx, session.stationId());
         var access = boardService.getEditAccess(id);
         ctx.json(access);
     }
 
     @OpenApi(
-            path = "/api/v1/boards/{id}/access/edit",
+            path = "/api/v1/boards/{boardKey}/access/edit",
             methods = HttpMethod.PUT,
             summary = "Set edit access restrictions for a board",
             tags = {"Boards"},
-            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            pathParams = @OpenApiParam(name = "boardKey", type = String.class, required = true),
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = AccessRequest.class)),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = AccessRequest.class)))
     private void setEditAccess(Context ctx) {
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        UserSession session = UserSession.from(ctx);
+        int id = resolveBoardId(ctx, session.stationId());
         var req = ctx.bodyAsClass(AccessRequest.class);
         boardService.setEditAccess(
                 id,
@@ -527,27 +541,29 @@ public class BoardRoutes implements Routes {
     }
 
     @OpenApi(
-            path = "/api/v1/boards/{id}/backlog",
+            path = "/api/v1/boards/{boardKey}/backlog",
             methods = HttpMethod.POST,
             summary = "Enable backlog lane for a board",
             tags = {"Boards"},
-            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            pathParams = @OpenApiParam(name = "boardKey", type = String.class, required = true),
             responses = @OpenApiResponse(status = "201"))
     private void enableBacklog(Context ctx) {
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        UserSession session = UserSession.from(ctx);
+        int id = resolveBoardId(ctx, session.stationId());
         var lane = boardService.enableBacklog(id);
         ctx.status(HttpStatus.CREATED).json(lane);
     }
 
     @OpenApi(
-            path = "/api/v1/boards/{id}/backlog",
+            path = "/api/v1/boards/{boardKey}/backlog",
             methods = HttpMethod.DELETE,
             summary = "Disable backlog lane for a board",
             tags = {"Boards"},
-            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            pathParams = @OpenApiParam(name = "boardKey", type = String.class, required = true),
             responses = @OpenApiResponse(status = "204"))
     private void disableBacklog(Context ctx) {
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        UserSession session = UserSession.from(ctx);
+        int id = resolveBoardId(ctx, session.stationId());
         boardService.disableBacklog(id);
         ctx.status(HttpStatus.NO_CONTENT);
     }
@@ -555,30 +571,32 @@ public class BoardRoutes implements Routes {
     // -- Labels --
 
     @OpenApi(
-            path = "/api/v1/boards/{id}/labels",
+            path = "/api/v1/boards/{boardKey}/labels",
             methods = HttpMethod.GET,
             summary = "Get labels for a board",
             tags = {"Boards"},
-            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            pathParams = @OpenApiParam(name = "boardKey", type = String.class, required = true),
             responses = @OpenApiResponse(status = "200"))
     private void getLabels(Context ctx) {
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        UserSession session = UserSession.from(ctx);
+        int id = resolveBoardId(ctx, session.stationId());
         ctx.json(boardService.findLabels(id));
     }
 
     @OpenApi(
-            path = "/api/v1/boards/{id}/labels",
+            path = "/api/v1/boards/{boardKey}/labels",
             methods = HttpMethod.POST,
             summary = "Create a label for a board",
             tags = {"Boards"},
-            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            pathParams = @OpenApiParam(name = "boardKey", type = String.class, required = true),
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = LabelRequest.class)),
             responses = {
                 @OpenApiResponse(status = "201"),
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void createLabel(Context ctx) {
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        UserSession session = UserSession.from(ctx);
+        int id = resolveBoardId(ctx, session.stationId());
         var req = ctx.bodyAsClass(LabelRequest.class);
         if (req.name() == null || req.name().isBlank()) throw new BadRequestResponse("name is required");
         var label = boardService.createLabel(id, req.name().trim(), req.color() != null ? req.color() : randomColor());
@@ -586,12 +604,12 @@ public class BoardRoutes implements Routes {
     }
 
     @OpenApi(
-            path = "/api/v1/boards/{id}/labels/{labelId}",
+            path = "/api/v1/boards/{boardKey}/labels/{labelId}",
             methods = HttpMethod.PUT,
             summary = "Update a label",
             tags = {"Boards"},
             pathParams = {
-                @OpenApiParam(name = "id", type = Integer.class, required = true),
+                @OpenApiParam(name = "boardKey", type = String.class, required = true),
                 @OpenApiParam(name = "labelId", type = Integer.class, required = true)
             },
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = LabelRequest.class)),
@@ -604,12 +622,12 @@ public class BoardRoutes implements Routes {
     }
 
     @OpenApi(
-            path = "/api/v1/boards/{id}/labels/{labelId}",
+            path = "/api/v1/boards/{boardKey}/labels/{labelId}",
             methods = HttpMethod.DELETE,
             summary = "Delete a label",
             tags = {"Boards"},
             pathParams = {
-                @OpenApiParam(name = "id", type = Integer.class, required = true),
+                @OpenApiParam(name = "boardKey", type = String.class, required = true),
                 @OpenApiParam(name = "labelId", type = Integer.class, required = true)
             },
             responses = @OpenApiResponse(status = "204"))
@@ -620,35 +638,33 @@ public class BoardRoutes implements Routes {
     }
 
     @OpenApi(
-            path = "/api/v1/boards/{id}/ticket-labels",
+            path = "/api/v1/boards/{boardKey}/ticket-labels",
             methods = HttpMethod.GET,
             summary = "Get all ticket-label assignments for a board",
             tags = {"Boards"},
-            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            pathParams = @OpenApiParam(name = "boardKey", type = String.class, required = true),
             responses = @OpenApiResponse(status = "200"))
     private void getAllTicketLabels(Context ctx) {
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        UserSession session = UserSession.from(ctx);
+        int id = resolveBoardId(ctx, session.stationId());
         ctx.json(boardService.findAllTicketLabels(id));
     }
 
     // -- Federation config --
 
     @OpenApi(
-            path = "/api/v1/boards/{id}/federation",
+            path = "/api/v1/boards/{boardKey}/federation",
             methods = HttpMethod.GET,
             summary = "Get federation sharing configuration for a board",
             tags = {"Boards"},
-            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            pathParams = @OpenApiParam(name = "boardKey", type = String.class, required = true),
             responses = {
                 @OpenApiResponse(status = "200", content = @OpenApiContent(from = FederationConfigResponse.class)),
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void getFederationConfig(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
-        var board = boardService.findById(id).orElseThrow(NotFoundResponse::new);
-        if (board.stationId() != session.stationId())
-            throw new ForbiddenResponse("Cannot access resources from another station");
+        int id = resolveBoardId(ctx, session.stationId());
         var targets = federatedBoardService.findShareTargets(id).stream()
                 .map(t -> new FederationTargetResponse(t.partnerId(), t.shareMode()))
                 .toList();
@@ -657,11 +673,11 @@ public class BoardRoutes implements Routes {
     }
 
     @OpenApi(
-            path = "/api/v1/boards/{id}/federation",
+            path = "/api/v1/boards/{boardKey}/federation",
             methods = HttpMethod.PUT,
             summary = "Set federation sharing configuration for a board",
             tags = {"Boards"},
-            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            pathParams = @OpenApiParam(name = "boardKey", type = String.class, required = true),
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = FederationConfigRequest.class)),
             responses = {
                 @OpenApiResponse(status = "200"),
@@ -669,10 +685,7 @@ public class BoardRoutes implements Routes {
             })
     private void setFederationConfig(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
-        var board = boardService.findById(id).orElseThrow(NotFoundResponse::new);
-        if (board.stationId() != session.stationId())
-            throw new ForbiddenResponse("Cannot access resources from another station");
+        int id = resolveBoardId(ctx, session.stationId());
         var req = ctx.bodyAsClass(FederationConfigRequest.class);
         var configs = (req.targets() != null ? req.targets() : List.<FederationTargetRequest>of())
                 .stream()
@@ -704,14 +717,19 @@ public class BoardRoutes implements Routes {
                 .id();
     }
 
-    private void requireView(int partnerId, int boardId, UserSession session) {
-        if (!proxyService.canView(partnerId, boardId, session.member().id())) {
+    private void requireView(int partnerId, String boardKey, UserSession session) {
+        int boardId = proxyService.resolveFederatedBoardId(partnerId, boardKey);
+        if (boardId != -1
+                && !proxyService.canView(partnerId, boardId, session.member().id())) {
             throw new ForbiddenResponse("No view access to this federated board");
         }
+        // For remote partners, resolveFederatedBoardId returns -1 and access is enforced by the remote station
     }
 
-    private void requireWrite(int partnerId, int boardId, UserSession session) {
-        if (!proxyService.canWrite(partnerId, boardId, session.member().id())) {
+    private void requireWrite(int partnerId, String boardKey, UserSession session) {
+        int boardId = proxyService.resolveFederatedBoardId(partnerId, boardKey);
+        if (boardId != -1
+                && !proxyService.canWrite(partnerId, boardId, session.member().id())) {
             throw new ForbiddenResponse("No write access to this federated board");
         }
     }
@@ -800,21 +818,21 @@ public class BoardRoutes implements Routes {
     // -- Read proxies --
 
     @OpenApi(
-            path = "/api/v1/federated/boards/{partnerUid}/{boardId}",
+            path = "/api/v1/federated/boards/{partnerUid}/{boardKey}",
             methods = HttpMethod.GET,
             summary = "Get a federated board via proxy",
             tags = {"Federated Boards"},
             pathParams = {
                 @OpenApiParam(name = "partnerUid", type = String.class, required = true),
-                @OpenApiParam(name = "boardId", type = Integer.class, required = true)
+                @OpenApiParam(name = "boardKey", type = String.class, required = true)
             },
             responses = @OpenApiResponse(status = "200"))
     private void federatedLocalGetBoard(Context ctx) {
         var session = UserSession.from(ctx);
         int partnerId = resolvePartnerId(ctx);
-        int boardId = ctx.pathParamAsClass("boardId", Integer.class).get();
-        requireView(partnerId, boardId, session);
-        var result = proxyService.proxyGetBoard(partnerId, boardId);
+        String boardKey = ctx.pathParam("boardKey");
+        requireView(partnerId, boardKey, session);
+        var result = proxyService.proxyGetBoard(partnerId, boardKey);
         if (result.stationName() != null) {
             ctx.header(FederationHeaders.HEADER_STATION_NAME, result.stationName());
         }
@@ -822,299 +840,299 @@ public class BoardRoutes implements Routes {
     }
 
     @OpenApi(
-            path = "/api/v1/federated/boards/{partnerUid}/{boardId}/lanes",
+            path = "/api/v1/federated/boards/{partnerUid}/{boardKey}/lanes",
             methods = HttpMethod.GET,
             summary = "Get lanes for a federated board",
             tags = {"Federated Boards"},
             pathParams = {
                 @OpenApiParam(name = "partnerUid", type = String.class, required = true),
-                @OpenApiParam(name = "boardId", type = Integer.class, required = true)
+                @OpenApiParam(name = "boardKey", type = String.class, required = true)
             },
             responses = @OpenApiResponse(status = "200"))
     private void federatedLocalGetLanes(Context ctx) {
         var session = UserSession.from(ctx);
         int partnerId = resolvePartnerId(ctx);
-        int boardId = ctx.pathParamAsClass("boardId", Integer.class).get();
-        requireView(partnerId, boardId, session);
-        ctx.json(proxyService.proxyGetLanes(partnerId, boardId));
+        String boardKey = ctx.pathParam("boardKey");
+        requireView(partnerId, boardKey, session);
+        ctx.json(proxyService.proxyGetLanes(partnerId, boardKey));
     }
 
     @OpenApi(
-            path = "/api/v1/federated/boards/{partnerUid}/{boardId}/labels",
+            path = "/api/v1/federated/boards/{partnerUid}/{boardKey}/labels",
             methods = HttpMethod.GET,
             summary = "Get labels for a federated board",
             tags = {"Federated Boards"},
             pathParams = {
                 @OpenApiParam(name = "partnerUid", type = String.class, required = true),
-                @OpenApiParam(name = "boardId", type = Integer.class, required = true)
+                @OpenApiParam(name = "boardKey", type = String.class, required = true)
             },
             responses = @OpenApiResponse(status = "200"))
     private void federatedLocalGetLabels(Context ctx) {
         var session = UserSession.from(ctx);
         int partnerId = resolvePartnerId(ctx);
-        int boardId = ctx.pathParamAsClass("boardId", Integer.class).get();
-        requireView(partnerId, boardId, session);
-        ctx.json(proxyService.proxyGetLabels(partnerId, boardId));
+        String boardKey = ctx.pathParam("boardKey");
+        requireView(partnerId, boardKey, session);
+        ctx.json(proxyService.proxyGetLabels(partnerId, boardKey));
     }
 
     @OpenApi(
-            path = "/api/v1/federated/boards/{partnerUid}/{boardId}/fields",
+            path = "/api/v1/federated/boards/{partnerUid}/{boardKey}/fields",
             methods = HttpMethod.GET,
             summary = "Get custom fields for a federated board",
             tags = {"Federated Boards"},
             pathParams = {
                 @OpenApiParam(name = "partnerUid", type = String.class, required = true),
-                @OpenApiParam(name = "boardId", type = Integer.class, required = true)
+                @OpenApiParam(name = "boardKey", type = String.class, required = true)
             },
             responses = @OpenApiResponse(status = "200"))
     private void federatedLocalGetFields(Context ctx) {
         var session = UserSession.from(ctx);
         int partnerId = resolvePartnerId(ctx);
-        int boardId = ctx.pathParamAsClass("boardId", Integer.class).get();
-        requireView(partnerId, boardId, session);
-        ctx.json(proxyService.proxyGetFields(partnerId, boardId));
+        String boardKey = ctx.pathParam("boardKey");
+        requireView(partnerId, boardKey, session);
+        ctx.json(proxyService.proxyGetFields(partnerId, boardKey));
     }
 
     @OpenApi(
-            path = "/api/v1/federated/boards/{partnerUid}/{boardId}/tickets",
+            path = "/api/v1/federated/boards/{partnerUid}/{boardKey}/tickets",
             methods = HttpMethod.GET,
             summary = "List tickets on a federated board",
             tags = {"Federated Boards"},
             pathParams = {
                 @OpenApiParam(name = "partnerUid", type = String.class, required = true),
-                @OpenApiParam(name = "boardId", type = Integer.class, required = true)
+                @OpenApiParam(name = "boardKey", type = String.class, required = true)
             },
             responses = @OpenApiResponse(status = "200"))
     private void federatedLocalListTickets(Context ctx) {
         var session = UserSession.from(ctx);
         int partnerId = resolvePartnerId(ctx);
-        int boardId = ctx.pathParamAsClass("boardId", Integer.class).get();
-        requireView(partnerId, boardId, session);
-        ctx.json(proxyService.proxyListTickets(partnerId, boardId));
+        String boardKey = ctx.pathParam("boardKey");
+        requireView(partnerId, boardKey, session);
+        ctx.json(proxyService.proxyListTickets(partnerId, boardKey));
     }
 
     @OpenApi(
-            path = "/api/v1/federated/boards/{partnerUid}/{boardId}/tickets/search",
+            path = "/api/v1/federated/boards/{partnerUid}/{boardKey}/tickets/search",
             methods = HttpMethod.GET,
             summary = "Search tickets on a federated board",
             tags = {"Federated Boards"},
             pathParams = {
                 @OpenApiParam(name = "partnerUid", type = String.class, required = true),
-                @OpenApiParam(name = "boardId", type = Integer.class, required = true)
+                @OpenApiParam(name = "boardKey", type = String.class, required = true)
             },
             queryParams = @OpenApiParam(name = "q", type = String.class),
             responses = @OpenApiResponse(status = "200"))
     private void federatedLocalSearchTickets(Context ctx) {
         var session = UserSession.from(ctx);
         int partnerId = resolvePartnerId(ctx);
-        int boardId = ctx.pathParamAsClass("boardId", Integer.class).get();
-        requireView(partnerId, boardId, session);
+        String boardKey = ctx.pathParam("boardKey");
+        requireView(partnerId, boardKey, session);
         String q = ctx.queryParam("q");
-        ctx.json(proxyService.proxySearchTickets(partnerId, boardId, q));
+        ctx.json(proxyService.proxySearchTickets(partnerId, boardKey, q));
     }
 
     @OpenApi(
-            path = "/api/v1/federated/boards/{partnerUid}/{boardId}/tickets/{ticketId}",
+            path = "/api/v1/federated/boards/{partnerUid}/{boardKey}/tickets/{ticketNumber}",
             methods = HttpMethod.GET,
             summary = "Get a ticket on a federated board",
             tags = {"Federated Boards"},
             pathParams = {
                 @OpenApiParam(name = "partnerUid", type = String.class, required = true),
-                @OpenApiParam(name = "boardId", type = Integer.class, required = true),
-                @OpenApiParam(name = "ticketId", type = Integer.class, required = true)
+                @OpenApiParam(name = "boardKey", type = String.class, required = true),
+                @OpenApiParam(name = "ticketNumber", type = Integer.class, required = true)
             },
             responses = @OpenApiResponse(status = "200"))
     private void federatedLocalGetTicket(Context ctx) {
         var session = UserSession.from(ctx);
         int partnerId = resolvePartnerId(ctx);
-        int boardId = ctx.pathParamAsClass("boardId", Integer.class).get();
-        requireView(partnerId, boardId, session);
-        int ticketId = ctx.pathParamAsClass("ticketId", Integer.class).get();
-        ctx.json(proxyService.proxyGetTicket(partnerId, boardId, ticketId));
+        String boardKey = ctx.pathParam("boardKey");
+        requireView(partnerId, boardKey, session);
+        int ticketNumber = ctx.pathParamAsClass("ticketNumber", Integer.class).get();
+        ctx.json(proxyService.proxyGetTicket(partnerId, boardKey, ticketNumber));
     }
 
     @OpenApi(
-            path = "/api/v1/federated/boards/{partnerUid}/{boardId}/tickets/{ticketId}/comments",
+            path = "/api/v1/federated/boards/{partnerUid}/{boardKey}/tickets/{ticketNumber}/comments",
             methods = HttpMethod.GET,
             summary = "Get comments for a ticket on a federated board",
             tags = {"Federated Boards"},
             pathParams = {
                 @OpenApiParam(name = "partnerUid", type = String.class, required = true),
-                @OpenApiParam(name = "boardId", type = Integer.class, required = true),
-                @OpenApiParam(name = "ticketId", type = Integer.class, required = true)
+                @OpenApiParam(name = "boardKey", type = String.class, required = true),
+                @OpenApiParam(name = "ticketNumber", type = Integer.class, required = true)
             },
             responses = @OpenApiResponse(status = "200"))
     private void federatedLocalGetComments(Context ctx) {
         var session = UserSession.from(ctx);
         int partnerId = resolvePartnerId(ctx);
-        int boardId = ctx.pathParamAsClass("boardId", Integer.class).get();
-        requireView(partnerId, boardId, session);
-        int ticketId = ctx.pathParamAsClass("ticketId", Integer.class).get();
-        ctx.json(proxyService.proxyGetComments(partnerId, boardId, ticketId));
+        String boardKey = ctx.pathParam("boardKey");
+        requireView(partnerId, boardKey, session);
+        int ticketNumber = ctx.pathParamAsClass("ticketNumber", Integer.class).get();
+        ctx.json(proxyService.proxyGetComments(partnerId, boardKey, ticketNumber));
     }
 
     @OpenApi(
-            path = "/api/v1/federated/boards/{partnerUid}/{boardId}/tickets/{ticketId}/checklist",
+            path = "/api/v1/federated/boards/{partnerUid}/{boardKey}/tickets/{ticketNumber}/checklist",
             methods = HttpMethod.GET,
             summary = "Get checklist for a ticket on a federated board",
             tags = {"Federated Boards"},
             pathParams = {
                 @OpenApiParam(name = "partnerUid", type = String.class, required = true),
-                @OpenApiParam(name = "boardId", type = Integer.class, required = true),
-                @OpenApiParam(name = "ticketId", type = Integer.class, required = true)
+                @OpenApiParam(name = "boardKey", type = String.class, required = true),
+                @OpenApiParam(name = "ticketNumber", type = Integer.class, required = true)
             },
             responses = @OpenApiResponse(status = "200"))
     private void federatedLocalGetChecklist(Context ctx) {
         var session = UserSession.from(ctx);
         int partnerId = resolvePartnerId(ctx);
-        int boardId = ctx.pathParamAsClass("boardId", Integer.class).get();
-        requireView(partnerId, boardId, session);
-        int ticketId = ctx.pathParamAsClass("ticketId", Integer.class).get();
-        ctx.json(proxyService.proxyGetChecklist(partnerId, boardId, ticketId));
+        String boardKey = ctx.pathParam("boardKey");
+        requireView(partnerId, boardKey, session);
+        int ticketNumber = ctx.pathParamAsClass("ticketNumber", Integer.class).get();
+        ctx.json(proxyService.proxyGetChecklist(partnerId, boardKey, ticketNumber));
     }
 
     @OpenApi(
-            path = "/api/v1/federated/boards/{partnerUid}/{boardId}/tickets/{ticketId}/links",
+            path = "/api/v1/federated/boards/{partnerUid}/{boardKey}/tickets/{ticketNumber}/links",
             methods = HttpMethod.GET,
             summary = "Get links for a ticket on a federated board",
             tags = {"Federated Boards"},
             pathParams = {
                 @OpenApiParam(name = "partnerUid", type = String.class, required = true),
-                @OpenApiParam(name = "boardId", type = Integer.class, required = true),
-                @OpenApiParam(name = "ticketId", type = Integer.class, required = true)
+                @OpenApiParam(name = "boardKey", type = String.class, required = true),
+                @OpenApiParam(name = "ticketNumber", type = Integer.class, required = true)
             },
             responses = @OpenApiResponse(status = "200"))
     private void federatedLocalGetLinks(Context ctx) {
         var session = UserSession.from(ctx);
         int partnerId = resolvePartnerId(ctx);
-        int boardId = ctx.pathParamAsClass("boardId", Integer.class).get();
-        requireView(partnerId, boardId, session);
-        int ticketId = ctx.pathParamAsClass("ticketId", Integer.class).get();
-        ctx.json(proxyService.proxyGetLinks(partnerId, boardId, ticketId));
+        String boardKey = ctx.pathParam("boardKey");
+        requireView(partnerId, boardKey, session);
+        int ticketNumber = ctx.pathParamAsClass("ticketNumber", Integer.class).get();
+        ctx.json(proxyService.proxyGetLinks(partnerId, boardKey, ticketNumber));
     }
 
     @OpenApi(
-            path = "/api/v1/federated/boards/{partnerUid}/{boardId}/tickets/{ticketId}/labels",
+            path = "/api/v1/federated/boards/{partnerUid}/{boardKey}/tickets/{ticketNumber}/labels",
             methods = HttpMethod.GET,
             summary = "Get labels for a ticket on a federated board",
             tags = {"Federated Boards"},
             pathParams = {
                 @OpenApiParam(name = "partnerUid", type = String.class, required = true),
-                @OpenApiParam(name = "boardId", type = Integer.class, required = true),
-                @OpenApiParam(name = "ticketId", type = Integer.class, required = true)
+                @OpenApiParam(name = "boardKey", type = String.class, required = true),
+                @OpenApiParam(name = "ticketNumber", type = Integer.class, required = true)
             },
             responses = @OpenApiResponse(status = "200"))
     private void federatedLocalGetTicketLabels(Context ctx) {
         var session = UserSession.from(ctx);
         int partnerId = resolvePartnerId(ctx);
-        int boardId = ctx.pathParamAsClass("boardId", Integer.class).get();
-        requireView(partnerId, boardId, session);
-        int ticketId = ctx.pathParamAsClass("ticketId", Integer.class).get();
-        ctx.json(proxyService.proxyGetTicketLabels(partnerId, boardId, ticketId));
+        String boardKey = ctx.pathParam("boardKey");
+        requireView(partnerId, boardKey, session);
+        int ticketNumber = ctx.pathParamAsClass("ticketNumber", Integer.class).get();
+        ctx.json(proxyService.proxyGetTicketLabels(partnerId, boardKey, ticketNumber));
     }
 
     @OpenApi(
-            path = "/api/v1/federated/boards/{partnerUid}/{boardId}/tickets/{ticketId}/transitions",
+            path = "/api/v1/federated/boards/{partnerUid}/{boardKey}/tickets/{ticketNumber}/transitions",
             methods = HttpMethod.GET,
             summary = "Get transitions for a ticket on a federated board",
             tags = {"Federated Boards"},
             pathParams = {
                 @OpenApiParam(name = "partnerUid", type = String.class, required = true),
-                @OpenApiParam(name = "boardId", type = Integer.class, required = true),
-                @OpenApiParam(name = "ticketId", type = Integer.class, required = true)
+                @OpenApiParam(name = "boardKey", type = String.class, required = true),
+                @OpenApiParam(name = "ticketNumber", type = Integer.class, required = true)
             },
             responses = @OpenApiResponse(status = "200"))
     private void federatedLocalGetTransitions(Context ctx) {
         var session = UserSession.from(ctx);
         int partnerId = resolvePartnerId(ctx);
-        int boardId = ctx.pathParamAsClass("boardId", Integer.class).get();
-        requireView(partnerId, boardId, session);
-        int ticketId = ctx.pathParamAsClass("ticketId", Integer.class).get();
-        ctx.json(proxyService.proxyGetTransitions(partnerId, boardId, ticketId));
+        String boardKey = ctx.pathParam("boardKey");
+        requireView(partnerId, boardKey, session);
+        int ticketNumber = ctx.pathParamAsClass("ticketNumber", Integer.class).get();
+        ctx.json(proxyService.proxyGetTransitions(partnerId, boardKey, ticketNumber));
     }
 
     @OpenApi(
-            path = "/api/v1/federated/boards/{partnerUid}/{boardId}/tickets/{ticketId}/history",
+            path = "/api/v1/federated/boards/{partnerUid}/{boardKey}/tickets/{ticketNumber}/history",
             methods = HttpMethod.GET,
             summary = "Get history for a ticket on a federated board",
             tags = {"Federated Boards"},
             pathParams = {
                 @OpenApiParam(name = "partnerUid", type = String.class, required = true),
-                @OpenApiParam(name = "boardId", type = Integer.class, required = true),
-                @OpenApiParam(name = "ticketId", type = Integer.class, required = true)
+                @OpenApiParam(name = "boardKey", type = String.class, required = true),
+                @OpenApiParam(name = "ticketNumber", type = Integer.class, required = true)
             },
             responses = @OpenApiResponse(status = "200"))
     private void federatedLocalGetHistory(Context ctx) {
         var session = UserSession.from(ctx);
         int partnerId = resolvePartnerId(ctx);
-        int boardId = ctx.pathParamAsClass("boardId", Integer.class).get();
-        requireView(partnerId, boardId, session);
-        int ticketId = ctx.pathParamAsClass("ticketId", Integer.class).get();
-        ctx.json(proxyService.proxyGetHistory(partnerId, boardId, ticketId));
+        String boardKey = ctx.pathParam("boardKey");
+        requireView(partnerId, boardKey, session);
+        int ticketNumber = ctx.pathParamAsClass("ticketNumber", Integer.class).get();
+        ctx.json(proxyService.proxyGetHistory(partnerId, boardKey, ticketNumber));
     }
 
     @OpenApi(
-            path = "/api/v1/federated/boards/{partnerUid}/{boardId}/tickets/{ticketId}/attachments",
+            path = "/api/v1/federated/boards/{partnerUid}/{boardKey}/tickets/{ticketNumber}/attachments",
             methods = HttpMethod.GET,
             summary = "Get attachments for a ticket on a federated board",
             tags = {"Federated Boards"},
             pathParams = {
                 @OpenApiParam(name = "partnerUid", type = String.class, required = true),
-                @OpenApiParam(name = "boardId", type = Integer.class, required = true),
-                @OpenApiParam(name = "ticketId", type = Integer.class, required = true)
+                @OpenApiParam(name = "boardKey", type = String.class, required = true),
+                @OpenApiParam(name = "ticketNumber", type = Integer.class, required = true)
             },
             responses = @OpenApiResponse(status = "200"))
     private void federatedLocalGetAttachments(Context ctx) {
         var session = UserSession.from(ctx);
         int partnerId = resolvePartnerId(ctx);
-        int boardId = ctx.pathParamAsClass("boardId", Integer.class).get();
-        requireView(partnerId, boardId, session);
-        int ticketId = ctx.pathParamAsClass("ticketId", Integer.class).get();
-        ctx.json(proxyService.proxyGetAttachments(partnerId, boardId, ticketId));
+        String boardKey = ctx.pathParam("boardKey");
+        requireView(partnerId, boardKey, session);
+        int ticketNumber = ctx.pathParamAsClass("ticketNumber", Integer.class).get();
+        ctx.json(proxyService.proxyGetAttachments(partnerId, boardKey, ticketNumber));
     }
 
     @OpenApi(
-            path = "/api/v1/federated/boards/{partnerUid}/{boardId}/tickets/{ticketId}/watchers",
+            path = "/api/v1/federated/boards/{partnerUid}/{boardKey}/tickets/{ticketNumber}/watchers",
             methods = HttpMethod.GET,
             summary = "Get watchers for a ticket on a federated board",
             tags = {"Federated Boards"},
             pathParams = {
                 @OpenApiParam(name = "partnerUid", type = String.class, required = true),
-                @OpenApiParam(name = "boardId", type = Integer.class, required = true),
-                @OpenApiParam(name = "ticketId", type = Integer.class, required = true)
+                @OpenApiParam(name = "boardKey", type = String.class, required = true),
+                @OpenApiParam(name = "ticketNumber", type = Integer.class, required = true)
             },
             responses = @OpenApiResponse(status = "200"))
     private void federatedLocalGetWatchers(Context ctx) {
         var session = UserSession.from(ctx);
         int partnerId = resolvePartnerId(ctx);
-        int boardId = ctx.pathParamAsClass("boardId", Integer.class).get();
-        requireView(partnerId, boardId, session);
-        int ticketId = ctx.pathParamAsClass("ticketId", Integer.class).get();
-        ctx.json(proxyService.proxyGetWatchers(partnerId, boardId, ticketId));
+        String boardKey = ctx.pathParam("boardKey");
+        requireView(partnerId, boardKey, session);
+        int ticketNumber = ctx.pathParamAsClass("ticketNumber", Integer.class).get();
+        ctx.json(proxyService.proxyGetWatchers(partnerId, boardKey, ticketNumber));
     }
 
     // -- Write proxies (FULL mode only) --
 
     @OpenApi(
-            path = "/api/v1/federated/boards/{partnerUid}/{boardId}/tickets",
+            path = "/api/v1/federated/boards/{partnerUid}/{boardKey}/tickets",
             methods = HttpMethod.POST,
             summary = "Create a ticket on a federated board",
             tags = {"Federated Boards"},
             pathParams = {
                 @OpenApiParam(name = "partnerUid", type = String.class, required = true),
-                @OpenApiParam(name = "boardId", type = Integer.class, required = true)
+                @OpenApiParam(name = "boardKey", type = String.class, required = true)
             },
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = LocalCreateTicketRequest.class)),
             responses = @OpenApiResponse(status = "200"))
     private void federatedLocalCreateTicket(Context ctx) {
         var session = UserSession.from(ctx);
         int partnerId = resolvePartnerId(ctx);
-        int boardId = ctx.pathParamAsClass("boardId", Integer.class).get();
-        requireWrite(partnerId, boardId, session);
+        String boardKey = ctx.pathParam("boardKey");
+        requireWrite(partnerId, boardKey, session);
         var req = ctx.bodyAsClass(LocalCreateTicketRequest.class);
         ctx.json(proxyService.proxyCreateTicket(
                 partnerId,
-                boardId,
+                boardKey,
                 req.laneId(),
                 req.title(),
                 req.description(),
@@ -1124,28 +1142,28 @@ public class BoardRoutes implements Routes {
     }
 
     @OpenApi(
-            path = "/api/v1/federated/boards/{partnerUid}/{boardId}/tickets/{ticketId}",
+            path = "/api/v1/federated/boards/{partnerUid}/{boardKey}/tickets/{ticketNumber}",
             methods = HttpMethod.PUT,
             summary = "Update a ticket on a federated board",
             tags = {"Federated Boards"},
             pathParams = {
                 @OpenApiParam(name = "partnerUid", type = String.class, required = true),
-                @OpenApiParam(name = "boardId", type = Integer.class, required = true),
-                @OpenApiParam(name = "ticketId", type = Integer.class, required = true)
+                @OpenApiParam(name = "boardKey", type = String.class, required = true),
+                @OpenApiParam(name = "ticketNumber", type = Integer.class, required = true)
             },
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = LocalUpdateTicketRequest.class)),
             responses = @OpenApiResponse(status = "200"))
     private void federatedLocalUpdateTicket(Context ctx) {
         var session = UserSession.from(ctx);
         int partnerId = resolvePartnerId(ctx);
-        int boardId = ctx.pathParamAsClass("boardId", Integer.class).get();
-        requireWrite(partnerId, boardId, session);
-        int ticketId = ctx.pathParamAsClass("ticketId", Integer.class).get();
+        String boardKey = ctx.pathParam("boardKey");
+        requireWrite(partnerId, boardKey, session);
+        int ticketNumber = ctx.pathParamAsClass("ticketNumber", Integer.class).get();
         var req = ctx.bodyAsClass(LocalUpdateTicketRequest.class);
         ctx.json(proxyService.proxyUpdateTicket(
                 partnerId,
-                boardId,
-                ticketId,
+                boardKey,
+                ticketNumber,
                 req.title(),
                 req.description(),
                 req.assignedMemberId(),
@@ -1154,132 +1172,131 @@ public class BoardRoutes implements Routes {
     }
 
     @OpenApi(
-            path = "/api/v1/federated/boards/{partnerUid}/{boardId}/tickets/{ticketId}",
+            path = "/api/v1/federated/boards/{partnerUid}/{boardKey}/tickets/{ticketNumber}",
             methods = HttpMethod.DELETE,
             summary = "Delete a ticket on a federated board",
             tags = {"Federated Boards"},
             pathParams = {
                 @OpenApiParam(name = "partnerUid", type = String.class, required = true),
-                @OpenApiParam(name = "boardId", type = Integer.class, required = true),
-                @OpenApiParam(name = "ticketId", type = Integer.class, required = true)
+                @OpenApiParam(name = "boardKey", type = String.class, required = true),
+                @OpenApiParam(name = "ticketNumber", type = Integer.class, required = true)
             },
             responses = @OpenApiResponse(status = "204"))
     private void federatedLocalDeleteTicket(Context ctx) {
         var session = UserSession.from(ctx);
         int partnerId = resolvePartnerId(ctx);
-        int boardId = ctx.pathParamAsClass("boardId", Integer.class).get();
-        requireWrite(partnerId, boardId, session);
-        int ticketId = ctx.pathParamAsClass("ticketId", Integer.class).get();
-        proxyService.proxyDeleteTicket(partnerId, boardId, ticketId);
+        String boardKey = ctx.pathParam("boardKey");
+        requireWrite(partnerId, boardKey, session);
+        int ticketNumber = ctx.pathParamAsClass("ticketNumber", Integer.class).get();
+        proxyService.proxyDeleteTicket(partnerId, boardKey, ticketNumber);
         ctx.status(204);
     }
 
     @OpenApi(
-            path = "/api/v1/federated/boards/{partnerUid}/{boardId}/tickets/{ticketId}/move",
+            path = "/api/v1/federated/boards/{partnerUid}/{boardKey}/tickets/{ticketNumber}/move",
             methods = HttpMethod.PUT,
             summary = "Move a ticket to a different lane on a federated board",
             tags = {"Federated Boards"},
             pathParams = {
                 @OpenApiParam(name = "partnerUid", type = String.class, required = true),
-                @OpenApiParam(name = "boardId", type = Integer.class, required = true),
-                @OpenApiParam(name = "ticketId", type = Integer.class, required = true)
+                @OpenApiParam(name = "boardKey", type = String.class, required = true),
+                @OpenApiParam(name = "ticketNumber", type = Integer.class, required = true)
             },
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = LocalMoveTicketRequest.class)),
             responses = @OpenApiResponse(status = "200"))
     private void federatedLocalMoveTicket(Context ctx) {
         var session = UserSession.from(ctx);
         int partnerId = resolvePartnerId(ctx);
-        int boardId = ctx.pathParamAsClass("boardId", Integer.class).get();
-        requireWrite(partnerId, boardId, session);
-        int ticketId = ctx.pathParamAsClass("ticketId", Integer.class).get();
+        String boardKey = ctx.pathParam("boardKey");
+        requireWrite(partnerId, boardKey, session);
+        int ticketNumber = ctx.pathParamAsClass("ticketNumber", Integer.class).get();
         var req = ctx.bodyAsClass(LocalMoveTicketRequest.class);
         var stationUid = StationUidResolver.instance().resolve(session.stationId());
         UUID memberUid = session.member() != null ? session.member().uid() : null;
         ctx.json(proxyService.proxyMoveTicket(
-                partnerId, boardId, ticketId, req.toLaneId(), req.position(), stationUid, memberUid));
+                partnerId, boardKey, ticketNumber, req.toLaneId(), req.position(), stationUid, memberUid));
     }
 
     @OpenApi(
-            path = "/api/v1/federated/boards/{partnerUid}/{boardId}/tickets/{ticketId}/reorder",
+            path = "/api/v1/federated/boards/{partnerUid}/{boardKey}/tickets/reorder",
             methods = HttpMethod.PUT,
             summary = "Reorder tickets in a lane on a federated board",
             tags = {"Federated Boards"},
             pathParams = {
                 @OpenApiParam(name = "partnerUid", type = String.class, required = true),
-                @OpenApiParam(name = "boardId", type = Integer.class, required = true),
-                @OpenApiParam(name = "ticketId", type = Integer.class, required = true)
+                @OpenApiParam(name = "boardKey", type = String.class, required = true)
             },
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = LocalReorderRequest.class)),
             responses = @OpenApiResponse(status = "204"))
     private void federatedLocalReorderTickets(Context ctx) {
         var session = UserSession.from(ctx);
         int partnerId = resolvePartnerId(ctx);
-        int boardId = ctx.pathParamAsClass("boardId", Integer.class).get();
-        requireWrite(partnerId, boardId, session);
+        String boardKey = ctx.pathParam("boardKey");
+        requireWrite(partnerId, boardKey, session);
         var req = ctx.bodyAsClass(LocalReorderRequest.class);
-        proxyService.proxyReorderTickets(partnerId, boardId, req.laneId(), req.orderedIds());
+        proxyService.proxyReorderTickets(partnerId, boardKey, req.laneId(), req.orderedIds());
         ctx.status(204);
     }
 
     @OpenApi(
-            path = "/api/v1/federated/boards/{partnerUid}/{boardId}/tickets/{ticketId}/comments",
+            path = "/api/v1/federated/boards/{partnerUid}/{boardKey}/tickets/{ticketNumber}/comments",
             methods = HttpMethod.POST,
             summary = "Add a comment to a ticket on a federated board",
             tags = {"Federated Boards"},
             pathParams = {
                 @OpenApiParam(name = "partnerUid", type = String.class, required = true),
-                @OpenApiParam(name = "boardId", type = Integer.class, required = true),
-                @OpenApiParam(name = "ticketId", type = Integer.class, required = true)
+                @OpenApiParam(name = "boardKey", type = String.class, required = true),
+                @OpenApiParam(name = "ticketNumber", type = Integer.class, required = true)
             },
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = LocalCommentRequest.class)),
             responses = @OpenApiResponse(status = "200"))
     private void federatedLocalAddComment(Context ctx) {
         var session = UserSession.from(ctx);
         int partnerId = resolvePartnerId(ctx);
-        int boardId = ctx.pathParamAsClass("boardId", Integer.class).get();
-        requireWrite(partnerId, boardId, session);
-        int ticketId = ctx.pathParamAsClass("ticketId", Integer.class).get();
+        String boardKey = ctx.pathParam("boardKey");
+        requireWrite(partnerId, boardKey, session);
+        int ticketNumber = ctx.pathParamAsClass("ticketNumber", Integer.class).get();
         var req = ctx.bodyAsClass(LocalCommentRequest.class);
         ctx.json(proxyService.proxyAddComment(
                 partnerId,
-                boardId,
-                ticketId,
+                boardKey,
+                ticketNumber,
                 req.parentId(),
                 req.content(),
                 session.member().uid()));
     }
 
     @OpenApi(
-            path = "/api/v1/federated/boards/{partnerUid}/{boardId}/tickets/{ticketId}/checklist",
+            path = "/api/v1/federated/boards/{partnerUid}/{boardKey}/tickets/{ticketNumber}/checklist",
             methods = HttpMethod.POST,
             summary = "Add a checklist item to a ticket on a federated board",
             tags = {"Federated Boards"},
             pathParams = {
                 @OpenApiParam(name = "partnerUid", type = String.class, required = true),
-                @OpenApiParam(name = "boardId", type = Integer.class, required = true),
-                @OpenApiParam(name = "ticketId", type = Integer.class, required = true)
+                @OpenApiParam(name = "boardKey", type = String.class, required = true),
+                @OpenApiParam(name = "ticketNumber", type = Integer.class, required = true)
             },
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = LocalChecklistItemRequest.class)),
             responses = @OpenApiResponse(status = "200"))
     private void federatedLocalAddChecklistItem(Context ctx) {
         var session = UserSession.from(ctx);
         int partnerId = resolvePartnerId(ctx);
-        int boardId = ctx.pathParamAsClass("boardId", Integer.class).get();
-        requireWrite(partnerId, boardId, session);
-        int ticketId = ctx.pathParamAsClass("ticketId", Integer.class).get();
+        String boardKey = ctx.pathParam("boardKey");
+        requireWrite(partnerId, boardKey, session);
+        int ticketNumber = ctx.pathParamAsClass("ticketNumber", Integer.class).get();
         var req = ctx.bodyAsClass(LocalChecklistItemRequest.class);
-        ctx.json(proxyService.proxyAddChecklistItem(partnerId, boardId, ticketId, req.title()));
+        ctx.json(proxyService.proxyAddChecklistItem(partnerId, boardKey, ticketNumber, req.title()));
     }
 
     @OpenApi(
-            path = "/api/v1/federated/boards/{partnerUid}/{boardId}/tickets/{ticketId}/checklist/{itemId}",
+            path = "/api/v1/federated/boards/{partnerUid}/{boardKey}/tickets/{ticketNumber}/checklist/{itemId}",
             methods = HttpMethod.PUT,
             summary = "Update a checklist item on a federated board",
             tags = {"Federated Boards"},
             pathParams = {
                 @OpenApiParam(name = "partnerUid", type = String.class, required = true),
-                @OpenApiParam(name = "boardId", type = Integer.class, required = true),
-                @OpenApiParam(name = "ticketId", type = Integer.class, required = true),
+                @OpenApiParam(name = "boardKey", type = String.class, required = true),
+                @OpenApiParam(name = "ticketNumber", type = Integer.class, required = true),
                 @OpenApiParam(name = "itemId", type = Integer.class, required = true)
             },
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = LocalUpdateChecklistItemRequest.class)),
@@ -1287,181 +1304,185 @@ public class BoardRoutes implements Routes {
     private void federatedLocalUpdateChecklistItem(Context ctx) {
         var session = UserSession.from(ctx);
         int partnerId = resolvePartnerId(ctx);
-        int boardId = ctx.pathParamAsClass("boardId", Integer.class).get();
-        requireWrite(partnerId, boardId, session);
-        int ticketId = ctx.pathParamAsClass("ticketId", Integer.class).get();
+        String boardKey = ctx.pathParam("boardKey");
+        requireWrite(partnerId, boardKey, session);
+        int ticketNumber = ctx.pathParamAsClass("ticketNumber", Integer.class).get();
         int itemId = ctx.pathParamAsClass("itemId", Integer.class).get();
         var req = ctx.bodyAsClass(LocalUpdateChecklistItemRequest.class);
-        proxyService.proxyUpdateChecklistItem(partnerId, boardId, ticketId, itemId, req.title(), req.checked());
+        proxyService.proxyUpdateChecklistItem(partnerId, boardKey, ticketNumber, itemId, req.title(), req.checked());
         ctx.status(204);
     }
 
     @OpenApi(
-            path = "/api/v1/federated/boards/{partnerUid}/{boardId}/tickets/{ticketId}/checklist/{itemId}",
+            path = "/api/v1/federated/boards/{partnerUid}/{boardKey}/tickets/{ticketNumber}/checklist/{itemId}",
             methods = HttpMethod.DELETE,
             summary = "Delete a checklist item on a federated board",
             tags = {"Federated Boards"},
             pathParams = {
                 @OpenApiParam(name = "partnerUid", type = String.class, required = true),
-                @OpenApiParam(name = "boardId", type = Integer.class, required = true),
-                @OpenApiParam(name = "ticketId", type = Integer.class, required = true),
+                @OpenApiParam(name = "boardKey", type = String.class, required = true),
+                @OpenApiParam(name = "ticketNumber", type = Integer.class, required = true),
                 @OpenApiParam(name = "itemId", type = Integer.class, required = true)
             },
             responses = @OpenApiResponse(status = "204"))
     private void federatedLocalDeleteChecklistItem(Context ctx) {
         var session = UserSession.from(ctx);
         int partnerId = resolvePartnerId(ctx);
-        int boardId = ctx.pathParamAsClass("boardId", Integer.class).get();
-        requireWrite(partnerId, boardId, session);
-        int ticketId = ctx.pathParamAsClass("ticketId", Integer.class).get();
+        String boardKey = ctx.pathParam("boardKey");
+        requireWrite(partnerId, boardKey, session);
+        int ticketNumber = ctx.pathParamAsClass("ticketNumber", Integer.class).get();
         int itemId = ctx.pathParamAsClass("itemId", Integer.class).get();
-        proxyService.proxyDeleteChecklistItem(partnerId, boardId, ticketId, itemId);
+        proxyService.proxyDeleteChecklistItem(partnerId, boardKey, ticketNumber, itemId);
         ctx.status(204);
     }
 
     @OpenApi(
-            path = "/api/v1/federated/boards/{partnerUid}/{boardId}/tickets/{ticketId}/labels/{labelId}",
+            path = "/api/v1/federated/boards/{partnerUid}/{boardKey}/tickets/{ticketNumber}/labels/{labelId}",
             methods = HttpMethod.POST,
             summary = "Add a label to a ticket on a federated board",
             tags = {"Federated Boards"},
             pathParams = {
                 @OpenApiParam(name = "partnerUid", type = String.class, required = true),
-                @OpenApiParam(name = "boardId", type = Integer.class, required = true),
-                @OpenApiParam(name = "ticketId", type = Integer.class, required = true),
+                @OpenApiParam(name = "boardKey", type = String.class, required = true),
+                @OpenApiParam(name = "ticketNumber", type = Integer.class, required = true),
                 @OpenApiParam(name = "labelId", type = Integer.class, required = true)
             },
             responses = @OpenApiResponse(status = "200"))
     private void federatedLocalAddTicketLabel(Context ctx) {
         var session = UserSession.from(ctx);
         int partnerId = resolvePartnerId(ctx);
-        int boardId = ctx.pathParamAsClass("boardId", Integer.class).get();
-        requireWrite(partnerId, boardId, session);
-        int ticketId = ctx.pathParamAsClass("ticketId", Integer.class).get();
+        String boardKey = ctx.pathParam("boardKey");
+        requireWrite(partnerId, boardKey, session);
+        int ticketNumber = ctx.pathParamAsClass("ticketNumber", Integer.class).get();
         int labelId = ctx.pathParamAsClass("labelId", Integer.class).get();
-        ctx.json(proxyService.proxyAddTicketLabel(partnerId, boardId, ticketId, labelId));
+        ctx.json(proxyService.proxyAddTicketLabel(partnerId, boardKey, ticketNumber, labelId));
     }
 
     @OpenApi(
-            path = "/api/v1/federated/boards/{partnerUid}/{boardId}/tickets/{ticketId}/labels/{labelId}",
+            path = "/api/v1/federated/boards/{partnerUid}/{boardKey}/tickets/{ticketNumber}/labels/{labelId}",
             methods = HttpMethod.DELETE,
             summary = "Remove a label from a ticket on a federated board",
             tags = {"Federated Boards"},
             pathParams = {
                 @OpenApiParam(name = "partnerUid", type = String.class, required = true),
-                @OpenApiParam(name = "boardId", type = Integer.class, required = true),
-                @OpenApiParam(name = "ticketId", type = Integer.class, required = true),
+                @OpenApiParam(name = "boardKey", type = String.class, required = true),
+                @OpenApiParam(name = "ticketNumber", type = Integer.class, required = true),
                 @OpenApiParam(name = "labelId", type = Integer.class, required = true)
             },
             responses = @OpenApiResponse(status = "204"))
     private void federatedLocalRemoveTicketLabel(Context ctx) {
         var session = UserSession.from(ctx);
         int partnerId = resolvePartnerId(ctx);
-        int boardId = ctx.pathParamAsClass("boardId", Integer.class).get();
-        requireWrite(partnerId, boardId, session);
-        int ticketId = ctx.pathParamAsClass("ticketId", Integer.class).get();
+        String boardKey = ctx.pathParam("boardKey");
+        requireWrite(partnerId, boardKey, session);
+        int ticketNumber = ctx.pathParamAsClass("ticketNumber", Integer.class).get();
         int labelId = ctx.pathParamAsClass("labelId", Integer.class).get();
-        proxyService.proxyRemoveTicketLabel(partnerId, boardId, ticketId, labelId);
+        proxyService.proxyRemoveTicketLabel(partnerId, boardKey, ticketNumber, labelId);
         ctx.status(204);
     }
 
     @OpenApi(
-            path = "/api/v1/federated/boards/{partnerUid}/{boardId}/labels",
+            path = "/api/v1/federated/boards/{partnerUid}/{boardKey}/labels",
             methods = HttpMethod.POST,
             summary = "Create a label on a federated board",
             tags = {"Federated Boards"},
             pathParams = {
                 @OpenApiParam(name = "partnerUid", type = String.class, required = true),
-                @OpenApiParam(name = "boardId", type = Integer.class, required = true)
+                @OpenApiParam(name = "boardKey", type = String.class, required = true)
             },
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = LocalCreateLabelRequest.class)),
             responses = @OpenApiResponse(status = "200"))
     private void federatedLocalCreateLabel(Context ctx) {
         var session = UserSession.from(ctx);
         int partnerId = resolvePartnerId(ctx);
-        int boardId = ctx.pathParamAsClass("boardId", Integer.class).get();
-        requireWrite(partnerId, boardId, session);
+        String boardKey = ctx.pathParam("boardKey");
+        requireWrite(partnerId, boardKey, session);
         var req = ctx.bodyAsClass(LocalCreateLabelRequest.class);
-        ctx.json(proxyService.proxyCreateLabel(partnerId, boardId, req.name(), req.color()));
+        ctx.json(proxyService.proxyCreateLabel(partnerId, boardKey, req.name(), req.color()));
     }
 
     @OpenApi(
-            path = "/api/v1/federated/boards/{partnerUid}/{boardId}/tickets/{ticketId}/watch",
+            path = "/api/v1/federated/boards/{partnerUid}/{boardKey}/tickets/{ticketNumber}/watch",
             methods = HttpMethod.POST,
             summary = "Watch a ticket on a federated board",
             tags = {"Federated Boards"},
             pathParams = {
                 @OpenApiParam(name = "partnerUid", type = String.class, required = true),
-                @OpenApiParam(name = "boardId", type = Integer.class, required = true),
-                @OpenApiParam(name = "ticketId", type = Integer.class, required = true)
+                @OpenApiParam(name = "boardKey", type = String.class, required = true),
+                @OpenApiParam(name = "ticketNumber", type = Integer.class, required = true)
             },
             responses = @OpenApiResponse(status = "204"))
     private void federatedLocalWatchTicket(Context ctx) {
         var session = UserSession.from(ctx);
         int partnerId = resolvePartnerId(ctx);
-        int boardId = ctx.pathParamAsClass("boardId", Integer.class).get();
-        requireWrite(partnerId, boardId, session);
-        int ticketId = ctx.pathParamAsClass("ticketId", Integer.class).get();
+        String boardKey = ctx.pathParam("boardKey");
+        requireWrite(partnerId, boardKey, session);
+        int ticketNumber = ctx.pathParamAsClass("ticketNumber", Integer.class).get();
         proxyService.proxyWatchTicket(
-                partnerId, boardId, ticketId, session.member().uid());
+                partnerId, boardKey, ticketNumber, session.member().uid());
         ctx.status(204);
     }
 
     @OpenApi(
-            path = "/api/v1/federated/boards/{partnerUid}/{boardId}/tickets/{ticketId}/watch",
+            path = "/api/v1/federated/boards/{partnerUid}/{boardKey}/tickets/{ticketNumber}/watch",
             methods = HttpMethod.DELETE,
             summary = "Unwatch a ticket on a federated board",
             tags = {"Federated Boards"},
             pathParams = {
                 @OpenApiParam(name = "partnerUid", type = String.class, required = true),
-                @OpenApiParam(name = "boardId", type = Integer.class, required = true),
-                @OpenApiParam(name = "ticketId", type = Integer.class, required = true)
+                @OpenApiParam(name = "boardKey", type = String.class, required = true),
+                @OpenApiParam(name = "ticketNumber", type = Integer.class, required = true)
             },
             responses = @OpenApiResponse(status = "204"))
     private void federatedLocalUnwatchTicket(Context ctx) {
         var session = UserSession.from(ctx);
         int partnerId = resolvePartnerId(ctx);
-        int boardId = ctx.pathParamAsClass("boardId", Integer.class).get();
-        requireWrite(partnerId, boardId, session);
-        int ticketId = ctx.pathParamAsClass("ticketId", Integer.class).get();
+        String boardKey = ctx.pathParam("boardKey");
+        requireWrite(partnerId, boardKey, session);
+        int ticketNumber = ctx.pathParamAsClass("ticketNumber", Integer.class).get();
         proxyService.proxyUnwatchTicket(
-                partnerId, boardId, ticketId, session.member().uid());
+                partnerId, boardKey, ticketNumber, session.member().uid());
         ctx.status(204);
     }
 
     // -- Local access override management --
 
     @OpenApi(
-            path = "/api/v1/federated/boards/{partnerUid}/{boardId}/access/override",
+            path = "/api/v1/federated/boards/{partnerUid}/{boardKey}/access/override",
             methods = HttpMethod.GET,
             summary = "Get local access overrides for a federated board",
             tags = {"Federated Boards"},
             pathParams = {
                 @OpenApiParam(name = "partnerUid", type = String.class, required = true),
-                @OpenApiParam(name = "boardId", type = Integer.class, required = true)
+                @OpenApiParam(name = "boardKey", type = String.class, required = true)
             },
             responses = @OpenApiResponse(status = "200"))
     private void federatedLocalGetOverride(Context ctx) {
         int partnerId = resolvePartnerId(ctx);
-        int boardId = ctx.pathParamAsClass("boardId", Integer.class).get();
+        String boardKey = ctx.pathParam("boardKey");
+        int boardId = proxyService.resolveFederatedBoardId(partnerId, boardKey);
+        if (boardId == -1) throw new NotFoundResponse("Board not found: " + boardKey);
         var view = proxyService.getLocalViewOverride(partnerId, boardId);
         var edit = proxyService.getLocalEditOverride(partnerId, boardId);
         ctx.json(Map.of("view", view, "edit", edit));
     }
 
     @OpenApi(
-            path = "/api/v1/federated/boards/{partnerUid}/{boardId}/access/override",
+            path = "/api/v1/federated/boards/{partnerUid}/{boardKey}/access/override",
             methods = HttpMethod.PUT,
             summary = "Set local access overrides for a federated board",
             tags = {"Federated Boards"},
             pathParams = {
                 @OpenApiParam(name = "partnerUid", type = String.class, required = true),
-                @OpenApiParam(name = "boardId", type = Integer.class, required = true)
+                @OpenApiParam(name = "boardKey", type = String.class, required = true)
             },
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = LocalOverrideRequest.class)),
             responses = @OpenApiResponse(status = "204"))
     private void federatedLocalSetOverride(Context ctx) {
         int partnerId = resolvePartnerId(ctx);
-        int boardId = ctx.pathParamAsClass("boardId", Integer.class).get();
+        String boardKey = ctx.pathParam("boardKey");
+        int boardId = proxyService.resolveFederatedBoardId(partnerId, boardKey);
+        if (boardId == -1) throw new NotFoundResponse("Board not found: " + boardKey);
         var req = ctx.bodyAsClass(LocalOverrideRequest.class);
         proxyService.setLocalViewOverride(
                 partnerId, boardId, new AccessData(req.viewRoleIds(), req.viewGroupIds(), req.viewTagIds()));
@@ -1482,6 +1503,22 @@ public class BoardRoutes implements Routes {
             throw new ForbiddenResponse("Missing or invalid federation signature");
         }
         return session.partner();
+    }
+
+    private int resolveRemoteBoardId(Context ctx, FederationPartner partner) {
+        String boardKey = ctx.pathParam("boardKey");
+        return boardService
+                .findByShortKey(partner.stationId(), boardKey)
+                .orElseThrow(() -> new NotFoundResponse("Board not found: " + boardKey))
+                .id();
+    }
+
+    private int resolveRemoteTicketId(Context ctx, int boardId) {
+        int ticketNumber = ctx.pathParamAsClass("ticketNumber", Integer.class).get();
+        return ticketService
+                .findByBoardAndNumber(boardId, ticketNumber)
+                .orElseThrow(() -> new NotFoundResponse("Ticket not found: " + ticketNumber))
+                .id();
     }
 
     private void requireRemoteView(int boardId, FederationPartner partner) {
@@ -1528,18 +1565,18 @@ public class BoardRoutes implements Routes {
     }
 
     @OpenApi(
-            path = "/api/v1/remote/boards/{boardId}",
+            path = "/api/v1/remote/boards/{boardKey}",
             methods = HttpMethod.GET,
             summary = "Get a shared board",
             tags = {"Boards Remote"},
-            pathParams = @OpenApiParam(name = "boardId", type = Integer.class, required = true),
+            pathParams = @OpenApiParam(name = "boardKey", type = String.class, required = true),
             responses = {
                 @OpenApiResponse(status = "200"),
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void federatedRemoteGetBoard(Context ctx) {
         var partner = requireFederationPartner(ctx);
-        int boardId = ctx.pathParamAsClass("boardId", Integer.class).get();
+        int boardId = resolveRemoteBoardId(ctx, partner);
         requireRemoteView(boardId, partner);
         var board = boardService.findById(boardId).orElseThrow(NotFoundResponse::new);
         var mode = federatedBoardService.getShareMode(boardId, partner.id()).orElse(BoardShareMode.READ_ONLY);
@@ -1547,36 +1584,36 @@ public class BoardRoutes implements Routes {
     }
 
     @OpenApi(
-            path = "/api/v1/remote/boards/{boardId}/lanes",
+            path = "/api/v1/remote/boards/{boardKey}/lanes",
             methods = HttpMethod.GET,
             summary = "Get lanes for a shared board",
             tags = {"Boards Remote"},
-            pathParams = @OpenApiParam(name = "boardId", type = Integer.class, required = true),
+            pathParams = @OpenApiParam(name = "boardKey", type = String.class, required = true),
             responses = @OpenApiResponse(status = "200"))
     private void federatedRemoteGetLanes(Context ctx) {
         var partner = requireFederationPartner(ctx);
-        int boardId = ctx.pathParamAsClass("boardId", Integer.class).get();
+        int boardId = resolveRemoteBoardId(ctx, partner);
         requireRemoteView(boardId, partner);
         ctx.json(boardService.findLanes(boardId));
     }
 
     private void federatedRemoteGetLabels(Context ctx) {
         var partner = requireFederationPartner(ctx);
-        int boardId = ctx.pathParamAsClass("boardId", Integer.class).get();
+        int boardId = resolveRemoteBoardId(ctx, partner);
         requireRemoteView(boardId, partner);
         ctx.json(boardService.findLabels(boardId));
     }
 
     private void federatedRemoteGetFields(Context ctx) {
         var partner = requireFederationPartner(ctx);
-        int boardId = ctx.pathParamAsClass("boardId", Integer.class).get();
+        int boardId = resolveRemoteBoardId(ctx, partner);
         requireRemoteView(boardId, partner);
         ctx.json(boardService.findFields(boardId));
     }
 
     private void federatedRemoteListTickets(Context ctx) {
         var partner = requireFederationPartner(ctx);
-        int boardId = ctx.pathParamAsClass("boardId", Integer.class).get();
+        int boardId = resolveRemoteBoardId(ctx, partner);
         requireRemoteView(boardId, partner);
         ctx.json(ticketService.findByBoard(boardId).stream()
                 .map(TicketSummary::of)
@@ -1585,7 +1622,7 @@ public class BoardRoutes implements Routes {
 
     private void federatedRemoteSearchTickets(Context ctx) {
         var partner = requireFederationPartner(ctx);
-        int boardId = ctx.pathParamAsClass("boardId", Integer.class).get();
+        int boardId = resolveRemoteBoardId(ctx, partner);
         requireRemoteView(boardId, partner);
         String q = ctx.queryParam("q");
         var tickets =
@@ -1595,98 +1632,98 @@ public class BoardRoutes implements Routes {
 
     private void federatedRemoteGetTicket(Context ctx) {
         var partner = requireFederationPartner(ctx);
-        int boardId = ctx.pathParamAsClass("boardId", Integer.class).get();
+        int boardId = resolveRemoteBoardId(ctx, partner);
         requireRemoteView(boardId, partner);
-        int ticketId = ctx.pathParamAsClass("ticketId", Integer.class).get();
+        int ticketId = resolveRemoteTicketId(ctx, boardId);
         ctx.json(ticketService.findById(ticketId).orElseThrow(NotFoundResponse::new));
     }
 
     private void federatedRemoteGetComments(Context ctx) {
         var partner = requireFederationPartner(ctx);
-        int boardId = ctx.pathParamAsClass("boardId", Integer.class).get();
+        int boardId = resolveRemoteBoardId(ctx, partner);
         requireRemoteView(boardId, partner);
-        int ticketId = ctx.pathParamAsClass("ticketId", Integer.class).get();
+        int ticketId = resolveRemoteTicketId(ctx, boardId);
         ctx.json(ticketService.findComments(ticketId));
     }
 
     private void federatedRemoteGetChecklist(Context ctx) {
         var partner = requireFederationPartner(ctx);
-        int boardId = ctx.pathParamAsClass("boardId", Integer.class).get();
+        int boardId = resolveRemoteBoardId(ctx, partner);
         requireRemoteView(boardId, partner);
-        int ticketId = ctx.pathParamAsClass("ticketId", Integer.class).get();
+        int ticketId = resolveRemoteTicketId(ctx, boardId);
         ctx.json(ticketService.findChecklistItems(ticketId));
     }
 
     private void federatedRemoteGetLinks(Context ctx) {
         var partner = requireFederationPartner(ctx);
-        int boardId = ctx.pathParamAsClass("boardId", Integer.class).get();
+        int boardId = resolveRemoteBoardId(ctx, partner);
         requireRemoteView(boardId, partner);
-        int ticketId = ctx.pathParamAsClass("ticketId", Integer.class).get();
+        int ticketId = resolveRemoteTicketId(ctx, boardId);
         ctx.json(ticketService.findLinks(ticketId));
     }
 
     private void federatedRemoteGetTicketLabels(Context ctx) {
         var partner = requireFederationPartner(ctx);
-        int boardId = ctx.pathParamAsClass("boardId", Integer.class).get();
+        int boardId = resolveRemoteBoardId(ctx, partner);
         requireRemoteView(boardId, partner);
-        int ticketId = ctx.pathParamAsClass("ticketId", Integer.class).get();
+        int ticketId = resolveRemoteTicketId(ctx, boardId);
         ctx.json(boardService.findLabelsForTicket(ticketId));
     }
 
     private void federatedRemoteGetTransitions(Context ctx) {
         var partner = requireFederationPartner(ctx);
-        int boardId = ctx.pathParamAsClass("boardId", Integer.class).get();
+        int boardId = resolveRemoteBoardId(ctx, partner);
         requireRemoteView(boardId, partner);
-        int ticketId = ctx.pathParamAsClass("ticketId", Integer.class).get();
+        int ticketId = resolveRemoteTicketId(ctx, boardId);
         ctx.json(ticketService.findTransitions(ticketId));
     }
 
     private void federatedRemoteGetHistory(Context ctx) {
         var partner = requireFederationPartner(ctx);
-        int boardId = ctx.pathParamAsClass("boardId", Integer.class).get();
+        int boardId = resolveRemoteBoardId(ctx, partner);
         requireRemoteView(boardId, partner);
-        int ticketId = ctx.pathParamAsClass("ticketId", Integer.class).get();
+        int ticketId = resolveRemoteTicketId(ctx, boardId);
         ctx.json(ticketService.findHistory(ticketId));
     }
 
     private void federatedRemoteGetAttachments(Context ctx) {
         var partner = requireFederationPartner(ctx);
-        int boardId = ctx.pathParamAsClass("boardId", Integer.class).get();
+        int boardId = resolveRemoteBoardId(ctx, partner);
         requireRemoteView(boardId, partner);
-        int ticketId = ctx.pathParamAsClass("ticketId", Integer.class).get();
+        int ticketId = resolveRemoteTicketId(ctx, boardId);
         ctx.json(ticketService.findAttachments(ticketId));
     }
 
     @OpenApi(
-            path = "/api/v1/remote/boards/{boardId}/tickets/{ticketId}/watchers",
+            path = "/api/v1/remote/boards/{boardKey}/tickets/{ticketNumber}/watchers",
             methods = HttpMethod.GET,
             summary = "Get watchers for a ticket on a shared board",
             tags = {"Boards Remote"},
             pathParams = {
-                @OpenApiParam(name = "boardId", type = Integer.class, required = true),
-                @OpenApiParam(name = "ticketId", type = Integer.class, required = true)
+                @OpenApiParam(name = "boardKey", type = String.class, required = true),
+                @OpenApiParam(name = "ticketNumber", type = Integer.class, required = true)
             },
             responses = @OpenApiResponse(status = "200"))
     private void federatedRemoteGetWatchers(Context ctx) {
         var partner = requireFederationPartner(ctx);
-        int boardId = ctx.pathParamAsClass("boardId", Integer.class).get();
+        int boardId = resolveRemoteBoardId(ctx, partner);
         requireRemoteView(boardId, partner);
-        int ticketId = ctx.pathParamAsClass("ticketId", Integer.class).get();
+        int ticketId = resolveRemoteTicketId(ctx, boardId);
         var localWatchers = ticketService.findWatchers(ticketId);
         var federatedWatchers = federatedBoardService.findFederatedWatchers(ticketId);
         ctx.json(Map.of("local", localWatchers, "federated", federatedWatchers));
     }
 
     @OpenApi(
-            path = "/api/v1/remote/boards/{boardId}/access",
+            path = "/api/v1/remote/boards/{boardKey}/access",
             methods = HttpMethod.GET,
             summary = "Get access configuration for a shared board",
             tags = {"Boards Remote"},
-            pathParams = @OpenApiParam(name = "boardId", type = Integer.class, required = true),
+            pathParams = @OpenApiParam(name = "boardKey", type = String.class, required = true),
             responses = @OpenApiResponse(status = "200"))
     private void federatedRemoteGetAccess(Context ctx) {
         var partner = requireFederationPartner(ctx);
-        int boardId = ctx.pathParamAsClass("boardId", Integer.class).get();
+        int boardId = resolveRemoteBoardId(ctx, partner);
         requireRemoteView(boardId, partner);
         var mode = federatedBoardService.getShareMode(boardId, partner.id()).orElse(BoardShareMode.READ_ONLY);
         var editRoles = federatedBoardService.findFederatedEditRoles(boardId);
@@ -1696,16 +1733,16 @@ public class BoardRoutes implements Routes {
     // -- Write endpoints (FULL mode only) --
 
     @OpenApi(
-            path = "/api/v1/remote/boards/{boardId}/tickets",
+            path = "/api/v1/remote/boards/{boardKey}/tickets",
             methods = HttpMethod.POST,
             summary = "Create a ticket on a shared board",
             tags = {"Boards Remote"},
-            pathParams = @OpenApiParam(name = "boardId", type = Integer.class, required = true),
+            pathParams = @OpenApiParam(name = "boardKey", type = String.class, required = true),
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = RemoteCreateTicketRequest.class)),
             responses = @OpenApiResponse(status = "200"))
     private void federatedRemoteCreateTicket(Context ctx) {
         var partner = requireFederationPartner(ctx);
-        int boardId = ctx.pathParamAsClass("boardId", Integer.class).get();
+        int boardId = resolveRemoteBoardId(ctx, partner);
         requireRemoteWrite(boardId, partner);
         var req = ctx.bodyAsClass(RemoteCreateTicketRequest.class);
         var board = boardService.findById(boardId).orElseThrow(NotFoundResponse::new);
@@ -1727,13 +1764,13 @@ public class BoardRoutes implements Routes {
     }
 
     @OpenApi(
-            path = "/api/v1/remote/boards/{boardId}/tickets/{ticketId}",
+            path = "/api/v1/remote/boards/{boardKey}/tickets/{ticketNumber}",
             methods = HttpMethod.PUT,
             summary = "Update a ticket on a shared board",
             tags = {"Boards Remote"},
             pathParams = {
-                @OpenApiParam(name = "boardId", type = Integer.class, required = true),
-                @OpenApiParam(name = "ticketId", type = Integer.class, required = true)
+                @OpenApiParam(name = "boardKey", type = String.class, required = true),
+                @OpenApiParam(name = "ticketNumber", type = Integer.class, required = true)
             },
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = RemoteUpdateTicketRequest.class)),
             responses = {
@@ -1742,9 +1779,9 @@ public class BoardRoutes implements Routes {
             })
     private void federatedRemoteUpdateTicket(Context ctx) {
         var partner = requireFederationPartner(ctx);
-        int boardId = ctx.pathParamAsClass("boardId", Integer.class).get();
+        int boardId = resolveRemoteBoardId(ctx, partner);
         requireRemoteWrite(boardId, partner);
-        int ticketId = ctx.pathParamAsClass("ticketId", Integer.class).get();
+        int ticketId = resolveRemoteTicketId(ctx, boardId);
         var req = ctx.bodyAsClass(RemoteUpdateTicketRequest.class);
         ticketService.updateTicket(
                 ticketId,
@@ -1758,32 +1795,32 @@ public class BoardRoutes implements Routes {
     }
 
     @OpenApi(
-            path = "/api/v1/remote/boards/{boardId}/tickets/{ticketId}",
+            path = "/api/v1/remote/boards/{boardKey}/tickets/{ticketNumber}",
             methods = HttpMethod.DELETE,
             summary = "Delete a ticket on a shared board",
             tags = {"Boards Remote"},
             pathParams = {
-                @OpenApiParam(name = "boardId", type = Integer.class, required = true),
-                @OpenApiParam(name = "ticketId", type = Integer.class, required = true)
+                @OpenApiParam(name = "boardKey", type = String.class, required = true),
+                @OpenApiParam(name = "ticketNumber", type = Integer.class, required = true)
             },
             responses = @OpenApiResponse(status = "204"))
     private void federatedRemoteDeleteTicket(Context ctx) {
         var partner = requireFederationPartner(ctx);
-        int boardId = ctx.pathParamAsClass("boardId", Integer.class).get();
+        int boardId = resolveRemoteBoardId(ctx, partner);
         requireRemoteWrite(boardId, partner);
-        int ticketId = ctx.pathParamAsClass("ticketId", Integer.class).get();
+        int ticketId = resolveRemoteTicketId(ctx, boardId);
         ticketService.deleteTicket(ticketId);
         ctx.status(204);
     }
 
     @OpenApi(
-            path = "/api/v1/remote/boards/{boardId}/tickets/{ticketId}/move",
+            path = "/api/v1/remote/boards/{boardKey}/tickets/{ticketNumber}/move",
             methods = HttpMethod.PUT,
             summary = "Move a ticket to a different lane on a shared board",
             tags = {"Boards Remote"},
             pathParams = {
-                @OpenApiParam(name = "boardId", type = Integer.class, required = true),
-                @OpenApiParam(name = "ticketId", type = Integer.class, required = true)
+                @OpenApiParam(name = "boardKey", type = String.class, required = true),
+                @OpenApiParam(name = "ticketNumber", type = Integer.class, required = true)
             },
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = RemoteMoveTicketRequest.class)),
             responses = {
@@ -1792,9 +1829,9 @@ public class BoardRoutes implements Routes {
             })
     private void federatedRemoteMoveTicket(Context ctx) {
         var partner = requireFederationPartner(ctx);
-        int boardId = ctx.pathParamAsClass("boardId", Integer.class).get();
+        int boardId = resolveRemoteBoardId(ctx, partner);
         requireRemoteWrite(boardId, partner);
-        int ticketId = ctx.pathParamAsClass("ticketId", Integer.class).get();
+        int ticketId = resolveRemoteTicketId(ctx, boardId);
         var req = ctx.bodyAsClass(RemoteMoveTicketRequest.class);
         var ticket = ticketService.findById(ticketId).orElseThrow(NotFoundResponse::new);
         ticketService.moveTicket(
@@ -1811,42 +1848,38 @@ public class BoardRoutes implements Routes {
     }
 
     @OpenApi(
-            path = "/api/v1/remote/boards/{boardId}/tickets/{ticketId}/reorder",
+            path = "/api/v1/remote/boards/{boardKey}/tickets/reorder",
             methods = HttpMethod.PUT,
             summary = "Reorder tickets in a lane on a shared board",
             tags = {"Boards Remote"},
-            pathParams = {
-                @OpenApiParam(name = "boardId", type = Integer.class, required = true),
-                @OpenApiParam(name = "ticketId", type = Integer.class, required = true)
-            },
+            pathParams = @OpenApiParam(name = "boardKey", type = String.class, required = true),
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = RemoteReorderRequest.class)),
             responses = @OpenApiResponse(status = "204"))
     private void federatedRemoteReorderTickets(Context ctx) {
         var partner = requireFederationPartner(ctx);
-        int boardId = ctx.pathParamAsClass("boardId", Integer.class).get();
+        int boardId = resolveRemoteBoardId(ctx, partner);
         requireRemoteWrite(boardId, partner);
-        int ticketId = ctx.pathParamAsClass("ticketId", Integer.class).get();
         var req = ctx.bodyAsClass(RemoteReorderRequest.class);
         ticketService.reorderTickets(req.laneId(), req.orderedIds());
         ctx.status(204);
     }
 
     @OpenApi(
-            path = "/api/v1/remote/boards/{boardId}/tickets/{ticketId}/comments",
+            path = "/api/v1/remote/boards/{boardKey}/tickets/{ticketNumber}/comments",
             methods = HttpMethod.POST,
             summary = "Add a comment to a ticket on a shared board",
             tags = {"Boards Remote"},
             pathParams = {
-                @OpenApiParam(name = "boardId", type = Integer.class, required = true),
-                @OpenApiParam(name = "ticketId", type = Integer.class, required = true)
+                @OpenApiParam(name = "boardKey", type = String.class, required = true),
+                @OpenApiParam(name = "ticketNumber", type = Integer.class, required = true)
             },
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = RemoteCommentRequest.class)),
             responses = @OpenApiResponse(status = "200"))
     private void federatedRemoteAddComment(Context ctx) {
         var partner = requireFederationPartner(ctx);
-        int boardId = ctx.pathParamAsClass("boardId", Integer.class).get();
+        int boardId = resolveRemoteBoardId(ctx, partner);
         requireRemoteWrite(boardId, partner);
-        int ticketId = ctx.pathParamAsClass("ticketId", Integer.class).get();
+        int ticketId = resolveRemoteTicketId(ctx, boardId);
         var req = ctx.bodyAsClass(RemoteCommentRequest.class);
         var comment = ticketService.createComment(ticketId, req.parentId(), 0, req.content());
         federatedBoardService.setFederatedCommentAuthor(comment.id(), partner.id(), req.remoteMemberId());
@@ -1854,20 +1887,20 @@ public class BoardRoutes implements Routes {
     }
 
     @OpenApi(
-            path = "/api/v1/remote/boards/{boardId}/tickets/{ticketId}/comments/{commentId}",
+            path = "/api/v1/remote/boards/{boardKey}/tickets/{ticketNumber}/comments/{commentId}",
             methods = HttpMethod.PUT,
             summary = "Edit a comment on a shared board",
             tags = {"Boards Remote"},
             pathParams = {
-                @OpenApiParam(name = "boardId", type = Integer.class, required = true),
-                @OpenApiParam(name = "ticketId", type = Integer.class, required = true),
+                @OpenApiParam(name = "boardKey", type = String.class, required = true),
+                @OpenApiParam(name = "ticketNumber", type = Integer.class, required = true),
                 @OpenApiParam(name = "commentId", type = Integer.class, required = true)
             },
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = RemoteEditCommentRequest.class)),
             responses = @OpenApiResponse(status = "204"))
     private void federatedRemoteEditComment(Context ctx) {
         var partner = requireFederationPartner(ctx);
-        int boardId = ctx.pathParamAsClass("boardId", Integer.class).get();
+        int boardId = resolveRemoteBoardId(ctx, partner);
         requireRemoteWrite(boardId, partner);
         int commentId = ctx.pathParamAsClass("commentId", Integer.class).get();
         var req = ctx.bodyAsClass(RemoteEditCommentRequest.class);
@@ -1876,19 +1909,19 @@ public class BoardRoutes implements Routes {
     }
 
     @OpenApi(
-            path = "/api/v1/remote/boards/{boardId}/tickets/{ticketId}/comments/{commentId}",
+            path = "/api/v1/remote/boards/{boardKey}/tickets/{ticketNumber}/comments/{commentId}",
             methods = HttpMethod.DELETE,
             summary = "Delete a comment on a shared board",
             tags = {"Boards Remote"},
             pathParams = {
-                @OpenApiParam(name = "boardId", type = Integer.class, required = true),
-                @OpenApiParam(name = "ticketId", type = Integer.class, required = true),
+                @OpenApiParam(name = "boardKey", type = String.class, required = true),
+                @OpenApiParam(name = "ticketNumber", type = Integer.class, required = true),
                 @OpenApiParam(name = "commentId", type = Integer.class, required = true)
             },
             responses = @OpenApiResponse(status = "204"))
     private void federatedRemoteDeleteComment(Context ctx) {
         var partner = requireFederationPartner(ctx);
-        int boardId = ctx.pathParamAsClass("boardId", Integer.class).get();
+        int boardId = resolveRemoteBoardId(ctx, partner);
         requireRemoteWrite(boardId, partner);
         int commentId = ctx.pathParamAsClass("commentId", Integer.class).get();
         ticketService.deleteComment(commentId);
@@ -1896,164 +1929,164 @@ public class BoardRoutes implements Routes {
     }
 
     @OpenApi(
-            path = "/api/v1/remote/boards/{boardId}/tickets/{ticketId}/checklist",
+            path = "/api/v1/remote/boards/{boardKey}/tickets/{ticketNumber}/checklist",
             methods = HttpMethod.POST,
             summary = "Add a checklist item to a ticket on a shared board",
             tags = {"Boards Remote"},
             pathParams = {
-                @OpenApiParam(name = "boardId", type = Integer.class, required = true),
-                @OpenApiParam(name = "ticketId", type = Integer.class, required = true)
+                @OpenApiParam(name = "boardKey", type = String.class, required = true),
+                @OpenApiParam(name = "ticketNumber", type = Integer.class, required = true)
             },
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = RemoteChecklistItemRequest.class)),
             responses = @OpenApiResponse(status = "200"))
     private void federatedRemoteAddChecklistItem(Context ctx) {
         var partner = requireFederationPartner(ctx);
-        int boardId = ctx.pathParamAsClass("boardId", Integer.class).get();
+        int boardId = resolveRemoteBoardId(ctx, partner);
         requireRemoteWrite(boardId, partner);
-        int ticketId = ctx.pathParamAsClass("ticketId", Integer.class).get();
+        int ticketId = resolveRemoteTicketId(ctx, boardId);
         var req = ctx.bodyAsClass(RemoteChecklistItemRequest.class);
         ctx.json(ticketService.addChecklistItem(ticketId, req.title(), 0));
     }
 
     @OpenApi(
-            path = "/api/v1/remote/boards/{boardId}/tickets/{ticketId}/checklist/{itemId}",
+            path = "/api/v1/remote/boards/{boardKey}/tickets/{ticketNumber}/checklist/{itemId}",
             methods = HttpMethod.PUT,
             summary = "Update a checklist item on a shared board",
             tags = {"Boards Remote"},
             pathParams = {
-                @OpenApiParam(name = "boardId", type = Integer.class, required = true),
-                @OpenApiParam(name = "ticketId", type = Integer.class, required = true),
+                @OpenApiParam(name = "boardKey", type = String.class, required = true),
+                @OpenApiParam(name = "ticketNumber", type = Integer.class, required = true),
                 @OpenApiParam(name = "itemId", type = Integer.class, required = true)
             },
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = RemoteUpdateChecklistItemRequest.class)),
             responses = @OpenApiResponse(status = "204"))
     private void federatedRemoteUpdateChecklistItem(Context ctx) {
         var partner = requireFederationPartner(ctx);
-        int boardId = ctx.pathParamAsClass("boardId", Integer.class).get();
+        int boardId = resolveRemoteBoardId(ctx, partner);
         requireRemoteWrite(boardId, partner);
         int itemId = ctx.pathParamAsClass("itemId", Integer.class).get();
         var req = ctx.bodyAsClass(RemoteUpdateChecklistItemRequest.class);
-        int ticketId = ctx.pathParamAsClass("ticketId", Integer.class).get();
+        int ticketId = resolveRemoteTicketId(ctx, boardId);
         ticketService.updateChecklistItem(itemId, ticketId, req.title(), req.checked(), 0);
         ctx.status(204);
     }
 
     @OpenApi(
-            path = "/api/v1/remote/boards/{boardId}/tickets/{ticketId}/checklist/{itemId}",
+            path = "/api/v1/remote/boards/{boardKey}/tickets/{ticketNumber}/checklist/{itemId}",
             methods = HttpMethod.DELETE,
             summary = "Delete a checklist item on a shared board",
             tags = {"Boards Remote"},
             pathParams = {
-                @OpenApiParam(name = "boardId", type = Integer.class, required = true),
-                @OpenApiParam(name = "ticketId", type = Integer.class, required = true),
+                @OpenApiParam(name = "boardKey", type = String.class, required = true),
+                @OpenApiParam(name = "ticketNumber", type = Integer.class, required = true),
                 @OpenApiParam(name = "itemId", type = Integer.class, required = true)
             },
             responses = @OpenApiResponse(status = "204"))
     private void federatedRemoteDeleteChecklistItem(Context ctx) {
         var partner = requireFederationPartner(ctx);
-        int boardId = ctx.pathParamAsClass("boardId", Integer.class).get();
+        int boardId = resolveRemoteBoardId(ctx, partner);
         requireRemoteWrite(boardId, partner);
-        int ticketId = ctx.pathParamAsClass("ticketId", Integer.class).get();
+        int ticketId = resolveRemoteTicketId(ctx, boardId);
         int itemId = ctx.pathParamAsClass("itemId", Integer.class).get();
         ticketService.deleteChecklistItem(itemId, ticketId, 0);
         ctx.status(204);
     }
 
     @OpenApi(
-            path = "/api/v1/remote/boards/{boardId}/tickets/{ticketId}/labels/{labelId}",
+            path = "/api/v1/remote/boards/{boardKey}/tickets/{ticketNumber}/labels/{labelId}",
             methods = HttpMethod.POST,
             summary = "Add a label to a ticket on a shared board",
             tags = {"Boards Remote"},
             pathParams = {
-                @OpenApiParam(name = "boardId", type = Integer.class, required = true),
-                @OpenApiParam(name = "ticketId", type = Integer.class, required = true),
+                @OpenApiParam(name = "boardKey", type = String.class, required = true),
+                @OpenApiParam(name = "ticketNumber", type = Integer.class, required = true),
                 @OpenApiParam(name = "labelId", type = Integer.class, required = true)
             },
             responses = @OpenApiResponse(status = "200"))
     private void federatedRemoteAddTicketLabel(Context ctx) {
         var partner = requireFederationPartner(ctx);
-        int boardId = ctx.pathParamAsClass("boardId", Integer.class).get();
+        int boardId = resolveRemoteBoardId(ctx, partner);
         requireRemoteWrite(boardId, partner);
-        int ticketId = ctx.pathParamAsClass("ticketId", Integer.class).get();
+        int ticketId = resolveRemoteTicketId(ctx, boardId);
         int labelId = ctx.pathParamAsClass("labelId", Integer.class).get();
         boardService.addLabelToTicket(ticketId, labelId);
         ctx.json(boardService.findLabelsForTicket(ticketId));
     }
 
     @OpenApi(
-            path = "/api/v1/remote/boards/{boardId}/tickets/{ticketId}/labels/{labelId}",
+            path = "/api/v1/remote/boards/{boardKey}/tickets/{ticketNumber}/labels/{labelId}",
             methods = HttpMethod.DELETE,
             summary = "Remove a label from a ticket on a shared board",
             tags = {"Boards Remote"},
             pathParams = {
-                @OpenApiParam(name = "boardId", type = Integer.class, required = true),
-                @OpenApiParam(name = "ticketId", type = Integer.class, required = true),
+                @OpenApiParam(name = "boardKey", type = String.class, required = true),
+                @OpenApiParam(name = "ticketNumber", type = Integer.class, required = true),
                 @OpenApiParam(name = "labelId", type = Integer.class, required = true)
             },
             responses = @OpenApiResponse(status = "204"))
     private void federatedRemoteRemoveTicketLabel(Context ctx) {
         var partner = requireFederationPartner(ctx);
-        int boardId = ctx.pathParamAsClass("boardId", Integer.class).get();
+        int boardId = resolveRemoteBoardId(ctx, partner);
         requireRemoteWrite(boardId, partner);
-        int ticketId = ctx.pathParamAsClass("ticketId", Integer.class).get();
+        int ticketId = resolveRemoteTicketId(ctx, boardId);
         int labelId = ctx.pathParamAsClass("labelId", Integer.class).get();
         boardService.removeLabelFromTicket(ticketId, labelId);
         ctx.status(204);
     }
 
     @OpenApi(
-            path = "/api/v1/remote/boards/{boardId}/labels",
+            path = "/api/v1/remote/boards/{boardKey}/labels",
             methods = HttpMethod.POST,
             summary = "Create a label on a shared board",
             tags = {"Boards Remote"},
-            pathParams = @OpenApiParam(name = "boardId", type = Integer.class, required = true),
+            pathParams = @OpenApiParam(name = "boardKey", type = String.class, required = true),
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = RemoteCreateLabelRequest.class)),
             responses = @OpenApiResponse(status = "200"))
     private void federatedRemoteCreateLabel(Context ctx) {
         var partner = requireFederationPartner(ctx);
-        int boardId = ctx.pathParamAsClass("boardId", Integer.class).get();
+        int boardId = resolveRemoteBoardId(ctx, partner);
         requireRemoteWrite(boardId, partner);
         var req = ctx.bodyAsClass(RemoteCreateLabelRequest.class);
         ctx.json(boardService.createLabel(boardId, req.name(), req.color() != null ? req.color() : "#6b7280"));
     }
 
     @OpenApi(
-            path = "/api/v1/remote/boards/{boardId}/tickets/{ticketId}/watch",
+            path = "/api/v1/remote/boards/{boardKey}/tickets/{ticketNumber}/watch",
             methods = HttpMethod.POST,
             summary = "Watch a ticket on a shared board",
             tags = {"Boards Remote"},
             pathParams = {
-                @OpenApiParam(name = "boardId", type = Integer.class, required = true),
-                @OpenApiParam(name = "ticketId", type = Integer.class, required = true)
+                @OpenApiParam(name = "boardKey", type = String.class, required = true),
+                @OpenApiParam(name = "ticketNumber", type = Integer.class, required = true)
             },
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = RemoteWatchRequest.class)),
             responses = @OpenApiResponse(status = "204"))
     private void federatedRemoteWatchTicket(Context ctx) {
         var partner = requireFederationPartner(ctx);
-        int boardId = ctx.pathParamAsClass("boardId", Integer.class).get();
+        int boardId = resolveRemoteBoardId(ctx, partner);
         requireRemoteWrite(boardId, partner);
-        int ticketId = ctx.pathParamAsClass("ticketId", Integer.class).get();
+        int ticketId = resolveRemoteTicketId(ctx, boardId);
         var req = ctx.bodyAsClass(RemoteWatchRequest.class);
         federatedBoardService.addFederatedWatcher(ticketId, partner.id(), req.remoteMemberId());
         ctx.status(204);
     }
 
     @OpenApi(
-            path = "/api/v1/remote/boards/{boardId}/tickets/{ticketId}/watch",
+            path = "/api/v1/remote/boards/{boardKey}/tickets/{ticketNumber}/watch",
             methods = HttpMethod.DELETE,
             summary = "Unwatch a ticket on a shared board",
             tags = {"Boards Remote"},
             pathParams = {
-                @OpenApiParam(name = "boardId", type = Integer.class, required = true),
-                @OpenApiParam(name = "ticketId", type = Integer.class, required = true)
+                @OpenApiParam(name = "boardKey", type = String.class, required = true),
+                @OpenApiParam(name = "ticketNumber", type = Integer.class, required = true)
             },
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = RemoteWatchRequest.class)),
             responses = @OpenApiResponse(status = "204"))
     private void federatedRemoteUnwatchTicket(Context ctx) {
         var partner = requireFederationPartner(ctx);
-        int boardId = ctx.pathParamAsClass("boardId", Integer.class).get();
+        int boardId = resolveRemoteBoardId(ctx, partner);
         requireRemoteWrite(boardId, partner);
-        int ticketId = ctx.pathParamAsClass("ticketId", Integer.class).get();
+        int ticketId = resolveRemoteTicketId(ctx, boardId);
         var req = ctx.bodyAsClass(RemoteWatchRequest.class);
         federatedBoardService.removeFederatedWatcher(ticketId, partner.id(), req.remoteMemberId());
         ctx.status(204);

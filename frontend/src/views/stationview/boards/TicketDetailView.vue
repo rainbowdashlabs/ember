@@ -49,8 +49,8 @@ const router = useRouter()
 const { sessionInfo } = useSession()
 const api = useBoardApi()
 
-const boardId = api.boardId
-const ticketId = api.ticketId
+const boardKey = api.boardKey
+const ticketNumber = api.ticketNumber
 
 const board = ref<Board | null>(null)
 const ticket = ref<BoardTicket | null>(null)
@@ -196,8 +196,8 @@ async function saveFieldValue(fieldId: number, fieldType: boards.BoardFieldTypeN
 // -- KB Links --
 let kbSearchTimeout: ReturnType<typeof setTimeout> | null = null
 function onKbSearch() { if (kbSearchTimeout) clearTimeout(kbSearchTimeout); if (!kbSearchQuery.value.trim()) { kbSearchResults.value = []; return }; kbSearchTimeout = setTimeout(async () => { try { const results = await knowledgeBase.search(kbSearchQuery.value.trim(), { federated: false }); kbSearchResults.value = results.map(r => ({ id: r.file.id, title: r.file.name, path: r.folderPath })).filter(r => !kbLinks.value.some(l => l.kbFileId === r.id)) } catch { /* ignore */ } }, 300) }
-async function addKbLinkFn(kbFileId: number) { try { await boards.addKbLink(boardId.value, ticketId.value, kbFileId); kbLinks.value = await api.getKbLinks(); kbSearchQuery.value = ''; kbSearchResults.value = []; showKbSearch.value = false } catch { /* ignore */ } }
-async function removeKbLinkFn(linkId: number) { try { await boards.removeKbLink(boardId.value, ticketId.value, linkId); kbLinks.value = await api.getKbLinks() } catch { /* ignore */ } }
+async function addKbLinkFn(kbFileId: number) { try { await boards.addKbLink(boardKey.value, ticketNumber.value, kbFileId); kbLinks.value = await api.getKbLinks(); kbSearchQuery.value = ''; kbSearchResults.value = []; showKbSearch.value = false } catch { /* ignore */ } }
+async function removeKbLinkFn(linkId: number) { try { await boards.removeKbLink(boardKey.value, ticketNumber.value, linkId); kbLinks.value = await api.getKbLinks() } catch { /* ignore */ } }
 
 // -- Labels --
 async function createAndAddLabel(name: string) { try { const label = await api.createLabel({ name }); allLabels.value = await api.getLabels(); await api.addTicketLabel(label.id); ticketLabels.value = await api.getTicketLabels() } catch { /* ignore */ } }
@@ -266,7 +266,7 @@ function handleClickOutside(e: MouseEvent) {
 }
 onMounted(() => { loadData(); document.addEventListener('click', handleClickOutside) })
 onBeforeUnmount(() => document.removeEventListener('click', handleClickOutside))
-watch(ticketId, loadData)
+watch(ticketNumber, loadData)
 </script>
 
 <template>
@@ -350,8 +350,8 @@ watch(ticketId, loadData)
 
                     <!-- Links + Weblinks + Attachments -->
                     <TicketLinksSection
-                        :board-id="board.id"
-                        :ticket-id="ticket.id"
+                        :board-key="board.shortKey"
+                        :ticket-number="ticket.ticketNumber"
                         :short-key="board.shortKey"
                         :links="links"
                         :weblinks="weblinks"

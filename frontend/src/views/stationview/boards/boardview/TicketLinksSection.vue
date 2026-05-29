@@ -16,8 +16,8 @@ import { LinkType } from '@/api/boards'
 import type { BoardTicketLink, BoardTicket, BoardLane, BoardWeblink, BoardTicketAttachment, LinkTypeName } from '@/api/boards'
 
 const props = defineProps<{
-    boardId: number
-    ticketId: number
+    boardKey: string
+    ticketNumber: number
     shortKey: string
     links: BoardTicketLink[]
     weblinks: BoardWeblink[]
@@ -47,9 +47,9 @@ const newWeblinkTitle = ref('')
 const linkSearchResults = computed(() => {
     if (!linkSearchQuery.value.trim()) return []
     const q = linkSearchQuery.value.toLowerCase()
-    const linkedIds = new Set(props.links.map(l => l.linkedTicketId === props.ticketId ? l.ticketId : l.linkedTicketId))
+    const linkedIds = new Set(props.links.map(l => l.linkedTicketId === props.ticketNumber ? l.ticketId : l.linkedTicketId))
     return props.allTickets
-        .filter(t => t.id !== props.ticketId && !linkedIds.has(t.id))
+        .filter(t => t.id !== props.ticketNumber && !linkedIds.has(t.id))
         .filter(t => t.title.toLowerCase().includes(q) || `${props.shortKey}-${t.ticketNumber}`.toLowerCase().includes(q))
         .slice(0, 5)
 })
@@ -57,7 +57,7 @@ const linkSearchResults = computed(() => {
 const groupedLinks = computed(() => {
     const groups: Record<string, { link: BoardTicketLink; linkedTicket: BoardTicket | undefined }[]> = {}
     for (const link of props.links) {
-        const linkedId = link.linkedTicketId === props.ticketId ? link.ticketId : link.linkedTicketId
+        const linkedId = link.linkedTicketId === props.ticketNumber ? link.ticketId : link.linkedTicketId
         const linkedTicket = props.allTickets.find(t => t.id === linkedId)
         if (!groups[link.linkType]) groups[link.linkType] = []
         groups[link.linkType].push({ link, linkedTicket })
@@ -77,17 +77,17 @@ function laneName(laneId: number) { return props.lanes.find(l => l.id === laneId
 function memberName(id: number | null) { return id ? props.members.find(m => m.id === id)?.name ?? '' : '' }
 
 async function addLink(linkedTicketId: number) {
-    await boards.createLink(props.boardId, props.ticketId, { linkedTicketId, linkType: linkType.value })
+    await boards.createLink(props.boardKey, props.ticketNumber, { linkedTicketId, linkType: linkType.value })
     emit('update:showAddLink', false); linkSearchQuery.value = ''; emit('reload')
 }
-async function removeLink(linkedTicketId: number) { await boards.deleteLink(props.boardId, props.ticketId, linkedTicketId); emit('reload') }
+async function removeLink(linkedTicketId: number) { await boards.deleteLink(props.boardKey, props.ticketNumber, linkedTicketId); emit('reload') }
 async function handleAddWeblink() {
     if (!newWeblinkUrl.value.trim()) return
-    await boards.addWeblink(props.boardId, props.ticketId, { url: newWeblinkUrl.value.trim(), title: newWeblinkTitle.value.trim() || undefined })
+    await boards.addWeblink(props.boardKey, props.ticketNumber, { url: newWeblinkUrl.value.trim(), title: newWeblinkTitle.value.trim() || undefined })
     newWeblinkUrl.value = ''; newWeblinkTitle.value = ''; emit('update:showAddWeblink', false); emit('reload')
 }
-async function removeWeblink(id: number) { await boards.deleteWeblink(props.boardId, props.ticketId, id); emit('reload') }
-async function removeAttachment(id: number) { await boards.deleteAttachment(props.boardId, props.ticketId, id); emit('reload') }
+async function removeWeblink(id: number) { await boards.deleteWeblink(props.boardKey, props.ticketNumber, id); emit('reload') }
+async function removeAttachment(id: number) { await boards.deleteAttachment(props.boardKey, props.ticketNumber, id); emit('reload') }
 // -- Attachment preview --
 const previewOverlayRef = ref<HTMLElement | null>(null)
 const previewUrl = ref<string | null>(null)
@@ -113,7 +113,7 @@ const thumbnails = ref<Record<number, string>>({})
 async function loadThumbnails() {
     for (const att of props.attachments) {
         if (isImage(att.contentType) && !thumbnails.value[att.id]) {
-            try { thumbnails.value[att.id] = await boards.getAttachmentBlobUrl(props.boardId, props.ticketId, att.id) } catch { /* ignore */ }
+            try { thumbnails.value[att.id] = await boards.getAttachmentBlobUrl(props.boardKey, props.ticketNumber, att.id) } catch { /* ignore */ }
         }
     }
 }
@@ -129,9 +129,9 @@ watch(showPreview, (v) => { if (v) nextTick(() => previewOverlayRef.value?.focus
 async function loadPreview(att: BoardTicketAttachment) {
     previewName.value = att.originalName; previewCsv.value = null; previewUrl.value = null
     showPreview.value = true
-    if (isImage(att.contentType)) { previewUrl.value = thumbnails.value[att.id] ?? await boards.getAttachmentBlobUrl(props.boardId, props.ticketId, att.id) }
-    else if (isPdf(att.contentType)) { previewUrl.value = await boards.getAttachmentBlobUrl(props.boardId, props.ticketId, att.id) }
-    else if (isCsv(att.originalName)) { previewCsv.value = parseCsv(await boards.getAttachmentText(props.boardId, props.ticketId, att.id)) }
+    if (isImage(att.contentType)) { previewUrl.value = thumbnails.value[att.id] ?? await boards.getAttachmentBlobUrl(props.boardKey, props.ticketNumber, att.id) }
+    else if (isPdf(att.contentType)) { previewUrl.value = await boards.getAttachmentBlobUrl(props.boardKey, props.ticketNumber, att.id) }
+    else if (isCsv(att.originalName)) { previewCsv.value = parseCsv(await boards.getAttachmentText(props.boardKey, props.ticketNumber, att.id)) }
 }
 
 function previewPrev() { if (previewIndex.value > 0) { previewIndex.value--; loadPreview(props.attachments[previewIndex.value]) } }
@@ -147,7 +147,7 @@ function parseCsv(text: string): string[][] {
 }
 
 async function handleDownload(att: BoardTicketAttachment) {
-    await boards.downloadAttachmentBlob(props.boardId, props.ticketId, att.id, att.originalName)
+    await boards.downloadAttachmentBlob(props.boardKey, props.ticketNumber, att.id, att.originalName)
 }
 
 function formatFileSize(bytes: number): string {
@@ -171,7 +171,7 @@ const hasAnyContent = computed(() => props.links.length > 0 || props.weblinks.le
                 <div class="text-xs font-semibold text-(--text-muted) uppercase tracking-wide mb-1">{{ linkTypeLabel(type as string) }}</div>
                 <div class="divide-y divide-(--border) border border-(--border) rounded-theme overflow-hidden">
                     <div v-for="{ link, linkedTicket } in items" :key="`${link.ticketId}-${link.linkedTicketId}`" class="flex items-center gap-3 px-3 py-2 text-sm group hover:bg-primary/5">
-                        <router-link :to="`/station/boards/${boardId}/tickets/${linkedTicket?.id ?? 0}`" class="flex items-center gap-2 flex-1 min-w-0">
+                        <router-link :to="`/station/boards/${boardKey}/tickets/${linkedTicket?.ticketNumber ?? 0}`" class="flex items-center gap-2 flex-1 min-w-0">
                             <span class="font-mono text-(--text-muted) shrink-0">{{ shortKey }}-{{ linkedTicket?.ticketNumber }}</span>
                             <span class="truncate">{{ linkedTicket?.title ?? '?' }}</span>
                         </router-link>

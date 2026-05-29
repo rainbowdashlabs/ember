@@ -345,10 +345,10 @@ async function handleLogout() {
       </SidebarGroup>
 
       <SidebarGroup :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => openGroup = v" v-if="isModuleEnabled(StationModules.BOARDS)" :icon="['fas', 'table-columns']" :label="t('sidebar.boards')" :prefix="['/station/boards', '/station/federation/boards']" to="/station/boards" name="board-list" @navigate="close">
-        <SidebarLink v-for="board in visibleBoards" :key="board.id" :icon="['fas', 'table-columns']" :name="`board-${board.id}`" :to="`/station/boards/${board.id}`" :active="route.path.startsWith(`/station/boards/${board.id}`)" @navigate="close">
+        <SidebarLink v-for="board in visibleBoards" :key="board.id" :icon="['fas', 'table-columns']" :name="`board-${board.id}`" :to="`/station/boards/${board.shortKey}`" :active="route.path.startsWith(`/station/boards/${board.shortKey}`)" @navigate="close">
           {{ board.name }}
         </SidebarLink>
-        <SidebarLink v-for="bm in bookmarkedBoards" :key="`fed-${bm.id}`" :icon="['fas', 'globe']" :name="`fed-board-${bm.id}`" :to="`/station/federation/boards/${bm.partnerStationUid}/${bm.remoteBoardId}`" :active="route.path.startsWith(`/station/federation/boards/${bm.partnerStationUid}/${bm.remoteBoardId}`)" @navigate="close">
+        <SidebarLink v-for="bm in bookmarkedBoards" :key="`fed-${bm.id}`" :icon="['fas', 'globe']" :name="`fed-board-${bm.id}`" :to="`/station/federation/boards/${bm.partnerStationUid}/${bm.remoteBoardShortKey}`" :active="route.path.startsWith(`/station/federation/boards/${bm.partnerStationUid}/${bm.remoteBoardShortKey}`)" @navigate="close">
           <span class="flex items-center gap-1.5">
             <span class="opacity-70">{{ bm.remoteBoardName }}</span>
             <font-awesome-icon :icon="['fas', bm.shareMode === BoardShareMode.FULL ? 'pen' : 'lock']" class="w-3 h-3 opacity-50"/>

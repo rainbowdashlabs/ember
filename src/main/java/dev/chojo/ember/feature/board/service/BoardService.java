@@ -64,6 +64,10 @@ public class BoardService {
         return repository.findById(id);
     }
 
+    public Optional<Board> findByShortKey(int stationId, String shortKey) {
+        return repository.findByShortKey(stationId, shortKey);
+    }
+
     public Board create(int stationId, String name, String description, String shortKey) {
         return repository.create(stationId, name, description, shortKey);
     }

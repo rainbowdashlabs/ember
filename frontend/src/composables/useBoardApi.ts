@@ -25,53 +25,53 @@ export function useBoardApi() {
     const partnerUid = computed(() => route.params.partnerUid as string | undefined)
     const isFederated = computed(() => !!partnerUid.value)
 
-    const boardId = computed(() => Number(route.params.boardId))
-    const ticketId = computed(() => Number(route.params.ticketId))
+    const boardKey = computed(() => route.params.boardKey as string)
+    const ticketNumber = computed(() => Number(route.params.ticketNumber))
 
     const backRoute = computed(() =>
         isFederated.value
-            ? `/station/federation/boards/${partnerUid.value}/${boardId.value}`
-            : `/station/boards/${boardId.value}`,
+            ? `/station/federation/boards/${partnerUid.value}/${boardKey.value}`
+            : `/station/boards/${boardKey.value}`,
     )
 
     // -- Board / Ticket reads --
 
     async function getBoard(): Promise<{ board: Board | federatedBoards.FederatedBoardDetail; canEdit: boolean; shareMode?: string }> {
         if (isFederated.value) {
-            const detail = await federatedBoards.getBoard(partnerUid.value!, boardId.value)
+            const detail = await federatedBoards.getBoard(partnerUid.value!, boardKey.value)
             const canEdit = detail.shareMode === federatedBoards.BoardShareMode.FULL
             return { board: detail.board as unknown as Board, canEdit, shareMode: detail.shareMode }
         }
         const [board, editResult] = await Promise.all([
-            boards.getBoard(boardId.value),
-            boards.canEditBoard(boardId.value),
+            boards.getBoard(boardKey.value),
+            boards.canEditBoard(boardKey.value),
         ])
         return { board, canEdit: editResult }
     }
 
     async function getTicket(): Promise<BoardTicket> {
-        if (isFederated.value) return federatedBoards.getTicket(partnerUid.value!, boardId.value, ticketId.value)
-        return boards.getTicket(boardId.value, ticketId.value)
+        if (isFederated.value) return federatedBoards.getTicket(partnerUid.value!, boardKey.value, ticketNumber.value)
+        return boards.getTicket(boardKey.value, ticketNumber.value)
     }
 
     async function getLanes(): Promise<BoardLane[]> {
-        if (isFederated.value) return federatedBoards.getLanes(partnerUid.value!, boardId.value)
-        return boards.getLanes(boardId.value)
+        if (isFederated.value) return federatedBoards.getLanes(partnerUid.value!, boardKey.value)
+        return boards.getLanes(boardKey.value)
     }
 
     async function getFields(): Promise<BoardField[]> {
-        if (isFederated.value) return federatedBoards.getFields(partnerUid.value!, boardId.value)
-        return boards.getFields(boardId.value)
+        if (isFederated.value) return federatedBoards.getFields(partnerUid.value!, boardKey.value)
+        return boards.getFields(boardKey.value)
     }
 
     async function getLabels(): Promise<BoardLabel[]> {
-        if (isFederated.value) return federatedBoards.getLabels(partnerUid.value!, boardId.value)
-        return boards.getLabels(boardId.value)
+        if (isFederated.value) return federatedBoards.getLabels(partnerUid.value!, boardKey.value)
+        return boards.getLabels(boardKey.value)
     }
 
     async function listTickets(): Promise<BoardTicket[]> {
-        if (isFederated.value) return federatedBoards.listTickets(partnerUid.value!, boardId.value)
-        return boards.listTickets(boardId.value)
+        if (isFederated.value) return federatedBoards.listTickets(partnerUid.value!, boardKey.value)
+        return boards.listTickets(boardKey.value)
     }
 
     async function getMembers(): Promise<{ id: number; name: string }[]> {
@@ -82,68 +82,68 @@ export function useBoardApi() {
     // -- Ticket detail data --
 
     async function getChecklist(): Promise<BoardChecklistItem[]> {
-        if (isFederated.value) return federatedBoards.getChecklist(partnerUid.value!, boardId.value, ticketId.value)
-        return boards.getChecklist(boardId.value, ticketId.value)
+        if (isFederated.value) return federatedBoards.getChecklist(partnerUid.value!, boardKey.value, ticketNumber.value)
+        return boards.getChecklist(boardKey.value, ticketNumber.value)
     }
 
     async function getLinks(): Promise<BoardTicketLink[]> {
-        if (isFederated.value) return federatedBoards.getLinks(partnerUid.value!, boardId.value, ticketId.value)
-        return boards.getLinks(boardId.value, ticketId.value)
+        if (isFederated.value) return federatedBoards.getLinks(partnerUid.value!, boardKey.value, ticketNumber.value)
+        return boards.getLinks(boardKey.value, ticketNumber.value)
     }
 
     async function getTransitions(): Promise<BoardTicketTransition[]> {
-        if (isFederated.value) return federatedBoards.getTransitions(partnerUid.value!, boardId.value, ticketId.value)
-        return boards.getTransitions(boardId.value, ticketId.value)
+        if (isFederated.value) return federatedBoards.getTransitions(partnerUid.value!, boardKey.value, ticketNumber.value)
+        return boards.getTransitions(boardKey.value, ticketNumber.value)
     }
 
     async function getHistory(): Promise<BoardTicketHistoryEntry[]> {
-        if (isFederated.value) return federatedBoards.getHistory(partnerUid.value!, boardId.value, ticketId.value)
-        return boards.getHistory(boardId.value, ticketId.value)
+        if (isFederated.value) return federatedBoards.getHistory(partnerUid.value!, boardKey.value, ticketNumber.value)
+        return boards.getHistory(boardKey.value, ticketNumber.value)
     }
 
     async function getComments(): Promise<BoardComment[]> {
-        if (isFederated.value) return federatedBoards.getComments(partnerUid.value!, boardId.value, ticketId.value)
-        return boards.getComments(boardId.value, ticketId.value)
+        if (isFederated.value) return federatedBoards.getComments(partnerUid.value!, boardKey.value, ticketNumber.value)
+        return boards.getComments(boardKey.value, ticketNumber.value)
     }
 
     async function getWeblinks(): Promise<BoardWeblink[]> {
         if (isFederated.value) return [] // not available for federated
-        return boards.getWeblinks(boardId.value, ticketId.value)
+        return boards.getWeblinks(boardKey.value, ticketNumber.value)
     }
 
     async function getAttachments(): Promise<BoardTicketAttachment[]> {
-        if (isFederated.value) return federatedBoards.getAttachments(partnerUid.value!, boardId.value, ticketId.value)
-        return boards.getAttachments(boardId.value, ticketId.value)
+        if (isFederated.value) return federatedBoards.getAttachments(partnerUid.value!, boardKey.value, ticketNumber.value)
+        return boards.getAttachments(boardKey.value, ticketNumber.value)
     }
 
     async function getFieldValues(): Promise<BoardTicketFieldValue[]> {
         if (isFederated.value) return [] // not available for federated
-        return boards.getFieldValues(boardId.value, ticketId.value)
+        return boards.getFieldValues(boardKey.value, ticketNumber.value)
     }
 
     async function getTicketLabels(): Promise<BoardLabel[]> {
-        if (isFederated.value) return federatedBoards.getTicketLabels(partnerUid.value!, boardId.value, ticketId.value)
-        return boards.getTicketLabels(boardId.value, ticketId.value)
+        if (isFederated.value) return federatedBoards.getTicketLabels(partnerUid.value!, boardKey.value, ticketNumber.value)
+        return boards.getTicketLabels(boardKey.value, ticketNumber.value)
     }
 
     async function getKbLinks(): Promise<BoardTicketKbLink[]> {
         if (isFederated.value) return [] // not available for federated
-        return boards.getKbLinks(boardId.value, ticketId.value)
+        return boards.getKbLinks(boardKey.value, ticketNumber.value)
     }
 
     async function getWatchers(): Promise<number[]> {
         if (isFederated.value) {
-            const data = await federatedBoards.getWatchers(partnerUid.value!, boardId.value, ticketId.value)
+            const data = await federatedBoards.getWatchers(partnerUid.value!, boardKey.value, ticketNumber.value)
             return data.local ?? []
         }
-        return boards.getWatchers(boardId.value, ticketId.value)
+        return boards.getWatchers(boardKey.value, ticketNumber.value)
     }
 
     // -- Write operations --
 
     async function updateTicket(data: { title: string; description?: string | null; assignedMemberId?: number | null; priority: TicketPriorityName; dueDate?: string | null }): Promise<BoardTicket> {
         if (isFederated.value) {
-            return federatedBoards.updateTicket(partnerUid.value!, boardId.value, ticketId.value, {
+            return federatedBoards.updateTicket(partnerUid.value!, boardKey.value, ticketNumber.value, {
                 title: data.title,
                 description: data.description ?? null,
                 assignedMemberId: data.assignedMemberId ?? null,
@@ -151,99 +151,99 @@ export function useBoardApi() {
                 dueDate: data.dueDate ?? null,
             })
         }
-        return boards.updateTicket(boardId.value, ticketId.value, data)
+        return boards.updateTicket(boardKey.value, ticketNumber.value, data)
     }
 
     async function deleteTicket(): Promise<void> {
-        if (isFederated.value) return federatedBoards.deleteTicket(partnerUid.value!, boardId.value, ticketId.value)
-        return boards.deleteTicket(boardId.value, ticketId.value)
+        if (isFederated.value) return federatedBoards.deleteTicket(partnerUid.value!, boardKey.value, ticketNumber.value)
+        return boards.deleteTicket(boardKey.value, ticketNumber.value)
     }
 
     async function moveTicket(data: { toLaneId: number; position: number }): Promise<void> {
-        if (isFederated.value) { await federatedBoards.moveTicket(partnerUid.value!, boardId.value, ticketId.value, data); return }
-        await boards.moveTicket(boardId.value, ticketId.value, data)
+        if (isFederated.value) { await federatedBoards.moveTicket(partnerUid.value!, boardKey.value, ticketNumber.value, data); return }
+        await boards.moveTicket(boardKey.value, ticketNumber.value, data)
     }
 
     async function addChecklistItem(data: { title: string }): Promise<void> {
-        if (isFederated.value) { await federatedBoards.addChecklistItem(partnerUid.value!, boardId.value, ticketId.value, data); return }
-        await boards.addChecklistItem(boardId.value, ticketId.value, data)
+        if (isFederated.value) { await federatedBoards.addChecklistItem(partnerUid.value!, boardKey.value, ticketNumber.value, data); return }
+        await boards.addChecklistItem(boardKey.value, ticketNumber.value, data)
     }
 
     async function updateChecklistItem(itemId: number, data: { title: string; checked: boolean }): Promise<void> {
-        if (isFederated.value) { await federatedBoards.updateChecklistItem(partnerUid.value!, boardId.value, ticketId.value, itemId, data); return }
-        await boards.updateChecklistItem(boardId.value, ticketId.value, itemId, data)
+        if (isFederated.value) { await federatedBoards.updateChecklistItem(partnerUid.value!, boardKey.value, ticketNumber.value, itemId, data); return }
+        await boards.updateChecklistItem(boardKey.value, ticketNumber.value, itemId, data)
     }
 
     async function deleteChecklistItem(itemId: number): Promise<void> {
-        if (isFederated.value) { await federatedBoards.deleteChecklistItem(partnerUid.value!, boardId.value, ticketId.value, itemId); return }
-        await boards.deleteChecklistItem(boardId.value, ticketId.value, itemId)
+        if (isFederated.value) { await federatedBoards.deleteChecklistItem(partnerUid.value!, boardKey.value, ticketNumber.value, itemId); return }
+        await boards.deleteChecklistItem(boardKey.value, ticketNumber.value, itemId)
     }
 
     async function reorderChecklist(data: { orderedIds: number[] }): Promise<void> {
         if (isFederated.value) return // not available for federated
-        await boards.reorderChecklist(boardId.value, ticketId.value, data)
+        await boards.reorderChecklist(boardKey.value, ticketNumber.value, data)
     }
 
     async function createComment(data: { parentId: number | null; content: string }): Promise<void> {
-        if (isFederated.value) { await federatedBoards.addComment(partnerUid.value!, boardId.value, ticketId.value, data); return }
-        await boards.createComment(boardId.value, ticketId.value, data)
+        if (isFederated.value) { await federatedBoards.addComment(partnerUid.value!, boardKey.value, ticketNumber.value, data); return }
+        await boards.createComment(boardKey.value, ticketNumber.value, data)
     }
 
     async function updateComment(commentId: number, data: { content: string }): Promise<void> {
         if (isFederated.value) return // not available for federated
-        await boards.updateComment(boardId.value, ticketId.value, commentId, data)
+        await boards.updateComment(boardKey.value, ticketNumber.value, commentId, data)
     }
 
     async function deleteComment(_commentId: number): Promise<void> {
         if (isFederated.value) return // not available for federated
-        await boards.deleteComment(boardId.value, ticketId.value, _commentId)
+        await boards.deleteComment(boardKey.value, ticketNumber.value, _commentId)
     }
 
     async function addTicketLabel(labelId: number): Promise<BoardLabel[]> {
-        if (isFederated.value) return federatedBoards.addTicketLabel(partnerUid.value!, boardId.value, ticketId.value, labelId)
-        return boards.addTicketLabel(boardId.value, ticketId.value, labelId)
+        if (isFederated.value) return federatedBoards.addTicketLabel(partnerUid.value!, boardKey.value, ticketNumber.value, labelId)
+        return boards.addTicketLabel(boardKey.value, ticketNumber.value, labelId)
     }
 
     async function removeTicketLabel(labelId: number): Promise<void> {
-        if (isFederated.value) return federatedBoards.removeTicketLabel(partnerUid.value!, boardId.value, ticketId.value, labelId)
-        await boards.removeTicketLabel(boardId.value, ticketId.value, labelId)
+        if (isFederated.value) return federatedBoards.removeTicketLabel(partnerUid.value!, boardKey.value, ticketNumber.value, labelId)
+        await boards.removeTicketLabel(boardKey.value, ticketNumber.value, labelId)
     }
 
     async function watchTicket(): Promise<void> {
-        if (isFederated.value) { await federatedBoards.watchTicket(partnerUid.value!, boardId.value, ticketId.value); return }
-        await boards.watchTicket(boardId.value, ticketId.value)
+        if (isFederated.value) { await federatedBoards.watchTicket(partnerUid.value!, boardKey.value, ticketNumber.value); return }
+        await boards.watchTicket(boardKey.value, ticketNumber.value)
     }
 
     async function unwatchTicket(): Promise<void> {
-        if (isFederated.value) { await federatedBoards.unwatchTicket(partnerUid.value!, boardId.value, ticketId.value); return }
-        await boards.unwatchTicket(boardId.value, ticketId.value)
+        if (isFederated.value) { await federatedBoards.unwatchTicket(partnerUid.value!, boardKey.value, ticketNumber.value); return }
+        await boards.unwatchTicket(boardKey.value, ticketNumber.value)
     }
 
     async function setFieldValue(fieldId: number, fieldType: BoardFieldTypeName, value: unknown): Promise<void> {
         if (isFederated.value) return // not available for federated
-        await boards.setFieldValue(boardId.value, ticketId.value, fieldId, fieldType, value)
+        await boards.setFieldValue(boardKey.value, ticketNumber.value, fieldId, fieldType, value)
     }
 
     async function deleteFieldValue(fieldId: number): Promise<void> {
         if (isFederated.value) return // not available for federated
-        await boards.deleteFieldValue(boardId.value, ticketId.value, fieldId)
+        await boards.deleteFieldValue(boardKey.value, ticketNumber.value, fieldId)
     }
 
     async function uploadAttachment(file: File): Promise<BoardTicketAttachment | null> {
         if (isFederated.value) return null // not available for federated
-        return boards.uploadAttachment(boardId.value, ticketId.value, file)
+        return boards.uploadAttachment(boardKey.value, ticketNumber.value, file)
     }
 
     async function createLabel(data: { name: string }): Promise<BoardLabel> {
-        if (isFederated.value) return federatedBoards.createLabel(partnerUid.value!, boardId.value, data)
-        return boards.createLabel(boardId.value, data)
+        if (isFederated.value) return federatedBoards.createLabel(partnerUid.value!, boardKey.value, data)
+        return boards.createLabel(boardKey.value, data)
     }
 
     return {
         isFederated,
         partnerUid,
-        boardId,
-        ticketId,
+        boardKey,
+        ticketNumber,
         backRoute,
         // Reads
         getBoard,
