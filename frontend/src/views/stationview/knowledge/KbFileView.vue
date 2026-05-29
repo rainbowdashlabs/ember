@@ -19,6 +19,7 @@ import IconButton from '@/components/button/IconButton.vue'
 import PageHeader from '@/components/typography/PageHeader.vue'
 import KbTagsSection from '@/views/stationview/knowledge/kbfileview/KbTagsSection.vue'
 import KbRelatedFilesSection from '@/views/stationview/knowledge/kbfileview/KbRelatedFilesSection.vue'
+import KbCommentSection from '@/components/comment/KbCommentSection.vue'
 import {useSession} from '@/composables/useSession'
 import {knowledgeBase} from '@/api'
 import type {KbFile, KbTag, MarkdownHtmlResponse} from '@/api/knowledgeBase'
@@ -466,6 +467,13 @@ onMounted(() => {
                     </a>
                 </NeutralContainer>
             </template>
+
+            <!-- Comments -->
+            <KbCommentSection
+                :file-id="file.id"
+                :station-uid="isFederated ? file.stationId : undefined"
+                class="mt-6"
+            />
         </template>
     </ViewContent>
 </template>

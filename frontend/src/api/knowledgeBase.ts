@@ -5,6 +5,7 @@
  */
 import client from './client'
 import {getItem} from './storage'
+import type {FederatedAuthorInfo} from './types'
 
 export interface KbFolder {
     id: number
@@ -418,4 +419,61 @@ export async function search(query: string, options?: { tag?: string; federated?
     if (options?.federated === false) params.federated = 'false'
     const res = await client.get<SearchResult[]>('/kb/search', {params})
     return res.data
+}
+
+// -- KB Comments --
+
+export interface KbComment {
+    id: number
+    fileId: number
+    parentId: number | null
+    authorId: number
+    authorName?: string
+    content: string
+    deleted?: boolean
+    createdAt: string
+    updatedAt?: string | null
+    federatedAuthor?: FederatedAuthorInfo | null
+}
+
+export async function listComments(fileId: number): Promise<KbComment[]> {
+    const res = await client.get<KbComment[]>(`/kb/files/${fileId}/comments`)
+    return res.data
+}
+
+export async function createComment(fileId: number, data: {parentId?: number | null; content: string}): Promise<KbComment> {
+    const res = await client.post<KbComment>(`/kb/files/${fileId}/comments`, data)
+    return res.data
+}
+
+export async function updateComment(commentId: number, data: {content: string}): Promise<void> {
+    await client.put(`/kb/comments/${commentId}`, data)
+}
+
+export async function deleteComment(commentId: number): Promise<void> {
+    await client.delete(`/kb/comments/${commentId}`)
+}
+
+// Federated KB comments
+
+export async function listFederatedComments(stationUid: string, fileId: number): Promise<KbComment[]> {
+    const res = await client.get<KbComment[]>(`/federated/${stationUid}/kb/files/${fileId}/comments`)
+    return res.data
+}
+
+export async function createFederatedComment(
+    stationUid: string,
+    fileId: number,
+    data: {parentId?: number | null; content: string},
+): Promise<KbComment> {
+    const res = await client.post<KbComment>(`/federated/${stationUid}/kb/files/${fileId}/comments`, data)
+    return res.data
+}
+
+export async function updateFederatedComment(stationUid: string, commentId: number, data: {content: string}): Promise<void> {
+    await client.put(`/federated/${stationUid}/kb/comments/${commentId}`, data)
+}
+
+export async function deleteFederatedComment(stationUid: string, commentId: number): Promise<void> {
+    await client.delete(`/federated/${stationUid}/kb/comments/${commentId}`)
 }

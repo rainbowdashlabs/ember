@@ -12,18 +12,23 @@ import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
+import dev.chojo.ember.feature.events.repository.EventFederationRepository;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.entity.FederationShare;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
+import dev.chojo.ember.feature.federation.service.FederationHttpClient;
 import dev.chojo.ember.feature.knowledgebase.entity.KbAccessRestriction;
+import dev.chojo.ember.feature.knowledgebase.entity.KbComment;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFile;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFileSummary;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFolder;
+import dev.chojo.ember.feature.knowledgebase.repository.KbCommentRepository;
 import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseService;
 import dev.chojo.ember.feature.media.service.ImageCategory;
 import dev.chojo.ember.feature.media.service.ImageService;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
 import dev.chojo.ember.feature.members.entity.Role;
+import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.entity.UserTag;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
@@ -70,6 +75,9 @@ public class KnowledgeBaseRoutes implements Routes {
     private final ImageService imageService;
     private final FederationRepository federationRepository;
     private final StationRepository stationRepository;
+    private final KbCommentRepository kbCommentRepository;
+    private final EventFederationRepository eventFederationRepository;
+    private final FederationHttpClient federationHttpClient;
 
     @Inject
     public KnowledgeBaseRoutes(
@@ -80,7 +88,10 @@ public class KnowledgeBaseRoutes implements Routes {
             UserTagRepository userTagRepository,
             ImageService imageService,
             FederationRepository federationRepository,
-            StationRepository stationRepository) {
+            StationRepository stationRepository,
+            KbCommentRepository kbCommentRepository,
+            EventFederationRepository eventFederationRepository,
+            FederationHttpClient federationHttpClient) {
         this.service = service;
         this.stationMemberRepository = stationMemberRepository;
         this.accountRepository = accountRepository;
@@ -89,6 +100,9 @@ public class KnowledgeBaseRoutes implements Routes {
         this.imageService = imageService;
         this.federationRepository = federationRepository;
         this.stationRepository = stationRepository;
+        this.kbCommentRepository = kbCommentRepository;
+        this.eventFederationRepository = eventFederationRepository;
+        this.federationHttpClient = federationHttpClient;
     }
 
     private String resolveFolderPath(Integer folderId) {
@@ -186,6 +200,12 @@ public class KnowledgeBaseRoutes implements Routes {
         routes.get(prefix + "/kb/folders/{id}/tags", this::getFolderTags, Roles.USER);
         routes.put(prefix + "/kb/folders/{id}/tags", this::setFolderTags, Roles.KNOWLEDGE_MANAGER);
 
+        // KB Comments (local)
+        routes.get(prefix + "/kb/files/{fileId}/comments", this::listComments, Roles.LOGIN);
+        routes.post(prefix + "/kb/files/{fileId}/comments", this::createComment, Roles.LOGIN);
+        routes.put(prefix + "/kb/comments/{commentId}", this::updateComment, Roles.LOGIN);
+        routes.delete(prefix + "/kb/comments/{commentId}", this::deleteComment, Roles.LOGIN);
+
         // Federated (user-facing, bearer token auth)
         routes.get(prefix + "/federated/kb", this::federatedBrowseKb, Roles.USER);
         routes.get(prefix + "/federated/{stationuid}/kb/files/{id}", this::federatedGetFile, Roles.USER);
@@ -196,11 +216,29 @@ public class KnowledgeBaseRoutes implements Routes {
                 this::federatedCopyFile,
                 Roles.KNOWLEDGE_MANAGER);
 
+        // Federated KB comments (user-facing proxy)
+        routes.get(
+                prefix + "/federated/{stationuid}/kb/files/{fileId}/comments",
+                this::federatedListComments,
+                Roles.LOGIN);
+        routes.post(
+                prefix + "/federated/{stationuid}/kb/files/{fileId}/comments",
+                this::federatedCreateComment,
+                Roles.LOGIN);
+        routes.put(
+                prefix + "/federated/{stationuid}/kb/comments/{commentId}", this::federatedUpdateComment, Roles.LOGIN);
+        routes.delete(
+                prefix + "/federated/{stationuid}/kb/comments/{commentId}", this::federatedDeleteComment, Roles.LOGIN);
+
         // Remote (server-to-server, RSA signature auth)
         routes.get(prefix + "/remote/kb/browse", this::remoteBrowseKb);
         routes.get(prefix + "/remote/kb/search", this::remoteSearchKb);
         routes.get(prefix + "/remote/kb/files/{id}", this::remoteGetFile);
         routes.get(prefix + "/remote/kb/files/{id}/content", this::remoteGetFileContent);
+        routes.get(prefix + "/remote/kb/files/{fileId}/comments", this::remoteListComments);
+        routes.post(prefix + "/remote/kb/files/{fileId}/comments", this::remoteCreateComment);
+        routes.put(prefix + "/remote/kb/comments/{commentId}", this::remoteUpdateComment);
+        routes.delete(prefix + "/remote/kb/comments/{commentId}", this::remoteDeleteComment);
     }
 
     // -- Folders --
@@ -971,6 +1009,236 @@ public class KnowledgeBaseRoutes implements Routes {
         ctx.json(Map.of("fileId", fileId, "content", content));
     }
 
+    // -- Local KB comment endpoints --
+
+    private void listComments(Context ctx) {
+        int fileId = ctx.pathParamAsClass("fileId", Integer.class).get();
+        var comments = kbCommentRepository.findByFile(fileId);
+        ctx.json(comments.stream().map(this::toCommentResponse).toList());
+    }
+
+    private void createComment(Context ctx) {
+        int fileId = ctx.pathParamAsClass("fileId", Integer.class).get();
+        UserSession session = UserSession.from(ctx);
+        var req = ctx.bodyAsClass(CreateKbCommentRequest.class);
+        if (req.content() == null || req.content().isBlank()) {
+            throw new BadRequestResponse("content is required");
+        }
+        var comment = kbCommentRepository.create(
+                fileId, req.parentId(), session.member().id(), req.content());
+        ctx.status(HttpStatus.CREATED).json(toCommentResponse(comment));
+    }
+
+    private void updateComment(Context ctx) {
+        int commentId = ctx.pathParamAsClass("commentId", Integer.class).get();
+        UserSession session = UserSession.from(ctx);
+        var comment = kbCommentRepository.findById(commentId).orElseThrow(NotFoundResponse::new);
+        if (comment.authorId() != session.member().id()) {
+            throw new ForbiddenResponse("You can only edit your own comments");
+        }
+        var req = ctx.bodyAsClass(UpdateKbCommentRequest.class);
+        if (req.content() == null || req.content().isBlank()) {
+            throw new BadRequestResponse("content is required");
+        }
+        kbCommentRepository.update(commentId, req.content());
+        var updated = kbCommentRepository.findById(commentId).orElseThrow(NotFoundResponse::new);
+        ctx.json(toCommentResponse(updated));
+    }
+
+    private void deleteComment(Context ctx) {
+        int commentId = ctx.pathParamAsClass("commentId", Integer.class).get();
+        UserSession session = UserSession.from(ctx);
+        var comment = kbCommentRepository.findById(commentId).orElseThrow(NotFoundResponse::new);
+        boolean isAuthor = comment.authorId() == session.member().id();
+        boolean canModerate = session.hasRole(Roles.KNOWLEDGE_MANAGER);
+        if (!isAuthor && !canModerate) {
+            throw new ForbiddenResponse("You can only delete your own comments");
+        }
+        if (kbCommentRepository.delete(commentId)) {
+            ctx.status(HttpStatus.NO_CONTENT);
+        } else {
+            throw new NotFoundResponse();
+        }
+    }
+
+    // -- Remote KB comment endpoints (server-to-server) --
+
+    private void remoteListComments(Context ctx) {
+        requireFederationPartner(ctx);
+        int fileId = ctx.pathParamAsClass("fileId", Integer.class).get();
+        var comments = kbCommentRepository.findByFile(fileId);
+        ctx.json(comments.stream().map(this::toCommentResponse).toList());
+    }
+
+    private void remoteCreateComment(Context ctx) {
+        var partner = requireFederationPartner(ctx);
+        int fileId = ctx.pathParamAsClass("fileId", Integer.class).get();
+        var req = ctx.bodyAsClass(RemoteKbCommentRequest.class);
+        if (req.content() == null || req.content().isBlank()) {
+            throw new BadRequestResponse("content is required");
+        }
+        var comment = kbCommentRepository.create(fileId, req.parentId(), 0, req.content());
+        kbCommentRepository.setFederatedAuthor(comment.id(), partner.id(), req.remoteMemberUid());
+        eventFederationRepository.cacheName(partner.id(), req.remoteMemberUid(), req.displayName());
+        ctx.status(HttpStatus.CREATED).json(toCommentResponse(comment));
+    }
+
+    private void remoteUpdateComment(Context ctx) {
+        var partner = requireFederationPartner(ctx);
+        int commentId = ctx.pathParamAsClass("commentId", Integer.class).get();
+        var req = ctx.bodyAsClass(RemoteKbCommentUpdateRequest.class);
+        if (req.content() == null || req.content().isBlank()) {
+            throw new BadRequestResponse("content is required");
+        }
+        var fedAuthor = kbCommentRepository
+                .findFederatedAuthor(commentId)
+                .orElseThrow(() -> new ForbiddenResponse("Not a federated comment"));
+        if (fedAuthor.partnerId() != partner.id() || !fedAuthor.remoteMemberId().equals(req.remoteMemberUid())) {
+            throw new ForbiddenResponse("You can only edit your own comments");
+        }
+        kbCommentRepository.update(commentId, req.content());
+        var updated = kbCommentRepository.findById(commentId).orElseThrow(NotFoundResponse::new);
+        ctx.json(toCommentResponse(updated));
+    }
+
+    private void remoteDeleteComment(Context ctx) {
+        var partner = requireFederationPartner(ctx);
+        int commentId = ctx.pathParamAsClass("commentId", Integer.class).get();
+        var req = ctx.bodyAsClass(RemoteKbCommentDeleteRequest.class);
+        var fedAuthor = kbCommentRepository
+                .findFederatedAuthor(commentId)
+                .orElseThrow(() -> new ForbiddenResponse("Not a federated comment"));
+        if (fedAuthor.partnerId() != partner.id() || !fedAuthor.remoteMemberId().equals(req.remoteMemberUid())) {
+            throw new ForbiddenResponse("You can only delete your own comments");
+        }
+        if (kbCommentRepository.delete(commentId)) {
+            ctx.status(HttpStatus.NO_CONTENT);
+        } else {
+            throw new NotFoundResponse();
+        }
+    }
+
+    // -- Federated KB comment proxy endpoints (user-facing) --
+
+    private void federatedListComments(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        var station = stationRepository.findById(session.stationId()).orElseThrow();
+        var partner = resolvePartner(ctx, session.stationId());
+        int fileId = ctx.pathParamAsClass("fileId", Integer.class).get();
+
+        if (partner.isRemote()) {
+            String json = federationHttpClient.signedGetJson(
+                    partner.remoteHost(),
+                    "/remote/kb/files/" + fileId + "/comments",
+                    station.id(),
+                    station.federationPrivateKey());
+            if (json == null) throw new InternalServerErrorResponse("Failed to fetch comments from partner");
+            ctx.contentType("application/json").result(json);
+        } else {
+            var comments = kbCommentRepository.findByFile(fileId);
+            ctx.json(comments.stream().map(this::toCommentResponse).toList());
+        }
+    }
+
+    private void federatedCreateComment(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        var station = stationRepository.findById(session.stationId()).orElseThrow();
+        var partner = resolvePartner(ctx, session.stationId());
+        int fileId = ctx.pathParamAsClass("fileId", Integer.class).get();
+        var req = ctx.bodyAsClass(CreateKbCommentRequest.class);
+        if (req.content() == null || req.content().isBlank()) {
+            throw new BadRequestResponse("content is required");
+        }
+
+        UUID memberUid = session.member().uid();
+        String displayName = session.account().fullName().trim();
+
+        if (partner.isRemote()) {
+            var body = new RemoteKbCommentRequest(memberUid, displayName, req.parentId(), req.content());
+            String jsonBody = federationHttpClient.getMapper().writeValueAsString(body);
+            String json = federationHttpClient.signedPostJson(
+                    partner.remoteHost(),
+                    "/remote/kb/files/" + fileId + "/comments",
+                    jsonBody,
+                    station.id(),
+                    station.federationPrivateKey());
+            if (json == null) throw new InternalServerErrorResponse("Failed to create comment on partner");
+            ctx.status(HttpStatus.CREATED).contentType("application/json").result(json);
+        } else {
+            var comment = kbCommentRepository.create(fileId, req.parentId(), 0, req.content());
+            kbCommentRepository.setFederatedAuthor(comment.id(), partner.id(), memberUid);
+            eventFederationRepository.cacheName(partner.id(), memberUid, displayName);
+            ctx.status(HttpStatus.CREATED).json(toCommentResponse(comment));
+        }
+    }
+
+    private void federatedUpdateComment(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        var station = stationRepository.findById(session.stationId()).orElseThrow();
+        var partner = resolvePartner(ctx, session.stationId());
+        int commentId = ctx.pathParamAsClass("commentId", Integer.class).get();
+        var req = ctx.bodyAsClass(UpdateKbCommentRequest.class);
+        if (req.content() == null || req.content().isBlank()) {
+            throw new BadRequestResponse("content is required");
+        }
+
+        UUID memberUid = session.member().uid();
+
+        if (partner.isRemote()) {
+            var body = new RemoteKbCommentUpdateRequest(memberUid, req.content());
+            String jsonBody = federationHttpClient.getMapper().writeValueAsString(body);
+            String json = federationHttpClient.signedPutJson(
+                    partner.remoteHost(),
+                    "/remote/kb/comments/" + commentId,
+                    jsonBody,
+                    station.id(),
+                    station.federationPrivateKey());
+            if (json == null) throw new InternalServerErrorResponse("Failed to update comment on partner");
+            ctx.contentType("application/json").result(json);
+        } else {
+            var fedAuthor = kbCommentRepository
+                    .findFederatedAuthor(commentId)
+                    .orElseThrow(() -> new ForbiddenResponse("Not a federated comment"));
+            if (!fedAuthor.remoteMemberId().equals(memberUid)) {
+                throw new ForbiddenResponse("You can only edit your own comments");
+            }
+            kbCommentRepository.update(commentId, req.content());
+            var updated = kbCommentRepository.findById(commentId).orElseThrow(NotFoundResponse::new);
+            ctx.json(toCommentResponse(updated));
+        }
+    }
+
+    private void federatedDeleteComment(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        var station = stationRepository.findById(session.stationId()).orElseThrow();
+        var partner = resolvePartner(ctx, session.stationId());
+        int commentId = ctx.pathParamAsClass("commentId", Integer.class).get();
+
+        UUID memberUid = session.member().uid();
+
+        if (partner.isRemote()) {
+            boolean success = federationHttpClient.signedDeleteRequest(
+                    partner.remoteHost(),
+                    "/remote/kb/comments/" + commentId,
+                    station.id(),
+                    station.federationPrivateKey());
+            if (!success) throw new InternalServerErrorResponse("Failed to delete comment on partner");
+            ctx.status(HttpStatus.NO_CONTENT);
+        } else {
+            var fedAuthor = kbCommentRepository
+                    .findFederatedAuthor(commentId)
+                    .orElseThrow(() -> new ForbiddenResponse("Not a federated comment"));
+            if (!fedAuthor.remoteMemberId().equals(memberUid)) {
+                throw new ForbiddenResponse("You can only delete your own comments");
+            }
+            if (kbCommentRepository.delete(commentId)) {
+                ctx.status(HttpStatus.NO_CONTENT);
+            } else {
+                throw new NotFoundResponse();
+            }
+        }
+    }
+
     // -- Federation helpers --
 
     private FederationPartner requireFederationPartner(Context ctx) {
@@ -980,4 +1248,104 @@ public class KnowledgeBaseRoutes implements Routes {
         }
         return session.partner();
     }
+
+    private FederationPartner resolvePartner(Context ctx, int stationId) {
+        var partnerUid = UUID.fromString(ctx.pathParam("stationuid"));
+        return federationRepository
+                .findPartnerByStationAndRemoteUid(stationId, partnerUid)
+                .orElseThrow(() -> new NotFoundResponse("Unknown partner"));
+    }
+
+    // -- KB Comment response mapping --
+
+    private KbCommentResponse toCommentResponse(KbComment comment) {
+        if (comment.deleted()) {
+            return new KbCommentResponse(
+                    comment.id(),
+                    comment.fileId(),
+                    comment.parentId(),
+                    0,
+                    null,
+                    null,
+                    "",
+                    true,
+                    comment.createdAt(),
+                    null,
+                    null);
+        }
+
+        var fedAuthor = kbCommentRepository.findFederatedAuthor(comment.id());
+        if (fedAuthor.isPresent()) {
+            var fa = fedAuthor.get();
+            String displayName = eventFederationRepository
+                    .getCachedName(fa.partnerId(), fa.remoteMemberId())
+                    .orElse("Unknown");
+            String stationName = federationRepository
+                    .findPartnerById(fa.partnerId())
+                    .map(p -> stationRepository
+                            .findByUid(p.partnerStationId())
+                            .map(Station::name)
+                            .orElse(""))
+                    .orElse("");
+            return new KbCommentResponse(
+                    comment.id(),
+                    comment.fileId(),
+                    comment.parentId(),
+                    0,
+                    null,
+                    displayName,
+                    comment.content(),
+                    false,
+                    comment.createdAt(),
+                    comment.updatedAt(),
+                    new KbFederatedAuthorInfo(fa.remoteMemberId(), displayName, stationName));
+        }
+
+        // Local author
+        var memberOpt = stationMemberRepository.findById(comment.authorId());
+        Integer authorAccountId = memberOpt.map(StationMember::accountId).orElse(null);
+        String authorName = memberOpt
+                .flatMap(m -> accountRepository.findById(m.accountId()))
+                .map(a -> (a.firstName() + " " + a.lastName()).trim())
+                .orElse("");
+        return new KbCommentResponse(
+                comment.id(),
+                comment.fileId(),
+                comment.parentId(),
+                comment.authorId(),
+                authorAccountId,
+                authorName,
+                comment.content(),
+                false,
+                comment.createdAt(),
+                comment.updatedAt(),
+                null);
+    }
+
+    // -- KB Comment request/response records --
+
+    public record CreateKbCommentRequest(Integer parentId, String content) {}
+
+    public record UpdateKbCommentRequest(String content) {}
+
+    public record RemoteKbCommentRequest(UUID remoteMemberUid, String displayName, Integer parentId, String content) {}
+
+    public record RemoteKbCommentUpdateRequest(UUID remoteMemberUid, String content) {}
+
+    public record RemoteKbCommentDeleteRequest(UUID remoteMemberUid) {}
+
+    public record KbFederatedAuthorInfo(UUID memberUid, String displayName, String stationName) {}
+
+    public record KbCommentResponse(
+            int id,
+            int fileId,
+            Integer parentId,
+            int authorId,
+            Integer authorAccountId,
+            String authorName,
+            String content,
+            boolean deleted,
+            Instant createdAt,
+            Instant updatedAt,
+            KbFederatedAuthorInfo federatedAuthor) {}
 }

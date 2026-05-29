@@ -1907,3 +1907,27 @@ COMMENT ON TABLE ember_schema.news_federation_share IS 'Per-post federation shar
 COMMENT ON COLUMN ember_schema.news_federation_share.scope IS 'ALL_PARTNERS or SPECIFIC.';
 COMMENT ON COLUMN ember_schema.news_federation_share.visibility_role IS 'Minimum role on partner station: MEMBER, TEAM, or MANAGER.';
 COMMENT ON TABLE ember_schema.news_comment_federated_author IS 'Maps news comments from federated users to their remote identity.';
+
+-- KB file comments
+CREATE TABLE ember_schema.kb_comment (
+    id         SERIAL PRIMARY KEY,
+    file_id    INTEGER     NOT NULL REFERENCES ember_schema.kb_file(id) ON DELETE CASCADE,
+    parent_id  INTEGER              REFERENCES ember_schema.kb_comment(id) ON DELETE SET NULL,
+    author_id  INTEGER     NOT NULL REFERENCES ember_schema.station_member(id) ON DELETE CASCADE,
+    content    TEXT        NOT NULL,
+    deleted    BOOLEAN     NOT NULL DEFAULT FALSE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ
+);
+
+CREATE INDEX idx_kb_comment_file ON ember_schema.kb_comment(file_id);
+
+-- Federated KB comment author tracking
+CREATE TABLE ember_schema.kb_comment_federated_author (
+    comment_id       INTEGER NOT NULL REFERENCES ember_schema.kb_comment(id) ON DELETE CASCADE PRIMARY KEY,
+    partner_id       INTEGER NOT NULL REFERENCES ember_schema.federation_partner(id) ON DELETE CASCADE,
+    remote_member_id UUID NOT NULL
+);
+
+COMMENT ON TABLE ember_schema.kb_comment IS 'Threaded comments on knowledge base files.';
+COMMENT ON TABLE ember_schema.kb_comment_federated_author IS 'Maps KB comments from federated users to their remote identity.';
