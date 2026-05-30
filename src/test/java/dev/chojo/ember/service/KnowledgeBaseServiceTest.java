@@ -60,8 +60,14 @@ class KnowledgeBaseServiceTest extends RepositoryTestBase {
         var kbCommentRepo = mock(dev.chojo.ember.feature.knowledgebase.repository.KbCommentRepository.class);
         var eventFedRepo = mock(dev.chojo.ember.feature.events.repository.EventFederationRepository.class);
         service = new KnowledgeBaseService(
-                knowledgeBaseRepo, stationRepo, fileStorage, federationService, federationRepo, httpClient,
-                kbCommentRepo, eventFedRepo);
+                knowledgeBaseRepo,
+                stationRepo,
+                fileStorage,
+                federationService,
+                federationRepo,
+                httpClient,
+                kbCommentRepo,
+                eventFedRepo);
         station = stationRepo.create("KbSvcStation");
         stationB = stationRepo.create("KbSvcStationB");
         account = accountRepo.create("kb-svc@test.com", "Kb", "SvcTester");

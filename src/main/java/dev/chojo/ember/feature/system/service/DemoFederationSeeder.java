@@ -108,7 +108,9 @@ public class DemoFederationSeeder {
      * @param createdBy        the member ID creating the data
      * @return the partner station ID
      */
-    public int seed(int primaryStationId, int createdBy) {
+    public record SeedResult(int partnerStationId, int partnerMemberId) {}
+
+    public SeedResult seed(int primaryStationId, int createdBy) {
         // Opt primary station into discovery
         stationRepository.updateDiscoverySettings(
                 primaryStationId,
@@ -537,6 +539,6 @@ public class DemoFederationSeeder {
 
         log.info("Demo: Created third station with manager nachbar@demo.ember (not federated)");
 
-        return partnerStation.id();
+        return new SeedResult(partnerStation.id(), partnerMember.id());
     }
 }

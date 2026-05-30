@@ -1721,11 +1721,12 @@ public class DemoService {
         log.info("Demo: Created profile pictures");
 
         // -- Federation --
-        int partnerStationId = federationSeeder.seed(station.id(), adminMember.id());
+        var federationResult = federationSeeder.seed(station.id(), adminMember.id());
+        int partnerStationId = federationResult.partnerStationId();
         log.info("Demo: Created federation data");
 
         // -- Lending --
-        lendingSeeder.seed(station.id(), partnerStationId, adminMember.id());
+        lendingSeeder.seed(station.id(), partnerStationId, adminMember.id(), federationResult.partnerMemberId());
         log.info("Demo: Created lending data");
 
         // -- Boards --
