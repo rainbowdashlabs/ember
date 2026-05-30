@@ -127,6 +127,8 @@ export interface BoardComment {
     createdAt: string
     updatedAt: string | null
     federatedAuthor?: BoardFederatedAuthorInfo | null
+    authorStationId?: string
+    authorStationName?: string
 }
 
 export interface AccessConfig {

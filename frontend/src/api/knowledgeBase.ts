@@ -434,6 +434,8 @@ export interface KbComment {
     createdAt: string
     updatedAt?: string | null
     federatedAuthor?: FederatedAuthorInfo | null
+    authorStationId?: string
+    authorStationName?: string
 }
 
 export async function listComments(fileId: number): Promise<KbComment[]> {

@@ -148,6 +148,11 @@ const router = createRouter({
                     component: StatisticsView,
                 },
                 {
+                    path: 'requirements',
+                    name: 'station-requirements',
+                    component: () => import('@/views/stationview/RequirementsView.vue'),
+                },
+                {
                     path: 'news',
                     name: 'news-list',
                     component: () => import('@/views/stationview/news/ListView.vue'),
@@ -840,6 +845,12 @@ const router = createRouter({
                     path: 'dashboard/statistics',
                     name: 'help-dashboard-statistics',
                     component: () => import('@/views/helpcenter/dashboardview/StatisticsHelp.vue')
+                },
+                // Requirements
+                {
+                    path: 'requirements',
+                    name: 'help-station-requirements',
+                    component: () => import('@/views/helpcenter/stationview/RequirementsHelp.vue')
                 },
                 // News
                 {

@@ -1188,6 +1188,8 @@ export interface NewsComment {
     createdAt: string
     updatedAt?: string | null
     federatedAuthor?: FederatedAuthorInfo | null
+    authorStationId?: string
+    authorStationName?: string
 }
 
 export interface CommentRequest {

@@ -573,6 +573,10 @@ class FederatedBoardProxyServiceTest extends RepositoryTestBase {
 
         var discovered = proxyService.discoverBoards(station1.id());
         assertTrue(discovered.isEmpty());
+
+        // Reset httpClient to clear the catch-all thenThrow stub — otherwise it poisons
+        // subsequent when().thenReturn() calls (the when() invocation triggers the stub)
+        reset(httpClient);
     }
 
     // -- DiscoveredBoard record --
@@ -1001,16 +1005,14 @@ class FederatedBoardProxyServiceTest extends RepositoryTestBase {
     @Test
     @Order(141)
     void getEffectiveShareModeReverseLookup() {
-        // Test the reverse lookup path in getEffectiveShareMode
-        // Set up federationRepository to return a partner when queried by findPartnerById
-        when(federationRepository.findPartnerById(partnerId)).thenReturn(Optional.of(localPartner()));
-        // findPartnerByStationAndRemoteUid should return a partner for the owning station
-        when(federationRepository.findPartnerByStationAndRemoteUid(eq(station1.id()), eq(station1.uid())))
-                .thenReturn(Optional.of(localPartner()));
+        // Create a board on station1 and share it with the existing partner (partnerId on station1)
+        var reverseBoard =
+                boardService.createWithPreset(station1.id(), "Reverse Board", "Desc", "REV", LanePreset.SIMPLE);
+        federatedBoardService.shareBoard(
+                reverseBoard.id(),
+                List.of(new FederatedBoardService.PartnerShareConfig(partnerId, BoardShareMode.READ_ONLY)));
 
-        // The direct lookup (without federationRepository) already works from DB.
-        // To force reverse lookup, we need a partner ID that doesn't match the direct share.
-        // Create a second partner via SQL that has no shares
+        // Create a second partner on station2, pointing to station1
         int partner2Id = Query.query(
                         "INSERT INTO federation_partner(station_id, partner_station_id, status, federation_version) VALUES (:s, :p::uuid, 'ACTIVE', 1) RETURNING id;")
                 .single(Call.of()
@@ -1020,7 +1022,7 @@ class FederatedBoardProxyServiceTest extends RepositoryTestBase {
                 .first()
                 .orElseThrow();
 
-        // partner2 is on station2, so findPartnerById returns it
+        // partner2 is on station2, looking at station1
         var partner2 = new FederationPartner(
                 partner2Id,
                 station2.id(),
@@ -1034,15 +1036,19 @@ class FederatedBoardProxyServiceTest extends RepositoryTestBase {
                 Instant.now(),
                 null);
         when(federationRepository.findPartnerById(partner2Id)).thenReturn(Optional.of(partner2));
-        // The board is on station1, partner2 is on station2 looking at station1
-        // Reverse lookup: find owning station's partner that points to station2's uid
+        // Reverse lookup: board is on station1, partner2 is on station2.
+        // Service resolves ourStationUid = station2.uid(), then calls
+        // findPartnerByStationAndRemoteUid(station1.id(), station2.uid()) to find
+        // station1's partner record that points to station2.
         when(federationRepository.findPartnerByStationAndRemoteUid(eq(station1.id()), eq(station2.uid())))
                 .thenReturn(Optional.of(localPartner()));
 
-        var mode = proxyService.getEffectiveShareMode(partner2Id, boardId);
+        var mode = proxyService.getEffectiveShareMode(partner2Id, reverseBoard.id());
         assertTrue(mode.isPresent());
+        assertEquals(BoardShareMode.READ_ONLY, mode.get());
 
         // Cleanup
+        boardService.delete(reverseBoard.id());
         Query.query("DELETE FROM federation_partner WHERE id = :id;")
                 .single(Call.of().bind("id", partner2Id))
                 .delete();

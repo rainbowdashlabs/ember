@@ -15,6 +15,7 @@ import StationSwitcher from '@/components/navigation/StationSwitcher.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import IconButton from '@/components/button/IconButton.vue'
 import {auth, notifications, events, boards, federatedBoards} from '@/api'
+import {getRequirements} from '@/api/requirements'
 import type {Board} from '@/api/boards'
 import type {FederatedBoardBookmark} from '@/api/federatedBoards'
 import {BoardShareMode} from '@/api/federatedBoards'
@@ -67,6 +68,7 @@ const notificationCount = ref(0)
 const pendingRegistrationCount = ref(0)
 const visibleBoards = ref<Board[]>([])
 const bookmarkedBoards = ref<FederatedBoardBookmark[]>([])
+const requirementsCount = ref(0)
 const openGroup = ref<string | null>(null)
 const isDesktop = ref(window.matchMedia('(min-width: 1024px)').matches)
 
@@ -96,6 +98,13 @@ async function refreshBookmarkedBoards() {
   } catch { /* ignore */ }
 }
 
+async function refreshRequirements() {
+  try {
+    const data = await getRequirements()
+    requirementsCount.value = (data.profileIncomplete ? 1 : 0) + data.forcedForms.length + data.forcedQuizzes.length
+  } catch { /* ignore */ }
+}
+
 async function refreshPendingRegistrationCount() {
   try {
     const pending = await events.listPendingRegistrations()
@@ -120,6 +129,7 @@ watch(loaded, (isLoaded) => {
   if (isLoaded && canManageEvents()) refreshPendingRegistrationCount()
   if (isLoaded && isModuleEnabled(StationModules.BOARDS)) refreshBoards()
   if (isLoaded && isModuleEnabled(StationModules.BOARDS) && canManageFederation()) refreshBookmarkedBoards()
+  if (isLoaded) refreshRequirements()
   if (isLoaded) checkFirstLogin()
 }, {immediate: true})
 
@@ -158,6 +168,8 @@ async function handleLogout() {
           {{ t('sidebar.statistics') }}
         </SidebarLink>
       </SidebarGroup>
+
+      <SidebarGroup v-if="requirementsCount > 0" :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => openGroup = v" :badge="requirementsCount" :icon="['fas', 'clipboard-check']" :label="t('sidebar.requirements')" prefix="/station/requirements" to="/station/requirements" name="station-requirements" @navigate="close"/>
 
       <SidebarGroup :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => openGroup = v" v-if="isModuleEnabled(StationModules.NEWS)" :icon="['fas', 'newspaper']" :label="t('sidebar.news')" prefix="/station/news" to="/station/news" name="news-list" @navigate="close"/>
 

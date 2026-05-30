@@ -41,6 +41,8 @@ const commentsAsGeneric = computed<Comment[]>(() =>
         parentId: c.parentId,
         authorId: c.authorId,
         authorName: c.authorName,
+        authorStationId: c.authorStationId,
+        authorStationName: c.authorStationName,
         content: c.content,
         deleted: c.deleted,
         createdAt: c.createdAt,

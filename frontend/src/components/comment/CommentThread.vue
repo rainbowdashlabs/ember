@@ -38,8 +38,8 @@ const currentStationId = computed(() => sessionInfo.value?.stationId ?? '')
 const isManager = computed(() => hasRole('EVENT_MANAGER') || hasRole('MANAGER'))
 
 function isExternalAuthor(comment: Comment): boolean {
-  if (!comment.authorStationId) return false
-  return comment.authorStationId !== currentStationId.value
+  if (comment.authorStationId) return comment.authorStationId !== currentStationId.value
+  return !!comment.federatedAuthor
 }
 
 const replyingTo = ref<number | null>(null)
@@ -144,9 +144,9 @@ const maxDepth = 6
       <div v-else-if="editingId !== comment.id" class="space-y-1">
         <div class="flex items-center gap-2">
           <MemberName :name="memberName(comment)" :member-id="comment.authorId" class="text-sm font-medium"/>
-          <StationBadge v-if="isExternalAuthor(comment)" :station-name="comment.authorStationName ?? comment.federatedAuthor?.stationName ?? ''"/>
           <MutedText size="xs">{{ formatDate(comment.createdAt) }}</MutedText>
           <MutedText v-if="comment.updatedAt" size="xs">({{ t('comments.edited') }})</MutedText>
+          <StationBadge v-if="isExternalAuthor(comment)" :station-name="comment.authorStationName ?? comment.federatedAuthor?.stationName ?? ''"/>
         </div>
         <p class="text-sm whitespace-pre-wrap"><template v-for="(part, i) in resolveMentions(comment.content)" :key="i"><span v-if="part.type === 'mention'" class="font-semibold text-primary">@{{ part.name }}</span><template v-else>{{ part.value }}</template></template></p>
         <div class="flex items-center gap-1">

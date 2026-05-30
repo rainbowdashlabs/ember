@@ -188,6 +188,7 @@ export default {
         dashboard: 'Dashboard',
         overview: 'Übersicht',
         statistics: 'Statistiken',
+        requirements: 'Aufgaben',
         profile: 'Profil',
         myProfile: 'Mein Profil',
         myInventory: 'Mein Inventar',
@@ -978,6 +979,17 @@ volumes:
             inventoryStatus: 'Inventar Status — Wie viel Ausrüstung zugewiesen, verfügbar oder verloren ist.',
             eventRegistrations: 'Anmeldungen — Wie viele Anmeldungen angenommen, ausstehend oder abgelehnt wurden.',
             tip: 'Diese Seite ist nur für Teammitglieder sichtbar. Wenn du sie nicht siehst, hast du keine Team-Rolle.',
+        },
+        requirements: {
+            title: 'Aufgaben',
+            subtitle: 'Offene Aufgaben, die du erledigen solltest.',
+            whatIs: 'Was sind Aufgaben?',
+            whatIsText: 'Auf dieser Seite siehst du, ob es noch etwas gibt, das du erledigen solltest — zum Beispiel ein Formular ausfüllen, einen Test machen oder dein Profil vervollständigen.',
+            types: 'Welche Aufgaben gibt es?',
+            profileText: 'Profil vervollständigen — Wenn Pflichtfelder in deinem Profil fehlen, wirst du hier daran erinnert.',
+            formsText: 'Formulare ausfüllen — Manche Formulare sind Pflicht und müssen von dir ausgefüllt werden.',
+            quizzesText: 'Tests absolvieren — Bestimmte Tests müssen bestanden werden.',
+            tip: 'Wenn alles erledigt ist, siehst du eine Bestätigung. Die Seite erscheint auch direkt nach dem Login, wenn es offene Aufgaben gibt.',
         },
         news: {
             title: 'Neuigkeiten',
@@ -4715,6 +4727,7 @@ volumes:
         fillOut: 'Ausfuellen',
         startQuiz: 'Test starten',
         skip: 'Spaeter erledigen',
+        allDone: 'Alles erledigt! Es gibt keine offenen Aufgaben.',
     },
     common: {
         loading: 'Laden...',

@@ -13,6 +13,7 @@ import dev.chojo.ember.api.StationUidResolver;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.CommentCreated;
+import dev.chojo.ember.event.events.CommentDeleted;
 import dev.chojo.ember.event.events.MentionedInComment;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
@@ -1102,6 +1103,9 @@ public class KnowledgeBaseRoutes implements Routes {
             throw new ForbiddenResponse("You can only delete your own comments");
         }
         if (kbCommentRepository.delete(commentId)) {
+            String preview =
+                    comment.content().length() > 100 ? comment.content().substring(0, 100) + "..." : comment.content();
+            eventBus.publish(new CommentDeleted(session.stationId(), commentId, preview));
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
             throw new NotFoundResponse();
@@ -1158,7 +1162,11 @@ public class KnowledgeBaseRoutes implements Routes {
         if (fedAuthor.partnerId() != partner.id() || !fedAuthor.remoteMemberId().equals(req.remoteMemberUid())) {
             throw new ForbiddenResponse("You can only delete your own comments");
         }
+        var comment = kbCommentRepository.findById(commentId).orElseThrow(NotFoundResponse::new);
         if (kbCommentRepository.delete(commentId)) {
+            String preview =
+                    comment.content().length() > 100 ? comment.content().substring(0, 100) + "..." : comment.content();
+            eventBus.publish(new CommentDeleted(partner.stationId(), commentId, preview));
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
             throw new NotFoundResponse();

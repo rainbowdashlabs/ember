@@ -763,10 +763,16 @@ public class FederatedBoardProxyService {
     }
 
     private <T> T remoteGet(FederationPartner partner, String path, Class<T> type) {
-        var result = httpClient.get(
-                partner.remoteHost(), path, partner.stationId(), getPrivateKey(partner.stationId()), type);
-        if (result == null) throw new NotFoundResponse("Empty response from remote partner");
-        return result;
+        try {
+            var result = httpClient.get(
+                    partner.remoteHost(), path, partner.stationId(), getPrivateKey(partner.stationId()), type);
+            if (result == null) throw new NotFoundResponse("Empty response from remote partner");
+            return result;
+        } catch (NotFoundResponse e) {
+            throw e;
+        } catch (Exception e) {
+            throw new NotFoundResponse("Failed to fetch from remote partner: " + e.getMessage());
+        }
     }
 
     private <T> List<T> remoteGetList(FederationPartner partner, String path, Class<T> elementType) {
@@ -775,10 +781,16 @@ public class FederatedBoardProxyService {
     }
 
     private <T> T remotePost(FederationPartner partner, String path, Object body, Class<T> type) {
-        var result = httpClient.post(
-                partner.remoteHost(), path, body, partner.stationId(), getPrivateKey(partner.stationId()), type);
-        if (result == null) throw new NotFoundResponse("Empty response from remote partner");
-        return result;
+        try {
+            var result = httpClient.post(
+                    partner.remoteHost(), path, body, partner.stationId(), getPrivateKey(partner.stationId()), type);
+            if (result == null) throw new NotFoundResponse("Empty response from remote partner");
+            return result;
+        } catch (NotFoundResponse e) {
+            throw e;
+        } catch (Exception e) {
+            throw new NotFoundResponse("Failed to post to remote partner: " + e.getMessage());
+        }
     }
 
     private <T> List<T> remotePostList(FederationPartner partner, String path, Object body, Class<T> elementType) {
@@ -787,10 +799,16 @@ public class FederatedBoardProxyService {
     }
 
     private <T> T remotePut(FederationPartner partner, String path, Object body, Class<T> type) {
-        var result = httpClient.put(
-                partner.remoteHost(), path, body, partner.stationId(), getPrivateKey(partner.stationId()), type);
-        if (result == null) throw new NotFoundResponse("Empty response from remote partner");
-        return result;
+        try {
+            var result = httpClient.put(
+                    partner.remoteHost(), path, body, partner.stationId(), getPrivateKey(partner.stationId()), type);
+            if (result == null) throw new NotFoundResponse("Empty response from remote partner");
+            return result;
+        } catch (NotFoundResponse e) {
+            throw e;
+        } catch (Exception e) {
+            throw new NotFoundResponse("Failed to update on remote partner: " + e.getMessage());
+        }
     }
 
     private void remotePut(FederationPartner partner, String path, Object body) {

@@ -232,11 +232,15 @@ public class EventService {
                                 e.startTime().atZone(ZoneOffset.UTC).toLocalDate();
                         return today.equals(eventDateUtc);
                     }
-                    if (inBreak || e.dayOfWeek() == null) return false;
+                    if (inBreak) return false;
                     return switch (e.eventType()) {
-                        case RECURRING -> e.dayOfWeek() == dayOfWeek;
-                        case MONTHLY_FIRST -> e.dayOfWeek() == dayOfWeek && dayOfMonth <= 7;
-                        case QUARTERLY -> e.dayOfWeek() == dayOfWeek && dayOfMonth <= 7 && (monthValue - 1) % 3 == 0;
+                        case RECURRING -> e.dayOfWeek() != null && e.dayOfWeek() == dayOfWeek;
+                        case MONTHLY_FIRST -> e.dayOfWeek() != null && e.dayOfWeek() == dayOfWeek && dayOfMonth <= 7;
+                        case QUARTERLY ->
+                            e.dayOfWeek() != null
+                                    && e.dayOfWeek() == dayOfWeek
+                                    && dayOfMonth <= 7
+                                    && (monthValue - 1) % 3 == 0;
                         case YEARLY ->
                             e.startTime() != null
                                     && e.startTime().atZone(ZoneOffset.UTC).getMonthValue() == monthValue

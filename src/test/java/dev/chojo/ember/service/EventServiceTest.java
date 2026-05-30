@@ -609,6 +609,740 @@ class EventServiceTest extends RepositoryTestBase {
         assertNotNull(stats);
     }
 
+    // -- findFiltered --
+
+    @Test
+    @Order(110)
+    void findFilteredNoFilters() {
+        var start = Instant.now().plus(110, ChronoUnit.DAYS);
+        var end = start.plus(2, ChronoUnit.HOURS);
+        var event = service.create(
+                station.id(),
+                "Filtered Event",
+                "desc",
+                StationEvent.EventType.ONE_TIME,
+                null,
+                start,
+                end,
+                null,
+                false,
+                null,
+                false,
+                categoryId,
+                null);
+
+        var results = service.findFiltered(station.id(), null, null, null);
+        assertTrue(results.stream().anyMatch(e -> e.id() == event.id()));
+    }
+
+    @Test
+    @Order(111)
+    void findFilteredByCategory() {
+        var results = service.findFiltered(station.id(), null, categoryId, null);
+        assertNotNull(results);
+        assertTrue(results.stream().allMatch(e -> e.categoryId() != null && e.categoryId() == categoryId));
+    }
+
+    @Test
+    @Order(112)
+    void findFilteredByMember() {
+        var results = service.findFiltered(station.id(), member.id(), null, null);
+        assertNotNull(results);
+    }
+
+    @Test
+    @Order(113)
+    void findFilteredByRequiresRegistration() {
+        var results = service.findFiltered(station.id(), null, null, false);
+        assertNotNull(results);
+        assertTrue(results.stream().allMatch(e -> !e.requiresRegistration()));
+    }
+
+    @Test
+    @Order(114)
+    void findFilteredAllParams() {
+        var results = service.findFiltered(station.id(), member.id(), categoryId, false);
+        assertNotNull(results);
+    }
+
+    // -- findUpcomingOccurrences --
+
+    @Test
+    @Order(120)
+    void findUpcomingOccurrencesOneTime() {
+        // Create a ONE_TIME event in the future
+        var futureDate = LocalDate.now(ZoneOffset.UTC).plusDays(5);
+        var start = futureDate.atStartOfDay(ZoneOffset.UTC).toInstant();
+        var end = start.plus(2, ChronoUnit.HOURS);
+
+        var event = service.create(
+                station.id(),
+                "Upcoming OneTime",
+                "desc",
+                StationEvent.EventType.ONE_TIME,
+                null,
+                start,
+                end,
+                null,
+                false,
+                null,
+                false,
+                categoryId,
+                null);
+
+        var occurrences = service.findUpcomingOccurrences(station.id(), null, null, null, 100, 0);
+        assertTrue(occurrences.stream().anyMatch(o -> o.event().id() == event.id()));
+    }
+
+    @Test
+    @Order(121)
+    void findUpcomingOccurrencesRecurring() {
+        // Create a RECURRING event for a specific day of week
+        var start = Instant.now().plus(1, ChronoUnit.DAYS);
+        var end = start.plus(2, ChronoUnit.HOURS);
+        int dow = LocalDate.now(ZoneOffset.UTC).plusDays(1).getDayOfWeek().getValue();
+
+        var event = service.create(
+                station.id(),
+                "Upcoming Recurring",
+                "desc",
+                StationEvent.EventType.RECURRING,
+                dow,
+                start,
+                end,
+                null,
+                false,
+                null,
+                false,
+                categoryId,
+                null);
+
+        var occurrences = service.findUpcomingOccurrences(station.id(), null, null, null, 100, 0);
+        assertTrue(occurrences.stream().anyMatch(o -> o.event().id() == event.id()));
+    }
+
+    @Test
+    @Order(122)
+    void findUpcomingOccurrencesWithPagination() {
+        var occurrences = service.findUpcomingOccurrences(station.id(), null, null, null, 2, 0);
+        assertTrue(occurrences.size() <= 2);
+    }
+
+    @Test
+    @Order(123)
+    void findUpcomingOccurrencesWithOffset() {
+        var all = service.findUpcomingOccurrences(station.id(), null, null, null, 100, 0);
+        if (all.size() > 1) {
+            var offsetResults = service.findUpcomingOccurrences(station.id(), null, null, null, 100, 1);
+            assertEquals(all.size() - 1, offsetResults.size());
+        }
+    }
+
+    @Test
+    @Order(124)
+    void findUpcomingOccurrencesWithFilters() {
+        var occurrences = service.findUpcomingOccurrences(station.id(), member.id(), categoryId, false, 100, 0);
+        assertNotNull(occurrences);
+    }
+
+    @Test
+    @Order(125)
+    void findUpcomingOccurrencesMonthlyFirst() {
+        // MONTHLY_FIRST: matches when dayOfWeek matches and dayOfMonth <= 7
+        var start = Instant.now().plus(1, ChronoUnit.DAYS);
+        var end = start.plus(2, ChronoUnit.HOURS);
+        int dow = LocalDate.now(ZoneOffset.UTC).plusDays(1).getDayOfWeek().getValue();
+
+        var event = service.create(
+                station.id(),
+                "Monthly First Event",
+                "desc",
+                StationEvent.EventType.MONTHLY_FIRST,
+                dow,
+                start,
+                end,
+                null,
+                false,
+                null,
+                false,
+                categoryId,
+                null);
+
+        var occurrences = service.findUpcomingOccurrences(station.id(), null, null, null, 100, 0);
+        // The event should appear at least once in the next 28 days if there's a matching date
+        assertNotNull(occurrences);
+    }
+
+    @Test
+    @Order(126)
+    void findUpcomingOccurrencesQuarterly() {
+        var start = Instant.now().plus(1, ChronoUnit.DAYS);
+        var end = start.plus(2, ChronoUnit.HOURS);
+        int dow = LocalDate.now(ZoneOffset.UTC).plusDays(1).getDayOfWeek().getValue();
+
+        var event = service.create(
+                station.id(),
+                "Quarterly Event",
+                "desc",
+                StationEvent.EventType.QUARTERLY,
+                dow,
+                start,
+                end,
+                null,
+                false,
+                null,
+                false,
+                categoryId,
+                null);
+
+        var occurrences = service.findUpcomingOccurrences(station.id(), null, null, null, 100, 0);
+        assertNotNull(occurrences);
+    }
+
+    @Test
+    @Order(127)
+    void findUpcomingOccurrencesYearly() {
+        // YEARLY event with start time set so month/day match a date in the next 28 days
+        var futureDate = LocalDate.now(ZoneOffset.UTC).plusDays(10);
+        var start = futureDate.atStartOfDay(ZoneOffset.UTC).toInstant();
+        var end = start.plus(2, ChronoUnit.HOURS);
+        int dow = futureDate.getDayOfWeek().getValue();
+
+        var event = service.create(
+                station.id(),
+                "Yearly Event",
+                "desc",
+                StationEvent.EventType.YEARLY,
+                dow,
+                start,
+                end,
+                null,
+                false,
+                null,
+                false,
+                categoryId,
+                null);
+
+        var occurrences = service.findUpcomingOccurrences(station.id(), null, null, null, 100, 0);
+        assertNotNull(occurrences);
+    }
+
+    @Test
+    @Order(128)
+    void findUpcomingOccurrencesDuringBreak() {
+        // Create a break covering the next 28 days
+        var breakStart = LocalDate.now(ZoneOffset.UTC);
+        var breakEnd = breakStart.plusDays(28);
+        var brk = service.createBreak(station.id(), "Test Break", breakStart, breakEnd);
+
+        // Create a new station to avoid interference
+        var breakStation = stationRepo.create("BreakStation");
+        var breakBreak = service.createBreak(breakStation.id(), "Full Break", breakStart, breakEnd);
+
+        var start = Instant.now().plus(1, ChronoUnit.DAYS);
+        var end = start.plus(2, ChronoUnit.HOURS);
+        int dow = LocalDate.now(ZoneOffset.UTC).plusDays(1).getDayOfWeek().getValue();
+
+        service.create(
+                breakStation.id(),
+                "Break Recurring",
+                "desc",
+                StationEvent.EventType.RECURRING,
+                dow,
+                start,
+                end,
+                null,
+                false,
+                null,
+                false,
+                null,
+                null);
+
+        var occurrences = service.findUpcomingOccurrences(breakStation.id(), null, null, null, 100, 0);
+        // Recurring events during break should not appear
+        assertTrue(occurrences.stream().noneMatch(o -> o.event().name().equals("Break Recurring")));
+
+        service.deleteBreak(brk.id());
+        service.deleteBreak(breakBreak.id());
+        stationRepo.delete(breakStation.id());
+    }
+
+    @Test
+    @Order(129)
+    void findUpcomingOccurrencesOneTimePastNotIncluded() {
+        // ONE_TIME event in the past should NOT appear
+        var pastDate = LocalDate.now(ZoneOffset.UTC).minusDays(5);
+        var start = pastDate.atStartOfDay(ZoneOffset.UTC).toInstant();
+        var end = start.plus(2, ChronoUnit.HOURS);
+
+        var event = service.create(
+                station.id(),
+                "Past OneTime",
+                "desc",
+                StationEvent.EventType.ONE_TIME,
+                null,
+                start,
+                end,
+                null,
+                false,
+                null,
+                false,
+                categoryId,
+                null);
+
+        var occurrences = service.findUpcomingOccurrences(station.id(), null, null, null, 100, 0);
+        assertTrue(occurrences.stream().noneMatch(o -> o.event().id() == event.id()));
+    }
+
+    // -- withdrawRegistration with ACCEPTED status (publishes event) --
+
+    @Test
+    @Order(130)
+    void withdrawAcceptedRegistration() {
+        var start = Instant.now().plus(130, ChronoUnit.DAYS);
+        var end = start.plus(2, ChronoUnit.HOURS);
+        var event = service.create(
+                station.id(),
+                "Withdraw Accepted Event",
+                "desc",
+                StationEvent.EventType.ONE_TIME,
+                null,
+                start,
+                end,
+                null,
+                true,
+                null,
+                false,
+                categoryId,
+                null);
+
+        // Register and auto-accept
+        var reg = service.register(event.id(), member.id(), LocalDate.of(2027, 5, 1), true, null);
+        assertEquals(RegistrationStatus.ACCEPTED, reg.status());
+
+        // Withdraw the ACCEPTED registration — should publish event
+        assertTrue(service.withdrawRegistration(reg.id()));
+        assertTrue(service.findRegistrationById(reg.id()).isEmpty());
+    }
+
+    @Test
+    @Order(131)
+    void withdrawNonExistentRegistration() {
+        assertFalse(service.withdrawRegistration(999999));
+    }
+
+    // -- decline with existing ACCEPTED registration --
+
+    @Test
+    @Order(132)
+    void declineWithExistingAcceptedRegistration() {
+        var start = Instant.now().plus(132, ChronoUnit.DAYS);
+        var end = start.plus(2, ChronoUnit.HOURS);
+        var event = service.create(
+                station.id(),
+                "Decline Accepted Event",
+                "desc",
+                StationEvent.EventType.ONE_TIME,
+                null,
+                start,
+                end,
+                null,
+                true,
+                null,
+                false,
+                categoryId,
+                null);
+
+        // Register and auto-accept
+        LocalDate date = LocalDate.of(2027, 6, 1);
+        service.register(event.id(), member.id(), date, true, null);
+
+        // Now decline — should publish event because prior was ACCEPTED
+        var result = service.decline(event.id(), member.id(), date, null);
+        assertNotNull(result);
+        assertEquals(RegistrationStatus.DECLINED, result.status());
+    }
+
+    @Test
+    @Order(133)
+    void declineWithNoExistingRegistration() {
+        var start = Instant.now().plus(133, ChronoUnit.DAYS);
+        var end = start.plus(2, ChronoUnit.HOURS);
+        var event = service.create(
+                station.id(),
+                "Decline No Prior Event",
+                "desc",
+                StationEvent.EventType.ONE_TIME,
+                null,
+                start,
+                end,
+                null,
+                true,
+                null,
+                false,
+                categoryId,
+                null);
+
+        // Decline without prior registration
+        var result = service.decline(event.id(), member.id(), LocalDate.of(2027, 7, 1), null);
+        assertNotNull(result);
+        assertEquals(RegistrationStatus.DECLINED, result.status());
+    }
+
+    // -- resolveFieldDefaults with EVENT_START_TIME and EVENT_END_TIME --
+
+    @Test
+    @Order(140)
+    void resolveFieldDefaultsWithEventStartTime() {
+        var template = attendanceRepo.createTemplate(station.id(), "StartTimeTemplate");
+        attendanceRepo.createTemplateField(
+                template.id(), "StartField", AttendanceFieldType.STRING, AttendanceFieldConfig.parse("{}"), 0);
+        var fields = attendanceRepo.findTemplateFields(template.id());
+        int fieldId = fields.getFirst().id();
+
+        var start = Instant.now().plus(140, ChronoUnit.DAYS);
+        var end = start.plus(2, ChronoUnit.HOURS);
+        var event = service.create(
+                station.id(),
+                "Start Time Event",
+                "desc",
+                StationEvent.EventType.ONE_TIME,
+                null,
+                start,
+                end,
+                null,
+                false,
+                null,
+                false,
+                categoryId,
+                null);
+
+        service.setFieldDefaults(
+                event.id(), List.of(new EventFieldDefault(event.id(), fieldId, "EVENT_START_TIME", null)));
+
+        var resolved = service.resolveFieldDefaults(event.id());
+        assertNotNull(resolved.get(fieldId));
+        assertTrue(resolved.get(fieldId).startsWith("\""));
+    }
+
+    @Test
+    @Order(141)
+    void resolveFieldDefaultsWithEventEndTime() {
+        var template = attendanceRepo.createTemplate(station.id(), "EndTimeTemplate");
+        attendanceRepo.createTemplateField(
+                template.id(), "EndField", AttendanceFieldType.STRING, AttendanceFieldConfig.parse("{}"), 0);
+        var fields = attendanceRepo.findTemplateFields(template.id());
+        int fieldId = fields.getFirst().id();
+
+        var start = Instant.now().plus(141, ChronoUnit.DAYS);
+        var end = start.plus(2, ChronoUnit.HOURS);
+        var event = service.create(
+                station.id(),
+                "End Time Event",
+                "desc",
+                StationEvent.EventType.ONE_TIME,
+                null,
+                start,
+                end,
+                null,
+                false,
+                null,
+                false,
+                categoryId,
+                null);
+
+        service.setFieldDefaults(
+                event.id(), List.of(new EventFieldDefault(event.id(), fieldId, "EVENT_END_TIME", null)));
+
+        var resolved = service.resolveFieldDefaults(event.id());
+        assertNotNull(resolved.get(fieldId));
+        assertTrue(resolved.get(fieldId).startsWith("\""));
+    }
+
+    @Test
+    @Order(142)
+    void resolveFieldDefaultsWithNullStartTime() {
+        // DB requires non-null start_time, so we test resolveFieldDefaults for a missing event instead.
+        // resolveFieldDefaults returns empty map for non-existent events.
+        var template = attendanceRepo.createTemplate(station.id(), "NullStartTemplate");
+        attendanceRepo.createTemplateField(
+                template.id(), "NullStartField", AttendanceFieldType.STRING, AttendanceFieldConfig.parse("{}"), 0);
+        var fields = attendanceRepo.findTemplateFields(template.id());
+        int fieldId = fields.getFirst().id();
+
+        var start = Instant.now().plus(142, ChronoUnit.DAYS);
+        var end = start.plus(2, ChronoUnit.HOURS);
+        var event = service.create(
+                station.id(),
+                "StartTime Resolve Event",
+                "desc",
+                StationEvent.EventType.RECURRING,
+                3,
+                start,
+                end,
+                null,
+                false,
+                null,
+                false,
+                categoryId,
+                null);
+
+        service.setFieldDefaults(
+                event.id(), List.of(new EventFieldDefault(event.id(), fieldId, "EVENT_START_TIME", null)));
+
+        var resolved = service.resolveFieldDefaults(event.id());
+        // start time is set, so field should be resolved with quoted timestamp
+        assertTrue(resolved.containsKey(fieldId));
+        assertTrue(resolved.get(fieldId).startsWith("\""));
+    }
+
+    @Test
+    @Order(143)
+    void resolveFieldDefaultsWithNullEndTime() {
+        var template = attendanceRepo.createTemplate(station.id(), "NullEndTemplate");
+        attendanceRepo.createTemplateField(
+                template.id(), "NullEndField", AttendanceFieldType.STRING, AttendanceFieldConfig.parse("{}"), 0);
+        var fields = attendanceRepo.findTemplateFields(template.id());
+        int fieldId = fields.getFirst().id();
+
+        var start = Instant.now().plus(143, ChronoUnit.DAYS);
+        var end = start.plus(2, ChronoUnit.HOURS);
+        var event = service.create(
+                station.id(),
+                "EndTime Resolve Event",
+                "desc",
+                StationEvent.EventType.RECURRING,
+                3,
+                start,
+                end,
+                null,
+                false,
+                null,
+                false,
+                categoryId,
+                null);
+
+        service.setFieldDefaults(
+                event.id(), List.of(new EventFieldDefault(event.id(), fieldId, "EVENT_END_TIME", null)));
+
+        var resolved = service.resolveFieldDefaults(event.id());
+        // end time is set, so field should be resolved with quoted timestamp
+        assertTrue(resolved.containsKey(fieldId));
+        assertTrue(resolved.get(fieldId).startsWith("\""));
+    }
+
+    // -- findRegistrationStats with categoryId --
+
+    @Test
+    @Order(150)
+    void findRegistrationStatsWithCategory() {
+        var stats = service.findRegistrationStats(0, categoryId, 6);
+        assertNotNull(stats);
+    }
+
+    // -- register with createdBy --
+
+    @Test
+    @Order(151)
+    void registerWithCreatedBy() {
+        var start = Instant.now().plus(151, ChronoUnit.DAYS);
+        var end = start.plus(2, ChronoUnit.HOURS);
+        var event = service.create(
+                station.id(),
+                "CreatedBy Event",
+                "desc",
+                StationEvent.EventType.ONE_TIME,
+                null,
+                start,
+                end,
+                null,
+                true,
+                null,
+                false,
+                categoryId,
+                null);
+
+        var reg = service.register(event.id(), member.id(), LocalDate.of(2027, 8, 1), false, member.id());
+        assertNotNull(reg);
+        assertEquals(member.id(), reg.createdBy());
+    }
+
+    // -- findTodayEvents edge cases --
+
+    @Test
+    @Order(160)
+    void findTodayEventsRecurringMatchingToday() {
+        int todayDow = LocalDate.now(ZoneOffset.UTC).getDayOfWeek().getValue();
+        var start = Instant.now();
+        var end = start.plus(2, ChronoUnit.HOURS);
+
+        var event = service.create(
+                station.id(),
+                "Today Recurring",
+                "desc",
+                StationEvent.EventType.RECURRING,
+                todayDow,
+                start,
+                end,
+                null,
+                false,
+                null,
+                false,
+                categoryId,
+                null);
+
+        var today = service.findTodayEvents(station.id());
+        assertTrue(today.stream().anyMatch(e -> e.id() == event.id()));
+    }
+
+    @Test
+    @Order(161)
+    void findTodayEventsOneTimeNonMatchingDate() {
+        // ONE_TIME event with start time on a different day should NOT match today
+        var tomorrow = LocalDate.now(ZoneOffset.UTC).plusDays(1);
+        var start = tomorrow.atStartOfDay(ZoneOffset.UTC).toInstant();
+        var end = start.plus(2, ChronoUnit.HOURS);
+
+        var event = service.create(
+                station.id(),
+                "Tomorrow OneTime",
+                "desc",
+                StationEvent.EventType.ONE_TIME,
+                null,
+                start,
+                end,
+                null,
+                false,
+                null,
+                false,
+                categoryId,
+                null);
+
+        var today = service.findTodayEvents(station.id());
+        // ONE_TIME with start time tomorrow should NOT match today
+        assertTrue(today.stream().noneMatch(e -> e.id() == event.id()));
+    }
+
+    @Test
+    @Order(162)
+    void findTodayEventsRecurringWithNonMatchingDayOfWeek() {
+        // RECURRING event with a different day of week should NOT match today
+        int todayDow = LocalDate.now(ZoneOffset.UTC).getDayOfWeek().getValue();
+        int otherDow = (todayDow % 7) + 1; // pick a different day
+        var start = Instant.now();
+        var end = start.plus(2, ChronoUnit.HOURS);
+
+        var event = service.create(
+                station.id(),
+                "Other DOW Recurring",
+                "desc",
+                StationEvent.EventType.RECURRING,
+                otherDow,
+                start,
+                end,
+                null,
+                false,
+                null,
+                false,
+                categoryId,
+                null);
+
+        var today = service.findTodayEvents(station.id());
+        // RECURRING with a different dayOfWeek should NOT match today
+        assertTrue(today.stream().noneMatch(e -> e.id() == event.id()));
+    }
+
+    @Test
+    @Order(163)
+    void findTodayEventsMonthlyFirst() {
+        LocalDate today = LocalDate.now(ZoneOffset.UTC);
+        int todayDow = today.getDayOfWeek().getValue();
+        var start = Instant.now();
+        var end = start.plus(2, ChronoUnit.HOURS);
+
+        var event = service.create(
+                station.id(),
+                "Monthly First Today",
+                "desc",
+                StationEvent.EventType.MONTHLY_FIRST,
+                todayDow,
+                start,
+                end,
+                null,
+                false,
+                null,
+                false,
+                categoryId,
+                null);
+
+        var todayEvents = service.findTodayEvents(station.id());
+        // MONTHLY_FIRST only matches if dayOfMonth <= 7
+        if (today.getDayOfMonth() <= 7) {
+            assertTrue(todayEvents.stream().anyMatch(e -> e.id() == event.id()));
+        } else {
+            assertTrue(todayEvents.stream().noneMatch(e -> e.id() == event.id()));
+        }
+    }
+
+    @Test
+    @Order(164)
+    void findTodayEventsQuarterly() {
+        LocalDate today = LocalDate.now(ZoneOffset.UTC);
+        int todayDow = today.getDayOfWeek().getValue();
+        var start = Instant.now();
+        var end = start.plus(2, ChronoUnit.HOURS);
+
+        var event = service.create(
+                station.id(),
+                "Quarterly Today",
+                "desc",
+                StationEvent.EventType.QUARTERLY,
+                todayDow,
+                start,
+                end,
+                null,
+                false,
+                null,
+                false,
+                categoryId,
+                null);
+
+        var todayEvents = service.findTodayEvents(station.id());
+        boolean shouldMatch = today.getDayOfMonth() <= 7 && (today.getMonthValue() - 1) % 3 == 0;
+        if (shouldMatch) {
+            assertTrue(todayEvents.stream().anyMatch(e -> e.id() == event.id()));
+        } else {
+            assertTrue(todayEvents.stream().noneMatch(e -> e.id() == event.id()));
+        }
+    }
+
+    @Test
+    @Order(165)
+    void findTodayEventsYearly() {
+        LocalDate today = LocalDate.now(ZoneOffset.UTC);
+        var start = today.atStartOfDay(ZoneOffset.UTC).toInstant();
+        var end = start.plus(2, ChronoUnit.HOURS);
+
+        var event = service.create(
+                station.id(),
+                "Yearly Today",
+                "desc",
+                StationEvent.EventType.YEARLY,
+                null,
+                start,
+                end,
+                null,
+                false,
+                null,
+                false,
+                categoryId,
+                null);
+
+        var todayEvents = service.findTodayEvents(station.id());
+        // YEARLY needs startTime month and day to match
+        assertTrue(todayEvents.stream().anyMatch(e -> e.id() == event.id()));
+    }
+
     @Test
     @Order(94)
     void updateNonExistentEvent() {

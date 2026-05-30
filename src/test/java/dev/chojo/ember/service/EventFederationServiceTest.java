@@ -7,16 +7,22 @@ package dev.chojo.ember.service;
 
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.event.DomainEventBus;
+import dev.chojo.ember.feature.account.entity.Account;
+import dev.chojo.ember.feature.comment.entity.Comment;
+import dev.chojo.ember.feature.comment.route.EventCommentRoutes;
 import dev.chojo.ember.feature.comment.service.CommentService;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
 import dev.chojo.ember.feature.events.service.EventFederationService;
 import dev.chojo.ember.feature.events.service.EventService;
+import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.service.FederationHttpClient;
 import dev.chojo.ember.feature.federation.service.FederationService;
+import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
+import io.javalin.http.ForbiddenResponse;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.MethodOrderer;
@@ -54,6 +60,10 @@ class EventFederationServiceTest extends RepositoryTestBase {
     private static Station stationC;
     private static int partnerId;
     private static int eventId;
+    private static FederationPartner localPartner;
+    private static FederationPartner remotePartner;
+    private static Account testAccount;
+    private static StationMember testMember;
 
     @BeforeAll
     static void setup() {
@@ -82,18 +92,22 @@ class EventFederationServiceTest extends RepositoryTestBase {
 
         // Create bidirectional federation partnership (local)
         var keyPair = federationService.generateKeyPair();
-        var partner = federationService.acceptInvite(
+        localPartner = federationService.acceptInvite(
                 stationA.id(), stationB.id(), federationService.encodePublicKey(keyPair), null, null);
-        partnerId = partner.id();
+        partnerId = localPartner.id();
 
         // Create remote federation: stationA accepts, stationC initiates (stationA sees stationC as remote)
         var keyPairC = federationService.generateKeyPair();
-        federationService.acceptInvite(
+        remotePartner = federationService.acceptInvite(
                 stationA.id(),
                 stationC.id(),
                 federationService.encodePublicKey(keyPairC),
                 "https://remote-event.example.com",
                 null);
+
+        // Create test account and member for local comment author tests
+        testAccount = accountRepo.create("eventfed@test.com", "Test", "Author");
+        testMember = stationMemberRepo.create(stationA.id(), testAccount.id());
 
         // Create a test event on stationA
         Instant start = Instant.now().plus(1, ChronoUnit.DAYS);
@@ -476,5 +490,489 @@ class EventFederationServiceTest extends RepositoryTestBase {
         var items = service.browseFederatedEvents(stationA.id());
         // stationB has no events shared, remote returned empty => no results for stationA's owned events via partners
         assertNotNull(items);
+    }
+
+    // -- Comment support: createRemoteComment --
+
+    @Test
+    @Order(50)
+    void createRemoteComment() {
+        // Ensure event is shared
+        service.setShare(eventId, "ALL_PARTNERS", List.of());
+        service.cacheName(partnerId, REMOTE_MEMBER_1, "Alice Remote");
+
+        var response = service.createRemoteComment(
+                localPartner, eventId, REMOTE_MEMBER_1, "Alice Remote", null, "Hello from remote!");
+        assertNotNull(response);
+        assertEquals("Hello from remote!", response.content());
+        assertFalse(response.deleted());
+        assertNotNull(response.federatedAuthor());
+        assertEquals("Alice Remote", response.federatedAuthor().displayName());
+        assertEquals(REMOTE_MEMBER_1, response.federatedAuthor().memberUid());
+    }
+
+    @Test
+    @Order(51)
+    void createRemoteCommentWithParent() {
+        var parent = service.createRemoteComment(
+                localPartner, eventId, REMOTE_MEMBER_1, "Alice Remote", null, "Parent comment");
+        var reply = service.createRemoteComment(
+                localPartner, eventId, REMOTE_MEMBER_2, "Bob Remote", parent.id(), "Reply to parent");
+        assertNotNull(reply);
+        assertEquals(parent.id(), reply.parentId());
+        assertEquals("Reply to parent", reply.content());
+    }
+
+    // -- Comment support: updateRemoteComment --
+
+    @Test
+    @Order(52)
+    void updateRemoteComment() {
+        var created = service.createRemoteComment(
+                localPartner, eventId, REMOTE_MEMBER_1, "Alice Remote", null, "Original content");
+        var updated = service.updateRemoteComment(localPartner, created.id(), REMOTE_MEMBER_1, "Updated content");
+        assertNotNull(updated);
+        assertEquals("Updated content", updated.content());
+        assertNotNull(updated.updatedAt());
+    }
+
+    @Test
+    @Order(53)
+    void updateRemoteCommentWrongOwner() {
+        var created =
+                service.createRemoteComment(localPartner, eventId, REMOTE_MEMBER_1, "Alice Remote", null, "My comment");
+        assertThrows(
+                ForbiddenResponse.class,
+                () -> service.updateRemoteComment(localPartner, created.id(), REMOTE_MEMBER_2, "Hacked!"));
+    }
+
+    @Test
+    @Order(54)
+    void updateRemoteCommentNotFederated() {
+        var localComment = eventCommentRepo.create(eventId, null, testMember.id(), "Local comment");
+        assertThrows(
+                ForbiddenResponse.class,
+                () -> service.updateRemoteComment(localPartner, localComment.id(), REMOTE_MEMBER_1, "Edited"));
+    }
+
+    // -- Comment support: deleteRemoteComment --
+
+    @Test
+    @Order(55)
+    void deleteRemoteComment() {
+        var created =
+                service.createRemoteComment(localPartner, eventId, REMOTE_MEMBER_3, "Delete Me", null, "To be deleted");
+        boolean deleted = service.deleteRemoteComment(localPartner, created.id(), REMOTE_MEMBER_3);
+        assertTrue(deleted);
+    }
+
+    @Test
+    @Order(56)
+    void deleteRemoteCommentWrongOwner() {
+        var created = service.createRemoteComment(localPartner, eventId, REMOTE_MEMBER_1, "Alice", null, "My comment");
+        assertThrows(
+                ForbiddenResponse.class,
+                () -> service.deleteRemoteComment(localPartner, created.id(), REMOTE_MEMBER_2));
+    }
+
+    @Test
+    @Order(57)
+    void deleteRemoteCommentNotFederated() {
+        var localComment = eventCommentRepo.create(eventId, null, testMember.id(), "Local comment to delete");
+        assertThrows(
+                ForbiddenResponse.class,
+                () -> service.deleteRemoteComment(localPartner, localComment.id(), REMOTE_MEMBER_1));
+    }
+
+    // -- Comment support: toCommentResponse --
+
+    @Test
+    @Order(60)
+    void toCommentResponseDeletedComment() {
+        var comment = eventCommentRepo.create(eventId, null, testMember.id(), "Will be deleted");
+        commentService.delete(comment.id());
+        var deletedComment = new Comment(
+                comment.id(),
+                comment.parentId(),
+                comment.authorId(),
+                "",
+                true,
+                comment.createdAt(),
+                comment.updatedAt());
+        var response = service.toCommentResponse(deletedComment);
+        assertTrue(response.deleted());
+        assertEquals("", response.content());
+        assertNull(response.authorName());
+        assertNull(response.federatedAuthor());
+    }
+
+    @Test
+    @Order(61)
+    void toCommentResponseLocalAuthor() {
+        var comment = eventCommentRepo.create(eventId, null, testMember.id(), "Local author comment");
+        var response = service.toCommentResponse(comment);
+        assertFalse(response.deleted());
+        assertEquals("Local author comment", response.content());
+        assertEquals(testMember.id(), response.authorId());
+        assertEquals(testAccount.id(), response.authorAccountId());
+        assertTrue(response.authorName().contains("Test"));
+        assertTrue(response.authorName().contains("Author"));
+        assertNull(response.federatedAuthor());
+        assertNotNull(response.authorStationId());
+        assertEquals("EventFedSvcStationA", response.authorStationName());
+    }
+
+    @Test
+    @Order(62)
+    void toCommentResponseFederatedAuthor() {
+        var created = service.createRemoteComment(
+                localPartner, eventId, REMOTE_MEMBER_2, "Bob Federated", null, "Federated comment");
+        var comment = commentService.findById(created.id()).orElseThrow();
+        var response = service.toCommentResponse(comment);
+        assertFalse(response.deleted());
+        assertEquals("Federated comment", response.content());
+        assertNotNull(response.federatedAuthor());
+        assertEquals("Bob Federated", response.federatedAuthor().displayName());
+        assertEquals(REMOTE_MEMBER_2, response.federatedAuthor().memberUid());
+        assertNotNull(response.authorStationId());
+        assertNotNull(response.authorStationName());
+    }
+
+    // -- Comment support: listComments --
+
+    @Test
+    @Order(63)
+    void listComments() {
+        var comments = service.listComments(eventId);
+        assertNotNull(comments);
+        assertFalse(comments.isEmpty(), "Should have comments from earlier tests");
+        assertTrue(comments.stream().allMatch(c -> c.id() > 0));
+    }
+
+    // -- Federated comment methods: listFederatedComments --
+
+    @Test
+    @Order(70)
+    void listFederatedCommentsLocal() {
+        service.setShare(eventId, "ALL_PARTNERS", List.of());
+        var result = service.listFederatedComments(stationB.id(), stationA.uid(), eventId);
+        assertNotNull(result);
+        assertInstanceOf(EventFederationService.FederatedCommentResult.ListResult.class, result);
+        var listResult = (EventFederationService.FederatedCommentResult.ListResult) result;
+        assertNotNull(listResult.comments());
+    }
+
+    @Test
+    @Order(71)
+    void listFederatedCommentsRemote() {
+        var mockResponses = List.of(new EventCommentRoutes.CommentResponse(
+                1, null, 0, null, "Remote User", "Remote comment", false, Instant.now(), null, null, null, null));
+        when(httpClient.getList(
+                        eq("https://remote-event.example.com"),
+                        eq("/remote/events/" + eventId + "/comments"),
+                        eq(stationA.id()),
+                        any(),
+                        eq(EventCommentRoutes.CommentResponse.class)))
+                .thenReturn(mockResponses);
+
+        var result = service.listFederatedComments(stationA.id(), stationC.uid(), eventId);
+        assertNotNull(result);
+        assertInstanceOf(EventFederationService.FederatedCommentResult.ListResult.class, result);
+        var listResult = (EventFederationService.FederatedCommentResult.ListResult) result;
+        assertEquals(1, listResult.comments().size());
+        assertEquals("Remote comment", listResult.comments().getFirst().content());
+    }
+
+    @Test
+    @Order(72)
+    void listFederatedCommentsUnknownPartner() {
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> service.listFederatedComments(stationA.id(), UUID.randomUUID(), eventId));
+    }
+
+    // -- Federated comment methods: createFederatedComment --
+
+    @Test
+    @Order(73)
+    void createFederatedCommentLocal() {
+        var result = service.createFederatedComment(
+                stationB.id(), stationA.uid(), eventId, REMOTE_MEMBER_1, "Alice", null, "Local federated create");
+        assertNotNull(result);
+        assertInstanceOf(EventFederationService.FederatedCommentResult.SingleResult.class, result);
+        var single = (EventFederationService.FederatedCommentResult.SingleResult) result;
+        assertEquals("Local federated create", single.comment().content());
+    }
+
+    @Test
+    @Order(74)
+    void createFederatedCommentRemote() {
+        var mockResponse = new EventCommentRoutes.CommentResponse(
+                99, null, 0, null, "Remote Author", "Remote created", false, Instant.now(), null, null, null, null);
+        when(httpClient.post(
+                        eq("https://remote-event.example.com"),
+                        eq("/remote/events/" + eventId + "/comments"),
+                        any(),
+                        eq(stationA.id()),
+                        any(),
+                        eq(EventCommentRoutes.CommentResponse.class)))
+                .thenReturn(mockResponse);
+
+        var result = service.createFederatedComment(
+                stationA.id(), stationC.uid(), eventId, REMOTE_MEMBER_1, "Alice", null, "Remote content");
+        assertNotNull(result);
+        assertInstanceOf(EventFederationService.FederatedCommentResult.SingleResult.class, result);
+        var single = (EventFederationService.FederatedCommentResult.SingleResult) result;
+        assertEquals("Remote created", single.comment().content());
+    }
+
+    @Test
+    @Order(75)
+    void createFederatedCommentRemoteReturnsNull() {
+        when(httpClient.post(
+                        eq("https://remote-event.example.com"),
+                        eq("/remote/events/" + eventId + "/comments"),
+                        any(),
+                        eq(stationA.id()),
+                        any(),
+                        eq(EventCommentRoutes.CommentResponse.class)))
+                .thenReturn(null);
+
+        assertThrows(
+                IllegalStateException.class,
+                () -> service.createFederatedComment(
+                        stationA.id(), stationC.uid(), eventId, REMOTE_MEMBER_1, "Alice", null, "Will fail"));
+    }
+
+    // -- Federated comment methods: updateFederatedComment --
+
+    @Test
+    @Order(76)
+    void updateFederatedCommentLocal() {
+        var createResult = service.createFederatedComment(
+                stationB.id(), stationA.uid(), eventId, REMOTE_MEMBER_1, "Alice", null, "To update locally");
+        var single = (EventFederationService.FederatedCommentResult.SingleResult) createResult;
+        int commentId = single.comment().id();
+
+        var result = service.updateFederatedComment(
+                stationB.id(), stationA.uid(), commentId, REMOTE_MEMBER_1, "Updated locally");
+        assertNotNull(result);
+        assertInstanceOf(EventFederationService.FederatedCommentResult.SingleResult.class, result);
+        var updatedSingle = (EventFederationService.FederatedCommentResult.SingleResult) result;
+        assertEquals("Updated locally", updatedSingle.comment().content());
+    }
+
+    @Test
+    @Order(77)
+    void updateFederatedCommentLocalWrongOwner() {
+        var createResult = service.createFederatedComment(
+                stationB.id(), stationA.uid(), eventId, REMOTE_MEMBER_1, "Alice", null, "Owner check");
+        var single = (EventFederationService.FederatedCommentResult.SingleResult) createResult;
+        int commentId = single.comment().id();
+
+        assertThrows(
+                ForbiddenResponse.class,
+                () -> service.updateFederatedComment(
+                        stationB.id(), stationA.uid(), commentId, REMOTE_MEMBER_2, "Wrong owner"));
+    }
+
+    @Test
+    @Order(78)
+    void updateFederatedCommentRemote() {
+        var mockResponse = new EventCommentRoutes.CommentResponse(
+                100, null, 0, null, "Remote", "Updated remote", false, Instant.now(), Instant.now(), null, null, null);
+        when(httpClient.put(
+                        eq("https://remote-event.example.com"),
+                        eq("/remote/events/comments/100"),
+                        any(),
+                        eq(stationA.id()),
+                        any(),
+                        eq(EventCommentRoutes.CommentResponse.class)))
+                .thenReturn(mockResponse);
+
+        var result =
+                service.updateFederatedComment(stationA.id(), stationC.uid(), 100, REMOTE_MEMBER_1, "Updated remote");
+        assertNotNull(result);
+        assertInstanceOf(EventFederationService.FederatedCommentResult.SingleResult.class, result);
+    }
+
+    @Test
+    @Order(79)
+    void updateFederatedCommentRemoteReturnsNull() {
+        when(httpClient.put(
+                        eq("https://remote-event.example.com"),
+                        eq("/remote/events/comments/200"),
+                        any(),
+                        eq(stationA.id()),
+                        any(),
+                        eq(EventCommentRoutes.CommentResponse.class)))
+                .thenReturn(null);
+
+        assertThrows(
+                IllegalStateException.class,
+                () -> service.updateFederatedComment(stationA.id(), stationC.uid(), 200, REMOTE_MEMBER_1, "Will fail"));
+    }
+
+    // -- Federated comment methods: deleteFederatedComment --
+
+    @Test
+    @Order(80)
+    void deleteFederatedCommentLocal() {
+        var createResult = service.createFederatedComment(
+                stationB.id(), stationA.uid(), eventId, REMOTE_MEMBER_3, "Charlie", null, "Delete me locally");
+        var single = (EventFederationService.FederatedCommentResult.SingleResult) createResult;
+        int commentId = single.comment().id();
+
+        boolean deleted = service.deleteFederatedComment(stationB.id(), stationA.uid(), commentId, REMOTE_MEMBER_3);
+        assertTrue(deleted);
+    }
+
+    @Test
+    @Order(81)
+    void deleteFederatedCommentLocalWrongOwner() {
+        var createResult = service.createFederatedComment(
+                stationB.id(), stationA.uid(), eventId, REMOTE_MEMBER_1, "Alice", null, "Delete check");
+        var single = (EventFederationService.FederatedCommentResult.SingleResult) createResult;
+        int commentId = single.comment().id();
+
+        assertThrows(
+                ForbiddenResponse.class,
+                () -> service.deleteFederatedComment(stationB.id(), stationA.uid(), commentId, REMOTE_MEMBER_2));
+    }
+
+    @Test
+    @Order(82)
+    void deleteFederatedCommentRemote() {
+        when(httpClient.delete(
+                        eq("https://remote-event.example.com"),
+                        eq("/remote/events/comments/300"),
+                        eq(stationA.id()),
+                        any()))
+                .thenReturn(true);
+
+        boolean deleted = service.deleteFederatedComment(stationA.id(), stationC.uid(), 300, REMOTE_MEMBER_1);
+        assertTrue(deleted);
+    }
+
+    @Test
+    @Order(83)
+    void deleteFederatedCommentRemoteFails() {
+        when(httpClient.delete(
+                        eq("https://remote-event.example.com"),
+                        eq("/remote/events/comments/301"),
+                        eq(stationA.id()),
+                        any()))
+                .thenReturn(false);
+
+        assertThrows(
+                IllegalStateException.class,
+                () -> service.deleteFederatedComment(stationA.id(), stationC.uid(), 301, REMOTE_MEMBER_1));
+    }
+
+    // -- getFederatedEvent edge cases --
+
+    @Test
+    @Order(85)
+    void getFederatedEventUnknownPartner() {
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> service.getFederatedEvent(stationA.id(), UUID.randomUUID(), eventId));
+    }
+
+    // -- HTTP convenience methods --
+
+    @Test
+    @Order(90)
+    void fetchFederatedEvents() {
+        var remoteEvent = new EventFederationService.RemoteFederatedEvent(
+                1, "Test Event", "desc", "ONE_TIME", 0, "10:00", "12:00", true, false);
+        when(httpClient.getList(
+                        eq("https://example.com"),
+                        eq("/remote/events"),
+                        eq(1),
+                        eq("key123"),
+                        eq(EventFederationService.RemoteFederatedEvent.class)))
+                .thenReturn(List.of(remoteEvent));
+
+        var result = service.fetchFederatedEvents("https://example.com", 1, "key123");
+        assertEquals(1, result.size());
+        assertEquals("Test Event", result.getFirst().name());
+        assertEquals("desc", result.getFirst().description());
+        assertEquals("ONE_TIME", result.getFirst().eventType());
+        assertEquals(0, result.getFirst().dayOfWeek());
+        assertEquals("10:00", result.getFirst().startTime());
+        assertEquals("12:00", result.getFirst().endTime());
+        assertTrue(result.getFirst().requiresRegistration());
+        assertFalse(result.getFirst().requiresConfirmation());
+    }
+
+    @Test
+    @Order(91)
+    void registerForFederatedEvent() {
+        when(httpClient.post(eq("https://example.com"), eq("/remote/events/1/register"), any(), eq(1), eq("key123")))
+                .thenReturn(true);
+
+        boolean success =
+                service.registerForFederatedEvent("https://example.com", 1, REMOTE_MEMBER_1, "2026-07-01", 1, "key123");
+        assertTrue(success);
+    }
+
+    @Test
+    @Order(92)
+    void withdrawFederatedRegistration() {
+        when(httpClient.delete(eq("https://example.com"), eq("/remote/events/1/register"), any(), eq(1), eq("key123")))
+                .thenReturn(true);
+
+        boolean success = service.withdrawFederatedRegistration(
+                "https://example.com", 1, REMOTE_MEMBER_1, "2026-07-01", 1, "key123");
+        assertTrue(success);
+    }
+
+    // -- FederatedCommentResult record types --
+
+    @Test
+    @Order(95)
+    void federatedCommentResultOfList() {
+        var comments = List.of(new EventCommentRoutes.CommentResponse(
+                1, null, 0, null, "Name", "Content", false, Instant.now(), null, null, null, null));
+        var result = EventFederationService.FederatedCommentResult.ofList(comments);
+        assertInstanceOf(EventFederationService.FederatedCommentResult.ListResult.class, result);
+        assertEquals(
+                1,
+                ((EventFederationService.FederatedCommentResult.ListResult) result)
+                        .comments()
+                        .size());
+    }
+
+    @Test
+    @Order(96)
+    void federatedCommentResultOfSingle() {
+        var comment = new EventCommentRoutes.CommentResponse(
+                1, null, 0, null, "Name", "Content", false, Instant.now(), null, null, null, null);
+        var result = EventFederationService.FederatedCommentResult.ofSingle(comment);
+        assertInstanceOf(EventFederationService.FederatedCommentResult.SingleResult.class, result);
+        assertEquals(
+                "Content",
+                ((EventFederationService.FederatedCommentResult.SingleResult) result)
+                        .comment()
+                        .content());
+    }
+
+    // -- RemoteFederatedEvent record --
+
+    @Test
+    @Order(97)
+    void remoteFederatedEventRecord() {
+        var event = new EventFederationService.RemoteFederatedEvent(
+                1, "Name", "Description", "RECURRING", 3, "09:00", "11:00", false, true);
+        assertEquals(1, event.id());
+        assertEquals("Name", event.name());
+        assertEquals("Description", event.description());
+        assertEquals("RECURRING", event.eventType());
+        assertEquals(3, event.dayOfWeek());
+        assertEquals("09:00", event.startTime());
+        assertEquals("11:00", event.endTime());
+        assertFalse(event.requiresRegistration());
+        assertTrue(event.requiresConfirmation());
     }
 }

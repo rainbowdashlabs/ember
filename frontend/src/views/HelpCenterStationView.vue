@@ -115,6 +115,9 @@ const pageSubtitle = computed(() => t('helpCenter.title'))
         </SidebarLink>
       </SidebarGroup>
 
+      <SidebarGroup :icon="['fas', 'clipboard-check']" :label="t('sidebar.requirements')" prefix="/helpcenter/station/requirements"
+                    to="/helpcenter/station/requirements" name="help-station-requirements" @navigate="close"/>
+
       <SidebarGroup :icon="['fas', 'newspaper']" :label="t('sidebar.news')" prefix="/helpcenter/station/news"
                     to="/helpcenter/station/news" name="help-news-module-overview" @navigate="close">
         <SidebarLink :icon="['fas', 'pen']" name="help-news-create" to="/helpcenter/station/news/create" @navigate="close">

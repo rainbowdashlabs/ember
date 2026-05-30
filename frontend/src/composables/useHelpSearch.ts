@@ -36,6 +36,8 @@ const HELP_PAGE_MAP: { route: string; path: string; i18nPrefix: string; section:
     {route: 'help-dashboard-module-overview', path: '/helpcenter/station/dashboard', i18nPrefix: 'helpCenter.dashboardOverview', section: 'Dashboard'},
     {route: 'help-dashboard-overview', path: '/helpcenter/station/dashboard/overview', i18nPrefix: 'helpCenter.dashboard', section: 'Dashboard > Übersicht'},
     {route: 'help-dashboard-statistics', path: '/helpcenter/station/dashboard/statistics', i18nPrefix: 'helpCenter.statistics', section: 'Dashboard > Statistiken'},
+    // Requirements
+    {route: 'help-station-requirements', path: '/helpcenter/station/requirements', i18nPrefix: 'helpCenter.requirements', section: 'Aufgaben'},
     // News
     {route: 'help-news-module-overview', path: '/helpcenter/station/news', i18nPrefix: 'helpCenter.newsOverview', section: 'Neuigkeiten'},
     {route: 'help-news-create', path: '/helpcenter/station/news/create', i18nPrefix: 'helpCenter.newsEdit', section: 'Neuigkeiten > Erstellen'},

@@ -525,7 +525,7 @@ class DomainEventHandlerTest {
         verify(notificationService)
                 .notifyMembers(
                         eq(List.of(20, 21)),
-                        eq(NotificationType.EVENT_REGISTRATION_STATUS),
+                        eq(NotificationType.REGISTRATION_DEADLINE_EXPIRED),
                         any(NotificationData.class));
     }
 
