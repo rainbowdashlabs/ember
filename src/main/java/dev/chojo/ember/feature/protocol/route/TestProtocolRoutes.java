@@ -12,7 +12,9 @@ import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
+import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
+import dev.chojo.ember.feature.members.repository.UserTagRepository;
 import dev.chojo.ember.feature.protocol.entity.TestProtocol;
 import dev.chojo.ember.feature.protocol.entity.TestProtocolItem;
 import dev.chojo.ember.feature.protocol.entity.TestProtocolRun;
@@ -39,6 +41,7 @@ import java.io.ByteArrayOutputStream;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -53,6 +56,8 @@ public class TestProtocolRoutes implements Routes {
     private final TestProtocolService service;
     private final TestProtocolPdfService pdfService;
     private final StationMemberRepository stationMemberRepository;
+    private final MemberGroupRepository memberGroupRepository;
+    private final UserTagRepository userTagRepository;
     private final AccountRepository accountRepository;
     private final FederationRepository federationRepository;
     private final StationRepository stationRepository;
@@ -62,12 +67,16 @@ public class TestProtocolRoutes implements Routes {
             TestProtocolService service,
             TestProtocolPdfService pdfService,
             StationMemberRepository stationMemberRepository,
+            MemberGroupRepository memberGroupRepository,
+            UserTagRepository userTagRepository,
             AccountRepository accountRepository,
             FederationRepository federationRepository,
             StationRepository stationRepository) {
         this.service = service;
         this.pdfService = pdfService;
         this.stationMemberRepository = stationMemberRepository;
+        this.memberGroupRepository = memberGroupRepository;
+        this.userTagRepository = userTagRepository;
         this.accountRepository = accountRepository;
         this.federationRepository = federationRepository;
         this.stationRepository = stationRepository;
@@ -295,9 +304,33 @@ public class TestProtocolRoutes implements Routes {
                 req.name(),
                 req.testDate() != null ? req.testDate() : LocalDate.now(),
                 session.member().id());
-        // Add members
+        // Collect members from all sources, deduplicated
+        var resolvedIds = new LinkedHashSet<Integer>();
         if (req.memberIds() != null) {
-            service.addRunMembers(run.id(), req.memberIds());
+            resolvedIds.addAll(req.memberIds());
+        }
+        if (req.roleIds() != null) {
+            for (int roleId : req.roleIds()) {
+                var role = stationMemberRepository.findRoleById(roleId);
+                role.ifPresent(r -> stationMemberRepository
+                        .findMembersWithRole(session.stationId(), Roles.valueOf(r.role()))
+                        .forEach(m -> resolvedIds.add(m.id())));
+            }
+        }
+        if (req.groupIds() != null) {
+            for (int groupId : req.groupIds()) {
+                memberGroupRepository.findMembers(groupId)
+                        .forEach(m -> resolvedIds.add(m.id()));
+            }
+        }
+        if (req.tagIds() != null) {
+            for (int tagId : req.tagIds()) {
+                userTagRepository.findMembers(tagId)
+                        .forEach(m -> resolvedIds.add(m.id()));
+            }
+        }
+        if (!resolvedIds.isEmpty()) {
+            service.addRunMembers(run.id(), new ArrayList<>(resolvedIds));
         }
         ctx.status(HttpStatus.CREATED).json(run);
     }
@@ -529,7 +562,13 @@ public class TestProtocolRoutes implements Routes {
 
     public record ItemRequest(String label, String description, Double points, Integer position) {}
 
-    public record RunRequest(String name, LocalDate testDate, List<Integer> memberIds) {}
+    public record RunRequest(
+            String name,
+            LocalDate testDate,
+            List<Integer> memberIds,
+            List<Integer> roleIds,
+            List<Integer> groupIds,
+            List<Integer> tagIds) {}
 
     public record ChecksRequest(Map<Integer, Boolean> checks) {}
 

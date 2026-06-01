@@ -76,7 +76,7 @@ const filteredShared = computed(() => {
   if (searchQuery.value.trim()) {
     const q = searchQuery.value.trim().toLowerCase()
     result = result.filter(
-      s => s.protocol.name.toLowerCase().includes(q) || (s.protocol.description && s.protocol.description.toLowerCase().includes(q)),
+      s => s.name.toLowerCase().includes(q) || (s.description && s.description.toLowerCase().includes(q)),
     )
   }
   if (filterStationId.value != null) {
@@ -199,23 +199,22 @@ onMounted(() => { if (loaded.value) loadData() })
       <!-- Shared protocols from partner stations -->
       <NeutralContainer
         v-for="s in filteredShared"
-        :key="'shared-' + s.protocol.id + '-' + s.sourceStationId"
+        :key="'shared-' + s.id + '-' + s.sourceStationId"
         class="flex items-center gap-2 cursor-pointer hover:border-[var(--primary)] transition-colors group"
-        @click="router.push({ name: 'protocol-detail', params: { id: s.protocol.id } })"
+        @click="router.push({ name: 'protocol-detail', params: { id: s.id } })"
       >
         <div class="flex-1 min-w-0">
           <div class="flex items-center gap-2">
-            <span class="font-medium">{{ s.protocol.name }}</span>
+            <span class="font-medium">{{ s.name }}</span>
             <StationBadge :station-name="s.stationName" />
           </div>
-          <div v-if="s.protocol.description" class="text-sm text-[var(--text-muted)] truncate">{{ s.protocol.description }}</div>
+          <div v-if="s.description" class="text-sm text-[var(--text-muted)] truncate">{{ s.description }}</div>
         </div>
-        <span v-if="s.protocol.passThreshold" class="text-xs text-[var(--text-muted)]">{{ t('protocol.threshold') }}: {{ s.protocol.passThreshold }}P</span>
         <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
           <IconButton
             :icon="['fas', 'copy']"
             :label="t('federation.copyToStation')"
-            @click.stop="copySharedProtocol(s.protocol.id)"
+            @click.stop="copySharedProtocol(s.id)"
           />
         </div>
       </NeutralContainer>

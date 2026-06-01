@@ -282,7 +282,7 @@ public class StationExportService {
                 data.put(
                         "eventCategories",
                         queryRows(
-                                "SELECT id, name, position FROM event_category WHERE station_id = :id ORDER BY position",
+                                "SELECT id, name, position, public, max_shown_events FROM event_category WHERE station_id = :id ORDER BY position",
                                 stationId,
                                 offset,
                                 limit));
@@ -322,7 +322,7 @@ public class StationExportService {
                 data.put(
                         "attendanceSessionFields",
                         queryRows(
-                                "SELECT sf.session_id, sf.field_id, sf.label FROM attendance_session_field sf JOIN attendance_session s ON s.id = sf.session_id JOIN attendance_template t ON t.id = s.template_id WHERE t.station_id = :id",
+                                "SELECT sf.session_id, sf.field_id, sf.value FROM attendance_session_field sf JOIN attendance_session s ON s.id = sf.session_id JOIN attendance_template t ON t.id = s.template_id WHERE t.station_id = :id",
                                 stationId,
                                 offset,
                                 limit));
@@ -338,7 +338,7 @@ public class StationExportService {
                 data.put(
                         "attendanceReportPresets",
                         queryRows(
-                                "SELECT id, name, config FROM attendance_report_preset WHERE station_id = :id",
+                                "SELECT id, name, role_name, group_id, period, rounding FROM attendance_report_preset WHERE station_id = :id",
                                 stationId,
                                 offset,
                                 limit));
@@ -346,7 +346,7 @@ public class StationExportService {
                 data.put(
                         "events",
                         queryRows(
-                                "SELECT id, name, description, event_type, day_of_week, start_time, end_time, template_id, requires_registration, registration_deadline, requires_confirmation, category_id FROM station_event WHERE station_id = :id",
+                                "SELECT id, name, description, event_type, day_of_week, start_time, end_time, template_id, requires_registration, registration_deadline, requires_confirmation, category_id, restriction_mode, public, registration_limit, cancelled, cancelled_at, cancel_reason, min_registrations, threshold_date FROM station_event WHERE station_id = :id",
                                 stationId,
                                 offset,
                                 limit));
@@ -378,7 +378,7 @@ public class StationExportService {
                 data.put(
                         "forms",
                         queryRows(
-                                "SELECT id, title, description, status, shuffle_questions, allow_edit, start_at, end_at, closed_at, created_by, created_at, updated_at FROM form WHERE station_id = :id",
+                                "SELECT id, title, description, status, shuffle_questions, allow_edit, start_at, end_at, closed_at, created_by, created_at, updated_at, restriction_mode, forced FROM form WHERE station_id = :id",
                                 stationId,
                                 offset,
                                 limit));
@@ -457,7 +457,7 @@ public class StationExportService {
                 data.put(
                         "eventFields",
                         queryRows(
-                                "SELECT ef.id, ef.event_id, ef.name, ef.field_type, ef.config, ef.required, ef.position FROM event_field ef JOIN station_event se ON se.id = ef.event_id WHERE se.station_id = :id ORDER BY ef.position",
+                                "SELECT ef.id, ef.event_id, ef.name, ef.value, ef.position, ef.field_type, ef.config, ef.overview, ef.attendance_field_id, ef.public FROM event_field ef JOIN station_event se ON se.id = ef.event_id WHERE se.station_id = :id ORDER BY ef.position",
                                 stationId,
                                 offset,
                                 limit));
@@ -465,7 +465,7 @@ public class StationExportService {
                 data.put(
                         "eventTemplates",
                         queryRows(
-                                "SELECT id, name, description, event_type, day_of_week, start_time, end_time, requires_registration, registration_deadline, requires_confirmation, category_id FROM event_template WHERE station_id = :id",
+                                "SELECT id, name, title, description, category_id, event_type, requires_registration, registration_deadline_offset, requires_confirmation, restriction_mode, attendance_template_id, registration_limit FROM event_template WHERE station_id = :id",
                                 stationId,
                                 offset,
                                 limit));
@@ -505,7 +505,7 @@ public class StationExportService {
                 data.put(
                         "boardLanes",
                         queryRows(
-                                "SELECT bl.id, bl.board_id, bl.name, bl.color, bl.position, bl.is_done FROM board_lane bl JOIN board b ON b.id = bl.board_id WHERE b.station_id = :id ORDER BY bl.position",
+                                "SELECT bl.id, bl.board_id, bl.name, bl.color, bl.position FROM board_lane bl JOIN board b ON b.id = bl.board_id WHERE b.station_id = :id ORDER BY bl.position",
                                 stationId,
                                 offset,
                                 limit));
@@ -593,7 +593,7 @@ public class StationExportService {
                 data.put(
                         "lostAndFound",
                         queryRows(
-                                "SELECT id, title, description, found_location, found_date, claimed_by, claimed_at, created_by, created_at, status FROM lost_and_found_item WHERE station_id = :id",
+                                "SELECT id, description, found_at, claimed_by, claimed_at, created_by, created_at FROM lost_and_found_item WHERE station_id = :id",
                                 stationId,
                                 offset,
                                 limit));
@@ -601,7 +601,7 @@ public class StationExportService {
                 data.put(
                         "waitingLists",
                         queryRows(
-                                "SELECT id, name, description, status, confirmation_required, invite_only, confirmation_deadline_days FROM waiting_list WHERE station_id = :id",
+                                "SELECT id, name, description, scoring_formula, confirm_interval_days, visible_fields, testing_group_id, join_group_id, join_role_id, attendance_threshold, created_at FROM waiting_list WHERE station_id = :id",
                                 stationId,
                                 offset,
                                 limit));
@@ -609,7 +609,7 @@ public class StationExportService {
                 data.put(
                         "waitingListFields",
                         queryRows(
-                                "SELECT wlf.id, wlf.list_id, wlf.name, wlf.field_type, wlf.config, wlf.required, wlf.position FROM waiting_list_field wlf JOIN waiting_list wl ON wl.id = wlf.list_id WHERE wl.station_id = :id ORDER BY wlf.position",
+                                "SELECT wlf.id, wlf.list_id, wlf.name, wlf.field_type, wlf.config, wlf.position, wlf.required FROM waiting_list_field wlf JOIN waiting_list wl ON wl.id = wlf.list_id WHERE wl.station_id = :id ORDER BY wlf.position",
                                 stationId,
                                 offset,
                                 limit));
@@ -617,7 +617,7 @@ public class StationExportService {
                 data.put(
                         "waitingListEntries",
                         queryRows(
-                                "SELECT wle.id, wle.list_id, wle.status, wle.created_at, wle.confirmed_at FROM waiting_list_entry wle JOIN waiting_list wl ON wl.id = wle.list_id WHERE wl.station_id = :id",
+                                "SELECT wle.id, wle.list_id, wle.firstname, wle.lastname, wle.parent_name, wle.email, wle.access_token, wle.status, wle.confirmed_at, wle.reminder_sent_at, wle.created_at, wle.notes, wle.member_id, wle.invited_at, wle.testing_at, wle.joined_at, wle.withdrawn_at, wle.attendance_count FROM waiting_list_entry wle JOIN waiting_list wl ON wl.id = wle.list_id WHERE wl.station_id = :id",
                                 stationId,
                                 offset,
                                 limit));

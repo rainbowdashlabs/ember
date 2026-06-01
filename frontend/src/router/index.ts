@@ -57,7 +57,7 @@ const router = createRouter({
         {
             path: '/requirements',
             name: 'requirements',
-            component: () => import('@/views/PostLoginRequirementsView.vue'),
+            redirect: '/station/requirements',
         },
         {
             path: '/forgot-password',

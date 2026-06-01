@@ -692,11 +692,15 @@ public class StationImportService {
         for (var cat : categories) {
             int oldId = intVal(cat, "id");
             int newId = insertReturningId(
-                    "INSERT INTO event_category(station_id, name, position) VALUES(:station_id, :name, :position) RETURNING id;",
+                    "INSERT INTO event_category(station_id, name, position, public, max_shown_events) VALUES(:station_id, :name, :position, :public, :max_shown) RETURNING id;",
                     Call.of()
                             .bind("station_id", stationId)
                             .bind("name", str(cat, "name", ""))
-                            .bind("position", intVal(cat, "position")));
+                            .bind("position", intVal(cat, "position"))
+                            .bind("public", boolVal(cat, "public"))
+                            .bind(
+                                    "max_shown",
+                                    cat.get("max_shown_events") != null ? intVal(cat, "max_shown_events") : null));
             idMap.put("eventCategory", oldId, newId);
         }
         return categories.size();
@@ -790,11 +794,11 @@ public class StationImportService {
             int fieldId = idMap.get("attendanceTemplateField", intVal(item, "field_id"));
             if (sessionId > 0 && fieldId > 0) {
                 Query.query(
-                                "INSERT INTO attendance_session_field(session_id, field_id, label) VALUES(:sid, :fid, :label) ON CONFLICT DO NOTHING;")
+                                "INSERT INTO attendance_session_field(session_id, field_id, value) VALUES(:sid, :fid, :value::jsonb) ON CONFLICT DO NOTHING;")
                         .single(Call.of()
                                 .bind("sid", sessionId)
                                 .bind("fid", fieldId)
-                                .bind("label", str(item, "label", "")))
+                                .bind("value", str(item, "value", "{}")))
                         .insert();
                 count++;
             }
@@ -832,12 +836,16 @@ public class StationImportService {
         int count = 0;
         for (var item : items) {
             int oldId = intVal(item, "id");
+            Integer groupId = item.get("group_id") != null ? idMap.get("group", intVal(item, "group_id")) : null;
             int newId = insertReturningId(
-                    "INSERT INTO attendance_report_preset(station_id, name, config) VALUES(:sid, :name, :config::jsonb) RETURNING id;",
+                    "INSERT INTO attendance_report_preset(station_id, name, role_name, group_id, period, rounding) VALUES(:sid, :name, :role_name, :group_id, :period, :rounding) RETURNING id;",
                     Call.of()
                             .bind("sid", stationId)
                             .bind("name", str(item, "name", ""))
-                            .bind("config", str(item, "config", "{}")));
+                            .bind("role_name", str(item, "role_name", null))
+                            .bind("group_id", groupId)
+                            .bind("period", str(item, "period", "month"))
+                            .bind("rounding", str(item, "rounding", "exact")));
             idMap.put("attendanceReportPreset", oldId, newId);
             count++;
         }
@@ -855,7 +863,7 @@ public class StationImportService {
             Integer categoryId =
                     event.get("category_id") != null ? idMap.get("eventCategory", intVal(event, "category_id")) : null;
             int newId = insertReturningId(
-                    "INSERT INTO station_event(station_id, name, description, event_type, day_of_week, start_time, end_time, template_id, requires_registration, registration_deadline, requires_confirmation, category_id) VALUES(:station_id, :name, :desc, :event_type, :dow, :start::timestamptz, :end::timestamptz, :tmpl, :reg, :deadline::timestamp, :confirm, :cat) RETURNING id;",
+                    "INSERT INTO station_event(station_id, name, description, event_type, day_of_week, start_time, end_time, template_id, requires_registration, registration_deadline, requires_confirmation, category_id, restriction_mode, public, registration_limit, cancelled, cancelled_at, cancel_reason, min_registrations, threshold_date) VALUES(:station_id, :name, :desc, :event_type, :dow, :start::timestamptz, :end::timestamptz, :tmpl, :reg, :deadline::timestamp, :confirm, :cat, :restriction_mode, :public, :reg_limit, :cancelled, :cancelled_at::timestamptz, :cancel_reason, :min_reg, :threshold_date::timestamptz) RETURNING id;",
                     Call.of()
                             .bind("station_id", stationId)
                             .bind("name", str(event, "name", ""))
@@ -868,7 +876,21 @@ public class StationImportService {
                             .bind("reg", boolVal(event, "requires_registration"))
                             .bind("deadline", str(event, "registration_deadline", null))
                             .bind("confirm", boolVal(event, "requires_confirmation"))
-                            .bind("cat", categoryId != null && categoryId > 0 ? categoryId : null));
+                            .bind("cat", categoryId != null && categoryId > 0 ? categoryId : null)
+                            .bind("restriction_mode", str(event, "restriction_mode", "AND"))
+                            .bind("public", event.get("public") != null ? boolVal(event, "public") : null)
+                            .bind(
+                                    "reg_limit",
+                                    event.get("registration_limit") != null
+                                            ? intVal(event, "registration_limit")
+                                            : null)
+                            .bind("cancelled", boolVal(event, "cancelled"))
+                            .bind("cancelled_at", str(event, "cancelled_at", null))
+                            .bind("cancel_reason", str(event, "cancel_reason", null))
+                            .bind(
+                                    "min_reg",
+                                    event.get("min_registrations") != null ? intVal(event, "min_registrations") : null)
+                            .bind("threshold_date", str(event, "threshold_date", null)));
             idMap.put("event", oldId, newId);
         }
         return events.size();
@@ -925,7 +947,7 @@ public class StationImportService {
                     item.get("assigned_to") != null ? idMap.get("member", intVal(item, "assigned_to")) : null;
             if (inventoryId > 0) {
                 int newId = insertReturningId(
-                        "INSERT INTO inventory_item(inventory_id, internal_id, name, size_id, metadata, assigned_to, item_source) VALUES(:inv, :iid, :name, :sid, :meta::JSONB, :at, :src) RETURNING id;",
+                        "INSERT INTO inventory_item(inventory_id, internal_id, name, size_id, metadata, assigned_to, lost_at, item_source) VALUES(:inv, :iid, :name, :sid, :meta::JSONB, :at, :lost_at::timestamp, :src) RETURNING id;",
                         Call.of()
                                 .bind("inv", inventoryId)
                                 .bind("iid", str(item, "internal_id", null))
@@ -933,6 +955,7 @@ public class StationImportService {
                                 .bind("sid", sizeId != null && sizeId > 0 ? sizeId : null)
                                 .bind("meta", str(item, "metadata", "{}"))
                                 .bind("at", assignedTo != null && assignedTo > 0 ? assignedTo : null)
+                                .bind("lost_at", str(item, "lost_at", null))
                                 .bind("src", str(item, "item_source", null)));
                 idMap.put("inventoryItem", oldId, newId);
                 count++;
@@ -951,7 +974,7 @@ public class StationImportService {
                 createdBy = idMap.maps.get("member").values().iterator().next();
             }
             int newId = insertReturningId(
-                    "INSERT INTO form(station_id, title, description, status, shuffle_questions, allow_edit, created_by) VALUES(:sid, :title, :desc, :status, :shuffle, :edit, :by) RETURNING id;",
+                    "INSERT INTO form(station_id, title, description, status, shuffle_questions, allow_edit, start_at, end_at, closed_at, created_by, created_at, updated_at, restriction_mode, forced) VALUES(:sid, :title, :desc, :status, :shuffle, :edit, :start_at::timestamp, :end_at::timestamp, :closed_at::timestamp, :by, :created_at::timestamp, :updated_at::timestamp, :restriction_mode, :forced) RETURNING id;",
                     Call.of()
                             .bind("sid", stationId)
                             .bind("title", str(form, "title", ""))
@@ -959,7 +982,14 @@ public class StationImportService {
                             .bind("status", str(form, "status", "DRAFT"))
                             .bind("shuffle", boolVal(form, "shuffle_questions"))
                             .bind("edit", boolVal(form, "allow_edit"))
-                            .bind("by", createdBy));
+                            .bind("start_at", str(form, "start_at", null))
+                            .bind("end_at", str(form, "end_at", null))
+                            .bind("closed_at", str(form, "closed_at", null))
+                            .bind("by", createdBy)
+                            .bind("created_at", str(form, "created_at", null))
+                            .bind("updated_at", str(form, "updated_at", null))
+                            .bind("restriction_mode", str(form, "restriction_mode", "AND"))
+                            .bind("forced", boolVal(form, "forced")));
             idMap.put("form", oldId, newId);
         }
         return forms.size();
@@ -1078,15 +1108,23 @@ public class StationImportService {
             int eventId = idMap.get("event", intVal(f, "event_id"));
             if (eventId > 0) {
                 int oldId = intVal(f, "id");
+                Integer attendanceFieldId = f.get("attendance_field_id") != null
+                        ? idMap.get("attendanceTemplateField", intVal(f, "attendance_field_id"))
+                        : null;
                 int newId = insertReturningId(
-                        "INSERT INTO event_field(event_id, name, field_type, config, required, position) VALUES(:event_id, :name, :field_type, :config::jsonb, :required, :position) RETURNING id;",
+                        "INSERT INTO event_field(event_id, name, value, position, field_type, config, overview, attendance_field_id, public) VALUES(:event_id, :name, :value, :position, :field_type, :config::jsonb, :overview, :attendance_field_id, :public) RETURNING id;",
                         Call.of()
                                 .bind("event_id", eventId)
                                 .bind("name", str(f, "name", ""))
-                                .bind("field_type", str(f, "field_type", "text"))
+                                .bind("value", str(f, "value", ""))
+                                .bind("position", intVal(f, "position"))
+                                .bind("field_type", str(f, "field_type", "string"))
                                 .bind("config", str(f, "config", "{}"))
-                                .bind("required", boolVal(f, "required"))
-                                .bind("position", intVal(f, "position")));
+                                .bind("overview", boolVal(f, "overview"))
+                                .bind(
+                                        "attendance_field_id",
+                                        attendanceFieldId != null && attendanceFieldId > 0 ? attendanceFieldId : null)
+                                .bind("public", boolVal(f, "public")));
                 idMap.put("eventField", oldId, newId);
                 count++;
             }
@@ -1101,20 +1139,40 @@ public class StationImportService {
             int oldId = intVal(tmpl, "id");
             Integer categoryId =
                     tmpl.get("category_id") != null ? idMap.get("eventCategory", intVal(tmpl, "category_id")) : null;
+            Integer attendanceTemplateId = tmpl.get("attendance_template_id") != null
+                    ? idMap.get("attendanceTemplate", intVal(tmpl, "attendance_template_id"))
+                    : null;
             int newId = insertReturningId(
-                    "INSERT INTO event_template(station_id, name, description, event_type, day_of_week, start_time, end_time, requires_registration, registration_deadline, requires_confirmation, category_id) VALUES(:station_id, :name, :desc, :event_type, :dow, :start::timestamptz, :end::timestamptz, :reg, :deadline::timestamp, :confirm, :cat) RETURNING id;",
+                    "INSERT INTO event_template(station_id, name, title, description, category_id, event_type, requires_registration, registration_deadline_offset, requires_confirmation, restriction_mode, attendance_template_id, registration_limit) VALUES(:station_id, :name, :title, :desc, :cat, :event_type, :reg, :deadline_offset::interval, :confirm, :restriction_mode, :att_tmpl, :reg_limit) RETURNING id;",
                     Call.of()
                             .bind("station_id", stationId)
                             .bind("name", str(tmpl, "name", ""))
+                            .bind("title", str(tmpl, "title", null))
                             .bind("desc", str(tmpl, "description", null))
-                            .bind("event_type", str(tmpl, "event_type", "ONE_TIME"))
-                            .bind("dow", tmpl.get("day_of_week") instanceof Number n ? n.intValue() : null)
-                            .bind("start", str(tmpl, "start_time", null))
-                            .bind("end", str(tmpl, "end_time", null))
-                            .bind("reg", boolVal(tmpl, "requires_registration"))
-                            .bind("deadline", str(tmpl, "registration_deadline", null))
-                            .bind("confirm", boolVal(tmpl, "requires_confirmation"))
-                            .bind("cat", categoryId != null && categoryId > 0 ? categoryId : null));
+                            .bind("cat", categoryId != null && categoryId > 0 ? categoryId : null)
+                            .bind("event_type", str(tmpl, "event_type", null))
+                            .bind(
+                                    "reg",
+                                    tmpl.get("requires_registration") != null
+                                            ? boolVal(tmpl, "requires_registration")
+                                            : null)
+                            .bind("deadline_offset", str(tmpl, "registration_deadline_offset", null))
+                            .bind(
+                                    "confirm",
+                                    tmpl.get("requires_confirmation") != null
+                                            ? boolVal(tmpl, "requires_confirmation")
+                                            : null)
+                            .bind("restriction_mode", str(tmpl, "restriction_mode", null))
+                            .bind(
+                                    "att_tmpl",
+                                    attendanceTemplateId != null && attendanceTemplateId > 0
+                                            ? attendanceTemplateId
+                                            : null)
+                            .bind(
+                                    "reg_limit",
+                                    tmpl.get("registration_limit") != null
+                                            ? intVal(tmpl, "registration_limit")
+                                            : null));
             idMap.put("eventTemplate", oldId, newId);
         }
         return templates.size();
@@ -1218,13 +1276,12 @@ public class StationImportService {
             int boardId = idMap.get("board", intVal(lane, "board_id"));
             if (boardId > 0) {
                 int newId = insertReturningId(
-                        "INSERT INTO board_lane(board_id, name, color, position, is_done) VALUES(:board_id, :name, :color, :position, :is_done) RETURNING id;",
+                        "INSERT INTO board_lane(board_id, name, color, position) VALUES(:board_id, :name, :color, :position) RETURNING id;",
                         Call.of()
                                 .bind("board_id", boardId)
                                 .bind("name", str(lane, "name", ""))
                                 .bind("color", str(lane, "color", null))
-                                .bind("position", intVal(lane, "position"))
-                                .bind("is_done", boolVal(lane, "is_done")));
+                                .bind("position", intVal(lane, "position")));
                 idMap.put("boardLane", oldId, newId);
 
                 // Update backlog_lane_id reference on board if this lane was the backlog
@@ -1487,18 +1544,15 @@ public class StationImportService {
             Integer claimedBy = item.get("claimed_by") != null ? idMap.get("member", intVal(item, "claimed_by")) : null;
             Integer createdBy = item.get("created_by") != null ? idMap.get("member", intVal(item, "created_by")) : null;
             int newId = insertReturningId(
-                    "INSERT INTO lost_and_found_item(station_id, title, description, found_location, found_date, claimed_by, claimed_at, created_by, created_at, status) VALUES(:station_id, :title, :description, :found_location, :found_date::date, :claimed_by, :claimed_at::timestamptz, :created_by, :created_at::timestamptz, :status) RETURNING id;",
+                    "INSERT INTO lost_and_found_item(station_id, description, found_at, claimed_by, claimed_at, created_by, created_at) VALUES(:station_id, :description, :found_at::date, :claimed_by, :claimed_at::timestamptz, :created_by, :created_at::timestamptz) RETURNING id;",
                     Call.of()
                             .bind("station_id", stationId)
-                            .bind("title", str(item, "title", ""))
                             .bind("description", str(item, "description", ""))
-                            .bind("found_location", str(item, "found_location", ""))
-                            .bind("found_date", str(item, "found_date", null))
+                            .bind("found_at", str(item, "found_at", null))
                             .bind("claimed_by", claimedBy != null && claimedBy > 0 ? claimedBy : null)
                             .bind("claimed_at", str(item, "claimed_at", null))
                             .bind("created_by", createdBy != null && createdBy > 0 ? createdBy : null)
-                            .bind("created_at", str(item, "created_at", null))
-                            .bind("status", str(item, "status", "UNCLAIMED")));
+                            .bind("created_at", str(item, "created_at", null)));
             idMap.put("lostAndFound", oldId, newId);
         }
         return items.size();
@@ -1511,20 +1565,26 @@ public class StationImportService {
         var lists = (List<Map<String, Object>>) data.getOrDefault("waitingLists", List.of());
         for (var wl : lists) {
             int oldId = intVal(wl, "id");
+            Integer testingGroupId =
+                    wl.get("testing_group_id") != null ? idMap.get("group", intVal(wl, "testing_group_id")) : null;
+            Integer joinGroupId =
+                    wl.get("join_group_id") != null ? idMap.get("group", intVal(wl, "join_group_id")) : null;
             int newId = insertReturningId(
-                    "INSERT INTO waiting_list(station_id, name, description, status, confirmation_required, invite_only, confirmation_deadline_days) VALUES(:station_id, :name, :description, :status, :confirmation_required, :invite_only, :confirmation_deadline_days) RETURNING id;",
+                    "INSERT INTO waiting_list(station_id, name, description, scoring_formula, confirm_interval_days, visible_fields, testing_group_id, join_group_id, join_role_id, attendance_threshold, created_at) VALUES(:station_id, :name, :description, :scoring_formula, :confirm_interval_days, :visible_fields::jsonb, :testing_group_id, :join_group_id, :join_role_id, :attendance_threshold, :created_at::timestamp) RETURNING id;",
                     Call.of()
                             .bind("station_id", stationId)
                             .bind("name", str(wl, "name", ""))
                             .bind("description", str(wl, "description", ""))
-                            .bind("status", str(wl, "status", "OPEN"))
-                            .bind("confirmation_required", boolVal(wl, "confirmation_required"))
-                            .bind("invite_only", boolVal(wl, "invite_only"))
+                            .bind("scoring_formula", str(wl, "scoring_formula", null))
+                            .bind("confirm_interval_days", intVal(wl, "confirm_interval_days"))
+                            .bind("visible_fields", str(wl, "visible_fields", "[]"))
                             .bind(
-                                    "confirmation_deadline_days",
-                                    wl.get("confirmation_deadline_days") != null
-                                            ? intVal(wl, "confirmation_deadline_days")
-                                            : null));
+                                    "testing_group_id",
+                                    testingGroupId != null && testingGroupId > 0 ? testingGroupId : null)
+                            .bind("join_group_id", joinGroupId != null && joinGroupId > 0 ? joinGroupId : null)
+                            .bind("join_role_id", wl.get("join_role_id") != null ? intVal(wl, "join_role_id") : null)
+                            .bind("attendance_threshold", intVal(wl, "attendance_threshold"))
+                            .bind("created_at", str(wl, "created_at", null)));
             idMap.put("waitingList", oldId, newId);
         }
         return lists.size();
@@ -1562,13 +1622,32 @@ public class StationImportService {
             int listId = idMap.get("waitingList", intVal(e, "list_id"));
             if (listId > 0) {
                 int oldId = intVal(e, "id");
+                Integer memberId = e.get("member_id") != null ? idMap.get("member", intVal(e, "member_id")) : null;
                 int newId = insertReturningId(
-                        "INSERT INTO waiting_list_entry(list_id, status, created_at, confirmed_at) VALUES(:list_id, :status, :created_at::timestamptz, :confirmed_at::timestamptz) RETURNING id;",
+                        "INSERT INTO waiting_list_entry(list_id, firstname, lastname, parent_name, email, access_token, status, confirmed_at, reminder_sent_at, created_at, notes, member_id, invited_at, testing_at, joined_at, withdrawn_at, attendance_count) VALUES(:list_id, :firstname, :lastname, :parent_name, :email, :access_token, :status, :confirmed_at::timestamp, :reminder_sent_at::timestamp, :created_at::timestamp, :notes, :member_id, :invited_at::timestamp, :testing_at::timestamp, :joined_at::timestamp, :withdrawn_at::timestamp, :attendance_count) RETURNING id;",
                         Call.of()
                                 .bind("list_id", listId)
-                                .bind("status", str(e, "status", "PENDING"))
+                                .bind("firstname", str(e, "firstname", ""))
+                                .bind("lastname", str(e, "lastname", ""))
+                                .bind("parent_name", str(e, "parent_name", ""))
+                                .bind("email", str(e, "email", ""))
+                                .bind(
+                                        "access_token",
+                                        str(
+                                                e,
+                                                "access_token",
+                                                java.util.UUID.randomUUID().toString()))
+                                .bind("status", str(e, "status", "WAITING"))
+                                .bind("confirmed_at", str(e, "confirmed_at", null))
+                                .bind("reminder_sent_at", str(e, "reminder_sent_at", null))
                                 .bind("created_at", str(e, "created_at", null))
-                                .bind("confirmed_at", str(e, "confirmed_at", null)));
+                                .bind("notes", str(e, "notes", ""))
+                                .bind("member_id", memberId != null && memberId > 0 ? memberId : null)
+                                .bind("invited_at", str(e, "invited_at", null))
+                                .bind("testing_at", str(e, "testing_at", null))
+                                .bind("joined_at", str(e, "joined_at", null))
+                                .bind("withdrawn_at", str(e, "withdrawn_at", null))
+                                .bind("attendance_count", intVal(e, "attendance_count")));
                 idMap.put("waitingListEntry", oldId, newId);
                 count++;
             }

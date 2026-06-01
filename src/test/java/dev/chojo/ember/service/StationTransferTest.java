@@ -22,6 +22,7 @@ import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.feature.station.service.StationExportService;
 import dev.chojo.ember.feature.station.service.StationImportService;
 import dev.chojo.ember.repository.RepositoryTestBase;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Tag;
@@ -56,17 +57,20 @@ class StationTransferTest extends RepositoryTestBase {
     private static Map<String, Object> exportAllTables(int stationId) {
         var merged = new HashMap<String, Object>();
         for (String table : StationExportService.TABLE_ORDER) {
-            var page = exportService.exportTable(stationId, table, 0, 10000);
-            merged.putAll(page);
+            try {
+                var page = exportService.exportTable(stationId, table, 0, 10000);
+                merged.putAll(page);
+            } catch (Exception e) {
+                throw new RuntimeException("Failed to export table: " + table, e);
+            }
         }
         return merged;
     }
 
     // ==================== Setup with rich demo data ====================
 
-    @Test
-    @Order(1)
-    void setup() {
+    @BeforeAll
+    static void setup() {
         exportService = new StationExportService(stationRepo);
         importService = new StationImportService(stationRepo, stationMemberRepo, accountRepo);
 
