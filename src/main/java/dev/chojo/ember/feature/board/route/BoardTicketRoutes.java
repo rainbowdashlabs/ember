@@ -470,7 +470,9 @@ public class BoardTicketRoutes implements Routes {
         requireEditAccess(boardId, session);
         int ticketId = resolveTicketId(ctx, boardId);
         var req = ctx.bodyAsClass(LinkRequest.class);
-        ticketService.linkTickets(ticketId, req.linkedTicketId(), req.linkType());
+        MemberIdentity actor = memberIdentityFactory.local(
+                session.stationId(), session.member().id());
+        ticketService.linkTickets(ticketId, req.linkedTicketId(), req.linkType(), actor);
         ctx.status(HttpStatus.CREATED).json(ticketService.findLinks(ticketId));
     }
 
@@ -491,7 +493,9 @@ public class BoardTicketRoutes implements Routes {
         requireEditAccess(boardId, session);
         int ticketId = resolveTicketId(ctx, boardId);
         int linkedId = ctx.pathParamAsClass("linkedId", Integer.class).get();
-        ticketService.unlinkTickets(ticketId, linkedId);
+        MemberIdentity actor = memberIdentityFactory.local(
+                session.stationId(), session.member().id());
+        ticketService.unlinkTickets(ticketId, linkedId, actor);
         ctx.status(HttpStatus.NO_CONTENT);
     }
 

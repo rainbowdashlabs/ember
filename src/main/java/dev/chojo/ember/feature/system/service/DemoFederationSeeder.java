@@ -465,14 +465,15 @@ public class DemoFederationSeeder {
         // -- Event comments (local + federated) --
         var primaryEvents = eventService.findByStation(primaryStationId);
         primaryEvents.stream()
-                     .filter(e -> "Übung".equals(e.name()) && e.eventType() == StationEvent.EventType.RECURRING)
-                     .findFirst().ifPresent(evUebung -> commentService.create(
-                             primaryStationId,
-                             evUebung.id(),
-                             null,
-                             memberIdentityFactory.local(primaryStationId, createdBy),
-                             "Admin",
-                             "Nächste Woche üben wir den Löschangriff — bitte Sportkleidung mitbringen!"));
+                .filter(e -> "Übung".equals(e.name()) && e.eventType() == StationEvent.EventType.RECURRING)
+                .findFirst()
+                .ifPresent(evUebung -> commentService.create(
+                        primaryStationId,
+                        evUebung.id(),
+                        null,
+                        memberIdentityFactory.local(primaryStationId, createdBy),
+                        "Admin",
+                        "Nächste Woche üben wir den Löschangriff — bitte Sportkleidung mitbringen!"));
 
         // Federated comments on the shared event "Gemeinsame Großübung" (event lives on partner station)
         var primaryAdmin = stationMemberRepository.findById(createdBy).orElseThrow();

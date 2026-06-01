@@ -210,6 +210,22 @@ export function useBoardApi() {
         await boards.removeTicketLabel(boardKey.value, ticketNumber.value, labelId)
     }
 
+    async function createLink(linkedTicketId: number, linkedTicketNumber: number, linkType: string): Promise<void> {
+        if (isFederated.value) {
+            await federatedBoards.createLink(partnerUid.value!, boardKey.value, ticketNumber.value, { linkedTicketNumber, linkType })
+            return
+        }
+        await boards.createLink(boardKey.value, ticketNumber.value, { linkedTicketId, linkType: linkType as import('@/api/boards').LinkTypeName })
+    }
+
+    async function deleteLink(linkedTicketId: number, linkedTicketNumber: number): Promise<void> {
+        if (isFederated.value) {
+            await federatedBoards.deleteLink(partnerUid.value!, boardKey.value, ticketNumber.value, linkedTicketNumber)
+            return
+        }
+        await boards.deleteLink(boardKey.value, ticketNumber.value, linkedTicketId)
+    }
+
     async function watchTicket(): Promise<void> {
         if (isFederated.value) { await federatedBoards.watchTicket(partnerUid.value!, boardKey.value, ticketNumber.value); return }
         await boards.watchTicket(boardKey.value, ticketNumber.value)
@@ -278,6 +294,8 @@ export function useBoardApi() {
         deleteComment,
         addTicketLabel,
         removeTicketLabel,
+        createLink,
+        deleteLink,
         watchTicket,
         unwatchTicket,
         setFieldValue,

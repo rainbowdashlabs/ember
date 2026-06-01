@@ -5,7 +5,6 @@
  */
 package dev.chojo.ember.repository;
 
-import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.board.entity.Board;
 import dev.chojo.ember.feature.board.entity.BoardChecklistItem;
@@ -120,7 +119,7 @@ class BoardRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(12)
     void updateLane() {
-        assertTrue(boardRepo.updateLane(laneId1, "To Do", 0));
+        assertTrue(boardRepo.updateLane(laneId1, "To Do", null, 0));
         var lanes = boardRepo.findLanes(boardId);
         assertEquals("To Do", lanes.getFirst().name());
     }
@@ -584,10 +583,10 @@ class BoardRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(84)
     void updateLaneWithColor() {
-        assertTrue(boardRepo.updateLane(laneId1, "Updated Lane", 0));
+        assertTrue(boardRepo.updateLane(laneId1, "Updated Lane", null, 0));
         var lanes = boardRepo.findLanes(boardId);
         assertTrue(lanes.stream().anyMatch(l -> "Updated Lane".equals(l.name())));
-        boardRepo.updateLane(laneId1, "Open", 0);
+        boardRepo.updateLane(laneId1, "Open", null, 0);
     }
 
     // -- Delete all lanes --

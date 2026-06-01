@@ -27,6 +27,7 @@ import dev.chojo.ember.feature.board.repository.BoardRepository;
 import dev.chojo.ember.feature.board.repository.BoardTicketRepository;
 import dev.chojo.ember.feature.comment.entity.CommentEntityType;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
+import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.members.service.StationMemberService;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -53,6 +54,7 @@ public class BoardTicketService {
     private final DomainEventBus eventBus;
     private final StationMemberService stationMemberService;
     private final MemberIdentityFactory memberIdentityFactory;
+    private final MemberNameResolver memberNameResolver;
 
     @Inject
     public BoardTicketService(
@@ -60,12 +62,14 @@ public class BoardTicketService {
             BoardRepository boardRepository,
             DomainEventBus eventBus,
             StationMemberService stationMemberService,
-            MemberIdentityFactory memberIdentityFactory) {
+            MemberIdentityFactory memberIdentityFactory,
+            MemberNameResolver memberNameResolver) {
         this.ticketRepository = ticketRepository;
         this.boardRepository = boardRepository;
         this.eventBus = eventBus;
         this.stationMemberService = stationMemberService;
         this.memberIdentityFactory = memberIdentityFactory;
+        this.memberNameResolver = memberNameResolver;
     }
 
     private void notifyWatchers(int ticketId, int boardId, String changeDescription, Integer actorMemberId) {
@@ -156,9 +160,58 @@ public class BoardTicketService {
     }
 
     public boolean assignTicket(int ticketId, MemberIdentity assignee, int actorMemberId) {
+        var oldTicket = ticketRepository.findById(ticketId).orElse(null);
+        MemberIdentity oldAssignee = oldTicket != null ? oldTicket.assignee() : null;
         boolean updated = ticketRepository.assignTicket(ticketId, assignee);
-        if (updated) {
-            ticketRepository.findById(ticketId).ifPresent(ticket -> notifyWatchers(ticketId, ticket.boardId(), "Zuweisung geändert", actorMemberId));
+        if (updated && oldTicket != null) {
+            var board = boardRepository.findById(oldTicket.boardId()).orElse(null);
+            String ticketKey =
+                    board != null ? board.shortKey() + "-" + oldTicket.ticketNumber() : String.valueOf(ticketId);
+            MemberIdentity actorIdentity =
+                    memberIdentityFactory.local(board != null ? board.stationId() : 0, actorMemberId);
+
+            // Log history
+            String oldName = memberNameResolver.resolve(oldAssignee);
+            String newName = memberNameResolver.resolve(assignee);
+            String detail = (oldName != null ? oldName : "—") + " → " + (newName != null ? newName : "—");
+            ticketRepository.logHistory(ticketId, "ASSIGNEE_CHANGED", detail, actorIdentity);
+
+            // Notify watchers
+            notifyWatchers(ticketId, oldTicket.boardId(), "Zuweisung geändert", actorMemberId);
+
+            // Notify unassigned member
+            if (oldAssignee != null) {
+                var oldMemberId =
+                        stationMemberService.resolveId(board != null ? board.stationId() : 0, oldAssignee.memberUid());
+                oldMemberId.ifPresent(id -> eventBus.publish(new BoardTicketChanged(
+                        board != null ? board.stationId() : 0,
+                        oldTicket.boardId(),
+                        ticketId,
+                        board != null ? board.name() : "",
+                        ticketKey,
+                        "Du wurdest von " + ticketKey + " abgemeldet",
+                        actorMemberId,
+                        List.of(id))));
+            }
+
+            // Notify newly assigned member
+            if (assignee != null) {
+                var newMemberId =
+                        stationMemberService.resolveId(board != null ? board.stationId() : 0, assignee.memberUid());
+                newMemberId.ifPresent(id -> {
+                    if (id != actorMemberId) {
+                        eventBus.publish(new BoardTicketChanged(
+                                board != null ? board.stationId() : 0,
+                                oldTicket.boardId(),
+                                ticketId,
+                                board != null ? board.name() : "",
+                                ticketKey,
+                                "Du wurdest " + ticketKey + " zugewiesen",
+                                actorMemberId,
+                                List.of(id)));
+                    }
+                });
+            }
         }
         return updated;
     }
@@ -213,12 +266,34 @@ public class BoardTicketService {
         return ticketRepository.findLinks(ticketId);
     }
 
-    public void linkTickets(int ticketId, int linkedTicketId, LinkType linkType) {
+    public void linkTickets(int ticketId, int linkedTicketId, LinkType linkType, MemberIdentity actor) {
+        if (ticketId == linkedTicketId) return;
         ticketRepository.createLink(ticketId, linkedTicketId, linkType);
+        var ticket = ticketRepository.findById(ticketId).orElse(null);
+        var linkedTicket = ticketRepository.findById(linkedTicketId).orElse(null);
+        if (ticket != null && linkedTicket != null) {
+            var board = boardRepository.findById(ticket.boardId()).orElse(null);
+            var linkedBoard = boardRepository.findById(linkedTicket.boardId()).orElse(null);
+            String key = (board != null ? board.shortKey() : "?") + "-" + linkedTicket.ticketNumber();
+            String reverseKey = (linkedBoard != null ? linkedBoard.shortKey() : "?") + "-" + ticket.ticketNumber();
+            ticketRepository.logHistory(ticketId, "LINK_ADDED", key, actor);
+            ticketRepository.logHistory(linkedTicketId, "LINK_ADDED", reverseKey, actor);
+        }
     }
 
-    public boolean unlinkTickets(int ticketId, int linkedTicketId) {
-        return ticketRepository.deleteLink(ticketId, linkedTicketId);
+    public boolean unlinkTickets(int ticketId, int linkedTicketId, MemberIdentity actor) {
+        var ticket = ticketRepository.findById(ticketId).orElse(null);
+        var linkedTicket = ticketRepository.findById(linkedTicketId).orElse(null);
+        boolean deleted = ticketRepository.deleteLink(ticketId, linkedTicketId);
+        if (deleted && ticket != null && linkedTicket != null) {
+            var board = boardRepository.findById(ticket.boardId()).orElse(null);
+            var linkedBoard = boardRepository.findById(linkedTicket.boardId()).orElse(null);
+            String key = (board != null ? board.shortKey() : "?") + "-" + linkedTicket.ticketNumber();
+            String reverseKey = (linkedBoard != null ? linkedBoard.shortKey() : "?") + "-" + ticket.ticketNumber();
+            ticketRepository.logHistory(ticketId, "LINK_REMOVED", key, actor);
+            ticketRepository.logHistory(linkedTicketId, "LINK_REMOVED", reverseKey, actor);
+        }
+        return deleted;
     }
 
     // -- Transitions --
@@ -236,14 +311,19 @@ public class BoardTicketService {
     public BoardChecklistItem addChecklistItem(int ticketId, String title, int actorMemberId) {
         int position = ticketRepository.findChecklistItems(ticketId).size();
         var item = ticketRepository.createChecklistItem(ticketId, title, position);
-        ticketRepository.findById(ticketId).ifPresent(ticket -> notifyWatchers(ticketId, ticket.boardId(), "Checkliste geändert", actorMemberId));
+        ticketRepository
+                .findById(ticketId)
+                .ifPresent(ticket -> notifyWatchers(ticketId, ticket.boardId(), "Checkliste geändert", actorMemberId));
         return item;
     }
 
     public boolean updateChecklistItem(int id, int ticketId, String title, boolean checked, int actorMemberId) {
         boolean updated = ticketRepository.updateChecklistItem(id, title, checked);
         if (updated) {
-            ticketRepository.findById(ticketId).ifPresent(ticket -> notifyWatchers(ticketId, ticket.boardId(), "Checkliste geändert", actorMemberId));
+            ticketRepository
+                    .findById(ticketId)
+                    .ifPresent(
+                            ticket -> notifyWatchers(ticketId, ticket.boardId(), "Checkliste geändert", actorMemberId));
         }
         return updated;
     }
@@ -251,7 +331,10 @@ public class BoardTicketService {
     public boolean deleteChecklistItem(int id, int ticketId, int actorMemberId) {
         boolean deleted = ticketRepository.deleteChecklistItem(id);
         if (deleted) {
-            ticketRepository.findById(ticketId).ifPresent(ticket -> notifyWatchers(ticketId, ticket.boardId(), "Checkliste geändert", actorMemberId));
+            ticketRepository
+                    .findById(ticketId)
+                    .ifPresent(
+                            ticket -> notifyWatchers(ticketId, ticket.boardId(), "Checkliste geändert", actorMemberId));
         }
         return deleted;
     }

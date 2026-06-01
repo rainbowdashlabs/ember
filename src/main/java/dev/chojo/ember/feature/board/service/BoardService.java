@@ -96,16 +96,39 @@ public class BoardService {
     }
 
     public void replaceLanes(int boardId, List<LaneData> lanes) {
-        // Preserve backlog lane — only delete non-backlog lanes
         var board = repository.findById(boardId).orElseThrow();
         var existingLanes = repository.findLanes(boardId);
-        for (var l : existingLanes) {
-            if (board.backlogLaneId() != null && l.id() == board.backlogLaneId()) continue;
-            repository.deleteLane(l.id());
-        }
+        var incomingIds = lanes.stream()
+                .map(LaneData::id)
+                .filter(id -> id != null && id > 0)
+                .collect(java.util.stream.Collectors.toSet());
+
+        // Find the first lane in the new set to use as a fallback for orphaned tickets
+        Integer fallbackLaneId = null;
+
+        // Update existing lanes and create new ones
         for (int i = 0; i < lanes.size(); i++) {
             var l = lanes.get(i);
-            repository.createLane(boardId, l.name(), l.color(), i);
+            if (l.id() != null && l.id() > 0) {
+                // Update existing lane
+                repository.updateLane(l.id(), l.name(), l.color(), i);
+                if (fallbackLaneId == null) fallbackLaneId = l.id();
+            } else {
+                // Create new lane
+                var created = repository.createLane(boardId, l.name(), l.color(), i);
+                if (fallbackLaneId == null) fallbackLaneId = created.id();
+            }
+        }
+
+        // Delete lanes that are no longer in the list, moving their tickets first
+        for (var existing : existingLanes) {
+            if (board.backlogLaneId() != null && existing.id() == board.backlogLaneId()) continue;
+            if (!incomingIds.contains(existing.id())) {
+                if (fallbackLaneId != null) {
+                    repository.moveTicketsFromLane(existing.id(), fallbackLaneId);
+                }
+                repository.deleteLane(existing.id());
+            }
         }
     }
 

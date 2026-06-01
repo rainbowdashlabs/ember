@@ -15,6 +15,7 @@ import { boards } from '@/api'
 import { LinkType } from '@/api/boards'
 import type { BoardTicketLink, BoardTicket, BoardLane, BoardWeblink, BoardTicketAttachment, LinkTypeName } from '@/api/boards'
 import type { MemberCompletion } from '@/api/stationMembers'
+import { useBoardApi } from '@/composables/useBoardApi'
 
 const props = defineProps<{
     boardKey: string
@@ -48,8 +49,11 @@ function ticketPath(ticketNumber: number): string {
     return `/station/boards/${props.boardKey}/tickets/${ticketNumber}`
 }
 
+const api = useBoardApi()
+
 const linkSearchQuery = ref('')
 const linkType = ref<LinkTypeName>(LinkType.RELATES_TO)
+const selectedIndex = ref(0)
 const newWeblinkUrl = ref('')
 const newWeblinkTitle = ref('')
 
@@ -58,10 +62,26 @@ const linkSearchResults = computed(() => {
     const q = linkSearchQuery.value.toLowerCase()
     const linkedIds = new Set(props.links.map(l => l.linkedTicketId === props.ticketNumber ? l.ticketId : l.linkedTicketId))
     return props.allTickets
-        .filter(t => t.id !== props.ticketNumber && !linkedIds.has(t.id))
+        .filter(t => t.ticketNumber !== props.ticketNumber && !linkedIds.has(t.id))
         .filter(t => t.title.toLowerCase().includes(q) || `${props.shortKey}-${t.ticketNumber}`.toLowerCase().includes(q))
         .slice(0, 5)
 })
+
+watch(linkSearchQuery, () => { selectedIndex.value = 0 })
+
+function onSearchKeydown(e: KeyboardEvent) {
+    if (e.key === 'ArrowDown') {
+        e.preventDefault()
+        selectedIndex.value = Math.min(selectedIndex.value + 1, linkSearchResults.value.length - 1)
+    } else if (e.key === 'ArrowUp') {
+        e.preventDefault()
+        selectedIndex.value = Math.max(selectedIndex.value - 1, 0)
+    } else if (e.key === 'Enter') {
+        e.preventDefault()
+        const selected = linkSearchResults.value[selectedIndex.value]
+        if (selected) addLink(selected.id, selected.ticketNumber)
+    }
+}
 
 const groupedLinks = computed(() => {
     const groups: Record<string, { link: BoardTicketLink; linkedTicket: BoardTicket | undefined }[]> = {}
@@ -83,13 +103,13 @@ function linkTypeLabel(type: string): string {
     return labels[type] ?? type
 }
 function laneName(laneId: number) { return props.lanes.find(l => l.id === laneId)?.name ?? '' }
-function memberName(id: number | null) { return id ? props.members.find(m => m.id === id)?.name ?? '' : '' }
 
-async function addLink(linkedTicketId: number) {
-    await boards.createLink(props.boardKey, props.ticketNumber, { linkedTicketId, linkType: linkType.value })
+
+async function addLink(linkedTicketId: number, linkedTicketNumber: number) {
+    await api.createLink(linkedTicketId, linkedTicketNumber, linkType.value)
     emit('update:showAddLink', false); linkSearchQuery.value = ''; emit('reload')
 }
-async function removeLink(linkedTicketId: number) { await boards.deleteLink(props.boardKey, props.ticketNumber, linkedTicketId); emit('reload') }
+async function removeLink(linkedTicketId: number, linkedTicketNumber: number) { await api.deleteLink(linkedTicketId, linkedTicketNumber); emit('reload') }
 async function handleAddWeblink() {
     if (!newWeblinkUrl.value.trim()) return
     await boards.addWeblink(props.boardKey, props.ticketNumber, { url: newWeblinkUrl.value.trim(), title: newWeblinkTitle.value.trim() || undefined })
@@ -186,16 +206,16 @@ const hasAnyContent = computed(() => props.links.length > 0 || props.weblinks.le
                         </router-link>
                         <div class="flex items-center gap-2 shrink-0">
                             <span v-if="linkedTicket" class="text-xs text-(--text-muted)">{{ laneName(linkedTicket.laneId) }}</span>
-                            <UserAvatar v-if="linkedTicket?.assignedMemberId" :identity="members.find(m => m.id === linkedTicket.assignedMemberId)" :name="memberName(linkedTicket.assignedMemberId)" size="sm" />
+                            <UserAvatar v-if="linkedTicket?.assignee" :identity="linkedTicket.assignee" :name="members.find(m => m.memberUid === linkedTicket.assignee?.memberUid)?.name" size="sm" />
                             <font-awesome-icon v-if="linkedTicket" :icon="priorityOptions.find(o => o.value === linkedTicket.priority)?.icon ?? ['fas', 'equals']" :class="priorityOptions.find(o => o.value === linkedTicket.priority)?.color" class="text-xs" />
-                            <IconButton v-if="!readonly" :icon="['fas', 'xmark']" label="Remove" class="opacity-0 group-hover:opacity-100 text-xs" @click="removeLink(linkedTicket?.id ?? 0)" />
+                            <IconButton v-if="!readonly" :icon="['fas', 'xmark']" label="Remove" class="opacity-0 group-hover:opacity-100 text-xs" @click="removeLink(linkedTicket?.id ?? 0, linkedTicket?.ticketNumber ?? 0)" />
                         </div>
                     </div>
                 </div>
             </div>
             <div v-if="showAddLink" class="space-y-2">
                 <div class="flex gap-2 items-center">
-                    <TextInput v-model="linkSearchQuery" :placeholder="t('boards.searchTickets')" class="flex-1 min-w-0" />
+                    <TextInput v-model="linkSearchQuery" :placeholder="t('boards.searchTickets')" class="flex-1 min-w-0" @keydown="onSearchKeydown" />
                     <div class="w-32 shrink-0">
                         <SelectInput v-model="linkType" class="text-xs">
                             <option :value="LinkType.RELATES_TO">{{ t('boards.linkRelatesTo') }}</option>
@@ -208,7 +228,7 @@ const hasAnyContent = computed(() => props.links.length > 0 || props.weblinks.le
                     <IconButton :icon="['fas', 'xmark']" label="Cancel" class="text-(--text-muted)" @click="emit('update:showAddLink', false); linkSearchQuery = ''" />
                 </div>
                 <div v-if="linkSearchResults.length > 0" class="border border-(--border) rounded-theme divide-y divide-(--border)">
-                    <div v-for="result in linkSearchResults" :key="result.id" class="px-3 py-1.5 text-sm cursor-pointer hover:bg-primary/5 flex items-center gap-2" @click="addLink(result.id)">
+                    <div v-for="(result, i) in linkSearchResults" :key="result.id" class="px-3 py-1.5 text-sm cursor-pointer flex items-center gap-2" :class="i === selectedIndex ? 'bg-primary/10' : 'hover:bg-primary/5'" @click="addLink(result.id, result.ticketNumber)" @mouseenter="selectedIndex = i">
                         <span class="font-mono text-(--text-muted)">{{ shortKey }}-{{ result.ticketNumber }}</span>
                         <span class="truncate">{{ result.title }}</span>
                     </div>

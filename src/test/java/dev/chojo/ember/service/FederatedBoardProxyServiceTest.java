@@ -97,12 +97,21 @@ class FederatedBoardProxyServiceTest extends RepositoryTestBase {
 
         federatedBoardService = new FederatedBoardService(federatedBoardRepo);
         boardService = new BoardService(boardRepo, memberService, groupService, tagService);
+        var resolver = new MemberNameResolver(
+                new StationMemberService(stationMemberRepo, stationRepo, null, null),
+                accountRepo,
+                new EventFederationRepository(),
+                mock(FederationRepository.class),
+                stationRepo,
+                groupService,
+                tagService);
         ticketService = new BoardTicketService(
                 boardTicketRepo,
                 boardRepo,
                 new DomainEventBus(Set.of()),
                 new StationMemberService(stationMemberRepo, stationRepo, null, null),
-                memberIdentityFactory);
+                memberIdentityFactory,
+                resolver);
         federationRepository = mock(FederationRepository.class);
 
         proxyService = new FederatedBoardProxyService(
@@ -119,14 +128,7 @@ class FederatedBoardProxyServiceTest extends RepositoryTestBase {
                 groupService,
                 tagService,
                 new EventFederationRepository(),
-                new MemberNameResolver(
-                        memberService,
-                        accountRepo,
-                        new EventFederationRepository(),
-                        federationRepository,
-                        stationRepo,
-                        groupService,
-                        tagService),
+                resolver,
                 memberIdentityFactory);
 
         station1 = stationRepo.create("ProxyStation1");
@@ -564,7 +566,7 @@ class FederatedBoardProxyServiceTest extends RepositoryTestBase {
         when(httpClient.getList(
                         eq("https://remote.example.com"), eq("/remote/boards"), eq(station1.id()), any(), any()))
                 .thenReturn(List.of(new FederatedBoardProxyService.RemoteDiscoveredBoard(
-                        UUID.randomUUID().toString(), "Remote Board", "RMT", "Remote desc", "FULL")));
+                        UUID.randomUUID().toString(), "Remote Board", "RMT", "Remote desc", "FULL", "USER")));
 
         var discovered = proxyService.discoverBoards(station1.id());
         assertFalse(discovered.isEmpty());
@@ -615,7 +617,8 @@ class FederatedBoardProxyServiceTest extends RepositoryTestBase {
                 "TST",
                 "A description",
                 BoardShareMode.FULL,
-                "Partner Station");
+                "Partner Station",
+                "USER");
         assertEquals(1, db.partnerId());
         assertEquals("550e8400-e29b-41d4-a716-446655440000", db.partnerStationUid());
         assertEquals(testUid, db.remoteBoardUid());

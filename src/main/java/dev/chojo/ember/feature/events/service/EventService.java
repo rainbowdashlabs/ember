@@ -641,8 +641,10 @@ public class EventService {
         if (!eventRepository.updateRegistrationStatus(id, status)) return false;
         var registration = eventRepository.findRegistrationById(id).orElse(null);
         if (registration != null) {
-            eventRepository.findById(registration.eventId()).ifPresent(event -> eventBus.publish(new EventRegistrationStatusChanged(
-                    event.stationId(), event.id(), event.name(), registration.memberId(), status)));
+            eventRepository
+                    .findById(registration.eventId())
+                    .ifPresent(event -> eventBus.publish(new EventRegistrationStatusChanged(
+                            event.stationId(), event.id(), event.name(), registration.memberId(), status)));
         }
         return true;
     }
@@ -651,12 +653,14 @@ public class EventService {
         var registration = eventRepository.findRegistrationById(id).orElse(null);
         if (!eventRepository.deleteRegistration(id)) return false;
         if (registration != null && registration.status() == RegistrationStatus.ACCEPTED) {
-            eventRepository.findById(registration.eventId()).ifPresent(event -> eventBus.publish(new EventRegistrationStatusChanged(
-                    event.stationId(),
-                    event.id(),
-                    event.name(),
-                    registration.memberId(),
-                    RegistrationStatus.WITHDRAWN)));
+            eventRepository
+                    .findById(registration.eventId())
+                    .ifPresent(event -> eventBus.publish(new EventRegistrationStatusChanged(
+                            event.stationId(),
+                            event.id(),
+                            event.name(),
+                            registration.memberId(),
+                            RegistrationStatus.WITHDRAWN)));
         }
         return true;
     }
@@ -670,8 +674,10 @@ public class EventService {
         var result = eventRepository.createRegistration(
                 eventId, memberId, eventDate, RegistrationStatus.DECLINED, createdBy);
         if (existing != null && existing.status() == RegistrationStatus.ACCEPTED) {
-            eventRepository.findById(eventId).ifPresent(event -> eventBus.publish(new EventRegistrationStatusChanged(
-                    event.stationId(), event.id(), event.name(), memberId, RegistrationStatus.DECLINED)));
+            eventRepository
+                    .findById(eventId)
+                    .ifPresent(event -> eventBus.publish(new EventRegistrationStatusChanged(
+                            event.stationId(), event.id(), event.name(), memberId, RegistrationStatus.DECLINED)));
         }
         return result;
     }

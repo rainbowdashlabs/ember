@@ -47,15 +47,16 @@ public class FederatedBoardRepository {
 
     // -- Share Targets --
 
-    public void setShareTarget(int shareId, int partnerId, BoardShareMode shareMode) {
+    public void setShareTarget(int shareId, int partnerId, BoardShareMode shareMode, String requiredRole) {
         Query.query("""
-                        INSERT INTO federation_board_share_target(share_id, partner_id, share_mode)
-                        VALUES (:share_id, :partner_id, :share_mode)
-                        ON CONFLICT (share_id, partner_id) DO UPDATE SET share_mode = :share_mode;""")
+                        INSERT INTO federation_board_share_target(share_id, partner_id, share_mode, required_role)
+                        VALUES (:share_id, :partner_id, :share_mode, :required_role)
+                        ON CONFLICT (share_id, partner_id) DO UPDATE SET share_mode = :share_mode, required_role = :required_role;""")
                 .single(Call.of()
                         .bind("share_id", shareId)
                         .bind("partner_id", partnerId)
-                        .bind("share_mode", shareMode.name()))
+                        .bind("share_mode", shareMode.name())
+                        .bind("required_role", requiredRole))
                 .insert();
     }
 
@@ -86,6 +87,16 @@ public class FederatedBoardRepository {
                         WHERE s.board_id = :board_id AND t.partner_id = :partner_id;""")
                 .single(Call.of().bind("board_id", boardId).bind("partner_id", partnerId))
                 .map(row -> BoardShareMode.valueOf(row.getString("share_mode")))
+                .first();
+    }
+
+    public Optional<String> findRequiredRole(int boardId, int partnerId) {
+        return Query.query("""
+                        SELECT t.required_role FROM federation_board_share_target t
+                        JOIN federation_board_share s ON s.id = t.share_id
+                        WHERE s.board_id = :board_id AND t.partner_id = :partner_id;""")
+                .single(Call.of().bind("board_id", boardId).bind("partner_id", partnerId))
+                .map(row -> row.getString("required_role"))
                 .first();
     }
 

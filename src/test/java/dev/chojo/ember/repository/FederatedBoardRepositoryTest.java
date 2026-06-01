@@ -134,7 +134,7 @@ class FederatedBoardRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(10)
     void setShareTarget() {
-        federatedBoardRepo.setShareTarget(shareId, partnerId, BoardShareMode.READ_ONLY);
+        federatedBoardRepo.setShareTarget(shareId, partnerId, BoardShareMode.READ_ONLY, "USER");
         var targets = federatedBoardRepo.findShareTargets(shareId);
         assertEquals(1, targets.size());
         assertEquals(partnerId, targets.getFirst().partnerId());
@@ -144,7 +144,7 @@ class FederatedBoardRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(11)
     void setShareTargetUpsert() {
-        federatedBoardRepo.setShareTarget(shareId, partnerId, BoardShareMode.FULL);
+        federatedBoardRepo.setShareTarget(shareId, partnerId, BoardShareMode.FULL, "USER");
         var targets = federatedBoardRepo.findShareTargets(shareId);
         assertEquals(1, targets.size());
         assertEquals(BoardShareMode.FULL, targets.getFirst().shareMode());
@@ -184,7 +184,7 @@ class FederatedBoardRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(16)
     void clearShareTargets() {
-        federatedBoardRepo.setShareTarget(shareId, partnerId, BoardShareMode.READ_ONLY);
+        federatedBoardRepo.setShareTarget(shareId, partnerId, BoardShareMode.READ_ONLY, "USER");
         federatedBoardRepo.clearShareTargets(shareId);
         var targets = federatedBoardRepo.findShareTargets(shareId);
         assertTrue(targets.isEmpty());

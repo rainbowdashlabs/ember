@@ -5,4 +5,4 @@
  */
 package dev.chojo.ember.feature.board.entity;
 
-public record LaneData(String name, String color) {}
+public record LaneData(Integer id, String name, String color) {}

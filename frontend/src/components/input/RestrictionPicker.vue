@@ -41,13 +41,12 @@ const emit = defineEmits<{
   'update:mode': [mode: 'AND' | 'OR']
 }>()
 
-const USER_ROLES = [Roles.MEMBER, Roles.GUARDIAN, Roles.TEAM, Roles.TRIAL] as readonly string[]
+const USER_ROLES = [Roles.USER, Roles.TEAM, Roles.MANAGER] as readonly string[]
 
 const roleFriendlyNames: Record<string, string> = {
-  MEMBER: 'Mitglied',
-  GUARDIAN: 'Erziehungsberechtigter',
+  USER: 'Alle',
   TEAM: 'Team',
-  TRIAL: 'Probe',
+  MANAGER: 'Verwaltung',
 }
 
 const roleOptions = computed(() =>

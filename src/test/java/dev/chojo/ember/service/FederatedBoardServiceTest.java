@@ -80,7 +80,8 @@ class FederatedBoardServiceTest extends RepositoryTestBase {
                 boardRepo,
                 new DomainEventBus(Set.of()),
                 new StationMemberService(stationMemberRepo, stationRepo, null, null),
-                memberIdentityFactory);
+                memberIdentityFactory,
+                memberNameResolver);
 
         station = stationRepo.create("FedBoardStation");
         partnerStation = stationRepo.create("FedBoardPartner");
@@ -418,6 +419,10 @@ class FederatedBoardServiceTest extends RepositoryTestBase {
         var config = new PartnerShareConfig(partnerId, BoardShareMode.FULL);
         assertEquals(partnerId, config.partnerId());
         assertEquals(BoardShareMode.FULL, config.shareMode());
+        assertEquals("USER", config.requiredRole());
+
+        var configWithRole = new PartnerShareConfig(partnerId, BoardShareMode.FULL, "MANAGER");
+        assertEquals("MANAGER", configWithRole.requiredRole());
     }
 
     // ============================================================

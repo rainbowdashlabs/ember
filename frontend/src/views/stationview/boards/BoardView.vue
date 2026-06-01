@@ -44,7 +44,7 @@ const tickets = ref<BoardTicket[]>([])
 const loading = ref(true)
 const error = ref('')
 
-const assigneeFilter = ref<Set<number>>(new Set())
+const assigneeFilter = ref<Set<string>>(new Set())
 const labelFilter = ref<string[]>([])
 const allLabels = ref<BoardLabel[]>([])
 const ticketLabelMap = ref<Map<number, number[]>>(new Map())
@@ -98,7 +98,7 @@ const backlogLane = computed(() => board.value?.backlogLaneId ? lanes.value.find
 function ticketsForLane(laneId: number): BoardTicket[] {
     let filtered = tickets.value.filter(t => t.laneId === laneId)
     if (assigneeFilter.value.size > 0) {
-        filtered = filtered.filter(t => t.assignedMemberId !== null && assigneeFilter.value.has(t.assignedMemberId))
+        filtered = filtered.filter(t => t.assignee !== null && assigneeFilter.value.has(t.assignee.memberUid))
     }
     if (labelFilter.value.length > 0) {
         const filterIds = new Set(labelFilter.value.map(Number))
@@ -145,10 +145,9 @@ function archivedCountForLane(laneId: number): number {
 }
 
 const assignees = computed(() => {
-    const ids = new Set(tickets.value.map(t => t.assignedMemberId).filter(Boolean) as number[])
-    return members.value.filter(m => ids.has(m.id))
+    const uids = new Set(tickets.value.map(t => t.assignee?.memberUid).filter(Boolean) as string[])
+    return members.value.filter(m => uids.has(m.memberUid))
 })
-function findMember(id: number | null) { return id ? members.value.find(m => m.id === id) : undefined }
 async function handleCreateTicket() {
     createError.value = ''
     if (!createTitle.value.trim()) {
@@ -176,12 +175,12 @@ async function handleCreateTicket() {
     }
 }
 
-function toggleAssigneeFilter(memberId: number) {
+function toggleAssigneeFilter(memberUid: string) {
     const next = new Set(assigneeFilter.value)
-    if (next.has(memberId)) {
-        next.delete(memberId)
+    if (next.has(memberUid)) {
+        next.delete(memberUid)
     } else {
-        next.add(memberId)
+        next.add(memberUid)
     }
     assigneeFilter.value = next
 }
@@ -342,7 +341,7 @@ watch(boardKey, loadData)
                                 <div class="flex items-center gap-2 shrink-0 text-xs text-(--text-muted)">
                                     <span class="px-1.5 py-0.5 rounded bg-(--bg-accent) text-[0.65rem]">{{ laneName(result.laneId) }}</span>
                                     <font-awesome-icon :icon="priorityIcon(result.priority)" :class="priorityColor(result.priority)" />
-                                    <UserAvatar v-if="result.assignedMemberId" :identity="findMember(result.assignedMemberId)" :name="findMember(result.assignedMemberId)?.name" size="sm" />
+                                    <UserAvatar v-if="result.assignee" :identity="result.assignee" size="sm" />
                                 </div>
                             </div>
                         </div>
@@ -369,7 +368,7 @@ watch(boardKey, loadData)
                             <font-awesome-icon :icon="['fas', 'users']" />
                         </div>
                     </div>
-                    <div v-for="member in assignees" :key="member.id" class="cursor-pointer rounded-full transition-all -ml-1.5" :class="assigneeFilter.has(member.id) ? 'ring-2 ring-primary z-10' : 'opacity-70 hover:opacity-100'" :title="member.name" @click="toggleAssigneeFilter(member.id)">
+                    <div v-for="member in assignees" :key="member.id" class="cursor-pointer rounded-full transition-all -ml-1.5" :class="assigneeFilter.has(member.memberUid) ? 'ring-2 ring-primary z-10' : 'opacity-70 hover:opacity-100'" :title="member.name" @click="toggleAssigneeFilter(member.memberUid)">
                         <UserAvatar :identity="member" :name="member.name" size="md" />
                     </div>
                 </div>
@@ -417,8 +416,8 @@ watch(boardKey, loadData)
                                 <TicketTile
                                     :ticket="ticket"
                                     :short-key="board.shortKey"
-                                    :member-name="findMember(ticket.assignedMemberId)?.name"
-                                    :identity="findMember(ticket.assignedMemberId)"
+                                    :member-name="ticket.assignee ? (members.find(m => m.memberUid === ticket.assignee?.memberUid)?.name) : undefined"
+                                    :identity="ticket.assignee"
                                     :labels="labelsForTicket(ticket.id)"
                                     :attachment-count="ticket.attachmentCount"
                                     @click="openTicketDetail"

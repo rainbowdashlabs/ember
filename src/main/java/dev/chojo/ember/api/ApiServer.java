@@ -564,7 +564,9 @@ public class ApiServer {
         // For /remote/ responses, identify this station (the one serving the data)
         FederationSession fedSession = ctx.attribute(FederationSession.ATTR_FEDERATION_SESSION);
         if (fedSession != null) {
-            stationRepository.findById(fedSession.stationId()).ifPresent(station -> FederationHeaders.setStationHeaders(ctx, station));
+            stationRepository
+                    .findById(fedSession.stationId())
+                    .ifPresent(station -> FederationHeaders.setStationHeaders(ctx, station));
         }
     }
 

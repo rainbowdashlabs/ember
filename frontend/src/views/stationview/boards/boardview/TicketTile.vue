@@ -130,7 +130,7 @@ const isOverdue = computed(() => {
             </div>
             <div class="flex items-center gap-2">
                 <span class="font-mono opacity-60">{{ shortKey }}-{{ ticket.ticketNumber }}</span>
-                <UserAvatar v-if="ticket.assignedMemberId" :identity="identity" :name="memberName" size="sm" />
+                <UserAvatar v-if="ticket.assignee" :identity="identity" :name="memberName" size="sm" />
             </div>
         </div>
     </div>

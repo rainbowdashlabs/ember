@@ -144,11 +144,21 @@ public class BoardRepository {
                 .orElseThrow();
     }
 
-    public boolean updateLane(int id, String name, int position) {
-        return Query.query("UPDATE board_lane SET name = :name, position = :position WHERE id = :id;")
-                .single(Call.of().bind("id", id).bind("name", name).bind("position", position))
+    public boolean updateLane(int id, String name, String color, int position) {
+        return Query.query("UPDATE board_lane SET name = :name, color = :color, position = :position WHERE id = :id;")
+                .single(Call.of()
+                        .bind("id", id)
+                        .bind("name", name)
+                        .bind("color", color)
+                        .bind("position", position))
                 .update()
                 .changed();
+    }
+
+    public void moveTicketsFromLane(int fromLaneId, int toLaneId) {
+        Query.query("UPDATE board_ticket SET lane_id = :to_id WHERE lane_id = :from_id;")
+                .single(Call.of().bind("from_id", fromLaneId).bind("to_id", toLaneId))
+                .update();
     }
 
     public boolean deleteLane(int id) {

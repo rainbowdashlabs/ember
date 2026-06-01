@@ -1889,3 +1889,7 @@ COMMENT ON COLUMN ember_schema.station_event.min_registrations IS 'Minimum numbe
 COMMENT ON COLUMN ember_schema.station_event.threshold_date IS 'Date by which min_registrations must be met, or the event auto-cancels.';
 COMMENT ON COLUMN ember_schema.station_event.threshold_notified IS 'Whether a warning notification was sent about threshold not being met.';
 
+-- Shared required role for federated board access (default view requirement set by owning station)
+ALTER TABLE ember_schema.federation_board_share_target ADD COLUMN required_role TEXT NOT NULL DEFAULT 'USER';
+COMMENT ON COLUMN ember_schema.federation_board_share_target.required_role IS 'Minimum role to view this board on partner stations. USER/TEAM/MANAGER. Overridden entirely by local overrides.';
+

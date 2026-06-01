@@ -312,6 +312,13 @@ public class StationMemberRepository {
                 .all();
     }
 
+    public Optional<Role> findRoleById(int id) {
+        return Query.query("SELECT id, name FROM role WHERE id = :id;")
+                .single(Call.of().bind("id", id))
+                .map(Role.map())
+                .first();
+    }
+
     public Optional<Role> findRoleByName(Roles role) {
         return Query.query("SELECT id, name FROM role WHERE name = :name;")
                 .single(Call.of().bind("name", role))

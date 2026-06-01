@@ -126,7 +126,7 @@ async function loadData() {
         title.value = tk.title
         description.value = tk.description ?? ''
         priority.value = tk.priority
-        assignedMemberId.value = tk.assignedMemberId?.toString() ?? ''
+        assignedMemberId.value = tk.assignee ? (members.value.find(m => m.memberUid === tk.assignee?.memberUid)?.id?.toString() ?? '') : ''
         dueDate.value = tk.dueDate ?? ''
         await loadDetails()
         allTickets.value = await api.listTickets()
@@ -411,7 +411,7 @@ watch(ticketNumber, loadData)
                 <div ref="rightColRef" class="space-y-4">
                     <!-- Lane status -->
                     <div class="relative">
-                        <div class="px-3 py-2 rounded-theme text-sm font-medium text-center cursor-pointer" :style="{ backgroundColor: lanes.find(l => l.id === ticket?.laneId)?.color ?? 'var(--primary)', color: contrastTextColor(lanes.find(l => l.id === ticket?.laneId)?.color ?? '#fd4f00') }" @click.stop="canEdit && (closeAllEditors(), editingLane = true)">{{ lanes.find(l => l.id === ticket?.laneId)?.name }}</div>
+                        <div class="px-3 py-2 rounded-theme text-sm font-medium text-center cursor-pointer" :style="{ backgroundColor: lanes.find(l => l.id === ticket?.laneId)?.color ?? 'var(--primary)', color: contrastTextColor(lanes.find(l => l.id === ticket?.laneId)?.color ?? '#fd4f00') }" @click.stop="canEdit && (editingLane ? (editingLane = false) : (closeAllEditors(), editingLane = true))">{{ lanes.find(l => l.id === ticket?.laneId)?.name }}</div>
                         <div v-if="editingLane && canEdit" class="absolute z-20 mt-1 w-full rounded-theme border border-[var(--border)] bg-[var(--bg)] shadow-lg overflow-hidden">
                             <div v-for="lane in availableLanes.filter(l => l.id !== ticket?.laneId)" :key="lane.id" class="px-3 py-2 text-sm font-medium text-center cursor-pointer hover:opacity-90" :style="{ backgroundColor: lane.color ?? 'var(--primary)', color: contrastTextColor(lane.color ?? '#fd4f00') }" @click="moveTo(lane.id); editingLane = false">{{ lane.name }}</div>
                         </div>
@@ -442,9 +442,9 @@ watch(ticketNumber, loadData)
                         <FieldLabel class="mb-1">{{ t('boards.assignee') }}</FieldLabel>
                         <MemberSelectInput v-if="editingAssignee && canEdit" v-model="assignedMemberId" :members="members" :placeholder="t('boards.unassigned')" auto-open @change="editingAssignee = false; saveTicket()" />
                         <div v-else class="flex items-center gap-2 rounded-theme px-2 py-1 text-sm" :class="canEdit ? 'cursor-pointer hover:bg-(--bg-accent)' : ''" @click.stop="canEdit && (closeAllEditors(), editingAssignee = true)">
-                            <span v-if="assignedMemberId" class="flex items-center gap-2">
-                                <UserAvatar :identity="members.find(m => m.id === Number(assignedMemberId))" size="sm" />
-                                {{ members.find(m => m.id === Number(assignedMemberId))?.name }}
+                            <span v-if="ticket?.assignee" class="flex items-center gap-2">
+                                <UserAvatar :identity="ticket.assignee" size="sm" />
+                                {{ members.find(m => m.memberUid === ticket?.assignee?.memberUid)?.name ?? ticket.assignee.displayTag?.name }}
                             </span>
                             <span v-else class="text-(--text-muted) italic">{{ t('boards.unassigned') }}</span>
                         </div>

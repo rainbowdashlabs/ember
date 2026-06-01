@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.board.service;
 
 import dev.chojo.ember.api.MemberIdentity;
+import dev.chojo.ember.api.Roles;
 import dev.chojo.ember.feature.board.entity.AccessData;
 import dev.chojo.ember.feature.board.entity.Board;
 import dev.chojo.ember.feature.board.entity.BoardChecklistItem;
@@ -20,6 +21,7 @@ import dev.chojo.ember.feature.board.entity.BoardTicketHistoryResponse;
 import dev.chojo.ember.feature.board.entity.BoardTicketLink;
 import dev.chojo.ember.feature.board.entity.BoardTicketTransitionResponse;
 import dev.chojo.ember.feature.board.entity.FederationBoardBookmark;
+import dev.chojo.ember.feature.board.entity.LinkType;
 import dev.chojo.ember.feature.board.entity.TicketLabelMapping;
 import dev.chojo.ember.feature.board.entity.TicketPriority;
 import dev.chojo.ember.feature.board.entity.TicketSummary;
@@ -173,6 +175,9 @@ public class FederatedBoardProxyService {
                         .map(board -> {
                             var mode =
                                     getEffectiveShareMode(partner.id(), boardId).orElse(BoardShareMode.READ_ONLY);
+                            var requiredRole = federatedBoardService
+                                    .getRequiredRole(boardId, partner.id())
+                                    .orElse("USER");
                             return new DiscoveredBoard(
                                     partner.id(),
                                     partner.partnerStationId().toString(),
@@ -181,7 +186,8 @@ public class FederatedBoardProxyService {
                                     board.shortKey(),
                                     board.description(),
                                     mode,
-                                    partnerStationName(partner));
+                                    partnerStationName(partner),
+                                    requiredRole);
                         })
                         .orElse(null))
                 .filter(Objects::nonNull)
@@ -204,7 +210,8 @@ public class FederatedBoardProxyService {
                         b.shortKey(),
                         b.description(),
                         BoardShareMode.valueOf(b.shareMode()),
-                        partnerStationName(partner)))
+                        partnerStationName(partner),
+                        b.requiredRole() != null ? b.requiredRole() : "USER"))
                 .toList();
     }
 
@@ -279,6 +286,7 @@ public class FederatedBoardProxyService {
         int boardId = resolveBoardId(boardKey, partner);
         return ticketService.findByBoard(boardId).stream()
                 .map(TicketSummary::of)
+                .map(t -> t.assignee() != null ? t.withAssignee(memberNameResolver.enrichDisplay(t.assignee())) : t)
                 .toList();
     }
 
@@ -744,6 +752,64 @@ public class FederatedBoardProxyService {
         ticketService.removeWatcher(ticketId, identity);
     }
 
+    public void proxyCreateLink(
+            int partnerId,
+            String boardKey,
+            int ticketNumber,
+            int linkedTicketNumber,
+            String linkType,
+            UUID remoteMemberUid,
+            String displayName) {
+        var partner = findPartner(partnerId);
+        if (partner.isRemote()) {
+            var body = new HashMap<String, Object>();
+            body.put("linkedTicketNumber", linkedTicketNumber);
+            body.put("linkType", linkType);
+            if (remoteMemberUid != null) body.put("remoteMemberUid", remoteMemberUid.toString());
+            if (displayName != null) body.put("displayName", displayName);
+            remotePost(partner, "/remote/boards/" + boardKey + "/tickets/" + ticketNumber + "/links", body);
+            return;
+        }
+        int boardId = resolveBoardId(boardKey, partner);
+        int ticketId = resolveTicketId(boardId, ticketNumber);
+        int linkedTicketId = resolveTicketId(boardId, linkedTicketNumber);
+        var actorIdentity =
+                remoteMemberUid != null ? new MemberIdentity(partner.partnerStationId(), remoteMemberUid) : null;
+        if (displayName != null && remoteMemberUid != null) {
+            eventFederationRepository.cacheName(partnerId, remoteMemberUid, displayName);
+        }
+        ticketService.linkTickets(ticketId, linkedTicketId, LinkType.valueOf(linkType), actorIdentity);
+    }
+
+    public void proxyDeleteLink(
+            int partnerId,
+            String boardKey,
+            int ticketNumber,
+            int linkedTicketNumber,
+            UUID remoteMemberUid,
+            String displayName) {
+        var partner = findPartner(partnerId);
+        if (partner.isRemote()) {
+            var body = new java.util.HashMap<String, Object>();
+            if (remoteMemberUid != null) body.put("remoteMemberUid", remoteMemberUid.toString());
+            if (displayName != null) body.put("displayName", displayName);
+            remoteDelete(
+                    partner,
+                    "/remote/boards/" + boardKey + "/tickets/" + ticketNumber + "/links/" + linkedTicketNumber,
+                    body);
+            return;
+        }
+        int boardId = resolveBoardId(boardKey, partner);
+        int ticketId = resolveTicketId(boardId, ticketNumber);
+        int linkedTicketId = resolveTicketId(boardId, linkedTicketNumber);
+        var actorIdentity =
+                remoteMemberUid != null ? new MemberIdentity(partner.partnerStationId(), remoteMemberUid) : null;
+        if (displayName != null && remoteMemberUid != null) {
+            eventFederationRepository.cacheName(partnerId, remoteMemberUid, displayName);
+        }
+        ticketService.unlinkTickets(ticketId, linkedTicketId, actorIdentity);
+    }
+
     // -- Access Control --
 
     /**
@@ -799,20 +865,79 @@ public class FederatedBoardProxyService {
     }
 
     /**
-     * Full access check: share mode must be at least the required level,
-     * and the member must pass the local override.
+     * Full view access check.
+     * 1. Board must be shared with this partner.
+     * 2. If local view override exists → use ONLY the local override (replaces shared requirement).
+     * 3. If no local override → use the shared required role from the share target.
      */
     public boolean canView(int partnerId, UUID remoteBoardUid, int boardId, int memberId) {
-        var mode = getEffectiveShareMode(partnerId, boardId);
-        if (mode.isEmpty()) return false;
-        return passesLocalViewOverride(partnerId, remoteBoardUid, memberId);
+        var shareInfo = getEffectiveShareInfo(partnerId, boardId);
+        if (shareInfo == null) return false;
+
+        // Local override completely replaces the shared requirement
+        if (federatedBoardRepository.hasLocalViewOverride(partnerId, remoteBoardUid)) {
+            var override = federatedBoardRepository.findLocalViewOverride(partnerId, remoteBoardUid);
+            return matchesAccess(memberId, override);
+        }
+
+        // No local override — use shared required role
+        return memberHasRole(memberId, shareInfo.requiredRole());
     }
 
+    /**
+     * Full write access check.
+     * Share mode must be FULL, then same override logic as view + edit override.
+     */
     public boolean canWrite(int partnerId, UUID remoteBoardUid, int boardId, int memberId) {
+        var shareInfo = getEffectiveShareInfo(partnerId, boardId);
+        if (shareInfo == null || shareInfo.shareMode() != BoardShareMode.FULL) return false;
+
+        // View check first
+        if (!canView(partnerId, remoteBoardUid, boardId, memberId)) return false;
+
+        // Edit override (if exists) further restricts who can write
+        if (federatedBoardRepository.hasLocalEditOverride(partnerId, remoteBoardUid)) {
+            var editOverride = federatedBoardRepository.findLocalEditOverride(partnerId, remoteBoardUid);
+            return matchesAccess(memberId, editOverride);
+        }
+        return true;
+    }
+
+    private boolean memberHasRole(int memberId, String requiredRoleName) {
+        if (requiredRoleName == null || requiredRoleName.equals("USER")) return true; // USER = everyone
+        var memberRoles =
+                memberService.findRoles(memberId).stream().map(Role::role).collect(java.util.stream.Collectors.toSet());
+        var expanded = Roles.expand(memberRoles);
+        try {
+            return expanded.contains(Roles.valueOf(requiredRoleName));
+        } catch (IllegalArgumentException e) {
+            return false;
+        }
+    }
+
+    private record ShareInfo(BoardShareMode shareMode, String requiredRole) {}
+
+    private ShareInfo getEffectiveShareInfo(int partnerId, int boardId) {
         var mode = getEffectiveShareMode(partnerId, boardId);
-        if (mode.isEmpty() || mode.get() != BoardShareMode.FULL) return false;
-        return passesLocalViewOverride(partnerId, remoteBoardUid, memberId)
-                && passesLocalEditOverride(partnerId, remoteBoardUid, memberId);
+        if (mode.isEmpty()) return null;
+        var requiredRole = getSharedRequiredRole(partnerId, boardId);
+        return new ShareInfo(mode.get(), requiredRole);
+    }
+
+    private String getSharedRequiredRole(int partnerId, int boardId) {
+        var partner = federationRepository.findPartnerById(partnerId).orElse(null);
+        if (partner == null) return "USER";
+        var ourStationUid = stationRepository
+                .findById(partner.stationId())
+                .map(Station::uid)
+                .orElse(null);
+        if (ourStationUid == null) return "USER";
+        var board = boardService.findById(boardId).orElse(null);
+        if (board == null) return "USER";
+        var owningPartner = federationRepository.findPartnerByStationAndRemoteUid(board.stationId(), ourStationUid);
+        return owningPartner
+                .flatMap(op -> federatedBoardService.getRequiredRole(boardId, op.id()))
+                .orElse("USER");
     }
 
     // -- Local Overrides --
@@ -986,11 +1111,24 @@ public class FederatedBoardProxyService {
         httpClient.delete(partner.remoteHost(), path, partner.stationId(), getPrivateKey(partner.stationId()));
     }
 
+    private void remoteDelete(FederationPartner partner, String path, Object body) {
+        httpClient.delete(partner.remoteHost(), path, body, partner.stationId(), getPrivateKey(partner.stationId()));
+    }
+
     private boolean matchesAccess(int memberId, AccessData access) {
         if (!access.roleIds().isEmpty()) {
-            var memberRoles =
-                    memberService.findRoles(memberId).stream().map(Role::id).toList();
-            if (memberRoles.stream().anyMatch(access.roleIds()::contains)) return true;
+            // Expand the member's roles using hierarchy (MANAGER → TEAM → USER etc.)
+            var memberRoleEnums = memberService.findRoles(memberId).stream()
+                    .map(Role::role)
+                    .collect(java.util.stream.Collectors.toSet());
+            var expandedRoles = Roles.expand(memberRoleEnums);
+            // Resolve the override's role IDs to role enums and check intersection
+            var requiredRoles = access.roleIds().stream()
+                    .map(stationMemberRepository::findRoleById)
+                    .filter(java.util.Optional::isPresent)
+                    .map(opt -> opt.get().role())
+                    .collect(java.util.stream.Collectors.toSet());
+            if (expandedRoles.stream().anyMatch(requiredRoles::contains)) return true;
         }
         if (!access.groupIds().isEmpty()) {
             var memberGroupIds = groupService.findGroupsForMember(memberId).stream()
@@ -1047,7 +1185,8 @@ public class FederatedBoardProxyService {
             String shortKey,
             String description,
             BoardShareMode shareMode,
-            String partnerStationName) {}
+            String partnerStationName,
+            String requiredRole) {}
 
     /**
      * Board representation for remote federation responses where stationId is a UUID string.
@@ -1095,5 +1234,5 @@ public class FederatedBoardProxyService {
     public record FederatedWatcherData(List<Integer> local, List<Object> federated) {}
 
     public record RemoteDiscoveredBoard(
-            String uid, String name, String shortKey, String description, String shareMode) {}
+            String uid, String name, String shortKey, String description, String shareMode, String requiredRole) {}
 }

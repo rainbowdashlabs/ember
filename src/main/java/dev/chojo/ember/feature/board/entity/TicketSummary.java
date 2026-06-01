@@ -34,6 +34,23 @@ public record TicketSummary(
         int checklistChecked,
         int attachmentCount) {
 
+    public TicketSummary withAssignee(MemberIdentity assignee) {
+        return new TicketSummary(
+                id,
+                boardId,
+                laneId,
+                ticketNumber,
+                title,
+                assignee,
+                priority,
+                dueDate,
+                position,
+                laneEnteredAt,
+                checklistTotal,
+                checklistChecked,
+                attachmentCount);
+    }
+
     public static TicketSummary of(BoardTicket ticket) {
         return new TicketSummary(
                 ticket.id(),

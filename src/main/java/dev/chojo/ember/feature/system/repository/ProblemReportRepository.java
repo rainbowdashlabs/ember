@@ -61,9 +61,9 @@ public class ProblemReportRepository {
 
     public int acknowledgeAll() {
         return Query.query("UPDATE problem_report SET acknowledged = TRUE WHERE acknowledged = FALSE;")
-                    .single(Call.of())
-                    .update()
-                    .rows();
+                .single(Call.of())
+                .update()
+                .rows();
     }
 
     public boolean delete(int id) {

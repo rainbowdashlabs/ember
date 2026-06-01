@@ -7,10 +7,13 @@ package dev.chojo.ember.feature.board.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
 
-public record FederationBoardShareTarget(int shareId, int partnerId, BoardShareMode shareMode) {
+public record FederationBoardShareTarget(int shareId, int partnerId, BoardShareMode shareMode, String requiredRole) {
 
     public static RowMapping<FederationBoardShareTarget> map() {
         return row -> new FederationBoardShareTarget(
-                row.getInt("share_id"), row.getInt("partner_id"), BoardShareMode.valueOf(row.getString("share_mode")));
+                row.getInt("share_id"),
+                row.getInt("partner_id"),
+                BoardShareMode.valueOf(row.getString("share_mode")),
+                row.getString("required_role"));
     }
 }

@@ -34,13 +34,21 @@ public class FederatedBoardService {
 
     // -- Board Sharing --
 
-    public record PartnerShareConfig(int partnerId, BoardShareMode shareMode) {}
+    public record PartnerShareConfig(int partnerId, BoardShareMode shareMode, String requiredRole) {
+        public PartnerShareConfig(int partnerId, BoardShareMode shareMode) {
+            this(partnerId, shareMode, "USER");
+        }
+    }
 
     public void shareBoard(int boardId, List<PartnerShareConfig> partnerConfigs) {
         var share = repository.findShare(boardId).orElseGet(() -> repository.createShare(boardId));
         repository.clearShareTargets(share.id());
         for (var config : partnerConfigs) {
-            repository.setShareTarget(share.id(), config.partnerId(), config.shareMode());
+            repository.setShareTarget(
+                    share.id(),
+                    config.partnerId(),
+                    config.shareMode(),
+                    config.requiredRole() != null ? config.requiredRole() : "USER");
         }
     }
 
@@ -61,6 +69,10 @@ public class FederatedBoardService {
 
     public Optional<BoardShareMode> getShareMode(int boardId, int partnerId) {
         return repository.findShareMode(boardId, partnerId);
+    }
+
+    public Optional<String> getRequiredRole(int boardId, int partnerId) {
+        return repository.findRequiredRole(boardId, partnerId);
     }
 
     public List<Integer> findSharedBoardIds(int partnerId) {

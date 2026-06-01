@@ -74,11 +74,11 @@ export interface BoardTicket {
     ticketNumber: number
     title: string
     description?: string | null
-    assignedMemberId: number | null
+    assignee: MemberIdentity | null
     priority: TicketPriorityName
     dueDate: string | null
     position: number
-    createdBy?: number
+    creator?: MemberIdentity | null
     createdAt?: string
     updatedAt?: string
     laneEnteredAt: string
@@ -184,7 +184,7 @@ export async function getLanes(boardKey: string): Promise<BoardLane[]> {
 
 export async function setLanes(
     boardKey: string,
-    lanes: { name: string; color?: string | null }[],
+    lanes: { id?: number | null; name: string; color?: string | null }[],
 ): Promise<BoardLane[]> {
     const res = await client.put<BoardLane[]>(`/boards/${boardKey}/lanes`, lanes)
     return res.data
@@ -267,6 +267,7 @@ export async function setFields(
 export interface FederationTarget {
     partnerId: number
     shareMode: 'READ_ONLY' | 'FULL'
+    requiredRole: string
 }
 
 export interface BoardFederationConfig {

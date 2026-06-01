@@ -23,6 +23,7 @@ export interface DiscoveredBoard {
     description: string
     shareMode: BoardShareModeName
     partnerStationName: string
+    requiredRole: string
 }
 
 export interface FederatedBoardDetail {
@@ -284,6 +285,16 @@ export async function watchTicket(partnerUid: string, boardKey: string, ticketNu
 
 export async function unwatchTicket(partnerUid: string, boardKey: string, ticketNumber: number): Promise<void> {
     await client.delete(`/federated/boards/${partnerUid}/${boardKey}/tickets/${ticketNumber}/watch`)
+}
+
+// -- Links --
+
+export async function createLink(partnerUid: string, boardKey: string, ticketNumber: number, data: { linkedTicketNumber: number; linkType: string }): Promise<void> {
+    await client.post(`/federated/boards/${partnerUid}/${boardKey}/tickets/${ticketNumber}/links`, data)
+}
+
+export async function deleteLink(partnerUid: string, boardKey: string, ticketNumber: number, linkedNumber: number): Promise<void> {
+    await client.delete(`/federated/boards/${partnerUid}/${boardKey}/tickets/${ticketNumber}/links/${linkedNumber}`)
 }
 
 // -- Access override --

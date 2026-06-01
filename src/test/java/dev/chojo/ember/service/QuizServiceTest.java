@@ -1098,8 +1098,7 @@ class QuizServiceTest extends RepositoryTestBase {
     @Test
     @Order(211)
     void getFederatedQuizCatalogRemote() {
-        var remoteResult =
-                Map.of("catalog", Map.of("id", 88), "categories", List.of(), "questions", List.of());
+        var remoteResult = Map.of("catalog", Map.of("id", 88), "categories", List.of(), "questions", List.of());
         when(httpClient.get(
                         eq("https://remote-quiz.example.com"),
                         eq("/remote/quiz/catalogs/88"),

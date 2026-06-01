@@ -97,7 +97,7 @@ function partnerName(partnerId: number): string {
 
 function addPartner() {
     if (addPartnerId.value == null) return
-    federationTargets.value.push({ partnerId: addPartnerId.value, shareMode: 'READ_ONLY' })
+    federationTargets.value.push({ partnerId: addPartnerId.value, shareMode: 'READ_ONLY', requiredRole: 'USER' })
     addPartnerId.value = null
 }
 
@@ -156,7 +156,7 @@ async function save() {
             description: description.value,
             hideDoneAfterDays: hideDoneAfterDays.value,
         })
-        await boards.setLanes(boardKey.value, lanes.value.map(l => ({ name: l.name, color: l.color })))
+        await boards.setLanes(boardKey.value, lanes.value.map(l => ({ id: l.id, name: l.name, color: l.color })))
         if (hasBacklog.value && !board.value?.backlogLaneId) {
             await boards.enableBacklog(boardKey.value)
         } else if (!hasBacklog.value && board.value?.backlogLaneId) {
@@ -383,6 +383,11 @@ onMounted(loadData)
                             <SelectInput :model-value="target.shareMode" @update:model-value="(v: any) => target.shareMode = v">
                                 <option value="READ_ONLY">{{ t('boards.shareModeReadOnly') }}</option>
                                 <option value="FULL">{{ t('boards.shareModeFull') }}</option>
+                            </SelectInput>
+                            <SelectInput :model-value="target.requiredRole" @update:model-value="(v: any) => target.requiredRole = v">
+                                <option value="USER">{{ t('boards.requiredRoleUser') }}</option>
+                                <option value="TEAM">{{ t('boards.requiredRoleTeam') }}</option>
+                                <option value="MANAGER">{{ t('boards.requiredRoleManager') }}</option>
                             </SelectInput>
                             <DeleteButton @click="removePartner(index)" />
                         </div>

@@ -24,6 +24,7 @@ import dev.chojo.ember.feature.board.entity.BoardTicketHistoryResponse;
 import dev.chojo.ember.feature.board.entity.BoardTicketTransitionResponse;
 import dev.chojo.ember.feature.board.entity.LaneData;
 import dev.chojo.ember.feature.board.entity.LanePreset;
+import dev.chojo.ember.feature.board.entity.LinkType;
 import dev.chojo.ember.feature.board.entity.TicketPriority;
 import dev.chojo.ember.feature.board.entity.TicketSummary;
 import dev.chojo.ember.feature.board.repository.FederatedBoardRepository;
@@ -248,6 +249,14 @@ public class BoardRoutes implements Routes {
                 fp + "/{partnerUid}/{boardKey}/tickets/{ticketNumber}/watch",
                 this::federatedLocalUnwatchTicket,
                 Roles.USER);
+        routes.post(
+                fp + "/{partnerUid}/{boardKey}/tickets/{ticketNumber}/links",
+                this::federatedLocalCreateLink,
+                Roles.USER);
+        routes.delete(
+                fp + "/{partnerUid}/{boardKey}/tickets/{ticketNumber}/links/{linkedNumber}",
+                this::federatedLocalDeleteLink,
+                Roles.USER);
 
         // Local access override management
         routes.get(
@@ -303,6 +312,8 @@ public class BoardRoutes implements Routes {
         routes.post(rp + "/{boardKey}/labels", this::federatedRemoteCreateLabel);
         routes.post(rp + "/{boardKey}/tickets/{ticketNumber}/watch", this::federatedRemoteWatchTicket);
         routes.delete(rp + "/{boardKey}/tickets/{ticketNumber}/watch", this::federatedRemoteUnwatchTicket);
+        routes.post(rp + "/{boardKey}/tickets/{ticketNumber}/links", this::federatedRemoteCreateLink);
+        routes.delete(rp + "/{boardKey}/tickets/{ticketNumber}/links/{linkedNumber}", this::federatedRemoteDeleteLink);
 
         // Webhook receivers (called by owning station to notify this partner)
         routes.post(rp + "/webhook/ticket-changed", this::federatedRemoteOnTicketChanged);
@@ -468,7 +479,9 @@ public class BoardRoutes implements Routes {
         var req = ctx.bodyAsClass(LaneRequest[].class);
         boardService.replaceLanes(
                 id,
-                Arrays.stream(req).map(l -> new LaneData(l.name(), l.color())).toList());
+                Arrays.stream(req)
+                        .map(l -> new LaneData(l.id(), l.name(), l.color()))
+                        .toList());
         ctx.json(boardService.findLanes(id));
     }
 
@@ -721,7 +734,7 @@ public class BoardRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         int id = resolveBoardId(ctx, session.stationId());
         var targets = federatedBoardService.findShareTargets(id).stream()
-                .map(t -> new FederationTargetResponse(t.partnerId(), t.shareMode()))
+                .map(t -> new FederationTargetResponse(t.partnerId(), t.shareMode(), t.requiredRole()))
                 .toList();
         var editRoleIds = federatedBoardService.findFederatedEditRoles(id);
         ctx.json(new FederationConfigResponse(targets, editRoleIds));
@@ -744,7 +757,8 @@ public class BoardRoutes implements Routes {
         var req = ctx.bodyAsClass(FederationConfigRequest.class);
         var configs = (req.targets() != null ? req.targets() : List.<FederationTargetRequest>of())
                 .stream()
-                        .map(t -> new FederatedBoardService.PartnerShareConfig(t.partnerId(), t.shareMode()))
+                        .map(t -> new FederatedBoardService.PartnerShareConfig(
+                                t.partnerId(), t.shareMode(), t.requiredRole() != null ? t.requiredRole() : "USER"))
                         .toList();
         if (configs.isEmpty()) {
             federatedBoardService.unshareBoard(id);
@@ -1564,6 +1578,41 @@ public class BoardRoutes implements Routes {
         ctx.status(204);
     }
 
+    private void federatedLocalCreateLink(Context ctx) {
+        var session = UserSession.from(ctx);
+        int partnerId = resolvePartnerId(ctx);
+        String boardKey = ctx.pathParam("boardKey");
+        requireWrite(partnerId, boardKey, session);
+        int ticketNumber = ctx.pathParamAsClass("ticketNumber", Integer.class).get();
+        var req = ctx.bodyAsClass(LocalLinkRequest.class);
+        proxyService.proxyCreateLink(
+                partnerId,
+                boardKey,
+                ticketNumber,
+                req.linkedTicketNumber(),
+                req.linkType(),
+                session.member().uid(),
+                resolveDisplayName(session));
+        ctx.status(HttpStatus.CREATED);
+    }
+
+    private void federatedLocalDeleteLink(Context ctx) {
+        var session = UserSession.from(ctx);
+        int partnerId = resolvePartnerId(ctx);
+        String boardKey = ctx.pathParam("boardKey");
+        requireWrite(partnerId, boardKey, session);
+        int ticketNumber = ctx.pathParamAsClass("ticketNumber", Integer.class).get();
+        int linkedNumber = ctx.pathParamAsClass("linkedNumber", Integer.class).get();
+        proxyService.proxyDeleteLink(
+                partnerId,
+                boardKey,
+                ticketNumber,
+                linkedNumber,
+                session.member().uid(),
+                resolveDisplayName(session));
+        ctx.status(HttpStatus.NO_CONTENT);
+    }
+
     // -- Local access override management --
 
     @OpenApi(
@@ -1672,12 +1721,16 @@ public class BoardRoutes implements Routes {
                     var mode = federatedBoardService
                             .getShareMode(board.id(), partner.id())
                             .orElse(BoardShareMode.READ_ONLY);
-                    return Map.of(
-                            "uid", board.uid().toString(),
-                            "name", board.name(),
-                            "description", board.description() != null ? board.description() : "",
-                            "shortKey", board.shortKey(),
-                            "shareMode", mode.name());
+                    var requiredRole = federatedBoardService
+                            .getRequiredRole(board.id(), partner.id())
+                            .orElse("USER");
+                    return new RemoteSharedBoardResponse(
+                            board.uid().toString(),
+                            board.name(),
+                            board.description() != null ? board.description() : "",
+                            board.shortKey(),
+                            mode.name(),
+                            requiredRole);
                 })
                 .toList();
         ctx.json(boards);
@@ -1699,7 +1752,10 @@ public class BoardRoutes implements Routes {
         requireRemoteView(boardId, partner);
         var board = boardService.findById(boardId).orElseThrow(NotFoundResponse::new);
         var mode = federatedBoardService.getShareMode(boardId, partner.id()).orElse(BoardShareMode.READ_ONLY);
-        ctx.json(Map.of("board", board, "shareMode", mode.name()));
+        String stationName =
+                stationRepository.findById(board.stationId()).map(s -> s.name()).orElse("");
+        ctx.json(
+                FederatedBoardProxyService.FederatedBoardDetail.of(board, mode.name(), stationName, stationRepository));
     }
 
     @OpenApi(
@@ -1743,6 +1799,7 @@ public class BoardRoutes implements Routes {
         requireRemoteView(boardId, partner);
         ctx.json(ticketService.findByBoard(boardId).stream()
                 .map(TicketSummary::of)
+                .map(t -> t.assignee() != null ? t.withAssignee(memberNameResolver.enrichDisplay(t.assignee())) : t)
                 .toList());
     }
 
@@ -1753,7 +1810,10 @@ public class BoardRoutes implements Routes {
         String q = ctx.queryParam("q");
         var tickets =
                 (q == null || q.isBlank()) ? ticketService.findByBoard(boardId) : ticketService.search(boardId, q);
-        ctx.json(tickets.stream().map(TicketSummary::of).toList());
+        ctx.json(tickets.stream()
+                .map(TicketSummary::of)
+                .map(t -> t.assignee() != null ? t.withAssignee(memberNameResolver.enrichDisplay(t.assignee())) : t)
+                .toList());
     }
 
     private void federatedRemoteGetTicket(Context ctx) {
@@ -2289,6 +2349,55 @@ public class BoardRoutes implements Routes {
         ctx.status(204);
     }
 
+    private void federatedRemoteCreateLink(Context ctx) {
+        var partner = requireFederationPartner(ctx);
+        int boardId = resolveRemoteBoardId(ctx, partner);
+        requireRemoteWrite(boardId, partner);
+        int ticketId = resolveRemoteTicketId(ctx, boardId);
+        var req = ctx.bodyAsClass(RemoteLinkRequest.class);
+        int linkedTicketId = ticketService
+                .findByBoardAndNumber(boardId, req.linkedTicketNumber())
+                .orElseThrow(NotFoundResponse::new)
+                .id();
+        var actorIdentity = req.remoteMemberUid() != null
+                ? new MemberIdentity(partner.partnerStationId(), req.remoteMemberUid())
+                : null;
+        if (req.displayName() != null && req.remoteMemberUid() != null) {
+            eventFederationRepository.cacheName(partner.id(), req.remoteMemberUid(), req.displayName());
+        }
+        ticketService.linkTickets(ticketId, linkedTicketId, LinkType.valueOf(req.linkType()), actorIdentity);
+        ctx.status(HttpStatus.CREATED);
+    }
+
+    private void federatedRemoteDeleteLink(Context ctx) {
+        var partner = requireFederationPartner(ctx);
+        int boardId = resolveRemoteBoardId(ctx, partner);
+        requireRemoteWrite(boardId, partner);
+        int ticketId = resolveRemoteTicketId(ctx, boardId);
+        int linkedNumber = ctx.pathParamAsClass("linkedNumber", Integer.class).get();
+        int linkedTicketId = ticketService
+                .findByBoardAndNumber(boardId, linkedNumber)
+                .orElseThrow(NotFoundResponse::new)
+                .id();
+        MemberIdentity actorIdentity = null;
+        try {
+            var req = ctx.bodyAsClass(RemoteDeleteLinkRequest.class);
+            if (req != null && req.remoteMemberUid() != null) {
+                UUID memberUid = req.remoteMemberUid();
+                actorIdentity = new MemberIdentity(partner.partnerStationId(), memberUid);
+                if (req.displayName() != null) {
+                    eventFederationRepository.cacheName(partner.id(), memberUid, req.displayName());
+                }
+            }
+        } catch (Exception ignored) {
+            /* body may be empty for legacy clients */
+        }
+        ticketService.unlinkTickets(ticketId, linkedTicketId, actorIdentity);
+        ctx.status(HttpStatus.NO_CONTENT);
+    }
+
+    record RemoteDeleteLinkRequest(UUID remoteMemberUid, String displayName) {}
+
     // -- Webhook receivers (partner station receives these from owning station) --
 
     @OpenApi(
@@ -2431,7 +2540,7 @@ public class BoardRoutes implements Routes {
 
     public record UpdateBoardRequest(String name, String description, int hideDoneAfterDays) {}
 
-    public record LaneRequest(String name, String color) {}
+    public record LaneRequest(Integer id, String name, String color) {}
 
     public record FieldRequest(String name, BoardFieldType fieldType, JsonNode config) {
         public BoardFieldConfig parsedConfig() {
@@ -2444,13 +2553,16 @@ public class BoardRoutes implements Routes {
 
     public record AccessRequest(List<Integer> roleIds, List<Integer> groupIds, List<Integer> tagIds) {}
 
-    public record FederationTargetRequest(int partnerId, BoardShareMode shareMode) {}
+    public record FederationTargetRequest(int partnerId, BoardShareMode shareMode, String requiredRole) {}
 
-    public record FederationTargetResponse(int partnerId, BoardShareMode shareMode) {}
+    public record FederationTargetResponse(int partnerId, BoardShareMode shareMode, String requiredRole) {}
 
     public record FederationConfigRequest(List<FederationTargetRequest> targets, List<Integer> editRoleIds) {}
 
     public record FederationConfigResponse(List<FederationTargetResponse> targets, List<Integer> editRoleIds) {}
+
+    public record RemoteSharedBoardResponse(
+            String uid, String name, String description, String shortKey, String shareMode, String requiredRole) {}
 
     // -- Federated local proxy records --
 
@@ -2472,6 +2584,8 @@ public class BoardRoutes implements Routes {
     record LocalReorderRequest(int laneId, List<Integer> orderedIds) {}
 
     record LocalCommentRequest(Integer parentId, String content) {}
+
+    record LocalLinkRequest(int linkedTicketNumber, String linkType) {}
 
     record LocalChecklistItemRequest(String title) {}
 
@@ -2512,6 +2626,8 @@ public class BoardRoutes implements Routes {
     record RemoteChecklistItemRequest(String title, UUID remoteMemberUid, String displayName) {}
 
     record RemoteUpdateChecklistItemRequest(String title, boolean checked, UUID remoteMemberUid, String displayName) {}
+
+    record RemoteLinkRequest(int linkedTicketNumber, String linkType, UUID remoteMemberUid, String displayName) {}
 
     record RemoteCreateLabelRequest(String name, String color) {}
 

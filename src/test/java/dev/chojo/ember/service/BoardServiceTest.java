@@ -70,7 +70,8 @@ class BoardServiceTest extends RepositoryTestBase {
                 boardRepo,
                 new DomainEventBus(Set.of()),
                 new StationMemberService(stationMemberRepo, stationRepo, null, null),
-                memberIdentityFactory);
+                memberIdentityFactory,
+                memberNameResolver);
 
         station = stationRepo.create("BoardSvcStation");
         account = accountRepo.create("board-svc@test.com", "Board", "Svc");
@@ -195,7 +196,8 @@ class BoardServiceTest extends RepositoryTestBase {
     @Test
     @Order(20)
     void linkTicketsWithType() {
-        ticketService.linkTickets(ticketId1, ticketId2, LinkType.CAUSES);
+        ticketService.linkTickets(
+                ticketId1, ticketId2, LinkType.CAUSES, memberIdentityFactory.local(station.id(), member.id()));
         var links = ticketService.findLinks(ticketId1);
         assertEquals(1, links.size());
         assertEquals(LinkType.CAUSES, links.getFirst().linkType());
@@ -208,7 +210,8 @@ class BoardServiceTest extends RepositoryTestBase {
     @Test
     @Order(21)
     void unlinkTickets() {
-        assertTrue(ticketService.unlinkTickets(ticketId1, ticketId2));
+        assertTrue(ticketService.unlinkTickets(
+                ticketId1, ticketId2, memberIdentityFactory.local(station.id(), member.id())));
         assertTrue(ticketService.findLinks(ticketId1).isEmpty());
     }
 
@@ -479,10 +482,10 @@ class BoardServiceTest extends RepositoryTestBase {
         boardService.replaceLanes(
                 freshBoard.id(),
                 List.of(
-                        new LaneData("Backlog", null),
-                        new LaneData("In Progress", null),
-                        new LaneData("Review", null),
-                        new LaneData("Done", null)));
+                        new LaneData(null, "Backlog", null),
+                        new LaneData(null, "In Progress", null),
+                        new LaneData(null, "Review", null),
+                        new LaneData(null, "Done", null)));
         var lanes = boardService.findLanes(freshBoard.id());
         assertEquals(4, lanes.size());
         assertEquals("Backlog", lanes.get(0).name());
@@ -669,9 +672,11 @@ class BoardServiceTest extends RepositoryTestBase {
                 null,
                 memberIdentityFactory.local(station.id(), member.id()));
         ticketService.reorderTickets(laneId, List.of(ticketId1, tmp.id()));
-        ticketService.linkTickets(ticketId1, tmp.id(), LinkType.RELATES_TO);
+        ticketService.linkTickets(
+                ticketId1, tmp.id(), LinkType.RELATES_TO, memberIdentityFactory.local(station.id(), member.id()));
         assertFalse(ticketService.findLinks(ticketId1).isEmpty());
-        assertTrue(ticketService.unlinkTickets(ticketId1, tmp.id()));
+        assertTrue(ticketService.unlinkTickets(
+                ticketId1, tmp.id(), memberIdentityFactory.local(station.id(), member.id())));
         ticketService.deleteTicket(tmp.id());
     }
 

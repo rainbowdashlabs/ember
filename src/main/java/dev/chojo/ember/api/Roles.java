@@ -113,6 +113,7 @@ public enum Roles implements RouteRole {
      */
     MANAGER(
             STATION_PERMISSION,
+            MEMBER,
             TEAM,
             ATTENDANCE_MANAGER,
             ATTENDANCE_EXPORT_MANAGER,
