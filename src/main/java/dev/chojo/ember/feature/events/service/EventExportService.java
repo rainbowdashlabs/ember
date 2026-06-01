@@ -100,7 +100,6 @@ public class EventExportService {
 
         // Group events by category
         var catGroups = new ArrayList<Map<String, Object>>();
-        Set<Integer> seenIds = new LinkedHashSet<>();
 
         for (var cat : eventCategories) {
             if (!categoryIds.isEmpty() && !categoryIds.contains(cat.id())) continue;
@@ -109,7 +108,6 @@ public class EventExportService {
                             == (e.event().categoryId() != null ? e.event().categoryId() : -1))
                     .toList();
             if (catEvents.isEmpty()) continue;
-            catEvents.forEach(e -> seenIds.add(e.event().id()));
             catGroups.add(Map.of("name", cat.name(), "events", buildEventRows(catEvents, columns, zone)));
         }
 

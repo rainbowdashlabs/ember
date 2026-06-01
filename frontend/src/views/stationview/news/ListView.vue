@@ -54,7 +54,6 @@ interface UnifiedNewsItem {
   id: number
   title: string
   contentHtml?: string
-  authorId?: number
   authorName?: string
   publishedAt?: string
   commentCount: number
@@ -72,7 +71,6 @@ const allNews = computed<UnifiedNewsItem[]>(() => {
     id: e.id,
     title: e.title,
     contentHtml: e.contentHtml,
-    authorId: e.authorId,
     authorName: e.authorName,
     publishedAt: e.publishedAt,
     commentCount: e.commentCount,
@@ -204,7 +202,7 @@ onUnmounted(() => {
           <!-- Header -->
           <div class="flex items-start justify-between gap-3">
             <div class="flex items-center gap-2">
-              <UserAvatar v-if="item.authorName" :member-id="item.authorId ?? 0" :name="item.authorName" size="md"/>
+              <UserAvatar v-if="item.authorName" :name="item.authorName" size="md"/>
               <div>
                 <SubHeader class="flex items-center gap-1">
                   <router-link v-if="item.kind === 'local'" :to="{name: 'news-detail', params: {id: item.id}}" class="hover:text-primary hover:underline">{{ item.title }}</router-link>

@@ -108,7 +108,13 @@ class DomainEventHandlerTest {
                 RestrictionMode.OR,
                 false,
                 null,
-                null);
+                null,
+                false,
+                null,
+                null,
+                null,
+                null,
+                false);
         handler.handle(new EventCreated(STATION_ID, stationEvent));
 
         verify(notificationService)
@@ -136,7 +142,13 @@ class DomainEventHandlerTest {
                 RestrictionMode.OR,
                 false,
                 null,
-                null);
+                null,
+                false,
+                null,
+                null,
+                null,
+                null,
+                false);
         handler.handle(new EventCreated(STATION_ID, stationEvent));
 
         verify(notificationService).notifyStation(eq(STATION_ID), eq(NotificationType.NEW_EVENT), argThat(data -> {
@@ -165,7 +177,13 @@ class DomainEventHandlerTest {
                 RestrictionMode.OR,
                 false,
                 null,
-                null);
+                null,
+                false,
+                null,
+                null,
+                null,
+                null,
+                false);
         handler.handle(new EventCreated(STATION_ID, stationEvent));
 
         verify(notificationService)

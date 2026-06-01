@@ -32,6 +32,7 @@ import {useSidebarCounts} from '@/composables/useSidebarCounts'
 import CommentSection from '@/components/comment/CommentSection.vue'
 import NoteEditor from '@/components/comment/NoteEditor.vue'
 import MemberName from '@/components/avatar/MemberName.vue'
+import EventCancelModal from './eventdetailview/EventCancelModal.vue'
 
 const {t} = useI18n()
 const route = useRoute()
@@ -236,6 +237,12 @@ async function denyRegistration(id: number) {
 // Self-registration for members
 const myRegistration = computed(() => registrations.value.find(r => r.memberId === currentMemberId.value))
 const registering = ref(false)
+const showCancelModal = ref(false)
+
+async function onEventCancelled() {
+  showCancelModal.value = false
+  await loadData()
+}
 
 async function registerSelf() {
   if (!event.value) return
@@ -277,41 +284,39 @@ onMounted(loadData)
       <Alert v-if="error" variant="error">{{ error }}</Alert>
 
       <template v-if="!loading && event">
+        <!-- Cancelled banner -->
+        <Alert v-if="event.cancelled" variant="error">
+          <span class="font-bold">{{ t('events.cancelled') }}</span>
+          <span v-if="event.cancelReason"> — {{ event.cancelReason }}</span>
+          <span v-if="event.cancelledAt" class="text-xs opacity-75 ml-2">{{ formatDatetime(event.cancelledAt) }}</span>
+        </Alert>
+
         <!-- Header -->
         <div class="flex items-center justify-between flex-wrap gap-3">
           <div class="flex items-center gap-3">
             <SectionHeader>{{ event.name }}</SectionHeader>
-            <SecondaryBadge v-if="isRecurringEvent(event.eventType)">
-              <font-awesome-icon :icon="['fas', 'rotate']" class="mr-1 h-3 w-3"/>
-              {{ t('events.typeRecurring') }}
-            </SecondaryBadge>
+            <SecondaryBadge v-if="isRecurringEvent(event.eventType)"><font-awesome-icon :icon="['fas', 'rotate']" class="mr-1 h-3 w-3"/>{{ t('events.typeRecurring') }}</SecondaryBadge>
             <SecondaryBadge v-else>{{ t('events.typeOneTime') }}</SecondaryBadge>
+            <ErrorBadge v-if="event.cancelled">{{ t('events.cancelled') }}</ErrorBadge>
           </div>
           <div class="flex items-center gap-2">
-            <SecondaryButton @click="router.push({ name: canManageEvents() ? 'events' : 'events-upcoming' })">
-              <font-awesome-icon :icon="['fas', 'arrow-left']" class="mr-1"/>
-              {{ t('common.back') }}
-            </SecondaryButton>
-            <PrimaryButton v-if="canManageEvents()" @click="router.push({ name: 'event-edit', params: { id: event.id } })">
-              <font-awesome-icon :icon="['fas', 'pen']" class="mr-1"/>
-              {{ t('events.editEvent') }}
-            </PrimaryButton>
+            <SecondaryButton @click="router.push({ name: canManageEvents() ? 'events' : 'events-upcoming' })"><font-awesome-icon :icon="['fas', 'arrow-left']" class="mr-1"/>{{ t('common.back') }}</SecondaryButton>
+            <ErrorButton v-if="canManageEvents() && !event.cancelled" @click="showCancelModal = true"><font-awesome-icon :icon="['fas', 'ban']" class="mr-1"/>{{ t('events.cancelEvent') }}</ErrorButton>
+            <PrimaryButton v-if="canManageEvents()" @click="router.push({ name: 'event-edit', params: { id: event.id } })"><font-awesome-icon :icon="['fas', 'pen']" class="mr-1"/>{{ t('events.editEvent') }}</PrimaryButton>
           </div>
         </div>
 
-        <!-- Registration info (shown prominently below title) -->
+        <!-- Registration info -->
         <div v-if="event.requiresRegistration" class="flex flex-wrap gap-3 text-sm">
           <SuccessBadge>{{ t('events.requiresRegistration') }}</SuccessBadge>
           <InfoBadge v-if="event.requiresConfirmation">{{ t('events.requiresConfirmation') }}</InfoBadge>
-          <span v-if="event.registrationDeadline" class="text-(--text-muted)">
-            {{ t('events.registrationDeadline') }}: {{ formatDatetime(event.registrationDeadline) }}
-          </span>
+          <span v-if="event.registrationDeadline" class="text-(--text-muted)">{{ t('events.registrationDeadline') }}: {{ formatDatetime(event.registrationDeadline) }}</span>
+          <span v-if="event.minRegistrations" class="text-(--text-muted)">{{ t('events.minRegistrations') }}: {{ event.minRegistrations }}</span>
+          <span v-if="event.thresholdDate" class="text-(--text-muted)">{{ t('events.thresholdDate') }}: {{ formatDatetime(event.thresholdDate) }}</span>
         </div>
 
-        <!-- Event Info + Fields -->
         <NeutralContainer class="space-y-3">
           <SubHeader>{{ t('events.general') }}</SubHeader>
-
           <div class="grid gap-4 sm:grid-cols-2">
             <div class="sm:col-span-2">
               <span class="text-xs font-medium text-(--text-muted) uppercase">{{ t('events.description') }}</span>
@@ -348,16 +353,12 @@ onMounted(loadData)
           </div>
         </NeutralContainer>
 
-        <!-- Next Occurrence (recurring events) -->
         <NeutralContainer v-if="isRecurringEvent(event.eventType) && nextOccurrenceDate" class="space-y-3">
           <SubHeader>{{ t('eventDetail.nextOccurrence') }}</SubHeader>
           <p class="text-sm font-medium">{{ formatDateLong(nextOccurrenceDate) }}</p>
-
           <template v-if="canManageEvents() || canManageAttendance()">
             <div v-if="absentMembers.length > 0" class="space-y-2">
-              <h4 class="text-xs font-semibold uppercase text-(--text-muted)">
-                {{ t('eventDetail.absentMembers') }} ({{ absentMembers.length }})
-              </h4>
+              <h4 class="text-xs font-semibold uppercase text-(--text-muted)">{{ t('eventDetail.absentMembers') }} ({{ absentMembers.length }})</h4>
               <div class="flex flex-wrap gap-2">
                 <ErrorBadge v-for="m in absentMembers" :key="m.memberId">
                   {{ m.memberName }}
@@ -369,7 +370,6 @@ onMounted(loadData)
           </template>
         </NeutralContainer>
 
-        <!-- Self-registration for members -->
         <NeutralContainer v-if="event.requiresRegistration && !canManageEvents()" class="space-y-3">
           <SubHeader>{{ t('eventDetail.myRegistration') }}</SubHeader>
           <div v-if="myRegistration" class="flex items-center gap-3">
@@ -431,7 +431,7 @@ onMounted(loadData)
                 <tbody>
                 <tr v-for="reg in pendingRegistrations" :key="reg.id" class="border-b border-(--border)">
                   <td class="p-2">
-                    <MemberName :name="reg.memberName" :member-id="reg.memberId"/>
+                    <MemberName :name="reg.memberName"/>
                   </td>
                   <template v-if="canManageEvents() && getStatsForMember(reg.memberId)">
                     <td class="p-2 text-center font-bold" :class="getStatsForMember(reg.memberId)!.priority === 'HIGH' ? 'text-[var(--error)]' : getStatsForMember(reg.memberId)!.priority === 'MEDIUM' ? 'text-[var(--info)]' : ''">
@@ -469,7 +469,7 @@ onMounted(loadData)
           <div v-for="group in nonPendingRegistrations" :key="group.status" class="space-y-2">
             <h4 class="text-xs font-semibold uppercase text-(--text-muted) pt-1">{{ statusLabel(group.status) }}</h4>
             <NeutralContainer v-for="reg in group.entries" :key="reg.id" class="flex items-center justify-between">
-              <MemberName :name="reg.memberName" :member-id="reg.memberId"/>
+              <MemberName :name="reg.memberName"/>
               <span v-if="reg.eventDate" class="text-xs text-(--text-muted)">{{ formatDate(reg.eventDate) }}</span>
             </NeutralContainer>
           </div>
@@ -485,6 +485,15 @@ onMounted(loadData)
       <NeutralContainer v-if="!loading">
         <CommentSection :event-id="eventId"/>
       </NeutralContainer>
+
+      <!-- Cancel Event Modal -->
+      <EventCancelModal
+          v-if="event"
+          :show="showCancelModal"
+          :event-id="event.id"
+          @close="showCancelModal = false"
+          @cancelled="onEventCancelled"
+      />
     </div>
   </ViewContent>
 </template>

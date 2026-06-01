@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
-import type {CreateMemberRequest, Role, SetManagersRequest, SetRolesRequest, StationMember,} from './types'
+import type {CreateMemberRequest, MemberIdentity, Role, SetManagersRequest, SetRolesRequest, StationMember,} from './types'
 
 export async function listAllRoles(): Promise<Role[]> {
     const res = await client.get<Role[]>('/roles')
@@ -16,6 +16,9 @@ export interface MemberCompletion {
     name: string
     stationUid: string
     memberUid: string
+    stationName?: string | null
+    nameColor?: string | null
+    displayTag?: { name: string; color: string } | null
 }
 
 export async function listCompletions(): Promise<MemberCompletion[]> {
@@ -34,6 +37,7 @@ export interface RichMember {
     groups: { id: number; name: string }[]
     tags: { id: number; name: string }[]
     profileValues: Record<string, unknown>
+    identity?: MemberIdentity | null
 }
 
 export async function listRichMembers(includeFormer = false): Promise<RichMember[]> {

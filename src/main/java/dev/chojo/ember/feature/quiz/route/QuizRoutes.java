@@ -58,6 +58,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.regex.Pattern;
 
 @Singleton
@@ -1114,7 +1115,7 @@ public class QuizRoutes implements Routes {
             case "ORDERING", "REIHENFOLGE" -> QuizQuestionType.ORDERING;
             case "IMAGE_TEXT" -> QuizQuestionType.IMAGE_TEXT;
             case "ENUMERATION", "AUFZÄHLUNG", "AUFZAEHLUNG" -> QuizQuestionType.ENUMERATION;
-            default -> QuizQuestionType.MULTIPLE_CHOICE;
+            default -> throw new BadRequestResponse("Invalid question type: " + type);
         };
     }
 
@@ -1345,7 +1346,7 @@ public class QuizRoutes implements Routes {
 
     private void federatedGetCatalog(Context ctx) {
         var session = UserSession.from(ctx);
-        var stationUid = java.util.UUID.fromString(ctx.pathParam("stationuid"));
+        var stationUid = UUID.fromString(ctx.pathParam("stationuid"));
         int catalogId = ctx.pathParamAsClass("id", Integer.class).get();
         ctx.json(quizService.getFederatedQuizCatalog(session.stationId(), stationUid, catalogId));
     }

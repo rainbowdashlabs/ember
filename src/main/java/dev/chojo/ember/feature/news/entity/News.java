@@ -6,9 +6,12 @@
 package dev.chojo.ember.feature.news.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
+import de.chojo.sadu.queries.converter.StandardValueConverter;
+import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 
 import java.time.Instant;
+import java.util.UUID;
 
 import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIMESTAMP;
 
@@ -20,7 +23,7 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
  * @param title           headline of the news article
  * @param contentMarkdown article body in Markdown format
  * @param contentHtml     article body rendered as HTML
- * @param authorId        member ID of the author
+ * @param author          identity of the author (station UID + member UID), or {@code null} for deleted authors
  * @param publishedAt     timestamp when the article was published, or {@code null} if unpublished
  * @param createdAt       timestamp when the article was created
  */
@@ -30,7 +33,7 @@ public record News(
         String title,
         String contentMarkdown,
         String contentHtml,
-        int authorId,
+        MemberIdentity author,
         Instant publishedAt,
         Instant createdAt,
         RestrictionMode restrictionMode,
@@ -39,16 +42,24 @@ public record News(
      * Creates a row mapping for database result set conversion.
      */
     public static RowMapping<News> map() {
-        return row -> new News(
-                row.getInt("id"),
-                row.getInt("station_id"),
-                row.getString("title"),
-                row.getString("content_markdown"),
-                row.getString("content_html"),
-                row.getInt("author_id"),
-                row.get("published_at", INSTANT_TIMESTAMP),
-                row.get("created_at", INSTANT_TIMESTAMP),
-                RestrictionMode.valueOf(row.getString("restriction_mode")),
-                row.getBoolean("restricted"));
+        return row -> {
+            UUID authorStationUid = row.get("author_station_uid", StandardValueConverter.UUID_STRING);
+            UUID authorMemberUid = row.get("author_member_uid", StandardValueConverter.UUID_STRING);
+            MemberIdentity author = (authorStationUid != null && authorMemberUid != null)
+                    ? new MemberIdentity(authorStationUid, authorMemberUid)
+                    : null;
+
+            return new News(
+                    row.getInt("id"),
+                    row.getInt("station_id"),
+                    row.getString("title"),
+                    row.getString("content_markdown"),
+                    row.getString("content_html"),
+                    author,
+                    row.get("published_at", INSTANT_TIMESTAMP),
+                    row.get("created_at", INSTANT_TIMESTAMP),
+                    RestrictionMode.valueOf(row.getString("restriction_mode")),
+                    row.getBoolean("restricted"));
+        };
     }
 }

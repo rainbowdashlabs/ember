@@ -48,6 +48,8 @@ class EventCommentRepositoryTest extends RepositoryTestBase {
                 null,
                 false,
                 null,
+                null,
+                null,
                 null);
         eventId = event.id();
     }
@@ -61,10 +63,12 @@ class EventCommentRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(1)
     void createTopLevelComment() {
-        var comment = eventCommentRepo.create(eventId, null, member.id(), "Hello world");
+        var author = memberIdentityFactory.local(station.id(), member.id());
+        var comment = eventCommentRepo.create(eventId, null, author, "Hello world");
         assertNotNull(comment);
         assertEquals("Hello world", comment.content());
-        assertEquals(member.id(), comment.authorId());
+        assertNotNull(comment.author());
+        assertEquals(author.memberUid(), comment.author().memberUid());
         assertNull(comment.parentId());
         assertFalse(comment.deleted());
         commentId = comment.id();
@@ -123,7 +127,8 @@ class EventCommentRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(9)
     void createReply() {
-        var reply = eventCommentRepo.create(eventId, commentId, member.id(), "This is a reply");
+        var author = memberIdentityFactory.local(station.id(), member.id());
+        var reply = eventCommentRepo.create(eventId, commentId, author, "This is a reply");
         assertNotNull(reply);
         assertEquals(commentId, reply.parentId());
         replyId = reply.id();
@@ -178,11 +183,10 @@ class EventCommentRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(20)
     void createCommentWithNullAuthorForFederation() {
-        // Comments with null authorId can be created for federated authors
-        // (the inline identity columns author_station_uid/author_member_uid handle identity)
+        // Comments with null author can be created for federated authors
         var comment = eventCommentRepo.create(eventId, null, null, "Federated-style comment");
         assertNotNull(comment);
-        assertNull(comment.authorId());
+        assertNull(comment.author());
         eventCommentRepo.delete(comment.id());
     }
 
@@ -191,16 +195,17 @@ class EventCommentRepositoryTest extends RepositoryTestBase {
     void createCommentWithNullAuthor() {
         var comment = eventCommentRepo.create(eventId, null, null, "Anonymous comment");
         assertNotNull(comment);
-        assertNull(comment.authorId());
+        assertNull(comment.author());
         eventCommentRepo.delete(comment.id());
     }
 
     @Test
     @Order(31)
     void createMultipleTopLevelComments() {
-        var c1 = eventCommentRepo.create(eventId, null, member.id(), "Comment 1");
-        var c2 = eventCommentRepo.create(eventId, null, member.id(), "Comment 2");
-        var c3 = eventCommentRepo.create(eventId, null, member.id(), "Comment 3");
+        var author = memberIdentityFactory.local(station.id(), member.id());
+        var c1 = eventCommentRepo.create(eventId, null, author, "Comment 1");
+        var c2 = eventCommentRepo.create(eventId, null, author, "Comment 2");
+        var c3 = eventCommentRepo.create(eventId, null, author, "Comment 3");
 
         var comments = eventCommentRepo.findByEvent(eventId);
         assertTrue(comments.size() >= 3);
@@ -219,9 +224,10 @@ class EventCommentRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(33)
     void deeplyNestedReplies() {
-        var c1 = eventCommentRepo.create(eventId, null, member.id(), "Level 0");
-        var c2 = eventCommentRepo.create(eventId, c1.id(), member.id(), "Level 1");
-        var c3 = eventCommentRepo.create(eventId, c2.id(), member.id(), "Level 2");
+        var author = memberIdentityFactory.local(station.id(), member.id());
+        var c1 = eventCommentRepo.create(eventId, null, author, "Level 0");
+        var c2 = eventCommentRepo.create(eventId, c1.id(), author, "Level 1");
+        var c3 = eventCommentRepo.create(eventId, c2.id(), author, "Level 2");
 
         assertTrue(eventCommentRepo.hasChildren(c1.id()));
         assertTrue(eventCommentRepo.hasChildren(c2.id()));

@@ -31,9 +31,11 @@ import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.service.FederationHttpClient;
 import dev.chojo.ember.feature.federation.service.FederationService;
+import dev.chojo.ember.feature.members.entity.MemberCompletion;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
 import dev.chojo.ember.feature.members.entity.Role;
 import dev.chojo.ember.feature.members.entity.UserTag;
+import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.MemberGroupService;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
@@ -77,6 +79,7 @@ public class FederatedBoardProxyService {
     private final FederationHttpClient httpClient;
     private final StationRepository stationRepository;
     private final StationMemberService memberService;
+    private final StationMemberRepository stationMemberRepository;
     private final MemberGroupService groupService;
     private final UserTagService tagService;
     private final EventFederationRepository eventFederationRepository;
@@ -94,6 +97,7 @@ public class FederatedBoardProxyService {
             FederationHttpClient httpClient,
             StationRepository stationRepository,
             StationMemberService memberService,
+            StationMemberRepository stationMemberRepository,
             MemberGroupService groupService,
             UserTagService tagService,
             EventFederationRepository eventFederationRepository,
@@ -108,6 +112,7 @@ public class FederatedBoardProxyService {
         this.httpClient = httpClient;
         this.stationRepository = stationRepository;
         this.memberService = memberService;
+        this.stationMemberRepository = stationMemberRepository;
         this.groupService = groupService;
         this.tagService = tagService;
         this.eventFederationRepository = eventFederationRepository;
@@ -171,7 +176,7 @@ public class FederatedBoardProxyService {
                             return new DiscoveredBoard(
                                     partner.id(),
                                     partner.partnerStationId().toString(),
-                                    board.id(),
+                                    board.uid(),
                                     board.name(),
                                     board.shortKey(),
                                     board.description(),
@@ -194,7 +199,7 @@ public class FederatedBoardProxyService {
                 .map(b -> new DiscoveredBoard(
                         partner.id(),
                         partner.partnerStationId().toString(),
-                        b.id(),
+                        UUID.fromString(b.uid()),
                         b.name(),
                         b.shortKey(),
                         b.description(),
@@ -218,6 +223,16 @@ public class FederatedBoardProxyService {
                 .map(Station::name)
                 .orElse("Station #" + board.stationId());
         return FederatedBoardDetail.of(board, mode.name(), stationName, stationRepository);
+    }
+
+    public List<MemberCompletion> proxyGetMembers(int partnerId, String boardKey) {
+        var partner = findPartner(partnerId);
+        if (partner.isRemote()) {
+            return remoteGetList(partner, "/remote/boards/" + boardKey + "/members", MemberCompletion.class);
+        }
+        int boardId = resolveBoardId(boardKey, partner);
+        var board = boardService.findById(boardId).orElseThrow(NotFoundResponse::new);
+        return stationMemberRepository.findCompletions(board.stationId());
     }
 
     public List<BoardLane> proxyGetLanes(int partnerId, String boardKey) {
@@ -358,7 +373,10 @@ public class FederatedBoardProxyService {
         int boardId = resolveBoardId(boardKey, partner);
         int ticketId = resolveTicketId(boardId, ticketNumber);
         return ticketService.findTransitions(ticketId).stream()
-                .map(tr -> BoardTicketTransitionResponse.from(tr, tr.actor(), memberNameResolver.resolve(tr.actor())))
+                .map(tr -> {
+                    var resolved = memberNameResolver.resolveDisplay(tr.actor());
+                    return BoardTicketTransitionResponse.from(tr, resolved.identity(), resolved.name());
+                })
                 .toList();
     }
 
@@ -373,7 +391,10 @@ public class FederatedBoardProxyService {
         int boardId = resolveBoardId(boardKey, partner);
         int ticketId = resolveTicketId(boardId, ticketNumber);
         return ticketService.findHistory(ticketId).stream()
-                .map(h -> BoardTicketHistoryResponse.from(h, h.actor(), memberNameResolver.resolve(h.actor())))
+                .map(h -> {
+                    var resolved = memberNameResolver.resolveDisplay(h.actor());
+                    return BoardTicketHistoryResponse.from(h, resolved.identity(), resolved.name());
+                })
                 .toList();
     }
 
@@ -431,7 +452,7 @@ public class FederatedBoardProxyService {
                 ? laneId
                 : boardService.findLanes(boardId).getFirst().id();
         var creatorIdentity = new MemberIdentity(partner.partnerStationId(), remoteMemberId);
-        var ticket = ticketService.createTicket(
+        return ticketService.createTicket(
                 boardId,
                 effectiveLaneId,
                 title,
@@ -440,7 +461,6 @@ public class FederatedBoardProxyService {
                 priority != null ? TicketPriority.valueOf(priority) : TicketPriority.MEDIUM,
                 dueDate != null ? LocalDate.parse(dueDate) : null,
                 creatorIdentity);
-        return ticket;
     }
 
     public BoardTicket proxyUpdateTicket(
@@ -451,7 +471,9 @@ public class FederatedBoardProxyService {
             String description,
             Integer assignedMemberId,
             String priority,
-            String dueDate) {
+            String dueDate,
+            UUID remoteMemberUid,
+            String displayName) {
         var partner = findPartner(partnerId);
         if (partner.isRemote()) {
             var body = new HashMap<String, Object>();
@@ -460,6 +482,8 @@ public class FederatedBoardProxyService {
             if (assignedMemberId != null) body.put("assignedMemberId", assignedMemberId);
             if (priority != null) body.put("priority", priority);
             if (dueDate != null) body.put("dueDate", dueDate);
+            if (remoteMemberUid != null) body.put("remoteMemberUid", remoteMemberUid.toString());
+            if (displayName != null) body.put("displayName", displayName);
             return remotePut(
                     partner, "/remote/boards/" + boardKey + "/tickets/" + ticketNumber, body, BoardTicket.class);
         }
@@ -468,6 +492,11 @@ public class FederatedBoardProxyService {
         var board = boardService.findById(boardId).orElseThrow(NotFoundResponse::new);
         MemberIdentity assigneeIdentity =
                 assignedMemberId != null ? memberIdentityFactory.local(board.stationId(), assignedMemberId) : null;
+        MemberIdentity actorIdentity =
+                remoteMemberUid != null ? new MemberIdentity(partner.partnerStationId(), remoteMemberUid) : null;
+        if (displayName != null && remoteMemberUid != null) {
+            eventFederationRepository.cacheName(partnerId, remoteMemberUid, displayName);
+        }
         ticketService.updateTicket(
                 ticketId,
                 title,
@@ -475,7 +504,7 @@ public class FederatedBoardProxyService {
                 assigneeIdentity,
                 priority != null ? TicketPriority.valueOf(priority) : null,
                 dueDate != null ? LocalDate.parse(dueDate) : null,
-                null);
+                actorIdentity);
         return ticketService.findById(ticketId).orElseThrow(NotFoundResponse::new);
     }
 
@@ -491,10 +520,20 @@ public class FederatedBoardProxyService {
     }
 
     public BoardTicket proxyMoveTicket(
-            int partnerId, String boardKey, int ticketNumber, int toLaneId, int position, UUID federatedMemberId) {
+            int partnerId,
+            String boardKey,
+            int ticketNumber,
+            int toLaneId,
+            int position,
+            UUID remoteMemberUid,
+            String displayName) {
         var partner = findPartner(partnerId);
         if (partner.isRemote()) {
-            var body = Map.of("toLaneId", toLaneId, "position", position);
+            var body = new HashMap<String, Object>();
+            body.put("toLaneId", toLaneId);
+            body.put("position", position);
+            if (remoteMemberUid != null) body.put("remoteMemberUid", remoteMemberUid.toString());
+            if (displayName != null) body.put("displayName", displayName);
             return remotePut(
                     partner,
                     "/remote/boards/" + boardKey + "/tickets/" + ticketNumber + "/move",
@@ -504,12 +543,12 @@ public class FederatedBoardProxyService {
         int boardId = resolveBoardId(boardKey, partner);
         int ticketId = resolveTicketId(boardId, ticketNumber);
         var ticket = ticketService.findById(ticketId).orElseThrow(NotFoundResponse::new);
-        ticketService.moveTicket(
-                ticketId,
-                ticket.laneId(),
-                toLaneId,
-                position,
-                new MemberIdentity(partner.partnerStationId(), federatedMemberId));
+        MemberIdentity actorIdentity =
+                remoteMemberUid != null ? new MemberIdentity(partner.partnerStationId(), remoteMemberUid) : null;
+        if (displayName != null && remoteMemberUid != null) {
+            eventFederationRepository.cacheName(partnerId, remoteMemberUid, displayName);
+        }
+        ticketService.moveTicket(ticketId, ticket.laneId(), toLaneId, position, actorIdentity);
         return ticketService.findById(ticketId).orElseThrow(NotFoundResponse::new);
     }
 
@@ -552,10 +591,14 @@ public class FederatedBoardProxyService {
         return comment;
     }
 
-    public BoardChecklistItem proxyAddChecklistItem(int partnerId, String boardKey, int ticketNumber, String title) {
+    public BoardChecklistItem proxyAddChecklistItem(
+            int partnerId, String boardKey, int ticketNumber, String title, UUID remoteMemberUid, String displayName) {
         var partner = findPartner(partnerId);
         if (partner.isRemote()) {
-            var body = Map.of("title", title);
+            var body = new HashMap<String, Object>();
+            body.put("title", title);
+            if (remoteMemberUid != null) body.put("remoteMemberUid", remoteMemberUid.toString());
+            if (displayName != null) body.put("displayName", displayName);
             return remotePost(
                     partner,
                     "/remote/boards/" + boardKey + "/tickets/" + ticketNumber + "/checklist",
@@ -564,24 +607,42 @@ public class FederatedBoardProxyService {
         }
         int boardId = resolveBoardId(boardKey, partner);
         int ticketId = resolveTicketId(boardId, ticketNumber);
+        if (displayName != null && remoteMemberUid != null) {
+            eventFederationRepository.cacheName(partnerId, remoteMemberUid, displayName);
+        }
         return ticketService.addChecklistItem(ticketId, title, 0);
     }
 
     public void proxyUpdateChecklistItem(
-            int partnerId, String boardKey, int ticketNumber, int itemId, String title, boolean checked) {
+            int partnerId,
+            String boardKey,
+            int ticketNumber,
+            int itemId,
+            String title,
+            boolean checked,
+            UUID remoteMemberUid,
+            String displayName) {
         var partner = findPartner(partnerId);
         if (partner.isRemote()) {
-            var body = Map.of("title", title, "checked", checked);
+            var body = new HashMap<String, Object>();
+            body.put("title", title);
+            body.put("checked", checked);
+            if (remoteMemberUid != null) body.put("remoteMemberUid", remoteMemberUid.toString());
+            if (displayName != null) body.put("displayName", displayName);
             remotePut(
                     partner, "/remote/boards/" + boardKey + "/tickets/" + ticketNumber + "/checklist/" + itemId, body);
             return;
         }
         int boardId = resolveBoardId(boardKey, partner);
         int ticketId = resolveTicketId(boardId, ticketNumber);
+        if (displayName != null && remoteMemberUid != null) {
+            eventFederationRepository.cacheName(partnerId, remoteMemberUid, displayName);
+        }
         ticketService.updateChecklistItem(itemId, ticketId, title, checked, 0);
     }
 
-    public void proxyDeleteChecklistItem(int partnerId, String boardKey, int ticketNumber, int itemId) {
+    public void proxyDeleteChecklistItem(
+            int partnerId, String boardKey, int ticketNumber, int itemId, UUID remoteMemberUid, String displayName) {
         var partner = findPartner(partnerId);
         if (partner.isRemote()) {
             remoteDelete(partner, "/remote/boards/" + boardKey + "/tickets/" + ticketNumber + "/checklist/" + itemId);
@@ -589,6 +650,9 @@ public class FederatedBoardProxyService {
         }
         int boardId = resolveBoardId(boardKey, partner);
         int ticketId = resolveTicketId(boardId, ticketNumber);
+        if (displayName != null && remoteMemberUid != null) {
+            eventFederationRepository.cacheName(partnerId, remoteMemberUid, displayName);
+        }
         ticketService.deleteChecklistItem(itemId, ticketId, 0);
     }
 
@@ -718,9 +782,9 @@ public class FederatedBoardProxyService {
      * Checks if a member passes the local view override (if one exists).
      * Returns true if no override is set (all members can view).
      */
-    public boolean passesLocalViewOverride(int partnerId, int remoteBoardId, int memberId) {
-        if (!federatedBoardRepository.hasLocalViewOverride(partnerId, remoteBoardId)) return true;
-        var override = federatedBoardRepository.findLocalViewOverride(partnerId, remoteBoardId);
+    public boolean passesLocalViewOverride(int partnerId, UUID remoteBoardUid, int memberId) {
+        if (!federatedBoardRepository.hasLocalViewOverride(partnerId, remoteBoardUid)) return true;
+        var override = federatedBoardRepository.findLocalViewOverride(partnerId, remoteBoardUid);
         return matchesAccess(memberId, override);
     }
 
@@ -728,9 +792,9 @@ public class FederatedBoardProxyService {
      * Checks if a member passes the local edit override (if one exists).
      * Returns true if no override is set.
      */
-    public boolean passesLocalEditOverride(int partnerId, int remoteBoardId, int memberId) {
-        if (!federatedBoardRepository.hasLocalEditOverride(partnerId, remoteBoardId)) return true;
-        var override = federatedBoardRepository.findLocalEditOverride(partnerId, remoteBoardId);
+    public boolean passesLocalEditOverride(int partnerId, UUID remoteBoardUid, int memberId) {
+        if (!federatedBoardRepository.hasLocalEditOverride(partnerId, remoteBoardUid)) return true;
+        var override = federatedBoardRepository.findLocalEditOverride(partnerId, remoteBoardUid);
         return matchesAccess(memberId, override);
     }
 
@@ -738,50 +802,50 @@ public class FederatedBoardProxyService {
      * Full access check: share mode must be at least the required level,
      * and the member must pass the local override.
      */
-    public boolean canView(int partnerId, int remoteBoardId, int memberId) {
-        var mode = getEffectiveShareMode(partnerId, remoteBoardId);
+    public boolean canView(int partnerId, UUID remoteBoardUid, int boardId, int memberId) {
+        var mode = getEffectiveShareMode(partnerId, boardId);
         if (mode.isEmpty()) return false;
-        return passesLocalViewOverride(partnerId, remoteBoardId, memberId);
+        return passesLocalViewOverride(partnerId, remoteBoardUid, memberId);
     }
 
-    public boolean canWrite(int partnerId, int remoteBoardId, int memberId) {
-        var mode = getEffectiveShareMode(partnerId, remoteBoardId);
+    public boolean canWrite(int partnerId, UUID remoteBoardUid, int boardId, int memberId) {
+        var mode = getEffectiveShareMode(partnerId, boardId);
         if (mode.isEmpty() || mode.get() != BoardShareMode.FULL) return false;
-        return passesLocalViewOverride(partnerId, remoteBoardId, memberId)
-                && passesLocalEditOverride(partnerId, remoteBoardId, memberId);
+        return passesLocalViewOverride(partnerId, remoteBoardUid, memberId)
+                && passesLocalEditOverride(partnerId, remoteBoardUid, memberId);
     }
 
     // -- Local Overrides --
 
-    public void setLocalViewOverride(int partnerId, int remoteBoardId, AccessData access) {
-        federatedBoardRepository.setLocalViewOverride(partnerId, remoteBoardId, access);
+    public void setLocalViewOverride(int partnerId, UUID remoteBoardUid, AccessData access) {
+        federatedBoardRepository.setLocalViewOverride(partnerId, remoteBoardUid, access);
     }
 
-    public void setLocalEditOverride(int partnerId, int remoteBoardId, AccessData access) {
-        federatedBoardRepository.setLocalEditOverride(partnerId, remoteBoardId, access);
+    public void setLocalEditOverride(int partnerId, UUID remoteBoardUid, AccessData access) {
+        federatedBoardRepository.setLocalEditOverride(partnerId, remoteBoardUid, access);
     }
 
-    public AccessData getLocalViewOverride(int partnerId, int remoteBoardId) {
-        return federatedBoardRepository.findLocalViewOverride(partnerId, remoteBoardId);
+    public AccessData getLocalViewOverride(int partnerId, UUID remoteBoardUid) {
+        return federatedBoardRepository.findLocalViewOverride(partnerId, remoteBoardUid);
     }
 
-    public AccessData getLocalEditOverride(int partnerId, int remoteBoardId) {
-        return federatedBoardRepository.findLocalEditOverride(partnerId, remoteBoardId);
+    public AccessData getLocalEditOverride(int partnerId, UUID remoteBoardUid) {
+        return federatedBoardRepository.findLocalEditOverride(partnerId, remoteBoardUid);
     }
 
     // -- Bookmarks --
 
     public FederationBoardBookmark createBookmark(
-            int memberId, int partnerId, int remoteBoardId, String name, String shortKey, BoardShareMode shareMode) {
-        return federatedBoardService.createBookmark(memberId, partnerId, remoteBoardId, name, shortKey, shareMode);
+            int memberId, int partnerId, UUID remoteBoardUid, String name, String shortKey, BoardShareMode shareMode) {
+        return federatedBoardService.createBookmark(memberId, partnerId, remoteBoardUid, name, shortKey, shareMode);
     }
 
     public void deleteBookmark(int bookmarkId) {
         federatedBoardService.deleteBookmark(bookmarkId);
     }
 
-    public void deleteBookmarkByBoard(int memberId, int partnerId, int remoteBoardId) {
-        federatedBoardService.deleteBookmarkByBoard(memberId, partnerId, remoteBoardId);
+    public void deleteBookmarkByBoard(int memberId, int partnerId, UUID remoteBoardUid) {
+        federatedBoardService.deleteBookmarkByBoard(memberId, partnerId, remoteBoardUid);
     }
 
     public List<FederationBoardBookmark> findBookmarks(int memberId) {
@@ -792,23 +856,23 @@ public class FederatedBoardProxyService {
      * Called via webhook when the owning station renames a board.
      * Updates all bookmarks for this board.
      */
-    public void onBoardRenamed(int partnerId, int remoteBoardId, String newName, String newShortKey) {
-        federatedBoardRepository.updateBookmarkName(partnerId, remoteBoardId, newName, newShortKey);
+    public void onBoardRenamed(int partnerId, UUID remoteBoardUid, String newName, String newShortKey) {
+        federatedBoardRepository.updateBookmarkName(partnerId, remoteBoardUid, newName, newShortKey);
     }
 
     /**
      * Called via webhook when the owning station unshares a board.
      * Deletes all bookmarks for this board.
      */
-    public void onBoardUnshared(int partnerId, int remoteBoardId) {
-        federatedBoardRepository.deleteBookmarksByBoard(partnerId, remoteBoardId);
+    public void onBoardUnshared(int partnerId, UUID remoteBoardUid) {
+        federatedBoardRepository.deleteBookmarksByBoard(partnerId, remoteBoardUid);
     }
 
     /**
      * Called via webhook when the share mode changes.
      */
-    public void onShareModeChanged(int partnerId, int remoteBoardId, BoardShareMode newMode) {
-        federatedBoardRepository.updateBookmarkShareMode(partnerId, remoteBoardId, newMode);
+    public void onShareModeChanged(int partnerId, UUID remoteBoardUid, BoardShareMode newMode) {
+        federatedBoardRepository.updateBookmarkShareMode(partnerId, remoteBoardUid, newMode);
     }
 
     // -- Helpers --
@@ -820,18 +884,27 @@ public class FederatedBoardProxyService {
     }
 
     /**
-     * Resolves a boardKey to a remote board ID for the given partner.
-     * For local partners, resolves via DB. For remote partners, returns -1
+     * Resolves a boardKey to a remote board UUID for the given partner.
+     * For local partners, resolves via DB. For remote partners, returns null
      * (the remote station handles access control).
      */
-    public int resolveFederatedBoardId(int partnerId, String boardKey) {
+    public UUID resolveFederatedBoardUid(int partnerId, String boardKey) {
+        var board = resolveFederatedBoard(partnerId, boardKey);
+        return board != null ? board.uid() : null;
+    }
+
+    /**
+     * Resolves a boardKey to the full Board entity on the partner station.
+     * For local partners, resolves via DB. For remote partners, returns null
+     * (the remote station handles access control).
+     */
+    public Board resolveFederatedBoard(int partnerId, String boardKey) {
         var partner = federationRepository.findPartnerById(partnerId).orElse(null);
-        if (partner == null || partner.isRemote()) return -1;
+        if (partner == null) return null;
         return stationRepository
                 .findByUid(partner.partnerStationId())
                 .flatMap(station -> boardService.findByShortKey(station.id(), boardKey))
-                .map(board -> board.id())
-                .orElse(-1);
+                .orElse(null);
     }
 
     private int resolveBoardId(String boardKey, FederationPartner partner) {
@@ -969,7 +1042,7 @@ public class FederatedBoardProxyService {
     public record DiscoveredBoard(
             int partnerId,
             String partnerStationUid,
-            int remoteBoardId,
+            UUID remoteBoardUid,
             String name,
             String shortKey,
             String description,
@@ -1021,5 +1094,6 @@ public class FederatedBoardProxyService {
 
     public record FederatedWatcherData(List<Integer> local, List<Object> federated) {}
 
-    public record RemoteDiscoveredBoard(int id, String name, String shortKey, String description, String shareMode) {}
+    public record RemoteDiscoveredBoard(
+            String uid, String name, String shortKey, String description, String shareMode) {}
 }

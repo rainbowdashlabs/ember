@@ -443,7 +443,7 @@ watch(ticketNumber, loadData)
                         <MemberSelectInput v-if="editingAssignee && canEdit" v-model="assignedMemberId" :members="members" :placeholder="t('boards.unassigned')" auto-open @change="editingAssignee = false; saveTicket()" />
                         <div v-else class="flex items-center gap-2 rounded-theme px-2 py-1 text-sm" :class="canEdit ? 'cursor-pointer hover:bg-(--bg-accent)' : ''" @click.stop="canEdit && (closeAllEditors(), editingAssignee = true)">
                             <span v-if="assignedMemberId" class="flex items-center gap-2">
-                                <UserAvatar :member-id="Number(assignedMemberId)" size="sm" />
+                                <UserAvatar :identity="members.find(m => m.id === Number(assignedMemberId))" size="sm" />
                                 {{ members.find(m => m.id === Number(assignedMemberId))?.name }}
                             </span>
                             <span v-else class="text-(--text-muted) italic">{{ t('boards.unassigned') }}</span>

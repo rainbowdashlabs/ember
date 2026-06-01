@@ -42,6 +42,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+@SuppressWarnings("DefaultAnnotationParam")
 @Singleton
 public class PublicEventRoutes implements Routes {
     private final EventService eventService;

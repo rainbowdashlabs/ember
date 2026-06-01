@@ -91,7 +91,7 @@ class UserTagServiceTest extends RepositoryTestBase {
     @Test
     @Order(20)
     void update() {
-        assertTrue(service.update(tagId, "Rettungsschwimmer"));
+        assertTrue(service.update(tagId, "Rettungsschwimmer", null, false, 0));
         var tag = service.findById(tagId).orElseThrow();
         assertEquals("Rettungsschwimmer", tag.name());
     }

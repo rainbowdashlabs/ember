@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.members.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
 import de.chojo.sadu.queries.converter.StandardValueConverter;
+import dev.chojo.ember.api.MemberIdentity;
 import org.slf4j.Logger;
 import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.ObjectMapper;
@@ -45,7 +46,8 @@ public record RichMember(
         List<String> roles,
         List<GroupEntry> groups,
         List<TagEntry> tags,
-        Map<String, Object> profileValues) {
+        Map<String, Object> profileValues,
+        MemberIdentity identity) {
 
     private static final Logger log = getLogger(RichMember.class);
     private static final ObjectMapper MAPPER = JsonMapper.builder().build();
@@ -69,7 +71,8 @@ public record RichMember(
                 parseJson(row.getString("roles"), STRING_LIST, List.of()),
                 parseJson(row.getString("groups"), GROUP_LIST, List.of()),
                 parseJson(row.getString("tags"), TAG_LIST, List.of()),
-                parseJson(row.getString("profile_values"), STRING_MAP, Map.of()));
+                parseJson(row.getString("profile_values"), STRING_MAP, Map.of()),
+                null);
     }
 
     private static <T> T parseJson(String json, TypeReference<T> type, T fallback) {
@@ -85,6 +88,11 @@ public record RichMember(
     /**
      * A group entry with id and name.
      */
+    public RichMember withIdentity(MemberIdentity identity) {
+        return new RichMember(
+                id, stationId, uid, accountId, name, email, former, roles, groups, tags, profileValues, identity);
+    }
+
     public record GroupEntry(int id, String name) {}
 
     /**

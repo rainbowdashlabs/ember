@@ -76,12 +76,14 @@ public class DueDateReminderChecker {
         return Query.query("""
                         SELECT b.station_id, b.id AS board_id, t.id AS ticket_id,
                                b.name AS board_name, b.short_key || '-' || t.ticket_number AS ticket_key,
-                               t.due_date::text AS due_date, t.assigned_member_id
+                               t.due_date::text AS due_date, sm.id AS assigned_member_id
                         FROM board_ticket t
                         JOIN board b ON b.id = t.board_id
+                        JOIN station_member sm ON sm.station_id = b.station_id
+                             AND sm.uid = t.assignee_member_uid
                         WHERE t.due_date IS NOT NULL
                           AND t.due_date <= CURRENT_DATE
-                          AND t.assigned_member_id IS NOT NULL
+                          AND t.assignee_member_uid IS NOT NULL
                           AND t.lane_id != (
                               SELECT bl.id FROM board_lane bl
                               WHERE bl.board_id = t.board_id

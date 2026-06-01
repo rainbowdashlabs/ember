@@ -5,9 +5,7 @@
  */
 package dev.chojo.ember.feature.news.service;
 
-import de.chojo.sadu.queries.api.call.Call;
-import de.chojo.sadu.queries.api.query.Query;
-import de.chojo.sadu.queries.converter.StandardValueConverter;
+import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
@@ -16,6 +14,7 @@ import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.service.FederationHttpClient;
 import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
+import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.news.entity.News;
 import dev.chojo.ember.feature.news.entity.NewsComment;
 import dev.chojo.ember.feature.news.entity.NewsFederationShare;
@@ -49,6 +48,7 @@ public class NewsFederationService {
     private final StationMemberRepository stationMemberRepository;
     private final AccountRepository accountRepository;
     private final EventFederationRepository eventFederationRepository;
+    private final MemberNameResolver memberNameResolver;
 
     @Inject
     public NewsFederationService(
@@ -60,7 +60,8 @@ public class NewsFederationService {
             NewsService newsService,
             StationMemberRepository stationMemberRepository,
             AccountRepository accountRepository,
-            EventFederationRepository eventFederationRepository) {
+            EventFederationRepository eventFederationRepository,
+            MemberNameResolver memberNameResolver) {
         this.federationRepository = federationRepository;
         this.federationService = federationService;
         this.partnerRepository = partnerRepository;
@@ -70,6 +71,7 @@ public class NewsFederationService {
         this.stationMemberRepository = stationMemberRepository;
         this.accountRepository = accountRepository;
         this.eventFederationRepository = eventFederationRepository;
+        this.memberNameResolver = memberNameResolver;
     }
 
     // -- Share management --
@@ -143,8 +145,7 @@ public class NewsFederationService {
 
     /**
      * Creates a comment from a remote federated member on a news article.
-     * Stores the comment with {@code authorId=null}, sets inline identity columns,
-     * and caches the display name.
+     * Stores the comment with the federated author identity and caches the display name.
      */
     public NewsComment createRemoteComment(
             int stationId,
@@ -154,21 +155,12 @@ public class NewsFederationService {
             String displayName,
             Integer parentId,
             String content) {
-        var comment = newsService.createComment(stationId, newsId, parentId, null, displayName, content);
-        // Set inline identity columns
         var partnerStationUid = partnerRepository
                 .findPartnerById(partnerId)
-                .map(p -> p.partnerStationId())
+                .map(FederationPartner::partnerStationId)
                 .orElse(null);
-        if (partnerStationUid != null) {
-            Query.query(
-                            "UPDATE news_comment SET author_station_uid = :station_uid::uuid, author_member_uid = :member_uid::uuid WHERE id = :id;")
-                    .single(Call.of()
-                            .bind("id", comment.id())
-                            .bind("station_uid", partnerStationUid, StandardValueConverter.UUID_STRING)
-                            .bind("member_uid", remoteMemberUid, StandardValueConverter.UUID_STRING))
-                    .update();
-        }
+        var authorIdentity = partnerStationUid != null ? new MemberIdentity(partnerStationUid, remoteMemberUid) : null;
+        var comment = newsService.createComment(stationId, newsId, parentId, authorIdentity, displayName, content);
         eventFederationRepository.cacheName(partnerId, remoteMemberUid, displayName);
         return comment;
     }
@@ -294,11 +286,8 @@ public class NewsFederationService {
     }
 
     private FederatedNewsData toNewsData(News n, String visibilityRole) {
-        String authorName = stationMemberRepository
-                .findById(n.authorId())
-                .flatMap(m -> accountRepository.findById(m.accountId()))
-                .map(a -> (a.firstName() + " " + a.lastName()).trim())
-                .orElse("");
+        var authorResolved = n.author() != null ? memberNameResolver.resolveDisplay(n.author()) : null;
+        String authorName = authorResolved != null && authorResolved.name() != null ? authorResolved.name() : "";
         return new FederatedNewsData(
                 n.id(),
                 n.title(),

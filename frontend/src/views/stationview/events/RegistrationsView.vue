@@ -187,7 +187,7 @@ onMounted(loadData)
                   <tbody>
                     <tr v-for="reg in group.pending" :key="reg.id" class="border-b border-(--border) last:border-0">
                       <td class="p-2">
-                        <MemberName :name="memberName(reg.memberId)" :member-id="reg.memberId"/>
+                        <MemberName :name="memberName(reg.memberId)"/>
                       </td>
                       <td class="p-2 text-center font-bold" :class="getStats(reg.memberId)?.priority === 'HIGH' ? 'text-error' : getStats(reg.memberId)?.priority === 'MEDIUM' ? 'text-info' : ''">
                         {{ getStats(reg.memberId)?.fairnessScore ?? '-' }}

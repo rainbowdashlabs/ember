@@ -6,15 +6,18 @@
 package dev.chojo.ember.feature.board.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
+import de.chojo.sadu.queries.converter.StandardValueConverter;
+
+import java.util.UUID;
 
 public record FederationBoardLocalOverride(
-        int id, int partnerId, int remoteBoardId, Integer roleId, Integer groupId, Integer tagId) {
+        int id, int partnerId, UUID remoteBoardUid, Integer roleId, Integer groupId, Integer tagId) {
 
     public static RowMapping<FederationBoardLocalOverride> map() {
         return row -> new FederationBoardLocalOverride(
                 row.getInt("id"),
                 row.getInt("partner_id"),
-                row.getInt("remote_board_id"),
+                row.get("remote_board_uid", StandardValueConverter.UUID_STRING),
                 row.getObject("role_id", Integer.class),
                 row.getObject("group_id", Integer.class),
                 row.getObject("tag_id", Integer.class));

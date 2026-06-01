@@ -6,9 +6,10 @@
 <script lang="ts" setup>
 import {computed, ref, watch} from 'vue'
 import client from '@/api/client'
+import type {MemberIdentity} from '@/api/types'
 
 const props = withDefaults(defineProps<{
-  memberId?: number | null
+  identity?: MemberIdentity | null
   size?: 'sm' | 'md' | 'lg'
   name?: string
 }>(), {
@@ -47,10 +48,10 @@ async function loadAvatar() {
   hasAvatar.value = false
   imgSrc.value = ''
 
-  if (!props.memberId) return
+  if (!props.identity?.memberUid) return
 
   try {
-    const res = await client.get(`/members/${props.memberId}/avatar?size=128`, {
+    const res = await client.get(`/members/${props.identity.stationUid}/${props.identity.memberUid}/avatar?size=128`, {
       responseType: 'blob',
       validateStatus: (status) => status === 200 || status === 204 || status === 404,
     })
@@ -61,7 +62,7 @@ async function loadAvatar() {
   } catch { /* no avatar */ }
 }
 
-watch(() => props.memberId, loadAvatar, {immediate: true})
+watch(() => props.identity, loadAvatar, {immediate: true, deep: true})
 </script>
 
 <template>

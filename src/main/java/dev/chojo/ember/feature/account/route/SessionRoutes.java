@@ -121,7 +121,7 @@ public class SessionRoutes implements Routes {
         routes.get(prefix + "/session/avatar", this::getAvatar, Roles.LOGIN);
         routes.post(prefix + "/session/avatar", this::uploadAvatar, Roles.LOGIN);
         routes.delete(prefix + "/session/avatar", this::deleteAvatar, Roles.LOGIN);
-        routes.get(prefix + "/members/{memberId}/avatar", this::getAvatarByMember, Roles.LOGIN);
+        routes.get(prefix + "/members/{stationUid}/{memberUid}/avatar", this::getAvatarByMember, Roles.LOGIN);
         routes.delete(prefix + "/session/account", this::deleteAccount, Roles.LOGIN);
     }
 
@@ -355,24 +355,29 @@ public class SessionRoutes implements Routes {
             ctx.status(HttpStatus.NOT_FOUND);
             return;
         }
-        serveAvatar(ctx, session.member().id());
+        var memberUid = stationMemberRepository.resolveUid(session.member().id());
+        if (memberUid == null) {
+            ctx.status(HttpStatus.NOT_FOUND);
+            return;
+        }
+        serveAvatar(ctx, memberUid.toString());
     }
 
     /**
-     * Retrieves the avatar for a specific member by their ID path parameter.
+     * Retrieves the avatar for a specific member by their UUID path parameter.
      */
     private void getAvatarByMember(Context ctx) {
-        int memberId = ctx.pathParamAsClass("memberId", Integer.class).get();
-        serveAvatar(ctx, memberId);
+        String memberUid = ctx.pathParam("memberUid");
+        serveAvatar(ctx, memberUid);
     }
 
     /**
      * Serves a member's avatar from disk with appropriate content type and cache headers.
      */
-    private void serveAvatar(Context ctx, int memberId) {
+    private void serveAvatar(Context ctx, String memberKey) {
         int size = ctx.queryParamAsClass("size", Integer.class).getOrDefault(0);
         imageService
-                .read(ImageCategory.AVATARS, String.valueOf(memberId), size)
+                .read(ImageCategory.AVATARS, memberKey, size)
                 .ifPresentOrElse(
                         img -> {
                             ctx.contentType(img.contentType());
@@ -394,11 +399,15 @@ public class SessionRoutes implements Routes {
         if (!ALLOWED_AVATAR_TYPES.contains(file.contentType())) {
             throw new BadRequestResponse("Invalid file type. Allowed: PNG, JPEG, WebP");
         }
+        var memberUid = stationMemberRepository.resolveUid(session.member().id());
+        if (memberUid == null) {
+            throw new BadRequestResponse("Member UUID not found");
+        }
         try (var content = file.content()) {
             byte[] data = content.readAllBytes();
             imageService.store(
                     ImageCategory.AVATARS,
-                    String.valueOf(session.member().id()),
+                    memberUid.toString(),
                     data,
                     file.contentType(),
                     apiConfig.maxImageSizeBytes());
@@ -416,8 +425,11 @@ public class SessionRoutes implements Routes {
         if (session.member() == null) {
             throw new BadRequestResponse("No station membership");
         }
-        imageService.delete(
-                ImageCategory.AVATARS, String.valueOf(session.member().id()));
+        var memberUid = stationMemberRepository.resolveUid(session.member().id());
+        if (memberUid == null) {
+            throw new BadRequestResponse("Member UUID not found");
+        }
+        imageService.delete(ImageCategory.AVATARS, memberUid.toString());
         ctx.status(HttpStatus.NO_CONTENT);
     }
 

@@ -104,7 +104,7 @@ class MemberGroupServiceTest extends RepositoryTestBase {
     @Test
     @Order(30)
     void update() {
-        var result = service.update(groupId, "Fortgeschritten");
+        var result = service.update(groupId, "Fortgeschritten", null, 0);
         assertTrue(result.isPresent());
         assertEquals("Fortgeschritten", result.get().name());
     }

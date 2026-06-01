@@ -14,6 +14,7 @@ import UserAvatar from '@/components/avatar/UserAvatar.vue'
 import { boards } from '@/api'
 import { LinkType } from '@/api/boards'
 import type { BoardTicketLink, BoardTicket, BoardLane, BoardWeblink, BoardTicketAttachment, LinkTypeName } from '@/api/boards'
+import type { MemberCompletion } from '@/api/stationMembers'
 
 const props = defineProps<{
     boardKey: string
@@ -24,7 +25,7 @@ const props = defineProps<{
     attachments: BoardTicketAttachment[]
     allTickets: BoardTicket[]
     lanes: BoardLane[]
-    members: { id: number; name: string }[]
+    members: MemberCompletion[]
     priorityOptions: { value: string; label: string; icon: string[]; color?: string }[]
     showAddLink: boolean
     showAddWeblink: boolean
@@ -185,7 +186,7 @@ const hasAnyContent = computed(() => props.links.length > 0 || props.weblinks.le
                         </router-link>
                         <div class="flex items-center gap-2 shrink-0">
                             <span v-if="linkedTicket" class="text-xs text-(--text-muted)">{{ laneName(linkedTicket.laneId) }}</span>
-                            <UserAvatar v-if="linkedTicket?.assignedMemberId" :member-id="linkedTicket.assignedMemberId" :name="memberName(linkedTicket.assignedMemberId)" size="sm" />
+                            <UserAvatar v-if="linkedTicket?.assignedMemberId" :identity="members.find(m => m.id === linkedTicket.assignedMemberId)" :name="memberName(linkedTicket.assignedMemberId)" size="sm" />
                             <font-awesome-icon v-if="linkedTicket" :icon="priorityOptions.find(o => o.value === linkedTicket.priority)?.icon ?? ['fas', 'equals']" :class="priorityOptions.find(o => o.value === linkedTicket.priority)?.color" class="text-xs" />
                             <IconButton v-if="!readonly" :icon="['fas', 'xmark']" label="Remove" class="opacity-0 group-hover:opacity-100 text-xs" @click="removeLink(linkedTicket?.id ?? 0)" />
                         </div>

@@ -15,6 +15,7 @@ import ErrorButton from '@/components/button/ErrorButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import EditButton from '@/components/button/EditButton.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
+import ColorInput from '@/components/input/ColorInput.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
@@ -54,6 +55,8 @@ const groupRoleIds = computed({
 const showGroupModal = ref(false)
 const editingGroup = ref<MemberGroup | null>(null)
 const groupName = ref('')
+const groupColor = ref('')
+const groupPosition = ref(0)
 const groupSaving = ref(false)
 
 // Delete modal
@@ -121,12 +124,16 @@ async function selectGroup(group: MemberGroup) {
 function openCreateGroup() {
   editingGroup.value = null
   groupName.value = ''
+  groupColor.value = ''
+  groupPosition.value = 0
   showGroupModal.value = true
 }
 
 function openEditGroup(group: MemberGroup) {
   editingGroup.value = group
   groupName.value = group.name ?? ''
+  groupColor.value = group.color ?? ''
+  groupPosition.value = group.position ?? 0
   showGroupModal.value = true
 }
 
@@ -135,9 +142,9 @@ async function saveGroup() {
   error.value = ''
   try {
     if (editingGroup.value) {
-      await memberGroups.updateGroup(editingGroup.value.id, {name: groupName.value})
+      await memberGroups.updateGroup(editingGroup.value.id, {name: groupName.value, color: groupColor.value || null, position: groupPosition.value})
     } else {
-      await memberGroups.createGroup({name: groupName.value})
+      await memberGroups.createGroup({name: groupName.value, color: groupColor.value || null, position: groupPosition.value})
     }
     showGroupModal.value = false
     groups.value = await memberGroups.listGroups()
@@ -252,7 +259,10 @@ onMounted(loadData)
                 class="flex items-center justify-between gap-2 flex-wrap cursor-pointer transition-colors"
                 @click="selectGroup(group)"
             >
-              <span class="font-medium">{{ group.name }}</span>
+              <span class="flex items-center gap-2">
+                <span v-if="group.color" class="inline-block h-3 w-3 rounded-full" :style="{ backgroundColor: group.color }"></span>
+                <span class="font-medium">{{ group.name }}</span>
+              </span>
               <div class="flex items-center gap-2">
                 <IconButton :icon="['fas', 'hashtag']" :label="t('memberGroups.convertToTag')" class="text-(--text-muted) hover:text-primary" @click.stop="requestConvertToTag(group)"/>
                 <EditButton @click.stop="openEditGroup(group)"/>
@@ -288,7 +298,7 @@ onMounted(loadData)
                 <div v-for="member in sortedGroupMembers" :key="member.id"
                      class="flex items-center justify-between rounded-lg px-3 py-2 bg-bg-light-accent dark:bg-bg-dark-accent">
                   <div>
-                    <MemberName :name="memberDisplayName(member)" :member-id="member.id" class="text-sm font-medium"/>
+                    <MemberName :name="memberDisplayName(member)" :identity="member.identity" class="text-sm font-medium"/>
                     <MutedText class="ml-2" v-if="member.name && member.email">{{
                         member.email
                       }}</MutedText>
@@ -312,7 +322,7 @@ onMounted(loadData)
                     @click="addMemberToGroup(member)"
                 >
                   <div>
-                    <MemberName :name="memberDisplayName(member)" :member-id="member.id" class="text-sm font-medium"/>
+                    <MemberName :name="memberDisplayName(member)" :identity="member.identity" class="text-sm font-medium"/>
                     <MutedText class="ml-2" v-if="member.name && member.email">{{
                         member.email
                       }}</MutedText>
@@ -339,6 +349,16 @@ onMounted(loadData)
           <div class="space-y-1">
             <FieldLabel>{{ t('memberGroups.name') }}</FieldLabel>
             <TextInput v-model="groupName" :placeholder="t('memberGroups.namePlaceholder')"/>
+          </div>
+          <div class="space-y-1">
+            <FieldLabel>{{ t('memberGroups.color') }}</FieldLabel>
+            <div class="flex items-center gap-2">
+              <ColorInput v-model="groupColor" />
+              <SecondaryButton v-if="groupColor" compact @click="groupColor = ''">
+                <font-awesome-icon :icon="['fas', 'xmark']" />
+              </SecondaryButton>
+              <MutedText size="sm">{{ t('memberGroups.colorHint') }}</MutedText>
+            </div>
           </div>
           <div class="flex justify-end gap-3">
             <SecondaryButton @click="showGroupModal = false">{{ t('memberGroups.cancel') }}</SecondaryButton>

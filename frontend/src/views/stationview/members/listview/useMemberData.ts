@@ -136,6 +136,7 @@ export function useMemberData() {
           accountId: rm.accountId ?? 0,
           name: rm.name,
           email: rm.email,
+          identity: rm.identity,
         })
 
         rolesMap.set(rm.id, rm.roles)

@@ -40,6 +40,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
+@SuppressWarnings("DefaultAnnotationParam")
 @Singleton
 public class AiRoutes implements Routes {
     private static final Logger log = LoggerFactory.getLogger(AiRoutes.class);

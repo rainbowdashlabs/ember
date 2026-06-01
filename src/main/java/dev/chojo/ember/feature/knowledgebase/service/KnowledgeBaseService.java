@@ -235,7 +235,7 @@ public class KnowledgeBaseService {
         var file = repository.createFile(
                 stationId, folderId, name, description, KbFileType.LINK, null, 0, null, linkUrl, createdBy);
         // Store metadata as text content for search snippets
-        String metaText = (name != null ? name : "") + " " + (description != null ? description : "") + " " + linkUrl;
+        String metaText = (name != null ? name : "") + " " + description + " " + linkUrl;
         repository.storeTextContent(file.id(), metaText.trim());
         updateSearchIndex(file.id(), metaText.trim());
         return file;
@@ -969,7 +969,7 @@ public class KnowledgeBaseService {
         // Look up the partner's station UID for inline identity
         var partnerStationUid = federationRepository
                 .findPartnerById(partnerId)
-                .map(p -> p.partnerStationId())
+                .map(FederationPartner::partnerStationId)
                 .orElse(null);
         var identity = partnerStationUid != null ? new MemberIdentity(partnerStationUid, remoteMemberUid) : null;
         var comment = kbCommentRepository.create(fileId, parentId, identity, content);

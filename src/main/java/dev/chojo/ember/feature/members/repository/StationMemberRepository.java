@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.members.repository;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import de.chojo.sadu.queries.api.call.Call;
 import de.chojo.sadu.queries.api.query.Query;
 import de.chojo.sadu.queries.api.results.writing.insertion.InsertionResult;
@@ -22,6 +24,7 @@ import jakarta.inject.Singleton;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Repository for station members, their roles, manager relations, and avatars.
@@ -29,8 +32,14 @@ import java.util.UUID;
 @Singleton
 public class StationMemberRepository {
 
-    private final java.util.Map<Integer, UUID> memberUidCache = new java.util.concurrent.ConcurrentHashMap<>();
-    private final java.util.Map<MemberKey, Integer> memberIdCache = new java.util.concurrent.ConcurrentHashMap<>();
+    private final Cache<Integer, UUID> memberUidCache = Caffeine.newBuilder()
+            .expireAfterAccess(5, TimeUnit.MINUTES)
+            .maximumSize(10_000)
+            .build();
+    private final Cache<MemberKey, Integer> memberIdCache = Caffeine.newBuilder()
+            .expireAfterAccess(5, TimeUnit.MINUTES)
+            .maximumSize(10_000)
+            .build();
     private final StationRepository stationRepository;
 
     @Inject
@@ -42,12 +51,11 @@ public class StationMemberRepository {
      * Resolves an internal member ID to its UUID. Cached.
      */
     public UUID resolveUid(int memberId) {
-        return memberUidCache.computeIfAbsent(
-                memberId, id -> Query.query("SELECT uid FROM station_member WHERE id = :id;")
-                        .single(Call.of().bind("id", id))
-                        .map(row -> row.get("uid", StandardValueConverter.UUID_STRING))
-                        .first()
-                        .orElse(null));
+        return memberUidCache.get(memberId, id -> Query.query("SELECT uid FROM station_member WHERE id = :id;")
+                .single(Call.of().bind("id", id))
+                .map(row -> row.get("uid", StandardValueConverter.UUID_STRING))
+                .first()
+                .orElse(null));
     }
 
     /**
@@ -55,7 +63,7 @@ public class StationMemberRepository {
      */
     public Optional<Integer> resolveId(int stationId, UUID memberUid) {
         var key = new MemberKey(stationId, memberUid);
-        Integer cached = memberIdCache.get(key);
+        var cached = memberIdCache.getIfPresent(key);
         if (cached != null) return Optional.of(cached);
         return Query.query("SELECT id FROM station_member WHERE station_id = :station_id AND uid = :uid::uuid;")
                 .single(Call.of()
@@ -88,9 +96,10 @@ public class StationMemberRepository {
      * Invalidates caches for a member (on create/delete).
      */
     public void invalidateMemberCache(int memberId) {
-        UUID uid = memberUidCache.remove(memberId);
+        var uid = memberUidCache.getIfPresent(memberId);
+        memberUidCache.invalidate(memberId);
         if (uid != null) {
-            memberIdCache.values().remove(memberId);
+            memberIdCache.asMap().values().remove(memberId);
         }
     }
 
@@ -201,7 +210,10 @@ public class StationMemberRepository {
                         row.getInt("id"),
                         row.getString("display_name"),
                         stationUid,
-                        row.get("uid", StandardValueConverter.UUID_STRING)))
+                        row.get("uid", StandardValueConverter.UUID_STRING),
+                        null,
+                        null,
+                        null))
                 .all();
     }
 

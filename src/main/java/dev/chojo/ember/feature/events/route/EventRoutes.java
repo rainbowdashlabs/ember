@@ -170,6 +170,8 @@ public class EventRoutes implements Routes {
         routes.post(prefix + "/events/{eventId}/register", this::register, Roles.USER);
         routes.post(prefix + "/events/{eventId}/decline", this::decline, Roles.USER);
 
+        routes.post(prefix + "/events/{id}/cancel", this::cancelEvent, Roles.EVENT_MANAGER);
+
         routes.get(prefix + "/events/{id}", this::get, Roles.USER);
         routes.put(prefix + "/events/{id}", this::update, Roles.EVENT_MANAGER);
         routes.delete(prefix + "/events/{id}", this::delete, Roles.EVENT_MANAGER);
@@ -338,7 +340,9 @@ public class EventRoutes implements Routes {
                 req.registrationDeadline(),
                 req.requiresConfirmation() != null && req.requiresConfirmation(),
                 req.categoryId(),
-                req.registrationLimit());
+                req.registrationLimit(),
+                req.minRegistrations(),
+                req.thresholdDate());
         eventService.setRestrictions(
                 event.id(), req.restrictedRoleIds(), req.restrictedGroupIds(), req.restrictedTagIds(), List.of());
 
@@ -401,7 +405,9 @@ public class EventRoutes implements Routes {
                         req.requiresConfirmation() != null && req.requiresConfirmation(),
                         req.categoryId(),
                         req.isPublic(),
-                        req.registrationLimit())
+                        req.registrationLimit(),
+                        req.minRegistrations(),
+                        req.thresholdDate())
                 .ifPresentOrElse(
                         event -> {
                             eventService.setRestrictions(
@@ -439,6 +445,16 @@ public class EventRoutes implements Routes {
         } else {
             throw new NotFoundResponse();
         }
+    }
+
+    private void cancelEvent(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        var req = ctx.bodyAsClass(CancelEventRequest.class);
+        if (!eventService.cancelEvent(session.stationId(), id, req.reason())) {
+            throw new NotFoundResponse();
+        }
+        ctx.status(HttpStatus.NO_CONTENT);
     }
 
     // -- Breaks --
@@ -1288,7 +1304,11 @@ public class EventRoutes implements Routes {
             List<Integer> restrictedGroupIds,
             List<Integer> restrictedTagIds,
             Boolean isPublic,
-            Integer registrationLimit) {}
+            Integer registrationLimit,
+            Integer minRegistrations,
+            Instant thresholdDate) {}
+
+    public record CancelEventRequest(String reason) {}
 
     public record BreakRequest(String name, String startDate, String endDate) {}
 

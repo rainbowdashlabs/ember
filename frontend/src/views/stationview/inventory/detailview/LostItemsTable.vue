@@ -30,6 +30,12 @@ function ownerName(memberId: number | null | undefined): string {
   return m ? (m.name || m.email || `#${m.id}`) : `#${memberId}`
 }
 
+function getMemberIdentity(memberId: number | null | undefined) {
+  if (!memberId) return undefined
+  const m = props.memberMap.get(memberId)
+  return m?.identity
+}
+
 function sizeName(sizeId: number | null | undefined): string {
   if (!sizeId) return ''
   return props.sizes.find(s => s.id === sizeId)?.label ?? ''
@@ -62,7 +68,7 @@ function formatDate(dateStr?: string | null): string {
               </div>
               <div v-if="item.internalId" class="text-xs text-(--text-muted)">{{ item.internalId }}</div>
             </Td>
-            <Td><MemberName :name="ownerName(item.assignedTo)" :member-id="item.assignedTo"/></Td>
+            <Td><MemberName :name="ownerName(item.assignedTo)" :identity="getMemberIdentity(item.assignedTo)"/></Td>
             <Td>
               <ErrorBadge>{{ formatDate(item.lostAt) }}</ErrorBadge>
             </Td>

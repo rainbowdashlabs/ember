@@ -76,6 +76,10 @@ export async function deleteEvent(id: number): Promise<void> {
     await client.delete(`/events/${id}`)
 }
 
+export async function cancelEvent(eventId: number, reason?: string): Promise<void> {
+    await client.post(`/events/${eventId}/cancel`, { reason: reason ?? null })
+}
+
 // -- Categories --
 
 export async function listCategories(): Promise<EventCategory[]> {

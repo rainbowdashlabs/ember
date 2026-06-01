@@ -21,6 +21,7 @@ import dev.chojo.ember.feature.board.service.FederatedBoardService.PartnerShareC
 import dev.chojo.ember.feature.federation.service.FederationWebhookService;
 import dev.chojo.ember.feature.federation.service.FederationWebhookService.WebhookEvent;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.members.service.StationMemberService;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.AfterAll;
@@ -47,6 +48,10 @@ class FederatedBoardServiceTest extends RepositoryTestBase {
     private static final UUID REMOTE_WATCHER_2 = UUID.fromString("00000000-0000-0000-0000-000000000006");
     private static final UUID REMOTE_WATCHER_3 = UUID.fromString("00000000-0000-0000-0000-000000000007");
     private static final UUID REMOTE_ASSIGNEE = UUID.fromString("00000000-0000-0000-0000-000000000008");
+    private static final UUID REMOTE_BOARD_UID_1 = UUID.fromString("11111111-1111-1111-1111-111111111111");
+    private static final UUID REMOTE_BOARD_UID_2 = UUID.fromString("22222222-2222-2222-2222-222222222222");
+    private static final UUID REMOTE_BOARD_UID_3 = UUID.fromString("33333333-3333-3333-3333-333333333333");
+    private static final UUID REMOTE_BOARD_UID_NONEXIST = UUID.fromString("99999999-9999-9999-9999-999999999999");
 
     private static FederatedBoardService service;
     private static FederatedBoardNotificationService notificationService;
@@ -74,8 +79,7 @@ class FederatedBoardServiceTest extends RepositoryTestBase {
                 boardTicketRepo,
                 boardRepo,
                 new DomainEventBus(Set.of()),
-                new dev.chojo.ember.feature.members.service.StationMemberService(
-                        stationMemberRepo, stationRepo, null, null),
+                new StationMemberService(stationMemberRepo, stationRepo, null, null),
                 memberIdentityFactory);
 
         station = stationRepo.create("FedBoardStation");
@@ -276,7 +280,8 @@ class FederatedBoardServiceTest extends RepositoryTestBase {
     @Test
     @Order(60)
     void createAndFindBookmarks() {
-        var bookmark = service.createBookmark(member.id(), partnerId, 100, "Remote Board", "RB", BoardShareMode.FULL);
+        var bookmark = service.createBookmark(
+                member.id(), partnerId, REMOTE_BOARD_UID_1, "Remote Board", "RB", BoardShareMode.FULL);
         assertNotNull(bookmark);
         assertEquals("Remote Board", bookmark.remoteBoardName());
         assertEquals("RB", bookmark.remoteBoardShortKey());
@@ -289,7 +294,7 @@ class FederatedBoardServiceTest extends RepositoryTestBase {
     @Test
     @Order(61)
     void updateBookmarkName() {
-        service.updateBookmarkName(partnerId, 100, "Renamed Board", "RNB");
+        service.updateBookmarkName(partnerId, REMOTE_BOARD_UID_1, "Renamed Board", "RNB");
         var bookmarks = service.findBookmarks(member.id());
         assertEquals("Renamed Board", bookmarks.getFirst().remoteBoardName());
         assertEquals("RNB", bookmarks.getFirst().remoteBoardShortKey());
@@ -298,7 +303,7 @@ class FederatedBoardServiceTest extends RepositoryTestBase {
     @Test
     @Order(62)
     void updateBookmarkShareMode() {
-        service.updateBookmarkShareMode(partnerId, 100, BoardShareMode.READ_ONLY);
+        service.updateBookmarkShareMode(partnerId, REMOTE_BOARD_UID_1, BoardShareMode.READ_ONLY);
         var bookmarks = service.findBookmarks(member.id());
         assertEquals(BoardShareMode.READ_ONLY, bookmarks.getFirst().shareMode());
     }
@@ -307,8 +312,8 @@ class FederatedBoardServiceTest extends RepositoryTestBase {
     @Order(63)
     void deleteBookmarkByBoard() {
         // Create another bookmark first
-        service.createBookmark(member.id(), partnerId, 200, "Another Board", "AB", BoardShareMode.FULL);
-        service.deleteBookmarkByBoard(member.id(), partnerId, 200);
+        service.createBookmark(member.id(), partnerId, REMOTE_BOARD_UID_2, "Another Board", "AB", BoardShareMode.FULL);
+        service.deleteBookmarkByBoard(member.id(), partnerId, REMOTE_BOARD_UID_2);
         var bookmarks = service.findBookmarks(member.id());
         assertEquals(1, bookmarks.size());
     }
@@ -325,8 +330,8 @@ class FederatedBoardServiceTest extends RepositoryTestBase {
     @Order(65)
     void deleteBookmarksByBoard() {
         // Create bookmarks, then delete by board
-        service.createBookmark(member.id(), partnerId, 300, "Board 300", "B3", BoardShareMode.FULL);
-        service.deleteBookmarksByBoard(partnerId, 300);
+        service.createBookmark(member.id(), partnerId, REMOTE_BOARD_UID_3, "Board 300", "B3", BoardShareMode.FULL);
+        service.deleteBookmarksByBoard(partnerId, REMOTE_BOARD_UID_3);
         assertTrue(service.findBookmarks(member.id()).isEmpty());
     }
 
@@ -336,10 +341,10 @@ class FederatedBoardServiceTest extends RepositoryTestBase {
     @Order(70)
     void setAndGetLocalViewOverride() {
         var access = new AccessData(List.of(1, 2), List.of(3), List.of(4, 5));
-        service.setLocalViewOverride(partnerId, 100, access);
+        service.setLocalViewOverride(partnerId, REMOTE_BOARD_UID_1, access);
 
-        assertTrue(service.hasLocalViewOverride(partnerId, 100));
-        var result = service.getLocalViewOverride(partnerId, 100);
+        assertTrue(service.hasLocalViewOverride(partnerId, REMOTE_BOARD_UID_1));
+        var result = service.getLocalViewOverride(partnerId, REMOTE_BOARD_UID_1);
         assertEquals(List.of(1, 2), result.roleIds());
         assertEquals(List.of(3), result.groupIds());
         assertEquals(List.of(4, 5), result.tagIds());
@@ -348,8 +353,8 @@ class FederatedBoardServiceTest extends RepositoryTestBase {
     @Test
     @Order(71)
     void noLocalViewOverride() {
-        assertFalse(service.hasLocalViewOverride(partnerId, 99999));
-        var result = service.getLocalViewOverride(partnerId, 99999);
+        assertFalse(service.hasLocalViewOverride(partnerId, REMOTE_BOARD_UID_NONEXIST));
+        var result = service.getLocalViewOverride(partnerId, REMOTE_BOARD_UID_NONEXIST);
         assertTrue(result.roleIds().isEmpty());
     }
 
@@ -357,10 +362,10 @@ class FederatedBoardServiceTest extends RepositoryTestBase {
     @Order(72)
     void setAndGetLocalEditOverride() {
         var access = new AccessData(List.of(10), List.of(20, 30), List.of());
-        service.setLocalEditOverride(partnerId, 100, access);
+        service.setLocalEditOverride(partnerId, REMOTE_BOARD_UID_1, access);
 
-        assertTrue(service.hasLocalEditOverride(partnerId, 100));
-        var result = service.getLocalEditOverride(partnerId, 100);
+        assertTrue(service.hasLocalEditOverride(partnerId, REMOTE_BOARD_UID_1));
+        var result = service.getLocalEditOverride(partnerId, REMOTE_BOARD_UID_1);
         assertEquals(List.of(10), result.roleIds());
         assertEquals(List.of(20, 30), result.groupIds());
         assertTrue(result.tagIds().isEmpty());
@@ -369,8 +374,8 @@ class FederatedBoardServiceTest extends RepositoryTestBase {
     @Test
     @Order(73)
     void noLocalEditOverride() {
-        assertFalse(service.hasLocalEditOverride(partnerId, 99999));
-        var result = service.getLocalEditOverride(partnerId, 99999);
+        assertFalse(service.hasLocalEditOverride(partnerId, REMOTE_BOARD_UID_NONEXIST));
+        var result = service.getLocalEditOverride(partnerId, REMOTE_BOARD_UID_NONEXIST);
         assertTrue(result.roleIds().isEmpty());
     }
 
@@ -378,8 +383,8 @@ class FederatedBoardServiceTest extends RepositoryTestBase {
     @Order(74)
     void overwriteLocalViewOverride() {
         var newAccess = new AccessData(List.of(99), List.of(), List.of());
-        service.setLocalViewOverride(partnerId, 100, newAccess);
-        var result = service.getLocalViewOverride(partnerId, 100);
+        service.setLocalViewOverride(partnerId, REMOTE_BOARD_UID_1, newAccess);
+        var result = service.getLocalViewOverride(partnerId, REMOTE_BOARD_UID_1);
         assertEquals(List.of(99), result.roleIds());
         assertTrue(result.groupIds().isEmpty());
     }
@@ -388,8 +393,8 @@ class FederatedBoardServiceTest extends RepositoryTestBase {
     @Order(75)
     void overwriteLocalEditOverride() {
         var newAccess = new AccessData(List.of(), List.of(), List.of(77));
-        service.setLocalEditOverride(partnerId, 100, newAccess);
-        var result = service.getLocalEditOverride(partnerId, 100);
+        service.setLocalEditOverride(partnerId, REMOTE_BOARD_UID_1, newAccess);
+        var result = service.getLocalEditOverride(partnerId, REMOTE_BOARD_UID_1);
         assertTrue(result.roleIds().isEmpty());
         assertEquals(List.of(77), result.tagIds());
     }

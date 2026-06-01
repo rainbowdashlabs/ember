@@ -9,12 +9,13 @@ import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.Roles;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
-import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
+import dev.chojo.ember.feature.members.entity.MemberWithName;
 import dev.chojo.ember.feature.members.entity.Role;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.service.MemberGroupService;
+import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.ForbiddenResponse;
@@ -40,11 +41,16 @@ import java.util.List;
 public class MemberGroupRoutes implements Routes {
     private final MemberGroupService groupService;
     private final AccountRepository accountRepository;
+    private final MemberIdentityFactory memberIdentityFactory;
 
     @Inject
-    public MemberGroupRoutes(MemberGroupService groupService, AccountRepository accountRepository) {
+    public MemberGroupRoutes(
+            MemberGroupService groupService,
+            AccountRepository accountRepository,
+            MemberIdentityFactory memberIdentityFactory) {
         this.groupService = groupService;
         this.accountRepository = accountRepository;
+        this.memberIdentityFactory = memberIdentityFactory;
     }
 
     private static boolean isBlank(String s) {
@@ -71,10 +77,7 @@ public class MemberGroupRoutes implements Routes {
     }
 
     private MemberWithName toMemberWithName(StationMember m) {
-        Account account = accountRepository.findById(m.accountId()).orElse(null);
-        String name = account != null ? (account.firstName() + " " + account.lastName()).trim() : "";
-        String email = account != null ? account.email() : "";
-        return new MemberWithName(m.id(), m.stationId(), m.accountId(), name, email);
+        return MemberWithName.from(m, accountRepository, memberIdentityFactory);
     }
 
     // -- Groups --
@@ -155,9 +158,11 @@ public class MemberGroupRoutes implements Routes {
         if (isBlank(request.name())) {
             throw new BadRequestResponse("name is required");
         }
-        groupService.update(id, request.name()).ifPresentOrElse(ctx::json, () -> {
-            throw new NotFoundResponse();
-        });
+        groupService
+                .update(id, request.name(), request.color(), request.position())
+                .ifPresentOrElse(ctx::json, () -> {
+                    throw new NotFoundResponse();
+                });
     }
 
     @OpenApi(
@@ -308,9 +313,7 @@ public class MemberGroupRoutes implements Routes {
 
     // -- Request/Response records --
 
-    public record MemberWithName(int id, int stationId, int accountId, String name, String email) {}
-
-    public record GroupRequest(String name) {}
+    public record GroupRequest(String name, String color, int position) {}
 
     public record GroupDetail(int id, int stationId, String name, List<StationMember> members) {}
 

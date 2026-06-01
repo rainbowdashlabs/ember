@@ -1,0 +1,48 @@
+/*
+ *     SPDX-License-Identifier: AGPL-3.0-only
+ *
+ *     Copyright (C) RainbowDashLabs and Contributor
+ */
+package dev.chojo.ember.event.handlers;
+
+import dev.chojo.ember.event.DomainEventHandler;
+import dev.chojo.ember.event.events.EventCancelled;
+import dev.chojo.ember.feature.events.repository.EventRepository;
+import dev.chojo.ember.feature.notifications.entity.NotificationData;
+import dev.chojo.ember.feature.notifications.entity.NotificationParams;
+import dev.chojo.ember.feature.notifications.entity.NotificationType;
+import dev.chojo.ember.feature.notifications.service.NotificationService;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
+
+import java.util.Map;
+
+@Singleton
+public class EventCancelledHandler implements DomainEventHandler<EventCancelled> {
+    private final NotificationService notificationService;
+    private final EventRepository eventRepository;
+
+    @Inject
+    public EventCancelledHandler(NotificationService notificationService, EventRepository eventRepository) {
+        this.notificationService = notificationService;
+        this.eventRepository = eventRepository;
+    }
+
+    @Override
+    public Class<EventCancelled> eventType() {
+        return EventCancelled.class;
+    }
+
+    @Override
+    public void handle(EventCancelled event) {
+        var memberIds = eventRepository.findRegisteredMemberIds(event.eventId());
+        for (int memberId : memberIds) {
+            var link = new NotificationData.NotificationLink("event-detail", Map.of("id", event.eventId()));
+            notificationService.notify(
+                    memberId,
+                    NotificationType.EVENT_CANCELLED,
+                    NotificationData.of(
+                            new NotificationParams.EventCancelled(event.eventName(), event.reason()), link));
+        }
+    }
+}

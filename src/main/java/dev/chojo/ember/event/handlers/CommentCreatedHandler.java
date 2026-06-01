@@ -19,6 +19,7 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
 import java.util.Map;
+import java.util.Objects;
 
 @Singleton
 public class CommentCreatedHandler implements DomainEventHandler<CommentCreated> {
@@ -49,8 +50,7 @@ public class CommentCreatedHandler implements DomainEventHandler<CommentCreated>
                 new NotificationParams.NewsComment(event.entityTitle(), event.authorName(), event.preview()), link);
 
         // Notify the parent comment author (if this is a reply and they didn't write this comment)
-        if (event.parentAuthorId() != null
-                && !java.util.Objects.equals(event.parentAuthorId(), event.authorMemberId())) {
+        if (event.parentAuthorId() != null && !Objects.equals(event.parentAuthorId(), event.authorMemberId())) {
             notificationService.notifyIfAbsent(event.parentAuthorId(), NotificationType.NEWS_COMMENT, data);
         }
 

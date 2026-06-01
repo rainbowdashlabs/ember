@@ -24,6 +24,7 @@ import jakarta.inject.Singleton;
 
 import java.util.UUID;
 
+@SuppressWarnings("DefaultAnnotationParam")
 @Singleton
 public class PublicStationRoutes implements Routes {
     private final StationRepository stationRepository;

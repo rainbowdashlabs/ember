@@ -32,6 +32,7 @@ import java.time.Instant;
  * HTTP route definitions for entity notes.
  * Provides endpoints for reading and updating notes with version history.
  */
+@SuppressWarnings("DefaultAnnotationParam")
 @Singleton
 public class NoteRoutes implements Routes {
     private final NoteService noteService;

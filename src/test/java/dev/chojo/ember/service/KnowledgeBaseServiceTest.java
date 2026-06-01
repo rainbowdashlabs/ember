@@ -7,15 +7,18 @@ package dev.chojo.ember.service;
 
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.account.entity.Account;
+import dev.chojo.ember.feature.events.repository.EventFederationRepository;
 import dev.chojo.ember.feature.federation.entity.CapabilityType;
 import dev.chojo.ember.feature.federation.entity.Direction;
 import dev.chojo.ember.feature.federation.entity.ShareScope;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.service.FederationHttpClient;
 import dev.chojo.ember.feature.federation.service.FederationService;
+import dev.chojo.ember.feature.knowledgebase.entity.KbFile;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFileSummary;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFileType;
 import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
+import dev.chojo.ember.feature.knowledgebase.repository.KbCommentRepository;
 import dev.chojo.ember.feature.knowledgebase.service.KbFileStorageService;
 import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseService;
 import dev.chojo.ember.feature.members.entity.StationMember;
@@ -57,8 +60,8 @@ class KnowledgeBaseServiceTest extends RepositoryTestBase {
         federationRepo = new FederationRepository();
         federationService = new FederationService(federationRepo, stationRepo, new Api());
         httpClient = mock(FederationHttpClient.class);
-        var kbCommentRepo = mock(dev.chojo.ember.feature.knowledgebase.repository.KbCommentRepository.class);
-        var eventFedRepo = mock(dev.chojo.ember.feature.events.repository.EventFederationRepository.class);
+        var kbCommentRepo = mock(KbCommentRepository.class);
+        var eventFedRepo = mock(EventFederationRepository.class);
         service = new KnowledgeBaseService(
                 knowledgeBaseRepo,
                 stationRepo,
@@ -939,13 +942,13 @@ class KnowledgeBaseServiceTest extends RepositoryTestBase {
     @Test
     @Order(212)
     void getFederatedKbFileRemote() {
-        var remoteFile = new dev.chojo.ember.feature.knowledgebase.entity.KbFile(
+        var remoteFile = new KbFile(
                 77,
                 1,
                 null,
                 "RemoteDetail",
                 "desc",
-                dev.chojo.ember.feature.knowledgebase.entity.KbFileType.MARKDOWN,
+                KbFileType.MARKDOWN,
                 "text/markdown",
                 0,
                 null,
@@ -953,8 +956,8 @@ class KnowledgeBaseServiceTest extends RepositoryTestBase {
                 null,
                 0,
                 1,
-                java.time.Instant.parse("2026-01-01T00:00:00Z"),
-                java.time.Instant.parse("2026-01-01T00:00:00Z"),
+                Instant.parse("2026-01-01T00:00:00Z"),
+                Instant.parse("2026-01-01T00:00:00Z"),
                 null,
                 null,
                 null,

@@ -16,12 +16,15 @@ import {useSession} from '@/composables/useSession'
 import {useTheme} from '@/composables/useTheme'
 import UserAvatar from '@/components/avatar/UserAvatar.vue'
 import PrideText from '@/components/display/PrideText.vue'
+import LayeredEmberLogo from '@/components/display/LayeredEmberLogo.vue'
 import {usePride} from '@/composables/usePride'
+import { emberLogo } from '@/composables/useEmberLogo'
 
 const {t} = useI18n()
 const router = useRouter()
 const {loaded, load, fullName, clear, sessionInfo} = useSession()
 const {prideActive, prideVariant} = usePride()
+const logo = emberLogo()
 const isDemo = ref(false)
 
 onMounted(async () => {
@@ -54,7 +57,7 @@ async function handleLogout() {
   <header
       class="flex h-14 items-center justify-between border-b border-bg-light-accent dark:border-bg-dark-accent px-4">
     <router-link class="flex items-center gap-2 text-lg font-bold text-primary no-underline hover:no-underline" to="/">
-      <img :src="'/api/v1/public/logo/NoBG_OrangeGlow?size=128'" alt="Ember" class="h-7 w-7" />
+      <LayeredEmberLogo :layers="logo.layers" :active-layers="logo.activeLayers" size="h-7 w-7" :pixel-size="64" />
       <PrideText :active="prideActive" :variant="prideVariant">Ember</PrideText>
     </router-link>
 
@@ -64,7 +67,7 @@ async function handleLogout() {
           {{ t('header.stationPanel') }}
         </PrimaryButton>
       </router-link>
-      <UserAvatar :member-id="sessionInfo?.member?.id" :name="fullName()" size="sm" class="hidden sm:flex"/>
+      <UserAvatar :identity="sessionInfo?.member?.uid ? { stationUid: sessionInfo.stationId ?? '', memberUid: sessionInfo.member.uid } : undefined" :name="fullName()" size="sm" class="hidden sm:flex"/>
       <span class="text-sm text-(--text-muted) hidden sm:inline">{{ fullName() }}</span>
       <IconButton
           :icon="['fas', 'right-from-bracket']"

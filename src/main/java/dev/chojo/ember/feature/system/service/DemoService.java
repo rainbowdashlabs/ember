@@ -28,6 +28,7 @@ import dev.chojo.ember.feature.events.service.EventService;
 import dev.chojo.ember.feature.events.service.EventTemplateService;
 import dev.chojo.ember.feature.feed.service.FeedTokenService;
 import dev.chojo.ember.feature.inventory.entity.ExchangeStatus;
+import dev.chojo.ember.feature.inventory.entity.InventorySize;
 import dev.chojo.ember.feature.inventory.repository.ExchangeRepository;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
 import dev.chojo.ember.feature.inventory.service.ExchangeService;
@@ -843,6 +844,8 @@ public class DemoService {
                 null,
                 false,
                 catUebung.id(),
+                null,
+                null,
                 null);
         var evGesamt = eventService.create(
                 station.id(),
@@ -857,6 +860,8 @@ public class DemoService {
                 null,
                 false,
                 catUebung.id(),
+                null,
+                null,
                 null);
 
         // Monthly: first Saturday = Elternabend
@@ -873,6 +878,8 @@ public class DemoService {
                 null,
                 false,
                 catVeranstaltung.id(),
+                null,
+                null,
                 null);
 
         // Quarterly: first Saturday = Dienstbesprechung
@@ -889,6 +896,8 @@ public class DemoService {
                 null,
                 false,
                 catVeranstaltung.id(),
+                null,
+                null,
                 null);
 
         // -- Past attendance sessions (full year + current year so far) --
@@ -910,6 +919,8 @@ public class DemoService {
                 null,
                 false,
                 catVeranstaltung.id(),
+                null,
+                null,
                 null);
 
         attendanceSeeder.seedAttendanceSessions(
@@ -957,6 +968,8 @@ public class DemoService {
                 null,
                 false,
                 catUebung.id(),
+                null,
+                null,
                 null);
         LocalDate todayDate = LocalDate.now();
         for (int i = 0; i < 5 && i < anfaengerMembers.size(); i++) {
@@ -985,6 +998,8 @@ public class DemoService {
                 deadline,
                 true,
                 catVeranstaltung.id(),
+                null,
+                null,
                 null);
 
         Instant oeffentlichkeit = LocalDate.now().plusWeeks(3).atTime(14, 0).toInstant(ZoneOffset.UTC);
@@ -1005,6 +1020,8 @@ public class DemoService {
                 oeffentlichkeitDeadline,
                 false,
                 catVeranstaltung.id(),
+                null,
+                null,
                 null);
 
         Instant wettbewerb =
@@ -1027,6 +1044,8 @@ public class DemoService {
                 wettbewerbDeadline,
                 true,
                 catWettbewerb.id(),
+                null,
+                null,
                 null);
 
         // Add some registrations
@@ -1121,6 +1140,8 @@ public class DemoService {
                     null,
                     true,
                     catOeffentlichkeit.id(),
+                    null,
+                    null,
                     null);
             eventFieldRepository.create(
                     oeEvent.id(),
@@ -1171,6 +1192,8 @@ public class DemoService {
                 openDeadline,
                 true,
                 catOeffentlichkeit.id(),
+                null,
+                null,
                 null);
         eventFieldRepository.create(
                 oeOpen.id(),
@@ -1370,7 +1393,7 @@ public class DemoService {
                 Wir freuen uns auf eine tolle Zeit! 🚒
                 """,
                 "<p>Herzlich willkommen auf unserer neuen Plattform! Hier findet ihr alle wichtigen Informationen rund um unsere <strong>Jugendfeuerwehr</strong>.</p><h2>Was ist neu?</h2><p>Wir haben viele neue Funktionen für euch:</p><ul><li><strong>Terminübersicht</strong> — Alle Übungen, Veranstaltungen und Wettbewerbe auf einen Blick</li><li><strong>Anwesenheitsverwaltung</strong> — Schnelles Ein- und Auschecken bei Übungen</li><li><strong>Inventarverwaltung</strong> — Eure Ausrüstung immer im Blick</li><li><strong>Wissensdatenbank</strong> — Lernmaterial und Protokolle</li></ul><h2>Erste Schritte</h2><ol><li>Prüft euer <strong>Profil</strong> und ergänzt fehlende Daten</li><li>Schaut euch die <strong>kommenden Termine</strong> an</li><li>Meldet euch für den nächsten <strong>Wettbewerb</strong> an</ol><blockquote><p><strong>Tipp:</strong> Bei Fragen könnt ihr jederzeit die Betreuer ansprechen oder die Hilfe-Seite nutzen.</p></blockquote><p>Wir freuen uns auf eine tolle Zeit! 🚒</p>",
-                adminMember.id(),
+                stationMemberRepository.resolveIdentity(adminMember.id()),
                 List.of(),
                 List.of(),
                 List.of(),
@@ -1401,7 +1424,8 @@ public class DemoService {
                 > *Teilnehmen dürfen alle Fortgeschrittenen.*
                 """,
                 "<p>Die Anmeldung zum <strong>Kreiswettbewerb</strong> am 20. des übernächsten Monats ist jetzt geöffnet!</p><h2>Wichtige Infos</h2><table><tr><td></td><td>Details</td></tr><tr><td><strong>Datum</strong></td><td>20. des übernächsten Monats</td></tr><tr><td><strong>Ort</strong></td><td>Sportplatz Nachbarstadt</td></tr><tr><td><strong>Treffpunkt</strong></td><td>Feuerwehrgerätehaus, 07:30 Uhr</td></tr></table><h3>Was wird bewertet?</h3><ul><li>Löschangriff</li><li>Staffellauf</li><li>Knotenkunde</li><li>Erste Hilfe</li></ul><p>Bitte meldet euch <strong>bis spätestens nächste Woche</strong> über die Terminseite an. Die Plätze sind begrenzt.</p><blockquote><p><em>Teilnehmen dürfen alle Fortgeschrittenen.</em></p></blockquote>",
-                betreuerMembers.getFirst().id(),
+                stationMemberRepository.resolveIdentity(
+                        betreuerMembers.getFirst().id()),
                 List.of(),
                 List.of(),
                 List.of(),
@@ -1412,42 +1436,45 @@ public class DemoService {
                 station.id(),
                 news1.id(),
                 null,
-                elternMembers.get(0).id(),
+                stationMemberRepository.resolveIdentity(elternMembers.get(0).id()),
                 "Demo User",
                 "Super, endlich eine moderne Plattform!");
         newsService.createComment(
                 station.id(),
                 news1.id(),
                 comment1.id(),
-                betreuerMembers.getFirst().id(),
+                stationMemberRepository.resolveIdentity(
+                        betreuerMembers.getFirst().id()),
                 "Demo User",
                 "Danke! Bei Fragen einfach melden.");
         newsService.createComment(
                 station.id(),
                 news1.id(),
                 null,
-                elternMembers.get(1).id(),
+                stationMemberRepository.resolveIdentity(elternMembers.get(1).id()),
                 "Demo User",
                 "Kann man hier auch Abwesenheiten eintragen?");
         newsService.createComment(
                 station.id(),
                 news2.id(),
                 null,
-                fortgeschrittenMembers.get(0).id(),
+                stationMemberRepository.resolveIdentity(
+                        fortgeschrittenMembers.get(0).id()),
                 "Demo User",
                 "Ich bin dabei! \uD83D\uDCAA");
         var comment2 = newsService.createComment(
                 station.id(),
                 news2.id(),
                 null,
-                fortgeschrittenMembers.get(1).id(),
+                stationMemberRepository.resolveIdentity(
+                        fortgeschrittenMembers.get(1).id()),
                 "Demo User",
                 "Wie viele Plätze gibt es?");
         newsService.createComment(
                 station.id(),
                 news2.id(),
                 comment2.id(),
-                betreuerMembers.get(0).id(),
+                stationMemberRepository.resolveIdentity(betreuerMembers.get(0).id()),
                 "Demo User",
                 "Wir haben 8 Plätze. Bitte schnell anmelden!");
 
@@ -1468,7 +1495,7 @@ public class DemoService {
                 > Die neuen Helme entsprechen der aktuellen **DIN EN 443** Norm und bieten verbesserten Schutz.
                 """,
                 "<p>Die bestellten <strong>Helme und Handschuhe</strong> sind eingetroffen! 🎉</p><h2>Verteilung</h2><p>Die Verteilung findet bei der <strong>nächsten Übung</strong> statt. Bitte beachtet:</p><ol><li>Prüft eure <strong>Größen im Inventar</strong> vorab</li><li>Meldet euch bei Unstimmigkeiten bei den Betreuern</li><li>Bringt eure <strong>alten Helme</strong> zur Rückgabe mit</li></ol><blockquote><p>Die neuen Helme entsprechen der aktuellen <strong>DIN EN 443</strong> Norm und bieten verbesserten Schutz.</p></blockquote>",
-                betreuerMembers.get(1).id(),
+                stationMemberRepository.resolveIdentity(betreuerMembers.get(1).id()),
                 List.of(),
                 List.of(),
                 List.of(),
@@ -1493,7 +1520,7 @@ public class DemoService {
                 Wir wünschen allen **schöne und erholsame Ferien**! ☀️
                 """,
                 "<p>Während der <strong>Sommerferien</strong> finden keine regulären Übungen statt.</p><h2>Zeitraum</h2><p>Der Übungsbetrieb <strong>pausiert</strong> während der gesamten Schulferien. Wir starten wieder am <strong>ersten Montag nach den Ferien</strong>.</p><h3>Trotzdem aktiv bleiben?</h3><ul><li>Das <strong>Wissenscenter</strong> bleibt verfügbar — nutzt die Zeit zum Lernen</li><li>Prüft eure <strong>Ausrüstung</strong> und meldet Mängel vorab</li><li>Die <strong>Anmeldung</strong> für den Herbst-Wettbewerb öffnet in den Ferien</li></ul><p>Wir wünschen allen <strong>schöne und erholsame Ferien</strong>! ☀️</p>",
-                adminMember.id(),
+                stationMemberRepository.resolveIdentity(adminMember.id()),
                 List.of(),
                 List.of(),
                 List.of(),
@@ -1503,14 +1530,14 @@ public class DemoService {
                 station.id(),
                 news3.id(),
                 null,
-                elternMembers.get(2).id(),
+                stationMemberRepository.resolveIdentity(elternMembers.get(2).id()),
                 "Demo User",
                 "Werden die alten Helme eingesammelt?");
         newsService.createComment(
                 station.id(),
                 news3.id(),
                 null,
-                betreuerMembers.get(1).id(),
+                stationMemberRepository.resolveIdentity(betreuerMembers.get(1).id()),
                 "Demo User",
                 "Ja, bitte zur nächsten Übung mitbringen.");
 
@@ -1527,6 +1554,15 @@ public class DemoService {
             userTagRepository.addMember(
                     tagErsthelfer.id(), betreuerMembers.get(i).id());
         }
+
+        // JFW tag — visible badge for all Betreuer (managers)
+        var tagJfw = userTagRepository.create(station.id(), "JFW");
+        userTagRepository.update(tagJfw.id(), "JFW", "#FF6421", true, 10);
+        for (var m : betreuerMembers) {
+            userTagRepository.addMember(tagJfw.id(), m.id());
+        }
+        // Also add admin
+        userTagRepository.addMember(tagJfw.id(), adminMember.id());
 
         // -- Equipment Exchange Requests (~80% of members) --
         var allKidsForExchange = new ArrayList<>(anfaengerMembers);
@@ -1556,7 +1592,7 @@ public class DemoService {
             Integer newSizeId = item.sizeId();
             var sizes = item.sizeId() != null
                     ? inventoryRepository.findSizes(item.inventoryId())
-                    : List.<dev.chojo.ember.feature.inventory.entity.InventorySize>of();
+                    : List.<InventorySize>of();
             int currentIdx = -1;
             for (int si = 0; si < sizes.size(); si++) {
                 if (sizes.get(si).id() == item.sizeId()) {
@@ -1584,7 +1620,7 @@ public class DemoService {
                     // Pick a different size (up or down)
                     if (sizes.size() > 1 && currentIdx >= 0) {
                         int offset = rng.nextBoolean() && currentIdx > 0 ? -1 : 1;
-                        int newIdx = Math.min(Math.max(currentIdx + offset, 0), sizes.size() - 1);
+                        int newIdx = Math.clamp(currentIdx + offset, 0, sizes.size() - 1);
                         if (newIdx == currentIdx) {
                             newIdx = currentIdx > 0 ? currentIdx - 1 : currentIdx + 1;
                         }

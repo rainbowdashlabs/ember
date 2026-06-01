@@ -5,7 +5,7 @@
  */
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
-import { boards, stationMembers } from '@/api'
+import { boards } from '@/api'
 import type { MemberCompletion } from '@/api/stationMembers'
 import * as federatedBoards from '@/api/federatedBoards'
 import type {
@@ -76,8 +76,8 @@ export function useBoardApi() {
     }
 
     async function getMembers(): Promise<MemberCompletion[]> {
-        if (isFederated.value) return [] // no member list for federated boards
-        return stationMembers.listCompletions()
+        if (isFederated.value) return federatedBoards.getBoardMembers(partnerUid.value!, boardKey.value)
+        return boards.getBoardMembers(boardKey.value)
     }
 
     // -- Ticket detail data --

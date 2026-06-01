@@ -7,13 +7,11 @@ package dev.chojo.ember.feature.news.repository;
 
 import de.chojo.sadu.queries.api.call.Call;
 import de.chojo.sadu.queries.api.query.Query;
-import dev.chojo.ember.feature.news.entity.NewsCommentFederatedAuthor;
 import dev.chojo.ember.feature.news.entity.NewsFederationShare;
 import jakarta.inject.Singleton;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 
 /**
  * Repository for managing federated news sharing and comment author tracking.
@@ -137,22 +135,5 @@ public class NewsFederationRepository {
                 .single(Call.of().bind("news_id", newsId))
                 .map(row -> row.getString("visibility_role"))
                 .first();
-    }
-
-    // -- Federated comment author (no-op since satellite table removed, identity is inline) --
-
-    /**
-     * No-op: satellite table removed. Identity is now stored inline in news_comment columns.
-     */
-    public void setFederatedCommentAuthor(int commentId, int partnerId, UUID remoteMemberId) {
-        // No-op: identity is stored inline via author_station_uid/author_member_uid columns
-    }
-
-    /**
-     * No-op: satellite table removed. Returns empty since identity is inline.
-     */
-    public Optional<NewsCommentFederatedAuthor> findFederatedCommentAuthor(int commentId) {
-        // Satellite table removed — identity is now inline in news_comment columns
-        return Optional.empty();
     }
 }

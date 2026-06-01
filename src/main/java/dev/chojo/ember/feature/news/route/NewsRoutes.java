@@ -16,13 +16,11 @@ import dev.chojo.ember.feature.events.repository.EventFederationRepository;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.service.FederationHttpClient;
-import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.news.entity.News;
 import dev.chojo.ember.feature.news.entity.NewsComment;
-import dev.chojo.ember.feature.news.repository.NewsFederationRepository;
 import dev.chojo.ember.feature.news.service.NewsFederationService;
 import dev.chojo.ember.feature.news.service.NewsService;
 import dev.chojo.ember.feature.station.repository.StationRepository;
@@ -62,7 +60,6 @@ public class NewsRoutes implements Routes {
     private final FederationRepository federationRepository;
     private final FederationHttpClient federationHttpClient;
     private final StationRepository stationRepository;
-    private final NewsFederationRepository newsFederationRepository;
     private final EventFederationRepository eventFederationRepository;
     private final MemberNameResolver memberNameResolver;
     private final MemberIdentityFactory memberIdentityFactory;
@@ -76,7 +73,6 @@ public class NewsRoutes implements Routes {
             FederationRepository federationRepository,
             FederationHttpClient federationHttpClient,
             StationRepository stationRepository,
-            NewsFederationRepository newsFederationRepository,
             EventFederationRepository eventFederationRepository,
             MemberNameResolver memberNameResolver,
             MemberIdentityFactory memberIdentityFactory) {
@@ -87,7 +83,6 @@ public class NewsRoutes implements Routes {
         this.federationRepository = federationRepository;
         this.federationHttpClient = federationHttpClient;
         this.stationRepository = stationRepository;
-        this.newsFederationRepository = newsFederationRepository;
         this.eventFederationRepository = eventFederationRepository;
         this.memberNameResolver = memberNameResolver;
         this.memberIdentityFactory = memberIdentityFactory;
@@ -192,12 +187,13 @@ public class NewsRoutes implements Routes {
         if (request.contentMarkdown() == null || request.contentMarkdown().isBlank()) {
             throw new BadRequestResponse("contentMarkdown is required");
         }
+        var authorIdentity = memberIdentityFactory.fromMemberId(session.member().id());
         var news = newsService.create(
                 session.stationId(),
                 request.title(),
                 request.contentMarkdown(),
                 request.contentHtml() != null ? request.contentHtml() : "",
-                session.member().id(),
+                authorIdentity,
                 request.roleIds() != null ? request.roleIds() : List.of(),
                 request.groupIds() != null ? request.groupIds() : List.of(),
                 request.tagIds() != null ? request.tagIds() : List.of(),
@@ -271,12 +267,8 @@ public class NewsRoutes implements Routes {
      * @return the news response DTO
      */
     private NewsResponse toResponse(News news, boolean includeRestrictions) {
-        var memberOpt = stationMemberRepository.findById(news.authorId());
-        Integer authorAccountId = memberOpt.map(StationMember::accountId).orElse(null);
-        String authorName = memberOpt
-                .flatMap(m -> accountRepository.findById(m.accountId()))
-                .map(a -> (a.firstName() + " " + a.lastName()).trim())
-                .orElse("");
+        var resolved = news.author() != null ? memberNameResolver.resolveDisplay(news.author()) : null;
+        String authorName = resolved != null && resolved.name() != null ? resolved.name() : "";
         List<Integer> roleIds = List.of();
         List<Integer> groupIds = List.of();
         List<Integer> tagIds = List.of();
@@ -295,8 +287,7 @@ public class NewsRoutes implements Routes {
                 news.title(),
                 news.contentMarkdown(),
                 news.contentHtml(),
-                news.authorId(),
-                authorAccountId,
+                resolved != null ? resolved.identity() : null,
                 authorName,
                 news.publishedAt(),
                 news.createdAt(),
@@ -337,11 +328,12 @@ public class NewsRoutes implements Routes {
         if (request.content() == null || request.content().isBlank()) {
             throw new BadRequestResponse("content is required");
         }
+        var authorIdentity = memberIdentityFactory.fromMemberId(session.member().id());
         var comment = newsService.createComment(
                 session.stationId(),
                 newsId,
                 request.parentId(),
-                session.member().id(),
+                authorIdentity,
                 session.account().fullName().trim(),
                 request.content());
 
@@ -363,7 +355,9 @@ public class NewsRoutes implements Routes {
         int commentId = ctx.pathParamAsClass("commentId", Integer.class).get();
         UserSession session = UserSession.from(ctx);
         var comment = newsService.findCommentById(commentId).orElseThrow(NotFoundResponse::new);
-        if (comment.authorId() != session.member().id()) {
+        var sessionIdentity =
+                memberIdentityFactory.fromMemberId(session.member().id());
+        if (!sessionIdentity.equals(comment.author())) {
             throw new ForbiddenResponse("You can only edit your own comments");
         }
         var request = ctx.bodyAsClass(CommentRequest.class);
@@ -389,7 +383,9 @@ public class NewsRoutes implements Routes {
         int commentId = ctx.pathParamAsClass("commentId", Integer.class).get();
         UserSession session = UserSession.from(ctx);
         var comment = newsService.findCommentById(commentId).orElseThrow(NotFoundResponse::new);
-        boolean isAuthor = comment.authorId() == session.member().id();
+        var sessionIdentity =
+                memberIdentityFactory.fromMemberId(session.member().id());
+        boolean isAuthor = sessionIdentity.equals(comment.author());
         boolean canModerate = session.hasRole(Roles.NEWS_MANAGER);
         if (!isAuthor && !canModerate) {
             throw new ForbiddenResponse("You can only delete your own comments");
@@ -403,7 +399,6 @@ public class NewsRoutes implements Routes {
 
     /**
      * Converts a {@link NewsComment} entity to an API response, resolving the author name.
-     * For federated comments (authorId == 0), resolves the federated author info from the name cache.
      *
      * @param comment the comment entity
      * @return the comment response DTO
@@ -414,39 +409,13 @@ public class NewsRoutes implements Routes {
                     comment.id(), comment.newsId(), comment.parentId(), null, null, "", true, comment.createdAt());
         }
 
-        // Check for federated author
-        var fedAuthor = newsFederationRepository.findFederatedCommentAuthor(comment.id());
-        if (fedAuthor.isPresent()) {
-            var fa = fedAuthor.get();
-            var partner = federationRepository.findPartnerById(fa.partnerId());
-            UUID partnerStationUid =
-                    partner.map(FederationPartner::partnerStationId).orElse(null);
-            var identity =
-                    partnerStationUid != null ? new MemberIdentity(partnerStationUid, fa.remoteMemberId()) : null;
-            String displayName = memberNameResolver.resolveFederated(fa.partnerId(), fa.remoteMemberId());
-            if (displayName == null) displayName = "Unknown";
-            return new CommentResponse(
-                    comment.id(),
-                    comment.newsId(),
-                    comment.parentId(),
-                    identity,
-                    displayName,
-                    comment.content(),
-                    false,
-                    comment.createdAt());
-        }
-
-        // Local author
-        var memberOpt = stationMemberRepository.findById(comment.authorId());
-        int authorStationId = memberOpt.map(StationMember::stationId).orElse(0);
-        var identity = memberIdentityFactory.local(authorStationId, comment.authorId());
-        String authorName = memberNameResolver.resolveLocal(comment.authorId());
-        if (authorName == null) authorName = "";
+        var resolved = comment.author() != null ? memberNameResolver.resolveDisplay(comment.author()) : null;
+        String authorName = resolved != null && resolved.name() != null ? resolved.name() : "";
         return new CommentResponse(
                 comment.id(),
                 comment.newsId(),
                 comment.parentId(),
-                identity,
+                resolved != null ? resolved.identity() : null,
                 authorName,
                 comment.content(),
                 false,
@@ -517,11 +486,9 @@ public class NewsRoutes implements Routes {
                 .map(n -> {
                     String visibilityRole =
                             newsFederationService.findVisibilityRole(n.id()).orElse("MEMBER");
-                    String authorName = stationMemberRepository
-                            .findById(n.authorId())
-                            .flatMap(m -> accountRepository.findById(m.accountId()))
-                            .map(a -> (a.firstName() + " " + a.lastName()).trim())
-                            .orElse("");
+                    var authorResolved = n.author() != null ? memberNameResolver.resolveDisplay(n.author()) : null;
+                    String authorName =
+                            authorResolved != null && authorResolved.name() != null ? authorResolved.name() : "";
                     return Map.of(
                             "id",
                             (Object) n.id(),
@@ -550,11 +517,8 @@ public class NewsRoutes implements Routes {
             throw new NotFoundResponse();
         }
         var news = newsService.findById(newsId).orElseThrow(NotFoundResponse::new);
-        var memberOpt = stationMemberRepository.findById(news.authorId());
-        String authorName = memberOpt
-                .flatMap(m -> accountRepository.findById(m.accountId()))
-                .map(a -> (a.firstName() + " " + a.lastName()).trim())
-                .orElse("");
+        var authorResolved = news.author() != null ? memberNameResolver.resolveDisplay(news.author()) : null;
+        String authorName = authorResolved != null && authorResolved.name() != null ? authorResolved.name() : "";
         String visibilityRole = newsFederationService.findVisibilityRole(newsId).orElse("MEMBER");
         ctx.json(Map.of(
                 "id",
@@ -589,9 +553,9 @@ public class NewsRoutes implements Routes {
         if (req.content() == null || req.content().isBlank()) {
             throw new BadRequestResponse("content is required");
         }
+        var authorIdentity = new MemberIdentity(partner.partnerStationId(), req.remoteMemberUid());
         var comment = newsService.createComment(
-                partner.stationId(), newsId, req.parentId(), null, req.displayName(), req.content());
-        newsFederationRepository.setFederatedCommentAuthor(comment.id(), partner.id(), req.remoteMemberUid());
+                partner.stationId(), newsId, req.parentId(), authorIdentity, req.displayName(), req.content());
         eventFederationRepository.cacheName(partner.id(), req.remoteMemberUid(), req.displayName());
         ctx.status(HttpStatus.CREATED).json(toCommentResponse(comment));
     }
@@ -603,10 +567,9 @@ public class NewsRoutes implements Routes {
         if (req.content() == null || req.content().isBlank()) {
             throw new BadRequestResponse("content is required");
         }
-        var fedAuthor = newsFederationRepository
-                .findFederatedCommentAuthor(commentId)
-                .orElseThrow(() -> new ForbiddenResponse("Not a federated comment"));
-        if (fedAuthor.partnerId() != partner.id() || !fedAuthor.remoteMemberId().equals(req.remoteMemberUid())) {
+        var comment = newsService.findCommentById(commentId).orElseThrow(NotFoundResponse::new);
+        var expectedIdentity = new MemberIdentity(partner.partnerStationId(), req.remoteMemberUid());
+        if (!expectedIdentity.equals(comment.author())) {
             throw new ForbiddenResponse("You can only edit your own comments");
         }
         newsService.updateComment(commentId, req.content());
@@ -618,10 +581,9 @@ public class NewsRoutes implements Routes {
         var partner = requireFederationPartner(ctx);
         int commentId = ctx.pathParamAsClass("commentId", Integer.class).get();
         var req = ctx.bodyAsClass(RemoteNewsCommentDeleteRequest.class);
-        var fedAuthor = newsFederationRepository
-                .findFederatedCommentAuthor(commentId)
-                .orElseThrow(() -> new ForbiddenResponse("Not a federated comment"));
-        if (fedAuthor.partnerId() != partner.id() || !fedAuthor.remoteMemberId().equals(req.remoteMemberUid())) {
+        var comment = newsService.findCommentById(commentId).orElseThrow(NotFoundResponse::new);
+        var expectedIdentity = new MemberIdentity(partner.partnerStationId(), req.remoteMemberUid());
+        if (!expectedIdentity.equals(comment.author())) {
             throw new ForbiddenResponse("You can only delete your own comments");
         }
         if (newsService.deleteComment(partner.stationId(), commentId)) {
@@ -691,9 +653,11 @@ public class NewsRoutes implements Routes {
             if (result == null) throw new InternalServerErrorResponse("Failed to create comment on partner");
             ctx.status(HttpStatus.CREATED).json(result);
         } else {
+            // Local partner: create comment with federated identity
+            var authorIdentity =
+                    memberIdentityFactory.fromMemberId(session.member().id());
             var comment = newsService.createComment(
-                    partner.stationId(), newsId, req.parentId(), null, displayName, req.content());
-            newsFederationRepository.setFederatedCommentAuthor(comment.id(), partner.id(), memberUid);
+                    partner.stationId(), newsId, req.parentId(), authorIdentity, displayName, req.content());
             eventFederationRepository.cacheName(partner.id(), memberUid, displayName);
             ctx.status(HttpStatus.CREATED).json(toCommentResponse(comment));
         }
@@ -723,10 +687,10 @@ public class NewsRoutes implements Routes {
             if (result == null) throw new InternalServerErrorResponse("Failed to update comment on partner");
             ctx.json(result);
         } else {
-            var fedAuthor = newsFederationRepository
-                    .findFederatedCommentAuthor(commentId)
-                    .orElseThrow(() -> new ForbiddenResponse("Not a federated comment"));
-            if (!fedAuthor.remoteMemberId().equals(memberUid)) {
+            var comment = newsService.findCommentById(commentId).orElseThrow(NotFoundResponse::new);
+            var sessionIdentity =
+                    memberIdentityFactory.fromMemberId(session.member().id());
+            if (!sessionIdentity.equals(comment.author())) {
                 throw new ForbiddenResponse("You can only edit your own comments");
             }
             newsService.updateComment(commentId, req.content());
@@ -752,10 +716,10 @@ public class NewsRoutes implements Routes {
             if (!success) throw new InternalServerErrorResponse("Failed to delete comment on partner");
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
-            var fedAuthor = newsFederationRepository
-                    .findFederatedCommentAuthor(commentId)
-                    .orElseThrow(() -> new ForbiddenResponse("Not a federated comment"));
-            if (!fedAuthor.remoteMemberId().equals(memberUid)) {
+            var comment = newsService.findCommentById(commentId).orElseThrow(NotFoundResponse::new);
+            var sessionIdentity =
+                    memberIdentityFactory.fromMemberId(session.member().id());
+            if (!sessionIdentity.equals(comment.author())) {
                 throw new ForbiddenResponse("You can only delete your own comments");
             }
             if (newsService.deleteComment(partner.stationId(), commentId)) {
@@ -806,8 +770,7 @@ public class NewsRoutes implements Routes {
             String title,
             String contentMarkdown,
             String contentHtml,
-            int authorId,
-            Integer authorAccountId,
+            MemberIdentity author,
             String authorName,
             Instant publishedAt,
             Instant createdAt,

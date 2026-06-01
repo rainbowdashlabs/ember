@@ -21,6 +21,7 @@ import dev.chojo.ember.feature.federation.entity.ShareScope;
 import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseService;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
+import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.news.service.NewsFederationService;
 import dev.chojo.ember.feature.news.service.NewsService;
 import dev.chojo.ember.feature.protocol.service.TestProtocolService;
@@ -62,6 +63,7 @@ public class DemoFederationSeeder {
     private final NewsService newsService;
     private final NewsFederationService newsFederationService;
     private final CommentService commentService;
+    private final MemberIdentityFactory memberIdentityFactory;
     private final Demo demoConfig;
     private final Api apiConfig;
 
@@ -81,6 +83,7 @@ public class DemoFederationSeeder {
             NewsService newsService,
             NewsFederationService newsFederationService,
             CommentService commentService,
+            MemberIdentityFactory memberIdentityFactory,
             Demo demoConfig,
             Api apiConfig) {
         this.stationRepository = stationRepository;
@@ -97,6 +100,7 @@ public class DemoFederationSeeder {
         this.newsService = newsService;
         this.newsFederationService = newsFederationService;
         this.commentService = commentService;
+        this.memberIdentityFactory = memberIdentityFactory;
         this.demoConfig = demoConfig;
         this.apiConfig = apiConfig;
     }
@@ -348,6 +352,8 @@ public class DemoFederationSeeder {
                 null,
                 true,
                 eventCategory.id(),
+                null,
+                null,
                 null);
         eventFederationService.setShare(fedEvent.id(), "ALL_PARTNERS", List.of());
 
@@ -387,7 +393,7 @@ public class DemoFederationSeeder {
                     primaryStationId,
                     news1.id(),
                     nc1.id(),
-                    createdBy,
+                    stationMemberRepository.resolveIdentity(createdBy),
                     "Admin",
                     "Freut uns! Vielleicht können wir mal Erfahrungen austauschen.");
         }
@@ -418,7 +424,7 @@ public class DemoFederationSeeder {
                 Wir freuen uns auf euren Besuch! 🚒
                 """,
                 "<p>Wir haben eine neue <strong>Drehleiter DLA(K) 23/12</strong> erhalten! Das Fahrzeug wird in den nächsten Wochen in den Dienst gestellt.</p><h2>Besichtigung</h2><p>Alle Partnereinheiten sind herzlich eingeladen, sich das Fahrzeug bei der nächsten gemeinsamen Übung anzuschauen.</p><p>Wir freuen uns auf euren Besuch! 🚒</p>",
-                partnerMember.id(),
+                stationMemberRepository.resolveIdentity(partnerMember.id()),
                 List.of(),
                 List.of(),
                 List.of(),
@@ -449,7 +455,7 @@ public class DemoFederationSeeder {
                     partnerStation.id(),
                     partnerNews.id(),
                     pnc1.id(),
-                    partnerMember.id(),
+                    stationMemberRepository.resolveIdentity(partnerMember.id()),
                     "Partner Manager",
                     "Natürlich, das lässt sich einrichten!");
         }
@@ -458,19 +464,15 @@ public class DemoFederationSeeder {
 
         // -- Event comments (local + federated) --
         var primaryEvents = eventService.findByStation(primaryStationId);
-        var evUebung = primaryEvents.stream()
-                .filter(e -> "Übung".equals(e.name()) && e.eventType() == StationEvent.EventType.RECURRING)
-                .findFirst()
-                .orElse(null);
-        if (evUebung != null) {
-            commentService.create(
-                    primaryStationId,
-                    evUebung.id(),
-                    null,
-                    createdBy,
-                    "Admin",
-                    "Nächste Woche üben wir den Löschangriff — bitte Sportkleidung mitbringen!");
-        }
+        primaryEvents.stream()
+                     .filter(e -> "Übung".equals(e.name()) && e.eventType() == StationEvent.EventType.RECURRING)
+                     .findFirst().ifPresent(evUebung -> commentService.create(
+                             primaryStationId,
+                             evUebung.id(),
+                             null,
+                             memberIdentityFactory.local(primaryStationId, createdBy),
+                             "Admin",
+                             "Nächste Woche üben wir den Löschangriff — bitte Sportkleidung mitbringen!"));
 
         // Federated comments on the shared event "Gemeinsame Großübung" (event lives on partner station)
         var primaryAdmin = stationMemberRepository.findById(createdBy).orElseThrow();
@@ -497,7 +499,7 @@ public class DemoFederationSeeder {
                     partnerStation.id(),
                     fedEvent.id(),
                     fc1.id(),
-                    partnerMember.id(),
+                    memberIdentityFactory.local(partnerStation.id(), partnerMember.id()),
                     "Partner Manager",
                     "Nein, wir haben genug Material da. Einfach nur Schutzkleidung mitbringen.");
             eventFederationService.createRemoteComment(

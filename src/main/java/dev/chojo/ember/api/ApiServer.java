@@ -119,6 +119,9 @@ public class ApiServer {
      * Creates the Javalin application, registers all middleware, routes, and plugins, then starts the server.
      */
     public void start() {
+        if (demoConfig.dev()) {
+            DevErrorWriter.clearOnStartup();
+        }
         var app = Javalin.create(config -> {
             config.http.defaultContentType = "application/json";
             config.jsonMapper(jacksonMapper());
@@ -561,10 +564,7 @@ public class ApiServer {
         // For /remote/ responses, identify this station (the one serving the data)
         FederationSession fedSession = ctx.attribute(FederationSession.ATTR_FEDERATION_SESSION);
         if (fedSession != null) {
-            var station = stationRepository.findById(fedSession.stationId()).orElse(null);
-            if (station != null) {
-                FederationHeaders.setStationHeaders(ctx, station);
-            }
+            stationRepository.findById(fedSession.stationId()).ifPresent(station -> FederationHeaders.setStationHeaders(ctx, station));
         }
     }
 

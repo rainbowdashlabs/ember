@@ -20,11 +20,13 @@ const props = withDefaults(defineProps<{
   size?: string
   autoBlink?: boolean
   gazePositions?: EyeDirection[]
+  bounce?: boolean
 }>(), {
   pixelSize: 512,
   size: 'w-48 h-48',
   autoBlink: false,
   gazePositions: () => [],
+  bounce: false,
 })
 
 const emit = defineEmits<{
@@ -213,14 +215,41 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="relative" :class="size">
+  <div class="relative" :class="[size, { 'layered-bounce': bounce }]">
     <img
       v-for="layer in layers"
       v-show="isVisible(layer.name)"
       :key="layer.name"
       :src="fragmentUrl(layer.name)"
       alt=""
-      class="absolute inset-0 w-full h-full object-contain"
+      :class="['absolute inset-0 w-full h-full object-contain', { 'faq-shake': layer.name.includes('faq') }]"
     />
   </div>
 </template>
+
+<style scoped>
+.layered-bounce {
+  animation: layered-hop 3s ease-in-out infinite;
+}
+
+@keyframes layered-hop {
+  0%, 80%, 100% { transform: translateY(0); }
+  85% { transform: translateY(-4px); }
+  90% { transform: translateY(0); }
+  93% { transform: translateY(-2px); }
+  96% { transform: translateY(0); }
+}
+
+.faq-shake {
+  animation: faq-wobble 4s ease-in-out infinite;
+  transform-origin: center center;
+}
+
+@keyframes faq-wobble {
+  0%, 85%, 100% { transform: rotate(0deg); }
+  88% { transform: rotate(-3deg); }
+  91% { transform: rotate(3deg); }
+  94% { transform: rotate(-2deg); }
+  97% { transform: rotate(1deg); }
+}
+</style>

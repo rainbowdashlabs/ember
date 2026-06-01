@@ -5,12 +5,14 @@
  */
 package dev.chojo.ember.feature.news.service;
 
+import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.CommentCreated;
 import dev.chojo.ember.event.events.CommentDeleted;
 import dev.chojo.ember.event.events.NewsCreated;
 import dev.chojo.ember.event.events.NewsDeleted;
 import dev.chojo.ember.feature.comment.entity.CommentEntityType;
+import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.news.entity.News;
 import dev.chojo.ember.feature.news.entity.NewsComment;
 import dev.chojo.ember.feature.news.repository.NewsRepository;
@@ -33,13 +35,18 @@ public class NewsService {
     private final NewsRepository newsRepository;
     private final RestrictionRepository restrictionRepository;
     private final DomainEventBus eventBus;
+    private final StationMemberRepository stationMemberRepository;
 
     @Inject
     public NewsService(
-            NewsRepository newsRepository, RestrictionRepository restrictionRepository, DomainEventBus eventBus) {
+            NewsRepository newsRepository,
+            RestrictionRepository restrictionRepository,
+            DomainEventBus eventBus,
+            StationMemberRepository stationMemberRepository) {
         this.newsRepository = newsRepository;
         this.restrictionRepository = restrictionRepository;
         this.eventBus = eventBus;
+        this.stationMemberRepository = stationMemberRepository;
     }
 
     /**
@@ -49,7 +56,7 @@ public class NewsService {
      * @param title           article title
      * @param contentMarkdown article body in Markdown
      * @param contentHtml     article body as HTML
-     * @param authorId        member ID of the author
+     * @param author          identity of the author
      * @param groupIds        group IDs to restrict visibility to (empty for unrestricted)
      * @return the newly created news entry
      */
@@ -58,12 +65,12 @@ public class NewsService {
             String title,
             String contentMarkdown,
             String contentHtml,
-            int authorId,
+            MemberIdentity author,
             List<Integer> roleIds,
             List<Integer> groupIds,
             List<Integer> tagIds,
             List<Integer> memberIds) {
-        var news = newsRepository.create(stationId, title, contentMarkdown, contentHtml, authorId);
+        var news = newsRepository.create(stationId, title, contentMarkdown, contentHtml, author);
         setRestrictions(news.id(), roleIds, groupIds, tagIds, memberIds);
         eventBus.publish(new NewsCreated(stationId, news.id(), title));
         return news;
@@ -188,23 +195,31 @@ public class NewsService {
      *
      * @param newsId   the news article ID
      * @param parentId parent comment ID for replies, or {@code null} for top-level comments
-     * @param authorId member ID of the comment author
+     * @param author   identity of the comment author, or {@code null} for federated/system comments
+     * @param authorName display name of the comment author
      * @param content  comment text
      * @return the newly created comment
      */
     public NewsComment createComment(
-            int stationId, int newsId, Integer parentId, Integer authorId, String authorName, String content) {
-        var comment = newsRepository.createComment(newsId, parentId, authorId, content);
+            int stationId, int newsId, Integer parentId, MemberIdentity author, String authorName, String content) {
+        var comment = newsRepository.createComment(newsId, parentId, author, content);
         var news = newsRepository.findById(newsId).orElse(null);
         if (news != null) {
             String preview = content.length() > 100 ? content.substring(0, 100) + "..." : content;
-            Integer parentAuthorId = null;
+            Integer parentAuthorMemberId = null;
             if (parentId != null) {
-                parentAuthorId = newsRepository
-                        .findCommentById(parentId)
-                        .map(NewsComment::authorId)
-                        .orElse(null);
+                var parentComment = newsRepository.findCommentById(parentId).orElse(null);
+                if (parentComment != null && parentComment.author() != null) {
+                    parentAuthorMemberId = stationMemberRepository
+                            .resolveId(stationId, parentComment.author().memberUid())
+                            .orElse(null);
+                }
             }
+            Integer authorMemberId = author != null
+                    ? stationMemberRepository
+                            .resolveId(stationId, author.memberUid())
+                            .orElse(null)
+                    : null;
             eventBus.publish(new CommentCreated(
                     stationId,
                     CommentEntityType.NEWS,
@@ -212,8 +227,8 @@ public class NewsService {
                     news.title(),
                     comment.id(),
                     parentId,
-                    parentAuthorId,
-                    authorId,
+                    parentAuthorMemberId,
+                    authorMemberId,
                     authorName,
                     preview));
         }

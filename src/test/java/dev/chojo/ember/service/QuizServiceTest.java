@@ -30,6 +30,7 @@ import org.junit.jupiter.api.TestMethodOrder;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -1021,9 +1022,9 @@ class QuizServiceTest extends RepositoryTestBase {
         // either way the call must reject access (wrong ownership or unknown partner).
         var localCatalog = quizCatalogRepo.create(station.id(), "LocalOnly", "Not on stationB", false);
 
-        assertThrows(Exception.class, () -> {
-            service.getFederatedQuizCatalog(station.id(), stationB.uid(), localCatalog.id());
-        });
+        assertThrows(
+                Exception.class,
+                () -> service.getFederatedQuizCatalog(station.id(), stationB.uid(), localCatalog.id()));
 
         quizCatalogRepo.delete(localCatalog.id());
     }
@@ -1097,13 +1098,8 @@ class QuizServiceTest extends RepositoryTestBase {
     @Test
     @Order(211)
     void getFederatedQuizCatalogRemote() {
-        var remoteResult = java.util.Map.of(
-                "catalog",
-                (Object) java.util.Map.of("id", 88),
-                "categories",
-                java.util.List.of(),
-                "questions",
-                java.util.List.of());
+        var remoteResult =
+                Map.of("catalog", Map.of("id", 88), "categories", List.of(), "questions", List.of());
         when(httpClient.get(
                         eq("https://remote-quiz.example.com"),
                         eq("/remote/quiz/catalogs/88"),

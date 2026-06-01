@@ -62,6 +62,7 @@ bcrypt = { group = "at.favre.lib", name = "bcrypt", version = "0.10.2" }
 
 # Annotations
 jspecify = { group = "org.jspecify", name = "jspecify", version = "1.0.0" }
+caffeine = { group = "com.github.ben-manes.caffeine", name = "caffeine", version = "3.2.0" }
 
 # mailing
 angus = { group = "org.eclipse.angus", name = "angus-mail", version = "2.0.5" }

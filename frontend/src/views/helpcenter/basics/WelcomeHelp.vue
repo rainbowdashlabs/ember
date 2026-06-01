@@ -5,7 +5,8 @@
  */
 <script lang="ts" setup>
 import {useI18n} from 'vue-i18n'
-import EmberLogo from '@/components/display/EmberLogo.vue'
+import LayeredEmberLogo from '@/components/display/LayeredEmberLogo.vue'
+import { emberLogoFaq } from '@/composables/useEmberLogo'
 import HelpArticle from '@/components/helpcenter/HelpArticle.vue'
 import HelpSection from '@/components/helpcenter/HelpSection.vue'
 import HelpTip from '@/components/helpcenter/HelpTip.vue'
@@ -14,6 +15,7 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 
 const {t} = useI18n()
+const faqLogo = emberLogoFaq()
 
 const sections = [
   {icon: ['fas', 'circle-info'], route: 'help-basics-overview', key: 'overview'},
@@ -27,7 +29,7 @@ const sections = [
 <template>
   <HelpArticle :title="t('helpCenter.welcome.title')" :subtitle="t('helpCenter.welcome.subtitle')">
     <div class="flex justify-center mb-4">
-      <EmberLogo base="NoBG_NoGlow_FAQ" blink-base="NoBG_NoGlow_FAQ_Blink" :pixel-size="512" size="w-32 h-32" :blink="true" />
+      <LayeredEmberLogo :layers="faqLogo.layers" :active-layers="faqLogo.activeLayers" :auto-blink="true" :bounce="true" size="w-32 h-32" :pixel-size="512" />
     </div>
 
     <HelpSection :title="t('helpCenter.welcome.whatIs')">

@@ -13,7 +13,6 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import IconButton from '@/components/button/IconButton.vue'
 import MemberName from '@/components/avatar/MemberName.vue'
-import StationBadge from '@/components/badge/StationBadge.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import {useSession} from '@/composables/useSession'
 
@@ -44,10 +43,6 @@ function isOwnComment(comment: Comment): boolean {
   return comment.author.stationUid === currentStationId.value && comment.author.memberUid === currentMemberUid.value
 }
 
-function isExternalAuthor(comment: Comment): boolean {
-  if (!comment.author) return false
-  return comment.author.stationUid !== currentStationId.value
-}
 
 const sortDesc = ref(true)
 const newComment = ref('')
@@ -186,10 +181,9 @@ const maxDepth = 6
       <!-- Comment content -->
       <div v-else-if="editingId !== comment.id" class="space-y-1">
         <div class="flex items-center gap-2">
-          <MemberName :name="memberName(comment)" class="text-sm font-medium"/>
+          <MemberName :name="memberName(comment)" :identity="comment.author" class="text-sm font-medium"/>
           <MutedText size="xs">{{ formatDate(comment.createdAt) }}</MutedText>
           <MutedText v-if="comment.updatedAt" size="xs">({{ t('comments.edited') }})</MutedText>
-          <StationBadge v-if="isExternalAuthor(comment)" :station-name="''"/>
         </div>
         <p class="text-sm whitespace-pre-wrap"><template v-for="(part, i) in resolveMentions(comment.content)" :key="i"><span v-if="part.type === 'mention'" class="font-semibold text-primary">@{{ part.name }}</span><template v-else>{{ part.value }}</template></template></p>
         <div class="flex items-center gap-1">

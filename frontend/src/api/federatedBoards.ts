@@ -17,7 +17,7 @@ export type BoardShareModeName = (typeof BoardShareMode)[keyof typeof BoardShare
 export interface DiscoveredBoard {
     partnerId: number
     partnerStationUid: string
-    remoteBoardId: number
+    remoteBoardUid: string
     name: string
     shortKey: string
     description: string
@@ -46,7 +46,7 @@ export interface FederatedBoardBookmark {
     memberId: number
     partnerId: number
     partnerStationUid: string
-    remoteBoardId: number
+    remoteBoardUid: string
     remoteBoardName: string
     remoteBoardShortKey: string
     shareMode: BoardShareModeName
@@ -84,7 +84,7 @@ export async function listBookmarks(): Promise<FederatedBoardBookmark[]> {
 
 export async function createBookmark(data: {
     partnerUid: string
-    remoteBoardId: number
+    remoteBoardUid: string
     remoteBoardName: string
     remoteBoardShortKey: string
     shareMode: BoardShareModeName
@@ -95,6 +95,13 @@ export async function createBookmark(data: {
 
 export async function deleteBookmark(bookmarkId: number): Promise<void> {
     await client.delete(`/federated/boards/bookmarks/${bookmarkId}`)
+}
+
+// -- Members --
+
+export async function getBoardMembers(partnerUid: string, boardKey: string): Promise<import('./stationMembers').MemberCompletion[]> {
+    const res = await client.get<import('./stationMembers').MemberCompletion[]>(`/federated/boards/${partnerUid}/${boardKey}/members`)
+    return res.data
 }
 
 // -- Board read (proxied) --

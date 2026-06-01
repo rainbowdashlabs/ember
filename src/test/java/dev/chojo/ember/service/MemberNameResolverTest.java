@@ -11,8 +11,10 @@ import dev.chojo.ember.feature.events.repository.EventFederationRepository;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.members.service.MemberGroupService;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.members.service.StationMemberService;
+import dev.chojo.ember.feature.members.service.UserTagService;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -40,7 +42,13 @@ class MemberNameResolverTest {
         federationRepository = mock(FederationRepository.class);
         stationRepository = mock(StationRepository.class);
         resolver = new MemberNameResolver(
-                memberService, accountRepository, eventFederationRepository, federationRepository, stationRepository);
+                memberService,
+                accountRepository,
+                eventFederationRepository,
+                federationRepository,
+                stationRepository,
+                mock(MemberGroupService.class),
+                mock(UserTagService.class));
     }
 
     @Test

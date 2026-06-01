@@ -28,6 +28,7 @@ import dev.chojo.ember.event.DomainEventHandler;
 import dev.chojo.ember.event.handlers.BoardTicketChangedHandler;
 import dev.chojo.ember.event.handlers.CommentCreatedHandler;
 import dev.chojo.ember.event.handlers.CommentDeletedHandler;
+import dev.chojo.ember.event.handlers.EventCancelledHandler;
 import dev.chojo.ember.event.handlers.EventCreatedHandler;
 import dev.chojo.ember.event.handlers.EventDeletedHandler;
 import dev.chojo.ember.event.handlers.EventRegistrationStatusHandler;
@@ -55,6 +56,7 @@ import dev.chojo.ember.feature.comment.route.NoteRoutes;
 import dev.chojo.ember.feature.events.route.EventRoutes;
 import dev.chojo.ember.feature.events.route.EventTemplateRoutes;
 import dev.chojo.ember.feature.events.route.PublicEventRoutes;
+import dev.chojo.ember.feature.events.service.EventThresholdChecker;
 import dev.chojo.ember.feature.federation.route.FederationRemoteRoutes;
 import dev.chojo.ember.feature.federation.route.FederationRoutes;
 import dev.chojo.ember.feature.federation.route.LendingRoutes;
@@ -208,6 +210,10 @@ public class EmberModule extends AbstractModule {
         eventBinder.addBinding().to(LendingMessageSentHandler.class);
         eventBinder.addBinding().to(MentionedInCommentHandler.class);
         eventBinder.addBinding().to(BoardTicketChangedHandler.class);
+        eventBinder.addBinding().to(EventCancelledHandler.class);
+
+        // Eager singletons — started on boot
+        bind(EventThresholdChecker.class).asEagerSingleton();
     }
 
     @Provides

@@ -28,7 +28,6 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
-import static org.mockito.Mockito.when;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class TestProtocolServiceTest extends RepositoryTestBase {
@@ -472,7 +471,7 @@ class TestProtocolServiceTest extends RepositoryTestBase {
     @Test
     @Order(241)
     void getFederatedProtocolRemote() {
-        var remoteResult = Map.of("protocol", (Object) Map.of("id", 77), "sections", List.of(), "items", List.of());
+        var remoteResult = Map.of("protocol", Map.of("id", 77), "sections", List.of(), "items", List.of());
         when(httpClient.get(
                         eq("https://remote-proto.example.com"),
                         eq("/remote/protocols/77"),

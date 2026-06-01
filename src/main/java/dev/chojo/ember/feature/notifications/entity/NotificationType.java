@@ -30,7 +30,8 @@ public enum NotificationType {
     LENDING_NEW_MESSAGE(NotificationParams.LendingNewMessage.class, "notification.lendingNewMessage"),
     BOARD_TICKET_UPDATE(NotificationParams.BoardTicketUpdate.class, "notification.boardTicketUpdate"),
     REGISTRATION_DEADLINE_EXPIRED(
-            NotificationParams.RegistrationDeadlineExpired.class, "notification.registrationDeadlineExpired");
+            NotificationParams.RegistrationDeadlineExpired.class, "notification.registrationDeadlineExpired"),
+    EVENT_CANCELLED(NotificationParams.EventCancelled.class, "notification.eventCancelled");
 
     private final Class<? extends NotificationParams> paramsType;
     private final String localeKey;

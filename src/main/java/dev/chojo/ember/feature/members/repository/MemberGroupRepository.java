@@ -27,7 +27,7 @@ public class MemberGroupRepository {
      * Finds a member group by its identifier.
      */
     public Optional<MemberGroup> findById(int id) {
-        return query("SELECT id, station_id, name FROM member_group WHERE id = :id;")
+        return query("SELECT * FROM member_group WHERE id = :id;")
                 .single(Call.of().bind("id", id))
                 .map(MemberGroup.map())
                 .first();
@@ -37,7 +37,7 @@ public class MemberGroupRepository {
      * Finds all member groups for a station.
      */
     public List<MemberGroup> findByStation(int stationId) {
-        return query("SELECT id, station_id, name FROM member_group WHERE station_id = :station_id;")
+        return query("SELECT * FROM member_group WHERE station_id = :station_id ORDER BY position DESC, name;")
                 .single(Call.of().bind("station_id", stationId))
                 .map(MemberGroup.map())
                 .all();
@@ -47,8 +47,10 @@ public class MemberGroupRepository {
      * Creates a new member group for a station.
      */
     public MemberGroup create(int stationId, String name) {
-        return query(
-                        "INSERT INTO member_group(station_id, name) VALUES(:station_id, :name) RETURNING id, station_id, name;")
+        return query("""
+                        INSERT INTO member_group(station_id, name, position)
+                        VALUES(:station_id, :name, COALESCE((SELECT MAX(position) + 1 FROM member_group WHERE station_id = :station_id), 0))
+                        RETURNING *;""")
                 .single(Call.of().bind("station_id", stationId).bind("name", name))
                 .map(MemberGroup.map())
                 .first()
@@ -56,11 +58,15 @@ public class MemberGroupRepository {
     }
 
     /**
-     * Updates a member group's name.
+     * Updates a member group's name, color, and position.
      */
-    public boolean update(int id, String name) {
-        return query("UPDATE member_group SET name = :name WHERE id = :id;")
-                .single(Call.of().bind("name", name).bind("id", id))
+    public boolean update(int id, String name, String color, int position) {
+        return query("UPDATE member_group SET name = :name, color = :color, position = :position WHERE id = :id;")
+                .single(Call.of()
+                        .bind("name", name)
+                        .bind("color", color)
+                        .bind("position", position)
+                        .bind("id", id))
                 .update()
                 .changed();
     }
@@ -99,15 +105,11 @@ public class MemberGroupRepository {
      */
     public List<MemberGroup> findGroupsForMember(int memberId) {
         return query("""
-                SELECT
-                    mg.id,
-                    mg.station_id,
-                    mg.name
-                FROM
-                    member_group mg
-                        JOIN member_group_entry mge
-                        ON mg.id = mge.group_id
-                WHERE mge.member_id = :member_id;""")
+                SELECT mg.*
+                FROM member_group mg
+                JOIN member_group_entry mge ON mg.id = mge.group_id
+                WHERE mge.member_id = :member_id
+                ORDER BY mg.position DESC, mg.name;""")
                 .single(Call.of().bind("member_id", memberId))
                 .map(MemberGroup.map())
                 .all();

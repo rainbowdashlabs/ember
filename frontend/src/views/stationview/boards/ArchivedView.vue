@@ -16,6 +16,7 @@ import EmptyState from '@/components/feedback/EmptyState.vue'
 import { contrastTextColor } from '@/theme/contrast'
 import UserAvatar from '@/components/avatar/UserAvatar.vue'
 import { boards, stationMembers } from '@/api'
+import type { MemberCompletion } from '@/api/stationMembers'
 import type { Board, BoardTicket, BoardLabel } from '@/api/boards'
 
 const { t } = useI18n()
@@ -25,7 +26,7 @@ const router = useRouter()
 const boardKey = computed(() => route.params.boardKey as string)
 const board = ref<Board | null>(null)
 const tickets = ref<BoardTicket[]>([])
-const members = ref<{ id: number; name: string }[]>([])
+const members = ref<MemberCompletion[]>([])
 const allLabels = ref<BoardLabel[]>([])
 const ticketLabelMap = ref<Map<number, number[]>>(new Map())
 const labelFilter = ref<Set<number>>(new Set())
@@ -94,7 +95,7 @@ onMounted(loadData)
                         <td class="py-2 pr-3">{{ ticket.title }}</td>
                         <td class="py-2 pr-3"><div class="flex gap-1"><span v-for="l in labelsForTicket(ticket.id)" :key="l.id" class="text-[0.6rem] px-1.5 py-0.5 rounded-full" :style="{ backgroundColor: l.color, color: contrastTextColor(l.color) }">{{ l.name }}</span></div></td>
                         <td class="py-2 pr-3"><font-awesome-icon :icon="priorityIcon(ticket.priority)" :class="priorityColor(ticket.priority)" class="text-xs" /></td>
-                        <td class="py-2 pr-3"><div v-if="ticket.assignedMemberId" class="flex items-center gap-1"><UserAvatar :member-id="ticket.assignedMemberId" size="sm" /><span class="text-xs whitespace-nowrap">{{ memberName(ticket.assignedMemberId) }}</span></div></td>
+                        <td class="py-2 pr-3"><div v-if="ticket.assignedMemberId" class="flex items-center gap-1"><UserAvatar :identity="members.find(m => m.id === ticket.assignedMemberId)" size="sm" /><span class="text-xs whitespace-nowrap">{{ memberName(ticket.assignedMemberId) }}</span></div></td>
                         <td class="py-2 text-xs whitespace-nowrap">{{ ticket.dueDate ? new Date(ticket.dueDate).toLocaleDateString('de-DE') : '' }}</td>
                     </tr>
                 </tbody>

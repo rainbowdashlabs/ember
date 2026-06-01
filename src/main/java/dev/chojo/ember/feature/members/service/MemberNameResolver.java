@@ -5,16 +5,23 @@
  */
 package dev.chojo.ember.feature.members.service;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
+import dev.chojo.ember.feature.members.entity.MemberGroup;
+import dev.chojo.ember.feature.members.entity.UserTag;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
+import java.util.Comparator;
+import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 @Singleton
 public class MemberNameResolver {
@@ -23,6 +30,8 @@ public class MemberNameResolver {
     private final EventFederationRepository eventFederationRepository;
     private final FederationRepository federationRepository;
     private final StationRepository stationRepository;
+    private final MemberGroupService groupService;
+    private final UserTagService tagService;
 
     @Inject
     public MemberNameResolver(
@@ -30,12 +39,16 @@ public class MemberNameResolver {
             AccountRepository accountRepository,
             EventFederationRepository eventFederationRepository,
             FederationRepository federationRepository,
-            StationRepository stationRepository) {
+            StationRepository stationRepository,
+            MemberGroupService groupService,
+            UserTagService tagService) {
         this.memberService = memberService;
         this.accountRepository = accountRepository;
         this.eventFederationRepository = eventFederationRepository;
         this.federationRepository = federationRepository;
         this.stationRepository = stationRepository;
+        this.groupService = groupService;
+        this.tagService = tagService;
     }
 
     /**
@@ -121,5 +134,62 @@ public class MemberNameResolver {
         // Fallback to station name
         if (station != null) return station.name();
         return null;
+    }
+
+    /**
+     * Resolves both the display name and enriched identity (with nameColor and displayTag) in one call.
+     * This is the preferred method for building API responses.
+     */
+    public record ResolvedMember(MemberIdentity identity, String name) {}
+
+    public ResolvedMember resolveDisplay(MemberIdentity identity) {
+        if (identity == null) return new ResolvedMember(null, null);
+        var enriched = enrichDisplay(identity);
+        var name = resolve(identity);
+        return new ResolvedMember(enriched, name);
+    }
+
+    private record DisplayData(String stationName, String nameColor, MemberIdentity.DisplayTag displayTag) {}
+
+    private final Cache<UUID, DisplayData> displayCache = Caffeine.newBuilder()
+            .expireAfterAccess(5, TimeUnit.MINUTES)
+            .maximumSize(10_000)
+            .build();
+
+    /**
+     * Enriches a MemberIdentity with display metadata (station name, name color, visible tag badge).
+     * Results are cached for 5 minutes after last access.
+     */
+    public MemberIdentity enrichDisplay(MemberIdentity identity) {
+        if (identity == null) return null;
+
+        var data = displayCache.get(identity.memberUid(), uid -> {
+            var station = stationRepository.findByUid(identity.stationUid()).orElse(null);
+            if (station == null) return new DisplayData(null, null, null);
+            String stationName = station.name();
+            var memberId = memberService.resolveId(station.id(), uid);
+            if (memberId.isEmpty()) return new DisplayData(stationName, null, null);
+            return new DisplayData(stationName, resolveNameColor(memberId.get()), resolveDisplayTag(memberId.get()));
+        });
+
+        return identity.withDisplay(data.stationName(), data.nameColor(), data.displayTag());
+    }
+
+    private String resolveNameColor(int memberId) {
+        List<MemberGroup> groups = groupService.findGroupsForMember(memberId);
+        return groups.stream()
+                .filter(g -> g.color() != null && !g.color().isBlank())
+                .max(Comparator.comparingInt(MemberGroup::position))
+                .map(MemberGroup::color)
+                .orElse(null);
+    }
+
+    private MemberIdentity.DisplayTag resolveDisplayTag(int memberId) {
+        List<UserTag> tags = tagService.findTagsForMember(memberId);
+        return tags.stream()
+                .filter(t -> t.visible() && t.color() != null && !t.color().isBlank())
+                .max(Comparator.comparingInt(UserTag::position))
+                .map(t -> new MemberIdentity.DisplayTag(t.name(), t.color()))
+                .orElse(null);
     }
 }

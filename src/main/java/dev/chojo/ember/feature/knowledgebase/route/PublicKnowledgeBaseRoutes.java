@@ -41,6 +41,7 @@ import java.util.UUID;
  * Unauthenticated, read-only routes for the public knowledgebase.
  * Only serves content from the station itself (no federated content).
  */
+@SuppressWarnings("DefaultAnnotationParam")
 @Singleton
 public class PublicKnowledgeBaseRoutes implements Routes {
     private static final Logger log = LoggerFactory.getLogger(PublicKnowledgeBaseRoutes.class);

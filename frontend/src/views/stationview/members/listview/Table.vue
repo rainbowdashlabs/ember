@@ -9,7 +9,7 @@ import {useI18n} from 'vue-i18n'
 import EditButton from '@/components/button/EditButton.vue'
 import IconButton from '@/components/button/IconButton.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
-import UserAvatar from '@/components/avatar/UserAvatar.vue'
+import MemberName from '@/components/avatar/MemberName.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import CheckboxInput from '@/components/input/toggle/CheckboxInput.vue'
 import ColumnFilterModal from './ColumnFilterModal.vue'
@@ -185,9 +185,8 @@ function onRowClick(member: StationMember) {
     <NeutralContainer v-for="member in members" :key="member.id" class="space-y-2" @click="onRowClick(member)">
       <div class="flex items-center justify-between">
         <div class="flex items-center gap-2">
-          <UserAvatar :member-id="member.id" :name="memberDisplayName(member)" size="sm"/>
           <div>
-            <span class="font-medium">{{ memberDisplayName(member) }}</span>
+            <MemberName :identity="member.identity" :name="memberDisplayName(member)" size="sm" class="font-medium"/>
             <ErrorBadge v-if="member.profileComplete === false" class="ml-1.5 text-[10px]">{{ t('membersList.incomplete') }}</ErrorBadge>
             <div v-if="getPrimaryRole(member.id)" class="mt-0.5">
               <span
@@ -324,8 +323,7 @@ function onRowClick(member: StationMember) {
           </Td>
           <Td>
             <div class="flex items-center gap-2">
-              <UserAvatar :member-id="member.id" :name="memberDisplayName(member)" size="sm"/>
-              <span class="font-medium">{{ memberDisplayName(member) }}</span>
+              <MemberName :identity="member.identity" :name="memberDisplayName(member)" size="sm" class="font-medium"/>
               <ErrorBadge v-if="member.profileComplete === false" class="ml-1.5 text-[10px]">{{
                   t('membersList.incomplete')
                 }}</ErrorBadge>

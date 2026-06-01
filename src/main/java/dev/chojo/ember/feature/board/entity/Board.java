@@ -6,13 +6,16 @@
 package dev.chojo.ember.feature.board.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
+import de.chojo.sadu.queries.converter.StandardValueConverter;
 
 import java.time.Instant;
+import java.util.UUID;
 
 import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIMESTAMP;
 
 public record Board(
         int id,
+        UUID uid,
         int stationId,
         String name,
         String description,
@@ -29,6 +32,7 @@ public record Board(
     public static RowMapping<Board> map() {
         return row -> new Board(
                 row.getInt("id"),
+                row.get("uid", StandardValueConverter.UUID_STRING),
                 row.getInt("station_id"),
                 row.getString("name"),
                 row.getString("description"),

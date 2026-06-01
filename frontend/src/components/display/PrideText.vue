@@ -38,6 +38,8 @@ defineProps<{
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
+  -webkit-text-stroke: 0.5px rgba(0, 0, 0, 0.4);
+  paint-order: stroke fill;
 }
 
 .pride-banner {

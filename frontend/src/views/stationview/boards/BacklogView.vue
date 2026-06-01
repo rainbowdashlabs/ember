@@ -15,6 +15,7 @@ import Alert from '@/components/feedback/Alert.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import UserAvatar from '@/components/avatar/UserAvatar.vue'
 import { boards, stationMembers } from '@/api'
+import type { MemberCompletion } from '@/api/stationMembers'
 import type { Board, BoardTicket } from '@/api/boards'
 // Priority helpers use raw strings, no enum import needed
 
@@ -25,7 +26,7 @@ const router = useRouter()
 const boardKey = computed(() => route.params.boardKey as string)
 const board = ref<Board | null>(null)
 const tickets = ref<BoardTicket[]>([])
-const members = ref<{ id: number; name: string }[]>([])
+const members = ref<MemberCompletion[]>([])
 const loading = ref(true)
 const error = ref('')
 
@@ -80,7 +81,7 @@ onMounted(loadData)
                         <td class="py-2 pr-3"><font-awesome-icon :icon="priorityIcon(ticket.priority)" :class="priorityColor(ticket.priority)" class="text-xs" /></td>
                         <td class="py-2 pr-3">
                             <div v-if="ticket.assignedMemberId" class="flex items-center gap-1">
-                                <UserAvatar :member-id="ticket.assignedMemberId" size="sm" />
+                                <UserAvatar :identity="members.find(m => m.id === ticket.assignedMemberId)" size="sm" />
                                 <span class="text-xs whitespace-nowrap">{{ memberName(ticket.assignedMemberId) }}</span>
                             </div>
                         </td>

@@ -32,8 +32,10 @@ import dev.chojo.ember.feature.knowledgebase.repository.KbCommentRepository;
 import dev.chojo.ember.feature.knowledgebase.service.KbFileStorageService;
 import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseService;
 import dev.chojo.ember.feature.media.service.ImageService;
+import dev.chojo.ember.feature.members.service.MemberGroupService;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.members.service.StationMemberService;
+import dev.chojo.ember.feature.members.service.UserTagService;
 import dev.chojo.ember.feature.news.repository.NewsFederationRepository;
 import dev.chojo.ember.feature.news.service.NewsFederationService;
 import dev.chojo.ember.feature.news.service.NewsService;
@@ -94,7 +96,7 @@ class DemoServiceTest extends RepositoryTestBase {
         var federationHttpClient = new FederationHttpClient(signingService, stationRepo);
 
         var eventService = new EventService(eventRepo, restrictionRepo, noOpBus);
-        var newsService = new NewsService(newsRepo, restrictionRepo, noOpBus);
+        var newsService = new NewsService(newsRepo, restrictionRepo, noOpBus, stationMemberRepo);
         var inventoryService = new InventoryService(inventoryRepo);
         var exchangeService = new ExchangeService(exchangeRepo, inventoryRepo, inventoryService, noOpBus);
         var procurementService = new ProcurementService(procurementRepo, inventoryService, inventoryRepo, noOpBus);
@@ -102,7 +104,7 @@ class DemoServiceTest extends RepositoryTestBase {
         var feedTokenService = new FeedTokenService(feedTokenRepo);
 
         var memberSvc = new StationMemberService(stationMemberRepo, stationRepo, accountRepo, mock(AuthService.class));
-        var commentService = new CommentService(eventCommentRepo, noOpBus, memberSvc);
+        var commentService = new CommentService(eventCommentRepo, noOpBus, memberSvc, stationRepo);
         var kbFileStorage = new KbFileStorageService();
         var kbService = new KnowledgeBaseService(
                 knowledgeBaseRepo,
@@ -129,12 +131,17 @@ class DemoServiceTest extends RepositoryTestBase {
         var stationService =
                 new StationService(stationRepo, stationMemberRepo, accountRepo, authService, federationService);
 
+        var groupService =
+                new MemberGroupService(memberGroupRepo, stationMemberRepo, userTagRepo, new DomainEventBus(Set.of()));
+        var tagService = new UserTagService(userTagRepo, memberGroupRepo);
         var memberNameResolver = new MemberNameResolver(
                 new StationMemberService(stationMemberRepo, stationRepo, accountRepo, mock(AuthService.class)),
                 accountRepo,
                 eventFederationRepo,
                 federationRepo,
-                stationRepo);
+                stationRepo,
+                groupService,
+                tagService);
         var eventFederationService = new EventFederationService(
                 eventFederationRepo,
                 federationService,
@@ -144,10 +151,7 @@ class DemoServiceTest extends RepositoryTestBase {
                 eventService,
                 commentService,
                 eventCommentRepo,
-                stationMemberRepo,
-                accountRepo,
-                memberNameResolver,
-                memberIdentityFactory);
+                memberNameResolver);
         var newsFederationService = new NewsFederationService(
                 newsFederationRepo,
                 federationService,
@@ -157,7 +161,8 @@ class DemoServiceTest extends RepositoryTestBase {
                 newsService,
                 stationMemberRepo,
                 accountRepo,
-                eventFederationRepo);
+                eventFederationRepo,
+                memberNameResolver);
         var lendingService = new LendingService(
                 lendingRepo, federationHttpClient, federationService, stationRepo, inventoryRepo, noOpBus);
         var federatedBoardService = new FederatedBoardService(federatedBoardRepo);
@@ -188,6 +193,7 @@ class DemoServiceTest extends RepositoryTestBase {
                 newsService,
                 newsFederationService,
                 commentService,
+                memberIdentityFactory,
                 demoConfig,
                 apiConfig);
         var lendingSeeder = new DemoLendingSeeder(lendingService, inventoryRepo);

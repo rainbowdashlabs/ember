@@ -32,9 +32,9 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
 public class EventRepository {
 
     private static final String EVENT_COLUMNS =
-            "e.id, e.station_id, e.name, e.description, e.event_type, e.day_of_week, e.start_time, e.end_time, e.template_id, e.requires_registration, e.registration_deadline, e.requires_confirmation, e.category_id, e.restriction_mode, EXISTS(SELECT 1 FROM event_restriction r WHERE r.event_id = e.id) AS restricted, e.\"public\", e.registration_limit";
+            "e.id, e.station_id, e.name, e.description, e.event_type, e.day_of_week, e.start_time, e.end_time, e.template_id, e.requires_registration, e.registration_deadline, e.requires_confirmation, e.category_id, e.restriction_mode, EXISTS(SELECT 1 FROM event_restriction r WHERE r.event_id = e.id) AS restricted, e.\"public\", e.registration_limit, e.cancelled, e.cancelled_at, e.cancel_reason, e.min_registrations, e.threshold_date, e.threshold_notified";
     private static final String EVENT_COLUMNS_BARE =
-            "id, station_id, name, description, event_type, day_of_week, start_time, end_time, template_id, requires_registration, registration_deadline, requires_confirmation, category_id, restriction_mode, EXISTS(SELECT 1 FROM event_restriction r WHERE r.event_id = id) AS restricted, \"public\", registration_limit";
+            "id, station_id, name, description, event_type, day_of_week, start_time, end_time, template_id, requires_registration, registration_deadline, requires_confirmation, category_id, restriction_mode, EXISTS(SELECT 1 FROM event_restriction r WHERE r.event_id = id) AS restricted, \"public\", registration_limit, cancelled, cancelled_at, cancel_reason, min_registrations, threshold_date, threshold_notified";
 
     // -- Events --
 
@@ -136,10 +136,12 @@ public class EventRepository {
             Instant registrationDeadline,
             boolean requiresConfirmation,
             Integer categoryId,
-            Integer registrationLimit) {
+            Integer registrationLimit,
+            Integer minRegistrations,
+            Instant thresholdDate) {
         return Query.query("""
-                            INSERT INTO station_event(station_id, name, description, event_type, day_of_week, start_time, end_time, template_id, requires_registration, registration_deadline, requires_confirmation, category_id, registration_limit)
-                            VALUES (:station_id, :name, :description, :event_type, :day_of_week, :start_time, :end_time, :template_id, :requires_registration, :registration_deadline, :requires_confirmation, :category_id, :registration_limit)
+                            INSERT INTO station_event(station_id, name, description, event_type, day_of_week, start_time, end_time, template_id, requires_registration, registration_deadline, requires_confirmation, category_id, registration_limit, min_registrations, threshold_date)
+                            VALUES (:station_id, :name, :description, :event_type, :day_of_week, :start_time, :end_time, :template_id, :requires_registration, :registration_deadline, :requires_confirmation, :category_id, :registration_limit, :min_registrations, :threshold_date)
                             RETURNING\s""" + EVENT_COLUMNS_BARE + ";")
                 .single(Call.of()
                         .bind("station_id", stationId)
@@ -154,7 +156,9 @@ public class EventRepository {
                         .bind("registration_deadline", registrationDeadline, INSTANT_TIMESTAMP)
                         .bind("requires_confirmation", requiresConfirmation)
                         .bind("category_id", categoryId)
-                        .bind("registration_limit", registrationLimit))
+                        .bind("registration_limit", registrationLimit)
+                        .bind("min_registrations", minRegistrations)
+                        .bind("threshold_date", thresholdDate, INSTANT_TIMESTAMP))
                 .map(StationEvent.map())
                 .first()
                 .orElseThrow();
@@ -191,7 +195,9 @@ public class EventRepository {
             boolean requiresConfirmation,
             Integer categoryId,
             Boolean isPublic,
-            Integer registrationLimit) {
+            Integer registrationLimit,
+            Integer minRegistrations,
+            Instant thresholdDate) {
         return Query.query("""
                             UPDATE station_event SET
                                 name = :name, description = :description, event_type = :event_type,
@@ -199,7 +205,8 @@ public class EventRepository {
                                 start_time = :start_time, end_time = :end_time, template_id = :template_id,
                                 requires_registration = :requires_registration, registration_deadline = :registration_deadline,
                                 requires_confirmation = :requires_confirmation, category_id = :category_id,
-                                "public" = :public, registration_limit = :registration_limit
+                                "public" = :public, registration_limit = :registration_limit,
+                                min_registrations = :min_registrations, threshold_date = :threshold_date
                             WHERE id = :id;""")
                 .single(Call.of()
                         .bind("name", name)
@@ -215,6 +222,8 @@ public class EventRepository {
                         .bind("category_id", categoryId)
                         .bind("public", isPublic)
                         .bind("registration_limit", registrationLimit)
+                        .bind("min_registrations", minRegistrations)
+                        .bind("threshold_date", thresholdDate, INSTANT_TIMESTAMP)
                         .bind("id", id))
                 .update()
                 .changed();
@@ -690,6 +699,85 @@ public class EventRepository {
                 .single(Call.of().bind("id", id))
                 .map(EventRegistration.map())
                 .first();
+    }
+
+    // -- Cancellation & Threshold --
+
+    /**
+     * Cancels an event, recording the current timestamp and an optional reason.
+     *
+     * @param id     the event ID
+     * @param reason optional cancellation reason
+     * @return true if a row was updated
+     */
+    public boolean cancelEvent(int id, String reason) {
+        return Query.query(
+                        "UPDATE station_event SET cancelled = TRUE, cancelled_at = NOW(), cancel_reason = :reason WHERE id = :id;")
+                .single(Call.of().bind("id", id).bind("reason", reason))
+                .update()
+                .changed();
+    }
+
+    /**
+     * Finds events that should be auto-cancelled because their threshold date has passed
+     * and they have not reached the minimum number of accepted registrations.
+     *
+     * @return the list of events to auto-cancel
+     */
+    public List<StationEvent> findAutoCancel() {
+        return Query.query("SELECT " + EVENT_COLUMNS + """
+                         FROM station_event e
+                        WHERE e.cancelled = FALSE
+                          AND e.min_registrations IS NOT NULL
+                          AND e.threshold_date IS NOT NULL
+                          AND e.threshold_date <= NOW()
+                          AND (SELECT COUNT(*) FROM event_registration er
+                               WHERE er.event_id = e.id AND er.status = 'ACCEPTED') < e.min_registrations;""")
+                .single(Call.of())
+                .map(StationEvent.map())
+                .all();
+    }
+
+    /**
+     * Marks an event's threshold as notified, preventing duplicate warnings.
+     *
+     * @param eventId the event ID
+     * @return true if a row was updated
+     */
+    public boolean setThresholdNotified(int eventId) {
+        return Query.query("UPDATE station_event SET threshold_notified = TRUE WHERE id = :id;")
+                .single(Call.of().bind("id", eventId))
+                .update()
+                .changed();
+    }
+
+    /**
+     * Counts accepted registrations for an event.
+     *
+     * @param eventId the event ID
+     * @return the count of accepted registrations
+     */
+    public int countAcceptedRegistrations(int eventId) {
+        return Query.query(
+                        "SELECT COUNT(*) AS cnt FROM event_registration WHERE event_id = :id AND status = 'ACCEPTED';")
+                .single(Call.of().bind("id", eventId))
+                .map(row -> row.getInt("cnt"))
+                .first()
+                .orElse(0);
+    }
+
+    /**
+     * Finds member IDs with pending or accepted registrations for an event.
+     *
+     * @param eventId the event ID
+     * @return the list of member IDs
+     */
+    public List<Integer> findRegisteredMemberIds(int eventId) {
+        return Query.query(
+                        "SELECT member_id FROM event_registration WHERE event_id = :id AND status IN ('PENDING', 'ACCEPTED');")
+                .single(Call.of().bind("id", eventId))
+                .map(row -> row.getInt("member_id"))
+                .all();
     }
 
     public int countPendingRegistrations(int stationId) {

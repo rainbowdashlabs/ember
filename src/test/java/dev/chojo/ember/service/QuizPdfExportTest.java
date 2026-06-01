@@ -23,9 +23,9 @@ import dev.chojo.ember.feature.station.repository.StationRepository;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.postgresql.PostgreSQLContainer;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
@@ -36,7 +36,7 @@ class QuizPdfExportTest {
     private static final String SCHEMA = "ember";
 
     @Container
-    static final PostgreSQLContainer<?> PG = new PostgreSQLContainer<>("postgres:17")
+    static final PostgreSQLContainer PG = new PostgreSQLContainer("postgres:17")
             .withDatabaseName("ember_test")
             .withUsername("test")
             .withPassword("test");

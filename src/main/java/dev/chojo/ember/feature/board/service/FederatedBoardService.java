@@ -16,6 +16,7 @@ import jakarta.inject.Singleton;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 /**
  * Manages board sharing configuration and federated operations on the owning station.
@@ -103,61 +104,61 @@ public class FederatedBoardService {
     public FederationBoardBookmark createBookmark(
             int memberId,
             int partnerId,
-            int remoteBoardId,
+            UUID remoteBoardUid,
             String remoteBoardName,
             String remoteBoardShortKey,
             BoardShareMode shareMode) {
         return repository.createBookmark(
-                memberId, partnerId, remoteBoardId, remoteBoardName, remoteBoardShortKey, shareMode);
+                memberId, partnerId, remoteBoardUid, remoteBoardName, remoteBoardShortKey, shareMode);
     }
 
     public void deleteBookmark(int bookmarkId) {
         repository.deleteBookmark(bookmarkId);
     }
 
-    public void deleteBookmarkByBoard(int memberId, int partnerId, int remoteBoardId) {
-        repository.deleteBookmarkByBoard(memberId, partnerId, remoteBoardId);
+    public void deleteBookmarkByBoard(int memberId, int partnerId, UUID remoteBoardUid) {
+        repository.deleteBookmarkByBoard(memberId, partnerId, remoteBoardUid);
     }
 
     public List<FederationBoardBookmark> findBookmarks(int memberId) {
         return repository.findBookmarks(memberId);
     }
 
-    public void updateBookmarkName(int partnerId, int remoteBoardId, String newName, String newShortKey) {
-        repository.updateBookmarkName(partnerId, remoteBoardId, newName, newShortKey);
+    public void updateBookmarkName(int partnerId, UUID remoteBoardUid, String newName, String newShortKey) {
+        repository.updateBookmarkName(partnerId, remoteBoardUid, newName, newShortKey);
     }
 
-    public void deleteBookmarksByBoard(int partnerId, int remoteBoardId) {
-        repository.deleteBookmarksByBoard(partnerId, remoteBoardId);
+    public void deleteBookmarksByBoard(int partnerId, UUID remoteBoardUid) {
+        repository.deleteBookmarksByBoard(partnerId, remoteBoardUid);
     }
 
-    public void updateBookmarkShareMode(int partnerId, int remoteBoardId, BoardShareMode shareMode) {
-        repository.updateBookmarkShareMode(partnerId, remoteBoardId, shareMode);
+    public void updateBookmarkShareMode(int partnerId, UUID remoteBoardUid, BoardShareMode shareMode) {
+        repository.updateBookmarkShareMode(partnerId, remoteBoardUid, shareMode);
     }
 
     // -- Local Overrides --
 
-    public void setLocalViewOverride(int partnerId, int remoteBoardId, AccessData access) {
-        repository.setLocalViewOverride(partnerId, remoteBoardId, access);
+    public void setLocalViewOverride(int partnerId, UUID remoteBoardUid, AccessData access) {
+        repository.setLocalViewOverride(partnerId, remoteBoardUid, access);
     }
 
-    public void setLocalEditOverride(int partnerId, int remoteBoardId, AccessData access) {
-        repository.setLocalEditOverride(partnerId, remoteBoardId, access);
+    public void setLocalEditOverride(int partnerId, UUID remoteBoardUid, AccessData access) {
+        repository.setLocalEditOverride(partnerId, remoteBoardUid, access);
     }
 
-    public AccessData getLocalViewOverride(int partnerId, int remoteBoardId) {
-        return repository.findLocalViewOverride(partnerId, remoteBoardId);
+    public AccessData getLocalViewOverride(int partnerId, UUID remoteBoardUid) {
+        return repository.findLocalViewOverride(partnerId, remoteBoardUid);
     }
 
-    public AccessData getLocalEditOverride(int partnerId, int remoteBoardId) {
-        return repository.findLocalEditOverride(partnerId, remoteBoardId);
+    public AccessData getLocalEditOverride(int partnerId, UUID remoteBoardUid) {
+        return repository.findLocalEditOverride(partnerId, remoteBoardUid);
     }
 
-    public boolean hasLocalViewOverride(int partnerId, int remoteBoardId) {
-        return repository.hasLocalViewOverride(partnerId, remoteBoardId);
+    public boolean hasLocalViewOverride(int partnerId, UUID remoteBoardUid) {
+        return repository.hasLocalViewOverride(partnerId, remoteBoardUid);
     }
 
-    public boolean hasLocalEditOverride(int partnerId, int remoteBoardId) {
-        return repository.hasLocalEditOverride(partnerId, remoteBoardId);
+    public boolean hasLocalEditOverride(int partnerId, UUID remoteBoardUid) {
+        return repository.hasLocalEditOverride(partnerId, remoteBoardUid);
     }
 }

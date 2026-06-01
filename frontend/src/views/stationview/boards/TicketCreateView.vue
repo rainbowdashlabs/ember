@@ -25,6 +25,7 @@ import MarkdownEditor from '@/components/input/MarkdownEditor.vue'
 import CheckboxInput from '@/components/input/toggle/CheckboxInput.vue'
 import LabelSelectInput from '@/components/input/select/LabelSelectInput.vue'
 import { boards, stationMembers } from '@/api'
+import type { MemberCompletion } from '@/api/stationMembers'
 import type { Board, BoardLane, BoardLabel } from '@/api/boards'
 import { TicketPriority } from '@/api/boards'
 import type { TicketPriorityName, LinkTypeName } from '@/api/boards'
@@ -38,7 +39,7 @@ const boardKey = computed(() => route.params.boardKey as string)
 
 const board = ref<Board | null>(null)
 const lanes = ref<BoardLane[]>([])
-const members = ref<{ id: number; name: string }[]>([])
+const members = ref<MemberCompletion[]>([])
 const allLabels = ref<BoardLabel[]>([])
 const allTickets = ref<{ id: number; ticketNumber: number; title: string }[]>([])
 const loading = ref(true)

@@ -4,6 +4,7 @@ INSERT INTO ember_schema.role (name) VALUES ('BOARD_MANAGER') ON CONFLICT (name)
 -- Board
 CREATE TABLE ember_schema.board (
     id SERIAL PRIMARY KEY,
+    uid UUID NOT NULL DEFAULT gen_random_uuid(),
     station_id INTEGER NOT NULL REFERENCES ember_schema.station(id) ON DELETE CASCADE,
     name TEXT NOT NULL,
     description TEXT,
@@ -12,7 +13,8 @@ CREATE TABLE ember_schema.board (
     ticket_counter INTEGER NOT NULL DEFAULT 0,
     backlog_lane_id INTEGER,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
-    UNIQUE(station_id, short_key)
+    UNIQUE(station_id, short_key),
+    UNIQUE(station_id, uid)
 );
 
 -- Lanes (ordered columns on the board)
@@ -242,36 +244,36 @@ CREATE TABLE ember_schema.federation_board_edit_role (
 CREATE TABLE ember_schema.federation_board_local_view_override (
     id SERIAL PRIMARY KEY,
     partner_id INTEGER NOT NULL REFERENCES ember_schema.federation_partner(id) ON DELETE CASCADE,
-    remote_board_id INTEGER NOT NULL,
+    remote_board_uid UUID NOT NULL,
     role_id INTEGER,
     group_id INTEGER,
     tag_id INTEGER
 );
 CREATE UNIQUE INDEX idx_fed_board_local_view_unique
-    ON ember_schema.federation_board_local_view_override(partner_id, remote_board_id, COALESCE(role_id, -1), COALESCE(group_id, -1), COALESCE(tag_id, -1));
+    ON ember_schema.federation_board_local_view_override(partner_id, remote_board_uid, COALESCE(role_id, -1), COALESCE(group_id, -1), COALESCE(tag_id, -1));
 
 CREATE TABLE ember_schema.federation_board_local_edit_override (
     id SERIAL PRIMARY KEY,
     partner_id INTEGER NOT NULL REFERENCES ember_schema.federation_partner(id) ON DELETE CASCADE,
-    remote_board_id INTEGER NOT NULL,
+    remote_board_uid UUID NOT NULL,
     role_id INTEGER,
     group_id INTEGER,
     tag_id INTEGER
 );
 CREATE UNIQUE INDEX idx_fed_board_local_edit_unique
-    ON ember_schema.federation_board_local_edit_override(partner_id, remote_board_id, COALESCE(role_id, -1), COALESCE(group_id, -1), COALESCE(tag_id, -1));
+    ON ember_schema.federation_board_local_edit_override(partner_id, remote_board_uid, COALESCE(role_id, -1), COALESCE(group_id, -1), COALESCE(tag_id, -1));
 
 -- User bookmarks for federated boards (appear in sidebar)
 CREATE TABLE ember_schema.federation_board_bookmark (
     id SERIAL PRIMARY KEY,
     member_id INTEGER NOT NULL REFERENCES ember_schema.station_member(id) ON DELETE CASCADE,
     partner_id INTEGER NOT NULL REFERENCES ember_schema.federation_partner(id) ON DELETE CASCADE,
-    remote_board_id INTEGER NOT NULL,
+    remote_board_uid UUID NOT NULL,
     remote_board_name TEXT NOT NULL,
     remote_board_short_key TEXT NOT NULL,
     share_mode TEXT NOT NULL DEFAULT 'READ_ONLY',
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
-    UNIQUE(member_id, partner_id, remote_board_id)
+    UNIQUE(member_id, partner_id, remote_board_uid)
 );
 
 -- Board federation indexes
@@ -720,7 +722,7 @@ COMMENT ON COLUMN ember_schema.news.station_id IS 'References the station.';
 COMMENT ON COLUMN ember_schema.news.title IS 'Article title.';
 COMMENT ON COLUMN ember_schema.news.content_markdown IS 'Article content in Markdown format.';
 COMMENT ON COLUMN ember_schema.news.content_html IS 'Pre-rendered HTML content.';
-COMMENT ON COLUMN ember_schema.news.author_id IS 'Member who authored the article.';
+-- author_id column is dropped later in this patch; comment removed
 COMMENT ON COLUMN ember_schema.news.published_at IS 'When the article was published. NULL if draft.';
 COMMENT ON COLUMN ember_schema.news.created_at IS 'When the article was created.';
 COMMENT ON COLUMN ember_schema.news.restriction_mode IS 'How role/group/tag restrictions combine: AND or OR.';
@@ -729,7 +731,7 @@ COMMENT ON TABLE ember_schema.news_comment IS 'Comments on news articles (thread
 COMMENT ON COLUMN ember_schema.news_comment.id IS 'Auto-generated primary key.';
 COMMENT ON COLUMN ember_schema.news_comment.news_id IS 'References the news article.';
 COMMENT ON COLUMN ember_schema.news_comment.parent_id IS 'Parent comment for threading. NULL for top-level comments.';
-COMMENT ON COLUMN ember_schema.news_comment.author_id IS 'Member who wrote the comment.';
+-- author_id column is dropped later in this patch; comment removed
 COMMENT ON COLUMN ember_schema.news_comment.content IS 'Comment text.';
 COMMENT ON COLUMN ember_schema.news_comment.created_at IS 'When the comment was created.';
 COMMENT ON COLUMN ember_schema.news_comment.updated_at IS 'When the comment was last edited.';
@@ -1761,7 +1763,7 @@ COMMENT ON COLUMN ember_schema.federation_board_edit_role.role_id IS 'Required r
 COMMENT ON TABLE ember_schema.federation_board_local_view_override IS 'Local access overrides for federated boards. The partner station restricts which of its own members can view a remote board.';
 COMMENT ON COLUMN ember_schema.federation_board_local_view_override.id IS 'Auto-generated primary key.';
 COMMENT ON COLUMN ember_schema.federation_board_local_view_override.partner_id IS 'References the federation partner.';
-COMMENT ON COLUMN ember_schema.federation_board_local_view_override.remote_board_id IS 'Board ID on the remote station.';
+COMMENT ON COLUMN ember_schema.federation_board_local_view_override.remote_board_uid IS 'Board UUID on the remote station.';
 COMMENT ON COLUMN ember_schema.federation_board_local_view_override.role_id IS 'Required role for viewing.';
 COMMENT ON COLUMN ember_schema.federation_board_local_view_override.group_id IS 'Required group for viewing.';
 COMMENT ON COLUMN ember_schema.federation_board_local_view_override.tag_id IS 'Required tag for viewing.';
@@ -1769,7 +1771,7 @@ COMMENT ON COLUMN ember_schema.federation_board_local_view_override.tag_id IS 'R
 COMMENT ON TABLE ember_schema.federation_board_local_edit_override IS 'Local edit access overrides for federated boards. The partner station restricts which of its own members can edit a remote board.';
 COMMENT ON COLUMN ember_schema.federation_board_local_edit_override.id IS 'Auto-generated primary key.';
 COMMENT ON COLUMN ember_schema.federation_board_local_edit_override.partner_id IS 'References the federation partner.';
-COMMENT ON COLUMN ember_schema.federation_board_local_edit_override.remote_board_id IS 'Board ID on the remote station.';
+COMMENT ON COLUMN ember_schema.federation_board_local_edit_override.remote_board_uid IS 'Board UUID on the remote station.';
 COMMENT ON COLUMN ember_schema.federation_board_local_edit_override.role_id IS 'Required role for editing.';
 COMMENT ON COLUMN ember_schema.federation_board_local_edit_override.group_id IS 'Required group for editing.';
 COMMENT ON COLUMN ember_schema.federation_board_local_edit_override.tag_id IS 'Required tag for editing.';
@@ -1778,7 +1780,7 @@ COMMENT ON TABLE ember_schema.federation_board_bookmark IS 'User bookmarks for f
 COMMENT ON COLUMN ember_schema.federation_board_bookmark.id IS 'Auto-generated primary key.';
 COMMENT ON COLUMN ember_schema.federation_board_bookmark.member_id IS 'References the station member.';
 COMMENT ON COLUMN ember_schema.federation_board_bookmark.partner_id IS 'References the federation partner.';
-COMMENT ON COLUMN ember_schema.federation_board_bookmark.remote_board_id IS 'Board ID on the remote station.';
+COMMENT ON COLUMN ember_schema.federation_board_bookmark.remote_board_uid IS 'Board UUID on the remote station.';
 COMMENT ON COLUMN ember_schema.federation_board_bookmark.remote_board_name IS 'Cached board name from the remote station.';
 COMMENT ON COLUMN ember_schema.federation_board_bookmark.remote_board_short_key IS 'Cached short key from the remote station.';
 COMMENT ON COLUMN ember_schema.federation_board_bookmark.share_mode IS 'Access mode: READ_ONLY or FULL.';
@@ -1807,11 +1809,16 @@ COMMENT ON COLUMN ember_schema.event_federation_registration.remote_member_id IS
 -- 10.3 Add inline identity columns to event_comment and news_comment
 ALTER TABLE ember_schema.event_comment ADD COLUMN author_station_uid UUID;
 ALTER TABLE ember_schema.event_comment ADD COLUMN author_member_uid UUID;
-ALTER TABLE ember_schema.event_comment ALTER COLUMN author_id DROP NOT NULL;
+ALTER TABLE ember_schema.event_comment DROP COLUMN author_id;
 
 ALTER TABLE ember_schema.news_comment ADD COLUMN author_station_uid UUID;
 ALTER TABLE ember_schema.news_comment ADD COLUMN author_member_uid UUID;
-ALTER TABLE ember_schema.news_comment ALTER COLUMN author_id DROP NOT NULL;
+ALTER TABLE ember_schema.news_comment DROP COLUMN author_id;
+
+-- Add identity columns to news table and drop author_id
+ALTER TABLE ember_schema.news ADD COLUMN author_station_uid UUID;
+ALTER TABLE ember_schema.news ADD COLUMN author_member_uid UUID;
+ALTER TABLE ember_schema.news DROP COLUMN author_id;
 
 -- News federation sharing
 CREATE TABLE ember_schema.news_federation_share (
@@ -1848,3 +1855,37 @@ CREATE TABLE ember_schema.kb_comment (
 CREATE INDEX idx_kb_comment_file ON ember_schema.kb_comment(file_id);
 
 COMMENT ON TABLE ember_schema.kb_comment IS 'Threaded comments on knowledge base files.';
+
+-- ============================================================
+-- Group colors and tag badges
+-- ============================================================
+
+-- Groups: optional color (not federated)
+ALTER TABLE ember_schema.member_group ADD COLUMN color TEXT;
+ALTER TABLE ember_schema.member_group ADD COLUMN position INTEGER NOT NULL DEFAULT 0;
+COMMENT ON COLUMN ember_schema.member_group.color IS 'Optional hex color for the group. The highest-position group color determines the member name color.';
+COMMENT ON COLUMN ember_schema.member_group.position IS 'Sort order / priority. Higher position = higher priority for color resolution.';
+
+-- Tags: optional color, visibility flag, position for ordering
+ALTER TABLE ember_schema.user_tag ADD COLUMN color TEXT;
+ALTER TABLE ember_schema.user_tag ADD COLUMN visible BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE ember_schema.user_tag ADD COLUMN position INTEGER NOT NULL DEFAULT 0;
+COMMENT ON COLUMN ember_schema.user_tag.color IS 'Optional hex color for the tag badge.';
+COMMENT ON COLUMN ember_schema.user_tag.visible IS 'Whether this tag shows as a badge behind member names.';
+COMMENT ON COLUMN ember_schema.user_tag.position IS 'Sort order / priority. Higher position = higher priority for badge display.';
+
+-- Event cancellation and minimum registration threshold
+ALTER TABLE ember_schema.station_event ADD COLUMN cancelled BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE ember_schema.station_event ADD COLUMN cancelled_at TIMESTAMPTZ;
+ALTER TABLE ember_schema.station_event ADD COLUMN cancel_reason TEXT;
+ALTER TABLE ember_schema.station_event ADD COLUMN min_registrations INTEGER;
+ALTER TABLE ember_schema.station_event ADD COLUMN threshold_date TIMESTAMPTZ;
+ALTER TABLE ember_schema.station_event ADD COLUMN threshold_notified BOOLEAN NOT NULL DEFAULT FALSE;
+
+COMMENT ON COLUMN ember_schema.station_event.cancelled IS 'Whether the event has been cancelled.';
+COMMENT ON COLUMN ember_schema.station_event.cancelled_at IS 'When the event was cancelled.';
+COMMENT ON COLUMN ember_schema.station_event.cancel_reason IS 'Optional reason for cancellation.';
+COMMENT ON COLUMN ember_schema.station_event.min_registrations IS 'Minimum number of ACCEPTED registrations required. Null means no minimum.';
+COMMENT ON COLUMN ember_schema.station_event.threshold_date IS 'Date by which min_registrations must be met, or the event auto-cancels.';
+COMMENT ON COLUMN ember_schema.station_event.threshold_notified IS 'Whether a warning notification was sent about threshold not being met.';
+

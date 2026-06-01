@@ -91,8 +91,7 @@ class AuthServiceTest extends RepositoryTestBase {
     @Order(5)
     void loginWrongPassword() {
         // Verify email first so we can test wrong password
-        var tokens = accountRepo.findToken(
-                accountRepo.findSessionsByAccount(accountId).isEmpty() ? "nonexistent" : "nonexistent");
+        var tokens = accountRepo.findToken("nonexistent");
         // Manually set email as verified for this test
         accountRepo.setEmailVerified(accountId);
 

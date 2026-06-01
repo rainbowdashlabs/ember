@@ -50,16 +50,16 @@ const groupedBoards = computed(() => {
     return groups
 })
 
-function bookmarkKey(partnerStationUid: string, remoteBoardId: number): string {
-    return `${partnerStationUid}:${remoteBoardId}`
+function bookmarkKey(partnerStationUid: string, remoteBoardUid: string): string {
+    return `${partnerStationUid}:${remoteBoardUid}`
 }
 
-function findBookmark(partnerStationUid: string, remoteBoardId: number): FederatedBoardBookmark | undefined {
-    return bookmarks.value.find(b => b.partnerStationUid === partnerStationUid && b.remoteBoardId === remoteBoardId)
+function findBookmark(partnerStationUid: string, remoteBoardUid: string): FederatedBoardBookmark | undefined {
+    return bookmarks.value.find(b => b.partnerStationUid === partnerStationUid && b.remoteBoardUid === remoteBoardUid)
 }
 
-function isBookmarked(partnerStationUid: string, remoteBoardId: number): boolean {
-    return !!findBookmark(partnerStationUid, remoteBoardId)
+function isBookmarked(partnerStationUid: string, remoteBoardUid: string): boolean {
+    return !!findBookmark(partnerStationUid, remoteBoardUid)
 }
 
 function truncate(text: string, maxLength: number): string {
@@ -85,18 +85,18 @@ async function loadData() {
 }
 
 async function toggleBookmark(board: DiscoveredBoard) {
-    const key = bookmarkKey(board.partnerStationUid, board.remoteBoardId)
+    const key = bookmarkKey(board.partnerStationUid, board.remoteBoardUid)
     if (togglingBookmark.value === key) return
     togglingBookmark.value = key
     try {
-        const existing = findBookmark(board.partnerStationUid, board.remoteBoardId)
+        const existing = findBookmark(board.partnerStationUid, board.remoteBoardUid)
         if (existing) {
             await deleteBookmark(existing.id)
             bookmarks.value = bookmarks.value.filter(b => b.id !== existing.id)
         } else {
             const created = await createBookmark({
                 partnerUid: board.partnerStationUid,
-                remoteBoardId: board.remoteBoardId,
+                remoteBoardUid: board.remoteBoardUid,
                 remoteBoardName: board.name,
                 remoteBoardShortKey: board.shortKey,
                 shareMode: board.shareMode,
@@ -144,7 +144,7 @@ watch(loaded, (v) => {
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         <NeutralContainer
                             v-for="board in stationBoards"
-                            :key="bookmarkKey(board.partnerStationUid, board.remoteBoardId)"
+                            :key="bookmarkKey(board.partnerStationUid, board.remoteBoardUid)"
                             class="cursor-pointer hover:ring-2 hover:ring-primary transition-all"
                             @click="navigateToBoard(board)"
                         >
@@ -159,9 +159,9 @@ watch(loaded, (v) => {
                                     </p>
                                 </div>
                                 <IconButton
-                                    :icon="isBookmarked(board.partnerStationUid, board.remoteBoardId) ? ['fas', 'star'] : ['fas', 'star']"
-                                    :label="isBookmarked(board.partnerStationUid, board.remoteBoardId) ? t('boards.bookmarked') : t('boards.bookmark')"
-                                    :class="isBookmarked(board.partnerStationUid, board.remoteBoardId)
+                                    :icon="isBookmarked(board.partnerStationUid, board.remoteBoardUid) ? ['fas', 'star'] : ['fas', 'star']"
+                                    :label="isBookmarked(board.partnerStationUid, board.remoteBoardUid) ? t('boards.bookmarked') : t('boards.bookmark')"
+                                    :class="isBookmarked(board.partnerStationUid, board.remoteBoardUid)
                                         ? 'text-yellow-500 hover:text-yellow-600'
                                         : 'text-text-light-secondary dark:text-text-dark-secondary hover:text-yellow-500'"
                                     @click.stop="toggleBookmark(board)"

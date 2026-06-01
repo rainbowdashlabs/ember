@@ -98,6 +98,9 @@ const eventHasDeadline = ref(false)
 const eventRegistrationDeadline = ref('')
 const eventRequiresConfirmation = ref(false)
 const eventRegistrationLimit = ref<number | undefined>(undefined)
+const eventMinRegistrations = ref<number | undefined>(undefined)
+const eventHasThreshold = ref(false)
+const eventThresholdDate = ref('')
 
 const selectedRoleIds = ref<number[]>([])
 const selectedGroupIds = ref<number[]>([])
@@ -174,6 +177,9 @@ async function loadData() {
       eventRegistrationDeadline.value = ev.registrationDeadline ? toLocalDateTime(ev.registrationDeadline) : ''
       eventRequiresConfirmation.value = ev.requiresConfirmation ?? false
       eventRegistrationLimit.value = ev.registrationLimit ?? undefined
+      eventMinRegistrations.value = ev.minRegistrations ?? undefined
+      eventHasThreshold.value = !!ev.thresholdDate
+      eventThresholdDate.value = ev.thresholdDate ? toLocalDateTime(ev.thresholdDate) : ''
 
       eventRoleIds.value = restrictions.roleIds ?? []
       eventGroupIds.value = restrictions.groupIds ?? []
@@ -259,6 +265,9 @@ async function submit() {
           ? new Date(eventRegistrationDeadline.value).toISOString() : undefined,
       requiresConfirmation: eventRequiresConfirmation.value,
       registrationLimit: eventRegistrationLimit.value ?? undefined,
+      minRegistrations: eventMinRegistrations.value ?? undefined,
+      thresholdDate: eventHasThreshold.value && eventThresholdDate.value
+          ? new Date(eventThresholdDate.value).toISOString() : undefined,
       restrictedRoleIds: selectedRoleIds.value,
       restrictedGroupIds: selectedGroupIds.value,
       restrictedTagIds: selectedTagIds.value,
@@ -348,6 +357,9 @@ watch(loaded, (isLoaded) => {
               v-model:has-deadline="eventHasDeadline"
               v-model:registration-deadline="eventRegistrationDeadline"
               v-model:registration-limit="eventRegistrationLimit"
+              v-model:min-registrations="eventMinRegistrations"
+              v-model:has-threshold="eventHasThreshold"
+              v-model:threshold-date="eventThresholdDate"
               v-model:selected-role-ids="selectedRoleIds"
               v-model:selected-group-ids="selectedGroupIds"
               v-model:selected-tag-ids="selectedTagIds"

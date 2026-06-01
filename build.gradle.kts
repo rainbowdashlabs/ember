@@ -45,6 +45,7 @@ dependencies {
     implementation(libs.guice)
     implementation(libs.bcrypt)
     implementation(libs.jspecify)
+    implementation(libs.caffeine)
 
     implementation(libs.angus)
     implementation(libs.bundles.commonmark)

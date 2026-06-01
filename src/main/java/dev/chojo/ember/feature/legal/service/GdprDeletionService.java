@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.legal.service;
 
 import de.chojo.sadu.queries.api.call.Call;
 import de.chojo.sadu.queries.api.query.Query;
+import de.chojo.sadu.queries.converter.StandardValueConverter;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.media.service.ImageCategory;
 import dev.chojo.ember.feature.media.service.ImageService;
@@ -117,15 +118,19 @@ public class GdprDeletionService {
                 .single(Call.of().bind("id", memberId))
                 .update();
 
-        // Anonymize news author names (keep the content)
-        Query.query("UPDATE news SET author_id = NULL WHERE author_id = :id;")
-                .single(Call.of().bind("id", memberId))
-                .update();
+        // Anonymize news author (keep the content) — match by member UUID
+        var memberUid = stationMemberRepository.resolveUid(memberId);
+        if (memberUid != null) {
+            Query.query(
+                            "UPDATE news SET author_station_uid = NULL, author_member_uid = NULL WHERE author_member_uid = :uid::uuid;")
+                    .single(Call.of().bind("uid", memberUid, StandardValueConverter.UUID_STRING))
+                    .update();
 
-        // Delete news comments
-        Query.query("DELETE FROM news_comment WHERE author_id = :id;")
-                .single(Call.of().bind("id", memberId))
-                .delete();
+            // Delete news comments by member UUID
+            Query.query("DELETE FROM news_comment WHERE author_member_uid = :uid::uuid;")
+                    .single(Call.of().bind("uid", memberUid, StandardValueConverter.UUID_STRING))
+                    .delete();
+        }
 
         // Delete profile field change data
         Query.query("DELETE FROM profile_field_change_acknowledgement WHERE acknowledged_by = :id;")
@@ -135,8 +140,10 @@ public class GdprDeletionService {
                 .single(Call.of().bind("id", memberId))
                 .delete();
 
-        // Delete avatar from disk
-        imageService.delete(ImageCategory.AVATARS, String.valueOf(memberId));
+        // Delete avatar from disk (keyed by member UUID)
+        if (memberUid != null) {
+            imageService.delete(ImageCategory.AVATARS, memberUid.toString());
+        }
 
         // Mark as former and disconnect from account
         Query.query("UPDATE station_member SET former = TRUE, account_id = NULL WHERE id = :id;")

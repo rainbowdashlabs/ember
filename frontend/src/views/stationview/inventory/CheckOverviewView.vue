@@ -162,7 +162,7 @@ onMounted(loadData)
                 v-for="member in filteredMembers"
                 :key="member.memberId"
             >
-              <Td class="font-medium"><MemberName :name="memberName(member)" :member-id="member.memberId"/></Td>
+              <Td class="font-medium"><MemberName :name="memberName(member)"/></Td>
               <Td muted>{{ formatDate(member.lastCheckedAt) }}</Td>
               <Td muted>{{ checkerName(member) }}</Td>
               <Td>
@@ -206,7 +206,7 @@ onMounted(loadData)
               class="space-y-2"
           >
             <div class="flex items-center justify-between gap-2">
-              <div class="font-medium truncate"><MemberName :name="memberName(member)" :member-id="member.memberId"/></div>
+              <div class="font-medium truncate"><MemberName :name="memberName(member)"/></div>
               <div>
                 <ErrorBadge v-if="isLockedByOther(member)">
                   {{ t('inventory.check.locked') }}: {{ lockerName(member) }}

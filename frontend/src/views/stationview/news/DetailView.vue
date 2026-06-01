@@ -100,7 +100,7 @@ watch(loading, (isLoading) => {
       <NeutralContainer v-if="entry" class="space-y-3">
         <div class="flex items-start justify-between gap-3">
           <div class="flex items-center gap-2">
-            <UserAvatar :member-id="entry.authorId" :name="entry.authorName" size="md"/>
+            <UserAvatar :name="entry.authorName" size="md"/>
             <div>
               <SubHeader class="flex items-center gap-1">
                 {{ entry.title }}

@@ -9,11 +9,13 @@ import type { BoardTicket, BoardLabel } from '@/api/boards'
 import { TicketPriority } from '@/api/boards'
 import UserAvatar from '@/components/avatar/UserAvatar.vue'
 import { contrastTextColor } from '@/theme/contrast'
+import type { MemberIdentity } from '@/api/types'
 
 const props = defineProps<{
     ticket: BoardTicket
     shortKey: string
     memberName?: string
+    identity?: MemberIdentity | null
     labels?: BoardLabel[]
     attachmentCount?: number
 }>()
@@ -128,7 +130,7 @@ const isOverdue = computed(() => {
             </div>
             <div class="flex items-center gap-2">
                 <span class="font-mono opacity-60">{{ shortKey }}-{{ ticket.ticketNumber }}</span>
-                <UserAvatar v-if="ticket.assignedMemberId" :member-id="ticket.assignedMemberId" :name="memberName" size="sm" />
+                <UserAvatar v-if="ticket.assignedMemberId" :identity="identity" :name="memberName" size="sm" />
             </div>
         </div>
     </div>

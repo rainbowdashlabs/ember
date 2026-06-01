@@ -57,4 +57,6 @@ public sealed interface NotificationParams {
     record LendingNewMessage(String stationName, String senderName) implements NotificationParams {}
 
     record RegistrationDeadlineExpired(String eventName, int pendingCount) implements NotificationParams {}
+
+    record EventCancelled(String eventName, String reason) implements NotificationParams {}
 }

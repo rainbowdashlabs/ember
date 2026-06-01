@@ -69,7 +69,7 @@ class NewsFederationServiceTest extends RepositoryTestBase {
         federationService = new FederationService(federationRepo, stationRepo, new Api());
         httpClient = mock(FederationHttpClient.class);
         var eventBus = new DomainEventBus(Set.of());
-        newsService = new NewsService(newsRepo, new RestrictionRepository(), eventBus);
+        newsService = new NewsService(newsRepo, new RestrictionRepository(), eventBus, stationMemberRepo);
 
         service = new NewsFederationService(
                 fedRepo,
@@ -80,7 +80,8 @@ class NewsFederationServiceTest extends RepositoryTestBase {
                 newsService,
                 stationMemberRepo,
                 accountRepo,
-                eventFederationRepo);
+                eventFederationRepo,
+                memberNameResolver);
 
         stationA = stationRepo.create("NewsFedSvcA");
         stationB = stationRepo.create("NewsFedSvcB");
@@ -105,8 +106,9 @@ class NewsFederationServiceTest extends RepositoryTestBase {
         partnerIdAC = partnerC.id();
 
         // Create published news on stationA
-        news1 = newsRepo.create(stationA.id(), "News One", "# One", "<h1>One</h1>", memberA.id());
-        news2 = newsRepo.create(stationA.id(), "News Two", "# Two", "<h1>Two</h1>", memberA.id());
+        var authorIdentity = stationMemberRepo.resolveIdentity(memberA.id());
+        news1 = newsRepo.create(stationA.id(), "News One", "# One", "<h1>One</h1>", authorIdentity);
+        news2 = newsRepo.create(stationA.id(), "News Two", "# Two", "<h1>Two</h1>", authorIdentity);
     }
 
     @AfterAll
@@ -201,14 +203,15 @@ class NewsFederationServiceTest extends RepositoryTestBase {
         var comment = service.createRemoteComment(
                 stationA.id(), news1.id(), partnerIdAB, REMOTE_MEMBER_2, "Bob Jones", null, "Remote comment!");
         assertNotNull(comment);
-        assertNull(comment.authorId());
+        assertNotNull(comment.author());
         assertEquals("Remote comment!", comment.content());
     }
 
     @Test
     @Order(16)
     void createRemoteCommentWithParent() {
-        var parent = newsService.createComment(stationA.id(), news1.id(), null, memberA.id(), "Alice", "Parent");
+        var parentIdentity = stationMemberRepo.resolveIdentity(memberA.id());
+        var parent = newsService.createComment(stationA.id(), news1.id(), null, parentIdentity, "Alice", "Parent");
         var child = service.createRemoteComment(
                 stationA.id(), news1.id(), partnerIdAB, REMOTE_MEMBER_1, "Alice Remote", parent.id(), "Reply");
         assertNotNull(child);

@@ -22,8 +22,10 @@ import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.service.FederationHttpClient;
 import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.members.service.MemberGroupService;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.members.service.StationMemberService;
+import dev.chojo.ember.feature.members.service.UserTagService;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import io.javalin.http.ForbiddenResponse;
@@ -68,6 +70,7 @@ class EventFederationServiceTest extends RepositoryTestBase {
     private static FederationPartner remotePartner;
     private static Account testAccount;
     private static StationMember testMember;
+    private static MemberIdentity testMemberIdentity;
 
     @BeforeAll
     static void setup() {
@@ -78,7 +81,7 @@ class EventFederationServiceTest extends RepositoryTestBase {
         var eventBus = new DomainEventBus(Set.of());
         eventService = new EventService(eventRepo, restrictionRepo, eventBus);
         var memberSvc = new StationMemberService(stationMemberRepo, stationRepo, accountRepo, mock(AuthService.class));
-        commentService = new CommentService(eventCommentRepo, eventBus, memberSvc);
+        commentService = new CommentService(eventCommentRepo, eventBus, memberSvc, stationRepo);
         service = new EventFederationService(
                 eventFederationRepo,
                 federationService,
@@ -88,10 +91,14 @@ class EventFederationServiceTest extends RepositoryTestBase {
                 eventService,
                 commentService,
                 eventCommentRepo,
-                stationMemberRepo,
-                accountRepo,
-                new MemberNameResolver(memberSvc, accountRepo, eventFederationRepo, federationRepo, stationRepo),
-                memberIdentityFactory);
+                new MemberNameResolver(
+                        memberSvc,
+                        accountRepo,
+                        eventFederationRepo,
+                        federationRepo,
+                        stationRepo,
+                        mock(MemberGroupService.class),
+                        mock(UserTagService.class)));
 
         stationA = stationRepo.create("EventFedSvcStationA");
         stationB = stationRepo.create("EventFedSvcStationB");
@@ -115,6 +122,7 @@ class EventFederationServiceTest extends RepositoryTestBase {
         // Create test account and member for local comment author tests
         testAccount = accountRepo.create("eventfed@test.com", "Test", "Author");
         testMember = stationMemberRepo.create(stationA.id(), testAccount.id());
+        testMemberIdentity = memberIdentityFactory.local(stationA.id(), testMember.id());
 
         // Create a test event on stationA
         Instant start = Instant.now().plus(1, ChronoUnit.DAYS);
@@ -131,6 +139,8 @@ class EventFederationServiceTest extends RepositoryTestBase {
                 true,
                 null,
                 false,
+                null,
+                null,
                 null,
                 null);
         eventId = event.id();
@@ -424,7 +434,7 @@ class EventFederationServiceTest extends RepositoryTestBase {
         // stationA sees stationC as remote partner
         // getFederatedEvent(stationA.id(), stationC.uid(), eventId) should call HTTP
 
-        var remoteEvent = java.util.Map.of("id", (Object) eventId, "name", "Remote Event", "description", "desc");
+        var remoteEvent = Map.of("id", (Object) eventId, "name", "Remote Event", "description", "desc");
         when(httpClient.get(
                         eq("https://remote-event.example.com"),
                         eq("/remote/events/" + eventId),
@@ -556,7 +566,7 @@ class EventFederationServiceTest extends RepositoryTestBase {
     @Test
     @Order(54)
     void updateRemoteCommentNotFederated() {
-        var localComment = eventCommentRepo.create(eventId, null, testMember.id(), "Local comment");
+        var localComment = eventCommentRepo.create(eventId, null, testMemberIdentity, "Local comment");
         assertThrows(
                 ForbiddenResponse.class,
                 () -> service.updateRemoteComment(localPartner, localComment.id(), REMOTE_MEMBER_1, "Edited"));
@@ -585,7 +595,7 @@ class EventFederationServiceTest extends RepositoryTestBase {
     @Test
     @Order(57)
     void deleteRemoteCommentNotFederated() {
-        var localComment = eventCommentRepo.create(eventId, null, testMember.id(), "Local comment to delete");
+        var localComment = eventCommentRepo.create(eventId, null, testMemberIdentity, "Local comment to delete");
         assertThrows(
                 ForbiddenResponse.class,
                 () -> service.deleteRemoteComment(localPartner, localComment.id(), REMOTE_MEMBER_1));
@@ -596,16 +606,10 @@ class EventFederationServiceTest extends RepositoryTestBase {
     @Test
     @Order(60)
     void toCommentResponseDeletedComment() {
-        var comment = eventCommentRepo.create(eventId, null, testMember.id(), "Will be deleted");
+        var comment = eventCommentRepo.create(eventId, null, testMemberIdentity, "Will be deleted");
         commentService.delete(comment.id());
         var deletedComment = new Comment(
-                comment.id(),
-                comment.parentId(),
-                comment.authorId(),
-                "",
-                true,
-                comment.createdAt(),
-                comment.updatedAt());
+                comment.id(), comment.parentId(), comment.author(), "", true, comment.createdAt(), comment.updatedAt());
         var response = service.toCommentResponse(deletedComment);
         assertTrue(response.deleted());
         assertEquals("", response.content());
@@ -616,7 +620,7 @@ class EventFederationServiceTest extends RepositoryTestBase {
     @Test
     @Order(61)
     void toCommentResponseLocalAuthor() {
-        var comment = eventCommentRepo.create(eventId, null, testMember.id(), "Local author comment");
+        var comment = eventCommentRepo.create(eventId, null, testMemberIdentity, "Local author comment");
         var response = service.toCommentResponse(comment);
         assertFalse(response.deleted());
         assertEquals("Local author comment", response.content());

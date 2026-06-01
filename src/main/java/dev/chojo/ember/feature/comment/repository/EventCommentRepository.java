@@ -14,7 +14,6 @@ import jakarta.inject.Singleton;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 
 /**
  * Repository for managing event comments with threaded reply support.
@@ -30,8 +29,9 @@ public class EventCommentRepository {
      * @return the list of comments
      */
     public List<Comment> findByEvent(int eventId) {
-        return Query.query("SELECT id, parent_id, author_id, content, deleted, created_at, updated_at"
-                        + " FROM event_comment WHERE event_id = :event_id ORDER BY created_at;")
+        return Query.query(
+                        "SELECT id, parent_id, author_station_uid, author_member_uid, content, deleted, created_at, updated_at"
+                                + " FROM event_comment WHERE event_id = :event_id ORDER BY created_at;")
                 .single(Call.of().bind("event_id", eventId))
                 .map(Comment.map())
                 .all();
@@ -45,7 +45,7 @@ public class EventCommentRepository {
      */
     public Optional<Comment> findById(int id) {
         return Query.query(
-                        "SELECT id, parent_id, author_id, content, deleted, created_at, updated_at FROM event_comment WHERE id = :id;")
+                        "SELECT id, parent_id, author_station_uid, author_member_uid, content, deleted, created_at, updated_at FROM event_comment WHERE id = :id;")
                 .single(Call.of().bind("id", id))
                 .map(Comment.map())
                 .first();
@@ -56,18 +56,26 @@ public class EventCommentRepository {
      *
      * @param eventId  the event ID
      * @param parentId the parent comment ID for replies, or {@code null} for top-level comments
-     * @param authorId the member ID of the author
+     * @param author   the identity of the author, or {@code null}
      * @param content  the comment text
      * @return the created comment
      */
-    public Comment create(int eventId, Integer parentId, Integer authorId, String content) {
-        return Query.query("INSERT INTO event_comment (event_id, parent_id, author_id, content)"
-                        + " VALUES (:event_id, :parent_id, :author_id, :content)"
-                        + " RETURNING id, parent_id, author_id, content, deleted, created_at, updated_at;")
+    public Comment create(int eventId, Integer parentId, MemberIdentity author, String content) {
+        return Query.query(
+                        "INSERT INTO event_comment (event_id, parent_id, author_station_uid, author_member_uid, content)"
+                                + " VALUES (:event_id, :parent_id, :author_station_uid::uuid, :author_member_uid::uuid, :content)"
+                                + " RETURNING id, parent_id, author_station_uid, author_member_uid, content, deleted, created_at, updated_at;")
                 .single(Call.of()
                         .bind("event_id", eventId)
                         .bind("parent_id", parentId)
-                        .bind("author_id", authorId)
+                        .bind(
+                                "author_station_uid",
+                                author != null ? author.stationUid() : null,
+                                StandardValueConverter.UUID_STRING)
+                        .bind(
+                                "author_member_uid",
+                                author != null ? author.memberUid() : null,
+                                StandardValueConverter.UUID_STRING)
                         .bind("content", content))
                 .map(Comment.map())
                 .first()
@@ -120,39 +128,5 @@ public class EventCommentRepository {
                 .map(row -> row.getBoolean(1))
                 .first()
                 .orElse(false);
-    }
-
-    /**
-     * Sets inline identity columns on an event comment.
-     */
-    public void setInlineIdentity(int commentId, UUID stationUid, UUID memberUid) {
-        Query.query(
-                        "UPDATE event_comment SET author_station_uid = :station_uid::uuid, author_member_uid = :member_uid::uuid WHERE id = :id;")
-                .single(Call.of()
-                        .bind("id", commentId)
-                        .bind("station_uid", stationUid, StandardValueConverter.UUID_STRING)
-                        .bind("member_uid", memberUid, StandardValueConverter.UUID_STRING))
-                .update();
-    }
-
-    /**
-     * Finds the inline MemberIdentity for a comment.
-     *
-     * @param commentId the comment ID
-     * @return the MemberIdentity, or null if not set
-     */
-    public MemberIdentity findInlineIdentity(int commentId) {
-        return Query.query("SELECT author_station_uid, author_member_uid FROM event_comment WHERE id = :id;")
-                .single(Call.of().bind("id", commentId))
-                .map(row -> {
-                    UUID stationUid = row.get("author_station_uid", StandardValueConverter.UUID_STRING);
-                    UUID memberUid = row.get("author_member_uid", StandardValueConverter.UUID_STRING);
-                    if (stationUid != null && memberUid != null) {
-                        return new MemberIdentity(stationUid, memberUid);
-                    }
-                    return null;
-                })
-                .first()
-                .orElse(null);
     }
 }

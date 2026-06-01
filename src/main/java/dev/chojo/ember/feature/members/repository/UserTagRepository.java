@@ -28,7 +28,10 @@ public class UserTagRepository {
      * @return the created tag
      */
     public UserTag create(int stationId, String name) {
-        return Query.query("INSERT INTO user_tag(station_id, name) VALUES(:station_id, :name) RETURNING *;")
+        return Query.query("""
+                        INSERT INTO user_tag(station_id, name, position)
+                        VALUES(:station_id, :name, COALESCE((SELECT MAX(position) + 1 FROM user_tag WHERE station_id = :station_id), 0))
+                        RETURNING *;""")
                 .single(Call.of().bind("station_id", stationId).bind("name", name))
                 .map(UserTag.map())
                 .first()
@@ -49,18 +52,24 @@ public class UserTagRepository {
      * Finds all tags for a station, ordered by name.
      */
     public List<UserTag> findByStation(int stationId) {
-        return Query.query("SELECT * FROM user_tag WHERE station_id = :station_id ORDER BY name;")
+        return Query.query("SELECT * FROM user_tag WHERE station_id = :station_id ORDER BY position DESC, name;")
                 .single(Call.of().bind("station_id", stationId))
                 .map(UserTag.map())
                 .all();
     }
 
     /**
-     * Updates a tag's name.
+     * Updates a tag's name, color, visibility, and position.
      */
-    public boolean update(int id, String name) {
-        return Query.query("UPDATE user_tag SET name = :name WHERE id = :id;")
-                .single(Call.of().bind("id", id).bind("name", name))
+    public boolean update(int id, String name, String color, boolean visible, int position) {
+        return Query.query(
+                        "UPDATE user_tag SET name = :name, color = :color, visible = :visible, position = :position WHERE id = :id;")
+                .single(Call.of()
+                        .bind("id", id)
+                        .bind("name", name)
+                        .bind("color", color)
+                        .bind("visible", visible)
+                        .bind("position", position))
                 .update()
                 .changed();
     }

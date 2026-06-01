@@ -41,6 +41,7 @@ import dev.chojo.ember.feature.members.service.StationMemberService;
 import dev.chojo.ember.feature.members.service.UserTagService;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
+import io.javalin.http.NotFoundResponse;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.MethodOrderer;
@@ -55,7 +56,6 @@ import java.util.Set;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
@@ -79,6 +79,7 @@ class FederatedBoardProxyServiceTest extends RepositoryTestBase {
     private static Account account;
     private static int memberId;
     private static int boardId;
+    private static UUID boardUid;
     private static String boardKey = "SHR";
     private static int partnerId;
     private static int bookmarkId;
@@ -100,8 +101,7 @@ class FederatedBoardProxyServiceTest extends RepositoryTestBase {
                 boardTicketRepo,
                 boardRepo,
                 new DomainEventBus(Set.of()),
-                new dev.chojo.ember.feature.members.service.StationMemberService(
-                        stationMemberRepo, stationRepo, null, null),
+                new StationMemberService(stationMemberRepo, stationRepo, null, null),
                 memberIdentityFactory);
         federationRepository = mock(FederationRepository.class);
 
@@ -115,11 +115,18 @@ class FederatedBoardProxyServiceTest extends RepositoryTestBase {
                 httpClient,
                 stationRepo,
                 memberService,
+                stationMemberRepo,
                 groupService,
                 tagService,
                 new EventFederationRepository(),
                 new MemberNameResolver(
-                        memberService, accountRepo, new EventFederationRepository(), federationRepository, stationRepo),
+                        memberService,
+                        accountRepo,
+                        new EventFederationRepository(),
+                        federationRepository,
+                        stationRepo,
+                        groupService,
+                        tagService),
                 memberIdentityFactory);
 
         station1 = stationRepo.create("ProxyStation1");
@@ -131,6 +138,7 @@ class FederatedBoardProxyServiceTest extends RepositoryTestBase {
         // Create a board on station2 (the partner station)
         var board = boardService.createWithPreset(station2.id(), "Shared Board", "Desc", "SHR", LanePreset.SIMPLE);
         boardId = board.id();
+        boardUid = board.uid();
 
         // Create a federation partner via direct SQL
         partnerId = Query.query(
@@ -262,15 +270,15 @@ class FederatedBoardProxyServiceTest extends RepositoryTestBase {
     @Test
     @Order(20)
     void passesLocalViewOverrideWhenNoOverride() {
-        assertTrue(proxyService.passesLocalViewOverride(partnerId, boardId, memberId));
+        assertTrue(proxyService.passesLocalViewOverride(partnerId, boardUid, memberId));
     }
 
     @Test
     @Order(21)
     void passesLocalViewOverrideWithMatchingRole() {
-        proxyService.setLocalViewOverride(partnerId, boardId, new AccessData(List.of(42), List.of(), List.of()));
+        proxyService.setLocalViewOverride(partnerId, boardUid, new AccessData(List.of(42), List.of(), List.of()));
         when(memberService.findRoles(memberId)).thenReturn(List.of(new Role(42, Roles.USER)));
-        assertTrue(proxyService.passesLocalViewOverride(partnerId, boardId, memberId));
+        assertTrue(proxyService.passesLocalViewOverride(partnerId, boardUid, memberId));
     }
 
     @Test
@@ -279,33 +287,34 @@ class FederatedBoardProxyServiceTest extends RepositoryTestBase {
         when(memberService.findRoles(memberId)).thenReturn(List.of(new Role(1, Roles.LOGIN)));
         when(groupService.findGroupsForMember(memberId)).thenReturn(List.of());
         when(tagService.findTagsForMember(memberId)).thenReturn(List.of());
-        assertFalse(proxyService.passesLocalViewOverride(partnerId, boardId, memberId));
+        assertFalse(proxyService.passesLocalViewOverride(partnerId, boardUid, memberId));
     }
 
     @Test
     @Order(23)
     void passesLocalViewOverrideWithMatchingGroup() {
-        proxyService.setLocalViewOverride(partnerId, boardId, new AccessData(List.of(), List.of(55), List.of()));
+        proxyService.setLocalViewOverride(partnerId, boardUid, new AccessData(List.of(), List.of(55), List.of()));
         when(memberService.findRoles(memberId)).thenReturn(List.of());
         when(groupService.findGroupsForMember(memberId))
-                .thenReturn(List.of(new MemberGroup(55, station1.id(), "TestGroup")));
-        assertTrue(proxyService.passesLocalViewOverride(partnerId, boardId, memberId));
+                .thenReturn(List.of(new MemberGroup(55, station1.id(), "TestGroup", null, 0)));
+        assertTrue(proxyService.passesLocalViewOverride(partnerId, boardUid, memberId));
     }
 
     @Test
     @Order(24)
     void passesLocalViewOverrideWithMatchingTag() {
-        proxyService.setLocalViewOverride(partnerId, boardId, new AccessData(List.of(), List.of(), List.of(77)));
+        proxyService.setLocalViewOverride(partnerId, boardUid, new AccessData(List.of(), List.of(), List.of(77)));
         when(memberService.findRoles(memberId)).thenReturn(List.of());
         when(groupService.findGroupsForMember(memberId)).thenReturn(List.of());
-        when(tagService.findTagsForMember(memberId)).thenReturn(List.of(new UserTag(77, station1.id(), "TestTag")));
-        assertTrue(proxyService.passesLocalViewOverride(partnerId, boardId, memberId));
+        when(tagService.findTagsForMember(memberId))
+                .thenReturn(List.of(new UserTag(77, station1.id(), "TestTag", null, false, 0)));
+        assertTrue(proxyService.passesLocalViewOverride(partnerId, boardUid, memberId));
     }
 
     @Test
     @Order(25)
     void clearViewOverride() {
-        proxyService.setLocalViewOverride(partnerId, boardId, new AccessData(List.of(), List.of(), List.of()));
+        proxyService.setLocalViewOverride(partnerId, boardUid, new AccessData(List.of(), List.of(), List.of()));
         reset(memberService, groupService, tagService);
     }
 
@@ -314,15 +323,15 @@ class FederatedBoardProxyServiceTest extends RepositoryTestBase {
     @Test
     @Order(30)
     void passesLocalEditOverrideWhenNoOverride() {
-        assertTrue(proxyService.passesLocalEditOverride(partnerId, boardId, memberId));
+        assertTrue(proxyService.passesLocalEditOverride(partnerId, boardUid, memberId));
     }
 
     @Test
     @Order(31)
     void passesLocalEditOverrideWithMatchingRole() {
-        proxyService.setLocalEditOverride(partnerId, boardId, new AccessData(List.of(42), List.of(), List.of()));
+        proxyService.setLocalEditOverride(partnerId, boardUid, new AccessData(List.of(42), List.of(), List.of()));
         when(memberService.findRoles(memberId)).thenReturn(List.of(new Role(42, Roles.USER)));
-        assertTrue(proxyService.passesLocalEditOverride(partnerId, boardId, memberId));
+        assertTrue(proxyService.passesLocalEditOverride(partnerId, boardUid, memberId));
     }
 
     @Test
@@ -331,13 +340,13 @@ class FederatedBoardProxyServiceTest extends RepositoryTestBase {
         when(memberService.findRoles(memberId)).thenReturn(List.of(new Role(1, Roles.LOGIN)));
         when(groupService.findGroupsForMember(memberId)).thenReturn(List.of());
         when(tagService.findTagsForMember(memberId)).thenReturn(List.of());
-        assertFalse(proxyService.passesLocalEditOverride(partnerId, boardId, memberId));
+        assertFalse(proxyService.passesLocalEditOverride(partnerId, boardUid, memberId));
     }
 
     @Test
     @Order(33)
     void clearEditOverride() {
-        proxyService.setLocalEditOverride(partnerId, boardId, new AccessData(List.of(), List.of(), List.of()));
+        proxyService.setLocalEditOverride(partnerId, boardUid, new AccessData(List.of(), List.of(), List.of()));
         reset(memberService, groupService, tagService);
     }
 
@@ -346,20 +355,20 @@ class FederatedBoardProxyServiceTest extends RepositoryTestBase {
     @Test
     @Order(40)
     void canViewWhenShared() {
-        assertTrue(proxyService.canView(partnerId, boardId, memberId));
+        assertTrue(proxyService.canView(partnerId, boardUid, boardId, memberId));
     }
 
     @Test
     @Order(41)
     void cannotViewWhenNotShared() {
-        assertFalse(proxyService.canView(partnerId, 999999, memberId));
+        assertFalse(proxyService.canView(partnerId, UUID.randomUUID(), 999999, memberId));
     }
 
     @Test
     @Order(42)
     void canWriteWhenFullMode() {
         // Board is currently FULL from test order 11
-        assertTrue(proxyService.canWrite(partnerId, boardId, memberId));
+        assertTrue(proxyService.canWrite(partnerId, boardUid, boardId, memberId));
     }
 
     @Test
@@ -367,13 +376,13 @@ class FederatedBoardProxyServiceTest extends RepositoryTestBase {
     void cannotWriteWhenReadOnly() {
         federatedBoardService.shareBoard(
                 boardId, List.of(new FederatedBoardService.PartnerShareConfig(partnerId, BoardShareMode.READ_ONLY)));
-        assertFalse(proxyService.canWrite(partnerId, boardId, memberId));
+        assertFalse(proxyService.canWrite(partnerId, boardUid, boardId, memberId));
     }
 
     @Test
     @Order(44)
     void cannotWriteWhenNotShared() {
-        assertFalse(proxyService.canWrite(partnerId, 999999, memberId));
+        assertFalse(proxyService.canWrite(partnerId, UUID.randomUUID(), 999999, memberId));
     }
 
     @Test
@@ -383,26 +392,26 @@ class FederatedBoardProxyServiceTest extends RepositoryTestBase {
         federatedBoardService.shareBoard(
                 boardId, List.of(new FederatedBoardService.PartnerShareConfig(partnerId, BoardShareMode.FULL)));
         // Set view override that member won't pass
-        proxyService.setLocalViewOverride(partnerId, boardId, new AccessData(List.of(999), List.of(), List.of()));
+        proxyService.setLocalViewOverride(partnerId, boardUid, new AccessData(List.of(999), List.of(), List.of()));
         when(memberService.findRoles(memberId)).thenReturn(List.of(new Role(1, Roles.LOGIN)));
         when(groupService.findGroupsForMember(memberId)).thenReturn(List.of());
         when(tagService.findTagsForMember(memberId)).thenReturn(List.of());
-        assertFalse(proxyService.canWrite(partnerId, boardId, memberId));
+        assertFalse(proxyService.canWrite(partnerId, boardUid, boardId, memberId));
         // Cleanup
-        proxyService.setLocalViewOverride(partnerId, boardId, new AccessData(List.of(), List.of(), List.of()));
+        proxyService.setLocalViewOverride(partnerId, boardUid, new AccessData(List.of(), List.of(), List.of()));
         reset(memberService, groupService, tagService);
     }
 
     @Test
     @Order(46)
     void cannotWriteWhenEditOverrideFails() {
-        proxyService.setLocalEditOverride(partnerId, boardId, new AccessData(List.of(999), List.of(), List.of()));
+        proxyService.setLocalEditOverride(partnerId, boardUid, new AccessData(List.of(999), List.of(), List.of()));
         when(memberService.findRoles(memberId)).thenReturn(List.of(new Role(1, Roles.LOGIN)));
         when(groupService.findGroupsForMember(memberId)).thenReturn(List.of());
         when(tagService.findTagsForMember(memberId)).thenReturn(List.of());
-        assertFalse(proxyService.canWrite(partnerId, boardId, memberId));
+        assertFalse(proxyService.canWrite(partnerId, boardUid, boardId, memberId));
         // Cleanup
-        proxyService.setLocalEditOverride(partnerId, boardId, new AccessData(List.of(), List.of(), List.of()));
+        proxyService.setLocalEditOverride(partnerId, boardUid, new AccessData(List.of(), List.of(), List.of()));
         reset(memberService, groupService, tagService);
     }
 
@@ -411,25 +420,25 @@ class FederatedBoardProxyServiceTest extends RepositoryTestBase {
     @Test
     @Order(50)
     void getLocalViewOverride() {
-        proxyService.setLocalViewOverride(partnerId, boardId, new AccessData(List.of(1, 2), List.of(3), List.of(4)));
-        var access = proxyService.getLocalViewOverride(partnerId, boardId);
+        proxyService.setLocalViewOverride(partnerId, boardUid, new AccessData(List.of(1, 2), List.of(3), List.of(4)));
+        var access = proxyService.getLocalViewOverride(partnerId, boardUid);
         assertEquals(List.of(1, 2), access.roleIds());
         assertEquals(List.of(3), access.groupIds());
         assertEquals(List.of(4), access.tagIds());
         // Cleanup
-        proxyService.setLocalViewOverride(partnerId, boardId, new AccessData(List.of(), List.of(), List.of()));
+        proxyService.setLocalViewOverride(partnerId, boardUid, new AccessData(List.of(), List.of(), List.of()));
     }
 
     @Test
     @Order(51)
     void getLocalEditOverride() {
-        proxyService.setLocalEditOverride(partnerId, boardId, new AccessData(List.of(5), List.of(6, 7), List.of()));
-        var access = proxyService.getLocalEditOverride(partnerId, boardId);
+        proxyService.setLocalEditOverride(partnerId, boardUid, new AccessData(List.of(5), List.of(6, 7), List.of()));
+        var access = proxyService.getLocalEditOverride(partnerId, boardUid);
         assertEquals(List.of(5), access.roleIds());
         assertEquals(List.of(6, 7), access.groupIds());
         assertTrue(access.tagIds().isEmpty());
         // Cleanup
-        proxyService.setLocalEditOverride(partnerId, boardId, new AccessData(List.of(), List.of(), List.of()));
+        proxyService.setLocalEditOverride(partnerId, boardUid, new AccessData(List.of(), List.of(), List.of()));
     }
 
     // -- Bookmarks --
@@ -438,11 +447,11 @@ class FederatedBoardProxyServiceTest extends RepositoryTestBase {
     @Order(60)
     void createBookmark() {
         var bookmark =
-                proxyService.createBookmark(memberId, partnerId, boardId, "Shared Board", "SHR", BoardShareMode.FULL);
+                proxyService.createBookmark(memberId, partnerId, boardUid, "Shared Board", "SHR", BoardShareMode.FULL);
         assertNotNull(bookmark);
         assertEquals(memberId, bookmark.memberId());
         assertEquals(partnerId, bookmark.partnerId());
-        assertEquals(boardId, bookmark.remoteBoardId());
+        assertEquals(boardUid, bookmark.remoteBoardUid());
         assertEquals("Shared Board", bookmark.remoteBoardName());
         assertEquals("SHR", bookmark.remoteBoardShortKey());
         assertEquals(BoardShareMode.FULL, bookmark.shareMode());
@@ -469,8 +478,8 @@ class FederatedBoardProxyServiceTest extends RepositoryTestBase {
     @Order(63)
     void deleteBookmarkByBoard() {
         // Recreate a bookmark, then delete by board
-        proxyService.createBookmark(memberId, partnerId, boardId, "Shared Board", "SHR", BoardShareMode.FULL);
-        proxyService.deleteBookmarkByBoard(memberId, partnerId, boardId);
+        proxyService.createBookmark(memberId, partnerId, boardUid, "Shared Board", "SHR", BoardShareMode.FULL);
+        proxyService.deleteBookmarkByBoard(memberId, partnerId, boardUid);
         var bookmarks = proxyService.findBookmarks(memberId);
         assertTrue(bookmarks.isEmpty());
     }
@@ -481,8 +490,8 @@ class FederatedBoardProxyServiceTest extends RepositoryTestBase {
     @Order(70)
     void onBoardRenamed() {
         var bookmark =
-                proxyService.createBookmark(memberId, partnerId, boardId, "Old Name", "OLD", BoardShareMode.FULL);
-        proxyService.onBoardRenamed(partnerId, boardId, "New Name", "NEW");
+                proxyService.createBookmark(memberId, partnerId, boardUid, "Old Name", "OLD", BoardShareMode.FULL);
+        proxyService.onBoardRenamed(partnerId, boardUid, "New Name", "NEW");
         var bookmarks = proxyService.findBookmarks(memberId);
         assertEquals("New Name", bookmarks.getFirst().remoteBoardName());
         assertEquals("NEW", bookmarks.getFirst().remoteBoardShortKey());
@@ -491,7 +500,7 @@ class FederatedBoardProxyServiceTest extends RepositoryTestBase {
     @Test
     @Order(71)
     void onShareModeChanged() {
-        proxyService.onShareModeChanged(partnerId, boardId, BoardShareMode.READ_ONLY);
+        proxyService.onShareModeChanged(partnerId, boardUid, BoardShareMode.READ_ONLY);
         var bookmarks = proxyService.findBookmarks(memberId);
         assertEquals(BoardShareMode.READ_ONLY, bookmarks.getFirst().shareMode());
     }
@@ -499,7 +508,7 @@ class FederatedBoardProxyServiceTest extends RepositoryTestBase {
     @Test
     @Order(72)
     void onBoardUnshared() {
-        proxyService.onBoardUnshared(partnerId, boardId);
+        proxyService.onBoardUnshared(partnerId, boardUid);
         var bookmarks = proxyService.findBookmarks(memberId);
         assertTrue(bookmarks.isEmpty());
     }
@@ -509,24 +518,25 @@ class FederatedBoardProxyServiceTest extends RepositoryTestBase {
     @Test
     @Order(73)
     void passesLocalEditOverrideWithMatchingGroup() {
-        proxyService.setLocalEditOverride(partnerId, boardId, new AccessData(List.of(), List.of(55), List.of()));
+        proxyService.setLocalEditOverride(partnerId, boardUid, new AccessData(List.of(), List.of(55), List.of()));
         when(memberService.findRoles(memberId)).thenReturn(List.of());
         when(groupService.findGroupsForMember(memberId))
-                .thenReturn(List.of(new MemberGroup(55, station1.id(), "EditGroup")));
-        assertTrue(proxyService.passesLocalEditOverride(partnerId, boardId, memberId));
-        proxyService.setLocalEditOverride(partnerId, boardId, new AccessData(List.of(), List.of(), List.of()));
+                .thenReturn(List.of(new MemberGroup(55, station1.id(), "EditGroup", null, 0)));
+        assertTrue(proxyService.passesLocalEditOverride(partnerId, boardUid, memberId));
+        proxyService.setLocalEditOverride(partnerId, boardUid, new AccessData(List.of(), List.of(), List.of()));
         reset(memberService, groupService, tagService);
     }
 
     @Test
     @Order(74)
     void passesLocalEditOverrideWithMatchingTag() {
-        proxyService.setLocalEditOverride(partnerId, boardId, new AccessData(List.of(), List.of(), List.of(77)));
+        proxyService.setLocalEditOverride(partnerId, boardUid, new AccessData(List.of(), List.of(), List.of(77)));
         when(memberService.findRoles(memberId)).thenReturn(List.of());
         when(groupService.findGroupsForMember(memberId)).thenReturn(List.of());
-        when(tagService.findTagsForMember(memberId)).thenReturn(List.of(new UserTag(77, station1.id(), "EditTag")));
-        assertTrue(proxyService.passesLocalEditOverride(partnerId, boardId, memberId));
-        proxyService.setLocalEditOverride(partnerId, boardId, new AccessData(List.of(), List.of(), List.of()));
+        when(tagService.findTagsForMember(memberId))
+                .thenReturn(List.of(new UserTag(77, station1.id(), "EditTag", null, false, 0)));
+        assertTrue(proxyService.passesLocalEditOverride(partnerId, boardUid, memberId));
+        proxyService.setLocalEditOverride(partnerId, boardUid, new AccessData(List.of(), List.of(), List.of()));
         reset(memberService, groupService, tagService);
     }
 
@@ -554,7 +564,7 @@ class FederatedBoardProxyServiceTest extends RepositoryTestBase {
         when(httpClient.getList(
                         eq("https://remote.example.com"), eq("/remote/boards"), eq(station1.id()), any(), any()))
                 .thenReturn(List.of(new FederatedBoardProxyService.RemoteDiscoveredBoard(
-                        100, "Remote Board", "RMT", "Remote desc", "FULL")));
+                        UUID.randomUUID().toString(), "Remote Board", "RMT", "Remote desc", "FULL")));
 
         var discovered = proxyService.discoverBoards(station1.id());
         assertFalse(discovered.isEmpty());
@@ -596,10 +606,11 @@ class FederatedBoardProxyServiceTest extends RepositoryTestBase {
     @Test
     @Order(80)
     void discoveredBoardRecord() {
+        var testUid = UUID.fromString("550e8400-e29b-41d4-a716-446655440001");
         var db = new FederatedBoardProxyService.DiscoveredBoard(
                 1,
                 "550e8400-e29b-41d4-a716-446655440000",
-                2,
+                testUid,
                 "Test Board",
                 "TST",
                 "A description",
@@ -607,7 +618,7 @@ class FederatedBoardProxyServiceTest extends RepositoryTestBase {
                 "Partner Station");
         assertEquals(1, db.partnerId());
         assertEquals("550e8400-e29b-41d4-a716-446655440000", db.partnerStationUid());
-        assertEquals(2, db.remoteBoardId());
+        assertEquals(testUid, db.remoteBoardUid());
         assertEquals("Test Board", db.name());
         assertEquals("TST", db.shortKey());
         assertEquals("A description", db.description());
@@ -842,6 +853,8 @@ class FederatedBoardProxyServiceTest extends RepositoryTestBase {
                 current.description(),
                 null,
                 current.priority().name(),
+                null,
+                null,
                 null);
         assertNotNull(updated);
         assertEquals(ticketId, updated.id());
@@ -867,7 +880,7 @@ class FederatedBoardProxyServiceTest extends RepositoryTestBase {
     void proxyAddChecklistItemLocal() {
         when(federationRepository.findPartnerById(partnerId)).thenReturn(Optional.of(localPartner()));
 
-        var item = proxyService.proxyAddChecklistItem(partnerId, boardKey, ticketNumber, "Checklist Item");
+        var item = proxyService.proxyAddChecklistItem(partnerId, boardKey, ticketNumber, "Checklist Item", null, null);
         assertNotNull(item);
         assertEquals("Checklist Item", item.title());
     }
@@ -959,7 +972,8 @@ class FederatedBoardProxyServiceTest extends RepositoryTestBase {
         assertFalse(items.isEmpty());
         int itemId = items.getFirst().id();
 
-        proxyService.proxyUpdateChecklistItem(partnerId, boardKey, ticketNumber, itemId, "Updated Checklist", true);
+        proxyService.proxyUpdateChecklistItem(
+                partnerId, boardKey, ticketNumber, itemId, "Updated Checklist", true, null, null);
         // No exception means success
     }
 
@@ -972,7 +986,7 @@ class FederatedBoardProxyServiceTest extends RepositoryTestBase {
         assertFalse(items.isEmpty());
         int itemId = items.getFirst().id();
 
-        proxyService.proxyDeleteChecklistItem(partnerId, boardKey, ticketNumber, itemId);
+        proxyService.proxyDeleteChecklistItem(partnerId, boardKey, ticketNumber, itemId, null, null);
         var afterDelete = ticketService.findChecklistItems(ticketId);
         assertTrue(afterDelete.isEmpty());
     }
@@ -1432,7 +1446,8 @@ class FederatedBoardProxyServiceTest extends RepositoryTestBase {
                         any()))
                 .thenReturn(responseTicket);
 
-        var updated = proxyService.proxyUpdateTicket(partnerId, boardKey, 1, "Updated", null, null, "LOW", null);
+        var updated =
+                proxyService.proxyUpdateTicket(partnerId, boardKey, 1, "Updated", null, null, "LOW", null, null, null);
         assertNotNull(updated);
         assertEquals("Updated", updated.title());
     }
@@ -1452,7 +1467,7 @@ class FederatedBoardProxyServiceTest extends RepositoryTestBase {
                         any()))
                 .thenReturn(responseTicket);
 
-        var moved = proxyService.proxyMoveTicket(partnerId, boardKey, 1, 2, 0, null);
+        var moved = proxyService.proxyMoveTicket(partnerId, boardKey, 1, 2, 0, null, null);
         assertNotNull(moved);
     }
 
@@ -1489,7 +1504,7 @@ class FederatedBoardProxyServiceTest extends RepositoryTestBase {
                         any()))
                 .thenReturn(responseItem);
 
-        var item = proxyService.proxyAddChecklistItem(partnerId, boardKey, 1, "Task");
+        var item = proxyService.proxyAddChecklistItem(partnerId, boardKey, 1, "Task", null, null);
         assertNotNull(item);
         assertEquals("Task", item.title());
     }
@@ -1623,7 +1638,7 @@ class FederatedBoardProxyServiceTest extends RepositoryTestBase {
                         any()))
                 .thenReturn(true);
 
-        proxyService.proxyUpdateChecklistItem(partnerId, boardKey, 1, 5, "Updated", true);
+        proxyService.proxyUpdateChecklistItem(partnerId, boardKey, 1, 5, "Updated", true, null, null);
         verify(httpClient)
                 .put(
                         eq("https://remote.example.com"),
@@ -1644,7 +1659,7 @@ class FederatedBoardProxyServiceTest extends RepositoryTestBase {
                         any()))
                 .thenReturn(true);
 
-        proxyService.proxyDeleteChecklistItem(partnerId, boardKey, 1, 5);
+        proxyService.proxyDeleteChecklistItem(partnerId, boardKey, 1, 5, null, null);
         verify(httpClient)
                 .delete(
                         eq("https://remote.example.com"),
@@ -1660,7 +1675,7 @@ class FederatedBoardProxyServiceTest extends RepositoryTestBase {
         when(httpClient.get(eq("https://remote.example.com"), eq("/remote/boards/" + boardKey), anyInt(), any(), any()))
                 .thenReturn(null);
 
-        assertThrows(io.javalin.http.NotFoundResponse.class, () -> proxyService.proxyGetBoard(partnerId, boardKey));
+        assertThrows(NotFoundResponse.class, () -> proxyService.proxyGetBoard(partnerId, boardKey));
     }
 
     @Test
@@ -1694,7 +1709,7 @@ class FederatedBoardProxyServiceTest extends RepositoryTestBase {
                 .thenReturn(null);
 
         assertThrows(
-                io.javalin.http.NotFoundResponse.class,
+                NotFoundResponse.class,
                 () -> proxyService.proxyCreateTicket(
                         partnerId, boardKey, 1, "Title", "Desc", "HIGH", null, REMOTE_MEMBER_1));
     }
@@ -1704,7 +1719,7 @@ class FederatedBoardProxyServiceTest extends RepositoryTestBase {
     void findPartnerNotFoundThrows() {
         when(federationRepository.findPartnerById(999)).thenReturn(Optional.empty());
 
-        assertThrows(io.javalin.http.NotFoundResponse.class, () -> proxyService.proxyGetBoard(999, boardKey));
+        assertThrows(NotFoundResponse.class, () -> proxyService.proxyGetBoard(999, boardKey));
     }
 
     @Test
@@ -1721,8 +1736,8 @@ class FederatedBoardProxyServiceTest extends RepositoryTestBase {
                 .thenReturn(null);
 
         assertThrows(
-                io.javalin.http.NotFoundResponse.class,
-                () -> proxyService.proxyUpdateTicket(partnerId, boardKey, 1, "X", null, null, null, null));
+                NotFoundResponse.class,
+                () -> proxyService.proxyUpdateTicket(partnerId, boardKey, 1, "X", null, null, null, null, null, null));
     }
 
     @Test
@@ -1757,7 +1772,7 @@ class FederatedBoardProxyServiceTest extends RepositoryTestBase {
                 .thenThrow(new RuntimeException("Connection refused"));
 
         assertThrows(
-                io.javalin.http.NotFoundResponse.class,
+                NotFoundResponse.class,
                 () -> proxyService.proxyCreateTicket(partnerId, boardKey, 1, "X", "D", "HIGH", null, REMOTE_1));
     }
 
@@ -1775,7 +1790,6 @@ class FederatedBoardProxyServiceTest extends RepositoryTestBase {
                 .thenThrow(new RuntimeException("Timeout"));
 
         assertThrows(
-                io.javalin.http.NotFoundResponse.class,
-                () -> proxyService.proxyMoveTicket(partnerId, boardKey, 1, 2, 0, null));
+                NotFoundResponse.class, () -> proxyService.proxyMoveTicket(partnerId, boardKey, 1, 2, 0, null, null));
     }
 }

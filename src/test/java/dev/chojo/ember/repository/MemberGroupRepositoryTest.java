@@ -67,7 +67,7 @@ class MemberGroupRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(4)
     void update() {
-        assertTrue(memberGroupRepo.update(groupId, "Beta Team"));
+        assertTrue(memberGroupRepo.update(groupId, "Beta Team", null, 0));
         assertEquals(
                 "Beta Team", memberGroupRepo.findById(groupId).orElseThrow().name());
     }

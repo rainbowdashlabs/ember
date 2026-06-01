@@ -27,9 +27,9 @@ import MarkdownEditor from '@/components/input/MarkdownEditor.vue'
 import TicketTile from './boardview/TicketTile.vue'
 import UserAvatar from '@/components/avatar/UserAvatar.vue'
 import { boards, stationMembers } from '@/api'
-import type { Board, BoardLane, BoardTicket, BoardLabel } from '@/api/boards'
+import type { MemberCompletion } from '@/api/stationMembers'
+import type { Board, BoardLane, BoardTicket, BoardLabel, TicketPriorityName } from '@/api/boards'
 import { TicketPriority } from '@/api/boards'
-import type { TicketPriorityName } from '@/api/boards'
 import { useSession } from '@/composables/useSession'
 
 const { t } = useI18n()
@@ -60,8 +60,7 @@ const searchQuery = ref('')
 const searchResults = ref<BoardTicket[] | null>(null)
 const searching = ref(false)
 
-const members = ref<{ id: number; name: string }[]>([])
-
+const members = ref<MemberCompletion[]>([])
 async function loadData() {
     loading.value = true
     error.value = ''
@@ -149,7 +148,7 @@ const assignees = computed(() => {
     const ids = new Set(tickets.value.map(t => t.assignedMemberId).filter(Boolean) as number[])
     return members.value.filter(m => ids.has(m.id))
 })
-
+function findMember(id: number | null) { return id ? members.value.find(m => m.id === id) : undefined }
 async function handleCreateTicket() {
     createError.value = ''
     if (!createTitle.value.trim()) {
@@ -343,7 +342,7 @@ watch(boardKey, loadData)
                                 <div class="flex items-center gap-2 shrink-0 text-xs text-(--text-muted)">
                                     <span class="px-1.5 py-0.5 rounded bg-(--bg-accent) text-[0.65rem]">{{ laneName(result.laneId) }}</span>
                                     <font-awesome-icon :icon="priorityIcon(result.priority)" :class="priorityColor(result.priority)" />
-                                    <UserAvatar v-if="result.assignedMemberId" :member-id="result.assignedMemberId" :name="members.find(m => m.id === result.assignedMemberId)?.name" size="sm" />
+                                    <UserAvatar v-if="result.assignedMemberId" :identity="findMember(result.assignedMemberId)" :name="findMember(result.assignedMemberId)?.name" size="sm" />
                                 </div>
                             </div>
                         </div>
@@ -371,7 +370,7 @@ watch(boardKey, loadData)
                         </div>
                     </div>
                     <div v-for="member in assignees" :key="member.id" class="cursor-pointer rounded-full transition-all -ml-1.5" :class="assigneeFilter.has(member.id) ? 'ring-2 ring-primary z-10' : 'opacity-70 hover:opacity-100'" :title="member.name" @click="toggleAssigneeFilter(member.id)">
-                        <UserAvatar :member-id="member.id" :name="member.name" size="md" />
+                        <UserAvatar :identity="member" :name="member.name" size="md" />
                     </div>
                 </div>
                 <!-- Label filter -->
@@ -418,7 +417,8 @@ watch(boardKey, loadData)
                                 <TicketTile
                                     :ticket="ticket"
                                     :short-key="board.shortKey"
-                                    :member-name="ticket.assignedMemberId ? members.find(m => m.id === ticket.assignedMemberId)?.name : undefined"
+                                    :member-name="findMember(ticket.assignedMemberId)?.name"
+                                    :identity="findMember(ticket.assignedMemberId)"
                                     :labels="labelsForTicket(ticket.id)"
                                     :attachment-count="ticket.attachmentCount"
                                     @click="openTicketDetail"

@@ -11,7 +11,6 @@ import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.news.entity.News;
-import dev.chojo.ember.feature.news.entity.NewsCommentFederatedAuthor;
 import dev.chojo.ember.feature.news.entity.NewsFederationShare;
 import dev.chojo.ember.feature.news.repository.NewsFederationRepository;
 import dev.chojo.ember.feature.station.entity.Station;
@@ -23,7 +22,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 
 import java.util.List;
-import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -57,9 +55,10 @@ class NewsFederationRepositoryTest extends RepositoryTestBase {
         member = stationMemberRepo.create(station.id(), account.id());
 
         // Create news articles (published at creation)
-        news1 = newsRepo.create(station.id(), "Fed News 1", "# One", "<h1>One</h1>", member.id());
-        news2 = newsRepo.create(station.id(), "Fed News 2", "# Two", "<h1>Two</h1>", member.id());
-        news3 = newsRepo.create(station.id(), "Fed News 3", "# Three", "<h1>Three</h1>", member.id());
+        var authorIdentity = stationMemberRepo.resolveIdentity(member.id());
+        news1 = newsRepo.create(station.id(), "Fed News 1", "# One", "<h1>One</h1>", authorIdentity);
+        news2 = newsRepo.create(station.id(), "Fed News 2", "# Two", "<h1>Two</h1>", authorIdentity);
+        news3 = newsRepo.create(station.id(), "Fed News 3", "# Three", "<h1>Three</h1>", authorIdentity);
 
         // Create federation partners
         var keyPair = federationService.generateKeyPair();
@@ -73,7 +72,7 @@ class NewsFederationRepositoryTest extends RepositoryTestBase {
         partnerIdB = partnerB.id();
 
         // Create a comment for federated author tests
-        var comment = newsRepo.createComment(news1.id(), null, member.id(), "Test comment");
+        var comment = newsRepo.createComment(news1.id(), null, authorIdentity, "Test comment");
         commentId = comment.id();
     }
 
@@ -253,22 +252,6 @@ class NewsFederationRepositoryTest extends RepositoryTestBase {
         assertDoesNotThrow(() -> fedRepo.removeShare(99999));
     }
 
-    // -- Federated comment author (no-op stubs) --
-
-    @Test
-    @Order(50)
-    void setFederatedCommentAuthorIsNoOp() {
-        // Method is a no-op since satellite table was removed
-        assertDoesNotThrow(() -> fedRepo.setFederatedCommentAuthor(commentId, partnerId, UUID.randomUUID()));
-    }
-
-    @Test
-    @Order(51)
-    void findFederatedCommentAuthorReturnsEmpty() {
-        // Method always returns empty since satellite table was removed
-        assertTrue(fedRepo.findFederatedCommentAuthor(commentId).isEmpty());
-    }
-
     // -- Entity record construction --
 
     @Test
@@ -279,15 +262,5 @@ class NewsFederationRepositoryTest extends RepositoryTestBase {
         assertEquals(2, share.newsId());
         assertEquals("ALL_PARTNERS", share.scope());
         assertEquals("MEMBER", share.visibilityRole());
-    }
-
-    @Test
-    @Order(61)
-    void newsCommentFederatedAuthorRecord() {
-        var uid = UUID.randomUUID();
-        var author = new NewsCommentFederatedAuthor(10, 20, uid);
-        assertEquals(10, author.commentId());
-        assertEquals(20, author.partnerId());
-        assertEquals(uid, author.remoteMemberId());
     }
 }

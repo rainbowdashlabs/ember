@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.events.service;
 
 import dev.chojo.ember.event.DomainEventBus;
+import dev.chojo.ember.event.events.EventCancelled;
 import dev.chojo.ember.event.events.EventCreated;
 import dev.chojo.ember.event.events.EventDeleted;
 import dev.chojo.ember.event.events.EventRegistrationStatusChanged;
@@ -123,7 +124,9 @@ public class EventService {
             Instant registrationDeadline,
             boolean requiresConfirmation,
             Integer categoryId,
-            Integer registrationLimit) {
+            Integer registrationLimit,
+            Integer minRegistrations,
+            Instant thresholdDate) {
         var event = eventRepository.create(
                 stationId,
                 name,
@@ -137,7 +140,9 @@ public class EventService {
                 registrationDeadline,
                 requiresConfirmation,
                 categoryId,
-                registrationLimit);
+                registrationLimit,
+                minRegistrations,
+                thresholdDate);
         eventBus.publish(new EventCreated(stationId, event));
         return event;
     }
@@ -173,7 +178,9 @@ public class EventService {
             boolean requiresConfirmation,
             Integer categoryId,
             Boolean isPublic,
-            Integer registrationLimit) {
+            Integer registrationLimit,
+            Integer minRegistrations,
+            Instant thresholdDate) {
         if (eventRepository.update(
                 id,
                 name,
@@ -188,7 +195,9 @@ public class EventService {
                 requiresConfirmation,
                 categoryId,
                 isPublic,
-                registrationLimit)) {
+                registrationLimit,
+                minRegistrations,
+                thresholdDate)) {
             return eventRepository.findById(id);
         }
         return Optional.empty();
@@ -208,6 +217,26 @@ public class EventService {
             return true;
         }
         return false;
+    }
+
+    /**
+     * Cancels an event, notifying all registered members.
+     *
+     * @param stationId the station ID (for ownership check)
+     * @param eventId   the event ID
+     * @param reason    optional cancellation reason
+     * @return true if the event was cancelled
+     */
+    public boolean cancelEvent(int stationId, int eventId, String reason) {
+        var event = eventRepository.findById(eventId).orElse(null);
+        if (event == null || event.stationId() != stationId) return false;
+        if (event.cancelled()) return false;
+
+        boolean cancelled = eventRepository.cancelEvent(eventId, reason);
+        if (cancelled) {
+            eventBus.publish(new EventCancelled(stationId, eventId, event.name(), reason));
+        }
+        return cancelled;
     }
 
     /**
@@ -612,11 +641,8 @@ public class EventService {
         if (!eventRepository.updateRegistrationStatus(id, status)) return false;
         var registration = eventRepository.findRegistrationById(id).orElse(null);
         if (registration != null) {
-            var event = eventRepository.findById(registration.eventId()).orElse(null);
-            if (event != null) {
-                eventBus.publish(new EventRegistrationStatusChanged(
-                        event.stationId(), event.id(), event.name(), registration.memberId(), status));
-            }
+            eventRepository.findById(registration.eventId()).ifPresent(event -> eventBus.publish(new EventRegistrationStatusChanged(
+                    event.stationId(), event.id(), event.name(), registration.memberId(), status)));
         }
         return true;
     }
@@ -625,15 +651,12 @@ public class EventService {
         var registration = eventRepository.findRegistrationById(id).orElse(null);
         if (!eventRepository.deleteRegistration(id)) return false;
         if (registration != null && registration.status() == RegistrationStatus.ACCEPTED) {
-            var event = eventRepository.findById(registration.eventId()).orElse(null);
-            if (event != null) {
-                eventBus.publish(new EventRegistrationStatusChanged(
-                        event.stationId(),
-                        event.id(),
-                        event.name(),
-                        registration.memberId(),
-                        RegistrationStatus.WITHDRAWN));
-            }
+            eventRepository.findById(registration.eventId()).ifPresent(event -> eventBus.publish(new EventRegistrationStatusChanged(
+                    event.stationId(),
+                    event.id(),
+                    event.name(),
+                    registration.memberId(),
+                    RegistrationStatus.WITHDRAWN)));
         }
         return true;
     }
@@ -647,11 +670,8 @@ public class EventService {
         var result = eventRepository.createRegistration(
                 eventId, memberId, eventDate, RegistrationStatus.DECLINED, createdBy);
         if (existing != null && existing.status() == RegistrationStatus.ACCEPTED) {
-            var event = eventRepository.findById(eventId).orElse(null);
-            if (event != null) {
-                eventBus.publish(new EventRegistrationStatusChanged(
-                        event.stationId(), event.id(), event.name(), memberId, RegistrationStatus.DECLINED));
-            }
+            eventRepository.findById(eventId).ifPresent(event -> eventBus.publish(new EventRegistrationStatusChanged(
+                    event.stationId(), event.id(), event.name(), memberId, RegistrationStatus.DECLINED)));
         }
         return result;
     }

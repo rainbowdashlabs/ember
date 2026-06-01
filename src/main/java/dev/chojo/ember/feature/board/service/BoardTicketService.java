@@ -158,10 +158,7 @@ public class BoardTicketService {
     public boolean assignTicket(int ticketId, MemberIdentity assignee, int actorMemberId) {
         boolean updated = ticketRepository.assignTicket(ticketId, assignee);
         if (updated) {
-            var ticket = ticketRepository.findById(ticketId).orElse(null);
-            if (ticket != null) {
-                notifyWatchers(ticketId, ticket.boardId(), "Zuweisung geändert", actorMemberId);
-            }
+            ticketRepository.findById(ticketId).ifPresent(ticket -> notifyWatchers(ticketId, ticket.boardId(), "Zuweisung geändert", actorMemberId));
         }
         return updated;
     }
@@ -194,9 +191,10 @@ public class BoardTicketService {
                 for (var fv : fieldValues) fvMap.put(fv.fieldId(), fv.value());
                 for (var field : fields) {
                     if (field.config() instanceof BoardFieldConfig.LaneAssignee lac && lac.laneId() == toLaneId) {
-                        if (fvMap.get(field.id()) instanceof BoardFieldValue.LaneAssignee assignee && board != null) {
+                        if (fvMap.get(field.id()) instanceof BoardFieldValue.LaneAssignee(int memberId)
+                                && board != null) {
                             ticketRepository.assignTicket(
-                                    ticketId, memberIdentityFactory.local(board.stationId(), assignee.memberId()));
+                                    ticketId, memberIdentityFactory.local(board.stationId(), memberId));
                         }
                     }
                 }
@@ -238,20 +236,14 @@ public class BoardTicketService {
     public BoardChecklistItem addChecklistItem(int ticketId, String title, int actorMemberId) {
         int position = ticketRepository.findChecklistItems(ticketId).size();
         var item = ticketRepository.createChecklistItem(ticketId, title, position);
-        var ticket = ticketRepository.findById(ticketId).orElse(null);
-        if (ticket != null) {
-            notifyWatchers(ticketId, ticket.boardId(), "Checkliste geändert", actorMemberId);
-        }
+        ticketRepository.findById(ticketId).ifPresent(ticket -> notifyWatchers(ticketId, ticket.boardId(), "Checkliste geändert", actorMemberId));
         return item;
     }
 
     public boolean updateChecklistItem(int id, int ticketId, String title, boolean checked, int actorMemberId) {
         boolean updated = ticketRepository.updateChecklistItem(id, title, checked);
         if (updated) {
-            var ticket = ticketRepository.findById(ticketId).orElse(null);
-            if (ticket != null) {
-                notifyWatchers(ticketId, ticket.boardId(), "Checkliste geändert", actorMemberId);
-            }
+            ticketRepository.findById(ticketId).ifPresent(ticket -> notifyWatchers(ticketId, ticket.boardId(), "Checkliste geändert", actorMemberId));
         }
         return updated;
     }
@@ -259,10 +251,7 @@ public class BoardTicketService {
     public boolean deleteChecklistItem(int id, int ticketId, int actorMemberId) {
         boolean deleted = ticketRepository.deleteChecklistItem(id);
         if (deleted) {
-            var ticket = ticketRepository.findById(ticketId).orElse(null);
-            if (ticket != null) {
-                notifyWatchers(ticketId, ticket.boardId(), "Checkliste geändert", actorMemberId);
-            }
+            ticketRepository.findById(ticketId).ifPresent(ticket -> notifyWatchers(ticketId, ticket.boardId(), "Checkliste geändert", actorMemberId));
         }
         return deleted;
     }

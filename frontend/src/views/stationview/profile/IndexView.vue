@@ -255,7 +255,7 @@ onMounted(loadProfile)
           <div class="flex items-center gap-4">
             <UserAvatar
                 :key="avatarKey"
-                :member-id="sessionInfo?.member?.id"
+                :identity="sessionInfo?.member?.uid ? { stationUid: sessionInfo.stationId ?? '', memberUid: sessionInfo.member.uid } : undefined"
                 :name="(editFirstName + ' ' + editLastName).trim()"
                 size="lg"
             />

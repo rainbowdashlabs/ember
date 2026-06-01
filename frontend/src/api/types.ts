@@ -266,6 +266,12 @@ export interface StationEvent {
     restricted?: boolean
     isPublic?: boolean
     registrationLimit?: number | null
+    cancelled?: boolean
+    cancelledAt?: string | null
+    cancelReason?: string | null
+    minRegistrations?: number | null
+    thresholdDate?: string | null
+    thresholdNotified?: boolean
 }
 
 export interface EventRequest {
@@ -284,6 +290,8 @@ export interface EventRequest {
     restrictedGroupIds?: number[]
     isPublic?: boolean
     registrationLimit?: number | null
+    minRegistrations?: number | null
+    thresholdDate?: string | null
 }
 
 export interface EventRestrictions {
@@ -636,6 +644,7 @@ export interface StationMember {
     name?: string
     email?: string
     profileComplete?: boolean
+    identity?: MemberIdentity | null
 }
 
 export interface CreateMemberRequest {
@@ -1100,10 +1109,14 @@ export interface MemberGroup {
     id: number
     stationId: string
     name?: string
+    color?: string | null
+    position?: number
 }
 
 export interface GroupRequest {
     name?: string
+    color?: string | null
+    position?: number
 }
 
 export interface GroupDetail {
@@ -1154,8 +1167,7 @@ export interface NewsEntry {
     title: string
     contentMarkdown: string
     contentHtml: string
-    authorId: number
-    authorAccountId?: number | null
+    author: MemberIdentity | null
     authorName: string
     publishedAt?: string
     createdAt?: string
@@ -1304,6 +1316,9 @@ export interface UserTag {
     id: number
     stationId: string
     name: string
+    color?: string | null
+    visible?: boolean
+    position?: number
 }
 
 // -- Notifications --
@@ -1646,6 +1661,9 @@ export interface QuizCatalogExport {
 export interface MemberIdentity {
     stationUid: string
     memberUid: string
+    stationName?: string | null
+    nameColor?: string | null
+    displayTag?: { name: string; color: string } | null
 }
 
 // -- Comments --

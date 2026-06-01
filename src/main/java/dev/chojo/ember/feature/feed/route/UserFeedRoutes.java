@@ -57,6 +57,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+@SuppressWarnings("DefaultAnnotationParam")
 @Singleton
 public class UserFeedRoutes implements Routes {
     private final FeedTokenService tokenService;

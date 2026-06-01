@@ -193,6 +193,8 @@ class StationTransferTest extends RepositoryTestBase {
                 null,
                 false,
                 catTraining.id(),
+                null,
+                null,
                 null);
         eventRepo.create(
                 sourceStationId,
@@ -207,6 +209,8 @@ class StationTransferTest extends RepositoryTestBase {
                 now.plusSeconds(86400),
                 true,
                 catTraining.id(),
+                null,
+                null,
                 null);
         eventRepo.create(
                 sourceStationId,
@@ -221,6 +225,8 @@ class StationTransferTest extends RepositoryTestBase {
                 now.plusSeconds(2505600),
                 false,
                 catSonder.id(),
+                null,
+                null,
                 null);
 
         // --- Inventories ---

@@ -237,7 +237,7 @@ public class FederationHttpClient {
     // -- Internal HTTP primitives --
 
     /**
-     * Converts a base URL like "https://ember.example.com" to the API prefix.
+     * Converts a base URL like "<a href="https://ember.example.com">...</a>" to the API prefix.
      */
     private String apiUrl(String remoteHost) {
         // Strip trailing slash if present

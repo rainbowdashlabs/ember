@@ -7,6 +7,8 @@ package dev.chojo.ember.feature.news.repository;
 
 import de.chojo.sadu.queries.api.call.Call;
 import de.chojo.sadu.queries.api.query.Query;
+import de.chojo.sadu.queries.converter.StandardValueConverter;
+import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.feature.news.entity.News;
 import dev.chojo.ember.feature.news.entity.NewsComment;
 import jakarta.inject.Singleton;
@@ -24,9 +26,9 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
 public class NewsRepository {
 
     private static final String NEWS_COLUMNS =
-            "n.id, n.station_id, n.title, n.content_markdown, n.content_html, n.author_id, n.published_at, n.created_at, n.restriction_mode, EXISTS(SELECT 1 FROM news_restriction r WHERE r.news_id = n.id) AS restricted";
+            "n.id, n.station_id, n.title, n.content_markdown, n.content_html, n.author_station_uid, n.author_member_uid, n.published_at, n.created_at, n.restriction_mode, EXISTS(SELECT 1 FROM news_restriction r WHERE r.news_id = n.id) AS restricted";
     private static final String NEWS_COLUMNS_BARE =
-            "id, station_id, title, content_markdown, content_html, author_id, published_at, created_at, restriction_mode, EXISTS(SELECT 1 FROM news_restriction r WHERE r.news_id = id) AS restricted";
+            "id, station_id, title, content_markdown, content_html, author_station_uid, author_member_uid, published_at, created_at, restriction_mode, EXISTS(SELECT 1 FROM news_restriction r WHERE r.news_id = id) AS restricted";
 
     /**
      * Creates a new news article and returns the persisted entity.
@@ -35,20 +37,27 @@ public class NewsRepository {
      * @param title           article title
      * @param contentMarkdown article body in Markdown
      * @param contentHtml     article body as HTML
-     * @param authorId        member ID of the author
+     * @param author          identity of the author
      * @return the newly created news entry
      */
-    public News create(int stationId, String title, String contentMarkdown, String contentHtml, int authorId) {
+    public News create(int stationId, String title, String contentMarkdown, String contentHtml, MemberIdentity author) {
         return Query.query("""
-                            INSERT INTO news(station_id, title, content_markdown, content_html, author_id, published_at)
-                            VALUES(:station_id, :title, :content_markdown, :content_html, :author_id, :published_at)
+                            INSERT INTO news(station_id, title, content_markdown, content_html, author_station_uid, author_member_uid, published_at)
+                            VALUES(:station_id, :title, :content_markdown, :content_html, :author_station_uid::uuid, :author_member_uid::uuid, :published_at)
                             RETURNING\s""" + NEWS_COLUMNS_BARE + ";")
                 .single(Call.of()
                         .bind("station_id", stationId)
                         .bind("title", title)
                         .bind("content_markdown", contentMarkdown)
                         .bind("content_html", contentHtml)
-                        .bind("author_id", authorId)
+                        .bind(
+                                "author_station_uid",
+                                author != null ? author.stationUid() : null,
+                                StandardValueConverter.UUID_STRING)
+                        .bind(
+                                "author_member_uid",
+                                author != null ? author.memberUid() : null,
+                                StandardValueConverter.UUID_STRING)
                         .bind("published_at", Instant.now(), INSTANT_TIMESTAMP))
                 .map(News.map())
                 .first()
@@ -156,19 +165,26 @@ public class NewsRepository {
      *
      * @param newsId   the news article ID
      * @param parentId parent comment ID for replies, or {@code null} for top-level comments
-     * @param authorId member ID of the comment author
+     * @param author   identity of the comment author, or {@code null} for federated/system comments
      * @param content  comment text
      * @return the newly created comment
      */
-    public NewsComment createComment(int newsId, Integer parentId, Integer authorId, String content) {
+    public NewsComment createComment(int newsId, Integer parentId, MemberIdentity author, String content) {
         return Query.query("""
-                            INSERT INTO news_comment(news_id, parent_id, author_id, content)
-                            VALUES(:news_id, :parent_id, :author_id, :content)
+                            INSERT INTO news_comment(news_id, parent_id, author_station_uid, author_member_uid, content)
+                            VALUES(:news_id, :parent_id, :author_station_uid::uuid, :author_member_uid::uuid, :content)
                             RETURNING *;""")
                 .single(Call.of()
                         .bind("news_id", newsId)
                         .bind("parent_id", parentId)
-                        .bind("author_id", authorId)
+                        .bind(
+                                "author_station_uid",
+                                author != null ? author.stationUid() : null,
+                                StandardValueConverter.UUID_STRING)
+                        .bind(
+                                "author_member_uid",
+                                author != null ? author.memberUid() : null,
+                                StandardValueConverter.UUID_STRING)
                         .bind("content", content))
                 .map(NewsComment.map())
                 .first()
@@ -182,7 +198,8 @@ public class NewsRepository {
      * @return list of comments
      */
     public List<NewsComment> findCommentsByNews(int newsId) {
-        return Query.query("SELECT * FROM news_comment WHERE news_id = :news_id ORDER BY created_at ASC;")
+        return Query.query(
+                        "SELECT id, news_id, parent_id, author_station_uid, author_member_uid, content, deleted, created_at FROM news_comment WHERE news_id = :news_id ORDER BY created_at ASC;")
                 .single(Call.of().bind("news_id", newsId))
                 .map(NewsComment.map())
                 .all();
@@ -209,7 +226,8 @@ public class NewsRepository {
      * @return the comment, or empty if not found
      */
     public Optional<NewsComment> findCommentById(int id) {
-        return Query.query("SELECT * FROM news_comment WHERE id = :id;")
+        return Query.query(
+                        "SELECT id, news_id, parent_id, author_station_uid, author_member_uid, content, deleted, created_at FROM news_comment WHERE id = :id;")
                 .single(Call.of().bind("id", id))
                 .map(NewsComment.map())
                 .first();

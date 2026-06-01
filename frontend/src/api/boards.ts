@@ -168,6 +168,13 @@ export async function deleteBoard(boardKey: string): Promise<void> {
     await client.delete(`/boards/${boardKey}`)
 }
 
+// -- Members --
+
+export async function getBoardMembers(boardKey: string): Promise<import('./stationMembers').MemberCompletion[]> {
+    const res = await client.get<import('./stationMembers').MemberCompletion[]>(`/boards/${boardKey}/members`)
+    return res.data
+}
+
 // -- Lanes --
 
 export async function getLanes(boardKey: string): Promise<BoardLane[]> {

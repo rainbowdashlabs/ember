@@ -48,6 +48,9 @@ const requiresConfirmation = defineModel<boolean>('requiresConfirmation')
 const hasDeadline = defineModel<boolean>('hasDeadline')
 const registrationDeadline = defineModel<string>('registrationDeadline')
 const registrationLimit = defineModel<number>('registrationLimit')
+const minRegistrations = defineModel<number>('minRegistrations')
+const hasThreshold = defineModel<boolean>('hasThreshold')
+const thresholdDate = defineModel<string>('thresholdDate')
 
 const selectedRoleIds = defineModel<number[]>('selectedRoleIds')
 const selectedGroupIds = defineModel<number[]>('selectedGroupIds')
@@ -165,6 +168,23 @@ const {t} = useI18n()
           <NumberInput v-model="registrationLimit" :placeholder="t('events.registrationLimitHint')"/>
           <p class="text-xs text-(--text-muted)">{{ t('events.registrationLimitHint') }}</p>
         </div>
+
+        <div class="space-y-1">
+          <FieldLabel>{{ t('events.minRegistrations') }}</FieldLabel>
+          <NumberInput v-model="minRegistrations" placeholder=""/>
+        </div>
+
+        <template v-if="minRegistrations && minRegistrations > 0">
+          <div class="flex items-center justify-between">
+            <label class="text-sm font-medium">{{ t('events.thresholdDate') }}</label>
+            <ToggleInput v-model="hasThreshold"/>
+          </div>
+          <div v-if="hasThreshold" class="space-y-1">
+            <FieldLabel>{{ t('events.thresholdDate') }}</FieldLabel>
+            <DateTimeInput v-model="thresholdDate"/>
+            <p class="text-xs text-(--text-muted)">{{ t('events.thresholdHint') }}</p>
+          </div>
+        </template>
       </template>
     </template>
 

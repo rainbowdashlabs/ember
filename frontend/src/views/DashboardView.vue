@@ -356,7 +356,7 @@ async function handleLogout() {
         </SecondaryButton>
       </router-link>
 
-      <UserAvatar :member-id="sessionInfo?.member?.id" :name="fullName()" size="sm" class="hidden sm:flex"/>
+      <UserAvatar :identity="sessionInfo?.member?.uid ? { stationUid: sessionInfo.stationId ?? '', memberUid: sessionInfo.member.uid } : undefined" :name="fullName()" size="sm" class="hidden sm:flex"/>
       <span class="text-sm text-[var(--text-muted)] hidden sm:inline">{{ fullName() }}</span>
 
       <IconButton

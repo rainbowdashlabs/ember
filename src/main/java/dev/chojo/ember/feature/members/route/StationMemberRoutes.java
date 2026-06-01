@@ -9,14 +9,15 @@ import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.Roles;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
-import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.legal.service.GdprDeletionService;
+import dev.chojo.ember.feature.members.entity.MemberWithName;
 import dev.chojo.ember.feature.members.entity.RichMember;
 import dev.chojo.ember.feature.members.entity.Role;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.FormerMemberService;
+import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.members.service.ProfileFieldService;
 import dev.chojo.ember.feature.members.service.StationMemberService;
 import io.javalin.http.BadRequestResponse;
@@ -27,7 +28,6 @@ import io.javalin.http.NotFoundResponse;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
 import io.javalin.openapi.OpenApiContent;
-import io.javalin.openapi.OpenApiName;
 import io.javalin.openapi.OpenApiParam;
 import io.javalin.openapi.OpenApiRequestBody;
 import io.javalin.openapi.OpenApiResponse;
@@ -50,6 +50,7 @@ public class StationMemberRoutes implements Routes {
     private final FormerMemberService formerMemberService;
     private final ProfileFieldService profileFieldService;
     private final GdprDeletionService gdprDeletionService;
+    private final MemberIdentityFactory memberIdentityFactory;
 
     @Inject
     public StationMemberRoutes(
@@ -58,13 +59,15 @@ public class StationMemberRoutes implements Routes {
             StationMemberRepository stationMemberRepository,
             FormerMemberService formerMemberService,
             ProfileFieldService profileFieldService,
-            GdprDeletionService gdprDeletionService) {
+            GdprDeletionService gdprDeletionService,
+            MemberIdentityFactory memberIdentityFactory) {
         this.memberService = memberService;
         this.accountRepository = accountRepository;
         this.stationMemberRepository = stationMemberRepository;
         this.formerMemberService = formerMemberService;
         this.profileFieldService = profileFieldService;
         this.gdprDeletionService = gdprDeletionService;
+        this.memberIdentityFactory = memberIdentityFactory;
     }
 
     @Override
@@ -102,7 +105,7 @@ public class StationMemberRoutes implements Routes {
 
     private void completions(Context ctx) {
         var session = UserSession.from(ctx);
-        ctx.json(stationMemberRepository.findCompletions(session.stationId()));
+        ctx.json(memberIdentityFactory.enrichCompletions(stationMemberRepository.findCompletions(session.stationId())));
     }
 
     private void listByStation(Context ctx) {
@@ -124,7 +127,9 @@ public class StationMemberRoutes implements Routes {
     private void listRichMembers(Context ctx) {
         var session = UserSession.from(ctx);
         boolean includeFormer = "true".equals(ctx.queryParam("includeFormer"));
-        ctx.json(stationMemberRepository.findRichMembers(session.stationId(), includeFormer));
+        ctx.json(stationMemberRepository.findRichMembers(session.stationId(), includeFormer).stream()
+                .map(m -> m.withIdentity(memberIdentityFactory.local(m.stationId(), m.id())))
+                .toList());
     }
 
     @OpenApi(
@@ -139,7 +144,7 @@ public class StationMemberRoutes implements Routes {
             })
     private void get(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
-        memberService.findById(id).ifPresentOrElse(ctx::json, () -> {
+        memberService.findById(id).map(this::toMemberWithName).ifPresentOrElse(ctx::json, () -> {
             throw new NotFoundResponse();
         });
     }
@@ -159,7 +164,8 @@ public class StationMemberRoutes implements Routes {
         if (request.stationId() == null || request.accountId() == null) {
             throw new BadRequestResponse("stationId and accountId are required");
         }
-        ctx.status(HttpStatus.CREATED).json(memberService.create(request.stationId(), request.accountId()));
+        ctx.status(HttpStatus.CREATED)
+                .json(toMemberWithName(memberService.create(request.stationId(), request.accountId())));
     }
 
     @OpenApi(
@@ -252,17 +258,11 @@ public class StationMemberRoutes implements Routes {
     }
 
     private MemberWithName toMemberWithName(StationMember m) {
-        if (m.accountId() == null) {
-            return new MemberWithName(m.id(), m.stationId(), 0, m.displayName(), "", true);
-        }
-        Account account = accountRepository.findById(m.accountId()).orElse(null);
-        String name = account != null ? (account.firstName() + " " + account.lastName()).trim() : "";
-        String email = account != null ? account.email() : "";
         var roles = stationMemberRepository.findRoles(m.id()).stream()
                 .map(r -> r.role().name())
                 .toList();
         boolean complete = profileFieldService.isProfileComplete(m.id(), m.stationId(), roles);
-        return new MemberWithName(m.id(), m.stationId(), m.accountId(), name, email, complete);
+        return MemberWithName.from(m, accountRepository, memberIdentityFactory, complete);
     }
 
     @OpenApi(
@@ -330,10 +330,6 @@ public class StationMemberRoutes implements Routes {
         formerMemberService.reactivate(memberId);
         ctx.json(new FormerCheckResponse(true, null));
     }
-
-    @OpenApiName("StationMemberWithName")
-    public record MemberWithName(
-            int id, int stationId, int accountId, String name, String email, boolean profileComplete) {}
 
     public record CreateMemberRequest(Integer stationId, Integer accountId) {}
 

@@ -449,8 +449,8 @@ public class BoardTicketRepository {
                 })
                 .all()
                 .stream()
-                .filter(java.util.Optional::isPresent)
-                .map(java.util.Optional::get)
+                .filter(Optional::isPresent)
+                .map(Optional::get)
                 .toList();
     }
 

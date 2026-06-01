@@ -44,6 +44,7 @@ class FederatedBoardRepositoryTest extends RepositoryTestBase {
     private static Account account;
     private static StationMember member;
     private static int boardId;
+    private static UUID boardUid;
     private static int laneId;
     private static int ticketId;
     private static int commentId;
@@ -60,6 +61,7 @@ class FederatedBoardRepositoryTest extends RepositoryTestBase {
 
         Board board = boardRepo.create(owningStation.id(), "Fed Board", "For federation tests", "FED");
         boardId = board.id();
+        boardUid = board.uid();
 
         BoardLane lane = boardRepo.createLane(boardId, "Open", null, 0);
         laneId = lane.id();
@@ -243,12 +245,13 @@ class FederatedBoardRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(70)
     void createBookmark() {
+        var remoteBoardUid = UUID.fromString("11111111-1111-1111-1111-111111111111");
         var bookmark = federatedBoardRepo.createBookmark(
-                member.id(), partnerId, 100, "Remote Board", "RB", BoardShareMode.READ_ONLY);
+                member.id(), partnerId, remoteBoardUid, "Remote Board", "RB", BoardShareMode.READ_ONLY);
         assertNotNull(bookmark);
         assertEquals(member.id(), bookmark.memberId());
         assertEquals(partnerId, bookmark.partnerId());
-        assertEquals(100, bookmark.remoteBoardId());
+        assertEquals(remoteBoardUid, bookmark.remoteBoardUid());
         assertEquals("Remote Board", bookmark.remoteBoardName());
         assertEquals("RB", bookmark.remoteBoardShortKey());
         assertEquals(BoardShareMode.READ_ONLY, bookmark.shareMode());
@@ -267,7 +270,8 @@ class FederatedBoardRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(72)
     void updateBookmarkName() {
-        federatedBoardRepo.updateBookmarkName(partnerId, 100, "Renamed Board", "RN");
+        var remoteBoardUid = UUID.fromString("11111111-1111-1111-1111-111111111111");
+        federatedBoardRepo.updateBookmarkName(partnerId, remoteBoardUid, "Renamed Board", "RN");
         var bookmarks = federatedBoardRepo.findBookmarks(member.id());
         assertEquals("Renamed Board", bookmarks.getFirst().remoteBoardName());
         assertEquals("RN", bookmarks.getFirst().remoteBoardShortKey());
@@ -276,7 +280,8 @@ class FederatedBoardRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(73)
     void updateBookmarkShareMode() {
-        federatedBoardRepo.updateBookmarkShareMode(partnerId, 100, BoardShareMode.FULL);
+        var remoteBoardUid = UUID.fromString("11111111-1111-1111-1111-111111111111");
+        federatedBoardRepo.updateBookmarkShareMode(partnerId, remoteBoardUid, BoardShareMode.FULL);
         var bookmarks = federatedBoardRepo.findBookmarks(member.id());
         assertEquals(BoardShareMode.FULL, bookmarks.getFirst().shareMode());
     }
@@ -284,7 +289,8 @@ class FederatedBoardRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(74)
     void deleteBookmarkByBoard() {
-        federatedBoardRepo.deleteBookmarkByBoard(member.id(), partnerId, 100);
+        var remoteBoardUid = UUID.fromString("11111111-1111-1111-1111-111111111111");
+        federatedBoardRepo.deleteBookmarkByBoard(member.id(), partnerId, remoteBoardUid);
         var bookmarks = federatedBoardRepo.findBookmarks(member.id());
         assertTrue(bookmarks.isEmpty());
     }
@@ -292,8 +298,9 @@ class FederatedBoardRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(75)
     void deleteBookmark() {
-        var bookmark =
-                federatedBoardRepo.createBookmark(member.id(), partnerId, 200, "Board 2", "B2", BoardShareMode.FULL);
+        var remoteUid2 = UUID.fromString("22222222-2222-2222-2222-222222222222");
+        var bookmark = federatedBoardRepo.createBookmark(
+                member.id(), partnerId, remoteUid2, "Board 2", "B2", BoardShareMode.FULL);
         federatedBoardRepo.deleteBookmark(bookmark.id());
         var bookmarks = federatedBoardRepo.findBookmarks(member.id());
         assertTrue(bookmarks.isEmpty());
@@ -302,8 +309,10 @@ class FederatedBoardRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(76)
     void deleteBookmarksByBoard() {
-        federatedBoardRepo.createBookmark(member.id(), partnerId, 300, "Board 3", "B3", BoardShareMode.READ_ONLY);
-        federatedBoardRepo.deleteBookmarksByBoard(partnerId, 300);
+        var remoteUid3 = UUID.fromString("33333333-3333-3333-3333-333333333333");
+        federatedBoardRepo.createBookmark(
+                member.id(), partnerId, remoteUid3, "Board 3", "B3", BoardShareMode.READ_ONLY);
+        federatedBoardRepo.deleteBookmarksByBoard(partnerId, remoteUid3);
         var bookmarks = federatedBoardRepo.findBookmarks(member.id());
         assertTrue(bookmarks.isEmpty());
     }
@@ -321,14 +330,14 @@ class FederatedBoardRepositoryTest extends RepositoryTestBase {
     @Order(80)
     void setLocalViewOverride() {
         var access = new AccessData(List.of(1, 2), List.of(10), List.of(20));
-        federatedBoardRepo.setLocalViewOverride(partnerId, boardId, access);
-        assertTrue(federatedBoardRepo.hasLocalViewOverride(partnerId, boardId));
+        federatedBoardRepo.setLocalViewOverride(partnerId, boardUid, access);
+        assertTrue(federatedBoardRepo.hasLocalViewOverride(partnerId, boardUid));
     }
 
     @Test
     @Order(81)
     void findLocalViewOverride() {
-        var access = federatedBoardRepo.findLocalViewOverride(partnerId, boardId);
+        var access = federatedBoardRepo.findLocalViewOverride(partnerId, boardUid);
         assertEquals(List.of(1, 2), access.roleIds());
         assertEquals(List.of(10), access.groupIds());
         assertEquals(List.of(20), access.tagIds());
@@ -338,8 +347,8 @@ class FederatedBoardRepositoryTest extends RepositoryTestBase {
     @Order(82)
     void setLocalViewOverrideReplace() {
         var access = new AccessData(List.of(5), List.of(), List.of());
-        federatedBoardRepo.setLocalViewOverride(partnerId, boardId, access);
-        var result = federatedBoardRepo.findLocalViewOverride(partnerId, boardId);
+        federatedBoardRepo.setLocalViewOverride(partnerId, boardUid, access);
+        var result = federatedBoardRepo.findLocalViewOverride(partnerId, boardUid);
         assertEquals(List.of(5), result.roleIds());
         assertTrue(result.groupIds().isEmpty());
         assertTrue(result.tagIds().isEmpty());
@@ -349,14 +358,15 @@ class FederatedBoardRepositoryTest extends RepositoryTestBase {
     @Order(83)
     void setLocalViewOverrideEmpty() {
         var access = new AccessData(List.of(), List.of(), List.of());
-        federatedBoardRepo.setLocalViewOverride(partnerId, boardId, access);
-        assertFalse(federatedBoardRepo.hasLocalViewOverride(partnerId, boardId));
+        federatedBoardRepo.setLocalViewOverride(partnerId, boardUid, access);
+        assertFalse(federatedBoardRepo.hasLocalViewOverride(partnerId, boardUid));
     }
 
     @Test
     @Order(84)
     void hasLocalViewOverrideWhenNone() {
-        assertFalse(federatedBoardRepo.hasLocalViewOverride(-999, -999));
+        assertFalse(
+                federatedBoardRepo.hasLocalViewOverride(-999, UUID.fromString("99999999-9999-9999-9999-999999999999")));
     }
 
     // -- Local Edit Overrides --
@@ -365,14 +375,14 @@ class FederatedBoardRepositoryTest extends RepositoryTestBase {
     @Order(85)
     void setLocalEditOverride() {
         var access = new AccessData(List.of(3), List.of(11), List.of(21));
-        federatedBoardRepo.setLocalEditOverride(partnerId, boardId, access);
-        assertTrue(federatedBoardRepo.hasLocalEditOverride(partnerId, boardId));
+        federatedBoardRepo.setLocalEditOverride(partnerId, boardUid, access);
+        assertTrue(federatedBoardRepo.hasLocalEditOverride(partnerId, boardUid));
     }
 
     @Test
     @Order(86)
     void findLocalEditOverride() {
-        var access = federatedBoardRepo.findLocalEditOverride(partnerId, boardId);
+        var access = federatedBoardRepo.findLocalEditOverride(partnerId, boardUid);
         assertEquals(List.of(3), access.roleIds());
         assertEquals(List.of(11), access.groupIds());
         assertEquals(List.of(21), access.tagIds());
@@ -382,8 +392,8 @@ class FederatedBoardRepositoryTest extends RepositoryTestBase {
     @Order(87)
     void setLocalEditOverrideReplace() {
         var access = new AccessData(List.of(), List.of(99), List.of());
-        federatedBoardRepo.setLocalEditOverride(partnerId, boardId, access);
-        var result = federatedBoardRepo.findLocalEditOverride(partnerId, boardId);
+        federatedBoardRepo.setLocalEditOverride(partnerId, boardUid, access);
+        var result = federatedBoardRepo.findLocalEditOverride(partnerId, boardUid);
         assertTrue(result.roleIds().isEmpty());
         assertEquals(List.of(99), result.groupIds());
         assertTrue(result.tagIds().isEmpty());
@@ -393,20 +403,22 @@ class FederatedBoardRepositoryTest extends RepositoryTestBase {
     @Order(88)
     void setLocalEditOverrideEmpty() {
         var access = new AccessData(List.of(), List.of(), List.of());
-        federatedBoardRepo.setLocalEditOverride(partnerId, boardId, access);
-        assertFalse(federatedBoardRepo.hasLocalEditOverride(partnerId, boardId));
+        federatedBoardRepo.setLocalEditOverride(partnerId, boardUid, access);
+        assertFalse(federatedBoardRepo.hasLocalEditOverride(partnerId, boardUid));
     }
 
     @Test
     @Order(89)
     void hasLocalEditOverrideWhenNone() {
-        assertFalse(federatedBoardRepo.hasLocalEditOverride(-999, -999));
+        assertFalse(
+                federatedBoardRepo.hasLocalEditOverride(-999, UUID.fromString("99999999-9999-9999-9999-999999999999")));
     }
 
     @Test
     @Order(90)
     void findLocalViewOverrideEmpty() {
-        var access = federatedBoardRepo.findLocalViewOverride(-999, -999);
+        var access =
+                federatedBoardRepo.findLocalViewOverride(-999, UUID.fromString("99999999-9999-9999-9999-999999999999"));
         assertTrue(access.roleIds().isEmpty());
         assertTrue(access.groupIds().isEmpty());
         assertTrue(access.tagIds().isEmpty());
@@ -415,7 +427,8 @@ class FederatedBoardRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(91)
     void findLocalEditOverrideEmpty() {
-        var access = federatedBoardRepo.findLocalEditOverride(-999, -999);
+        var access =
+                federatedBoardRepo.findLocalEditOverride(-999, UUID.fromString("99999999-9999-9999-9999-999999999999"));
         assertTrue(access.roleIds().isEmpty());
         assertTrue(access.groupIds().isEmpty());
         assertTrue(access.tagIds().isEmpty());

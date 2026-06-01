@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.comment.service;
 
+import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.CommentCreated;
 import dev.chojo.ember.event.events.MentionedInComment;
@@ -12,6 +13,7 @@ import dev.chojo.ember.feature.comment.entity.Comment;
 import dev.chojo.ember.feature.comment.entity.CommentEntityType;
 import dev.chojo.ember.feature.comment.repository.EventCommentRepository;
 import dev.chojo.ember.feature.members.service.StationMemberService;
+import dev.chojo.ember.feature.station.repository.StationRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
@@ -32,15 +34,18 @@ public class CommentService {
     private final EventCommentRepository commentRepository;
     private final DomainEventBus eventBus;
     private final StationMemberService stationMemberService;
+    private final StationRepository stationRepository;
 
     @Inject
     public CommentService(
             EventCommentRepository commentRepository,
             DomainEventBus eventBus,
-            StationMemberService stationMemberService) {
+            StationMemberService stationMemberService,
+            StationRepository stationRepository) {
         this.commentRepository = commentRepository;
         this.eventBus = eventBus;
         this.stationMemberService = stationMemberService;
+        this.stationRepository = stationRepository;
     }
 
     /**
@@ -69,19 +74,23 @@ public class CommentService {
      * @param stationId  the station ID
      * @param eventId    the event ID
      * @param parentId   parent comment ID for replies, or {@code null}
-     * @param authorId   the member ID of the author
+     * @param author     the identity of the author, or {@code null} for anonymous/federated without identity
      * @param authorName the display name of the author
      * @param content    the comment text
      * @return the created comment
      */
     public Comment create(
-            int stationId, int eventId, Integer parentId, Integer authorId, String authorName, String content) {
-        var comment = commentRepository.create(eventId, parentId, authorId, content);
+            int stationId, int eventId, Integer parentId, MemberIdentity author, String authorName, String content) {
+        var comment = commentRepository.create(eventId, parentId, author, content);
+
+        // Resolve author to local member ID (null if federated / not on this station)
+        Integer authorMemberId = resolveLocalMemberId(stationId, author);
 
         // Notify parent comment author on reply (skip for federated comments without a local author)
-        if (parentId != null && authorId != null) {
+        if (parentId != null && authorMemberId != null) {
             commentRepository.findById(parentId).ifPresent(parent -> {
-                if (!java.util.Objects.equals(parent.authorId(), authorId)) {
+                Integer parentAuthorId = resolveLocalMemberId(stationId, parent.author());
+                if (parentAuthorId != null && !parentAuthorId.equals(authorMemberId)) {
                     String preview = content.length() > 100 ? content.substring(0, 100) + "…" : content;
                     eventBus.publish(new CommentCreated(
                             stationId,
@@ -90,8 +99,8 @@ public class CommentService {
                             "",
                             comment.id(),
                             parentId,
-                            parent.authorId(),
-                            authorId,
+                            parentAuthorId,
+                            authorMemberId,
                             authorName,
                             preview));
                 }
@@ -99,17 +108,30 @@ public class CommentService {
         }
 
         // Parse @mentions and publish events (skip for federated comments without a local author)
-        if (authorId != null) {
+        if (authorMemberId != null) {
             var mentionedIds = parseMentions(stationId, content);
             for (int mentionedId : mentionedIds) {
-                if (mentionedId != authorId) {
+                if (mentionedId != authorMemberId) {
                     eventBus.publish(new MentionedInComment(
-                            stationId, mentionedId, authorId, authorName, CommentEntityType.EVENT, eventId));
+                            stationId, mentionedId, authorMemberId, authorName, CommentEntityType.EVENT, eventId));
                 }
             }
         }
 
         return comment;
+    }
+
+    /**
+     * Resolves a MemberIdentity to a local member ID on the given station.
+     * Returns {@code null} if the identity is null or the member is not local.
+     */
+    private Integer resolveLocalMemberId(int stationId, MemberIdentity identity) {
+        if (identity == null) return null;
+        // Check if the identity belongs to this station
+        int identityStationId =
+                stationRepository.resolveId(identity.stationUid()).orElse(0);
+        if (identityStationId != stationId) return null;
+        return stationMemberService.resolveId(stationId, identity.memberUid()).orElse(null);
     }
 
     /**

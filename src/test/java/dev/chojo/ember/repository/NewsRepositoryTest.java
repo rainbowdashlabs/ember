@@ -44,7 +44,8 @@ class NewsRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(1)
     void create() {
-        var news = newsRepo.create(station.id(), "First News", "# Hello", "<h1>Hello</h1>", member.id());
+        var authorIdentity = stationMemberRepo.resolveIdentity(member.id());
+        var news = newsRepo.create(station.id(), "First News", "# Hello", "<h1>Hello</h1>", authorIdentity);
         assertNotNull(news);
         assertEquals("First News", news.title());
         newsId = news.id();
@@ -104,7 +105,8 @@ class NewsRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(20)
     void createComment() {
-        var comment = newsRepo.createComment(newsId, null, member.id(), "Great news!");
+        var authorIdentity = stationMemberRepo.resolveIdentity(member.id());
+        var comment = newsRepo.createComment(newsId, null, authorIdentity, "Great news!");
         assertNotNull(comment);
         assertEquals("Great news!", comment.content());
         commentId = comment.id();
@@ -141,7 +143,8 @@ class NewsRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(25)
     void createReply() {
-        var reply = newsRepo.createComment(newsId, commentId, member.id(), "Reply to comment");
+        var authorIdentity = stationMemberRepo.resolveIdentity(member.id());
+        var reply = newsRepo.createComment(newsId, commentId, authorIdentity, "Reply to comment");
         assertNotNull(reply);
         assertEquals(commentId, reply.parentId());
         assertEquals(2, newsRepo.countComments(newsId));

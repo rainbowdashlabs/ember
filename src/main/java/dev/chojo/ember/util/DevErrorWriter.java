@@ -154,6 +154,26 @@ public final class DevErrorWriter {
         }
     }
 
+    /**
+     * Clears all error files from the dev-errors directory. Called on startup.
+     */
+    public static void clearOnStartup() {
+        try {
+            if (Files.exists(ERROR_DIR)) {
+                try (var files = Files.list(ERROR_DIR)) {
+                    files.filter(p -> p.toString().endsWith(".txt")).forEach(p -> {
+                        try {
+                            Files.delete(p);
+                        } catch (IOException ignored) {
+                        }
+                    });
+                }
+            }
+        } catch (IOException e) {
+            log.warn("Failed to clear dev-errors directory", e);
+        }
+    }
+
     private static void ensureDir() throws IOException {
         if (!Files.exists(ERROR_DIR)) {
             Files.createDirectories(ERROR_DIR);

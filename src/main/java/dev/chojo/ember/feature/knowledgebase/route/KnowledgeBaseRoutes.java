@@ -733,20 +733,20 @@ public class KnowledgeBaseRoutes implements Routes {
 
     private RestrictionResponse toRestrictionResponse(List<KbAccessRestriction> restrictions) {
         var roleIds = restrictions.stream()
-                .filter(r -> r.roleId() != null)
                 .map(KbAccessRestriction::roleId)
+                .filter(integer -> integer != null)
                 .toList();
         var groupIds = restrictions.stream()
-                .filter(r -> r.groupId() != null)
                 .map(KbAccessRestriction::groupId)
+                .filter(integer -> integer != null)
                 .toList();
         var tagIds = restrictions.stream()
-                .filter(r -> r.tagId() != null)
                 .map(KbAccessRestriction::tagId)
+                .filter(integer -> integer != null)
                 .toList();
         var memberIds = restrictions.stream()
-                .filter(r -> r.memberId() != null)
                 .map(KbAccessRestriction::memberId)
+                .filter(integer -> integer != null)
                 .toList();
         return new RestrictionResponse(roleIds, groupIds, tagIds, memberIds);
     }
@@ -994,8 +994,8 @@ public class KnowledgeBaseRoutes implements Routes {
         var results = service.searchWithSnippets(partner.stationId(), query);
         var shares = federationRepository.findKbShares(partner.stationId());
         var sharedFileIds = shares.stream()
-                .filter(s -> s.fileId() != null)
                 .map(FederationShare::fileId)
+                .filter(integer -> integer != null)
                 .collect(Collectors.toSet());
         ctx.json(results.stream()
                 .filter(r -> sharedFileIds.contains(r.file().id()))
@@ -1360,12 +1360,13 @@ public class KnowledgeBaseRoutes implements Routes {
                     null);
         }
 
-        // Resolve author name from inline identity
+        // Resolve author name and display metadata from inline identity
         var identity = comment.author();
         String authorName = "";
         if (identity != null) {
-            authorName = memberNameResolver.resolve(identity);
-            if (authorName == null) authorName = "";
+            var resolved = memberNameResolver.resolveDisplay(identity);
+            identity = resolved.identity();
+            authorName = resolved.name() != null ? resolved.name() : "";
         }
         return new KbCommentResponse(
                 comment.id(),

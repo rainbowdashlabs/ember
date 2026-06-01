@@ -102,6 +102,8 @@ class EventRepositoryTest extends RepositoryTestBase {
                 null,
                 false,
                 categoryId,
+                null,
+                null,
                 null);
         assertNotNull(event);
         assertEquals("Fire Drill", event.name());
@@ -150,6 +152,8 @@ class EventRepositoryTest extends RepositoryTestBase {
                 true,
                 categoryId,
                 false,
+                null,
+                null,
                 null));
         StationEvent updated = eventRepo.findById(eventId).orElseThrow();
         assertEquals("Updated Drill", updated.name());
@@ -175,6 +179,8 @@ class EventRepositoryTest extends RepositoryTestBase {
                 false,
                 null,
                 false,
+                null,
+                null,
                 null,
                 null);
         assertNotNull(event);
@@ -409,6 +415,8 @@ class EventRepositoryTest extends RepositoryTestBase {
                 null,
                 false,
                 null,
+                null,
+                null,
                 null);
         var defaults = List.of(new EventFieldDefault(tmpEvent.id(), templateFieldId, "VALUE", "value1"));
         assertDoesNotThrow(() -> eventRepo.setFieldDefaults(tmpEvent.id(), defaults));
@@ -467,6 +475,8 @@ class EventRepositoryTest extends RepositoryTestBase {
                 null,
                 false,
                 null,
+                null,
+                null,
                 null);
         var results = eventRepo.findFiltered(station.id(), null, null, null);
         assertTrue(results.stream().anyMatch(e -> e.id() == tmpEvent.id()));
@@ -490,6 +500,8 @@ class EventRepositoryTest extends RepositoryTestBase {
                 null,
                 false,
                 cat.id(),
+                null,
+                null,
                 null);
 
         var results = eventRepo.findFiltered(station.id(), member.id(), null, null);
@@ -516,6 +528,8 @@ class EventRepositoryTest extends RepositoryTestBase {
                 null,
                 false,
                 cat.id(),
+                null,
+                null,
                 null);
 
         var results = eventRepo.findFiltered(station.id(), null, cat.id(), null);
@@ -541,6 +555,8 @@ class EventRepositoryTest extends RepositoryTestBase {
                 true,
                 null,
                 false,
+                null,
+                null,
                 null,
                 null);
 
@@ -568,6 +584,8 @@ class EventRepositoryTest extends RepositoryTestBase {
                 null,
                 false,
                 cat.id(),
+                null,
+                null,
                 null);
 
         var results = eventRepo.findFiltered(station.id(), member.id(), cat.id(), true);
@@ -596,6 +614,8 @@ class EventRepositoryTest extends RepositoryTestBase {
                 false,
                 null,
                 false,
+                null,
+                null,
                 null));
     }
 
@@ -712,6 +732,8 @@ class EventRepositoryTest extends RepositoryTestBase {
                 null,
                 false,
                 null,
+                null,
+                null,
                 null);
 
         var reg = eventRepo.createRegistration(
@@ -739,6 +761,8 @@ class EventRepositoryTest extends RepositoryTestBase {
                 true,
                 null,
                 false,
+                null,
+                null,
                 null,
                 null);
 

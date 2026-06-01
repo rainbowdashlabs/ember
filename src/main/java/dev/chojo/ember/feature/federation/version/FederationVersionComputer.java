@@ -87,7 +87,7 @@ public final class FederationVersionComputer {
      * history JSON (hash → app version) only if that hash is not already present.
      * If a 4th argument is provided, the history JSON is also written there for the frontend.
      */
-    public static void main(String[] args) throws Exception {
+    static void main(String[] args) throws Exception {
         var mapper = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
         var hash = computeHash();
 

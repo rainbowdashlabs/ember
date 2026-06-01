@@ -64,6 +64,8 @@ public class BatchEventService {
                     request.registrationDeadline(),
                     request.requiresConfirmation() != null && request.requiresConfirmation(),
                     request.categoryId(),
+                    null,
+                    null,
                     null);
 
             if (request.restrictedRoleIds() != null

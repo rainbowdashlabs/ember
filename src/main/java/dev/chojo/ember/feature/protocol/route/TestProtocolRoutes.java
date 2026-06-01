@@ -41,6 +41,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
@@ -567,7 +568,7 @@ public class TestProtocolRoutes implements Routes {
 
     private void federatedGetProtocol(Context ctx) {
         var session = UserSession.from(ctx);
-        var stationUid = java.util.UUID.fromString(ctx.pathParam("stationuid"));
+        var stationUid = UUID.fromString(ctx.pathParam("stationuid"));
         int protocolId = ctx.pathParamAsClass("id", Integer.class).get();
         ctx.json(service.getFederatedProtocol(session.stationId(), stationUid, protocolId));
     }

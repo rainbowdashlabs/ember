@@ -69,8 +69,7 @@ class BoardServiceTest extends RepositoryTestBase {
                 boardTicketRepo,
                 boardRepo,
                 new DomainEventBus(Set.of()),
-                new dev.chojo.ember.feature.members.service.StationMemberService(
-                        stationMemberRepo, stationRepo, null, null),
+                new StationMemberService(stationMemberRepo, stationRepo, null, null),
                 memberIdentityFactory);
 
         station = stationRepo.create("BoardSvcStation");
@@ -413,7 +412,7 @@ class BoardServiceTest extends RepositoryTestBase {
         boardService.setViewAccess(boardId, List.of(), List.of(42), List.of());
         when(memberService.findRoles(member.id())).thenReturn(List.of());
         when(groupService.findGroupsForMember(member.id()))
-                .thenReturn(List.of(new MemberGroup(42, station.id(), "TestGroup")));
+                .thenReturn(List.of(new MemberGroup(42, station.id(), "TestGroup", null, 0)));
         assertTrue(boardService.canView(boardId, member.id()));
     }
 
@@ -423,7 +422,8 @@ class BoardServiceTest extends RepositoryTestBase {
         boardService.setViewAccess(boardId, List.of(), List.of(), List.of(77));
         when(memberService.findRoles(member.id())).thenReturn(List.of());
         when(groupService.findGroupsForMember(member.id())).thenReturn(List.of());
-        when(tagService.findTagsForMember(member.id())).thenReturn(List.of(new UserTag(77, station.id(), "TestTag")));
+        when(tagService.findTagsForMember(member.id()))
+                .thenReturn(List.of(new UserTag(77, station.id(), "TestTag", null, false, 0)));
         assertTrue(boardService.canView(boardId, member.id()));
     }
 

@@ -60,6 +60,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 
+@SuppressWarnings("DefaultAnnotationParam")
 @Singleton
 public class BoardTicketRoutes implements Routes {
     private final BoardTicketService ticketService;
@@ -627,7 +628,10 @@ public class BoardTicketRoutes implements Routes {
         int boardId = resolveBoardId(ctx, session.stationId());
         int ticketId = resolveTicketId(ctx, boardId);
         ctx.json(ticketService.findTransitions(ticketId).stream()
-                .map(tr -> BoardTicketTransitionResponse.from(tr, tr.actor(), memberNameResolver.resolve(tr.actor())))
+                .map(tr -> {
+                    var resolved = memberNameResolver.resolveDisplay(tr.actor());
+                    return BoardTicketTransitionResponse.from(tr, resolved.identity(), resolved.name());
+                })
                 .toList());
     }
 
@@ -1195,7 +1199,10 @@ public class BoardTicketRoutes implements Routes {
         requireViewAccess(boardId, session);
         int ticketId = resolveTicketId(ctx, boardId);
         ctx.json(ticketService.findHistory(ticketId).stream()
-                .map(h -> BoardTicketHistoryResponse.from(h, h.actor(), memberNameResolver.resolve(h.actor())))
+                .map(h -> {
+                    var resolved = memberNameResolver.resolveDisplay(h.actor());
+                    return BoardTicketHistoryResponse.from(h, resolved.identity(), resolved.name());
+                })
                 .toList());
     }
 
@@ -1234,13 +1241,13 @@ public class BoardTicketRoutes implements Routes {
                     comment.createdAt(),
                     null);
         }
-        String authorName = memberNameResolver.resolve(comment.author());
-        if (authorName == null) authorName = "";
+        var resolved = memberNameResolver.resolveDisplay(comment.author());
+        String authorName = resolved.name() != null ? resolved.name() : "";
         return new BoardCommentResponse(
                 comment.id(),
                 comment.ticketId(),
                 comment.parentId(),
-                comment.author(),
+                resolved.identity(),
                 authorName,
                 comment.content(),
                 false,

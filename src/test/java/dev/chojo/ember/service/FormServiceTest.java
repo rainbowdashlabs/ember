@@ -198,7 +198,7 @@ class FormServiceTest extends RepositoryTestBase {
         var qs = service.findQuestions(formId);
         int qId = qs.getFirst().id();
         var response = service.submitResponse(
-                formId, member.id(), member.id(), Map.of(qId, (FormAnswerValue) new FormAnswerValue.Text("John Doe")));
+                formId, member.id(), member.id(), Map.of(qId, new FormAnswerValue.Text("John Doe")));
         assertNotNull(response);
         assertEquals(formId, response.formId());
     }

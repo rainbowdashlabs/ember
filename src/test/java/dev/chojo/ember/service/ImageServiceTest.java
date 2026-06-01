@@ -87,7 +87,7 @@ class ImageServiceTest {
 
     @Test
     @Order(2)
-    void readReturnsCorrectSize() throws IOException {
+    void readReturnsCorrectSize() {
         var original = imageService.read(ImageCategory.AVATARS, "1", 0);
         assertTrue(original.isPresent());
         assertEquals("image/png", original.get().contentType());
@@ -100,7 +100,7 @@ class ImageServiceTest {
 
     @Test
     @Order(3)
-    void readFallsBackToOriginalForUnknownSize() throws IOException {
+    void readFallsBackToOriginalForUnknownSize() {
         var result = imageService.read(ImageCategory.AVATARS, "1", 9999);
         assertTrue(result.isPresent()); // falls back to original
     }
@@ -235,7 +235,7 @@ class ImageServiceTest {
 
     @Test
     @Order(52)
-    void readWebpFallsBackToOriginalForSize() throws IOException {
+    void readWebpFallsBackToOriginalForSize() {
         // The webp-test image was stored in order 51 — reading a specific size falls back to original
         var result = imageService.read(ImageCategory.AVATARS, "webp-test", 256);
         assertTrue(result.isPresent());

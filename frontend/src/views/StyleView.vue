@@ -125,6 +125,7 @@ import type { LogoLayer } from '@/components/display/LayeredEmberLogo.vue'
 
 const toggleStates = ref(new Set([1, 3]))
 const pridePreview = ref(true)
+const logoShake = ref(false)
 
 const logoLayers: LogoLayer[] = [
   { name: 'fire_glow', label: 'Glow' },
@@ -242,6 +243,7 @@ function toggleDecoration(name: string) {
           :active-layers="activeLogoLayers"
           :auto-blink="logoAutoBlink"
           :gaze-positions="logoGazePositions"
+          :bounce="logoShake"
           size="w-48 h-48"
           :pixel-size="512"
           @update:active-layers="activeLogoLayers = $event"
@@ -250,6 +252,10 @@ function toggleDecoration(name: string) {
           <label class="flex items-center gap-2 mb-1">
             <ToggleInput v-model="logoAutoBlink"/>
             <span class="text-xs font-medium text-(--text-muted)">Blinzeln</span>
+          </label>
+          <label class="flex items-center gap-2 mb-1">
+            <ToggleInput v-model="logoShake"/>
+            <span class="text-xs font-medium text-(--text-muted)">Hüpfen</span>
           </label>
           <div>
             <p class="text-xs font-medium text-(--text-muted) mb-1">Blickrichtung</p>

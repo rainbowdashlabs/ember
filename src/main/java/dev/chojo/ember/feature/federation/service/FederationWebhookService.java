@@ -143,9 +143,6 @@ public class FederationWebhookService {
     }
 
     /**
-     * Webhook event types for federation notifications.
-     */
-    /**
      * Fires a webhook event to a specific partner.
      */
     public void fireEventToPartner(int partnerId, WebhookEvent event, Map<String, Object> payload) {

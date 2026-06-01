@@ -100,6 +100,8 @@ class GdprExportServiceTest extends RepositoryTestBase {
                 null,
                 false,
                 null,
+                null,
+                null,
                 null);
         eventRepo.createRegistration(event.id(), member.id(), LocalDate.now(), RegistrationStatus.ACCEPTED, null);
 

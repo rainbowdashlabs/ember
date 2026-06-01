@@ -43,16 +43,16 @@ public record RestrictionSet(List<Restriction> restrictions, RestrictionMode mod
         }
 
         var roleRestrictions = restrictions.stream()
-                .filter(r -> r.roleId() != null)
                 .map(Restriction::roleId)
+                .filter(integer -> integer != null)
                 .toList();
         var groupRestrictions = restrictions.stream()
-                .filter(r -> r.groupId() != null)
                 .map(Restriction::groupId)
+                .filter(integer -> integer != null)
                 .toList();
         var tagRestrictions = restrictions.stream()
-                .filter(r -> r.tagId() != null)
                 .map(Restriction::tagId)
+                .filter(integer -> integer != null)
                 .toList();
 
         if (mode == OR) {
@@ -86,29 +86,29 @@ public record RestrictionSet(List<Restriction> restrictions, RestrictionMode mod
 
     public List<Integer> roleIds() {
         return restrictions.stream()
-                .filter(r -> r.roleId() != null)
                 .map(Restriction::roleId)
+                .filter(integer -> integer != null)
                 .toList();
     }
 
     public List<Integer> groupIds() {
         return restrictions.stream()
-                .filter(r -> r.groupId() != null)
                 .map(Restriction::groupId)
+                .filter(integer -> integer != null)
                 .toList();
     }
 
     public List<Integer> tagIds() {
         return restrictions.stream()
-                .filter(r -> r.tagId() != null)
                 .map(Restriction::tagId)
+                .filter(integer -> integer != null)
                 .toList();
     }
 
     public List<Integer> memberIds() {
         return restrictions.stream()
-                .filter(r -> r.memberId() != null)
                 .map(Restriction::memberId)
+                .filter(integer -> integer != null)
                 .toList();
     }
 }

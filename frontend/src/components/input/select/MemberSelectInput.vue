@@ -6,11 +6,12 @@
 <script lang="ts" setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import UserAvatar from '@/components/avatar/UserAvatar.vue'
+import type { MemberCompletion } from '@/api/stationMembers'
 
 const model = defineModel<string>({ default: '' })
 
 const props = defineProps<{
-    members: { id: number; name: string }[]
+    members: MemberCompletion[]
     placeholder?: string
     disabled?: boolean
     autoOpen?: boolean
@@ -73,7 +74,7 @@ onBeforeUnmount(() => document.removeEventListener('click', handleClickOutside))
             @click="open = !open"
         >
             <template v-if="selectedMember">
-                <UserAvatar :member-id="selectedMember.id" :name="selectedMember.name" size="sm" />
+                <UserAvatar :identity="selectedMember" :name="selectedMember.name" size="sm" />
                 <span class="flex-1">{{ selectedMember.name }}</span>
             </template>
             <span v-else class="flex-1 text-(--text-muted)">{{ placeholder ?? '—' }}</span>
@@ -105,7 +106,7 @@ onBeforeUnmount(() => document.removeEventListener('click', handleClickOutside))
                 class="w-full flex items-center gap-2 px-3 py-2 text-sm text-left transition-colors"
                 @click="select(m.id)"
             >
-                <UserAvatar :member-id="m.id" :name="m.name" size="sm" />
+                <UserAvatar :identity="m" :name="m.name" size="sm" />
                 <span>{{ m.name }}</span>
             </button>
         </div>

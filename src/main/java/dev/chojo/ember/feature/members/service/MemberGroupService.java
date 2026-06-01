@@ -59,8 +59,8 @@ public class MemberGroupService {
         return groupRepository.create(stationId, name);
     }
 
-    public Optional<MemberGroup> update(int id, String name) {
-        if (groupRepository.update(id, name)) {
+    public Optional<MemberGroup> update(int id, String name, String color, int position) {
+        if (groupRepository.update(id, name, color, position)) {
             return groupRepository.findById(id);
         }
         return Optional.empty();

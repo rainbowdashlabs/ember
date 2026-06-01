@@ -228,7 +228,7 @@ watch(loaded, (isLoaded) => {
             <div class="flex items-center justify-between flex-wrap gap-2">
               <div>
                 <span v-if="managedMembers.length > 0"
-                      class="text-sm font-semibold mr-2"><MemberName :name="getMemberName(absence.memberId)" :member-id="absence.memberId"/></span>
+                      class="text-sm font-semibold mr-2"><MemberName :name="getMemberName(absence.memberId)"/></span>
                 <span class="text-sm">{{ formatDate(absence.absentFrom) }} – {{
                     formatDate(absence.absentUntil)
                   }}</span>

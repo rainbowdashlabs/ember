@@ -66,7 +66,7 @@ function formatTime(iso?: string): string {
             v-else
             :icon="['fas', 'asterisk']" class="h-4 w-4 text-(--text-muted) shrink-0"
         />
-        <MemberName :name="memberName" :member-id="member.id" class="font-medium text-sm truncate"/>
+        <MemberName :name="memberName" :identity="member.identity" class="font-medium text-sm truncate"/>
       </div>
       <div v-if="entry" class="flex flex-col sm:flex-row sm:items-center gap-2">
         <!-- Status buttons -->

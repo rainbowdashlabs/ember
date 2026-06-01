@@ -525,7 +525,7 @@ class BoardRepositoryTest extends RepositoryTestBase {
         assertTrue(boardTicketRepo.assignTicket(ticketId1, memberIdentityFactory.local(station.id(), member.id())));
         var ticket = boardTicketRepo.findById(ticketId1).orElseThrow();
         assertNotNull(ticket.assignee());
-        boardTicketRepo.assignTicket(ticketId1, (MemberIdentity) null);
+        boardTicketRepo.assignTicket(ticketId1, null);
     }
 
     // -- Lane entered at --

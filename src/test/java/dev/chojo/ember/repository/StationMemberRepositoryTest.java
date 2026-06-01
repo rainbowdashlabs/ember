@@ -18,6 +18,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 
 import java.util.List;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -166,9 +167,7 @@ class StationMemberRepositoryTest extends RepositoryTestBase {
         assertEquals(memberId1, found.get().id());
 
         // non-existent UID returns empty
-        assertTrue(stationMemberRepo
-                .findByUid(station.id(), java.util.UUID.randomUUID())
-                .isEmpty());
+        assertTrue(stationMemberRepo.findByUid(station.id(), UUID.randomUUID()).isEmpty());
     }
 
     @Test

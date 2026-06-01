@@ -77,7 +77,7 @@ function handleRowClick(member: StationMember) {
       <div class="flex items-center justify-between">
         <div class="flex items-center gap-2">
           <CheckboxInput v-if="exportMode" :model-value="selectedForExport.has(member.id)" @update:model-value="emit('toggleExportSelection', member.id)" />
-          <UserAvatar :member-id="member.id" :name="memberDisplayName(member)" size="sm" />
+          <UserAvatar :identity="member.identity" :name="memberDisplayName(member)" size="sm" />
           <span class="font-medium text-primary text-sm">{{ memberDisplayName(member) }}</span>
         </div>
       </div>
@@ -119,7 +119,7 @@ function handleRowClick(member: StationMember) {
           </td>
           <Td class="font-medium text-primary">
             <div class="flex items-center gap-2">
-              <UserAvatar :member-id="member.id" :name="memberDisplayName(member)" size="sm" />
+              <UserAvatar :identity="member.identity" :name="memberDisplayName(member)" size="sm" />
               {{ memberDisplayName(member) }}
             </div>
           </Td>

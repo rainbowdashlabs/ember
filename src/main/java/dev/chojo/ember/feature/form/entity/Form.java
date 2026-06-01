@@ -34,8 +34,7 @@ public record Form(
         if (status != FormStatus.OPEN) return false;
         var now = Instant.now();
         if (startAt != null && now.isBefore(startAt)) return false;
-        if (endAt != null && now.isAfter(endAt)) return false;
-        return true;
+        return endAt == null || !now.isAfter(endAt);
     }
 
     public static RowMapping<Form> map() {

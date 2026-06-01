@@ -37,7 +37,7 @@ const emit = defineEmits<{
     <SectionHeader>{{ t('attendanceSession.checkMode') }}</SectionHeader>
     <div class="text-center space-y-4 py-4">
       <p class="text-2xl font-bold">
-        <MemberName :name="memberName" :member-id="currentEntry.memberId" size="md"/>
+        <MemberName :name="memberName" size="md"/>
       </p>
       <p class="text-sm text-(--text-muted)">{{ checkIndex + 1 }} / {{ totalUnchecked }}</p>
       <div class="flex flex-col sm:flex-row justify-center gap-3 sm:gap-4">

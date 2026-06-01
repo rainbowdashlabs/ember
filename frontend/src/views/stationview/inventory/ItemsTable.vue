@@ -72,6 +72,12 @@ function getMemberName(memberId: number | null | undefined): string {
   return m ? (m.name && m.name.trim() ? m.name : m.email ?? `#${m.id}`) : `#${memberId}`
 }
 
+function getMemberIdentity(memberId: number | null | undefined) {
+  if (!memberId || !props.members) return undefined
+  const m = props.members.get(memberId)
+  return m?.identity
+}
+
 function formatDate(iso: string | null | undefined): string {
   if (!iso) return ''
   return new Date(iso).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })
@@ -108,7 +114,7 @@ function formatDate(iso: string | null | undefined): string {
         <div v-if="item.assignedTo">
           <span class="text-(--text-muted)">{{ t('inventory.edit.colAssigned') }}:</span>
           <SecondaryButton class="!bg-transparent !p-0 ml-1 text-primary font-medium hover:underline" @click.stop="router.push({ name: 'inventory-member', params: { memberId: item.assignedTo } })">
-            <MemberName :name="getMemberName(item.assignedTo)" :member-id="item.assignedTo"/>
+            <MemberName :name="getMemberName(item.assignedTo)" :identity="getMemberIdentity(item.assignedTo)"/>
           </SecondaryButton>
         </div>
       </div>
@@ -163,7 +169,7 @@ function formatDate(iso: string | null | undefined): string {
             <span v-else class="text-(--text-muted)">–</span>
           </Td>
           <Td>
-            <SecondaryButton v-if="item.assignedTo" class="!bg-transparent !p-0 text-primary font-medium hover:underline" @click.stop="router.push({ name: 'inventory-member', params: { memberId: item.assignedTo } })"><MemberName :name="getMemberName(item.assignedTo)" :member-id="item.assignedTo"/></SecondaryButton>
+            <SecondaryButton v-if="item.assignedTo" class="!bg-transparent !p-0 text-primary font-medium hover:underline" @click.stop="router.push({ name: 'inventory-member', params: { memberId: item.assignedTo } })"><MemberName :name="getMemberName(item.assignedTo)" :identity="getMemberIdentity(item.assignedTo)"/></SecondaryButton>
             <span v-else class="text-(--text-muted)">–</span>
           </Td>
           <Td v-if="showActions" align="right">
