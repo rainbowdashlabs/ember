@@ -67,7 +67,8 @@ class KnowledgeBaseServiceTest extends RepositoryTestBase {
                 federationRepo,
                 httpClient,
                 kbCommentRepo,
-                eventFedRepo);
+                eventFedRepo,
+                memberIdentityFactory);
         station = stationRepo.create("KbSvcStation");
         stationB = stationRepo.create("KbSvcStationB");
         account = accountRepo.create("kb-svc@test.com", "Kb", "SvcTester");

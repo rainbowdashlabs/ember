@@ -402,4 +402,15 @@ public class WaitingListRepository {
                         .bind("value", value))
                 .insert();
     }
+
+    public int countPendingEntries(int stationId) {
+        return Query.query("""
+                        SELECT count(*) AS cnt FROM waiting_list_entry wle
+                        JOIN waiting_list wl ON wl.id = wle.list_id
+                        WHERE wl.station_id = :station_id AND wle.status = 'WAITING';""")
+                .single(Call.of().bind("station_id", stationId))
+                .map(row -> row.getInt("cnt"))
+                .first()
+                .orElse(0);
+    }
 }

@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.members.service;
 
+import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.api.Roles;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.account.service.AuthService;
@@ -20,6 +21,7 @@ import jakarta.inject.Singleton;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 
 /**
  * Service for station member operations including membership queries, role management
@@ -54,6 +56,18 @@ public class StationMemberService {
 
     public Optional<StationMember> findById(int id) {
         return memberRepository.findById(id);
+    }
+
+    public UUID resolveUid(int memberId) {
+        return memberRepository.resolveUid(memberId);
+    }
+
+    public Optional<Integer> resolveId(int stationId, UUID memberUid) {
+        return memberRepository.resolveId(stationId, memberUid);
+    }
+
+    public MemberIdentity resolveIdentity(int memberId) {
+        return memberRepository.resolveIdentity(memberId);
     }
 
     public List<StationMember> findByAccount(int accountId) {

@@ -7,10 +7,6 @@ package dev.chojo.ember.feature.board.service;
 
 import dev.chojo.ember.feature.board.entity.AccessData;
 import dev.chojo.ember.feature.board.entity.BoardShareMode;
-import dev.chojo.ember.feature.board.entity.BoardTicketFederatedAssignee;
-import dev.chojo.ember.feature.board.entity.BoardTicketFederatedCommentAuthor;
-import dev.chojo.ember.feature.board.entity.BoardTicketFederatedCreator;
-import dev.chojo.ember.feature.board.entity.BoardTicketFederatedWatcher;
 import dev.chojo.ember.feature.board.entity.FederationBoardBookmark;
 import dev.chojo.ember.feature.board.entity.FederationBoardShare;
 import dev.chojo.ember.feature.board.entity.FederationBoardShareTarget;
@@ -20,7 +16,6 @@ import jakarta.inject.Singleton;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 
 /**
  * Manages board sharing configuration and federated operations on the owning station.
@@ -101,58 +96,6 @@ public class FederatedBoardService {
 
     public List<Integer> findFederatedEditRoles(int boardId) {
         return repository.findFederatedEditRoles(boardId);
-    }
-
-    // -- Federated Assignees --
-
-    public void setFederatedAssignee(int ticketId, int partnerId, UUID remoteMemberId) {
-        repository.setFederatedAssignee(ticketId, partnerId, remoteMemberId);
-    }
-
-    public void removeFederatedAssignee(int ticketId) {
-        repository.removeFederatedAssignee(ticketId);
-    }
-
-    public Optional<BoardTicketFederatedAssignee> findFederatedAssignee(int ticketId) {
-        return repository.findFederatedAssignee(ticketId);
-    }
-
-    // -- Federated Comment Authors --
-
-    public void setFederatedCommentAuthor(int commentId, int partnerId, UUID remoteMemberId) {
-        repository.setFederatedCommentAuthor(commentId, partnerId, remoteMemberId);
-    }
-
-    public Optional<BoardTicketFederatedCommentAuthor> findFederatedCommentAuthor(int commentId) {
-        return repository.findFederatedCommentAuthor(commentId);
-    }
-
-    // -- Federated Creators --
-
-    public void setFederatedCreator(int ticketId, int partnerId, UUID remoteMemberId) {
-        repository.setFederatedCreator(ticketId, partnerId, remoteMemberId);
-    }
-
-    public Optional<BoardTicketFederatedCreator> findFederatedCreator(int ticketId) {
-        return repository.findFederatedCreator(ticketId);
-    }
-
-    // -- Federated Watchers --
-
-    public void addFederatedWatcher(int ticketId, int partnerId, UUID remoteMemberId) {
-        repository.addFederatedWatcher(ticketId, partnerId, remoteMemberId);
-    }
-
-    public void removeFederatedWatcher(int ticketId, int partnerId, UUID remoteMemberId) {
-        repository.removeFederatedWatcher(ticketId, partnerId, remoteMemberId);
-    }
-
-    public List<BoardTicketFederatedWatcher> findFederatedWatchers(int ticketId) {
-        return repository.findFederatedWatchers(ticketId);
-    }
-
-    public boolean isFederatedWatching(int ticketId, int partnerId, UUID remoteMemberId) {
-        return repository.isFederatedWatching(ticketId, partnerId, remoteMemberId);
     }
 
     // -- Bookmarks --

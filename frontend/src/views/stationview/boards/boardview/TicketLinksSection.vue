@@ -29,6 +29,7 @@ const props = defineProps<{
     showAddLink: boolean
     showAddWeblink: boolean
     readonly?: boolean
+    partnerUid?: string
 }>()
 
 const emit = defineEmits<{
@@ -38,6 +39,13 @@ const emit = defineEmits<{
     addFile: []
 }>()
 const { t } = useI18n()
+
+function ticketPath(ticketNumber: number): string {
+    if (props.partnerUid) {
+        return `/station/federation/boards/${props.partnerUid}/${props.boardKey}/tickets/${ticketNumber}`
+    }
+    return `/station/boards/${props.boardKey}/tickets/${ticketNumber}`
+}
 
 const linkSearchQuery = ref('')
 const linkType = ref<LinkTypeName>(LinkType.RELATES_TO)
@@ -171,7 +179,7 @@ const hasAnyContent = computed(() => props.links.length > 0 || props.weblinks.le
                 <div class="text-xs font-semibold text-(--text-muted) uppercase tracking-wide mb-1">{{ linkTypeLabel(type as string) }}</div>
                 <div class="divide-y divide-(--border) border border-(--border) rounded-theme overflow-hidden">
                     <div v-for="{ link, linkedTicket } in items" :key="`${link.ticketId}-${link.linkedTicketId}`" class="flex items-center gap-3 px-3 py-2 text-sm group hover:bg-primary/5">
-                        <router-link :to="`/station/boards/${boardKey}/tickets/${linkedTicket?.ticketNumber ?? 0}`" class="flex items-center gap-2 flex-1 min-w-0">
+                        <router-link :to="ticketPath(linkedTicket?.ticketNumber ?? 0)" class="flex items-center gap-2 flex-1 min-w-0">
                             <span class="font-mono text-(--text-muted) shrink-0">{{ shortKey }}-{{ linkedTicket?.ticketNumber }}</span>
                             <span class="truncate">{{ linkedTicket?.title ?? '?' }}</span>
                         </router-link>

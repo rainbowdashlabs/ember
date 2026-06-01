@@ -5,7 +5,6 @@
  */
 package dev.chojo.ember.service;
 
-import dev.chojo.ember.api.StationUidResolver;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.federation.entity.CapabilityType;
 import dev.chojo.ember.feature.federation.entity.ChangeType;
@@ -43,7 +42,6 @@ class FederationServiceTest extends RepositoryTestBase {
 
     @BeforeAll
     static void setup() {
-        StationUidResolver.instance().clearCache();
         federationRepo = new FederationRepository();
         service = new FederationService(federationRepo, stationRepo, new Api());
 

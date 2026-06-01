@@ -27,10 +27,12 @@ import {lostAndFound} from '@/api'
 import client from '@/api/client'
 import type {LostAndFoundItem} from '@/api/types'
 import {useSession} from '@/composables/useSession'
+import {useSidebarCounts} from '@/composables/useSidebarCounts'
 import {Roles} from '@/api/types'
 
 const {t} = useI18n()
 const {hasRole, sessionInfo} = useSession()
+const {refresh: refreshSidebarCounts} = useSidebarCounts()
 const isManager = () => hasRole(Roles.LOST_AND_FOUND_MANAGER)
 const myMemberId = () => sessionInfo.value?.member?.id
 
@@ -140,6 +142,7 @@ async function confirmClaim() {
     await lostAndFound.claimItem(confirmItemId.value)
     showClaimConfirm.value = false
     await loadItems()
+    refreshSidebarCounts()
   } catch {
     error.value = t('common.error')
   }
@@ -159,6 +162,7 @@ async function confirmProvided() {
     await lostAndFound.markProvided(confirmItemId.value)
     showProvidedConfirm.value = false
     await loadItems()
+    refreshSidebarCounts()
   } catch {
     error.value = t('common.error')
   }

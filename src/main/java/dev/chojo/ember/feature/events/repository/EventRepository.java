@@ -691,4 +691,15 @@ public class EventRepository {
                 .map(EventRegistration.map())
                 .first();
     }
+
+    public int countPendingRegistrations(int stationId) {
+        return Query.query("""
+                        SELECT count(*) AS cnt FROM event_registration er
+                        JOIN station_event se ON er.event_id = se.id
+                        WHERE se.station_id = :station_id AND er.status = 'PENDING';""")
+                .single(Call.of().bind("station_id", stationId))
+                .map(row -> row.getInt("cnt"))
+                .first()
+                .orElse(0);
+    }
 }

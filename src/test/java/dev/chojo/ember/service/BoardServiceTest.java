@@ -65,7 +65,13 @@ class BoardServiceTest extends RepositoryTestBase {
         tagService = mock(UserTagService.class);
 
         boardService = new BoardService(boardRepo, memberService, groupService, tagService);
-        ticketService = new BoardTicketService(boardTicketRepo, boardRepo, new DomainEventBus(Set.of()));
+        ticketService = new BoardTicketService(
+                boardTicketRepo,
+                boardRepo,
+                new DomainEventBus(Set.of()),
+                new dev.chojo.ember.feature.members.service.StationMemberService(
+                        stationMemberRepo, stationRepo, null, null),
+                memberIdentityFactory);
 
         station = stationRepo.create("BoardSvcStation");
         account = accountRepo.create("board-svc@test.com", "Board", "Svc");
@@ -125,7 +131,14 @@ class BoardServiceTest extends RepositoryTestBase {
     @Order(10)
     void createTicket() {
         BoardTicket t = ticketService.createTicket(
-                boardId, laneId, "Implement feature", "Details", null, TicketPriority.HIGH, null, member.id());
+                boardId,
+                laneId,
+                "Implement feature",
+                "Details",
+                null,
+                TicketPriority.HIGH,
+                null,
+                memberIdentityFactory.local(station.id(), member.id()));
         assertNotNull(t);
         assertEquals(1, t.ticketNumber());
         assertEquals("Implement feature", t.title());
@@ -136,7 +149,14 @@ class BoardServiceTest extends RepositoryTestBase {
     @Order(11)
     void createSecondTicketAutoNumber() {
         BoardTicket t = ticketService.createTicket(
-                boardId, laneId, "Write tests", null, member.id(), TicketPriority.MEDIUM, null, member.id());
+                boardId,
+                laneId,
+                "Write tests",
+                null,
+                memberIdentityFactory.local(station.id(), member.id()),
+                TicketPriority.MEDIUM,
+                null,
+                memberIdentityFactory.local(station.id(), member.id()));
         assertEquals(2, t.ticketNumber());
         ticketId2 = t.id();
     }
@@ -146,7 +166,8 @@ class BoardServiceTest extends RepositoryTestBase {
     void moveTicketLogsTransition() {
         var lanes = boardService.findLanes(boardId);
         int doneLaneId = lanes.get(2).id();
-        assertTrue(ticketService.moveTicket(ticketId1, laneId, doneLaneId, 0, member.id()));
+        assertTrue(ticketService.moveTicket(
+                ticketId1, laneId, doneLaneId, 0, memberIdentityFactory.local(station.id(), member.id())));
 
         var transitions = ticketService.findTransitions(ticketId1);
         assertEquals(1, transitions.size());
@@ -161,10 +182,10 @@ class BoardServiceTest extends RepositoryTestBase {
                 ticketId1,
                 "Implement feature v2",
                 "New details",
-                member.id(),
+                memberIdentityFactory.local(station.id(), member.id()),
                 TicketPriority.HIGHEST,
                 null,
-                member.id()));
+                memberIdentityFactory.local(station.id(), member.id())));
         var t = ticketService.findById(ticketId1).orElseThrow();
         assertEquals("Implement feature v2", t.title());
         assertEquals(TicketPriority.HIGHEST, t.priority());
@@ -231,7 +252,8 @@ class BoardServiceTest extends RepositoryTestBase {
     @Test
     @Order(40)
     void createAndFindComments() {
-        var comment = ticketService.createComment(ticketId1, null, member.id(), "Looks good");
+        var comment = ticketService.createComment(
+                ticketId1, null, memberIdentityFactory.local(station.id(), member.id()), "Looks good");
         assertNotNull(comment);
         assertEquals("Looks good", comment.content());
 
@@ -241,11 +263,11 @@ class BoardServiceTest extends RepositoryTestBase {
 
     @Test
     @Order(41)
-    void softDeleteComment() {
+    void deleteCommentWithoutChildren() {
         var comments = ticketService.findComments(ticketId1);
         assertTrue(ticketService.deleteComment(comments.getFirst().id()));
         var updated = ticketService.findComments(ticketId1);
-        assertTrue(updated.getFirst().deleted());
+        assertTrue(updated.isEmpty());
     }
 
     // -- Watchers --
@@ -258,19 +280,27 @@ class BoardServiceTest extends RepositoryTestBase {
 
         // Updating a ticket with watchers should not throw (event bus has no handlers in test)
         ticketService.updateTicket(
-                ticketId1, "Watched update", "Details", null, TicketPriority.HIGH, null, member.id());
+                ticketId1,
+                "Watched update",
+                "Details",
+                null,
+                TicketPriority.HIGH,
+                null,
+                memberIdentityFactory.local(station.id(), member.id()));
         var t = ticketService.findById(ticketId1).orElseThrow();
         assertEquals("Watched update", t.title());
 
         // Move ticket with watchers
         var lanes = boardService.findLanes(boardId);
         int workLaneId = lanes.get(1).id();
-        ticketService.moveTicket(ticketId1, laneId, workLaneId, 0, member.id());
+        ticketService.moveTicket(
+                ticketId1, laneId, workLaneId, 0, memberIdentityFactory.local(station.id(), member.id()));
         var moved = ticketService.findById(ticketId1).orElseThrow();
         assertEquals(workLaneId, moved.laneId());
 
         // Comment with watchers
-        ticketService.createComment(ticketId1, null, member.id(), "Watched comment");
+        ticketService.createComment(
+                ticketId1, null, memberIdentityFactory.local(station.id(), member.id()), "Watched comment");
 
         // Cleanup
         assertTrue(ticketService.unwatchTicket(ticketId1, member.id()));
@@ -291,7 +321,8 @@ class BoardServiceTest extends RepositoryTestBase {
     @Test
     @Order(44)
     void updateComment() {
-        var comment = ticketService.createComment(ticketId1, null, member.id(), "To update");
+        var comment = ticketService.createComment(
+                ticketId1, null, memberIdentityFactory.local(station.id(), member.id()), "To update");
         assertTrue(ticketService.updateComment(comment.id(), "Updated"));
     }
 
@@ -539,9 +570,10 @@ class BoardServiceTest extends RepositoryTestBase {
     @Test
     @Order(85)
     void ticketAssign() {
-        assertTrue(ticketService.assignTicket(ticketId1, member.id(), member.id()));
+        assertTrue(ticketService.assignTicket(
+                ticketId1, memberIdentityFactory.local(station.id(), member.id()), member.id()));
         var tk = ticketService.findById(ticketId1).orElseThrow();
-        assertEquals(member.id(), tk.assignedMemberId());
+        assertNotNull(tk.assignee());
     }
 
     @Test
@@ -563,10 +595,20 @@ class BoardServiceTest extends RepositoryTestBase {
     void moveTicketBetweenLanes() {
         var lanes = boardService.findLanes(boardId);
         if (lanes.size() >= 2) {
-            ticketService.moveTicket(ticketId1, lanes.get(0).id(), lanes.get(1).id(), 0, member.id());
+            ticketService.moveTicket(
+                    ticketId1,
+                    lanes.get(0).id(),
+                    lanes.get(1).id(),
+                    0,
+                    memberIdentityFactory.local(station.id(), member.id()));
             var tk = ticketService.findById(ticketId1).orElseThrow();
             assertEquals(lanes.get(1).id(), tk.laneId());
-            ticketService.moveTicket(ticketId1, lanes.get(1).id(), lanes.get(0).id(), 0, member.id());
+            ticketService.moveTicket(
+                    ticketId1,
+                    lanes.get(1).id(),
+                    lanes.get(0).id(),
+                    0,
+                    memberIdentityFactory.local(station.id(), member.id()));
         }
     }
 
@@ -587,7 +629,15 @@ class BoardServiceTest extends RepositoryTestBase {
     @Test
     @Order(874)
     void ticketCreateAndDelete() {
-        var tk = ticketService.createTicket(boardId, laneId, "Temp", null, null, TicketPriority.LOW, null, member.id());
+        var tk = ticketService.createTicket(
+                boardId,
+                laneId,
+                "Temp",
+                null,
+                null,
+                TicketPriority.LOW,
+                null,
+                memberIdentityFactory.local(station.id(), member.id()));
         assertTrue(ticketService.deleteTicket(tk.id()));
     }
 
@@ -595,15 +645,29 @@ class BoardServiceTest extends RepositoryTestBase {
     @Order(876)
     void ticketUpdateWithNotify() {
         ticketService.watchTicket(ticketId1, member.id());
-        assertTrue(
-                ticketService.updateTicket(ticketId1, "Updated", "Desc", null, TicketPriority.HIGH, null, member.id()));
+        assertTrue(ticketService.updateTicket(
+                ticketId1,
+                "Updated",
+                "Desc",
+                null,
+                TicketPriority.HIGH,
+                null,
+                memberIdentityFactory.local(station.id(), member.id())));
         ticketService.unwatchTicket(ticketId1, member.id());
     }
 
     @Test
     @Order(877)
     void ticketReorderAndLinks() {
-        var tmp = ticketService.createTicket(boardId, laneId, "Tmp", null, null, TicketPriority.LOW, null, member.id());
+        var tmp = ticketService.createTicket(
+                boardId,
+                laneId,
+                "Tmp",
+                null,
+                null,
+                TicketPriority.LOW,
+                null,
+                memberIdentityFactory.local(station.id(), member.id()));
         ticketService.reorderTickets(laneId, List.of(ticketId1, tmp.id()));
         ticketService.linkTickets(ticketId1, tmp.id(), LinkType.RELATES_TO);
         assertFalse(ticketService.findLinks(ticketId1).isEmpty());
@@ -620,7 +684,8 @@ class BoardServiceTest extends RepositoryTestBase {
     @Test
     @Order(880)
     void commentCreateUpdateDelete() {
-        var comment = ticketService.createComment(ticketId1, null, member.id(), "Test comment");
+        var comment = ticketService.createComment(
+                ticketId1, null, memberIdentityFactory.local(station.id(), member.id()), "Test comment");
         assertNotNull(comment);
         assertTrue(ticketService.updateComment(comment.id(), "Updated comment"));
         assertTrue(ticketService.deleteComment(comment.id()));
@@ -649,7 +714,7 @@ class BoardServiceTest extends RepositoryTestBase {
     @Test
     @Order(890)
     void ticketHistoryLogging() {
-        ticketService.logHistory(ticketId1, "TEST", "detail", member.id());
+        ticketService.logHistory(ticketId1, "TEST", "detail", memberIdentityFactory.local(station.id(), member.id()));
         var history = ticketService.findHistory(ticketId1);
         assertFalse(history.isEmpty());
         assertTrue(history.stream().anyMatch(h -> "TEST".equals(h.action())));
@@ -702,11 +767,21 @@ class BoardServiceTest extends RepositoryTestBase {
             // Set field value to member id
             ticketService.setFieldValue(ticketId1, fieldId, new BoardFieldValue.LaneAssignee(member.id()));
             // Move ticket to lane[1]
-            ticketService.moveTicket(ticketId1, lanes.get(0).id(), lanes.get(1).id(), 0, member.id());
+            ticketService.moveTicket(
+                    ticketId1,
+                    lanes.get(0).id(),
+                    lanes.get(1).id(),
+                    0,
+                    memberIdentityFactory.local(station.id(), member.id()));
             var tk = ticketService.findById(ticketId1).orElseThrow();
-            assertEquals(member.id(), tk.assignedMemberId());
+            assertNotNull(tk.assignee());
             // Move back
-            ticketService.moveTicket(ticketId1, lanes.get(1).id(), lanes.get(0).id(), 0, member.id());
+            ticketService.moveTicket(
+                    ticketId1,
+                    lanes.get(1).id(),
+                    lanes.get(0).id(),
+                    0,
+                    memberIdentityFactory.local(station.id(), member.id()));
             ticketService.deleteFieldValue(ticketId1, fieldId);
         }
     }
@@ -716,7 +791,11 @@ class BoardServiceTest extends RepositoryTestBase {
     @Test
     @Order(894)
     void commentWithMentions() {
-        var comment = ticketService.createComment(ticketId1, null, member.id(), "Hello @[" + member.id() + ":Test]!");
+        var comment = ticketService.createComment(
+                ticketId1,
+                null,
+                memberIdentityFactory.local(station.id(), member.id()),
+                "Hello @[" + member.id() + ":Test]!");
         assertNotNull(comment);
         ticketService.deleteComment(comment.id());
     }

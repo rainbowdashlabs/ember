@@ -346,4 +346,13 @@ public class FederationRepository {
                 .map(FederationChangeLog.map())
                 .all();
     }
+
+    public int countPendingRequests(UUID stationUid) {
+        return Query.query(
+                        "SELECT count(*) AS cnt FROM federation_partner WHERE partner_station_id = :uid::uuid AND status = 'PENDING';")
+                .single(Call.of().bind("uid", stationUid, UUID_STRING))
+                .map(row -> row.getInt("cnt"))
+                .first()
+                .orElse(0);
+    }
 }

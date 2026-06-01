@@ -7,7 +7,6 @@ package dev.chojo.ember.feature.news.repository;
 
 import de.chojo.sadu.queries.api.call.Call;
 import de.chojo.sadu.queries.api.query.Query;
-import de.chojo.sadu.queries.converter.StandardValueConverter;
 import dev.chojo.ember.feature.news.entity.NewsCommentFederatedAuthor;
 import dev.chojo.ember.feature.news.entity.NewsFederationShare;
 import jakarta.inject.Singleton;
@@ -140,38 +139,20 @@ public class NewsFederationRepository {
                 .first();
     }
 
-    // -- Federated comment author tracking --
+    // -- Federated comment author (no-op since satellite table removed, identity is inline) --
 
     /**
-     * Records the federated author for a news comment.
-     *
-     * @param commentId      the local comment ID
-     * @param partnerId      the federation partner ID
-     * @param remoteMemberId the remote member UUID
+     * No-op: satellite table removed. Identity is now stored inline in news_comment columns.
      */
     public void setFederatedCommentAuthor(int commentId, int partnerId, UUID remoteMemberId) {
-        Query.query("""
-                        INSERT INTO news_comment_federated_author(comment_id, partner_id, remote_member_id)
-                        VALUES (:comment_id, :partner_id, :remote_member_id::uuid)
-                        ON CONFLICT (comment_id) DO UPDATE SET partner_id = :partner_id, remote_member_id = :remote_member_id::uuid;""")
-                .single(Call.of()
-                        .bind("comment_id", commentId)
-                        .bind("partner_id", partnerId)
-                        .bind("remote_member_id", remoteMemberId, StandardValueConverter.UUID_STRING))
-                .insert();
+        // No-op: identity is stored inline via author_station_uid/author_member_uid columns
     }
 
     /**
-     * Finds the federated author for a news comment.
-     *
-     * @param commentId the local comment ID
-     * @return the federated author, if present
+     * No-op: satellite table removed. Returns empty since identity is inline.
      */
     public Optional<NewsCommentFederatedAuthor> findFederatedCommentAuthor(int commentId) {
-        return Query.query(
-                        "SELECT comment_id, partner_id, remote_member_id FROM news_comment_federated_author WHERE comment_id = :comment_id;")
-                .single(Call.of().bind("comment_id", commentId))
-                .map(NewsCommentFederatedAuthor.map())
-                .first();
+        // Satellite table removed — identity is now inline in news_comment columns
+        return Optional.empty();
     }
 }

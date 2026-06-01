@@ -60,11 +60,13 @@ CREATE TABLE ember_schema.board_ticket (
     ticket_number INTEGER NOT NULL,
     title TEXT NOT NULL,
     description TEXT,
-    assigned_member_id INTEGER REFERENCES ember_schema.station_member(id) ON DELETE SET NULL,
+    assignee_station_uid UUID,
+    assignee_member_uid UUID,
     priority TEXT NOT NULL DEFAULT 'MEDIUM',
     due_date DATE,
     position INTEGER NOT NULL DEFAULT 0,
-    created_by INTEGER NOT NULL REFERENCES ember_schema.station_member(id),
+    creator_station_uid UUID NOT NULL,
+    creator_member_uid UUID NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
     lane_entered_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
@@ -102,29 +104,30 @@ CREATE TABLE ember_schema.board_ticket_transition (
     ticket_id INTEGER NOT NULL REFERENCES ember_schema.board_ticket(id) ON DELETE CASCADE,
     from_lane_id INTEGER REFERENCES ember_schema.board_lane(id) ON DELETE SET NULL,
     to_lane_id INTEGER REFERENCES ember_schema.board_lane(id) ON DELETE SET NULL,
-    moved_by INTEGER REFERENCES ember_schema.station_member(id),
-    federated_partner_id INTEGER REFERENCES ember_schema.federation_partner(id) ON DELETE SET NULL,
-    federated_member_id INTEGER,
+    actor_station_uid UUID,
+    actor_member_uid UUID,
     moved_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
 );
 
--- Comments (same pattern as event_comment)
+-- Comments
 CREATE TABLE ember_schema.board_ticket_comment (
     id SERIAL PRIMARY KEY,
     ticket_id INTEGER NOT NULL REFERENCES ember_schema.board_ticket(id) ON DELETE CASCADE,
     parent_id INTEGER REFERENCES ember_schema.board_ticket_comment(id) ON DELETE CASCADE,
-    author_id INTEGER NOT NULL REFERENCES ember_schema.station_member(id),
+    author_station_uid UUID,
+    author_member_uid UUID,
     content TEXT NOT NULL,
     deleted BOOLEAN NOT NULL DEFAULT FALSE,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE
 );
 
--- Ticket watchers
+-- Ticket watchers (unified identity - local and federated watchers in same table)
 CREATE TABLE ember_schema.board_ticket_watcher (
     ticket_id INTEGER NOT NULL REFERENCES ember_schema.board_ticket(id) ON DELETE CASCADE,
-    member_id INTEGER NOT NULL REFERENCES ember_schema.station_member(id) ON DELETE CASCADE,
-    PRIMARY KEY (ticket_id, member_id)
+    watcher_station_uid UUID NOT NULL,
+    watcher_member_uid UUID NOT NULL,
+    PRIMARY KEY (ticket_id, watcher_station_uid, watcher_member_uid)
 );
 
 -- Weblinks per ticket
@@ -178,9 +181,8 @@ CREATE TABLE ember_schema.board_ticket_history (
     ticket_id INTEGER NOT NULL REFERENCES ember_schema.board_ticket(id) ON DELETE CASCADE,
     action TEXT NOT NULL,
     detail TEXT,
-    actor_member_id INTEGER REFERENCES ember_schema.station_member(id),
-    federated_partner_id INTEGER REFERENCES ember_schema.federation_partner(id) ON DELETE SET NULL,
-    federated_member_id INTEGER,
+    actor_station_uid UUID,
+    actor_member_uid UUID,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
 );
 
@@ -194,7 +196,7 @@ ALTER TABLE ember_schema.board_ticket ADD COLUMN search_vector tsvector
 CREATE INDEX idx_board_station ON ember_schema.board(station_id);
 CREATE INDEX idx_board_ticket_board ON ember_schema.board_ticket(board_id);
 CREATE INDEX idx_board_ticket_lane ON ember_schema.board_ticket(lane_id);
-CREATE INDEX idx_board_ticket_assigned ON ember_schema.board_ticket(assigned_member_id);
+CREATE INDEX idx_board_ticket_assignee ON ember_schema.board_ticket(assignee_station_uid, assignee_member_uid);
 CREATE INDEX idx_board_ticket_checklist ON ember_schema.board_ticket_checklist_item(ticket_id);
 CREATE INDEX idx_board_ticket_transition ON ember_schema.board_ticket_transition(ticket_id);
 CREATE INDEX idx_board_ticket_comment ON ember_schema.board_ticket_comment(ticket_id);
@@ -235,34 +237,6 @@ CREATE TABLE ember_schema.federation_board_edit_role (
     PRIMARY KEY (board_id, role_id)
 );
 
--- Federated ticket assignment (remote member assigned to a ticket on the owning station)
-CREATE TABLE ember_schema.board_ticket_federated_assignee (
-    ticket_id INTEGER NOT NULL REFERENCES ember_schema.board_ticket(id) ON DELETE CASCADE PRIMARY KEY,
-    partner_id INTEGER NOT NULL REFERENCES ember_schema.federation_partner(id) ON DELETE CASCADE,
-    remote_member_id TEXT NOT NULL
-);
-
--- Federated comment authorship (comments created by remote members)
-CREATE TABLE ember_schema.board_ticket_federated_comment_author (
-    comment_id INTEGER NOT NULL REFERENCES ember_schema.board_ticket_comment(id) ON DELETE CASCADE PRIMARY KEY,
-    partner_id INTEGER NOT NULL REFERENCES ember_schema.federation_partner(id) ON DELETE CASCADE,
-    remote_member_id TEXT NOT NULL
-);
-
--- Federated ticket creator (tickets created by remote members)
-CREATE TABLE ember_schema.board_ticket_federated_creator (
-    ticket_id INTEGER NOT NULL REFERENCES ember_schema.board_ticket(id) ON DELETE CASCADE PRIMARY KEY,
-    partner_id INTEGER NOT NULL REFERENCES ember_schema.federation_partner(id) ON DELETE CASCADE,
-    remote_member_id TEXT NOT NULL
-);
-
--- Federated ticket watchers (remote members watching a ticket on the owning station)
-CREATE TABLE ember_schema.board_ticket_federated_watcher (
-    ticket_id INTEGER NOT NULL REFERENCES ember_schema.board_ticket(id) ON DELETE CASCADE,
-    partner_id INTEGER NOT NULL REFERENCES ember_schema.federation_partner(id) ON DELETE CASCADE,
-    remote_member_id TEXT NOT NULL,
-    PRIMARY KEY (ticket_id, partner_id, remote_member_id)
-);
 
 -- Local access override for federated boards (partner station restricts its own members)
 CREATE TABLE ember_schema.federation_board_local_view_override (
@@ -304,8 +278,6 @@ CREATE TABLE ember_schema.federation_board_bookmark (
 CREATE INDEX idx_fed_board_share_target_partner ON ember_schema.federation_board_share_target(partner_id);
 CREATE INDEX idx_fed_board_bookmark_member ON ember_schema.federation_board_bookmark(member_id);
 CREATE INDEX idx_fed_board_bookmark_partner ON ember_schema.federation_board_bookmark(partner_id);
-CREATE INDEX idx_board_ticket_fed_assignee_partner ON ember_schema.board_ticket_federated_assignee(partner_id);
-CREATE INDEX idx_board_ticket_fed_watcher_partner ON ember_schema.board_ticket_federated_watcher(partner_id);
 
 -- Migrate federation_version from integer to text (hash-based versioning)
 ALTER TABLE ember_schema.federation_partner
@@ -1673,11 +1645,13 @@ COMMENT ON COLUMN ember_schema.board_ticket.lane_id IS 'References the current l
 COMMENT ON COLUMN ember_schema.board_ticket.ticket_number IS 'Sequential ticket number within the board.';
 COMMENT ON COLUMN ember_schema.board_ticket.title IS 'Ticket title.';
 COMMENT ON COLUMN ember_schema.board_ticket.description IS 'Ticket description (markdown).';
-COMMENT ON COLUMN ember_schema.board_ticket.assigned_member_id IS 'Member assigned to the ticket. NULL if unassigned.';
+COMMENT ON COLUMN ember_schema.board_ticket.assignee_station_uid IS 'Station UUID of the assigned member. NULL if unassigned.';
+COMMENT ON COLUMN ember_schema.board_ticket.assignee_member_uid IS 'Member UUID of the assigned member. NULL if unassigned.';
 COMMENT ON COLUMN ember_schema.board_ticket.priority IS 'Priority level: LOW, MEDIUM, HIGH, URGENT.';
 COMMENT ON COLUMN ember_schema.board_ticket.due_date IS 'Due date. NULL if no deadline.';
 COMMENT ON COLUMN ember_schema.board_ticket.position IS 'Display order position within the lane.';
-COMMENT ON COLUMN ember_schema.board_ticket.created_by IS 'Member who created the ticket.';
+COMMENT ON COLUMN ember_schema.board_ticket.creator_station_uid IS 'Station UUID of the member who created the ticket.';
+COMMENT ON COLUMN ember_schema.board_ticket.creator_member_uid IS 'Member UUID of the member who created the ticket.';
 COMMENT ON COLUMN ember_schema.board_ticket.created_at IS 'When the ticket was created.';
 COMMENT ON COLUMN ember_schema.board_ticket.updated_at IS 'When the ticket was last updated.';
 COMMENT ON COLUMN ember_schema.board_ticket.lane_entered_at IS 'When the ticket entered the current lane (for cycle time tracking).';
@@ -1705,14 +1679,16 @@ COMMENT ON COLUMN ember_schema.board_ticket_transition.id IS 'Auto-generated pri
 COMMENT ON COLUMN ember_schema.board_ticket_transition.ticket_id IS 'References the ticket.';
 COMMENT ON COLUMN ember_schema.board_ticket_transition.from_lane_id IS 'Previous lane. NULL if ticket was just created.';
 COMMENT ON COLUMN ember_schema.board_ticket_transition.to_lane_id IS 'New lane. NULL if ticket was archived.';
-COMMENT ON COLUMN ember_schema.board_ticket_transition.moved_by IS 'Member who moved the ticket.';
+COMMENT ON COLUMN ember_schema.board_ticket_transition.actor_station_uid IS 'Station UUID of the member who moved the ticket.';
+COMMENT ON COLUMN ember_schema.board_ticket_transition.actor_member_uid IS 'Member UUID of the member who moved the ticket.';
 COMMENT ON COLUMN ember_schema.board_ticket_transition.moved_at IS 'When the transition occurred.';
 
 COMMENT ON TABLE ember_schema.board_ticket_comment IS 'Comments on board tickets (threaded via parent_id).';
 COMMENT ON COLUMN ember_schema.board_ticket_comment.id IS 'Auto-generated primary key.';
 COMMENT ON COLUMN ember_schema.board_ticket_comment.ticket_id IS 'References the ticket.';
 COMMENT ON COLUMN ember_schema.board_ticket_comment.parent_id IS 'Parent comment for threading. NULL for top-level comments.';
-COMMENT ON COLUMN ember_schema.board_ticket_comment.author_id IS 'Member who wrote the comment.';
+COMMENT ON COLUMN ember_schema.board_ticket_comment.author_station_uid IS 'Station UUID of the comment author.';
+COMMENT ON COLUMN ember_schema.board_ticket_comment.author_member_uid IS 'Member UUID of the comment author.';
 COMMENT ON COLUMN ember_schema.board_ticket_comment.content IS 'Comment text.';
 COMMENT ON COLUMN ember_schema.board_ticket_comment.deleted IS 'Soft-delete flag.';
 COMMENT ON COLUMN ember_schema.board_ticket_comment.created_at IS 'When the comment was created.';
@@ -1720,7 +1696,8 @@ COMMENT ON COLUMN ember_schema.board_ticket_comment.updated_at IS 'When the comm
 
 COMMENT ON TABLE ember_schema.board_ticket_watcher IS 'Members watching a ticket (receive notifications on changes).';
 COMMENT ON COLUMN ember_schema.board_ticket_watcher.ticket_id IS 'References the ticket.';
-COMMENT ON COLUMN ember_schema.board_ticket_watcher.member_id IS 'References the watching member.';
+COMMENT ON COLUMN ember_schema.board_ticket_watcher.watcher_station_uid IS 'Station UUID of the watching member.';
+COMMENT ON COLUMN ember_schema.board_ticket_watcher.watcher_member_uid IS 'Member UUID of the watching member.';
 
 COMMENT ON TABLE ember_schema.board_ticket_weblink IS 'Web links attached to a ticket.';
 COMMENT ON COLUMN ember_schema.board_ticket_weblink.id IS 'Auto-generated primary key.';
@@ -1759,7 +1736,8 @@ COMMENT ON COLUMN ember_schema.board_ticket_history.id IS 'Auto-generated primar
 COMMENT ON COLUMN ember_schema.board_ticket_history.ticket_id IS 'References the ticket.';
 COMMENT ON COLUMN ember_schema.board_ticket_history.action IS 'Action type (e.g. PRIORITY_CHANGED, LABEL_ADDED, ASSIGNED).';
 COMMENT ON COLUMN ember_schema.board_ticket_history.detail IS 'Human-readable detail of the change.';
-COMMENT ON COLUMN ember_schema.board_ticket_history.actor_member_id IS 'Member who performed the action.';
+COMMENT ON COLUMN ember_schema.board_ticket_history.actor_station_uid IS 'Station UUID of the member who performed the action.';
+COMMENT ON COLUMN ember_schema.board_ticket_history.actor_member_uid IS 'Member UUID of the member who performed the action.';
 COMMENT ON COLUMN ember_schema.board_ticket_history.created_at IS 'When the action occurred.';
 
 -- ============================================================
@@ -1779,25 +1757,6 @@ COMMENT ON TABLE ember_schema.federation_board_edit_role IS 'Role-based edit res
 COMMENT ON COLUMN ember_schema.federation_board_edit_role.board_id IS 'References the board.';
 COMMENT ON COLUMN ember_schema.federation_board_edit_role.role_id IS 'Required role for editing.';
 
-COMMENT ON TABLE ember_schema.board_ticket_federated_assignee IS 'Remote member assigned to a ticket on the owning station.';
-COMMENT ON COLUMN ember_schema.board_ticket_federated_assignee.ticket_id IS 'References the ticket.';
-COMMENT ON COLUMN ember_schema.board_ticket_federated_assignee.partner_id IS 'References the federation partner.';
-COMMENT ON COLUMN ember_schema.board_ticket_federated_assignee.remote_member_id IS 'Member ID on the remote station (as text).';
-
-COMMENT ON TABLE ember_schema.board_ticket_federated_comment_author IS 'Tracks authorship of comments created by remote federation members.';
-COMMENT ON COLUMN ember_schema.board_ticket_federated_comment_author.comment_id IS 'References the ticket comment.';
-COMMENT ON COLUMN ember_schema.board_ticket_federated_comment_author.partner_id IS 'References the federation partner.';
-COMMENT ON COLUMN ember_schema.board_ticket_federated_comment_author.remote_member_id IS 'Member ID on the remote station (as text).';
-
-COMMENT ON TABLE ember_schema.board_ticket_federated_creator IS 'Tracks tickets created by remote federation members.';
-COMMENT ON COLUMN ember_schema.board_ticket_federated_creator.ticket_id IS 'References the ticket.';
-COMMENT ON COLUMN ember_schema.board_ticket_federated_creator.partner_id IS 'References the federation partner.';
-COMMENT ON COLUMN ember_schema.board_ticket_federated_creator.remote_member_id IS 'Member ID on the remote station (as text).';
-
-COMMENT ON TABLE ember_schema.board_ticket_federated_watcher IS 'Remote federation members watching a ticket on the owning station.';
-COMMENT ON COLUMN ember_schema.board_ticket_federated_watcher.ticket_id IS 'References the ticket.';
-COMMENT ON COLUMN ember_schema.board_ticket_federated_watcher.partner_id IS 'References the federation partner.';
-COMMENT ON COLUMN ember_schema.board_ticket_federated_watcher.remote_member_id IS 'Member ID on the remote station (as text).';
 
 COMMENT ON TABLE ember_schema.federation_board_local_view_override IS 'Local access overrides for federated boards. The partner station restricts which of its own members can view a remote board.';
 COMMENT ON COLUMN ember_schema.federation_board_local_view_override.id IS 'Auto-generated primary key.';
@@ -1833,53 +1792,26 @@ COMMENT ON COLUMN ember_schema.federation_board_bookmark.created_at IS 'When the
 ALTER TABLE ember_schema.station_member ADD COLUMN uid UUID NOT NULL DEFAULT gen_random_uuid();
 CREATE UNIQUE INDEX idx_station_member_uid ON ember_schema.station_member (station_id, uid);
 
--- 10.3 Migrate remote_member_id columns from TEXT to native UUID
-ALTER TABLE ember_schema.board_ticket_federated_assignee
-    ALTER COLUMN remote_member_id TYPE UUID USING remote_member_id::uuid;
+COMMENT ON COLUMN ember_schema.station_member.uid IS 'Stable UUID for federation identity. Unique within a station.';
 
-ALTER TABLE ember_schema.board_ticket_federated_creator
-    ALTER COLUMN remote_member_id TYPE UUID USING remote_member_id::uuid;
-
-ALTER TABLE ember_schema.board_ticket_federated_watcher
-    ALTER COLUMN remote_member_id TYPE UUID USING remote_member_id::uuid;
-
-ALTER TABLE ember_schema.board_ticket_federated_comment_author
-    ALTER COLUMN remote_member_id TYPE UUID USING remote_member_id::uuid;
-
+-- 10.2 Migrate event_federation_registration and name cache to UUID
 ALTER TABLE ember_schema.event_federation_registration
     ALTER COLUMN remote_member_id TYPE UUID USING remote_member_id::uuid;
 
 ALTER TABLE ember_schema.federation_member_name_cache
     ALTER COLUMN remote_member_id TYPE UUID USING remote_member_id::uuid;
 
--- Migrate federated_member_id columns from INTEGER to UUID
-ALTER TABLE ember_schema.board_ticket_transition
-    ALTER COLUMN federated_member_id TYPE UUID USING NULL;
-
-ALTER TABLE ember_schema.board_ticket_history
-    ALTER COLUMN federated_member_id TYPE UUID USING NULL;
-
-COMMENT ON COLUMN ember_schema.station_member.uid IS 'Stable UUID for federation identity. Unique within a station.';
-COMMENT ON COLUMN ember_schema.board_ticket_transition.federated_member_id IS 'Member UUID on the federated station that moved the ticket.';
-COMMENT ON COLUMN ember_schema.board_ticket_history.federated_member_id IS 'Member UUID on the federated station that performed the action.';
 COMMENT ON COLUMN ember_schema.federation_member_name_cache.remote_member_id IS 'Member UUID on the remote station.';
 COMMENT ON COLUMN ember_schema.event_federation_registration.remote_member_id IS 'Member UUID on the remote station.';
-COMMENT ON COLUMN ember_schema.board_ticket_federated_assignee.remote_member_id IS 'Member UUID on the remote station.';
-COMMENT ON COLUMN ember_schema.board_ticket_federated_comment_author.remote_member_id IS 'Member UUID on the remote station.';
-COMMENT ON COLUMN ember_schema.board_ticket_federated_creator.remote_member_id IS 'Member UUID on the remote station.';
-COMMENT ON COLUMN ember_schema.board_ticket_federated_watcher.remote_member_id IS 'Member UUID on the remote station.';
 
--- Federated event comment author tracking
-CREATE TABLE ember_schema.event_comment_federated_author (
-    comment_id INTEGER NOT NULL REFERENCES ember_schema.event_comment(id) ON DELETE CASCADE PRIMARY KEY,
-    partner_id INTEGER NOT NULL REFERENCES ember_schema.federation_partner(id) ON DELETE CASCADE,
-    remote_member_id UUID NOT NULL
-);
+-- 10.3 Add inline identity columns to event_comment and news_comment
+ALTER TABLE ember_schema.event_comment ADD COLUMN author_station_uid UUID;
+ALTER TABLE ember_schema.event_comment ADD COLUMN author_member_uid UUID;
+ALTER TABLE ember_schema.event_comment ALTER COLUMN author_id DROP NOT NULL;
 
-COMMENT ON TABLE ember_schema.event_comment_federated_author IS 'Maps event comments from federated users to their remote identity.';
-COMMENT ON COLUMN ember_schema.event_comment_federated_author.comment_id IS 'References the local event comment.';
-COMMENT ON COLUMN ember_schema.event_comment_federated_author.partner_id IS 'References the federation partner.';
-COMMENT ON COLUMN ember_schema.event_comment_federated_author.remote_member_id IS 'Member UUID on the remote station.';
+ALTER TABLE ember_schema.news_comment ADD COLUMN author_station_uid UUID;
+ALTER TABLE ember_schema.news_comment ADD COLUMN author_member_uid UUID;
+ALTER TABLE ember_schema.news_comment ALTER COLUMN author_id DROP NOT NULL;
 
 -- News federation sharing
 CREATE TABLE ember_schema.news_federation_share (
@@ -1896,43 +1828,23 @@ CREATE TABLE ember_schema.news_federation_share_target (
     PRIMARY KEY (share_id, partner_id)
 );
 
--- Federated news comment author tracking
-CREATE TABLE ember_schema.news_comment_federated_author (
-    comment_id       INTEGER NOT NULL REFERENCES ember_schema.news_comment(id) ON DELETE CASCADE PRIMARY KEY,
-    partner_id       INTEGER NOT NULL REFERENCES ember_schema.federation_partner(id) ON DELETE CASCADE,
-    remote_member_id UUID NOT NULL
-);
-
 COMMENT ON TABLE ember_schema.news_federation_share IS 'Per-post federation sharing config for news.';
 COMMENT ON COLUMN ember_schema.news_federation_share.scope IS 'ALL_PARTNERS or SPECIFIC.';
 COMMENT ON COLUMN ember_schema.news_federation_share.visibility_role IS 'Minimum role on partner station: MEMBER, TEAM, or MANAGER.';
-COMMENT ON TABLE ember_schema.news_comment_federated_author IS 'Maps news comments from federated users to their remote identity.';
 
--- KB file comments
+-- KB file comments (with inline identity)
 CREATE TABLE ember_schema.kb_comment (
-    id         SERIAL PRIMARY KEY,
-    file_id    INTEGER     NOT NULL REFERENCES ember_schema.kb_file(id) ON DELETE CASCADE,
-    parent_id  INTEGER              REFERENCES ember_schema.kb_comment(id) ON DELETE SET NULL,
-    author_id  INTEGER              REFERENCES ember_schema.station_member(id) ON DELETE CASCADE,
-    content    TEXT        NOT NULL,
-    deleted    BOOLEAN     NOT NULL DEFAULT FALSE,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    updated_at TIMESTAMPTZ
+    id                SERIAL PRIMARY KEY,
+    file_id           INTEGER     NOT NULL REFERENCES ember_schema.kb_file(id) ON DELETE CASCADE,
+    parent_id         INTEGER              REFERENCES ember_schema.kb_comment(id) ON DELETE SET NULL,
+    author_station_uid UUID,
+    author_member_uid  UUID,
+    content           TEXT        NOT NULL,
+    deleted           BOOLEAN     NOT NULL DEFAULT FALSE,
+    created_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at        TIMESTAMPTZ
 );
 
 CREATE INDEX idx_kb_comment_file ON ember_schema.kb_comment(file_id);
 
--- Federated KB comment author tracking
-CREATE TABLE ember_schema.kb_comment_federated_author (
-    comment_id       INTEGER NOT NULL REFERENCES ember_schema.kb_comment(id) ON DELETE CASCADE PRIMARY KEY,
-    partner_id       INTEGER NOT NULL REFERENCES ember_schema.federation_partner(id) ON DELETE CASCADE,
-    remote_member_id UUID NOT NULL
-);
-
 COMMENT ON TABLE ember_schema.kb_comment IS 'Threaded comments on knowledge base files.';
-COMMENT ON TABLE ember_schema.kb_comment_federated_author IS 'Maps KB comments from federated users to their remote identity.';
-
--- Make comment author_id nullable for federated comments (authorId=NULL, identity in federated_author table)
-ALTER TABLE ember_schema.event_comment ALTER COLUMN author_id DROP NOT NULL;
-ALTER TABLE ember_schema.news_comment ALTER COLUMN author_id DROP NOT NULL;
-ALTER TABLE ember_schema.board_ticket_comment ALTER COLUMN author_id DROP NOT NULL;

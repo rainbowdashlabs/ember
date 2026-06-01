@@ -155,7 +155,8 @@ public class SessionRoutes implements Routes {
             memberInfo = new MemberInfo(
                     session.member().id(),
                     session.stationUid() != null ? session.stationUid().toString() : null,
-                    session.member().accountId());
+                    session.member().accountId(),
+                    session.member().uid() != null ? session.member().uid().toString() : null);
         }
 
         var roleNames = session.roles().stream().map(Enum::name).sorted().toList();
@@ -506,7 +507,7 @@ public class SessionRoutes implements Routes {
      * @param stationId the station identifier
      * @param accountId the account identifier
      */
-    public record MemberInfo(int id, String stationId, int accountId) {}
+    public record MemberInfo(int id, String stationId, int accountId, String uid) {}
 
     /**
      * A station membership entry listing which stations the user belongs to.

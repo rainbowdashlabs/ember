@@ -8,6 +8,7 @@ package dev.chojo.ember.repository;
 import de.chojo.sadu.queries.api.call.Call;
 import de.chojo.sadu.queries.api.query.Query;
 import de.chojo.sadu.queries.converter.StandardValueConverter;
+import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.knowledgebase.entity.KbComment;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFile;
@@ -81,12 +82,14 @@ class KbCommentRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(1)
     void createTopLevelComment() {
-        KbComment comment = commentRepo.create(file.id(), null, member.id(), "Top-level comment");
+        var authorIdentity = memberIdentityFactory.local(station.id(), member.id());
+        KbComment comment = commentRepo.create(file.id(), null, authorIdentity, "Top-level comment");
         assertNotNull(comment);
         assertTrue(comment.id() > 0);
         assertEquals(file.id(), comment.fileId());
         assertNull(comment.parentId());
-        assertEquals(member.id(), comment.authorId());
+        assertNotNull(comment.author());
+        assertEquals(authorIdentity.memberUid(), comment.author().memberUid());
         assertEquals("Top-level comment", comment.content());
         assertFalse(comment.deleted());
         assertNotNull(comment.createdAt());
@@ -97,7 +100,8 @@ class KbCommentRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(2)
     void createReplyComment() {
-        KbComment reply = commentRepo.create(file.id(), topLevelCommentId, member.id(), "Reply to top-level");
+        var authorIdentity = memberIdentityFactory.local(station.id(), member.id());
+        KbComment reply = commentRepo.create(file.id(), topLevelCommentId, authorIdentity, "Reply to top-level");
         assertNotNull(reply);
         assertTrue(reply.id() > 0);
         assertEquals(file.id(), reply.fileId());
@@ -109,7 +113,8 @@ class KbCommentRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(3)
     void createStandaloneComment() {
-        KbComment comment = commentRepo.create(file.id(), null, member.id(), "Standalone comment");
+        var authorIdentity = memberIdentityFactory.local(station.id(), member.id());
+        KbComment comment = commentRepo.create(file.id(), null, authorIdentity, "Standalone comment");
         assertNotNull(comment);
         standaloneCommentId = comment.id();
     }
@@ -242,31 +247,27 @@ class KbCommentRepositoryTest extends RepositoryTestBase {
         assertFalse(deleted);
     }
 
-    // -- setFederatedAuthor / findFederatedAuthor --
+    // -- Federated author inline --
 
     @Test
     @Order(70)
-    void setAndFindFederatedAuthor() {
-        // Create a comment with null author (federated)
-        KbComment fedComment = commentRepo.create(file.id(), null, null, "Federated comment");
+    void createCommentWithFederatedAuthor() {
+        // Create a comment with federated author identity
+        var federatedAuthor = new MemberIdentity(partnerStation.uid(), UUID.randomUUID());
+        KbComment fedComment = commentRepo.create(file.id(), null, federatedAuthor, "Federated comment");
         assertNotNull(fedComment);
-        assertNull(fedComment.authorId());
-
-        UUID remoteMemberId = UUID.randomUUID();
-        commentRepo.setFederatedAuthor(fedComment.id(), partnerId, remoteMemberId);
-
-        var fedAuthor = commentRepo.findFederatedAuthor(fedComment.id());
-        assertTrue(fedAuthor.isPresent());
-        assertEquals(fedComment.id(), fedAuthor.get().commentId());
-        assertEquals(partnerId, fedAuthor.get().partnerId());
-        assertEquals(remoteMemberId, fedAuthor.get().remoteMemberId());
+        assertNotNull(fedComment.author());
+        assertEquals(federatedAuthor.stationUid(), fedComment.author().stationUid());
+        assertEquals(federatedAuthor.memberUid(), fedComment.author().memberUid());
     }
 
     @Test
     @Order(71)
-    void findFederatedAuthorNotFound() {
-        var fedAuthor = commentRepo.findFederatedAuthor(999999);
-        assertTrue(fedAuthor.isEmpty());
+    void createCommentWithNullAuthor() {
+        KbComment comment = commentRepo.create(file.id(), null, null, "Anonymous comment");
+        assertNotNull(comment);
+        assertNull(comment.author());
+        commentRepo.delete(comment.id());
     }
 
     // -- delete reply then parent can be hard-deleted --

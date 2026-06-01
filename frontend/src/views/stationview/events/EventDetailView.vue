@@ -28,6 +28,7 @@ import {EventTypes, RegistrationStatus, isRecurringEvent} from '@/api/types'
 import type {AbsentMember, EventRegistrationEntry, MemberRegistrationStats} from '@/api/events'
 import {attendance, events} from '@/api'
 import {useSession} from '@/composables/useSession'
+import {useSidebarCounts} from '@/composables/useSidebarCounts'
 import CommentSection from '@/components/comment/CommentSection.vue'
 import NoteEditor from '@/components/comment/NoteEditor.vue'
 import MemberName from '@/components/avatar/MemberName.vue'
@@ -36,6 +37,7 @@ const {t} = useI18n()
 const route = useRoute()
 const router = useRouter()
 const {canManageEvents, canManageAttendance, sessionInfo} = useSession()
+const {refresh: refreshSidebarCounts} = useSidebarCounts()
 
 const eventId = computed(() => Number(route.params.id))
 const currentMemberId = computed(() => sessionInfo.value?.member?.id ?? 0)
@@ -212,29 +214,27 @@ async function loadAbsences() {
   }
 }
 
+async function reloadRegistrationsAndCounts() {
+  await loadRegistrations()
+  refreshSidebarCounts()
+}
+
 async function acceptRegistration(id: number) {
   try {
     await events.updateRegistrationStatus(id, RegistrationStatus.ACCEPTED)
-    await loadRegistrations()
-  } catch {
-    error.value = t('common.error')
-  }
+    await reloadRegistrationsAndCounts()
+  } catch { error.value = t('common.error') }
 }
 
 async function denyRegistration(id: number) {
   try {
     await events.updateRegistrationStatus(id, RegistrationStatus.DENIED)
-    await loadRegistrations()
-  } catch {
-    error.value = t('common.error')
-  }
+    await reloadRegistrationsAndCounts()
+  } catch { error.value = t('common.error') }
 }
 
 // Self-registration for members
-const myRegistration = computed(() => {
-  return registrations.value.find(r => r.memberId === currentMemberId.value)
-})
-
+const myRegistration = computed(() => registrations.value.find(r => r.memberId === currentMemberId.value))
 const registering = ref(false)
 
 async function registerSelf() {
@@ -242,12 +242,9 @@ async function registerSelf() {
   registering.value = true
   try {
     await events.registerForEvent(event.value.id, {memberId: currentMemberId.value})
-    await loadRegistrations()
-  } catch {
-    error.value = t('common.error')
-  } finally {
-    registering.value = false
-  }
+    await reloadRegistrationsAndCounts()
+  } catch { error.value = t('common.error') }
+  finally { registering.value = false }
 }
 
 async function declineSelf() {
@@ -255,12 +252,9 @@ async function declineSelf() {
   registering.value = true
   try {
     await events.declineEvent(event.value.id, {memberId: currentMemberId.value})
-    await loadRegistrations()
-  } catch {
-    error.value = t('common.error')
-  } finally {
-    registering.value = false
-  }
+    await reloadRegistrationsAndCounts()
+  } catch { error.value = t('common.error') }
+  finally { registering.value = false }
 }
 
 async function withdrawSelf() {
@@ -268,12 +262,9 @@ async function withdrawSelf() {
   registering.value = true
   try {
     await events.withdrawRegistration(myRegistration.value.id)
-    await loadRegistrations()
-  } catch {
-    error.value = t('common.error')
-  } finally {
-    registering.value = false
-  }
+    await reloadRegistrationsAndCounts()
+  } catch { error.value = t('common.error') }
+  finally { registering.value = false }
 }
 
 onMounted(loadData)

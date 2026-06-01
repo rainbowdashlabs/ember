@@ -5,7 +5,7 @@
  */
 import client from './client'
 import {getItem} from './storage'
-import type {FederatedAuthorInfo} from './types'
+import type {MemberIdentity} from './types'
 
 export interface KbFolder {
     id: number
@@ -427,15 +427,12 @@ export interface KbComment {
     id: number
     fileId: number
     parentId: number | null
-    authorId: number
-    authorName?: string
+    author: MemberIdentity | null
+    authorName: string
     content: string
     deleted?: boolean
     createdAt: string
     updatedAt?: string | null
-    federatedAuthor?: FederatedAuthorInfo | null
-    authorStationId?: string
-    authorStationName?: string
 }
 
 export async function listComments(fileId: number): Promise<KbComment[]> {

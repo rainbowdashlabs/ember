@@ -23,6 +23,7 @@ import TextInput from '@/components/input/text/TextInput.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import { useSession } from '@/composables/useSession'
+import { useSidebarCounts } from '@/composables/useSidebarCounts'
 import { federation } from '@/api'
 import type { PartnerResponse, PairRequest } from '@/api/federation'
 import { resolveFederationVersion } from '@/util/federationVersion'
@@ -30,6 +31,7 @@ import { resolveFederationVersion } from '@/util/federationVersion'
 const { t } = useI18n()
 const router = useRouter()
 const { canManageFederation, loaded } = useSession()
+const { refresh: refreshSidebarCounts } = useSidebarCounts()
 
 const partners = ref<PartnerResponse[]>([])
 const pairRequests = ref<PairRequest[]>([])
@@ -65,6 +67,7 @@ async function handleAcceptRequest(id: number) {
     success.value = t('federation.connected')
     setTimeout(() => { success.value = '' }, 3000)
     await loadData()
+    refreshSidebarCounts()
   } catch { error.value = t('common.error') }
 }
 
@@ -72,6 +75,7 @@ async function handleDeclineRequest(id: number) {
   try {
     await federation.declinePairRequest(id)
     await loadData()
+    refreshSidebarCounts()
   } catch { error.value = t('common.error') }
 }
 

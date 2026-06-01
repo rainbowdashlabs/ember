@@ -38,4 +38,12 @@ public class RequirementsService {
 
     public record RequirementsResponse(
             List<RequirementItem> forcedForms, List<RequirementItem> forcedQuizzes, boolean profileIncomplete) {}
+
+    public int countPending(int memberId, int stationId, List<String> roleNames) {
+        int count = 0;
+        count += formService.findForcedPending(stationId, memberId).size();
+        count += quizService.findForcedPending(stationId, memberId).size();
+        if (!profileFieldService.isProfileComplete(memberId, stationId, roleNames)) count++;
+        return count;
+    }
 }

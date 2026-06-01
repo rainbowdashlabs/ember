@@ -7,13 +7,8 @@ package dev.chojo.ember.feature.board.repository;
 
 import de.chojo.sadu.queries.api.call.Call;
 import de.chojo.sadu.queries.api.query.Query;
-import de.chojo.sadu.queries.converter.StandardValueConverter;
 import dev.chojo.ember.feature.board.entity.AccessData;
 import dev.chojo.ember.feature.board.entity.BoardShareMode;
-import dev.chojo.ember.feature.board.entity.BoardTicketFederatedAssignee;
-import dev.chojo.ember.feature.board.entity.BoardTicketFederatedCommentAuthor;
-import dev.chojo.ember.feature.board.entity.BoardTicketFederatedCreator;
-import dev.chojo.ember.feature.board.entity.BoardTicketFederatedWatcher;
 import dev.chojo.ember.feature.board.entity.FederationBoardBookmark;
 import dev.chojo.ember.feature.board.entity.FederationBoardShare;
 import dev.chojo.ember.feature.board.entity.FederationBoardShareTarget;
@@ -21,7 +16,6 @@ import jakarta.inject.Singleton;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 
 @Singleton
 public class FederatedBoardRepository {
@@ -126,117 +120,6 @@ public class FederatedBoardRepository {
     public boolean hasFederatedEditRoles(int boardId) {
         return Query.query("SELECT 1 FROM federation_board_edit_role WHERE board_id = :board_id LIMIT 1;")
                 .single(Call.of().bind("board_id", boardId))
-                .map(row -> true)
-                .first()
-                .orElse(false);
-    }
-
-    // -- Federated Assignees --
-
-    public void setFederatedAssignee(int ticketId, int partnerId, UUID remoteMemberId) {
-        Query.query("""
-                        INSERT INTO board_ticket_federated_assignee(ticket_id, partner_id, remote_member_id)
-                        VALUES (:ticket_id, :partner_id, :remote_member_id::uuid)
-                        ON CONFLICT (ticket_id) DO UPDATE SET partner_id = :partner_id, remote_member_id = :remote_member_id::uuid;""")
-                .single(Call.of()
-                        .bind("ticket_id", ticketId)
-                        .bind("partner_id", partnerId)
-                        .bind("remote_member_id", remoteMemberId, StandardValueConverter.UUID_STRING))
-                .insert();
-    }
-
-    public void removeFederatedAssignee(int ticketId) {
-        Query.query("DELETE FROM board_ticket_federated_assignee WHERE ticket_id = :ticket_id;")
-                .single(Call.of().bind("ticket_id", ticketId))
-                .delete();
-    }
-
-    public Optional<BoardTicketFederatedAssignee> findFederatedAssignee(int ticketId) {
-        return Query.query("SELECT * FROM board_ticket_federated_assignee WHERE ticket_id = :ticket_id;")
-                .single(Call.of().bind("ticket_id", ticketId))
-                .map(BoardTicketFederatedAssignee.map())
-                .first();
-    }
-
-    // -- Federated Comment Authors --
-
-    public void setFederatedCommentAuthor(int commentId, int partnerId, UUID remoteMemberId) {
-        Query.query("""
-                        INSERT INTO board_ticket_federated_comment_author(comment_id, partner_id, remote_member_id)
-                        VALUES (:comment_id, :partner_id, :remote_member_id::uuid);""")
-                .single(Call.of()
-                        .bind("comment_id", commentId)
-                        .bind("partner_id", partnerId)
-                        .bind("remote_member_id", remoteMemberId, StandardValueConverter.UUID_STRING))
-                .insert();
-    }
-
-    public Optional<BoardTicketFederatedCommentAuthor> findFederatedCommentAuthor(int commentId) {
-        return Query.query("SELECT * FROM board_ticket_federated_comment_author WHERE comment_id = :comment_id;")
-                .single(Call.of().bind("comment_id", commentId))
-                .map(BoardTicketFederatedCommentAuthor.map())
-                .first();
-    }
-
-    // -- Federated Creators --
-
-    public void setFederatedCreator(int ticketId, int partnerId, UUID remoteMemberId) {
-        Query.query("""
-                        INSERT INTO board_ticket_federated_creator(ticket_id, partner_id, remote_member_id)
-                        VALUES (:ticket_id, :partner_id, :remote_member_id::uuid);""")
-                .single(Call.of()
-                        .bind("ticket_id", ticketId)
-                        .bind("partner_id", partnerId)
-                        .bind("remote_member_id", remoteMemberId, StandardValueConverter.UUID_STRING))
-                .insert();
-    }
-
-    public Optional<BoardTicketFederatedCreator> findFederatedCreator(int ticketId) {
-        return Query.query("SELECT * FROM board_ticket_federated_creator WHERE ticket_id = :ticket_id;")
-                .single(Call.of().bind("ticket_id", ticketId))
-                .map(BoardTicketFederatedCreator.map())
-                .first();
-    }
-
-    // -- Federated Watchers --
-
-    public void addFederatedWatcher(int ticketId, int partnerId, UUID remoteMemberId) {
-        Query.query("""
-                        INSERT INTO board_ticket_federated_watcher(ticket_id, partner_id, remote_member_id)
-                        VALUES (:ticket_id, :partner_id, :remote_member_id::uuid) ON CONFLICT DO NOTHING;""")
-                .single(Call.of()
-                        .bind("ticket_id", ticketId)
-                        .bind("partner_id", partnerId)
-                        .bind("remote_member_id", remoteMemberId, StandardValueConverter.UUID_STRING))
-                .insert();
-    }
-
-    public void removeFederatedWatcher(int ticketId, int partnerId, UUID remoteMemberId) {
-        Query.query("""
-                        DELETE FROM board_ticket_federated_watcher
-                        WHERE ticket_id = :ticket_id AND partner_id = :partner_id AND remote_member_id = :remote_member_id::uuid;""")
-                .single(Call.of()
-                        .bind("ticket_id", ticketId)
-                        .bind("partner_id", partnerId)
-                        .bind("remote_member_id", remoteMemberId, StandardValueConverter.UUID_STRING))
-                .delete();
-    }
-
-    public List<BoardTicketFederatedWatcher> findFederatedWatchers(int ticketId) {
-        return Query.query("SELECT * FROM board_ticket_federated_watcher WHERE ticket_id = :ticket_id;")
-                .single(Call.of().bind("ticket_id", ticketId))
-                .map(BoardTicketFederatedWatcher.map())
-                .all();
-    }
-
-    public boolean isFederatedWatching(int ticketId, int partnerId, UUID remoteMemberId) {
-        return Query.query("""
-                        SELECT 1 FROM board_ticket_federated_watcher
-                        WHERE ticket_id = :ticket_id AND partner_id = :partner_id AND remote_member_id = :remote_member_id::uuid;""")
-                .single(Call.of()
-                        .bind("ticket_id", ticketId)
-                        .bind("partner_id", partnerId)
-                        .bind("remote_member_id", remoteMemberId, StandardValueConverter.UUID_STRING))
                 .map(row -> true)
                 .first()
                 .orElse(false);

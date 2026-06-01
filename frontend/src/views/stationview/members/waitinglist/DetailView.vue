@@ -35,11 +35,13 @@ import type {
 } from '@/api/types'
 import { waitingList, memberGroups, stationMembers } from '@/api'
 import { useBreakpoint } from '@/composables/useBreakpoint'
+import { useSidebarCounts } from '@/composables/useSidebarCounts'
 
 const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
 const { isMobile } = useBreakpoint()
+const { refresh: refreshSidebarCounts } = useSidebarCounts()
 
 const listId = computed(() => Number(route.params.id))
 
@@ -216,6 +218,7 @@ async function doInviteEntry(entryId: number) {
     entries.value = await waitingList.listEntries(listId.value)
     success.value = t('waitingList.entryInvited')
     setTimeout(() => { success.value = '' }, 3000)
+    refreshSidebarCounts()
   } catch {
     error.value = t('common.error')
   }
@@ -228,6 +231,7 @@ async function doMoveToTesting(entryId: number) {
     entries.value = await waitingList.listEntries(listId.value)
     success.value = t('waitingList.entryTesting')
     setTimeout(() => { success.value = '' }, 3000)
+    refreshSidebarCounts()
   } catch {
     error.value = t('common.error')
   }
@@ -240,6 +244,7 @@ async function doMoveToJoined(entryId: number) {
     entries.value = await waitingList.listEntries(listId.value)
     success.value = t('waitingList.entryJoined')
     setTimeout(() => { success.value = '' }, 3000)
+    refreshSidebarCounts()
   } catch {
     error.value = t('common.error')
   }
@@ -252,6 +257,7 @@ async function doWithdrawEntry(entryId: number) {
     entries.value = await waitingList.listEntries(listId.value)
     success.value = t('waitingList.entryWithdrawn')
     setTimeout(() => { success.value = '' }, 3000)
+    refreshSidebarCounts()
   } catch {
     error.value = t('common.error')
   }
@@ -271,6 +277,7 @@ async function confirmDeleteEntry() {
     entries.value = await waitingList.listEntries(listId.value)
     showDeleteEntryModal.value = false
     deleteEntryTarget.value = null
+    refreshSidebarCounts()
   } catch {
     error.value = t('common.error')
   } finally {

@@ -14,6 +14,8 @@ export async function listAllRoles(): Promise<Role[]> {
 export interface MemberCompletion {
     id: number
     name: string
+    stationUid: string
+    memberUid: string
 }
 
 export async function listCompletions(): Promise<MemberCompletion[]> {

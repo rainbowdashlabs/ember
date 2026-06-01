@@ -11,12 +11,14 @@ import dev.chojo.ember.event.events.MentionedInComment;
 import dev.chojo.ember.feature.comment.entity.Comment;
 import dev.chojo.ember.feature.comment.entity.CommentEntityType;
 import dev.chojo.ember.feature.comment.repository.EventCommentRepository;
+import dev.chojo.ember.feature.members.service.StationMemberService;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.regex.Pattern;
 
 /**
@@ -24,15 +26,21 @@ import java.util.regex.Pattern;
  */
 @Singleton
 public class CommentService {
-    private static final Pattern MENTION_PATTERN = Pattern.compile("@\\[(\\d+):([^\\]]+)]");
+    private static final Pattern MENTION_PATTERN_LEGACY = Pattern.compile("@\\[(\\d+):([^\\]]+)]");
+    private static final Pattern MENTION_PATTERN = Pattern.compile("@\\[([^/]+)/([^:]+):([^\\]]+)]");
 
     private final EventCommentRepository commentRepository;
     private final DomainEventBus eventBus;
+    private final StationMemberService stationMemberService;
 
     @Inject
-    public CommentService(EventCommentRepository commentRepository, DomainEventBus eventBus) {
+    public CommentService(
+            EventCommentRepository commentRepository,
+            DomainEventBus eventBus,
+            StationMemberService stationMemberService) {
         this.commentRepository = commentRepository;
         this.eventBus = eventBus;
+        this.stationMemberService = stationMemberService;
     }
 
     /**
@@ -92,7 +100,7 @@ public class CommentService {
 
         // Parse @mentions and publish events (skip for federated comments without a local author)
         if (authorId != null) {
-            var mentionedIds = parseMentions(content);
+            var mentionedIds = parseMentions(stationId, content);
             for (int mentionedId : mentionedIds) {
                 if (mentionedId != authorId) {
                     eventBus.publish(new MentionedInComment(
@@ -132,11 +140,21 @@ public class CommentService {
      * @param content the comment text
      * @return list of mentioned member IDs
      */
-    private List<Integer> parseMentions(String content) {
+    private List<Integer> parseMentions(int stationId, String content) {
         var mentions = new ArrayList<Integer>();
+        // New format: @[stationUid/memberUid:Name]
         var matcher = MENTION_PATTERN.matcher(content);
         while (matcher.find()) {
-            mentions.add(Integer.parseInt(matcher.group(1)));
+            try {
+                var memberUid = UUID.fromString(matcher.group(2));
+                stationMemberService.resolveId(stationId, memberUid).ifPresent(mentions::add);
+            } catch (IllegalArgumentException ignored) {
+            }
+        }
+        // Legacy format: @[123:Name]
+        var legacyMatcher = MENTION_PATTERN_LEGACY.matcher(content);
+        while (legacyMatcher.find()) {
+            mentions.add(Integer.parseInt(legacyMatcher.group(1)));
         }
         return mentions;
     }

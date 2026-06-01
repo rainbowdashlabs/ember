@@ -193,34 +193,6 @@ class NewsFederationServiceTest extends RepositoryTestBase {
         assertTrue(service.findShareByNews(news1.id()).isEmpty());
     }
 
-    // -- Federated comment author --
-
-    @Test
-    @Order(10)
-    void setFederatedCommentAuthor() {
-        // First create a comment
-        var comment = newsService.createComment(stationA.id(), news1.id(), null, memberA.id(), "Author", "Test");
-        commentId = comment.id();
-
-        assertDoesNotThrow(() -> service.setFederatedCommentAuthor(commentId, partnerIdAB, REMOTE_MEMBER_1));
-    }
-
-    @Test
-    @Order(11)
-    void findFederatedCommentAuthor() {
-        var found = service.findFederatedCommentAuthor(commentId);
-        assertTrue(found.isPresent());
-        assertEquals(commentId, found.get().commentId());
-        assertEquals(partnerIdAB, found.get().partnerId());
-        assertEquals(REMOTE_MEMBER_1, found.get().remoteMemberId());
-    }
-
-    @Test
-    @Order(12)
-    void findFederatedCommentAuthorMissing() {
-        assertTrue(service.findFederatedCommentAuthor(99999).isEmpty());
-    }
-
     // -- createRemoteComment --
 
     @Test
@@ -231,12 +203,6 @@ class NewsFederationServiceTest extends RepositoryTestBase {
         assertNotNull(comment);
         assertNull(comment.authorId());
         assertEquals("Remote comment!", comment.content());
-
-        // Verify federated author was stored
-        var author = service.findFederatedCommentAuthor(comment.id());
-        assertTrue(author.isPresent());
-        assertEquals(partnerIdAB, author.get().partnerId());
-        assertEquals(REMOTE_MEMBER_2, author.get().remoteMemberId());
     }
 
     @Test

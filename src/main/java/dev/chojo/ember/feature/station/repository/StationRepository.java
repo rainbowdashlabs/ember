@@ -29,6 +29,45 @@ public class StationRepository {
     private static final String STATION_COLUMNS =
             "id, uid, name, timezone, locale, owner_member_id, default_theme, allow_user_theme, custom_theme_colors, default_feel, allow_user_feel, public_kb_mode, federation_private_key, discovery_visibility, discovery_description, discovery_show_kb, public_calendar_enabled";
 
+    private final java.util.Map<Integer, UUID> uidCache = new java.util.concurrent.ConcurrentHashMap<>();
+    private final java.util.Map<UUID, Integer> idCache = new java.util.concurrent.ConcurrentHashMap<>();
+
+    /**
+     * Resolves an internal station ID to its external UUID. Cached.
+     */
+    public UUID resolveUid(int stationId) {
+        return uidCache.computeIfAbsent(stationId, id -> Query.query("SELECT uid FROM station WHERE id = :id;")
+                .single(Call.of().bind("id", id))
+                .map(row -> row.get("uid", StandardValueConverter.UUID_STRING))
+                .first()
+                .orElse(null));
+    }
+
+    /**
+     * Resolves an external UUID to its internal station ID. Cached.
+     */
+    public Optional<Integer> resolveId(UUID uid) {
+        Integer cached = idCache.get(uid);
+        if (cached != null) return Optional.of(cached);
+        return Query.query("SELECT id FROM station WHERE uid = :uid::uuid;")
+                .single(Call.of().bind("uid", uid, StandardValueConverter.UUID_STRING))
+                .map(row -> row.getInt("id"))
+                .first()
+                .map(id -> {
+                    idCache.put(uid, id);
+                    uidCache.put(id, uid);
+                    return id;
+                });
+    }
+
+    /**
+     * Invalidates the UID cache for a station (on create/delete).
+     */
+    public void invalidateUidCache(int stationId) {
+        UUID uid = uidCache.remove(stationId);
+        if (uid != null) idCache.remove(uid);
+    }
+
     /**
      * Finds a station by its ID.
      *

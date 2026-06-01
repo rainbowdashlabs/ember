@@ -70,7 +70,13 @@ class FederatedBoardServiceTest extends RepositoryTestBase {
         service = new FederatedBoardService(federatedBoardRepo);
         webhookService = mock(FederationWebhookService.class);
         notificationService = new FederatedBoardNotificationService(webhookService, service);
-        ticketService = new BoardTicketService(boardTicketRepo, boardRepo, new DomainEventBus(Set.of()));
+        ticketService = new BoardTicketService(
+                boardTicketRepo,
+                boardRepo,
+                new DomainEventBus(Set.of()),
+                new dev.chojo.ember.feature.members.service.StationMemberService(
+                        stationMemberRepo, stationRepo, null, null),
+                memberIdentityFactory);
 
         station = stationRepo.create("FedBoardStation");
         partnerStation = stationRepo.create("FedBoardPartner");
@@ -85,11 +91,19 @@ class FederatedBoardServiceTest extends RepositoryTestBase {
 
         // Create a ticket
         BoardTicket ticket = ticketService.createTicket(
-                boardId, laneId, "Fed Ticket", "Desc", null, TicketPriority.MEDIUM, null, member.id());
+                boardId,
+                laneId,
+                "Fed Ticket",
+                "Desc",
+                null,
+                TicketPriority.MEDIUM,
+                null,
+                memberIdentityFactory.local(station.id(), member.id()));
         ticketId = ticket.id();
 
         // Create a comment
-        var comment = ticketService.createComment(ticketId, null, member.id(), "Fed comment");
+        var comment = ticketService.createComment(
+                ticketId, null, memberIdentityFactory.local(station.id(), member.id()), "Fed comment");
         commentId = comment.id();
 
         // Create federation partners via direct SQL
@@ -255,86 +269,7 @@ class FederatedBoardServiceTest extends RepositoryTestBase {
         assertTrue(roles.isEmpty());
     }
 
-    // -- Federated Assignees --
-
-    @Test
-    @Order(20)
-    void setAndFindFederatedAssignee() {
-        service.setFederatedAssignee(ticketId, partnerId, REMOTE_MEMBER_1);
-        var assignee = service.findFederatedAssignee(ticketId);
-        assertTrue(assignee.isPresent());
-        assertEquals(partnerId, assignee.get().partnerId());
-        assertEquals(REMOTE_MEMBER_1, assignee.get().remoteMemberId());
-    }
-
-    @Test
-    @Order(21)
-    void setFederatedAssigneeOverwrites() {
-        service.setFederatedAssignee(ticketId, partner2Id, REMOTE_MEMBER_2);
-        var assignee = service.findFederatedAssignee(ticketId);
-        assertTrue(assignee.isPresent());
-        assertEquals(partner2Id, assignee.get().partnerId());
-        assertEquals(REMOTE_MEMBER_2, assignee.get().remoteMemberId());
-    }
-
-    @Test
-    @Order(22)
-    void removeFederatedAssignee() {
-        service.removeFederatedAssignee(ticketId);
-        assertTrue(service.findFederatedAssignee(ticketId).isEmpty());
-    }
-
-    // -- Federated Comment Authors --
-
-    @Test
-    @Order(30)
-    void setAndFindFederatedCommentAuthor() {
-        service.setFederatedCommentAuthor(commentId, partnerId, REMOTE_AUTHOR_1);
-        var author = service.findFederatedCommentAuthor(commentId);
-        assertTrue(author.isPresent());
-        assertEquals(partnerId, author.get().partnerId());
-        assertEquals(REMOTE_AUTHOR_1, author.get().remoteMemberId());
-    }
-
-    // -- Federated Creators --
-
-    @Test
-    @Order(40)
-    void setAndFindFederatedCreator() {
-        service.setFederatedCreator(ticketId, partnerId, REMOTE_CREATOR_1);
-        var creator = service.findFederatedCreator(ticketId);
-        assertTrue(creator.isPresent());
-        assertEquals(partnerId, creator.get().partnerId());
-        assertEquals(REMOTE_CREATOR_1, creator.get().remoteMemberId());
-    }
-
-    // -- Federated Watchers --
-
-    @Test
-    @Order(50)
-    void addAndFindFederatedWatchers() {
-        service.addFederatedWatcher(ticketId, partnerId, REMOTE_WATCHER_1);
-        service.addFederatedWatcher(ticketId, partnerId, REMOTE_WATCHER_2);
-        service.addFederatedWatcher(ticketId, partner2Id, REMOTE_WATCHER_3);
-
-        var watchers = service.findFederatedWatchers(ticketId);
-        assertEquals(3, watchers.size());
-    }
-
-    @Test
-    @Order(51)
-    void isFederatedWatching() {
-        assertTrue(service.isFederatedWatching(ticketId, partnerId, REMOTE_WATCHER_1));
-        assertFalse(service.isFederatedWatching(ticketId, partnerId, UUID.randomUUID()));
-    }
-
-    @Test
-    @Order(52)
-    void removeFederatedWatcher() {
-        service.removeFederatedWatcher(ticketId, partnerId, REMOTE_WATCHER_2);
-        assertFalse(service.isFederatedWatching(ticketId, partnerId, REMOTE_WATCHER_2));
-        assertEquals(2, service.findFederatedWatchers(ticketId).size());
-    }
+    // Satellite table tests removed — identity is now inline in board_ticket columns
 
     // -- Bookmarks --
 
@@ -486,38 +421,24 @@ class FederatedBoardServiceTest extends RepositoryTestBase {
 
     @Test
     @Order(100)
-    void notifyFederatedWatchersGroupsByPartnerAndOnlySendsToFull() {
-        // Re-share the board: partnerId=FULL, partner2Id=READ_ONLY
+    void notifyFederatedWatchersNoWatchers() {
+        // Re-share the board for later tests
         service.shareBoard(
                 boardId,
                 List.of(
                         new PartnerShareConfig(partnerId, BoardShareMode.FULL),
                         new PartnerShareConfig(partner2Id, BoardShareMode.READ_ONLY)));
 
-        // Watchers: partnerId has remote-watcher-1, partner2Id has remote-watcher-3
-        // (from earlier tests, watcher-2 was removed)
-
-        reset(webhookService);
-        notificationService.notifyFederatedWatchers(ticketId, boardId, "FTB-1", "Updated title");
-
-        // Only partnerId (FULL) should be notified, not partner2Id (READ_ONLY)
-        verify(webhookService)
-                .fireEventToPartner(
-                        eq(partnerId),
-                        eq(WebhookEvent.BOARD_TICKET_CHANGED),
-                        argThat(map -> map.get("ticketKey").equals("FTB-1")
-                                && map.get("changeDescription").equals("Updated title")
-                                && ((List<?>) map.get("remoteMemberIds")).contains(REMOTE_WATCHER_1)));
-        verify(webhookService, never())
-                .fireEventToPartner(eq(partner2Id), eq(WebhookEvent.BOARD_TICKET_CHANGED), any());
-    }
-
-    @Test
-    @Order(101)
-    void notifyFederatedWatchersNoWatchers() {
         // Create a second ticket with no watchers
         var ticket2 = ticketService.createTicket(
-                boardId, laneId, "No watchers", null, null, TicketPriority.LOW, null, member.id());
+                boardId,
+                laneId,
+                "No watchers",
+                null,
+                null,
+                TicketPriority.LOW,
+                null,
+                memberIdentityFactory.local(station.id(), member.id()));
         reset(webhookService);
         notificationService.notifyFederatedWatchers(ticket2.id(), boardId, "FTB-2", "change");
         verifyNoInteractions(webhookService);

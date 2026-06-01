@@ -121,6 +121,7 @@ export interface MemberInfo {
     id: number
     stationId: string
     accountId: number
+    uid: string
 }
 
 export interface SessionInfo {
@@ -1180,16 +1181,12 @@ export interface NewsComment {
     id: number
     newsId: number
     parentId: number | null
-    authorId: number
-    authorAccountId?: number | null
+    author: MemberIdentity | null
     authorName: string
     content: string
     deleted?: boolean
     createdAt: string
     updatedAt?: string | null
-    federatedAuthor?: FederatedAuthorInfo | null
-    authorStationId?: string
-    authorStationName?: string
 }
 
 export interface CommentRequest {
@@ -1644,26 +1641,24 @@ export interface QuizCatalogExport {
     questions: QuizQuestion[]
 }
 
-// -- Comments --
+// -- Member Identity --
 
-export interface FederatedAuthorInfo {
+export interface MemberIdentity {
+    stationUid: string
     memberUid: string
-    displayName: string
-    stationName: string
 }
+
+// -- Comments --
 
 export interface Comment {
     id: number
     parentId?: number | null
-    authorId: number
-    authorName?: string
-    authorStationId?: string
-    authorStationName?: string
+    author: MemberIdentity | null
+    authorName: string
     content: string
     deleted?: boolean
     createdAt: string
     updatedAt?: string | null
-    federatedAuthor?: FederatedAuthorInfo | null
 }
 
 export interface EntityNote {

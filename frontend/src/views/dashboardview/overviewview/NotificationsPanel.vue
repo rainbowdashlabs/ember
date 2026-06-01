@@ -15,11 +15,13 @@ import SectionHeader from '@/components/typography/SectionHeader.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import {notifications} from '@/api'
 import {getFeedStatus} from '@/api/feedToken'
+import {useSidebarCounts} from '@/composables/useSidebarCounts'
 import type {FeedStatusResponse} from '@/api/feedToken'
 import type {NotificationEntry} from '@/api/types'
 
 const {t} = useI18n()
 const router = useRouter()
+const {refresh: refreshSidebarCounts} = useSidebarCounts()
 
 const notifs = ref<NotificationEntry[]>([])
 const loading = ref(true)
@@ -75,11 +77,13 @@ function formatDate(dateStr: string): string {
 async function ack(id: number) {
   await notifications.acknowledge(id)
   notifs.value = notifs.value.filter(n => n.id !== id)
+  refreshSidebarCounts()
 }
 
 async function ackAll() {
   await notifications.acknowledgeAll()
   notifs.value = []
+  refreshSidebarCounts()
 }
 
 const showFeedCta = computed(() => {

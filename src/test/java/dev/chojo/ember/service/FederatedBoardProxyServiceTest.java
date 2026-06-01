@@ -25,6 +25,7 @@ import dev.chojo.ember.feature.board.service.BoardService;
 import dev.chojo.ember.feature.board.service.BoardTicketService;
 import dev.chojo.ember.feature.board.service.FederatedBoardProxyService;
 import dev.chojo.ember.feature.board.service.FederatedBoardService;
+import dev.chojo.ember.feature.events.repository.EventFederationRepository;
 import dev.chojo.ember.feature.federation.entity.CapabilityType;
 import dev.chojo.ember.feature.federation.entity.Direction;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
@@ -35,6 +36,7 @@ import dev.chojo.ember.feature.members.entity.MemberGroup;
 import dev.chojo.ember.feature.members.entity.Role;
 import dev.chojo.ember.feature.members.entity.UserTag;
 import dev.chojo.ember.feature.members.service.MemberGroupService;
+import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.members.service.StationMemberService;
 import dev.chojo.ember.feature.members.service.UserTagService;
 import dev.chojo.ember.feature.station.entity.Station;
@@ -94,7 +96,13 @@ class FederatedBoardProxyServiceTest extends RepositoryTestBase {
 
         federatedBoardService = new FederatedBoardService(federatedBoardRepo);
         boardService = new BoardService(boardRepo, memberService, groupService, tagService);
-        ticketService = new BoardTicketService(boardTicketRepo, boardRepo, new DomainEventBus(Set.of()));
+        ticketService = new BoardTicketService(
+                boardTicketRepo,
+                boardRepo,
+                new DomainEventBus(Set.of()),
+                new dev.chojo.ember.feature.members.service.StationMemberService(
+                        stationMemberRepo, stationRepo, null, null),
+                memberIdentityFactory);
         federationRepository = mock(FederationRepository.class);
 
         proxyService = new FederatedBoardProxyService(
@@ -108,7 +116,11 @@ class FederatedBoardProxyServiceTest extends RepositoryTestBase {
                 stationRepo,
                 memberService,
                 groupService,
-                tagService);
+                tagService,
+                new EventFederationRepository(),
+                new MemberNameResolver(
+                        memberService, accountRepo, new EventFederationRepository(), federationRepository, stationRepo),
+                memberIdentityFactory);
 
         station1 = stationRepo.create("ProxyStation1");
         station2 = stationRepo.create("ProxyStation2");
@@ -699,7 +711,14 @@ class FederatedBoardProxyServiceTest extends RepositoryTestBase {
         // Create a ticket directly via ticketService (with a valid memberId)
         // since proxyCreateTicket passes createdBy=0 which violates the FK constraint
         var ticket = ticketService.createTicket(
-                boardId, laneId, "Test Ticket", "Description", null, TicketPriority.HIGH, null, memberId);
+                boardId,
+                laneId,
+                "Test Ticket",
+                "Description",
+                null,
+                TicketPriority.HIGH,
+                null,
+                memberIdentityFactory.local(station1.id(), memberId));
         assertNotNull(ticket);
         assertEquals("Test Ticket", ticket.title());
         ticketId = ticket.id();
@@ -833,7 +852,8 @@ class FederatedBoardProxyServiceTest extends RepositoryTestBase {
     void proxyAddCommentLocalCreatesViaService() {
         // proxyAddComment passes authorId=0 which violates FK on board_ticket_comment.
         // Create comment directly via ticketService to test the read proxy instead.
-        var comment = ticketService.createComment(ticketId, null, memberId, "Direct comment");
+        var comment = ticketService.createComment(
+                ticketId, null, memberIdentityFactory.local(station1.id(), memberId), "Direct comment");
         assertNotNull(comment);
 
         when(federationRepository.findPartnerById(partnerId)).thenReturn(Optional.of(localPartner()));
@@ -873,7 +893,8 @@ class FederatedBoardProxyServiceTest extends RepositoryTestBase {
         assertFalse(labels.isEmpty());
         int labelId = labels.getFirst().id();
 
-        var result = proxyService.proxyAddTicketLabel(partnerId, boardKey, ticketNumber, labelId);
+        var result =
+                proxyService.proxyAddTicketLabel(partnerId, boardKey, ticketNumber, labelId, REMOTE_MEMBER_1, "Test");
         assertNotNull(result);
         assertFalse(result.isEmpty());
     }
@@ -965,7 +986,7 @@ class FederatedBoardProxyServiceTest extends RepositoryTestBase {
         assertFalse(labels.isEmpty());
         int labelId = labels.getFirst().id();
 
-        proxyService.proxyRemoveTicketLabel(partnerId, boardKey, ticketNumber, labelId);
+        proxyService.proxyRemoveTicketLabel(partnerId, boardKey, ticketNumber, labelId, REMOTE_MEMBER_1, "Test");
         var afterRemove = boardService.findLabelsForTicket(ticketId);
         assertTrue(afterRemove.isEmpty());
     }
@@ -1116,7 +1137,7 @@ class FederatedBoardProxyServiceTest extends RepositoryTestBase {
                 TicketPriority.HIGH,
                 null,
                 0,
-                0,
+                null,
                 null,
                 null,
                 null,
@@ -1240,7 +1261,7 @@ class FederatedBoardProxyServiceTest extends RepositoryTestBase {
                 TicketPriority.MEDIUM,
                 null,
                 0,
-                0,
+                null,
                 null,
                 null,
                 null,
@@ -1401,7 +1422,7 @@ class FederatedBoardProxyServiceTest extends RepositoryTestBase {
     void proxyUpdateTicketRemote() {
         when(federationRepository.findPartnerById(partnerId)).thenReturn(Optional.of(remotePartner()));
         var responseTicket = new BoardTicket(
-                1, 10, 1, 1, "Updated", "Desc", null, TicketPriority.LOW, null, 0, 0, null, null, null, 0, 0, 0);
+                1, 10, 1, 1, "Updated", "Desc", null, TicketPriority.LOW, null, 0, null, null, null, null, 0, 0, 0);
         when(httpClient.put(
                         eq("https://remote.example.com"),
                         eq("/remote/boards/" + boardKey + "/tickets/1"),
@@ -1421,7 +1442,7 @@ class FederatedBoardProxyServiceTest extends RepositoryTestBase {
     void proxyMoveTicketRemote() {
         when(federationRepository.findPartnerById(partnerId)).thenReturn(Optional.of(remotePartner()));
         var responseTicket = new BoardTicket(
-                1, 10, 2, 1, "Ticket", "Desc", null, TicketPriority.MEDIUM, null, 0, 0, null, null, null, 0, 0, 0);
+                1, 10, 2, 1, "Ticket", "Desc", null, TicketPriority.MEDIUM, null, 0, null, null, null, null, 0, 0, 0);
         when(httpClient.put(
                         eq("https://remote.example.com"),
                         eq("/remote/boards/" + boardKey + "/tickets/1/move"),
@@ -1439,7 +1460,7 @@ class FederatedBoardProxyServiceTest extends RepositoryTestBase {
     @Order(219)
     void proxyAddCommentRemote() {
         when(federationRepository.findPartnerById(partnerId)).thenReturn(Optional.of(remotePartner()));
-        var responseComment = new BoardComment(1, 1, null, 0, "Hello", false, null, null);
+        var responseComment = new BoardComment(1, 1, null, null, "Hello", false, null, null);
         when(httpClient.post(
                         eq("https://remote.example.com"),
                         eq("/remote/boards/" + boardKey + "/tickets/1/comments"),
@@ -1449,7 +1470,7 @@ class FederatedBoardProxyServiceTest extends RepositoryTestBase {
                         any()))
                 .thenReturn(responseComment);
 
-        var comment = proxyService.proxyAddComment(partnerId, boardKey, 1, null, "Hello", REMOTE_MEMBER_1);
+        var comment = proxyService.proxyAddComment(partnerId, boardKey, 1, null, "Hello", REMOTE_MEMBER_1, "Test User");
         assertNotNull(comment);
         assertEquals("Hello", comment.content());
     }
@@ -1528,7 +1549,7 @@ class FederatedBoardProxyServiceTest extends RepositoryTestBase {
                         any()))
                 .thenReturn(List.of(responseLabel));
 
-        var labels = proxyService.proxyAddTicketLabel(partnerId, boardKey, 1, 5);
+        var labels = proxyService.proxyAddTicketLabel(partnerId, boardKey, 1, 5, REMOTE_MEMBER_1, "Test");
         assertNotNull(labels);
         assertFalse(labels.isEmpty());
     }
@@ -1537,18 +1558,13 @@ class FederatedBoardProxyServiceTest extends RepositoryTestBase {
     @Order(224)
     void proxyRemoveTicketLabelRemote() {
         when(federationRepository.findPartnerById(partnerId)).thenReturn(Optional.of(remotePartner()));
-        when(httpClient.delete(
-                        eq("https://remote.example.com"),
-                        eq("/remote/boards/" + boardKey + "/tickets/1/labels/5"),
-                        anyInt(),
-                        any()))
-                .thenReturn(true);
 
-        proxyService.proxyRemoveTicketLabel(partnerId, boardKey, 1, 5);
+        proxyService.proxyRemoveTicketLabel(partnerId, boardKey, 1, 5, REMOTE_MEMBER_1, "Test");
         verify(httpClient)
-                .delete(
+                .post(
                         eq("https://remote.example.com"),
-                        eq("/remote/boards/" + boardKey + "/tickets/1/labels/5"),
+                        eq("/remote/boards/" + boardKey + "/tickets/1/labels/5/remove"),
+                        any(),
                         anyInt(),
                         any());
     }
@@ -1722,7 +1738,7 @@ class FederatedBoardProxyServiceTest extends RepositoryTestBase {
                         any()))
                 .thenReturn(List.of());
 
-        var result = proxyService.proxyAddTicketLabel(partnerId, boardKey, 1, 5);
+        var result = proxyService.proxyAddTicketLabel(partnerId, boardKey, 1, 5, REMOTE_MEMBER_1, "Test");
         assertNotNull(result);
         assertTrue(result.isEmpty());
     }

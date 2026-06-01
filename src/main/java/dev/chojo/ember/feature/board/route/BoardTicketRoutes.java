@@ -6,9 +6,9 @@
 package dev.chojo.ember.feature.board.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
+import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.api.Roles;
 import dev.chojo.ember.api.Routes;
-import dev.chojo.ember.api.StationUidResolver;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.board.entity.BoardChecklistItem;
@@ -19,9 +19,11 @@ import dev.chojo.ember.feature.board.entity.BoardTicket;
 import dev.chojo.ember.feature.board.entity.BoardTicketAttachment;
 import dev.chojo.ember.feature.board.entity.BoardTicketFieldValue;
 import dev.chojo.ember.feature.board.entity.BoardTicketHistory;
+import dev.chojo.ember.feature.board.entity.BoardTicketHistoryResponse;
 import dev.chojo.ember.feature.board.entity.BoardTicketKbLink;
 import dev.chojo.ember.feature.board.entity.BoardTicketLink;
 import dev.chojo.ember.feature.board.entity.BoardTicketTransition;
+import dev.chojo.ember.feature.board.entity.BoardTicketTransitionResponse;
 import dev.chojo.ember.feature.board.entity.BoardWeblink;
 import dev.chojo.ember.feature.board.entity.LinkType;
 import dev.chojo.ember.feature.board.entity.TicketPriority;
@@ -31,9 +33,9 @@ import dev.chojo.ember.feature.board.service.BoardService;
 import dev.chojo.ember.feature.board.service.BoardTicketService;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
-import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
-import dev.chojo.ember.feature.station.entity.Station;
+import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
+import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
@@ -57,7 +59,6 @@ import java.nio.file.Files;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
-import java.util.UUID;
 
 @Singleton
 public class BoardTicketRoutes implements Routes {
@@ -69,6 +70,8 @@ public class BoardTicketRoutes implements Routes {
     private final StationRepository stationRepository;
     private final StationMemberRepository stationMemberRepository;
     private final AccountRepository accountRepository;
+    private final MemberNameResolver memberNameResolver;
+    private final MemberIdentityFactory memberIdentityFactory;
 
     @Inject
     public BoardTicketRoutes(
@@ -79,7 +82,9 @@ public class BoardTicketRoutes implements Routes {
             FederationRepository federationRepository,
             StationRepository stationRepository,
             StationMemberRepository stationMemberRepository,
-            AccountRepository accountRepository) {
+            AccountRepository accountRepository,
+            MemberNameResolver memberNameResolver,
+            MemberIdentityFactory memberIdentityFactory) {
         this.ticketService = ticketService;
         this.boardService = boardService;
         this.federatedBoardRepository = federatedBoardRepository;
@@ -88,6 +93,8 @@ public class BoardTicketRoutes implements Routes {
         this.stationRepository = stationRepository;
         this.stationMemberRepository = stationMemberRepository;
         this.accountRepository = accountRepository;
+        this.memberNameResolver = memberNameResolver;
+        this.memberIdentityFactory = memberIdentityFactory;
     }
 
     private int resolveBoardId(Context ctx, int stationId) {
@@ -241,15 +248,20 @@ public class BoardTicketRoutes implements Routes {
         requireEditAccess(boardId, session);
         var req = ctx.bodyAsClass(CreateTicketRequest.class);
         if (req.title() == null || req.title().isBlank()) throw new BadRequestResponse("title is required");
+        MemberIdentity assigneeIdentity = req.assignedMemberId() != null
+                ? memberIdentityFactory.local(session.stationId(), req.assignedMemberId())
+                : null;
+        MemberIdentity creatorIdentity = memberIdentityFactory.local(
+                session.stationId(), session.member().id());
         var ticket = ticketService.createTicket(
                 boardId,
                 req.laneId(),
                 req.title(),
                 req.description(),
-                req.assignedMemberId(),
+                assigneeIdentity,
                 req.priority() != null ? req.priority() : TicketPriority.MEDIUM,
                 req.dueDate(),
-                session.member().id());
+                creatorIdentity);
         ctx.status(HttpStatus.CREATED).json(ticket);
     }
 
@@ -296,14 +308,19 @@ public class BoardTicketRoutes implements Routes {
         requireEditAccess(boardId, session);
         int ticketId = resolveTicketId(ctx, boardId);
         var req = ctx.bodyAsClass(UpdateTicketRequest.class);
+        MemberIdentity assigneeIdentity = req.assignedMemberId() != null
+                ? memberIdentityFactory.local(session.stationId(), req.assignedMemberId())
+                : null;
+        MemberIdentity actorIdentity = memberIdentityFactory.local(
+                session.stationId(), session.member().id());
         ticketService.updateTicket(
                 ticketId,
                 req.title(),
                 req.description(),
-                req.assignedMemberId(),
+                assigneeIdentity,
                 req.priority(),
                 req.dueDate(),
-                session.member().id());
+                actorIdentity);
         ticketService.findById(ticketId).ifPresentOrElse(ctx::json, () -> {
             throw new NotFoundResponse();
         });
@@ -360,7 +377,8 @@ public class BoardTicketRoutes implements Routes {
                 ticket.laneId(),
                 req.toLaneId(),
                 req.position(),
-                session.member().id());
+                memberIdentityFactory.local(
+                        session.stationId(), session.member().id()));
         ticketService.findById(ticketId).ifPresentOrElse(ctx::json, () -> {
             throw new NotFoundResponse();
         });
@@ -406,8 +424,10 @@ public class BoardTicketRoutes implements Routes {
         requireEditAccess(boardId, session);
         int ticketId = resolveTicketId(ctx, boardId);
         var req = ctx.bodyAsClass(AssignRequest.class);
-        ticketService.assignTicket(
-                ticketId, req.assignedMemberId(), session.member().id());
+        MemberIdentity assigneeIdentity = req.assignedMemberId() != null
+                ? memberIdentityFactory.local(session.stationId(), req.assignedMemberId())
+                : null;
+        ticketService.assignTicket(ticketId, assigneeIdentity, session.member().id());
         ticketService.findById(ticketId).ifPresentOrElse(ctx::json, () -> {
             throw new NotFoundResponse();
         });
@@ -606,7 +626,9 @@ public class BoardTicketRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         int boardId = resolveBoardId(ctx, session.stationId());
         int ticketId = resolveTicketId(ctx, boardId);
-        ctx.json(ticketService.findTransitions(ticketId));
+        ctx.json(ticketService.findTransitions(ticketId).stream()
+                .map(tr -> BoardTicketTransitionResponse.from(tr, tr.actor(), memberNameResolver.resolve(tr.actor())))
+                .toList());
     }
 
     @OpenApi(
@@ -649,8 +671,9 @@ public class BoardTicketRoutes implements Routes {
         int ticketId = resolveTicketId(ctx, boardId);
         var req = ctx.bodyAsClass(CommentRequest.class);
         if (req.content() == null || req.content().isBlank()) throw new BadRequestResponse("content is required");
-        var comment = ticketService.createComment(
-                ticketId, req.parentId(), session.member().id(), req.content());
+        MemberIdentity authorIdentity = memberIdentityFactory.local(
+                session.stationId(), session.member().id());
+        var comment = ticketService.createComment(ticketId, req.parentId(), authorIdentity, req.content());
         ctx.status(HttpStatus.CREATED).json(toCommentResponse(comment));
     }
 
@@ -980,7 +1003,11 @@ public class BoardTicketRoutes implements Routes {
         if (value == null) throw new BadRequestResponse("Invalid value for field type " + field.fieldType());
         ticketService.setFieldValue(ticketId, fieldId, value);
         ticketService.logHistory(
-                ticketId, "FIELD_CHANGED", "Feld #" + fieldId, session.member().id());
+                ticketId,
+                "FIELD_CHANGED",
+                "Feld #" + fieldId,
+                memberIdentityFactory.local(
+                        session.stationId(), session.member().id()));
         ctx.status(HttpStatus.OK);
     }
 
@@ -1050,7 +1077,8 @@ public class BoardTicketRoutes implements Routes {
                 ticketId,
                 "LABEL_ADDED",
                 label != null ? label.name() : "?",
-                session.member().id());
+                memberIdentityFactory.local(
+                        session.stationId(), session.member().id()));
         ctx.status(HttpStatus.CREATED).json(boardService.findLabelsForTicket(ticketId));
     }
 
@@ -1080,7 +1108,8 @@ public class BoardTicketRoutes implements Routes {
                 ticketId,
                 "LABEL_REMOVED",
                 label != null ? label.name() : "?",
-                session.member().id());
+                memberIdentityFactory.local(
+                        session.stationId(), session.member().id()));
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
@@ -1165,7 +1194,9 @@ public class BoardTicketRoutes implements Routes {
         int boardId = resolveBoardId(ctx, session.stationId());
         requireViewAccess(boardId, session);
         int ticketId = resolveTicketId(ctx, boardId);
-        ctx.json(ticketService.findHistory(ticketId));
+        ctx.json(ticketService.findHistory(ticketId).stream()
+                .map(h -> BoardTicketHistoryResponse.from(h, h.actor(), memberNameResolver.resolve(h.actor())))
+                .toList());
     }
 
     // -- Activity --
@@ -1196,90 +1227,37 @@ public class BoardTicketRoutes implements Routes {
                     comment.id(),
                     comment.ticketId(),
                     comment.parentId(),
-                    0,
                     null,
                     null,
                     "",
                     true,
                     comment.createdAt(),
-                    null,
-                    null,
-                    null,
                     null);
         }
-        var fedAuthor = federatedBoardRepository.findFederatedCommentAuthor(comment.id());
-        if (fedAuthor.isPresent()) {
-            var fa = fedAuthor.get();
-            String displayName = eventFederationRepository
-                    .getCachedName(fa.partnerId(), fa.remoteMemberId())
-                    .orElse("Unknown");
-            var partner = federationRepository.findPartnerById(fa.partnerId());
-            String stationName = partner.map(p -> stationRepository
-                            .findByUid(p.partnerStationId())
-                            .map(Station::name)
-                            .orElse(""))
-                    .orElse("");
-            String fedStationId =
-                    partner.map(p -> p.partnerStationId().toString()).orElse(null);
-            return new BoardCommentResponse(
-                    comment.id(),
-                    comment.ticketId(),
-                    comment.parentId(),
-                    0,
-                    null,
-                    displayName,
-                    comment.content(),
-                    false,
-                    comment.createdAt(),
-                    comment.updatedAt(),
-                    new BoardFederatedAuthorInfo(fa.remoteMemberId(), displayName, stationName),
-                    fedStationId,
-                    stationName);
-        }
-        // Local author
-        var memberOpt = stationMemberRepository.findById(comment.authorId());
-        Integer authorAccountId = memberOpt.map(StationMember::accountId).orElse(null);
-        String authorName = memberOpt
-                .filter(m -> m.accountId() != null)
-                .flatMap(m -> accountRepository.findById(m.accountId()))
-                .map(a -> (a.firstName() + " " + a.lastName()).trim())
-                .orElse("");
-        int authorStationId = memberOpt.map(StationMember::stationId).orElse(0);
-        String authorStationUid = StationUidResolver.instance().resolveToString(authorStationId);
-        String authorStationName =
-                stationRepository.findById(authorStationId).map(Station::name).orElse("");
+        String authorName = memberNameResolver.resolve(comment.author());
+        if (authorName == null) authorName = "";
         return new BoardCommentResponse(
                 comment.id(),
                 comment.ticketId(),
                 comment.parentId(),
-                comment.authorId(),
-                authorAccountId,
+                comment.author(),
                 authorName,
                 comment.content(),
                 false,
                 comment.createdAt(),
-                comment.updatedAt(),
-                null,
-                authorStationUid,
-                authorStationName);
+                comment.updatedAt());
     }
 
     public record BoardCommentResponse(
             int id,
             int ticketId,
             Integer parentId,
-            int authorId,
-            Integer authorAccountId,
+            MemberIdentity author,
             String authorName,
             String content,
             boolean deleted,
             Instant createdAt,
-            Instant updatedAt,
-            BoardFederatedAuthorInfo federatedAuthor,
-            String authorStationId,
-            String authorStationName) {}
-
-    public record BoardFederatedAuthorInfo(UUID memberUid, String displayName, String stationName) {}
+            Instant updatedAt) {}
 
     // -- Request records --
 

@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.board.service;
 
+import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.BoardTicketChanged;
 import dev.chojo.ember.event.events.MentionedInComment;
@@ -25,6 +26,8 @@ import dev.chojo.ember.feature.board.entity.TicketPriority;
 import dev.chojo.ember.feature.board.repository.BoardRepository;
 import dev.chojo.ember.feature.board.repository.BoardTicketRepository;
 import dev.chojo.ember.feature.comment.entity.CommentEntityType;
+import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
+import dev.chojo.ember.feature.members.service.StationMemberService;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
@@ -42,18 +45,27 @@ import java.util.regex.Pattern;
 
 @Singleton
 public class BoardTicketService {
-    private static final Pattern MENTION_PATTERN = Pattern.compile("@\\[(\\d+):([^\\]]+)]");
+    private static final Pattern MENTION_PATTERN_LEGACY = Pattern.compile("@\\[(\\d+):([^\\]]+)]");
+    private static final Pattern MENTION_PATTERN = Pattern.compile("@\\[([^/]+)/([^:]+):([^\\]]+)]");
 
     private final BoardTicketRepository ticketRepository;
     private final BoardRepository boardRepository;
     private final DomainEventBus eventBus;
+    private final StationMemberService stationMemberService;
+    private final MemberIdentityFactory memberIdentityFactory;
 
     @Inject
     public BoardTicketService(
-            BoardTicketRepository ticketRepository, BoardRepository boardRepository, DomainEventBus eventBus) {
+            BoardTicketRepository ticketRepository,
+            BoardRepository boardRepository,
+            DomainEventBus eventBus,
+            StationMemberService stationMemberService,
+            MemberIdentityFactory memberIdentityFactory) {
         this.ticketRepository = ticketRepository;
         this.boardRepository = boardRepository;
         this.eventBus = eventBus;
+        this.stationMemberService = stationMemberService;
+        this.memberIdentityFactory = memberIdentityFactory;
     }
 
     private void notifyWatchers(int ticketId, int boardId, String changeDescription, Integer actorMemberId) {
@@ -97,7 +109,9 @@ public class BoardTicketService {
     }
 
     public List<BoardTicket> findByAssignee(int boardId, int memberId) {
-        return ticketRepository.findByAssignee(boardId, memberId);
+        UUID memberUid = stationMemberService.resolveUid(memberId);
+        if (memberUid == null) return List.of();
+        return ticketRepository.findByAssignee(boardId, memberUid);
     }
 
     public BoardTicket createTicket(
@@ -105,53 +119,44 @@ public class BoardTicketService {
             int laneId,
             String title,
             String description,
-            Integer assignedMemberId,
+            MemberIdentity assignee,
             TicketPriority priority,
             LocalDate dueDate,
-            int createdBy) {
+            MemberIdentity creator) {
         int ticketNumber = boardRepository.nextTicketNumber(boardId);
         int position = ticketRepository.findByBoardAndLane(boardId, laneId).size();
         return ticketRepository.createTicket(
-                boardId,
-                laneId,
-                ticketNumber,
-                title,
-                description,
-                assignedMemberId,
-                priority,
-                dueDate,
-                position,
-                createdBy);
+                boardId, laneId, ticketNumber, title, description, assignee, priority, dueDate, position, creator);
     }
 
     public boolean updateTicket(
             int id,
             String title,
             String description,
-            Integer assignedMemberId,
+            MemberIdentity assignee,
             TicketPriority priority,
             LocalDate dueDate,
-            int actorMemberId) {
+            MemberIdentity actor) {
         var oldTicket = ticketRepository.findById(id).orElse(null);
-        boolean updated = ticketRepository.updateTicket(id, title, description, assignedMemberId, priority, dueDate);
+        boolean updated = ticketRepository.updateTicket(id, title, description, assignee, priority, dueDate);
         if (updated && oldTicket != null) {
             if (oldTicket.priority() != priority)
                 ticketRepository.logHistory(
-                        id, "PRIORITY_CHANGED", oldTicket.priority().name() + " → " + priority.name(), actorMemberId);
+                        id, "PRIORITY_CHANGED", oldTicket.priority().name() + " → " + priority.name(), actor);
             if (!Objects.equals(oldTicket.title(), title))
-                ticketRepository.logHistory(id, "TITLE_CHANGED", oldTicket.title() + " → " + title, actorMemberId);
+                ticketRepository.logHistory(id, "TITLE_CHANGED", oldTicket.title() + " → " + title, actor);
             if (!Objects.equals(oldTicket.description(), description))
-                ticketRepository.logHistory(id, "DESCRIPTION_CHANGED", null, actorMemberId);
+                ticketRepository.logHistory(id, "DESCRIPTION_CHANGED", null, actor);
             if (!Objects.equals(oldTicket.dueDate(), dueDate))
                 ticketRepository.logHistory(
-                        id, "DUE_DATE_CHANGED", (dueDate != null ? dueDate.toString() : "entfernt"), actorMemberId);
-            notifyWatchers(id, oldTicket.boardId(), "Ticket aktualisiert", actorMemberId);
+                        id, "DUE_DATE_CHANGED", (dueDate != null ? dueDate.toString() : "entfernt"), actor);
+            notifyWatchers(id, oldTicket.boardId(), "Ticket aktualisiert", null);
         }
         return updated;
     }
 
-    public boolean assignTicket(int ticketId, Integer assignedMemberId, int actorMemberId) {
-        boolean updated = ticketRepository.assignTicket(ticketId, assignedMemberId);
+    public boolean assignTicket(int ticketId, MemberIdentity assignee, int actorMemberId) {
+        boolean updated = ticketRepository.assignTicket(ticketId, assignee);
         if (updated) {
             var ticket = ticketRepository.findById(ticketId).orElse(null);
             if (ticket != null) {
@@ -165,22 +170,10 @@ public class BoardTicketService {
         return ticketRepository.deleteTicket(id);
     }
 
-    public boolean moveTicket(int ticketId, int fromLaneId, int toLaneId, int position, int movedBy) {
-        return moveTicket(ticketId, fromLaneId, toLaneId, position, movedBy, null, null);
-    }
-
-    public boolean moveTicket(
-            int ticketId,
-            int fromLaneId,
-            int toLaneId,
-            int position,
-            Integer movedBy,
-            Integer federatedPartnerId,
-            UUID federatedMemberId) {
+    public boolean moveTicket(int ticketId, int fromLaneId, int toLaneId, int position, MemberIdentity actor) {
         boolean moved = ticketRepository.moveTicket(ticketId, toLaneId, position);
         if (moved) {
-            ticketRepository.logTransition(
-                    ticketId, fromLaneId, toLaneId, movedBy, federatedPartnerId, federatedMemberId);
+            ticketRepository.logTransition(ticketId, fromLaneId, toLaneId, actor);
             var ticket = ticketRepository.findById(ticketId).orElse(null);
             var toLane = ticket != null
                     ? boardRepository.findLanes(ticket.boardId()).stream()
@@ -190,21 +183,20 @@ public class BoardTicketService {
                     : null;
             if (ticket != null) {
                 notifyWatchers(
-                        ticketId,
-                        ticket.boardId(),
-                        "Verschoben nach " + (toLane != null ? toLane.name() : "?"),
-                        movedBy);
+                        ticketId, ticket.boardId(), "Verschoben nach " + (toLane != null ? toLane.name() : "?"), null);
             }
             // Auto-assign from lane_assignee fields
             if (ticket != null) {
+                var board = boardRepository.findById(ticket.boardId()).orElse(null);
                 var fields = boardRepository.findFields(ticket.boardId());
                 var fieldValues = ticketRepository.findFieldValues(ticketId);
                 var fvMap = new HashMap<Integer, BoardFieldValue>();
                 for (var fv : fieldValues) fvMap.put(fv.fieldId(), fv.value());
                 for (var field : fields) {
                     if (field.config() instanceof BoardFieldConfig.LaneAssignee lac && lac.laneId() == toLaneId) {
-                        if (fvMap.get(field.id()) instanceof BoardFieldValue.LaneAssignee assignee) {
-                            ticketRepository.assignTicket(ticketId, assignee.memberId());
+                        if (fvMap.get(field.id()) instanceof BoardFieldValue.LaneAssignee assignee && board != null) {
+                            ticketRepository.assignTicket(
+                                    ticketId, memberIdentityFactory.local(board.stationId(), assignee.memberId()));
                         }
                     }
                 }
@@ -285,20 +277,28 @@ public class BoardTicketService {
         return ticketRepository.findComments(ticketId);
     }
 
-    public BoardComment createComment(int ticketId, Integer parentId, Integer authorId, String content) {
-        var comment = ticketRepository.createComment(ticketId, parentId, authorId, content);
+    public BoardComment createComment(int ticketId, Integer parentId, MemberIdentity author, String content) {
+        var comment = ticketRepository.createComment(ticketId, parentId, author, content);
         var ticket = ticketRepository.findById(ticketId).orElse(null);
         if (ticket != null) {
-            notifyWatchers(ticketId, ticket.boardId(), "Neuer Kommentar", authorId);
+            notifyWatchers(ticketId, ticket.boardId(), "Neuer Kommentar", null);
             var board = boardRepository.findById(ticket.boardId()).orElse(null);
-            var authorName = board != null ? board.shortKey() + "-" + ticket.ticketNumber() : "?";
-            for (int mentionedId : parseMentions(content)) {
-                if (authorId == null || mentionedId != authorId) {
+            var ticketKey = board != null ? board.shortKey() + "-" + ticket.ticketNumber() : "?";
+            int stationId = board != null ? board.stationId() : 0;
+            // Resolve local author member ID for mention exclusion
+            Integer authorMemberId = null;
+            if (author != null) {
+                authorMemberId = stationMemberService
+                        .resolveId(stationId, author.memberUid())
+                        .orElse(null);
+            }
+            for (int mentionedId : parseMentions(stationId, content)) {
+                if (authorMemberId == null || mentionedId != authorMemberId) {
                     eventBus.publish(new MentionedInComment(
-                            board != null ? board.stationId() : 0,
+                            stationId,
                             mentionedId,
-                            authorId,
-                            authorName,
+                            authorMemberId,
+                            ticketKey,
                             CommentEntityType.BOARD_TICKET,
                             ticketId));
                 }
@@ -307,11 +307,21 @@ public class BoardTicketService {
         return comment;
     }
 
-    private List<Integer> parseMentions(String content) {
+    private List<Integer> parseMentions(int stationId, String content) {
         var mentions = new ArrayList<Integer>();
+        // New format: @[stationUid/memberUid:Name]
         var matcher = MENTION_PATTERN.matcher(content);
         while (matcher.find()) {
-            mentions.add(Integer.parseInt(matcher.group(1)));
+            try {
+                var memberUid = UUID.fromString(matcher.group(2));
+                stationMemberService.resolveId(stationId, memberUid).ifPresent(mentions::add);
+            } catch (IllegalArgumentException ignored) {
+            }
+        }
+        // Legacy format: @[123:Name]
+        var legacyMatcher = MENTION_PATTERN_LEGACY.matcher(content);
+        while (legacyMatcher.find()) {
+            mentions.add(Integer.parseInt(legacyMatcher.group(1)));
         }
         return mentions;
     }
@@ -321,7 +331,7 @@ public class BoardTicketService {
     }
 
     public boolean deleteComment(int id) {
-        return ticketRepository.softDeleteComment(id);
+        return ticketRepository.deleteComment(id);
     }
 
     // -- Weblinks --
@@ -391,6 +401,14 @@ public class BoardTicketService {
         ticketRepository.addWatcher(ticketId, memberId);
     }
 
+    public void addWatcher(int ticketId, MemberIdentity identity) {
+        ticketRepository.addWatcher(ticketId, identity);
+    }
+
+    public boolean removeWatcher(int ticketId, MemberIdentity identity) {
+        return ticketRepository.removeWatcher(ticketId, identity);
+    }
+
     public boolean unwatchTicket(int ticketId, int memberId) {
         return ticketRepository.removeWatcher(ticketId, memberId);
     }
@@ -429,13 +447,8 @@ public class BoardTicketService {
 
     // -- History --
 
-    public void logHistory(int ticketId, String action, String detail, int actorMemberId) {
-        ticketRepository.logHistory(ticketId, action, detail, actorMemberId, null, null);
-    }
-
-    public void logHistory(
-            int ticketId, String action, String detail, Integer federatedPartnerId, UUID federatedMemberId) {
-        ticketRepository.logHistory(ticketId, action, detail, null, federatedPartnerId, federatedMemberId);
+    public void logHistory(int ticketId, String action, String detail, MemberIdentity actor) {
+        ticketRepository.logHistory(ticketId, action, detail, actor);
     }
 
     public List<BoardTicketHistory> findHistory(int ticketId) {

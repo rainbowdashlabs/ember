@@ -75,10 +75,11 @@ class FederatedBoardRepositoryTest extends RepositoryTestBase {
                 TicketPriority.MEDIUM,
                 null,
                 0,
-                member.id());
+                memberIdentityFactory.local(owningStation.id(), member.id()));
         ticketId = ticket.id();
 
-        BoardComment comment = boardTicketRepo.createComment(ticketId, null, member.id(), "Fed comment");
+        BoardComment comment = boardTicketRepo.createComment(
+                ticketId, null, memberIdentityFactory.local(owningStation.id(), member.id()), "Fed comment");
         commentId = comment.id();
 
         partnerId = Query.query(
@@ -235,135 +236,7 @@ class FederatedBoardRepositoryTest extends RepositoryTestBase {
         assertFalse(federatedBoardRepo.hasFederatedEditRoles(-999));
     }
 
-    // -- Federated Assignees --
-
-    @Test
-    @Order(30)
-    void setFederatedAssignee() {
-        federatedBoardRepo.setFederatedAssignee(ticketId, partnerId, REMOTE_MEMBER_1);
-        var assignee = federatedBoardRepo.findFederatedAssignee(ticketId);
-        assertTrue(assignee.isPresent());
-        assertEquals(ticketId, assignee.get().ticketId());
-        assertEquals(partnerId, assignee.get().partnerId());
-        assertEquals(REMOTE_MEMBER_1, assignee.get().remoteMemberId());
-    }
-
-    @Test
-    @Order(31)
-    void setFederatedAssigneeUpsert() {
-        federatedBoardRepo.setFederatedAssignee(ticketId, partnerId, REMOTE_MEMBER_2);
-        var assignee = federatedBoardRepo.findFederatedAssignee(ticketId);
-        assertTrue(assignee.isPresent());
-        assertEquals(REMOTE_MEMBER_2, assignee.get().remoteMemberId());
-    }
-
-    @Test
-    @Order(32)
-    void findFederatedAssigneeNotFound() {
-        var assignee = federatedBoardRepo.findFederatedAssignee(-999);
-        assertFalse(assignee.isPresent());
-    }
-
-    @Test
-    @Order(33)
-    void removeFederatedAssignee() {
-        federatedBoardRepo.removeFederatedAssignee(ticketId);
-        var assignee = federatedBoardRepo.findFederatedAssignee(ticketId);
-        assertFalse(assignee.isPresent());
-    }
-
-    // -- Federated Comment Authors --
-
-    @Test
-    @Order(40)
-    void setFederatedCommentAuthor() {
-        federatedBoardRepo.setFederatedCommentAuthor(commentId, partnerId, REMOTE_AUTHOR_1);
-        var author = federatedBoardRepo.findFederatedCommentAuthor(commentId);
-        assertTrue(author.isPresent());
-        assertEquals(commentId, author.get().commentId());
-        assertEquals(partnerId, author.get().partnerId());
-        assertEquals(REMOTE_AUTHOR_1, author.get().remoteMemberId());
-    }
-
-    @Test
-    @Order(41)
-    void findFederatedCommentAuthorNotFound() {
-        var author = federatedBoardRepo.findFederatedCommentAuthor(-999);
-        assertFalse(author.isPresent());
-    }
-
-    // -- Federated Creators --
-
-    @Test
-    @Order(50)
-    void setFederatedCreator() {
-        federatedBoardRepo.setFederatedCreator(ticketId, partnerId, REMOTE_CREATOR_1);
-        var creator = federatedBoardRepo.findFederatedCreator(ticketId);
-        assertTrue(creator.isPresent());
-        assertEquals(ticketId, creator.get().ticketId());
-        assertEquals(partnerId, creator.get().partnerId());
-        assertEquals(REMOTE_CREATOR_1, creator.get().remoteMemberId());
-    }
-
-    @Test
-    @Order(51)
-    void findFederatedCreatorNotFound() {
-        var creator = federatedBoardRepo.findFederatedCreator(-999);
-        assertFalse(creator.isPresent());
-    }
-
-    // -- Federated Watchers --
-
-    @Test
-    @Order(60)
-    void addFederatedWatcher() {
-        federatedBoardRepo.addFederatedWatcher(ticketId, partnerId, REMOTE_WATCHER_1);
-        var watchers = federatedBoardRepo.findFederatedWatchers(ticketId);
-        assertEquals(1, watchers.size());
-        assertEquals(ticketId, watchers.getFirst().ticketId());
-        assertEquals(partnerId, watchers.getFirst().partnerId());
-        assertEquals(REMOTE_WATCHER_1, watchers.getFirst().remoteMemberId());
-    }
-
-    @Test
-    @Order(61)
-    void addFederatedWatcherDuplicate() {
-        // ON CONFLICT DO NOTHING — should not throw or add duplicate
-        federatedBoardRepo.addFederatedWatcher(ticketId, partnerId, REMOTE_WATCHER_1);
-        var watchers = federatedBoardRepo.findFederatedWatchers(ticketId);
-        assertEquals(1, watchers.size());
-    }
-
-    @Test
-    @Order(62)
-    void addSecondFederatedWatcher() {
-        federatedBoardRepo.addFederatedWatcher(ticketId, partnerId, REMOTE_WATCHER_2);
-        var watchers = federatedBoardRepo.findFederatedWatchers(ticketId);
-        assertEquals(2, watchers.size());
-    }
-
-    @Test
-    @Order(63)
-    void isFederatedWatching() {
-        assertTrue(federatedBoardRepo.isFederatedWatching(ticketId, partnerId, REMOTE_WATCHER_1));
-        assertFalse(federatedBoardRepo.isFederatedWatching(ticketId, partnerId, UUID.randomUUID()));
-    }
-
-    @Test
-    @Order(64)
-    void removeFederatedWatcher() {
-        federatedBoardRepo.removeFederatedWatcher(ticketId, partnerId, REMOTE_WATCHER_1);
-        assertFalse(federatedBoardRepo.isFederatedWatching(ticketId, partnerId, REMOTE_WATCHER_1));
-        assertTrue(federatedBoardRepo.isFederatedWatching(ticketId, partnerId, REMOTE_WATCHER_2));
-    }
-
-    @Test
-    @Order(65)
-    void findFederatedWatchersEmpty() {
-        federatedBoardRepo.removeFederatedWatcher(ticketId, partnerId, REMOTE_WATCHER_2);
-        var watchers = federatedBoardRepo.findFederatedWatchers(ticketId);
-        assertTrue(watchers.isEmpty());
-    }
+    // Satellite table tests removed — identity is now inline in board_ticket columns
 
     // -- Bookmarks --
 

@@ -271,4 +271,20 @@ public class ProfileFieldChangeRepository {
      * @param latestChange the timestamp of the most recent change
      */
     public record MemberChangeSummary(int memberId, String memberName, int pendingCount, Instant latestChange) {}
+
+    public int countPendingChanges(int stationId, int acknowledgedBy) {
+        return Query.query("""
+                        SELECT count(*) AS cnt FROM profile_field_change c
+                        JOIN station_member sm ON sm.id = c.member_id
+                        WHERE sm.station_id = :station_id
+                          AND c.requires_acknowledgement = TRUE
+                          AND NOT exists (
+                              SELECT 1 FROM profile_field_change_acknowledgement ack
+                              WHERE ack.change_id = c.id AND ack.acknowledged_by = :acknowledged_by
+                          );""")
+                .single(Call.of().bind("station_id", stationId).bind("acknowledged_by", acknowledgedBy))
+                .map(row -> row.getInt("cnt"))
+                .first()
+                .orElse(0);
+    }
 }

@@ -37,11 +37,19 @@ function rawToHtml(raw: string): string {
       .replace(/&/g, '&amp;')
       .replace(/</g, '&lt;')
       .replace(/>/g, '&gt;')
-  return escaped.replace(/@\[(\d+):([^\]]+)]/g, (_match, id, name) => {
+  // New format: @[stationUid/memberUid:Name]
+  let result = escaped.replace(/@\[([^/]+)\/([^:]+):([^\]]+)]/g, (_match, stationUid, memberUid, name) => {
+    const member = props.members.find(m => m.memberUid === memberUid)
+    const displayName = member?.name?.trim() || name
+    return `<span contenteditable="false" data-mention-station="${stationUid}" data-mention-member="${memberUid}" data-mention-name="${name.replace(/"/g, '&quot;')}" class="mention-chip">@${displayName}</span>`
+  })
+  // Legacy format: @[123:Name]
+  result = result.replace(/@\[(\d+):([^\]]+)]/g, (_match, id, name) => {
     const member = props.members.find(m => m.id === parseInt(id))
     const displayName = member?.name?.trim() || name
-    return `<span contenteditable="false" data-mention-id="${id}" data-mention-name="${name.replace(/"/g, '&quot;')}" class="mention-chip">@${displayName}</span>`
-  }).replace(/\n/g, '<br>')
+    return `<span contenteditable="false" data-mention-station="" data-mention-member="" data-mention-name="${name.replace(/"/g, '&quot;')}" class="mention-chip">@${displayName}</span>`
+  })
+  return result.replace(/\n/g, '<br>')
 }
 
 function htmlToRaw(el: HTMLElement): string {
@@ -51,10 +59,11 @@ function htmlToRaw(el: HTMLElement): string {
       result += node.textContent ?? ''
     } else if (node.nodeType === Node.ELEMENT_NODE) {
       const element = node as HTMLElement
-      if (element.dataset.mentionId) {
-        const id = element.dataset.mentionId
+      if (element.dataset.mentionMember) {
+        const stationUid = element.dataset.mentionStation
+        const memberUid = element.dataset.mentionMember
         const name = element.dataset.mentionName
-        result += `@[${id}:${name}]`
+        result += `@[${stationUid}/${memberUid}:${name}]`
       } else if (element.tagName === 'BR') {
         result += '\n'
       } else {
@@ -163,7 +172,8 @@ function selectMember(member: MemberCompletion) {
 
   const chip = document.createElement('span')
   chip.contentEditable = 'false'
-  chip.dataset.mentionId = String(member.id)
+  chip.dataset.mentionStation = member.stationUid
+  chip.dataset.mentionMember = member.memberUid
   chip.dataset.mentionName = name
   chip.className = 'mention-chip'
   chip.textContent = `@${name}`

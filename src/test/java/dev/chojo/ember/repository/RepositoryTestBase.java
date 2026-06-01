@@ -13,7 +13,6 @@ import de.chojo.sadu.postgresql.mapper.PostgresqlMapper;
 import de.chojo.sadu.queries.api.configuration.QueryConfiguration;
 import de.chojo.sadu.updater.QueryReplacement;
 import de.chojo.sadu.updater.SqlUpdater;
-import dev.chojo.ember.api.StationUidResolver;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.attendance.repository.AttendanceRepository;
 import dev.chojo.ember.feature.board.repository.BoardRepository;
@@ -114,6 +113,9 @@ public abstract class RepositoryTestBase {
     protected static BoardRepository boardRepo;
     protected static BoardTicketRepository boardTicketRepo;
     protected static FederatedBoardRepository federatedBoardRepo;
+    protected static dev.chojo.ember.feature.members.service.MemberIdentityFactory memberIdentityFactory;
+    protected static DataSource dataSource;
+    protected static String schemaName;
 
     @BeforeAll
     static void setupDatabase() throws Exception {
@@ -146,12 +148,13 @@ public abstract class RepositoryTestBase {
             }
         };
 
-        DataSource dataSource = DataSourceCreator.create(PostgreSql.get())
+        dataSource = DataSourceCreator.create(PostgreSql.get())
                 .configure(config ->
                         config.withConfig(dbConfig).currentSchema(SCHEMA).applicationName("EmberTest"))
                 .create()
                 .withMaximumPoolSize(5)
                 .build();
+        schemaName = SCHEMA;
 
         SqlUpdater.builder(dataSource, PostgreSql.get())
                 .setReplacements(new QueryReplacement("ember_schema", SCHEMA))
@@ -163,11 +166,9 @@ public abstract class RepositoryTestBase {
                 .setRowMapperRegistry(new RowMapperRegistry().register(PostgresqlMapper.getDefaultMapper()))
                 .build();
         QueryConfiguration.setDefault(config);
-        StationUidResolver.instance().clearCache();
-
         accountRepo = new AccountRepository();
         stationRepo = new StationRepository();
-        stationMemberRepo = new StationMemberRepository();
+        stationMemberRepo = new StationMemberRepository(stationRepo);
         attendanceRepo = new AttendanceRepository();
         inventoryRepo = new InventoryRepository();
         memberGroupRepo = new MemberGroupRepository();
@@ -203,7 +204,9 @@ public abstract class RepositoryTestBase {
         applicationSettingRepo = new ApplicationSettingRepository();
         problemReportRepo = new ProblemReportRepository();
         boardRepo = new BoardRepository();
-        boardTicketRepo = new BoardTicketRepository();
+        boardTicketRepo = new BoardTicketRepository(stationMemberRepo, stationRepo);
         federatedBoardRepo = new FederatedBoardRepository();
+        memberIdentityFactory =
+                new dev.chojo.ember.feature.members.service.MemberIdentityFactory(stationRepo, stationMemberRepo);
     }
 }

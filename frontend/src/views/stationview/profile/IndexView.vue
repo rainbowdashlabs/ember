@@ -25,6 +25,7 @@ import type { ProfileField } from '@/api/types'
 import { Roles, hasTeamRole } from '@/api/types'
 import { profileFields, auth, members, session as sessionApi } from '@/api'
 import { useSession } from '@/composables/useSession'
+import { useSidebarCounts } from '@/composables/useSidebarCounts'
 import MutedText from '@/components/typography/MutedText.vue'
 
 function getUserScopes(roles: string[]): string[] {
@@ -43,6 +44,7 @@ function getUserScopes(roles: string[]): string[] {
 
 const { t } = useI18n()
 const { sessionInfo } = useSession()
+const { refresh: refreshSidebarCounts } = useSidebarCounts()
 
 const fields = ref<ProfileField[]>([])
 const values = ref<Map<number, string>>(new Map())
@@ -180,6 +182,7 @@ async function saveProfile() {
       .map(f => ({ fieldId: f.id, value: JSON.stringify(getValue(f.id)) }))
     await profileFields.setValues(memberId.value, { values: entries })
     success.value = t('profile.saved')
+    refreshSidebarCounts()
   } catch {
     error.value = t('common.error')
   } finally {

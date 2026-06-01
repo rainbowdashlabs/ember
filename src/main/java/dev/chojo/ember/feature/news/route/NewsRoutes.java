@@ -7,9 +7,9 @@ package dev.chojo.ember.feature.news.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.FederationSession;
+import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.api.Roles;
 import dev.chojo.ember.api.Routes;
-import dev.chojo.ember.api.StationUidResolver;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
@@ -18,12 +18,13 @@ import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.service.FederationHttpClient;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
+import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
+import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.news.entity.News;
 import dev.chojo.ember.feature.news.entity.NewsComment;
 import dev.chojo.ember.feature.news.repository.NewsFederationRepository;
 import dev.chojo.ember.feature.news.service.NewsFederationService;
 import dev.chojo.ember.feature.news.service.NewsService;
-import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
@@ -34,7 +35,6 @@ import io.javalin.http.NotFoundResponse;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
 import io.javalin.openapi.OpenApiContent;
-import io.javalin.openapi.OpenApiName;
 import io.javalin.openapi.OpenApiParam;
 import io.javalin.openapi.OpenApiRequestBody;
 import io.javalin.openapi.OpenApiResponse;
@@ -64,6 +64,8 @@ public class NewsRoutes implements Routes {
     private final StationRepository stationRepository;
     private final NewsFederationRepository newsFederationRepository;
     private final EventFederationRepository eventFederationRepository;
+    private final MemberNameResolver memberNameResolver;
+    private final MemberIdentityFactory memberIdentityFactory;
 
     @Inject
     public NewsRoutes(
@@ -75,7 +77,9 @@ public class NewsRoutes implements Routes {
             FederationHttpClient federationHttpClient,
             StationRepository stationRepository,
             NewsFederationRepository newsFederationRepository,
-            EventFederationRepository eventFederationRepository) {
+            EventFederationRepository eventFederationRepository,
+            MemberNameResolver memberNameResolver,
+            MemberIdentityFactory memberIdentityFactory) {
         this.newsService = newsService;
         this.newsFederationService = newsFederationService;
         this.accountRepository = accountRepository;
@@ -85,6 +89,8 @@ public class NewsRoutes implements Routes {
         this.stationRepository = stationRepository;
         this.newsFederationRepository = newsFederationRepository;
         this.eventFederationRepository = eventFederationRepository;
+        this.memberNameResolver = memberNameResolver;
+        this.memberIdentityFactory = memberIdentityFactory;
     }
 
     @Override
@@ -405,74 +411,46 @@ public class NewsRoutes implements Routes {
     private CommentResponse toCommentResponse(NewsComment comment) {
         if (comment.deleted()) {
             return new CommentResponse(
-                    comment.id(),
-                    comment.newsId(),
-                    comment.parentId(),
-                    0,
-                    null,
-                    null,
-                    "",
-                    true,
-                    comment.createdAt(),
-                    null,
-                    null,
-                    null);
+                    comment.id(), comment.newsId(), comment.parentId(), null, null, "", true, comment.createdAt());
         }
 
         // Check for federated author
         var fedAuthor = newsFederationRepository.findFederatedCommentAuthor(comment.id());
         if (fedAuthor.isPresent()) {
             var fa = fedAuthor.get();
-            String displayName = eventFederationRepository
-                    .getCachedName(fa.partnerId(), fa.remoteMemberId())
-                    .orElse("Unknown");
             var partner = federationRepository.findPartnerById(fa.partnerId());
-            String stationName = partner.map(p -> stationRepository
-                            .findByUid(p.partnerStationId())
-                            .map(Station::name)
-                            .orElse(""))
-                    .orElse("");
-            String fedStationId =
-                    partner.map(p -> p.partnerStationId().toString()).orElse(null);
+            UUID partnerStationUid =
+                    partner.map(FederationPartner::partnerStationId).orElse(null);
+            var identity =
+                    partnerStationUid != null ? new MemberIdentity(partnerStationUid, fa.remoteMemberId()) : null;
+            String displayName = memberNameResolver.resolveFederated(fa.partnerId(), fa.remoteMemberId());
+            if (displayName == null) displayName = "Unknown";
             return new CommentResponse(
                     comment.id(),
                     comment.newsId(),
                     comment.parentId(),
-                    0,
-                    null,
+                    identity,
                     displayName,
                     comment.content(),
                     false,
-                    comment.createdAt(),
-                    new FederatedAuthorInfo(fa.remoteMemberId(), displayName, stationName),
-                    fedStationId,
-                    stationName);
+                    comment.createdAt());
         }
 
         // Local author
         var memberOpt = stationMemberRepository.findById(comment.authorId());
-        Integer authorAccountId = memberOpt.map(StationMember::accountId).orElse(null);
-        String authorName = memberOpt
-                .flatMap(m -> accountRepository.findById(m.accountId()))
-                .map(a -> (a.firstName() + " " + a.lastName()).trim())
-                .orElse("");
         int authorStationId = memberOpt.map(StationMember::stationId).orElse(0);
-        String authorStationUid = StationUidResolver.instance().resolveToString(authorStationId);
-        String authorStationName =
-                stationRepository.findById(authorStationId).map(Station::name).orElse("");
+        var identity = memberIdentityFactory.local(authorStationId, comment.authorId());
+        String authorName = memberNameResolver.resolveLocal(comment.authorId());
+        if (authorName == null) authorName = "";
         return new CommentResponse(
                 comment.id(),
                 comment.newsId(),
                 comment.parentId(),
-                comment.authorId(),
-                authorAccountId,
+                identity,
                 authorName,
                 comment.content(),
                 false,
-                comment.createdAt(),
-                null,
-                authorStationUid,
-                authorStationName);
+                comment.createdAt());
     }
 
     // -- Federation sharing management --
@@ -851,21 +829,11 @@ public class NewsRoutes implements Routes {
             int id,
             int newsId,
             Integer parentId,
-            int authorId,
-            Integer authorAccountId,
+            MemberIdentity author,
             String authorName,
             String content,
             boolean deleted,
-            Instant createdAt,
-            FederatedAuthorInfo federatedAuthor,
-            String authorStationId,
-            String authorStationName) {}
-
-    /**
-     * Information about a federated comment author from a partner station.
-     */
-    @OpenApiName("NewsFederatedAuthorInfo")
-    public record FederatedAuthorInfo(UUID memberUid, String displayName, String stationName) {}
+            Instant createdAt) {}
 
     /**
      * Request body for setting news federation sharing.

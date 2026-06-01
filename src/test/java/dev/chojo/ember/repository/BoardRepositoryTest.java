@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.repository;
 
+import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.board.entity.Board;
 import dev.chojo.ember.feature.board.entity.BoardChecklistItem;
@@ -152,7 +153,16 @@ class BoardRepositoryTest extends RepositoryTestBase {
     @Order(30)
     void createTicket() {
         BoardTicket ticket = boardTicketRepo.createTicket(
-                boardId, laneId1, 1, "First ticket", "Description", null, TicketPriority.HIGH, null, 0, member.id());
+                boardId,
+                laneId1,
+                1,
+                "First ticket",
+                "Description",
+                null,
+                TicketPriority.HIGH,
+                null,
+                0,
+                memberIdentityFactory.local(station.id(), member.id()));
         assertNotNull(ticket);
         assertEquals("First ticket", ticket.title());
         assertEquals(TicketPriority.HIGH, ticket.priority());
@@ -164,9 +174,18 @@ class BoardRepositoryTest extends RepositoryTestBase {
     @Order(31)
     void createSecondTicket() {
         BoardTicket ticket = boardTicketRepo.createTicket(
-                boardId, laneId1, 2, "Second ticket", null, member.id(), TicketPriority.LOW, null, 1, member.id());
+                boardId,
+                laneId1,
+                2,
+                "Second ticket",
+                null,
+                memberIdentityFactory.local(station.id(), member.id()),
+                TicketPriority.LOW,
+                null,
+                1,
+                memberIdentityFactory.local(station.id(), member.id()));
         assertNotNull(ticket);
-        assertEquals(member.id(), ticket.assignedMemberId());
+        assertNotNull(ticket.assignee());
         ticketId2 = ticket.id();
     }
 
@@ -187,7 +206,8 @@ class BoardRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(34)
     void findByAssignee() {
-        var tickets = boardTicketRepo.findByAssignee(boardId, member.id());
+        var tickets = boardTicketRepo.findByAssignee(
+                boardId, memberIdentityFactory.local(station.id(), member.id()).memberUid());
         assertEquals(1, tickets.size());
         assertEquals("Second ticket", tickets.getFirst().title());
     }
@@ -213,7 +233,8 @@ class BoardRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(37)
     void logAndFindTransition() {
-        boardTicketRepo.logTransition(ticketId1, laneId1, laneId2, member.id());
+        boardTicketRepo.logTransition(
+                ticketId1, laneId1, laneId2, memberIdentityFactory.local(station.id(), member.id()));
         var transitions = boardTicketRepo.findTransitions(ticketId1);
         assertEquals(1, transitions.size());
         assertEquals(laneId1, transitions.getFirst().fromLaneId());
@@ -284,7 +305,8 @@ class BoardRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(60)
     void createComment() {
-        BoardComment comment = boardTicketRepo.createComment(ticketId1, null, member.id(), "First comment");
+        BoardComment comment = boardTicketRepo.createComment(
+                ticketId1, null, memberIdentityFactory.local(station.id(), member.id()), "First comment");
         assertNotNull(comment);
         assertEquals("First comment", comment.content());
         commentId = comment.id();
@@ -301,15 +323,17 @@ class BoardRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(62)
     void createReply() {
-        BoardComment reply = boardTicketRepo.createComment(ticketId1, commentId, member.id(), "Reply");
+        BoardComment reply = boardTicketRepo.createComment(
+                ticketId1, commentId, memberIdentityFactory.local(station.id(), member.id()), "Reply");
         assertNotNull(reply);
         assertEquals(commentId, reply.parentId());
     }
 
     @Test
     @Order(63)
-    void softDeleteComment() {
-        assertTrue(boardTicketRepo.softDeleteComment(commentId));
+    void deleteComment() {
+        // Comment has a reply child (from test 62), so it should be soft-deleted
+        assertTrue(boardTicketRepo.deleteComment(commentId));
         var comments = boardTicketRepo.findComments(ticketId1);
         var deleted =
                 comments.stream().filter(c -> c.id() == commentId).findFirst().orElseThrow();
@@ -498,10 +522,10 @@ class BoardRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(84)
     void assignTicket() {
-        assertTrue(boardTicketRepo.assignTicket(ticketId1, member.id()));
+        assertTrue(boardTicketRepo.assignTicket(ticketId1, memberIdentityFactory.local(station.id(), member.id())));
         var ticket = boardTicketRepo.findById(ticketId1).orElseThrow();
-        assertEquals(member.id(), ticket.assignedMemberId());
-        boardTicketRepo.assignTicket(ticketId1, null);
+        assertNotNull(ticket.assignee());
+        boardTicketRepo.assignTicket(ticketId1, (MemberIdentity) null);
     }
 
     // -- Lane entered at --
@@ -585,7 +609,8 @@ class BoardRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(84)
     void logAndFindHistory() {
-        boardTicketRepo.logHistory(ticketId1, "TEST_ACTION", "test detail", member.id());
+        boardTicketRepo.logHistory(
+                ticketId1, "TEST_ACTION", "test detail", memberIdentityFactory.local(station.id(), member.id()));
         var history = boardTicketRepo.findHistory(ticketId1);
         assertFalse(history.isEmpty());
         assertEquals("TEST_ACTION", history.getLast().action());

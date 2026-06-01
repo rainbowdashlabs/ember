@@ -25,10 +25,12 @@ import {
     createBookmark,
     deleteBookmark,
 } from '@/api/federatedBoards'
+import {useFederatedBoardBookmarks} from '@/composables/useFederatedBoardBookmarks'
 
 const {t} = useI18n()
 const router = useRouter()
 const {loaded} = useSession()
+const {refresh: refreshSidebarBookmarks} = useFederatedBoardBookmarks()
 
 const loading = ref(true)
 const error = ref('')
@@ -101,6 +103,7 @@ async function toggleBookmark(board: DiscoveredBoard) {
             })
             bookmarks.value.push(created)
         }
+        await refreshSidebarBookmarks()
     } catch {
         error.value = t('common.error')
     } finally {
@@ -125,6 +128,7 @@ watch(loaded, (v) => {
         <SectionHeader class="mb-4">{{ t('boards.federatedBoards') }}</SectionHeader>
         <MutedText size="sm" class="mb-4">{{ t('boards.federatedBoardsDesc') }}</MutedText>
 
+        <Alert variant="info" class="mb-4">{{ t('boards.bookmarkHint') }}</Alert>
         <Alert v-if="error" variant="error" class="mb-4">{{ error }}</Alert>
 
         <Spinner v-if="loading"/>

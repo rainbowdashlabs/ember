@@ -16,7 +16,7 @@ import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import type {ProfileFieldChange} from '@/api/types'
 import {profileFieldChanges} from '@/api'
-import {usePendingChanges} from '@/composables/usePendingChanges'
+import {useSidebarCounts} from '@/composables/useSidebarCounts'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import MutedIcon from '@/components/display/MutedIcon.vue'
@@ -32,7 +32,7 @@ const emit = defineEmits<{
 }>()
 
 const {t} = useI18n()
-const {refresh: refreshBadge} = usePendingChanges()
+const {refresh: refreshSidebarCounts} = useSidebarCounts()
 
 const error = ref('')
 const acknowledgeComment = ref('')
@@ -75,7 +75,7 @@ async function acknowledgeChange(changeId: number) {
     await profileFieldChanges.acknowledge(changeId, {comment})
     showCommentForChangeId.value = null
     acknowledgeComment.value = ''
-    refreshBadge()
+    refreshSidebarCounts()
     emit('reload')
   } catch {
     error.value = t('common.error')
@@ -90,7 +90,7 @@ async function acknowledgeAllChanges() {
   try {
     await profileFieldChanges.acknowledgeAll(props.memberId, {comment: acknowledgeComment.value || undefined})
     acknowledgeComment.value = ''
-    refreshBadge()
+    refreshSidebarCounts()
     emit('reload')
   } catch {
     error.value = t('common.error')

@@ -5,7 +5,6 @@
  */
 package dev.chojo.ember.feature.federation.service;
 
-import dev.chojo.ember.api.StationUidResolver;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.federation.entity.CapabilityType;
 import dev.chojo.ember.feature.federation.entity.ChangeType;
@@ -408,6 +407,6 @@ public class FederationService {
      * Resolves an internal station ID to its UUID.
      */
     private UUID resolveStationUid(int stationId) {
-        return StationUidResolver.instance().resolve(stationId);
+        return stationRepository.resolveUid(stationId);
     }
 }

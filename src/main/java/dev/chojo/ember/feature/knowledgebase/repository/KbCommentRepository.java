@@ -8,13 +8,12 @@ package dev.chojo.ember.feature.knowledgebase.repository;
 import de.chojo.sadu.queries.api.call.Call;
 import de.chojo.sadu.queries.api.query.Query;
 import de.chojo.sadu.queries.converter.StandardValueConverter;
+import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.feature.knowledgebase.entity.KbComment;
-import dev.chojo.ember.feature.knowledgebase.entity.KbCommentFederatedAuthor;
 import jakarta.inject.Singleton;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 
 /**
  * Repository for managing knowledge base file comments with threaded reply support.
@@ -30,8 +29,9 @@ public class KbCommentRepository {
      * @return the list of comments
      */
     public List<KbComment> findByFile(int fileId) {
-        return Query.query("SELECT id, file_id, parent_id, author_id, content, deleted, created_at, updated_at"
-                        + " FROM kb_comment WHERE file_id = :file_id ORDER BY created_at;")
+        return Query.query(
+                        "SELECT id, file_id, parent_id, author_station_uid, author_member_uid, content, deleted, created_at, updated_at"
+                                + " FROM kb_comment WHERE file_id = :file_id ORDER BY created_at;")
                 .single(Call.of().bind("file_id", fileId))
                 .map(KbComment.map())
                 .all();
@@ -44,8 +44,9 @@ public class KbCommentRepository {
      * @return the comment, if found
      */
     public Optional<KbComment> findById(int id) {
-        return Query.query("SELECT id, file_id, parent_id, author_id, content, deleted, created_at, updated_at"
-                        + " FROM kb_comment WHERE id = :id;")
+        return Query.query(
+                        "SELECT id, file_id, parent_id, author_station_uid, author_member_uid, content, deleted, created_at, updated_at"
+                                + " FROM kb_comment WHERE id = :id;")
                 .single(Call.of().bind("id", id))
                 .map(KbComment.map())
                 .first();
@@ -54,20 +55,28 @@ public class KbCommentRepository {
     /**
      * Creates a new comment on a KB file.
      *
-     * @param fileId   the KB file ID
+     * @param fileId the KB file ID
      * @param parentId the parent comment ID for replies, or {@code null} for top-level comments
-     * @param authorId the member ID of the author
-     * @param content  the comment text
+     * @param author the identity of the comment author (may be null for anonymous)
+     * @param content the comment text
      * @return the created comment
      */
-    public KbComment create(int fileId, Integer parentId, Integer authorId, String content) {
-        return Query.query("INSERT INTO kb_comment (file_id, parent_id, author_id, content)"
-                        + " VALUES (:file_id, :parent_id, :author_id, :content)"
-                        + " RETURNING id, file_id, parent_id, author_id, content, deleted, created_at, updated_at;")
+    public KbComment create(int fileId, Integer parentId, MemberIdentity author, String content) {
+        return Query.query(
+                        "INSERT INTO kb_comment (file_id, parent_id, author_station_uid, author_member_uid, content)"
+                                + " VALUES (:file_id, :parent_id, :author_station_uid::uuid, :author_member_uid::uuid, :content)"
+                                + " RETURNING id, file_id, parent_id, author_station_uid, author_member_uid, content, deleted, created_at, updated_at;")
                 .single(Call.of()
                         .bind("file_id", fileId)
                         .bind("parent_id", parentId)
-                        .bind("author_id", authorId)
+                        .bind(
+                                "author_station_uid",
+                                author != null ? author.stationUid() : null,
+                                StandardValueConverter.UUID_STRING)
+                        .bind(
+                                "author_member_uid",
+                                author != null ? author.memberUid() : null,
+                                StandardValueConverter.UUID_STRING)
                         .bind("content", content))
                 .map(KbComment.map())
                 .first()
@@ -119,36 +128,5 @@ public class KbCommentRepository {
                 .map(row -> row.getBoolean(1))
                 .first()
                 .orElse(false);
-    }
-
-    /**
-     * Records the federated author identity for a comment.
-     *
-     * @param commentId      the local comment ID
-     * @param partnerId      the federation partner ID
-     * @param remoteMemberId the member UUID on the remote station
-     */
-    public void setFederatedAuthor(int commentId, int partnerId, UUID remoteMemberId) {
-        Query.query("""
-                        INSERT INTO kb_comment_federated_author(comment_id, partner_id, remote_member_id)
-                        VALUES (:comment_id, :partner_id, :remote_member_id::uuid);""")
-                .single(Call.of()
-                        .bind("comment_id", commentId)
-                        .bind("partner_id", partnerId)
-                        .bind("remote_member_id", remoteMemberId, StandardValueConverter.UUID_STRING))
-                .insert();
-    }
-
-    /**
-     * Finds the federated author record for a comment.
-     *
-     * @param commentId the comment ID
-     * @return the federated author, if present
-     */
-    public Optional<KbCommentFederatedAuthor> findFederatedAuthor(int commentId) {
-        return Query.query("SELECT * FROM kb_comment_federated_author WHERE comment_id = :comment_id;")
-                .single(Call.of().bind("comment_id", commentId))
-                .map(KbCommentFederatedAuthor.map())
-                .first();
     }
 }

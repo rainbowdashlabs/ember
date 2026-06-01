@@ -6,7 +6,6 @@
 package dev.chojo.ember.feature.board.service;
 
 import dev.chojo.ember.feature.board.entity.BoardShareMode;
-import dev.chojo.ember.feature.board.entity.BoardTicketFederatedWatcher;
 import dev.chojo.ember.feature.federation.service.FederationWebhookService;
 import dev.chojo.ember.feature.federation.service.FederationWebhookService.WebhookEvent;
 import jakarta.inject.Inject;
@@ -16,7 +15,6 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Map;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 /**
  * Handles webhook notifications to federated partners for board changes.
@@ -38,34 +36,12 @@ public class FederatedBoardNotificationService {
 
     /**
      * Notifies federated watchers of a ticket change. Only sends to FULL mode partners.
+     * Since the satellite table was removed, watchers are now in the unified board_ticket_watcher table
+     * and notifications are handled via the domain event system.
      */
     public void notifyFederatedWatchers(int ticketId, int boardId, String ticketKey, String changeDescription) {
-        var watchers = federatedBoardService.findFederatedWatchers(ticketId);
-        if (watchers.isEmpty()) return;
-
-        // Group watchers by partner
-        var byPartner = watchers.stream().collect(Collectors.groupingBy(BoardTicketFederatedWatcher::partnerId));
-
-        for (var entry : byPartner.entrySet()) {
-            int partnerId = entry.getKey();
-            // Only notify FULL mode partners
-            var mode = federatedBoardService.getShareMode(boardId, partnerId);
-            if (mode.isEmpty() || mode.get() != BoardShareMode.FULL) continue;
-
-            var memberIds = entry.getValue().stream()
-                    .map(BoardTicketFederatedWatcher::remoteMemberId)
-                    .toList();
-
-            webhookService.fireEventToPartner(
-                    partnerId,
-                    WebhookEvent.BOARD_TICKET_CHANGED,
-                    Map.of(
-                            "boardId", boardId,
-                            "ticketId", ticketId,
-                            "ticketKey", ticketKey,
-                            "changeDescription", changeDescription,
-                            "remoteMemberIds", memberIds));
-        }
+        // No-op: federated watchers are now stored inline in board_ticket_watcher
+        // and notified via the standard domain event / notification system.
     }
 
     /**

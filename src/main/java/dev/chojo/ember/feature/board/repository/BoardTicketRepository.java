@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.board.repository;
 import de.chojo.sadu.queries.api.call.Call;
 import de.chojo.sadu.queries.api.query.Query;
 import de.chojo.sadu.queries.converter.StandardValueConverter;
+import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.feature.board.entity.BoardChecklistItem;
 import dev.chojo.ember.feature.board.entity.BoardComment;
 import dev.chojo.ember.feature.board.entity.BoardTicket;
@@ -20,6 +21,9 @@ import dev.chojo.ember.feature.board.entity.BoardTicketTransition;
 import dev.chojo.ember.feature.board.entity.BoardWeblink;
 import dev.chojo.ember.feature.board.entity.LinkType;
 import dev.chojo.ember.feature.board.entity.TicketPriority;
+import dev.chojo.ember.feature.members.repository.StationMemberRepository;
+import dev.chojo.ember.feature.station.repository.StationRepository;
+import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
 import java.time.Instant;
@@ -33,6 +37,15 @@ import java.util.stream.Collectors;
 
 @Singleton
 public class BoardTicketRepository {
+
+    private final StationMemberRepository stationMemberRepository;
+    private final StationRepository stationRepository;
+
+    @Inject
+    public BoardTicketRepository(StationMemberRepository stationMemberRepository, StationRepository stationRepository) {
+        this.stationMemberRepository = stationMemberRepository;
+        this.stationRepository = stationRepository;
+    }
 
     private static final String TICKET_SELECT = """
             SELECT t.*,
@@ -72,10 +85,13 @@ public class BoardTicketRepository {
                 .first();
     }
 
-    public List<BoardTicket> findByAssignee(int boardId, int memberId) {
-        return Query.query(TICKET_SELECT
-                        + " WHERE t.board_id = :board_id AND t.assigned_member_id = :member_id ORDER BY t.position;")
-                .single(Call.of().bind("board_id", boardId).bind("member_id", memberId))
+    public List<BoardTicket> findByAssignee(int boardId, UUID memberUid) {
+        return Query.query(
+                        TICKET_SELECT
+                                + " WHERE t.board_id = :board_id AND t.assignee_member_uid = :member_uid::uuid ORDER BY t.position;")
+                .single(Call.of()
+                        .bind("board_id", boardId)
+                        .bind("member_uid", memberUid, StandardValueConverter.UUID_STRING))
                 .map(BoardTicket.map())
                 .all();
     }
@@ -86,17 +102,19 @@ public class BoardTicketRepository {
             int ticketNumber,
             String title,
             String description,
-            Integer assignedMemberId,
+            MemberIdentity assignee,
             TicketPriority priority,
             LocalDate dueDate,
             int position,
-            int createdBy) {
+            MemberIdentity creator) {
         return Query.query("""
                         WITH ins AS (
                             INSERT INTO board_ticket(board_id, lane_id, ticket_number, title, description,
-                                assigned_member_id, priority, due_date, position, created_by)
+                                assignee_station_uid, assignee_member_uid, priority, due_date, position,
+                                creator_station_uid, creator_member_uid)
                             VALUES (:board_id, :lane_id, :ticket_number, :title, :description,
-                                :assigned_member_id, :priority, :due_date, :position, :created_by)
+                                :assignee_station_uid::uuid, :assignee_member_uid::uuid, :priority, :due_date, :position,
+                                :creator_station_uid::uuid, :creator_member_uid::uuid)
                             RETURNING *
                         )
                         SELECT ins.*,
@@ -110,11 +128,25 @@ public class BoardTicketRepository {
                         .bind("ticket_number", ticketNumber)
                         .bind("title", title)
                         .bind("description", description)
-                        .bind("assigned_member_id", assignedMemberId)
+                        .bind(
+                                "assignee_station_uid",
+                                assignee != null ? assignee.stationUid() : null,
+                                StandardValueConverter.UUID_STRING)
+                        .bind(
+                                "assignee_member_uid",
+                                assignee != null ? assignee.memberUid() : null,
+                                StandardValueConverter.UUID_STRING)
                         .bind("priority", priority.name())
                         .bind("due_date", dueDate)
                         .bind("position", position)
-                        .bind("created_by", createdBy))
+                        .bind(
+                                "creator_station_uid",
+                                creator != null ? creator.stationUid() : null,
+                                StandardValueConverter.UUID_STRING)
+                        .bind(
+                                "creator_member_uid",
+                                creator != null ? creator.memberUid() : null,
+                                StandardValueConverter.UUID_STRING))
                 .map(BoardTicket.map())
                 .first()
                 .orElseThrow();
@@ -124,29 +156,47 @@ public class BoardTicketRepository {
             int id,
             String title,
             String description,
-            Integer assignedMemberId,
+            MemberIdentity assignee,
             TicketPriority priority,
             LocalDate dueDate) {
         return Query.query("""
                         UPDATE board_ticket SET title = :title, description = :description,
-                            assigned_member_id = :assigned_member_id, priority = :priority,
-                            due_date = :due_date, updated_at = now()
+                            assignee_station_uid = :assignee_station_uid::uuid, assignee_member_uid = :assignee_member_uid::uuid,
+                            priority = :priority, due_date = :due_date, updated_at = now()
                         WHERE id = :id;""")
                 .single(Call.of()
                         .bind("id", id)
                         .bind("title", title)
                         .bind("description", description)
-                        .bind("assigned_member_id", assignedMemberId)
+                        .bind(
+                                "assignee_station_uid",
+                                assignee != null ? assignee.stationUid() : null,
+                                StandardValueConverter.UUID_STRING)
+                        .bind(
+                                "assignee_member_uid",
+                                assignee != null ? assignee.memberUid() : null,
+                                StandardValueConverter.UUID_STRING)
                         .bind("priority", priority.name())
                         .bind("due_date", dueDate))
                 .update()
                 .changed();
     }
 
-    public boolean assignTicket(int id, Integer assignedMemberId) {
-        return Query.query(
-                        "UPDATE board_ticket SET assigned_member_id = :assigned_member_id, updated_at = now() WHERE id = :id;")
-                .single(Call.of().bind("id", id).bind("assigned_member_id", assignedMemberId))
+    public boolean assignTicket(int id, MemberIdentity assignee) {
+        return Query.query("""
+                        UPDATE board_ticket SET assignee_station_uid = :assignee_station_uid::uuid,
+                            assignee_member_uid = :assignee_member_uid::uuid, updated_at = now()
+                        WHERE id = :id;""")
+                .single(Call.of()
+                        .bind("id", id)
+                        .bind(
+                                "assignee_station_uid",
+                                assignee != null ? assignee.stationUid() : null,
+                                StandardValueConverter.UUID_STRING)
+                        .bind(
+                                "assignee_member_uid",
+                                assignee != null ? assignee.memberUid() : null,
+                                StandardValueConverter.UUID_STRING))
                 .update()
                 .changed();
     }
@@ -238,27 +288,22 @@ public class BoardTicketRepository {
 
     // -- Transitions --
 
-    public void logTransition(int ticketId, int fromLaneId, int toLaneId, int movedBy) {
-        logTransition(ticketId, fromLaneId, toLaneId, movedBy, null, null);
-    }
-
-    public void logTransition(
-            int ticketId,
-            Integer fromLaneId,
-            Integer toLaneId,
-            Integer movedBy,
-            Integer federatedPartnerId,
-            UUID federatedMemberId) {
+    public void logTransition(int ticketId, int fromLaneId, int toLaneId, MemberIdentity actor) {
         Query.query("""
-                     INSERT INTO board_ticket_transition(ticket_id, from_lane_id, to_lane_id, moved_by, federated_partner_id, federated_member_id)
-                     VALUES (:ticket_id, :from_lane_id, :to_lane_id, :moved_by, :federated_partner_id, :federated_member_id::uuid);""")
+                     INSERT INTO board_ticket_transition(ticket_id, from_lane_id, to_lane_id, actor_station_uid, actor_member_uid)
+                     VALUES (:ticket_id, :from_lane_id, :to_lane_id, :actor_station_uid::uuid, :actor_member_uid::uuid);""")
                 .single(Call.of()
                         .bind("ticket_id", ticketId)
                         .bind("from_lane_id", fromLaneId)
                         .bind("to_lane_id", toLaneId)
-                        .bind("moved_by", movedBy)
-                        .bind("federated_partner_id", federatedPartnerId)
-                        .bind("federated_member_id", federatedMemberId, StandardValueConverter.UUID_STRING))
+                        .bind(
+                                "actor_station_uid",
+                                actor != null ? actor.stationUid() : null,
+                                StandardValueConverter.UUID_STRING)
+                        .bind(
+                                "actor_member_uid",
+                                actor != null ? actor.memberUid() : null,
+                                StandardValueConverter.UUID_STRING))
                 .insert();
     }
 
@@ -327,15 +372,22 @@ public class BoardTicketRepository {
                 .all();
     }
 
-    public BoardComment createComment(int ticketId, Integer parentId, Integer authorId, String content) {
+    public BoardComment createComment(int ticketId, Integer parentId, MemberIdentity author, String content) {
         return Query.query("""
-                        INSERT INTO board_ticket_comment(ticket_id, parent_id, author_id, content)
-                        VALUES (:ticket_id, :parent_id, :author_id, :content)
+                        INSERT INTO board_ticket_comment(ticket_id, parent_id, author_station_uid, author_member_uid, content)
+                        VALUES (:ticket_id, :parent_id, :author_station_uid::uuid, :author_member_uid::uuid, :content)
                         RETURNING *;""")
                 .single(Call.of()
                         .bind("ticket_id", ticketId)
                         .bind("parent_id", parentId)
-                        .bind("author_id", authorId)
+                        .bind(
+                                "author_station_uid",
+                                author != null ? author.stationUid() : null,
+                                StandardValueConverter.UUID_STRING)
+                        .bind(
+                                "author_member_uid",
+                                author != null ? author.memberUid() : null,
+                                StandardValueConverter.UUID_STRING)
                         .bind("content", content))
                 .map(BoardComment.map())
                 .first()
@@ -349,42 +401,123 @@ public class BoardTicketRepository {
                 .changed();
     }
 
-    public boolean softDeleteComment(int id) {
-        return Query.query("UPDATE board_ticket_comment SET deleted = true, content = '' WHERE id = :id;")
+    /**
+     * Soft-deletes a comment if it has children, or hard-deletes it if it has none.
+     *
+     * @param id the comment ID
+     * @return {@code true} if the comment was deleted or marked as deleted
+     */
+    public boolean deleteComment(int id) {
+        if (hasCommentChildren(id)) {
+            return Query.query("UPDATE board_ticket_comment SET deleted = true, content = '' WHERE id = :id;")
+                    .single(Call.of().bind("id", id))
+                    .update()
+                    .changed();
+        }
+        return Query.query("DELETE FROM board_ticket_comment WHERE id = :id;")
                 .single(Call.of().bind("id", id))
-                .update()
+                .delete()
                 .changed();
+    }
+
+    /**
+     * Checks whether a comment has any child replies.
+     *
+     * @param id the comment ID
+     * @return {@code true} if the comment has children
+     */
+    public boolean hasCommentChildren(int id) {
+        return Query.query("SELECT EXISTS(SELECT 1 FROM board_ticket_comment WHERE parent_id = :id);")
+                .single(Call.of().bind("id", id))
+                .map(row -> row.getBoolean(1))
+                .first()
+                .orElse(false);
     }
 
     // -- Watchers --
 
     public List<Integer> findWatchers(int ticketId) {
-        return Query.query("SELECT member_id FROM board_ticket_watcher WHERE ticket_id = :ticket_id;")
+        return Query.query(
+                        "SELECT watcher_station_uid, watcher_member_uid FROM board_ticket_watcher WHERE ticket_id = :ticket_id;")
                 .single(Call.of().bind("ticket_id", ticketId))
-                .map(row -> row.getInt("member_id"))
-                .all();
+                .map(row -> {
+                    UUID memberUid = row.get("watcher_member_uid", StandardValueConverter.UUID_STRING);
+                    UUID stationUid = row.get("watcher_station_uid", StandardValueConverter.UUID_STRING);
+                    return stationRepository
+                            .resolveId(stationUid)
+                            .flatMap(sid -> stationMemberRepository.resolveId(sid, memberUid));
+                })
+                .all()
+                .stream()
+                .filter(java.util.Optional::isPresent)
+                .map(java.util.Optional::get)
+                .toList();
     }
 
     public void addWatcher(int ticketId, int memberId) {
+        MemberIdentity identity = stationMemberRepository.resolveIdentity(memberId);
+        if (identity == null) return;
         Query.query("""
-                     INSERT INTO board_ticket_watcher(ticket_id, member_id)
-                     VALUES (:ticket_id, :member_id)
+                     INSERT INTO board_ticket_watcher(ticket_id, watcher_station_uid, watcher_member_uid)
+                     VALUES (:ticket_id, :watcher_station_uid::uuid, :watcher_member_uid::uuid)
                      ON CONFLICT DO NOTHING;""")
-                .single(Call.of().bind("ticket_id", ticketId).bind("member_id", memberId))
+                .single(Call.of()
+                        .bind("ticket_id", ticketId)
+                        .bind("watcher_station_uid", identity.stationUid(), StandardValueConverter.UUID_STRING)
+                        .bind("watcher_member_uid", identity.memberUid(), StandardValueConverter.UUID_STRING))
                 .insert();
     }
 
+    public void addWatcher(int ticketId, MemberIdentity identity) {
+        if (identity == null || identity.stationUid() == null || identity.memberUid() == null) return;
+        Query.query("""
+                     INSERT INTO board_ticket_watcher(ticket_id, watcher_station_uid, watcher_member_uid)
+                     VALUES (:ticket_id, :watcher_station_uid::uuid, :watcher_member_uid::uuid)
+                     ON CONFLICT DO NOTHING;""")
+                .single(Call.of()
+                        .bind("ticket_id", ticketId)
+                        .bind("watcher_station_uid", identity.stationUid(), StandardValueConverter.UUID_STRING)
+                        .bind("watcher_member_uid", identity.memberUid(), StandardValueConverter.UUID_STRING))
+                .insert();
+    }
+
+    public boolean removeWatcher(int ticketId, MemberIdentity identity) {
+        if (identity == null || identity.stationUid() == null || identity.memberUid() == null) return false;
+        return Query.query("""
+                        DELETE FROM board_ticket_watcher
+                        WHERE ticket_id = :ticket_id AND watcher_station_uid = :watcher_station_uid::uuid AND watcher_member_uid = :watcher_member_uid::uuid;""")
+                .single(Call.of()
+                        .bind("ticket_id", ticketId)
+                        .bind("watcher_station_uid", identity.stationUid(), StandardValueConverter.UUID_STRING)
+                        .bind("watcher_member_uid", identity.memberUid(), StandardValueConverter.UUID_STRING))
+                .delete()
+                .changed();
+    }
+
     public boolean removeWatcher(int ticketId, int memberId) {
-        return Query.query("DELETE FROM board_ticket_watcher WHERE ticket_id = :ticket_id AND member_id = :member_id;")
-                .single(Call.of().bind("ticket_id", ticketId).bind("member_id", memberId))
+        MemberIdentity identity = stationMemberRepository.resolveIdentity(memberId);
+        if (identity == null) return false;
+        return Query.query("""
+                        DELETE FROM board_ticket_watcher
+                        WHERE ticket_id = :ticket_id AND watcher_station_uid = :watcher_station_uid::uuid AND watcher_member_uid = :watcher_member_uid::uuid;""")
+                .single(Call.of()
+                        .bind("ticket_id", ticketId)
+                        .bind("watcher_station_uid", identity.stationUid(), StandardValueConverter.UUID_STRING)
+                        .bind("watcher_member_uid", identity.memberUid(), StandardValueConverter.UUID_STRING))
                 .delete()
                 .changed();
     }
 
     public boolean isWatching(int ticketId, int memberId) {
-        return Query.query(
-                        "SELECT 1 FROM board_ticket_watcher WHERE ticket_id = :ticket_id AND member_id = :member_id;")
-                .single(Call.of().bind("ticket_id", ticketId).bind("member_id", memberId))
+        MemberIdentity identity = stationMemberRepository.resolveIdentity(memberId);
+        if (identity == null) return false;
+        return Query.query("""
+                        SELECT 1 FROM board_ticket_watcher
+                        WHERE ticket_id = :ticket_id AND watcher_station_uid = :watcher_station_uid::uuid AND watcher_member_uid = :watcher_member_uid::uuid;""")
+                .single(Call.of()
+                        .bind("ticket_id", ticketId)
+                        .bind("watcher_station_uid", identity.stationUid(), StandardValueConverter.UUID_STRING)
+                        .bind("watcher_member_uid", identity.memberUid(), StandardValueConverter.UUID_STRING))
                 .map(row -> true)
                 .first()
                 .isPresent();
@@ -549,27 +682,22 @@ public class BoardTicketRepository {
 
     // -- History --
 
-    public void logHistory(int ticketId, String action, String detail, int actorMemberId) {
-        logHistory(ticketId, action, detail, actorMemberId, null, null);
-    }
-
-    public void logHistory(
-            int ticketId,
-            String action,
-            String detail,
-            Integer actorMemberId,
-            Integer federatedPartnerId,
-            UUID federatedMemberId) {
+    public void logHistory(int ticketId, String action, String detail, MemberIdentity actor) {
         Query.query("""
-                        INSERT INTO board_ticket_history(ticket_id, action, detail, actor_member_id, federated_partner_id, federated_member_id)
-                        VALUES (:ticket_id, :action, :detail, :actor, :federated_partner_id, :federated_member_id::uuid)""")
+                        INSERT INTO board_ticket_history(ticket_id, action, detail, actor_station_uid, actor_member_uid)
+                        VALUES (:ticket_id, :action, :detail, :actor_station_uid::uuid, :actor_member_uid::uuid)""")
                 .single(Call.of()
                         .bind("ticket_id", ticketId)
                         .bind("action", action)
                         .bind("detail", detail)
-                        .bind("actor", actorMemberId)
-                        .bind("federated_partner_id", federatedPartnerId)
-                        .bind("federated_member_id", federatedMemberId, StandardValueConverter.UUID_STRING))
+                        .bind(
+                                "actor_station_uid",
+                                actor != null ? actor.stationUid() : null,
+                                StandardValueConverter.UUID_STRING)
+                        .bind(
+                                "actor_member_uid",
+                                actor != null ? actor.memberUid() : null,
+                                StandardValueConverter.UUID_STRING))
                 .insert();
     }
 

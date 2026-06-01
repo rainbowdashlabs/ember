@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.knowledgebase.service;
 
+import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
 import dev.chojo.ember.feature.federation.entity.CapabilityType;
 import dev.chojo.ember.feature.federation.entity.ContentType;
@@ -26,6 +27,7 @@ import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
 import dev.chojo.ember.feature.knowledgebase.entity.UrlMetadata;
 import dev.chojo.ember.feature.knowledgebase.repository.KbCommentRepository;
 import dev.chojo.ember.feature.knowledgebase.repository.KnowledgeBaseRepository;
+import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.restriction.Restriction;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.feature.restriction.RestrictionSet;
@@ -92,6 +94,7 @@ public class KnowledgeBaseService {
     private final FederationHttpClient federationHttpClient;
     private final KbCommentRepository kbCommentRepository;
     private final EventFederationRepository eventFederationRepository;
+    private final MemberIdentityFactory memberIdentityFactory;
     private final Parser markdownParser;
     private final HtmlRenderer htmlRenderer;
 
@@ -104,7 +107,8 @@ public class KnowledgeBaseService {
             FederationRepository federationRepository,
             FederationHttpClient federationHttpClient,
             KbCommentRepository kbCommentRepository,
-            EventFederationRepository eventFederationRepository) {
+            EventFederationRepository eventFederationRepository,
+            MemberIdentityFactory memberIdentityFactory) {
         this.repository = repository;
         this.stationRepository = stationRepository;
         this.fileStorage = fileStorage;
@@ -113,6 +117,7 @@ public class KnowledgeBaseService {
         this.federationHttpClient = federationHttpClient;
         this.kbCommentRepository = kbCommentRepository;
         this.eventFederationRepository = eventFederationRepository;
+        this.memberIdentityFactory = memberIdentityFactory;
         List<Extension> extensions = List.of(
                 TablesExtension.create(),
                 HeadingAnchorExtension.create(),
@@ -955,13 +960,19 @@ public class KnowledgeBaseService {
     // -- KB Comments --
 
     public KbComment createComment(int fileId, Integer parentId, int authorId, String content) {
-        return kbCommentRepository.create(fileId, parentId, authorId, content);
+        var identity = memberIdentityFactory.fromMemberId(authorId);
+        return kbCommentRepository.create(fileId, parentId, identity, content);
     }
 
     public KbComment createRemoteComment(
             int fileId, int partnerId, UUID remoteMemberUid, String displayName, Integer parentId, String content) {
-        var comment = kbCommentRepository.create(fileId, parentId, null, content);
-        kbCommentRepository.setFederatedAuthor(comment.id(), partnerId, remoteMemberUid);
+        // Look up the partner's station UID for inline identity
+        var partnerStationUid = federationRepository
+                .findPartnerById(partnerId)
+                .map(p -> p.partnerStationId())
+                .orElse(null);
+        var identity = partnerStationUid != null ? new MemberIdentity(partnerStationUid, remoteMemberUid) : null;
+        var comment = kbCommentRepository.create(fileId, parentId, identity, content);
         eventFederationRepository.cacheName(partnerId, remoteMemberUid, displayName);
         return comment;
     }

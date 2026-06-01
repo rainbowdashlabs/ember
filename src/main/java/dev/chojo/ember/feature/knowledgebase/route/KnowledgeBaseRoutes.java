@@ -6,10 +6,10 @@
 package dev.chojo.ember.feature.knowledgebase.route;
 
 import dev.chojo.ember.api.FederationSession;
+import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.api.MessageResponse;
 import dev.chojo.ember.api.Roles;
 import dev.chojo.ember.api.Routes;
-import dev.chojo.ember.api.StationUidResolver;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.CommentCreated;
@@ -34,11 +34,13 @@ import dev.chojo.ember.feature.media.service.ImageCategory;
 import dev.chojo.ember.feature.media.service.ImageService;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
 import dev.chojo.ember.feature.members.entity.Role;
-import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.entity.UserTag;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.repository.UserTagRepository;
+import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
+import dev.chojo.ember.feature.members.service.MemberNameResolver;
+import dev.chojo.ember.feature.members.service.StationMemberService;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.util.PandocConverter;
@@ -73,7 +75,8 @@ public class KnowledgeBaseRoutes implements Routes {
     private static final long MAX_UPLOAD_SIZE = 50 * 1024 * 1024; // 50 MB
 
     private static final Set<String> ALLOWED_IMAGE_TYPES = Set.of("image/png", "image/jpeg", "image/webp");
-    private static final Pattern MENTION_PATTERN = Pattern.compile("@\\[(\\d+):([^\\]]+)]");
+    private static final Pattern MENTION_PATTERN_LEGACY = Pattern.compile("@\\[(\\d+):([^\\]]+)]");
+    private static final Pattern MENTION_PATTERN = Pattern.compile("@\\[([^/]+)/([^:]+):([^\\]]+)]");
 
     private final KnowledgeBaseService service;
     private final StationMemberRepository stationMemberRepository;
@@ -87,6 +90,9 @@ public class KnowledgeBaseRoutes implements Routes {
     private final EventFederationRepository eventFederationRepository;
     private final FederationHttpClient federationHttpClient;
     private final DomainEventBus eventBus;
+    private final MemberNameResolver memberNameResolver;
+    private final MemberIdentityFactory memberIdentityFactory;
+    private final StationMemberService stationMemberService;
 
     @Inject
     public KnowledgeBaseRoutes(
@@ -101,7 +107,10 @@ public class KnowledgeBaseRoutes implements Routes {
             KbCommentRepository kbCommentRepository,
             EventFederationRepository eventFederationRepository,
             FederationHttpClient federationHttpClient,
-            DomainEventBus eventBus) {
+            DomainEventBus eventBus,
+            MemberNameResolver memberNameResolver,
+            MemberIdentityFactory memberIdentityFactory,
+            StationMemberService stationMemberService) {
         this.service = service;
         this.stationMemberRepository = stationMemberRepository;
         this.accountRepository = accountRepository;
@@ -114,6 +123,9 @@ public class KnowledgeBaseRoutes implements Routes {
         this.eventFederationRepository = eventFederationRepository;
         this.federationHttpClient = federationHttpClient;
         this.eventBus = eventBus;
+        this.memberNameResolver = memberNameResolver;
+        this.memberIdentityFactory = memberIdentityFactory;
+        this.stationMemberService = stationMemberService;
     }
 
     private String resolveFolderPath(Integer folderId) {
@@ -1036,7 +1048,11 @@ public class KnowledgeBaseRoutes implements Routes {
             throw new BadRequestResponse("content is required");
         }
         var comment = kbCommentRepository.create(
-                fileId, req.parentId(), session.member().id(), req.content());
+                fileId,
+                req.parentId(),
+                memberIdentityFactory.local(
+                        session.stationId(), session.member().id()),
+                req.content());
 
         // Publish domain events for notifications
         int authorId = session.member().id();
@@ -1047,10 +1063,14 @@ public class KnowledgeBaseRoutes implements Routes {
 
         Integer parentAuthorId = null;
         if (req.parentId() != null) {
-            parentAuthorId = kbCommentRepository
-                    .findById(req.parentId())
-                    .map(KbComment::authorId)
-                    .orElse(null);
+            var parentComment = kbCommentRepository.findById(req.parentId()).orElse(null);
+            if (parentComment != null && parentComment.author() != null) {
+                parentAuthorId = stationRepository
+                        .resolveId(parentComment.author().stationUid())
+                        .flatMap(sid -> stationMemberService.resolveId(
+                                sid, parentComment.author().memberUid()))
+                        .orElse(null);
+            }
         }
         eventBus.publish(new CommentCreated(
                 session.stationId(),
@@ -1064,10 +1084,24 @@ public class KnowledgeBaseRoutes implements Routes {
                 authorName,
                 preview));
 
-        // Parse @mentions and publish events
+        // Parse @mentions and publish events (new format)
         var matcher = MENTION_PATTERN.matcher(req.content());
         while (matcher.find()) {
-            int mentionedId = Integer.parseInt(matcher.group(1));
+            try {
+                var memberUid = UUID.fromString(matcher.group(2));
+                stationMemberService.resolveId(session.stationId(), memberUid).ifPresent(mentionedId -> {
+                    if (mentionedId != authorId) {
+                        eventBus.publish(new MentionedInComment(
+                                session.stationId(), mentionedId, authorId, authorName, CommentEntityType.KB, fileId));
+                    }
+                });
+            } catch (IllegalArgumentException ignored) {
+            }
+        }
+        // Legacy format
+        var legacyMatcher = MENTION_PATTERN_LEGACY.matcher(req.content());
+        while (legacyMatcher.find()) {
+            int mentionedId = Integer.parseInt(legacyMatcher.group(1));
             if (mentionedId != authorId) {
                 eventBus.publish(new MentionedInComment(
                         session.stationId(), mentionedId, authorId, authorName, CommentEntityType.KB, fileId));
@@ -1081,7 +1115,9 @@ public class KnowledgeBaseRoutes implements Routes {
         int commentId = ctx.pathParamAsClass("commentId", Integer.class).get();
         UserSession session = UserSession.from(ctx);
         var comment = kbCommentRepository.findById(commentId).orElseThrow(NotFoundResponse::new);
-        if (comment.authorId() != session.member().id()) {
+        var memberIdentity = memberIdentityFactory.local(
+                session.stationId(), session.member().id());
+        if (comment.author() == null || !comment.author().equals(memberIdentity)) {
             throw new ForbiddenResponse("You can only edit your own comments");
         }
         var req = ctx.bodyAsClass(UpdateKbCommentRequest.class);
@@ -1097,7 +1133,9 @@ public class KnowledgeBaseRoutes implements Routes {
         int commentId = ctx.pathParamAsClass("commentId", Integer.class).get();
         UserSession session = UserSession.from(ctx);
         var comment = kbCommentRepository.findById(commentId).orElseThrow(NotFoundResponse::new);
-        boolean isAuthor = comment.authorId() == session.member().id();
+        var authorIdentity = memberIdentityFactory.local(
+                session.stationId(), session.member().id());
+        boolean isAuthor = comment.author() != null && comment.author().equals(authorIdentity);
         boolean canModerate = session.hasRole(Roles.KNOWLEDGE_MANAGER);
         if (!isAuthor && !canModerate) {
             throw new ForbiddenResponse("You can only delete your own comments");
@@ -1128,8 +1166,8 @@ public class KnowledgeBaseRoutes implements Routes {
         if (req.content() == null || req.content().isBlank()) {
             throw new BadRequestResponse("content is required");
         }
-        var comment = kbCommentRepository.create(fileId, req.parentId(), null, req.content());
-        kbCommentRepository.setFederatedAuthor(comment.id(), partner.id(), req.remoteMemberUid());
+        var authorIdentity = new MemberIdentity(partner.partnerStationId(), req.remoteMemberUid());
+        var comment = kbCommentRepository.create(fileId, req.parentId(), authorIdentity, req.content());
         eventFederationRepository.cacheName(partner.id(), req.remoteMemberUid(), req.displayName());
         ctx.status(HttpStatus.CREATED).json(toCommentResponse(comment));
     }
@@ -1141,10 +1179,9 @@ public class KnowledgeBaseRoutes implements Routes {
         if (req.content() == null || req.content().isBlank()) {
             throw new BadRequestResponse("content is required");
         }
-        var fedAuthor = kbCommentRepository
-                .findFederatedAuthor(commentId)
-                .orElseThrow(() -> new ForbiddenResponse("Not a federated comment"));
-        if (fedAuthor.partnerId() != partner.id() || !fedAuthor.remoteMemberId().equals(req.remoteMemberUid())) {
+        var comment = kbCommentRepository.findById(commentId).orElseThrow(NotFoundResponse::new);
+        var expectedAuthor = new MemberIdentity(partner.partnerStationId(), req.remoteMemberUid());
+        if (comment.author() == null || !comment.author().equals(expectedAuthor)) {
             throw new ForbiddenResponse("You can only edit your own comments");
         }
         kbCommentRepository.update(commentId, req.content());
@@ -1156,13 +1193,11 @@ public class KnowledgeBaseRoutes implements Routes {
         var partner = requireFederationPartner(ctx);
         int commentId = ctx.pathParamAsClass("commentId", Integer.class).get();
         var req = ctx.bodyAsClass(RemoteKbCommentDeleteRequest.class);
-        var fedAuthor = kbCommentRepository
-                .findFederatedAuthor(commentId)
-                .orElseThrow(() -> new ForbiddenResponse("Not a federated comment"));
-        if (fedAuthor.partnerId() != partner.id() || !fedAuthor.remoteMemberId().equals(req.remoteMemberUid())) {
+        var comment = kbCommentRepository.findById(commentId).orElseThrow(NotFoundResponse::new);
+        var expectedAuthor = new MemberIdentity(partner.partnerStationId(), req.remoteMemberUid());
+        if (comment.author() == null || !comment.author().equals(expectedAuthor)) {
             throw new ForbiddenResponse("You can only delete your own comments");
         }
-        var comment = kbCommentRepository.findById(commentId).orElseThrow(NotFoundResponse::new);
         if (kbCommentRepository.delete(commentId)) {
             String preview =
                     comment.content().length() > 100 ? comment.content().substring(0, 100) + "..." : comment.content();
@@ -1220,8 +1255,8 @@ public class KnowledgeBaseRoutes implements Routes {
             if (result == null) throw new InternalServerErrorResponse("Failed to create comment on partner");
             ctx.status(HttpStatus.CREATED).json(result);
         } else {
-            var comment = kbCommentRepository.create(fileId, req.parentId(), null, req.content());
-            kbCommentRepository.setFederatedAuthor(comment.id(), partner.id(), memberUid);
+            var authorId = new MemberIdentity(partner.partnerStationId(), memberUid);
+            var comment = kbCommentRepository.create(fileId, req.parentId(), authorId, req.content());
             eventFederationRepository.cacheName(partner.id(), memberUid, displayName);
             ctx.status(HttpStatus.CREATED).json(toCommentResponse(comment));
         }
@@ -1251,10 +1286,9 @@ public class KnowledgeBaseRoutes implements Routes {
             if (result == null) throw new InternalServerErrorResponse("Failed to update comment on partner");
             ctx.json(result);
         } else {
-            var fedAuthor = kbCommentRepository
-                    .findFederatedAuthor(commentId)
-                    .orElseThrow(() -> new ForbiddenResponse("Not a federated comment"));
-            if (!fedAuthor.remoteMemberId().equals(memberUid)) {
+            var existingComment = kbCommentRepository.findById(commentId).orElseThrow(NotFoundResponse::new);
+            if (existingComment.author() == null
+                    || !existingComment.author().memberUid().equals(memberUid)) {
                 throw new ForbiddenResponse("You can only edit your own comments");
             }
             kbCommentRepository.update(commentId, req.content());
@@ -1280,10 +1314,9 @@ public class KnowledgeBaseRoutes implements Routes {
             if (!success) throw new InternalServerErrorResponse("Failed to delete comment on partner");
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
-            var fedAuthor = kbCommentRepository
-                    .findFederatedAuthor(commentId)
-                    .orElseThrow(() -> new ForbiddenResponse("Not a federated comment"));
-            if (!fedAuthor.remoteMemberId().equals(memberUid)) {
+            var existingComment = kbCommentRepository.findById(commentId).orElseThrow(NotFoundResponse::new);
+            if (existingComment.author() == null
+                    || !existingComment.author().memberUid().equals(memberUid)) {
                 throw new ForbiddenResponse("You can only delete your own comments");
             }
             if (kbCommentRepository.delete(commentId)) {
@@ -1319,73 +1352,31 @@ public class KnowledgeBaseRoutes implements Routes {
                     comment.id(),
                     comment.fileId(),
                     comment.parentId(),
-                    0,
                     null,
                     null,
                     "",
                     true,
                     comment.createdAt(),
-                    null,
-                    null,
-                    null,
                     null);
         }
 
-        var fedAuthor = kbCommentRepository.findFederatedAuthor(comment.id());
-        if (fedAuthor.isPresent()) {
-            var fa = fedAuthor.get();
-            String displayName = eventFederationRepository
-                    .getCachedName(fa.partnerId(), fa.remoteMemberId())
-                    .orElse("Unknown");
-            var partner = federationRepository.findPartnerById(fa.partnerId());
-            String stationName = partner.map(p -> stationRepository
-                            .findByUid(p.partnerStationId())
-                            .map(Station::name)
-                            .orElse(""))
-                    .orElse("");
-            String fedStationId =
-                    partner.map(p -> p.partnerStationId().toString()).orElse(null);
-            return new KbCommentResponse(
-                    comment.id(),
-                    comment.fileId(),
-                    comment.parentId(),
-                    0,
-                    null,
-                    displayName,
-                    comment.content(),
-                    false,
-                    comment.createdAt(),
-                    comment.updatedAt(),
-                    new KbFederatedAuthorInfo(fa.remoteMemberId(), displayName, stationName),
-                    fedStationId,
-                    stationName);
+        // Resolve author name from inline identity
+        var identity = comment.author();
+        String authorName = "";
+        if (identity != null) {
+            authorName = memberNameResolver.resolve(identity);
+            if (authorName == null) authorName = "";
         }
-
-        // Local author
-        var memberOpt = stationMemberRepository.findById(comment.authorId());
-        Integer authorAccountId = memberOpt.map(StationMember::accountId).orElse(null);
-        String authorName = memberOpt
-                .flatMap(m -> accountRepository.findById(m.accountId()))
-                .map(a -> (a.firstName() + " " + a.lastName()).trim())
-                .orElse("");
-        int authorStationId = memberOpt.map(StationMember::stationId).orElse(0);
-        String authorStationUid = StationUidResolver.instance().resolveToString(authorStationId);
-        String authorStationName =
-                stationRepository.findById(authorStationId).map(Station::name).orElse("");
         return new KbCommentResponse(
                 comment.id(),
                 comment.fileId(),
                 comment.parentId(),
-                comment.authorId(),
-                authorAccountId,
+                identity,
                 authorName,
                 comment.content(),
                 false,
                 comment.createdAt(),
-                comment.updatedAt(),
-                null,
-                authorStationUid,
-                authorStationName);
+                comment.updatedAt());
     }
 
     // -- KB Comment request/response records --
@@ -1400,20 +1391,14 @@ public class KnowledgeBaseRoutes implements Routes {
 
     public record RemoteKbCommentDeleteRequest(UUID remoteMemberUid) {}
 
-    public record KbFederatedAuthorInfo(UUID memberUid, String displayName, String stationName) {}
-
     public record KbCommentResponse(
             int id,
             int fileId,
             Integer parentId,
-            int authorId,
-            Integer authorAccountId,
+            MemberIdentity author,
             String authorName,
             String content,
             boolean deleted,
             Instant createdAt,
-            Instant updatedAt,
-            KbFederatedAuthorInfo federatedAuthor,
-            String authorStationId,
-            String authorStationName) {}
+            Instant updatedAt) {}
 }

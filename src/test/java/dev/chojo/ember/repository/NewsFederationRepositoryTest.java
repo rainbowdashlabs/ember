@@ -253,44 +253,20 @@ class NewsFederationRepositoryTest extends RepositoryTestBase {
         assertDoesNotThrow(() -> fedRepo.removeShare(99999));
     }
 
-    // -- Federated comment author --
+    // -- Federated comment author (no-op stubs) --
 
     @Test
     @Order(50)
-    void setFederatedCommentAuthor() {
-        var remoteUid = UUID.randomUUID();
-        assertDoesNotThrow(() -> fedRepo.setFederatedCommentAuthor(commentId, partnerId, remoteUid));
+    void setFederatedCommentAuthorIsNoOp() {
+        // Method is a no-op since satellite table was removed
+        assertDoesNotThrow(() -> fedRepo.setFederatedCommentAuthor(commentId, partnerId, UUID.randomUUID()));
     }
 
     @Test
     @Order(51)
-    void findFederatedCommentAuthor() {
-        var remoteUid = UUID.fromString("11111111-1111-1111-1111-111111111111");
-        fedRepo.setFederatedCommentAuthor(commentId, partnerId, remoteUid);
-
-        var found = fedRepo.findFederatedCommentAuthor(commentId);
-        assertTrue(found.isPresent());
-        assertEquals(commentId, found.get().commentId());
-        assertEquals(partnerId, found.get().partnerId());
-        assertEquals(remoteUid, found.get().remoteMemberId());
-    }
-
-    @Test
-    @Order(52)
-    void setFederatedCommentAuthorUpdatesExisting() {
-        var newUid = UUID.fromString("22222222-2222-2222-2222-222222222222");
-        fedRepo.setFederatedCommentAuthor(commentId, partnerIdB, newUid);
-
-        var found = fedRepo.findFederatedCommentAuthor(commentId);
-        assertTrue(found.isPresent());
-        assertEquals(partnerIdB, found.get().partnerId());
-        assertEquals(newUid, found.get().remoteMemberId());
-    }
-
-    @Test
-    @Order(53)
-    void findFederatedCommentAuthorMissing() {
-        assertTrue(fedRepo.findFederatedCommentAuthor(99999).isEmpty());
+    void findFederatedCommentAuthorReturnsEmpty() {
+        // Method always returns empty since satellite table was removed
+        assertTrue(fedRepo.findFederatedCommentAuthor(commentId).isEmpty());
     }
 
     // -- Entity record construction --

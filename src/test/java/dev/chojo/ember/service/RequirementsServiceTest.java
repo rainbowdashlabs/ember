@@ -124,4 +124,52 @@ class RequirementsServiceTest {
         assertFalse(result.profileIncomplete());
         verify(profileFieldService).isProfileComplete(10, 1, List.of("USER", "ADMIN"));
     }
+
+    @Test
+    void countPendingZeroWhenNothingPending() {
+        when(formService.findForcedPending(1, 10)).thenReturn(List.of());
+        when(quizService.findForcedPending(1, 10)).thenReturn(List.of());
+        when(profileFieldService.isProfileComplete(10, 1, List.of("USER"))).thenReturn(true);
+
+        int count = requirementsService.countPending(10, 1, List.of("USER"));
+
+        assertEquals(0, count);
+    }
+
+    @Test
+    void countPendingWithFormsAndQuizzes() {
+        var forms = List.of(new RequirementItem(1, "Form A"), new RequirementItem(2, "Form B"));
+        var quizzes = List.of(new RequirementItem(3, "Quiz C"));
+        when(formService.findForcedPending(1, 10)).thenReturn(forms);
+        when(quizService.findForcedPending(1, 10)).thenReturn(quizzes);
+        when(profileFieldService.isProfileComplete(10, 1, List.of("USER"))).thenReturn(true);
+
+        int count = requirementsService.countPending(10, 1, List.of("USER"));
+
+        assertEquals(3, count);
+    }
+
+    @Test
+    void countPendingWithIncompleteProfile() {
+        when(formService.findForcedPending(1, 10)).thenReturn(List.of());
+        when(quizService.findForcedPending(1, 10)).thenReturn(List.of());
+        when(profileFieldService.isProfileComplete(10, 1, List.of("USER"))).thenReturn(false);
+
+        int count = requirementsService.countPending(10, 1, List.of("USER"));
+
+        assertEquals(1, count);
+    }
+
+    @Test
+    void countPendingWithEverythingPending() {
+        var forms = List.of(new RequirementItem(1, "Form A"));
+        var quizzes = List.of(new RequirementItem(2, "Quiz B"), new RequirementItem(3, "Quiz C"));
+        when(formService.findForcedPending(2, 20)).thenReturn(forms);
+        when(quizService.findForcedPending(2, 20)).thenReturn(quizzes);
+        when(profileFieldService.isProfileComplete(20, 2, List.of("ADMIN"))).thenReturn(false);
+
+        int count = requirementsService.countPending(20, 2, List.of("ADMIN"));
+
+        assertEquals(4, count);
+    }
 }

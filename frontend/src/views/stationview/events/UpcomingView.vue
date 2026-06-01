@@ -27,6 +27,7 @@ import type {EventRegistrationEntry, RegistrationCount, UpcomingEventOccurrence}
 import FederatedEventsSection from './upcomingview/FederatedEventsSection.vue'
 import EventRegistrationActions from './upcomingview/EventRegistrationActions.vue'
 import {useSession} from '@/composables/useSession'
+import {useSidebarCounts} from '@/composables/useSidebarCounts'
 import MutedText from '@/components/typography/MutedText.vue'
 import MutedIcon from '@/components/display/MutedIcon.vue'
 import EventFieldValue from '@/components/display/EventFieldValue.vue'
@@ -34,6 +35,7 @@ import EventFieldValue from '@/components/display/EventFieldValue.vue'
 const {t} = useI18n()
 const router = useRouter()
 const {sessionInfo, loaded, isGuardian, canManageAttendance} = useSession()
+const {refresh: refreshSidebarCounts} = useSidebarCounts()
 
 const todayEvents = ref<StationEvent[]>([])
 const upcomingOccurrences = ref<UpcomingEventOccurrence[]>([])
@@ -171,6 +173,7 @@ async function registerForEvent(ev: StationEvent, date: string, memberId: number
       memberId: memberId !== currentMemberId.value ? memberId : undefined,
     })
     await reloadRegistrations()
+    refreshSidebarCounts()
   } catch {
     error.value = t('common.error')
   } finally {
@@ -193,6 +196,7 @@ async function withdrawRegistration(regId: number) {
   try {
     await events.withdrawRegistration(regId)
     await reloadRegistrations()
+    refreshSidebarCounts()
   } catch {
     error.value = t('common.error')
   }
@@ -206,6 +210,7 @@ async function declineEvent(ev: StationEvent, date: string, memberId: number) {
       memberId: memberId !== currentMemberId.value ? memberId : undefined,
     })
     await reloadRegistrations()
+    refreshSidebarCounts()
   } catch {
     error.value = t('common.error')
   }

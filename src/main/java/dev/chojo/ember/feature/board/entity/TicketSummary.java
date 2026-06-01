@@ -6,9 +6,12 @@
 package dev.chojo.ember.feature.board.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
+import de.chojo.sadu.queries.converter.StandardValueConverter;
+import dev.chojo.ember.api.MemberIdentity;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.UUID;
 
 import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIMESTAMP;
 
@@ -22,7 +25,7 @@ public record TicketSummary(
         int laneId,
         int ticketNumber,
         String title,
-        Integer assignedMemberId,
+        MemberIdentity assignee,
         TicketPriority priority,
         LocalDate dueDate,
         int position,
@@ -38,7 +41,7 @@ public record TicketSummary(
                 ticket.laneId(),
                 ticket.ticketNumber(),
                 ticket.title(),
-                ticket.assignedMemberId(),
+                ticket.assignee(),
                 ticket.priority(),
                 ticket.dueDate(),
                 ticket.position(),
@@ -49,19 +52,27 @@ public record TicketSummary(
     }
 
     public static RowMapping<TicketSummary> map() {
-        return row -> new TicketSummary(
-                row.getInt("id"),
-                row.getInt("board_id"),
-                row.getInt("lane_id"),
-                row.getInt("ticket_number"),
-                row.getString("title"),
-                row.getObject("assigned_member_id", Integer.class),
-                TicketPriority.valueOf(row.getString("priority")),
-                row.getObject("due_date", LocalDate.class),
-                row.getInt("position"),
-                row.get("lane_entered_at", INSTANT_TIMESTAMP),
-                row.getInt("checklist_total"),
-                row.getInt("checklist_checked"),
-                row.getInt("attachment_count"));
+        return row -> {
+            UUID assigneeStationUid = row.get("assignee_station_uid", StandardValueConverter.UUID_STRING);
+            UUID assigneeMemberUid = row.get("assignee_member_uid", StandardValueConverter.UUID_STRING);
+            MemberIdentity assignee = (assigneeStationUid != null && assigneeMemberUid != null)
+                    ? new MemberIdentity(assigneeStationUid, assigneeMemberUid)
+                    : null;
+
+            return new TicketSummary(
+                    row.getInt("id"),
+                    row.getInt("board_id"),
+                    row.getInt("lane_id"),
+                    row.getInt("ticket_number"),
+                    row.getString("title"),
+                    assignee,
+                    TicketPriority.valueOf(row.getString("priority")),
+                    row.getObject("due_date", LocalDate.class),
+                    row.getInt("position"),
+                    row.get("lane_entered_at", INSTANT_TIMESTAMP),
+                    row.getInt("checklist_total"),
+                    row.getInt("checklist_checked"),
+                    row.getInt("attachment_count"));
+        };
     }
 }

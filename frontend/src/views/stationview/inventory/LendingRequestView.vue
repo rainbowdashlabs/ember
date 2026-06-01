@@ -29,12 +29,14 @@ import type {LendingRequestDetail, EnrichedMessage, AvailableItemDetail, Lending
 import {LendingStatus} from '@/api/lending'
 import * as lending from '@/api/lending'
 import {useSession} from '@/composables/useSession'
+import {useSidebarCounts} from '@/composables/useSidebarCounts'
 import MutedText from '@/components/typography/MutedText.vue'
 
 const {t} = useI18n()
 const route = useRoute()
 const router = useRouter()
 const {loaded} = useSession()
+const {refresh: refreshSidebarCounts} = useSidebarCounts()
 
 const detail = ref<LendingRequestDetail | null>(null)
 const messages = ref<EnrichedMessage[]>([])
@@ -135,6 +137,7 @@ async function handleAssignAndLend() {
     await lending.assignItems(requestId, items)
     await lending.markLent(requestId)
     await loadData()
+    refreshSidebarCounts()
   } catch { /* ignore */ } finally {
     assigning.value = false
   }
@@ -172,6 +175,7 @@ async function handleApprove() {
   try {
     await lending.approveRequest(requestId)
     await loadData()
+    refreshSidebarCounts()
   } catch { /* ignore */ }
 }
 
@@ -181,6 +185,7 @@ async function handleDecline() {
     showDeclineModal.value = false
     declineReason.value = ''
     await loadData()
+    refreshSidebarCounts()
   } catch { /* ignore */ }
 }
 
@@ -188,6 +193,7 @@ async function handleMarkReturned() {
   try {
     await lending.markReturned(requestId)
     await loadData()
+    refreshSidebarCounts()
   } catch { /* ignore */ }
 }
 
@@ -195,6 +201,7 @@ async function handleClose() {
   try {
     await lending.closeRequest(requestId)
     await loadData()
+    refreshSidebarCounts()
   } catch { /* ignore */ }
 }
 

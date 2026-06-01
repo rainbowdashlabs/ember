@@ -4360,6 +4360,8 @@ volumes:
         deleted: 'Dieser Kommentar wurde gelöscht.',
         replyPlaceholder: 'Antwort schreiben...',
         empty: 'Noch keine Kommentare.',
+        newest: 'Neueste zuerst',
+        oldest: 'Älteste zuerst',
     },
     notes: {
         title: 'Notizen',
@@ -4709,6 +4711,7 @@ volumes:
         sourceStation: 'Quelle',
         bookmark: 'Lesezeichen',
         bookmarked: 'Gemerkt',
+        bookmarkHint: 'Boards mit Lesezeichen erscheinen direkt in der Seitenleiste.',
         readOnlyBadge: 'Nur Lesen',
         fullAccessBadge: 'Vollzugriff',
         federatedFrom: 'Föderiert von',

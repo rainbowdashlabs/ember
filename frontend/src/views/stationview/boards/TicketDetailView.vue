@@ -32,15 +32,14 @@ import Alert from '@/components/feedback/Alert.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import UserAvatar from '@/components/avatar/UserAvatar.vue'
-import { knowledgeBase } from '@/api'
-import { boards } from '@/api'
+import { knowledgeBase, boards } from '@/api'
+import type { MemberCompletion } from '@/api/stationMembers'
 import type {
     Board, BoardLane, BoardField, BoardLabel, BoardTicket, BoardChecklistItem,
     BoardTicketLink, BoardTicketTransition, BoardTicketHistoryEntry, BoardComment,
     BoardWeblink, BoardTicketAttachment, BoardTicketKbLink,
 } from '@/api/boards'
-import { TicketPriority } from '@/api/boards'
-import type { TicketPriorityName } from '@/api/boards'
+import { TicketPriority, type TicketPriorityName } from '@/api/boards'
 import { useSession } from '@/composables/useSession'
 import { useBoardApi } from '@/composables/useBoardApi'
 
@@ -55,7 +54,7 @@ const ticketNumber = api.ticketNumber
 const board = ref<Board | null>(null)
 const ticket = ref<BoardTicket | null>(null)
 const lanes = ref<BoardLane[]>([])
-const members = ref<{ id: number; name: string }[]>([])
+const members = ref<MemberCompletion[]>([])
 const loading = ref(true)
 const error = ref('')
 const canEdit = ref(false)
@@ -85,8 +84,7 @@ const addMenuRef = ref<HTMLElement | null>(null)
 const showChecklist = ref(false)
 const showAddLink = ref(false)
 const showAddWeblink = ref(false)
-const editingTitle = ref(false)
-const editingDescription = ref(false)
+const editingTitle = ref(false); const editingDescription = ref(false)
 const editingLane = ref(false)
 const editingPriority = ref(false)
 const editingAssignee = ref(false)
@@ -363,6 +361,7 @@ watch(ticketNumber, loadData)
                         :show-add-link="showAddLink"
                         :show-add-weblink="showAddWeblink"
                         :readonly="!canEdit"
+                        :partner-uid="api.partnerUid.value"
                         @update:show-add-link="showAddLink = $event"
                         @update:show-add-weblink="showAddWeblink = $event"
                         @reload="loadDetails"
@@ -401,6 +400,7 @@ watch(ticketNumber, loadData)
                         :labels="allLabels"
                         :members="members"
                         :readonly="!canEdit"
+                        :federated="api.isFederated.value"
                         @create-comment="createComment"
                         @update-comment="updateComment"
                         @delete-comment="deleteCommentFn"

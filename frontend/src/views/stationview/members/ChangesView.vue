@@ -21,14 +21,14 @@ import TabBar from '@/components/navigation/TabBar.vue'
 import type {MemberChangeSummary, ProfileFieldChange} from '@/api/types'
 import {profileFieldChanges} from '@/api'
 import {useSession} from '@/composables/useSession'
-import {usePendingChanges} from '@/composables/usePendingChanges'
+import {useSidebarCounts} from '@/composables/useSidebarCounts'
 import MemberName from '@/components/avatar/MemberName.vue'
 import MutedIcon from '@/components/display/MutedIcon.vue'
 
 const {t} = useI18n()
 const router = useRouter()
 const {sessionInfo} = useSession()
-const {refresh: refreshBadge} = usePendingChanges()
+const {refresh: refreshSidebarCounts} = useSidebarCounts()
 
 const activeTab = ref('pending')
 const tabs = [
@@ -141,7 +141,7 @@ async function acknowledgeAllForMember(memberId: number) {
 
 async function reloadExpanded() {
   summaries.value = await profileFieldChanges.getPendingSummary()
-  refreshBadge()
+  refreshSidebarCounts()
   if (expandedMemberId.value != null) {
     const stillInList = summaries.value.some(s => s.memberId === expandedMemberId.value)
     if (stillInList) {

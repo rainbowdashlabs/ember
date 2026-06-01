@@ -118,6 +118,11 @@ export async function getLabels(partnerUid: string, boardKey: string): Promise<B
     return res.data
 }
 
+export async function getAllTicketLabels(partnerUid: string, boardKey: string): Promise<{ ticketId: number; labelId: number }[]> {
+    const res = await client.get<{ ticketId: number; labelId: number }[]>(`/federated/boards/${partnerUid}/${boardKey}/ticket-labels`)
+    return res.data
+}
+
 export async function getFields(partnerUid: string, boardKey: string): Promise<BoardField[]> {
     const res = await client.get<BoardField[]>(`/federated/boards/${partnerUid}/${boardKey}/fields`)
     return res.data

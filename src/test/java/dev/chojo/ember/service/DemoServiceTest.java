@@ -1,0 +1,280 @@
+/*
+ *     SPDX-License-Identifier: AGPL-3.0-only
+ *
+ *     Copyright (C) RainbowDashLabs and Contributor
+ */
+package dev.chojo.ember.service;
+
+import dev.chojo.ember.auth.PasswordHasher;
+import dev.chojo.ember.conf.file.elements.Api;
+import dev.chojo.ember.conf.file.elements.Database;
+import dev.chojo.ember.conf.file.elements.Demo;
+import dev.chojo.ember.event.DomainEventBus;
+import dev.chojo.ember.feature.account.service.AuthService;
+import dev.chojo.ember.feature.board.service.FederatedBoardService;
+import dev.chojo.ember.feature.comment.service.CommentService;
+import dev.chojo.ember.feature.events.repository.EventFederationRepository;
+import dev.chojo.ember.feature.events.repository.EventTemplateRepository;
+import dev.chojo.ember.feature.events.service.EventFederationService;
+import dev.chojo.ember.feature.events.service.EventService;
+import dev.chojo.ember.feature.events.service.EventTemplateService;
+import dev.chojo.ember.feature.federation.repository.FederationRepository;
+import dev.chojo.ember.feature.federation.repository.LendingRepository;
+import dev.chojo.ember.feature.federation.service.FederationHttpClient;
+import dev.chojo.ember.feature.federation.service.FederationService;
+import dev.chojo.ember.feature.federation.service.FederationSigningService;
+import dev.chojo.ember.feature.federation.service.LendingService;
+import dev.chojo.ember.feature.feed.service.FeedTokenService;
+import dev.chojo.ember.feature.inventory.service.ExchangeService;
+import dev.chojo.ember.feature.inventory.service.InventoryService;
+import dev.chojo.ember.feature.inventory.service.ProcurementService;
+import dev.chojo.ember.feature.knowledgebase.repository.KbCommentRepository;
+import dev.chojo.ember.feature.knowledgebase.service.KbFileStorageService;
+import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseService;
+import dev.chojo.ember.feature.media.service.ImageService;
+import dev.chojo.ember.feature.members.service.MemberNameResolver;
+import dev.chojo.ember.feature.members.service.StationMemberService;
+import dev.chojo.ember.feature.news.repository.NewsFederationRepository;
+import dev.chojo.ember.feature.news.service.NewsFederationService;
+import dev.chojo.ember.feature.news.service.NewsService;
+import dev.chojo.ember.feature.protocol.service.TestProtocolService;
+import dev.chojo.ember.feature.quiz.service.QuizService;
+import dev.chojo.ember.feature.station.service.StationService;
+import dev.chojo.ember.feature.system.service.DemoAttendanceSeeder;
+import dev.chojo.ember.feature.system.service.DemoBoardSeeder;
+import dev.chojo.ember.feature.system.service.DemoFederationSeeder;
+import dev.chojo.ember.feature.system.service.DemoFormSeeder;
+import dev.chojo.ember.feature.system.service.DemoInventorySeeder;
+import dev.chojo.ember.feature.system.service.DemoKnowledgeBaseSeeder;
+import dev.chojo.ember.feature.system.service.DemoLendingSeeder;
+import dev.chojo.ember.feature.system.service.DemoMediaSeeder;
+import dev.chojo.ember.feature.system.service.DemoNotificationSeeder;
+import dev.chojo.ember.feature.system.service.DemoProtocolSeeder;
+import dev.chojo.ember.feature.system.service.DemoQuizSeeder;
+import dev.chojo.ember.feature.system.service.DemoService;
+import dev.chojo.ember.feature.system.service.DemoWaitingListSeeder;
+import dev.chojo.ember.repository.RepositoryTestBase;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.Order;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestMethodOrder;
+
+import java.util.Set;
+
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
+
+@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
+class DemoServiceTest extends RepositoryTestBase {
+
+    private static DemoService demoService;
+
+    @BeforeAll
+    static void setup() {
+        var noOpBus = new DomainEventBus(Set.of());
+        var passwordHasher = new PasswordHasher();
+        var demoConfig = new Demo();
+        var apiConfig = new Api();
+        var databaseConfig = new Database();
+
+        // -- Repositories not in RepositoryTestBase --
+        var federationRepo = new FederationRepository();
+        var eventFederationRepo = new EventFederationRepository();
+        var eventTemplateRepo = new EventTemplateRepository();
+        var kbCommentRepo = new KbCommentRepository();
+        var newsFederationRepo = new NewsFederationRepository();
+        var lendingRepo = new LendingRepository();
+
+        // -- Services --
+        var federationService = new FederationService(federationRepo, stationRepo, apiConfig);
+        var signingService = new FederationSigningService();
+        var federationHttpClient = new FederationHttpClient(signingService, stationRepo);
+
+        var eventService = new EventService(eventRepo, restrictionRepo, noOpBus);
+        var newsService = new NewsService(newsRepo, restrictionRepo, noOpBus);
+        var inventoryService = new InventoryService(inventoryRepo);
+        var exchangeService = new ExchangeService(exchangeRepo, inventoryRepo, inventoryService, noOpBus);
+        var procurementService = new ProcurementService(procurementRepo, inventoryService, inventoryRepo, noOpBus);
+        var eventTemplateService = new EventTemplateService(eventTemplateRepo);
+        var feedTokenService = new FeedTokenService(feedTokenRepo);
+
+        var memberSvc = new StationMemberService(stationMemberRepo, stationRepo, accountRepo, mock(AuthService.class));
+        var commentService = new CommentService(eventCommentRepo, noOpBus, memberSvc);
+        var kbFileStorage = new KbFileStorageService();
+        var kbService = new KnowledgeBaseService(
+                knowledgeBaseRepo,
+                stationRepo,
+                kbFileStorage,
+                federationService,
+                federationRepo,
+                federationHttpClient,
+                kbCommentRepo,
+                eventFederationRepo,
+                memberIdentityFactory);
+        var quizService = new QuizService(
+                quizCatalogRepo,
+                quizTestRepo,
+                restrictionRepo,
+                federationService,
+                federationRepo,
+                federationHttpClient,
+                stationRepo);
+        var protocolService = new TestProtocolService(
+                testProtocolRepo, federationService, federationRepo, federationHttpClient, stationRepo);
+        var imageService = new ImageService();
+        var authService = mock(AuthService.class);
+        var stationService =
+                new StationService(stationRepo, stationMemberRepo, accountRepo, authService, federationService);
+
+        var memberNameResolver = new MemberNameResolver(
+                new StationMemberService(stationMemberRepo, stationRepo, accountRepo, mock(AuthService.class)),
+                accountRepo,
+                eventFederationRepo,
+                federationRepo,
+                stationRepo);
+        var eventFederationService = new EventFederationService(
+                eventFederationRepo,
+                federationService,
+                federationHttpClient,
+                federationRepo,
+                stationRepo,
+                eventService,
+                commentService,
+                eventCommentRepo,
+                stationMemberRepo,
+                accountRepo,
+                memberNameResolver,
+                memberIdentityFactory);
+        var newsFederationService = new NewsFederationService(
+                newsFederationRepo,
+                federationService,
+                federationRepo,
+                federationHttpClient,
+                stationRepo,
+                newsService,
+                stationMemberRepo,
+                accountRepo,
+                eventFederationRepo);
+        var lendingService = new LendingService(
+                lendingRepo, federationHttpClient, federationService, stationRepo, inventoryRepo, noOpBus);
+        var federatedBoardService = new FederatedBoardService(federatedBoardRepo);
+
+        // -- Seeders --
+        var attendanceSeeder = new DemoAttendanceSeeder(attendanceRepo);
+        var inventorySeeder = new DemoInventorySeeder(inventoryRepo, inventoryCheckRepo, accountRepo);
+        var formSeeder = new DemoFormSeeder(formRepo, restrictionRepo);
+        var notificationSeeder = new DemoNotificationSeeder(notificationRepo);
+        var waitingListSeeder = new DemoWaitingListSeeder(
+                waitingListRepo, memberGroupRepo, stationMemberRepo, attendanceRepo, accountRepo);
+        var quizSeeder = new DemoQuizSeeder(quizCatalogRepo, quizTestRepo, quizService, imageService);
+        var kbSeeder = new DemoKnowledgeBaseSeeder(kbService, knowledgeBaseRepo);
+        var protocolSeeder = new DemoProtocolSeeder(testProtocolRepo);
+        var mediaSeeder = new DemoMediaSeeder(imageService, stationService, accountRepo);
+        var federationSeeder = new DemoFederationSeeder(
+                stationRepo,
+                federationService,
+                kbService,
+                quizService,
+                protocolService,
+                eventService,
+                eventFederationService,
+                eventFederationRepo,
+                accountRepo,
+                stationMemberRepo,
+                passwordHasher,
+                newsService,
+                newsFederationService,
+                commentService,
+                demoConfig,
+                apiConfig);
+        var lendingSeeder = new DemoLendingSeeder(lendingService, inventoryRepo);
+        var boardSeeder = new DemoBoardSeeder(
+                boardRepo, boardTicketRepo, federatedBoardService, federationService, memberIdentityFactory);
+
+        // -- DemoService --
+        demoService = new DemoService(
+                demoConfig,
+                databaseConfig,
+                dataSource,
+                accountRepo,
+                stationRepo,
+                stationMemberRepo,
+                memberGroupRepo,
+                eventRepo,
+                attendanceRepo,
+                inventoryRepo,
+                profileFieldRepo,
+                exchangeRepo,
+                userTagRepo,
+                profileFieldChangeRepo,
+                eventFieldRepo,
+                passwordHasher,
+                formSeeder,
+                notificationSeeder,
+                attendanceSeeder,
+                inventorySeeder,
+                waitingListSeeder,
+                quizSeeder,
+                mediaSeeder,
+                kbSeeder,
+                protocolSeeder,
+                federationSeeder,
+                lendingSeeder,
+                boardSeeder,
+                applicationSettingRepo,
+                eventService,
+                newsService,
+                exchangeService,
+                procurementService,
+                eventTemplateService,
+                feedTokenService);
+    }
+
+    @Test
+    @Order(1)
+    void seedDataWithoutErrors() {
+        demoService.resetAndSeed();
+    }
+
+    @Test
+    @Order(2)
+    void verifyAdminAccountCreated() {
+        var admin = accountRepo.findByEmail("admin@ember.local");
+        assertTrue(admin.isPresent(), "Admin account admin@ember.local should exist");
+    }
+
+    @Test
+    @Order(3)
+    void verifyStationCreated() {
+        var stations = stationRepo.findAll();
+        assertNotNull(stations);
+        assertFalse(stations.isEmpty(), "At least one station should exist");
+        assertTrue(
+                stations.stream().anyMatch(s -> "Jugendfeuerwehr Musterstadt".equals(s.name())),
+                "Station 'Jugendfeuerwehr Musterstadt' should exist");
+    }
+
+    @Test
+    @Order(4)
+    void verifyMembersCreated() {
+        var stations = stationRepo.findAll();
+        var station = stations.stream()
+                .filter(s -> "Jugendfeuerwehr Musterstadt".equals(s.name()))
+                .findFirst()
+                .orElseThrow();
+        var members = stationMemberRepo.findByStation(station.id());
+        assertTrue(members.size() >= 10, "At least 10 members should exist, found: " + members.size());
+    }
+
+    @Test
+    @Order(5)
+    void verifyPartnerStationCreated() {
+        var stations = stationRepo.findAll();
+        assertTrue(
+                stations.stream().anyMatch(s -> "JF Partnerwache".equals(s.name())),
+                "Partner station 'JF Partnerwache' should exist");
+    }
+}

@@ -5,7 +5,6 @@
  */
 package dev.chojo.ember.feature.federation.service;
 
-import dev.chojo.ember.api.StationUidResolver;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import jakarta.inject.Inject;
@@ -251,7 +250,7 @@ public class FederationHttpClient {
         String timestampStr = Instant.now().toString();
         var privateKey = signingService.decodePrivateKey(localPrivateKeyBase64);
         String signature = signingService.sign("", timestampStr, privateKey);
-        String stationUid = StationUidResolver.instance().resolveToString(localStationId);
+        String stationUid = stationRepository.resolveUid(localStationId).toString();
 
         var request = HttpRequest.newBuilder()
                 .uri(URI.create(url))
@@ -271,7 +270,7 @@ public class FederationHttpClient {
         String timestampStr = Instant.now().toString();
         var privateKey = signingService.decodePrivateKey(localPrivateKeyBase64);
         String signature = signingService.sign(body, timestampStr, privateKey);
-        String stationUid = StationUidResolver.instance().resolveToString(localStationId);
+        String stationUid = stationRepository.resolveUid(localStationId).toString();
 
         var request = HttpRequest.newBuilder()
                 .uri(URI.create(url))
@@ -292,7 +291,7 @@ public class FederationHttpClient {
         String timestampStr = Instant.now().toString();
         var privateKey = signingService.decodePrivateKey(localPrivateKeyBase64);
         String signature = signingService.sign(body, timestampStr, privateKey);
-        String stationUid = StationUidResolver.instance().resolveToString(localStationId);
+        String stationUid = stationRepository.resolveUid(localStationId).toString();
 
         var request = HttpRequest.newBuilder()
                 .uri(URI.create(url))
@@ -313,7 +312,7 @@ public class FederationHttpClient {
         String timestampStr = Instant.now().toString();
         var privateKey = signingService.decodePrivateKey(localPrivateKeyBase64);
         String signature = signingService.sign(body, timestampStr, privateKey);
-        String stationUid = StationUidResolver.instance().resolveToString(localStationId);
+        String stationUid = stationRepository.resolveUid(localStationId).toString();
 
         var request = HttpRequest.newBuilder()
                 .uri(URI.create(url))

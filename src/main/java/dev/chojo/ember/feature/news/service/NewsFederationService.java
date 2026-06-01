@@ -5,6 +5,9 @@
  */
 package dev.chojo.ember.feature.news.service;
 
+import de.chojo.sadu.queries.api.call.Call;
+import de.chojo.sadu.queries.api.query.Query;
+import de.chojo.sadu.queries.converter.StandardValueConverter;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
@@ -15,7 +18,6 @@ import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.news.entity.News;
 import dev.chojo.ember.feature.news.entity.NewsComment;
-import dev.chojo.ember.feature.news.entity.NewsCommentFederatedAuthor;
 import dev.chojo.ember.feature.news.entity.NewsFederationShare;
 import dev.chojo.ember.feature.news.repository.NewsFederationRepository;
 import dev.chojo.ember.feature.station.entity.Station;
@@ -140,19 +142,8 @@ public class NewsFederationService {
     // -- Federated comment author tracking --
 
     /**
-     * Records the federated author for a news comment.
-     *
-     * @param commentId      the local comment ID
-     * @param partnerId      the federation partner ID
-     * @param remoteMemberId the remote member UUID
-     */
-    public void setFederatedCommentAuthor(int commentId, int partnerId, UUID remoteMemberId) {
-        federationRepository.setFederatedCommentAuthor(commentId, partnerId, remoteMemberId);
-    }
-
-    /**
      * Creates a comment from a remote federated member on a news article.
-     * Stores the comment with {@code authorId=null}, records the federated author mapping,
+     * Stores the comment with {@code authorId=null}, sets inline identity columns,
      * and caches the display name.
      */
     public NewsComment createRemoteComment(
@@ -164,19 +155,22 @@ public class NewsFederationService {
             Integer parentId,
             String content) {
         var comment = newsService.createComment(stationId, newsId, parentId, null, displayName, content);
-        federationRepository.setFederatedCommentAuthor(comment.id(), partnerId, remoteMemberUid);
+        // Set inline identity columns
+        var partnerStationUid = partnerRepository
+                .findPartnerById(partnerId)
+                .map(p -> p.partnerStationId())
+                .orElse(null);
+        if (partnerStationUid != null) {
+            Query.query(
+                            "UPDATE news_comment SET author_station_uid = :station_uid::uuid, author_member_uid = :member_uid::uuid WHERE id = :id;")
+                    .single(Call.of()
+                            .bind("id", comment.id())
+                            .bind("station_uid", partnerStationUid, StandardValueConverter.UUID_STRING)
+                            .bind("member_uid", remoteMemberUid, StandardValueConverter.UUID_STRING))
+                    .update();
+        }
         eventFederationRepository.cacheName(partnerId, remoteMemberUid, displayName);
         return comment;
-    }
-
-    /**
-     * Finds the federated author for a news comment.
-     *
-     * @param commentId the local comment ID
-     * @return the federated author, if present
-     */
-    public Optional<NewsCommentFederatedAuthor> findFederatedCommentAuthor(int commentId) {
-        return federationRepository.findFederatedCommentAuthor(commentId);
     }
 
     // -- Federated browsing (parallel fetch from all partners) --

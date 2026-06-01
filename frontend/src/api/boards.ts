@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
+import type { MemberIdentity } from './types'
 
 // -- Types --
 
@@ -97,7 +98,8 @@ export interface BoardTicketTransition {
     ticketId: number
     fromLaneId: number | null
     toLaneId: number | null
-    movedBy: number
+    actor: MemberIdentity | null
+    actorName: string | null
     movedAt: string
 }
 
@@ -109,26 +111,16 @@ export interface BoardChecklistItem {
     position: number
 }
 
-export interface BoardFederatedAuthorInfo {
-    memberUid: string
-    displayName: string
-    stationName: string
-}
-
 export interface BoardComment {
     id: number
     ticketId: number
     parentId: number | null
-    authorId: number
-    authorAccountId?: number | null
-    authorName?: string
+    author: MemberIdentity | null
+    authorName: string
     content: string
     deleted: boolean
     createdAt: string
     updatedAt: string | null
-    federatedAuthor?: BoardFederatedAuthorInfo | null
-    authorStationId?: string
-    authorStationName?: string
 }
 
 export interface AccessConfig {
@@ -653,7 +645,8 @@ export interface BoardTicketHistoryEntry {
     ticketId: number
     action: string
     detail: string | null
-    actorMemberId: number
+    actor: MemberIdentity | null
+    actorName: string | null
     createdAt: string
 }
 

@@ -8,8 +8,8 @@ package dev.chojo.ember.feature.comment.repository;
 import de.chojo.sadu.queries.api.call.Call;
 import de.chojo.sadu.queries.api.query.Query;
 import de.chojo.sadu.queries.converter.StandardValueConverter;
+import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.feature.comment.entity.Comment;
-import dev.chojo.ember.feature.comment.entity.EventCommentFederatedAuthor;
 import jakarta.inject.Singleton;
 
 import java.util.List;
@@ -123,33 +123,36 @@ public class EventCommentRepository {
     }
 
     /**
-     * Records the federated author identity for a comment.
-     *
-     * @param commentId      the local comment ID
-     * @param partnerId      the federation partner ID
-     * @param remoteMemberId the member UUID on the remote station
+     * Sets inline identity columns on an event comment.
      */
-    public void setFederatedAuthor(int commentId, int partnerId, UUID remoteMemberId) {
-        Query.query("""
-                        INSERT INTO event_comment_federated_author(comment_id, partner_id, remote_member_id)
-                        VALUES (:comment_id, :partner_id, :remote_member_id::uuid);""")
+    public void setInlineIdentity(int commentId, UUID stationUid, UUID memberUid) {
+        Query.query(
+                        "UPDATE event_comment SET author_station_uid = :station_uid::uuid, author_member_uid = :member_uid::uuid WHERE id = :id;")
                 .single(Call.of()
-                        .bind("comment_id", commentId)
-                        .bind("partner_id", partnerId)
-                        .bind("remote_member_id", remoteMemberId, StandardValueConverter.UUID_STRING))
-                .insert();
+                        .bind("id", commentId)
+                        .bind("station_uid", stationUid, StandardValueConverter.UUID_STRING)
+                        .bind("member_uid", memberUid, StandardValueConverter.UUID_STRING))
+                .update();
     }
 
     /**
-     * Finds the federated author record for a comment.
+     * Finds the inline MemberIdentity for a comment.
      *
      * @param commentId the comment ID
-     * @return the federated author, if present
+     * @return the MemberIdentity, or null if not set
      */
-    public Optional<EventCommentFederatedAuthor> findFederatedAuthor(int commentId) {
-        return Query.query("SELECT * FROM event_comment_federated_author WHERE comment_id = :comment_id;")
-                .single(Call.of().bind("comment_id", commentId))
-                .map(EventCommentFederatedAuthor.map())
-                .first();
+    public MemberIdentity findInlineIdentity(int commentId) {
+        return Query.query("SELECT author_station_uid, author_member_uid FROM event_comment WHERE id = :id;")
+                .single(Call.of().bind("id", commentId))
+                .map(row -> {
+                    UUID stationUid = row.get("author_station_uid", StandardValueConverter.UUID_STRING);
+                    UUID memberUid = row.get("author_member_uid", StandardValueConverter.UUID_STRING);
+                    if (stationUid != null && memberUid != null) {
+                        return new MemberIdentity(stationUid, memberUid);
+                    }
+                    return null;
+                })
+                .first()
+                .orElse(null);
     }
 }

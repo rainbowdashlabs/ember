@@ -101,15 +101,15 @@ public class DemoFederationSeeder {
         this.apiConfig = apiConfig;
     }
 
+    public record SeedResult(int partnerStationId, int partnerMemberId) {}
+
     /**
      * Seeds a partner station, federates it with the primary station, and shares content.
      *
      * @param primaryStationId the primary station ID
      * @param createdBy        the member ID creating the data
-     * @return the partner station ID
+     * @return the seed result with partner station and member IDs
      */
-    public record SeedResult(int partnerStationId, int partnerMemberId) {}
-
     public SeedResult seed(int primaryStationId, int createdBy) {
         // Opt primary station into discovery
         stationRepository.updateDiscoverySettings(
@@ -136,6 +136,44 @@ public class DemoFederationSeeder {
         stationMemberRepository.addRole(partnerMember.id(), managerRole.id());
         stationMemberRepository.addRole(partnerMember.id(), loginRole.id());
         log.info("Demo: Created partner manager account partner@demo.ember");
+
+        // Create team members on the partner station
+        var teamRole = stationMemberRepository.findRoleByName(Roles.TEAM).orElseThrow();
+        var memberRole = stationMemberRepository.findRoleByName(Roles.MEMBER).orElseThrow();
+        var guardianRole =
+                stationMemberRepository.findRoleByName(Roles.GUARDIAN).orElseThrow();
+
+        var team1Account = accountRepository.create("team1@partner.ember", "Lisa", "Brandmeister", true);
+        accountRepository.createCredential(team1Account.id(), passwordHasher.hash("demo"));
+        var team1 = stationMemberRepository.create(partnerStation.id(), team1Account.id());
+        stationMemberRepository.addRole(team1.id(), loginRole.id());
+        stationMemberRepository.addRole(team1.id(), teamRole.id());
+
+        var team2Account = accountRepository.create("team2@partner.ember", "Jonas", "Löschzug", true);
+        accountRepository.createCredential(team2Account.id(), passwordHasher.hash("demo"));
+        var team2 = stationMemberRepository.create(partnerStation.id(), team2Account.id());
+        stationMemberRepository.addRole(team2.id(), loginRole.id());
+        stationMemberRepository.addRole(team2.id(), teamRole.id());
+
+        var member1Account = accountRepository.create("member1@partner.ember", "Emma", "Schlauch", true);
+        accountRepository.createCredential(member1Account.id(), passwordHasher.hash("demo"));
+        var member1 = stationMemberRepository.create(partnerStation.id(), member1Account.id());
+        stationMemberRepository.addRole(member1.id(), loginRole.id());
+        stationMemberRepository.addRole(member1.id(), memberRole.id());
+
+        var member2Account = accountRepository.create("member2@partner.ember", "Felix", "Strahlrohr", true);
+        accountRepository.createCredential(member2Account.id(), passwordHasher.hash("demo"));
+        var member2 = stationMemberRepository.create(partnerStation.id(), member2Account.id());
+        stationMemberRepository.addRole(member2.id(), loginRole.id());
+        stationMemberRepository.addRole(member2.id(), memberRole.id());
+
+        var guardianAccount = accountRepository.create("guardian@partner.ember", "Petra", "Elternbeirat", true);
+        accountRepository.createCredential(guardianAccount.id(), passwordHasher.hash("demo"));
+        var guardian = stationMemberRepository.create(partnerStation.id(), guardianAccount.id());
+        stationMemberRepository.addRole(guardian.id(), loginRole.id());
+        stationMemberRepository.addRole(guardian.id(), guardianRole.id());
+
+        log.info("Demo: Created 5 additional members on partner station");
 
         // Create a KB entry on the partner station
         kbService.createMarkdownFile(

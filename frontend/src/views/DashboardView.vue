@@ -14,11 +14,9 @@ import SidebarExpandableLink from '@/components/navigation/SidebarExpandableLink
 import StationSwitcher from '@/components/navigation/StationSwitcher.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import IconButton from '@/components/button/IconButton.vue'
-import {auth, notifications, events, boards, federatedBoards} from '@/api'
-import {getRequirements} from '@/api/requirements'
+import {auth, boards} from '@/api'
 import type {Board} from '@/api/boards'
-import type {FederatedBoardBookmark} from '@/api/federatedBoards'
-import {BoardShareMode} from '@/api/federatedBoards'
+import {useFederatedBoardBookmarks} from '@/composables/useFederatedBoardBookmarks'
 import client from '@/api/client'
 import Alert from '@/components/feedback/Alert.vue'
 import {getItem} from '@/api/storage'
@@ -26,7 +24,7 @@ import {Roles, StationModules} from '@/api/types'
 import {useSession} from '@/composables/useSession'
 import {useTheme} from '@/composables/useTheme'
 import {useStations} from '@/composables/useStations'
-import {usePendingChanges} from '@/composables/usePendingChanges'
+import {useSidebarCounts} from '@/composables/useSidebarCounts'
 import HelpCenterLink from '@/components/navigation/HelpCenterLink.vue'
 import OnboardingTour from '@/components/onboarding/OnboardingTour.vue'
 import ReportProblemButton from '@/components/feedback/ReportProblemButton.vue'
@@ -61,14 +59,11 @@ const {
   clear
 } = useSession()
 const {activeStation, activeLogoUrl} = useStations()
-const {pendingChangesCount, refresh: refreshPendingChanges} = usePendingChanges()
+const {counts, refresh: refreshSidebarCounts} = useSidebarCounts()
+const {bookmarks: bookmarkedBoards, refresh: refreshBookmarkedBoards} = useFederatedBoardBookmarks()
 
 const isDemo = ref(false)
-const notificationCount = ref(0)
-const pendingRegistrationCount = ref(0)
 const visibleBoards = ref<Board[]>([])
-const bookmarkedBoards = ref<FederatedBoardBookmark[]>([])
-const requirementsCount = ref(0)
 const openGroup = ref<string | null>(null)
 const isDesktop = ref(window.matchMedia('(min-width: 1024px)').matches)
 
@@ -78,37 +73,11 @@ onMounted(() => {
   mq.addEventListener('change', handler)
 })
 
-async function refreshNotificationCount() {
-  try {
-    notificationCount.value = await notifications.getCount()
-  } catch { /* ignore */ }
-}
-
 const {checkFirstLogin} = useOnboardingTour()
 
 async function refreshBoards() {
   try {
     visibleBoards.value = await boards.listBoards(true)
-  } catch { /* ignore */ }
-}
-
-async function refreshBookmarkedBoards() {
-  try {
-    bookmarkedBoards.value = await federatedBoards.listBookmarks()
-  } catch { /* ignore */ }
-}
-
-async function refreshRequirements() {
-  try {
-    const data = await getRequirements()
-    requirementsCount.value = (data.profileIncomplete ? 1 : 0) + data.forcedForms.length + data.forcedQuizzes.length
-  } catch { /* ignore */ }
-}
-
-async function refreshPendingRegistrationCount() {
-  try {
-    const pending = await events.listPendingRegistrations()
-    pendingRegistrationCount.value = pending.length
   } catch { /* ignore */ }
 }
 
@@ -124,12 +93,9 @@ onMounted(async () => {
 })
 
 watch(loaded, (isLoaded) => {
-  if (isLoaded && (canManageMembers() || isGuardian())) refreshPendingChanges()
-  if (isLoaded) refreshNotificationCount()
-  if (isLoaded && canManageEvents()) refreshPendingRegistrationCount()
+  if (isLoaded) refreshSidebarCounts()
   if (isLoaded && isModuleEnabled(StationModules.BOARDS)) refreshBoards()
   if (isLoaded && isModuleEnabled(StationModules.BOARDS) && canManageFederation()) refreshBookmarkedBoards()
-  if (isLoaded) refreshRequirements()
   if (isLoaded) checkFirstLogin()
 }, {immediate: true})
 
@@ -162,14 +128,14 @@ async function handleLogout() {
   <SidebarLayout :station-logo-url="activeLogoUrl" :station-name="activeStation?.stationName" :subtitle="pageSubtitle"
                  :title="pageTitle">
     <template #sidebar="{ close }">
-      <SidebarGroup :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => openGroup = v" :badge="notificationCount" :icon="['fas', 'gauge']" :label="t('sidebar.dashboard')" prefix="/station/dashboard" to="/station/dashboard/overview" name="dashboard-overview" @navigate="close">
+      <SidebarGroup :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => openGroup = v" :badge="counts.notifications" :icon="['fas', 'gauge']" :label="t('sidebar.dashboard')" prefix="/station/dashboard" to="/station/dashboard/overview" name="dashboard-overview" @navigate="close">
         <SidebarLink v-if="hasRole(Roles.TEAM)" :icon="['fas', 'chart-line']" name="dashboard-statistics"
                      to="/station/dashboard/statistics" @navigate="close">
           {{ t('sidebar.statistics') }}
         </SidebarLink>
       </SidebarGroup>
 
-      <SidebarGroup v-if="requirementsCount > 0" :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => openGroup = v" :badge="requirementsCount" :icon="['fas', 'clipboard-check']" :label="t('sidebar.requirements')" prefix="/station/requirements" to="/station/requirements" name="station-requirements" @navigate="close"/>
+      <SidebarGroup v-if="counts.requirements > 0" :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => openGroup = v" :badge="counts.requirements" :icon="['fas', 'clipboard-check']" :label="t('sidebar.requirements')" prefix="/station/requirements" to="/station/requirements" name="station-requirements" @navigate="close"/>
 
       <SidebarGroup :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => openGroup = v" v-if="isModuleEnabled(StationModules.NEWS)" :icon="['fas', 'newspaper']" :label="t('sidebar.news')" prefix="/station/news" to="/station/news" name="news-list" @navigate="close"/>
 
@@ -222,7 +188,7 @@ async function handleLogout() {
         </SidebarLink>
         <SidebarExpandableLink v-if="canManageFederation()" :icon="['fas', 'arrow-right-arrow-left']" name="station-federation" to="/station/manage/federation" :prefix="['/station/manage/federation', '/station/manage/discovery']" @navigate="close">
           <template #label>{{ t('sidebar.federation') }}</template>
-          <SidebarLink :icon="['fas', 'gear']" name="station-federation-settings" to="/station/manage/federation/settings" @navigate="close">
+          <SidebarLink :badge="counts.federationRequests" :icon="['fas', 'gear']" name="station-federation-settings" to="/station/manage/federation/settings" @navigate="close">
             {{ t('sidebar.federationSettings') }}
           </SidebarLink>
           <SidebarLink :icon="['fas', 'compass']" name="station-discovery" to="/station/manage/discovery" @navigate="close">
@@ -231,7 +197,7 @@ async function handleLogout() {
         </SidebarExpandableLink>
       </SidebarGroup>
 
-      <SidebarGroup :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => openGroup = v" v-if="canManageMembers()" :badge="pendingChangesCount" :icon="['fas', 'users']"
+      <SidebarGroup :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => openGroup = v" v-if="canManageMembers()" :badge="counts.pendingChanges" :icon="['fas', 'users']"
                     :label="t('sidebar.members')" prefix="/station/members" to="/station/members/list" name="members-list" @navigate="close">
         <SidebarLink :icon="['fas', 'user-plus']" name="members-create" to="/station/members/create" @navigate="close">
           {{ t('sidebar.create') }}
@@ -244,7 +210,7 @@ async function handleLogout() {
                      @navigate="close">
           {{ t('sidebar.tags') }}
         </SidebarLink>
-        <SidebarLink :badge="pendingChangesCount" :icon="['fas', 'bell']" name="members-changes"
+        <SidebarLink :badge="counts.pendingChanges" :icon="['fas', 'bell']" name="members-changes"
                      to="/station/members/changes" @navigate="close">
           {{ t('sidebar.changes') }}
         </SidebarLink>
@@ -253,7 +219,7 @@ async function handleLogout() {
           {{ t('sidebar.formerMembers') }}
         </SidebarLink>
         <SidebarLink v-if="isModuleEnabled(StationModules.WAITING_LIST) && canManageWaitlist()"
-                     :icon="['fas', 'clipboard-list']" name="waiting-lists" to="/station/members/waiting-lists"
+                     :badge="counts.waitingListEntries" :icon="['fas', 'clipboard-list']" name="waiting-lists" to="/station/members/waiting-lists"
                      @navigate="close">
           {{ t('sidebar.waitingLists') }}
         </SidebarLink>
@@ -292,7 +258,7 @@ async function handleLogout() {
                      @navigate="close">
           {{ t('sidebar.inventoryProcurement') }}
         </SidebarLink>
-        <SidebarLink v-if="canManageInventory() && canManageFederation()" :icon="['fas', 'handshake']" name="inventory-lending" to="/station/inventory/lending"
+        <SidebarLink v-if="canManageInventory() && canManageFederation()" :badge="counts.lendingRequests" :icon="['fas', 'handshake']" name="inventory-lending" to="/station/inventory/lending"
                      @navigate="close">
           {{ t('sidebar.inventoryLending') }}
         </SidebarLink>
@@ -310,8 +276,8 @@ async function handleLogout() {
         </SidebarLink>
       </SidebarGroup>
 
-      <SidebarGroup :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => openGroup = v" v-if="isModuleEnabled(StationModules.EVENTS)" :badge="pendingRegistrationCount" :icon="['fas', 'calendar-days']" :label="t('sidebar.events')" prefix="/station/events" to="/station/events/upcoming" name="events-upcoming" @navigate="close">
-        <SidebarLink v-if="canManageEvents()" :badge="pendingRegistrationCount" :icon="['fas', 'clipboard-list']" name="events-registrations"
+      <SidebarGroup :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => openGroup = v" v-if="isModuleEnabled(StationModules.EVENTS)" :badge="counts.pendingRegistrations + counts.openEvents" :icon="['fas', 'calendar-days']" :label="t('sidebar.events')" prefix="/station/events" to="/station/events/upcoming" name="events-upcoming" @navigate="close">
+        <SidebarLink v-if="canManageEvents()" :badge="counts.pendingRegistrations" :icon="['fas', 'clipboard-list']" name="events-registrations"
                      to="/station/events/registrations" @navigate="close">
           {{ t('sidebar.pendingRegistrations') }}
         </SidebarLink>
@@ -336,7 +302,7 @@ async function handleLogout() {
         </SidebarLink>
       </SidebarGroup>
 
-      <SidebarGroup :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => openGroup = v" v-if="isModuleEnabled(StationModules.LOST_AND_FOUND)" :icon="['fas', 'box-open']" :label="t('sidebar.lostAndFound')" prefix="/station/lost-and-found" to="/station/lost-and-found" name="lost-and-found" @navigate="close"/>
+      <SidebarGroup :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => openGroup = v" v-if="isModuleEnabled(StationModules.LOST_AND_FOUND)" :badge="counts.lostAndFoundPending" :icon="['fas', 'box-open']" :label="t('sidebar.lostAndFound')" prefix="/station/lost-and-found" to="/station/lost-and-found" name="lost-and-found" @navigate="close"/>
 
       <SidebarGroup :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => openGroup = v" v-if="isModuleEnabled(StationModules.QUIZ) || isModuleEnabled(StationModules.TEST_PROTOCOL)" :icon="['fas', 'graduation-cap']" :label="t('sidebar.quiz')" prefix="/station/quiz" group-key="quiz-protocols">
         <SidebarLink v-if="canManageQuiz()" :icon="['fas', 'book']" name="quiz-catalogs" to="/station/quiz/catalogs" @navigate="close">
@@ -360,10 +326,12 @@ async function handleLogout() {
         <SidebarLink v-for="board in visibleBoards" :key="board.id" :icon="['fas', 'table-columns']" :name="`board-${board.id}`" :to="`/station/boards/${board.shortKey}`" :active="route.path.startsWith(`/station/boards/${board.shortKey}`)" @navigate="close">
           {{ board.name }}
         </SidebarLink>
-        <SidebarLink v-for="bm in bookmarkedBoards" :key="`fed-${bm.id}`" :icon="['fas', 'globe']" :name="`fed-board-${bm.id}`" :to="`/station/federation/boards/${bm.partnerStationUid}/${bm.remoteBoardShortKey}`" :active="route.path.startsWith(`/station/federation/boards/${bm.partnerStationUid}/${bm.remoteBoardShortKey}`)" @navigate="close">
+        <SidebarLink v-for="bm in bookmarkedBoards" :key="`fed-${bm.id}`" :icon="['fas', 'table-columns']" :name="`fed-board-${bm.id}`" :to="`/station/federation/boards/${bm.partnerStationUid}/${bm.remoteBoardShortKey}`" :active="route.path.startsWith(`/station/federation/boards/${bm.partnerStationUid}/${bm.remoteBoardShortKey}`)" @navigate="close">
           <span class="flex items-center gap-1.5">
-            <span class="opacity-70">{{ bm.remoteBoardName }}</span>
-            <font-awesome-icon :icon="['fas', bm.shareMode === BoardShareMode.FULL ? 'pen' : 'lock']" class="w-3 h-3 opacity-50"/>
+            {{ bm.remoteBoardName }}
+            <span class="inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-semibold bg-secondary/70 border border-secondary/30 text-white shrink-0">
+              <font-awesome-icon :icon="['fas', 'arrow-right-arrow-left']" class="w-2.5 h-2.5" />
+            </span>
           </span>
         </SidebarLink>
         <SidebarLink :icon="['fas', 'globe']" name="federated-boards" to="/station/federation/boards" @navigate="close">

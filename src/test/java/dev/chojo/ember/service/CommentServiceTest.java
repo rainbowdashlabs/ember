@@ -43,7 +43,11 @@ class CommentServiceTest extends RepositoryTestBase {
     @BeforeAll
     static void setup() {
         eventBus = mock(DomainEventBus.class);
-        service = new CommentService(eventCommentRepo, eventBus);
+        service = new CommentService(
+                eventCommentRepo,
+                eventBus,
+                new dev.chojo.ember.feature.members.service.StationMemberService(
+                        stationMemberRepo, stationRepo, null, null));
 
         station = stationRepo.create("CommentStation");
         account1 = accountRepo.create("comment1@test.com", "Alice", "Author");
@@ -295,6 +299,33 @@ class CommentServiceTest extends RepositoryTestBase {
 
     @Test
     @Order(19)
+    void createWithNewFormatMention() {
+        reset(eventBus);
+        // New format: @[stationUid/memberUid:Name]
+        String content = "Hey @[" + station.uid() + "/" + member2.uid() + ":Bob] look!";
+        var comment = service.create(station.id(), eventId, null, member1.id(), "Alice", content);
+        assertNotNull(comment);
+        verify(eventBus)
+                .publish(argThat(
+                        event -> event instanceof MentionedInComment m && m.mentionedMemberId() == member2.id()));
+        service.delete(comment.id());
+    }
+
+    @Test
+    @Order(20)
+    void createWithNullAuthorSkipsNotifications() {
+        reset(eventBus);
+        // Federated comments with null authorId skip mention parsing and reply notifications
+        var comment = service.create(
+                station.id(), eventId, null, null, null, "Federated comment @[" + member2.id() + ":Bob]");
+        assertNotNull(comment);
+        assertNull(comment.authorId());
+        verify(eventBus, never()).publish(any());
+        service.delete(comment.id());
+    }
+
+    @Test
+    @Order(21)
     void findByEventReturnsEmpty() {
         // Create a separate event with no comments
         var event2 = eventRepo.create(

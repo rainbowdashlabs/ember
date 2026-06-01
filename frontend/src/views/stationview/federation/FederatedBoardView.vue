@@ -19,10 +19,13 @@ import FieldLabel from '@/components/typography/FieldLabel.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import MarkdownEditor from '@/components/input/MarkdownEditor.vue'
+import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import FederatedBoardAccessOverride from '@/views/stationview/federation/FederatedBoardAccessOverride.vue'
 import TicketTile from '@/views/stationview/boards/boardview/TicketTile.vue'
 import type { BoardLane, BoardTicket, BoardLabel } from '@/api/boards'
 import { TicketPriority } from '@/api/boards'
 import type { TicketPriorityName } from '@/api/boards'
+import {useSession} from '@/composables/useSession'
 import {
     type FederatedBoardDetail,
     BoardShareMode,
@@ -30,6 +33,7 @@ import {
     getLanes as fedGetLanes,
     listTickets as fedListTickets,
     getLabels as fedGetLabels,
+    getAllTicketLabels as fedGetAllTicketLabels,
     searchTickets as fedSearchTickets,
     createTicket as fedCreateTicket,
     moveTicket as fedMoveTicket,
@@ -39,6 +43,7 @@ import {
 const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
+const {canManageBoards} = useSession()
 
 const partnerUid = computed(() => route.params.partnerUid as string)
 const boardKey = computed(() => route.params.boardKey as string)
@@ -47,6 +52,7 @@ const boardDetail = ref<FederatedBoardDetail | null>(null)
 const lanes = ref<BoardLane[]>([])
 const tickets = ref<BoardTicket[]>([])
 const allLabels = ref<BoardLabel[]>([])
+const ticketLabelMap = ref<Map<number, number[]>>(new Map())
 const loading = ref(true)
 const error = ref('')
 
@@ -60,6 +66,7 @@ const createLaneId = ref('')
 const createPriority = ref<TicketPriorityName>(TicketPriority.MEDIUM)
 const createError = ref('')
 
+const showOverrideModal = ref(false)
 const searchQuery = ref('')
 const searchResults = ref<BoardTicket[] | null>(null)
 const searching = ref(false)
@@ -68,16 +75,20 @@ async function loadData() {
     loading.value = true
     error.value = ''
     try {
-        const [bd, l, tix, lb] = await Promise.all([
+        const [bd, l, tix, lb, tlm] = await Promise.all([
             fedGetBoard(partnerUid.value, boardKey.value),
             fedGetLanes(partnerUid.value, boardKey.value),
             fedListTickets(partnerUid.value, boardKey.value),
             fedGetLabels(partnerUid.value, boardKey.value),
+            fedGetAllTicketLabels(partnerUid.value, boardKey.value),
         ])
         boardDetail.value = bd
         lanes.value = l
         tickets.value = tix
         allLabels.value = lb
+        const map = new Map<number, number[]>()
+        for (const { ticketId, labelId } of tlm) { if (!map.has(ticketId)) map.set(ticketId, []); map.get(ticketId)!.push(labelId) }
+        ticketLabelMap.value = map
         if (!createLaneId.value) {
             const firstAllowed = bd.board.backlogLaneId ?? l.find(la => la.id !== bd.board.backlogLaneId)?.id
             if (firstAllowed) createLaneId.value = String(firstAllowed)
@@ -117,6 +128,11 @@ function visibleTicketsForLane(laneId: number): BoardTicket[] {
 
 function archivedCountForLane(laneId: number): number {
     return ticketsForLane(laneId).filter(t => shouldHideTicket(t, laneId)).length
+}
+
+function labelsForTicket(ticketId: number): BoardLabel[] {
+    const ids = ticketLabelMap.value.get(ticketId) ?? []
+    return allLabels.value.filter(l => ids.includes(l.id))
 }
 
 const createLaneOptions = computed(() => {
@@ -318,6 +334,10 @@ watch([partnerUid, boardKey], loadData)
                             </div>
                         </div>
                     </div>
+                    <SecondaryButton v-if="canManageBoards()" @click="showOverrideModal = true">
+                        <font-awesome-icon :icon="['fas', 'shield']" class="mr-1" />
+                        {{ t('boards.accessOverride') }}
+                    </SecondaryButton>
                     <!-- Create button (FULL mode only) -->
                     <PrimaryButton v-if="isFull" @click="showCreateModal = true">
                         <font-awesome-icon :icon="['fas', 'plus']" class="mr-1" />
@@ -367,6 +387,7 @@ watch([partnerUid, boardKey], loadData)
                                 <TicketTile
                                     :ticket="ticket"
                                     :short-key="board.shortKey"
+                                    :labels="labelsForTicket(ticket.id)"
                                     :attachment-count="ticket.attachmentCount"
                                     @click="openTicketDetail"
                                 />
@@ -426,5 +447,12 @@ watch([partnerUid, boardKey], loadData)
                 </div>
             </Modal>
         </template>
+
+        <FederatedBoardAccessOverride
+            v-if="showOverrideModal"
+            v-model="showOverrideModal"
+            :partner-uid="partnerUid"
+            :board-key="boardKey"
+        />
     </ViewContent>
 </template>

@@ -446,7 +446,7 @@ public class ApiServer {
      */
     private Jackson3Mapper jacksonMapper() {
         ObjectMapper mapper = JsonMapper.builder()
-                .addModule(new StationIdModule())
+                .addModule(new StationIdModule(stationRepository))
                 .defaultDateFormat(new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSX"))
                 .build();
         return new Jackson3Mapper(mapper);

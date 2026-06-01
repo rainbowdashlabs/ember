@@ -28,7 +28,8 @@ import MultiSelectDropdown from '@/components/input/select/MultiSelectDropdown.v
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import { boards, stationMembers, memberGroups, userTags, federation } from '@/api'
 import type { Board, BoardFieldConfig, FederationTarget } from '@/api/boards'
-import type { Role, MemberGroup, UserTag } from '@/api/types'
+import type { Role, MemberGroup, UserTag, RoleName } from '@/api/types'
+import { Roles } from '@/api/types'
 import type { PartnerResponse } from '@/api/federation'
 
 const { t } = useI18n()
@@ -81,8 +82,12 @@ const hasFullMode = computed(() =>
     federationTargets.value.some(t => t.shareMode === 'FULL'),
 )
 
+const USER_ROLES: readonly RoleName[] = [Roles.MEMBER, Roles.GUARDIAN, Roles.TEAM, Roles.MANAGER] as const
+
 const roleOptions = computed(() =>
-    allRoles.value.map(r => ({ value: String(r.id), label: r.role })),
+    allRoles.value
+        .filter(r => (USER_ROLES as readonly string[]).includes(r.role))
+        .map(r => ({ value: String(r.id), label: r.role })),
 )
 
 function partnerName(partnerId: number): string {

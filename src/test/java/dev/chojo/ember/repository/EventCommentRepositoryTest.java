@@ -7,7 +7,6 @@ package dev.chojo.ember.repository;
 
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.events.entity.StationEvent;
-import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.station.entity.Station;
 import org.junit.jupiter.api.AfterAll;
@@ -18,7 +17,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 
 import java.time.Instant;
-import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -30,11 +28,9 @@ class EventCommentRepositoryTest extends RepositoryTestBase {
     private static int eventId;
     private static int commentId;
     private static int replyId;
-    private static FederationRepository federationRepo;
 
     @BeforeAll
     static void setup() {
-        federationRepo = new FederationRepository();
         station = stationRepo.create("CommentRepoStation");
         account = accountRepo.create("commentrepo@test.com", "Comment", "Tester");
         member = stationMemberRepo.create(station.id(), account.id());
@@ -181,33 +177,13 @@ class EventCommentRepositoryTest extends RepositoryTestBase {
 
     @Test
     @Order(20)
-    void setAndFindFederatedAuthor() {
-        // Create a comment for federation test
-        var comment = eventCommentRepo.create(eventId, null, member.id(), "Federated comment");
+    void createCommentWithNullAuthorForFederation() {
+        // Comments with null authorId can be created for federated authors
+        // (the inline identity columns author_station_uid/author_member_uid handle identity)
+        var comment = eventCommentRepo.create(eventId, null, null, "Federated-style comment");
         assertNotNull(comment);
-
-        // Create a federation partner
-        var partner = federationRepo.createPartner(
-                station.id(), UUID.randomUUID(), "invite-code-test", "publickey123", "https://remote.example.com");
-        assertNotNull(partner);
-
-        UUID remoteMemberId = UUID.randomUUID();
-        eventCommentRepo.setFederatedAuthor(comment.id(), partner.id(), remoteMemberId);
-
-        var fedAuthor = eventCommentRepo.findFederatedAuthor(comment.id());
-        assertTrue(fedAuthor.isPresent());
-        assertEquals(comment.id(), fedAuthor.get().commentId());
-        assertEquals(partner.id(), fedAuthor.get().partnerId());
-        assertEquals(remoteMemberId, fedAuthor.get().remoteMemberId());
-
-        // Clean up
+        assertNull(comment.authorId());
         eventCommentRepo.delete(comment.id());
-    }
-
-    @Test
-    @Order(21)
-    void findFederatedAuthorNotFound() {
-        assertTrue(eventCommentRepo.findFederatedAuthor(999999).isEmpty());
     }
 
     @Test

@@ -9,11 +9,14 @@ import de.chojo.sadu.queries.api.call.Call;
 import de.chojo.sadu.queries.api.query.Query;
 import de.chojo.sadu.queries.api.results.writing.insertion.InsertionResult;
 import de.chojo.sadu.queries.converter.StandardValueConverter;
+import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.api.Roles;
 import dev.chojo.ember.feature.members.entity.MemberCompletion;
 import dev.chojo.ember.feature.members.entity.RichMember;
 import dev.chojo.ember.feature.members.entity.Role;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.station.repository.StationRepository;
+import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
 import java.util.List;
@@ -25,6 +28,73 @@ import java.util.UUID;
  */
 @Singleton
 public class StationMemberRepository {
+
+    private final java.util.Map<Integer, UUID> memberUidCache = new java.util.concurrent.ConcurrentHashMap<>();
+    private final java.util.Map<MemberKey, Integer> memberIdCache = new java.util.concurrent.ConcurrentHashMap<>();
+    private final StationRepository stationRepository;
+
+    @Inject
+    public StationMemberRepository(StationRepository stationRepository) {
+        this.stationRepository = stationRepository;
+    }
+
+    /**
+     * Resolves an internal member ID to its UUID. Cached.
+     */
+    public UUID resolveUid(int memberId) {
+        return memberUidCache.computeIfAbsent(
+                memberId, id -> Query.query("SELECT uid FROM station_member WHERE id = :id;")
+                        .single(Call.of().bind("id", id))
+                        .map(row -> row.get("uid", StandardValueConverter.UUID_STRING))
+                        .first()
+                        .orElse(null));
+    }
+
+    /**
+     * Resolves a member UUID within a station to its internal ID. Cached.
+     */
+    public Optional<Integer> resolveId(int stationId, UUID memberUid) {
+        var key = new MemberKey(stationId, memberUid);
+        Integer cached = memberIdCache.get(key);
+        if (cached != null) return Optional.of(cached);
+        return Query.query("SELECT id FROM station_member WHERE station_id = :station_id AND uid = :uid::uuid;")
+                .single(Call.of()
+                        .bind("station_id", stationId)
+                        .bind("uid", memberUid, StandardValueConverter.UUID_STRING))
+                .map(row -> row.getInt("id"))
+                .first()
+                .map(id -> {
+                    memberIdCache.put(key, id);
+                    memberUidCache.put(id, memberUid);
+                    return id;
+                });
+    }
+
+    /**
+     * Resolves a member ID to a full MemberIdentity (station UID + member UID).
+     */
+    public MemberIdentity resolveIdentity(int memberId) {
+        return Query.query(
+                        "SELECT sm.uid AS member_uid, s.uid AS station_uid FROM station_member sm JOIN station s ON s.id = sm.station_id WHERE sm.id = :id;")
+                .single(Call.of().bind("id", memberId))
+                .map(row -> new MemberIdentity(
+                        row.get("station_uid", StandardValueConverter.UUID_STRING),
+                        row.get("member_uid", StandardValueConverter.UUID_STRING)))
+                .first()
+                .orElse(null);
+    }
+
+    /**
+     * Invalidates caches for a member (on create/delete).
+     */
+    public void invalidateMemberCache(int memberId) {
+        UUID uid = memberUidCache.remove(memberId);
+        if (uid != null) {
+            memberIdCache.values().remove(memberId);
+        }
+    }
+
+    private record MemberKey(int stationId, UUID memberUid) {}
 
     // -- Members --
 
@@ -123,10 +193,15 @@ public class StationMemberRepository {
      * @return list of member completion entries
      */
     public List<MemberCompletion> findCompletions(int stationId) {
+        UUID stationUid = stationRepository.resolveUid(stationId);
         return Query.query(
-                        "SELECT sm.id, COALESCE(NULLIF(sm.display_name, ''), TRIM(CONCAT(a.first_name, ' ', a.last_name)), 'Mitglied ' || sm.id) AS display_name FROM station_member sm LEFT JOIN account a ON sm.account_id = a.id WHERE sm.station_id = :station_id AND sm.former = FALSE ORDER BY display_name;")
+                        "SELECT sm.id, sm.uid, COALESCE(NULLIF(sm.display_name, ''), TRIM(CONCAT(a.first_name, ' ', a.last_name)), 'Mitglied ' || sm.id) AS display_name FROM station_member sm LEFT JOIN account a ON sm.account_id = a.id WHERE sm.station_id = :station_id AND sm.former = FALSE ORDER BY display_name;")
                 .single(Call.of().bind("station_id", stationId))
-                .map(row -> new MemberCompletion(row.getInt("id"), row.getString("display_name")))
+                .map(row -> new MemberCompletion(
+                        row.getInt("id"),
+                        row.getString("display_name"),
+                        stationUid,
+                        row.get("uid", StandardValueConverter.UUID_STRING)))
                 .all();
     }
 

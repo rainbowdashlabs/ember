@@ -8,11 +8,10 @@ import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import TabBar from '@/components/navigation/TabBar.vue'
 import CommentThread from '@/components/comment/CommentThread.vue'
-import MentionInput from '@/components/comment/MentionInput.vue'
-import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import UserAvatar from '@/components/avatar/UserAvatar.vue'
 import type { BoardComment, BoardTicketTransition, BoardTicketHistoryEntry, BoardLane, BoardLabel } from '@/api/boards'
 import type { Comment } from '@/api/types'
+import type { MemberCompletion } from '@/api/stationMembers'
 import { contrastTextColor } from '@/theme/contrast'
 
 const props = defineProps<{
@@ -21,8 +20,9 @@ const props = defineProps<{
     history: BoardTicketHistoryEntry[]
     lanes: BoardLane[]
     labels: BoardLabel[]
-    members: { id: number; name: string }[]
+    members: MemberCompletion[]
     readonly?: boolean
+    federated?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -33,25 +33,17 @@ const emit = defineEmits<{
 
 const { t } = useI18n()
 const activeTab = ref('comments')
-const newComment = ref('')
 
 const commentsAsGeneric = computed<Comment[]>(() =>
     props.comments.map(c => ({
         id: c.id,
         parentId: c.parentId,
-        authorId: c.authorId,
+        author: c.author,
         authorName: c.authorName,
-        authorStationId: c.authorStationId,
-        authorStationName: c.authorStationName,
         content: c.content,
         deleted: c.deleted,
         createdAt: c.createdAt,
         updatedAt: c.updatedAt,
-        federatedAuthor: c.federatedAuthor ? {
-            memberUid: c.federatedAuthor.memberUid,
-            displayName: c.federatedAuthor.displayName,
-            stationName: c.federatedAuthor.stationName,
-        } : undefined,
     })),
 )
 
@@ -76,8 +68,12 @@ const tabs = computed(() => [
     { key: 'all', label: t('boards.activityAll') },
 ])
 
-function memberName(id: number): string {
-    return props.members.find(m => m.id === id)?.name ?? `#${id}`
+function transitionActorName(tr: BoardTicketTransition): string {
+    return tr.actorName ?? '—'
+}
+
+function historyActorName(entry: BoardTicketHistoryEntry): string {
+    return entry.actorName ?? '—'
 }
 
 function laneName(id: number | null): string {
@@ -89,11 +85,6 @@ function formatDate(iso: string): string {
     return new Date(iso).toLocaleString('de-DE', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' })
 }
 
-function handleAddComment() {
-    if (!newComment.value.trim()) return
-    emit('createComment', null, newComment.value.trim())
-    newComment.value = ''
-}
 </script>
 
 <template>
@@ -105,6 +96,8 @@ function handleAddComment() {
             <CommentThread
                 :comments="commentsAsGeneric"
                 :members="members"
+                :federated="federated"
+                :readonly="readonly"
                 @create="(parentId, content) => emit('createComment', parentId, content)"
                 @update="(id, content) => emit('updateComment', id, content)"
                 @delete="(id) => emit('deleteComment', id)"
@@ -114,8 +107,8 @@ function handleAddComment() {
         <!-- Transitions + History -->
         <div v-if="activeTab === 'transitions'" class="space-y-2">
             <div v-for="tr in transitions" :key="`t-${tr.id}`" class="flex items-center gap-2 text-sm text-(--text-muted) flex-wrap">
-                <UserAvatar :member-id="tr.movedBy" :name="memberName(tr.movedBy)" size="sm" />
-                <span>{{ memberName(tr.movedBy) }}</span>
+                <UserAvatar :member-id="0" :name="transitionActorName(tr)" size="sm" />
+                <span>{{ transitionActorName(tr) }}</span>
                 <span>{{ t('boards.movedFrom') }}</span>
                 <span class="font-medium text-xs px-2 py-0.5 rounded-full" :style="{ backgroundColor: lanes.find(l => l.id === tr.fromLaneId)?.color ?? 'var(--primary)', color: contrastTextColor(lanes.find(l => l.id === tr.fromLaneId)?.color ?? '#fd4f00') }">{{ laneName(tr.fromLaneId) }}</span>
                 <span>{{ t('boards.movedTo') }}</span>
@@ -124,8 +117,8 @@ function handleAddComment() {
             </div>
             <template v-for="h in history" :key="`h-${h.id}`">
                 <div class="flex items-center gap-2 text-sm text-(--text-muted) flex-wrap">
-                    <UserAvatar :member-id="h.actorMemberId" :name="memberName(h.actorMemberId)" size="sm" />
-                    <span>{{ memberName(h.actorMemberId) }}</span>
+                    <UserAvatar :member-id="0" :name="historyActorName(h)" size="sm" />
+                    <span>{{ historyActorName(h) }}</span>
                     <span class="font-medium text-(--text)">{{ historyActionLabel[h.action] ?? h.action }}</span>
                     <!-- Priority: show icons -->
                     <template v-if="h.action === 'PRIORITY_CHANGED' && h.detail">
@@ -154,18 +147,18 @@ function handleAddComment() {
         <div v-if="activeTab === 'all'" class="space-y-3">
             <div v-for="item in allActivity" :key="`${item.type}-${item.data.id}`">
                 <div v-if="item.type === 'comment'" class="flex gap-2">
-                    <UserAvatar :member-id="(item.data as BoardComment).authorId" :name="memberName((item.data as BoardComment).authorId)" size="sm" />
+                    <UserAvatar :member-id="0" :name="(item.data as BoardComment).authorName" size="sm" />
                     <div class="flex-1">
                         <div class="flex items-center gap-2 text-xs text-(--text-muted)">
-                            <span class="font-medium">{{ memberName((item.data as BoardComment).authorId) }}</span>
+                            <span class="font-medium">{{ (item.data as BoardComment).authorName }}</span>
                             <span>{{ formatDate(item.ts) }}</span>
                         </div>
                         <p class="text-sm mt-0.5 whitespace-pre-wrap">{{ (item.data as BoardComment).content }}</p>
                     </div>
                 </div>
                 <div v-else-if="item.type === 'transition'" class="flex items-center gap-2 text-sm text-(--text-muted) flex-wrap">
-                    <UserAvatar :member-id="(item.data as BoardTicketTransition).movedBy" :name="memberName((item.data as BoardTicketTransition).movedBy)" size="sm" />
-                    <span>{{ memberName((item.data as BoardTicketTransition).movedBy) }}</span>
+                    <UserAvatar :member-id="0" :name="transitionActorName(item.data as BoardTicketTransition)" size="sm" />
+                    <span>{{ transitionActorName(item.data as BoardTicketTransition) }}</span>
                     <span>{{ t('boards.movedFrom') }}</span>
                     <span class="font-medium text-xs px-2 py-0.5 rounded-full" :style="{ backgroundColor: lanes.find(l => l.id === (item.data as BoardTicketTransition).fromLaneId)?.color ?? 'var(--primary)', color: contrastTextColor(lanes.find(l => l.id === (item.data as BoardTicketTransition).fromLaneId)?.color ?? '#fd4f00') }">{{ laneName((item.data as BoardTicketTransition).fromLaneId) }}</span>
                     <span>{{ t('boards.movedTo') }}</span>
@@ -173,8 +166,8 @@ function handleAddComment() {
                     <span class="ml-auto text-xs">{{ formatDate(item.ts) }}</span>
                 </div>
                 <div v-else-if="item.type === 'history'" class="flex items-center gap-2 text-sm text-(--text-muted) flex-wrap">
-                    <UserAvatar :member-id="(item.data as BoardTicketHistoryEntry).actorMemberId" :name="memberName((item.data as BoardTicketHistoryEntry).actorMemberId)" size="sm" />
-                    <span>{{ memberName((item.data as BoardTicketHistoryEntry).actorMemberId) }}</span>
+                    <UserAvatar :member-id="0" :name="historyActorName(item.data as BoardTicketHistoryEntry)" size="sm" />
+                    <span>{{ historyActorName(item.data as BoardTicketHistoryEntry) }}</span>
                     <span class="font-medium text-(--text)">{{ historyActionLabel[(item.data as BoardTicketHistoryEntry).action] ?? (item.data as BoardTicketHistoryEntry).action }}</span>
                     <template v-if="(item.data as BoardTicketHistoryEntry).action === 'PRIORITY_CHANGED' && (item.data as BoardTicketHistoryEntry).detail">
                         <template v-for="(part, i) in ((item.data as BoardTicketHistoryEntry).detail ?? '').split(' → ')" :key="i">
@@ -192,14 +185,5 @@ function handleAddComment() {
             <p v-if="allActivity.length === 0" class="text-sm text-(--text-muted) text-center py-4">—</p>
         </div>
 
-        <!-- Root comment input (for comments and all tabs) -->
-        <div v-if="!readonly && (activeTab === 'all' || activeTab === 'comments')" class="mt-3">
-            <MentionInput v-model="newComment" :members="members" :placeholder="t('boards.comments') + '...'" />
-            <div class="flex justify-end mt-2">
-                <PrimaryButton @click="handleAddComment">
-                    {{ t('comments.post') }}
-                </PrimaryButton>
-            </div>
-        </div>
     </div>
 </template>

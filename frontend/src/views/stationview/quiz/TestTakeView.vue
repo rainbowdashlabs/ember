@@ -22,11 +22,13 @@ import { QuizQuestionTypes } from '@/api/types'
 import type { QuizAttemptDetail, QuizTest, QuizQuestion } from '@/api/types'
 import { quiz } from '@/api'
 import { useSession } from '@/composables/useSession'
+import { useSidebarCounts } from '@/composables/useSidebarCounts'
 
 const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
 const { loaded } = useSession()
+const { refresh: refreshSidebarCounts } = useSidebarCounts()
 
 const testId = computed(() => Number(route.params.id))
 
@@ -259,6 +261,7 @@ async function doSubmit() {
     await quiz.submitAttempt(attempt.value.id)
     stopTimer()
     submitted.value = true
+    refreshSidebarCounts()
   } catch {
     error.value = t('common.error')
   }

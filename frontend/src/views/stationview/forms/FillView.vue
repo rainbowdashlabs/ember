@@ -25,12 +25,14 @@ import { QuestionTypes } from '@/api/types'
 import { forms } from '@/api'
 import type { EligibleMembers } from '@/api/forms'
 import { useSession } from '@/composables/useSession'
+import { useSidebarCounts } from '@/composables/useSidebarCounts'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 
 const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
 const { sessionInfo, loaded } = useSession()
+const { refresh: refreshSidebarCounts } = useSidebarCounts()
 
 const formId = computed(() => Number(route.params.id))
 const loading = ref(true)
@@ -225,6 +227,7 @@ async function submit() {
         await forms.submitResponse(formId.value, { answers: answerMap })
       }
     }
+    refreshSidebarCounts()
     router.push({ name: 'forms-list' })
   } catch {
     error.value = t('common.error')

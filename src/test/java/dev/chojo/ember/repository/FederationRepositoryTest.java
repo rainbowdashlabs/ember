@@ -394,6 +394,28 @@ class FederationRepositoryTest extends RepositoryTestBase {
         federationRepo.deletePartner(extra.id());
     }
 
+    // -- Count Pending Requests --
+
+    @Test
+    @Order(80)
+    void countPendingRequestsNone() {
+        // stationA has no pending requests directed at it (partner is stationA -> stationB, status ACTIVE)
+        int count = federationRepo.countPendingRequests(stationA.uid());
+        assertEquals(0, count);
+    }
+
+    @Test
+    @Order(81)
+    void countPendingRequestsWithPending() {
+        // Create a pending partner from stationC to stationA (so stationA's uid is the partner_station_id)
+        var pending =
+                federationRepo.createPartner(stationC.id(), stationA.uid(), "EMBER-PEND-CODE", "pubKeyPending", null);
+        int count = federationRepo.countPendingRequests(stationA.uid());
+        assertEquals(1, count);
+        // Cleanup
+        federationRepo.deletePartner(pending.id());
+    }
+
     // -- Delete Partner --
 
     @Test

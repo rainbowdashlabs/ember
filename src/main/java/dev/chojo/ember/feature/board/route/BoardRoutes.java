@@ -8,9 +8,9 @@ package dev.chojo.ember.feature.board.route;
 import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.FederationHeaders;
 import dev.chojo.ember.api.FederationSession;
+import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.api.Roles;
 import dev.chojo.ember.api.Routes;
-import dev.chojo.ember.api.StationUidResolver;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.board.entity.AccessData;
@@ -20,6 +20,8 @@ import dev.chojo.ember.feature.board.entity.BoardField;
 import dev.chojo.ember.feature.board.entity.BoardFieldConfig;
 import dev.chojo.ember.feature.board.entity.BoardFieldType;
 import dev.chojo.ember.feature.board.entity.BoardShareMode;
+import dev.chojo.ember.feature.board.entity.BoardTicketHistoryResponse;
+import dev.chojo.ember.feature.board.entity.BoardTicketTransitionResponse;
 import dev.chojo.ember.feature.board.entity.LaneData;
 import dev.chojo.ember.feature.board.entity.LanePreset;
 import dev.chojo.ember.feature.board.entity.TicketPriority;
@@ -32,9 +34,9 @@ import dev.chojo.ember.feature.board.service.FederatedBoardService;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
-import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
-import dev.chojo.ember.feature.station.entity.Station;
+import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
+import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
@@ -76,6 +78,8 @@ public class BoardRoutes implements Routes {
     private final StationMemberRepository stationMemberRepository;
     private final AccountRepository accountRepository;
     private final StationRepository stationRepository;
+    private final MemberNameResolver memberNameResolver;
+    private final MemberIdentityFactory memberIdentityFactory;
 
     @Inject
     public BoardRoutes(
@@ -88,7 +92,9 @@ public class BoardRoutes implements Routes {
             EventFederationRepository eventFederationRepository,
             StationMemberRepository stationMemberRepository,
             AccountRepository accountRepository,
-            StationRepository stationRepository) {
+            StationRepository stationRepository,
+            MemberNameResolver memberNameResolver,
+            MemberIdentityFactory memberIdentityFactory) {
         this.boardService = boardService;
         this.federatedBoardService = federatedBoardService;
         this.proxyService = proxyService;
@@ -99,6 +105,8 @@ public class BoardRoutes implements Routes {
         this.stationMemberRepository = stationMemberRepository;
         this.accountRepository = accountRepository;
         this.stationRepository = stationRepository;
+        this.memberNameResolver = memberNameResolver;
+        this.memberIdentityFactory = memberIdentityFactory;
     }
 
     private Board resolveBoard(Context ctx, int stationId) {
@@ -156,6 +164,7 @@ public class BoardRoutes implements Routes {
         routes.get(fp + "/{partnerUid}/{boardKey}", this::federatedLocalGetBoard, Roles.USER);
         routes.get(fp + "/{partnerUid}/{boardKey}/lanes", this::federatedLocalGetLanes, Roles.USER);
         routes.get(fp + "/{partnerUid}/{boardKey}/labels", this::federatedLocalGetLabels, Roles.USER);
+        routes.get(fp + "/{partnerUid}/{boardKey}/ticket-labels", this::federatedLocalGetAllTicketLabels, Roles.USER);
         routes.get(fp + "/{partnerUid}/{boardKey}/fields", this::federatedLocalGetFields, Roles.USER);
         routes.get(fp + "/{partnerUid}/{boardKey}/tickets", this::federatedLocalListTickets, Roles.USER);
         routes.get(fp + "/{partnerUid}/{boardKey}/tickets/search", this::federatedLocalSearchTickets, Roles.USER);
@@ -250,6 +259,7 @@ public class BoardRoutes implements Routes {
         routes.get(rp + "/{boardKey}", this::federatedRemoteGetBoard);
         routes.get(rp + "/{boardKey}/lanes", this::federatedRemoteGetLanes);
         routes.get(rp + "/{boardKey}/labels", this::federatedRemoteGetLabels);
+        routes.get(rp + "/{boardKey}/ticket-labels", this::federatedRemoteGetAllTicketLabels);
         routes.get(rp + "/{boardKey}/fields", this::federatedRemoteGetFields);
         routes.get(rp + "/{boardKey}/tickets", this::federatedRemoteListTickets);
         routes.get(rp + "/{boardKey}/tickets/search", this::federatedRemoteSearchTickets);
@@ -282,6 +292,9 @@ public class BoardRoutes implements Routes {
         routes.post(rp + "/{boardKey}/tickets/{ticketNumber}/labels/{labelId}", this::federatedRemoteAddTicketLabel);
         routes.delete(
                 rp + "/{boardKey}/tickets/{ticketNumber}/labels/{labelId}", this::federatedRemoteRemoveTicketLabel);
+        routes.post(
+                rp + "/{boardKey}/tickets/{ticketNumber}/labels/{labelId}/remove",
+                this::federatedRemoteRemoveTicketLabel);
         routes.post(rp + "/{boardKey}/labels", this::federatedRemoteCreateLabel);
         routes.post(rp + "/{boardKey}/tickets/{ticketNumber}/watch", this::federatedRemoteWatchTicket);
         routes.delete(rp + "/{boardKey}/tickets/{ticketNumber}/watch", this::federatedRemoteUnwatchTicket);
@@ -900,6 +913,24 @@ public class BoardRoutes implements Routes {
     }
 
     @OpenApi(
+            path = "/api/v1/federated/boards/{partnerUid}/{boardKey}/ticket-labels",
+            methods = HttpMethod.GET,
+            summary = "Get all ticket-label assignments for a federated board",
+            tags = {"Federated Boards"},
+            pathParams = {
+                @OpenApiParam(name = "partnerUid", type = String.class, required = true),
+                @OpenApiParam(name = "boardKey", type = String.class, required = true)
+            },
+            responses = @OpenApiResponse(status = "200"))
+    private void federatedLocalGetAllTicketLabels(Context ctx) {
+        var session = UserSession.from(ctx);
+        int partnerId = resolvePartnerId(ctx);
+        String boardKey = ctx.pathParam("boardKey");
+        requireView(partnerId, boardKey, session);
+        ctx.json(proxyService.proxyGetAllTicketLabels(partnerId, boardKey));
+    }
+
+    @OpenApi(
             path = "/api/v1/federated/boards/{partnerUid}/{boardKey}/fields",
             methods = HttpMethod.GET,
             summary = "Get custom fields for a federated board",
@@ -1282,13 +1313,19 @@ public class BoardRoutes implements Routes {
         requireWrite(partnerId, boardKey, session);
         int ticketNumber = ctx.pathParamAsClass("ticketNumber", Integer.class).get();
         var req = ctx.bodyAsClass(LocalCommentRequest.class);
+        String displayName = session.member().displayName();
+        if (displayName == null || displayName.isBlank()) {
+            displayName =
+                    (session.account().firstName() + " " + session.account().lastName()).trim();
+        }
         ctx.json(proxyService.proxyAddComment(
                 partnerId,
                 boardKey,
                 ticketNumber,
                 req.parentId(),
                 req.content(),
-                session.member().uid()));
+                session.member().uid(),
+                displayName));
     }
 
     @OpenApi(
@@ -1380,7 +1417,8 @@ public class BoardRoutes implements Routes {
         requireWrite(partnerId, boardKey, session);
         int ticketNumber = ctx.pathParamAsClass("ticketNumber", Integer.class).get();
         int labelId = ctx.pathParamAsClass("labelId", Integer.class).get();
-        ctx.json(proxyService.proxyAddTicketLabel(partnerId, boardKey, ticketNumber, labelId));
+        ctx.json(proxyService.proxyAddTicketLabel(
+                partnerId, boardKey, ticketNumber, labelId, session.member().uid(), resolveDisplayName(session)));
     }
 
     @OpenApi(
@@ -1402,7 +1440,8 @@ public class BoardRoutes implements Routes {
         requireWrite(partnerId, boardKey, session);
         int ticketNumber = ctx.pathParamAsClass("ticketNumber", Integer.class).get();
         int labelId = ctx.pathParamAsClass("labelId", Integer.class).get();
-        proxyService.proxyRemoveTicketLabel(partnerId, boardKey, ticketNumber, labelId);
+        proxyService.proxyRemoveTicketLabel(
+                partnerId, boardKey, ticketNumber, labelId, session.member().uid(), resolveDisplayName(session));
         ctx.status(204);
     }
 
@@ -1629,6 +1668,13 @@ public class BoardRoutes implements Routes {
         ctx.json(boardService.findLabels(boardId));
     }
 
+    private void federatedRemoteGetAllTicketLabels(Context ctx) {
+        var partner = requireFederationPartner(ctx);
+        int boardId = resolveRemoteBoardId(ctx, partner);
+        requireRemoteView(boardId, partner);
+        ctx.json(boardService.findAllTicketLabels(boardId));
+    }
+
     private void federatedRemoteGetFields(Context ctx) {
         var partner = requireFederationPartner(ctx);
         int boardId = resolveRemoteBoardId(ctx, partner);
@@ -1702,7 +1748,18 @@ public class BoardRoutes implements Routes {
         int boardId = resolveRemoteBoardId(ctx, partner);
         requireRemoteView(boardId, partner);
         int ticketId = resolveRemoteTicketId(ctx, boardId);
-        ctx.json(ticketService.findTransitions(ticketId));
+        var transitions = ticketService.findTransitions(ticketId);
+        ctx.json(transitions.stream()
+                .map(tr -> BoardTicketTransitionResponse.from(tr, tr.actor(), memberNameResolver.resolve(tr.actor())))
+                .toList());
+    }
+
+    private String resolveDisplayName(UserSession session) {
+        String name = session.member().displayName();
+        if (name == null || name.isBlank()) {
+            name = (session.account().firstName() + " " + session.account().lastName()).trim();
+        }
+        return name;
     }
 
     private void federatedRemoteGetHistory(Context ctx) {
@@ -1710,7 +1767,10 @@ public class BoardRoutes implements Routes {
         int boardId = resolveRemoteBoardId(ctx, partner);
         requireRemoteView(boardId, partner);
         int ticketId = resolveRemoteTicketId(ctx, boardId);
-        ctx.json(ticketService.findHistory(ticketId));
+        var history = ticketService.findHistory(ticketId);
+        ctx.json(history.stream()
+                .map(h -> BoardTicketHistoryResponse.from(h, h.actor(), memberNameResolver.resolve(h.actor())))
+                .toList());
     }
 
     private void federatedRemoteGetAttachments(Context ctx) {
@@ -1737,8 +1797,7 @@ public class BoardRoutes implements Routes {
         requireRemoteView(boardId, partner);
         int ticketId = resolveRemoteTicketId(ctx, boardId);
         var localWatchers = ticketService.findWatchers(ticketId);
-        var federatedWatchers = federatedBoardService.findFederatedWatchers(ticketId);
-        ctx.json(Map.of("local", localWatchers, "federated", federatedWatchers));
+        ctx.json(Map.of("local", localWatchers, "federated", List.of()));
     }
 
     @OpenApi(
@@ -1777,6 +1836,7 @@ public class BoardRoutes implements Routes {
         int laneId = req.laneId() != null
                 ? req.laneId()
                 : boardService.findLanes(boardId).getFirst().id();
+        var creatorIdentity = new MemberIdentity(partner.partnerStationId(), req.remoteMemberId());
         var ticket = ticketService.createTicket(
                 boardId,
                 laneId,
@@ -1785,8 +1845,7 @@ public class BoardRoutes implements Routes {
                 null,
                 req.priority() != null ? TicketPriority.valueOf(req.priority()) : TicketPriority.MEDIUM,
                 req.dueDate() != null ? LocalDate.parse(req.dueDate()) : null,
-                0); // createdBy 0 for federated — tracked via federated_creator table
-        federatedBoardService.setFederatedCreator(ticket.id(), partner.id(), req.remoteMemberId());
+                creatorIdentity);
         ctx.json(ticket);
     }
 
@@ -1810,14 +1869,18 @@ public class BoardRoutes implements Routes {
         requireRemoteWrite(boardId, partner);
         int ticketId = resolveRemoteTicketId(ctx, boardId);
         var req = ctx.bodyAsClass(RemoteUpdateTicketRequest.class);
+        var board = boardService.findById(boardId).orElseThrow(NotFoundResponse::new);
+        MemberIdentity assigneeIdentity = req.assignedMemberId() != null
+                ? memberIdentityFactory.local(board.stationId(), req.assignedMemberId())
+                : null;
         ticketService.updateTicket(
                 ticketId,
                 req.title(),
                 req.description(),
-                req.assignedMemberId(),
+                assigneeIdentity,
                 req.priority() != null ? TicketPriority.valueOf(req.priority()) : null,
                 req.dueDate() != null ? LocalDate.parse(req.dueDate()) : null,
-                0);
+                null);
         ctx.json(ticketService.findById(ticketId).orElseThrow(NotFoundResponse::new));
     }
 
@@ -1861,16 +1924,12 @@ public class BoardRoutes implements Routes {
         int ticketId = resolveRemoteTicketId(ctx, boardId);
         var req = ctx.bodyAsClass(RemoteMoveTicketRequest.class);
         var ticket = ticketService.findById(ticketId).orElseThrow(NotFoundResponse::new);
-        ticketService.moveTicket(
-                ticketId,
-                ticket.laneId(),
-                req.toLaneId(),
-                req.position(),
-                null,
-                partner.id(),
-                ctx.header("X-Federation-Member-Id") != null
-                        ? UUID.fromString(ctx.header("X-Federation-Member-Id"))
-                        : null);
+        UUID federatedMemberUid = ctx.header("X-Federation-Member-Id") != null
+                ? UUID.fromString(ctx.header("X-Federation-Member-Id"))
+                : null;
+        MemberIdentity actorIdentity =
+                federatedMemberUid != null ? new MemberIdentity(partner.partnerStationId(), federatedMemberUid) : null;
+        ticketService.moveTicket(ticketId, ticket.laneId(), req.toLaneId(), req.position(), actorIdentity);
         ctx.json(ticketService.findById(ticketId).orElseThrow(NotFoundResponse::new));
     }
 
@@ -1908,8 +1967,9 @@ public class BoardRoutes implements Routes {
         requireRemoteWrite(boardId, partner);
         int ticketId = resolveRemoteTicketId(ctx, boardId);
         var req = ctx.bodyAsClass(RemoteCommentRequest.class);
-        var comment = ticketService.createComment(ticketId, req.parentId(), null, req.content());
-        federatedBoardService.setFederatedCommentAuthor(comment.id(), partner.id(), req.remoteMemberId());
+        var authorIdentity = new MemberIdentity(partner.partnerStationId(), req.remoteMemberId());
+        var comment = ticketService.createComment(ticketId, req.parentId(), authorIdentity, req.content());
+        eventFederationRepository.cacheName(partner.id(), req.remoteMemberId(), req.displayName());
         ctx.json(comment);
     }
 
@@ -2036,7 +2096,20 @@ public class BoardRoutes implements Routes {
         requireRemoteWrite(boardId, partner);
         int ticketId = resolveRemoteTicketId(ctx, boardId);
         int labelId = ctx.pathParamAsClass("labelId", Integer.class).get();
+        var req = ctx.bodyAsClass(RemoteLabelActionRequest.class);
         boardService.addLabelToTicket(ticketId, labelId);
+        var label = boardService.findLabels(boardId).stream()
+                .filter(l -> l.id() == labelId)
+                .findFirst()
+                .orElse(null);
+        ticketService.logHistory(
+                ticketId,
+                "LABEL_ADDED",
+                label != null ? label.name() : "?",
+                new MemberIdentity(partner.partnerStationId(), req.remoteMemberId()));
+        if (req.displayName() != null) {
+            eventFederationRepository.cacheName(partner.id(), req.remoteMemberId(), req.displayName());
+        }
         ctx.json(boardService.findLabelsForTicket(ticketId));
     }
 
@@ -2057,7 +2130,20 @@ public class BoardRoutes implements Routes {
         requireRemoteWrite(boardId, partner);
         int ticketId = resolveRemoteTicketId(ctx, boardId);
         int labelId = ctx.pathParamAsClass("labelId", Integer.class).get();
+        var req = ctx.bodyAsClass(RemoteLabelActionRequest.class);
+        var label = boardService.findLabels(boardId).stream()
+                .filter(l -> l.id() == labelId)
+                .findFirst()
+                .orElse(null);
         boardService.removeLabelFromTicket(ticketId, labelId);
+        ticketService.logHistory(
+                ticketId,
+                "LABEL_REMOVED",
+                label != null ? label.name() : "?",
+                new MemberIdentity(partner.partnerStationId(), req.remoteMemberId()));
+        if (req.displayName() != null) {
+            eventFederationRepository.cacheName(partner.id(), req.remoteMemberId(), req.displayName());
+        }
         ctx.status(204);
     }
 
@@ -2094,7 +2180,8 @@ public class BoardRoutes implements Routes {
         requireRemoteWrite(boardId, partner);
         int ticketId = resolveRemoteTicketId(ctx, boardId);
         var req = ctx.bodyAsClass(RemoteWatchRequest.class);
-        federatedBoardService.addFederatedWatcher(ticketId, partner.id(), req.remoteMemberId());
+        var watcherIdentity = new MemberIdentity(partner.partnerStationId(), req.remoteMemberId());
+        ticketService.addWatcher(ticketId, watcherIdentity);
         ctx.status(204);
     }
 
@@ -2115,7 +2202,8 @@ public class BoardRoutes implements Routes {
         requireRemoteWrite(boardId, partner);
         int ticketId = resolveRemoteTicketId(ctx, boardId);
         var req = ctx.bodyAsClass(RemoteWatchRequest.class);
-        federatedBoardService.removeFederatedWatcher(ticketId, partner.id(), req.remoteMemberId());
+        var watcherIdentity = new MemberIdentity(partner.partnerStationId(), req.remoteMemberId());
+        ticketService.removeWatcher(ticketId, watcherIdentity);
         ctx.status(204);
     }
 
@@ -2220,90 +2308,37 @@ public class BoardRoutes implements Routes {
                     comment.id(),
                     comment.ticketId(),
                     comment.parentId(),
-                    0,
                     null,
                     null,
                     "",
                     true,
                     comment.createdAt(),
-                    null,
-                    null,
-                    null,
                     null);
         }
-        var fedAuthor = federatedBoardRepository.findFederatedCommentAuthor(comment.id());
-        if (fedAuthor.isPresent()) {
-            var fa = fedAuthor.get();
-            String displayName = eventFederationRepository
-                    .getCachedName(fa.partnerId(), fa.remoteMemberId())
-                    .orElse("Unknown");
-            var partner = federationRepository.findPartnerById(fa.partnerId());
-            String stationName = partner.map(p -> stationRepository
-                            .findByUid(p.partnerStationId())
-                            .map(Station::name)
-                            .orElse(""))
-                    .orElse("");
-            String fedStationId =
-                    partner.map(p -> p.partnerStationId().toString()).orElse(null);
-            return new BoardCommentResponse(
-                    comment.id(),
-                    comment.ticketId(),
-                    comment.parentId(),
-                    0,
-                    null,
-                    displayName,
-                    comment.content(),
-                    false,
-                    comment.createdAt(),
-                    comment.updatedAt(),
-                    new BoardFederatedAuthorInfo(fa.remoteMemberId(), displayName, stationName),
-                    fedStationId,
-                    stationName);
-        }
-        // Local author
-        var memberOpt = stationMemberRepository.findById(comment.authorId());
-        Integer authorAccountId = memberOpt.map(StationMember::accountId).orElse(null);
-        String authorName = memberOpt
-                .filter(m -> m.accountId() != null)
-                .flatMap(m -> accountRepository.findById(m.accountId()))
-                .map(a -> (a.firstName() + " " + a.lastName()).trim())
-                .orElse("");
-        int authorStationId = memberOpt.map(StationMember::stationId).orElse(0);
-        String authorStationUid = StationUidResolver.instance().resolveToString(authorStationId);
-        String authorStationName =
-                stationRepository.findById(authorStationId).map(Station::name).orElse("");
+        String authorName = memberNameResolver.resolve(comment.author());
+        if (authorName == null) authorName = "";
         return new BoardCommentResponse(
                 comment.id(),
                 comment.ticketId(),
                 comment.parentId(),
-                comment.authorId(),
-                authorAccountId,
+                comment.author(),
                 authorName,
                 comment.content(),
                 false,
                 comment.createdAt(),
-                comment.updatedAt(),
-                null,
-                authorStationUid,
-                authorStationName);
+                comment.updatedAt());
     }
 
     public record BoardCommentResponse(
             int id,
             int ticketId,
             Integer parentId,
-            int authorId,
-            Integer authorAccountId,
+            MemberIdentity author,
             String authorName,
             String content,
             boolean deleted,
             Instant createdAt,
-            Instant updatedAt,
-            BoardFederatedAuthorInfo federatedAuthor,
-            String authorStationId,
-            String authorStationName) {}
-
-    public record BoardFederatedAuthorInfo(UUID memberUid, String displayName, String stationName) {}
+            Instant updatedAt) {}
 
     // ==================== Request/Response records ====================
 
@@ -2381,7 +2416,7 @@ public class BoardRoutes implements Routes {
 
     record RemoteReorderRequest(int laneId, List<Integer> orderedIds) {}
 
-    record RemoteCommentRequest(UUID remoteMemberId, Integer parentId, String content) {}
+    record RemoteCommentRequest(UUID remoteMemberId, String displayName, Integer parentId, String content) {}
 
     record RemoteEditCommentRequest(String content) {}
 
@@ -2390,6 +2425,8 @@ public class BoardRoutes implements Routes {
     record RemoteUpdateChecklistItemRequest(String title, boolean checked) {}
 
     record RemoteCreateLabelRequest(String name, String color) {}
+
+    record RemoteLabelActionRequest(UUID remoteMemberId, String displayName) {}
 
     record RemoteWatchRequest(UUID remoteMemberId) {}
 
