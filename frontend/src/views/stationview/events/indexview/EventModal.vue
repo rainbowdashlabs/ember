@@ -16,7 +16,7 @@ import Modal from '@/components/feedback/Modal.vue'
 import RestrictionPicker from '@/components/input/RestrictionPicker.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
-import type { StationEvent, EventCategory, AttendanceTemplate, AttendanceTemplateField, Role, MemberGroup, UserTag } from '@/api/types'
+import type { StationEvent, EventCategory, AttendanceTemplate, AttendanceTemplateField, PermissionGrant, MemberGroup, UserTag } from '@/api/types'
 import { EventTypes } from '@/api/types'
 import type { EventFieldDefault } from '@/api/events'
 
@@ -27,7 +27,7 @@ const props = defineProps<{
   event: StationEvent | null
   categories: EventCategory[]
   templates: AttendanceTemplate[]
-  roles: Role[]
+  roles: PermissionGrant[]
   groups: MemberGroup[]
   tags: UserTag[]
   eventRoleIds: number[]

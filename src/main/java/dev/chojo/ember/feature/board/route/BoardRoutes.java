@@ -9,9 +9,9 @@ import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.FederationHeaders;
 import dev.chojo.ember.api.FederationSession;
 import dev.chojo.ember.api.MemberIdentity;
-import dev.chojo.ember.api.Roles;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.roles.StationPermission;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.board.entity.AccessData;
 import dev.chojo.ember.feature.board.entity.Board;
@@ -126,143 +126,168 @@ public class BoardRoutes implements Routes {
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
         // -- Local board CRUD --
-        routes.get(prefix + "/boards", this::list, Roles.USER);
-        routes.post(prefix + "/boards", this::create, Roles.BOARD_MANAGER);
-        routes.get(prefix + "/boards/{boardKey}", this::get, Roles.USER);
-        routes.put(prefix + "/boards/{boardKey}", this::update, Roles.BOARD_MANAGER);
-        routes.delete(prefix + "/boards/{boardKey}", this::delete, Roles.BOARD_MANAGER);
-        routes.get(prefix + "/boards/{boardKey}/can-edit", this::canEdit, Roles.USER);
-        routes.get(prefix + "/boards/{boardKey}/lanes", this::getLanes, Roles.USER);
-        routes.put(prefix + "/boards/{boardKey}/lanes", this::setLanes, Roles.BOARD_MANAGER);
-        routes.get(prefix + "/boards/{boardKey}/fields", this::getFields, Roles.USER);
-        routes.put(prefix + "/boards/{boardKey}/fields", this::setFields, Roles.BOARD_MANAGER);
-        routes.get(prefix + "/boards/{boardKey}/access/view", this::getViewAccess, Roles.BOARD_MANAGER);
-        routes.put(prefix + "/boards/{boardKey}/access/view", this::setViewAccess, Roles.BOARD_MANAGER);
-        routes.get(prefix + "/boards/{boardKey}/access/edit", this::getEditAccess, Roles.BOARD_MANAGER);
-        routes.put(prefix + "/boards/{boardKey}/access/edit", this::setEditAccess, Roles.BOARD_MANAGER);
-        routes.post(prefix + "/boards/{boardKey}/backlog", this::enableBacklog, Roles.BOARD_MANAGER);
-        routes.delete(prefix + "/boards/{boardKey}/backlog", this::disableBacklog, Roles.BOARD_MANAGER);
+        routes.get(prefix + "/boards", this::list, StationPermission.USER);
+        routes.post(prefix + "/boards", this::create, StationPermission.BOARD_MANAGER);
+        routes.get(prefix + "/boards/{boardKey}", this::get, StationPermission.USER);
+        routes.put(prefix + "/boards/{boardKey}", this::update, StationPermission.BOARD_MANAGER);
+        routes.delete(prefix + "/boards/{boardKey}", this::delete, StationPermission.BOARD_MANAGER);
+        routes.get(prefix + "/boards/{boardKey}/can-edit", this::canEdit, StationPermission.USER);
+        routes.get(prefix + "/boards/{boardKey}/lanes", this::getLanes, StationPermission.USER);
+        routes.put(prefix + "/boards/{boardKey}/lanes", this::setLanes, StationPermission.BOARD_MANAGER);
+        routes.get(prefix + "/boards/{boardKey}/fields", this::getFields, StationPermission.USER);
+        routes.put(prefix + "/boards/{boardKey}/fields", this::setFields, StationPermission.BOARD_MANAGER);
+        routes.get(prefix + "/boards/{boardKey}/access/view", this::getViewAccess, StationPermission.BOARD_MANAGER);
+        routes.put(prefix + "/boards/{boardKey}/access/view", this::setViewAccess, StationPermission.BOARD_MANAGER);
+        routes.get(prefix + "/boards/{boardKey}/access/edit", this::getEditAccess, StationPermission.BOARD_MANAGER);
+        routes.put(prefix + "/boards/{boardKey}/access/edit", this::setEditAccess, StationPermission.BOARD_MANAGER);
+        routes.post(prefix + "/boards/{boardKey}/backlog", this::enableBacklog, StationPermission.BOARD_MANAGER);
+        routes.delete(prefix + "/boards/{boardKey}/backlog", this::disableBacklog, StationPermission.BOARD_MANAGER);
         // Labels
-        routes.get(prefix + "/boards/{boardKey}/labels", this::getLabels, Roles.USER);
-        routes.post(prefix + "/boards/{boardKey}/labels", this::createLabel, Roles.USER);
-        routes.put(prefix + "/boards/{boardKey}/labels/{labelId}", this::updateLabel, Roles.BOARD_MANAGER);
-        routes.delete(prefix + "/boards/{boardKey}/labels/{labelId}", this::deleteLabel, Roles.BOARD_MANAGER);
-        routes.get(prefix + "/boards/{boardKey}/ticket-labels", this::getAllTicketLabels, Roles.USER);
-        routes.get(prefix + "/boards/{boardKey}/members", this::listBoardMembers, Roles.USER);
+        routes.get(prefix + "/boards/{boardKey}/labels", this::getLabels, StationPermission.USER);
+        routes.post(prefix + "/boards/{boardKey}/labels", this::createLabel, StationPermission.USER);
+        routes.put(prefix + "/boards/{boardKey}/labels/{labelId}", this::updateLabel, StationPermission.BOARD_MANAGER);
+        routes.delete(
+                prefix + "/boards/{boardKey}/labels/{labelId}", this::deleteLabel, StationPermission.BOARD_MANAGER);
+        routes.get(prefix + "/boards/{boardKey}/ticket-labels", this::getAllTicketLabels, StationPermission.USER);
+        routes.get(prefix + "/boards/{boardKey}/members", this::listBoardMembers, StationPermission.USER);
         // Federation sharing config
-        routes.get(prefix + "/boards/{boardKey}/federation", this::getFederationConfig, Roles.BOARD_MANAGER);
-        routes.put(prefix + "/boards/{boardKey}/federation", this::setFederationConfig, Roles.BOARD_MANAGER);
+        routes.get(
+                prefix + "/boards/{boardKey}/federation", this::getFederationConfig, StationPermission.BOARD_MANAGER);
+        routes.put(
+                prefix + "/boards/{boardKey}/federation", this::setFederationConfig, StationPermission.BOARD_MANAGER);
 
         // -- Federated board local proxy endpoints --
         String fp = prefix + "/federated/boards";
 
         // Discovery
-        routes.get(fp, this::federatedLocalDiscoverBoards, Roles.USER);
+        routes.get(fp, this::federatedLocalDiscoverBoards, StationPermission.USER);
 
         // Bookmarks
-        routes.get(fp + "/bookmarks", this::federatedLocalListBookmarks, Roles.USER);
-        routes.post(fp + "/bookmarks", this::federatedLocalCreateBookmark, Roles.USER);
-        routes.delete(fp + "/bookmarks/{bookmarkId}", this::federatedLocalDeleteBookmark, Roles.USER);
+        routes.get(fp + "/bookmarks", this::federatedLocalListBookmarks, StationPermission.USER);
+        routes.post(fp + "/bookmarks", this::federatedLocalCreateBookmark, StationPermission.USER);
+        routes.delete(fp + "/bookmarks/{bookmarkId}", this::federatedLocalDeleteBookmark, StationPermission.USER);
 
         // Board read (proxied)
-        routes.get(fp + "/{partnerUid}/{boardKey}", this::federatedLocalGetBoard, Roles.USER);
-        routes.get(fp + "/{partnerUid}/{boardKey}/lanes", this::federatedLocalGetLanes, Roles.USER);
-        routes.get(fp + "/{partnerUid}/{boardKey}/labels", this::federatedLocalGetLabels, Roles.USER);
-        routes.get(fp + "/{partnerUid}/{boardKey}/ticket-labels", this::federatedLocalGetAllTicketLabels, Roles.USER);
-        routes.get(fp + "/{partnerUid}/{boardKey}/members", this::federatedLocalGetMembers, Roles.USER);
-        routes.get(fp + "/{partnerUid}/{boardKey}/fields", this::federatedLocalGetFields, Roles.USER);
-        routes.get(fp + "/{partnerUid}/{boardKey}/tickets", this::federatedLocalListTickets, Roles.USER);
-        routes.get(fp + "/{partnerUid}/{boardKey}/tickets/search", this::federatedLocalSearchTickets, Roles.USER);
-        routes.get(fp + "/{partnerUid}/{boardKey}/tickets/{ticketNumber}", this::federatedLocalGetTicket, Roles.USER);
+        routes.get(fp + "/{partnerUid}/{boardKey}", this::federatedLocalGetBoard, StationPermission.USER);
+        routes.get(fp + "/{partnerUid}/{boardKey}/lanes", this::federatedLocalGetLanes, StationPermission.USER);
+        routes.get(fp + "/{partnerUid}/{boardKey}/labels", this::federatedLocalGetLabels, StationPermission.USER);
+        routes.get(
+                fp + "/{partnerUid}/{boardKey}/ticket-labels",
+                this::federatedLocalGetAllTicketLabels,
+                StationPermission.USER);
+        routes.get(fp + "/{partnerUid}/{boardKey}/members", this::federatedLocalGetMembers, StationPermission.USER);
+        routes.get(fp + "/{partnerUid}/{boardKey}/fields", this::federatedLocalGetFields, StationPermission.USER);
+        routes.get(fp + "/{partnerUid}/{boardKey}/tickets", this::federatedLocalListTickets, StationPermission.USER);
+        routes.get(
+                fp + "/{partnerUid}/{boardKey}/tickets/search",
+                this::federatedLocalSearchTickets,
+                StationPermission.USER);
+        routes.get(
+                fp + "/{partnerUid}/{boardKey}/tickets/{ticketNumber}",
+                this::federatedLocalGetTicket,
+                StationPermission.USER);
         routes.get(
                 fp + "/{partnerUid}/{boardKey}/tickets/{ticketNumber}/comments",
                 this::federatedLocalGetComments,
-                Roles.USER);
+                StationPermission.USER);
         routes.get(
                 fp + "/{partnerUid}/{boardKey}/tickets/{ticketNumber}/checklist",
                 this::federatedLocalGetChecklist,
-                Roles.USER);
+                StationPermission.USER);
         routes.get(
-                fp + "/{partnerUid}/{boardKey}/tickets/{ticketNumber}/links", this::federatedLocalGetLinks, Roles.USER);
+                fp + "/{partnerUid}/{boardKey}/tickets/{ticketNumber}/links",
+                this::federatedLocalGetLinks,
+                StationPermission.USER);
         routes.get(
                 fp + "/{partnerUid}/{boardKey}/tickets/{ticketNumber}/labels",
                 this::federatedLocalGetTicketLabels,
-                Roles.USER);
+                StationPermission.USER);
         routes.get(
                 fp + "/{partnerUid}/{boardKey}/tickets/{ticketNumber}/transitions",
                 this::federatedLocalGetTransitions,
-                Roles.USER);
+                StationPermission.USER);
         routes.get(
                 fp + "/{partnerUid}/{boardKey}/tickets/{ticketNumber}/history",
                 this::federatedLocalGetHistory,
-                Roles.USER);
+                StationPermission.USER);
         routes.get(
                 fp + "/{partnerUid}/{boardKey}/tickets/{ticketNumber}/attachments",
                 this::federatedLocalGetAttachments,
-                Roles.USER);
+                StationPermission.USER);
         routes.get(
                 fp + "/{partnerUid}/{boardKey}/tickets/{ticketNumber}/watchers",
                 this::federatedLocalGetWatchers,
-                Roles.USER);
+                StationPermission.USER);
 
         // Board write (FULL mode only, proxied)
-        routes.post(fp + "/{partnerUid}/{boardKey}/tickets", this::federatedLocalCreateTicket, Roles.USER);
+        routes.post(fp + "/{partnerUid}/{boardKey}/tickets", this::federatedLocalCreateTicket, StationPermission.USER);
         routes.put(
-                fp + "/{partnerUid}/{boardKey}/tickets/{ticketNumber}", this::federatedLocalUpdateTicket, Roles.USER);
+                fp + "/{partnerUid}/{boardKey}/tickets/{ticketNumber}",
+                this::federatedLocalUpdateTicket,
+                StationPermission.USER);
         routes.delete(
-                fp + "/{partnerUid}/{boardKey}/tickets/{ticketNumber}", this::federatedLocalDeleteTicket, Roles.USER);
+                fp + "/{partnerUid}/{boardKey}/tickets/{ticketNumber}",
+                this::federatedLocalDeleteTicket,
+                StationPermission.USER);
         routes.put(
                 fp + "/{partnerUid}/{boardKey}/tickets/{ticketNumber}/move",
                 this::federatedLocalMoveTicket,
-                Roles.USER);
-        routes.put(fp + "/{partnerUid}/{boardKey}/tickets/reorder", this::federatedLocalReorderTickets, Roles.USER);
+                StationPermission.USER);
+        routes.put(
+                fp + "/{partnerUid}/{boardKey}/tickets/reorder",
+                this::federatedLocalReorderTickets,
+                StationPermission.USER);
         routes.post(
                 fp + "/{partnerUid}/{boardKey}/tickets/{ticketNumber}/comments",
                 this::federatedLocalAddComment,
-                Roles.USER);
+                StationPermission.USER);
         routes.post(
                 fp + "/{partnerUid}/{boardKey}/tickets/{ticketNumber}/checklist",
                 this::federatedLocalAddChecklistItem,
-                Roles.USER);
+                StationPermission.USER);
         routes.put(
                 fp + "/{partnerUid}/{boardKey}/tickets/{ticketNumber}/checklist/{itemId}",
                 this::federatedLocalUpdateChecklistItem,
-                Roles.USER);
+                StationPermission.USER);
         routes.delete(
                 fp + "/{partnerUid}/{boardKey}/tickets/{ticketNumber}/checklist/{itemId}",
                 this::federatedLocalDeleteChecklistItem,
-                Roles.USER);
+                StationPermission.USER);
         routes.post(
                 fp + "/{partnerUid}/{boardKey}/tickets/{ticketNumber}/labels/{labelId}",
                 this::federatedLocalAddTicketLabel,
-                Roles.USER);
+                StationPermission.USER);
         routes.delete(
                 fp + "/{partnerUid}/{boardKey}/tickets/{ticketNumber}/labels/{labelId}",
                 this::federatedLocalRemoveTicketLabel,
-                Roles.USER);
-        routes.post(fp + "/{partnerUid}/{boardKey}/labels", this::federatedLocalCreateLabel, Roles.USER);
+                StationPermission.USER);
+        routes.post(fp + "/{partnerUid}/{boardKey}/labels", this::federatedLocalCreateLabel, StationPermission.USER);
         routes.post(
                 fp + "/{partnerUid}/{boardKey}/tickets/{ticketNumber}/watch",
                 this::federatedLocalWatchTicket,
-                Roles.USER);
+                StationPermission.USER);
         routes.delete(
                 fp + "/{partnerUid}/{boardKey}/tickets/{ticketNumber}/watch",
                 this::federatedLocalUnwatchTicket,
-                Roles.USER);
+                StationPermission.USER);
         routes.post(
                 fp + "/{partnerUid}/{boardKey}/tickets/{ticketNumber}/links",
                 this::federatedLocalCreateLink,
-                Roles.USER);
+                StationPermission.USER);
         routes.delete(
                 fp + "/{partnerUid}/{boardKey}/tickets/{ticketNumber}/links/{linkedNumber}",
                 this::federatedLocalDeleteLink,
-                Roles.USER);
+                StationPermission.USER);
 
         // Local access override management
         routes.get(
-                fp + "/{partnerUid}/{boardKey}/access/override", this::federatedLocalGetOverride, Roles.BOARD_MANAGER);
+                fp + "/{partnerUid}/{boardKey}/access/override",
+                this::federatedLocalGetOverride,
+                StationPermission.BOARD_MANAGER);
         routes.put(
-                fp + "/{partnerUid}/{boardKey}/access/override", this::federatedLocalSetOverride, Roles.BOARD_MANAGER);
+                fp + "/{partnerUid}/{boardKey}/access/override",
+                this::federatedLocalSetOverride,
+                StationPermission.BOARD_MANAGER);
 
         // -- Federated board remote endpoints (unauthenticated, RSA-signed) --
         String rp = prefix + "/remote/boards";
@@ -341,7 +366,7 @@ public class BoardRoutes implements Routes {
             return;
         }
         boolean visibleOnly = "true".equals(ctx.queryParam("visible"));
-        if (session.roles().contains(Roles.BOARD_MANAGER) && !visibleOnly) {
+        if (session.permissions().contains(StationPermission.BOARD_MANAGER) && !visibleOnly) {
             ctx.json(boardService.findByStation(session.stationId()));
         } else {
             ctx.json(boardService.findVisibleBoards(
@@ -552,7 +577,7 @@ public class BoardRoutes implements Routes {
         var req = ctx.bodyAsClass(AccessRequest.class);
         boardService.setViewAccess(
                 id,
-                req.roleIds() != null ? req.roleIds() : List.of(),
+                req.userTypes() != null ? req.userTypes() : List.of(),
                 req.groupIds() != null ? req.groupIds() : List.of(),
                 req.tagIds() != null ? req.tagIds() : List.of());
         ctx.status(HttpStatus.OK).json(req);
@@ -589,7 +614,7 @@ public class BoardRoutes implements Routes {
         var req = ctx.bodyAsClass(AccessRequest.class);
         boardService.setEditAccess(
                 id,
-                req.roleIds() != null ? req.roleIds() : List.of(),
+                req.userTypes() != null ? req.userTypes() : List.of(),
                 req.groupIds() != null ? req.groupIds() : List.of(),
                 req.tagIds() != null ? req.tagIds() : List.of());
         ctx.status(HttpStatus.OK).json(req);
@@ -736,8 +761,8 @@ public class BoardRoutes implements Routes {
         var targets = federatedBoardService.findShareTargets(id).stream()
                 .map(t -> new FederationTargetResponse(t.partnerId(), t.shareMode(), t.requiredRole()))
                 .toList();
-        var editRoleIds = federatedBoardService.findFederatedEditRoles(id);
-        ctx.json(new FederationConfigResponse(targets, editRoleIds));
+        var editUserTypes = federatedBoardService.findFederatedEditUserTypes(id);
+        ctx.json(new FederationConfigResponse(targets, editUserTypes));
     }
 
     @OpenApi(
@@ -765,7 +790,8 @@ public class BoardRoutes implements Routes {
         } else {
             federatedBoardService.shareBoard(id, configs);
         }
-        federatedBoardService.setFederatedEditRoles(id, req.editRoleIds() != null ? req.editRoleIds() : List.of());
+        federatedBoardService.setFederatedEditUserTypes(
+                id, req.editUserTypes() != null ? req.editUserTypes() : List.of());
         ctx.status(HttpStatus.OK).json(Map.of("ok", true));
     }
 
@@ -1653,9 +1679,9 @@ public class BoardRoutes implements Routes {
         if (boardUid == null) throw new NotFoundResponse("Board not found: " + boardKey);
         var req = ctx.bodyAsClass(LocalOverrideRequest.class);
         proxyService.setLocalViewOverride(
-                partnerId, boardUid, new AccessData(req.viewRoleIds(), req.viewGroupIds(), req.viewTagIds()));
+                partnerId, boardUid, new AccessData(req.viewUserTypes(), req.viewGroupIds(), req.viewTagIds()));
         proxyService.setLocalEditOverride(
-                partnerId, boardUid, new AccessData(req.editRoleIds(), req.editGroupIds(), req.editTagIds()));
+                partnerId, boardUid, new AccessData(req.editUserTypes(), req.editGroupIds(), req.editTagIds()));
         ctx.status(204);
     }
 
@@ -1933,8 +1959,8 @@ public class BoardRoutes implements Routes {
         int boardId = resolveRemoteBoardId(ctx, partner);
         requireRemoteView(boardId, partner);
         var mode = federatedBoardService.getShareMode(boardId, partner.id()).orElse(BoardShareMode.READ_ONLY);
-        var editRoles = federatedBoardService.findFederatedEditRoles(boardId);
-        ctx.json(Map.of("shareMode", mode.name(), "editRoleIds", editRoles));
+        var editUserTypes = federatedBoardService.findFederatedEditUserTypes(boardId);
+        ctx.json(Map.of("shareMode", mode.name(), "editUserTypes", editUserTypes));
     }
 
     private void federatedRemoteGetMembers(Context ctx) {
@@ -2551,15 +2577,15 @@ public class BoardRoutes implements Routes {
 
     public record LabelRequest(String name, String color) {}
 
-    public record AccessRequest(List<Integer> roleIds, List<Integer> groupIds, List<Integer> tagIds) {}
+    public record AccessRequest(List<String> userTypes, List<Integer> groupIds, List<Integer> tagIds) {}
 
     public record FederationTargetRequest(int partnerId, BoardShareMode shareMode, String requiredRole) {}
 
     public record FederationTargetResponse(int partnerId, BoardShareMode shareMode, String requiredRole) {}
 
-    public record FederationConfigRequest(List<FederationTargetRequest> targets, List<Integer> editRoleIds) {}
+    public record FederationConfigRequest(List<FederationTargetRequest> targets, List<String> editUserTypes) {}
 
-    public record FederationConfigResponse(List<FederationTargetResponse> targets, List<Integer> editRoleIds) {}
+    public record FederationConfigResponse(List<FederationTargetResponse> targets, List<String> editUserTypes) {}
 
     public record RemoteSharedBoardResponse(
             String uid, String name, String description, String shortKey, String shareMode, String requiredRole) {}
@@ -2594,10 +2620,10 @@ public class BoardRoutes implements Routes {
     record LocalCreateLabelRequest(String name, String color) {}
 
     record LocalOverrideRequest(
-            List<Integer> viewRoleIds,
+            List<String> viewUserTypes,
             List<Integer> viewGroupIds,
             List<Integer> viewTagIds,
-            List<Integer> editRoleIds,
+            List<String> editUserTypes,
             List<Integer> editGroupIds,
             List<Integer> editTagIds) {}
 

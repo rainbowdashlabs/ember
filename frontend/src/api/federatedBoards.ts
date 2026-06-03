@@ -61,12 +61,12 @@ export interface FederatedWatchers {
 
 export interface FederatedBoardAccess {
     shareMode: BoardShareModeName
-    editRoleIds: number[]
+    editUserTypes: string[]
 }
 
 export interface LocalAccessOverride {
-    view: { roleIds: number[]; groupIds: number[]; tagIds: number[] }
-    edit: { roleIds: number[]; groupIds: number[]; tagIds: number[] }
+    view: { userTypes: string[]; groupIds: number[]; tagIds: number[] }
+    edit: { userTypes: string[]; groupIds: number[]; tagIds: number[] }
 }
 
 // -- Discovery --
@@ -305,10 +305,10 @@ export async function getAccessOverride(partnerUid: string, boardKey: string): P
 }
 
 export async function setAccessOverride(partnerUid: string, boardKey: string, data: {
-    viewRoleIds: number[]
+    viewUserTypes: string[]
     viewGroupIds: number[]
     viewTagIds: number[]
-    editRoleIds: number[]
+    editUserTypes: string[]
     editGroupIds: number[]
     editTagIds: number[]
 }): Promise<void> {

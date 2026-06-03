@@ -6,9 +6,9 @@
 package dev.chojo.ember.feature.notifications.route;
 
 import dev.chojo.ember.api.MessageResponse;
-import dev.chojo.ember.api.Roles;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.roles.StationPermission;
 import dev.chojo.ember.feature.notifications.entity.Notification;
 import dev.chojo.ember.feature.notifications.service.NotificationService;
 import io.javalin.http.Context;
@@ -40,11 +40,11 @@ public class NotificationRoutes implements Routes {
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        routes.get(prefix + "/notifications", this::list, Roles.LOGIN);
-        routes.get(prefix + "/notifications/unacknowledged", this::listUnacknowledged, Roles.LOGIN);
-        routes.get(prefix + "/notifications/count", this::count, Roles.LOGIN);
-        routes.post(prefix + "/notifications/{id}/acknowledge", this::acknowledge, Roles.LOGIN);
-        routes.post(prefix + "/notifications/acknowledge-all", this::acknowledgeAll, Roles.LOGIN);
+        routes.get(prefix + "/notifications", this::list, StationPermission.LOGIN);
+        routes.get(prefix + "/notifications/unacknowledged", this::listUnacknowledged, StationPermission.LOGIN);
+        routes.get(prefix + "/notifications/count", this::count, StationPermission.LOGIN);
+        routes.post(prefix + "/notifications/{id}/acknowledge", this::acknowledge, StationPermission.LOGIN);
+        routes.post(prefix + "/notifications/acknowledge-all", this::acknowledgeAll, StationPermission.LOGIN);
     }
 
     @OpenApi(

@@ -5,9 +5,9 @@
  */
 package dev.chojo.ember.feature.federation.route;
 
-import dev.chojo.ember.api.Roles;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.roles.StationPermission;
 import dev.chojo.ember.feature.federation.entity.CapabilityType;
 import dev.chojo.ember.feature.federation.entity.Direction;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
@@ -42,34 +42,58 @@ public class FederationRoutes implements Routes {
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
         // Partner management
-        routes.get(prefix + "/federation/partners", this::listPartners, Roles.FEDERATION_MANAGER);
-        routes.post(prefix + "/federation/invite", this::createInvite, Roles.FEDERATION_MANAGER);
-        routes.post(prefix + "/federation/accept", this::acceptInvite, Roles.FEDERATION_MANAGER);
-        routes.get(prefix + "/federation/partners/{id}", this::getPartner, Roles.FEDERATION_MANAGER);
-        routes.get(prefix + "/federation/requests", this::listPendingRequests, Roles.FEDERATION_MANAGER);
-        routes.post(prefix + "/federation/requests/{id}/accept", this::acceptPairRequest, Roles.FEDERATION_MANAGER);
-        routes.post(prefix + "/federation/requests/{id}/decline", this::declinePairRequest, Roles.FEDERATION_MANAGER);
-        routes.post(prefix + "/federation/partners/{id}/suspend", this::suspendPartner, Roles.FEDERATION_MANAGER);
-        routes.post(prefix + "/federation/partners/{id}/resume", this::resumePartner, Roles.FEDERATION_MANAGER);
-        routes.delete(prefix + "/federation/partners/{id}", this::endFederation, Roles.FEDERATION_MANAGER);
+        routes.get(prefix + "/federation/partners", this::listPartners, StationPermission.STATION_FEDERATION);
+        routes.post(prefix + "/federation/invite", this::createInvite, StationPermission.STATION_FEDERATION);
+        routes.post(prefix + "/federation/accept", this::acceptInvite, StationPermission.STATION_FEDERATION);
+        routes.get(prefix + "/federation/partners/{id}", this::getPartner, StationPermission.STATION_FEDERATION);
+        routes.get(prefix + "/federation/requests", this::listPendingRequests, StationPermission.STATION_FEDERATION);
+        routes.post(
+                prefix + "/federation/requests/{id}/accept",
+                this::acceptPairRequest,
+                StationPermission.STATION_FEDERATION);
+        routes.post(
+                prefix + "/federation/requests/{id}/decline",
+                this::declinePairRequest,
+                StationPermission.STATION_FEDERATION);
+        routes.post(
+                prefix + "/federation/partners/{id}/suspend",
+                this::suspendPartner,
+                StationPermission.STATION_FEDERATION);
+        routes.post(
+                prefix + "/federation/partners/{id}/resume", this::resumePartner, StationPermission.STATION_FEDERATION);
+        routes.delete(prefix + "/federation/partners/{id}", this::endFederation, StationPermission.STATION_FEDERATION);
 
         // Capabilities
-        routes.get(prefix + "/federation/partners/{id}/capabilities", this::getCapabilities, Roles.FEDERATION_MANAGER);
-        routes.put(prefix + "/federation/partners/{id}/capabilities", this::setCapabilities, Roles.FEDERATION_MANAGER);
+        routes.get(
+                prefix + "/federation/partners/{id}/capabilities",
+                this::getCapabilities,
+                StationPermission.STATION_FEDERATION);
+        routes.put(
+                prefix + "/federation/partners/{id}/capabilities",
+                this::setCapabilities,
+                StationPermission.STATION_FEDERATION);
 
         // Sharing management
-        routes.get(prefix + "/federation/shares/kb", this::listKbShares, Roles.FEDERATION_MANAGER);
-        routes.post(prefix + "/federation/shares/kb", this::createKbShare, Roles.FEDERATION_MANAGER);
-        routes.delete(prefix + "/federation/shares/kb/{id}", this::deleteKbShare, Roles.FEDERATION_MANAGER);
-        routes.get(prefix + "/federation/shares/quiz", this::listQuizShares, Roles.FEDERATION_MANAGER);
-        routes.post(prefix + "/federation/shares/quiz", this::createQuizShare, Roles.FEDERATION_MANAGER);
-        routes.delete(prefix + "/federation/shares/quiz/{id}", this::deleteQuizShare, Roles.FEDERATION_MANAGER);
-        routes.get(prefix + "/federation/shares/protocol", this::listProtocolShares, Roles.FEDERATION_MANAGER);
-        routes.post(prefix + "/federation/shares/protocol", this::createProtocolShare, Roles.FEDERATION_MANAGER);
-        routes.delete(prefix + "/federation/shares/protocol/{id}", this::deleteProtocolShare, Roles.FEDERATION_MANAGER);
+        routes.get(prefix + "/federation/shares/kb", this::listKbShares, StationPermission.STATION_FEDERATION);
+        routes.post(prefix + "/federation/shares/kb", this::createKbShare, StationPermission.STATION_FEDERATION);
+        routes.delete(prefix + "/federation/shares/kb/{id}", this::deleteKbShare, StationPermission.STATION_FEDERATION);
+        routes.get(prefix + "/federation/shares/quiz", this::listQuizShares, StationPermission.STATION_FEDERATION);
+        routes.post(prefix + "/federation/shares/quiz", this::createQuizShare, StationPermission.STATION_FEDERATION);
+        routes.delete(
+                prefix + "/federation/shares/quiz/{id}", this::deleteQuizShare, StationPermission.STATION_FEDERATION);
+        routes.get(
+                prefix + "/federation/shares/protocol", this::listProtocolShares, StationPermission.STATION_FEDERATION);
+        routes.post(
+                prefix + "/federation/shares/protocol",
+                this::createProtocolShare,
+                StationPermission.STATION_FEDERATION);
+        routes.delete(
+                prefix + "/federation/shares/protocol/{id}",
+                this::deleteProtocolShare,
+                StationPermission.STATION_FEDERATION);
 
         // Version/capabilities info
-        routes.get(prefix + "/federation/info", this::getInfo, Roles.FEDERATION_MANAGER);
+        routes.get(prefix + "/federation/info", this::getInfo, StationPermission.STATION_FEDERATION);
     }
 
     // -- Partner Management --

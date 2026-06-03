@@ -66,12 +66,12 @@ public class NewsService {
             String contentMarkdown,
             String contentHtml,
             MemberIdentity author,
-            List<Integer> roleIds,
+            List<String> userTypes,
             List<Integer> groupIds,
             List<Integer> tagIds,
             List<Integer> memberIds) {
         var news = newsRepository.create(stationId, title, contentMarkdown, contentHtml, author);
-        setRestrictions(news.id(), roleIds, groupIds, tagIds, memberIds);
+        setRestrictions(news.id(), userTypes, groupIds, tagIds, memberIds);
         eventBus.publish(new NewsCreated(stationId, news.id(), title));
         return news;
     }
@@ -126,12 +126,12 @@ public class NewsService {
             String title,
             String contentMarkdown,
             String contentHtml,
-            List<Integer> roleIds,
+            List<String> userTypes,
             List<Integer> groupIds,
             List<Integer> tagIds,
             List<Integer> memberIds) {
         if (newsRepository.update(id, title, contentMarkdown, contentHtml)) {
-            setRestrictions(id, roleIds, groupIds, tagIds, memberIds);
+            setRestrictions(id, userTypes, groupIds, tagIds, memberIds);
             return newsRepository.findById(id);
         }
         return Optional.empty();
@@ -167,12 +167,12 @@ public class NewsService {
      * Sets all restrictions for a news article.
      */
     public void setRestrictions(
-            int newsId, List<Integer> roleIds, List<Integer> groupIds, List<Integer> tagIds, List<Integer> memberIds) {
+            int newsId, List<String> userTypes, List<Integer> groupIds, List<Integer> tagIds, List<Integer> memberIds) {
         restrictionRepository.setRestrictions(
                 RestrictionType.NEWS.table(),
                 RestrictionType.NEWS.fkColumn(),
                 newsId,
-                roleIds != null ? roleIds : List.of(),
+                userTypes != null ? userTypes : List.of(),
                 groupIds != null ? groupIds : List.of(),
                 tagIds != null ? tagIds : List.of(),
                 memberIds != null ? memberIds : List.of());

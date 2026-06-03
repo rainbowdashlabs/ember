@@ -342,15 +342,15 @@ public class KnowledgeBaseRepository {
     }
 
     public KbAccessRestriction addRestriction(
-            Integer folderId, Integer fileId, Integer roleId, Integer groupId, Integer tagId, Integer memberId) {
+            Integer folderId, Integer fileId, String userType, Integer groupId, Integer tagId, Integer memberId) {
         return Query.query("""
-                        INSERT INTO kb_access_restriction(folder_id, file_id, role_id, group_id, tag_id, member_id)
-                        VALUES (:folder_id, :file_id, :role_id, :group_id, :tag_id, :member_id)
+                        INSERT INTO kb_access_restriction(folder_id, file_id, user_type, group_id, tag_id, member_id)
+                        VALUES (:folder_id, :file_id, :user_type, :group_id, :tag_id, :member_id)
                         RETURNING *;""")
                 .single(Call.of()
                         .bind("folder_id", folderId)
                         .bind("file_id", fileId)
-                        .bind("role_id", roleId)
+                        .bind("user_type", userType)
                         .bind("group_id", groupId)
                         .bind("tag_id", tagId)
                         .bind("member_id", memberId))

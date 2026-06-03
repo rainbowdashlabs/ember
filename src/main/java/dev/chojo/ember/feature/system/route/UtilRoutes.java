@@ -6,8 +6,8 @@
 package dev.chojo.ember.feature.system.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
-import dev.chojo.ember.api.Roles;
 import dev.chojo.ember.api.Routes;
+import dev.chojo.ember.api.roles.StationPermission;
 import dev.chojo.ember.util.CsvParser;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
@@ -30,7 +30,7 @@ public class UtilRoutes implements Routes {
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        routes.post(prefix + "/util/csv/parse", this::parseCsv, Roles.LOGIN);
+        routes.post(prefix + "/util/csv/parse", this::parseCsv, StationPermission.LOGIN);
     }
 
     @OpenApi(

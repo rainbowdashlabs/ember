@@ -28,8 +28,8 @@ import MultiSelectDropdown from '@/components/input/select/MultiSelectDropdown.v
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import { boards, stationMembers, memberGroups, userTags, federation } from '@/api'
 import type { Board, BoardFieldConfig, FederationTarget } from '@/api/boards'
-import type { Role, MemberGroup, UserTag, RoleName } from '@/api/types'
-import { Roles } from '@/api/types'
+import type { PermissionGrant, MemberGroup, UserTag } from '@/api/types'
+import { StationUserType } from '@/api/types'
 import type { PartnerResponse } from '@/api/federation'
 
 const { t } = useI18n()
@@ -53,20 +53,20 @@ const newFieldName = ref('')
 const newFieldType = ref('string')
 
 // Access restrictions
-const allRoles = ref<Role[]>([])
+const allRoles = ref<PermissionGrant[]>([])
 const allGroups = ref<MemberGroup[]>([])
 const allTags = ref<UserTag[]>([])
-const viewRoleIds = ref<number[]>([])
+const viewUserTypes = ref<string[]>([])
 const viewGroupIds = ref<number[]>([])
 const viewTagIds = ref<number[]>([])
-const editRoleIds = ref<number[]>([])
+const editUserTypes = ref<string[]>([])
 const editGroupIds = ref<number[]>([])
 const editTagIds = ref<number[]>([])
 
 // Federation
 const allPartners = ref<PartnerResponse[]>([])
 const federationTargets = ref<FederationTarget[]>([])
-const federatedEditRoleIds = ref<string[]>([])
+const federatedEditUserTypes = ref<string[]>([])
 const addPartnerId = ref<number | null>(null)
 
 const activePartners = computed(() =>
@@ -82,12 +82,12 @@ const hasFullMode = computed(() =>
     federationTargets.value.some(t => t.shareMode === 'FULL'),
 )
 
-const USER_ROLES: readonly RoleName[] = [Roles.MEMBER, Roles.GUARDIAN, Roles.TEAM, Roles.MANAGER] as const
+const USER_ROLES: readonly string[] = [StationUserType.MEMBER, StationUserType.GUARDIAN, StationUserType.TEAM, StationUserType.MANAGER] as const
 
 const roleOptions = computed(() =>
     allRoles.value
-        .filter(r => (USER_ROLES as readonly string[]).includes(r.role))
-        .map(r => ({ value: String(r.id), label: r.role })),
+        .filter(r => (USER_ROLES as readonly string[]).includes(r.permission))
+        .map(r => ({ value: String(r.id), label: r.permission })),
 )
 
 function partnerName(partnerId: number): string {
@@ -131,14 +131,14 @@ async function loadData() {
         allRoles.value = r
         allGroups.value = g
         allTags.value = tg
-        viewRoleIds.value = va.roleIds ?? []
+        viewUserTypes.value = va.userTypes ?? []
         viewGroupIds.value = va.groupIds ?? []
         viewTagIds.value = va.tagIds ?? []
-        editRoleIds.value = ea.roleIds ?? []
+        editUserTypes.value = ea.userTypes ?? []
         editGroupIds.value = ea.groupIds ?? []
         editTagIds.value = ea.tagIds ?? []
         federationTargets.value = fedConfig.targets ?? []
-        federatedEditRoleIds.value = (fedConfig.editRoleIds ?? []).map(String)
+        federatedEditUserTypes.value = fedConfig.editUserTypes ?? []
         allPartners.value = partners
     } catch {
         error.value = t('common.error')
@@ -164,14 +164,14 @@ async function save() {
         }
         await boards.setFields(boardKey.value, fields.value)
         await boards.setViewAccess(boardKey.value, {
-            roleIds: viewRoleIds.value, groupIds: viewGroupIds.value, tagIds: viewTagIds.value,
+            userTypes: viewUserTypes.value, groupIds: viewGroupIds.value, tagIds: viewTagIds.value,
         })
         await boards.setEditAccess(boardKey.value, {
-            roleIds: editRoleIds.value, groupIds: editGroupIds.value, tagIds: editTagIds.value,
+            userTypes: editUserTypes.value, groupIds: editGroupIds.value, tagIds: editTagIds.value,
         })
         await boards.setBoardFederationConfig(boardKey.value, {
             targets: federationTargets.value,
-            editRoleIds: federatedEditRoleIds.value.map(Number),
+            editUserTypes: federatedEditUserTypes.value,
         })
         saved.value = true
         setTimeout(() => saved.value = false, 2000)
@@ -345,10 +345,10 @@ onMounted(loadData)
                         :roles="allRoles"
                         :groups="allGroups"
                         :tags="allTags"
-                        :selected-role-ids="viewRoleIds"
+                        :selected-user-types="viewUserTypes"
                         :selected-group-ids="viewGroupIds"
                         :selected-tag-ids="viewTagIds"
-                        @update:selected-role-ids="viewRoleIds = $event"
+                        @update:selected-user-types="viewUserTypes = $event"
                         @update:selected-group-ids="viewGroupIds = $event"
                         @update:selected-tag-ids="viewTagIds = $event"
                     />
@@ -362,10 +362,10 @@ onMounted(loadData)
                         :roles="allRoles"
                         :groups="allGroups"
                         :tags="allTags"
-                        :selected-role-ids="editRoleIds"
+                        :selected-user-types="editUserTypes"
                         :selected-group-ids="editGroupIds"
                         :selected-tag-ids="editTagIds"
-                        @update:selected-role-ids="editRoleIds = $event"
+                        @update:selected-user-types="editUserTypes = $event"
                         @update:selected-group-ids="editGroupIds = $event"
                         @update:selected-tag-ids="editTagIds = $event"
                     />
@@ -412,8 +412,8 @@ onMounted(loadData)
                         <p class="text-xs text-[var(--text-muted)] mb-2">{{ t('boards.federatedEditRolesDesc') }}</p>
                         <MultiSelectDropdown
                             :options="roleOptions"
-                            :model-value="federatedEditRoleIds"
-                            @update:model-value="federatedEditRoleIds = $event"
+                            :model-value="federatedEditUserTypes"
+                            @update:model-value="federatedEditUserTypes = $event"
                         />
                     </div>
                 </NeutralContainer>

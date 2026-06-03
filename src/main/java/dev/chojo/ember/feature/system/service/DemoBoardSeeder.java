@@ -56,8 +56,8 @@ public class DemoBoardSeeder {
             int stationId,
             StationMember admin,
             List<StationMember> teamMembers,
-            int teamRoleId,
-            int userRoleId,
+            String teamUserType,
+            String memberUserType,
             Random rng) {
         this.currentStationId = stationId;
 
@@ -69,8 +69,8 @@ public class DemoBoardSeeder {
         var lane1Done = boardRepo.createLane(board1.id(), "Erledigt", "#22c55e", 2);
 
         // Restrict view + edit to TEAM only
-        boardRepo.setViewAccess(board1.id(), List.of(teamRoleId), List.of(), List.of());
-        boardRepo.setEditAccess(board1.id(), List.of(teamRoleId), List.of(), List.of());
+        boardRepo.setViewAccess(board1.id(), List.of(teamUserType), List.of(), List.of());
+        boardRepo.setEditAccess(board1.id(), List.of(teamUserType), List.of(), List.of());
 
         // Tickets in "Offen"
         var t1 = createTicket(
@@ -192,7 +192,7 @@ public class DemoBoardSeeder {
         var backlogLane = boardRepo.enableBacklog(board2.id());
 
         // View: all users; Edit: TEAM only
-        boardRepo.setEditAccess(board2.id(), List.of(teamRoleId), List.of(), List.of());
+        boardRepo.setEditAccess(board2.id(), List.of(teamUserType), List.of(), List.of());
         // No view restrictions = visible to all station members
 
         // Tickets in "Offen"
@@ -585,8 +585,8 @@ public class DemoBoardSeeder {
             int partnerStationId,
             StationMember admin,
             List<StationMember> teamMembers,
-            int teamRoleId,
-            int memberRoleId,
+            String teamUserType,
+            String memberUserType,
             Random rng) {
         // Find the federation partner ID
         var partners = federationService.findPartners(stationId);
@@ -602,7 +602,7 @@ public class DemoBoardSeeder {
         var laneDone = boardRepo.createLane(board.id(), "Erledigt", "#22c55e", 2);
 
         // View: MEMBER + TEAM (all members can see), Edit: TEAM only
-        boardRepo.setEditAccess(board.id(), List.of(teamRoleId), List.of(), List.of());
+        boardRepo.setEditAccess(board.id(), List.of(teamUserType), List.of(), List.of());
         // No view restrictions = visible to all station members
 
         // Share with partner in FULL mode

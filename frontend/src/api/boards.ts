@@ -124,7 +124,7 @@ export interface BoardComment {
 }
 
 export interface AccessConfig {
-    roleIds: number[]
+    userTypes: string[]
     groupIds: number[]
     tagIds: number[]
 }
@@ -272,7 +272,7 @@ export interface FederationTarget {
 
 export interface BoardFederationConfig {
     targets: FederationTarget[]
-    editRoleIds: number[]
+    editUserTypes: string[]
 }
 
 export async function getBoardFederationConfig(boardKey: string): Promise<BoardFederationConfig> {

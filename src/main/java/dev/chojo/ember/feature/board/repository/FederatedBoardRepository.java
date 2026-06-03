@@ -49,14 +49,14 @@ public class FederatedBoardRepository {
 
     public void setShareTarget(int shareId, int partnerId, BoardShareMode shareMode, String requiredRole) {
         Query.query("""
-                        INSERT INTO federation_board_share_target(share_id, partner_id, share_mode, required_role)
-                        VALUES (:share_id, :partner_id, :share_mode, :required_role)
-                        ON CONFLICT (share_id, partner_id) DO UPDATE SET share_mode = :share_mode, required_role = :required_role;""")
+                        INSERT INTO federation_board_share_target(share_id, partner_id, share_mode, required_user_type)
+                        VALUES (:share_id, :partner_id, :share_mode, :required_user_type)
+                        ON CONFLICT (share_id, partner_id) DO UPDATE SET share_mode = :share_mode, required_user_type = :required_user_type;""")
                 .single(Call.of()
                         .bind("share_id", shareId)
                         .bind("partner_id", partnerId)
                         .bind("share_mode", shareMode.name())
-                        .bind("required_role", requiredRole))
+                        .bind("required_user_type", requiredRole))
                 .insert();
     }
 
@@ -92,11 +92,11 @@ public class FederatedBoardRepository {
 
     public Optional<String> findRequiredRole(int boardId, int partnerId) {
         return Query.query("""
-                        SELECT t.required_role FROM federation_board_share_target t
+                        SELECT t.required_user_type FROM federation_board_share_target t
                         JOIN federation_board_share s ON s.id = t.share_id
                         WHERE s.board_id = :board_id AND t.partner_id = :partner_id;""")
                 .single(Call.of().bind("board_id", boardId).bind("partner_id", partnerId))
-                .map(row -> row.getString("required_role"))
+                .map(row -> row.getString("required_user_type"))
                 .first();
     }
 
@@ -110,28 +110,29 @@ public class FederatedBoardRepository {
                 .all();
     }
 
-    // -- Federated Edit Roles --
+    // -- Federated Edit User Types --
 
-    public void setFederatedEditRoles(int boardId, List<Integer> roleIds) {
-        Query.query("DELETE FROM federation_board_edit_role WHERE board_id = :board_id;")
+    public void setFederatedEditUserTypes(int boardId, List<String> userTypes) {
+        Query.query("DELETE FROM federation_board_edit_user_type WHERE board_id = :board_id;")
                 .single(Call.of().bind("board_id", boardId))
                 .delete();
-        for (int roleId : roleIds) {
-            Query.query("INSERT INTO federation_board_edit_role(board_id, role_id) VALUES (:board_id, :role_id);")
-                    .single(Call.of().bind("board_id", boardId).bind("role_id", roleId))
+        for (String userType : userTypes) {
+            Query.query(
+                            "INSERT INTO federation_board_edit_user_type(board_id, user_type) VALUES (:board_id, :user_type);")
+                    .single(Call.of().bind("board_id", boardId).bind("user_type", userType))
                     .insert();
         }
     }
 
-    public List<Integer> findFederatedEditRoles(int boardId) {
-        return Query.query("SELECT role_id FROM federation_board_edit_role WHERE board_id = :board_id;")
+    public List<String> findFederatedEditUserTypes(int boardId) {
+        return Query.query("SELECT user_type FROM federation_board_edit_user_type WHERE board_id = :board_id;")
                 .single(Call.of().bind("board_id", boardId))
-                .map(row -> row.getInt("role_id"))
+                .map(row -> row.getString("user_type"))
                 .all();
     }
 
-    public boolean hasFederatedEditRoles(int boardId) {
-        return Query.query("SELECT 1 FROM federation_board_edit_role WHERE board_id = :board_id LIMIT 1;")
+    public boolean hasFederatedEditUserTypes(int boardId) {
+        return Query.query("SELECT 1 FROM federation_board_edit_user_type WHERE board_id = :board_id LIMIT 1;")
                 .single(Call.of().bind("board_id", boardId))
                 .map(row -> true)
                 .first()
@@ -228,14 +229,14 @@ public class FederatedBoardRepository {
                         .bind("partner_id", partnerId)
                         .bind("remote_board_uid", remoteBoardUid, StandardValueConverter.UUID_STRING))
                 .delete();
-        for (int roleId : access.roleIds()) {
+        for (String userType : access.userTypes()) {
             Query.query("""
-                            INSERT INTO federation_board_local_view_override(partner_id, remote_board_uid, role_id)
-                            VALUES (:partner_id, :remote_board_uid::uuid, :role_id);""")
+                            INSERT INTO federation_board_local_view_override(partner_id, remote_board_uid, user_type)
+                            VALUES (:partner_id, :remote_board_uid::uuid, :user_type);""")
                     .single(Call.of()
                             .bind("partner_id", partnerId)
                             .bind("remote_board_uid", remoteBoardUid, StandardValueConverter.UUID_STRING)
-                            .bind("role_id", roleId))
+                            .bind("user_type", userType))
                     .insert();
         }
         for (int groupId : access.groupIds()) {
@@ -268,14 +269,14 @@ public class FederatedBoardRepository {
                         .bind("partner_id", partnerId)
                         .bind("remote_board_uid", remoteBoardUid, StandardValueConverter.UUID_STRING))
                 .delete();
-        for (int roleId : access.roleIds()) {
+        for (String userType : access.userTypes()) {
             Query.query("""
-                            INSERT INTO federation_board_local_edit_override(partner_id, remote_board_uid, role_id)
-                            VALUES (:partner_id, :remote_board_uid::uuid, :role_id);""")
+                            INSERT INTO federation_board_local_edit_override(partner_id, remote_board_uid, user_type)
+                            VALUES (:partner_id, :remote_board_uid::uuid, :user_type);""")
                     .single(Call.of()
                             .bind("partner_id", partnerId)
                             .bind("remote_board_uid", remoteBoardUid, StandardValueConverter.UUID_STRING)
-                            .bind("role_id", roleId))
+                            .bind("user_type", userType))
                     .insert();
         }
         for (int groupId : access.groupIds()) {
@@ -301,13 +302,14 @@ public class FederatedBoardRepository {
     }
 
     public AccessData findLocalViewOverride(int partnerId, UUID remoteBoardUid) {
-        var roleIds = Query.query("""
-                        SELECT role_id FROM federation_board_local_view_override
-                        WHERE partner_id = :partner_id AND remote_board_uid = :remote_board_uid::uuid AND role_id IS NOT NULL;""")
+        var userTypes = Query.query("""
+                        SELECT user_type FROM federation_board_local_view_override
+                        WHERE partner_id = :partner_id AND remote_board_uid = :remote_board_uid::uuid AND user_type IS NOT NULL
+                        ORDER BY user_type;""")
                 .single(Call.of()
                         .bind("partner_id", partnerId)
                         .bind("remote_board_uid", remoteBoardUid, StandardValueConverter.UUID_STRING))
-                .map(row -> row.getInt("role_id"))
+                .map(row -> row.getString("user_type"))
                 .all();
         var groupIds = Query.query("""
                         SELECT group_id FROM federation_board_local_view_override
@@ -325,17 +327,18 @@ public class FederatedBoardRepository {
                         .bind("remote_board_uid", remoteBoardUid, StandardValueConverter.UUID_STRING))
                 .map(row -> row.getInt("tag_id"))
                 .all();
-        return new AccessData(roleIds, groupIds, tagIds);
+        return new AccessData(userTypes, groupIds, tagIds);
     }
 
     public AccessData findLocalEditOverride(int partnerId, UUID remoteBoardUid) {
-        var roleIds = Query.query("""
-                        SELECT role_id FROM federation_board_local_edit_override
-                        WHERE partner_id = :partner_id AND remote_board_uid = :remote_board_uid::uuid AND role_id IS NOT NULL;""")
+        var userTypes = Query.query("""
+                        SELECT user_type FROM federation_board_local_edit_override
+                        WHERE partner_id = :partner_id AND remote_board_uid = :remote_board_uid::uuid AND user_type IS NOT NULL
+                        ORDER BY user_type;""")
                 .single(Call.of()
                         .bind("partner_id", partnerId)
                         .bind("remote_board_uid", remoteBoardUid, StandardValueConverter.UUID_STRING))
-                .map(row -> row.getInt("role_id"))
+                .map(row -> row.getString("user_type"))
                 .all();
         var groupIds = Query.query("""
                         SELECT group_id FROM federation_board_local_edit_override
@@ -353,7 +356,7 @@ public class FederatedBoardRepository {
                         .bind("remote_board_uid", remoteBoardUid, StandardValueConverter.UUID_STRING))
                 .map(row -> row.getInt("tag_id"))
                 .all();
-        return new AccessData(roleIds, groupIds, tagIds);
+        return new AccessData(userTypes, groupIds, tagIds);
     }
 
     public boolean hasLocalViewOverride(int partnerId, UUID remoteBoardUid) {

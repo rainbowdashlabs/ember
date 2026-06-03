@@ -19,7 +19,7 @@ import THead from '@/components/table/THead.vue'
 import TRow from '@/components/table/TRow.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
-import type {MemberGroup, Role} from '@/api/types'
+import type {MemberGroup, PermissionGrant} from '@/api/types'
 import {attendance, memberGroups, stationMembers} from '@/api'
 import type {ReportData, ReportPreset} from '@/api/attendance'
 import {useSession} from '@/composables/useSession'
@@ -29,7 +29,7 @@ import Th from '@/components/table/Th.vue'
 const {t} = useI18n()
 const {loaded} = useSession()
 
-const roles = ref<Role[]>([])
+const roles = ref<PermissionGrant[]>([])
 const groups = ref<MemberGroup[]>([])
 const presets = ref<ReportPreset[]>([])
 const report = ref<ReportData | null>(null)
@@ -282,7 +282,7 @@ watch(loaded, (isLoaded) => {
                 }}</FieldLabel>
               <SelectInput v-if="filterType === 'role'" v-model="selectedRole" class="w-full">
                 <option disabled value="">{{ t('attendanceReport.selectRole') }}</option>
-                <option v-for="role in roles" :key="role.id" :value="role.role">{{ role.role }}</option>
+                <option v-for="role in roles" :key="role.id" :value="role.permission">{{ role.permission }}</option>
               </SelectInput>
               <SelectInput v-else v-model="selectedGroupId" class="w-full">
                 <option disabled value="">{{ t('attendanceReport.selectGroup') }}</option>

@@ -7,9 +7,9 @@ package dev.chojo.ember.feature.comment.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.MemberIdentity;
-import dev.chojo.ember.api.Roles;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.roles.StationPermission;
 import dev.chojo.ember.feature.comment.entity.Comment;
 import dev.chojo.ember.feature.comment.service.CommentService;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
@@ -54,10 +54,10 @@ public class EventCommentRoutes implements Routes {
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        routes.get(prefix + "/events/{eventId}/comments", this::list, Roles.LOGIN);
-        routes.post(prefix + "/events/{eventId}/comments", this::create, Roles.LOGIN);
-        routes.put(prefix + "/events/comments/{commentId}", this::update, Roles.LOGIN);
-        routes.delete(prefix + "/events/comments/{commentId}", this::delete, Roles.LOGIN);
+        routes.get(prefix + "/events/{eventId}/comments", this::list, StationPermission.LOGIN);
+        routes.post(prefix + "/events/{eventId}/comments", this::create, StationPermission.LOGIN);
+        routes.put(prefix + "/events/comments/{commentId}", this::update, StationPermission.LOGIN);
+        routes.delete(prefix + "/events/comments/{commentId}", this::delete, StationPermission.LOGIN);
     }
 
     @OpenApi(
@@ -146,7 +146,7 @@ public class EventCommentRoutes implements Routes {
         var authorIdentity = memberIdentityFactory.local(
                 session.stationId(), session.member().id());
         boolean isAuthor = comment.author() != null && comment.author().equals(authorIdentity);
-        boolean canModerate = session.hasRole(Roles.EVENT_MANAGER);
+        boolean canModerate = session.hasPermission(StationPermission.EVENT_MANAGER);
         if (!isAuthor && !canModerate) {
             throw new ForbiddenResponse("You can only delete your own comments");
         }

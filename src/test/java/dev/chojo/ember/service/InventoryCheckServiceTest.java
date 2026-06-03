@@ -5,7 +5,7 @@
  */
 package dev.chojo.ember.service;
 
-import dev.chojo.ember.api.Roles;
+import dev.chojo.ember.api.roles.StationPermission;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.inventory.entity.CheckItemRequest;
 import dev.chojo.ember.feature.inventory.entity.CheckResult;
@@ -47,9 +47,9 @@ class InventoryCheckServiceTest extends RepositoryTestBase {
         checker = stationMemberRepo.create(station.id(), checkerAccount.id());
         target = stationMemberRepo.create(station.id(), targetAccount.id());
 
-        stationMemberRepo.findRoleByName(Roles.MEMBER).ifPresent(r -> {
-            stationMemberRepo.addRole(checker.id(), r.id());
-            stationMemberRepo.addRole(target.id(), r.id());
+        stationMemberRepo.findPermissionByName(StationPermission.USER).ifPresent(r -> {
+            stationMemberRepo.grantPermission(checker.id(), r.id());
+            stationMemberRepo.grantPermission(target.id(), r.id());
         });
 
         var inv = inventoryRepo.create(station.id(), "CheckSvcInv", InventoryType.EXTERNAL, false);
@@ -82,7 +82,7 @@ class InventoryCheckServiceTest extends RepositoryTestBase {
                 .filter(s -> s.memberId() == target.id())
                 .findFirst()
                 .orElseThrow();
-        assertFalse(summary.roles().isEmpty());
+        assertFalse(summary.permissions().isEmpty());
     }
 
     @Test
@@ -194,9 +194,8 @@ class InventoryCheckServiceTest extends RepositoryTestBase {
     @Test
     @Order(60)
     void getRequiredItems() {
-        // Create a requirement for MEMBER role
-        var memberRole = stationMemberRepo.findRoleByName(Roles.MEMBER).orElseThrow();
-        var req = inventoryRepo.createRequirement(inventoryId, memberRole.id(), 0, 2);
+        // Create a requirement for MEMBER user type
+        var req = inventoryRepo.createRequirement(inventoryId, "MEMBER", 0, 2);
 
         var required = service.getRequiredItems(station.id(), target.id());
         assertTrue(required.stream().anyMatch(r -> r.inventoryId() == inventoryId && r.requiredQuantity() == 2));
@@ -284,7 +283,7 @@ class InventoryCheckServiceTest extends RepositoryTestBase {
         var group = memberGroupRepo.create(station.id(), "CheckGroup");
         memberGroupRepo.addMember(group.id(), target.id());
 
-        var req = inventoryRepo.createRequirement(inventoryId, 0, group.id(), 1);
+        var req = inventoryRepo.createRequirement(inventoryId, null, group.id(), 1);
         var required = service.getRequiredItems(station.id(), target.id());
         assertTrue(required.stream().anyMatch(r -> r.inventoryId() == inventoryId));
 

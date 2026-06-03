@@ -5,8 +5,8 @@
  */
 package dev.chojo.ember.feature.system.service;
 
-import dev.chojo.ember.api.Roles;
 import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.roles.StationPermission;
 import dev.chojo.ember.feature.events.repository.EventRepository;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.repository.LendingRepository;
@@ -57,7 +57,7 @@ public class SidebarCountService {
     public SidebarCounts getCounts(UserSession session) {
         int stationId = session.stationId();
         int memberId = session.member().id();
-        var roles = session.roles();
+        var roles = session.permissions();
 
         int notifications = notificationService.countUnacknowledged(memberId);
 
@@ -65,22 +65,23 @@ public class SidebarCountService {
                 memberId, stationId, roles.stream().map(Enum::name).toList());
 
         int pendingChanges = 0;
-        if (roles.contains(Roles.MEMBER_MANAGER) || roles.contains(Roles.GUARDIAN)) {
+        if (roles.contains(StationPermission.MEMBER_MANAGER) || roles.contains(StationPermission.MEMBER_GUARDIAN)) {
             pendingChanges = profileFieldChangeRepository.countPendingChanges(stationId, memberId);
         }
 
         int pendingRegistrations = 0;
-        if (roles.contains(Roles.EVENT_MANAGER)) {
+        if (roles.contains(StationPermission.EVENT_MANAGER)) {
             pendingRegistrations = eventRepository.countPendingRegistrations(stationId);
         }
 
         int lendingRequests = 0;
-        if (roles.contains(Roles.INVENTORY_MANAGER) && roles.contains(Roles.FEDERATION_MANAGER)) {
+        if (roles.contains(StationPermission.INVENTORY_MANAGER)
+                && roles.contains(StationPermission.STATION_FEDERATION)) {
             lendingRequests = lendingRepository.countActionableRequests(stationId);
         }
 
         int federationRequests = 0;
-        if (roles.contains(Roles.FEDERATION_MANAGER)) {
+        if (roles.contains(StationPermission.STATION_FEDERATION)) {
             UUID stationUid = stationRepository.resolveUid(stationId);
             federationRequests = federationRepository.countPendingRequests(stationUid);
         }
@@ -89,12 +90,12 @@ public class SidebarCountService {
         int openEvents = 0;
 
         int waitingListEntries = 0;
-        if (roles.contains(Roles.WAITLIST_MANAGER)) {
+        if (roles.contains(StationPermission.WAITLIST_MANAGER)) {
             waitingListEntries = waitingListRepository.countPendingEntries(stationId);
         }
 
         int lostAndFoundPending = 0;
-        if (roles.contains(Roles.LOST_AND_FOUND_MANAGER)) {
+        if (roles.contains(StationPermission.LOST_AND_FOUND_MANAGER)) {
             lostAndFoundPending = lostAndFoundRepository.countClaimedNotProvided(stationId);
         }
 

@@ -21,7 +21,7 @@ import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import type {MemberCheckSummary} from '@/api/types'
-import {Roles, hasTeamRole} from '@/api/types'
+import {StationUserType} from '@/api/types'
 import {inventoryCheck} from '@/api'
 import {useSession} from '@/composables/useSession'
 import MemberName from '@/components/avatar/MemberName.vue'
@@ -45,11 +45,11 @@ const currentMemberId = () => sessionInfo.value?.member?.id
 const filteredMembers = computed(() => {
   return members.value.filter(m => {
     const roles = m.roles ?? []
-    if (roles.includes(Roles.GUARDIAN)) return false
+    if (roles.includes(StationUserType.GUARDIAN)) return false
     if (activeTab.value === 'team') {
-      return hasTeamRole(roles)
+      return roles.includes(StationUserType.TEAM) || roles.includes(StationUserType.MANAGER)
     } else {
-      return roles.includes(Roles.MEMBER) && !hasTeamRole(roles)
+      return roles.includes(StationUserType.MEMBER) || roles.includes(StationUserType.TRIAL)
     }
   }).sort((a, b) => {
     if (sortBy.value === 'lastChecked') {

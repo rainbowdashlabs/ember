@@ -28,7 +28,7 @@ import DateTimeInput from '@/components/input/datetime/DateTimeInput.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 
 import { QuizTestStatus } from '@/api/types'
-import type { QuizTestDetail, QuizTestAttempt, QuizCatalog, Role, MemberGroup, UserTag, QuizQuestion } from '@/api/types'
+import type { QuizTestDetail, QuizTestAttempt, QuizCatalog, PermissionGrant, MemberGroup, UserTag, QuizQuestion } from '@/api/types'
 import type { FrozenQuestionDetail } from '@/api/quiz'
 import { quiz, stationMembers, memberGroups, userTags } from '@/api'
 import type { StationMember } from '@/api/types'
@@ -62,7 +62,7 @@ const availableQuestions = ref<QuizQuestion[]>([])
 const pickSearch = ref('')
 
 // Restrictions
-const allRoles = ref<Role[]>([])
+const allRoles = ref<PermissionGrant[]>([])
 const allGroups = ref<MemberGroup[]>([])
 const allTags = ref<UserTag[]>([])
 const selectedRoleIds = ref<number[]>([])

@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.api;
 
+import dev.chojo.ember.api.roles.InstancePermission;
+import dev.chojo.ember.api.roles.StationPermission;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.conf.file.elements.Demo;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
@@ -298,20 +300,23 @@ public class ApiServer {
             for (StationMember member : members) {
                 if (member.accountId() == null) continue;
                 accountRepository.findById(member.accountId()).ifPresent(account -> {
-                    var roles = stationMemberRepository.findRoles(member.id());
-                    var roleNames = roles.stream().map(r -> r.role().name()).toList();
+                    var permissions = stationMemberRepository.findPermissions(member.id());
+                    var permissionNames =
+                            permissions.stream().map(p -> p.permission().name()).toList();
                     var groupNames = memberGroupRepository.findGroupsForMember(member.id()).stream()
                             .map(MemberGroup::name)
                             .toList();
                     var tagNames = userTagRepository.findTagsForMember(member.id()).stream()
                             .map(UserTag::name)
                             .toList();
-                    boolean complete = profileFieldService.isProfileComplete(member.id(), station.id(), roleNames);
+                    boolean complete =
+                            profileFieldService.isProfileComplete(member.id(), station.id(), permissionNames);
                     accounts.add(new DemoAccount(
                             account.email(),
                             account.firstName(),
                             account.lastName(),
-                            roleNames,
+                            member.userType().name(),
+                            permissionNames,
                             groupNames,
                             tagNames,
                             complete));
@@ -425,23 +430,20 @@ public class ApiServer {
         }
 
         // If route only requires LOGIN, authenticated is enough
-        if (routeRoles.size() == 1 && routeRoles.contains(Roles.LOGIN)) {
+        if (routeRoles.size() == 1 && routeRoles.contains(StationPermission.LOGIN)) {
             return;
         }
 
-        // Station-scoped role check
-        Set<Roles> userRoles = session.roles();
-
-        // Check if user has any of the required roles (roles are already expanded to include children)
+        // Check if user has any of the required permissions (permissions are already expanded)
         for (RouteRole required : routeRoles) {
-            if (userRoles.contains(required)) {
-                return;
-            }
+            if (required instanceof StationPermission sp && session.hasPermission(sp)) return;
+            if (required instanceof InstancePermission ip && session.hasInstancePermission(ip)) return;
         }
 
-        ctx.header("X-Required-Roles", routeRoles.toString());
-        ctx.header("X-User-Roles", userRoles.toString());
-        throw new ForbiddenResponse("Insufficient permissions. Required: " + routeRoles + ", Current: " + userRoles);
+        ctx.header("X-Required-Permissions", routeRoles.toString());
+        ctx.header("X-User-Permissions", session.permissions().toString());
+        throw new ForbiddenResponse(
+                "Insufficient permissions. Required: " + routeRoles + ", Current: " + session.permissions());
     }
 
     /**
@@ -604,7 +606,7 @@ public class ApiServer {
      * @param email           the account email
      * @param firstName       the first name
      * @param lastName        the last name
-     * @param roles           the role names assigned to this member
+     * @param userType        the user type assigned to this member
      * @param groups          the group names the member belongs to
      * @param tags            the tag names assigned to this member
      * @param profileComplete whether the member's profile is fully filled in
@@ -613,7 +615,8 @@ public class ApiServer {
             String email,
             String firstName,
             String lastName,
-            List<String> roles,
+            String userType,
+            List<String> permissions,
             List<String> groups,
             List<String> tags,
             boolean profileComplete) {}

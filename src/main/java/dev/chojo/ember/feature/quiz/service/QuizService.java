@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.quiz.service;
 
+import dev.chojo.ember.api.roles.StationPermission;
 import dev.chojo.ember.feature.federation.entity.CapabilityType;
 import dev.chojo.ember.feature.federation.entity.ContentType;
 import dev.chojo.ember.feature.federation.entity.Direction;
@@ -52,6 +53,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
@@ -409,15 +411,15 @@ public class QuizService {
         return testRepository.delete(id);
     }
 
-    public boolean isTestAccessible(QuizTest test, int memberId) {
+    public boolean isTestAccessible(QuizTest test, int memberId, Set<StationPermission> memberPermissions) {
         if (test.status() != TestStatus.ACTIVE) return false;
         Instant now = Instant.now();
         if (test.startAt() != null && now.isBefore(test.startAt())) return false;
         if (test.endAt() != null && now.isAfter(test.endAt())) return false;
         // Check per-member override (grants access regardless of restrictions)
         if (testRepository.hasMemberAccess(test.id(), memberId)) return true;
-        // Check role/group/tag restrictions (DB resolves roles with inheritance + manager bypass)
-        return canMemberAccess(test.id(), memberId);
+        // Check role/group/tag restrictions
+        return canMemberAccess(test.id(), memberId, memberPermissions);
     }
 
     // -- Sections --
@@ -780,12 +782,12 @@ public class QuizService {
     }
 
     public void setRestrictions(
-            int testId, List<Integer> roleIds, List<Integer> groupIds, List<Integer> tagIds, List<Integer> memberIds) {
+            int testId, List<String> userTypes, List<Integer> groupIds, List<Integer> tagIds, List<Integer> memberIds) {
         restrictionRepository.setRestrictions(
                 RestrictionType.QUIZ_TEST.table(),
                 RestrictionType.QUIZ_TEST.fkColumn(),
                 testId,
-                roleIds != null ? roleIds : List.of(),
+                userTypes != null ? userTypes : List.of(),
                 groupIds != null ? groupIds : List.of(),
                 tagIds != null ? tagIds : List.of(),
                 memberIds != null ? memberIds : List.of());
@@ -799,8 +801,8 @@ public class QuizService {
      * Checks if a member can access a quiz test based on its restrictions.
      * Delegates to the DB function which resolves the member's identity internally.
      */
-    public boolean canMemberAccess(int testId, int memberId) {
-        return restrictionRepository.checkRestriction(RestrictionType.QUIZ_TEST, testId, memberId);
+    public boolean canMemberAccess(int testId, int memberId, Set<StationPermission> memberPermissions) {
+        return restrictionRepository.checkRestriction(RestrictionType.QUIZ_TEST, testId, memberId, memberPermissions);
     }
 
     private record AttemptQuestionEntry(int questionId, Integer sectionId) {}

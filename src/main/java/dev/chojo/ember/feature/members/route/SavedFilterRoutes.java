@@ -5,9 +5,9 @@
  */
 package dev.chojo.ember.feature.members.route;
 
-import dev.chojo.ember.api.Roles;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.roles.StationPermission;
 import dev.chojo.ember.feature.members.entity.FilterTableType;
 import dev.chojo.ember.feature.members.entity.SavedFilter;
 import dev.chojo.ember.feature.members.repository.SavedFilterRepository;
@@ -39,9 +39,9 @@ public class SavedFilterRoutes implements Routes {
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        routes.get(prefix + "/saved-filters", this::list, Roles.LOGIN);
-        routes.post(prefix + "/saved-filters", this::create, Roles.LOGIN);
-        routes.delete(prefix + "/saved-filters/{id}", this::delete, Roles.LOGIN);
+        routes.get(prefix + "/saved-filters", this::list, StationPermission.LOGIN);
+        routes.post(prefix + "/saved-filters", this::create, StationPermission.LOGIN);
+        routes.delete(prefix + "/saved-filters/{id}", this::delete, StationPermission.LOGIN);
     }
 
     @OpenApi(

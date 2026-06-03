@@ -6,9 +6,9 @@
 package dev.chojo.ember.feature.legal.route;
 
 import dev.chojo.ember.api.MessageResponse;
-import dev.chojo.ember.api.Roles;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.roles.StationPermission;
 import dev.chojo.ember.feature.legal.service.ConsentService;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
@@ -45,9 +45,9 @@ public class ConsentRoutes implements Routes {
         routes.get(prefix + "/public/tos", this::getTermsOfService);
         routes.get(prefix + "/public/imprint", this::getImprint);
         routes.get(prefix + "/public/legal-versions", this::getLegalVersions);
-        routes.post(prefix + "/session/consent", this::recordConsent, Roles.LOGIN);
-        routes.get(prefix + "/session/consent", this::getConsentStatus, Roles.LOGIN);
-        routes.get(prefix + "/session/consent/changes", this::getConsentChanges, Roles.LOGIN);
+        routes.post(prefix + "/session/consent", this::recordConsent, StationPermission.LOGIN);
+        routes.get(prefix + "/session/consent", this::getConsentStatus, StationPermission.LOGIN);
+        routes.get(prefix + "/session/consent/changes", this::getConsentChanges, StationPermission.LOGIN);
     }
 
     private String resolveLocale(Context ctx) {

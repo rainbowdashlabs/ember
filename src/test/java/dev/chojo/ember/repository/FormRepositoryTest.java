@@ -203,9 +203,9 @@ class FormRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(40)
     void setAndFindRestrictions() {
-        var restrictionRepo = new RestrictionRepository();
+        var restrictionRepo = new RestrictionRepository(stationMemberRepo, memberGroupRepo, userTagRepo);
         restrictionRepo.setRestrictions(
-                "form_restriction", "form_id", formId, List.of(1, 2), List.of(), List.of(), List.of());
+                "form_restriction", "form_id", formId, List.of("MEMBER", "TEAM"), List.of(), List.of(), List.of());
         var restrictions = restrictionRepo.findRestrictions("form_restriction", "form_id", formId);
         assertEquals(2, restrictions.size());
         // Clear

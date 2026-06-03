@@ -1,3 +1,8 @@
+/*
+ *     SPDX-License-Identifier: AGPL-3.0-only
+ *
+ *     Copyright (C) RainbowDashLabs and Contributor
+ */
 package dev.chojo.ember.api.roles;
 
 import java.util.EnumSet;
@@ -6,7 +11,7 @@ import java.util.Set;
 /**
  * The permissions that are granted to the instance administrator.
  */
-public enum InstancePermission {
+public enum InstancePermission implements io.javalin.security.RouteRole {
     ADMINISTRATOR;
 
     private final InstancePermission[] children;
@@ -51,5 +56,4 @@ public enum InstancePermission {
     public boolean includes(InstancePermission role) {
         return allChildren().contains(role);
     }
-
 }

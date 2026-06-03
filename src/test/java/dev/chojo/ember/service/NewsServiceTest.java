@@ -35,8 +35,11 @@ class NewsServiceTest extends RepositoryTestBase {
 
     @BeforeAll
     static void setup() {
-        service =
-                new NewsService(newsRepo, new RestrictionRepository(), new DomainEventBus(Set.of()), stationMemberRepo);
+        service = new NewsService(
+                newsRepo,
+                new RestrictionRepository(stationMemberRepo, memberGroupRepo, userTagRepo),
+                new DomainEventBus(Set.of()),
+                stationMemberRepo);
         station = stationRepo.create("NewsStation");
         account = accountRepo.create("news-svc@test.com", "News", "Author");
         member = stationMemberRepo.create(station.id(), account.id());

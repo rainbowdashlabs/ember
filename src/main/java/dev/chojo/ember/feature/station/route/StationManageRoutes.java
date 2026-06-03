@@ -7,9 +7,9 @@ package dev.chojo.ember.feature.station.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.MessageResponse;
-import dev.chojo.ember.api.Roles;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.roles.StationPermission;
 import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
 import dev.chojo.ember.feature.mail.service.EmailService;
@@ -83,22 +83,34 @@ public class StationManageRoutes implements Routes {
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        routes.get(prefix + "/station/manage", this::getStation, Roles.MANAGER);
-        routes.put(prefix + "/station/manage", this::updateStation, Roles.MANAGER);
-        routes.post(prefix + "/station/manage/logo", this::uploadLogo, Roles.MANAGER);
-        routes.get(prefix + "/station/manage/logo", this::getLogo, Roles.LOGIN);
-        routes.get(prefix + "/stations/{stationId}/logo", this::getLogoByStation, Roles.LOGIN);
+        routes.get(prefix + "/station/manage", this::getStation, StationPermission.STATION_ADMINISTRATOR);
+        routes.put(prefix + "/station/manage", this::updateStation, StationPermission.STATION_ADMINISTRATOR);
+        routes.post(prefix + "/station/manage/logo", this::uploadLogo, StationPermission.STATION_ADMINISTRATOR);
+        routes.get(prefix + "/station/manage/logo", this::getLogo, StationPermission.LOGIN);
+        routes.get(prefix + "/stations/{stationId}/logo", this::getLogoByStation, StationPermission.LOGIN);
         routes.get(prefix + "/public/stations/{stationId}/logo", this::getLogoByStation);
-        routes.delete(prefix + "/station/manage/logo", this::deleteLogo, Roles.MANAGER);
-        routes.get(prefix + "/station/manage/mail", this::getMailConfig, Roles.MANAGER);
-        routes.put(prefix + "/station/manage/mail", this::updateMailConfig, Roles.MANAGER);
-        routes.post(prefix + "/station/manage/mail/test", this::testMailConfig, Roles.MANAGER);
-        routes.get(prefix + "/station/manage/modules", this::getDisabledModules, Roles.MANAGER);
-        routes.put(prefix + "/station/manage/modules", this::setDisabledModules, Roles.MANAGER);
-        routes.post(prefix + "/station/manage/import", this::importInto, Roles.MANAGER);
-        routes.get(prefix + "/station/manage/import/progress", this::importProgress, Roles.MANAGER);
-        routes.post(prefix + "/station/manage/request-delete", this::requestDelete, Roles.MANAGER);
-        routes.post(prefix + "/station/manage/transfer-ownership", this::transferOwnership, Roles.MANAGER);
+        routes.delete(prefix + "/station/manage/logo", this::deleteLogo, StationPermission.STATION_ADMINISTRATOR);
+        routes.get(prefix + "/station/manage/mail", this::getMailConfig, StationPermission.STATION_ADMINISTRATOR);
+        routes.put(prefix + "/station/manage/mail", this::updateMailConfig, StationPermission.STATION_ADMINISTRATOR);
+        routes.post(
+                prefix + "/station/manage/mail/test", this::testMailConfig, StationPermission.STATION_ADMINISTRATOR);
+        routes.get(
+                prefix + "/station/manage/modules", this::getDisabledModules, StationPermission.STATION_ADMINISTRATOR);
+        routes.put(
+                prefix + "/station/manage/modules", this::setDisabledModules, StationPermission.STATION_ADMINISTRATOR);
+        routes.post(prefix + "/station/manage/import", this::importInto, StationPermission.STATION_ADMINISTRATOR);
+        routes.get(
+                prefix + "/station/manage/import/progress",
+                this::importProgress,
+                StationPermission.STATION_ADMINISTRATOR);
+        routes.post(
+                prefix + "/station/manage/request-delete",
+                this::requestDelete,
+                StationPermission.STATION_ADMINISTRATOR);
+        routes.post(
+                prefix + "/station/manage/transfer-ownership",
+                this::transferOwnership,
+                StationPermission.STATION_ADMINISTRATOR);
         routes.get(prefix + "/public/confirm-station-delete", this::confirmDelete);
     }
 

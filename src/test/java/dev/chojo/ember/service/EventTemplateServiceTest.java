@@ -134,19 +134,19 @@ class EventTemplateServiceTest extends RepositoryTestBase {
     @Test
     @Order(20)
     void setAndFindRestrictions() {
-        service.setRestrictions(templateId, List.of(1, 2, 3));
+        service.setRestrictions(templateId, List.of("MEMBER", "TEAM", "MANAGER"));
         var restrictions = service.findRestrictions(templateId);
         assertEquals(3, restrictions.size());
-        assertTrue(restrictions.containsAll(List.of(1, 2, 3)));
+        assertTrue(restrictions.containsAll(List.of("MEMBER", "TEAM", "MANAGER")));
     }
 
     @Test
     @Order(21)
     void setRestrictionsReplaces() {
-        service.setRestrictions(templateId, List.of(5));
+        service.setRestrictions(templateId, List.of("GUARDIAN"));
         var restrictions = service.findRestrictions(templateId);
         assertEquals(1, restrictions.size());
-        assertEquals(5, restrictions.getFirst());
+        assertEquals("GUARDIAN", restrictions.getFirst());
     }
 
     @Test

@@ -27,7 +27,7 @@ import FieldLabel from '@/components/typography/FieldLabel.vue'
 import { useSession } from '@/composables/useSession'
 import { protocol, stationMembers, memberGroups, userTags } from '@/api'
 import type { TestProtocol, TestProtocolRun } from '@/api/protocol'
-import type { StationMember, Role, MemberGroup, UserTag } from '@/api/types'
+import type { StationMember, PermissionGrant, MemberGroup, UserTag } from '@/api/types'
 
 const { t } = useI18n()
 const router = useRouter()
@@ -36,7 +36,7 @@ const { canManageProtocol, loaded } = useSession()
 const runs = ref<TestProtocolRun[]>([])
 const protocols = ref<TestProtocol[]>([])
 const members = ref<StationMember[]>([])
-const allRoles = ref<Role[]>([])
+const allRoles = ref<PermissionGrant[]>([])
 const allGroups = ref<MemberGroup[]>([])
 const allTags = ref<UserTag[]>([])
 const loading = ref(true)

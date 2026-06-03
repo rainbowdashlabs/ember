@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.station.service;
 
 import de.chojo.sadu.queries.api.call.Call;
 import de.chojo.sadu.queries.api.query.Query;
+import dev.chojo.ember.api.roles.StationUserType;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.station.entity.Station;
@@ -44,7 +45,8 @@ public class StationImportService {
     private static final List<String> IMPORT_TABLES = List.of(
             "disabledModules",
             "members",
-            "memberRoles",
+            "memberUserTypes",
+            "memberPermissions",
             "groups",
             "groupMembers",
             "tags",
@@ -384,7 +386,8 @@ public class StationImportService {
                 yield modules.size();
             }
             case "members" -> importMembers(stationId, data, idMap);
-            case "memberRoles" -> importMemberRoles(stationId, data, idMap);
+            case "memberUserTypes" -> importMemberUserTypes(stationId, data, idMap);
+            case "memberPermissions" -> importMemberPermissions(stationId, data, idMap);
             case "groups" -> importGroups(stationId, data, idMap);
             case "groupMembers" -> importGroupMembers(data, idMap);
             case "tags" -> importTags(stationId, data, idMap);
@@ -529,24 +532,24 @@ public class StationImportService {
     }
 
     @SuppressWarnings("unchecked")
-    private int importMemberRoles(int stationId, Map<String, Object> data, IdRemapper idMap) {
-        var roleNameToId = new HashMap<String, Integer>();
-        for (var role : stationMemberRepository.findAllRoles())
-            roleNameToId.put(role.role().name(), role.id());
-
-        var memberRoles = (List<Map<String, Object>>) data.getOrDefault("memberRoles", List.of());
+    private int importMemberUserTypes(int stationId, Map<String, Object> data, IdRemapper idMap) {
+        var entries = (List<Map<String, Object>>) data.getOrDefault("memberUserTypes", List.of());
         int count = 0;
         Integer firstManagerMemberId = null;
-        for (var mr : memberRoles) {
-            int memberId = idMap.get("member", intVal(mr, "member_id"));
-            String roleName = str(mr, "role_name", "");
-            Integer roleId = roleNameToId.get(roleName);
-            if (memberId > 0 && roleId != null) {
-                stationMemberRepository.addRole(memberId, roleId);
-                if ("MANAGER".equals(roleName) && firstManagerMemberId == null) {
-                    firstManagerMemberId = memberId;
+        for (var entry : entries) {
+            int memberId = idMap.get("member", intVal(entry, "member_id"));
+            String userTypeName = str(entry, "user_type", "MEMBER");
+            if (memberId > 0) {
+                try {
+                    var userType = StationUserType.valueOf(userTypeName);
+                    stationMemberRepository.setUserType(memberId, userType);
+                    if (userType == StationUserType.MANAGER && firstManagerMemberId == null) {
+                        firstManagerMemberId = memberId;
+                    }
+                    count++;
+                } catch (IllegalArgumentException e) {
+                    log.warn("Unknown user type '{}' for member {}, skipping", userTypeName, memberId);
                 }
-                count++;
             }
         }
         // Set station owner to the first imported manager if no owner exists
@@ -554,6 +557,26 @@ public class StationImportService {
             var station = stationRepository.findById(stationId).orElse(null);
             if (station != null && station.ownerMemberId() == null) {
                 stationRepository.setOwner(stationId, firstManagerMemberId);
+            }
+        }
+        return count;
+    }
+
+    @SuppressWarnings("unchecked")
+    private int importMemberPermissions(int stationId, Map<String, Object> data, IdRemapper idMap) {
+        var permNameToId = new HashMap<String, Integer>();
+        for (var perm : stationMemberRepository.findAllPermissions())
+            permNameToId.put(perm.permission().name(), perm.id());
+
+        var entries = (List<Map<String, Object>>) data.getOrDefault("memberPermissions", List.of());
+        int count = 0;
+        for (var entry : entries) {
+            int memberId = idMap.get("member", intVal(entry, "member_id"));
+            String permName = str(entry, "permission_name", "");
+            Integer permId = permNameToId.get(permName);
+            if (memberId > 0 && permId != null) {
+                stationMemberRepository.grantPermission(memberId, permId);
+                count++;
             }
         }
         return count;
@@ -1498,10 +1521,10 @@ public class StationImportService {
                 Integer groupId = a.get("group_id") != null ? idMap.get("group", intVal(a, "group_id")) : null;
                 Integer tagId = a.get("tag_id") != null ? idMap.get("tag", intVal(a, "tag_id")) : null;
                 Query.query(
-                                "INSERT INTO board_view_access(board_id, role_id, group_id, tag_id) VALUES(:board_id, :role_id, :group_id, :tag_id) ON CONFLICT DO NOTHING;")
+                                "INSERT INTO board_view_access(board_id, user_type, group_id, tag_id) VALUES(:board_id, :user_type, :group_id, :tag_id) ON CONFLICT DO NOTHING;")
                         .single(Call.of()
                                 .bind("board_id", boardId)
-                                .bind("role_id", a.get("role_id") != null ? intVal(a, "role_id") : null)
+                                .bind("user_type", str(a, "user_type", null))
                                 .bind("group_id", groupId != null && groupId > 0 ? groupId : null)
                                 .bind("tag_id", tagId != null && tagId > 0 ? tagId : null))
                         .insert();
@@ -1521,10 +1544,10 @@ public class StationImportService {
                 Integer groupId = a.get("group_id") != null ? idMap.get("group", intVal(a, "group_id")) : null;
                 Integer tagId = a.get("tag_id") != null ? idMap.get("tag", intVal(a, "tag_id")) : null;
                 Query.query(
-                                "INSERT INTO board_edit_access(board_id, role_id, group_id, tag_id) VALUES(:board_id, :role_id, :group_id, :tag_id) ON CONFLICT DO NOTHING;")
+                                "INSERT INTO board_edit_access(board_id, user_type, group_id, tag_id) VALUES(:board_id, :user_type, :group_id, :tag_id) ON CONFLICT DO NOTHING;")
                         .single(Call.of()
                                 .bind("board_id", boardId)
-                                .bind("role_id", a.get("role_id") != null ? intVal(a, "role_id") : null)
+                                .bind("user_type", str(a, "user_type", null))
                                 .bind("group_id", groupId != null && groupId > 0 ? groupId : null)
                                 .bind("tag_id", tagId != null && tagId > 0 ? tagId : null))
                         .insert();
@@ -1570,7 +1593,7 @@ public class StationImportService {
             Integer joinGroupId =
                     wl.get("join_group_id") != null ? idMap.get("group", intVal(wl, "join_group_id")) : null;
             int newId = insertReturningId(
-                    "INSERT INTO waiting_list(station_id, name, description, scoring_formula, confirm_interval_days, visible_fields, testing_group_id, join_group_id, join_role_id, attendance_threshold, created_at) VALUES(:station_id, :name, :description, :scoring_formula, :confirm_interval_days, :visible_fields::jsonb, :testing_group_id, :join_group_id, :join_role_id, :attendance_threshold, :created_at::timestamp) RETURNING id;",
+                    "INSERT INTO waiting_list(station_id, name, description, scoring_formula, confirm_interval_days, visible_fields, testing_group_id, join_group_id, join_user_type, attendance_threshold, created_at) VALUES(:station_id, :name, :description, :scoring_formula, :confirm_interval_days, :visible_fields::jsonb, :testing_group_id, :join_group_id, :join_user_type, :attendance_threshold, :created_at::timestamp) RETURNING id;",
                     Call.of()
                             .bind("station_id", stationId)
                             .bind("name", str(wl, "name", ""))
@@ -1582,7 +1605,7 @@ public class StationImportService {
                                     "testing_group_id",
                                     testingGroupId != null && testingGroupId > 0 ? testingGroupId : null)
                             .bind("join_group_id", joinGroupId != null && joinGroupId > 0 ? joinGroupId : null)
-                            .bind("join_role_id", wl.get("join_role_id") != null ? intVal(wl, "join_role_id") : null)
+                            .bind("join_user_type", str(wl, "join_user_type", "MEMBER"))
                             .bind("attendance_threshold", intVal(wl, "attendance_threshold"))
                             .bind("created_at", str(wl, "created_at", null)));
             idMap.put("waitingList", oldId, newId);
@@ -1848,10 +1871,10 @@ public class StationImportService {
                 Integer tagId = r.get("tag_id") != null ? idMap.get("tag", intVal(r, "tag_id")) : null;
                 Integer memberId = r.get("member_id") != null ? idMap.get("member", intVal(r, "member_id")) : null;
                 Query.query(
-                                "INSERT INTO form_restriction(form_id, role_id, group_id, tag_id, member_id) VALUES(:form_id, :role_id, :group_id, :tag_id, :member_id) ON CONFLICT DO NOTHING;")
+                                "INSERT INTO form_restriction(form_id, user_type, group_id, tag_id, member_id) VALUES(:form_id, :user_type, :group_id, :tag_id, :member_id) ON CONFLICT DO NOTHING;")
                         .single(Call.of()
                                 .bind("form_id", formId)
-                                .bind("role_id", r.get("role_id") != null ? intVal(r, "role_id") : null)
+                                .bind("user_type", str(r, "user_type", null))
                                 .bind("group_id", groupId != null && groupId > 0 ? groupId : null)
                                 .bind("tag_id", tagId != null && tagId > 0 ? tagId : null)
                                 .bind("member_id", memberId != null && memberId > 0 ? memberId : null))
@@ -1875,10 +1898,10 @@ public class StationImportService {
                 Integer tagId = r.get("tag_id") != null ? idMap.get("tag", intVal(r, "tag_id")) : null;
                 Integer memberId = r.get("member_id") != null ? idMap.get("member", intVal(r, "member_id")) : null;
                 Query.query(
-                                "INSERT INTO event_restriction(event_id, role_id, group_id, tag_id, member_id) VALUES(:event_id, :role_id, :group_id, :tag_id, :member_id) ON CONFLICT DO NOTHING;")
+                                "INSERT INTO event_restriction(event_id, user_type, group_id, tag_id, member_id) VALUES(:event_id, :user_type, :group_id, :tag_id, :member_id) ON CONFLICT DO NOTHING;")
                         .single(Call.of()
                                 .bind("event_id", eventId)
-                                .bind("role_id", r.get("role_id") != null ? intVal(r, "role_id") : null)
+                                .bind("user_type", str(r, "user_type", null))
                                 .bind("group_id", groupId != null && groupId > 0 ? groupId : null)
                                 .bind("tag_id", tagId != null && tagId > 0 ? tagId : null)
                                 .bind("member_id", memberId != null && memberId > 0 ? memberId : null))
@@ -1971,8 +1994,8 @@ public class StationImportService {
             int templateId = idMap.get("eventTemplate", intVal(r, "template_id"));
             if (templateId > 0) {
                 Query.query(
-                                "INSERT INTO event_template_restriction(template_id, role_id) VALUES(:template_id, :role_id) ON CONFLICT DO NOTHING;")
-                        .single(Call.of().bind("template_id", templateId).bind("role_id", intVal(r, "role_id")))
+                                "INSERT INTO event_template_restriction(template_id, user_type) VALUES(:template_id, :user_type) ON CONFLICT DO NOTHING;")
+                        .single(Call.of().bind("template_id", templateId).bind("user_type", str(r, "user_type", "")))
                         .insert();
                 count++;
             }
@@ -2043,11 +2066,11 @@ public class StationImportService {
             Integer memberId = r.get("member_id") != null ? idMap.get("member", intVal(r, "member_id")) : null;
             if ((folderId != null && folderId > 0) || (fileId != null && fileId > 0)) {
                 Query.query(
-                                "INSERT INTO kb_access_restriction(folder_id, file_id, role_id, group_id, tag_id, member_id) VALUES(:folder_id, :file_id, :role_id, :group_id, :tag_id, :member_id) ON CONFLICT DO NOTHING;")
+                                "INSERT INTO kb_access_restriction(folder_id, file_id, user_type, group_id, tag_id, member_id) VALUES(:folder_id, :file_id, :user_type, :group_id, :tag_id, :member_id) ON CONFLICT DO NOTHING;")
                         .single(Call.of()
                                 .bind("folder_id", folderId != null && folderId > 0 ? folderId : null)
                                 .bind("file_id", fileId != null && fileId > 0 ? fileId : null)
-                                .bind("role_id", r.get("role_id") != null ? intVal(r, "role_id") : null)
+                                .bind("user_type", str(r, "user_type", null))
                                 .bind("group_id", groupId != null && groupId > 0 ? groupId : null)
                                 .bind("tag_id", tagId != null && tagId > 0 ? tagId : null)
                                 .bind("member_id", memberId != null && memberId > 0 ? memberId : null))
@@ -2164,10 +2187,10 @@ public class StationImportService {
             Integer groupId = r.get("group_id") != null ? idMap.get("group", intVal(r, "group_id")) : null;
             if (inventoryId > 0) {
                 Query.query(
-                                "INSERT INTO inventory_requirement(inventory_id, role_id, group_id, quantity, position) VALUES(:inventory_id, :role_id, :group_id, :quantity, :position) ON CONFLICT DO NOTHING;")
+                                "INSERT INTO inventory_requirement(inventory_id, user_type, group_id, quantity, position) VALUES(:inventory_id, :user_type, :group_id, :quantity, :position) ON CONFLICT DO NOTHING;")
                         .single(Call.of()
                                 .bind("inventory_id", inventoryId)
-                                .bind("role_id", r.get("role_id") != null ? intVal(r, "role_id") : null)
+                                .bind("user_type", str(r, "user_type", null))
                                 .bind("group_id", groupId != null && groupId > 0 ? groupId : null)
                                 .bind("quantity", intVal(r, "quantity"))
                                 .bind("position", intVal(r, "position")))
@@ -2191,10 +2214,10 @@ public class StationImportService {
                 Integer tagId = r.get("tag_id") != null ? idMap.get("tag", intVal(r, "tag_id")) : null;
                 Integer memberId = r.get("member_id") != null ? idMap.get("member", intVal(r, "member_id")) : null;
                 Query.query(
-                                "INSERT INTO news_restriction(news_id, role_id, group_id, tag_id, member_id) VALUES(:news_id, :role_id, :group_id, :tag_id, :member_id) ON CONFLICT DO NOTHING;")
+                                "INSERT INTO news_restriction(news_id, user_type, group_id, tag_id, member_id) VALUES(:news_id, :user_type, :group_id, :tag_id, :member_id) ON CONFLICT DO NOTHING;")
                         .single(Call.of()
                                 .bind("news_id", newsId)
-                                .bind("role_id", r.get("role_id") != null ? intVal(r, "role_id") : null)
+                                .bind("user_type", str(r, "user_type", null))
                                 .bind("group_id", groupId != null && groupId > 0 ? groupId : null)
                                 .bind("tag_id", tagId != null && tagId > 0 ? tagId : null)
                                 .bind("member_id", memberId != null && memberId > 0 ? memberId : null))

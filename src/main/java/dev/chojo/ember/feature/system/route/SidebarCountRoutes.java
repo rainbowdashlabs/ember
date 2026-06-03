@@ -5,9 +5,9 @@
  */
 package dev.chojo.ember.feature.system.route;
 
-import dev.chojo.ember.api.Roles;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.roles.StationPermission;
 import dev.chojo.ember.feature.system.service.SidebarCountService;
 import io.javalin.http.Context;
 import io.javalin.router.JavalinDefaultRoutingApi;
@@ -25,7 +25,7 @@ public class SidebarCountRoutes implements Routes {
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        routes.get(prefix + "/sidebar-counts", this::getSidebarCounts, Roles.LOGIN);
+        routes.get(prefix + "/sidebar-counts", this::getSidebarCounts, StationPermission.LOGIN);
     }
 
     private void getSidebarCounts(Context ctx) {

@@ -10,38 +10,47 @@ import HelpTip from '@/components/helpcenter/HelpTip.vue'
 </script>
 
 <template>
-    <HelpArticle title="Planer" subtitle="Aufgaben mit Kanban-Boards organisieren">
-        <HelpSection title="Was sind Boards?">
-            <p>Boards sind Kanban-Tafeln, mit denen ihr Aufgaben organisieren könnt. Jedes Board hat Spalten (z.B. „Offen", „In Arbeit", „Erledigt") und Tickets, die zwischen den Spalten verschoben werden.</p>
+    <HelpArticle title="Board-Einstellungen" subtitle="Spalten, Felder und Zugriff konfigurieren">
+        <HelpSection title="Allgemein">
+            <p>Hier kannst du den Namen, die Beschreibung und das Archivierungs-Verhalten des Boards ändern. „Tage bis zur Archivierung" legt fest, wie lange Tickets in der letzten Spalte bleiben, bevor sie archiviert werden.</p>
         </HelpSection>
 
-        <HelpSection title="Tickets erstellen">
-            <p>Klicke auf „Ticket erstellen" um ein neues Ticket anzulegen. Gib einen Titel ein und wähle die Spalte und Priorität. Optional kannst du eine Beschreibung, ein Fälligkeitsdatum und eine Person zuweisen.</p>
+        <HelpSection title="Spalten verwalten">
+            <p>Lege die Spalten des Boards fest. Die Reihenfolge bestimmt den Arbeitsfluss von links nach rechts. Jede Spalte kann einen Namen und eine Farbe haben.</p>
+            <p class="mt-2">Tickets können nur von einer Spalte zur nächsten oder zurück verschoben werden.</p>
         </HelpSection>
 
-        <HelpSection title="Ticket-Details">
-            <p>Klicke auf ein Ticket um die Details zu öffnen. Hier kannst du die Beschreibung bearbeiten, eine Checkliste hinzufügen, Kommentare schreiben und das Ticket zwischen Spalten verschieben.</p>
+        <HelpSection title="Backlog">
+            <p>Aktiviere den Backlog, um Tickets sammeln zu können, bevor sie eingeplant werden. Tickets im Backlog erscheinen nicht auf dem Board selbst.</p>
         </HelpSection>
 
-        <HelpSection title="Checkliste">
-            <p>Jedes Ticket kann eine Checkliste haben. Der Fortschritt wird auf der Ticket-Karte als Balken angezeigt.</p>
+        <HelpSection title="Benutzerdefinierte Felder">
+            <p>Erstelle zusätzliche Felder, um Tickets mit weiteren Informationen zu versehen. Verfügbare Feldtypen sind Text, Zahl, Datum und Auswahl.</p>
         </HelpSection>
 
-        <HelpSection title="Verknüpfungen">
-            <p>Tickets können miteinander verknüpft werden: „Blockiert", „Blockiert von", „Bezieht sich auf", „Verursacht" und „Verursacht von".</p>
+        <HelpSection title="Labels">
+            <p>Erstelle Labels mit Namen und Farben, um Tickets zu kategorisieren. Labels helfen, Tickets schnell zu filtern und zu unterscheiden.</p>
+        </HelpSection>
+
+        <HelpSection title="Zugriffsrechte">
+            <p>Lege fest, wer das Board sehen und bearbeiten kann. Du kannst den Zugriff nach Mitgliedstyp, Gruppe oder Tag einschränken:</p>
+            <ul class="list-disc ml-4 space-y-1">
+                <li><strong>Lesezugriff:</strong> Wer darf das Board und seine Tickets sehen.</li>
+                <li><strong>Bearbeitungszugriff:</strong> Wer darf Tickets erstellen, bearbeiten und kommentieren.</li>
+            </ul>
+            <p class="mt-2">Ohne Einschränkung haben alle Mitglieder der Station Zugriff.</p>
         </HelpSection>
 
         <HelpSection title="Föderation">
-            <p>In den Board-Einstellungen kannst du ein Board mit Partnerwachen teilen. Wähle die Partner aus und lege für jeden den Zugriffsmodus fest:</p>
+            <p>Teile ein Board mit Partnerstationen. Für jeden Partner kannst du festlegen:</p>
             <ul class="list-disc ml-4 space-y-1">
-                <li><strong>Nur Lesen:</strong> Die Partnerwache kann das Board sehen, aber nichts bearbeiten.</li>
-                <li><strong>Vollzugriff:</strong> Die Partnerwache kann Tickets erstellen, bearbeiten und kommentieren.</li>
+                <li><strong>Nur Lesen:</strong> Die Partnerstationen können das Board sehen, aber nichts bearbeiten.</li>
+                <li><strong>Vollzugriff:</strong> Die Partnerstationen können Tickets erstellen, bearbeiten und kommentieren.</li>
             </ul>
-            <p class="mt-2">Optional kannst du bei Vollzugriff festlegen, welche Rollen bearbeiten dürfen.</p>
         </HelpSection>
 
         <HelpTip>
-            Boards können über die Wachen-Einstellungen als Modul aktiviert oder deaktiviert werden. Zum Erstellen und Verwalten von Boards wird die Rolle „Board-Verwalter" benötigt.
+            Änderungen an Spalten wirken sich nur auf neue Tickets aus. Bestehende Tickets bleiben in ihrer aktuellen Spalte, bis sie verschoben werden.
         </HelpTip>
     </HelpArticle>
 </template>

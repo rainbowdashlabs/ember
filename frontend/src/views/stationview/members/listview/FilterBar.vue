@@ -77,7 +77,7 @@ function submitSaveFilter() {
     </SecondaryButton>
   </div>
 
-  <!-- Role / Group / Tag filter -->
+  <!-- PermissionGrant / Group / Tag filter -->
   <MemberFilterBar
       :roles="roles"
       :groups="groups"

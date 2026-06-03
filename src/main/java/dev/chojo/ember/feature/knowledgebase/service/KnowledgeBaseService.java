@@ -326,13 +326,13 @@ public class KnowledgeBaseService {
     public void setRestrictions(
             Integer folderId,
             Integer fileId,
-            List<Integer> roleIds,
+            List<String> userTypes,
             List<Integer> groupIds,
             List<Integer> tagIds,
             List<Integer> memberIds) {
         repository.clearRestrictions(folderId, fileId);
-        for (Integer roleId : roleIds) {
-            repository.addRestriction(folderId, fileId, roleId, null, null, null);
+        for (String userType : userTypes) {
+            repository.addRestriction(folderId, fileId, userType, null, null, null);
         }
         for (Integer groupId : groupIds) {
             repository.addRestriction(folderId, fileId, null, groupId, null, null);
@@ -349,7 +349,7 @@ public class KnowledgeBaseService {
             int memberId,
             Integer folderId,
             Integer fileId,
-            List<Integer> memberRoleIds,
+            String memberUserType,
             List<Integer> memberGroupIds,
             List<Integer> memberTagIds) {
         // Check file/folder restrictions
@@ -367,20 +367,20 @@ public class KnowledgeBaseService {
                     mode = folder.get().restrictionMode();
             }
             var restrictions = toRestrictionSet(rawRestrictions, mode);
-            if (!restrictions.matches(memberRoleIds, memberGroupIds, memberTagIds, memberId)) return false;
+            if (!restrictions.matches(memberUserType, memberGroupIds, memberTagIds, memberId)) return false;
         }
 
         // For files, also check parent folder restrictions (inherited)
         if (fileId != null) {
             var file = repository.findFileById(fileId);
             if (file.isPresent() && file.get().folderId() != null) {
-                return canAccessFolder(memberId, file.get().folderId(), memberRoleIds, memberGroupIds, memberTagIds);
+                return canAccessFolder(memberId, file.get().folderId(), memberUserType, memberGroupIds, memberTagIds);
             }
         }
 
         // For folders, check parent folder restrictions (inherited)
         if (folderId != null) {
-            return canAccessFolder(memberId, folderId, memberRoleIds, memberGroupIds, memberTagIds);
+            return canAccessFolder(memberId, folderId, memberUserType, memberGroupIds, memberTagIds);
         }
 
         return true;
@@ -389,7 +389,7 @@ public class KnowledgeBaseService {
     private boolean canAccessFolder(
             int memberId,
             int folderId,
-            List<Integer> memberRoleIds,
+            String memberUserType,
             List<Integer> memberGroupIds,
             List<Integer> memberTagIds) {
         var folder = repository.findFolderById(folderId);
@@ -400,12 +400,12 @@ public class KnowledgeBaseService {
             RestrictionMode mode =
                     folder.get().restrictionMode() != null ? folder.get().restrictionMode() : RestrictionMode.AND;
             var restrictions = toRestrictionSet(rawRestrictions, mode);
-            if (!restrictions.matches(memberRoleIds, memberGroupIds, memberTagIds, memberId)) return false;
+            if (!restrictions.matches(memberUserType, memberGroupIds, memberTagIds, memberId)) return false;
         }
 
         // Check parent folder
         if (folder.get().parentId() != null) {
-            return canAccessFolder(memberId, folder.get().parentId(), memberRoleIds, memberGroupIds, memberTagIds);
+            return canAccessFolder(memberId, folder.get().parentId(), memberUserType, memberGroupIds, memberTagIds);
         }
 
         return true;
@@ -413,7 +413,7 @@ public class KnowledgeBaseService {
 
     private RestrictionSet toRestrictionSet(List<KbAccessRestriction> kbRestrictions, RestrictionMode mode) {
         var restrictions = kbRestrictions.stream()
-                .map(r -> new Restriction(r.id(), r.roleId(), r.groupId(), r.tagId(), r.memberId()))
+                .map(r -> new Restriction(r.id(), r.userType(), r.groupId(), r.tagId(), r.memberId()))
                 .toList();
         return new RestrictionSet(restrictions, mode);
     }

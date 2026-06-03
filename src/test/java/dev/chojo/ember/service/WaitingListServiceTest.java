@@ -5,9 +5,7 @@
  */
 package dev.chojo.ember.service;
 
-import dev.chojo.ember.api.Roles;
 import dev.chojo.ember.feature.mail.service.EmailService;
-import dev.chojo.ember.feature.members.entity.Role;
 import dev.chojo.ember.feature.notifications.service.NotificationService;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListEntryStatus;
@@ -47,13 +45,13 @@ class WaitingListServiceTest extends RepositoryTestBase {
 
     @BeforeEach
     void createList() {
-        var list = service.create(station.id(), "Test " + UUID.randomUUID(), "", null, 180, null, null, null, 5);
+        var list = service.create(station.id(), "Test " + UUID.randomUUID(), "", null, 180, null, null, "MEMBER", 5);
         listId = list.id();
     }
 
     @Test
     void createAndFindList() {
-        var list = service.create(station.id(), "New List", "Description", "[age] * 2", 90, null, null, null, 5);
+        var list = service.create(station.id(), "New List", "Description", "[age] * 2", 90, null, null, "MEMBER", 5);
         var found = service.findById(list.id());
         assertTrue(found.isPresent());
         assertEquals("New List", found.get().name());
@@ -62,7 +60,7 @@ class WaitingListServiceTest extends RepositoryTestBase {
 
     @Test
     void updateList() {
-        var updated = service.update(listId, "Updated", "New desc", "[a]", 60, null, null, null, 5);
+        var updated = service.update(listId, "Updated", "New desc", "[a]", 60, null, null, "MEMBER", 5);
         assertTrue(updated.isPresent());
         assertEquals("Updated", updated.get().name());
     }
@@ -184,7 +182,7 @@ class WaitingListServiceTest extends RepositoryTestBase {
                         180,
                         null,
                         null,
-                        null,
+                        "MEMBER",
                         5)
                 .orElseThrow();
 
@@ -290,7 +288,7 @@ class WaitingListServiceTest extends RepositoryTestBase {
 
     @Test
     void inviteEntryLifecycle() {
-        var list = service.create(station.id(), "Invite Lifecycle", "", null, 180, null, null, null, 5);
+        var list = service.create(station.id(), "Invite Lifecycle", "", null, 180, null, null, "MEMBER", 5);
         var entry = service.createEntry(
                 list.id(), "InviteeFirst", "InviteeLast", "Parent", "invite@test.com", Map.of(), "");
 
@@ -331,7 +329,7 @@ class WaitingListServiceTest extends RepositoryTestBase {
 
     @Test
     void withdrawEntry() {
-        var list = service.create(station.id(), "Withdraw Test", "", null, 180, null, null, null, 5);
+        var list = service.create(station.id(), "Withdraw Test", "", null, 180, null, null, "MEMBER", 5);
         var entry = service.createEntry(list.id(), "Withdrawer", "", "", "wd@test.com", Map.of(), "");
         var withdrawn = service.withdrawEntry(entry.id());
         assertEquals(WaitingListEntryStatus.WITHDRAWN, withdrawn.status());
@@ -362,7 +360,7 @@ class WaitingListServiceTest extends RepositoryTestBase {
     @Test
     void scoreEvaluationWithAgeFunction() {
         var dobField = service.createField(listId, "Geburtsdatum", "DATE", WaitingListFieldConfig.parse("{}"), 0, true);
-        var list = service.update(listId, "AgeScored", "", "age([Geburtsdatum])", 180, null, null, null, 5)
+        var list = service.update(listId, "AgeScored", "", "age([Geburtsdatum])", 180, null, null, "MEMBER", 5)
                 .orElseThrow();
 
         var entry = service.createEntry(
@@ -376,7 +374,7 @@ class WaitingListServiceTest extends RepositoryTestBase {
 
     @Test
     void scoreEvaluationWithWaitingTime() {
-        var list = service.update(listId, "WaitScored", "", "wartezeit_tage", 180, null, null, null, 5)
+        var list = service.update(listId, "WaitScored", "", "wartezeit_tage", 180, null, null, "MEMBER", 5)
                 .orElseThrow();
 
         var entry = service.createEntry(listId, "Max", "", "", "test@test.com", Map.of(), "");
@@ -388,7 +386,7 @@ class WaitingListServiceTest extends RepositoryTestBase {
 
     @Test
     void withdrawInvitedEntryDeletesMember() {
-        var list = service.create(station.id(), "Withdraw Invited", "", null, 180, null, null, null, 5);
+        var list = service.create(station.id(), "Withdraw Invited", "", null, 180, null, null, "MEMBER", 5);
         var entry = service.createEntry(list.id(), "InvToWithdraw", "Last", "Parent", "invwd@test.com", Map.of(), "");
         var invited = service.inviteEntry(entry.id());
         assertNotNull(invited.memberId());
@@ -426,8 +424,7 @@ class WaitingListServiceTest extends RepositoryTestBase {
         // Create testing group and join group
         var testingGroup = memberGroupRepo.create(station.id(), "WL Testing Group");
         var joinGroup = memberGroupRepo.create(station.id(), "WL Join Group");
-        var joinRole =
-                stationMemberRepo.findRoleByName(Roles.MEMBER).map(Role::id).orElse(null);
+        var joinUserType = "MEMBER";
 
         var list = service.create(
                 station.id(),
@@ -437,7 +434,7 @@ class WaitingListServiceTest extends RepositoryTestBase {
                 180,
                 testingGroup.id(),
                 joinGroup.id(),
-                joinRole,
+                joinUserType,
                 5);
         var entry = service.createEntry(
                 list.id(), "InviteeFirst2", "InviteeLast2", "Parent", "inv2@test.com", Map.of(), "");
@@ -471,7 +468,7 @@ class WaitingListServiceTest extends RepositoryTestBase {
     void scoreEvaluationWithInvalidDateField() {
         // age() function with an invalid date string — should not throw, age = 0
         var dobField = service.createField(listId, "BadDate", "DATE", WaitingListFieldConfig.parse("{}"), 0, false);
-        var list = service.update(listId, "BadDateScored", "", "age([BadDate])", 180, null, null, null, 5)
+        var list = service.update(listId, "BadDateScored", "", "age([BadDate])", 180, null, null, "MEMBER", 5)
                 .orElseThrow();
         var entry = service.createEntry(listId, "A", "", "", "t@t.com", Map.of(dobField.id(), "\"not-a-date\""), "");
         var values = service.findEntryValues(entry.id());
@@ -483,7 +480,8 @@ class WaitingListServiceTest extends RepositoryTestBase {
     @Test
     void moveToJoinedWithNullMemberId() {
         // Create an entry in TESTING status that has no linked member (null memberId)
-        var list = service.create(station.id(), "NullMember " + UUID.randomUUID(), "", null, 180, null, null, null, 5);
+        var list =
+                service.create(station.id(), "NullMember " + UUID.randomUUID(), "", null, 180, null, null, "MEMBER", 5);
         var entry = service.createEntry(list.id(), "NoMem", "X", "", "nomem@test.com", Map.of(), "");
         // Manually set to TESTING status
         service.updateEntryStatus(entry.id(), WaitingListEntryStatus.TESTING);

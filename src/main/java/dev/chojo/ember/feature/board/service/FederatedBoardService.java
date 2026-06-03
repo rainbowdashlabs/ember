@@ -96,19 +96,19 @@ public class FederatedBoardService {
                 .orElse(false);
     }
 
-    public boolean canFederatedEdit(int boardId, int partnerId, List<Integer> partnerRoleIds) {
+    public boolean canFederatedEdit(int boardId, int partnerId, List<String> partnerUserTypes) {
         if (!canFederatedWrite(boardId, partnerId)) return false;
-        if (!repository.hasFederatedEditRoles(boardId)) return true;
-        var allowedRoleIds = repository.findFederatedEditRoles(boardId);
-        return partnerRoleIds.stream().anyMatch(allowedRoleIds::contains);
+        if (!repository.hasFederatedEditUserTypes(boardId)) return true;
+        var allowedUserTypes = repository.findFederatedEditUserTypes(boardId);
+        return partnerUserTypes.stream().anyMatch(allowedUserTypes::contains);
     }
 
-    public void setFederatedEditRoles(int boardId, List<Integer> roleIds) {
-        repository.setFederatedEditRoles(boardId, roleIds);
+    public void setFederatedEditUserTypes(int boardId, List<String> userTypes) {
+        repository.setFederatedEditUserTypes(boardId, userTypes);
     }
 
-    public List<Integer> findFederatedEditRoles(int boardId) {
-        return repository.findFederatedEditRoles(boardId);
+    public List<String> findFederatedEditUserTypes(int boardId) {
+        return repository.findFederatedEditUserTypes(boardId);
     }
 
     // -- Bookmarks --

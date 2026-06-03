@@ -44,8 +44,8 @@ public class DemoFormSeeder {
             StationMember admin,
             List<StationMember> anfaenger,
             List<StationMember> fortgeschritten,
-            int memberRoleId,
-            int memberManagerRoleId,
+            String memberUserType,
+            String guardianUserType,
             int anfaengerGroupId,
             int wettkampfTagId,
             Random rng) {
@@ -321,7 +321,7 @@ public class DemoFormSeeder {
                 RestrictionType.FORM.table(),
                 RestrictionType.FORM.fkColumn(),
                 memberOnly.id(),
-                List.of(memberRoleId),
+                List.of(memberUserType),
                 List.of(),
                 List.of(),
                 List.of());
@@ -361,7 +361,7 @@ public class DemoFormSeeder {
                 RestrictionType.FORM.table(),
                 RestrictionType.FORM.fkColumn(),
                 bothRoles.id(),
-                List.of(memberRoleId, memberManagerRoleId),
+                List.of(memberUserType, guardianUserType),
                 List.of(),
                 List.of(),
                 List.of());

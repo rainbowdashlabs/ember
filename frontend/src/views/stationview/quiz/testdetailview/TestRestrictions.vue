@@ -9,10 +9,10 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import RestrictionPicker from '@/components/input/RestrictionPicker.vue'
-import type {Role, MemberGroup, UserTag} from '@/api/types'
+import type {PermissionGrant, MemberGroup, UserTag} from '@/api/types'
 
 defineProps<{
-  allRoles: Role[]
+  allRoles: PermissionGrant[]
   allGroups: MemberGroup[]
   allTags: UserTag[]
   selectedRoleIds: number[]

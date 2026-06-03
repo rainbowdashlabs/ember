@@ -20,8 +20,8 @@ import FieldLabel from '@/components/typography/FieldLabel.vue'
 import MemberListFilters from './memberlistview/MemberListFilters.vue'
 import MemberListTable from './memberlistview/MemberListTable.vue'
 import { inventory, stationMembers, memberGroups, profileFields, userTags } from '@/api'
-import type { Inventory, InventoryItem, MemberGroup, ProfileField, Role, StationMember, UserTag } from '@/api/types'
-import { Roles } from '@/api/types'
+import type { Inventory, InventoryItem, MemberGroup, ProfileField, PermissionGrant, StationMember, UserTag } from '@/api/types'
+import { StationUserType } from '@/api/types'
 import type { FilterCriteria, FilterOption } from '@/components/input/filter/MemberFilterBar.vue'
 import { useBreakpoint } from '@/composables/useBreakpoint'
 import client from '@/api/client'
@@ -39,7 +39,7 @@ const groups = ref<MemberGroup[]>([])
 const tags = ref<UserTag[]>([])
 const groupMemberMap = ref<Map<number, Set<number>>>(new Map())
 const tagMemberMap = ref<Map<number, Set<number>>>(new Map())
-const allRoles = ref<Role[]>([])
+const allRoles = ref<PermissionGrant[]>([])
 const memberRoleMap = ref<Map<number, Set<string>>>(new Map())
 const loading = ref(true)
 const error = ref('')
@@ -78,10 +78,10 @@ const roleFriendlyNames: Record<string, string> = {
 }
 
 const filterRoleOptions = computed<FilterOption[]>(() => {
-  const allowedRoles: string[] = [Roles.MEMBER, Roles.GUARDIAN, Roles.TEAM, Roles.TRIAL]
+  const allowedRoles: string[] = [StationUserType.MEMBER, StationUserType.GUARDIAN, StationUserType.TEAM, StationUserType.TRIAL]
   return allRoles.value
-      .filter(r => allowedRoles.includes(r.role))
-      .map(r => ({ id: r.id, name: roleFriendlyNames[r.role] ?? r.role }))
+      .filter(r => allowedRoles.includes(r.permission))
+      .map(r => ({ id: r.id, name: roleFriendlyNames[r.permission] ?? r.permission }))
 })
 
 const filterGroupOptions = computed<FilterOption[]>(() =>
@@ -111,7 +111,7 @@ const filteredMembers = computed(() => {
     const roleIdSet = new Set(c.roleIds)
     // Map role IDs to role names for matching
     const filterRoleNames = new Set(
-        allRoles.value.filter(r => roleIdSet.has(r.id)).map(r => r.role)
+        allRoles.value.filter(r => roleIdSet.has(r.id)).map(r => r.permission)
     )
 
     result = result.filter(m => {
@@ -196,7 +196,7 @@ async function loadData() {
 
     const roleMap = new Map<number, Set<string>>()
     for (const [memberId, memberRoles] of Object.entries(allMemberRoles)) {
-      roleMap.set(Number(memberId), new Set(memberRoles.map(r => r.role)))
+      roleMap.set(Number(memberId), new Set(memberRoles.map(r => r.permission)))
     }
     memberRoleMap.value = roleMap
   } catch { error.value = t('common.error') }

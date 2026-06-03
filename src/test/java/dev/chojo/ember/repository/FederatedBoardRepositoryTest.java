@@ -202,40 +202,40 @@ class FederatedBoardRepositoryTest extends RepositoryTestBase {
 
     @Test
     @Order(20)
-    void setFederatedEditRoles() {
-        federatedBoardRepo.setFederatedEditRoles(boardId, List.of(1, 2, 3));
-        var roles = federatedBoardRepo.findFederatedEditRoles(boardId);
-        assertEquals(3, roles.size());
-        assertTrue(roles.containsAll(List.of(1, 2, 3)));
+    void setFederatedEditUserTypes() {
+        federatedBoardRepo.setFederatedEditUserTypes(boardId, List.of("MEMBER", "GUARDIAN", "TEAM"));
+        var userTypes = federatedBoardRepo.findFederatedEditUserTypes(boardId);
+        assertEquals(3, userTypes.size());
+        assertTrue(userTypes.containsAll(List.of("MEMBER", "GUARDIAN", "TEAM")));
     }
 
     @Test
     @Order(21)
-    void hasFederatedEditRoles() {
-        assertTrue(federatedBoardRepo.hasFederatedEditRoles(boardId));
+    void hasFederatedEditUserTypes() {
+        assertTrue(federatedBoardRepo.hasFederatedEditUserTypes(boardId));
     }
 
     @Test
     @Order(22)
-    void setFederatedEditRolesReplace() {
-        federatedBoardRepo.setFederatedEditRoles(boardId, List.of(5));
-        var roles = federatedBoardRepo.findFederatedEditRoles(boardId);
-        assertEquals(1, roles.size());
-        assertEquals(5, roles.getFirst());
+    void setFederatedEditUserTypesReplace() {
+        federatedBoardRepo.setFederatedEditUserTypes(boardId, List.of("MANAGER"));
+        var userTypes = federatedBoardRepo.findFederatedEditUserTypes(boardId);
+        assertEquals(1, userTypes.size());
+        assertEquals("MANAGER", userTypes.getFirst());
     }
 
     @Test
     @Order(23)
-    void setFederatedEditRolesEmpty() {
-        federatedBoardRepo.setFederatedEditRoles(boardId, List.of());
-        assertFalse(federatedBoardRepo.hasFederatedEditRoles(boardId));
-        assertTrue(federatedBoardRepo.findFederatedEditRoles(boardId).isEmpty());
+    void setFederatedEditUserTypesEmpty() {
+        federatedBoardRepo.setFederatedEditUserTypes(boardId, List.of());
+        assertFalse(federatedBoardRepo.hasFederatedEditUserTypes(boardId));
+        assertTrue(federatedBoardRepo.findFederatedEditUserTypes(boardId).isEmpty());
     }
 
     @Test
     @Order(24)
-    void hasFederatedEditRolesWhenNone() {
-        assertFalse(federatedBoardRepo.hasFederatedEditRoles(-999));
+    void hasFederatedEditUserTypesWhenNone() {
+        assertFalse(federatedBoardRepo.hasFederatedEditUserTypes(-999));
     }
 
     // Satellite table tests removed — identity is now inline in board_ticket columns
@@ -329,7 +329,7 @@ class FederatedBoardRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(80)
     void setLocalViewOverride() {
-        var access = new AccessData(List.of(1, 2), List.of(10), List.of(20));
+        var access = new AccessData(List.of("MEMBER", "GUARDIAN"), List.of(10), List.of(20));
         federatedBoardRepo.setLocalViewOverride(partnerId, boardUid, access);
         assertTrue(federatedBoardRepo.hasLocalViewOverride(partnerId, boardUid));
     }
@@ -338,7 +338,8 @@ class FederatedBoardRepositoryTest extends RepositoryTestBase {
     @Order(81)
     void findLocalViewOverride() {
         var access = federatedBoardRepo.findLocalViewOverride(partnerId, boardUid);
-        assertEquals(List.of(1, 2), access.roleIds());
+        assertEquals(2, access.userTypes().size());
+        assertTrue(access.userTypes().containsAll(List.of("MEMBER", "GUARDIAN")));
         assertEquals(List.of(10), access.groupIds());
         assertEquals(List.of(20), access.tagIds());
     }
@@ -346,10 +347,10 @@ class FederatedBoardRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(82)
     void setLocalViewOverrideReplace() {
-        var access = new AccessData(List.of(5), List.of(), List.of());
+        var access = new AccessData(List.of("TEAM"), List.of(), List.of());
         federatedBoardRepo.setLocalViewOverride(partnerId, boardUid, access);
         var result = federatedBoardRepo.findLocalViewOverride(partnerId, boardUid);
-        assertEquals(List.of(5), result.roleIds());
+        assertEquals(List.of("TEAM"), result.userTypes());
         assertTrue(result.groupIds().isEmpty());
         assertTrue(result.tagIds().isEmpty());
     }
@@ -374,7 +375,7 @@ class FederatedBoardRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(85)
     void setLocalEditOverride() {
-        var access = new AccessData(List.of(3), List.of(11), List.of(21));
+        var access = new AccessData(List.of("GUARDIAN"), List.of(11), List.of(21));
         federatedBoardRepo.setLocalEditOverride(partnerId, boardUid, access);
         assertTrue(federatedBoardRepo.hasLocalEditOverride(partnerId, boardUid));
     }
@@ -383,7 +384,7 @@ class FederatedBoardRepositoryTest extends RepositoryTestBase {
     @Order(86)
     void findLocalEditOverride() {
         var access = federatedBoardRepo.findLocalEditOverride(partnerId, boardUid);
-        assertEquals(List.of(3), access.roleIds());
+        assertEquals(List.of("GUARDIAN"), access.userTypes());
         assertEquals(List.of(11), access.groupIds());
         assertEquals(List.of(21), access.tagIds());
     }
@@ -394,7 +395,7 @@ class FederatedBoardRepositoryTest extends RepositoryTestBase {
         var access = new AccessData(List.of(), List.of(99), List.of());
         federatedBoardRepo.setLocalEditOverride(partnerId, boardUid, access);
         var result = federatedBoardRepo.findLocalEditOverride(partnerId, boardUid);
-        assertTrue(result.roleIds().isEmpty());
+        assertTrue(result.userTypes().isEmpty());
         assertEquals(List.of(99), result.groupIds());
         assertTrue(result.tagIds().isEmpty());
     }
@@ -419,7 +420,7 @@ class FederatedBoardRepositoryTest extends RepositoryTestBase {
     void findLocalViewOverrideEmpty() {
         var access =
                 federatedBoardRepo.findLocalViewOverride(-999, UUID.fromString("99999999-9999-9999-9999-999999999999"));
-        assertTrue(access.roleIds().isEmpty());
+        assertTrue(access.userTypes().isEmpty());
         assertTrue(access.groupIds().isEmpty());
         assertTrue(access.tagIds().isEmpty());
     }
@@ -429,7 +430,7 @@ class FederatedBoardRepositoryTest extends RepositoryTestBase {
     void findLocalEditOverrideEmpty() {
         var access =
                 federatedBoardRepo.findLocalEditOverride(-999, UUID.fromString("99999999-9999-9999-9999-999999999999"));
-        assertTrue(access.roleIds().isEmpty());
+        assertTrue(access.userTypes().isEmpty());
         assertTrue(access.groupIds().isEmpty());
         assertTrue(access.tagIds().isEmpty());
     }

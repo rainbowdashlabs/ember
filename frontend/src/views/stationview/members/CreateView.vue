@@ -18,7 +18,7 @@ import GroupsStep from './createview/GroupsStep.vue'
 import ManagerStep from './createview/ManagerStep.vue'
 import DoneStep from './createview/DoneStep.vue'
 import type {MemberGroup, ProfileField, StationMember} from '@/api/types'
-import {Roles} from '@/api/types'
+import {StationUserType} from '@/api/types'
 import {memberGroups, members, profileFields, stationMembers} from '@/api'
 import {useStations} from '@/composables/useStations'
 
@@ -27,7 +27,7 @@ const router = useRouter()
 const {currentStationId} = useStations()
 
 const step = ref<'role' | 'identity' | 'fields' | 'groups' | 'manager' | 'done'>('role')
-const selectedRole = ref<'MEMBER' | 'GUARDIAN' | 'TEAM'>(Roles.MEMBER)
+const selectedRole = ref<'MEMBER' | 'GUARDIAN' | 'TEAM'>(StationUserType.MEMBER)
 const firstName = ref('')
 const lastName = ref('')
 const email = ref('')
@@ -99,7 +99,7 @@ function setFieldValue(fieldId: number, val: string) {
 }
 
 function nextFromGroups() {
-  if (selectedRole.value === Roles.MEMBER) {
+  if (selectedRole.value === StationUserType.MEMBER) {
     step.value = 'manager'
   } else {
     createAccount()
@@ -165,12 +165,9 @@ async function createAccount() {
     const newMember = membersList.find(m => m.accountId === invited.id)
     if (!newMember) throw new Error('Member not found after invite')
 
-    const allAvailableRoles = await stationMembers.listAllRoles()
-    const roleNames = getRoleNamesForType(selectedRole.value)
-    const roleIds = allAvailableRoles
-        .filter(r => roleNames.includes(r.role))
-        .map(r => r.id)
-    await stationMembers.setRoles(newMember.id, {roleIds})
+    // Set user type for the new member — backend handles this via the invite endpoint
+    // The user type is determined by the selected role on account creation
+    await stationMembers.setPermissions(newMember.id, {roleIds: []})  // permissions handled separately
 
     const entries = [...fieldValues.value.entries()]
         .filter(([_, val]) => val.trim())
@@ -185,7 +182,7 @@ async function createAccount() {
       await memberGroups.setGroupMembers(groupId, {memberIds})
     }
 
-    if (selectedRole.value === Roles.MEMBER && selectedManagerIds.value.size > 0) {
+    if (selectedRole.value === StationUserType.MEMBER && selectedManagerIds.value.size > 0) {
       await stationMembers.setManagers(newMember.id, {managerIds: [...selectedManagerIds.value]})
     }
 
@@ -197,26 +194,9 @@ async function createAccount() {
   }
 }
 
-function getRoleNamesForType(type: string): string[] {
-  const roles: string[] = []
-  if (canLogin.value) roles.push(Roles.LOGIN)
-  switch (type) {
-    case Roles.MEMBER:
-      roles.push(Roles.MEMBER);
-      break
-    case Roles.GUARDIAN:
-      roles.push(Roles.GUARDIAN);
-      break
-    case Roles.TEAM:
-      roles.push(Roles.TEAM);
-      break
-  }
-  return roles
-}
-
 function startOver() {
   step.value = 'role'
-  selectedRole.value = Roles.MEMBER
+  selectedRole.value = StationUserType.MEMBER
   firstName.value = ''
   lastName.value = ''
   email.value = ''
@@ -272,7 +252,7 @@ onMounted(loadData)
             v-if="step === 'groups'"
             :groups="allGroups"
             :selected-ids="selectedGroupIds"
-            :submit-label="selectedRole === Roles.MEMBER ? t('membersCreate.next') : t('membersCreate.create')"
+            :submit-label="selectedRole === StationUserType.MEMBER ? t('membersCreate.next') : t('membersCreate.create')"
             @back="step = 'fields'"
             @next="nextFromGroups"
             @toggle="toggleGroup"

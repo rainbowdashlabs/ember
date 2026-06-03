@@ -5,7 +5,8 @@
  */
 package dev.chojo.ember.handler;
 
-import dev.chojo.ember.api.Roles;
+import dev.chojo.ember.api.roles.StationPermission;
+import dev.chojo.ember.api.roles.StationUserType;
 import dev.chojo.ember.event.events.BoardTicketChanged;
 import dev.chojo.ember.event.events.CommentCreated;
 import dev.chojo.ember.event.events.CommentDeleted;
@@ -81,7 +82,7 @@ class DomainEventHandlerTest {
     }
 
     private StationMember member(int id) {
-        return new StationMember(id, STATION_ID, UUID.randomUUID(), id, false, "Member " + id);
+        return new StationMember(id, STATION_ID, UUID.randomUUID(), id, false, "Member " + id, StationUserType.MEMBER);
     }
 
     // -- EventCreatedHandler --
@@ -209,7 +210,7 @@ class DomainEventHandlerTest {
         var handler = new EventRegistrationStatusHandler(notificationService, memberRepository);
         assertEquals(EventRegistrationStatusChanged.class, handler.eventType());
 
-        when(memberRepository.findMembersWithRole(STATION_ID, Roles.EVENT_MANAGER))
+        when(memberRepository.findMembersWithPermission(STATION_ID, StationPermission.EVENT_MANAGER))
                 .thenReturn(List.of(member(20), member(21)));
 
         handler.handle(new EventRegistrationStatusChanged(
@@ -283,7 +284,7 @@ class DomainEventHandlerTest {
         var handler = new CommentCreatedHandler(notificationService, memberRepository);
         assertEquals(CommentCreated.class, handler.eventType());
 
-        when(memberRepository.findMembersWithRole(STATION_ID, Roles.NEWS_MANAGER))
+        when(memberRepository.findMembersWithPermission(STATION_ID, StationPermission.NEWS_MANAGER))
                 .thenReturn(List.of(member(30)));
 
         handler.handle(new CommentCreated(
@@ -299,7 +300,7 @@ class DomainEventHandlerTest {
     @Test
     void commentCreatedSkipsParentNotificationWhenSameAuthor() {
         var handler = new CommentCreatedHandler(notificationService, memberRepository);
-        when(memberRepository.findMembersWithRole(STATION_ID, Roles.NEWS_MANAGER))
+        when(memberRepository.findMembersWithPermission(STATION_ID, StationPermission.NEWS_MANAGER))
                 .thenReturn(List.of());
 
         handler.handle(new CommentCreated(
@@ -339,7 +340,7 @@ class DomainEventHandlerTest {
     @Test
     void commentCreatedNoParentAuthorSkipsParentNotification() {
         var handler = new CommentCreatedHandler(notificationService, memberRepository);
-        when(memberRepository.findMembersWithRole(STATION_ID, Roles.NEWS_MANAGER))
+        when(memberRepository.findMembersWithPermission(STATION_ID, StationPermission.NEWS_MANAGER))
                 .thenReturn(List.of(member(30)));
 
         handler.handle(new CommentCreated(
@@ -393,7 +394,7 @@ class DomainEventHandlerTest {
         var handler = new ExchangeRequestedHandler(notificationService, memberRepository);
         assertEquals(ExchangeRequested.class, handler.eventType());
 
-        when(memberRepository.findMembersWithRole(STATION_ID, Roles.INVENTORY_MANAGER))
+        when(memberRepository.findMembersWithPermission(STATION_ID, StationPermission.INVENTORY_MANAGER))
                 .thenReturn(List.of(member(30), member(31)));
 
         handler.handle(new ExchangeRequested(STATION_ID, 1, MEMBER_ID, "Max", "Helm", "Kaputt"));
@@ -413,7 +414,7 @@ class DomainEventHandlerTest {
         var handler = new ExchangeStatusChangedHandler(notificationService, memberRepository);
         assertEquals(ExchangeStatusChanged.class, handler.eventType());
 
-        when(memberRepository.findMembersWithRole(STATION_ID, Roles.INVENTORY_MANAGER))
+        when(memberRepository.findMembersWithPermission(STATION_ID, StationPermission.INVENTORY_MANAGER))
                 .thenReturn(List.of(member(30)));
 
         handler.handle(new ExchangeStatusChanged(STATION_ID, 1, MEMBER_ID, "Max", "Helm", ExchangeStatus.RECEIVED));
@@ -535,7 +536,7 @@ class DomainEventHandlerTest {
         var handler = new RegistrationDeadlineExpiredHandler(notificationService, memberRepository);
         assertEquals(RegistrationDeadlineExpired.class, handler.eventType());
 
-        when(memberRepository.findMembersWithRole(STATION_ID, Roles.EVENT_MANAGER))
+        when(memberRepository.findMembersWithPermission(STATION_ID, StationPermission.EVENT_MANAGER))
                 .thenReturn(List.of(member(20), member(21)));
 
         handler.handle(new RegistrationDeadlineExpired(STATION_ID, 42, "Übungsabend", 5));

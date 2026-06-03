@@ -6,8 +6,8 @@
 package dev.chojo.ember.feature.system.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
-import dev.chojo.ember.api.Roles;
 import dev.chojo.ember.api.Routes;
+import dev.chojo.ember.api.roles.InstancePermission;
 import dev.chojo.ember.feature.system.service.ProblemLogAppender;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
@@ -31,9 +31,9 @@ public class ProblemRoutes implements Routes {
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        routes.get(prefix + "/admin/problems", this::listProblems, Roles.ADMIN);
-        routes.post(prefix + "/admin/problems/{id}/acknowledge", this::acknowledge, Roles.ADMIN);
-        routes.post(prefix + "/admin/problems/acknowledge-all", this::acknowledgeAll, Roles.ADMIN);
+        routes.get(prefix + "/admin/problems", this::listProblems, InstancePermission.ADMINISTRATOR);
+        routes.post(prefix + "/admin/problems/{id}/acknowledge", this::acknowledge, InstancePermission.ADMINISTRATOR);
+        routes.post(prefix + "/admin/problems/acknowledge-all", this::acknowledgeAll, InstancePermission.ADMINISTRATOR);
     }
 
     @OpenApi(

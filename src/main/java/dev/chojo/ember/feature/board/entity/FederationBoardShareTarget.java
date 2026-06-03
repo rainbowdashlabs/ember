@@ -14,6 +14,6 @@ public record FederationBoardShareTarget(int shareId, int partnerId, BoardShareM
                 row.getInt("share_id"),
                 row.getInt("partner_id"),
                 BoardShareMode.valueOf(row.getString("share_mode")),
-                row.getString("required_role"));
+                row.getString("required_user_type"));
     }
 }

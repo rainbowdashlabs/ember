@@ -5,7 +5,7 @@
  */
 package dev.chojo.ember.event.handlers;
 
-import dev.chojo.ember.api.Roles;
+import dev.chojo.ember.api.roles.StationPermission;
 import dev.chojo.ember.event.DomainEventHandler;
 import dev.chojo.ember.event.events.CommentCreated;
 import dev.chojo.ember.feature.comment.entity.CommentEntityType;
@@ -57,7 +57,9 @@ public class CommentCreatedHandler implements DomainEventHandler<CommentCreated>
         // Notify managers only for news comments
         if (CommentEntityType.NEWS.equals(event.entityType())) {
             var newsMgmtIds =
-                    stationMemberRepository.findMembersWithRole(event.stationId(), Roles.NEWS_MANAGER).stream()
+                    stationMemberRepository
+                            .findMembersWithPermission(event.stationId(), StationPermission.NEWS_MANAGER)
+                            .stream()
                             .map(StationMember::id)
                             .toList();
             notificationService.notifyMembersIfAbsent(

@@ -33,10 +33,10 @@ const emit = defineEmits<{
 }>()
 
 const {t} = useI18n()
-const {sessionInfo, hasRole} = useSession()
+const {sessionInfo, hasPermission} = useSession()
 const currentStationId = computed(() => sessionInfo.value?.stationId ?? '')
 const currentMemberUid = computed(() => sessionInfo.value?.member?.uid ?? '')
-const isManager = computed(() => hasRole('EVENT_MANAGER') || hasRole('MANAGER'))
+const isManager = computed(() => hasPermission('EVENT_MANAGER') || hasPermission('STATION_ADMINISTRATOR'))
 
 function isOwnComment(comment: Comment): boolean {
   if (!comment.author) return false

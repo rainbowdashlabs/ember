@@ -6,9 +6,9 @@
 package dev.chojo.ember.feature.inventory.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
-import dev.chojo.ember.api.Roles;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.roles.StationPermission;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
 import dev.chojo.ember.feature.inventory.entity.InventorySize;
@@ -56,11 +56,11 @@ public class ProcurementRoutes implements Routes {
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        routes.get(prefix + "/procurement", this::list, Roles.INVENTORY_MANAGER);
-        routes.get(prefix + "/procurement/open", this::listOpen, Roles.INVENTORY_MANAGER);
-        routes.post(prefix + "/procurement", this::create, Roles.INVENTORY_MANAGER);
-        routes.put(prefix + "/procurement/{id}/fulfill", this::fulfill, Roles.INVENTORY_MANAGER);
-        routes.delete(prefix + "/procurement/{id}", this::delete, Roles.INVENTORY_MANAGER);
+        routes.get(prefix + "/procurement", this::list, StationPermission.INVENTORY_MANAGER);
+        routes.get(prefix + "/procurement/open", this::listOpen, StationPermission.INVENTORY_MANAGER);
+        routes.post(prefix + "/procurement", this::create, StationPermission.INVENTORY_MANAGER);
+        routes.put(prefix + "/procurement/{id}/fulfill", this::fulfill, StationPermission.INVENTORY_MANAGER);
+        routes.delete(prefix + "/procurement/{id}", this::delete, StationPermission.INVENTORY_MANAGER);
     }
 
     @OpenApi(

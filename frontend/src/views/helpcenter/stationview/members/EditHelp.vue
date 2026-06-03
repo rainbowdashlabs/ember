@@ -66,7 +66,7 @@ const dummyEmail = ref('max@example.com')
       <p>{{ t('helpCenter.membersEdit.rolesText') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Role cards -->
+    <!-- Dummy: PermissionGrant cards -->
     <NeutralContainer class="space-y-3">
       <SubHeader class="text-sm">{{ t('memberEdit.roles') }}</SubHeader>
       <div class="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">

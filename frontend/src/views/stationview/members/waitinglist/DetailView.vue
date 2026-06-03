@@ -31,9 +31,8 @@ import type {
   WaitingListField,
   WaitingListInvite,
   MemberGroup,
-  Role,
 } from '@/api/types'
-import { waitingList, memberGroups, stationMembers } from '@/api'
+import { waitingList, memberGroups } from '@/api'
 import { useBreakpoint } from '@/composables/useBreakpoint'
 import { useSidebarCounts } from '@/composables/useSidebarCounts'
 
@@ -50,7 +49,6 @@ const entries = ref<WaitingListEntryWithScore[]>([])
 const invites = ref<WaitingListInvite[]>([])
 const fields = ref<WaitingListField[]>([])
 const groups = ref<MemberGroup[]>([])
-const roles = ref<Role[]>([])
 const loading = ref(true)
 const error = ref('')
 const success = ref('')
@@ -105,20 +103,18 @@ async function loadData() {
   loading.value = true
   error.value = ''
   try {
-    const [listData, entryData, inviteData, fieldData, groupData, roleData] = await Promise.all([
+    const [listData, entryData, inviteData, fieldData, groupData] = await Promise.all([
       waitingList.getById(listId.value),
       waitingList.listEntries(listId.value),
       waitingList.listInvites(listId.value),
       waitingList.listFields(listId.value),
       memberGroups.listGroups(),
-      stationMembers.listAllRoles(),
     ])
     list.value = listData
     entries.value = entryData
     invites.value = inviteData
     fields.value = fieldData
     groups.value = groupData
-    roles.value = roleData
   } catch {
     error.value = t('common.error')
   } finally {
@@ -353,7 +349,6 @@ onMounted(loadData)
           :list-id="listId"
           :fields="fields"
           :groups="groups"
-          :roles="roles"
           @updated="handleListUpdated"
           @error="showErrorMessage"
           @success="showSuccessMessage"

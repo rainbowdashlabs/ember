@@ -21,7 +21,7 @@ import dev.chojo.ember.feature.inventory.repository.InventoryCheckRepository;
 import dev.chojo.ember.feature.inventory.repository.InventoryCheckRepository.MemberCheckSummary;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
-import dev.chojo.ember.feature.members.entity.Role;
+import dev.chojo.ember.feature.members.entity.Permission;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import io.javalin.http.ConflictResponse;
@@ -79,8 +79,8 @@ public class InventoryCheckService {
         // Enrich with roles
         return summaries.stream()
                 .map(s -> {
-                    var roles = stationMemberRepository.findRoles(s.memberId()).stream()
-                            .map(Role::role)
+                    var roles = stationMemberRepository.findPermissions(s.memberId()).stream()
+                            .map(Permission::permission)
                             .toList();
                     return new MemberCheckSummary(
                             s.memberId(),
@@ -261,16 +261,16 @@ public class InventoryCheckService {
      * @return list of required inventory items with quantities and assignment counts
      */
     public List<RequiredInventoryItem> getRequiredItems(int stationId, int memberId) {
-        List<Role> memberRoles = stationMemberRepository.findRoles(memberId);
+        var member = stationMemberRepository.findById(memberId).orElse(null);
+        String memberUserType = member != null ? member.userType().name() : null;
         List<MemberGroup> memberGroups = memberGroupRepository.findGroupsForMember(memberId);
         List<InventoryRequirement> allRequirements = inventoryRepository.findAllRequirementsByStation(stationId);
 
-        var memberRoleIds = memberRoles.stream().map(Role::id).toList();
         var memberGroupIds = memberGroups.stream().map(MemberGroup::id).toList();
 
         // Filter requirements applicable to this member
         List<InventoryRequirement> applicable = allRequirements.stream()
-                .filter(req -> (req.roleId() != 0 && memberRoleIds.contains(req.roleId()))
+                .filter(req -> (req.userType() != null && req.userType().equals(memberUserType))
                         || (req.groupId() != 0 && memberGroupIds.contains(req.groupId())))
                 .toList();
 

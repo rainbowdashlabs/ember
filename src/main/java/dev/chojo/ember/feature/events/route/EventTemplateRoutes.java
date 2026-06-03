@@ -6,9 +6,9 @@
 package dev.chojo.ember.feature.events.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
-import dev.chojo.ember.api.Roles;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.roles.StationPermission;
 import dev.chojo.ember.feature.events.entity.EventTemplate;
 import dev.chojo.ember.feature.events.entity.EventTemplateField;
 import dev.chojo.ember.feature.events.entity.EventTemplateFieldData;
@@ -41,13 +41,14 @@ public class EventTemplateRoutes implements Routes {
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        routes.get(prefix + "/event-templates", this::list, Roles.EVENT_MANAGER);
-        routes.post(prefix + "/event-templates", this::create, Roles.EVENT_MANAGER);
-        routes.get(prefix + "/event-templates/{id}", this::get, Roles.EVENT_MANAGER);
-        routes.put(prefix + "/event-templates/{id}", this::update, Roles.EVENT_MANAGER);
-        routes.delete(prefix + "/event-templates/{id}", this::delete, Roles.EVENT_MANAGER);
-        routes.put(prefix + "/event-templates/{id}/fields", this::setFields, Roles.EVENT_MANAGER);
-        routes.put(prefix + "/event-templates/{id}/restrictions", this::setRestrictions, Roles.EVENT_MANAGER);
+        routes.get(prefix + "/event-templates", this::list, StationPermission.EVENT_MANAGER);
+        routes.post(prefix + "/event-templates", this::create, StationPermission.EVENT_MANAGER);
+        routes.get(prefix + "/event-templates/{id}", this::get, StationPermission.EVENT_MANAGER);
+        routes.put(prefix + "/event-templates/{id}", this::update, StationPermission.EVENT_MANAGER);
+        routes.delete(prefix + "/event-templates/{id}", this::delete, StationPermission.EVENT_MANAGER);
+        routes.put(prefix + "/event-templates/{id}/fields", this::setFields, StationPermission.EVENT_MANAGER);
+        routes.put(
+                prefix + "/event-templates/{id}/restrictions", this::setRestrictions, StationPermission.EVENT_MANAGER);
     }
 
     @OpenApi(
@@ -95,8 +96,8 @@ public class EventTemplateRoutes implements Routes {
             throw new ForbiddenResponse("Cannot access resources from another station");
         }
         var fields = eventTemplateService.findFields(id);
-        var restrictionRoleIds = eventTemplateService.findRestrictions(id);
-        ctx.json(new TemplateDetailResponse(template, fields, restrictionRoleIds));
+        var restrictionUserTypes = eventTemplateService.findRestrictions(id);
+        ctx.json(new TemplateDetailResponse(template, fields, restrictionUserTypes));
     }
 
     @OpenApi(
@@ -202,7 +203,7 @@ public class EventTemplateRoutes implements Routes {
             throw new ForbiddenResponse("Cannot access resources from another station");
         }
         var req = ctx.bodyAsClass(SetRestrictionsRequest.class);
-        eventTemplateService.setRestrictions(id, req.roleIds());
+        eventTemplateService.setRestrictions(id, req.userTypes());
         ctx.json(eventTemplateService.findRestrictions(id));
     }
 
@@ -222,9 +223,9 @@ public class EventTemplateRoutes implements Routes {
             Integer registrationLimit) {}
 
     public record TemplateDetailResponse(
-            EventTemplate template, List<EventTemplateField> fields, List<Integer> restrictionRoleIds) {}
+            EventTemplate template, List<EventTemplateField> fields, List<String> restrictionUserTypes) {}
 
     public record SetFieldsRequest(List<EventTemplateFieldData> fields) {}
 
-    public record SetRestrictionsRequest(List<Integer> roleIds) {}
+    public record SetRestrictionsRequest(List<String> userTypes) {}
 }

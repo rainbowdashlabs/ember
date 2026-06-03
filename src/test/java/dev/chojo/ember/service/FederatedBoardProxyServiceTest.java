@@ -8,7 +8,7 @@ package dev.chojo.ember.service;
 import de.chojo.sadu.queries.api.call.Call;
 import de.chojo.sadu.queries.api.query.Query;
 import de.chojo.sadu.queries.converter.StandardValueConverter;
-import dev.chojo.ember.api.Roles;
+import dev.chojo.ember.api.roles.StationUserType;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.board.entity.AccessData;
@@ -33,7 +33,7 @@ import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.service.FederationHttpClient;
 import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
-import dev.chojo.ember.feature.members.entity.Role;
+import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.entity.UserTag;
 import dev.chojo.ember.feature.members.service.MemberGroupService;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
@@ -277,16 +277,20 @@ class FederatedBoardProxyServiceTest extends RepositoryTestBase {
 
     @Test
     @Order(21)
-    void passesLocalViewOverrideWithMatchingRole() {
-        proxyService.setLocalViewOverride(partnerId, boardUid, new AccessData(List.of(42), List.of(), List.of()));
-        when(memberService.findRoles(memberId)).thenReturn(List.of(new Role(42, Roles.USER)));
+    void passesLocalViewOverrideWithMatchingUserType() {
+        proxyService.setLocalViewOverride(partnerId, boardUid, new AccessData(List.of("MEMBER"), List.of(), List.of()));
+        when(memberService.findById(memberId))
+                .thenReturn(Optional.of(
+                        new StationMember(memberId, station1.id(), null, null, false, null, StationUserType.MEMBER)));
         assertTrue(proxyService.passesLocalViewOverride(partnerId, boardUid, memberId));
     }
 
     @Test
     @Order(22)
-    void failsLocalViewOverrideWithWrongRole() {
-        when(memberService.findRoles(memberId)).thenReturn(List.of(new Role(1, Roles.LOGIN)));
+    void failsLocalViewOverrideWithWrongUserType() {
+        when(memberService.findById(memberId))
+                .thenReturn(Optional.of(
+                        new StationMember(memberId, station1.id(), null, null, false, null, StationUserType.TRIAL)));
         when(groupService.findGroupsForMember(memberId)).thenReturn(List.of());
         when(tagService.findTagsForMember(memberId)).thenReturn(List.of());
         assertFalse(proxyService.passesLocalViewOverride(partnerId, boardUid, memberId));
@@ -296,7 +300,6 @@ class FederatedBoardProxyServiceTest extends RepositoryTestBase {
     @Order(23)
     void passesLocalViewOverrideWithMatchingGroup() {
         proxyService.setLocalViewOverride(partnerId, boardUid, new AccessData(List.of(), List.of(55), List.of()));
-        when(memberService.findRoles(memberId)).thenReturn(List.of());
         when(groupService.findGroupsForMember(memberId))
                 .thenReturn(List.of(new MemberGroup(55, station1.id(), "TestGroup", null, 0)));
         assertTrue(proxyService.passesLocalViewOverride(partnerId, boardUid, memberId));
@@ -306,7 +309,6 @@ class FederatedBoardProxyServiceTest extends RepositoryTestBase {
     @Order(24)
     void passesLocalViewOverrideWithMatchingTag() {
         proxyService.setLocalViewOverride(partnerId, boardUid, new AccessData(List.of(), List.of(), List.of(77)));
-        when(memberService.findRoles(memberId)).thenReturn(List.of());
         when(groupService.findGroupsForMember(memberId)).thenReturn(List.of());
         when(tagService.findTagsForMember(memberId))
                 .thenReturn(List.of(new UserTag(77, station1.id(), "TestTag", null, false, 0)));
@@ -330,16 +332,20 @@ class FederatedBoardProxyServiceTest extends RepositoryTestBase {
 
     @Test
     @Order(31)
-    void passesLocalEditOverrideWithMatchingRole() {
-        proxyService.setLocalEditOverride(partnerId, boardUid, new AccessData(List.of(42), List.of(), List.of()));
-        when(memberService.findRoles(memberId)).thenReturn(List.of(new Role(42, Roles.USER)));
+    void passesLocalEditOverrideWithMatchingUserType() {
+        proxyService.setLocalEditOverride(partnerId, boardUid, new AccessData(List.of("MEMBER"), List.of(), List.of()));
+        when(memberService.findById(memberId))
+                .thenReturn(Optional.of(
+                        new StationMember(memberId, station1.id(), null, null, false, null, StationUserType.MEMBER)));
         assertTrue(proxyService.passesLocalEditOverride(partnerId, boardUid, memberId));
     }
 
     @Test
     @Order(32)
-    void failsLocalEditOverrideWithWrongRole() {
-        when(memberService.findRoles(memberId)).thenReturn(List.of(new Role(1, Roles.LOGIN)));
+    void failsLocalEditOverrideWithWrongUserType() {
+        when(memberService.findById(memberId))
+                .thenReturn(Optional.of(
+                        new StationMember(memberId, station1.id(), null, null, false, null, StationUserType.TRIAL)));
         when(groupService.findGroupsForMember(memberId)).thenReturn(List.of());
         when(tagService.findTagsForMember(memberId)).thenReturn(List.of());
         assertFalse(proxyService.passesLocalEditOverride(partnerId, boardUid, memberId));
@@ -394,8 +400,11 @@ class FederatedBoardProxyServiceTest extends RepositoryTestBase {
         federatedBoardService.shareBoard(
                 boardId, List.of(new FederatedBoardService.PartnerShareConfig(partnerId, BoardShareMode.FULL)));
         // Set view override that member won't pass
-        proxyService.setLocalViewOverride(partnerId, boardUid, new AccessData(List.of(999), List.of(), List.of()));
-        when(memberService.findRoles(memberId)).thenReturn(List.of(new Role(1, Roles.LOGIN)));
+        proxyService.setLocalViewOverride(
+                partnerId, boardUid, new AccessData(List.of("MANAGER"), List.of(), List.of()));
+        when(memberService.findById(memberId))
+                .thenReturn(Optional.of(
+                        new StationMember(memberId, station1.id(), null, null, false, null, StationUserType.MEMBER)));
         when(groupService.findGroupsForMember(memberId)).thenReturn(List.of());
         when(tagService.findTagsForMember(memberId)).thenReturn(List.of());
         assertFalse(proxyService.canWrite(partnerId, boardUid, boardId, memberId));
@@ -407,8 +416,11 @@ class FederatedBoardProxyServiceTest extends RepositoryTestBase {
     @Test
     @Order(46)
     void cannotWriteWhenEditOverrideFails() {
-        proxyService.setLocalEditOverride(partnerId, boardUid, new AccessData(List.of(999), List.of(), List.of()));
-        when(memberService.findRoles(memberId)).thenReturn(List.of(new Role(1, Roles.LOGIN)));
+        proxyService.setLocalEditOverride(
+                partnerId, boardUid, new AccessData(List.of("MANAGER"), List.of(), List.of()));
+        when(memberService.findById(memberId))
+                .thenReturn(Optional.of(
+                        new StationMember(memberId, station1.id(), null, null, false, null, StationUserType.MEMBER)));
         when(groupService.findGroupsForMember(memberId)).thenReturn(List.of());
         when(tagService.findTagsForMember(memberId)).thenReturn(List.of());
         assertFalse(proxyService.canWrite(partnerId, boardUid, boardId, memberId));
@@ -422,9 +434,11 @@ class FederatedBoardProxyServiceTest extends RepositoryTestBase {
     @Test
     @Order(50)
     void getLocalViewOverride() {
-        proxyService.setLocalViewOverride(partnerId, boardUid, new AccessData(List.of(1, 2), List.of(3), List.of(4)));
+        proxyService.setLocalViewOverride(
+                partnerId, boardUid, new AccessData(List.of("MEMBER", "GUARDIAN"), List.of(3), List.of(4)));
         var access = proxyService.getLocalViewOverride(partnerId, boardUid);
-        assertEquals(List.of(1, 2), access.roleIds());
+        assertEquals(2, access.userTypes().size());
+        assertTrue(access.userTypes().containsAll(List.of("MEMBER", "GUARDIAN")));
         assertEquals(List.of(3), access.groupIds());
         assertEquals(List.of(4), access.tagIds());
         // Cleanup
@@ -434,9 +448,10 @@ class FederatedBoardProxyServiceTest extends RepositoryTestBase {
     @Test
     @Order(51)
     void getLocalEditOverride() {
-        proxyService.setLocalEditOverride(partnerId, boardUid, new AccessData(List.of(5), List.of(6, 7), List.of()));
+        proxyService.setLocalEditOverride(
+                partnerId, boardUid, new AccessData(List.of("TEAM"), List.of(6, 7), List.of()));
         var access = proxyService.getLocalEditOverride(partnerId, boardUid);
-        assertEquals(List.of(5), access.roleIds());
+        assertEquals(List.of("TEAM"), access.userTypes());
         assertEquals(List.of(6, 7), access.groupIds());
         assertTrue(access.tagIds().isEmpty());
         // Cleanup
@@ -521,7 +536,6 @@ class FederatedBoardProxyServiceTest extends RepositoryTestBase {
     @Order(73)
     void passesLocalEditOverrideWithMatchingGroup() {
         proxyService.setLocalEditOverride(partnerId, boardUid, new AccessData(List.of(), List.of(55), List.of()));
-        when(memberService.findRoles(memberId)).thenReturn(List.of());
         when(groupService.findGroupsForMember(memberId))
                 .thenReturn(List.of(new MemberGroup(55, station1.id(), "EditGroup", null, 0)));
         assertTrue(proxyService.passesLocalEditOverride(partnerId, boardUid, memberId));
@@ -533,7 +547,6 @@ class FederatedBoardProxyServiceTest extends RepositoryTestBase {
     @Order(74)
     void passesLocalEditOverrideWithMatchingTag() {
         proxyService.setLocalEditOverride(partnerId, boardUid, new AccessData(List.of(), List.of(), List.of(77)));
-        when(memberService.findRoles(memberId)).thenReturn(List.of());
         when(groupService.findGroupsForMember(memberId)).thenReturn(List.of());
         when(tagService.findTagsForMember(memberId))
                 .thenReturn(List.of(new UserTag(77, station1.id(), "EditTag", null, false, 0)));

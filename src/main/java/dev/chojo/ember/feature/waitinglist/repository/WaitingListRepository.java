@@ -56,13 +56,13 @@ public class WaitingListRepository {
             int confirmIntervalDays,
             Integer testingGroupId,
             Integer joinGroupId,
-            Integer joinRoleId,
+            String joinUserType,
             int attendanceThreshold) {
         return Query.query("""
                         INSERT INTO waiting_list (station_id, name, description, scoring_formula, confirm_interval_days,
-                            testing_group_id, join_group_id, join_role_id, attendance_threshold)
+                            testing_group_id, join_group_id, join_user_type, attendance_threshold)
                         VALUES (:station_id, :name, :description, :scoring_formula, :confirm_interval_days,
-                            :testing_group_id, :join_group_id, :join_role_id, :attendance_threshold)
+                            :testing_group_id, :join_group_id, :join_user_type, :attendance_threshold)
                         RETURNING *;""")
                 .single(Call.of()
                         .bind("station_id", stationId)
@@ -72,7 +72,7 @@ public class WaitingListRepository {
                         .bind("confirm_interval_days", confirmIntervalDays)
                         .bind("testing_group_id", testingGroupId)
                         .bind("join_group_id", joinGroupId)
-                        .bind("join_role_id", joinRoleId)
+                        .bind("join_user_type", joinUserType)
                         .bind("attendance_threshold", attendanceThreshold))
                 .map(WaitingList.map())
                 .first()
@@ -87,13 +87,13 @@ public class WaitingListRepository {
             int confirmIntervalDays,
             Integer testingGroupId,
             Integer joinGroupId,
-            Integer joinRoleId,
+            String joinUserType,
             int attendanceThreshold) {
         return Query.query("""
                         UPDATE waiting_list SET name = :name, description = :description,
                         scoring_formula = :scoring_formula, confirm_interval_days = :confirm_interval_days,
                         testing_group_id = :testing_group_id, join_group_id = :join_group_id,
-                        join_role_id = :join_role_id, attendance_threshold = :attendance_threshold
+                        join_user_type = :join_user_type, attendance_threshold = :attendance_threshold
                         WHERE id = :id RETURNING *;""")
                 .single(Call.of()
                         .bind("id", id)
@@ -103,7 +103,7 @@ public class WaitingListRepository {
                         .bind("confirm_interval_days", confirmIntervalDays)
                         .bind("testing_group_id", testingGroupId)
                         .bind("join_group_id", joinGroupId)
-                        .bind("join_role_id", joinRoleId)
+                        .bind("join_user_type", joinUserType)
                         .bind("attendance_threshold", attendanceThreshold))
                 .map(WaitingList.map())
                 .first();

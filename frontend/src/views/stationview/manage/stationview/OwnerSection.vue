@@ -36,12 +36,12 @@ async function loadManagers() {
   try {
     const members = await stationMembers.listMembers()
     const allRolesList = await stationMembers.listAllRoles()
-    const managerRoleId = allRolesList.find(r => r.role === 'MANAGER')?.id
+    const managerRoleId = allRolesList.find(r => r.permission === 'MANAGER')?.id
     if (!managerRoleId) return
     const result: {id: number, name: string}[] = []
     for (const m of members) {
       if (props.ownerMemberId && m.id === props.ownerMemberId) continue
-      const roles = await stationMembers.getRoles(m.id)
+      const roles = await stationMembers.getPermissions(m.id)
       if (roles.some(r => r.id === managerRoleId)) {
         result.push({id: m.id, name: m.name || m.email || `#${m.id}`})
       }

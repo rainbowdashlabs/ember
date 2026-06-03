@@ -31,7 +31,7 @@ import type {StorageConsent} from '@/api/storage'
 import {acceptStorage, denyStorage, getConsent, getStoredLegalVersions, getItem} from '@/api/storage'
 import {useStations} from '@/composables/useStations'
 import {useConsentGuard} from '@/composables/useConsentGuard'
-import {Roles} from '@/api/types'
+import {StationUserType} from '@/api/types'
 import MutedText from '@/components/typography/MutedText.vue'
 
 const {t} = useI18n()
@@ -43,7 +43,8 @@ interface DemoAccount {
   email: string
   firstName: string
   lastName: string
-  roles: string[]
+  userType: string
+  permissions: string[]
   groups: string[]
   tags: string[]
   profileComplete: boolean
@@ -70,18 +71,12 @@ const demoLoading = ref(true)
 const stationTabs = computed(() => stationGroups.value.map(g => ({key: g.stationId, label: g.stationName})))
 const showStationTabs = computed(() => stationGroups.value.length > 1)
 
-const roleFriendlyNames: Record<string, string> = {
-  ADMIN: 'Admin',
+const userTypeFriendlyNames: Record<string, string> = {
   MANAGER: 'Manager',
   TEAM: 'Team',
-  MEMBER_MANAGER: 'Mitgliederverwaltung',
-  ATTENDANCE_MANAGER: 'Anwesenheit',
-  EVENT_MANAGER: 'Termine',
-  INVENTORY_MANAGER: 'Inventar',
   GUARDIAN: 'Erziehungsberechtigter',
   MEMBER: 'Mitglied',
-  LOGIN: 'Login',
-  NEWS_MANAGER: 'Neuigkeiten',
+  TRIAL: 'Probe',
 }
 
 const roleGroups = computed(() => {
@@ -96,10 +91,10 @@ const roleGroups = computed(() => {
     }
   }
 
-  addGroup('Admin', a => a.roles.includes(Roles.MANAGER) || a.roles.includes(Roles.ADMIN))
-  addGroup('Team', a => a.roles.includes(Roles.TEAM))
-  addGroup('Erziehungsberechtigter', a => a.roles.includes(Roles.GUARDIAN))
-  addGroup('Mitglieder', a => a.roles.includes(Roles.MEMBER) || a.roles.includes(Roles.LOGIN))
+  addGroup('Admin', a => a.userType === StationUserType.MANAGER)
+  addGroup('Team', a => a.userType === StationUserType.TEAM)
+  addGroup('Erziehungsberechtigter', a => a.userType === StationUserType.GUARDIAN)
+  addGroup('Mitglieder', a => a.userType === StationUserType.MEMBER || a.userType === StationUserType.TRIAL)
   return groups
 })
 
@@ -314,10 +309,7 @@ async function loginAsDemo(account: DemoAccount) {
 }
 
 function topRoleLabel(account: DemoAccount): string {
-  for (const role of account.roles) {
-    if (roleFriendlyNames[role] && role !== Roles.LOGIN) return roleFriendlyNames[role]
-  }
-  return 'Login'
+  return userTypeFriendlyNames[account.userType] ?? account.userType ?? 'Login'
 }
 </script>
 

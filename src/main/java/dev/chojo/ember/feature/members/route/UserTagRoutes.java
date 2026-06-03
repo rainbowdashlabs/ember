@@ -6,9 +6,9 @@
 package dev.chojo.ember.feature.members.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
-import dev.chojo.ember.api.Roles;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.roles.StationPermission;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.members.entity.MemberWithName;
 import dev.chojo.ember.feature.members.entity.StationMember;
@@ -61,17 +61,17 @@ public class UserTagRoutes implements Routes {
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        routes.get(prefix + "/tags", this::list, Roles.MEMBER_MANAGER);
-        routes.post(prefix + "/tags", this::create, Roles.MEMBER_MANAGER);
-        routes.put(prefix + "/tags/{id}", this::update, Roles.MEMBER_MANAGER);
-        routes.delete(prefix + "/tags/{id}", this::delete, Roles.MEMBER_MANAGER);
+        routes.get(prefix + "/tags", this::list, StationPermission.MEMBER_MANAGER);
+        routes.post(prefix + "/tags", this::create, StationPermission.MEMBER_MANAGER);
+        routes.put(prefix + "/tags/{id}", this::update, StationPermission.MEMBER_MANAGER);
+        routes.delete(prefix + "/tags/{id}", this::delete, StationPermission.MEMBER_MANAGER);
 
-        routes.get(prefix + "/tags/{id}/members", this::getMembers, Roles.MEMBER_MANAGER);
-        routes.put(prefix + "/tags/{id}/members", this::setMembers, Roles.MEMBER_MANAGER);
+        routes.get(prefix + "/tags/{id}/members", this::getMembers, StationPermission.MEMBER_MANAGER);
+        routes.put(prefix + "/tags/{id}/members", this::setMembers, StationPermission.MEMBER_MANAGER);
 
-        routes.get(prefix + "/station-members/{memberId}/tags", this::getMemberTags, Roles.MEMBER_MANAGER);
+        routes.get(prefix + "/station-members/{memberId}/tags", this::getMemberTags, StationPermission.MEMBER_MANAGER);
 
-        routes.post(prefix + "/tags/{id}/convert-to-group", this::convertToGroup, Roles.MEMBER_MANAGER);
+        routes.post(prefix + "/tags/{id}/convert-to-group", this::convertToGroup, StationPermission.MEMBER_MANAGER);
     }
 
     // -- Tags --

@@ -5,8 +5,8 @@
  */
 import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import type { ProfileField, StationMember, MemberGroup, UserTag, Role } from '@/api/types'
-import { Roles, hasTeamRole } from '@/api/types'
+import type { ProfileField, StationMember, MemberGroup, UserTag, PermissionGrant } from '@/api/types'
+import { StationUserType } from '@/api/types'
 import { profileFields, stationMembers } from '@/api'
 
 export function parseConfig(configStr: string | undefined): Record<string, unknown> {
@@ -46,7 +46,7 @@ export function useMemberData() {
   const fields = ref<ProfileField[]>([])
   const allGroups = ref<MemberGroup[]>([])
   const allTags = ref<UserTag[]>([])
-  const allRoles = ref<Role[]>([])
+  const allRoles = ref<PermissionGrant[]>([])
   const memberValues = ref<Map<number, Map<number, string>>>(new Map())
   const memberRolesMap = ref<Map<number, string[]>>(new Map())
   const memberGroupsMap = ref<Map<number, string[]>>(new Map())
@@ -87,9 +87,10 @@ export function useMemberData() {
 
   function getMemberType(memberId: number): 'MEMBER' | 'GUARDIAN' | 'TEAM' | null {
     const roles = memberRolesMap.value.get(memberId) ?? []
-    if (hasTeamRole(roles)) return Roles.TEAM
-    if (roles.includes(Roles.GUARDIAN)) return Roles.GUARDIAN
-    if (roles.includes(Roles.MEMBER)) return Roles.MEMBER
+    // The roles array now contains the userType as a string from the backend
+    if (roles.includes(StationUserType.MANAGER) || roles.includes(StationUserType.TEAM)) return StationUserType.TEAM
+    if (roles.includes(StationUserType.GUARDIAN)) return StationUserType.GUARDIAN
+    if (roles.includes(StationUserType.MEMBER) || roles.includes(StationUserType.TRIAL)) return StationUserType.MEMBER
     return null
   }
 
@@ -136,6 +137,7 @@ export function useMemberData() {
           accountId: rm.accountId ?? 0,
           name: rm.name,
           email: rm.email,
+          userType: rm.userType,
           identity: rm.identity,
         })
 

@@ -38,7 +38,8 @@ public class StationExportService {
             "logo",
             "disabledModules",
             "members",
-            "memberRoles",
+            "memberUserTypes",
+            "memberPermissions",
             "groups",
             "groupMembers",
             "tags",
@@ -214,11 +215,19 @@ public class StationExportService {
                                 stationId,
                                 offset,
                                 limit));
-            case "memberRoles" ->
+            case "memberUserTypes" ->
                 data.put(
-                        "memberRoles",
+                        "memberUserTypes",
                         queryRows(
-                                "SELECT smr.member_id, r.name AS role_name FROM station_member_role smr JOIN role r ON r.id = smr.role_id JOIN station_member sm ON sm.id = smr.member_id WHERE sm.station_id = :id",
+                                "SELECT sm.id AS member_id, sm.user_type FROM station_member sm WHERE sm.station_id = :id",
+                                stationId,
+                                offset,
+                                limit));
+            case "memberPermissions" ->
+                data.put(
+                        "memberPermissions",
+                        queryRows(
+                                "SELECT smp.member_id, sp.name AS permission_name FROM station_member_permission smp JOIN station_permission sp ON sp.id = smp.permission_id JOIN station_member sm ON sm.id = smp.member_id WHERE sm.station_id = :id",
                                 stationId,
                                 offset,
                                 limit));
@@ -577,7 +586,7 @@ public class StationExportService {
                 data.put(
                         "boardViewAccess",
                         queryRows(
-                                "SELECT bva.board_id, bva.role_id, bva.group_id, bva.tag_id FROM board_view_access bva JOIN board b ON b.id = bva.board_id WHERE b.station_id = :id",
+                                "SELECT bva.board_id, bva.user_type, bva.group_id, bva.tag_id FROM board_view_access bva JOIN board b ON b.id = bva.board_id WHERE b.station_id = :id",
                                 stationId,
                                 offset,
                                 limit));
@@ -585,7 +594,7 @@ public class StationExportService {
                 data.put(
                         "boardEditAccess",
                         queryRows(
-                                "SELECT bea.board_id, bea.role_id, bea.group_id, bea.tag_id FROM board_edit_access bea JOIN board b ON b.id = bea.board_id WHERE b.station_id = :id",
+                                "SELECT bea.board_id, bea.user_type, bea.group_id, bea.tag_id FROM board_edit_access bea JOIN board b ON b.id = bea.board_id WHERE b.station_id = :id",
                                 stationId,
                                 offset,
                                 limit));
@@ -601,7 +610,7 @@ public class StationExportService {
                 data.put(
                         "waitingLists",
                         queryRows(
-                                "SELECT id, name, description, scoring_formula, confirm_interval_days, visible_fields, testing_group_id, join_group_id, join_role_id, attendance_threshold, created_at FROM waiting_list WHERE station_id = :id",
+                                "SELECT id, name, description, scoring_formula, confirm_interval_days, visible_fields, testing_group_id, join_group_id, join_user_type, attendance_threshold, created_at FROM waiting_list WHERE station_id = :id",
                                 stationId,
                                 offset,
                                 limit));
@@ -681,7 +690,7 @@ public class StationExportService {
                 data.put(
                         "formRestrictions",
                         queryRows(
-                                "SELECT frs.id, frs.form_id, frs.role_id, frs.group_id, frs.tag_id, frs.member_id FROM form_restriction frs JOIN form f ON f.id = frs.form_id WHERE f.station_id = :id",
+                                "SELECT frs.id, frs.form_id, frs.user_type, frs.group_id, frs.tag_id, frs.member_id FROM form_restriction frs JOIN form f ON f.id = frs.form_id WHERE f.station_id = :id",
                                 stationId,
                                 offset,
                                 limit));
@@ -689,7 +698,7 @@ public class StationExportService {
                 data.put(
                         "eventRestrictions",
                         queryRows(
-                                "SELECT er.id, er.event_id, er.role_id, er.group_id, er.tag_id, er.member_id FROM event_restriction er JOIN station_event se ON se.id = er.event_id WHERE se.station_id = :id",
+                                "SELECT er.id, er.event_id, er.user_type, er.group_id, er.tag_id, er.member_id FROM event_restriction er JOIN station_event se ON se.id = er.event_id WHERE se.station_id = :id",
                                 stationId,
                                 offset,
                                 limit));
@@ -718,7 +727,7 @@ public class StationExportService {
                 data.put(
                         "eventTemplateRestrictions",
                         queryRows(
-                                "SELECT etr.template_id, etr.role_id FROM event_template_restriction etr JOIN event_template et ON et.id = etr.template_id WHERE et.station_id = :id",
+                                "SELECT etr.template_id, etr.user_type FROM event_template_restriction etr JOIN event_template et ON et.id = etr.template_id WHERE et.station_id = :id",
                                 stationId,
                                 offset,
                                 limit));
@@ -746,7 +755,7 @@ public class StationExportService {
                 data.put(
                         "kbAccessRestrictions",
                         queryRows(
-                                "SELECT kar.id, kar.folder_id, kar.file_id, kar.role_id, kar.group_id, kar.tag_id, kar.member_id FROM kb_access_restriction kar LEFT JOIN kb_folder kfo ON kfo.id = kar.folder_id LEFT JOIN kb_file kf ON kf.id = kar.file_id WHERE kfo.station_id = :id OR kf.station_id = :id",
+                                "SELECT kar.id, kar.folder_id, kar.file_id, kar.user_type, kar.group_id, kar.tag_id, kar.member_id FROM kb_access_restriction kar LEFT JOIN kb_folder kfo ON kfo.id = kar.folder_id LEFT JOIN kb_file kf ON kf.id = kar.file_id WHERE kfo.station_id = :id OR kf.station_id = :id",
                                 stationId,
                                 offset,
                                 limit));
@@ -786,7 +795,7 @@ public class StationExportService {
                 data.put(
                         "inventoryRequirements",
                         queryRows(
-                                "SELECT ir.id, ir.inventory_id, ir.role_id, ir.group_id, ir.quantity, ir.position FROM inventory_requirement ir JOIN inventory i ON i.id = ir.inventory_id WHERE i.station_id = :id",
+                                "SELECT ir.id, ir.inventory_id, ir.user_type, ir.group_id, ir.quantity, ir.position FROM inventory_requirement ir JOIN inventory i ON i.id = ir.inventory_id WHERE i.station_id = :id",
                                 stationId,
                                 offset,
                                 limit));
@@ -794,7 +803,7 @@ public class StationExportService {
                 data.put(
                         "newsRestrictions",
                         queryRows(
-                                "SELECT nr.id, nr.news_id, nr.role_id, nr.group_id, nr.tag_id, nr.member_id FROM news_restriction nr JOIN news n ON n.id = nr.news_id WHERE n.station_id = :id",
+                                "SELECT nr.id, nr.news_id, nr.user_type, nr.group_id, nr.tag_id, nr.member_id FROM news_restriction nr JOIN news n ON n.id = nr.news_id WHERE n.station_id = :id",
                                 stationId,
                                 offset,
                                 limit));

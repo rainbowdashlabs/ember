@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.service;
 
+import dev.chojo.ember.api.roles.StationPermission;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.attendance.entity.AttendanceFieldConfig;
@@ -29,6 +30,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
 
@@ -45,7 +47,10 @@ class EventServiceTest extends RepositoryTestBase {
 
     @BeforeAll
     static void setup() {
-        service = new EventService(eventRepo, new RestrictionRepository(), new DomainEventBus(Set.of()));
+        service = new EventService(
+                eventRepo,
+                new RestrictionRepository(stationMemberRepo, memberGroupRepo, userTagRepo),
+                new DomainEventBus(Set.of()));
         station = stationRepo.create("EventStation");
         account = accountRepo.create("event-svc@test.com", "Event", "Tester");
         member = stationMemberRepo.create(station.id(), account.id());
@@ -167,7 +172,7 @@ class EventServiceTest extends RepositoryTestBase {
                 null,
                 null);
 
-        var reg = service.register(eventId, member.id(), LocalDate.of(2026, 6, 1), false, null);
+        var reg = service.register(eventId, member.id(), LocalDate.now().plusDays(7), false, null);
         assertNotNull(reg);
         assertEquals(member.id(), reg.memberId());
 
@@ -442,7 +447,7 @@ class EventServiceTest extends RepositoryTestBase {
                 null,
                 null);
 
-        service.setRestrictions(event.id(), List.of(1), List.of(), List.of(), List.of());
+        service.setRestrictions(event.id(), List.of("MEMBER"), List.of(), List.of(), List.of());
         var restrictions = service.findRestrictions(event.id());
         assertNotNull(restrictions);
     }
@@ -497,7 +502,7 @@ class EventServiceTest extends RepositoryTestBase {
                 null);
 
         // No restrictions set — member should be eligible
-        assertTrue(service.isMemberEligible(event.id(), member.id()));
+        assertTrue(service.isMemberEligible(event.id(), member.id(), EnumSet.noneOf(StationPermission.class)));
     }
 
     // -- Field defaults --

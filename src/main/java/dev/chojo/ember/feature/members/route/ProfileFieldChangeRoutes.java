@@ -5,9 +5,9 @@
  */
 package dev.chojo.ember.feature.members.route;
 
-import dev.chojo.ember.api.Roles;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.roles.StationPermission;
 import dev.chojo.ember.feature.members.entity.ProfileFieldChange;
 import dev.chojo.ember.feature.members.entity.ProfileFieldChangeAcknowledgement;
 import dev.chojo.ember.feature.members.repository.ProfileFieldChangeRepository.MemberChangeSummary;
@@ -40,23 +40,31 @@ public class ProfileFieldChangeRoutes implements Routes {
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        routes.get(prefix + "/profile-changes/all", this::getAllChanges, Roles.MEMBER_MANAGER, Roles.GUARDIAN);
-        routes.get(prefix + "/profile-changes/pending", this::getPendingSummary, Roles.MEMBER_MANAGER, Roles.GUARDIAN);
+        routes.get(
+                prefix + "/profile-changes/all",
+                this::getAllChanges,
+                StationPermission.MEMBER_MANAGER,
+                StationPermission.MEMBER_GUARDIAN);
+        routes.get(
+                prefix + "/profile-changes/pending",
+                this::getPendingSummary,
+                StationPermission.MEMBER_MANAGER,
+                StationPermission.MEMBER_GUARDIAN);
         routes.get(
                 prefix + "/station-members/{memberId}/profile-changes",
                 this::getChanges,
-                Roles.MEMBER_MANAGER,
-                Roles.GUARDIAN);
+                StationPermission.MEMBER_MANAGER,
+                StationPermission.MEMBER_GUARDIAN);
         routes.post(
                 prefix + "/profile-changes/{changeId}/acknowledge",
                 this::acknowledge,
-                Roles.MEMBER_MANAGER,
-                Roles.GUARDIAN);
+                StationPermission.MEMBER_MANAGER,
+                StationPermission.MEMBER_GUARDIAN);
         routes.post(
                 prefix + "/station-members/{memberId}/profile-changes/acknowledge-all",
                 this::acknowledgeAll,
-                Roles.MEMBER_MANAGER,
-                Roles.GUARDIAN);
+                StationPermission.MEMBER_MANAGER,
+                StationPermission.MEMBER_GUARDIAN);
     }
 
     @OpenApi(

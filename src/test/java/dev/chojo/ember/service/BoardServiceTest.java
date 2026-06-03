@@ -5,7 +5,7 @@
  */
 package dev.chojo.ember.service;
 
-import dev.chojo.ember.api.Roles;
+import dev.chojo.ember.api.roles.StationUserType;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.board.entity.BoardChecklistItem;
@@ -21,7 +21,6 @@ import dev.chojo.ember.feature.board.entity.TicketPriority;
 import dev.chojo.ember.feature.board.service.BoardService;
 import dev.chojo.ember.feature.board.service.BoardTicketService;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
-import dev.chojo.ember.feature.members.entity.Role;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.entity.UserTag;
 import dev.chojo.ember.feature.members.service.MemberGroupService;
@@ -37,6 +36,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -60,7 +60,6 @@ class BoardServiceTest extends RepositoryTestBase {
     @BeforeAll
     static void setup() {
         memberService = mock(StationMemberService.class);
-        when(memberService.findAllRoles()).thenReturn(List.of(new Role(1, Roles.LOGIN), new Role(99, Roles.USER)));
         groupService = mock(MemberGroupService.class);
         tagService = mock(UserTagService.class);
 
@@ -395,17 +394,33 @@ class BoardServiceTest extends RepositoryTestBase {
 
     @Test
     @Order(61)
-    void canViewWithRoleRestriction() {
-        boardService.setViewAccess(boardId, List.of(99), List.of(), List.of());
-        when(memberService.findRoles(member.id())).thenReturn(List.of(new Role(99, Roles.USER)));
+    void canViewWithUserTypeRestriction() {
+        boardService.setViewAccess(boardId, List.of("MEMBER"), List.of(), List.of());
+        when(memberService.findById(member.id()))
+                .thenReturn(Optional.of(new StationMember(
+                        member.id(),
+                        member.stationId(),
+                        member.uid(),
+                        member.accountId(),
+                        false,
+                        null,
+                        StationUserType.MEMBER)));
         assertTrue(boardService.canView(boardId, member.id()));
     }
 
     @Test
     @Order(62)
-    void cannotViewWithWrongRole() {
-        boardService.setViewAccess(boardId, List.of(99), List.of(), List.of());
-        when(memberService.findRoles(member.id())).thenReturn(List.of(new Role(1, Roles.LOGIN)));
+    void cannotViewWithWrongUserType() {
+        boardService.setViewAccess(boardId, List.of("MANAGER"), List.of(), List.of());
+        when(memberService.findById(member.id()))
+                .thenReturn(Optional.of(new StationMember(
+                        member.id(),
+                        member.stationId(),
+                        member.uid(),
+                        member.accountId(),
+                        false,
+                        null,
+                        StationUserType.MEMBER)));
         assertFalse(boardService.canView(boardId, member.id()));
     }
 
@@ -413,7 +428,6 @@ class BoardServiceTest extends RepositoryTestBase {
     @Order(63)
     void canViewWithGroupRestriction() {
         boardService.setViewAccess(boardId, List.of(), List.of(42), List.of());
-        when(memberService.findRoles(member.id())).thenReturn(List.of());
         when(groupService.findGroupsForMember(member.id()))
                 .thenReturn(List.of(new MemberGroup(42, station.id(), "TestGroup", null, 0)));
         assertTrue(boardService.canView(boardId, member.id()));
@@ -423,7 +437,6 @@ class BoardServiceTest extends RepositoryTestBase {
     @Order(64)
     void canViewWithTagRestriction() {
         boardService.setViewAccess(boardId, List.of(), List.of(), List.of(77));
-        when(memberService.findRoles(member.id())).thenReturn(List.of());
         when(groupService.findGroupsForMember(member.id())).thenReturn(List.of());
         when(tagService.findTagsForMember(member.id()))
                 .thenReturn(List.of(new UserTag(77, station.id(), "TestTag", null, false, 0)));
@@ -433,8 +446,16 @@ class BoardServiceTest extends RepositoryTestBase {
     @Test
     @Order(65)
     void canEditWithRestriction() {
-        boardService.setEditAccess(boardId, List.of(99), List.of(), List.of());
-        when(memberService.findRoles(member.id())).thenReturn(List.of(new Role(99, Roles.USER)));
+        boardService.setEditAccess(boardId, List.of("MEMBER"), List.of(), List.of());
+        when(memberService.findById(member.id()))
+                .thenReturn(Optional.of(new StationMember(
+                        member.id(),
+                        member.stationId(),
+                        member.uid(),
+                        member.accountId(),
+                        false,
+                        null,
+                        StationUserType.MEMBER)));
         assertTrue(boardService.canEdit(boardId, member.id()));
     }
 
@@ -498,9 +519,9 @@ class BoardServiceTest extends RepositoryTestBase {
     @Test
     @Order(79)
     void getAccessData() {
-        boardService.setViewAccess(boardId, List.of(1), List.of(2), List.of(3));
+        boardService.setViewAccess(boardId, List.of("MEMBER"), List.of(2), List.of(3));
         var va = boardService.getViewAccess(boardId);
-        assertEquals(List.of(1), va.roleIds());
+        assertEquals(List.of("MEMBER"), va.userTypes());
         assertEquals(List.of(2), va.groupIds());
         assertEquals(List.of(3), va.tagIds());
         var ea = boardService.getEditAccess(boardId);

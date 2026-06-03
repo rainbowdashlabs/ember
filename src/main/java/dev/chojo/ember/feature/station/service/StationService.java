@@ -5,14 +5,14 @@
  */
 package dev.chojo.ember.feature.station.service;
 
-import dev.chojo.ember.api.Roles;
+import dev.chojo.ember.api.roles.StationPermission;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.entity.AccountCredential;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
-import dev.chojo.ember.feature.members.entity.Role;
+import dev.chojo.ember.feature.members.entity.Permission;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.station.entity.DiscoveryVisibility;
@@ -201,11 +201,13 @@ public class StationService {
      * @return the manager info, or empty if no manager is found
      */
     public Optional<ManagerInfo> findManagerInfo(int stationId) {
-        Role managerRole = memberRepository.findRoleByName(Roles.MANAGER).orElse(null);
+        Permission managerRole = memberRepository
+                .findPermissionByName(StationPermission.STATION_ADMINISTRATOR)
+                .orElse(null);
         if (managerRole == null) return Optional.empty();
 
         for (StationMember member : memberRepository.findByStation(stationId)) {
-            List<Role> roles = memberRepository.findRoles(member.id());
+            List<Permission> roles = memberRepository.findPermissions(member.id());
             if (roles.stream().anyMatch(r -> r.id() == managerRole.id())) {
                 Account account = accountRepository.findById(member.accountId()).orElse(null);
                 if (account == null) continue;
@@ -268,9 +270,11 @@ public class StationService {
         if (station.ownerMemberId() == null || station.ownerMemberId() != currentMemberId) return false;
 
         // Verify the target has the MANAGER role
-        Role managerRole = memberRepository.findRoleByName(Roles.MANAGER).orElse(null);
+        Permission managerRole = memberRepository
+                .findPermissionByName(StationPermission.STATION_ADMINISTRATOR)
+                .orElse(null);
         if (managerRole == null) return false;
-        var targetRoles = memberRepository.findRoles(newOwnerMemberId);
+        var targetRoles = memberRepository.findPermissions(newOwnerMemberId);
         if (targetRoles.stream().noneMatch(r -> r.id() == managerRole.id())) return false;
 
         stationRepository.setOwner(stationId, newOwnerMemberId);
@@ -343,8 +347,8 @@ public class StationService {
      * Assigns the MANAGER role to the given email and sets them as station owner if no owner exists yet.
      */
     private void assignManager(int stationId, String managerEmail) {
-        Role managerRole = memberRepository
-                .findRoleByName(Roles.MANAGER)
+        Permission managerRole = memberRepository
+                .findPermissionByName(StationPermission.STATION_ADMINISTRATOR)
                 .orElseThrow(() -> new IllegalStateException("manager role not found"));
 
         // Find or invite account
@@ -366,9 +370,9 @@ public class StationService {
                 .orElseGet(() -> memberRepository.create(stationId, account.id()));
 
         // Assign manager role
-        List<Role> currentRoles = memberRepository.findRoles(member.id());
+        List<Permission> currentRoles = memberRepository.findPermissions(member.id());
         if (currentRoles.stream().noneMatch(r -> r.id() == managerRole.id())) {
-            memberRepository.addRole(member.id(), managerRole.id());
+            memberRepository.grantPermission(member.id(), managerRole.id());
         }
 
         // Set as owner if no owner exists yet

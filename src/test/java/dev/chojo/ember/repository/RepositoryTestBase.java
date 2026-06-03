@@ -211,7 +211,7 @@ public abstract class RepositoryTestBase {
         aiProviderRepo = new AiProviderRepository();
         testProtocolRepo = new TestProtocolRepository();
         knowledgeBaseRepo = new KnowledgeBaseRepository();
-        restrictionRepo = new RestrictionRepository();
+        restrictionRepo = new RestrictionRepository(stationMemberRepo, memberGroupRepo, userTagRepo);
         applicationSettingRepo = new ApplicationSettingRepository();
         problemReportRepo = new ProblemReportRepository();
         boardRepo = new BoardRepository();

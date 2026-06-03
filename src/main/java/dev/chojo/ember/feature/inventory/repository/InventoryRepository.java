@@ -466,7 +466,7 @@ public class InventoryRepository {
      */
     public List<InventoryRequirement> findAllRequirementsByStation(int stationId) {
         return Query.query(
-                        "SELECT r.id, r.inventory_id, r.role_id, r.group_id, r.quantity, r.position FROM inventory_requirement r JOIN inventory i ON r.inventory_id = i.id WHERE i.station_id = :stationId ORDER BY r.position, r.id;")
+                        "SELECT r.id, r.inventory_id, r.user_type, r.group_id, r.quantity, r.position FROM inventory_requirement r JOIN inventory i ON r.inventory_id = i.id WHERE i.station_id = :stationId ORDER BY r.position, r.id;")
                 .single(Call.of().bind("stationId", stationId))
                 .map(InventoryRequirement.map())
                 .all();
@@ -476,17 +476,17 @@ public class InventoryRepository {
      * Creates a new inventory requirement for a role or group.
      *
      * @param inventoryId the inventory ID
-     * @param roleId      the role ID (0 means no role restriction)
+     * @param userType    the user type name, or {@code null} for no user type restriction
      * @param groupId     the group ID (0 means no group restriction)
      * @param quantity    the required quantity
      * @return the created requirement
      */
-    public InventoryRequirement createRequirement(int inventoryId, int roleId, int groupId, int quantity) {
+    public InventoryRequirement createRequirement(int inventoryId, String userType, int groupId, int quantity) {
         return Query.query(
-                        "INSERT INTO inventory_requirement(inventory_id, role_id, group_id, quantity) VALUES(:inventoryId, :roleId, :groupId, :quantity) RETURNING id, inventory_id, role_id, group_id, quantity, position;")
+                        "INSERT INTO inventory_requirement(inventory_id, user_type, group_id, quantity) VALUES(:inventoryId, :userType, :groupId, :quantity) RETURNING id, inventory_id, user_type, group_id, quantity, position;")
                 .single(Call.of()
                         .bind("inventoryId", inventoryId)
-                        .bind("roleId", roleId == 0 ? null : roleId)
+                        .bind("userType", userType != null && !userType.isBlank() ? userType : null)
                         .bind("groupId", groupId == 0 ? null : groupId)
                         .bind("quantity", quantity))
                 .map(InventoryRequirement.map())

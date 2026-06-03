@@ -6,9 +6,9 @@
 package dev.chojo.ember.feature.members.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
-import dev.chojo.ember.api.Roles;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.roles.StationPermission;
 import dev.chojo.ember.feature.members.service.MemberImportService;
 import dev.chojo.ember.feature.members.service.MemberImportService.ColumnMapping;
 import io.javalin.http.BadRequestResponse;
@@ -51,11 +51,11 @@ public class MemberImportRoutes implements Routes {
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        routes.post(prefix + "/members/import/parse", this::parse, Roles.MEMBER_MANAGER);
-        routes.post(prefix + "/members/import/preview", this::preview, Roles.MEMBER_MANAGER);
-        routes.post(prefix + "/members/import", this::importMembers, Roles.MEMBER_MANAGER);
-        routes.post(prefix + "/members/import-team/preview", this::previewTeam, Roles.MEMBER_MANAGER);
-        routes.post(prefix + "/members/import-team", this::importTeamMembers, Roles.MEMBER_MANAGER);
+        routes.post(prefix + "/members/import/parse", this::parse, StationPermission.MEMBER_MANAGER);
+        routes.post(prefix + "/members/import/preview", this::preview, StationPermission.MEMBER_MANAGER);
+        routes.post(prefix + "/members/import", this::importMembers, StationPermission.MEMBER_MANAGER);
+        routes.post(prefix + "/members/import-team/preview", this::previewTeam, StationPermission.MEMBER_MANAGER);
+        routes.post(prefix + "/members/import-team", this::importTeamMembers, StationPermission.MEMBER_MANAGER);
     }
 
     @OpenApi(

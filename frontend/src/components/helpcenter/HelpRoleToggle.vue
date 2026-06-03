@@ -7,7 +7,7 @@
 import {onMounted, computed, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useSession} from '@/composables/useSession'
-import {Roles} from '@/api/types'
+import {StationPermission} from '@/api/types'
 import InfoContainer from '@/components/container/InfoContainer.vue'
 
 export interface HelpRole {
@@ -26,13 +26,13 @@ const {sessionInfo, loaded, load} = useSession()
 
 function pickRole() {
   if (activeRole.value) return
-  if (loaded.value && sessionInfo.value?.roles) {
-    const userRoles = sessionInfo.value.roles
-    if (userRoles.includes(Roles.MANAGER) && props.roles.some(r => r.key === 'manager')) {
+  if (loaded.value && sessionInfo.value?.permissions) {
+    const perms = sessionInfo.value.permissions
+    if (perms.includes(StationPermission.STATION_ADMINISTRATOR) && props.roles.some(r => r.key === 'manager')) {
       activeRole.value = 'manager'
-    } else if (userRoles.includes(Roles.TEAM) && props.roles.some(r => r.key === 'team')) {
+    } else if (perms.includes(StationPermission.USER) && props.roles.some(r => r.key === 'team')) {
       activeRole.value = 'team'
-    } else if (userRoles.includes(Roles.GUARDIAN) && props.roles.some(r => r.key === 'guardian')) {
+    } else if (perms.includes(StationPermission.MEMBER_GUARDIAN) && props.roles.some(r => r.key === 'guardian')) {
       activeRole.value = 'guardian'
     } else if (props.roles.length > 0) {
       activeRole.value = props.roles[0].key
@@ -52,7 +52,7 @@ onMounted(() => {
 watch(loaded, pickRole)
 
 const hint = computed(() => {
-  if (loaded.value && sessionInfo.value?.roles) return ''
+  if (loaded.value && sessionInfo.value?.permissions) return ''
   return t('helpCenter.notLoggedIn')
 })
 </script>

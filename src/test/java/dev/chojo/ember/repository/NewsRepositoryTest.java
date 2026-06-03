@@ -85,7 +85,7 @@ class NewsRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(10)
     void setAndFindRestrictions() {
-        var restrictionRepo = new RestrictionRepository();
+        var restrictionRepo = new RestrictionRepository(stationMemberRepo, memberGroupRepo, userTagRepo);
         var group = memberGroupRepo.create(station.id(), "News Group");
         restrictionRepo.setRestrictions(
                 "news_restriction", "news_id", newsId, List.of(), List.of(group.id()), List.of(), List.of());

@@ -6,9 +6,9 @@
 package dev.chojo.ember.feature.protocol.route;
 
 import dev.chojo.ember.api.FederationSession;
-import dev.chojo.ember.api.Roles;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.roles.StationPermission;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
@@ -85,74 +85,88 @@ public class TestProtocolRoutes implements Routes {
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
         // Protocol list (static paths first, before {id} params)
-        routes.get(prefix + "/protocols", this::listProtocols, Roles.PROTOCOL_MANAGER);
-        routes.post(prefix + "/protocols", this::createProtocol, Roles.PROTOCOL_MANAGER);
+        routes.get(prefix + "/protocols", this::listProtocols, StationPermission.PROTOCOL_MANAGER);
+        routes.post(prefix + "/protocols", this::createProtocol, StationPermission.PROTOCOL_MANAGER);
 
         // Runs (static "runs" path must be registered before "/protocols/{id}")
-        routes.get(prefix + "/protocols/runs", this::listRuns, Roles.PROTOCOL_TESTER);
-        routes.get(prefix + "/protocols/runs/{id}", this::getRun, Roles.PROTOCOL_TESTER);
-        routes.put(prefix + "/protocols/runs/{id}", this::updateRun, Roles.PROTOCOL_MANAGER);
-        routes.delete(prefix + "/protocols/runs/{id}", this::deleteRun, Roles.PROTOCOL_MANAGER);
-        routes.post(prefix + "/protocols/runs/{id}/close", this::closeRun, Roles.PROTOCOL_MANAGER);
+        routes.get(prefix + "/protocols/runs", this::listRuns, StationPermission.PROTOCOL_TESTER);
+        routes.get(prefix + "/protocols/runs/{id}", this::getRun, StationPermission.PROTOCOL_TESTER);
+        routes.put(prefix + "/protocols/runs/{id}", this::updateRun, StationPermission.PROTOCOL_MANAGER);
+        routes.delete(prefix + "/protocols/runs/{id}", this::deleteRun, StationPermission.PROTOCOL_MANAGER);
+        routes.post(prefix + "/protocols/runs/{id}/close", this::closeRun, StationPermission.PROTOCOL_MANAGER);
 
         // Sections (static "sections" path before {id})
-        routes.put(prefix + "/protocols/sections/{id}", this::updateSection, Roles.PROTOCOL_MANAGER);
-        routes.delete(prefix + "/protocols/sections/{id}", this::deleteSection, Roles.PROTOCOL_MANAGER);
+        routes.put(prefix + "/protocols/sections/{id}", this::updateSection, StationPermission.PROTOCOL_MANAGER);
+        routes.delete(prefix + "/protocols/sections/{id}", this::deleteSection, StationPermission.PROTOCOL_MANAGER);
 
         // Items (static "items" path before {id})
-        routes.put(prefix + "/protocols/items/{id}", this::updateItem, Roles.PROTOCOL_MANAGER);
-        routes.delete(prefix + "/protocols/items/{id}", this::deleteItem, Roles.PROTOCOL_MANAGER);
+        routes.put(prefix + "/protocols/items/{id}", this::updateItem, StationPermission.PROTOCOL_MANAGER);
+        routes.delete(prefix + "/protocols/items/{id}", this::deleteItem, StationPermission.PROTOCOL_MANAGER);
 
         // Protocol CRUD with {id} param (after all static sub-paths)
-        routes.get(prefix + "/protocols/{id}", this::getProtocol, Roles.PROTOCOL_TESTER);
-        routes.put(prefix + "/protocols/{id}", this::updateProtocol, Roles.PROTOCOL_MANAGER);
-        routes.delete(prefix + "/protocols/{id}", this::deleteProtocol, Roles.PROTOCOL_MANAGER);
-        routes.post(prefix + "/protocols/{id}/sections", this::createSection, Roles.PROTOCOL_MANAGER);
-        routes.post(prefix + "/protocols/{id}/runs", this::createRun, Roles.PROTOCOL_MANAGER);
+        routes.get(prefix + "/protocols/{id}", this::getProtocol, StationPermission.PROTOCOL_TESTER);
+        routes.put(prefix + "/protocols/{id}", this::updateProtocol, StationPermission.PROTOCOL_MANAGER);
+        routes.delete(prefix + "/protocols/{id}", this::deleteProtocol, StationPermission.PROTOCOL_MANAGER);
+        routes.post(prefix + "/protocols/{id}/sections", this::createSection, StationPermission.PROTOCOL_MANAGER);
+        routes.post(prefix + "/protocols/{id}/runs", this::createRun, StationPermission.PROTOCOL_MANAGER);
 
         // Section items (needs section {id})
-        routes.post(prefix + "/protocols/sections/{id}/items", this::createItem, Roles.PROTOCOL_MANAGER);
+        routes.post(prefix + "/protocols/sections/{id}/items", this::createItem, StationPermission.PROTOCOL_MANAGER);
         routes.get(
                 prefix + "/protocols/runs/{runId}/members/{memberId}/export",
                 this::exportMemberPdf,
-                Roles.PROTOCOL_TESTER);
-        routes.get(prefix + "/protocols/runs/{id}/evaluation", this::getEvaluation, Roles.PROTOCOL_TESTER);
-        routes.get(prefix + "/protocols/runs/{id}/evaluation/export", this::exportEvaluationPdf, Roles.PROTOCOL_TESTER);
-        routes.get(prefix + "/protocols/runs/{id}/export-all", this::exportAllZip, Roles.PROTOCOL_TESTER);
+                StationPermission.PROTOCOL_TESTER);
+        routes.get(prefix + "/protocols/runs/{id}/evaluation", this::getEvaluation, StationPermission.PROTOCOL_TESTER);
+        routes.get(
+                prefix + "/protocols/runs/{id}/evaluation/export",
+                this::exportEvaluationPdf,
+                StationPermission.PROTOCOL_TESTER);
+        routes.get(prefix + "/protocols/runs/{id}/export-all", this::exportAllZip, StationPermission.PROTOCOL_TESTER);
 
         // Grading
         routes.post(
-                prefix + "/protocols/runs/{runId}/members/{memberId}/lock", this::lockMember, Roles.PROTOCOL_TESTER);
+                prefix + "/protocols/runs/{runId}/members/{memberId}/lock",
+                this::lockMember,
+                StationPermission.PROTOCOL_TESTER);
         routes.post(
                 prefix + "/protocols/runs/{runId}/members/{memberId}/unlock",
                 this::unlockMember,
-                Roles.PROTOCOL_TESTER);
+                StationPermission.PROTOCOL_TESTER);
         routes.get(
-                prefix + "/protocols/runs/{runId}/members/{memberId}/checks", this::getChecks, Roles.PROTOCOL_TESTER);
+                prefix + "/protocols/runs/{runId}/members/{memberId}/checks",
+                this::getChecks,
+                StationPermission.PROTOCOL_TESTER);
         routes.put(
-                prefix + "/protocols/runs/{runId}/members/{memberId}/checks", this::saveChecks, Roles.PROTOCOL_TESTER);
+                prefix + "/protocols/runs/{runId}/members/{memberId}/checks",
+                this::saveChecks,
+                StationPermission.PROTOCOL_TESTER);
         routes.post(
                 prefix + "/protocols/runs/{runId}/members/{memberId}/complete",
                 this::completeMember,
-                Roles.PROTOCOL_TESTER);
+                StationPermission.PROTOCOL_TESTER);
         routes.get(
                 prefix + "/protocols/runs/{runId}/members/{memberId}/sections-done",
                 this::getSectionsDone,
-                Roles.PROTOCOL_TESTER);
+                StationPermission.PROTOCOL_TESTER);
         routes.post(
                 prefix + "/protocols/runs/{runId}/members/{memberId}/sections/{sectionId}/toggle-done",
                 this::toggleSectionDone,
-                Roles.PROTOCOL_TESTER);
+                StationPermission.PROTOCOL_TESTER);
 
         // Federated (user-facing, bearer token auth)
-        routes.get(prefix + "/federated/protocols", this::federatedBrowseProtocols, Roles.USER);
+        routes.get(prefix + "/federated/protocols", this::federatedBrowseProtocols, StationPermission.USER);
         routes.get(
-                prefix + "/federated/{stationuid}/protocols/{id}", this::federatedGetProtocol, Roles.PROTOCOL_MANAGER);
-        routes.post(prefix + "/federated/protocols/{id}/copy", this::federatedCopyProtocol, Roles.PROTOCOL_MANAGER);
+                prefix + "/federated/{stationuid}/protocols/{id}",
+                this::federatedGetProtocol,
+                StationPermission.PROTOCOL_MANAGER);
+        routes.post(
+                prefix + "/federated/protocols/{id}/copy",
+                this::federatedCopyProtocol,
+                StationPermission.PROTOCOL_MANAGER);
         routes.post(
                 prefix + "/federated/{stationuid}/protocols/{id}/copy",
                 this::federatedCopyProtocol,
-                Roles.PROTOCOL_MANAGER);
+                StationPermission.PROTOCOL_MANAGER);
 
         // Remote (server-to-server, RSA signature auth)
         routes.get(prefix + "/remote/protocols", this::remoteBrowseProtocols);
@@ -310,23 +324,24 @@ public class TestProtocolRoutes implements Routes {
             resolvedIds.addAll(req.memberIds());
         }
         if (req.roleIds() != null) {
+            var allPermissions = stationMemberRepository.findAllPermissions();
             for (int roleId : req.roleIds()) {
-                var role = stationMemberRepository.findRoleById(roleId);
-                role.ifPresent(r -> stationMemberRepository
-                        .findMembersWithRole(session.stationId(), Roles.valueOf(r.role()))
-                        .forEach(m -> resolvedIds.add(m.id())));
+                allPermissions.stream()
+                        .filter(p -> p.id() == roleId)
+                        .findFirst()
+                        .ifPresent(r -> stationMemberRepository
+                                .findMembersWithPermission(session.stationId(), r.permission())
+                                .forEach(m -> resolvedIds.add(m.id())));
             }
         }
         if (req.groupIds() != null) {
             for (int groupId : req.groupIds()) {
-                memberGroupRepository.findMembers(groupId)
-                        .forEach(m -> resolvedIds.add(m.id()));
+                memberGroupRepository.findMembers(groupId).forEach(m -> resolvedIds.add(m.id()));
             }
         }
         if (req.tagIds() != null) {
             for (int tagId : req.tagIds()) {
-                userTagRepository.findMembers(tagId)
-                        .forEach(m -> resolvedIds.add(m.id()));
+                userTagRepository.findMembers(tagId).forEach(m -> resolvedIds.add(m.id()));
             }
         }
         if (!resolvedIds.isEmpty()) {

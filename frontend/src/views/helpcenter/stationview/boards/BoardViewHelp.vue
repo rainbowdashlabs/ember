@@ -10,29 +10,34 @@ import HelpTip from '@/components/helpcenter/HelpTip.vue'
 </script>
 
 <template>
-    <HelpArticle title="Planer" subtitle="Aufgaben mit Kanban-Boards organisieren">
-        <HelpSection title="Was sind Boards?">
-            <p>Boards sind Kanban-Tafeln, mit denen ihr Aufgaben organisieren könnt. Jedes Board hat Spalten (z.B. „Offen", „In Arbeit", „Erledigt") und Tickets, die zwischen den Spalten verschoben werden.</p>
+    <HelpArticle title="Board-Ansicht" subtitle="Tickets auf dem Kanban-Board verwalten">
+        <HelpSection title="Spalten">
+            <p>Jedes Board besteht aus Spalten, die den Status eines Tickets darstellen. Tickets wandern von links nach rechts durch die Spalten. Die Spalten werden vom Board-Verwalter in den Einstellungen festgelegt.</p>
         </HelpSection>
 
-        <HelpSection title="Tickets erstellen">
-            <p>Klicke auf „Ticket erstellen" um ein neues Ticket anzulegen. Gib einen Titel ein und wähle die Spalte und Priorität. Optional kannst du eine Beschreibung, ein Fälligkeitsdatum und eine Person zuweisen.</p>
+        <HelpSection title="Tickets verschieben">
+            <p>Ziehe ein Ticket per Drag-and-Drop in eine andere Spalte, um den Status zu ändern. Du kannst Tickets auch innerhalb einer Spalte umsortieren.</p>
         </HelpSection>
 
-        <HelpSection title="Ticket-Details">
-            <p>Klicke auf ein Ticket um die Details zu öffnen. Hier kannst du die Beschreibung bearbeiten, eine Checkliste hinzufügen, Kommentare schreiben und das Ticket zwischen Spalten verschieben.</p>
+        <HelpSection title="Ticket-Karten">
+            <p>Jede Ticket-Karte zeigt die wichtigsten Informationen auf einen Blick:</p>
+            <ul class="list-disc ml-4 space-y-1">
+                <li>Ticket-Nummer und Titel</li>
+                <li>Priorität (farblich markiert)</li>
+                <li>Zugewiesene Person</li>
+                <li>Fälligkeitsdatum</li>
+                <li>Checklisten-Fortschritt</li>
+                <li>Labels</li>
+            </ul>
+            <p class="mt-2">Klicke auf eine Karte, um die Details zu öffnen.</p>
         </HelpSection>
 
-        <HelpSection title="Checkliste">
-            <p>Jedes Ticket kann eine Checkliste haben. Der Fortschritt wird auf der Ticket-Karte als Balken angezeigt.</p>
-        </HelpSection>
-
-        <HelpSection title="Verknüpfungen">
-            <p>Tickets können miteinander verknüpft werden: „Blockiert", „Blockiert von", „Bezieht sich auf", „Verursacht" und „Verursacht von".</p>
+        <HelpSection title="Filtern und Suchen">
+            <p>Nutze die Suchleiste, um Tickets nach Titel oder Nummer zu finden. Du kannst die Ansicht auch nach zugewiesener Person, Priorität oder Labels filtern.</p>
         </HelpSection>
 
         <HelpTip>
-            Boards können über die Wachen-Einstellungen als Modul aktiviert oder deaktiviert werden. Zum Erstellen und Verwalten von Boards wird die Rolle „Board-Verwalter" benötigt.
+            Über die Buttons oben erreichst du den Backlog (ungeplante Tickets) und das Archiv (abgeschlossene Tickets).
         </HelpTip>
     </HelpArticle>
 </template>

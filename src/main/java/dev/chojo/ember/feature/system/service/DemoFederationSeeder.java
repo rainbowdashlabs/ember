@@ -5,7 +5,8 @@
  */
 package dev.chojo.ember.feature.system.service;
 
-import dev.chojo.ember.api.Roles;
+import dev.chojo.ember.api.roles.StationPermission;
+import dev.chojo.ember.api.roles.StationUserType;
 import dev.chojo.ember.auth.PasswordHasher;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.conf.file.elements.Demo;
@@ -135,47 +136,57 @@ public class DemoFederationSeeder {
         var partnerAccount = accountRepository.create("partner@demo.ember", "Partner", "Manager", true);
         accountRepository.createCredential(partnerAccount.id(), passwordHasher.hash("demo"));
         var partnerMember = stationMemberRepository.create(partnerStation.id(), partnerAccount.id());
-        var managerRole = stationMemberRepository.findRoleByName(Roles.MANAGER).orElseThrow();
-        var loginRole = stationMemberRepository.findRoleByName(Roles.LOGIN).orElseThrow();
-        stationMemberRepository.addRole(partnerMember.id(), managerRole.id());
-        stationMemberRepository.addRole(partnerMember.id(), loginRole.id());
+        var managerRole = stationMemberRepository
+                .findPermissionByName(StationPermission.STATION_ADMINISTRATOR)
+                .orElseThrow();
+        var loginRole = stationMemberRepository
+                .findPermissionByName(StationPermission.LOGIN)
+                .orElseThrow();
+        stationMemberRepository.setUserType(partnerMember.id(), StationUserType.MANAGER);
+        stationMemberRepository.grantPermission(partnerMember.id(), managerRole.id());
+        stationMemberRepository.grantPermission(partnerMember.id(), loginRole.id());
         log.info("Demo: Created partner manager account partner@demo.ember");
 
         // Create team members on the partner station
-        var teamRole = stationMemberRepository.findRoleByName(Roles.TEAM).orElseThrow();
-        var memberRole = stationMemberRepository.findRoleByName(Roles.MEMBER).orElseThrow();
-        var guardianRole =
-                stationMemberRepository.findRoleByName(Roles.GUARDIAN).orElseThrow();
+        var memberRole = stationMemberRepository
+                .findPermissionByName(StationPermission.USER)
+                .orElseThrow();
+        var guardianRole = stationMemberRepository
+                .findPermissionByName(StationPermission.MEMBER_GUARDIAN)
+                .orElseThrow();
 
         var team1Account = accountRepository.create("team1@partner.ember", "Lisa", "Brandmeister", true);
         accountRepository.createCredential(team1Account.id(), passwordHasher.hash("demo"));
         var team1 = stationMemberRepository.create(partnerStation.id(), team1Account.id());
-        stationMemberRepository.addRole(team1.id(), loginRole.id());
-        stationMemberRepository.addRole(team1.id(), teamRole.id());
+        stationMemberRepository.setUserType(team1.id(), StationUserType.TEAM);
+        stationMemberRepository.grantPermission(team1.id(), loginRole.id());
 
         var team2Account = accountRepository.create("team2@partner.ember", "Jonas", "Löschzug", true);
         accountRepository.createCredential(team2Account.id(), passwordHasher.hash("demo"));
         var team2 = stationMemberRepository.create(partnerStation.id(), team2Account.id());
-        stationMemberRepository.addRole(team2.id(), loginRole.id());
-        stationMemberRepository.addRole(team2.id(), teamRole.id());
+        stationMemberRepository.setUserType(team2.id(), StationUserType.TEAM);
+        stationMemberRepository.grantPermission(team2.id(), loginRole.id());
 
         var member1Account = accountRepository.create("member1@partner.ember", "Emma", "Schlauch", true);
         accountRepository.createCredential(member1Account.id(), passwordHasher.hash("demo"));
         var member1 = stationMemberRepository.create(partnerStation.id(), member1Account.id());
-        stationMemberRepository.addRole(member1.id(), loginRole.id());
-        stationMemberRepository.addRole(member1.id(), memberRole.id());
+        stationMemberRepository.setUserType(member1.id(), StationUserType.MEMBER);
+        stationMemberRepository.grantPermission(member1.id(), loginRole.id());
+        stationMemberRepository.grantPermission(member1.id(), memberRole.id());
 
         var member2Account = accountRepository.create("member2@partner.ember", "Felix", "Strahlrohr", true);
         accountRepository.createCredential(member2Account.id(), passwordHasher.hash("demo"));
         var member2 = stationMemberRepository.create(partnerStation.id(), member2Account.id());
-        stationMemberRepository.addRole(member2.id(), loginRole.id());
-        stationMemberRepository.addRole(member2.id(), memberRole.id());
+        stationMemberRepository.setUserType(member2.id(), StationUserType.MEMBER);
+        stationMemberRepository.grantPermission(member2.id(), loginRole.id());
+        stationMemberRepository.grantPermission(member2.id(), memberRole.id());
 
         var guardianAccount = accountRepository.create("guardian@partner.ember", "Petra", "Elternbeirat", true);
         accountRepository.createCredential(guardianAccount.id(), passwordHasher.hash("demo"));
         var guardian = stationMemberRepository.create(partnerStation.id(), guardianAccount.id());
-        stationMemberRepository.addRole(guardian.id(), loginRole.id());
-        stationMemberRepository.addRole(guardian.id(), guardianRole.id());
+        stationMemberRepository.setUserType(guardian.id(), StationUserType.GUARDIAN);
+        stationMemberRepository.grantPermission(guardian.id(), loginRole.id());
+        stationMemberRepository.grantPermission(guardian.id(), guardianRole.id());
 
         log.info("Demo: Created 5 additional members on partner station");
 
@@ -551,8 +562,9 @@ public class DemoFederationSeeder {
         var thirdAccount = accountRepository.create("nachbar@demo.ember", "Nachbar", "Manager", true);
         accountRepository.createCredential(thirdAccount.id(), passwordHasher.hash("demo"));
         var thirdMember = stationMemberRepository.create(thirdStation.id(), thirdAccount.id());
-        stationMemberRepository.addRole(thirdMember.id(), managerRole.id());
-        stationMemberRepository.addRole(thirdMember.id(), loginRole.id());
+        stationMemberRepository.setUserType(thirdMember.id(), StationUserType.MANAGER);
+        stationMemberRepository.grantPermission(thirdMember.id(), managerRole.id());
+        stationMemberRepository.grantPermission(thirdMember.id(), loginRole.id());
 
         kbService.createMarkdownFile(
                 thirdStation.id(),

@@ -28,12 +28,12 @@ import client from '@/api/client'
 import type {LostAndFoundItem} from '@/api/types'
 import {useSession} from '@/composables/useSession'
 import {useSidebarCounts} from '@/composables/useSidebarCounts'
-import {Roles} from '@/api/types'
+import {StationPermission} from '@/api/types'
 
 const {t} = useI18n()
-const {hasRole, sessionInfo} = useSession()
+const {hasPermission, sessionInfo} = useSession()
 const {refresh: refreshSidebarCounts} = useSidebarCounts()
-const isManager = () => hasRole(Roles.LOST_AND_FOUND_MANAGER)
+const isManager = () => hasPermission(StationPermission.LOST_AND_FOUND_MANAGER)
 const myMemberId = () => sessionInfo.value?.member?.id
 
 const items = ref<LostAndFoundItem[]>([])

@@ -5,7 +5,8 @@
  */
 package dev.chojo.ember.service;
 
-import dev.chojo.ember.api.Roles;
+import dev.chojo.ember.api.roles.StationPermission;
+import dev.chojo.ember.api.roles.StationUserType;
 import dev.chojo.ember.feature.attendance.entity.AttendanceFieldConfig;
 import dev.chojo.ember.feature.attendance.entity.AttendanceFieldType;
 import dev.chojo.ember.feature.events.entity.StationEvent;
@@ -13,11 +14,11 @@ import dev.chojo.ember.feature.form.entity.FormQuestionConfig;
 import dev.chojo.ember.feature.form.entity.FormQuestionType;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
+import dev.chojo.ember.feature.members.entity.Permission;
 import dev.chojo.ember.feature.members.entity.ProfileField;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
 import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
 import dev.chojo.ember.feature.members.entity.ProfileFieldType;
-import dev.chojo.ember.feature.members.entity.Role;
 import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.feature.station.service.StationExportService;
 import dev.chojo.ember.feature.station.service.StationImportService;
@@ -105,20 +106,34 @@ class StationTransferTest extends RepositoryTestBase {
         var formerAccount = accountRepo.create("ehemalig@jf-musterstadt.de", "Max", "Alt", true);
         var former = stationMemberRepo.create(sourceStationId, formerAccount.id());
 
-        // --- Roles ---
-        Role managerRole = stationMemberRepo.findRoleByName(Roles.MANAGER).orElseThrow();
-        Role teamRole = stationMemberRepo.findRoleByName(Roles.TEAM).orElseThrow();
-        Role memberRole = stationMemberRepo.findRoleByName(Roles.MEMBER).orElseThrow();
-        Role guardianRole = stationMemberRepo.findRoleByName(Roles.GUARDIAN).orElseThrow();
-        Role attendanceRole =
-                stationMemberRepo.findRoleByName(Roles.ATTENDANCE_MANAGER).orElseThrow();
+        // --- Permissions ---
+        Permission managerPerm = stationMemberRepo
+                .findPermissionByName(StationPermission.STATION_ADMINISTRATOR)
+                .orElseThrow();
+        Permission loginPerm =
+                stationMemberRepo.findPermissionByName(StationPermission.LOGIN).orElseThrow();
+        Permission memberPerm =
+                stationMemberRepo.findPermissionByName(StationPermission.USER).orElseThrow();
+        Permission guardianPerm = stationMemberRepo
+                .findPermissionByName(StationPermission.MEMBER_GUARDIAN)
+                .orElseThrow();
+        Permission attendancePerm = stationMemberRepo
+                .findPermissionByName(StationPermission.ATTENDANCE_MANAGER)
+                .orElseThrow();
 
-        stationMemberRepo.addRole(manager.id(), managerRole.id());
-        stationMemberRepo.addRole(trainer.id(), teamRole.id());
-        stationMemberRepo.addRole(trainer.id(), attendanceRole.id());
-        stationMemberRepo.addRole(guardian.id(), guardianRole.id());
-        stationMemberRepo.addRole(child.id(), memberRole.id());
-        stationMemberRepo.addRole(former.id(), memberRole.id());
+        stationMemberRepo.grantPermission(manager.id(), managerPerm.id());
+        stationMemberRepo.grantPermission(trainer.id(), loginPerm.id());
+        stationMemberRepo.grantPermission(trainer.id(), attendancePerm.id());
+        stationMemberRepo.grantPermission(guardian.id(), guardianPerm.id());
+        stationMemberRepo.grantPermission(child.id(), memberPerm.id());
+        stationMemberRepo.grantPermission(former.id(), memberPerm.id());
+
+        // --- User Types ---
+        stationMemberRepo.setUserType(manager.id(), StationUserType.MANAGER);
+        stationMemberRepo.setUserType(trainer.id(), StationUserType.TEAM);
+        stationMemberRepo.setUserType(guardian.id(), StationUserType.GUARDIAN);
+        stationMemberRepo.setUserType(child.id(), StationUserType.MEMBER);
+        stationMemberRepo.setUserType(former.id(), StationUserType.MEMBER);
 
         // --- Guardian → child relationship ---
         stationMemberRepo.addManager(guardian.id(), child.id());
@@ -298,7 +313,7 @@ class StationTransferTest extends RepositoryTestBase {
 
         assertNotNull(exportedData.get("station"));
         assertNotNull(exportedData.get("members"));
-        assertNotNull(exportedData.get("memberRoles"));
+        assertNotNull(exportedData.get("memberUserTypes"));
         assertNotNull(exportedData.get("groups"));
         assertNotNull(exportedData.get("groupMembers"));
         assertNotNull(exportedData.get("tags"));
@@ -487,7 +502,8 @@ class StationTransferTest extends RepositoryTestBase {
         for (String table : List.of(
                 "disabledModules",
                 "members",
-                "memberRoles",
+                "memberUserTypes",
+                "memberPermissions",
                 "groups",
                 "groupMembers",
                 "tags",

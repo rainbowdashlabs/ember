@@ -9,7 +9,9 @@ import de.chojo.sadu.postgresql.databases.PostgreSql;
 import de.chojo.sadu.queries.api.query.Query;
 import de.chojo.sadu.updater.QueryReplacement;
 import de.chojo.sadu.updater.SqlUpdater;
-import dev.chojo.ember.api.Roles;
+import dev.chojo.ember.api.roles.InstanceUserType;
+import dev.chojo.ember.api.roles.StationPermission;
+import dev.chojo.ember.api.roles.StationUserType;
 import dev.chojo.ember.auth.PasswordHasher;
 import dev.chojo.ember.conf.file.elements.Database;
 import dev.chojo.ember.conf.file.elements.Demo;
@@ -309,7 +311,7 @@ public class DemoService {
         // -- Admin --
         var admin = accountRepository.create("admin@ember.local", "Admin", "Demo", true);
         accountRepository.createCredential(admin.id(), hash);
-        accountRepository.addAccountRole(admin.id(), "ADMIN");
+        accountRepository.setInstanceUserType(admin.id(), InstanceUserType.ADMINISTRATOR);
 
         // -- Station --
         var station = stationRepository.create(
@@ -331,21 +333,31 @@ public class DemoService {
         }
 
         var adminMember = stationMemberRepository.create(station.id(), admin.id());
-        var managerRole = stationMemberRepository.findRoleByName(Roles.MANAGER).orElseThrow();
-        var loginRole = stationMemberRepository.findRoleByName(Roles.LOGIN).orElseThrow();
-        var memberRole = stationMemberRepository.findRoleByName(Roles.MEMBER).orElseThrow();
-        var teamRole = stationMemberRepository.findRoleByName(Roles.TEAM).orElseThrow();
-        var memberManagerRole =
-                stationMemberRepository.findRoleByName(Roles.GUARDIAN).orElseThrow();
-        var attendanceMgmt =
-                stationMemberRepository.findRoleByName(Roles.ATTENDANCE_MANAGER).orElseThrow();
-        var eventMgmt =
-                stationMemberRepository.findRoleByName(Roles.EVENT_MANAGER).orElseThrow();
-        var memberMgmt =
-                stationMemberRepository.findRoleByName(Roles.MEMBER_MANAGER).orElseThrow();
+        var managerRole = stationMemberRepository
+                .findPermissionByName(StationPermission.STATION_ADMINISTRATOR)
+                .orElseThrow();
+        var loginRole = stationMemberRepository
+                .findPermissionByName(StationPermission.LOGIN)
+                .orElseThrow();
+        var memberRole = stationMemberRepository
+                .findPermissionByName(StationPermission.USER)
+                .orElseThrow();
+        var memberManagerRole = stationMemberRepository
+                .findPermissionByName(StationPermission.MEMBER_GUARDIAN)
+                .orElseThrow();
+        var attendanceMgmt = stationMemberRepository
+                .findPermissionByName(StationPermission.ATTENDANCE_MANAGER)
+                .orElseThrow();
+        var eventMgmt = stationMemberRepository
+                .findPermissionByName(StationPermission.EVENT_MANAGER)
+                .orElseThrow();
+        var memberMgmt = stationMemberRepository
+                .findPermissionByName(StationPermission.MEMBER_MANAGER)
+                .orElseThrow();
 
-        stationMemberRepository.addRole(adminMember.id(), managerRole.id());
-        stationMemberRepository.addRole(adminMember.id(), loginRole.id());
+        stationMemberRepository.setUserType(adminMember.id(), StationUserType.MANAGER);
+        stationMemberRepository.grantPermission(adminMember.id(), managerRole.id());
+        stationMemberRepository.grantPermission(adminMember.id(), loginRole.id());
         stationRepository.setOwner(station.id(), adminMember.id());
 
         // -- Groups --
@@ -554,10 +566,10 @@ public class DemoService {
 
         // Create Betreuer (TEAM — not MEMBER)
         for (var u : betreuer) {
-            var m = createUser(u.firstName(), u.lastName(), hash, station.id(), loginRole.id(), teamRole.id());
-            stationMemberRepository.addRole(m.id(), attendanceMgmt.id());
-            stationMemberRepository.addRole(m.id(), eventMgmt.id());
-            stationMemberRepository.addRole(m.id(), memberMgmt.id());
+            var m = createTeamMember(u.firstName(), u.lastName(), hash, station.id(), loginRole.id());
+            stationMemberRepository.grantPermission(m.id(), attendanceMgmt.id());
+            stationMemberRepository.grantPermission(m.id(), eventMgmt.id());
+            stationMemberRepository.grantPermission(m.id(), memberMgmt.id());
             memberGroupRepository.addMember(groupBetreuer.id(), m.id());
             betreuerMembers.add(m);
 
@@ -697,8 +709,7 @@ public class DemoService {
         memberGroupRepository.addMember(groupFortgeschritten.id(), formerMember2.id());
         stationMemberRepository.setFormer(formerMember2.id(), true);
 
-        var formerMember3 = createUser("Tom", "Richter", hash, station.id(), loginRole.id(), memberRole.id());
-        stationMemberRepository.addRole(formerMember3.id(), teamRole.id());
+        var formerMember3 = createTeamMember("Tom", "Richter", hash, station.id(), loginRole.id());
         stationMemberRepository.setFormer(formerMember3.id(), true);
 
         // -- Profile field changes (unacknowledged) --
@@ -1696,8 +1707,8 @@ public class DemoService {
                 adminMember,
                 anfaengerMembers,
                 fortgeschrittenMembers,
-                memberRole.id(),
-                memberManagerRole.id(),
+                StationUserType.MEMBER.name(),
+                StationUserType.GUARDIAN.name(),
                 groupAnfaenger.id(),
                 tagWettkampf.id(),
                 rng);
@@ -1731,7 +1742,7 @@ public class DemoService {
         log.info("Demo: Created Notifications");
 
         // -- Waiting List --
-        waitingListSeeder.seedWaitingList(station.id(), groupAnfaenger.id(), memberRole.id());
+        waitingListSeeder.seedWaitingList(station.id(), groupAnfaenger.id(), "MEMBER");
         log.info("Demo: Created Waiting list");
 
         // -- Quiz --
@@ -1766,9 +1777,9 @@ public class DemoService {
         log.info("Demo: Created lending data");
 
         // -- Boards --
-        boardSeeder.seed(station.id(), adminMember, betreuerMembers, teamRole.id(), memberRole.id(), rng);
+        boardSeeder.seed(station.id(), adminMember, betreuerMembers, "TEAM", "MEMBER", rng);
         boardSeeder.seedSharedBoard(
-                station.id(), partnerStationId, adminMember, betreuerMembers, teamRole.id(), memberRole.id(), rng);
+                station.id(), partnerStationId, adminMember, betreuerMembers, "TEAM", "MEMBER", rng);
         log.info("Demo: Created board data");
 
         // -- Public Knowledge Base --
@@ -1834,8 +1845,20 @@ public class DemoService {
         var account = accountRepository.create(email, firstName, lastName, true);
         accountRepository.createCredential(account.id(), hash);
         var member = stationMemberRepository.create(stationId, account.id());
-        stationMemberRepository.addRole(member.id(), loginRoleId);
-        stationMemberRepository.addRole(member.id(), memberRoleId);
+        stationMemberRepository.setUserType(member.id(), StationUserType.MEMBER);
+        stationMemberRepository.grantPermission(member.id(), loginRoleId);
+        stationMemberRepository.grantPermission(member.id(), memberRoleId);
+        return member;
+    }
+
+    private StationMember createTeamMember(
+            String firstName, String lastName, String hash, int stationId, int loginRoleId) {
+        String email = firstName.toLowerCase() + "@" + lastName.toLowerCase() + ".local";
+        var account = accountRepository.create(email, firstName, lastName, true);
+        accountRepository.createCredential(account.id(), hash);
+        var member = stationMemberRepository.create(stationId, account.id());
+        stationMemberRepository.setUserType(member.id(), StationUserType.TEAM);
+        stationMemberRepository.grantPermission(member.id(), loginRoleId);
         return member;
     }
 
@@ -1845,8 +1868,9 @@ public class DemoService {
         var account = accountRepository.create(email, firstName, lastName, true);
         accountRepository.createCredential(account.id(), hash);
         var member = stationMemberRepository.create(stationId, account.id());
-        stationMemberRepository.addRole(member.id(), loginRoleId);
-        stationMemberRepository.addRole(member.id(), guardianRoleId);
+        stationMemberRepository.setUserType(member.id(), StationUserType.GUARDIAN);
+        stationMemberRepository.grantPermission(member.id(), loginRoleId);
+        stationMemberRepository.grantPermission(member.id(), guardianRoleId);
         return member;
     }
 

@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.service;
 
+import dev.chojo.ember.api.roles.InstanceUserType;
+import dev.chojo.ember.api.roles.StationUserType;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
@@ -53,8 +55,8 @@ class MemberNameResolverTest {
 
     @Test
     void resolveLocal_withAccount_returnsFullName() {
-        var member = new StationMember(1, 1, UUID.randomUUID(), 10, false, null);
-        var account = new Account(10, "test@test.com", "Max", "Meier", true);
+        var member = new StationMember(1, 1, UUID.randomUUID(), 10, false, null, StationUserType.MEMBER);
+        var account = new Account(10, "test@test.com", "Max", "Meier", true, InstanceUserType.USER);
         when(memberService.findById(1)).thenReturn(Optional.of(member));
         when(accountRepository.findById(10)).thenReturn(Optional.of(account));
 
@@ -63,7 +65,7 @@ class MemberNameResolverTest {
 
     @Test
     void resolveLocal_withDisplayName_returnsDisplayName() {
-        var member = new StationMember(2, 1, UUID.randomUUID(), null, false, "Firefighter Joe");
+        var member = new StationMember(2, 1, UUID.randomUUID(), null, false, "Firefighter Joe", StationUserType.MEMBER);
         when(memberService.findById(2)).thenReturn(Optional.of(member));
 
         assertEquals("Firefighter Joe", resolver.resolveLocal(2));
@@ -78,8 +80,8 @@ class MemberNameResolverTest {
 
     @Test
     void resolveLocal_accountPreferred_overDisplayName() {
-        var member = new StationMember(3, 1, UUID.randomUUID(), 20, false, "Old Name");
-        var account = new Account(20, "test@test.com", "New", "Name", true);
+        var member = new StationMember(3, 1, UUID.randomUUID(), 20, false, "Old Name", StationUserType.MEMBER);
+        var account = new Account(20, "test@test.com", "New", "Name", true, InstanceUserType.USER);
         when(memberService.findById(3)).thenReturn(Optional.of(member));
         when(accountRepository.findById(20)).thenReturn(Optional.of(account));
 
@@ -120,8 +122,8 @@ class MemberNameResolverTest {
 
     @Test
     void resolve_localTakesPriority() {
-        var member = new StationMember(1, 1, UUID.randomUUID(), 10, false, null);
-        var account = new Account(10, "test@test.com", "Max", "Meier", true);
+        var member = new StationMember(1, 1, UUID.randomUUID(), 10, false, null, StationUserType.MEMBER);
+        var account = new Account(10, "test@test.com", "Max", "Meier", true, InstanceUserType.USER);
         when(memberService.findById(1)).thenReturn(Optional.of(member));
         when(accountRepository.findById(10)).thenReturn(Optional.of(account));
 

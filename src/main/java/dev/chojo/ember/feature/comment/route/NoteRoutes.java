@@ -6,9 +6,9 @@
 package dev.chojo.ember.feature.comment.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
-import dev.chojo.ember.api.Roles;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.roles.StationPermission;
 import dev.chojo.ember.feature.comment.entity.EntityNote;
 import dev.chojo.ember.feature.comment.entity.NoteEntityType;
 import dev.chojo.ember.feature.comment.entity.NoteVersion;
@@ -44,9 +44,10 @@ public class NoteRoutes implements Routes {
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        routes.get(prefix + "/notes/{entityType}/{entityId}", this::getNote, Roles.TEAM);
-        routes.put(prefix + "/notes/{entityType}/{entityId}", this::updateNote, Roles.TEAM);
-        routes.get(prefix + "/notes/{entityType}/{entityId}/versions", this::listVersions, Roles.TEAM);
+        routes.get(prefix + "/notes/{entityType}/{entityId}", this::getNote, StationPermission.MEMBER_NOTES);
+        routes.put(prefix + "/notes/{entityType}/{entityId}", this::updateNote, StationPermission.MEMBER_NOTES);
+        routes.get(
+                prefix + "/notes/{entityType}/{entityId}/versions", this::listVersions, StationPermission.MEMBER_NOTES);
     }
 
     @OpenApi(

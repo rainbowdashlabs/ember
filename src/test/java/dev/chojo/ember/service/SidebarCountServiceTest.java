@@ -5,8 +5,11 @@
  */
 package dev.chojo.ember.service;
 
-import dev.chojo.ember.api.Roles;
 import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.roles.InstancePermission;
+import dev.chojo.ember.api.roles.InstanceUserType;
+import dev.chojo.ember.api.roles.StationPermission;
+import dev.chojo.ember.api.roles.StationUserType;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.events.repository.EventRepository;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
@@ -23,6 +26,7 @@ import dev.chojo.ember.feature.waitinglist.repository.WaitingListRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.util.EnumSet;
 import java.util.Set;
 import java.util.UUID;
 
@@ -72,23 +76,25 @@ class SidebarCountServiceTest {
                 stationRepository);
     }
 
-    private UserSession sessionWithRoles(Set<Roles> roles) {
-        var account = new Account(1, "test@test.com", "Test", "User", true);
-        var member = new StationMember(MEMBER_ID, STATION_ID, UUID.randomUUID(), 1, false, "Test User");
-        return new UserSession(account, STATION_ID, STATION_UID, member, roles);
+    private UserSession sessionWithPermissions(Set<StationPermission> permissions) {
+        var account = new Account(1, "test@test.com", "Test", "User", true, InstanceUserType.USER);
+        var member = new StationMember(
+                MEMBER_ID, STATION_ID, UUID.randomUUID(), 1, false, "Test User", StationUserType.MEMBER);
+        return new UserSession(
+                account, STATION_ID, STATION_UID, member, permissions, EnumSet.noneOf(InstancePermission.class));
     }
 
     @Test
     void getCountsWithAllRoles() {
         var roles = Set.of(
-                Roles.LOGIN,
-                Roles.MEMBER_MANAGER,
-                Roles.EVENT_MANAGER,
-                Roles.INVENTORY_MANAGER,
-                Roles.FEDERATION_MANAGER,
-                Roles.WAITLIST_MANAGER,
-                Roles.LOST_AND_FOUND_MANAGER);
-        var session = sessionWithRoles(roles);
+                StationPermission.LOGIN,
+                StationPermission.MEMBER_MANAGER,
+                StationPermission.EVENT_MANAGER,
+                StationPermission.INVENTORY_MANAGER,
+                StationPermission.STATION_FEDERATION,
+                StationPermission.WAITLIST_MANAGER,
+                StationPermission.LOST_AND_FOUND_MANAGER);
+        var session = sessionWithPermissions(roles);
 
         when(notificationService.countUnacknowledged(MEMBER_ID)).thenReturn(5);
         when(requirementsService.countPending(eq(MEMBER_ID), eq(STATION_ID), anyList()))
@@ -117,8 +123,8 @@ class SidebarCountServiceTest {
 
     @Test
     void getCountsWithLoginOnly() {
-        var roles = Set.of(Roles.LOGIN);
-        var session = sessionWithRoles(roles);
+        var roles = Set.of(StationPermission.LOGIN);
+        var session = sessionWithPermissions(roles);
 
         when(notificationService.countUnacknowledged(MEMBER_ID)).thenReturn(10);
         when(requirementsService.countPending(eq(MEMBER_ID), eq(STATION_ID), anyList()))
@@ -146,8 +152,8 @@ class SidebarCountServiceTest {
 
     @Test
     void getCountsGuardianGetsPendingChanges() {
-        var roles = Set.of(Roles.LOGIN, Roles.GUARDIAN);
-        var session = sessionWithRoles(roles);
+        var roles = Set.of(StationPermission.LOGIN, StationPermission.MEMBER_GUARDIAN);
+        var session = sessionWithPermissions(roles);
 
         when(notificationService.countUnacknowledged(MEMBER_ID)).thenReturn(0);
         when(requirementsService.countPending(eq(MEMBER_ID), eq(STATION_ID), anyList()))
@@ -164,8 +170,8 @@ class SidebarCountServiceTest {
     @Test
     void getCountsInventoryOnlyNoLendingRequests() {
         // Only INVENTORY_MANAGER without FEDERATION_MANAGER should NOT get lending requests
-        var roles = Set.of(Roles.LOGIN, Roles.INVENTORY_MANAGER);
-        var session = sessionWithRoles(roles);
+        var roles = Set.of(StationPermission.LOGIN, StationPermission.INVENTORY_MANAGER);
+        var session = sessionWithPermissions(roles);
 
         when(notificationService.countUnacknowledged(MEMBER_ID)).thenReturn(0);
         when(requirementsService.countPending(eq(MEMBER_ID), eq(STATION_ID), anyList()))
@@ -180,8 +186,8 @@ class SidebarCountServiceTest {
     @Test
     void getCountsFederationOnlyNoLendingRequests() {
         // Only FEDERATION_MANAGER without INVENTORY_MANAGER should NOT get lending requests
-        var roles = Set.of(Roles.LOGIN, Roles.FEDERATION_MANAGER);
-        var session = sessionWithRoles(roles);
+        var roles = Set.of(StationPermission.LOGIN, StationPermission.STATION_FEDERATION);
+        var session = sessionWithPermissions(roles);
 
         when(notificationService.countUnacknowledged(MEMBER_ID)).thenReturn(0);
         when(requirementsService.countPending(eq(MEMBER_ID), eq(STATION_ID), anyList()))

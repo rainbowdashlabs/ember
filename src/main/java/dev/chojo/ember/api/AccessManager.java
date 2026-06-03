@@ -5,6 +5,9 @@
  */
 package dev.chojo.ember.api;
 
+import dev.chojo.ember.api.roles.InstancePermission;
+import dev.chojo.ember.api.roles.InstanceUserType;
+import dev.chojo.ember.api.roles.StationPermission;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.entity.AccountSession;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
@@ -12,7 +15,7 @@ import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.federation.service.FederationSigningService;
-import dev.chojo.ember.feature.members.entity.Role;
+import dev.chojo.ember.feature.members.entity.Permission;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
@@ -24,15 +27,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
+import java.util.Arrays;
 import java.util.EnumSet;
-import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
 /**
  * Manages authentication and authorization by resolving session tokens into user sessions
- * and computing effective role sets for members.
+ * and computing effective permission sets for members.
  */
 @Singleton
 public class AccessManager {
@@ -58,13 +61,6 @@ public class AccessManager {
         this.signingService = signingService;
     }
 
-    /**
-     * Resolves a session token to an active account session.
-     * Expired sessions are automatically deleted and treated as absent.
-     *
-     * @param token the bearer token from the Authorization header
-     * @return the account session if the token is valid and not expired
-     */
     public Optional<AccountSession> resolveSession(String token) {
         if (token == null || token.isBlank()) {
             return Optional.empty();
@@ -77,14 +73,6 @@ public class AccessManager {
         return session;
     }
 
-    /**
-     * Resolves a session token and optional station context into a full user session.
-     * Combines account-level roles with station-specific member and group roles, then expands the role hierarchy.
-     *
-     * @param token   the bearer token
-     * @param station the station to scope the session to, or {@code null} for account-level only
-     * @return the user session with resolved roles, or empty if the token is invalid
-     */
     public Optional<UserSession> resolveUserSession(String token, Station station) {
         Optional<AccountSession> sessionOpt = resolveSession(token);
         if (sessionOpt.isEmpty()) {
@@ -101,48 +89,61 @@ public class AccessManager {
         Integer stationId = station != null ? station.id() : null;
         UUID stationUid = station != null ? station.uid() : null;
 
-        // Resolve account-level roles (e.g. admin)
-        Set<Roles> roles = resolveAccountRoles(accountId);
+        // Resolve instance-level permissions
+        Set<InstancePermission> instancePermissions = resolveInstancePermissions(account);
 
         if (stationId != null) {
             Optional<StationMember> memberOpt = stationMemberRepository.findByStationAndAccount(stationId, accountId);
             if (memberOpt.isPresent()) {
                 StationMember member = memberOpt.get();
-                // Direct member roles
-                List<Role> dbRoles = stationMemberRepository.findRoles(member.id());
-                dbRoles.stream().map(Role::role).forEach(roles::add);
-                // Roles inherited from groups
-                List<Role> groupRoles = memberGroupRepository.findRolesForMemberViaGroups(member.id());
-                groupRoles.stream().map(Role::role).forEach(roles::add);
-                roles = Roles.expand(roles);
-                return Optional.of(new UserSession(account, stationId, stationUid, member, roles));
+                Set<StationPermission> permissions = resolveExpandedMemberPermissions(member);
+                return Optional.of(
+                        new UserSession(account, stationId, stationUid, member, permissions, instancePermissions));
             }
         }
 
-        return Optional.of(new UserSession(account, stationId, stationUid, null, roles));
+        return Optional.of(new UserSession(
+                account, stationId, stationUid, null, EnumSet.noneOf(StationPermission.class), instancePermissions));
     }
 
     /**
-     * Resolves the expanded roles for a station member by their member ID.
+     * Resolves the expanded permissions for a station member.
      */
-    public Set<Roles> resolveExpandedMemberRoles(int memberId) {
-        Set<Roles> roles = EnumSet.noneOf(Roles.class);
-        List<Role> dbRoles = stationMemberRepository.findRoles(memberId);
-        dbRoles.stream().map(Role::role).forEach(roles::add);
-        List<Role> groupRoles = memberGroupRepository.findRolesForMemberViaGroups(memberId);
-        groupRoles.stream().map(Role::role).forEach(roles::add);
-        return Roles.expand(roles);
+    public Set<StationPermission> resolveExpandedMemberPermissions(StationMember member) {
+        Set<StationPermission> permissions = EnumSet.noneOf(StationPermission.class);
+
+        // 1. Default permissions from user type (hardcoded in enum)
+        permissions.addAll(Arrays.asList(member.userType().defaultPermissions()));
+
+        // 2. Station-level user type permissions (configured per station)
+        stationMemberRepository.findUserTypePermissions(member.stationId(), member.userType()).stream()
+                .map(Permission::permission)
+                .forEach(permissions::add);
+
+        // 3. Direct permission grants
+        stationMemberRepository.findPermissions(member.id()).stream()
+                .map(Permission::permission)
+                .forEach(permissions::add);
+
+        // 4. Group-inherited permissions
+        memberGroupRepository.findPermissionsForMemberViaGroups(member.id()).stream()
+                .map(Permission::permission)
+                .forEach(permissions::add);
+
+        // 5. Expand hierarchy
+        return StationPermission.expand(permissions);
     }
 
     /**
-     * Verifies federation signature headers on a request and returns the authenticated partner.
-     * Checks the {@code X-Federation-Station-Id}, {@code X-Federation-Signature}, and
-     * {@code X-Federation-Timestamp} headers against the partner's stored public key.
-     * Also tracks the remote federation version if it changed.
-     *
-     * @param ctx the Javalin request context
-     * @return the federation session if signature verification succeeds, or empty
+     * Resolves the expanded permissions for a station member by their member ID.
      */
+    public Set<StationPermission> resolveExpandedMemberPermissions(int memberId) {
+        return stationMemberRepository
+                .findById(memberId)
+                .map(this::resolveExpandedMemberPermissions)
+                .orElse(EnumSet.noneOf(StationPermission.class));
+    }
+
     public Optional<FederationSession> resolveFederationSession(Context ctx) {
         String stationIdHeader = ctx.header("X-Federation-Station-Id");
         String signature = ctx.header("X-Federation-Signature");
@@ -193,7 +194,6 @@ public class AccessManager {
             return Optional.empty();
         }
 
-        // Track remote federation version
         String remoteVersion = ctx.header("X-Federation-Version");
         if (remoteVersion != null && !remoteVersion.equals(p.federationVersion())) {
             federationRepository.updateFederationVersion(p.id(), remoteVersion);
@@ -210,18 +210,11 @@ public class AccessManager {
         return Optional.of(new FederationSession(p, remoteStationUid));
     }
 
-    /**
-     * Resolves account-level roles (e.g. ADMIN) from the database and maps them to the {@link Roles} enum.
-     */
-    private Set<Roles> resolveAccountRoles(int accountId) {
-        Set<Roles> roles = EnumSet.noneOf(Roles.class);
-        List<String> accountRoles = accountRepository.findAccountRoles(accountId);
-        for (String role : accountRoles) {
-            Roles mapped = Roles.fromDbName(role);
-            if (mapped != null) {
-                roles.add(mapped);
-            }
+    private Set<InstancePermission> resolveInstancePermissions(Account account) {
+        Set<InstancePermission> permissions = EnumSet.noneOf(InstancePermission.class);
+        if (account.instanceUserType() == InstanceUserType.ADMINISTRATOR) {
+            permissions.addAll(Arrays.asList(InstanceUserType.ADMINISTRATOR.defaultPermissions()));
         }
-        return roles;
+        return InstancePermission.expand(permissions);
     }
 }

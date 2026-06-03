@@ -5,7 +5,7 @@
  */
 package dev.chojo.ember.event.handlers;
 
-import dev.chojo.ember.api.Roles;
+import dev.chojo.ember.api.roles.StationPermission;
 import dev.chojo.ember.event.DomainEventHandler;
 import dev.chojo.ember.event.events.ExchangeStatusChanged;
 import dev.chojo.ember.feature.members.entity.StationMember;
@@ -41,7 +41,9 @@ public class ExchangeStatusChangedHandler implements DomainEventHandler<Exchange
                 new NotificationData.NotificationLink("inventory-exchanges"));
         notificationService.notify(event.memberId(), NotificationType.EXCHANGE_STATUS_CHANGE, data);
         var invMgmtIds =
-                stationMemberRepository.findMembersWithRole(event.stationId(), Roles.INVENTORY_MANAGER).stream()
+                stationMemberRepository
+                        .findMembersWithPermission(event.stationId(), StationPermission.INVENTORY_MANAGER)
+                        .stream()
                         .map(StationMember::id)
                         .toList();
         notificationService.notifyMembersIfAbsent(

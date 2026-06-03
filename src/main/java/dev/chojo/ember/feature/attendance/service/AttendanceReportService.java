@@ -114,7 +114,7 @@ public class AttendanceReportService {
             var group = memberGroupRepository.findById(groupId);
             filterLabel = group.map(MemberGroup::name).orElse("Gruppe #" + groupId);
         } else if (roleName != null && !roleName.isBlank()) {
-            rawIds = attendanceRepository.findMemberIdsByRole(stationId, roleName);
+            rawIds = attendanceRepository.findMemberIdsByUserType(stationId, roleName);
             filterLabel = roleName;
         } else {
             rawIds = List.of();

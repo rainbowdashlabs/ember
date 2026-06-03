@@ -5,7 +5,7 @@
  */
 package dev.chojo.ember.service;
 
-import dev.chojo.ember.api.Roles;
+import dev.chojo.ember.api.roles.StationPermission;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.members.entity.StationMember;
@@ -95,10 +95,14 @@ class MemberGroupServiceTest extends RepositoryTestBase {
     @Test
     @Order(20)
     void setGroupRoles() {
-        var memberRole = stationMemberRepo.findRoleByName(Roles.MEMBER).orElseThrow();
-        service.setGroupRoles(groupId, List.of(memberRole.id()), EnumSet.of(Roles.ADMIN, Roles.MEMBER));
-        var roles = service.findGroupRoles(groupId);
-        assertTrue(roles.stream().anyMatch(r -> r.role() == Roles.MEMBER));
+        var memberRole =
+                stationMemberRepo.findPermissionByName(StationPermission.USER).orElseThrow();
+        service.setGroupPermissions(
+                groupId,
+                List.of(memberRole.id()),
+                EnumSet.of(StationPermission.STATION_ADMINISTRATOR, StationPermission.USER));
+        var roles = service.findGroupPermissions(groupId);
+        assertTrue(roles.stream().anyMatch(r -> r.permission() == StationPermission.USER));
     }
 
     @Test

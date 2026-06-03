@@ -21,7 +21,7 @@ import Modal from '@/components/feedback/Modal.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
-import type { Inventory, InventoryRequirement, MemberGroup, Role } from '@/api/types'
+import type { Inventory, InventoryRequirement, MemberGroup, PermissionGrant } from '@/api/types'
 import { inventory, memberGroups, stationMembers } from '@/api'
 import MutedIcon from '@/components/display/MutedIcon.vue'
 
@@ -29,7 +29,7 @@ const { t } = useI18n()
 
 const inventories = ref<Inventory[]>([])
 const requirements = ref<InventoryRequirement[]>([])
-const allRoles = ref<Role[]>([])
+const allRoles = ref<PermissionGrant[]>([])
 const allGroups = ref<MemberGroup[]>([])
 const loading = ref(true)
 const error = ref('')
@@ -59,7 +59,7 @@ const roleFriendlyNames: Record<string, string> = {
 function roleName(roleId: number): string {
   const role = allRoles.value.find(r => r.id === roleId)
   if (!role) return `#${roleId}`
-  return roleFriendlyNames[role.role] ?? role.role
+  return roleFriendlyNames[role.permission] ?? role.permission
 }
 
 function groupName(groupId: number): string {
@@ -256,7 +256,7 @@ onMounted(loadData)
             <FieldLabel>{{ t('inventory.requirements.role') }}</FieldLabel>
             <SelectInput v-model="addRoleId">
               <option value="" disabled>{{ t('inventory.requirements.selectRole') }}</option>
-              <option v-for="role in allRoles" :key="role.id" :value="String(role.id)">{{ roleFriendlyNames[role.role] ?? role.role }}</option>
+              <option v-for="role in allRoles" :key="role.id" :value="String(role.id)">{{ roleFriendlyNames[role.permission] ?? role.permission }}</option>
             </SelectInput>
           </div>
 

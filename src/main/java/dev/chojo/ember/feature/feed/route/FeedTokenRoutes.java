@@ -5,9 +5,9 @@
  */
 package dev.chojo.ember.feature.feed.route;
 
-import dev.chojo.ember.api.Roles;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.roles.StationPermission;
 import dev.chojo.ember.feature.feed.entity.FeedToken;
 import dev.chojo.ember.feature.feed.service.FeedTokenService;
 import io.javalin.http.Context;
@@ -35,11 +35,11 @@ public class FeedTokenRoutes implements Routes {
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        routes.get(prefix + "/feed/token", this::getToken, Roles.LOGIN);
-        routes.get(prefix + "/feed/token/status", this::getStatus, Roles.LOGIN);
-        routes.post(prefix + "/feed/token", this::createToken, Roles.LOGIN);
-        routes.post(prefix + "/feed/token/regenerate", this::regenerateToken, Roles.LOGIN);
-        routes.delete(prefix + "/feed/token", this::revokeToken, Roles.LOGIN);
+        routes.get(prefix + "/feed/token", this::getToken, StationPermission.LOGIN);
+        routes.get(prefix + "/feed/token/status", this::getStatus, StationPermission.LOGIN);
+        routes.post(prefix + "/feed/token", this::createToken, StationPermission.LOGIN);
+        routes.post(prefix + "/feed/token/regenerate", this::regenerateToken, StationPermission.LOGIN);
+        routes.delete(prefix + "/feed/token", this::revokeToken, StationPermission.LOGIN);
     }
 
     @OpenApi(

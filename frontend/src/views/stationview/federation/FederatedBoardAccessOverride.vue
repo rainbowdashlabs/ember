@@ -13,7 +13,7 @@ import Alert from '@/components/feedback/Alert.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import RestrictionPicker from '@/components/input/RestrictionPicker.vue'
 import { federatedBoards, stationMembers, memberGroups, userTags } from '@/api'
-import type { Role, MemberGroup, UserTag } from '@/api/types'
+import type { PermissionGrant, MemberGroup, UserTag } from '@/api/types'
 
 const { t } = useI18n()
 
@@ -27,14 +27,14 @@ const emit = defineEmits<{
     'update:modelValue': [value: boolean]
 }>()
 
-const allRoles = ref<Role[]>([])
+const allRoles = ref<PermissionGrant[]>([])
 const allGroups = ref<MemberGroup[]>([])
 const allTags = ref<UserTag[]>([])
 
-const viewRoleIds = ref<number[]>([])
+const viewUserTypes = ref<string[]>([])
 const viewGroupIds = ref<number[]>([])
 const viewTagIds = ref<number[]>([])
-const editRoleIds = ref<number[]>([])
+const editUserTypes = ref<string[]>([])
 const editGroupIds = ref<number[]>([])
 const editTagIds = ref<number[]>([])
 
@@ -52,10 +52,10 @@ async function loadData() {
         allRoles.value = roles
         allGroups.value = groups
         allTags.value = tags
-        viewRoleIds.value = override.view.roleIds ?? []
+        viewUserTypes.value = override.view.userTypes ?? []
         viewGroupIds.value = override.view.groupIds ?? []
         viewTagIds.value = override.view.tagIds ?? []
-        editRoleIds.value = override.edit.roleIds ?? []
+        editUserTypes.value = override.edit.userTypes ?? []
         editGroupIds.value = override.edit.groupIds ?? []
         editTagIds.value = override.edit.tagIds ?? []
     } catch {
@@ -68,10 +68,10 @@ async function save() {
     saved.value = false
     try {
         await federatedBoards.setAccessOverride(props.partnerUid, props.boardKey, {
-            viewRoleIds: viewRoleIds.value,
+            viewUserTypes: viewUserTypes.value,
             viewGroupIds: viewGroupIds.value,
             viewTagIds: viewTagIds.value,
-            editRoleIds: editRoleIds.value,
+            editUserTypes: editUserTypes.value,
             editGroupIds: editGroupIds.value,
             editTagIds: editTagIds.value,
         })
@@ -98,10 +98,10 @@ onMounted(loadData)
                     :roles="allRoles"
                     :groups="allGroups"
                     :tags="allTags"
-                    :selected-role-ids="viewRoleIds"
+                    :selected-user-types="viewUserTypes"
                     :selected-group-ids="viewGroupIds"
                     :selected-tag-ids="viewTagIds"
-                    @update:selected-role-ids="viewRoleIds = $event"
+                    @update:selected-user-types="viewUserTypes = $event"
                     @update:selected-group-ids="viewGroupIds = $event"
                     @update:selected-tag-ids="viewTagIds = $event"
                 />
@@ -114,10 +114,10 @@ onMounted(loadData)
                     :roles="allRoles"
                     :groups="allGroups"
                     :tags="allTags"
-                    :selected-role-ids="editRoleIds"
+                    :selected-user-types="editUserTypes"
                     :selected-group-ids="editGroupIds"
                     :selected-tag-ids="editTagIds"
-                    @update:selected-role-ids="editRoleIds = $event"
+                    @update:selected-user-types="editUserTypes = $event"
                     @update:selected-group-ids="editGroupIds = $event"
                     @update:selected-tag-ids="editTagIds = $event"
                 />

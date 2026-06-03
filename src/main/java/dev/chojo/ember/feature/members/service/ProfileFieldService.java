@@ -5,7 +5,7 @@
  */
 package dev.chojo.ember.feature.members.service;
 
-import dev.chojo.ember.api.Roles;
+import dev.chojo.ember.api.roles.StationPermission;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.members.entity.FieldValueEntry;
 import dev.chojo.ember.feature.members.entity.PagedChanges;
@@ -271,7 +271,9 @@ public class ProfileFieldService {
                 new NotificationData.NotificationLink("members-detail", Map.of("id", memberId)));
 
         var memberMgmtIds =
-                stationMemberRepository.findMembersWithRole(member.stationId(), Roles.MEMBER_MANAGER).stream()
+                stationMemberRepository
+                        .findMembersWithPermission(member.stationId(), StationPermission.MEMBER_MANAGER)
+                        .stream()
                         .map(StationMember::id)
                         .toList();
 

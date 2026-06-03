@@ -355,7 +355,7 @@ class KnowledgeBaseServiceTest extends RepositoryTestBase {
     @Test
     @Order(85)
     void setRestrictions() {
-        service.setRestrictions(folderId, null, List.of(1), List.of(), List.of(), List.of());
+        service.setRestrictions(folderId, null, List.of("MEMBER"), List.of(), List.of(), List.of());
         var restrictions = service.findRestrictions(folderId, null);
         assertFalse(restrictions.isEmpty());
         // Public visibility should now be false because of restrictions
@@ -381,18 +381,18 @@ class KnowledgeBaseServiceTest extends RepositoryTestBase {
     @Order(89)
     void canAccessNoRestrictions() {
         // No restrictions on file or folder — anyone can access
-        assertTrue(service.canAccess(member.id(), null, fileId, List.of(), List.of(), List.of()));
+        assertTrue(service.canAccess(member.id(), null, fileId, null, List.of(), List.of()));
     }
 
     @Test
     @Order(90)
     void canAccessWithFolderRestriction() {
         // Set a restriction that requires role 1
-        service.setRestrictions(folderId, null, List.of(1), List.of(), List.of(), List.of());
+        service.setRestrictions(folderId, null, List.of("MEMBER"), List.of(), List.of(), List.of());
         // Member without role 1 should be denied
-        assertFalse(service.canAccess(member.id(), folderId, null, List.of(), List.of(), List.of()));
+        assertFalse(service.canAccess(member.id(), folderId, null, null, List.of(), List.of()));
         // Member with role 1 should be allowed
-        assertTrue(service.canAccess(member.id(), folderId, null, List.of(1), List.of(), List.of()));
+        assertTrue(service.canAccess(member.id(), folderId, null, "MEMBER", List.of(), List.of()));
         // Clear
         service.setRestrictions(folderId, null, List.of(), List.of(), List.of(), List.of());
     }
@@ -401,10 +401,10 @@ class KnowledgeBaseServiceTest extends RepositoryTestBase {
     @Order(91)
     void canAccessFileInheritsFolder() {
         // Set restriction on folder
-        service.setRestrictions(folderId, null, List.of(1), List.of(), List.of(), List.of());
+        service.setRestrictions(folderId, null, List.of("MEMBER"), List.of(), List.of(), List.of());
         // Access to file in that folder checks parent folder restriction
-        assertFalse(service.canAccess(member.id(), null, fileId, List.of(), List.of(), List.of()));
-        assertTrue(service.canAccess(member.id(), null, fileId, List.of(1), List.of(), List.of()));
+        assertFalse(service.canAccess(member.id(), null, fileId, null, List.of(), List.of()));
+        assertTrue(service.canAccess(member.id(), null, fileId, "MEMBER", List.of(), List.of()));
         // Clear
         service.setRestrictions(folderId, null, List.of(), List.of(), List.of(), List.of());
     }
@@ -537,7 +537,7 @@ class KnowledgeBaseServiceTest extends RepositoryTestBase {
     @Test
     @Order(91)
     void canAccessRootFolderNoRestrictions() {
-        assertTrue(service.canAccess(member.id(), null, null, List.of(), List.of(), List.of()));
+        assertTrue(service.canAccess(member.id(), null, null, null, List.of(), List.of()));
     }
 
     @Test
@@ -660,9 +660,9 @@ class KnowledgeBaseServiceTest extends RepositoryTestBase {
         service.setRestrictions(null, restrictedFile.id(), List.of(), List.of(), List.of(), List.of(member.id()));
 
         // member (the restricted one) can access — member ID matches
-        assertTrue(service.canAccess(member.id(), null, restrictedFile.id(), List.of(), List.of(), List.of()));
+        assertTrue(service.canAccess(member.id(), null, restrictedFile.id(), null, List.of(), List.of()));
         // another member ID should be denied
-        assertFalse(service.canAccess(member.id() + 9999, null, restrictedFile.id(), List.of(), List.of(), List.of()));
+        assertFalse(service.canAccess(member.id() + 9999, null, restrictedFile.id(), null, List.of(), List.of()));
 
         service.setRestrictions(null, restrictedFile.id(), List.of(), List.of(), List.of(), List.of());
         service.deleteFile(restrictedFile.id());
@@ -678,10 +678,9 @@ class KnowledgeBaseServiceTest extends RepositoryTestBase {
         service.setRestrictions(null, tagRestrictedFile.id(), List.of(), List.of(), List.of(tag.id()), List.of());
 
         // Without the tag, access denied
-        assertFalse(service.canAccess(member.id(), null, tagRestrictedFile.id(), List.of(), List.of(), List.of()));
+        assertFalse(service.canAccess(member.id(), null, tagRestrictedFile.id(), null, List.of(), List.of()));
         // With the tag, access granted
-        assertTrue(
-                service.canAccess(member.id(), null, tagRestrictedFile.id(), List.of(), List.of(), List.of(tag.id())));
+        assertTrue(service.canAccess(member.id(), null, tagRestrictedFile.id(), null, List.of(), List.of(tag.id())));
 
         service.setRestrictions(null, tagRestrictedFile.id(), List.of(), List.of(), List.of(), List.of());
         service.deleteFile(tagRestrictedFile.id());
@@ -696,9 +695,9 @@ class KnowledgeBaseServiceTest extends RepositoryTestBase {
 
         service.setRestrictions(null, groupRestrictedFile.id(), List.of(), List.of(group.id()), List.of(), List.of());
 
-        assertFalse(service.canAccess(member.id(), null, groupRestrictedFile.id(), List.of(), List.of(), List.of()));
-        assertTrue(service.canAccess(
-                member.id(), null, groupRestrictedFile.id(), List.of(), List.of(group.id()), List.of()));
+        assertFalse(service.canAccess(member.id(), null, groupRestrictedFile.id(), null, List.of(), List.of()));
+        assertTrue(
+                service.canAccess(member.id(), null, groupRestrictedFile.id(), null, List.of(group.id()), List.of()));
 
         service.setRestrictions(null, groupRestrictedFile.id(), List.of(), List.of(), List.of(), List.of());
         service.deleteFile(groupRestrictedFile.id());
@@ -728,7 +727,7 @@ class KnowledgeBaseServiceTest extends RepositoryTestBase {
     void isPubliclyVisibleFileRestrictedParentFolder() {
         // Parent folder has restrictions — file in it should not be publicly visible
         var restrictedParent = service.createFolder(station.id(), null, "RestParent", "Restricted parent", member.id());
-        service.setRestrictions(restrictedParent.id(), null, List.of(1), List.of(), List.of(), List.of());
+        service.setRestrictions(restrictedParent.id(), null, List.of("MEMBER"), List.of(), List.of(), List.of());
 
         var fileInFolder = service.createMarkdownFile(
                 station.id(), restrictedParent.id(), "FileInRestricted", "", "# Content", member.id());

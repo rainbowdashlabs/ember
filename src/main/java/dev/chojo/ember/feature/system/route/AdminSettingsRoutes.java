@@ -5,8 +5,8 @@
  */
 package dev.chojo.ember.feature.system.route;
 
-import dev.chojo.ember.api.Roles;
 import dev.chojo.ember.api.Routes;
+import dev.chojo.ember.api.roles.InstancePermission;
 import dev.chojo.ember.conf.Conf;
 import dev.chojo.ember.conf.file.elements.Auth;
 import dev.chojo.ember.conf.file.elements.MailSettings;
@@ -75,14 +75,14 @@ public class AdminSettingsRoutes implements Routes {
         routes.get(prefix + "/public/settings/theme", this::getPublicTheme);
         routes.get(prefix + "/public/logo/{name}", this::serveAppLogo);
         routes.get(prefix + "/public/logo-fragment/{name}", this::serveLogoFragment);
-        routes.get(prefix + "/admin/settings", this::getSettings, Roles.ADMIN);
-        routes.put(prefix + "/admin/settings", this::updateSettings, Roles.ADMIN);
-        routes.get(prefix + "/admin/config/auth", this::getAuthConfig, Roles.ADMIN);
-        routes.put(prefix + "/admin/config/auth", this::updateAuthConfig, Roles.ADMIN);
-        routes.get(prefix + "/admin/config/mailing", this::getMailingConfig, Roles.ADMIN);
-        routes.put(prefix + "/admin/config/mailing", this::updateMailingConfig, Roles.ADMIN);
-        routes.get(prefix + "/admin/legal/{type}", this::getLegalDocument, Roles.ADMIN);
-        routes.put(prefix + "/admin/legal/{type}", this::updateLegalDocument, Roles.ADMIN);
+        routes.get(prefix + "/admin/settings", this::getSettings, InstancePermission.ADMINISTRATOR);
+        routes.put(prefix + "/admin/settings", this::updateSettings, InstancePermission.ADMINISTRATOR);
+        routes.get(prefix + "/admin/config/auth", this::getAuthConfig, InstancePermission.ADMINISTRATOR);
+        routes.put(prefix + "/admin/config/auth", this::updateAuthConfig, InstancePermission.ADMINISTRATOR);
+        routes.get(prefix + "/admin/config/mailing", this::getMailingConfig, InstancePermission.ADMINISTRATOR);
+        routes.put(prefix + "/admin/config/mailing", this::updateMailingConfig, InstancePermission.ADMINISTRATOR);
+        routes.get(prefix + "/admin/legal/{type}", this::getLegalDocument, InstancePermission.ADMINISTRATOR);
+        routes.put(prefix + "/admin/legal/{type}", this::updateLegalDocument, InstancePermission.ADMINISTRATOR);
     }
 
     private void initializeAppLogos() {

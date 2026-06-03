@@ -238,11 +238,12 @@ public class GdprExportService {
             data.put("stationName", stationName.getFirst().get("name"));
         }
 
-        // Roles
+        // User type and permissions
+        data.put("userType", queryRows("SELECT user_type FROM station_member WHERE id = :id", mid));
         data.put(
-                "roles",
+                "permissions",
                 queryRows(
-                        "SELECT r.name AS role FROM station_member_role smr JOIN role r ON r.id = smr.role_id WHERE smr.member_id = :id",
+                        "SELECT sp.name AS permission FROM station_member_permission smp JOIN station_permission sp ON sp.id = smp.permission_id WHERE smp.member_id = :id",
                         mid));
 
         // Profile field values

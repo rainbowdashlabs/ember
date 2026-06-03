@@ -22,22 +22,23 @@ import UserAvatar from '@/components/avatar/UserAvatar.vue'
 import FileUploadButton from '@/components/button/FileUploadButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import type { ProfileField } from '@/api/types'
-import { Roles, hasTeamRole } from '@/api/types'
+import { StationUserType } from '@/api/types'
 import { profileFields, auth, members, session as sessionApi } from '@/api'
 import { useSession } from '@/composables/useSession'
 import { useSidebarCounts } from '@/composables/useSidebarCounts'
 import MutedText from '@/components/typography/MutedText.vue'
 
-function getUserScopes(roles: string[]): string[] {
+function getUserScopes(userType?: string): string[] {
   const scopes: string[] = []
-  if (roles.includes(Roles.MEMBER)) {
-    scopes.push(Roles.MEMBER)
+  if (!userType) return scopes
+  if (userType === StationUserType.MEMBER || userType === StationUserType.TRIAL) {
+    scopes.push(StationUserType.MEMBER)
   }
-  if (hasTeamRole(roles)) {
-    scopes.push(Roles.TEAM)
+  if (userType === StationUserType.TEAM || userType === StationUserType.MANAGER) {
+    scopes.push(StationUserType.TEAM)
   }
-  if (roles.includes(Roles.GUARDIAN)) {
-    scopes.push(Roles.GUARDIAN)
+  if (userType === StationUserType.GUARDIAN) {
+    scopes.push(StationUserType.GUARDIAN)
   }
   return scopes
 }
@@ -99,12 +100,12 @@ const savingPassword = ref(false)
 
 const memberId = computed(() => sessionInfo.value?.member?.id ?? null)
 
-const userScopes = computed(() => getUserScopes([...(sessionInfo.value?.roles ?? [])]))
+const userScopes = computed(() => getUserScopes(sessionInfo.value?.userType))
 
 const editableFields = computed(() => {
   return fields.value.filter(f => {
     if (f.scope === 'GROUP') return false
-    return userScopes.value.includes(f.scope ?? Roles.MEMBER)
+    return userScopes.value.includes(f.scope ?? StationUserType.MEMBER)
   })
 })
 

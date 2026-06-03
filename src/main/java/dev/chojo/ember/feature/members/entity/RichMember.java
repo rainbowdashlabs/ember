@@ -30,6 +30,7 @@ import static org.slf4j.LoggerFactory.getLogger;
  * @param name          the display name (from account first/last name or display_name fallback)
  * @param email         the account email address
  * @param former        whether this member has been marked as a former member
+ * @param userType      the station user type (e.g. MEMBER, TEAM, MANAGER)
  * @param roles         the list of role names assigned to this member
  * @param groups        the list of groups this member belongs to
  * @param tags          the list of tags assigned to this member
@@ -43,6 +44,7 @@ public record RichMember(
         String name,
         String email,
         boolean former,
+        String userType,
         List<String> roles,
         List<GroupEntry> groups,
         List<TagEntry> tags,
@@ -68,6 +70,7 @@ public record RichMember(
                 row.getString("name"),
                 row.getString("email"),
                 row.getBoolean("former"),
+                row.getString("user_type"),
                 parseJson(row.getString("roles"), STRING_LIST, List.of()),
                 parseJson(row.getString("groups"), GROUP_LIST, List.of()),
                 parseJson(row.getString("tags"), TAG_LIST, List.of()),
@@ -90,7 +93,19 @@ public record RichMember(
      */
     public RichMember withIdentity(MemberIdentity identity) {
         return new RichMember(
-                id, stationId, uid, accountId, name, email, former, roles, groups, tags, profileValues, identity);
+                id,
+                stationId,
+                uid,
+                accountId,
+                name,
+                email,
+                former,
+                userType,
+                roles,
+                groups,
+                tags,
+                profileValues,
+                identity);
     }
 
     public record GroupEntry(int id, String name) {}

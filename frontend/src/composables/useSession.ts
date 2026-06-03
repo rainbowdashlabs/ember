@@ -6,7 +6,7 @@
 import {readonly, ref} from 'vue'
 import {session} from '@/api'
 import type {SessionInfo} from '@/api/types'
-import {Roles} from '@/api/types'
+import {StationPermission} from '@/api/types'
 import {useTheme} from '@/composables/useTheme'
 
 const sessionInfo = ref<SessionInfo | null>(null)
@@ -28,72 +28,76 @@ export function useSession() {
         loaded.value = false
     }
 
-    function hasRole(role: string): boolean {
-        return sessionInfo.value?.roles?.includes(role) ?? false
+    function hasPermission(permission: string): boolean {
+        return sessionInfo.value?.permissions?.includes(permission) ?? false
+    }
+
+    function userType(): string | undefined {
+        return sessionInfo.value?.userType
     }
 
     function isAdmin(): boolean {
-        return hasRole(Roles.ADMIN)
+        return sessionInfo.value?.instanceUserType === 'ADMINISTRATOR'
     }
 
     function isManager(): boolean {
-        return hasRole(Roles.MANAGER)
+        return hasPermission(StationPermission.STATION_ADMINISTRATOR)
     }
 
     function canManageMembers(): boolean {
-        return hasRole(Roles.MEMBER_MANAGER)
+        return hasPermission(StationPermission.MEMBER_MANAGER)
     }
 
     function canManageInventory(): boolean {
-        return hasRole(Roles.INVENTORY_MANAGER)
+        return hasPermission(StationPermission.INVENTORY_MANAGER)
     }
 
     function canManageAttendance(): boolean {
-        return hasRole(Roles.ATTENDANCE_MANAGER)
+        return hasPermission(StationPermission.ATTENDANCE_MANAGER)
     }
 
     function canExportAttendance(): boolean {
-        return hasRole(Roles.ATTENDANCE_EXPORT_MANAGER)
+        return hasPermission(StationPermission.ATTENDANCE_EXPORT)
     }
 
     function canManageEvents(): boolean {
-        return hasRole(Roles.EVENT_MANAGER)
+        return hasPermission(StationPermission.EVENT_MANAGER)
     }
 
     function canManageNews(): boolean {
-        return hasRole(Roles.NEWS_MANAGER)
+        return hasPermission(StationPermission.NEWS_MANAGER)
     }
 
     function canManagePolls(): boolean {
-        return hasRole(Roles.POLL_MANAGER)
+        return hasPermission(StationPermission.POLL_MANAGER)
     }
 
     function isGuardian(): boolean {
-        return hasRole(Roles.GUARDIAN)
+        return hasPermission(StationPermission.MEMBER_GUARDIAN)
     }
 
     function canManageLostAndFound(): boolean {
-        return hasRole(Roles.LOST_AND_FOUND_MANAGER)
+        return hasPermission(StationPermission.LOST_AND_FOUND_MANAGER)
     }
 
     function canManageWaitlist(): boolean {
-        return hasRole(Roles.WAITLIST_MANAGER)
+        return hasPermission(StationPermission.WAITLIST_MANAGER)
     }
 
     function canManageQuiz(): boolean {
-        return hasRole(Roles.QUIZ_MANAGER)
+        return hasPermission(StationPermission.QUIZ_MANAGER)
     }
 
     function canManageKnowledge(): boolean {
-        return hasRole(Roles.KNOWLEDGE_MANAGER)
+        return hasPermission(StationPermission.KNOWLEDGE_MANAGER)
     }
 
     function canManageProtocol(): boolean {
-        return hasRole(Roles.PROTOCOL_MANAGER)
+        return hasPermission(StationPermission.PROTOCOL_MANAGER)
     }
 
     function canTestProtocol(): boolean {
-        return hasRole(Roles.PROTOCOL_TESTER)
+        return hasPermission(StationPermission.PROTOCOL_TESTER)
     }
 
     function isModuleEnabled(module: string): boolean {
@@ -101,11 +105,11 @@ export function useSession() {
     }
 
     function canManageBoards(): boolean {
-        return hasRole(Roles.BOARD_MANAGER)
+        return hasPermission(StationPermission.BOARD_MANAGER)
     }
 
     function canManageFederation(): boolean {
-        return hasRole(Roles.FEDERATION_MANAGER)
+        return hasPermission(StationPermission.STATION_FEDERATION)
     }
 
     function fullName(): string {
@@ -123,7 +127,8 @@ export function useSession() {
         loaded: readonly(loaded),
         load,
         clear,
-        hasRole,
+        hasPermission,
+        userType,
         isAdmin,
         isManager,
         canManageMembers,

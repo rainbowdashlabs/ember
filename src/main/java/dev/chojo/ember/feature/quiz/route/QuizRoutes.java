@@ -6,9 +6,9 @@
 package dev.chojo.ember.feature.quiz.route;
 
 import dev.chojo.ember.api.FederationSession;
-import dev.chojo.ember.api.Roles;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.roles.StationPermission;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
@@ -92,100 +92,117 @@ public class QuizRoutes implements Routes {
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
         // Catalogs
-        routes.get(prefix + "/quiz/catalogs", this::listCatalogs, Roles.QUIZ_MANAGER);
-        routes.post(prefix + "/quiz/catalogs", this::createCatalog, Roles.QUIZ_MANAGER);
-        routes.get(prefix + "/quiz/catalogs/{id}", this::getCatalog, Roles.QUIZ_MANAGER);
-        routes.put(prefix + "/quiz/catalogs/{id}", this::updateCatalog, Roles.QUIZ_MANAGER);
-        routes.delete(prefix + "/quiz/catalogs/{id}", this::deleteCatalog, Roles.QUIZ_MANAGER);
+        routes.get(prefix + "/quiz/catalogs", this::listCatalogs, StationPermission.QUIZ_MANAGER);
+        routes.post(prefix + "/quiz/catalogs", this::createCatalog, StationPermission.QUIZ_MANAGER);
+        routes.get(prefix + "/quiz/catalogs/{id}", this::getCatalog, StationPermission.QUIZ_MANAGER);
+        routes.put(prefix + "/quiz/catalogs/{id}", this::updateCatalog, StationPermission.QUIZ_MANAGER);
+        routes.delete(prefix + "/quiz/catalogs/{id}", this::deleteCatalog, StationPermission.QUIZ_MANAGER);
 
         // Categories (station-scoped, shared across catalogs)
-        routes.get(prefix + "/quiz/categories", this::listCategories, Roles.QUIZ_MANAGER);
-        routes.post(prefix + "/quiz/categories", this::createCategory, Roles.QUIZ_MANAGER);
-        routes.put(prefix + "/quiz/categories/{id}", this::updateCategory, Roles.QUIZ_MANAGER);
-        routes.delete(prefix + "/quiz/categories/{id}", this::deleteCategory, Roles.QUIZ_MANAGER);
+        routes.get(prefix + "/quiz/categories", this::listCategories, StationPermission.QUIZ_MANAGER);
+        routes.post(prefix + "/quiz/categories", this::createCategory, StationPermission.QUIZ_MANAGER);
+        routes.put(prefix + "/quiz/categories/{id}", this::updateCategory, StationPermission.QUIZ_MANAGER);
+        routes.delete(prefix + "/quiz/categories/{id}", this::deleteCategory, StationPermission.QUIZ_MANAGER);
 
         // Questions
-        routes.get(prefix + "/quiz/catalogs/{id}/questions", this::listQuestions, Roles.QUIZ_MANAGER);
-        routes.post(prefix + "/quiz/catalogs/{id}/questions", this::createQuestion, Roles.QUIZ_MANAGER);
-        routes.get(prefix + "/quiz/questions/{id}", this::getQuestion, Roles.USER);
-        routes.put(prefix + "/quiz/questions/{id}", this::updateQuestion, Roles.QUIZ_MANAGER);
-        routes.delete(prefix + "/quiz/questions/{id}", this::deleteQuestion, Roles.QUIZ_MANAGER);
+        routes.get(prefix + "/quiz/catalogs/{id}/questions", this::listQuestions, StationPermission.QUIZ_MANAGER);
+        routes.post(prefix + "/quiz/catalogs/{id}/questions", this::createQuestion, StationPermission.QUIZ_MANAGER);
+        routes.get(prefix + "/quiz/questions/{id}", this::getQuestion, StationPermission.USER);
+        routes.put(prefix + "/quiz/questions/{id}", this::updateQuestion, StationPermission.QUIZ_MANAGER);
+        routes.delete(prefix + "/quiz/questions/{id}", this::deleteQuestion, StationPermission.QUIZ_MANAGER);
 
         // Tests
-        routes.get(prefix + "/quiz/tests", this::listTests, Roles.QUIZ_MANAGER);
-        routes.get(prefix + "/quiz/tests/available", this::listAvailableTests, Roles.USER);
-        routes.post(prefix + "/quiz/tests", this::createTest, Roles.QUIZ_MANAGER);
-        routes.get(prefix + "/quiz/tests/{id}", this::getTest, Roles.USER);
-        routes.put(prefix + "/quiz/tests/{id}", this::updateTest, Roles.QUIZ_MANAGER);
-        routes.delete(prefix + "/quiz/tests/{id}", this::deleteTest, Roles.QUIZ_MANAGER);
-        routes.post(prefix + "/quiz/tests/{id}/activate", this::activateTest, Roles.QUIZ_MANAGER);
-        routes.post(prefix + "/quiz/tests/{id}/close", this::closeTest, Roles.QUIZ_MANAGER);
-        routes.post(prefix + "/quiz/tests/{id}/generate-questions", this::generateFrozenQuestions, Roles.QUIZ_MANAGER);
-        routes.get(prefix + "/quiz/tests/{id}/frozen-questions", this::listFrozenQuestions, Roles.QUIZ_MANAGER);
+        routes.get(prefix + "/quiz/tests", this::listTests, StationPermission.QUIZ_MANAGER);
+        routes.get(prefix + "/quiz/tests/available", this::listAvailableTests, StationPermission.USER);
+        routes.post(prefix + "/quiz/tests", this::createTest, StationPermission.QUIZ_MANAGER);
+        routes.get(prefix + "/quiz/tests/{id}", this::getTest, StationPermission.USER);
+        routes.put(prefix + "/quiz/tests/{id}", this::updateTest, StationPermission.QUIZ_MANAGER);
+        routes.delete(prefix + "/quiz/tests/{id}", this::deleteTest, StationPermission.QUIZ_MANAGER);
+        routes.post(prefix + "/quiz/tests/{id}/activate", this::activateTest, StationPermission.QUIZ_MANAGER);
+        routes.post(prefix + "/quiz/tests/{id}/close", this::closeTest, StationPermission.QUIZ_MANAGER);
+        routes.post(
+                prefix + "/quiz/tests/{id}/generate-questions",
+                this::generateFrozenQuestions,
+                StationPermission.QUIZ_MANAGER);
+        routes.get(
+                prefix + "/quiz/tests/{id}/frozen-questions",
+                this::listFrozenQuestions,
+                StationPermission.QUIZ_MANAGER);
         routes.put(
                 prefix + "/quiz/tests/{id}/frozen-questions/{position}",
                 this::replaceFrozenQuestion,
-                Roles.QUIZ_MANAGER);
+                StationPermission.QUIZ_MANAGER);
         routes.post(
                 prefix + "/quiz/tests/{id}/frozen-questions/{position}/random",
                 this::randomReplaceFrozenQuestion,
-                Roles.QUIZ_MANAGER);
+                StationPermission.QUIZ_MANAGER);
         routes.get(
-                prefix + "/quiz/tests/{id}/available-questions", this::listAvailableReplacements, Roles.QUIZ_MANAGER);
+                prefix + "/quiz/tests/{id}/available-questions",
+                this::listAvailableReplacements,
+                StationPermission.QUIZ_MANAGER);
 
         // Sections
-        routes.get(prefix + "/quiz/tests/{id}/sections", this::listSections, Roles.QUIZ_MANAGER);
-        routes.put(prefix + "/quiz/tests/{id}/sections", this::replaceSections, Roles.QUIZ_MANAGER);
+        routes.get(prefix + "/quiz/tests/{id}/sections", this::listSections, StationPermission.QUIZ_MANAGER);
+        routes.put(prefix + "/quiz/tests/{id}/sections", this::replaceSections, StationPermission.QUIZ_MANAGER);
 
         // Test taking
-        routes.post(prefix + "/quiz/tests/{id}/start", this::startAttempt, Roles.USER);
-        routes.get(prefix + "/quiz/tests/{id}/my-attempt", this::getMyAttempt, Roles.USER);
-        routes.post(prefix + "/quiz/attempts/{id}/answer", this::saveAnswer, Roles.USER);
-        routes.post(prefix + "/quiz/attempts/{id}/submit", this::submitAttempt, Roles.USER);
+        routes.post(prefix + "/quiz/tests/{id}/start", this::startAttempt, StationPermission.USER);
+        routes.get(prefix + "/quiz/tests/{id}/my-attempt", this::getMyAttempt, StationPermission.USER);
+        routes.post(prefix + "/quiz/attempts/{id}/answer", this::saveAnswer, StationPermission.USER);
+        routes.post(prefix + "/quiz/attempts/{id}/submit", this::submitAttempt, StationPermission.USER);
 
         // Grading
-        routes.get(prefix + "/quiz/tests/{id}/attempts", this::listAttempts, Roles.QUIZ_MANAGER);
-        routes.get(prefix + "/quiz/attempts/{id}", this::getAttemptDetail, Roles.QUIZ_MANAGER);
-        routes.post(prefix + "/quiz/answers/{id}/grade", this::gradeAnswer, Roles.QUIZ_MANAGER);
-        routes.post(prefix + "/quiz/attempts/{id}/grade", this::gradeAttempt, Roles.QUIZ_MANAGER);
+        routes.get(prefix + "/quiz/tests/{id}/attempts", this::listAttempts, StationPermission.QUIZ_MANAGER);
+        routes.get(prefix + "/quiz/attempts/{id}", this::getAttemptDetail, StationPermission.QUIZ_MANAGER);
+        routes.post(prefix + "/quiz/answers/{id}/grade", this::gradeAnswer, StationPermission.QUIZ_MANAGER);
+        routes.post(prefix + "/quiz/attempts/{id}/grade", this::gradeAttempt, StationPermission.QUIZ_MANAGER);
 
         // Restrictions
-        routes.get(prefix + "/quiz/tests/{id}/restrictions", this::getRestrictions, Roles.QUIZ_MANAGER);
-        routes.put(prefix + "/quiz/tests/{id}/restrictions", this::setRestrictions, Roles.QUIZ_MANAGER);
+        routes.get(prefix + "/quiz/tests/{id}/restrictions", this::getRestrictions, StationPermission.QUIZ_MANAGER);
+        routes.put(prefix + "/quiz/tests/{id}/restrictions", this::setRestrictions, StationPermission.QUIZ_MANAGER);
 
         // Member access
-        routes.post(prefix + "/quiz/tests/{id}/access", this::grantAccess, Roles.QUIZ_MANAGER);
-        routes.delete(prefix + "/quiz/tests/{testId}/access/{memberId}", this::revokeAccess, Roles.QUIZ_MANAGER);
+        routes.post(prefix + "/quiz/tests/{id}/access", this::grantAccess, StationPermission.QUIZ_MANAGER);
+        routes.delete(
+                prefix + "/quiz/tests/{testId}/access/{memberId}", this::revokeAccess, StationPermission.QUIZ_MANAGER);
 
         // Training
-        routes.get(prefix + "/quiz/training/catalogs", this::listTrainingCatalogs, Roles.USER);
-        routes.get(prefix + "/quiz/training/catalogs/{id}/questions", this::getTrainingQuestions, Roles.USER);
+        routes.get(prefix + "/quiz/training/catalogs", this::listTrainingCatalogs, StationPermission.USER);
+        routes.get(
+                prefix + "/quiz/training/catalogs/{id}/questions", this::getTrainingQuestions, StationPermission.USER);
 
         // Question images
-        routes.get(prefix + "/quiz/questions/{id}/image", this::getQuestionImage, Roles.USER);
-        routes.post(prefix + "/quiz/questions/{id}/image", this::uploadQuestionImage, Roles.QUIZ_MANAGER);
-        routes.delete(prefix + "/quiz/questions/{id}/image", this::deleteQuestionImage, Roles.QUIZ_MANAGER);
+        routes.get(prefix + "/quiz/questions/{id}/image", this::getQuestionImage, StationPermission.USER);
+        routes.post(prefix + "/quiz/questions/{id}/image", this::uploadQuestionImage, StationPermission.QUIZ_MANAGER);
+        routes.delete(prefix + "/quiz/questions/{id}/image", this::deleteQuestionImage, StationPermission.QUIZ_MANAGER);
 
         // PDF export
-        routes.get(prefix + "/quiz/tests/{id}/export/questions", this::exportQuestionPdf, Roles.QUIZ_MANAGER);
-        routes.get(prefix + "/quiz/tests/{id}/export/solutions", this::exportSolutionPdf, Roles.QUIZ_MANAGER);
+        routes.get(
+                prefix + "/quiz/tests/{id}/export/questions", this::exportQuestionPdf, StationPermission.QUIZ_MANAGER);
+        routes.get(
+                prefix + "/quiz/tests/{id}/export/solutions", this::exportSolutionPdf, StationPermission.QUIZ_MANAGER);
 
         // Import/Export
-        routes.get(prefix + "/quiz/catalogs/{id}/export", this::exportCatalog, Roles.QUIZ_MANAGER);
-        routes.post(prefix + "/quiz/catalogs/import", this::importCatalog, Roles.QUIZ_MANAGER);
+        routes.get(prefix + "/quiz/catalogs/{id}/export", this::exportCatalog, StationPermission.QUIZ_MANAGER);
+        routes.post(prefix + "/quiz/catalogs/import", this::importCatalog, StationPermission.QUIZ_MANAGER);
 
         // CSV Import
-        routes.post(prefix + "/quiz/catalogs/{id}/import-csv", this::importCsv, Roles.QUIZ_MANAGER);
+        routes.post(prefix + "/quiz/catalogs/{id}/import-csv", this::importCsv, StationPermission.QUIZ_MANAGER);
 
         // Federated (user-facing, bearer token auth)
-        routes.get(prefix + "/federated/quiz/catalogs", this::federatedBrowseCatalogs, Roles.USER);
+        routes.get(prefix + "/federated/quiz/catalogs", this::federatedBrowseCatalogs, StationPermission.USER);
         routes.get(
-                prefix + "/federated/{stationuid}/quiz/catalogs/{id}", this::federatedGetCatalog, Roles.QUIZ_MANAGER);
-        routes.post(prefix + "/federated/quiz/catalogs/{id}/copy", this::federatedCopyCatalog, Roles.QUIZ_MANAGER);
+                prefix + "/federated/{stationuid}/quiz/catalogs/{id}",
+                this::federatedGetCatalog,
+                StationPermission.QUIZ_MANAGER);
+        routes.post(
+                prefix + "/federated/quiz/catalogs/{id}/copy",
+                this::federatedCopyCatalog,
+                StationPermission.QUIZ_MANAGER);
         routes.post(
                 prefix + "/federated/{stationuid}/quiz/catalogs/{id}/copy",
                 this::federatedCopyCatalog,
-                Roles.QUIZ_MANAGER);
+                StationPermission.QUIZ_MANAGER);
 
         // Remote (server-to-server, RSA signature auth)
         routes.get(prefix + "/remote/quiz/catalogs", this::remoteBrowseCatalogs);
@@ -347,7 +364,7 @@ public class QuizRoutes implements Routes {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
         var session = UserSession.from(ctx);
         var question = quizService.findQuestion(id).orElseThrow(NotFoundResponse::new);
-        if (session.roles().contains(Roles.QUIZ_MANAGER)) {
+        if (session.permissions().contains(StationPermission.QUIZ_MANAGER)) {
             ctx.json(question);
         } else {
             ctx.json(sanitizeQuestion(question));
@@ -507,7 +524,7 @@ public class QuizRoutes implements Routes {
         var session = UserSession.from(ctx);
         // QUIZ_MANAGER sees all tests; regular members see only restriction-permitted tests
         List<QuizTest> tests;
-        if (session.member() != null && !session.roles().contains(Roles.QUIZ_MANAGER)) {
+        if (session.member() != null && !session.permissions().contains(StationPermission.QUIZ_MANAGER)) {
             tests = quizService.findTestsForMember(
                     session.stationId(), session.member().id());
         } else {
@@ -733,7 +750,7 @@ public class QuizRoutes implements Routes {
         if (session.member() == null) throw new BadRequestResponse("Not a station member");
         var test = quizService.findTest(testId).orElseThrow(NotFoundResponse::new);
         int memberId = session.member().id();
-        if (!quizService.isTestAccessible(test, memberId)) {
+        if (!quizService.isTestAccessible(test, memberId, session.permissions())) {
             throw new ForbiddenResponse("Test is not currently accessible");
         }
         var existing = quizService.findAttempt(testId, session.member().id());
@@ -829,7 +846,7 @@ public class QuizRoutes implements Routes {
         quizService.findTest(id).orElseThrow(NotFoundResponse::new);
         var restrictions = quizService.findRestrictions(id);
         ctx.json(new TestRestrictions(
-                restrictions.roleIds(),
+                restrictions.userTypes(),
                 restrictions.groupIds(),
                 restrictions.tagIds(),
                 restrictions.memberIds(),
@@ -845,7 +862,11 @@ public class QuizRoutes implements Routes {
         }
         var req = ctx.bodyAsClass(TestRestrictions.class);
         quizService.setRestrictions(
-                id, req.roleIds(), req.groupIds(), req.tagIds(), req.memberIds() != null ? req.memberIds() : List.of());
+                id,
+                req.userTypes(),
+                req.groupIds(),
+                req.tagIds(),
+                req.memberIds() != null ? req.memberIds() : List.of());
         if (req.mode() != null) {
             quizService.updateRestrictionMode(id, req.mode());
         }
@@ -1278,7 +1299,7 @@ public class QuizRoutes implements Routes {
     public record AccessRequest(Integer memberId, Instant closesAt) {}
 
     public record TestRestrictions(
-            List<Integer> roleIds,
+            List<String> userTypes,
             List<Integer> groupIds,
             List<Integer> tagIds,
             List<Integer> memberIds,

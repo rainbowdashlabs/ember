@@ -18,7 +18,6 @@ import dev.chojo.ember.feature.form.entity.FormResponse;
 import dev.chojo.ember.feature.form.entity.QuestionEntry;
 import dev.chojo.ember.feature.form.repository.FormRepository;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
-import dev.chojo.ember.feature.members.entity.Role;
 import dev.chojo.ember.feature.members.entity.UserTag;
 import dev.chojo.ember.feature.members.service.MemberGroupService;
 import dev.chojo.ember.feature.members.service.StationMemberService;
@@ -75,15 +74,16 @@ public class FormService {
         var restrictions = findRestrictions(formId);
         if (!restrictions.hasRestrictions()) return true;
 
-        var memberRoleIds =
-                memberService.findRoles(memberId).stream().map(Role::id).toList();
+        var member = memberService.findById(memberId).orElse(null);
+        if (member == null) return false;
+        String memberUserType = member.userType().name();
         var memberGroupIds = groupService.findGroupsForMember(memberId).stream()
                 .map(MemberGroup::id)
                 .toList();
         var memberTagIds =
                 tagService.findTagsForMember(memberId).stream().map(UserTag::id).toList();
 
-        return restrictions.matches(memberRoleIds, memberGroupIds, memberTagIds, memberId);
+        return restrictions.matches(memberUserType, memberGroupIds, memberTagIds, memberId);
     }
 
     /**
@@ -431,18 +431,18 @@ public class FormService {
      * Replaces all access restrictions for a form. Null lists are treated as empty.
      *
      * @param formId    the form ID
-     * @param roleIds   role IDs to restrict access to, or {@code null} for none
+     * @param userTypes user type names to restrict access to, or {@code null} for none
      * @param groupIds  group IDs to restrict access to, or {@code null} for none
      * @param tagIds    tag IDs to restrict access to, or {@code null} for none
      * @param memberIds member IDs to restrict access to, or {@code null} for none
      */
     public void setRestrictions(
-            int formId, List<Integer> roleIds, List<Integer> groupIds, List<Integer> tagIds, List<Integer> memberIds) {
+            int formId, List<String> userTypes, List<Integer> groupIds, List<Integer> tagIds, List<Integer> memberIds) {
         restrictionRepository.setRestrictions(
                 RestrictionType.FORM.table(),
                 RestrictionType.FORM.fkColumn(),
                 formId,
-                roleIds != null ? roleIds : List.of(),
+                userTypes != null ? userTypes : List.of(),
                 groupIds != null ? groupIds : List.of(),
                 tagIds != null ? tagIds : List.of(),
                 memberIds != null ? memberIds : List.of());

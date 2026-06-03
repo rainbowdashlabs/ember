@@ -6,9 +6,9 @@
 package dev.chojo.ember.feature.federation.route;
 
 import dev.chojo.ember.api.FederationSession;
-import dev.chojo.ember.api.Roles;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.roles.StationPermission;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.entity.LendingMessage;
@@ -72,40 +72,44 @@ public class LendingRoutes implements Routes {
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
         // Federated available inventory (aggregated from partners)
-        routes.get(prefix + "/federated/lending/available", this::listAvailable, Roles.INVENTORY_MANAGER);
+        routes.get(prefix + "/federated/lending/available", this::listAvailable, StationPermission.INVENTORY_MANAGER);
 
         // Remote (server-to-server, RSA signature auth)
         routes.get(prefix + "/remote/lending/messages/{requestId}", this::remoteGetMessages);
 
         // Lending requests
-        routes.get(prefix + "/lending/requests", this::listRequests, Roles.INVENTORY_MANAGER);
-        routes.post(prefix + "/lending/requests", this::createRequest, Roles.INVENTORY_MANAGER);
-        routes.get(prefix + "/lending/requests/{id}", this::getRequest, Roles.INVENTORY_MANAGER);
-        routes.post(prefix + "/lending/requests/{id}/approve", this::approveRequest, Roles.INVENTORY_MANAGER);
-        routes.post(prefix + "/lending/requests/{id}/decline", this::declineRequest, Roles.INVENTORY_MANAGER);
+        routes.get(prefix + "/lending/requests", this::listRequests, StationPermission.INVENTORY_MANAGER);
+        routes.post(prefix + "/lending/requests", this::createRequest, StationPermission.INVENTORY_MANAGER);
+        routes.get(prefix + "/lending/requests/{id}", this::getRequest, StationPermission.INVENTORY_MANAGER);
+        routes.post(
+                prefix + "/lending/requests/{id}/approve", this::approveRequest, StationPermission.INVENTORY_MANAGER);
+        routes.post(
+                prefix + "/lending/requests/{id}/decline", this::declineRequest, StationPermission.INVENTORY_MANAGER);
         routes.get(
                 prefix + "/lending/requests/{id}/available-items",
                 this::availableItemsForRequest,
-                Roles.INVENTORY_MANAGER);
-        routes.post(prefix + "/lending/requests/{id}/assign-items", this::assignItems, Roles.INVENTORY_MANAGER);
-        routes.post(prefix + "/lending/requests/{id}/lent", this::markLent, Roles.INVENTORY_MANAGER);
-        routes.post(prefix + "/lending/requests/{id}/returned", this::markReturned, Roles.INVENTORY_MANAGER);
-        routes.post(prefix + "/lending/requests/{id}/close", this::closeRequest, Roles.INVENTORY_MANAGER);
+                StationPermission.INVENTORY_MANAGER);
+        routes.post(
+                prefix + "/lending/requests/{id}/assign-items", this::assignItems, StationPermission.INVENTORY_MANAGER);
+        routes.post(prefix + "/lending/requests/{id}/lent", this::markLent, StationPermission.INVENTORY_MANAGER);
+        routes.post(
+                prefix + "/lending/requests/{id}/returned", this::markReturned, StationPermission.INVENTORY_MANAGER);
+        routes.post(prefix + "/lending/requests/{id}/close", this::closeRequest, StationPermission.INVENTORY_MANAGER);
 
         // Lent-out items by inventory
         routes.get(
                 prefix + "/lending/inventory/{inventoryId}/lent-out",
                 this::lentOutByInventory,
-                Roles.INVENTORY_MANAGER);
+                StationPermission.INVENTORY_MANAGER);
 
         // Chat messages
-        routes.get(prefix + "/lending/requests/{id}/messages", this::getMessages, Roles.INVENTORY_MANAGER);
-        routes.post(prefix + "/lending/requests/{id}/messages", this::sendMessage, Roles.INVENTORY_MANAGER);
+        routes.get(prefix + "/lending/requests/{id}/messages", this::getMessages, StationPermission.INVENTORY_MANAGER);
+        routes.post(prefix + "/lending/requests/{id}/messages", this::sendMessage, StationPermission.INVENTORY_MANAGER);
 
         // Inventory blocks
-        routes.get(prefix + "/lending/blocks", this::listBlocks, Roles.INVENTORY_MANAGER);
-        routes.post(prefix + "/lending/blocks", this::createBlock, Roles.INVENTORY_MANAGER);
-        routes.delete(prefix + "/lending/blocks/{id}", this::deleteBlock, Roles.INVENTORY_MANAGER);
+        routes.get(prefix + "/lending/blocks", this::listBlocks, StationPermission.INVENTORY_MANAGER);
+        routes.post(prefix + "/lending/blocks", this::createBlock, StationPermission.INVENTORY_MANAGER);
+        routes.delete(prefix + "/lending/blocks/{id}", this::deleteBlock, StationPermission.INVENTORY_MANAGER);
     }
 
     // -- Requests --

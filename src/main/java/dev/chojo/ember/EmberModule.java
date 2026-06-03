@@ -96,6 +96,7 @@ import dev.chojo.ember.feature.station.route.StationRoutes;
 import dev.chojo.ember.feature.statistics.route.StatisticsRoutes;
 import dev.chojo.ember.feature.system.route.AdminSettingsRoutes;
 import dev.chojo.ember.feature.system.route.ApiStatusRoutes;
+import dev.chojo.ember.feature.system.route.DataRoutes;
 import dev.chojo.ember.feature.system.route.ProblemReportRoutes;
 import dev.chojo.ember.feature.system.route.ProblemRoutes;
 import dev.chojo.ember.feature.system.route.RequirementsRoutes;
@@ -187,6 +188,7 @@ public class EmberModule extends AbstractModule {
         routesBinder.addBinding().to(BoardTicketRoutes.class);
         routesBinder.addBinding().to(RequirementsRoutes.class);
         routesBinder.addBinding().to(SidebarCountRoutes.class);
+        routesBinder.addBinding().to(DataRoutes.class);
 
         // Domain event handlers
         Multibinder<DomainEventHandler<?>> eventBinder = Multibinder.newSetBinder(binder(), new TypeLiteral<>() {});

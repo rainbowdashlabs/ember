@@ -5,8 +5,8 @@
  */
 package dev.chojo.ember.feature.system.route;
 
-import dev.chojo.ember.api.Roles;
 import dev.chojo.ember.api.Routes;
+import dev.chojo.ember.api.roles.InstancePermission;
 import dev.chojo.ember.feature.system.service.ApiRequestLogger;
 import io.javalin.http.Context;
 import io.javalin.openapi.HttpMethod;
@@ -33,11 +33,12 @@ public class ApiStatusRoutes implements Routes {
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        routes.get(prefix + "/admin/api-status/slowest", this::slowest, Roles.ADMIN);
-        routes.get(prefix + "/admin/api-status/fastest", this::fastest, Roles.ADMIN);
-        routes.get(prefix + "/admin/api-status/failing", this::failing, Roles.ADMIN);
-        routes.get(prefix + "/admin/api-status/status-breakdown", this::statusBreakdown, Roles.ADMIN);
-        routes.get(prefix + "/admin/api-status/hourly", this::hourly, Roles.ADMIN);
+        routes.get(prefix + "/admin/api-status/slowest", this::slowest, InstancePermission.ADMINISTRATOR);
+        routes.get(prefix + "/admin/api-status/fastest", this::fastest, InstancePermission.ADMINISTRATOR);
+        routes.get(prefix + "/admin/api-status/failing", this::failing, InstancePermission.ADMINISTRATOR);
+        routes.get(
+                prefix + "/admin/api-status/status-breakdown", this::statusBreakdown, InstancePermission.ADMINISTRATOR);
+        routes.get(prefix + "/admin/api-status/hourly", this::hourly, InstancePermission.ADMINISTRATOR);
     }
 
     @OpenApi(

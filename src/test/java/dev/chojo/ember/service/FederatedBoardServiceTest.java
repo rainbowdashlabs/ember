@@ -235,43 +235,43 @@ class FederatedBoardServiceTest extends RepositoryTestBase {
 
     @Test
     @Order(14)
-    void canFederatedEditNoRolesRestriction() {
-        // partner2 is FULL, no edit roles set => any role can edit
-        assertTrue(service.canFederatedEdit(boardId, partner2Id, List.of(1, 2, 3)));
+    void canFederatedEditNoUserTypesRestriction() {
+        // partner2 is FULL, no edit user types set => any user type can edit
+        assertTrue(service.canFederatedEdit(boardId, partner2Id, List.of("MEMBER", "GUARDIAN", "TEAM")));
     }
 
     @Test
     @Order(15)
-    void canFederatedEditWithRolesRestriction() {
-        service.setFederatedEditRoles(boardId, List.of(10, 20));
-        // partner2 has FULL mode, role 10 is allowed
-        assertTrue(service.canFederatedEdit(boardId, partner2Id, List.of(10)));
-        // role 99 is not allowed
-        assertFalse(service.canFederatedEdit(boardId, partner2Id, List.of(99)));
+    void canFederatedEditWithUserTypesRestriction() {
+        service.setFederatedEditUserTypes(boardId, List.of("TEAM", "MANAGER"));
+        // partner2 has FULL mode, user type TEAM is allowed
+        assertTrue(service.canFederatedEdit(boardId, partner2Id, List.of("TEAM")));
+        // user type MEMBER is not allowed
+        assertFalse(service.canFederatedEdit(boardId, partner2Id, List.of("MEMBER")));
     }
 
     @Test
     @Order(16)
     void canFederatedEditReadOnlyDenied() {
-        // partnerId is READ_ONLY, should be denied even with matching roles
-        assertFalse(service.canFederatedEdit(boardId, partnerId, List.of(10)));
+        // partnerId is READ_ONLY, should be denied even with matching user types
+        assertFalse(service.canFederatedEdit(boardId, partnerId, List.of("TEAM")));
     }
 
     @Test
     @Order(17)
-    void findFederatedEditRoles() {
-        var roles = service.findFederatedEditRoles(boardId);
-        assertEquals(2, roles.size());
-        assertTrue(roles.contains(10));
-        assertTrue(roles.contains(20));
+    void findFederatedEditUserTypes() {
+        var userTypes = service.findFederatedEditUserTypes(boardId);
+        assertEquals(2, userTypes.size());
+        assertTrue(userTypes.contains("TEAM"));
+        assertTrue(userTypes.contains("MANAGER"));
     }
 
     @Test
     @Order(18)
-    void clearFederatedEditRoles() {
-        service.setFederatedEditRoles(boardId, List.of());
-        var roles = service.findFederatedEditRoles(boardId);
-        assertTrue(roles.isEmpty());
+    void clearFederatedEditUserTypes() {
+        service.setFederatedEditUserTypes(boardId, List.of());
+        var userTypes = service.findFederatedEditUserTypes(boardId);
+        assertTrue(userTypes.isEmpty());
     }
 
     // Satellite table tests removed — identity is now inline in board_ticket columns
@@ -341,12 +341,13 @@ class FederatedBoardServiceTest extends RepositoryTestBase {
     @Test
     @Order(70)
     void setAndGetLocalViewOverride() {
-        var access = new AccessData(List.of(1, 2), List.of(3), List.of(4, 5));
+        var access = new AccessData(List.of("MEMBER", "GUARDIAN"), List.of(3), List.of(4, 5));
         service.setLocalViewOverride(partnerId, REMOTE_BOARD_UID_1, access);
 
         assertTrue(service.hasLocalViewOverride(partnerId, REMOTE_BOARD_UID_1));
         var result = service.getLocalViewOverride(partnerId, REMOTE_BOARD_UID_1);
-        assertEquals(List.of(1, 2), result.roleIds());
+        assertEquals(2, result.userTypes().size());
+        assertTrue(result.userTypes().containsAll(List.of("MEMBER", "GUARDIAN")));
         assertEquals(List.of(3), result.groupIds());
         assertEquals(List.of(4, 5), result.tagIds());
     }
@@ -356,18 +357,18 @@ class FederatedBoardServiceTest extends RepositoryTestBase {
     void noLocalViewOverride() {
         assertFalse(service.hasLocalViewOverride(partnerId, REMOTE_BOARD_UID_NONEXIST));
         var result = service.getLocalViewOverride(partnerId, REMOTE_BOARD_UID_NONEXIST);
-        assertTrue(result.roleIds().isEmpty());
+        assertTrue(result.userTypes().isEmpty());
     }
 
     @Test
     @Order(72)
     void setAndGetLocalEditOverride() {
-        var access = new AccessData(List.of(10), List.of(20, 30), List.of());
+        var access = new AccessData(List.of("TEAM"), List.of(20, 30), List.of());
         service.setLocalEditOverride(partnerId, REMOTE_BOARD_UID_1, access);
 
         assertTrue(service.hasLocalEditOverride(partnerId, REMOTE_BOARD_UID_1));
         var result = service.getLocalEditOverride(partnerId, REMOTE_BOARD_UID_1);
-        assertEquals(List.of(10), result.roleIds());
+        assertEquals(List.of("TEAM"), result.userTypes());
         assertEquals(List.of(20, 30), result.groupIds());
         assertTrue(result.tagIds().isEmpty());
     }
@@ -377,16 +378,16 @@ class FederatedBoardServiceTest extends RepositoryTestBase {
     void noLocalEditOverride() {
         assertFalse(service.hasLocalEditOverride(partnerId, REMOTE_BOARD_UID_NONEXIST));
         var result = service.getLocalEditOverride(partnerId, REMOTE_BOARD_UID_NONEXIST);
-        assertTrue(result.roleIds().isEmpty());
+        assertTrue(result.userTypes().isEmpty());
     }
 
     @Test
     @Order(74)
     void overwriteLocalViewOverride() {
-        var newAccess = new AccessData(List.of(99), List.of(), List.of());
+        var newAccess = new AccessData(List.of("MANAGER"), List.of(), List.of());
         service.setLocalViewOverride(partnerId, REMOTE_BOARD_UID_1, newAccess);
         var result = service.getLocalViewOverride(partnerId, REMOTE_BOARD_UID_1);
-        assertEquals(List.of(99), result.roleIds());
+        assertEquals(List.of("MANAGER"), result.userTypes());
         assertTrue(result.groupIds().isEmpty());
     }
 
@@ -396,7 +397,7 @@ class FederatedBoardServiceTest extends RepositoryTestBase {
         var newAccess = new AccessData(List.of(), List.of(), List.of(77));
         service.setLocalEditOverride(partnerId, REMOTE_BOARD_UID_1, newAccess);
         var result = service.getLocalEditOverride(partnerId, REMOTE_BOARD_UID_1);
-        assertTrue(result.roleIds().isEmpty());
+        assertTrue(result.userTypes().isEmpty());
         assertEquals(List.of(77), result.tagIds());
     }
 

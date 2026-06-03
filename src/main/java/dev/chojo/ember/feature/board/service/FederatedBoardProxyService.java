@@ -6,7 +6,7 @@
 package dev.chojo.ember.feature.board.service;
 
 import dev.chojo.ember.api.MemberIdentity;
-import dev.chojo.ember.api.Roles;
+import dev.chojo.ember.api.roles.StationPermission;
 import dev.chojo.ember.feature.board.entity.AccessData;
 import dev.chojo.ember.feature.board.entity.Board;
 import dev.chojo.ember.feature.board.entity.BoardChecklistItem;
@@ -35,7 +35,7 @@ import dev.chojo.ember.feature.federation.service.FederationHttpClient;
 import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.members.entity.MemberCompletion;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
-import dev.chojo.ember.feature.members.entity.Role;
+import dev.chojo.ember.feature.members.entity.Permission;
 import dev.chojo.ember.feature.members.entity.UserTag;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.MemberGroupService;
@@ -300,13 +300,12 @@ public class FederatedBoardProxyService {
             return remoteGetList(partner, path, TicketSummary.class);
         }
         int boardId = resolveBoardId(boardKey, partner);
-        if (query == null || query.isBlank()) {
-            return ticketService.findByBoard(boardId).stream()
-                    .map(TicketSummary::of)
-                    .toList();
-        }
-        return ticketService.search(boardId, query).stream()
+        List<BoardTicket> tickets = (query == null || query.isBlank())
+                ? ticketService.findByBoard(boardId)
+                : ticketService.search(boardId, query);
+        return tickets.stream()
                 .map(TicketSummary::of)
+                .map(t -> t.assignee() != null ? t.withAssignee(memberNameResolver.enrichDisplay(t.assignee())) : t)
                 .toList();
     }
 
@@ -317,7 +316,7 @@ public class FederatedBoardProxyService {
         }
         int boardId = resolveBoardId(boardKey, partner);
         int ticketId = resolveTicketId(boardId, ticketNumber);
-        return ticketService.findById(ticketId).orElseThrow(NotFoundResponse::new);
+        return enrichTicket(ticketService.findById(ticketId).orElseThrow(NotFoundResponse::new));
     }
 
     public List<BoardComment> proxyGetComments(int partnerId, String boardKey, int ticketNumber) {
@@ -330,7 +329,9 @@ public class FederatedBoardProxyService {
         }
         int boardId = resolveBoardId(boardKey, partner);
         int ticketId = resolveTicketId(boardId, ticketNumber);
-        return ticketService.findComments(ticketId);
+        return ticketService.findComments(ticketId).stream()
+                .map(c -> c.author() != null ? c.withAuthor(memberNameResolver.enrichDisplay(c.author())) : c)
+                .toList();
     }
 
     public List<BoardChecklistItem> proxyGetChecklist(int partnerId, String boardKey, int ticketNumber) {
@@ -431,6 +432,13 @@ public class FederatedBoardProxyService {
         int ticketId = resolveTicketId(boardId, ticketNumber);
         var localWatchers = ticketService.findWatchers(ticketId);
         return new FederatedWatcherData(localWatchers, List.of());
+    }
+
+    private BoardTicket enrichTicket(BoardTicket ticket) {
+        MemberIdentity assignee =
+                ticket.assignee() != null ? memberNameResolver.enrichDisplay(ticket.assignee()) : null;
+        MemberIdentity creator = ticket.creator() != null ? memberNameResolver.enrichDisplay(ticket.creator()) : null;
+        return ticket.withIdentities(assignee, creator);
     }
 
     // -- Write Proxy Methods --
@@ -905,11 +913,12 @@ public class FederatedBoardProxyService {
 
     private boolean memberHasRole(int memberId, String requiredRoleName) {
         if (requiredRoleName == null || requiredRoleName.equals("USER")) return true; // USER = everyone
-        var memberRoles =
-                memberService.findRoles(memberId).stream().map(Role::role).collect(java.util.stream.Collectors.toSet());
-        var expanded = Roles.expand(memberRoles);
+        var memberRoles = memberService.findPermissions(memberId).stream()
+                .map(Permission::permission)
+                .collect(java.util.stream.Collectors.toSet());
+        var expanded = StationPermission.expand(memberRoles);
         try {
-            return expanded.contains(Roles.valueOf(requiredRoleName));
+            return expanded.contains(StationPermission.valueOf(requiredRoleName));
         } catch (IllegalArgumentException e) {
             return false;
         }
@@ -1116,19 +1125,10 @@ public class FederatedBoardProxyService {
     }
 
     private boolean matchesAccess(int memberId, AccessData access) {
-        if (!access.roleIds().isEmpty()) {
-            // Expand the member's roles using hierarchy (MANAGER → TEAM → USER etc.)
-            var memberRoleEnums = memberService.findRoles(memberId).stream()
-                    .map(Role::role)
-                    .collect(java.util.stream.Collectors.toSet());
-            var expandedRoles = Roles.expand(memberRoleEnums);
-            // Resolve the override's role IDs to role enums and check intersection
-            var requiredRoles = access.roleIds().stream()
-                    .map(stationMemberRepository::findRoleById)
-                    .filter(java.util.Optional::isPresent)
-                    .map(opt -> opt.get().role())
-                    .collect(java.util.stream.Collectors.toSet());
-            if (expandedRoles.stream().anyMatch(requiredRoles::contains)) return true;
+        if (!access.userTypes().isEmpty()) {
+            var member = memberService.findById(memberId);
+            if (member.isPresent()
+                    && access.userTypes().contains(member.get().userType().name())) return true;
         }
         if (!access.groupIds().isEmpty()) {
             var memberGroupIds = groupService.findGroupsForMember(memberId).stream()

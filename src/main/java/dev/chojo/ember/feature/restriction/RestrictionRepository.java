@@ -5,27 +5,41 @@
  */
 package dev.chojo.ember.feature.restriction;
 
+import de.chojo.sadu.postgresql.types.PostgreSqlTypes;
 import de.chojo.sadu.queries.api.call.Call;
 import de.chojo.sadu.queries.api.query.Query;
+import dev.chojo.ember.api.roles.StationPermission;
+import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
+import dev.chojo.ember.feature.members.repository.StationMemberRepository;
+import dev.chojo.ember.feature.members.repository.UserTagRepository;
+import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
 import java.util.List;
+import java.util.Set;
 
 /**
  * Repository for unified restriction CRUD operations.
- * Works with any entity's restriction table via the table/column name parameters.
+ * Manager bypass is handled in Java before calling DB functions.
  */
 @Singleton
 public class RestrictionRepository {
 
-    /**
-     * Finds all restrictions for an entity.
-     *
-     * @param table      the restriction table name (e.g. "event_restriction")
-     * @param fkColumn   the foreign key column name (e.g. "event_id")
-     * @param entityId   the entity ID
-     * @return list of restrictions
-     */
+    private final StationMemberRepository stationMemberRepository;
+    private final MemberGroupRepository memberGroupRepository;
+    private final UserTagRepository userTagRepository;
+
+    @Inject
+    public RestrictionRepository(
+            StationMemberRepository stationMemberRepository,
+            MemberGroupRepository memberGroupRepository,
+            UserTagRepository userTagRepository) {
+        this.stationMemberRepository = stationMemberRepository;
+        this.memberGroupRepository = memberGroupRepository;
+        this.userTagRepository = userTagRepository;
+    }
+
     public List<Restriction> findRestrictions(String table, String fkColumn, int entityId) {
         return Query.query("SELECT * FROM " + table + " WHERE " + fkColumn + " = :entity_id ORDER BY id;")
                 .single(Call.of().bind("entity_id", entityId))
@@ -35,33 +49,22 @@ public class RestrictionRepository {
 
     /**
      * Replaces all restrictions for an entity.
-     * Deletes existing restrictions and inserts the new ones.
-     *
-     * @param table      the restriction table name
-     * @param fkColumn   the foreign key column name
-     * @param entityId   the entity ID
-     * @param roleIds    role IDs to restrict to
-     * @param groupIds   group IDs to restrict to
-     * @param tagIds     tag IDs to restrict to
-     * @param memberIds  member IDs to restrict to
      */
     public void setRestrictions(
             String table,
             String fkColumn,
             int entityId,
-            List<Integer> roleIds,
+            List<String> userTypes,
             List<Integer> groupIds,
             List<Integer> tagIds,
             List<Integer> memberIds) {
-        // Delete existing
         Query.query("DELETE FROM " + table + " WHERE " + fkColumn + " = :entity_id;")
                 .single(Call.of().bind("entity_id", entityId))
                 .delete();
 
-        // Insert new restrictions
-        for (int roleId : roleIds) {
-            Query.query("INSERT INTO " + table + "(" + fkColumn + ", role_id) VALUES (:entity_id, :role_id);")
-                    .single(Call.of().bind("entity_id", entityId).bind("role_id", roleId))
+        for (String userType : userTypes) {
+            Query.query("INSERT INTO " + table + "(" + fkColumn + ", user_type) VALUES (:entity_id, :user_type);")
+                    .single(Call.of().bind("entity_id", entityId).bind("user_type", userType))
                     .insert();
         }
         for (int groupId : groupIds) {
@@ -81,45 +84,52 @@ public class RestrictionRepository {
         }
     }
 
-    /**
-     * Loads restrictions and wraps them in a {@link RestrictionSet} with the given mode.
-     *
-     * @param table    the restriction table name
-     * @param fkColumn the foreign key column name
-     * @param entityId the entity ID
-     * @param mode     the restriction mode
-     * @return a RestrictionSet
-     */
     public RestrictionSet findRestrictionSet(String table, String fkColumn, int entityId, RestrictionMode mode) {
         return new RestrictionSet(findRestrictions(table, fkColumn, entityId), mode);
     }
 
     /**
-     * Checks if a member passes the restrictions for an entity using the DB function.
-     * The DB function resolves:
-     * <ul>
-     *   <li>The member's identity (roles with inheritance, groups, tags)</li>
-     *   <li>The entity's restriction mode (AND/OR)</li>
-     *   <li>Manager bypass (if member has the management role, restrictions are skipped)</li>
-     * </ul>
-     * The caller only needs entity type, entity ID, and member ID.
-     *
-     * @param type     the restriction type
-     * @param entityId the entity ID
-     * @param memberId the member to check
-     * @return true if the member passes the restrictions
+     * Checks if a member passes the restrictions for an entity.
+     * Manager bypass is checked first in Java, then DB function handles matching.
      */
-    public boolean checkRestriction(RestrictionType type, int entityId, int memberId) {
+    public boolean checkRestriction(
+            RestrictionType type, int entityId, int memberId, Set<StationPermission> memberPermissions) {
+        // Manager bypass in Java
+        if (memberPermissions.contains(type.managerPermission())) {
+            return true;
+        }
+
+        // Resolve member identity for DB function
+        StationMember member = stationMemberRepository.findById(memberId).orElse(null);
+        if (member == null) return false;
+
+        String userType = member.userType().name();
+        List<Integer> groupIds = memberGroupRepository.findGroupsForMember(memberId).stream()
+                .map(g -> g.id())
+                .toList();
+        List<Integer> tagIds = userTagRepository.findTagsForMember(memberId).stream()
+                .map(t -> t.id())
+                .toList();
+
+        // Resolve mode from entity table
+        String mode = Query.query("SELECT restriction_mode FROM " + type.entityTable() + " WHERE "
+                        + type.entityIdColumn() + " = :id;")
+                .single(Call.of().bind("id", entityId))
+                .map(row -> row.getString("restriction_mode"))
+                .first()
+                .orElse("AND");
+
         return Query.query(
-                        "SELECT check_restriction(:rtable, :fk_column, :etable, :eid_column, :entity_id, :member_id, :manager_role) AS result;")
+                        "SELECT check_restriction(:rtable, :fk_column, :entity_id, :mode, :member_id, :user_type, :group_ids, :tag_ids) AS result;")
                 .single(Call.of()
                         .bind("rtable", type.table())
                         .bind("fk_column", type.fkColumn())
-                        .bind("etable", type.entityTable())
-                        .bind("eid_column", type.entityIdColumn())
                         .bind("entity_id", entityId)
+                        .bind("mode", mode)
                         .bind("member_id", memberId)
-                        .bind("manager_role", type.managerRole()))
+                        .bind("user_type", userType)
+                        .bind("group_ids", groupIds, PostgreSqlTypes.INTEGER)
+                        .bind("tag_ids", tagIds, PostgreSqlTypes.INTEGER))
                 .map(row -> row.getBoolean("result"))
                 .first()
                 .orElse(true);

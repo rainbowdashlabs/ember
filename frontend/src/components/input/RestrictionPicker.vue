@@ -9,16 +9,17 @@ import {useI18n} from 'vue-i18n'
 import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import MultiSelectDropdown from '@/components/input/select/MultiSelectDropdown.vue'
-import type {Role, MemberGroup, UserTag} from '@/api/types'
-import {Roles} from '@/api/types'
+import type {PermissionGrant, MemberGroup, UserTag} from '@/api/types'
+import {StationUserType} from '@/api/types'
 
 const {t} = useI18n()
 
 const props = withDefaults(defineProps<{
-  roles?: Role[]
+  roles?: PermissionGrant[]
   groups?: MemberGroup[]
   tags?: UserTag[]
-  selectedRoleIds: number[]
+  selectedRoleIds?: number[]
+  selectedUserTypes?: string[]
   selectedGroupIds: number[]
   selectedTagIds: number[]
   mode?: 'AND' | 'OR'
@@ -27,6 +28,8 @@ const props = withDefaults(defineProps<{
   showTags?: boolean
   showMode?: boolean
 }>(), {
+  selectedRoleIds: () => [],
+  selectedUserTypes: () => [],
   showRoles: true,
   showGroups: true,
   showTags: true,
@@ -36,23 +39,24 @@ const props = withDefaults(defineProps<{
 
 const emit = defineEmits<{
   'update:selectedRoleIds': [ids: number[]]
+  'update:selectedUserTypes': [types: string[]]
   'update:selectedGroupIds': [ids: number[]]
   'update:selectedTagIds': [ids: number[]]
   'update:mode': [mode: 'AND' | 'OR']
 }>()
 
-const USER_ROLES = [Roles.USER, Roles.TEAM, Roles.MANAGER] as readonly string[]
+const USER_TYPES = [StationUserType.MEMBER, StationUserType.TEAM, StationUserType.MANAGER] as readonly string[]
 
 const roleFriendlyNames: Record<string, string> = {
-  USER: 'Alle',
+  MEMBER: 'Alle',
   TEAM: 'Team',
   MANAGER: 'Verwaltung',
 }
 
 const roleOptions = computed(() =>
     (props.roles ?? [])
-        .filter(r => USER_ROLES.includes(r.role))
-        .map(r => ({value: String(r.id), label: roleFriendlyNames[r.role] ?? r.role}))
+        .filter(r => USER_TYPES.includes(r.permission))
+        .map(r => ({value: String(r.id), label: roleFriendlyNames[r.permission] ?? r.permission}))
 )
 
 const groupOptions = computed(() =>
@@ -63,12 +67,26 @@ const tagOptions = computed(() =>
     (props.tags ?? []).map(t => ({value: String(t.id), label: t.name}))
 )
 
-const selectedRoleValues = computed(() => props.selectedRoleIds.map(String))
+const selectedRoleValues = computed(() => {
+  if (props.selectedUserTypes.length > 0) {
+    // User type mode: find role IDs for the selected user type names
+    return (props.roles ?? [])
+        .filter(r => props.selectedUserTypes.includes(r.permission))
+        .map(r => String(r.id))
+  }
+  return props.selectedRoleIds.map(String)
+})
 const selectedGroupValues = computed(() => props.selectedGroupIds.map(String))
 const selectedTagValues = computed(() => props.selectedTagIds.map(String))
 
 function onRolesChange(values: string[]) {
-  emit('update:selectedRoleIds', values.map(Number))
+  // Always emit both for compatibility — callers listen to only one
+  const ids = values.map(Number)
+  const userTypes = (props.roles ?? [])
+      .filter(r => ids.includes(r.id))
+      .map(r => r.permission)
+  emit('update:selectedRoleIds', ids)
+  emit('update:selectedUserTypes', userTypes)
 }
 
 function onGroupsChange(values: string[]) {
@@ -87,11 +105,12 @@ function toggleMode() {
 }
 
 const hasActiveSelection = computed(() =>
-    props.selectedRoleIds.length > 0 || props.selectedGroupIds.length > 0 || props.selectedTagIds.length > 0
+    props.selectedRoleIds.length > 0 || props.selectedUserTypes.length > 0 || props.selectedGroupIds.length > 0 || props.selectedTagIds.length > 0
 )
 
 function reset() {
   emit('update:selectedRoleIds', [])
+  emit('update:selectedUserTypes', [])
   emit('update:selectedGroupIds', [])
   emit('update:selectedTagIds', [])
 }

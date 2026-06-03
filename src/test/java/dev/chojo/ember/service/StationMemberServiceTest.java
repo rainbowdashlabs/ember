@@ -5,14 +5,13 @@
  */
 package dev.chojo.ember.service;
 
-import dev.chojo.ember.api.Roles;
+import dev.chojo.ember.api.roles.StationPermission;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.service.StationMemberService;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
-import io.javalin.http.BadRequestResponse;
 import io.javalin.http.ForbiddenResponse;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -86,43 +85,35 @@ class StationMemberServiceTest extends RepositoryTestBase {
     @Test
     @Order(5)
     void findRoles() {
-        var roles = service.findRoles(member1.id());
+        var roles = service.findPermissions(member1.id());
         assertNotNull(roles);
     }
 
     @Test
     @Order(10)
-    void setRolesAssignsAndReturns() {
-        var memberRole = stationMemberRepo.findRoleByName(Roles.MEMBER).orElseThrow();
-        var loginRole = stationMemberRepo.findRoleByName(Roles.LOGIN).orElseThrow();
-        var result = service.setRoles(
+    void setPermissionsAssignsAndReturns() {
+        var memberRole =
+                stationMemberRepo.findPermissionByName(StationPermission.USER).orElseThrow();
+        var loginRole =
+                stationMemberRepo.findPermissionByName(StationPermission.LOGIN).orElseThrow();
+        var result = service.setPermissions(
                 member1.id(),
                 List.of(memberRole.id(), loginRole.id()),
-                EnumSet.of(Roles.ADMIN, Roles.MEMBER, Roles.LOGIN));
-        assertTrue(result.stream().anyMatch(r -> r.role() == Roles.MEMBER));
-        assertTrue(result.stream().anyMatch(r -> r.role() == Roles.LOGIN));
-    }
-
-    @Test
-    @Order(11)
-    void setRolesRejectsConflictingRoles() {
-        var memberRole = stationMemberRepo.findRoleByName(Roles.MEMBER).orElseThrow();
-        var teamRole = stationMemberRepo.findRoleByName(Roles.TEAM).orElseThrow();
-        assertThrows(
-                BadRequestResponse.class,
-                () -> service.setRoles(
-                        member2.id(),
-                        List.of(memberRole.id(), teamRole.id()),
-                        EnumSet.of(Roles.ADMIN, Roles.MEMBER, Roles.TEAM)));
+                EnumSet.of(StationPermission.STATION_ADMINISTRATOR, StationPermission.USER, StationPermission.LOGIN));
+        assertTrue(result.stream().anyMatch(r -> r.permission() == StationPermission.USER));
+        assertTrue(result.stream().anyMatch(r -> r.permission() == StationPermission.LOGIN));
     }
 
     @Test
     @Order(12)
-    void setRolesRejectsUnauthorizedGrant() {
-        var adminRole = stationMemberRepo.findRoleByName(Roles.ADMIN).orElseThrow();
+    void setPermissionsRejectsUnauthorizedGrant() {
+        var adminPerm = stationMemberRepo
+                .findPermissionByName(StationPermission.STATION_ADMINISTRATOR)
+                .orElseThrow();
         assertThrows(
                 ForbiddenResponse.class,
-                () -> service.setRoles(member2.id(), List.of(adminRole.id()), EnumSet.of(Roles.MEMBER_MANAGER)));
+                () -> service.setPermissions(
+                        member2.id(), List.of(adminPerm.id()), EnumSet.of(StationPermission.MEMBER_MANAGER)));
     }
 
     @Test

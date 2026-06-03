@@ -16,14 +16,14 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import RestrictionPicker from '@/components/input/RestrictionPicker.vue'
 import EventFieldList from './EventFieldList.vue'
-import type {AttendanceTemplate, AttendanceTemplateField, EventCategory, EventFieldEntry, MemberGroup, Role, StationMember, UserTag} from '@/api/types'
+import type {AttendanceTemplate, AttendanceTemplateField, EventCategory, EventFieldEntry, MemberGroup, PermissionGrant, StationMember, UserTag} from '@/api/types'
 import {EventTypes, needsDayOfWeek} from '@/api/types'
 
 defineProps<{
   categories: EventCategory[]
   templates: AttendanceTemplate[]
   attendanceFields?: AttendanceTemplateField[]
-  roles?: Role[]
+  roles?: PermissionGrant[]
   groups?: MemberGroup[]
   tags?: UserTag[]
   showSchedule?: boolean

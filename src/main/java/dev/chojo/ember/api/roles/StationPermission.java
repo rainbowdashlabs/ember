@@ -1,3 +1,8 @@
+/*
+ *     SPDX-License-Identifier: AGPL-3.0-only
+ *
+ *     Copyright (C) RainbowDashLabs and Contributor
+ */
 package dev.chojo.ember.api.roles;
 
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
@@ -86,7 +91,13 @@ public enum StationPermission implements RouteRole {
     /**
      * Allows managing inventory items and lending requests.
      */
-    INVENTORY_MANAGER(INVENTORY_CREATE, INVENTORY_READ, INVENTORY_CHECK, INVENTORY_LENDING_REQUEST, INVENTORY_LENDING_MANAGER, INVENTORY_PROCUREMENT),
+    INVENTORY_MANAGER(
+            INVENTORY_CHECK,
+            INVENTORY_CREATE,
+            INVENTORY_LENDING_MANAGER,
+            INVENTORY_LENDING_REQUEST,
+            INVENTORY_PROCUREMENT,
+            INVENTORY_READ),
 
     /**
      * Allows managing event templates
@@ -162,7 +173,14 @@ public enum StationPermission implements RouteRole {
     /**
      * Allows managing members
      */
-    MEMBER_MANAGER(MEMBER_EDIT, MEMBER_NOTES, MEMBER_CHANGES, MEMBER_MANAGE_GROUP, MEMBER_MANAGE_TAGS, MEMBER_EDIT, MEMBER_FIELDS),
+    MEMBER_MANAGER(
+            MEMBER_CHANGES,
+            MEMBER_EDIT,
+            MEMBER_EDIT,
+            MEMBER_FIELDS,
+            MEMBER_MANAGE_GROUP,
+            MEMBER_MANAGE_TAGS,
+            MEMBER_NOTES),
 
     /**
      * Allows reading the member waitlist.
@@ -316,12 +334,32 @@ public enum StationPermission implements RouteRole {
     /**
      * Allows managing the station.
      */
-    STATION_MANAGER(STATION_LOOK_AND_FEEL, STATION_GENERAL, STATION_MAIL, STATION_MODULES, STATION_IMPORT_EXPORT, STATION_STATISTICS, STATION_FEDERATION),
+    STATION_MANAGER(
+            STATION_FEDERATION,
+            STATION_GENERAL,
+            STATION_IMPORT_EXPORT,
+            STATION_LOOK_AND_FEEL,
+            STATION_MAIL,
+            STATION_MODULES,
+            STATION_STATISTICS),
 
     /**
      * The station administrator permission. Grants access to all station management features.
      */
-    STATION_ADMINISTRATOR(STATION_MANAGER,KNOWLEDGE_MANAGER, BOARD_MANAGER, QUIZ_MANAGER, LOST_AND_FOUND_MANAGER, POLL_MANAGER, NEWS_MANAGER, NEWS_FEDERATE, WAITLIST_MANAGER, MEMBER_MANAGER, EVENT_MANAGER, INVENTORY_MANAGER, ATTENDANCE_MANAGER);
+    STATION_ADMINISTRATOR(
+            ATTENDANCE_MANAGER,
+            BOARD_MANAGER,
+            EVENT_MANAGER,
+            INVENTORY_MANAGER,
+            KNOWLEDGE_MANAGER,
+            LOGIN,
+            LOST_AND_FOUND_MANAGER,
+            MEMBER_MANAGER,
+            NEWS_MANAGER,
+            POLL_MANAGER,
+            QUIZ_MANAGER,
+            STATION_MANAGER,
+            WAITLIST_MANAGER);
 
     private final StationPermission[] children;
     private Set<StationPermission> allChildren;

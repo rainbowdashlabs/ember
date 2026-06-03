@@ -6,9 +6,9 @@
 package dev.chojo.ember.feature.form.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
-import dev.chojo.ember.api.Roles;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.roles.StationPermission;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.form.entity.Form;
 import dev.chojo.ember.feature.form.entity.FormAnswer;
@@ -79,35 +79,37 @@ public class FormRoutes implements Routes {
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
         // Management
-        routes.get(prefix + "/forms", this::list, Roles.POLL_MANAGER);
-        routes.post(prefix + "/forms", this::create, Roles.POLL_MANAGER);
-        routes.get(prefix + "/forms/available", this::listAvailable, Roles.USER);
-        routes.get(prefix + "/forms/{id}", this::get, Roles.USER);
-        routes.put(prefix + "/forms/{id}", this::update, Roles.POLL_MANAGER);
-        routes.delete(prefix + "/forms/{id}", this::delete, Roles.POLL_MANAGER);
-        routes.post(prefix + "/forms/{id}/publish", this::publish, Roles.POLL_MANAGER);
-        routes.post(prefix + "/forms/{id}/close", this::close, Roles.POLL_MANAGER);
+        routes.get(prefix + "/forms", this::list, StationPermission.POLL_MANAGER);
+        routes.post(prefix + "/forms", this::create, StationPermission.POLL_MANAGER);
+        routes.get(prefix + "/forms/available", this::listAvailable, StationPermission.USER);
+        routes.get(prefix + "/forms/{id}", this::get, StationPermission.USER);
+        routes.put(prefix + "/forms/{id}", this::update, StationPermission.POLL_MANAGER);
+        routes.delete(prefix + "/forms/{id}", this::delete, StationPermission.POLL_MANAGER);
+        routes.post(prefix + "/forms/{id}/publish", this::publish, StationPermission.POLL_MANAGER);
+        routes.post(prefix + "/forms/{id}/close", this::close, StationPermission.POLL_MANAGER);
 
         // Questions
-        routes.get(prefix + "/forms/{id}/questions", this::listQuestions, Roles.USER);
-        routes.put(prefix + "/forms/{id}/questions", this::setQuestions, Roles.POLL_MANAGER);
+        routes.get(prefix + "/forms/{id}/questions", this::listQuestions, StationPermission.USER);
+        routes.put(prefix + "/forms/{id}/questions", this::setQuestions, StationPermission.POLL_MANAGER);
 
         // Restrictions
-        routes.get(prefix + "/forms/{id}/restrictions", this::getRestrictions, Roles.USER);
-        routes.put(prefix + "/forms/{id}/restrictions", this::setRestrictions, Roles.POLL_MANAGER);
+        routes.get(prefix + "/forms/{id}/restrictions", this::getRestrictions, StationPermission.USER);
+        routes.put(prefix + "/forms/{id}/restrictions", this::setRestrictions, StationPermission.POLL_MANAGER);
 
         // Responding
-        routes.get(prefix + "/forms/{id}/my-response", this::getMyResponse, Roles.USER);
-        routes.get(prefix + "/forms/{id}/eligible-members", this::getEligibleMembers, Roles.USER);
-        routes.post(prefix + "/forms/{id}/respond", this::submitResponse, Roles.USER);
-        routes.put(prefix + "/forms/{id}/respond", this::updateResponse, Roles.USER);
-        routes.post(prefix + "/forms/{id}/respond/{memberId}", this::submitForMember, Roles.GUARDIAN);
-        routes.put(prefix + "/forms/{id}/respond/{memberId}", this::updateForMember, Roles.GUARDIAN);
+        routes.get(prefix + "/forms/{id}/my-response", this::getMyResponse, StationPermission.USER);
+        routes.get(prefix + "/forms/{id}/eligible-members", this::getEligibleMembers, StationPermission.USER);
+        routes.post(prefix + "/forms/{id}/respond", this::submitResponse, StationPermission.USER);
+        routes.put(prefix + "/forms/{id}/respond", this::updateResponse, StationPermission.USER);
+        routes.post(
+                prefix + "/forms/{id}/respond/{memberId}", this::submitForMember, StationPermission.MEMBER_GUARDIAN);
+        routes.put(prefix + "/forms/{id}/respond/{memberId}", this::updateForMember, StationPermission.MEMBER_GUARDIAN);
 
         // Analytics
-        routes.get(prefix + "/forms/{id}/analytics", this::getAnalytics, Roles.POLL_MANAGER);
-        routes.get(prefix + "/forms/{id}/responses", this::listResponses, Roles.POLL_MANAGER);
-        routes.get(prefix + "/forms/{id}/responses/{responseId}", this::getResponseDetail, Roles.POLL_MANAGER);
+        routes.get(prefix + "/forms/{id}/analytics", this::getAnalytics, StationPermission.POLL_MANAGER);
+        routes.get(prefix + "/forms/{id}/responses", this::listResponses, StationPermission.POLL_MANAGER);
+        routes.get(
+                prefix + "/forms/{id}/responses/{responseId}", this::getResponseDetail, StationPermission.POLL_MANAGER);
     }
 
     // -- Form CRUD --
@@ -388,7 +390,7 @@ public class FormRoutes implements Routes {
         formService.findById(id).orElseThrow(NotFoundResponse::new);
         var restrictions = formService.findRestrictions(id);
         ctx.json(new FormRestrictions(
-                restrictions.roleIds(),
+                restrictions.userTypes(),
                 restrictions.groupIds(),
                 restrictions.tagIds(),
                 restrictions.memberIds(),
@@ -412,7 +414,11 @@ public class FormRoutes implements Routes {
         }
         var req = ctx.bodyAsClass(FormRestrictions.class);
         formService.setRestrictions(
-                id, req.roleIds(), req.groupIds(), req.tagIds(), req.memberIds() != null ? req.memberIds() : List.of());
+                id,
+                req.userTypes(),
+                req.groupIds(),
+                req.tagIds(),
+                req.memberIds() != null ? req.memberIds() : List.of());
         if (req.mode() != null) {
             formService.updateRestrictionMode(id, req.mode());
         }
@@ -604,7 +610,7 @@ public class FormRoutes implements Routes {
     private void verifyManages(UserSession session, int memberId) {
         boolean manages =
                 stationMemberService.findManaged(session.member().id()).stream().anyMatch(m -> m.id() == memberId);
-        if (!manages && !session.hasRole(Roles.POLL_MANAGER)) {
+        if (!manages && !session.hasPermission(StationPermission.POLL_MANAGER)) {
             throw new ForbiddenResponse("You do not manage this member");
         }
     }
@@ -734,12 +740,12 @@ public class FormRoutes implements Routes {
     /**
      * Access restrictions for a form, specifying which roles, groups, and tags may access it.
      *
-     * @param roleIds  list of role IDs that grant access
+     * @param userTypes list of user type names that grant access
      * @param groupIds list of group IDs that grant access
      * @param tagIds   list of tag IDs that grant access
      */
     public record FormRestrictions(
-            List<Integer> roleIds,
+            List<String> userTypes,
             List<Integer> groupIds,
             List<Integer> tagIds,
             List<Integer> memberIds,

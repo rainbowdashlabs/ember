@@ -5,7 +5,8 @@
  */
 package dev.chojo.ember.feature.waitinglist.service;
 
-import dev.chojo.ember.api.Roles;
+import dev.chojo.ember.api.roles.StationPermission;
+import dev.chojo.ember.api.roles.StationUserType;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.mail.service.EmailService;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
@@ -97,7 +98,7 @@ public class WaitingListService {
             int confirmIntervalDays,
             Integer testingGroupId,
             Integer joinGroupId,
-            Integer joinRoleId,
+            String joinUserType,
             int attendanceThreshold) {
         return repository.create(
                 stationId,
@@ -107,7 +108,7 @@ public class WaitingListService {
                 confirmIntervalDays,
                 testingGroupId,
                 joinGroupId,
-                joinRoleId,
+                joinUserType,
                 attendanceThreshold);
     }
 
@@ -119,7 +120,7 @@ public class WaitingListService {
             int confirmIntervalDays,
             Integer testingGroupId,
             Integer joinGroupId,
-            Integer joinRoleId,
+            String joinUserType,
             int attendanceThreshold) {
         return repository.update(
                 id,
@@ -129,7 +130,7 @@ public class WaitingListService {
                 confirmIntervalDays,
                 testingGroupId,
                 joinGroupId,
-                joinRoleId,
+                joinUserType,
                 attendanceThreshold);
     }
 
@@ -337,8 +338,8 @@ public class WaitingListService {
         var account = accountRepository.create(null, entry.firstname(), entry.lastname());
         var member = stationMemberRepository.create(list.stationId(), account.id());
         stationMemberRepository
-                .findRoleByName(Roles.TRIAL)
-                .ifPresent(role -> stationMemberRepository.addRole(member.id(), role.id()));
+                .findPermissionByName(StationPermission.USER)
+                .ifPresent(role -> stationMemberRepository.grantPermission(member.id(), role.id()));
 
         // Assign testing group if configured
         if (list.testingGroupId() != null) {
@@ -393,15 +394,15 @@ public class WaitingListService {
             }
             // Remove TRIAL role
             stationMemberRepository
-                    .findRoleByName(Roles.TRIAL)
-                    .ifPresent(role -> stationMemberRepository.removeRole(entry.memberId(), role.id()));
+                    .findPermissionByName(StationPermission.USER)
+                    .ifPresent(role -> stationMemberRepository.revokePermission(entry.memberId(), role.id()));
             // Assign join group
             if (list.joinGroupId() != null) {
                 memberGroupRepository.addMember(list.joinGroupId(), entry.memberId());
             }
-            // Assign join role (typically MEMBER)
-            if (list.joinRoleId() != null) {
-                stationMemberRepository.addRole(entry.memberId(), list.joinRoleId());
+            // Set user type (typically MEMBER)
+            if (list.joinUserType() != null) {
+                stationMemberRepository.setUserType(entry.memberId(), StationUserType.valueOf(list.joinUserType()));
             }
         }
 

@@ -612,20 +612,18 @@ public class AttendanceRepository {
     }
 
     /**
-     * Finds all member IDs in a station that hold a specific role.
+     * Finds all member IDs in a station that have a specific user type.
      *
      * @param stationId the station ID
-     * @param roleName  the role name to filter by
+     * @param userType  the user type to filter by
      * @return list of member IDs
      */
-    public List<Integer> findMemberIdsByRole(int stationId, String roleName) {
+    public List<Integer> findMemberIdsByUserType(int stationId, String userType) {
         return Query.query("""
                             SELECT sm.id
                             FROM station_member sm
-                            JOIN station_member_role smr ON smr.member_id = sm.id
-                            JOIN role r ON r.id = smr.role_id
-                            WHERE sm.station_id = :station_id AND r.name = :role_name;""")
-                .single(Call.of().bind("station_id", stationId).bind("role_name", roleName))
+                            WHERE sm.station_id = :station_id AND sm.user_type = :user_type;""")
+                .single(Call.of().bind("station_id", stationId).bind("user_type", userType))
                 .map(row -> row.getInt("id"))
                 .all();
     }

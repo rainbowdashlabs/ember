@@ -69,7 +69,11 @@ class NewsFederationServiceTest extends RepositoryTestBase {
         federationService = new FederationService(federationRepo, stationRepo, new Api());
         httpClient = mock(FederationHttpClient.class);
         var eventBus = new DomainEventBus(Set.of());
-        newsService = new NewsService(newsRepo, new RestrictionRepository(), eventBus, stationMemberRepo);
+        newsService = new NewsService(
+                newsRepo,
+                new RestrictionRepository(stationMemberRepo, memberGroupRepo, userTagRepo),
+                eventBus,
+                stationMemberRepo);
 
         service = new NewsFederationService(
                 fedRepo,

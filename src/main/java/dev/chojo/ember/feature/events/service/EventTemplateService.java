@@ -76,11 +76,11 @@ public class EventTemplateService {
         repository.replaceFields(templateId, fields);
     }
 
-    public List<Integer> findRestrictions(int templateId) {
+    public List<String> findRestrictions(int templateId) {
         return repository.findRestrictions(templateId);
     }
 
-    public void setRestrictions(int templateId, List<Integer> roleIds) {
-        repository.setRestrictions(templateId, roleIds);
+    public void setRestrictions(int templateId, List<String> userTypes) {
+        repository.setRestrictions(templateId, userTypes);
     }
 }

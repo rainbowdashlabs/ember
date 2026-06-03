@@ -5,7 +5,7 @@
  */
 package dev.chojo.ember.event.handlers;
 
-import dev.chojo.ember.api.Roles;
+import dev.chojo.ember.api.roles.StationPermission;
 import dev.chojo.ember.event.DomainEventHandler;
 import dev.chojo.ember.event.events.RegistrationDeadlineExpired;
 import dev.chojo.ember.feature.members.entity.StationMember;
@@ -41,9 +41,12 @@ public class RegistrationDeadlineExpiredHandler implements DomainEventHandler<Re
         var data = NotificationData.of(
                 new NotificationParams.RegistrationDeadlineExpired(event.eventName(), event.pendingCount()),
                 new NotificationData.NotificationLink("events-registrations", Map.of("id", event.eventId())));
-        var eventMgmtIds = stationMemberRepository.findMembersWithRole(event.stationId(), Roles.EVENT_MANAGER).stream()
-                .map(StationMember::id)
-                .toList();
+        var eventMgmtIds =
+                stationMemberRepository
+                        .findMembersWithPermission(event.stationId(), StationPermission.EVENT_MANAGER)
+                        .stream()
+                        .map(StationMember::id)
+                        .toList();
         notificationService.notifyMembers(eventMgmtIds, NotificationType.REGISTRATION_DEADLINE_EXPIRED, data);
     }
 }

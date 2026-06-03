@@ -8,6 +8,7 @@ package dev.chojo.ember;
 import com.google.inject.Guice;
 import de.chojo.sadu.queries.api.configuration.QueryConfiguration;
 import dev.chojo.ember.api.ApiServer;
+import dev.chojo.ember.api.roles.InstanceUserType;
 import dev.chojo.ember.auth.PasswordHasher;
 import dev.chojo.ember.conf.Conf;
 import dev.chojo.ember.event.DomainEventBus;
@@ -44,7 +45,7 @@ public class Bootstrapper {
             PasswordHasher passwordHasher,
             StationRepository stationRepository,
             StationMemberRepository stationMemberRepository) {
-        if (accountRepository.anyAccountHasRole("ADMIN")) {
+        if (accountRepository.anyAdministratorExists()) {
             return;
         }
 
@@ -55,7 +56,7 @@ public class Bootstrapper {
         int accountId = account.id();
         accountRepository.createCredential(accountId, hash);
         accountRepository.setForcePasswordChange(accountId, true);
-        accountRepository.addAccountRole(accountId, "ADMIN");
+        accountRepository.setInstanceUserType(accountId, InstanceUserType.ADMINISTRATOR);
 
         var station = stationRepository.create("default");
         stationMemberRepository.create(station.id(), accountId);

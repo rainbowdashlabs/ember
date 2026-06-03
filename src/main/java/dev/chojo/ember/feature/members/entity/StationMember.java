@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.members.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
 import de.chojo.sadu.queries.converter.StandardValueConverter;
+import dev.chojo.ember.api.roles.StationUserType;
 
 import java.util.UUID;
 
@@ -19,8 +20,16 @@ import java.util.UUID;
  * @param accountId   the linked account identifier, or null for decoupled former members
  * @param former      whether this member has been marked as a former member
  * @param displayName the cached display name, used for former members after account decoupling
+ * @param userType    the station user type (TRIAL, MEMBER, GUARDIAN, TEAM, MANAGER)
  */
-public record StationMember(int id, int stationId, UUID uid, Integer accountId, boolean former, String displayName) {
+public record StationMember(
+        int id,
+        int stationId,
+        UUID uid,
+        Integer accountId,
+        boolean former,
+        String displayName,
+        StationUserType userType) {
     /**
      * Creates a row mapping for database result set conversion.
      */
@@ -31,6 +40,7 @@ public record StationMember(int id, int stationId, UUID uid, Integer accountId, 
                 row.get("uid", StandardValueConverter.UUID_STRING),
                 row.getObject("account_id", Integer.class),
                 row.getBoolean("former"),
-                row.getString("display_name"));
+                row.getString("display_name"),
+                row.getEnum("user_type", StationUserType.class));
     }
 }

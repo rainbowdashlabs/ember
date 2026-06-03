@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.repository;
 
+import dev.chojo.ember.api.roles.InstanceUserType;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.entity.AccountCredential;
 import dev.chojo.ember.feature.account.entity.AccountExternalAuth;
@@ -84,35 +85,20 @@ class AccountRepositoryTest extends RepositoryTestBase {
         assertTrue(accountRepo.findById(accountId).orElseThrow().emailVerified());
     }
 
-    // -- Account Roles --
+    // -- Instance User Type --
 
     @Test
     @Order(10)
-    void addAndFindAccountRoles() {
-        accountRepo.addAccountRole(accountId, "ADMIN");
-        var roles = accountRepo.findAccountRoles(accountId);
-        assertTrue(roles.contains("ADMIN"));
+    void setAndCheckInstanceUserType() {
+        accountRepo.setInstanceUserType(accountId, InstanceUserType.ADMINISTRATOR);
+        assertTrue(accountRepo.isAdministrator(accountId));
     }
 
     @Test
     @Order(11)
-    void hasAccountRole() {
-        assertTrue(accountRepo.hasAccountRole(accountId, "ADMIN"));
-        assertFalse(accountRepo.hasAccountRole(accountId, "nonexistent"));
-    }
-
-    @Test
-    @Order(12)
-    void anyAccountHasRole() {
-        assertTrue(accountRepo.anyAccountHasRole("ADMIN"));
-        assertFalse(accountRepo.anyAccountHasRole("nonexistent"));
-    }
-
-    @Test
-    @Order(13)
-    void removeAccountRole() {
-        assertTrue(accountRepo.removeAccountRole(accountId, "ADMIN"));
-        assertFalse(accountRepo.hasAccountRole(accountId, "ADMIN"));
+    void isAdministratorFalseAfterReset() {
+        accountRepo.setInstanceUserType(accountId, InstanceUserType.USER);
+        assertFalse(accountRepo.isAdministrator(accountId));
     }
 
     // -- Credentials --

@@ -17,7 +17,7 @@ import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
-import type {AttendanceTemplate, AttendanceTemplateField, EventCategory, EventFieldEntry, EventTemplate, MemberGroup, Role, StationMember, UserTag} from '@/api/types'
+import type {AttendanceTemplate, AttendanceTemplateField, EventCategory, EventFieldEntry, EventTemplate, MemberGroup, PermissionGrant, StationMember, UserTag} from '@/api/types'
 import {EventTypes, needsDayOfWeek} from '@/api/types'
 import type {EventFieldDefault} from '@/api/events'
 import {attendance, events, memberGroups, stationMembers, userTags} from '@/api'
@@ -36,7 +36,7 @@ const isEdit = computed(() => eventId.value !== null)
 const categories = ref<EventCategory[]>([])
 const templates = ref<AttendanceTemplate[]>([])
 const eventTemplates = ref<EventTemplate[]>([])
-const roles = ref<Role[]>([])
+const roles = ref<PermissionGrant[]>([])
 const groups = ref<MemberGroup[]>([])
 const tags = ref<UserTag[]>([])
 const allTemplateFields = ref<AttendanceTemplateField[]>([])

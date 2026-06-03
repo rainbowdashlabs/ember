@@ -6,9 +6,10 @@
 package dev.chojo.ember.feature.system.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
-import dev.chojo.ember.api.Roles;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.roles.InstancePermission;
+import dev.chojo.ember.api.roles.StationPermission;
 import dev.chojo.ember.feature.system.entity.ProblemReport;
 import dev.chojo.ember.feature.system.repository.ProblemReportRepository;
 import io.javalin.http.BadRequestResponse;
@@ -35,11 +36,17 @@ public class ProblemReportRoutes implements Routes {
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        routes.post(prefix + "/problem-reports", this::create, Roles.LOGIN);
-        routes.get(prefix + "/admin/problem-reports", this::list, Roles.ADMIN);
-        routes.post(prefix + "/admin/problem-reports/{id}/acknowledge", this::acknowledge, Roles.ADMIN);
-        routes.post(prefix + "/admin/problem-reports/acknowledge-all", this::acknowledgeAll, Roles.ADMIN);
-        routes.delete(prefix + "/admin/problem-reports/{id}", this::delete, Roles.ADMIN);
+        routes.post(prefix + "/problem-reports", this::create, StationPermission.LOGIN);
+        routes.get(prefix + "/admin/problem-reports", this::list, InstancePermission.ADMINISTRATOR);
+        routes.post(
+                prefix + "/admin/problem-reports/{id}/acknowledge",
+                this::acknowledge,
+                InstancePermission.ADMINISTRATOR);
+        routes.post(
+                prefix + "/admin/problem-reports/acknowledge-all",
+                this::acknowledgeAll,
+                InstancePermission.ADMINISTRATOR);
+        routes.delete(prefix + "/admin/problem-reports/{id}", this::delete, InstancePermission.ADMINISTRATOR);
     }
 
     @OpenApi(

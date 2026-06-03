@@ -5,7 +5,7 @@
  */
 package dev.chojo.ember.service;
 
-import dev.chojo.ember.api.Roles;
+import dev.chojo.ember.api.roles.StationPermission;
 import dev.chojo.ember.conf.file.elements.Mailing;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
@@ -62,13 +62,13 @@ class NotificationServiceTest extends RepositoryTestBase {
         account2 = accountRepo.create("notif2@test.com", "Notif", "Two");
         member1 = stationMemberRepo.create(station.id(), account1.id());
         member2 = stationMemberRepo.create(station.id(), account2.id());
-        stationMemberRepo.findRoleByName(Roles.MEMBER).ifPresent(r -> {
-            stationMemberRepo.addRole(member1.id(), r.id());
-            stationMemberRepo.addRole(member2.id(), r.id());
+        stationMemberRepo.findPermissionByName(StationPermission.USER).ifPresent(r -> {
+            stationMemberRepo.grantPermission(member1.id(), r.id());
+            stationMemberRepo.grantPermission(member2.id(), r.id());
         });
-        stationMemberRepo.findRoleByName(Roles.LOGIN).ifPresent(r -> {
-            stationMemberRepo.addRole(member1.id(), r.id());
-            stationMemberRepo.addRole(member2.id(), r.id());
+        stationMemberRepo.findPermissionByName(StationPermission.LOGIN).ifPresent(r -> {
+            stationMemberRepo.grantPermission(member1.id(), r.id());
+            stationMemberRepo.grantPermission(member2.id(), r.id());
         });
     }
 
@@ -204,7 +204,7 @@ class NotificationServiceTest extends RepositoryTestBase {
         service.acknowledgeAll(member2.id());
 
         var data = NotificationData.of(new NotificationParams.NewNews("Role Notify", "Author", "Preview"));
-        service.notifyMembersWithRole(station.id(), "MEMBER", NotificationType.NEW_NEWS, data);
+        service.notifyMembersWithRole(station.id(), "USER", NotificationType.NEW_NEWS, data);
 
         // Both members have MEMBER role — both should receive
         assertTrue(
@@ -220,7 +220,7 @@ class NotificationServiceTest extends RepositoryTestBase {
         service.acknowledgeAll(member2.id());
 
         var data = NotificationData.of(new NotificationParams.NewNews("Role Exclude", "Author", "Preview"));
-        service.notifyMembersWithRole(station.id(), "MEMBER", NotificationType.NEW_NEWS, data, member2.id());
+        service.notifyMembersWithRole(station.id(), "USER", NotificationType.NEW_NEWS, data, member2.id());
 
         // member1 should receive
         assertTrue(

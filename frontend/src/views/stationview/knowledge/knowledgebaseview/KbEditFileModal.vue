@@ -17,7 +17,7 @@ import SelectInput from '@/components/input/select/SelectInput.vue'
 import {knowledgeBase, stationMembers, memberGroups, userTags} from '@/api'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import type {KbFile} from '@/api/knowledgeBase'
-import type {Role, MemberGroup, UserTag} from '@/api/types'
+import type {PermissionGrant, MemberGroup, UserTag} from '@/api/types'
 import {useSession} from '@/composables/useSession'
 
 const {isKbPublic} = useSession()
@@ -42,7 +42,7 @@ const tagIds = ref<number[]>([])
 const tags = ref<string[]>([])
 const newTag = ref('')
 const publicVisibility = ref<string>('default')
-const allRoles = ref<Role[]>([])
+const allRoles = ref<PermissionGrant[]>([])
 const allGroups = ref<MemberGroup[]>([])
 const allTags = ref<UserTag[]>([])
 const error = ref('')

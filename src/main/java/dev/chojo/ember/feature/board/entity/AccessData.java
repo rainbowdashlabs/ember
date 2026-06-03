@@ -7,4 +7,4 @@ package dev.chojo.ember.feature.board.entity;
 
 import java.util.List;
 
-public record AccessData(List<Integer> roleIds, List<Integer> groupIds, List<Integer> tagIds) {}
+public record AccessData(List<String> userTypes, List<Integer> groupIds, List<Integer> tagIds) {}

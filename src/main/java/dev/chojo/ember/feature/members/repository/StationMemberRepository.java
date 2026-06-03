@@ -12,10 +12,11 @@ import de.chojo.sadu.queries.api.query.Query;
 import de.chojo.sadu.queries.api.results.writing.insertion.InsertionResult;
 import de.chojo.sadu.queries.converter.StandardValueConverter;
 import dev.chojo.ember.api.MemberIdentity;
-import dev.chojo.ember.api.Roles;
+import dev.chojo.ember.api.roles.StationPermission;
+import dev.chojo.ember.api.roles.StationUserType;
 import dev.chojo.ember.feature.members.entity.MemberCompletion;
+import dev.chojo.ember.feature.members.entity.Permission;
 import dev.chojo.ember.feature.members.entity.RichMember;
-import dev.chojo.ember.feature.members.entity.Role;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import jakarta.inject.Inject;
@@ -179,10 +180,10 @@ public class StationMemberRepository {
      */
     public List<RichMember> findRichMembers(int stationId, boolean includeFormer) {
         return Query.query("""
-                        SELECT sm.id, sm.station_id, sm.uid, sm.account_id, sm.former,
+                        SELECT sm.id, sm.station_id, sm.uid, sm.account_id, sm.former, sm.user_type,
                                COALESCE(NULLIF(sm.display_name, ''), TRIM(CONCAT(a.first_name, ' ', a.last_name)), '') AS name,
                                COALESCE(a.email, '') AS email,
-                               COALESCE((SELECT json_agg(r.name) FROM station_member_role smr JOIN role r ON r.id = smr.role_id WHERE smr.member_id = sm.id), '[]'::json)::text AS roles,
+                               COALESCE((SELECT json_agg(sp.name) FROM station_member_permission smp JOIN station_permission sp ON sp.id = smp.permission_id WHERE smp.member_id = sm.id), '[]'::json)::text AS roles,
                                COALESCE((SELECT json_agg(json_build_object('id', mg.id, 'name', mg.name)) FROM member_group_entry mge JOIN member_group mg ON mg.id = mge.group_id WHERE mge.member_id = sm.id), '[]'::json)::text AS groups,
                                COALESCE((SELECT json_agg(json_build_object('id', ut.id, 'name', ut.name)) FROM user_tag_entry ute JOIN user_tag ut ON ut.id = ute.tag_id WHERE ute.member_id = sm.id), '[]'::json)::text AS tags,
                                COALESCE((SELECT json_object_agg(pfv.field_id, pfv.value) FROM profile_field_value pfv WHERE pfv.member_id = sm.id), '{}'::json)::text AS profile_values
@@ -228,12 +229,12 @@ public class StationMemberRepository {
     }
 
     /**
-     * Finds active members of a station that have a specific role.
+     * Finds active members of a station that have a specific user type.
      */
-    public List<StationMember> findByStationAndRole(int stationId, String roleName) {
+    public List<StationMember> findByStationAndUserType(int stationId, StationUserType userType) {
         return Query.query(
-                        "SELECT sm.* FROM station_member sm JOIN station_member_role smr ON smr.member_id = sm.id JOIN role r ON r.id = smr.role_id WHERE sm.station_id = :station_id AND r.name = :role AND sm.former = FALSE;")
-                .single(Call.of().bind("station_id", stationId).bind("role", roleName))
+                        "SELECT * FROM station_member WHERE station_id = :station_id AND user_type = :user_type AND former = FALSE;")
+                .single(Call.of().bind("station_id", stationId).bind("user_type", userType))
                 .map(StationMember.map())
                 .all();
     }
@@ -277,24 +278,29 @@ public class StationMemberRepository {
                 .update();
     }
 
-    // -- Roles --
+    // -- Permissions --
 
-    public List<Role> findAllRoles() {
-        return Query.query("SELECT id, name FROM role ORDER BY id;")
+    public List<Permission> findAllPermissions() {
+        return Query.query("SELECT id, name FROM station_permission ORDER BY id;")
                 .single()
-                .map(Role.map())
+                .map(Permission.map())
                 .all();
     }
 
-    public boolean hasLoginRole(int accountId) {
+    public boolean hasLoginPermission(int accountId) {
         return Query.query("""
                             SELECT 1
                             FROM station_member sm
-                                JOIN station_member_role smr ON sm.id = smr.member_id
-                                JOIN role r ON r.id = smr.role_id
                             WHERE sm.account_id = :account_id
                               AND sm.former = FALSE
-                              AND r.name IN ('LOGIN', 'MANAGER')
+                              AND (
+                                sm.user_type IN ('GUARDIAN', 'TEAM', 'MANAGER')
+                                OR EXISTS (
+                                    SELECT 1 FROM station_member_permission smp
+                                    JOIN station_permission sp ON sp.id = smp.permission_id
+                                    WHERE smp.member_id = sm.id AND sp.name = 'LOGIN'
+                                )
+                              )
                             LIMIT 1;""")
                 .single(Call.of().bind("account_id", accountId))
                 .map(row -> true)
@@ -302,73 +308,105 @@ public class StationMemberRepository {
                 .isPresent();
     }
 
-    public List<Role> findRoles(int memberId) {
+    public List<Permission> findPermissions(int memberId) {
         return Query.query("""
-                            SELECT r.id, r.name
-                            FROM role r JOIN station_member_role smr ON r.id = smr.role_id
-                            WHERE smr.member_id = :member_id;""")
+                            SELECT sp.id, sp.name
+                            FROM station_permission sp JOIN station_member_permission smp ON sp.id = smp.permission_id
+                            WHERE smp.member_id = :member_id;""")
                 .single(Call.of().bind("member_id", memberId))
-                .map(Role.map())
+                .map(Permission.map())
                 .all();
     }
 
-    public Optional<Role> findRoleById(int id) {
-        return Query.query("SELECT id, name FROM role WHERE id = :id;")
-                .single(Call.of().bind("id", id))
-                .map(Role.map())
+    public Optional<Permission> findPermissionByName(StationPermission permission) {
+        return Query.query("SELECT id, name FROM station_permission WHERE name = :name;")
+                .single(Call.of().bind("name", permission))
+                .map(Permission.map())
                 .first();
     }
 
-    public Optional<Role> findRoleByName(Roles role) {
-        return Query.query("SELECT id, name FROM role WHERE name = :name;")
-                .single(Call.of().bind("name", role))
-                .map(Role.map())
-                .first();
-    }
-
-    public InsertionResult addRole(int memberId, int roleId) {
+    public InsertionResult grantPermission(int memberId, int permissionId) {
         return Query.query(
-                        "INSERT INTO station_member_role(member_id, role_id) VALUES(:member_id, :role_id) ON CONFLICT DO NOTHING;")
-                .single(Call.of().bind("member_id", memberId).bind("role_id", roleId))
+                        "INSERT INTO station_member_permission(member_id, permission_id) VALUES(:member_id, :permission_id) ON CONFLICT DO NOTHING;")
+                .single(Call.of().bind("member_id", memberId).bind("permission_id", permissionId))
                 .insert();
     }
 
-    public boolean removeRole(int memberId, int roleId) {
-        return Query.query("DELETE FROM station_member_role WHERE member_id = :member_id AND role_id = :role_id;")
-                .single(Call.of().bind("member_id", memberId).bind("role_id", roleId))
+    public boolean revokePermission(int memberId, int permissionId) {
+        return Query.query(
+                        "DELETE FROM station_member_permission WHERE member_id = :member_id AND permission_id = :permission_id;")
+                .single(Call.of().bind("member_id", memberId).bind("permission_id", permissionId))
                 .delete()
                 .changed();
     }
 
-    public void removeAllRoles(int memberId) {
-        Query.query("DELETE FROM station_member_role WHERE member_id = :member_id;")
+    public void revokeAllPermissions(int memberId) {
+        Query.query("DELETE FROM station_member_permission WHERE member_id = :member_id;")
                 .single(Call.of().bind("member_id", memberId))
                 .delete();
     }
 
     /**
-     * Find all active members of a station who have the given role (directly or via group).
+     * Find all active members of a station who have the given permission (directly or via group).
      */
-    public List<StationMember> findMembersWithRole(int stationId, Roles role) {
+    public List<StationMember> findMembersWithPermission(int stationId, StationPermission permission) {
         return Query.query("""
                             SELECT DISTINCT sm.* FROM station_member sm
                             WHERE sm.station_id = :station_id AND sm.former = FALSE
                               AND (
-                                exists (
-                                    SELECT 1 FROM station_member_role smr
-                                    JOIN role r ON r.id = smr.role_id
-                                    WHERE smr.member_id = sm.id AND r.name = :role_name
+                                EXISTS (
+                                    SELECT 1 FROM station_member_permission smp
+                                    JOIN station_permission sp ON sp.id = smp.permission_id
+                                    WHERE smp.member_id = sm.id AND sp.name = :permission_name
                                 )
-                                OR exists (
+                                OR EXISTS (
                                     SELECT 1 FROM member_group_entry mge
-                                    JOIN member_group_role mgr ON mgr.group_id = mge.group_id
-                                    JOIN role r ON r.id = mgr.role_id
-                                    WHERE mge.member_id = sm.id AND r.name = :role_name
+                                    JOIN member_group_permission mgp ON mgp.group_id = mge.group_id
+                                    JOIN station_permission sp ON sp.id = mgp.permission_id
+                                    WHERE mge.member_id = sm.id AND sp.name = :permission_name
                                 )
                               );""")
-                .single(Call.of().bind("station_id", stationId).bind("role_name", role))
+                .single(Call.of().bind("station_id", stationId).bind("permission_name", permission))
                 .map(StationMember.map())
                 .all();
+    }
+
+    // -- User Type --
+
+    public boolean setUserType(int memberId, StationUserType userType) {
+        return Query.query("UPDATE station_member SET user_type = :user_type WHERE id = :id;")
+                .single(Call.of().bind("user_type", userType).bind("id", memberId))
+                .update()
+                .changed();
+    }
+
+    // -- Station User Type Permissions --
+
+    public List<Permission> findUserTypePermissions(int stationId, StationUserType userType) {
+        return Query.query("""
+                SELECT sp.id, sp.name
+                FROM station_permission sp
+                JOIN station_user_type_permission sutp ON sp.id = sutp.permission_id
+                WHERE sutp.station_id = :station_id AND sutp.user_type = :user_type;""")
+                .single(Call.of().bind("station_id", stationId).bind("user_type", userType))
+                .map(Permission.map())
+                .all();
+    }
+
+    public void setUserTypePermissions(int stationId, StationUserType userType, List<Integer> permissionIds) {
+        Query.query(
+                        "DELETE FROM station_user_type_permission WHERE station_id = :station_id AND user_type = :user_type;")
+                .single(Call.of().bind("station_id", stationId).bind("user_type", userType))
+                .delete();
+        for (int permissionId : permissionIds) {
+            Query.query(
+                            "INSERT INTO station_user_type_permission(station_id, user_type, permission_id) VALUES(:station_id, :user_type, :permission_id) ON CONFLICT DO NOTHING;")
+                    .single(Call.of()
+                            .bind("station_id", stationId)
+                            .bind("user_type", userType)
+                            .bind("permission_id", permissionId))
+                    .insert();
+        }
     }
 
     // -- Manager Relations --

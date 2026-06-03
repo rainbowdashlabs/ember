@@ -34,6 +34,27 @@ public record BoardTicket(
         int checklistChecked,
         int attachmentCount) {
 
+    public BoardTicket withIdentities(MemberIdentity assignee, MemberIdentity creator) {
+        return new BoardTicket(
+                id,
+                boardId,
+                laneId,
+                ticketNumber,
+                title,
+                description,
+                assignee,
+                priority,
+                dueDate,
+                position,
+                creator,
+                createdAt,
+                updatedAt,
+                laneEnteredAt,
+                checklistTotal,
+                checklistChecked,
+                attachmentCount);
+    }
+
     public static RowMapping<BoardTicket> map() {
         return row -> {
             UUID assigneeStationUid = row.get("assignee_station_uid", StandardValueConverter.UUID_STRING);

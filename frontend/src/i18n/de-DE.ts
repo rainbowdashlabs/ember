@@ -218,6 +218,7 @@ export default {
         inventoryProcurement: 'Beschaffung',
         inventoryLending: 'Ausleihe',
         tags: 'Tags',
+        typePermissions: 'Typberechtigungen',
         formerMembers: 'Ehemalige',
         waitingLists: 'Wartelisten',
         attendance: 'Anwesenheit',
@@ -392,6 +393,10 @@ export default {
         'members-groups': {
             title: 'Gruppen',
             subtitle: 'Mitgliedergruppen verwalten',
+        },
+        'members-type-permissions': {
+            title: 'Typberechtigungen',
+            subtitle: 'Berechtigungen pro Mitgliedstyp festlegen',
         },
         'members-changes': {
             title: 'Änderungen',
@@ -2061,6 +2066,76 @@ volumes:
                 tip: 'Tipp: Die KI liefert bessere Ergebnisse, wenn du einen guten Prompt mit Thema und Kontext angibst.',
             },
         },
+        typePermissions: {
+            title: 'Typberechtigungen',
+            sidebarLabel: 'Typberechtigungen',
+            subtitle: 'Zusätzliche Berechtigungen pro Mitgliedstyp festlegen.',
+            whatIs: 'Was sind Typberechtigungen?',
+            whatIsText: 'Lege für deine Station fest, welche zusätzlichen Berechtigungen alle Mitglieder eines bestimmten Typs automatisch erhalten.',
+        },
+        boardOverview: {
+            title: 'Boards',
+            sidebarLabel: 'Übersicht',
+            subtitle: 'Aufgaben mit Kanban-Boards organisieren.',
+            whatIs: 'Was sind Boards?',
+            whatIsText: 'Boards sind Kanban-Tafeln, mit denen ihr Aufgaben organisieren könnt. Jedes Board hat Spalten und Tickets, die zwischen den Spalten verschoben werden.',
+        },
+        boardManage: {
+            title: 'Boards verwalten',
+            sidebarLabel: 'Verwalten',
+            subtitle: 'Boards erstellen, bearbeiten und löschen.',
+            whatIs: 'Boards verwalten',
+            whatIsText: 'Hier kannst du neue Boards erstellen, bestehende bearbeiten oder entfernen. Jedes Board hat ein Kürzel, das als Präfix für Ticket-Nummern verwendet wird.',
+        },
+        boardView: {
+            title: 'Board-Ansicht',
+            sidebarLabel: 'Board-Ansicht',
+            subtitle: 'Tickets auf dem Kanban-Board verwalten.',
+            whatIs: 'Die Board-Ansicht',
+            whatIsText: 'Hier siehst du alle Tickets eines Boards in Spalten sortiert. Du kannst Tickets per Drag-and-Drop verschieben, filtern und neue Tickets erstellen.',
+        },
+        ticketCreate: {
+            title: 'Ticket erstellen',
+            sidebarLabel: 'Ticket erstellen',
+            subtitle: 'Ein neues Ticket mit allen Details anlegen.',
+            whatIs: 'Ticket erstellen',
+            whatIsText: 'Erstelle Tickets mit Titel, Beschreibung, Priorität, Zuweisung und optionaler Checkliste. Tickets können im Schnelldialog oder in der erweiterten Ansicht erstellt werden.',
+        },
+        ticketDetail: {
+            title: 'Ticket-Details',
+            sidebarLabel: 'Ticket-Details',
+            subtitle: 'Alle Informationen zu einem Ticket einsehen und bearbeiten.',
+            whatIs: 'Ticket-Details',
+            whatIsText: 'Bearbeite Beschreibung, Checkliste, Kommentare, Verknüpfungen, Labels, Anhänge und Weblinks. Verfolge den gesamten Verlauf eines Tickets.',
+        },
+        backlog: {
+            title: 'Backlog',
+            sidebarLabel: 'Backlog',
+            subtitle: 'Ungeplante Tickets sammeln.',
+            whatIs: 'Was ist der Backlog?',
+            whatIsText: 'Der Backlog ist eine Sammlung von Tickets, die noch keiner Spalte zugeordnet sind. Hier kannst du Aufgaben sammeln, bevor sie eingeplant werden.',
+        },
+        archived: {
+            title: 'Archiv',
+            sidebarLabel: 'Archiv',
+            subtitle: 'Abgeschlossene Tickets einsehen.',
+            whatIs: 'Archivierte Tickets',
+            whatIsText: 'Tickets in der letzten Spalte werden nach einer einstellbaren Anzahl Tage automatisch archiviert. Archivierte Tickets können wieder aktiviert werden.',
+        },
+        boardSettings: {
+            title: 'Board-Einstellungen',
+            sidebarLabel: 'Einstellungen',
+            subtitle: 'Spalten, Felder und Zugriff konfigurieren.',
+            whatIs: 'Board-Einstellungen',
+            whatIsText: 'Konfiguriere Spalten, Backlog, benutzerdefinierte Felder, Labels, Zugriffsrechte und Föderations-Einstellungen für ein Board.',
+        },
+        federatedBoards: {
+            title: 'Föderierte Boards',
+            sidebarLabel: 'Föderierte Boards',
+            subtitle: 'Boards von Partnerstationen nutzen.',
+            whatIs: 'Was sind föderierte Boards?',
+            whatIsText: 'Föderierte Boards sind Kanban-Boards, die von Partnerstationen geteilt werden. Du kannst sie ansehen oder — je nach Zugriffsmodus — auch bearbeiten.',
+        },
         knowledgeModuleOverview: {
             overviewTitle: 'Lernsammlung',
             overviewSubtitle: 'Wissen teilen und organisieren.',
@@ -2906,6 +2981,13 @@ volumes:
         lastName: 'Nachname',
         email: 'E-Mail',
         roles: 'Rollen',
+        permissions: 'Berechtigungen',
+        userType: 'Mitgliedstyp',
+        userTypeMember: 'Mitglied',
+        userTypeGuardian: 'Erziehungsberechtigter',
+        userTypeTeam: 'Team',
+        userTypeManager: 'Manager',
+        userTypeTrial: 'Probe',
         fields: 'Profilfelder',
         fieldName: 'Feld',
         fieldValue: 'Wert',
@@ -2934,7 +3016,7 @@ volumes:
         extraColumns: 'Weitere Spalten',
         noExtraColumns: 'Keine weiteren Felder verfügbar.',
         colName: 'Name',
-        colRole: 'Rolle',
+        colRole: 'Typ',
         colEmail: 'E-Mail',
         colGroups: 'Gruppen',
         colTags: 'Tags',
@@ -3410,11 +3492,282 @@ volumes:
         allAdded: 'Alle Mitglieder sind bereits in dieser Gruppe.',
         roles: 'Rollen',
         noRoles: 'Keine Rollen zugewiesen. Mitglieder dieser Gruppe erhalten keine zusätzlichen Berechtigungen.',
+        permissions: 'Berechtigungen',
+        noPermissions: 'Keine Berechtigungen zugewiesen. Mitglieder dieser Gruppe erhalten keine zusätzlichen Berechtigungen.',
+        noPermissionAccess: 'Du hast keine Berechtigung, Gruppenberechtigungen zu bearbeiten.',
+        tabMembers: 'Mitglieder',
+        tabPermissions: 'Berechtigungen',
         convertToTag: 'In Tag umwandeln',
         convertToTagConfirm: 'Gruppe "{name}" in einen Tag umwandeln? Die Mitglieder bleiben erhalten, aber Rollen und Berechtigungen der Gruppe gehen verloren.',
         color: 'Farbe',
         colorHint: 'Optionale Farbe für Mitgliedernamen',
         position: 'Priorität',
+    },
+    permissions: {
+        partial: 'teilweise',
+        loading: 'Berechtigungen werden geladen…',
+        LOGIN: {
+            label: 'Login',
+            desc: 'Erlaubt das Einloggen auf der Station.',
+        },
+        USER: {
+            label: 'Nutzer',
+            desc: 'Allgemeiner Zugriff auf die Station als eingeloggter Nutzer.',
+        },
+        ATTENDANCE_MANAGER: {
+            label: 'Anwesenheit',
+            desc: 'Vollzugriff auf alle Anwesenheitsfunktionen.',
+        },
+        ATTENDANCE_CREATE: {
+            label: 'Anwesenheit erfassen',
+            desc: 'Kann Anwesenheiten erstellen und Teilnehmer eintragen.',
+        },
+        ATTENDANCE_CONFIGURE: {
+            label: 'Anwesenheit konfigurieren',
+            desc: 'Kann Anwesenheitsvorlagen anlegen und bearbeiten.',
+        },
+        ATTENDANCE_EXPORT: {
+            label: 'Anwesenheit exportieren',
+            desc: 'Kann Anwesenheitsdaten als Datei exportieren.',
+        },
+        INVENTORY_MANAGER: {
+            label: 'Inventar',
+            desc: 'Vollzugriff auf alle Inventarfunktionen.',
+        },
+        INVENTORY_CREATE: {
+            label: 'Gegenstände anlegen',
+            desc: 'Kann neue Inventargegenstände erstellen.',
+        },
+        INVENTORY_CREATE_EXTERNAL: {
+            label: 'Externe Gegenstände',
+            desc: 'Kann Gegenstände anlegen, die Mitgliedern gehören.',
+        },
+        INVENTORY_CREATE_INTERNAL: {
+            label: 'Interne Gegenstände',
+            desc: 'Kann Gegenstände anlegen, die der Station gehören.',
+        },
+        INVENTORY_READ: {
+            label: 'Inventar einsehen',
+            desc: 'Kann die Inventarlisten aller Mitglieder einsehen.',
+        },
+        INVENTORY_PROCUREMENT: {
+            label: 'Beschaffung',
+            desc: 'Kann Beschaffungsanfragen erstellen und verwalten.',
+        },
+        INVENTORY_CHECK: {
+            label: 'Inventur',
+            desc: 'Kann eine Inventur bei Mitgliedern durchführen.',
+        },
+        INVENTORY_LENDING_REQUEST: {
+            label: 'Ausleihe anfragen',
+            desc: 'Kann Ausleih-Anfragen erstellen und eigene verwalten.',
+        },
+        INVENTORY_LENDING_MANAGER: {
+            label: 'Ausleihe verwalten',
+            desc: 'Kann alle Ausleih-Anfragen genehmigen oder ablehnen.',
+        },
+        EVENT_MANAGER: {
+            label: 'Termine',
+            desc: 'Vollzugriff auf alle Terminfunktionen.',
+        },
+        EVENT_CONFIGURE: {
+            label: 'Termine erstellen',
+            desc: 'Kann Termine erstellen und bearbeiten.',
+        },
+        EVENT_REGISTRATION: {
+            label: 'Anmeldungen verwalten',
+            desc: 'Kann Anmeldungen zu Terminen bestätigen oder ablehnen.',
+        },
+        EVENT_MANAGE_TEMPLATE: {
+            label: 'Terminvorlagen',
+            desc: 'Kann Vorlagen für wiederkehrende Termine verwalten.',
+        },
+        EVENT_MANAGE_CATEGORY: {
+            label: 'Kategorien',
+            desc: 'Kann Terminkategorien anlegen und bearbeiten.',
+        },
+        EVENTS_FEDERATE: {
+            label: 'Termine föderieren',
+            desc: 'Kann Termine mit Partnerstationen teilen.',
+        },
+        MEMBER_MANAGER: {
+            label: 'Mitglieder',
+            desc: 'Vollzugriff auf alle Mitgliederfunktionen.',
+        },
+        MEMBER_READ: {
+            label: 'Mitglieder einsehen',
+            desc: 'Kann die Daten aller Mitglieder einsehen.',
+        },
+        MEMBER_EDIT: {
+            label: 'Mitglieder bearbeiten',
+            desc: 'Kann Mitglieder anlegen und ihre Daten ändern.',
+        },
+        MEMBER_NOTES: {
+            label: 'Notizen',
+            desc: 'Kann interne Notizen zu Mitgliedern erstellen und lesen.',
+        },
+        MEMBER_GUARDIAN: {
+            label: 'Erziehungsberechtigter',
+            desc: 'Kann die Daten der eigenen zugeordneten Mitglieder verwalten.',
+        },
+        MEMBER_CHANGES: {
+            label: 'Änderungen prüfen',
+            desc: 'Wird über Änderungen an Mitgliederdaten informiert und kann diese bestätigen.',
+        },
+        MEMBER_MANAGE_GROUP: {
+            label: 'Gruppen verwalten',
+            desc: 'Kann Mitgliedergruppen anlegen, bearbeiten und zuordnen.',
+        },
+        MEMBER_MANAGE_TAGS: {
+            label: 'Tags verwalten',
+            desc: 'Kann Tags anlegen, bearbeiten und Mitgliedern zuweisen.',
+        },
+        MEMBER_FIELDS: {
+            label: 'Profilfelder konfigurieren',
+            desc: 'Kann die Profilfelder der Mitglieder anlegen und ändern.',
+        },
+        WAITLIST_MANAGER: {
+            label: 'Warteliste',
+            desc: 'Vollzugriff auf die Warteliste.',
+        },
+        WAITLIST_READ: {
+            label: 'Warteliste einsehen',
+            desc: 'Kann die Einträge auf der Warteliste sehen.',
+        },
+        WAITLIST_ADD: {
+            label: 'Zur Warteliste hinzufügen',
+            desc: 'Kann neue Einträge auf die Warteliste setzen.',
+        },
+        NEWS_MANAGER: {
+            label: 'Neuigkeiten',
+            desc: 'Vollzugriff auf alle Neuigkeiten-Funktionen.',
+        },
+        NEWS_CREATE: {
+            label: 'Neuigkeiten erstellen',
+            desc: 'Kann neue Beiträge verfassen und veröffentlichen.',
+        },
+        NEWS_FEDERATE: {
+            label: 'Neuigkeiten föderieren',
+            desc: 'Kann Neuigkeiten mit Partnerstationen teilen.',
+        },
+        POLL_MANAGER: {
+            label: 'Formulare',
+            desc: 'Vollzugriff auf alle Formular- und Umfragefunktionen.',
+        },
+        POLL_CREATE: {
+            label: 'Formulare erstellen',
+            desc: 'Kann neue Formulare und Umfragen anlegen.',
+        },
+        POLL_VIEW_RESULTS: {
+            label: 'Ergebnisse ansehen',
+            desc: 'Kann die Antworten und Ergebnisse von Umfragen einsehen.',
+        },
+        LOST_AND_FOUND_MANAGER: {
+            label: 'Fundbüro',
+            desc: 'Vollzugriff auf das Fundbüro.',
+        },
+        LOST_AND_FOUND_CREATE: {
+            label: 'Fundstücke eintragen',
+            desc: 'Kann neue Fundstücke erfassen.',
+        },
+        LOST_AND_FOUND_MANAGE: {
+            label: 'Fundstücke verwalten',
+            desc: 'Kann Fundstücke bearbeiten und als erledigt markieren.',
+        },
+        QUIZ_MANAGER: {
+            label: 'Prüfungen & Protokolle',
+            desc: 'Vollzugriff auf Tests und Prüfprotokolle.',
+        },
+        TEST_MANAGER: {
+            label: 'Tests verwalten',
+            desc: 'Vollzugriff auf alle Testfunktionen.',
+        },
+        TEST_CATALOG_VIEW: {
+            label: 'Testkatalog ansehen',
+            desc: 'Kann verfügbare Tests und Fragen einsehen.',
+        },
+        TEST_CATALOG_EDIT: {
+            label: 'Testkatalog bearbeiten',
+            desc: 'Kann Tests und Fragen erstellen und ändern.',
+        },
+        TEST_CONFIGURE: {
+            label: 'Tests konfigurieren',
+            desc: 'Kann neue Testdurchläufe einrichten.',
+        },
+        PROTOCOL_MANAGER: {
+            label: 'Protokolle verwalten',
+            desc: 'Vollzugriff auf alle Protokollfunktionen.',
+        },
+        PROTOCOL_TESTER: {
+            label: 'Protokoll ausfüllen',
+            desc: 'Kann als Prüfer an einem Protokoll teilnehmen.',
+        },
+        PROTOCOL_CREATE: {
+            label: 'Protokoll erstellen',
+            desc: 'Kann neue Prüfprotokolle anlegen und starten.',
+        },
+        PROTOCOL_CONFIGURE: {
+            label: 'Protokolle konfigurieren',
+            desc: 'Kann Protokollvorlagen anlegen und bearbeiten.',
+        },
+        BOARD_MANAGER: {
+            label: 'Boards',
+            desc: 'Vollzugriff auf alle Board-Funktionen.',
+        },
+        BOARD_EDIT: {
+            label: 'Boards bearbeiten',
+            desc: 'Kann Boards und deren Einstellungen erstellen und ändern.',
+        },
+        KNOWLEDGE_MANAGER: {
+            label: 'Wissensdatenbank',
+            desc: 'Vollzugriff auf die Wissensdatenbank.',
+        },
+        KNOWLEDGE_EDIT: {
+            label: 'Artikel bearbeiten',
+            desc: 'Kann Artikel in der Wissensdatenbank erstellen und ändern.',
+        },
+        KNOWLEDGE_FEDERATE: {
+            label: 'Wissen föderieren',
+            desc: 'Kann Artikel mit Partnerstationen teilen.',
+        },
+        STATION_MANAGER: {
+            label: 'Stationseinstellungen',
+            desc: 'Vollzugriff auf alle Stationseinstellungen.',
+        },
+        STATION_LOOK_AND_FEEL: {
+            label: 'Erscheinungsbild',
+            desc: 'Kann Farben, Logo und Design der Station ändern.',
+        },
+        STATION_GENERAL: {
+            label: 'Allgemeine Einstellungen',
+            desc: 'Kann den Namen und allgemeine Einstellungen der Station ändern.',
+        },
+        STATION_MAIL: {
+            label: 'E-Mail-Einstellungen',
+            desc: 'Kann die E-Mail-Konfiguration der Station ändern.',
+        },
+        STATION_FEDERATION: {
+            label: 'Föderationseinstellungen',
+            desc: 'Kann Partnerstationen verwalten und Föderationsoptionen konfigurieren.',
+        },
+        STATION_MODULES: {
+            label: 'Module',
+            desc: 'Kann festlegen, welche Funktionen auf der Station aktiviert sind.',
+        },
+        STATION_IMPORT_EXPORT: {
+            label: 'Import & Export',
+            desc: 'Kann Stationsdaten importieren und exportieren.',
+        },
+        STATION_STATISTICS: {
+            label: 'Statistiken',
+            desc: 'Kann die Stationsstatistiken einsehen.',
+        },
+    },
+    userTypePermissions: {
+        title: 'Typberechtigungen',
+        description: 'Lege zusätzliche Berechtigungen fest, die alle Mitglieder eines bestimmten Typs auf dieser Station erhalten. Dies ergänzt die Standardberechtigungen des Typs.',
+        selectHint: 'Wähle einen Mitgliedstyp aus, um die Berechtigungen zu bearbeiten.',
+        noPermissions: 'Keine zusätzlichen Berechtigungen. Mitglieder dieses Typs erhalten nur die Standardberechtigungen.',
     },
     userTags: {
         title: 'Tags',
@@ -3975,14 +4328,16 @@ volumes:
         sectionFinished: 'Beigetreten / Ausgeschieden',
         noTestingEntries: 'Keine Einträge im Probezeitraum.',
         noFinishedEntries: 'Keine abgeschlossenen Einträge.',
-        // Group/Role config
+        // Group/PermissionGrant config
         testingGroup: 'Probegruppe',
         joinGroup: 'Beitrittsgruppe',
         joinRole: 'Beitrittsrolle',
+        joinUserType: 'Beitritts-Benutzertyp',
         attendanceThreshold: 'Anwesenheiten bis Aufnahme',
         attendanceCount: 'Anwesenheiten',
         noGroup: 'Keine Gruppe',
         noRole: 'Keine Rolle',
+        noUserType: 'Kein Benutzertyp',
         // Timestamps
         invitedAt: 'Eingeladen am',
         testingAt: 'Probezeit seit',

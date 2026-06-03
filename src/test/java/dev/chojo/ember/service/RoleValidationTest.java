@@ -5,8 +5,8 @@
  */
 package dev.chojo.ember.service;
 
-import dev.chojo.ember.api.Roles;
-import dev.chojo.ember.feature.members.entity.Role;
+import dev.chojo.ember.api.roles.StationPermission;
+import dev.chojo.ember.feature.members.entity.Permission;
 import dev.chojo.ember.feature.members.util.RoleValidation;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.ForbiddenResponse;
@@ -20,125 +20,81 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class RoleValidationTest {
 
-    // Test role fixtures matching DB IDs
-    static final Role LOGIN = new Role(1, Roles.LOGIN);
-    static final Role MEMBER = new Role(2, Roles.MEMBER);
-    static final Role GUARDIAN = new Role(3, Roles.GUARDIAN);
-    static final Role TEAM = new Role(4, Roles.TEAM);
-    static final Role MEMBER_MANAGER = new Role(9, Roles.MEMBER_MANAGER);
-    static final Role MANAGER = new Role(13, Roles.MANAGER);
-    static final Role ADMIN = new Role(14, Roles.ADMIN);
-    static final Role INVENTORY_MANAGER = new Role(7, Roles.INVENTORY_MANAGER);
+    // Test permission fixtures matching DB IDs
+    static final Permission LOGIN = new Permission(1, StationPermission.LOGIN);
+    static final Permission USER = new Permission(2, StationPermission.USER);
+    static final Permission MEMBER_GUARDIAN = new Permission(3, StationPermission.MEMBER_GUARDIAN);
+    static final Permission MEMBER_MANAGER = new Permission(9, StationPermission.MEMBER_MANAGER);
+    static final Permission STATION_ADMINISTRATOR = new Permission(13, StationPermission.STATION_ADMINISTRATOR);
+    static final Permission INVENTORY_MANAGER = new Permission(7, StationPermission.INVENTORY_MANAGER);
 
-    static final List<Role> ALL_ROLES =
-            List.of(LOGIN, MEMBER, GUARDIAN, TEAM, MEMBER_MANAGER, MANAGER, ADMIN, INVENTORY_MANAGER);
+    static final List<Permission> ALL_PERMISSIONS =
+            List.of(LOGIN, USER, MEMBER_GUARDIAN, MEMBER_MANAGER, STATION_ADMINISTRATOR, INVENTORY_MANAGER);
 
-    // --- validateRoleChanges ---
+    // --- validatePermissionChanges ---
 
     @Test
-    void allowsValidRoleAssignment() {
-        List<Role> current = List.of(LOGIN, TEAM);
-        List<Integer> desired = List.of(LOGIN.id(), TEAM.id(), INVENTORY_MANAGER.id());
-        Set<Roles> callerRoles = EnumSet.of(Roles.MANAGER, Roles.TEAM, Roles.INVENTORY_MANAGER);
+    void allowsValidPermissionAssignment() {
+        List<Permission> current = List.of(LOGIN);
+        List<Integer> desired = List.of(LOGIN.id(), INVENTORY_MANAGER.id());
+        Set<StationPermission> callerPermissions = EnumSet.of(
+                StationPermission.STATION_ADMINISTRATOR, StationPermission.INVENTORY_MANAGER, StationPermission.LOGIN);
 
-        assertDoesNotThrow(() -> RoleValidation.validateRoleChanges(current, desired, ALL_ROLES, callerRoles, false));
+        assertDoesNotThrow(
+                () -> RoleValidation.validatePermissionChanges(current, desired, ALL_PERMISSIONS, callerPermissions));
     }
 
     @Test
-    void rejectsRemovingProtectedRole() {
-        List<Role> current = List.of(LOGIN, MEMBER_MANAGER);
-        List<Integer> desired = List.of(LOGIN.id()); // removing MEMBER_MANAGER
-        Set<Roles> callerRoles = EnumSet.of(Roles.ADMIN);
+    void rejectsGrantingPermissionCallerDoesNotHave() {
+        List<Permission> current = List.of(LOGIN);
+        List<Integer> desired = List.of(LOGIN.id(), STATION_ADMINISTRATOR.id());
+        Set<StationPermission> callerPermissions = EnumSet.of(StationPermission.MEMBER_MANAGER);
 
         assertThrows(
                 ForbiddenResponse.class,
-                () -> RoleValidation.validateRoleChanges(current, desired, ALL_ROLES, callerRoles, false));
+                () -> RoleValidation.validatePermissionChanges(current, desired, ALL_PERMISSIONS, callerPermissions));
     }
 
     @Test
-    void rejectsRemovingManagerFromOwner() {
-        List<Role> current = List.of(LOGIN, MANAGER);
-        List<Integer> desired = List.of(LOGIN.id()); // removing MANAGER from owner
-        Set<Roles> callerRoles = EnumSet.of(Roles.ADMIN);
+    void allowsKeepingExistingPermissionEvenWithoutCallerHavingIt() {
+        List<Permission> current = List.of(LOGIN, STATION_ADMINISTRATOR);
+        List<Integer> desired = List.of(LOGIN.id(), STATION_ADMINISTRATOR.id()); // no change
+        Set<StationPermission> callerPermissions = EnumSet.of(StationPermission.MEMBER_MANAGER);
 
-        assertThrows(
-                ForbiddenResponse.class,
-                () -> RoleValidation.validateRoleChanges(current, desired, ALL_ROLES, callerRoles, true));
+        assertDoesNotThrow(
+                () -> RoleValidation.validatePermissionChanges(current, desired, ALL_PERMISSIONS, callerPermissions));
     }
 
     @Test
-    void allowsRemovingManagerFromNonOwner() {
-        List<Role> current = List.of(LOGIN, MANAGER);
-        List<Integer> desired = List.of(LOGIN.id());
-        Set<Roles> callerRoles = EnumSet.of(Roles.ADMIN);
-
-        // MANAGER is protected, so this should still throw
-        assertThrows(
-                ForbiddenResponse.class,
-                () -> RoleValidation.validateRoleChanges(current, desired, ALL_ROLES, callerRoles, false));
-    }
-
-    @Test
-    void rejectsGrantingRoleCallerDoesNotHave() {
-        List<Role> current = List.of(LOGIN);
-        List<Integer> desired = List.of(LOGIN.id(), ADMIN.id());
-        Set<Roles> callerRoles = EnumSet.of(Roles.MEMBER_MANAGER); // doesn't have ADMIN
-
-        assertThrows(
-                ForbiddenResponse.class,
-                () -> RoleValidation.validateRoleChanges(current, desired, ALL_ROLES, callerRoles, false));
-    }
-
-    @Test
-    void allowsKeepingExistingRoleEvenWithoutCallerHavingIt() {
-        List<Role> current = List.of(LOGIN, ADMIN);
-        List<Integer> desired = List.of(LOGIN.id(), ADMIN.id()); // no change
-        Set<Roles> callerRoles = EnumSet.of(Roles.MEMBER_MANAGER); // doesn't have ADMIN
-
-        assertDoesNotThrow(() -> RoleValidation.validateRoleChanges(current, desired, ALL_ROLES, callerRoles, false));
-    }
-
-    @Test
-    void rejectsUnknownRoleId() {
-        List<Role> current = List.of(LOGIN);
+    void rejectsUnknownPermissionId() {
+        List<Permission> current = List.of(LOGIN);
         List<Integer> desired = List.of(LOGIN.id(), 999);
-        Set<Roles> callerRoles = EnumSet.of(Roles.ADMIN);
+        Set<StationPermission> callerPermissions = EnumSet.of(StationPermission.STATION_ADMINISTRATOR);
 
         assertThrows(
                 BadRequestResponse.class,
-                () -> RoleValidation.validateRoleChanges(current, desired, ALL_ROLES, callerRoles, false));
-    }
-
-    // --- Conflict validation ---
-
-    @Test
-    void rejectsMemberAndGuardianTogether() {
-        List<Role> current = List.of();
-        List<Integer> desired = List.of(MEMBER.id(), GUARDIAN.id());
-        Set<Roles> callerRoles = EnumSet.of(Roles.ADMIN);
-
-        assertThrows(
-                BadRequestResponse.class,
-                () -> RoleValidation.validateRoleChanges(current, desired, ALL_ROLES, callerRoles, false));
+                () -> RoleValidation.validatePermissionChanges(current, desired, ALL_PERMISSIONS, callerPermissions));
     }
 
     @Test
-    void rejectsMemberAndTeamTogether() {
-        List<Role> current = List.of();
-        List<Integer> desired = List.of(MEMBER.id(), TEAM.id());
-        Set<Roles> callerRoles = EnumSet.of(Roles.ADMIN);
+    void allowsRemovingPermission() {
+        List<Permission> current = List.of(LOGIN, INVENTORY_MANAGER);
+        List<Integer> desired = List.of(LOGIN.id()); // removing INVENTORY_MANAGER
+        Set<StationPermission> callerPermissions = EnumSet.of(StationPermission.LOGIN);
 
-        assertThrows(
-                BadRequestResponse.class,
-                () -> RoleValidation.validateRoleChanges(current, desired, ALL_ROLES, callerRoles, false));
+        // Removing a permission is always allowed (no authorization check on removal)
+        assertDoesNotThrow(
+                () -> RoleValidation.validatePermissionChanges(current, desired, ALL_PERMISSIONS, callerPermissions));
     }
 
     @Test
     void allowsGuardianAndLoginTogether() {
-        List<Role> current = List.of();
-        List<Integer> desired = List.of(GUARDIAN.id(), LOGIN.id());
-        Set<Roles> callerRoles = EnumSet.of(Roles.ADMIN, Roles.GUARDIAN, Roles.LOGIN);
+        List<Permission> current = List.of();
+        List<Integer> desired = List.of(MEMBER_GUARDIAN.id(), LOGIN.id());
+        Set<StationPermission> callerPermissions = EnumSet.of(
+                StationPermission.STATION_ADMINISTRATOR, StationPermission.MEMBER_GUARDIAN, StationPermission.LOGIN);
 
-        assertDoesNotThrow(() -> RoleValidation.validateRoleChanges(current, desired, ALL_ROLES, callerRoles, false));
+        assertDoesNotThrow(
+                () -> RoleValidation.validatePermissionChanges(current, desired, ALL_PERMISSIONS, callerPermissions));
     }
 }

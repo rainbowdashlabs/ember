@@ -5,9 +5,9 @@
  */
 package dev.chojo.ember.feature.system.route;
 
-import dev.chojo.ember.api.Roles;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.roles.StationPermission;
 import dev.chojo.ember.feature.system.service.RequirementsService;
 import io.javalin.http.Context;
 import io.javalin.router.JavalinDefaultRoutingApi;
@@ -27,7 +27,7 @@ public class RequirementsRoutes implements Routes {
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        routes.get(prefix + "/requirements", this::getRequirements, Roles.LOGIN);
+        routes.get(prefix + "/requirements", this::getRequirements, StationPermission.LOGIN);
     }
 
     private void getRequirements(Context ctx) {
@@ -39,6 +39,6 @@ public class RequirementsRoutes implements Routes {
         ctx.json(requirementsService.getRequirements(
                 session.member().id(),
                 session.stationId(),
-                session.roles().stream().map(Enum::name).toList()));
+                session.permissions().stream().map(Enum::name).toList()));
     }
 }

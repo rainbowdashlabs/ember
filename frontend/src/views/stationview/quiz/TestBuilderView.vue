@@ -23,7 +23,7 @@ import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import DateTimeInput from '@/components/input/datetime/DateTimeInput.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
-import type { QuizCatalog, QuizCategory, QuizSectionDetail, Role, MemberGroup, UserTag } from '@/api/types'
+import type { QuizCatalog, QuizCategory, QuizSectionDetail, PermissionGrant, MemberGroup, UserTag } from '@/api/types'
 import { quiz, stationMembers, memberGroups, userTags } from '@/api'
 import RestrictionPicker from '@/components/input/RestrictionPicker.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
@@ -50,7 +50,7 @@ const startAt = ref('')
 const endAt = ref('')
 
 // Restrictions
-const allRoles = ref<Role[]>([])
+const allRoles = ref<PermissionGrant[]>([])
 const allGroups = ref<MemberGroup[]>([])
 const allTags = ref<UserTag[]>([])
 const selectedRoleIds = ref<number[]>([])

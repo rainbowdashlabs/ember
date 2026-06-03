@@ -352,9 +352,11 @@ class BoardRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(71)
     void setAndFindViewAccess() {
-        boardRepo.setViewAccess(boardId, List.of(1, 2), List.of(), List.of());
+        boardRepo.setViewAccess(boardId, List.of("MEMBER", "GUARDIAN"), List.of(), List.of());
         assertTrue(boardRepo.hasViewRestrictions(boardId));
-        assertEquals(List.of(1, 2), boardRepo.findViewAccessRoleIds(boardId));
+        var userTypes = boardRepo.findViewAccessUserTypes(boardId);
+        assertEquals(2, userTypes.size());
+        assertTrue(userTypes.containsAll(List.of("MEMBER", "GUARDIAN")));
     }
 
     @Test
@@ -364,15 +366,15 @@ class BoardRepositoryTest extends RepositoryTestBase {
         assertTrue(boardRepo.hasViewRestrictions(boardId));
         assertEquals(List.of(10), boardRepo.findViewAccessGroupIds(boardId));
         assertEquals(List.of(20), boardRepo.findViewAccessTagIds(boardId));
-        assertTrue(boardRepo.findViewAccessRoleIds(boardId).isEmpty());
+        assertTrue(boardRepo.findViewAccessUserTypes(boardId).isEmpty());
     }
 
     @Test
     @Order(73)
     void setAndFindEditAccess() {
-        boardRepo.setEditAccess(boardId, List.of(5), List.of(15), List.of(25));
+        boardRepo.setEditAccess(boardId, List.of("TEAM"), List.of(15), List.of(25));
         assertTrue(boardRepo.hasEditRestrictions(boardId));
-        assertEquals(List.of(5), boardRepo.findEditAccessRoleIds(boardId));
+        assertEquals(List.of("TEAM"), boardRepo.findEditAccessUserTypes(boardId));
         assertEquals(List.of(15), boardRepo.findEditAccessGroupIds(boardId));
         assertEquals(List.of(25), boardRepo.findEditAccessTagIds(boardId));
     }

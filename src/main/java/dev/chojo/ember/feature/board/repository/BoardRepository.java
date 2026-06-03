@@ -273,13 +273,13 @@ public class BoardRepository {
 
     // -- Access restrictions --
 
-    public void setViewAccess(int boardId, List<Integer> roleIds, List<Integer> groupIds, List<Integer> tagIds) {
+    public void setViewAccess(int boardId, List<String> userTypes, List<Integer> groupIds, List<Integer> tagIds) {
         Query.query("DELETE FROM board_view_access WHERE board_id = :board_id;")
                 .single(Call.of().bind("board_id", boardId))
                 .delete();
-        for (int roleId : roleIds) {
-            Query.query("INSERT INTO board_view_access(board_id, role_id) VALUES (:board_id, :role_id);")
-                    .single(Call.of().bind("board_id", boardId).bind("role_id", roleId))
+        for (String userType : userTypes) {
+            Query.query("INSERT INTO board_view_access(board_id, user_type) VALUES (:board_id, :user_type);")
+                    .single(Call.of().bind("board_id", boardId).bind("user_type", userType))
                     .insert();
         }
         for (int groupId : groupIds) {
@@ -294,13 +294,13 @@ public class BoardRepository {
         }
     }
 
-    public void setEditAccess(int boardId, List<Integer> roleIds, List<Integer> groupIds, List<Integer> tagIds) {
+    public void setEditAccess(int boardId, List<String> userTypes, List<Integer> groupIds, List<Integer> tagIds) {
         Query.query("DELETE FROM board_edit_access WHERE board_id = :board_id;")
                 .single(Call.of().bind("board_id", boardId))
                 .delete();
-        for (int roleId : roleIds) {
-            Query.query("INSERT INTO board_edit_access(board_id, role_id) VALUES (:board_id, :role_id);")
-                    .single(Call.of().bind("board_id", boardId).bind("role_id", roleId))
+        for (String userType : userTypes) {
+            Query.query("INSERT INTO board_edit_access(board_id, user_type) VALUES (:board_id, :user_type);")
+                    .single(Call.of().bind("board_id", boardId).bind("user_type", userType))
                     .insert();
         }
         for (int groupId : groupIds) {
@@ -315,10 +315,11 @@ public class BoardRepository {
         }
     }
 
-    public List<Integer> findViewAccessRoleIds(int boardId) {
-        return Query.query("SELECT role_id FROM board_view_access WHERE board_id = :board_id AND role_id IS NOT NULL;")
+    public List<String> findViewAccessUserTypes(int boardId) {
+        return Query.query(
+                        "SELECT user_type FROM board_view_access WHERE board_id = :board_id AND user_type IS NOT NULL;")
                 .single(Call.of().bind("board_id", boardId))
-                .map(row -> row.getInt("role_id"))
+                .map(row -> row.getString("user_type"))
                 .all();
     }
 
@@ -337,10 +338,11 @@ public class BoardRepository {
                 .all();
     }
 
-    public List<Integer> findEditAccessRoleIds(int boardId) {
-        return Query.query("SELECT role_id FROM board_edit_access WHERE board_id = :board_id AND role_id IS NOT NULL;")
+    public List<String> findEditAccessUserTypes(int boardId) {
+        return Query.query(
+                        "SELECT user_type FROM board_edit_access WHERE board_id = :board_id AND user_type IS NOT NULL;")
                 .single(Call.of().bind("board_id", boardId))
-                .map(row -> row.getInt("role_id"))
+                .map(row -> row.getString("user_type"))
                 .all();
     }
 

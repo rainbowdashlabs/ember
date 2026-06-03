@@ -46,6 +46,7 @@ export * as federatedBoards from './federatedBoards'
 export * as comments from './comments'
 export * as storage from './storage'
 export * as util from './util'
+export * as data from './data'
 
 export {default as client} from './client'
 export type * from './types'

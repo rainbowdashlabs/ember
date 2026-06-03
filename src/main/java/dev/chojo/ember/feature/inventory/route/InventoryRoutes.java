@@ -6,9 +6,9 @@
 package dev.chojo.ember.feature.inventory.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
-import dev.chojo.ember.api.Roles;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.roles.StationPermission;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
 import dev.chojo.ember.feature.inventory.entity.InventoryItem;
 import dev.chojo.ember.feature.inventory.entity.InventoryRequirement;
@@ -74,46 +74,54 @@ public class InventoryRoutes implements Routes {
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        routes.get(prefix + "/my-inventory-items", this::myItems, Roles.USER);
-        routes.get(prefix + "/my-inventory-requirements", this::myRequirements, Roles.USER);
+        routes.get(prefix + "/my-inventory-items", this::myItems, StationPermission.USER);
+        routes.get(prefix + "/my-inventory-requirements", this::myRequirements, StationPermission.USER);
         routes.get(
                 prefix + "/station-members/{memberId}/inventory-items",
                 this::memberItems,
-                Roles.MEMBER_MANAGER,
-                Roles.INVENTORY_MANAGER);
-        routes.get(prefix + "/inventories", this::list, Roles.INVENTORY_MANAGER);
-        routes.post(prefix + "/inventories", this::create, Roles.INVENTORY_MANAGER);
-        routes.get(prefix + "/inventories/all-items", this::listAllItems, Roles.INVENTORY_MANAGER);
-        routes.get(prefix + "/inventories/all-sizes", this::listAllSizes, Roles.LOGIN);
-        routes.get(prefix + "/inventories/{id}", this::get, Roles.INVENTORY_MANAGER);
-        routes.put(prefix + "/inventories/{id}", this::update, Roles.INVENTORY_MANAGER);
-        routes.delete(prefix + "/inventories/{id}", this::delete, Roles.INVENTORY_MANAGER);
+                StationPermission.MEMBER_MANAGER,
+                StationPermission.INVENTORY_MANAGER);
+        routes.get(prefix + "/inventories", this::list, StationPermission.INVENTORY_MANAGER);
+        routes.post(prefix + "/inventories", this::create, StationPermission.INVENTORY_MANAGER);
+        routes.get(prefix + "/inventories/all-items", this::listAllItems, StationPermission.INVENTORY_MANAGER);
+        routes.get(prefix + "/inventories/all-sizes", this::listAllSizes, StationPermission.LOGIN);
+        routes.get(prefix + "/inventories/{id}", this::get, StationPermission.INVENTORY_MANAGER);
+        routes.put(prefix + "/inventories/{id}", this::update, StationPermission.INVENTORY_MANAGER);
+        routes.delete(prefix + "/inventories/{id}", this::delete, StationPermission.INVENTORY_MANAGER);
 
-        routes.get(prefix + "/inventories/{inventoryId}/sizes", this::listSizes, Roles.LOGIN);
-        routes.post(prefix + "/inventories/{inventoryId}/sizes", this::createSize, Roles.INVENTORY_MANAGER);
-        routes.put(prefix + "/inventories/{inventoryId}/sizes/{sizeId}", this::updateSize, Roles.INVENTORY_MANAGER);
-        routes.delete(prefix + "/inventories/{inventoryId}/sizes/{sizeId}", this::deleteSize, Roles.INVENTORY_MANAGER);
+        routes.get(prefix + "/inventories/{inventoryId}/sizes", this::listSizes, StationPermission.LOGIN);
+        routes.post(prefix + "/inventories/{inventoryId}/sizes", this::createSize, StationPermission.INVENTORY_MANAGER);
+        routes.put(
+                prefix + "/inventories/{inventoryId}/sizes/{sizeId}",
+                this::updateSize,
+                StationPermission.INVENTORY_MANAGER);
+        routes.delete(
+                prefix + "/inventories/{inventoryId}/sizes/{sizeId}",
+                this::deleteSize,
+                StationPermission.INVENTORY_MANAGER);
 
-        routes.get(prefix + "/inventories/{inventoryId}/items", this::listItems, Roles.INVENTORY_MANAGER);
-        routes.post(prefix + "/inventories/{inventoryId}/items", this::createItem, Roles.INVENTORY_MANAGER);
-        routes.get(prefix + "/inventory-items/{id}", this::getItem, Roles.INVENTORY_MANAGER);
-        routes.put(prefix + "/inventory-items/{id}", this::updateItem, Roles.INVENTORY_MANAGER);
-        routes.put(prefix + "/inventory-items/{id}/assign", this::assignItem, Roles.INVENTORY_MANAGER);
-        routes.get(prefix + "/inventory-items/{id}/history", this::getHistory, Roles.INVENTORY_MANAGER);
-        routes.put(prefix + "/inventory-items/{id}/lost", this::markLost, Roles.INVENTORY_MANAGER);
-        routes.delete(prefix + "/inventory-items/{id}/lost", this::markFound, Roles.INVENTORY_MANAGER);
-        routes.delete(prefix + "/inventory-items/{id}", this::deleteItem, Roles.INVENTORY_MANAGER);
+        routes.get(prefix + "/inventories/{inventoryId}/items", this::listItems, StationPermission.INVENTORY_MANAGER);
+        routes.post(prefix + "/inventories/{inventoryId}/items", this::createItem, StationPermission.INVENTORY_MANAGER);
+        routes.get(prefix + "/inventory-items/{id}", this::getItem, StationPermission.INVENTORY_MANAGER);
+        routes.put(prefix + "/inventory-items/{id}", this::updateItem, StationPermission.INVENTORY_MANAGER);
+        routes.put(prefix + "/inventory-items/{id}/assign", this::assignItem, StationPermission.INVENTORY_MANAGER);
+        routes.get(prefix + "/inventory-items/{id}/history", this::getHistory, StationPermission.INVENTORY_MANAGER);
+        routes.put(prefix + "/inventory-items/{id}/lost", this::markLost, StationPermission.INVENTORY_MANAGER);
+        routes.delete(prefix + "/inventory-items/{id}/lost", this::markFound, StationPermission.INVENTORY_MANAGER);
+        routes.delete(prefix + "/inventory-items/{id}", this::deleteItem, StationPermission.INVENTORY_MANAGER);
 
-        routes.get(prefix + "/inventory-requirements", this::listAllRequirements, Roles.INVENTORY_MANAGER);
-        routes.post(prefix + "/inventory-requirements", this::createRequirement, Roles.INVENTORY_MANAGER);
-        routes.put(prefix + "/inventory-requirements/{id}", this::updateRequirement, Roles.INVENTORY_MANAGER);
+        routes.get(prefix + "/inventory-requirements", this::listAllRequirements, StationPermission.INVENTORY_MANAGER);
+        routes.post(prefix + "/inventory-requirements", this::createRequirement, StationPermission.INVENTORY_MANAGER);
+        routes.put(
+                prefix + "/inventory-requirements/{id}", this::updateRequirement, StationPermission.INVENTORY_MANAGER);
         routes.patch(
                 prefix + "/inventory-requirements/{id}/position",
                 this::updateRequirementPosition,
-                Roles.INVENTORY_MANAGER);
-        routes.delete(prefix + "/inventory-requirements/{id}", this::deleteRequirement, Roles.INVENTORY_MANAGER);
+                StationPermission.INVENTORY_MANAGER);
+        routes.delete(
+                prefix + "/inventory-requirements/{id}", this::deleteRequirement, StationPermission.INVENTORY_MANAGER);
 
-        routes.post(prefix + "/inventories/members/export", this::exportMembers, Roles.INVENTORY_MANAGER);
+        routes.post(prefix + "/inventories/members/export", this::exportMembers, StationPermission.INVENTORY_MANAGER);
     }
 
     @OpenApi(
@@ -631,14 +639,14 @@ public class InventoryRoutes implements Routes {
         if (request.inventoryId() == 0) {
             throw new BadRequestResponse("inventoryId is required");
         }
-        int roleId = request.roleId() != null ? request.roleId() : 0;
+        String userType = request.userType();
         int groupId = request.groupId() != null ? request.groupId() : 0;
-        if (roleId == 0 && groupId == 0) {
-            throw new BadRequestResponse("roleId or groupId is required");
+        if ((userType == null || userType.isBlank()) && groupId == 0) {
+            throw new BadRequestResponse("userType or groupId is required");
         }
         ctx.status(HttpStatus.CREATED)
                 .json(inventoryService.createRequirement(
-                        request.inventoryId(), roleId, groupId, request.quantity() > 0 ? request.quantity() : 1));
+                        request.inventoryId(), userType, groupId, request.quantity() > 0 ? request.quantity() : 1));
     }
 
     @OpenApi(
@@ -768,7 +776,7 @@ public class InventoryRoutes implements Routes {
 
     public record AssignRequest(Integer memberId, String memberName) {}
 
-    public record RequirementRequest(int inventoryId, Integer roleId, Integer groupId, int quantity) {}
+    public record RequirementRequest(int inventoryId, String userType, Integer groupId, int quantity) {}
 
     public record UpdateRequirementRequest(int quantity) {}
 

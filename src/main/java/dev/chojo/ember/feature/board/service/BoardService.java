@@ -5,7 +5,6 @@
  */
 package dev.chojo.ember.feature.board.service;
 
-import dev.chojo.ember.api.Roles;
 import dev.chojo.ember.feature.board.entity.AccessData;
 import dev.chojo.ember.feature.board.entity.Board;
 import dev.chojo.ember.feature.board.entity.BoardField;
@@ -16,7 +15,6 @@ import dev.chojo.ember.feature.board.entity.LanePreset;
 import dev.chojo.ember.feature.board.entity.TicketLabelMapping;
 import dev.chojo.ember.feature.board.repository.BoardRepository;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
-import dev.chojo.ember.feature.members.entity.Role;
 import dev.chojo.ember.feature.members.entity.UserTag;
 import dev.chojo.ember.feature.members.service.MemberGroupService;
 import dev.chojo.ember.feature.members.service.StationMemberService;
@@ -24,10 +22,8 @@ import dev.chojo.ember.feature.members.service.UserTagService;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
-import java.util.EnumSet;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 @Singleton
 public class BoardService {
@@ -194,7 +190,7 @@ public class BoardService {
         if (!repository.hasViewRestrictions(boardId)) return true;
         return matchesAccess(
                 memberId,
-                repository.findViewAccessRoleIds(boardId),
+                repository.findViewAccessUserTypes(boardId),
                 repository.findViewAccessGroupIds(boardId),
                 repository.findViewAccessTagIds(boardId));
     }
@@ -203,22 +199,15 @@ public class BoardService {
         if (!repository.hasEditRestrictions(boardId)) return canView(boardId, memberId);
         return matchesAccess(
                 memberId,
-                repository.findEditAccessRoleIds(boardId),
+                repository.findEditAccessUserTypes(boardId),
                 repository.findEditAccessGroupIds(boardId),
                 repository.findEditAccessTagIds(boardId));
     }
 
-    private boolean matchesAccess(int memberId, List<Integer> roleIds, List<Integer> groupIds, List<Integer> tagIds) {
-        if (!roleIds.isEmpty()) {
-            var memberRoles = memberService.findRoles(memberId);
-            var expandedRoleEnums = Roles.expand(memberRoles.stream()
-                    .map(Role::role)
-                    .collect(Collectors.toCollection(() -> EnumSet.noneOf(Roles.class))));
-            var allRoleIds = memberService.findAllRoles().stream()
-                    .filter(r -> expandedRoleEnums.contains(r.role()))
-                    .map(Role::id)
-                    .toList();
-            if (allRoleIds.stream().anyMatch(roleIds::contains)) return true;
+    private boolean matchesAccess(int memberId, List<String> userTypes, List<Integer> groupIds, List<Integer> tagIds) {
+        if (!userTypes.isEmpty()) {
+            var member = memberService.findById(memberId);
+            if (member.isPresent() && userTypes.contains(member.get().userType().name())) return true;
         }
         if (!groupIds.isEmpty()) {
             var memberGroupIds = groupService.findGroupsForMember(memberId).stream()
@@ -237,23 +226,23 @@ public class BoardService {
 
     public AccessData getViewAccess(int boardId) {
         return new AccessData(
-                repository.findViewAccessRoleIds(boardId),
+                repository.findViewAccessUserTypes(boardId),
                 repository.findViewAccessGroupIds(boardId),
                 repository.findViewAccessTagIds(boardId));
     }
 
     public AccessData getEditAccess(int boardId) {
         return new AccessData(
-                repository.findEditAccessRoleIds(boardId),
+                repository.findEditAccessUserTypes(boardId),
                 repository.findEditAccessGroupIds(boardId),
                 repository.findEditAccessTagIds(boardId));
     }
 
-    public void setViewAccess(int boardId, List<Integer> roleIds, List<Integer> groupIds, List<Integer> tagIds) {
-        repository.setViewAccess(boardId, roleIds, groupIds, tagIds);
+    public void setViewAccess(int boardId, List<String> userTypes, List<Integer> groupIds, List<Integer> tagIds) {
+        repository.setViewAccess(boardId, userTypes, groupIds, tagIds);
     }
 
-    public void setEditAccess(int boardId, List<Integer> roleIds, List<Integer> groupIds, List<Integer> tagIds) {
-        repository.setEditAccess(boardId, roleIds, groupIds, tagIds);
+    public void setEditAccess(int boardId, List<String> userTypes, List<Integer> groupIds, List<Integer> tagIds) {
+        repository.setEditAccess(boardId, userTypes, groupIds, tagIds);
     }
 }

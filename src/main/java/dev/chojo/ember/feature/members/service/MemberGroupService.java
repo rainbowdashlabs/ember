@@ -5,11 +5,11 @@
  */
 package dev.chojo.ember.feature.members.service;
 
-import dev.chojo.ember.api.Roles;
+import dev.chojo.ember.api.roles.StationPermission;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.MembersAddedToGroup;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
-import dev.chojo.ember.feature.members.entity.Role;
+import dev.chojo.ember.feature.members.entity.Permission;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
@@ -24,10 +24,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
-/**
- * Service for member group operations including CRUD, membership management,
- * group role assignments, and group-based queries.
- */
 @Singleton
 public class MemberGroupService {
     private final MemberGroupRepository groupRepository;
@@ -106,31 +102,33 @@ public class MemberGroupService {
         return groupRepository.findMembers(groupId);
     }
 
-    // -- Group Roles --
+    // -- Group Permissions --
 
-    public List<Role> findGroupRoles(int groupId) {
-        return groupRepository.findGroupRoles(groupId);
+    public List<Permission> findGroupPermissions(int groupId) {
+        return groupRepository.findGroupPermissions(groupId);
     }
 
-    public List<Role> setGroupRoles(int groupId, List<Integer> desiredRoleIds, Set<Roles> callerRoles) {
-        List<Role> allRoles = memberRepository.findAllRoles();
-        List<Role> currentRoles = groupRepository.findGroupRoles(groupId);
-        var currentRoleIds = currentRoles.stream().map(Role::id).toList();
+    public List<Permission> setGroupPermissions(
+            int groupId, List<Integer> desiredPermissionIds, Set<StationPermission> callerPermissions) {
+        List<Permission> allPermissions = memberRepository.findAllPermissions();
+        List<Permission> currentPermissions = groupRepository.findGroupPermissions(groupId);
+        var currentIds = currentPermissions.stream().map(Permission::id).toList();
 
-        RoleValidation.validateRoleChanges(currentRoles, desiredRoleIds, allRoles, callerRoles, false);
+        RoleValidation.validatePermissionChanges(
+                currentPermissions, desiredPermissionIds, allPermissions, callerPermissions);
 
-        for (int roleId : currentRoleIds) {
-            if (!desiredRoleIds.contains(roleId)) {
-                groupRepository.removeGroupRole(groupId, roleId);
+        for (int permId : currentIds) {
+            if (!desiredPermissionIds.contains(permId)) {
+                groupRepository.removeGroupPermission(groupId, permId);
             }
         }
-        for (int roleId : desiredRoleIds) {
-            if (!currentRoleIds.contains(roleId)) {
-                groupRepository.addGroupRole(groupId, roleId);
+        for (int permId : desiredPermissionIds) {
+            if (!currentIds.contains(permId)) {
+                groupRepository.addGroupPermission(groupId, permId);
             }
         }
 
-        return groupRepository.findGroupRoles(groupId);
+        return groupRepository.findGroupPermissions(groupId);
     }
 
     public void convertToTag(int groupId) {

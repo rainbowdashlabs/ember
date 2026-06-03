@@ -46,5 +46,8 @@ defineProps<{
   padding: 0.1em 0.4em;
   border-radius: 0.25em;
   -webkit-text-fill-color: rgba(255, 255, 255, 0.85);
+  text-shadow: 0 0 3px rgba(0, 0, 0, 0.8), 0 2px 6px rgba(0, 0, 0, 0.6);
+  -webkit-text-stroke: 1px rgba(0, 0, 0, 0.6);
+  paint-order: stroke fill;
 }
 </style>

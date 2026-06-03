@@ -21,7 +21,7 @@ import RestrictionPicker from '@/components/input/RestrictionPicker.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import QuestionEditor from './builderview/QuestionEditor.vue'
 import type { QuestionDraft } from './builderview/types'
-import type { FormQuestionRequest, QuestionType, Role, MemberGroup, UserTag } from '@/api/types'
+import type { FormQuestionRequest, QuestionType, PermissionGrant, MemberGroup, UserTag } from '@/api/types'
 import { QuestionTypes } from '@/api/types'
 import { forms, stationMembers, memberGroups, userTags } from '@/api'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
@@ -45,7 +45,7 @@ const startAt = ref('')
 const endAt = ref('')
 
 // Restrictions
-const allRoles = ref<Role[]>([])
+const allRoles = ref<PermissionGrant[]>([])
 const allGroups = ref<MemberGroup[]>([])
 const allTags = ref<UserTag[]>([])
 const selectedRoleIds = ref<number[]>([])

@@ -3,50 +3,87 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-// -- Roles --
+// -- Station User Types --
 
-export const Roles = {
-    LOGIN: 'LOGIN',
-    USER: 'USER',
+export const StationUserType = {
+    TRIAL: 'TRIAL',
     MEMBER: 'MEMBER',
     GUARDIAN: 'GUARDIAN',
     TEAM: 'TEAM',
-    TRIAL: 'TRIAL',
-    ATTENDANCE_MANAGER: 'ATTENDANCE_MANAGER',
-    ATTENDANCE_EXPORT_MANAGER: 'ATTENDANCE_EXPORT_MANAGER',
-    INVENTORY_MANAGER: 'INVENTORY_MANAGER',
-    EVENT_MANAGER: 'EVENT_MANAGER',
-    MEMBER_MANAGER: 'MEMBER_MANAGER',
-    NEWS_MANAGER: 'NEWS_MANAGER',
-    POLL_MANAGER: 'POLL_MANAGER',
-    LOST_AND_FOUND_MANAGER: 'LOST_AND_FOUND_MANAGER',
-    WAITLIST_MANAGER: 'WAITLIST_MANAGER',
-    QUIZ_MANAGER: 'QUIZ_MANAGER',
-    KNOWLEDGE_MANAGER: 'KNOWLEDGE_MANAGER',
-    FEDERATION_MANAGER: 'FEDERATION_MANAGER',
-    BOARD_MANAGER: 'BOARD_MANAGER',
-    PROTOCOL_MANAGER: 'PROTOCOL_MANAGER',
-    PROTOCOL_TESTER: 'PROTOCOL_TESTER',
     MANAGER: 'MANAGER',
-    ADMIN: 'ADMIN',
 } as const
+export type StationUserTypeName = (typeof StationUserType)[keyof typeof StationUserType]
 
-export type RoleName = (typeof Roles)[keyof typeof Roles]
+// -- Station Permissions --
 
-export const TEAM_ROLES: readonly RoleName[] = [
-    Roles.TEAM, Roles.MANAGER, Roles.ADMIN,
-    Roles.ATTENDANCE_MANAGER, Roles.INVENTORY_MANAGER,
-    Roles.EVENT_MANAGER, Roles.MEMBER_MANAGER,
-    Roles.POLL_MANAGER,
-] as const
-
-export function isTeamRole(role: string): boolean {
-    return (TEAM_ROLES as readonly string[]).includes(role)
-}
-
-export function hasTeamRole(roles: string[]): boolean {
-    return roles.some(r => isTeamRole(r))
-}
+export const StationPermission = {
+    LOGIN: 'LOGIN',
+    USER: 'USER',
+    ATTENDANCE_CREATE: 'ATTENDANCE_CREATE',
+    ATTENDANCE_CONFIGURE: 'ATTENDANCE_CONFIGURE',
+    ATTENDANCE_EXPORT: 'ATTENDANCE_EXPORT',
+    ATTENDANCE_MANAGER: 'ATTENDANCE_MANAGER',
+    INVENTORY_CREATE_EXTERNAL: 'INVENTORY_CREATE_EXTERNAL',
+    INVENTORY_CREATE_INTERNAL: 'INVENTORY_CREATE_INTERNAL',
+    INVENTORY_CREATE: 'INVENTORY_CREATE',
+    INVENTORY_READ: 'INVENTORY_READ',
+    INVENTORY_PROCUREMENT: 'INVENTORY_PROCUREMENT',
+    INVENTORY_CHECK: 'INVENTORY_CHECK',
+    INVENTORY_LENDING_REQUEST: 'INVENTORY_LENDING_REQUEST',
+    INVENTORY_LENDING_MANAGER: 'INVENTORY_LENDING_MANAGER',
+    INVENTORY_MANAGER: 'INVENTORY_MANAGER',
+    EVENT_MANAGE_TEMPLATE: 'EVENT_MANAGE_TEMPLATE',
+    EVENT_MANAGE_CATEGORY: 'EVENT_MANAGE_CATEGORY',
+    EVENT_CONFIGURE: 'EVENT_CONFIGURE',
+    EVENT_REGISTRATION: 'EVENT_REGISTRATION',
+    EVENTS_FEDERATE: 'EVENTS_FEDERATE',
+    EVENT_MANAGER: 'EVENT_MANAGER',
+    MEMBER_READ: 'MEMBER_READ',
+    MEMBER_NOTES: 'MEMBER_NOTES',
+    MEMBER_GUARDIAN: 'MEMBER_GUARDIAN',
+    MEMBER_CHANGES: 'MEMBER_CHANGES',
+    MEMBER_MANAGE_GROUP: 'MEMBER_MANAGE_GROUP',
+    MEMBER_MANAGE_TAGS: 'MEMBER_MANAGE_TAGS',
+    MEMBER_EDIT: 'MEMBER_EDIT',
+    MEMBER_FIELDS: 'MEMBER_FIELDS',
+    MEMBER_MANAGER: 'MEMBER_MANAGER',
+    WAITLIST_READ: 'WAITLIST_READ',
+    WAITLIST_ADD: 'WAITLIST_ADD',
+    WAITLIST_MANAGER: 'WAITLIST_MANAGER',
+    NEWS_CREATE: 'NEWS_CREATE',
+    NEWS_FEDERATE: 'NEWS_FEDERATE',
+    NEWS_MANAGER: 'NEWS_MANAGER',
+    POLL_VIEW_RESULTS: 'POLL_VIEW_RESULTS',
+    POLL_CREATE: 'POLL_CREATE',
+    POLL_MANAGER: 'POLL_MANAGER',
+    LOST_AND_FOUND_CREATE: 'LOST_AND_FOUND_CREATE',
+    LOST_AND_FOUND_MANAGE: 'LOST_AND_FOUND_MANAGE',
+    LOST_AND_FOUND_MANAGER: 'LOST_AND_FOUND_MANAGER',
+    TEST_CATALOG_VIEW: 'TEST_CATALOG_VIEW',
+    TEST_CATALOG_EDIT: 'TEST_CATALOG_EDIT',
+    TEST_CONFIGURE: 'TEST_CONFIGURE',
+    TEST_MANAGER: 'TEST_MANAGER',
+    PROTOCOL_TESTER: 'PROTOCOL_TESTER',
+    PROTOCOL_CREATE: 'PROTOCOL_CREATE',
+    PROTOCOL_CONFIGURE: 'PROTOCOL_CONFIGURE',
+    PROTOCOL_MANAGER: 'PROTOCOL_MANAGER',
+    QUIZ_MANAGER: 'QUIZ_MANAGER',
+    BOARD_EDIT: 'BOARD_EDIT',
+    BOARD_MANAGER: 'BOARD_MANAGER',
+    KNOWLEDGE_EDIT: 'KNOWLEDGE_EDIT',
+    KNOWLEDGE_FEDERATE: 'KNOWLEDGE_FEDERATE',
+    KNOWLEDGE_MANAGER: 'KNOWLEDGE_MANAGER',
+    STATION_LOOK_AND_FEEL: 'STATION_LOOK_AND_FEEL',
+    STATION_GENERAL: 'STATION_GENERAL',
+    STATION_MAIL: 'STATION_MAIL',
+    STATION_FEDERATION: 'STATION_FEDERATION',
+    STATION_MODULES: 'STATION_MODULES',
+    STATION_IMPORT_EXPORT: 'STATION_IMPORT_EXPORT',
+    STATION_STATISTICS: 'STATION_STATISTICS',
+    STATION_MANAGER: 'STATION_MANAGER',
+    STATION_ADMINISTRATOR: 'STATION_ADMINISTRATOR',
+} as const
+export type StationPermissionName = (typeof StationPermission)[keyof typeof StationPermission]
 
 // -- Common --
 
@@ -128,11 +165,12 @@ export interface SessionInfo {
     account?: AccountInfo
     stationId?: string
     member?: MemberInfo
-    roles?: string[]
+    permissions?: string[]
+    userType?: string
+    instanceUserType?: string
     managedMembers?: StationMember[]
     groups?: MemberGroup[]
     tags?: UserTag[]
-    roleIds?: number[]
     groupIds?: number[]
     tagIds?: number[]
     profileComplete?: boolean
@@ -643,6 +681,7 @@ export interface StationMember {
     accountId: number
     name?: string
     email?: string
+    userType?: string
     profileComplete?: boolean
     identity?: MemberIdentity | null
 }
@@ -652,13 +691,26 @@ export interface CreateMemberRequest {
     accountId?: number
 }
 
-export interface Role {
+export interface PermissionGrant {
     id: number
-    role: RoleName
+    permission: string
 }
 
 export interface SetRolesRequest {
     roleIds?: number[]
+}
+
+export interface SetPermissionsRequest {
+    permissions?: string[]
+}
+
+export interface PermissionNode {
+    name: string
+    children: string[]
+}
+
+export interface SetUserTypeRequest {
+    userType?: string
 }
 
 export interface SetManagersRequest {
@@ -1399,7 +1451,7 @@ export interface WaitingList {
     visibleFields: number[]
     testingGroupId?: number | null
     joinGroupId?: number | null
-    joinRoleId?: number | null
+    joinUserType?: string | null
     attendanceThreshold: number
 }
 

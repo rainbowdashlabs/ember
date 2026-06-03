@@ -20,7 +20,7 @@ import {useFederatedBoardBookmarks} from '@/composables/useFederatedBoardBookmar
 import client from '@/api/client'
 import Alert from '@/components/feedback/Alert.vue'
 import {getItem} from '@/api/storage'
-import {Roles, StationModules} from '@/api/types'
+import {StationPermission, StationModules} from '@/api/types'
 import {useSession} from '@/composables/useSession'
 import {useTheme} from '@/composables/useTheme'
 import {useStations} from '@/composables/useStations'
@@ -40,7 +40,7 @@ const {
   load,
   isAdmin,
   isManager,
-  hasRole,
+  hasPermission,
   canManageMembers,
   canManageInventory,
   canManageAttendance,
@@ -129,7 +129,7 @@ async function handleLogout() {
                  :title="pageTitle">
     <template #sidebar="{ close }">
       <SidebarGroup :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => openGroup = v" :badge="counts.notifications" :icon="['fas', 'gauge']" :label="t('sidebar.dashboard')" prefix="/station/dashboard" to="/station/dashboard/overview" name="dashboard-overview" @navigate="close">
-        <SidebarLink v-if="hasRole(Roles.TEAM)" :icon="['fas', 'chart-line']" name="dashboard-statistics"
+        <SidebarLink v-if="hasPermission(StationPermission.STATION_STATISTICS)" :icon="['fas', 'chart-line']" name="dashboard-statistics"
                      to="/station/dashboard/statistics" @navigate="close">
           {{ t('sidebar.statistics') }}
         </SidebarLink>
@@ -178,14 +178,6 @@ async function handleLogout() {
             {{ t('sidebar.stationImport') }}
           </SidebarLink>
         </SidebarExpandableLink>
-        <SidebarLink :icon="['fas', 'clipboard-check']" name="station-attendance-config"
-                     to="/station/manage/attendance-config" @navigate="close">
-          {{ t('sidebar.attendanceConfig') }}
-        </SidebarLink>
-        <SidebarLink :icon="['fas', 'users-gear']" name="station-members-config" to="/station/manage/members-config"
-                     @navigate="close">
-          {{ t('sidebar.membersConfig') }}
-        </SidebarLink>
         <SidebarExpandableLink v-if="canManageFederation()" :icon="['fas', 'arrow-right-arrow-left']" name="station-federation" to="/station/manage/federation" :prefix="['/station/manage/federation', '/station/manage/discovery']" @navigate="close">
           <template #label>{{ t('sidebar.federation') }}</template>
           <SidebarLink :badge="counts.federationRequests" :icon="['fas', 'gear']" name="station-federation-settings" to="/station/manage/federation/settings" @navigate="close">
@@ -210,6 +202,10 @@ async function handleLogout() {
                      @navigate="close">
           {{ t('sidebar.tags') }}
         </SidebarLink>
+        <SidebarLink :icon="['fas', 'shield']" name="members-type-permissions" to="/station/members/type-permissions"
+                     @navigate="close">
+          {{ t('sidebar.typePermissions') }}
+        </SidebarLink>
         <SidebarLink :badge="counts.pendingChanges" :icon="['fas', 'bell']" name="members-changes"
                      to="/station/members/changes" @navigate="close">
           {{ t('sidebar.changes') }}
@@ -222,6 +218,10 @@ async function handleLogout() {
                      :badge="counts.waitingListEntries" :icon="['fas', 'clipboard-list']" name="waiting-lists" to="/station/members/waiting-lists"
                      @navigate="close">
           {{ t('sidebar.waitingLists') }}
+        </SidebarLink>
+        <SidebarLink :icon="['fas', 'users-gear']" name="station-members-config" to="/station/members/config"
+                     @navigate="close">
+          {{ t('sidebar.membersConfig') }}
         </SidebarLink>
       </SidebarGroup>
 
@@ -273,6 +273,10 @@ async function handleLogout() {
         <SidebarLink v-if="canExportAttendance()" :icon="['fas', 'chart-line']" name="attendance-report"
                      to="/station/attendance/report" @navigate="close">
           {{ t('sidebar.attendanceReport') }}
+        </SidebarLink>
+        <SidebarLink :icon="['fas', 'gear']" name="station-attendance-config"
+                     to="/station/attendance/config" @navigate="close">
+          {{ t('sidebar.attendanceConfig') }}
         </SidebarLink>
       </SidebarGroup>
 

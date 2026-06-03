@@ -38,7 +38,7 @@ const emit = defineEmits<{
 </script>
 
 <template>
-  <!-- Role / Group / Tag filter -->
+  <!-- PermissionGrant / Group / Tag filter -->
   <NeutralContainer class="flex flex-wrap items-center gap-4">
     <MemberFilterBar
         :roles="roles"

@@ -15,7 +15,7 @@ import MemberFilterBar from './listview/FilterBar.vue'
 import MemberTable from './listview/Table.vue'
 import ExportModal from './listview/ExportModal.vue'
 import type { StationMember } from '@/api/types'
-import { Roles } from '@/api/types'
+import { StationUserType } from '@/api/types'
 import type { FilterCriteria, FilterOption } from '@/components/input/filter/MemberFilterBar.vue'
 import { useMemberData, parseConfig, memberDisplayName } from './listview/useMemberData'
 import { useSavedFilters, emptyTabState, type TabFilterState } from './listview/useSavedFilters'
@@ -70,15 +70,15 @@ const extraColumnIds = ref<Set<number>>(new Set())
 
 const tabScopedFields = computed(() => {
   const scopeForTab: Record<string, string[]> = {
-    ALL: [Roles.MEMBER, Roles.GUARDIAN, Roles.TEAM],
-    [Roles.MEMBER]: [Roles.MEMBER],
-    [Roles.GUARDIAN]: [Roles.GUARDIAN],
-    [Roles.TEAM]: [Roles.TEAM],
+    ALL: [StationUserType.MEMBER, StationUserType.GUARDIAN, StationUserType.TEAM],
+    [StationUserType.MEMBER]: [StationUserType.MEMBER],
+    [StationUserType.GUARDIAN]: [StationUserType.GUARDIAN],
+    [StationUserType.TEAM]: [StationUserType.TEAM],
   }
   const scopes = scopeForTab[activeTab.value] ?? []
   return fields.value.filter(f => {
     if (f.scope === 'GROUP') return false
-    return scopes.includes(f.scope ?? Roles.MEMBER)
+    return scopes.includes(f.scope ?? StationUserType.MEMBER)
   })
 })
 
@@ -101,8 +101,8 @@ const roleFriendlyNames: Record<string, string> = {
   MEMBER: 'Mitglied', GUARDIAN: 'Erziehungsberechtigter', TEAM: 'Team', TRIAL: 'Probe',
 }
 const filterRoleOptions = computed<FilterOption[]>(() => {
-  const allowed: string[] = [Roles.MEMBER, Roles.GUARDIAN, Roles.TEAM, Roles.TRIAL]
-  return allRoles.value.filter(r => allowed.includes(r.role)).map(r => ({ id: r.id, name: roleFriendlyNames[r.role] ?? r.role }))
+  const allowed: string[] = [StationUserType.MEMBER, StationUserType.GUARDIAN, StationUserType.TEAM, StationUserType.TRIAL]
+  return allRoles.value.filter(r => allowed.includes(r.permission)).map(r => ({ id: r.id, name: roleFriendlyNames[r.permission] ?? r.permission }))
 })
 const filterGroupOptions = computed<FilterOption[]>(() => allGroups.value.map(g => ({ id: g.id, name: g.name ?? '' })))
 const filterTagOptions = computed<FilterOption[]>(() => allTags.value.map(t => ({ id: t.id, name: t.name })))
@@ -117,7 +117,7 @@ const filteredMembers = computed(() => {
 
   const fc = memberFilterCriteria.value
   if (fc.roleIds.length > 0 || fc.groupIds.length > 0 || fc.tagIds.length > 0) {
-    const filterRoleNames = new Set<string>(allRoles.value.filter(r => fc.roleIds.includes(r.id)).map(r => r.role))
+    const filterRoleNames = new Set<string>(allRoles.value.filter(r => fc.roleIds.includes(r.id)).map(r => r.permission))
     const filterGroupNames = new Set(allGroups.value.filter(g => fc.groupIds.includes(g.id)).map(g => g.name ?? ''))
     const filterTagNames = new Set(allTags.value.filter(t => fc.tagIds.includes(t.id)).map(t => t.name))
 

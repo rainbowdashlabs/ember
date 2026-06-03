@@ -8,9 +8,9 @@ package dev.chojo.ember.feature.knowledgebase.route;
 import dev.chojo.ember.api.FederationSession;
 import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.api.MessageResponse;
-import dev.chojo.ember.api.Roles;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.roles.StationPermission;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.CommentCreated;
 import dev.chojo.ember.event.events.CommentDeleted;
@@ -33,7 +33,6 @@ import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseService;
 import dev.chojo.ember.feature.media.service.ImageCategory;
 import dev.chojo.ember.feature.media.service.ImageService;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
-import dev.chojo.ember.feature.members.entity.Role;
 import dev.chojo.ember.feature.members.entity.UserTag;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
@@ -162,96 +161,114 @@ public class KnowledgeBaseRoutes implements Routes {
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
         // Folders
-        routes.get(prefix + "/kb/folders", this::listFolders, Roles.USER);
-        routes.post(prefix + "/kb/folders", this::createFolder, Roles.KNOWLEDGE_MANAGER);
-        routes.get(prefix + "/kb/folders/{id}", this::getFolder, Roles.USER);
-        routes.put(prefix + "/kb/folders/{id}", this::updateFolder, Roles.KNOWLEDGE_MANAGER);
-        routes.delete(prefix + "/kb/folders/{id}", this::deleteFolder, Roles.KNOWLEDGE_MANAGER);
+        routes.get(prefix + "/kb/folders", this::listFolders, StationPermission.USER);
+        routes.post(prefix + "/kb/folders", this::createFolder, StationPermission.KNOWLEDGE_MANAGER);
+        routes.get(prefix + "/kb/folders/{id}", this::getFolder, StationPermission.USER);
+        routes.put(prefix + "/kb/folders/{id}", this::updateFolder, StationPermission.KNOWLEDGE_MANAGER);
+        routes.delete(prefix + "/kb/folders/{id}", this::deleteFolder, StationPermission.KNOWLEDGE_MANAGER);
 
         // Files
-        routes.get(prefix + "/kb/files", this::listFiles, Roles.USER);
-        routes.get(prefix + "/kb/files/{id}", this::getFile, Roles.USER);
-        routes.put(prefix + "/kb/files/{id}", this::updateFile, Roles.KNOWLEDGE_MANAGER);
-        routes.delete(prefix + "/kb/files/{id}", this::deleteFile, Roles.KNOWLEDGE_MANAGER);
+        routes.get(prefix + "/kb/files", this::listFiles, StationPermission.USER);
+        routes.get(prefix + "/kb/files/{id}", this::getFile, StationPermission.USER);
+        routes.put(prefix + "/kb/files/{id}", this::updateFile, StationPermission.KNOWLEDGE_MANAGER);
+        routes.delete(prefix + "/kb/files/{id}", this::deleteFile, StationPermission.KNOWLEDGE_MANAGER);
 
         // File creation
-        routes.post(prefix + "/kb/files/markdown", this::createMarkdownFile, Roles.KNOWLEDGE_MANAGER);
-        routes.post(prefix + "/kb/files/youtube", this::createYoutubeFile, Roles.KNOWLEDGE_MANAGER);
-        routes.post(prefix + "/kb/files/upload", this::uploadFile, Roles.KNOWLEDGE_MANAGER);
-        routes.post(prefix + "/kb/files/import-document", this::importDocument, Roles.KNOWLEDGE_MANAGER);
-        routes.post(prefix + "/kb/files/link", this::createLinkFile, Roles.KNOWLEDGE_MANAGER);
+        routes.post(prefix + "/kb/files/markdown", this::createMarkdownFile, StationPermission.KNOWLEDGE_MANAGER);
+        routes.post(prefix + "/kb/files/youtube", this::createYoutubeFile, StationPermission.KNOWLEDGE_MANAGER);
+        routes.post(prefix + "/kb/files/upload", this::uploadFile, StationPermission.KNOWLEDGE_MANAGER);
+        routes.post(prefix + "/kb/files/import-document", this::importDocument, StationPermission.KNOWLEDGE_MANAGER);
+        routes.post(prefix + "/kb/files/link", this::createLinkFile, StationPermission.KNOWLEDGE_MANAGER);
 
         // File content
-        routes.get(prefix + "/kb/files/{id}/content", this::getFileContent, Roles.USER);
-        routes.get(prefix + "/kb/files/{id}/html", this::getMarkdownHtml, Roles.USER);
-        routes.put(prefix + "/kb/files/{id}/content", this::updateMarkdownContent, Roles.KNOWLEDGE_MANAGER);
+        routes.get(prefix + "/kb/files/{id}/content", this::getFileContent, StationPermission.USER);
+        routes.get(prefix + "/kb/files/{id}/html", this::getMarkdownHtml, StationPermission.USER);
+        routes.put(prefix + "/kb/files/{id}/content", this::updateMarkdownContent, StationPermission.KNOWLEDGE_MANAGER);
 
         // Versions (markdown only)
-        routes.get(prefix + "/kb/files/{id}/versions", this::listVersions, Roles.KNOWLEDGE_MANAGER);
-        routes.get(prefix + "/kb/files/{id}/versions/{version}", this::getVersion, Roles.KNOWLEDGE_MANAGER);
+        routes.get(prefix + "/kb/files/{id}/versions", this::listVersions, StationPermission.KNOWLEDGE_MANAGER);
+        routes.get(prefix + "/kb/files/{id}/versions/{version}", this::getVersion, StationPermission.KNOWLEDGE_MANAGER);
         routes.post(
-                prefix + "/kb/files/{id}/versions/{version}/revert", this::revertToVersion, Roles.KNOWLEDGE_MANAGER);
+                prefix + "/kb/files/{id}/versions/{version}/revert",
+                this::revertToVersion,
+                StationPermission.KNOWLEDGE_MANAGER);
 
         // Related files
-        routes.get(prefix + "/kb/files/{id}/related", this::getRelatedFiles, Roles.USER);
-        routes.put(prefix + "/kb/files/{id}/related", this::setRelatedFiles, Roles.KNOWLEDGE_MANAGER);
+        routes.get(prefix + "/kb/files/{id}/related", this::getRelatedFiles, StationPermission.USER);
+        routes.put(prefix + "/kb/files/{id}/related", this::setRelatedFiles, StationPermission.KNOWLEDGE_MANAGER);
 
         // Search
-        routes.get(prefix + "/kb/search", this::search, Roles.USER);
+        routes.get(prefix + "/kb/search", this::search, StationPermission.USER);
 
         // Browse (combined folders + files for a given parent)
-        routes.get(prefix + "/kb/browse", this::browse, Roles.USER);
+        routes.get(prefix + "/kb/browse", this::browse, StationPermission.USER);
 
         // Access restrictions
-        routes.get(prefix + "/kb/folders/{id}/restrictions", this::getFolderRestrictions, Roles.KNOWLEDGE_MANAGER);
-        routes.put(prefix + "/kb/folders/{id}/restrictions", this::setFolderRestrictions, Roles.KNOWLEDGE_MANAGER);
-        routes.get(prefix + "/kb/files/{id}/restrictions", this::getFileRestrictions, Roles.KNOWLEDGE_MANAGER);
-        routes.put(prefix + "/kb/files/{id}/restrictions", this::setFileRestrictions, Roles.KNOWLEDGE_MANAGER);
+        routes.get(
+                prefix + "/kb/folders/{id}/restrictions",
+                this::getFolderRestrictions,
+                StationPermission.KNOWLEDGE_MANAGER);
+        routes.put(
+                prefix + "/kb/folders/{id}/restrictions",
+                this::setFolderRestrictions,
+                StationPermission.KNOWLEDGE_MANAGER);
+        routes.get(
+                prefix + "/kb/files/{id}/restrictions", this::getFileRestrictions, StationPermission.KNOWLEDGE_MANAGER);
+        routes.put(
+                prefix + "/kb/files/{id}/restrictions", this::setFileRestrictions, StationPermission.KNOWLEDGE_MANAGER);
 
         // Folder icons
-        routes.get(prefix + "/kb/folders/{id}/icon", this::getFolderIcon, Roles.USER);
-        routes.post(prefix + "/kb/folders/{id}/icon", this::uploadFolderIcon, Roles.KNOWLEDGE_MANAGER);
+        routes.get(prefix + "/kb/folders/{id}/icon", this::getFolderIcon, StationPermission.USER);
+        routes.post(prefix + "/kb/folders/{id}/icon", this::uploadFolderIcon, StationPermission.KNOWLEDGE_MANAGER);
 
         // KB Images (for markdown embedding)
-        routes.post(prefix + "/kb/files/{id}/images", this::uploadKbImage, Roles.KNOWLEDGE_MANAGER);
-        routes.get(prefix + "/kb/images/{imageId}", this::getKbImage, Roles.USER);
+        routes.post(prefix + "/kb/files/{id}/images", this::uploadKbImage, StationPermission.KNOWLEDGE_MANAGER);
+        routes.get(prefix + "/kb/images/{imageId}", this::getKbImage, StationPermission.USER);
 
         // Tags
-        routes.get(prefix + "/kb/tags", this::listTags, Roles.USER);
-        routes.get(prefix + "/kb/files/{id}/tags", this::getFileTags, Roles.USER);
-        routes.put(prefix + "/kb/files/{id}/tags", this::setFileTags, Roles.KNOWLEDGE_MANAGER);
-        routes.get(prefix + "/kb/folders/{id}/tags", this::getFolderTags, Roles.USER);
-        routes.put(prefix + "/kb/folders/{id}/tags", this::setFolderTags, Roles.KNOWLEDGE_MANAGER);
+        routes.get(prefix + "/kb/tags", this::listTags, StationPermission.USER);
+        routes.get(prefix + "/kb/files/{id}/tags", this::getFileTags, StationPermission.USER);
+        routes.put(prefix + "/kb/files/{id}/tags", this::setFileTags, StationPermission.KNOWLEDGE_MANAGER);
+        routes.get(prefix + "/kb/folders/{id}/tags", this::getFolderTags, StationPermission.USER);
+        routes.put(prefix + "/kb/folders/{id}/tags", this::setFolderTags, StationPermission.KNOWLEDGE_MANAGER);
 
         // KB Comments (local)
-        routes.get(prefix + "/kb/files/{fileId}/comments", this::listComments, Roles.LOGIN);
-        routes.post(prefix + "/kb/files/{fileId}/comments", this::createComment, Roles.LOGIN);
-        routes.put(prefix + "/kb/comments/{commentId}", this::updateComment, Roles.LOGIN);
-        routes.delete(prefix + "/kb/comments/{commentId}", this::deleteComment, Roles.LOGIN);
+        routes.get(prefix + "/kb/files/{fileId}/comments", this::listComments, StationPermission.LOGIN);
+        routes.post(prefix + "/kb/files/{fileId}/comments", this::createComment, StationPermission.LOGIN);
+        routes.put(prefix + "/kb/comments/{commentId}", this::updateComment, StationPermission.LOGIN);
+        routes.delete(prefix + "/kb/comments/{commentId}", this::deleteComment, StationPermission.LOGIN);
 
         // Federated (user-facing, bearer token auth)
-        routes.get(prefix + "/federated/kb", this::federatedBrowseKb, Roles.USER);
-        routes.get(prefix + "/federated/{stationuid}/kb/files/{id}", this::federatedGetFile, Roles.USER);
-        routes.get(prefix + "/federated/{stationuid}/kb/files/{id}/content", this::federatedGetFileContent, Roles.USER);
-        routes.post(prefix + "/federated/kb/files/{id}/copy", this::federatedCopyFile, Roles.KNOWLEDGE_MANAGER);
+        routes.get(prefix + "/federated/kb", this::federatedBrowseKb, StationPermission.USER);
+        routes.get(prefix + "/federated/{stationuid}/kb/files/{id}", this::federatedGetFile, StationPermission.USER);
+        routes.get(
+                prefix + "/federated/{stationuid}/kb/files/{id}/content",
+                this::federatedGetFileContent,
+                StationPermission.USER);
+        routes.post(
+                prefix + "/federated/kb/files/{id}/copy", this::federatedCopyFile, StationPermission.KNOWLEDGE_MANAGER);
         routes.post(
                 prefix + "/federated/{stationuid}/kb/files/{id}/copy",
                 this::federatedCopyFile,
-                Roles.KNOWLEDGE_MANAGER);
+                StationPermission.KNOWLEDGE_MANAGER);
 
         // Federated KB comments (user-facing proxy)
         routes.get(
                 prefix + "/federated/{stationuid}/kb/files/{fileId}/comments",
                 this::federatedListComments,
-                Roles.LOGIN);
+                StationPermission.LOGIN);
         routes.post(
                 prefix + "/federated/{stationuid}/kb/files/{fileId}/comments",
                 this::federatedCreateComment,
-                Roles.LOGIN);
+                StationPermission.LOGIN);
         routes.put(
-                prefix + "/federated/{stationuid}/kb/comments/{commentId}", this::federatedUpdateComment, Roles.LOGIN);
+                prefix + "/federated/{stationuid}/kb/comments/{commentId}",
+                this::federatedUpdateComment,
+                StationPermission.LOGIN);
         routes.delete(
-                prefix + "/federated/{stationuid}/kb/comments/{commentId}", this::federatedDeleteComment, Roles.LOGIN);
+                prefix + "/federated/{stationuid}/kb/comments/{commentId}",
+                this::federatedDeleteComment,
+                StationPermission.LOGIN);
 
         // Remote (server-to-server, RSA signature auth)
         routes.get(prefix + "/remote/kb/browse", this::remoteBrowseKb);
@@ -657,11 +674,9 @@ public class KnowledgeBaseRoutes implements Routes {
         KbFolder currentFolder = folderId != null ? service.findFolder(folderId).orElse(null) : null;
 
         // Filter by access restrictions unless user has KNOWLEDGE_MANAGER role
-        if (!session.hasRole(Roles.KNOWLEDGE_MANAGER)) {
+        if (!session.hasPermission(StationPermission.KNOWLEDGE_MANAGER)) {
             int memberId = session.member().id();
-            var memberRoleIds = stationMemberRepository.findRoles(memberId).stream()
-                    .map(Role::id)
-                    .toList();
+            String memberUserType = session.member().userType().name();
             var memberGroupIds = memberGroupRepository.findGroupsForMember(memberId).stream()
                     .map(MemberGroup::id)
                     .toList();
@@ -670,10 +685,12 @@ public class KnowledgeBaseRoutes implements Routes {
                     .toList();
 
             folders = folders.stream()
-                    .filter(f -> service.canAccess(memberId, f.id(), null, memberRoleIds, memberGroupIds, memberTagIds))
+                    .filter(f ->
+                            service.canAccess(memberId, f.id(), null, memberUserType, memberGroupIds, memberTagIds))
                     .toList();
             files = files.stream()
-                    .filter(f -> service.canAccess(memberId, null, f.id(), memberRoleIds, memberGroupIds, memberTagIds))
+                    .filter(f ->
+                            service.canAccess(memberId, null, f.id(), memberUserType, memberGroupIds, memberTagIds))
                     .toList();
         }
 
@@ -700,7 +717,7 @@ public class KnowledgeBaseRoutes implements Routes {
         service.setRestrictions(
                 id,
                 null,
-                req.roleIds() != null ? req.roleIds() : List.of(),
+                req.userTypes() != null ? req.userTypes() : List.of(),
                 req.groupIds() != null ? req.groupIds() : List.of(),
                 req.tagIds() != null ? req.tagIds() : List.of(),
                 req.memberIds() != null ? req.memberIds() : List.of());
@@ -724,7 +741,7 @@ public class KnowledgeBaseRoutes implements Routes {
         service.setRestrictions(
                 null,
                 id,
-                req.roleIds() != null ? req.roleIds() : List.of(),
+                req.userTypes() != null ? req.userTypes() : List.of(),
                 req.groupIds() != null ? req.groupIds() : List.of(),
                 req.tagIds() != null ? req.tagIds() : List.of(),
                 req.memberIds() != null ? req.memberIds() : List.of());
@@ -732,9 +749,9 @@ public class KnowledgeBaseRoutes implements Routes {
     }
 
     private RestrictionResponse toRestrictionResponse(List<KbAccessRestriction> restrictions) {
-        var roleIds = restrictions.stream()
-                .map(KbAccessRestriction::roleId)
-                .filter(integer -> integer != null)
+        var userTypes = restrictions.stream()
+                .map(KbAccessRestriction::userType)
+                .filter(ut -> ut != null)
                 .toList();
         var groupIds = restrictions.stream()
                 .map(KbAccessRestriction::groupId)
@@ -748,7 +765,7 @@ public class KnowledgeBaseRoutes implements Routes {
                 .map(KbAccessRestriction::memberId)
                 .filter(integer -> integer != null)
                 .toList();
-        return new RestrictionResponse(roleIds, groupIds, tagIds, memberIds);
+        return new RestrictionResponse(userTypes, groupIds, tagIds, memberIds);
     }
 
     // -- Request/Response Records --
@@ -764,7 +781,7 @@ public class KnowledgeBaseRoutes implements Routes {
     public record LinkFileRequest(Integer folderId, String name, String description, String linkUrl) {}
 
     public record RestrictionRequest(
-            List<Integer> roleIds, List<Integer> groupIds, List<Integer> tagIds, List<Integer> memberIds) {}
+            List<String> userTypes, List<Integer> groupIds, List<Integer> tagIds, List<Integer> memberIds) {}
 
     public record ContentUpdateRequest(String content) {}
 
@@ -775,7 +792,7 @@ public class KnowledgeBaseRoutes implements Routes {
     public record MarkdownHtmlResponse(String html, String markdown) {}
 
     public record RestrictionResponse(
-            List<Integer> roleIds, List<Integer> groupIds, List<Integer> tagIds, List<Integer> memberIds) {}
+            List<String> userTypes, List<Integer> groupIds, List<Integer> tagIds, List<Integer> memberIds) {}
 
     public record BrowseResponse(KbFolder currentFolder, List<KbFolder> folders, List<KbFileSummary> files) {}
 
@@ -1136,7 +1153,7 @@ public class KnowledgeBaseRoutes implements Routes {
         var authorIdentity = memberIdentityFactory.local(
                 session.stationId(), session.member().id());
         boolean isAuthor = comment.author() != null && comment.author().equals(authorIdentity);
-        boolean canModerate = session.hasRole(Roles.KNOWLEDGE_MANAGER);
+        boolean canModerate = session.hasPermission(StationPermission.KNOWLEDGE_MANAGER);
         if (!isAuthor && !canModerate) {
             throw new ForbiddenResponse("You can only delete your own comments");
         }

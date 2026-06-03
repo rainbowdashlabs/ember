@@ -5,9 +5,10 @@
  */
 package dev.chojo.ember.repository;
 
-import dev.chojo.ember.api.Roles;
+import dev.chojo.ember.api.roles.StationPermission;
+import dev.chojo.ember.api.roles.StationUserType;
 import dev.chojo.ember.feature.account.entity.Account;
-import dev.chojo.ember.feature.members.entity.Role;
+import dev.chojo.ember.feature.members.entity.Permission;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.station.entity.Station;
 import org.junit.jupiter.api.AfterAll;
@@ -85,44 +86,45 @@ class StationMemberRepositoryTest extends RepositoryTestBase {
         assertFalse(stationMemberRepo.findByAccount(account1.id()).isEmpty());
     }
 
-    // -- Roles --
+    // -- Permissions --
 
     @Test
     @Order(9)
-    void findAllRoles() {
-        var roles = stationMemberRepo.findAllRoles();
-        assertFalse(roles.isEmpty());
-        assertTrue(roles.stream().anyMatch(r -> r.role() == Roles.LOGIN));
+    void findAllPermissions() {
+        var permissions = stationMemberRepo.findAllPermissions();
+        assertFalse(permissions.isEmpty());
+        assertTrue(permissions.stream().anyMatch(r -> r.permission() == StationPermission.LOGIN));
     }
 
     @Test
     @Order(9)
-    void findRoleByName() {
-        assertTrue(stationMemberRepo.findRoleByName(Roles.LOGIN).isPresent());
+    void findPermissionByName() {
+        assertTrue(
+                stationMemberRepo.findPermissionByName(StationPermission.LOGIN).isPresent());
     }
 
     @Test
     @Order(10)
-    void addAndFindRoles() {
-        // Role ID 1 = 'login' (seeded)
-        stationMemberRepo.addRole(memberId1, 1);
-        List<Role> roles = stationMemberRepo.findRoles(memberId1);
-        assertEquals(1, roles.size());
-        assertEquals(Roles.LOGIN, roles.getFirst().role());
+    void grantAndFindPermissions() {
+        // Permission ID 1 = 'LOGIN' (seeded)
+        stationMemberRepo.grantPermission(memberId1, 1);
+        List<Permission> permissions = stationMemberRepo.findPermissions(memberId1);
+        assertEquals(1, permissions.size());
+        assertEquals(StationPermission.LOGIN, permissions.getFirst().permission());
     }
 
     @Test
     @Order(11)
-    void hasLoginRole() {
-        assertTrue(stationMemberRepo.hasLoginRole(account1.id()));
-        assertFalse(stationMemberRepo.hasLoginRole(account2.id()));
+    void hasLoginPermission() {
+        assertTrue(stationMemberRepo.hasLoginPermission(account1.id()));
+        assertFalse(stationMemberRepo.hasLoginPermission(account2.id()));
     }
 
     @Test
     @Order(12)
-    void removeRole() {
-        assertTrue(stationMemberRepo.removeRole(memberId1, 1));
-        assertTrue(stationMemberRepo.findRoles(memberId1).isEmpty());
+    void revokePermission() {
+        assertTrue(stationMemberRepo.revokePermission(memberId1, 1));
+        assertTrue(stationMemberRepo.findPermissions(memberId1).isEmpty());
     }
 
     // -- Manager Relations --
@@ -203,25 +205,22 @@ class StationMemberRepositoryTest extends RepositoryTestBase {
 
     @Test
     @Order(34)
-    void findByStationAndRole() {
-        stationMemberRepo.addRole(memberId1, 1);
-        var members = stationMemberRepo.findByStationAndRole(station.id(), "LOGIN");
-        assertEquals(1, members.size());
-        assertEquals(memberId1, members.getFirst().id());
-        assertTrue(stationMemberRepo
-                .findByStationAndRole(station.id(), "NONEXISTENT")
-                .isEmpty());
-        stationMemberRepo.removeRole(memberId1, 1);
+    void findMembersWithPermission() {
+        stationMemberRepo.grantPermission(memberId1, 1);
+        var members = stationMemberRepo.findMembersWithPermission(station.id(), StationPermission.LOGIN);
+        assertFalse(members.isEmpty());
+        assertTrue(members.stream().anyMatch(m -> m.id() == memberId1));
+        stationMemberRepo.revokePermission(memberId1, 1);
     }
 
     @Test
     @Order(35)
-    void findMembersWithRole() {
-        stationMemberRepo.addRole(memberId1, 1);
-        var members = stationMemberRepo.findMembersWithRole(station.id(), Roles.LOGIN);
+    void findByStationAndUserType() {
+        stationMemberRepo.setUserType(memberId1, StationUserType.TEAM);
+        var members = stationMemberRepo.findByStationAndUserType(station.id(), StationUserType.TEAM);
         assertFalse(members.isEmpty());
         assertTrue(members.stream().anyMatch(m -> m.id() == memberId1));
-        stationMemberRepo.removeRole(memberId1, 1);
+        stationMemberRepo.setUserType(memberId1, StationUserType.MEMBER);
     }
 
     @Test
@@ -246,11 +245,11 @@ class StationMemberRepositoryTest extends RepositoryTestBase {
 
     @Test
     @Order(38)
-    void removeAllRoles() {
-        stationMemberRepo.addRole(memberId1, 1);
-        assertFalse(stationMemberRepo.findRoles(memberId1).isEmpty());
-        stationMemberRepo.removeAllRoles(memberId1);
-        assertTrue(stationMemberRepo.findRoles(memberId1).isEmpty());
+    void revokeAllPermissions() {
+        stationMemberRepo.grantPermission(memberId1, 1);
+        assertFalse(stationMemberRepo.findPermissions(memberId1).isEmpty());
+        stationMemberRepo.revokeAllPermissions(memberId1);
+        assertTrue(stationMemberRepo.findPermissions(memberId1).isEmpty());
     }
 
     @Test

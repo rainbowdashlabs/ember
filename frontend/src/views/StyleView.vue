@@ -446,7 +446,7 @@ function toggleDecoration(name: string) {
         <table class="w-full text-sm">
           <THead>
             <Th>Name</Th>
-            <Th>Role</Th>
+            <Th>PermissionGrant</Th>
             <Th align="right">Score</Th>
           </THead>
           <tbody>

@@ -5,7 +5,7 @@
  */
 package dev.chojo.ember.event.handlers;
 
-import dev.chojo.ember.api.Roles;
+import dev.chojo.ember.api.roles.StationPermission;
 import dev.chojo.ember.event.DomainEventHandler;
 import dev.chojo.ember.event.events.EventRegistrationStatusChanged;
 import dev.chojo.ember.feature.members.entity.StationMember;
@@ -44,9 +44,12 @@ public class EventRegistrationStatusHandler implements DomainEventHandler<EventR
 
         notificationService.notify(event.memberId(), NotificationType.EVENT_REGISTRATION_STATUS, data);
 
-        var eventMgmtIds = stationMemberRepository.findMembersWithRole(event.stationId(), Roles.EVENT_MANAGER).stream()
-                .map(StationMember::id)
-                .toList();
+        var eventMgmtIds =
+                stationMemberRepository
+                        .findMembersWithPermission(event.stationId(), StationPermission.EVENT_MANAGER)
+                        .stream()
+                        .map(StationMember::id)
+                        .toList();
         notificationService.notifyMembersIfAbsent(
                 eventMgmtIds, NotificationType.EVENT_REGISTRATION_STATUS, data, event.memberId());
     }

@@ -5,8 +5,8 @@
  */
 package dev.chojo.ember.feature.station.route;
 
-import dev.chojo.ember.api.Roles;
 import dev.chojo.ember.api.Routes;
+import dev.chojo.ember.api.roles.InstancePermission;
 import dev.chojo.ember.feature.station.service.StationApplicationService;
 import dev.chojo.ember.feature.system.repository.ApplicationSettingRepository;
 import io.javalin.http.BadRequestResponse;
@@ -55,10 +55,10 @@ public class StationApplicationRoutes implements Routes {
         routes.post(prefix + "/station-applications/verify", this::verify);
 
         // Admin endpoints
-        routes.get(prefix + "/admin/station-applications", this::list, Roles.ADMIN);
-        routes.get(prefix + "/admin/station-applications/{id}", this::get, Roles.ADMIN);
-        routes.post(prefix + "/admin/station-applications/{id}/accept", this::accept, Roles.ADMIN);
-        routes.post(prefix + "/admin/station-applications/{id}/deny", this::deny, Roles.ADMIN);
+        routes.get(prefix + "/admin/station-applications", this::list, InstancePermission.ADMINISTRATOR);
+        routes.get(prefix + "/admin/station-applications/{id}", this::get, InstancePermission.ADMINISTRATOR);
+        routes.post(prefix + "/admin/station-applications/{id}/accept", this::accept, InstancePermission.ADMINISTRATOR);
+        routes.post(prefix + "/admin/station-applications/{id}/deny", this::deny, InstancePermission.ADMINISTRATOR);
     }
 
     @OpenApi(

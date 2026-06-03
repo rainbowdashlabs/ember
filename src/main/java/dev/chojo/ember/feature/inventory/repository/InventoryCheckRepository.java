@@ -7,7 +7,7 @@ package dev.chojo.ember.feature.inventory.repository;
 
 import de.chojo.sadu.queries.api.call.Call;
 import de.chojo.sadu.queries.api.query.Query;
-import dev.chojo.ember.api.Roles;
+import dev.chojo.ember.api.roles.StationPermission;
 import dev.chojo.ember.feature.inventory.entity.CheckDetail;
 import dev.chojo.ember.feature.inventory.entity.CheckResult;
 import dev.chojo.ember.feature.inventory.entity.InventoryCheck;
@@ -260,9 +260,8 @@ public class InventoryCheckRepository {
      * @return the member ID, or empty if all members are locked or checked
      */
     public Optional<Integer> nextUncheckedMember(int stationId, int excludeMemberId, boolean teamOnly) {
-        String roleFilter = teamOnly
-                ? "AND sm.id IN (SELECT member_id FROM station_member_role smr JOIN role r ON smr.role_id = r.id WHERE r.name IN ('TEAM','MANAGER','ADMIN','ATTENDANCE_MANAGER','ATTENDANCE_EXPORT_MANAGER','INVENTORY_MANAGER','EVENT_MANAGER','MEMBER_MANAGER','NEWS_MANAGER','POLL_MANAGER','LOST_AND_FOUND_MANAGER'))"
-                : "AND sm.id IN (SELECT member_id FROM station_member_role smr JOIN role r ON smr.role_id = r.id WHERE r.name = 'MEMBER') AND sm.id NOT IN (SELECT member_id FROM station_member_role smr JOIN role r ON smr.role_id = r.id WHERE r.name IN ('TEAM','MANAGER','ADMIN','ATTENDANCE_MANAGER','ATTENDANCE_EXPORT_MANAGER','INVENTORY_MANAGER','EVENT_MANAGER','MEMBER_MANAGER','NEWS_MANAGER','POLL_MANAGER','LOST_AND_FOUND_MANAGER'))";
+        String roleFilter =
+                teamOnly ? "AND sm.user_type IN ('TEAM','MANAGER','GUARDIAN')" : "AND sm.user_type = 'MEMBER'";
         return Query.query("SELECT sm.id FROM station_member sm"
                         + " LEFT JOIN inventory_check_lock l ON l.member_id = sm.id"
                         + " LEFT JOIN LATERAL ("
@@ -296,7 +295,7 @@ public class InventoryCheckRepository {
      * @param lockedBy         the member who holds the lock, or {@code null}
      * @param lockerFirstName  the locker's first name
      * @param lockerLastName   the locker's last name
-     * @param roles            the member's roles
+     * @param permissions      the member's permissions
      */
     public record MemberCheckSummary(
             int memberId,
@@ -309,5 +308,5 @@ public class InventoryCheckRepository {
             Integer lockedBy,
             String lockerFirstName,
             String lockerLastName,
-            List<Roles> roles) {}
+            List<StationPermission> permissions) {}
 }

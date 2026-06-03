@@ -20,7 +20,7 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import RestrictionPicker from '@/components/input/RestrictionPicker.vue'
-import type { MemberGroup, Role, UserTag } from '@/api/types'
+import type { MemberGroup, PermissionGrant, UserTag } from '@/api/types'
 import type { PartnerResponse } from '@/api/federation'
 import { news, memberGroups, stationMembers, userTags, federation } from '@/api'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
@@ -40,7 +40,7 @@ const contentMarkdown = ref('')
 const selectedRoleIds = ref<number[]>([])
 const selectedGroupIds = ref<number[]>([])
 const selectedTagIds = ref<number[]>([])
-const roles = ref<Role[]>([])
+const roles = ref<PermissionGrant[]>([])
 const groups = ref<MemberGroup[]>([])
 const tags = ref<UserTag[]>([])
 const loading = ref(true)

@@ -6,9 +6,9 @@
 package dev.chojo.ember.feature.inventory.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
-import dev.chojo.ember.api.Roles;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.roles.StationPermission;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.inventory.entity.ExchangeLog;
 import dev.chojo.ember.feature.inventory.entity.ExchangeRequest;
@@ -70,13 +70,13 @@ public class ExchangeRoutes implements Routes {
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        routes.get(prefix + "/exchanges", this::list, Roles.LOGIN);
-        routes.get(prefix + "/exchanges/{id}", this::get, Roles.LOGIN);
-        routes.get(prefix + "/exchanges/{id}/logs", this::logs, Roles.LOGIN);
-        routes.post(prefix + "/exchanges", this::create, Roles.LOGIN);
-        routes.put(prefix + "/exchanges/{id}/status", this::updateStatus, Roles.INVENTORY_MANAGER);
-        routes.delete(prefix + "/exchanges/{id}", this::delete, Roles.INVENTORY_MANAGER);
-        routes.post(prefix + "/exchanges/export", this::exportPdf, Roles.INVENTORY_MANAGER);
+        routes.get(prefix + "/exchanges", this::list, StationPermission.LOGIN);
+        routes.get(prefix + "/exchanges/{id}", this::get, StationPermission.LOGIN);
+        routes.get(prefix + "/exchanges/{id}/logs", this::logs, StationPermission.LOGIN);
+        routes.post(prefix + "/exchanges", this::create, StationPermission.LOGIN);
+        routes.put(prefix + "/exchanges/{id}/status", this::updateStatus, StationPermission.INVENTORY_MANAGER);
+        routes.delete(prefix + "/exchanges/{id}", this::delete, StationPermission.INVENTORY_MANAGER);
+        routes.post(prefix + "/exchanges/export", this::exportPdf, StationPermission.INVENTORY_MANAGER);
     }
 
     @OpenApi(
@@ -88,11 +88,11 @@ public class ExchangeRoutes implements Routes {
     private void list(Context ctx) {
         UserSession session = UserSession.from(ctx);
         List<ExchangeRequest> requests;
-        if (session.hasRole(Roles.INVENTORY_MANAGER)) {
+        if (session.hasPermission(StationPermission.INVENTORY_MANAGER)) {
             requests = exchangeService.findByStation(session.stationId());
         } else {
             var own = exchangeService.findByMember(session.member().id());
-            if (session.hasRole(Roles.GUARDIAN)) {
+            if (session.hasPermission(StationPermission.MEMBER_GUARDIAN)) {
                 var managed =
                         stationMemberRepository.findManaged(session.member().id());
                 var allIds = new HashSet<Integer>();
@@ -157,7 +157,7 @@ public class ExchangeRoutes implements Routes {
         int targetMemberId = callerMemberId;
         if (request.memberId() != null && request.memberId() != callerMemberId) {
             // Verify caller manages the target member or has inventory management
-            if (!session.hasRole(Roles.INVENTORY_MANAGER)) {
+            if (!session.hasPermission(StationPermission.INVENTORY_MANAGER)) {
                 boolean manages = stationMemberRepository.findManagers(request.memberId()).stream()
                         .anyMatch(m -> m.id() == callerMemberId);
                 if (!manages) {

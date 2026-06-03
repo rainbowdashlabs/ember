@@ -7,9 +7,9 @@ package dev.chojo.ember.feature.station.route;
 
 import dev.chojo.ember.api.ApiServer;
 import dev.chojo.ember.api.MessageResponse;
-import dev.chojo.ember.api.Roles;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.roles.StationPermission;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
@@ -49,7 +49,7 @@ public class DiscoveryRoutes implements Routes {
         routes.get(prefix + "/public/discovery", this::listDiscoverable);
         routes.post(prefix + "/public/discovery/invite", this::generateInviteForStation);
         // Authenticated endpoint — requires federation manager role
-        routes.post(prefix + "/discovery/request", this::requestFederation, Roles.FEDERATION_MANAGER);
+        routes.post(prefix + "/discovery/request", this::requestFederation, StationPermission.STATION_FEDERATION);
     }
 
     private void listDiscoverable(Context ctx) {

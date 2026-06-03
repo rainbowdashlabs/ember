@@ -29,7 +29,7 @@ export async function create(data: {
     confirmIntervalDays?: number
     testingGroupId?: number | null
     joinGroupId?: number | null
-    joinRoleId?: number | null
+    joinUserType?: string | null
     attendanceThreshold?: number
 }): Promise<WaitingList> {
     const res = await client.post<WaitingList>('/waiting-lists', data)
@@ -48,7 +48,7 @@ export async function update(id: number, data: {
     confirmIntervalDays?: number
     testingGroupId?: number | null
     joinGroupId?: number | null
-    joinRoleId?: number | null
+    joinUserType?: string | null
     attendanceThreshold?: number
 }): Promise<WaitingList> {
     const res = await client.put<WaitingList>(`/waiting-lists/${id}`, data)

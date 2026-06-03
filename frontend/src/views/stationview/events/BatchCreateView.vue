@@ -20,7 +20,7 @@ import MutedText from '@/components/typography/MutedText.vue'
 import EventFormPanel from './eventshared/EventFormPanel.vue'
 import BatchScheduleStep from './batchcreateview/BatchScheduleStep.vue'
 import BatchEditTable from './batchcreateview/BatchEditTable.vue'
-import type {AttendanceTemplate, AttendanceTemplateField, EventCategory, EventFieldEntry, EventLayout, LayoutFieldEntry, MemberGroup, Role, UserTag} from '@/api/types'
+import type {AttendanceTemplate, AttendanceTemplateField, EventCategory, EventFieldEntry, EventLayout, LayoutFieldEntry, MemberGroup, PermissionGrant, UserTag} from '@/api/types'
 import type {BatchRow} from '@/api/events'
 import {attendance, events, memberGroups as memberGroupsApi, stationMembers, userTags as userTagsApi} from '@/api'
 import {useSession} from '@/composables/useSession'
@@ -41,7 +41,7 @@ const layouts = ref<EventLayout[]>([])
 const categories = ref<EventCategory[]>([])
 const templates = ref<AttendanceTemplate[]>([])
 const attendanceFields = ref<AttendanceTemplateField[]>([])
-const roles = ref<Role[]>([])
+const roles = ref<PermissionGrant[]>([])
 const groups = ref<MemberGroup[]>([])
 const tags = ref<UserTag[]>([])
 

@@ -7,9 +7,10 @@ package dev.chojo.ember.feature.statistics.route;
 
 import de.chojo.sadu.queries.api.call.Call;
 import de.chojo.sadu.queries.api.query.Query;
-import dev.chojo.ember.api.Roles;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.roles.InstancePermission;
+import dev.chojo.ember.api.roles.StationPermission;
 import io.javalin.http.Context;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
@@ -34,8 +35,8 @@ public class StatisticsRoutes implements Routes {
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        routes.get(prefix + "/statistics", this::getStatistics, Roles.TEAM);
-        routes.get(prefix + "/admin/statistics", this::getAdminStatistics, Roles.ADMIN);
+        routes.get(prefix + "/statistics", this::getStatistics, StationPermission.STATION_STATISTICS);
+        routes.get(prefix + "/admin/statistics", this::getAdminStatistics, InstancePermission.ADMINISTRATOR);
     }
 
     @OpenApi(
@@ -86,13 +87,11 @@ public class StatisticsRoutes implements Routes {
                 GROUP BY se.id, se.name
                 HAVING count(er.id) > 0
                 ORDER BY se.start_time""", stationId));
-        data.put("roleCounts", queryMap("""
-                SELECT r.name, count(smr.member_id) as cnt
-                FROM role r
-                LEFT JOIN station_member_role smr ON smr.role_id = r.id
-                LEFT JOIN station_member sm ON sm.id = smr.member_id AND sm.station_id = :sid
-                WHERE smr.member_id IS NOT NULL
-                GROUP BY r.id, r.name ORDER BY cnt DESC""", stationId));
+        data.put("userTypeCounts", queryMap("""
+                SELECT sm.user_type AS name, count(sm.id) as cnt
+                FROM station_member sm
+                WHERE sm.station_id = :sid AND sm.former = FALSE
+                GROUP BY sm.user_type ORDER BY cnt DESC""", stationId));
 
         ctx.json(data);
     }

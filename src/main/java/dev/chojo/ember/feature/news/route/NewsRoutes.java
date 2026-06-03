@@ -8,9 +8,9 @@ package dev.chojo.ember.feature.news.route;
 import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.FederationSession;
 import dev.chojo.ember.api.MemberIdentity;
-import dev.chojo.ember.api.Roles;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.roles.StationPermission;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
@@ -90,35 +90,40 @@ public class NewsRoutes implements Routes {
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        routes.get(prefix + "/news", this::list, Roles.LOGIN);
-        routes.get(prefix + "/news/{id}", this::get, Roles.LOGIN);
-        routes.post(prefix + "/news", this::create, Roles.NEWS_MANAGER);
-        routes.put(prefix + "/news/{id}", this::update, Roles.NEWS_MANAGER);
-        routes.delete(prefix + "/news/{id}", this::delete, Roles.NEWS_MANAGER);
-        routes.get(prefix + "/news/{id}/comments", this::listComments, Roles.LOGIN);
-        routes.post(prefix + "/news/{id}/comments", this::createComment, Roles.LOGIN);
-        routes.put(prefix + "/news/comments/{commentId}", this::updateComment, Roles.LOGIN);
-        routes.delete(prefix + "/news/comments/{commentId}", this::deleteComment, Roles.LOGIN);
+        routes.get(prefix + "/news", this::list, StationPermission.LOGIN);
+        routes.get(prefix + "/news/{id}", this::get, StationPermission.LOGIN);
+        routes.post(prefix + "/news", this::create, StationPermission.NEWS_MANAGER);
+        routes.put(prefix + "/news/{id}", this::update, StationPermission.NEWS_MANAGER);
+        routes.delete(prefix + "/news/{id}", this::delete, StationPermission.NEWS_MANAGER);
+        routes.get(prefix + "/news/{id}/comments", this::listComments, StationPermission.LOGIN);
+        routes.post(prefix + "/news/{id}/comments", this::createComment, StationPermission.LOGIN);
+        routes.put(prefix + "/news/comments/{commentId}", this::updateComment, StationPermission.LOGIN);
+        routes.delete(prefix + "/news/comments/{commentId}", this::deleteComment, StationPermission.LOGIN);
 
         // Federation sharing management
-        routes.get(prefix + "/news/{id}/federation", this::getFederationShare, Roles.NEWS_MANAGER);
-        routes.put(prefix + "/news/{id}/federation", this::setFederationShare, Roles.NEWS_MANAGER);
-        routes.delete(prefix + "/news/{id}/federation", this::removeFederationShare, Roles.NEWS_MANAGER);
+        routes.get(prefix + "/news/{id}/federation", this::getFederationShare, StationPermission.NEWS_MANAGER);
+        routes.put(prefix + "/news/{id}/federation", this::setFederationShare, StationPermission.NEWS_MANAGER);
+        routes.delete(prefix + "/news/{id}/federation", this::removeFederationShare, StationPermission.NEWS_MANAGER);
 
         // Federated (user-facing, bearer token auth)
-        routes.get(prefix + "/federated/news", this::federatedListNews, Roles.LOGIN);
-        routes.get(prefix + "/federated/{stationuid}/news/{newsId}", this::federatedGetNews, Roles.LOGIN);
-        routes.get(prefix + "/federated/{stationuid}/news/{newsId}/comments", this::federatedListComments, Roles.LOGIN);
+        routes.get(prefix + "/federated/news", this::federatedListNews, StationPermission.LOGIN);
+        routes.get(prefix + "/federated/{stationuid}/news/{newsId}", this::federatedGetNews, StationPermission.LOGIN);
+        routes.get(
+                prefix + "/federated/{stationuid}/news/{newsId}/comments",
+                this::federatedListComments,
+                StationPermission.LOGIN);
         routes.post(
-                prefix + "/federated/{stationuid}/news/{newsId}/comments", this::federatedCreateComment, Roles.LOGIN);
+                prefix + "/federated/{stationuid}/news/{newsId}/comments",
+                this::federatedCreateComment,
+                StationPermission.LOGIN);
         routes.put(
                 prefix + "/federated/{stationuid}/news/comments/{commentId}",
                 this::federatedUpdateComment,
-                Roles.LOGIN);
+                StationPermission.LOGIN);
         routes.delete(
                 prefix + "/federated/{stationuid}/news/comments/{commentId}",
                 this::federatedDeleteComment,
-                Roles.LOGIN);
+                StationPermission.LOGIN);
 
         // Remote (server-to-server, RSA signature auth)
         routes.get(prefix + "/remote/news", this::remoteListNews);
@@ -140,14 +145,14 @@ public class NewsRoutes implements Routes {
         int offset = ctx.queryParamAsClass("offset", Integer.class).getOrDefault(0);
         int limit = ctx.queryParamAsClass("limit", Integer.class).getOrDefault(20);
         List<News> newsList;
-        if (session.hasRole(Roles.NEWS_MANAGER)) {
+        if (session.hasPermission(StationPermission.NEWS_MANAGER)) {
             newsList = newsService.findByStation(session.stationId(), offset, limit);
         } else {
             newsList = newsService.findVisibleForMember(
                     session.stationId(), session.member().id(), offset, limit);
         }
         ctx.json(newsList.stream()
-                .map(n -> toResponse(n, session.hasRole(Roles.NEWS_MANAGER)))
+                .map(n -> toResponse(n, session.hasPermission(StationPermission.NEWS_MANAGER)))
                 .toList());
     }
 
@@ -166,9 +171,11 @@ public class NewsRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         newsService
                 .findById(id)
-                .ifPresentOrElse(news -> ctx.json(toResponse(news, session.hasRole(Roles.NEWS_MANAGER))), () -> {
-                    throw new NotFoundResponse();
-                });
+                .ifPresentOrElse(
+                        news -> ctx.json(toResponse(news, session.hasPermission(StationPermission.NEWS_MANAGER))),
+                        () -> {
+                            throw new NotFoundResponse();
+                        });
     }
 
     @OpenApi(
@@ -194,7 +201,7 @@ public class NewsRoutes implements Routes {
                 request.contentMarkdown(),
                 request.contentHtml() != null ? request.contentHtml() : "",
                 authorIdentity,
-                request.roleIds() != null ? request.roleIds() : List.of(),
+                request.userTypes() != null ? request.userTypes() : List.of(),
                 request.groupIds() != null ? request.groupIds() : List.of(),
                 request.tagIds() != null ? request.tagIds() : List.of(),
                 request.memberIds() != null ? request.memberIds() : List.of());
@@ -226,7 +233,7 @@ public class NewsRoutes implements Routes {
                         request.title(),
                         request.contentMarkdown(),
                         request.contentHtml() != null ? request.contentHtml() : "",
-                        request.roleIds() != null ? request.roleIds() : List.of(),
+                        request.userTypes() != null ? request.userTypes() : List.of(),
                         request.groupIds() != null ? request.groupIds() : List.of(),
                         request.tagIds() != null ? request.tagIds() : List.of(),
                         request.memberIds() != null ? request.memberIds() : List.of())
@@ -269,13 +276,13 @@ public class NewsRoutes implements Routes {
     private NewsResponse toResponse(News news, boolean includeRestrictions) {
         var resolved = news.author() != null ? memberNameResolver.resolveDisplay(news.author()) : null;
         String authorName = resolved != null && resolved.name() != null ? resolved.name() : "";
-        List<Integer> roleIds = List.of();
+        List<String> userTypes = List.of();
         List<Integer> groupIds = List.of();
         List<Integer> tagIds = List.of();
         List<Integer> memberIds = List.of();
         if (includeRestrictions) {
             var restrictions = newsService.findRestrictions(news.id());
-            roleIds = restrictions.roleIds();
+            userTypes = restrictions.userTypes();
             groupIds = restrictions.groupIds();
             tagIds = restrictions.tagIds();
             memberIds = restrictions.memberIds();
@@ -291,7 +298,7 @@ public class NewsRoutes implements Routes {
                 authorName,
                 news.publishedAt(),
                 news.createdAt(),
-                roleIds,
+                userTypes,
                 groupIds,
                 tagIds,
                 memberIds,
@@ -386,7 +393,7 @@ public class NewsRoutes implements Routes {
         var sessionIdentity =
                 memberIdentityFactory.fromMemberId(session.member().id());
         boolean isAuthor = sessionIdentity.equals(comment.author());
-        boolean canModerate = session.hasRole(Roles.NEWS_MANAGER);
+        boolean canModerate = session.hasPermission(StationPermission.NEWS_MANAGER);
         if (!isAuthor && !canModerate) {
             throw new ForbiddenResponse("You can only delete your own comments");
         }
@@ -756,7 +763,7 @@ public class NewsRoutes implements Routes {
             String title,
             String contentMarkdown,
             String contentHtml,
-            List<Integer> roleIds,
+            List<String> userTypes,
             List<Integer> groupIds,
             List<Integer> tagIds,
             List<Integer> memberIds) {}
@@ -774,7 +781,7 @@ public class NewsRoutes implements Routes {
             String authorName,
             Instant publishedAt,
             Instant createdAt,
-            List<Integer> roleIds,
+            List<String> userTypes,
             List<Integer> groupIds,
             List<Integer> tagIds,
             List<Integer> memberIds,

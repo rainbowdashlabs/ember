@@ -10,7 +10,8 @@ import { useRoute, useRouter } from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import ProfileFieldInput from '@/components/input/ProfileFieldInput.vue'
-import RoleSelector from '@/components/input/RoleSelector.vue'
+import PermissionPicker from '@/components/input/PermissionPicker.vue'
+import SelectInput from '@/components/input/select/SelectInput.vue'
 
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
@@ -21,8 +22,8 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
-import type { ProfileField, StationMember, Role, MemberGroup, UserTag } from '@/api/types'
-import { Roles, hasTeamRole } from '@/api/types'
+import type { ProfileField, StationMember, PermissionGrant, MemberGroup, UserTag } from '@/api/types'
+import { StationUserType } from '@/api/types'
 import { profileFields, stationMembers, members, inventory, memberGroups, userTags } from '@/api'
 import type { MyInventoryItem } from '@/api/inventory'
 import Th from '@/components/table/Th.vue'
@@ -41,9 +42,10 @@ const memberId = computed(() => Number(route.params.id))
 
 const member = ref<StationMember | null>(null)
 const fields = ref<ProfileField[]>([])
-const allRoles = ref<Role[]>([])
+const allRoles = ref<PermissionGrant[]>([])
 const editValues = ref<Map<number, string>>(new Map())
 const editRoleIds = ref<Set<number>>(new Set())
+const typeGrantedPermissions = ref<Set<string>>(new Set())
 const editFirstName = ref('')
 const editLastName = ref('')
 const editEmail = ref('')
@@ -61,52 +63,23 @@ function parseConfig(configStr: string | undefined): { options?: string[]; [key:
   try { return JSON.parse(configStr) } catch { return {} }
 }
 
-// --- Role logic (uses RoleSelector component) ---
+// --- Applicable fields based on user type ---
 
-function getAllChildren(roleName: string): string[] {
-  const hierarchy: Record<string, string[]> = {
-    [Roles.MANAGER]: [Roles.TEAM, Roles.ATTENDANCE_MANAGER, Roles.INVENTORY_MANAGER, Roles.EVENT_MANAGER, Roles.MEMBER_MANAGER, Roles.NEWS_MANAGER, Roles.POLL_MANAGER, Roles.LOST_AND_FOUND_MANAGER],
-    [Roles.TEAM]: [Roles.LOGIN, Roles.USER],
-    [Roles.GUARDIAN]: [Roles.USER, Roles.LOGIN],
-    [Roles.MEMBER]: [Roles.USER],
-    [Roles.ATTENDANCE_MANAGER]: [Roles.TEAM],
-    [Roles.INVENTORY_MANAGER]: [Roles.TEAM],
-    [Roles.EVENT_MANAGER]: [Roles.TEAM],
-    [Roles.MEMBER_MANAGER]: [Roles.TEAM],
-    [Roles.NEWS_MANAGER]: [Roles.TEAM],
-    [Roles.POLL_MANAGER]: [Roles.TEAM],
-    [Roles.LOST_AND_FOUND_MANAGER]: [Roles.TEAM],
-  }
-  const direct = hierarchy[roleName] ?? []
-  const all: string[] = [...direct]
-  for (const child of direct) all.push(...getAllChildren(child))
-  return [...new Set(all)]
+const editUserType = ref<string>('')
+
+function getScopesForUserType(ut: string): string[] {
+  const scopes: string[] = []
+  if (ut === StationUserType.MEMBER || ut === StationUserType.TRIAL) scopes.push(StationUserType.MEMBER)
+  if (ut === StationUserType.TEAM || ut === StationUserType.MANAGER) scopes.push(StationUserType.TEAM)
+  if (ut === StationUserType.GUARDIAN) scopes.push(StationUserType.GUARDIAN)
+  return scopes
 }
 
-// --- Applicable fields based on roles ---
-
 const applicableFields = computed(() => {
-  const roleNames = new Set<string>()
-  for (const id of editRoleIds.value) {
-    const role = allRoles.value.find(r => r.id === id)
-    if (role) roleNames.add(role.role)
-  }
-  // Also include children of selected roles (for role UI logic)
-  const expandedNames = new Set(roleNames)
-  for (const name of roleNames) {
-    for (const child of getAllChildren(name)) { expandedNames.add(child) }
-  }
-
-  // Scope resolution uses actual assigned roles only (not hierarchy children),
-  // matching the backend logic in ManagedMemberRoutes.applicableScopes
-  const scopes: string[] = []
-  if (roleNames.has(Roles.MEMBER)) scopes.push(Roles.MEMBER)
-  if (hasTeamRole([...roleNames])) scopes.push(Roles.TEAM)
-  if (roleNames.has(Roles.GUARDIAN)) scopes.push(Roles.GUARDIAN)
-
+  const scopes = getScopesForUserType(editUserType.value)
   return fields.value.filter(f => {
     if (f.scope === 'GROUP') return false
-    return scopes.includes(f.scope ?? Roles.MEMBER)
+    return scopes.includes(f.scope ?? StationUserType.MEMBER)
   })
 })
 
@@ -120,17 +93,29 @@ function setEditValue(fieldId: number, val: string) {
   editValues.value = new Map([...editValues.value, [fieldId, val]])
 }
 
+async function loadTypePermissions(userType: string) {
+  try {
+    typeGrantedPermissions.value = new Set(await stationMembers.getEffectiveUserTypePermissions(userType))
+  } catch { typeGrantedPermissions.value = new Set() }
+}
+
+async function onUserTypeChange(value: string) {
+  editUserType.value = value
+  await loadTypePermissions(value)
+}
+
 // --- Load / Save ---
 
 async function loadData() {
   loading.value = true
   error.value = ''
   try {
-    const [allFields, allMembers, roles, memberRoles, profileValues, groups, tags, mGroups, mTags] = await Promise.all([
+    const [allFields, allMembers, roles, memberData, memberPermissions, profileValues, groups, tags, mGroups, mTags] = await Promise.all([
       profileFields.listFields(),
       stationMembers.listMembers(),
       stationMembers.listAllRoles(),
-      stationMembers.getRoles(memberId.value),
+      stationMembers.getMember(memberId.value),
+      stationMembers.getPermissions(memberId.value),
       profileFields.getValues(memberId.value),
       memberGroups.listGroups(),
       userTags.listTags(),
@@ -147,7 +132,9 @@ async function loadData() {
     editFirstName.value = member.value?.name?.split(' ')[0] ?? ''
     editLastName.value = member.value?.name?.split(' ').slice(1).join(' ') ?? ''
     editEmail.value = member.value?.email ?? ''
-    editRoleIds.value = new Set(memberRoles.map(r => r.id))
+    editUserType.value = memberData.userType ?? StationUserType.MEMBER
+    editRoleIds.value = new Set(memberPermissions.map(r => r.id))
+    await loadTypePermissions(editUserType.value)
 
     const map = new Map<number, string>()
     for (const v of profileValues) {
@@ -180,7 +167,7 @@ async function save() {
     const entries = applicableFields.value.map(f => ({ fieldId: f.id, value: JSON.stringify(getEditValue(f.id)) }))
     await profileFields.setValues(memberId.value, { values: entries })
     // Update roles
-    await stationMembers.setRoles(memberId.value, { roleIds: [...editRoleIds.value] })
+    await stationMembers.setPermissions(memberId.value, { roleIds: [...editRoleIds.value] })
     // Update group memberships
     for (const group of allGroups.value) {
       const currentMembers = await memberGroups.getGroupMembers(group.id)
@@ -230,9 +217,8 @@ const formerBlockReasons = computed(() => {
   if (memberInventory.value.length > 0) {
     reasons.push(t('memberDetail.formerBlockInventory', { count: memberInventory.value.length }))
   }
-  const forbidden = [Roles.GUARDIAN, Roles.MANAGER, Roles.ADMIN]
-  const roleNames = allRoles.value.filter(r => editRoleIds.value.has(r.id)).map(r => r.role)
-  if (roleNames.some(r => forbidden.includes(r as any))) {
+  const forbidden = [StationUserType.GUARDIAN, StationUserType.MANAGER]
+  if (forbidden.includes(editUserType.value as any)) {
     reasons.push(t('memberDetail.formerBlockRole'))
   }
   return reasons
@@ -294,10 +280,22 @@ onMounted(async () => {
           </div>
         </NeutralContainer>
 
-        <!-- Roles -->
+        <!-- User type -->
         <NeutralContainer class="space-y-3">
-          <SubHeader class="text-sm">{{ t('memberEdit.roles') }}</SubHeader>
-          <RoleSelector v-model="editRoleIds" :all-roles="allRoles" />
+          <SubHeader class="text-sm">{{ t('memberEdit.userType') }}</SubHeader>
+          <SelectInput :model-value="editUserType" @update:model-value="v => { if (v) onUserTypeChange(v) }" class="max-w-xs">
+            <option :value="StationUserType.MEMBER">{{ t('memberEdit.userTypeMember') }}</option>
+            <option :value="StationUserType.GUARDIAN">{{ t('memberEdit.userTypeGuardian') }}</option>
+            <option :value="StationUserType.TEAM">{{ t('memberEdit.userTypeTeam') }}</option>
+            <option :value="StationUserType.MANAGER">{{ t('memberEdit.userTypeManager') }}</option>
+            <option :value="StationUserType.TRIAL">{{ t('memberEdit.userTypeTrial') }}</option>
+          </SelectInput>
+        </NeutralContainer>
+
+        <!-- Permissions -->
+        <NeutralContainer class="space-y-3">
+          <SubHeader class="text-sm">{{ t('memberEdit.permissions') }}</SubHeader>
+          <PermissionPicker v-model="editRoleIds" :all-roles="allRoles" :hidden-permissions="typeGrantedPermissions" />
         </NeutralContainer>
 
         <!-- Groups -->

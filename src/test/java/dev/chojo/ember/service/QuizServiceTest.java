@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.service;
 
+import dev.chojo.ember.api.roles.StationPermission;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.federation.entity.ShareScope;
@@ -29,6 +30,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 
 import java.time.Instant;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 
@@ -64,7 +66,7 @@ class QuizServiceTest extends RepositoryTestBase {
         service = new QuizService(
                 quizCatalogRepo,
                 quizTestRepo,
-                new RestrictionRepository(),
+                new RestrictionRepository(stationMemberRepo, memberGroupRepo, userTagRepo),
                 federationService,
                 federationRepo,
                 httpClient,
@@ -383,7 +385,7 @@ class QuizServiceTest extends RepositoryTestBase {
     void isTestAccessible() {
         var test = service.findTest(testId).orElseThrow();
         // No time window restrictions, should be accessible
-        assertTrue(service.isTestAccessible(test, member.id()));
+        assertTrue(service.isTestAccessible(test, member.id(), EnumSet.noneOf(StationPermission.class)));
     }
 
     @Test
@@ -391,7 +393,7 @@ class QuizServiceTest extends RepositoryTestBase {
     void isTestAccessibleDraftNotAccessible() {
         var draftTest = service.createTest(station.id(), "Draft", "", null, false, member.id());
         var draft = service.findTest(draftTest.id()).orElseThrow();
-        assertFalse(service.isTestAccessible(draft, member.id()));
+        assertFalse(service.isTestAccessible(draft, member.id(), EnumSet.noneOf(StationPermission.class)));
         service.deleteTest(draftTest.id());
     }
 
@@ -472,7 +474,8 @@ class QuizServiceTest extends RepositoryTestBase {
     @Order(80)
     void memberAccess() {
         service.grantMemberAccess(testId, member.id(), null);
-        assertTrue(service.isTestAccessible(service.findTest(testId).orElseThrow(), member.id()));
+        assertTrue(service.isTestAccessible(
+                service.findTest(testId).orElseThrow(), member.id(), EnumSet.noneOf(StationPermission.class)));
         service.revokeMemberAccess(testId, member.id());
     }
 
@@ -489,7 +492,7 @@ class QuizServiceTest extends RepositoryTestBase {
         service.updateRestrictionMode(testId, RestrictionMode.AND);
         assertEquals(RestrictionMode.AND, service.findTest(testId).orElseThrow().restrictionMode());
 
-        assertTrue(service.canMemberAccess(testId, member.id()));
+        assertTrue(service.canMemberAccess(testId, member.id(), EnumSet.noneOf(StationPermission.class)));
     }
 
     // -- Close / Delete --
@@ -569,7 +572,7 @@ class QuizServiceTest extends RepositoryTestBase {
         service.activateTest(test2.id());
         // Active but start_at is in the future — not accessible
         var test = service.findTest(test2.id()).orElseThrow();
-        assertFalse(service.isTestAccessible(test, member.id()));
+        assertFalse(service.isTestAccessible(test, member.id(), EnumSet.noneOf(StationPermission.class)));
         service.deleteTest(test2.id());
     }
 
@@ -589,7 +592,7 @@ class QuizServiceTest extends RepositoryTestBase {
                 test2.id(), List.of(new SectionEntry("S", "", List.of(new SourceEntry(catalogId, categoryId, 1)))));
         service.activateTest(test2.id());
         var test = service.findTest(test2.id()).orElseThrow();
-        assertFalse(service.isTestAccessible(test, member.id()));
+        assertFalse(service.isTestAccessible(test, member.id(), EnumSet.noneOf(StationPermission.class)));
         service.deleteTest(test2.id());
     }
 
@@ -602,7 +605,7 @@ class QuizServiceTest extends RepositoryTestBase {
         service.activateTest(test2.id());
         service.grantMemberAccess(test2.id(), member.id(), null);
         var test = service.findTest(test2.id()).orElseThrow();
-        assertTrue(service.isTestAccessible(test, member.id()));
+        assertTrue(service.isTestAccessible(test, member.id(), EnumSet.noneOf(StationPermission.class)));
         service.revokeMemberAccess(test2.id(), member.id());
         service.deleteTest(test2.id());
     }

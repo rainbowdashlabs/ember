@@ -1,6 +1,9 @@
+/*
+ *     SPDX-License-Identifier: AGPL-3.0-only
+ *
+ *     Copyright (C) RainbowDashLabs and Contributor
+ */
 package dev.chojo.ember.api.roles;
-
-import io.javalin.security.RouteRole;
 
 /**
  * A user type represents a fixed set of permissions
@@ -36,6 +39,7 @@ public enum StationUserType {
     StationUserType() {
         this.defaultPermissions = new StationPermission[0];
     }
+
     StationUserType(StationPermission... defaultPermissions) {
         this.defaultPermissions = defaultPermissions;
     }

@@ -317,7 +317,7 @@ class KnowledgeBaseRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(86)
     void accessRestrictions() {
-        var restriction = knowledgeBaseRepo.addRestriction(folderId, null, 1, null, null, null);
+        var restriction = knowledgeBaseRepo.addRestriction(folderId, null, "MEMBER", null, null, null);
         assertNotNull(restriction);
 
         var restrictions = knowledgeBaseRepo.findRestrictions(folderId, null);

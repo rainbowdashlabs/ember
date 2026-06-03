@@ -5,7 +5,7 @@
  */
 package dev.chojo.ember.service;
 
-import dev.chojo.ember.api.Roles;
+import dev.chojo.ember.api.roles.StationPermission;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
 import dev.chojo.ember.feature.members.entity.StationMember;
@@ -43,8 +43,12 @@ class FormerMemberServiceTest extends RepositoryTestBase {
         member = stationMemberRepo.create(station.id(), account.id());
 
         // Assign MEMBER + LOGIN roles
-        stationMemberRepo.findRoleByName(Roles.MEMBER).ifPresent(r -> stationMemberRepo.addRole(member.id(), r.id()));
-        stationMemberRepo.findRoleByName(Roles.LOGIN).ifPresent(r -> stationMemberRepo.addRole(member.id(), r.id()));
+        stationMemberRepo
+                .findPermissionByName(StationPermission.USER)
+                .ifPresent(r -> stationMemberRepo.grantPermission(member.id(), r.id()));
+        stationMemberRepo
+                .findPermissionByName(StationPermission.LOGIN)
+                .ifPresent(r -> stationMemberRepo.grantPermission(member.id(), r.id()));
     }
 
     @AfterAll
@@ -76,7 +80,7 @@ class FormerMemberServiceTest extends RepositoryTestBase {
     @Test
     @Order(11)
     void markedFormerHasNoRoles() {
-        var roles = stationMemberRepo.findRoles(member.id());
+        var roles = stationMemberRepo.findPermissions(member.id());
         assertTrue(roles.isEmpty());
     }
 
@@ -99,9 +103,9 @@ class FormerMemberServiceTest extends RepositoryTestBase {
         service.reactivate(member.id());
         var updated = stationMemberRepo.findById(member.id()).orElseThrow();
         assertFalse(updated.former());
-        var roles = stationMemberRepo.findRoles(member.id());
-        assertTrue(roles.stream().anyMatch(r -> r.role() == Roles.LOGIN));
-        assertTrue(roles.stream().anyMatch(r -> r.role() == Roles.MEMBER));
+        var roles = stationMemberRepo.findPermissions(member.id());
+        assertTrue(roles.stream().anyMatch(r -> r.permission() == StationPermission.LOGIN));
+        assertTrue(roles.stream().anyMatch(r -> r.permission() == StationPermission.USER));
     }
 
     @Test
@@ -122,7 +126,9 @@ class FormerMemberServiceTest extends RepositoryTestBase {
         // Create a new member and assign an inventory item to them
         var acc = accountRepo.create("former-inv@test.com", "Inv", "Member");
         var mem = stationMemberRepo.create(station.id(), acc.id());
-        stationMemberRepo.findRoleByName(Roles.MEMBER).ifPresent(r -> stationMemberRepo.addRole(mem.id(), r.id()));
+        stationMemberRepo
+                .findPermissionByName(StationPermission.USER)
+                .ifPresent(r -> stationMemberRepo.grantPermission(mem.id(), r.id()));
 
         var inv = inventoryRepo.create(station.id(), "FormerTestInv", InventoryType.INTERNAL, false);
         var item = inventoryRepo.createItem(inv.id(), "FT-001", "Former Test Item", null, "{}");
@@ -143,7 +149,9 @@ class FormerMemberServiceTest extends RepositoryTestBase {
     void canMarkFormerRejectsWithForbiddenRole() {
         var acc = accountRepo.create("former-mgr@test.com", "Mgr", "Member");
         var mem = stationMemberRepo.create(station.id(), acc.id());
-        stationMemberRepo.findRoleByName(Roles.MANAGER).ifPresent(r -> stationMemberRepo.addRole(mem.id(), r.id()));
+        stationMemberRepo
+                .findPermissionByName(StationPermission.STATION_ADMINISTRATOR)
+                .ifPresent(r -> stationMemberRepo.grantPermission(mem.id(), r.id()));
 
         String result = service.canMarkFormer(mem.id());
         assertNotNull(result);

@@ -22,7 +22,7 @@ import ManagerSection from './detailview/ManagerSection.vue'
 import InventorySection from './detailview/InventorySection.vue'
 import DetailModals from './detailview/DetailModals.vue'
 import type { ProfileField, ProfileFieldChange, StationMember, Inventory, InventoryItem } from '@/api/types'
-import { Roles, hasTeamRole, ExchangeStatus, StationModules } from '@/api/types'
+import { StationUserType, ExchangeStatus, StationModules } from '@/api/types'
 import type { MyInventoryItem } from '@/api/inventory'
 import type { ExchangeRequestEntry } from '@/api/types'
 import { profileFields, profileFieldChanges, stationMembers, members, inventory, exchanges } from '@/api'
@@ -45,10 +45,10 @@ const showChangeHistory = computed(() => canManageMembers() || isGuardian())
 const member = ref<StationMember | null>(null)
 const fields = ref<ProfileField[]>([])
 const values = ref<Map<number, string>>(new Map())
-const memberRoles = ref<string[]>([])
+const memberUserType = ref<string>('')
 const managers = ref<StationMember[]>([])
 const managerValues = ref<Map<number, Map<number, string>>>(new Map())
-const managerRoles = ref<Map<number, string[]>>(new Map())
+const managerUserTypes = ref<Map<number, string>>(new Map())
 const allMembers = ref<StationMember[]>([])
 const changes = ref<ProfileFieldChange[]>([])
 const memberInventory = ref<MyInventoryItem[]>([])
@@ -67,14 +67,19 @@ const exchangeSizes = ref<import('@/api/types').InventorySize[]>([])
 
 const modalsRef = ref<InstanceType<typeof DetailModals> | null>(null)
 
-const applicableFields = computed(() => {
+function getScopesForUserType(ut: string): string[] {
   const scopes: string[] = []
-  if (memberRoles.value.includes(Roles.MEMBER)) scopes.push(Roles.MEMBER)
-  if (hasTeamRole(memberRoles.value)) scopes.push(Roles.TEAM)
-  if (memberRoles.value.includes(Roles.GUARDIAN)) scopes.push(Roles.GUARDIAN)
+  if (ut === StationUserType.MEMBER || ut === StationUserType.TRIAL) scopes.push(StationUserType.MEMBER)
+  if (ut === StationUserType.TEAM || ut === StationUserType.MANAGER) scopes.push(StationUserType.TEAM)
+  if (ut === StationUserType.GUARDIAN) scopes.push(StationUserType.GUARDIAN)
+  return scopes
+}
+
+const applicableFields = computed(() => {
+  const scopes = getScopesForUserType(memberUserType.value)
   return fields.value.filter(f => {
     if (f.scope === 'GROUP') return false
-    return scopes.includes(f.scope ?? Roles.MEMBER)
+    return scopes.includes(f.scope ?? StationUserType.MEMBER)
   })
 })
 
@@ -87,16 +92,25 @@ const availableManagers = computed(() => {
 })
 
 const showManagerSection = computed(() =>
-  memberRoles.value.includes(Roles.MEMBER) && !memberRoles.value.includes(Roles.GUARDIAN) && !hasTeamRole(memberRoles.value)
+  memberUserType.value === StationUserType.MEMBER || memberUserType.value === StationUserType.TRIAL
 )
+
+// Convert managerUserTypes (Map<number, string>) to Map<number, string[]> for ManagerSection compatibility
+const managerUserTypesAsRoleMap = computed(() => {
+  const result = new Map<number, string[]>()
+  for (const [id, ut] of managerUserTypes.value) {
+    result.set(id, ut ? [ut] : [])
+  }
+  return result
+})
 
 const formerBlockReasons = computed(() => {
   const reasons: string[] = []
   if (memberInventory.value.length > 0) {
     reasons.push(t('memberDetail.formerBlockInventory', { count: memberInventory.value.length }))
   }
-  const forbidden = [Roles.GUARDIAN, Roles.MANAGER, Roles.ADMIN]
-  if (memberRoles.value.some(r => forbidden.includes(r as any))) {
+  const forbidden = [StationUserType.GUARDIAN, StationUserType.MANAGER]
+  if (forbidden.includes(memberUserType.value as any)) {
     reasons.push(t('memberDetail.formerBlockRole'))
   }
   return reasons
@@ -120,51 +134,48 @@ function getManagerFieldValue(mgrId: number, fieldId: number): unknown {
 }
 
 function getManagerFields(mgrId: number): ProfileField[] {
-  const roles = managerRoles.value.get(mgrId) ?? []
-  const scopes: string[] = []
-  if (roles.includes(Roles.MEMBER)) scopes.push(Roles.MEMBER)
-  if (hasTeamRole(roles)) scopes.push(Roles.TEAM)
-  if (roles.includes(Roles.GUARDIAN)) scopes.push(Roles.GUARDIAN)
+  const ut = managerUserTypes.value.get(mgrId) ?? ''
+  const scopes = getScopesForUserType(ut)
   return fields.value.filter(f => {
     if (f.scope === 'GROUP') return false
-    return scopes.includes(f.scope ?? Roles.MEMBER)
+    return scopes.includes(f.scope ?? StationUserType.MEMBER)
   })
 }
 
 async function loadManagerDetails(mgrs: StationMember[]) {
   const mgrVals = new Map<number, Map<number, string>>()
-  const mgrRoles = new Map<number, string[]>()
+  const mgrTypes = new Map<number, string>()
   for (const mgr of mgrs) {
     try {
-      const [vals, roles] = await Promise.all([
+      const [vals, memberData] = await Promise.all([
         profileFields.getValues(mgr.id),
-        stationMembers.getRoles(mgr.id),
+        stationMembers.getMember(mgr.id),
       ])
       const fieldMap = new Map<number, string>()
       for (const v of vals) { fieldMap.set(v.fieldId, v.value ?? '') }
       mgrVals.set(mgr.id, fieldMap)
-      mgrRoles.set(mgr.id, roles.map(r => r.role))
+      mgrTypes.set(mgr.id, (memberData as any).userType ?? '')
     } catch { /* skip */ }
   }
   managerValues.value = mgrVals
-  managerRoles.value = mgrRoles
+  managerUserTypes.value = mgrTypes
 }
 
 async function loadData() {
   loading.value = true
   error.value = ''
   try {
-    const [allFields, allMems, roles, profileValues, mgrs] = await Promise.all([
+    const [allFields, allMems, memberData, profileValues, mgrs] = await Promise.all([
       profileFields.listFields(),
       stationMembers.listMembers(),
-      stationMembers.getRoles(memberId.value),
+      stationMembers.getMember(memberId.value),
       profileFields.getValues(memberId.value),
       stationMembers.getManagers(memberId.value),
     ])
     fields.value = allFields
     allMembers.value = allMems
     member.value = allMems.find(m => m.id === memberId.value) ?? null
-    memberRoles.value = roles.map(r => r.role)
+    memberUserType.value = (memberData as any).userType ?? ''
     managers.value = mgrs
     const map = new Map<number, string>()
     for (const v of profileValues) { map.set(v.fieldId, v.value ?? '') }
@@ -213,10 +224,7 @@ async function handleCreateManager(data: { firstName: string; lastName: string; 
     if (newMember) {
       const currentIds = managers.value.map(m => m.id)
       await stationMembers.setManagers(memberId.value, { managerIds: [...currentIds, newMember.id] })
-      const allRoles = await stationMembers.listAllRoles()
-      const mgrRoleNames: readonly string[] = [Roles.LOGIN, Roles.GUARDIAN]
-      const mgrRoleIds = allRoles.filter(r => mgrRoleNames.includes(r.role)).map(r => r.id)
-      await stationMembers.setRoles(newMember.id, { roleIds: mgrRoleIds })
+      // New managers get GUARDIAN user type set by backend on invite
       managers.value = await stationMembers.getManagers(memberId.value)
       await loadManagerDetails(managers.value)
       allMembers.value = updatedMembers
@@ -351,7 +359,7 @@ onMounted(loadData)
           :managers="managers"
           :available-managers="availableManagers"
           :manager-values="managerValues"
-          :manager-roles="managerRoles"
+          :manager-roles="managerUserTypesAsRoleMap"
           :fields="fields"
           :member-display-name-fn="memberDisplayName"
           :get-manager-fields-fn="getManagerFields"

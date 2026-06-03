@@ -129,20 +129,21 @@ public class EventTemplateRepository {
         }
     }
 
-    public List<Integer> findRestrictions(int templateId) {
-        return Query.query("SELECT role_id FROM event_template_restriction WHERE template_id = :template_id;")
+    public List<String> findRestrictions(int templateId) {
+        return Query.query("SELECT user_type FROM event_template_restriction WHERE template_id = :template_id;")
                 .single(Call.of().bind("template_id", templateId))
-                .map(row -> row.getInt("role_id"))
+                .map(row -> row.getString("user_type"))
                 .all();
     }
 
-    public void setRestrictions(int templateId, List<Integer> roleIds) {
+    public void setRestrictions(int templateId, List<String> userTypes) {
         Query.query("DELETE FROM event_template_restriction WHERE template_id = :template_id;")
                 .single(Call.of().bind("template_id", templateId))
                 .delete();
-        for (int roleId : roleIds) {
-            Query.query("INSERT INTO event_template_restriction(template_id, role_id) VALUES (:template_id, :role_id);")
-                    .single(Call.of().bind("template_id", templateId).bind("role_id", roleId))
+        for (String userType : userTypes) {
+            Query.query(
+                            "INSERT INTO event_template_restriction(template_id, user_type) VALUES (:template_id, :user_type);")
+                    .single(Call.of().bind("template_id", templateId).bind("user_type", userType))
                     .insert();
         }
     }

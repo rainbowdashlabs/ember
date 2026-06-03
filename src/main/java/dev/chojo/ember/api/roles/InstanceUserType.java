@@ -1,6 +1,9 @@
+/*
+ *     SPDX-License-Identifier: AGPL-3.0-only
+ *
+ *     Copyright (C) RainbowDashLabs and Contributor
+ */
 package dev.chojo.ember.api.roles;
-
-import io.javalin.security.RouteRole;
 
 /**
  * Defines the user type on the instance level.
@@ -24,7 +27,12 @@ public enum InstanceUserType {
     InstanceUserType() {
         this.defaultPermission = new InstancePermission[0];
     }
+
     InstanceUserType(InstancePermission... defaultPermission) {
         this.defaultPermission = defaultPermission;
+    }
+
+    public InstancePermission[] defaultPermissions() {
+        return defaultPermission;
     }
 }

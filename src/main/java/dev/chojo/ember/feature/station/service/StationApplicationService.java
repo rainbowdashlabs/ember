@@ -5,7 +5,7 @@
  */
 package dev.chojo.ember.feature.station.service;
 
-import dev.chojo.ember.api.Roles;
+import dev.chojo.ember.api.roles.StationPermission;
 import dev.chojo.ember.feature.account.entity.TokenType;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.mail.service.EmailService;
@@ -135,15 +135,15 @@ public class StationApplicationService {
 
         // Assign manager role
         var managerRole = stationMemberRepository
-                .findRoleByName(Roles.MANAGER)
+                .findPermissionByName(StationPermission.STATION_ADMINISTRATOR)
                 .orElseThrow(() -> new IllegalStateException("Manager role not found"));
-        stationMemberRepository.addRole(member.id(), managerRole.id());
+        stationMemberRepository.grantPermission(member.id(), managerRole.id());
 
         // Also assign login role
         var loginRole = stationMemberRepository
-                .findRoleByName(Roles.LOGIN)
+                .findPermissionByName(StationPermission.LOGIN)
                 .orElseThrow(() -> new IllegalStateException("Login role not found"));
-        stationMemberRepository.addRole(member.id(), loginRole.id());
+        stationMemberRepository.grantPermission(member.id(), loginRole.id());
 
         // Send acceptance email and password setup email
         String token = UUID.randomUUID().toString();

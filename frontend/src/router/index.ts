@@ -203,17 +203,17 @@ const router = createRouter({
                     component: () => import('@/views/stationview/manage/StationImportView.vue'),
                 },
                 {
-                    path: 'manage/attendance-config',
+                    path: 'attendance/config',
                     name: 'station-attendance-config',
                     component: AttendanceConfigView,
                 },
                 {
-                    path: 'manage/attendance-config/edit/:id?',
+                    path: 'attendance/config/edit/:id?',
                     name: 'station-attendance-config-edit',
                     component: AttendanceConfigEditView,
                 },
                 {
-                    path: 'manage/members-config',
+                    path: 'members/config',
                     name: 'station-members-config',
                     component: MembersConfigView,
                 },
@@ -271,6 +271,11 @@ const router = createRouter({
                     path: 'members/groups',
                     name: 'members-groups',
                     component: MembersGroupsView,
+                },
+                {
+                    path: 'members/type-permissions',
+                    name: 'members-type-permissions',
+                    component: () => import('@/views/stationview/members/UserTypePermissionsView.vue'),
                 },
                 {
                     path: 'members/tags',
@@ -941,17 +946,17 @@ const router = createRouter({
                     component: () => import('@/views/helpcenter/stationview/manage/OverviewHelp.vue')
                 },
                 {
-                    path: 'manage/attendance-config',
+                    path: 'attendance/config',
                     name: 'help-station-attendance-config',
                     component: () => import('@/views/helpcenter/stationview/manage/AttendanceConfigHelp.vue')
                 },
                 {
-                    path: 'manage/attendance-config/edit/:id?',
+                    path: 'attendance/config/edit/:id?',
                     name: 'help-station-attendance-config-edit',
                     component: () => import('@/views/helpcenter/stationview/manage/AttendanceConfigEditHelp.vue')
                 },
                 {
-                    path: 'manage/members-config',
+                    path: 'members/config',
                     name: 'help-station-members-config',
                     component: () => import('@/views/helpcenter/stationview/manage/MembersConfigHelp.vue')
                 },
@@ -1040,6 +1045,11 @@ const router = createRouter({
                     path: 'members/groups',
                     name: 'help-members-groups',
                     component: () => import('@/views/helpcenter/stationview/members/GroupsHelp.vue')
+                },
+                {
+                    path: 'members/type-permissions',
+                    name: 'help-members-type-permissions',
+                    component: () => import('@/views/helpcenter/stationview/members/TypePermissionsHelp.vue')
                 },
                 {
                     path: 'members/tags',

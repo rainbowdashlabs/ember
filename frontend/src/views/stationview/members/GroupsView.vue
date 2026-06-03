@@ -23,8 +23,9 @@ import EmptyState from '@/components/feedback/EmptyState.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
-import RoleSelector from '@/components/input/RoleSelector.vue'
-import type {MemberGroup, Role, StationMember} from '@/api/types'
+import PermissionPicker from '@/components/input/PermissionPicker.vue'
+import TabBar from '@/components/navigation/TabBar.vue'
+import type {MemberGroup, PermissionGrant, StationMember} from '@/api/types'
 import {memberGroups, stationMembers} from '@/api'
 import {useSession} from '@/composables/useSession'
 import MutedText from '@/components/typography/MutedText.vue'
@@ -40,11 +41,18 @@ const error = ref('')
 // Selected group
 const selectedGroup = ref<MemberGroup | null>(null)
 const groupMembers = ref<StationMember[]>([])
-const groupRoles = ref<Role[]>([])
-const allRoles = ref<Role[]>([])
+const groupRoles = ref<PermissionGrant[]>([])
+const allRoles = ref<PermissionGrant[]>([])
 const groupLoading = ref(false)
 
 const canEditRoles = computed(() => canManageMembers() || isManager())
+
+// Detail panel tab
+const detailTab = ref('members')
+const detailTabs = computed(() => [
+  {key: 'members', label: t('memberGroups.tabMembers')},
+  {key: 'permissions', label: t('memberGroups.tabPermissions')},
+])
 
 const groupRoleIds = computed({
   get: () => new Set(groupRoles.value.map(r => r.id)),
@@ -108,7 +116,7 @@ async function selectGroup(group: MemberGroup) {
   try {
     const [members, roles] = await Promise.all([
       memberGroups.getGroupMembers(group.id),
-      memberGroups.getGroupRoles(group.id),
+      memberGroups.getGroupPermissions(group.id),
     ])
     groupMembers.value = members
     groupRoles.value = roles
@@ -223,7 +231,7 @@ async function removeMemberFromGroup(member: StationMember) {
 async function syncGroupRoles(newIds: Set<number>) {
   if (!selectedGroup.value) return
   try {
-    groupRoles.value = await memberGroups.setGroupRoles(selectedGroup.value.id, {roleIds: [...newIds]})
+    groupRoles.value = await memberGroups.setGroupPermissions(selectedGroup.value.id, {permissionIds: [...newIds]})
   } catch (e: unknown) {
     const msg = (e as { response?: { data?: { message?: string } } })?.response?.data?.message
     error.value = msg || t('common.error')
@@ -272,65 +280,64 @@ onMounted(loadData)
           </div>
         </div>
 
-        <!-- Group members panel -->
+        <!-- Group detail panel -->
         <div v-if="selectedGroup" class="space-y-4">
           <SectionHeader>{{ selectedGroup.name }}</SectionHeader>
 
           <Spinner v-if="groupLoading" size="md"/>
 
           <template v-if="!groupLoading">
-            <!-- Group roles -->
-            <div v-if="canEditRoles" class="space-y-2">
-              <FieldLabel class="text-(--text-muted)">{{ t('memberGroups.roles') }}</FieldLabel>
-              <RoleSelector v-model="groupRoleIds" :all-roles="allRoles" class="max-w-md" />
-              <p v-if="groupRoles.length === 0" class="text-xs text-(--text-muted)">{{ t('memberGroups.noRoles') }}</p>
-            </div>
+            <TabBar v-model="detailTab" :tabs="detailTabs" />
 
-            <!-- Current members -->
-            <div class="space-y-1">
-              <FieldLabel class="text-(--text-muted)">{{
-                  t('memberGroups.currentMembers')
-                }}</FieldLabel>
-              <MutedText tag="div" size="sm" class="py-2" v-if="groupMembers.length === 0">
-                {{ t('memberGroups.noMembers') }}
-              </MutedText>
+            <!-- Members tab -->
+            <template v-if="detailTab === 'members'">
               <div class="space-y-1">
-                <div v-for="member in sortedGroupMembers" :key="member.id"
-                     class="flex items-center justify-between rounded-lg px-3 py-2 bg-bg-light-accent dark:bg-bg-dark-accent">
-                  <div>
-                    <MemberName :name="memberDisplayName(member)" :identity="member.identity" class="text-sm font-medium"/>
-                    <MutedText class="ml-2" v-if="member.name && member.email">{{
-                        member.email
-                      }}</MutedText>
+                <FieldLabel class="text-(--text-muted)">{{ t('memberGroups.currentMembers') }}</FieldLabel>
+                <MutedText tag="div" size="sm" class="py-2" v-if="groupMembers.length === 0">
+                  {{ t('memberGroups.noMembers') }}
+                </MutedText>
+                <div class="space-y-1">
+                  <div v-for="member in sortedGroupMembers" :key="member.id"
+                       class="flex items-center justify-between rounded-lg px-3 py-2 bg-bg-light-accent dark:bg-bg-dark-accent">
+                    <div>
+                      <MemberName :name="memberDisplayName(member)" :identity="member.identity" class="text-sm font-medium"/>
+                      <MutedText class="ml-2" v-if="member.name && member.email">{{ member.email }}</MutedText>
+                    </div>
+                    <IconButton :icon="['fas', 'xmark']" :label="t('memberGroups.removeMember')" class="text-error hover:text-error/80 text-sm" @click="removeMemberFromGroup(member)"/>
                   </div>
-                  <IconButton :icon="['fas', 'xmark']" :label="t('memberGroups.removeMember')" class="text-error hover:text-error/80 text-sm" @click="removeMemberFromGroup(member)"/>
                 </div>
               </div>
-            </div>
 
-            <!-- Available members to add -->
-            <div class="space-y-1">
-              <FieldLabel class="text-(--text-muted)">{{ t('memberGroups.addMembers') }}</FieldLabel>
-              <MutedText tag="div" size="sm" class="py-2" v-if="availableMembers.length === 0">
-                {{ t('memberGroups.allAdded') }}
-              </MutedText>
               <div class="space-y-1">
-                <div
-                    v-for="member in availableMembers"
-                    :key="member.id"
-                    class="flex items-center justify-between rounded-lg px-3 py-2 hover:bg-bg-light-accent dark:hover:bg-bg-dark-accent cursor-pointer transition-colors"
-                    @click="addMemberToGroup(member)"
-                >
-                  <div>
-                    <MemberName :name="memberDisplayName(member)" :identity="member.identity" class="text-sm font-medium"/>
-                    <MutedText class="ml-2" v-if="member.name && member.email">{{
-                        member.email
-                      }}</MutedText>
+                <FieldLabel class="text-(--text-muted)">{{ t('memberGroups.addMembers') }}</FieldLabel>
+                <MutedText tag="div" size="sm" class="py-2" v-if="availableMembers.length === 0">
+                  {{ t('memberGroups.allAdded') }}
+                </MutedText>
+                <div class="space-y-1">
+                  <div
+                      v-for="member in availableMembers"
+                      :key="member.id"
+                      class="flex items-center justify-between rounded-lg px-3 py-2 hover:bg-bg-light-accent dark:hover:bg-bg-dark-accent cursor-pointer transition-colors"
+                      @click="addMemberToGroup(member)"
+                  >
+                    <div>
+                      <MemberName :name="memberDisplayName(member)" :identity="member.identity" class="text-sm font-medium"/>
+                      <MutedText class="ml-2" v-if="member.name && member.email">{{ member.email }}</MutedText>
+                    </div>
+                    <font-awesome-icon :icon="['fas', 'plus']" class="text-primary text-sm"/>
                   </div>
-                  <font-awesome-icon :icon="['fas', 'plus']" class="text-primary text-sm"/>
                 </div>
               </div>
-            </div>
+            </template>
+
+            <!-- Permissions tab -->
+            <template v-if="detailTab === 'permissions'">
+              <div v-if="canEditRoles" class="space-y-2">
+                <PermissionPicker v-model="groupRoleIds" :all-roles="allRoles" />
+                <MutedText v-if="groupRoles.length === 0" size="sm">{{ t('memberGroups.noPermissions') }}</MutedText>
+              </div>
+              <MutedText v-else size="sm">{{ t('memberGroups.noPermissionAccess') }}</MutedText>
+            </template>
           </template>
         </div>
 

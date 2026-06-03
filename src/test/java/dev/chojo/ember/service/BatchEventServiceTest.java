@@ -51,7 +51,8 @@ class BatchEventServiceTest extends RepositoryTestBase {
     @BeforeAll
     static void setup() {
         var domainEventBus = new DomainEventBus(Set.of());
-        eventService = new EventService(eventRepo, new RestrictionRepository(), domainEventBus);
+        eventService = new EventService(
+                eventRepo, new RestrictionRepository(stationMemberRepo, memberGroupRepo, userTagRepo), domainEventBus);
         var fieldService = new EventFieldService(eventFieldRepo);
         layoutService = new EventLayoutService(new EventLayoutRepository());
         batchService = new BatchEventService(eventService, fieldService, layoutService, eventRepo);
@@ -161,13 +162,13 @@ class BatchEventServiceTest extends RepositoryTestBase {
                 null,
                 null,
                 null,
-                List.of(),
+                List.<EventLayoutField>of(),
                 rows,
                 false,
                 false,
                 null,
-                List.of(1),
-                List.of(),
+                List.of("MEMBER"),
+                List.<Integer>of(),
                 null);
 
         var created = batchService.createBatch(station.id(), request);

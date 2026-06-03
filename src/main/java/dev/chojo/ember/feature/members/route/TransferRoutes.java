@@ -5,9 +5,10 @@
  */
 package dev.chojo.ember.feature.members.route;
 
-import dev.chojo.ember.api.Roles;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.roles.InstancePermission;
+import dev.chojo.ember.api.roles.StationPermission;
 import dev.chojo.ember.feature.station.service.StationExportService;
 import dev.chojo.ember.feature.station.service.StationImportService;
 import io.javalin.http.BadRequestResponse;
@@ -46,15 +47,19 @@ public class TransferRoutes implements Routes {
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
         routes.get(prefix + "/public/version", this::getVersion);
-        routes.post(prefix + "/station/transfer/create-token", this::createToken, Roles.MANAGER);
+        routes.post(
+                prefix + "/station/transfer/create-token", this::createToken, StationPermission.STATION_ADMINISTRATOR);
 
         // Token-authenticated export (public, for remote import)
         routes.get(prefix + "/public/transfer/{token}/tables", this::tokenListTables);
         routes.get(prefix + "/public/transfer/{token}/{table}", this::tokenExportTable);
 
         // Import (async, fetches from remote)
-        routes.post(prefix + "/admin/transfer/import", this::startImport, Roles.ADMIN);
-        routes.get(prefix + "/admin/transfer/import/{stationId}/progress", this::importProgress, Roles.ADMIN);
+        routes.post(prefix + "/admin/transfer/import", this::startImport, InstancePermission.ADMINISTRATOR);
+        routes.get(
+                prefix + "/admin/transfer/import/{stationId}/progress",
+                this::importProgress,
+                InstancePermission.ADMINISTRATOR);
     }
 
     @OpenApi(

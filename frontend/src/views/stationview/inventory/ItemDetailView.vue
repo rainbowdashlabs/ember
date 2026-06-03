@@ -26,7 +26,7 @@ import {useSession} from '@/composables/useSession'
 const {t} = useI18n()
 const route = useRoute()
 const router = useRouter()
-const {hasRole} = useSession()
+const {hasPermission} = useSession()
 
 const itemId = computed(() => Number(route.params.id))
 const item = ref<InventoryItem | null>(null)
@@ -34,7 +34,7 @@ const history = ref<InventoryItemHistory[]>([])
 const loading = ref(true)
 const error = ref('')
 
-const isManager = computed(() => hasRole('INVENTORY_MANAGER') || hasRole('MANAGER'))
+const isManager = computed(() => hasPermission('INVENTORY_MANAGER') || hasPermission('STATION_ADMINISTRATOR'))
 const currentAssignment = computed(() => {
   const current = history.value.find(h => !h.returned)
   return current?.memberName || null

@@ -28,7 +28,7 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.membersCreate.roleTeam') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Role selection cards -->
+    <!-- Dummy: PermissionGrant selection cards -->
     <NeutralContainer class="space-y-2">
       <SectionHeader>{{ t('membersCreate.stepRole') }}</SectionHeader>
       <div class="grid gap-3 sm:grid-cols-3">

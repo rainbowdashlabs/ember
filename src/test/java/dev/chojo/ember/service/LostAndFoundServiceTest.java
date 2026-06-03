@@ -5,7 +5,7 @@
  */
 package dev.chojo.ember.service;
 
-import dev.chojo.ember.api.Roles;
+import dev.chojo.ember.api.roles.StationPermission;
 import dev.chojo.ember.conf.file.elements.Mailing;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.lostandfound.service.LostAndFoundService;
@@ -51,8 +51,12 @@ class LostAndFoundServiceTest extends RepositoryTestBase {
         station = stationRepo.create("LostStation");
         account = accountRepo.create("lost@test.com", "Lost", "Finder");
         member = stationMemberRepo.create(station.id(), account.id());
-        stationMemberRepo.findRoleByName(Roles.LOGIN).ifPresent(r -> stationMemberRepo.addRole(member.id(), r.id()));
-        stationMemberRepo.findRoleByName(Roles.MEMBER).ifPresent(r -> stationMemberRepo.addRole(member.id(), r.id()));
+        stationMemberRepo
+                .findPermissionByName(StationPermission.LOGIN)
+                .ifPresent(r -> stationMemberRepo.grantPermission(member.id(), r.id()));
+        stationMemberRepo
+                .findPermissionByName(StationPermission.USER)
+                .ifPresent(r -> stationMemberRepo.grantPermission(member.id(), r.id()));
     }
 
     @AfterAll
