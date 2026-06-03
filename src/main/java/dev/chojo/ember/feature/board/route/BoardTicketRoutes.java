@@ -117,74 +117,75 @@ public class BoardTicketRoutes implements Routes {
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
         String p = prefix + "/boards/{boardKey}/tickets";
-        routes.get(p, this::listTickets, StationPermission.USER);
-        routes.get(p + "/search", this::searchTickets, StationPermission.USER);
-        routes.post(p, this::createTicket, StationPermission.USER);
-        routes.get(p + "/{ticketNumber}", this::getTicket, StationPermission.USER);
-        routes.put(p + "/{ticketNumber}", this::updateTicket, StationPermission.USER);
-        routes.delete(p + "/{ticketNumber}", this::deleteTicket, StationPermission.USER);
-        routes.put(p + "/{ticketNumber}/move", this::moveTicket, StationPermission.USER);
-        routes.put(p + "/{ticketNumber}/assign", this::assignTicket, StationPermission.USER);
-        routes.put(p + "/{ticketNumber}/reorder", this::reorderTickets, StationPermission.USER);
+        routes.get(p, this::listTickets, StationPermission.BOARD_USE);
+        routes.get(p + "/search", this::searchTickets, StationPermission.BOARD_USE);
+        routes.post(p, this::createTicket, StationPermission.BOARD_USE);
+        routes.get(p + "/{ticketNumber}", this::getTicket, StationPermission.BOARD_USE);
+        routes.put(p + "/{ticketNumber}", this::updateTicket, StationPermission.BOARD_USE);
+        routes.delete(p + "/{ticketNumber}", this::deleteTicket, StationPermission.BOARD_USE);
+        routes.put(p + "/{ticketNumber}/move", this::moveTicket, StationPermission.BOARD_USE);
+        routes.put(p + "/{ticketNumber}/assign", this::assignTicket, StationPermission.BOARD_USE);
+        routes.put(p + "/{ticketNumber}/reorder", this::reorderTickets, StationPermission.BOARD_USE);
 
         // Links
-        routes.get(p + "/{ticketNumber}/links", this::getLinks, StationPermission.USER);
-        routes.post(p + "/{ticketNumber}/links", this::createLink, StationPermission.USER);
-        routes.delete(p + "/{ticketNumber}/links/{linkedId}", this::deleteLink, StationPermission.USER);
+        routes.get(p + "/{ticketNumber}/links", this::getLinks, StationPermission.BOARD_USE);
+        routes.post(p + "/{ticketNumber}/links", this::createLink, StationPermission.BOARD_USE);
+        routes.delete(p + "/{ticketNumber}/links/{linkedId}", this::deleteLink, StationPermission.BOARD_USE);
 
         // Checklist
-        routes.get(p + "/{ticketNumber}/checklist", this::getChecklist, StationPermission.USER);
-        routes.post(p + "/{ticketNumber}/checklist", this::addChecklistItem, StationPermission.USER);
-        routes.put(p + "/{ticketNumber}/checklist/{itemId}", this::updateChecklistItem, StationPermission.USER);
-        routes.delete(p + "/{ticketNumber}/checklist/{itemId}", this::deleteChecklistItem, StationPermission.USER);
-        routes.put(p + "/{ticketNumber}/checklist/reorder", this::reorderChecklist, StationPermission.USER);
+        routes.get(p + "/{ticketNumber}/checklist", this::getChecklist, StationPermission.BOARD_USE);
+        routes.post(p + "/{ticketNumber}/checklist", this::addChecklistItem, StationPermission.BOARD_USE);
+        routes.put(p + "/{ticketNumber}/checklist/{itemId}", this::updateChecklistItem, StationPermission.BOARD_USE);
+        routes.delete(p + "/{ticketNumber}/checklist/{itemId}", this::deleteChecklistItem, StationPermission.BOARD_USE);
+        routes.put(p + "/{ticketNumber}/checklist/reorder", this::reorderChecklist, StationPermission.BOARD_USE);
 
         // Activity & Comments
-        routes.get(p + "/{ticketNumber}/transitions", this::getTransitions, StationPermission.USER);
-        routes.get(p + "/{ticketNumber}/comments", this::getComments, StationPermission.USER);
-        routes.post(p + "/{ticketNumber}/comments", this::createComment, StationPermission.USER);
-        routes.put(p + "/{ticketNumber}/comments/{commentId}", this::updateComment, StationPermission.USER);
-        routes.delete(p + "/{ticketNumber}/comments/{commentId}", this::deleteComment, StationPermission.USER);
+        routes.get(p + "/{ticketNumber}/transitions", this::getTransitions, StationPermission.BOARD_USE);
+        routes.get(p + "/{ticketNumber}/comments", this::getComments, StationPermission.BOARD_USE);
+        routes.post(p + "/{ticketNumber}/comments", this::createComment, StationPermission.BOARD_USE);
+        routes.put(p + "/{ticketNumber}/comments/{commentId}", this::updateComment, StationPermission.BOARD_USE);
+        routes.delete(p + "/{ticketNumber}/comments/{commentId}", this::deleteComment, StationPermission.BOARD_USE);
 
         // Weblinks
-        routes.get(p + "/{ticketNumber}/weblinks", this::getWeblinks, StationPermission.USER);
-        routes.post(p + "/{ticketNumber}/weblinks", this::addWeblink, StationPermission.USER);
-        routes.delete(p + "/{ticketNumber}/weblinks/{weblinkId}", this::deleteWeblink, StationPermission.USER);
+        routes.get(p + "/{ticketNumber}/weblinks", this::getWeblinks, StationPermission.BOARD_USE);
+        routes.post(p + "/{ticketNumber}/weblinks", this::addWeblink, StationPermission.BOARD_USE);
+        routes.delete(p + "/{ticketNumber}/weblinks/{weblinkId}", this::deleteWeblink, StationPermission.BOARD_USE);
 
         // Watchers
-        routes.get(p + "/{ticketNumber}/watchers", this::getWatchers, StationPermission.USER);
-        routes.post(p + "/{ticketNumber}/watch", this::watchTicket, StationPermission.USER);
-        routes.delete(p + "/{ticketNumber}/watch", this::unwatchTicket, StationPermission.USER);
+        routes.get(p + "/{ticketNumber}/watchers", this::getWatchers, StationPermission.BOARD_USE);
+        routes.post(p + "/{ticketNumber}/watch", this::watchTicket, StationPermission.BOARD_USE);
+        routes.delete(p + "/{ticketNumber}/watch", this::unwatchTicket, StationPermission.BOARD_USE);
 
         // Field values
-        routes.get(p + "/{ticketNumber}/fields", this::getFieldValues, StationPermission.USER);
-        routes.put(p + "/{ticketNumber}/fields/{fieldId}", this::setFieldValue, StationPermission.USER);
-        routes.delete(p + "/{ticketNumber}/fields/{fieldId}", this::deleteFieldValue, StationPermission.USER);
+        routes.get(p + "/{ticketNumber}/fields", this::getFieldValues, StationPermission.BOARD_USE);
+        routes.put(p + "/{ticketNumber}/fields/{fieldId}", this::setFieldValue, StationPermission.BOARD_USE);
+        routes.delete(p + "/{ticketNumber}/fields/{fieldId}", this::deleteFieldValue, StationPermission.BOARD_USE);
 
         // Attachments
-        routes.get(p + "/{ticketNumber}/attachments", this::getAttachments, StationPermission.USER);
-        routes.post(p + "/{ticketNumber}/attachments", this::uploadAttachment, StationPermission.USER);
+        routes.get(p + "/{ticketNumber}/attachments", this::getAttachments, StationPermission.BOARD_USE);
+        routes.post(p + "/{ticketNumber}/attachments", this::uploadAttachment, StationPermission.BOARD_USE);
         routes.get(
                 p + "/{ticketNumber}/attachments/{attachmentId}/download",
                 this::downloadAttachment,
-                StationPermission.USER);
-        routes.delete(p + "/{ticketNumber}/attachments/{attachmentId}", this::deleteAttachment, StationPermission.USER);
+                StationPermission.BOARD_USE);
+        routes.delete(
+                p + "/{ticketNumber}/attachments/{attachmentId}", this::deleteAttachment, StationPermission.BOARD_USE);
 
         // Labels on tickets
-        routes.get(p + "/{ticketNumber}/labels", this::getTicketLabels, StationPermission.USER);
-        routes.post(p + "/{ticketNumber}/labels/{labelId}", this::addTicketLabel, StationPermission.USER);
-        routes.delete(p + "/{ticketNumber}/labels/{labelId}", this::removeTicketLabel, StationPermission.USER);
+        routes.get(p + "/{ticketNumber}/labels", this::getTicketLabels, StationPermission.BOARD_USE);
+        routes.post(p + "/{ticketNumber}/labels/{labelId}", this::addTicketLabel, StationPermission.BOARD_USE);
+        routes.delete(p + "/{ticketNumber}/labels/{labelId}", this::removeTicketLabel, StationPermission.BOARD_USE);
 
         // KB Links
-        routes.get(p + "/{ticketNumber}/kb-links", this::getKbLinks, StationPermission.USER);
-        routes.post(p + "/{ticketNumber}/kb-links/{kbFileId}", this::addKbLink, StationPermission.USER);
-        routes.delete(p + "/{ticketNumber}/kb-links/{linkId}", this::removeKbLink, StationPermission.USER);
+        routes.get(p + "/{ticketNumber}/kb-links", this::getKbLinks, StationPermission.BOARD_USE);
+        routes.post(p + "/{ticketNumber}/kb-links/{kbFileId}", this::addKbLink, StationPermission.BOARD_USE);
+        routes.delete(p + "/{ticketNumber}/kb-links/{linkId}", this::removeKbLink, StationPermission.BOARD_USE);
 
         // History
-        routes.get(p + "/{ticketNumber}/history", this::getHistory, StationPermission.USER);
+        routes.get(p + "/{ticketNumber}/history", this::getHistory, StationPermission.BOARD_USE);
 
         // Activity
-        routes.get(p + "/{ticketNumber}/activity", this::getActivity, StationPermission.USER);
+        routes.get(p + "/{ticketNumber}/activity", this::getActivity, StationPermission.BOARD_USE);
     }
 
     private void requireEditAccess(int boardId, UserSession session) {

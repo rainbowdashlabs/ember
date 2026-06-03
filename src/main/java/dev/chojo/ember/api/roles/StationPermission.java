@@ -190,7 +190,7 @@ public enum StationPermission implements RouteRole {
     /**
      * Allows adding member to the member waitlist.
      */
-    WAITLIST_ADD(WAITLIST_READ),
+    WAITLIST_EDIT(WAITLIST_READ),
 
     /**
      * Allows managing the member waitlist.
@@ -276,11 +276,21 @@ public enum StationPermission implements RouteRole {
     QUIZ_MANAGER(PROTOCOL_MANAGER, TEST_MANAGER),
 
     /**
+     * Allows generally using boards.
+     */
+    BOARD_USE,
+
+    /**
      * Allows editing and creating boards
      */
-    BOARD_EDIT,
+    BOARD_EDIT(BOARD_USE),
 
-    BOARD_MANAGER(BOARD_EDIT),
+    /**
+     * Allows editing and creating boards
+     */
+    BOARD_FEDERATE(BOARD_EDIT),
+
+    BOARD_MANAGER(BOARD_FEDERATE),
 
     /**
      * Knowledgebase management

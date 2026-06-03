@@ -26,6 +26,7 @@ const props = defineProps<{
   listId: number
   fields: WaitingListField[]
   groups: MemberGroup[]
+  readonly?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -107,7 +108,7 @@ function userTypeLabel(userType: string | null | undefined): string {
   <NeutralContainer class="space-y-4">
     <div class="flex items-center justify-between">
       <SubHeader>{{ t('waitingList.overview') }}</SubHeader>
-      <EditButton v-if="!editing" @click="startEditing" />
+      <EditButton v-if="!editing && !readonly" @click="startEditing" />
     </div>
 
     <template v-if="!editing">

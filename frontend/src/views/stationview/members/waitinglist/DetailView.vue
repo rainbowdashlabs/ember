@@ -33,14 +33,20 @@ import type {
   MemberGroup,
 } from '@/api/types'
 import { waitingList, memberGroups } from '@/api'
+import { StationPermission } from '@/api/types'
 import { useBreakpoint } from '@/composables/useBreakpoint'
 import { useSidebarCounts } from '@/composables/useSidebarCounts'
+import { useSession } from '@/composables/useSession'
 
 const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
 const { isMobile } = useBreakpoint()
 const { refresh: refreshSidebarCounts } = useSidebarCounts()
+const { hasPermission } = useSession()
+
+const canManage = computed(() => hasPermission(StationPermission.WAITLIST_MANAGER))
+const canEdit = computed(() => hasPermission(StationPermission.WAITLIST_EDIT))
 
 const listId = computed(() => Number(route.params.id))
 
@@ -329,7 +335,7 @@ onMounted(loadData)
         <SecondaryButton :icon="['fas', 'chevron-left']" @click="goBack">
           {{ t('waitingList.back') }}
         </SecondaryButton>
-        <div class="flex items-center gap-2 w-full sm:w-auto">
+        <div v-if="canManage" class="flex items-center gap-2 w-full sm:w-auto">
           <SecondaryButton :icon="['fas', 'sliders']" :full-width="isMobile" class="flex-1 sm:flex-initial" @click="navigateToFields">
             {{ t('waitingList.manageFields') }}
           </SecondaryButton>
@@ -349,6 +355,7 @@ onMounted(loadData)
           :list-id="listId"
           :fields="fields"
           :groups="groups"
+          :readonly="!canManage"
           @updated="handleListUpdated"
           @error="showErrorMessage"
           @success="showSuccessMessage"
@@ -360,6 +367,7 @@ onMounted(loadData)
           :visible-field-ids="visibleFieldIds"
           :is-mobile="isMobile"
           :show-field-toggle="showFieldToggle"
+          :readonly="!canEdit"
           @invite="doInviteEntry"
           @move-to-testing="doMoveToTesting"
           @navigate-to-entry="navigateToEntry"
@@ -372,6 +380,7 @@ onMounted(loadData)
         <TestingSection
           :entries="testingEntries"
           :attendance-threshold="list.attendanceThreshold ?? 5"
+          :readonly="!canEdit"
           @move-to-joined="doMoveToJoined"
           @withdraw="doWithdrawEntry"
           @navigate-to-entry="navigateToEntry"
@@ -383,6 +392,7 @@ onMounted(loadData)
         />
 
         <InvitesSection
+          v-if="canManage"
           :invites="invites"
           @create-invite="openInviteModal"
           @delete-invite="deleteInvite"

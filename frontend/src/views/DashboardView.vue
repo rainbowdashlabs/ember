@@ -42,12 +42,14 @@ const {
   isManager,
   hasPermission,
   canManageMembers,
+  hasAnyMemberPermission,
   canManageInventory,
   canManageAttendance,
+  hasAnyAttendancePermission,
   canExportAttendance,
   canManageEvents,
   canManagePolls,
-  canManageWaitlist,
+  hasAnyWaitlistPermission,
   canManageQuiz,
   canManageProtocol,
   canManageBoards,
@@ -107,6 +109,17 @@ const pageTitle = computed(() => {
 const pageSubtitle = computed(() => {
   const key = `pages.${route.name as string}.subtitle`
   return te(key) ? t(key) : ''
+})
+
+// Computed default routes for groups where the root link may require higher permissions
+const membersDefaultRoute = computed(() => {
+  if (hasPermission(StationPermission.MEMBER_READ)) return '/station/members/list'
+  return undefined // no link — group header just toggles expand
+})
+
+const attendanceDefaultRoute = computed(() => {
+  if (hasPermission(StationPermission.ATTENDANCE_CREATE)) return '/station/attendance/new'
+  return undefined // no link — group header just toggles expand
 })
 
 async function handleLogout() {
@@ -189,37 +202,37 @@ async function handleLogout() {
         </SidebarExpandableLink>
       </SidebarGroup>
 
-      <SidebarGroup :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => openGroup = v" v-if="canManageMembers()" :badge="counts.pendingChanges" :icon="['fas', 'users']"
-                    :label="t('sidebar.members')" prefix="/station/members" to="/station/members/list" name="members-list" @navigate="close">
-        <SidebarLink :icon="['fas', 'user-plus']" name="members-create" to="/station/members/create" @navigate="close">
+      <SidebarGroup :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => openGroup = v" v-if="hasAnyMemberPermission() || hasAnyWaitlistPermission()" :badge="counts.pendingChanges" :icon="['fas', 'users']"
+                    :label="t('sidebar.members')" prefix="/station/members" :to="membersDefaultRoute" name="members-list" @navigate="close">
+        <SidebarLink v-if="hasPermission(StationPermission.MEMBER_EDIT)" :icon="['fas', 'user-plus']" name="members-create" to="/station/members/create" @navigate="close">
           {{ t('sidebar.create') }}
         </SidebarLink>
-        <SidebarLink :icon="['fas', 'layer-group']" name="members-groups" to="/station/members/groups"
+        <SidebarLink v-if="hasPermission(StationPermission.MEMBER_MANAGE_GROUP)" :icon="['fas', 'layer-group']" name="members-groups" to="/station/members/groups"
                      @navigate="close">
           {{ t('sidebar.groups') }}
         </SidebarLink>
-        <SidebarLink :icon="['fas', 'hashtag']" name="members-tags" to="/station/members/tags"
+        <SidebarLink v-if="hasPermission(StationPermission.MEMBER_MANAGE_TAGS)" :icon="['fas', 'hashtag']" name="members-tags" to="/station/members/tags"
                      @navigate="close">
           {{ t('sidebar.tags') }}
         </SidebarLink>
-        <SidebarLink :icon="['fas', 'shield']" name="members-type-permissions" to="/station/members/type-permissions"
+        <SidebarLink v-if="canManageMembers()" :icon="['fas', 'shield']" name="members-type-permissions" to="/station/members/type-permissions"
                      @navigate="close">
           {{ t('sidebar.typePermissions') }}
         </SidebarLink>
-        <SidebarLink :badge="counts.pendingChanges" :icon="['fas', 'bell']" name="members-changes"
+        <SidebarLink v-if="hasPermission(StationPermission.MEMBER_CHANGES)" :badge="counts.pendingChanges" :icon="['fas', 'bell']" name="members-changes"
                      to="/station/members/changes" @navigate="close">
           {{ t('sidebar.changes') }}
         </SidebarLink>
-        <SidebarLink :icon="['fas', 'user-slash']" name="members-former" to="/station/members/former"
+        <SidebarLink v-if="hasPermission(StationPermission.MEMBER_EDIT)" :icon="['fas', 'user-slash']" name="members-former" to="/station/members/former"
                      @navigate="close">
           {{ t('sidebar.formerMembers') }}
         </SidebarLink>
-        <SidebarLink v-if="isModuleEnabled(StationModules.WAITING_LIST) && canManageWaitlist()"
+        <SidebarLink v-if="isModuleEnabled(StationModules.WAITING_LIST) && hasAnyWaitlistPermission()"
                      :badge="counts.waitingListEntries" :icon="['fas', 'clipboard-list']" name="waiting-lists" to="/station/members/waiting-lists"
                      @navigate="close">
           {{ t('sidebar.waitingLists') }}
         </SidebarLink>
-        <SidebarLink :icon="['fas', 'users-gear']" name="station-members-config" to="/station/members/config"
+        <SidebarLink v-if="hasPermission(StationPermission.MEMBER_FIELDS)" :icon="['fas', 'users-gear']" name="station-members-config" to="/station/members/config"
                      @navigate="close">
           {{ t('sidebar.membersConfig') }}
         </SidebarLink>
@@ -264,9 +277,9 @@ async function handleLogout() {
         </SidebarLink>
       </SidebarGroup>
 
-      <SidebarGroup :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => openGroup = v" v-if="canManageAttendance() && isModuleEnabled(StationModules.ATTENDANCE)" :icon="['fas', 'clipboard-user']" :label="t('sidebar.attendance')"
-                    prefix="/station/attendance" to="/station/attendance/new" name="attendance-new" @navigate="close">
-        <SidebarLink :icon="['fas', 'clock-rotate-left']" name="attendance-past" to="/station/attendance/past"
+      <SidebarGroup :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => openGroup = v" v-if="hasAnyAttendancePermission() && isModuleEnabled(StationModules.ATTENDANCE)" :icon="['fas', 'clipboard-user']" :label="t('sidebar.attendance')"
+                    prefix="/station/attendance" :to="attendanceDefaultRoute" name="attendance-new" @navigate="close">
+        <SidebarLink v-if="hasPermission(StationPermission.ATTENDANCE_CREATE)" :icon="['fas', 'clock-rotate-left']" name="attendance-past" to="/station/attendance/past"
                      @navigate="close">
           {{ t('sidebar.pastAttendance') }}
         </SidebarLink>
@@ -274,7 +287,7 @@ async function handleLogout() {
                      to="/station/attendance/report" @navigate="close">
           {{ t('sidebar.attendanceReport') }}
         </SidebarLink>
-        <SidebarLink :icon="['fas', 'gear']" name="station-attendance-config"
+        <SidebarLink v-if="canManageAttendance()" :icon="['fas', 'gear']" name="station-attendance-config"
                      to="/station/attendance/config" @navigate="close">
           {{ t('sidebar.attendanceConfig') }}
         </SidebarLink>
@@ -326,7 +339,7 @@ async function handleLogout() {
         </SidebarLink>
       </SidebarGroup>
 
-      <SidebarGroup :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => openGroup = v" v-if="isModuleEnabled(StationModules.BOARDS)" :icon="['fas', 'table-columns']" :label="t('sidebar.boards')" :prefix="['/station/boards', '/station/federation/boards']" to="/station/boards" name="board-list" @navigate="close">
+      <SidebarGroup :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => openGroup = v" v-if="isModuleEnabled(StationModules.BOARDS) && hasPermission(StationPermission.BOARD_USE)" :icon="['fas', 'table-columns']" :label="t('sidebar.boards')" :prefix="['/station/boards', '/station/federation/boards']" to="/station/boards" name="board-list" @navigate="close">
         <SidebarLink v-for="board in visibleBoards" :key="board.id" :icon="['fas', 'table-columns']" :name="`board-${board.id}`" :to="`/station/boards/${board.shortKey}`" :active="route.path.startsWith(`/station/boards/${board.shortKey}`)" @navigate="close">
           {{ board.name }}
         </SidebarLink>

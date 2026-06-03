@@ -3634,7 +3634,7 @@ volumes:
             label: 'Warteliste einsehen',
             desc: 'Kann die Einträge auf der Warteliste sehen.',
         },
-        WAITLIST_ADD: {
+        WAITLIST_EDIT: {
             label: 'Zur Warteliste hinzufügen',
             desc: 'Kann neue Einträge auf die Warteliste setzen.',
         },
@@ -3714,9 +3714,17 @@ volumes:
             label: 'Boards',
             desc: 'Vollzugriff auf alle Board-Funktionen.',
         },
+        BOARD_USE: {
+            label: 'Boards nutzen',
+            desc: 'Kann Boards und Tickets sehen, erstellen und bearbeiten.',
+        },
         BOARD_EDIT: {
-            label: 'Boards bearbeiten',
-            desc: 'Kann Boards und deren Einstellungen erstellen und ändern.',
+            label: 'Boards verwalten',
+            desc: 'Kann Boards erstellen, Spalten und Einstellungen ändern.',
+        },
+        BOARD_FEDERATE: {
+            label: 'Boards föderieren',
+            desc: 'Kann Boards mit Partnerstationen teilen.',
         },
         KNOWLEDGE_MANAGER: {
             label: 'Wissensdatenbank',
@@ -5990,6 +5998,7 @@ volumes:
     },
     restriction: {
         roles: 'Rollen',
+        userTypes: 'Mitgliedstyp',
         groups: 'Gruppen',
         tags: 'Tags',
         and: 'UND',

@@ -16,6 +16,7 @@ import type { WaitingListEntryWithScore } from '@/api/types'
 const props = defineProps<{
   entries: WaitingListEntryWithScore[]
   attendanceThreshold: number
+  readonly?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -58,7 +59,7 @@ function entryFullName(item: WaitingListEntryWithScore): string {
           <span>
             {{ t('waitingList.attendanceCount') }}: <span class="font-mono font-medium" :class="{ 'text-success': item.entry.attendanceCount >= attendanceThreshold }">{{ item.entry.attendanceCount }} / {{ attendanceThreshold }}</span>
           </span>
-          <div class="flex items-center gap-1">
+          <div v-if="!readonly" class="flex items-center gap-1">
             <SuccessButton :icon="['fas', 'check']" @click="emit('moveToJoined', item.entry.id)">
               {{ t('waitingList.join') }}
             </SuccessButton>

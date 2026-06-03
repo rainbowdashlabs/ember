@@ -126,168 +126,171 @@ public class BoardRoutes implements Routes {
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
         // -- Local board CRUD --
-        routes.get(prefix + "/boards", this::list, StationPermission.USER);
-        routes.post(prefix + "/boards", this::create, StationPermission.BOARD_MANAGER);
-        routes.get(prefix + "/boards/{boardKey}", this::get, StationPermission.USER);
-        routes.put(prefix + "/boards/{boardKey}", this::update, StationPermission.BOARD_MANAGER);
+        routes.get(prefix + "/boards", this::list, StationPermission.BOARD_USE);
+        routes.post(prefix + "/boards", this::create, StationPermission.BOARD_EDIT);
+        routes.get(prefix + "/boards/{boardKey}", this::get, StationPermission.BOARD_USE);
+        routes.put(prefix + "/boards/{boardKey}", this::update, StationPermission.BOARD_EDIT);
         routes.delete(prefix + "/boards/{boardKey}", this::delete, StationPermission.BOARD_MANAGER);
-        routes.get(prefix + "/boards/{boardKey}/can-edit", this::canEdit, StationPermission.USER);
-        routes.get(prefix + "/boards/{boardKey}/lanes", this::getLanes, StationPermission.USER);
-        routes.put(prefix + "/boards/{boardKey}/lanes", this::setLanes, StationPermission.BOARD_MANAGER);
-        routes.get(prefix + "/boards/{boardKey}/fields", this::getFields, StationPermission.USER);
-        routes.put(prefix + "/boards/{boardKey}/fields", this::setFields, StationPermission.BOARD_MANAGER);
-        routes.get(prefix + "/boards/{boardKey}/access/view", this::getViewAccess, StationPermission.BOARD_MANAGER);
-        routes.put(prefix + "/boards/{boardKey}/access/view", this::setViewAccess, StationPermission.BOARD_MANAGER);
-        routes.get(prefix + "/boards/{boardKey}/access/edit", this::getEditAccess, StationPermission.BOARD_MANAGER);
-        routes.put(prefix + "/boards/{boardKey}/access/edit", this::setEditAccess, StationPermission.BOARD_MANAGER);
-        routes.post(prefix + "/boards/{boardKey}/backlog", this::enableBacklog, StationPermission.BOARD_MANAGER);
-        routes.delete(prefix + "/boards/{boardKey}/backlog", this::disableBacklog, StationPermission.BOARD_MANAGER);
+        routes.get(prefix + "/boards/{boardKey}/can-edit", this::canEdit, StationPermission.BOARD_USE);
+        routes.get(prefix + "/boards/{boardKey}/lanes", this::getLanes, StationPermission.BOARD_USE);
+        routes.put(prefix + "/boards/{boardKey}/lanes", this::setLanes, StationPermission.BOARD_EDIT);
+        routes.get(prefix + "/boards/{boardKey}/fields", this::getFields, StationPermission.BOARD_USE);
+        routes.put(prefix + "/boards/{boardKey}/fields", this::setFields, StationPermission.BOARD_EDIT);
+        routes.get(prefix + "/boards/{boardKey}/access/view", this::getViewAccess, StationPermission.BOARD_EDIT);
+        routes.put(prefix + "/boards/{boardKey}/access/view", this::setViewAccess, StationPermission.BOARD_EDIT);
+        routes.get(prefix + "/boards/{boardKey}/access/edit", this::getEditAccess, StationPermission.BOARD_EDIT);
+        routes.put(prefix + "/boards/{boardKey}/access/edit", this::setEditAccess, StationPermission.BOARD_EDIT);
+        routes.post(prefix + "/boards/{boardKey}/backlog", this::enableBacklog, StationPermission.BOARD_EDIT);
+        routes.delete(prefix + "/boards/{boardKey}/backlog", this::disableBacklog, StationPermission.BOARD_EDIT);
         // Labels
-        routes.get(prefix + "/boards/{boardKey}/labels", this::getLabels, StationPermission.USER);
-        routes.post(prefix + "/boards/{boardKey}/labels", this::createLabel, StationPermission.USER);
-        routes.put(prefix + "/boards/{boardKey}/labels/{labelId}", this::updateLabel, StationPermission.BOARD_MANAGER);
-        routes.delete(
-                prefix + "/boards/{boardKey}/labels/{labelId}", this::deleteLabel, StationPermission.BOARD_MANAGER);
-        routes.get(prefix + "/boards/{boardKey}/ticket-labels", this::getAllTicketLabels, StationPermission.USER);
-        routes.get(prefix + "/boards/{boardKey}/members", this::listBoardMembers, StationPermission.USER);
+        routes.get(prefix + "/boards/{boardKey}/labels", this::getLabels, StationPermission.BOARD_USE);
+        routes.post(prefix + "/boards/{boardKey}/labels", this::createLabel, StationPermission.BOARD_EDIT);
+        routes.put(prefix + "/boards/{boardKey}/labels/{labelId}", this::updateLabel, StationPermission.BOARD_EDIT);
+        routes.delete(prefix + "/boards/{boardKey}/labels/{labelId}", this::deleteLabel, StationPermission.BOARD_EDIT);
+        routes.get(prefix + "/boards/{boardKey}/ticket-labels", this::getAllTicketLabels, StationPermission.BOARD_USE);
+        routes.get(prefix + "/boards/{boardKey}/members", this::listBoardMembers, StationPermission.BOARD_USE);
         // Federation sharing config
         routes.get(
-                prefix + "/boards/{boardKey}/federation", this::getFederationConfig, StationPermission.BOARD_MANAGER);
+                prefix + "/boards/{boardKey}/federation", this::getFederationConfig, StationPermission.BOARD_FEDERATE);
         routes.put(
-                prefix + "/boards/{boardKey}/federation", this::setFederationConfig, StationPermission.BOARD_MANAGER);
+                prefix + "/boards/{boardKey}/federation", this::setFederationConfig, StationPermission.BOARD_FEDERATE);
 
         // -- Federated board local proxy endpoints --
         String fp = prefix + "/federated/boards";
 
         // Discovery
-        routes.get(fp, this::federatedLocalDiscoverBoards, StationPermission.USER);
+        routes.get(fp, this::federatedLocalDiscoverBoards, StationPermission.BOARD_USE);
 
         // Bookmarks
-        routes.get(fp + "/bookmarks", this::federatedLocalListBookmarks, StationPermission.USER);
-        routes.post(fp + "/bookmarks", this::federatedLocalCreateBookmark, StationPermission.USER);
-        routes.delete(fp + "/bookmarks/{bookmarkId}", this::federatedLocalDeleteBookmark, StationPermission.USER);
+        routes.get(fp + "/bookmarks", this::federatedLocalListBookmarks, StationPermission.BOARD_USE);
+        routes.post(fp + "/bookmarks", this::federatedLocalCreateBookmark, StationPermission.BOARD_USE);
+        routes.delete(fp + "/bookmarks/{bookmarkId}", this::federatedLocalDeleteBookmark, StationPermission.BOARD_USE);
 
         // Board read (proxied)
-        routes.get(fp + "/{partnerUid}/{boardKey}", this::federatedLocalGetBoard, StationPermission.USER);
-        routes.get(fp + "/{partnerUid}/{boardKey}/lanes", this::federatedLocalGetLanes, StationPermission.USER);
-        routes.get(fp + "/{partnerUid}/{boardKey}/labels", this::federatedLocalGetLabels, StationPermission.USER);
+        routes.get(fp + "/{partnerUid}/{boardKey}", this::federatedLocalGetBoard, StationPermission.BOARD_USE);
+        routes.get(fp + "/{partnerUid}/{boardKey}/lanes", this::federatedLocalGetLanes, StationPermission.BOARD_USE);
+        routes.get(fp + "/{partnerUid}/{boardKey}/labels", this::federatedLocalGetLabels, StationPermission.BOARD_USE);
         routes.get(
                 fp + "/{partnerUid}/{boardKey}/ticket-labels",
                 this::federatedLocalGetAllTicketLabels,
-                StationPermission.USER);
-        routes.get(fp + "/{partnerUid}/{boardKey}/members", this::federatedLocalGetMembers, StationPermission.USER);
-        routes.get(fp + "/{partnerUid}/{boardKey}/fields", this::federatedLocalGetFields, StationPermission.USER);
-        routes.get(fp + "/{partnerUid}/{boardKey}/tickets", this::federatedLocalListTickets, StationPermission.USER);
+                StationPermission.BOARD_USE);
+        routes.get(
+                fp + "/{partnerUid}/{boardKey}/members", this::federatedLocalGetMembers, StationPermission.BOARD_USE);
+        routes.get(fp + "/{partnerUid}/{boardKey}/fields", this::federatedLocalGetFields, StationPermission.BOARD_USE);
+        routes.get(
+                fp + "/{partnerUid}/{boardKey}/tickets", this::federatedLocalListTickets, StationPermission.BOARD_USE);
         routes.get(
                 fp + "/{partnerUid}/{boardKey}/tickets/search",
                 this::federatedLocalSearchTickets,
-                StationPermission.USER);
+                StationPermission.BOARD_USE);
         routes.get(
                 fp + "/{partnerUid}/{boardKey}/tickets/{ticketNumber}",
                 this::federatedLocalGetTicket,
-                StationPermission.USER);
+                StationPermission.BOARD_USE);
         routes.get(
                 fp + "/{partnerUid}/{boardKey}/tickets/{ticketNumber}/comments",
                 this::federatedLocalGetComments,
-                StationPermission.USER);
+                StationPermission.BOARD_USE);
         routes.get(
                 fp + "/{partnerUid}/{boardKey}/tickets/{ticketNumber}/checklist",
                 this::federatedLocalGetChecklist,
-                StationPermission.USER);
+                StationPermission.BOARD_USE);
         routes.get(
                 fp + "/{partnerUid}/{boardKey}/tickets/{ticketNumber}/links",
                 this::federatedLocalGetLinks,
-                StationPermission.USER);
+                StationPermission.BOARD_USE);
         routes.get(
                 fp + "/{partnerUid}/{boardKey}/tickets/{ticketNumber}/labels",
                 this::federatedLocalGetTicketLabels,
-                StationPermission.USER);
+                StationPermission.BOARD_USE);
         routes.get(
                 fp + "/{partnerUid}/{boardKey}/tickets/{ticketNumber}/transitions",
                 this::federatedLocalGetTransitions,
-                StationPermission.USER);
+                StationPermission.BOARD_USE);
         routes.get(
                 fp + "/{partnerUid}/{boardKey}/tickets/{ticketNumber}/history",
                 this::federatedLocalGetHistory,
-                StationPermission.USER);
+                StationPermission.BOARD_USE);
         routes.get(
                 fp + "/{partnerUid}/{boardKey}/tickets/{ticketNumber}/attachments",
                 this::federatedLocalGetAttachments,
-                StationPermission.USER);
+                StationPermission.BOARD_USE);
         routes.get(
                 fp + "/{partnerUid}/{boardKey}/tickets/{ticketNumber}/watchers",
                 this::federatedLocalGetWatchers,
-                StationPermission.USER);
+                StationPermission.BOARD_USE);
 
         // Board write (FULL mode only, proxied)
-        routes.post(fp + "/{partnerUid}/{boardKey}/tickets", this::federatedLocalCreateTicket, StationPermission.USER);
+        routes.post(
+                fp + "/{partnerUid}/{boardKey}/tickets", this::federatedLocalCreateTicket, StationPermission.BOARD_USE);
         routes.put(
                 fp + "/{partnerUid}/{boardKey}/tickets/{ticketNumber}",
                 this::federatedLocalUpdateTicket,
-                StationPermission.USER);
+                StationPermission.BOARD_USE);
         routes.delete(
                 fp + "/{partnerUid}/{boardKey}/tickets/{ticketNumber}",
                 this::federatedLocalDeleteTicket,
-                StationPermission.USER);
+                StationPermission.BOARD_USE);
         routes.put(
                 fp + "/{partnerUid}/{boardKey}/tickets/{ticketNumber}/move",
                 this::federatedLocalMoveTicket,
-                StationPermission.USER);
+                StationPermission.BOARD_USE);
         routes.put(
                 fp + "/{partnerUid}/{boardKey}/tickets/reorder",
                 this::federatedLocalReorderTickets,
-                StationPermission.USER);
+                StationPermission.BOARD_USE);
         routes.post(
                 fp + "/{partnerUid}/{boardKey}/tickets/{ticketNumber}/comments",
                 this::federatedLocalAddComment,
-                StationPermission.USER);
+                StationPermission.BOARD_USE);
         routes.post(
                 fp + "/{partnerUid}/{boardKey}/tickets/{ticketNumber}/checklist",
                 this::federatedLocalAddChecklistItem,
-                StationPermission.USER);
+                StationPermission.BOARD_USE);
         routes.put(
                 fp + "/{partnerUid}/{boardKey}/tickets/{ticketNumber}/checklist/{itemId}",
                 this::federatedLocalUpdateChecklistItem,
-                StationPermission.USER);
+                StationPermission.BOARD_USE);
         routes.delete(
                 fp + "/{partnerUid}/{boardKey}/tickets/{ticketNumber}/checklist/{itemId}",
                 this::federatedLocalDeleteChecklistItem,
-                StationPermission.USER);
+                StationPermission.BOARD_USE);
         routes.post(
                 fp + "/{partnerUid}/{boardKey}/tickets/{ticketNumber}/labels/{labelId}",
                 this::federatedLocalAddTicketLabel,
-                StationPermission.USER);
+                StationPermission.BOARD_USE);
         routes.delete(
                 fp + "/{partnerUid}/{boardKey}/tickets/{ticketNumber}/labels/{labelId}",
                 this::federatedLocalRemoveTicketLabel,
-                StationPermission.USER);
-        routes.post(fp + "/{partnerUid}/{boardKey}/labels", this::federatedLocalCreateLabel, StationPermission.USER);
+                StationPermission.BOARD_USE);
+        routes.post(
+                fp + "/{partnerUid}/{boardKey}/labels", this::federatedLocalCreateLabel, StationPermission.BOARD_USE);
         routes.post(
                 fp + "/{partnerUid}/{boardKey}/tickets/{ticketNumber}/watch",
                 this::federatedLocalWatchTicket,
-                StationPermission.USER);
+                StationPermission.BOARD_USE);
         routes.delete(
                 fp + "/{partnerUid}/{boardKey}/tickets/{ticketNumber}/watch",
                 this::federatedLocalUnwatchTicket,
-                StationPermission.USER);
+                StationPermission.BOARD_USE);
         routes.post(
                 fp + "/{partnerUid}/{boardKey}/tickets/{ticketNumber}/links",
                 this::federatedLocalCreateLink,
-                StationPermission.USER);
+                StationPermission.BOARD_USE);
         routes.delete(
                 fp + "/{partnerUid}/{boardKey}/tickets/{ticketNumber}/links/{linkedNumber}",
                 this::federatedLocalDeleteLink,
-                StationPermission.USER);
+                StationPermission.BOARD_USE);
 
         // Local access override management
         routes.get(
                 fp + "/{partnerUid}/{boardKey}/access/override",
                 this::federatedLocalGetOverride,
-                StationPermission.BOARD_MANAGER);
+                StationPermission.BOARD_EDIT);
         routes.put(
                 fp + "/{partnerUid}/{boardKey}/access/override",
                 this::federatedLocalSetOverride,
-                StationPermission.BOARD_MANAGER);
+                StationPermission.BOARD_EDIT);
 
         // -- Federated board remote endpoints (unauthenticated, RSA-signed) --
         String rp = prefix + "/remote/boards";

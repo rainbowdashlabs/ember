@@ -67,66 +67,57 @@ public class WaitingListRoutes implements Routes {
         routes.post(prefix + "/public/waiting-list/entry/{token}/remove", this::removeByToken);
         routes.post(prefix + "/public/waiting-list/entry/{token}/confirm", this::confirmInterest);
 
+        // Read endpoints
+        routes.get(prefix + "/waiting-lists", this::listAll, StationPermission.WAITLIST_READ);
+        routes.get(prefix + "/waiting-lists/{id}", this::getById, StationPermission.WAITLIST_READ);
+        routes.get(prefix + "/waiting-lists/{id}/fields", this::listFields, StationPermission.WAITLIST_READ);
+        routes.get(prefix + "/waiting-lists/{id}/invites", this::listInvites, StationPermission.WAITLIST_READ);
+        routes.get(prefix + "/waiting-lists/{id}/entries", this::listEntries, StationPermission.WAITLIST_READ);
+
+        // Add endpoints
+        routes.post(prefix + "/waiting-lists/{id}/entries", this::createEntry, StationPermission.WAITLIST_EDIT);
+
         // Management endpoints
-        routes.get(prefix + "/waiting-lists", this::listAll, StationPermission.WAITLIST_MANAGER);
-        routes.post(prefix + "/waiting-lists", this::create, StationPermission.WAITLIST_MANAGER);
-        routes.get(prefix + "/waiting-lists/{id}", this::getById, StationPermission.WAITLIST_MANAGER);
-        routes.put(prefix + "/waiting-lists/{id}", this::update, StationPermission.WAITLIST_MANAGER);
-        routes.delete(prefix + "/waiting-lists/{id}", this::deleteList, StationPermission.WAITLIST_MANAGER);
+        routes.post(prefix + "/waiting-lists", this::create, StationPermission.WAITLIST_EDIT);
+        routes.put(prefix + "/waiting-lists/{id}", this::update, StationPermission.WAITLIST_EDIT);
+        routes.delete(prefix + "/waiting-lists/{id}", this::deleteList, StationPermission.WAITLIST_EDIT);
         routes.put(
                 prefix + "/waiting-lists/{id}/visible-fields",
                 this::updateVisibleFields,
                 StationPermission.WAITLIST_MANAGER);
-
-        // Fields
-        routes.get(prefix + "/waiting-lists/{id}/fields", this::listFields, StationPermission.WAITLIST_MANAGER);
-        routes.post(prefix + "/waiting-lists/{id}/fields", this::createField, StationPermission.WAITLIST_MANAGER);
+        routes.post(prefix + "/waiting-lists/{id}/fields", this::createField, StationPermission.WAITLIST_EDIT);
+        routes.put(prefix + "/waiting-lists/{id}/fields/{fieldId}", this::updateField, StationPermission.WAITLIST_EDIT);
+        routes.delete(
+                prefix + "/waiting-lists/{id}/fields/{fieldId}", this::deleteField, StationPermission.WAITLIST_EDIT);
+        routes.post(prefix + "/waiting-lists/{id}/invites", this::createInvite, StationPermission.WAITLIST_EDIT);
+        routes.delete(
+                prefix + "/waiting-lists/{id}/invites/{inviteId}", this::deleteInvite, StationPermission.WAITLIST_EDIT);
         routes.put(
-                prefix + "/waiting-lists/{id}/fields/{fieldId}", this::updateField, StationPermission.WAITLIST_MANAGER);
+                prefix + "/waiting-lists/{id}/entries/{entryId}", this::updateEntry, StationPermission.WAITLIST_EDIT);
         routes.delete(
-                prefix + "/waiting-lists/{id}/fields/{fieldId}", this::deleteField, StationPermission.WAITLIST_MANAGER);
-
-        // Invites
-        routes.get(prefix + "/waiting-lists/{id}/invites", this::listInvites, StationPermission.WAITLIST_MANAGER);
-        routes.post(prefix + "/waiting-lists/{id}/invites", this::createInvite, StationPermission.WAITLIST_MANAGER);
-        routes.delete(
-                prefix + "/waiting-lists/{id}/invites/{inviteId}",
-                this::deleteInvite,
-                StationPermission.WAITLIST_MANAGER);
-
-        // Entries
-        routes.get(prefix + "/waiting-lists/{id}/entries", this::listEntries, StationPermission.WAITLIST_MANAGER);
-        routes.post(prefix + "/waiting-lists/{id}/entries", this::createEntry, StationPermission.WAITLIST_MANAGER);
-        routes.put(
-                prefix + "/waiting-lists/{id}/entries/{entryId}",
-                this::updateEntry,
-                StationPermission.WAITLIST_MANAGER);
-        routes.delete(
-                prefix + "/waiting-lists/{id}/entries/{entryId}",
-                this::deleteEntry,
-                StationPermission.WAITLIST_MANAGER);
+                prefix + "/waiting-lists/{id}/entries/{entryId}", this::deleteEntry, StationPermission.WAITLIST_EDIT);
         routes.put(
                 prefix + "/waiting-lists/{id}/entries/{entryId}/created-at",
                 this::updateCreatedAt,
-                StationPermission.WAITLIST_MANAGER);
+                StationPermission.WAITLIST_EDIT);
 
         // State transitions
         routes.post(
                 prefix + "/waiting-lists/{id}/entries/{entryId}/invite",
                 this::inviteEntry,
-                StationPermission.WAITLIST_MANAGER);
+                StationPermission.WAITLIST_EDIT);
         routes.post(
                 prefix + "/waiting-lists/{id}/entries/{entryId}/testing",
                 this::moveToTesting,
-                StationPermission.WAITLIST_MANAGER);
+                StationPermission.WAITLIST_EDIT);
         routes.post(
                 prefix + "/waiting-lists/{id}/entries/{entryId}/join",
                 this::moveToJoined,
-                StationPermission.WAITLIST_MANAGER);
+                StationPermission.WAITLIST_EDIT);
         routes.post(
                 prefix + "/waiting-lists/{id}/entries/{entryId}/withdraw",
                 this::withdrawEntry,
-                StationPermission.WAITLIST_MANAGER);
+                StationPermission.WAITLIST_EDIT);
     }
 
     // --- Public ---

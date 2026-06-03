@@ -48,12 +48,31 @@ export function useSession() {
         return hasPermission(StationPermission.MEMBER_MANAGER)
     }
 
+    function hasAnyMemberPermission(): boolean {
+        return hasPermission(StationPermission.MEMBER_MANAGER)
+            || hasPermission(StationPermission.MEMBER_READ)
+            || hasPermission(StationPermission.MEMBER_EDIT)
+            || hasPermission(StationPermission.MEMBER_NOTES)
+            || hasPermission(StationPermission.MEMBER_CHANGES)
+            || hasPermission(StationPermission.MEMBER_MANAGE_GROUP)
+            || hasPermission(StationPermission.MEMBER_MANAGE_TAGS)
+            || hasPermission(StationPermission.MEMBER_FIELDS)
+            || hasPermission(StationPermission.MEMBER_GUARDIAN)
+    }
+
     function canManageInventory(): boolean {
         return hasPermission(StationPermission.INVENTORY_MANAGER)
     }
 
     function canManageAttendance(): boolean {
         return hasPermission(StationPermission.ATTENDANCE_MANAGER)
+    }
+
+    function hasAnyAttendancePermission(): boolean {
+        return hasPermission(StationPermission.ATTENDANCE_MANAGER)
+            || hasPermission(StationPermission.ATTENDANCE_CREATE)
+            || hasPermission(StationPermission.ATTENDANCE_CONFIGURE)
+            || hasPermission(StationPermission.ATTENDANCE_EXPORT)
     }
 
     function canExportAttendance(): boolean {
@@ -64,12 +83,33 @@ export function useSession() {
         return hasPermission(StationPermission.EVENT_MANAGER)
     }
 
+    function hasAnyEventPermission(): boolean {
+        return hasPermission(StationPermission.EVENT_MANAGER)
+            || hasPermission(StationPermission.EVENT_CONFIGURE)
+            || hasPermission(StationPermission.EVENT_REGISTRATION)
+            || hasPermission(StationPermission.EVENT_MANAGE_TEMPLATE)
+            || hasPermission(StationPermission.EVENT_MANAGE_CATEGORY)
+            || hasPermission(StationPermission.EVENTS_FEDERATE)
+    }
+
     function canManageNews(): boolean {
         return hasPermission(StationPermission.NEWS_MANAGER)
     }
 
+    function hasAnyNewsPermission(): boolean {
+        return hasPermission(StationPermission.NEWS_MANAGER)
+            || hasPermission(StationPermission.NEWS_CREATE)
+            || hasPermission(StationPermission.NEWS_FEDERATE)
+    }
+
     function canManagePolls(): boolean {
         return hasPermission(StationPermission.POLL_MANAGER)
+    }
+
+    function hasAnyPollPermission(): boolean {
+        return hasPermission(StationPermission.POLL_MANAGER)
+            || hasPermission(StationPermission.POLL_CREATE)
+            || hasPermission(StationPermission.POLL_VIEW_RESULTS)
     }
 
     function isGuardian(): boolean {
@@ -80,16 +120,46 @@ export function useSession() {
         return hasPermission(StationPermission.LOST_AND_FOUND_MANAGER)
     }
 
+    function hasAnyLostAndFoundPermission(): boolean {
+        return hasPermission(StationPermission.LOST_AND_FOUND_MANAGER)
+            || hasPermission(StationPermission.LOST_AND_FOUND_CREATE)
+            || hasPermission(StationPermission.LOST_AND_FOUND_MANAGE)
+    }
+
     function canManageWaitlist(): boolean {
         return hasPermission(StationPermission.WAITLIST_MANAGER)
+    }
+
+    function hasAnyWaitlistPermission(): boolean {
+        return hasPermission(StationPermission.WAITLIST_MANAGER)
+            || hasPermission(StationPermission.WAITLIST_READ)
+            || hasPermission(StationPermission.WAITLIST_EDIT)
     }
 
     function canManageQuiz(): boolean {
         return hasPermission(StationPermission.QUIZ_MANAGER)
     }
 
+    function hasAnyQuizPermission(): boolean {
+        return hasPermission(StationPermission.QUIZ_MANAGER)
+            || hasPermission(StationPermission.TEST_MANAGER)
+            || hasPermission(StationPermission.TEST_CATALOG_VIEW)
+            || hasPermission(StationPermission.TEST_CATALOG_EDIT)
+            || hasPermission(StationPermission.TEST_CONFIGURE)
+            || hasPermission(StationPermission.PROTOCOL_MANAGER)
+            || hasPermission(StationPermission.PROTOCOL_TESTER)
+            || hasPermission(StationPermission.PROTOCOL_CREATE)
+            || hasPermission(StationPermission.PROTOCOL_CONFIGURE)
+    }
+
     function canManageKnowledge(): boolean {
         return hasPermission(StationPermission.KNOWLEDGE_MANAGER)
+    }
+
+    function hasAnyKnowledgePermission(): boolean {
+        return hasPermission(StationPermission.KNOWLEDGE_MANAGER)
+            || hasPermission(StationPermission.KNOWLEDGE_EDIT)
+            || hasPermission(StationPermission.KNOWLEDGE_FEDERATE)
     }
 
     function canManageProtocol(): boolean {
@@ -132,17 +202,26 @@ export function useSession() {
         isAdmin,
         isManager,
         canManageMembers,
+        hasAnyMemberPermission,
         canManageInventory,
         canManageAttendance,
+        hasAnyAttendancePermission,
         canExportAttendance,
         canManageEvents,
+        hasAnyEventPermission,
         canManageNews,
+        hasAnyNewsPermission,
         canManagePolls,
+        hasAnyPollPermission,
         isGuardian,
         canManageLostAndFound,
+        hasAnyLostAndFoundPermission,
         canManageWaitlist,
+        hasAnyWaitlistPermission,
         canManageQuiz,
+        hasAnyQuizPermission,
         canManageKnowledge,
+        hasAnyKnowledgePermission,
         canManageBoards,
         canManageFederation,
         canManageProtocol,

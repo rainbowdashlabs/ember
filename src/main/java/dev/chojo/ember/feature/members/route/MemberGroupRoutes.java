@@ -59,22 +59,23 @@ public class MemberGroupRoutes implements Routes {
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        routes.get(prefix + "/groups", this::list, StationPermission.MEMBER_MANAGER);
-        routes.post(prefix + "/groups", this::create, StationPermission.MEMBER_MANAGER);
-        routes.get(prefix + "/groups/{id}", this::get, StationPermission.MEMBER_MANAGER);
-        routes.put(prefix + "/groups/{id}", this::update, StationPermission.MEMBER_MANAGER);
-        routes.delete(prefix + "/groups/{id}", this::delete, StationPermission.MEMBER_MANAGER);
+        routes.get(prefix + "/groups", this::list, StationPermission.LOGIN);
+        routes.get(prefix + "/groups/{id}", this::get, StationPermission.MEMBER_MANAGE_GROUP);
+        routes.post(prefix + "/groups", this::create, StationPermission.MEMBER_MANAGE_GROUP);
+        routes.put(prefix + "/groups/{id}", this::update, StationPermission.MEMBER_MANAGE_GROUP);
+        routes.delete(prefix + "/groups/{id}", this::delete, StationPermission.MEMBER_MANAGE_GROUP);
 
-        routes.get(prefix + "/groups/{id}/members", this::getMembers, StationPermission.MEMBER_MANAGER);
-        routes.put(prefix + "/groups/{id}/members", this::setMembers, StationPermission.MEMBER_MANAGER);
-
-        routes.get(prefix + "/groups/{id}/permissions", this::getGroupPermissions, StationPermission.MEMBER_MANAGER);
-        routes.put(prefix + "/groups/{id}/permissions", this::setGroupPermissions, StationPermission.MEMBER_MANAGER);
-
-        routes.post(prefix + "/groups/{id}/convert-to-tag", this::convertToTag, StationPermission.MEMBER_MANAGER);
+        routes.get(prefix + "/groups/{id}/members", this::getMembers, StationPermission.MEMBER_MANAGE_GROUP);
+        routes.put(prefix + "/groups/{id}/members", this::setMembers, StationPermission.MEMBER_MANAGE_GROUP);
 
         routes.get(
-                prefix + "/station-members/{memberId}/groups", this::getMemberGroups, StationPermission.MEMBER_MANAGER);
+                prefix + "/groups/{id}/permissions", this::getGroupPermissions, StationPermission.MEMBER_MANAGE_GROUP);
+        routes.put(
+                prefix + "/groups/{id}/permissions", this::setGroupPermissions, StationPermission.MEMBER_MANAGE_GROUP);
+
+        routes.post(prefix + "/groups/{id}/convert-to-tag", this::convertToTag, StationPermission.MEMBER_MANAGE_GROUP);
+
+        routes.get(prefix + "/station-members/{memberId}/groups", this::getMemberGroups, StationPermission.MEMBER_READ);
     }
 
     private MemberWithName toMemberWithName(StationMember m) {

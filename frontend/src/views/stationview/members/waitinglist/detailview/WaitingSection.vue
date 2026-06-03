@@ -30,6 +30,7 @@ const props = defineProps<{
   visibleFieldIds: Set<number>
   isMobile: boolean
   showFieldToggle: boolean
+  readonly?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -81,7 +82,7 @@ function statusBadgeComponent(status: string) {
             <div v-if="fields.length === 0" class="text-xs text-(--text-muted) px-2 py-1">{{ t('waitingList.noFields') }}</div>
           </div>
         </div>
-        <PrimaryButton :icon="['fas', 'plus']" :full-width="isMobile" class="flex-1 sm:flex-initial" @click="emit('addEntry')">
+        <PrimaryButton v-if="!readonly" :icon="['fas', 'plus']" :full-width="isMobile" class="flex-1 sm:flex-initial" @click="emit('addEntry')">
           {{ t('waitingList.addEntry') }}
         </PrimaryButton>
       </div>
@@ -102,7 +103,7 @@ function statusBadgeComponent(status: string) {
             <Th class="px-2!" v-for="vf in visibleFields" :key="vf.id">{{ vf.name }}</Th>
             <Th class="px-2!">{{ t('waitingList.status') }}</Th>
             <Th class="px-2! text-right">{{ t('waitingList.score') }}</Th>
-            <Th class="px-2! text-right">{{ t('waitingList.actions') }}</Th>
+            <Th v-if="!readonly" class="px-2! text-right">{{ t('waitingList.actions') }}</Th>
           </THead>
         </thead>
         <tbody>
@@ -121,7 +122,7 @@ function statusBadgeComponent(status: string) {
               <component :is="statusBadgeComponent(item.entry.status)">{{ t('waitingList.status_' + item.entry.status) }}</component>
             </td>
             <td class="py-2 px-2 text-right font-mono">{{ item.score }}</td>
-            <td class="py-2 px-2">
+            <td v-if="!readonly" class="py-2 px-2">
               <div class="flex items-center justify-end gap-1">
                 <IconButton
                   v-if="item.entry.status === 'WAITING'"
@@ -165,7 +166,7 @@ function statusBadgeComponent(status: string) {
         </div>
         <div class="flex items-center justify-between text-sm">
           <span>{{ t('waitingList.score') }}: <span class="font-mono font-medium">{{ item.score }}</span></span>
-          <div class="flex items-center gap-1">
+          <div v-if="!readonly" class="flex items-center gap-1">
             <IconButton
               v-if="item.entry.status === 'WAITING'"
               icon="paper-plane"
