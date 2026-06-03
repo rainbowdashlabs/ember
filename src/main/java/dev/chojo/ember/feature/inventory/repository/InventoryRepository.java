@@ -12,11 +12,13 @@ import dev.chojo.ember.feature.inventory.entity.Inventory;
 import dev.chojo.ember.feature.inventory.entity.InventoryItem;
 import dev.chojo.ember.feature.inventory.entity.InventoryItemHistory;
 import dev.chojo.ember.feature.inventory.entity.InventoryRequirement;
+import dev.chojo.ember.feature.inventory.entity.InventorySummary;
 import dev.chojo.ember.feature.inventory.entity.InventorySize;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
 import jakarta.inject.Singleton;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -54,6 +56,43 @@ public class InventoryRepository {
                         "SELECT id, station_id, name, inventory_type, has_sizes FROM inventory WHERE station_id = :station_id;")
                 .single(Call.of().bind("station_id", stationId))
                 .map(Inventory.map())
+                .all();
+    }
+
+    public List<InventorySummary> findSummariesByStation(int stationId) {
+        return Query.query("""
+                        SELECT i.id, i.station_id, i.name, i.inventory_type, i.has_sizes,
+                               COALESCE(counts.item_count, 0) AS item_count,
+                               COALESCE(counts.lost_count, 0) AS lost_count,
+                               COALESCE(proc.procurement_count, 0) AS procurement_count,
+                               COALESCE(lent.lent_out_count, 0) AS lent_out_count
+                        FROM inventory i
+                        LEFT JOIN (
+                            SELECT inventory_id,
+                                   COUNT(*) AS item_count,
+                                   COUNT(*) FILTER (WHERE lost_at IS NOT NULL) AS lost_count
+                            FROM inventory_item
+                            GROUP BY inventory_id
+                        ) counts ON counts.inventory_id = i.id
+                        LEFT JOIN (
+                            SELECT inventory_id,
+                                   COUNT(*) AS procurement_count
+                            FROM equipment_procurement
+                            WHERE fulfilled_at IS NULL
+                            GROUP BY inventory_id
+                        ) proc ON proc.inventory_id = i.id
+                        LEFT JOIN (
+                            SELECT li.inventory_id,
+                                   COUNT(*) FILTER (WHERE li.assigned_item_id IS NOT NULL) AS lent_out_count
+                            FROM federation_lending_request_item li
+                            JOIN federation_lending_request lr ON lr.id = li.request_id
+                            WHERE lr.status IN ('APPROVED', 'LENT')
+                            GROUP BY li.inventory_id
+                        ) lent ON lent.inventory_id = i.id
+                        WHERE i.station_id = :station_id
+                        ORDER BY i.name;""")
+                .single(Call.of().bind("station_id", stationId))
+                .map(InventorySummary.map())
                 .all();
     }
 
@@ -196,6 +235,40 @@ public class InventoryRepository {
                 .single(Call.of().bind("id", id))
                 .map(InventoryItem.map())
                 .first();
+    }
+
+    public Optional<InventoryItem> findByInternalId(int stationId, String internalId) {
+        return Query.query("""
+                        SELECT ii.* FROM inventory_item ii
+                        JOIN inventory i ON i.id = ii.inventory_id
+                        WHERE i.station_id = :station_id AND ii.internal_id = :internal_id
+                        LIMIT 1;""")
+                .single(Call.of().bind("station_id", stationId).bind("internal_id", internalId))
+                .map(InventoryItem.map())
+                .first();
+    }
+
+    public List<InventoryItem> findFreeItems(int inventoryId, LocalDate dateFrom, LocalDate dateTo) {
+        return Query.query("""
+                        SELECT * FROM inventory_item
+                        WHERE inventory_id = :inventory_id
+                          AND assigned_to IS NULL
+                          AND lost_at IS NULL
+                          AND id NOT IN (
+                              SELECT li.assigned_item_id FROM federation_lending_request_item li
+                              JOIN federation_lending_request lr ON lr.id = li.request_id
+                              WHERE li.assigned_item_id IS NOT NULL
+                                AND lr.status IN ('APPROVED', 'LENT')
+                                AND lr.requested_date_from <= :date_to
+                                AND (lr.requested_date_to IS NULL OR lr.requested_date_to >= :date_from)
+                          )
+                        ORDER BY id;""")
+                .single(Call.of()
+                        .bind("inventory_id", inventoryId)
+                        .bind("date_from", dateFrom)
+                        .bind("date_to", dateTo))
+                .map(InventoryItem.map())
+                .all();
     }
 
     /**

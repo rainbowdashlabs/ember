@@ -266,7 +266,7 @@ public class StationMemberRepository {
     }
 
     public boolean setFormer(int id, boolean former) {
-        return Query.query("UPDATE station_member SET former = :former WHERE id = :id;")
+        return Query.query("UPDATE station_member SET former = :former, former_at = CASE WHEN :former THEN NOW() ELSE NULL END WHERE id = :id;")
                 .single(Call.of().bind("id", id).bind("former", former))
                 .update()
                 .changed();

@@ -115,9 +115,35 @@ export async function listItems(inventoryId: number): Promise<InventoryItem[]> {
     return res.data
 }
 
+export interface InventorySummary {
+    id: number
+    stationId: string
+    name?: string
+    inventoryType?: string
+    hasSizes: boolean
+    itemCount: number
+    lostCount: number
+    procurementCount: number
+    lentOutCount: number
+}
+
+export async function listSummaries(): Promise<InventorySummary[]> {
+    const res = await client.get<InventorySummary[]>('/inventories/summary')
+    return res.data
+}
+
 export async function getItem(id: number): Promise<InventoryItem> {
     const res = await client.get<InventoryItem>(`/inventory-items/${id}`)
     return res.data
+}
+
+export async function findByInternalId(internalId: string): Promise<InventoryItem | null> {
+    try {
+        const res = await client.get<InventoryItem>('/inventory-items/by-internal-id', { params: { internalId } })
+        return res.data
+    } catch {
+        return null
+    }
 }
 
 export async function createItem(inventoryId: number, data: ItemRequest): Promise<InventoryItem> {

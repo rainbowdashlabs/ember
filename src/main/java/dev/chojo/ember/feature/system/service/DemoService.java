@@ -69,6 +69,7 @@ import java.util.HexFormat;
 import java.util.List;
 import java.util.Random;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -934,29 +935,6 @@ public class DemoService {
                 null,
                 null);
 
-        attendanceSeeder.seedAttendanceSessions(
-                rng,
-                templateUebung,
-                templateGesamt,
-                evUebung,
-                evGesamt,
-                anfaengerMembers,
-                fortgeschrittenMembers,
-                betreuerMembers);
-
-        // -- Inventory --
-        inventorySeeder.seedInventory(
-                station.id(),
-                rng,
-                anfaengerMembers,
-                fortgeschrittenMembers,
-                groupAnfaenger.id(),
-                groupFortgeschritten.id());
-
-        // -- Inventory checks (done by Betreuer) --
-        inventorySeeder.seedInventoryChecks(
-                station.id(), rng, betreuerMembers, anfaengerMembers, fortgeschrittenMembers);
-
         // One-time event for today (ensures there's always an event today)
         Instant todayEventStart = LocalDate.now().atTime(16, 0).toInstant(ZoneOffset.UTC);
         Instant todayEventEnd = LocalDate.now().atTime(18, 0).toInstant(ZoneOffset.UTC);
@@ -1575,264 +1553,152 @@ public class DemoService {
         // Also add admin
         userTagRepository.addMember(tagJfw.id(), adminMember.id());
 
-        // -- Equipment Exchange Requests (~80% of members) --
-        var allKidsForExchange = new ArrayList<>(anfaengerMembers);
-        allKidsForExchange.addAll(fortgeschrittenMembers);
-        var exchangeReasons = List.of(
-                "Zu klein geworden",
-                "Beschädigt",
-                "Verschlissen",
-                "Falsche Größe erhalten",
-                "Verloren und brauche Ersatz",
-                "Riss im Material",
-                "Reißverschluss defekt");
-        var exchangeStatuses = List.of(
-                ExchangeStatus.ANNOUNCED,
-                ExchangeStatus.ANNOUNCED,
-                ExchangeStatus.RECEIVED,
-                ExchangeStatus.ANNOUNCED,
-                ExchangeStatus.RECEIVED);
-        int exchangeCount = 0;
-        for (var kid : allKidsForExchange) {
-            if (rng.nextInt(5) == 0) continue; // ~80% get an exchange
-            var memberItems = inventoryRepository.findItemsByMember(kid.id());
-            if (memberItems.isEmpty()) continue;
-            var item = memberItems.get(rng.nextInt(memberItems.size()));
-            var reason = exchangeReasons.get(rng.nextInt(exchangeReasons.size()));
-            // Determine new size based on reason
-            Integer newSizeId = item.sizeId();
-            var sizes = item.sizeId() != null
-                    ? inventoryRepository.findSizes(item.inventoryId())
-                    : List.<InventorySize>of();
-            int currentIdx = -1;
-            for (int si = 0; si < sizes.size(); si++) {
-                if (sizes.get(si).id() == item.sizeId()) {
-                    currentIdx = si;
-                    break;
+        // -- Parallel module seeding --
+        log.info("Demo: Starting parallel module seeding...");
+        try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {
+            var tasks = new ArrayList<CompletableFuture<?>>();
+
+            // Attendance sessions
+            tasks.add(CompletableFuture.runAsync(() -> {
+                attendanceSeeder.seedAttendanceSessions(
+                        new Random(42_001), templateUebung, templateGesamt, evUebung, evGesamt,
+                        anfaengerMembers, fortgeschrittenMembers, betreuerMembers);
+                log.info("Demo: Created attendance sessions");
+            }, executor));
+
+            // Inventory → Checks → Exchanges → Procurement
+            tasks.add(CompletableFuture.runAsync(() -> {
+                var rngInv = new Random(42_002);
+                inventorySeeder.seedInventory(
+                        station.id(), rngInv, anfaengerMembers, fortgeschrittenMembers,
+                        groupAnfaenger.id(), groupFortgeschritten.id());
+                inventorySeeder.seedInventoryChecks(
+                        station.id(), rngInv, betreuerMembers, anfaengerMembers, fortgeschrittenMembers);
+                seedExchanges(station.id(), rngInv, anfaengerMembers, fortgeschrittenMembers, betreuerMembers);
+                seedProcurements(station.id(), anfaengerMembers, fortgeschrittenMembers);
+            }, executor));
+
+            // Forms
+            tasks.add(CompletableFuture.runAsync(() -> {
+                formSeeder.seedForms(
+                        station.id(), adminMember, anfaengerMembers, fortgeschrittenMembers,
+                        StationUserType.MEMBER.name(), StationUserType.GUARDIAN.name(),
+                        groupAnfaenger.id(), tagWettkampf.id(), new Random(42_003));
+                log.info("Demo: Created forms");
+            }, executor));
+
+            // Demo sessions
+            tasks.add(CompletableFuture.runAsync(() -> {
+                var demoUserAgents = List.of(
+                        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/125.0.0.0 Safari/537.36",
+                        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 Safari/605.1.15",
+                        "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Chrome/125.0.0.0 Mobile Safari/537.36",
+                        "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148",
+                        "Mozilla/5.0 (X11; Linux x86_64; rv:150.0) Gecko/20100101 Firefox/150.0");
+                var sessionExpiry = Instant.now().plus(Duration.ofHours(24));
+                for (String demoUserAgent : demoUserAgents) {
+                    var token = UUID.randomUUID().toString();
+                    accountRepository.createSession(admin.id(), token, sessionExpiry, demoUserAgent, null);
                 }
-            }
-            switch (reason) {
-                case "Zu klein geworden" -> {
-                    if (currentIdx >= 0 && currentIdx < sizes.size() - 1) {
-                        newSizeId = sizes.get(currentIdx + 1).id();
-                    } else {
-                        // Already at largest size — change reason to damage instead
-                        reason = "Beschädigt";
-                    }
-                }
-                case "Beschädigt",
-                        "Verschlissen",
-                        "Riss im Material",
-                        "Reißverschluss defekt",
-                        "Verloren und brauche Ersatz" -> {
-                    // Same size — replacement, not size change
-                }
-                case "Falsche Größe erhalten" -> {
-                    // Pick a different size (up or down)
-                    if (sizes.size() > 1 && currentIdx >= 0) {
-                        int offset = rng.nextBoolean() && currentIdx > 0 ? -1 : 1;
-                        int newIdx = Math.clamp(currentIdx + offset, 0, sizes.size() - 1);
-                        if (newIdx == currentIdx) {
-                            newIdx = currentIdx > 0 ? currentIdx - 1 : currentIdx + 1;
-                        }
-                        newSizeId = sizes.get(newIdx).id();
-                    }
-                }
-                default -> {}
-            }
-            var exchange = exchangeService.create(
-                    station.id(),
-                    kid.id(),
-                    "Demo User",
-                    item.id(),
-                    item.inventoryId(),
-                    item.sizeId(),
-                    newSizeId,
-                    reason,
-                    null);
-            // Progress some exchanges
-            var targetStatus = exchangeStatuses.get(rng.nextInt(exchangeStatuses.size()));
-            if (targetStatus != ExchangeStatus.ANNOUNCED) {
-                exchangeRepository.updateStatus(exchange.id(), ExchangeStatus.RECEIVED);
-                exchangeRepository.createLog(
-                        exchange.id(),
-                        ExchangeStatus.ANNOUNCED,
-                        ExchangeStatus.RECEIVED,
-                        betreuerMembers.get(rng.nextInt(betreuerMembers.size())).id(),
-                        "In Bearbeitung");
-            }
-            exchangeCount++;
-        }
-        log.info("Demo: Created {} exchange requests", exchangeCount);
+                log.info("Demo: Created previous sessions");
+            }, executor));
 
-        // -- Equipment Procurement --
-        var inventories = inventoryRepository.findByStation(station.id());
-        if (!inventories.isEmpty()) {
-            // Need a new pair of gloves for a kid
-            var handschuheInv = inventories.stream()
-                    .filter(i -> "Handschuhe".equals(i.name()))
-                    .findFirst();
-            if (handschuheInv.isPresent()) {
-                var sizes = inventoryRepository.findSizes(handschuheInv.get().id());
-                procurementService.create(
-                        station.id(),
-                        handschuheInv.get().id(),
-                        anfaengerMembers.get(2).id(),
-                        sizes.isEmpty() ? null : sizes.get(2 % sizes.size()).id(),
-                        "Handschuhe verloren");
-            }
-        }
+            // Notifications
+            tasks.add(CompletableFuture.runAsync(() -> {
+                notificationSeeder.seedNotifications(
+                        station.id(), adminMember, betreuerMembers, elternMembers,
+                        anfaengerMembers, fortgeschrittenMembers,
+                        tagDerOffenenTuer.id(), stadtfest.id(), news1.id());
+                log.info("Demo: Created Notifications");
+            }, executor));
 
-        // Procurement for members missing Sporttasche
-        var sporttascheInv =
-                inventories.stream().filter(i -> "Sporttasche".equals(i.name())).findFirst();
-        if (sporttascheInv.isPresent()) {
-            var allKidsForProcurement = new ArrayList<>(anfaengerMembers);
-            allKidsForProcurement.addAll(fortgeschrittenMembers);
-            for (var kid : allKidsForProcurement) {
-                var items = inventoryRepository.findItemsByMember(kid.id());
-                boolean hasSporttasche = items.stream()
-                        .anyMatch(i -> i.inventoryId() == sporttascheInv.get().id());
-                if (!hasSporttasche) {
-                    procurementService.create(
-                            station.id(), sporttascheInv.get().id(), kid.id(), null, "Sporttasche fehlt");
-                }
-            }
-        }
-        log.info("Demo: Created procurements");
+            // Waiting List
+            tasks.add(CompletableFuture.runAsync(() -> {
+                waitingListSeeder.seedWaitingList(station.id(), groupAnfaenger.id(), "MEMBER");
+                log.info("Demo: Created Waiting list");
+            }, executor));
 
-        // -- Forms --
-        formSeeder.seedForms(
-                station.id(),
-                adminMember,
-                anfaengerMembers,
-                fortgeschrittenMembers,
-                StationUserType.MEMBER.name(),
-                StationUserType.GUARDIAN.name(),
-                groupAnfaenger.id(),
-                tagWettkampf.id(),
-                rng);
+            // Quiz
+            tasks.add(CompletableFuture.runAsync(() -> {
+                var quizTestTakers = new ArrayList<Integer>();
+                for (var m : anfaengerMembers) quizTestTakers.add(m.id());
+                for (var m : fortgeschrittenMembers) quizTestTakers.add(m.id());
+                quizSeeder.seedQuiz(station.id(), adminMember.id(), quizTestTakers);
+                log.info("Demo: Created Quiz entries");
+            }, executor));
 
-        // -- Demo sessions (fake past sessions to show in settings) --
-        var demoUserAgents = List.of(
-                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/125.0.0.0 Safari/537.36",
-                "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 Safari/605.1.15",
-                "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Chrome/125.0.0.0 Mobile Safari/537.36",
-                "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148",
-                "Mozilla/5.0 (X11; Linux x86_64; rv:150.0) Gecko/20100101 Firefox/150.0");
-        var sessionExpiry = Instant.now().plus(Duration.ofHours(24));
-        for (String demoUserAgent : demoUserAgents) {
-            var accountId = admin.id();
-            var token = UUID.randomUUID().toString();
-            accountRepository.createSession(accountId, token, sessionExpiry, demoUserAgent, null);
-        }
-        log.info("Demo: Created previous sessions");
+            // Knowledge Base
+            tasks.add(CompletableFuture.runAsync(() -> {
+                kbSeeder.seed(station.id(), adminMember.id());
+                log.info("Demo: Created Knowledge Base content");
+            }, executor));
 
-        // -- Notifications (demo data so users see them on the dashboard) --
-        notificationSeeder.seedNotifications(
-                station.id(),
-                adminMember,
-                betreuerMembers,
-                elternMembers,
-                anfaengerMembers,
-                fortgeschrittenMembers,
-                tagDerOffenenTuer.id(),
-                stadtfest.id(),
-                news1.id());
-        log.info("Demo: Created Notifications");
+            // Protocols
+            tasks.add(CompletableFuture.runAsync(() -> {
+                var protocolTestees = new ArrayList<Integer>();
+                for (var m : anfaengerMembers) protocolTestees.add(m.id());
+                protocolSeeder.seed(station.id(), adminMember.id(), protocolTestees);
+                log.info("Demo: Created Test Protocol data");
+            }, executor));
 
-        // -- Waiting List --
-        waitingListSeeder.seedWaitingList(station.id(), groupAnfaenger.id(), "MEMBER");
-        log.info("Demo: Created Waiting list");
+            // Media / Profile Pictures
+            tasks.add(CompletableFuture.runAsync(() -> {
+                mediaSeeder.seedProfilePictures(
+                        station.id(), adminMember, betreuerMembers, elternMembers,
+                        anfaengerMembers, fortgeschrittenMembers);
+                log.info("Demo: Created profile pictures");
+            }, executor));
 
-        // -- Quiz --
-        var quizTestTakers = new ArrayList<Integer>();
-        for (var m : anfaengerMembers) quizTestTakers.add(m.id());
-        for (var m : fortgeschrittenMembers) quizTestTakers.add(m.id());
-        quizSeeder.seedQuiz(station.id(), adminMember.id(), quizTestTakers);
-        log.info("Demo: Created Quiz entries");
+            // Federation → Lending → Boards (shared)
+            var federationFuture = CompletableFuture.supplyAsync(
+                    () -> federationSeeder.seed(station.id(), adminMember.id()), executor);
+            tasks.add(federationFuture.thenAcceptAsync(federationResult -> {
+                log.info("Demo: Created federation data");
+                lendingSeeder.seed(station.id(), federationResult.partnerStationId(),
+                        adminMember.id(), federationResult.partnerMemberId());
+                log.info("Demo: Created lending data");
+                boardSeeder.seedSharedBoard(
+                        station.id(), federationResult.partnerStationId(),
+                        adminMember, betreuerMembers, "TEAM", "MEMBER", new Random(42_005));
+                log.info("Demo: Created shared board data");
+            }, executor));
 
-        // -- Knowledge Base --
-        kbSeeder.seed(station.id(), adminMember.id());
-        log.info("Demo: Created Knowledge Base content");
+            // Boards (regular — no federation dependency)
+            tasks.add(CompletableFuture.runAsync(() -> {
+                boardSeeder.seed(station.id(), adminMember, betreuerMembers, "TEAM", "MEMBER", new Random(42_004));
+                log.info("Demo: Created board data");
+            }, executor));
 
-        // -- Test Protocols --
-        var protocolTestees = new ArrayList<Integer>();
-        for (var m : anfaengerMembers) protocolTestees.add(m.id());
-        protocolSeeder.seed(station.id(), adminMember.id(), protocolTestees);
-        log.info("Demo: Created Test Protocol data");
-
-        // -- Profile Pictures & Station Logo --
-        mediaSeeder.seedProfilePictures(
-                station.id(), adminMember, betreuerMembers, elternMembers, anfaengerMembers, fortgeschrittenMembers);
-        log.info("Demo: Created profile pictures");
-
-        // -- Federation --
-        var federationResult = federationSeeder.seed(station.id(), adminMember.id());
-        int partnerStationId = federationResult.partnerStationId();
-        log.info("Demo: Created federation data");
-
-        // -- Lending --
-        lendingSeeder.seed(station.id(), partnerStationId, adminMember.id(), federationResult.partnerMemberId());
-        log.info("Demo: Created lending data");
-
-        // -- Boards --
-        boardSeeder.seed(station.id(), adminMember, betreuerMembers, "TEAM", "MEMBER", rng);
-        boardSeeder.seedSharedBoard(
-                station.id(), partnerStationId, adminMember, betreuerMembers, "TEAM", "MEMBER", rng);
-        log.info("Demo: Created board data");
-
-        // -- Public Knowledge Base --
-        stationRepository.updatePublicKbMode(station.id(), PublicKbMode.ALLOW_ALL);
-        log.info("Demo: Enabled public knowledge base");
-
-        // -- Event Templates --
-        var tplStandard = eventTemplateService.create(station.id(), "Standard-Übung");
-        eventTemplateService.update(
-                tplStandard.id(),
-                "Standard-Übung",
-                "Übungsabend",
-                null,
-                null,
-                "RECURRING",
-                false,
-                null,
-                false,
-                null,
-                null,
-                null);
-        eventTemplateService.replaceFields(
-                tplStandard.id(),
-                List.of(
+            // Event Templates
+            tasks.add(CompletableFuture.runAsync(() -> {
+                var tplStandard = eventTemplateService.create(station.id(), "Standard-Übung");
+                eventTemplateService.update(tplStandard.id(), "Standard-Übung", "Übungsabend",
+                        null, null, "RECURRING", false, null, false, null, null, null);
+                eventTemplateService.replaceFields(tplStandard.id(), List.of(
                         new EventTemplateFieldData(
                                 "Ort", EventFieldType.STRING, EventFieldConfig.parse("{}"), 0, true, true, null),
                         new EventTemplateFieldData(
-                                "Treffpunkt",
-                                EventFieldType.STRING,
-                                EventFieldConfig.parse("{}"),
-                                1,
-                                true,
-                                true,
-                                null)));
-        var tplWettbewerb = eventTemplateService.create(station.id(), "Wettbewerb");
-        eventTemplateService.update(
-                tplWettbewerb.id(), "Wettbewerb", null, null, null, "ONE_TIME", true, null, true, null, null, null);
-        eventTemplateService.replaceFields(
-                tplWettbewerb.id(),
-                List.of(
+                                "Treffpunkt", EventFieldType.STRING, EventFieldConfig.parse("{}"), 1, true, true, null)));
+                var tplWettbewerb = eventTemplateService.create(station.id(), "Wettbewerb");
+                eventTemplateService.update(tplWettbewerb.id(), "Wettbewerb", null,
+                        null, null, "ONE_TIME", true, null, true, null, null, null);
+                eventTemplateService.replaceFields(tplWettbewerb.id(), List.of(
                         new EventTemplateFieldData(
                                 "Ort", EventFieldType.STRING, EventFieldConfig.parse("{}"), 0, true, true, null),
                         new EventTemplateFieldData(
                                 "Thema", EventFieldType.STRING, EventFieldConfig.parse("{}"), 1, true, false, null)));
-        log.info("Demo: Created event templates");
+                log.info("Demo: Created event templates");
+            }, executor));
 
-        // -- Feed Tokens --
-        feedTokenService.getOrCreate(adminMember.id());
-        log.info("Demo: Created feed token for admin");
+            // Feed Token + Settings + Public KB
+            tasks.add(CompletableFuture.runAsync(() -> {
+                feedTokenService.getOrCreate(adminMember.id());
+                stationRepository.updatePublicKbMode(station.id(), PublicKbMode.ALLOW_ALL);
+                applicationSettingRepository.setBoolean("station_registration_enabled", false);
+            }, executor));
 
-        // -- Settings --
-        applicationSettingRepository.setBoolean("station_registration_enabled", false);
-        log.info("Demo: Disabled station registration");
+            CompletableFuture.allOf(tasks.toArray(CompletableFuture[]::new)).join();
+        }
 
         int totalUsers = 1 + betreuer.size() + eltern.size() + anfaenger.size() + fortgeschritten.size();
         log.info("Demo: Created {} user accounts (password: '{}')", totalUsers, PASSWORD);
@@ -1887,5 +1753,113 @@ public class DemoService {
                 "Tierhaarallergie",
                 "Keine");
         return allergies.get(rng.nextInt(allergies.size()));
+    }
+
+    private void seedExchanges(
+            int stationId,
+            Random rng,
+            List<StationMember> anfaengerMembers,
+            List<StationMember> fortgeschrittenMembers,
+            List<StationMember> betreuerMembers) {
+        var allKids = new ArrayList<>(anfaengerMembers);
+        allKids.addAll(fortgeschrittenMembers);
+        var exchangeReasons = List.of(
+                "Zu klein geworden", "Beschädigt", "Verschlissen",
+                "Falsche Größe erhalten", "Verloren und brauche Ersatz",
+                "Riss im Material", "Reißverschluss defekt");
+        var exchangeStatuses = List.of(
+                ExchangeStatus.ANNOUNCED, ExchangeStatus.ANNOUNCED,
+                ExchangeStatus.RECEIVED, ExchangeStatus.ANNOUNCED,
+                ExchangeStatus.RECEIVED);
+        int exchangeCount = 0;
+        for (var kid : allKids) {
+            if (rng.nextInt(5) == 0) continue;
+            var memberItems = inventoryRepository.findItemsByMember(kid.id());
+            if (memberItems.isEmpty()) continue;
+            var item = memberItems.get(rng.nextInt(memberItems.size()));
+            var reason = exchangeReasons.get(rng.nextInt(exchangeReasons.size()));
+            Integer newSizeId = item.sizeId();
+            var sizes = item.sizeId() != null
+                    ? inventoryRepository.findSizes(item.inventoryId())
+                    : List.<InventorySize>of();
+            int currentIdx = -1;
+            for (int si = 0; si < sizes.size(); si++) {
+                if (sizes.get(si).id() == item.sizeId()) {
+                    currentIdx = si;
+                    break;
+                }
+            }
+            switch (reason) {
+                case "Zu klein geworden" -> {
+                    if (currentIdx >= 0 && currentIdx < sizes.size() - 1) {
+                        newSizeId = sizes.get(currentIdx + 1).id();
+                    } else {
+                        reason = "Beschädigt";
+                    }
+                }
+                case "Beschädigt", "Verschlissen", "Riss im Material",
+                        "Reißverschluss defekt", "Verloren und brauche Ersatz" -> {}
+                case "Falsche Größe erhalten" -> {
+                    if (sizes.size() > 1 && currentIdx >= 0) {
+                        int offset = rng.nextBoolean() && currentIdx > 0 ? -1 : 1;
+                        int newIdx = Math.clamp(currentIdx + offset, 0, sizes.size() - 1);
+                        if (newIdx == currentIdx) {
+                            newIdx = currentIdx > 0 ? currentIdx - 1 : currentIdx + 1;
+                        }
+                        newSizeId = sizes.get(newIdx).id();
+                    }
+                }
+                default -> {}
+            }
+            var exchange = exchangeService.create(
+                    stationId, kid.id(), "Demo User", item.id(), item.inventoryId(),
+                    item.sizeId(), newSizeId, reason, null);
+            var targetStatus = exchangeStatuses.get(rng.nextInt(exchangeStatuses.size()));
+            if (targetStatus != ExchangeStatus.ANNOUNCED) {
+                exchangeRepository.updateStatus(exchange.id(), ExchangeStatus.RECEIVED);
+                exchangeRepository.createLog(exchange.id(), ExchangeStatus.ANNOUNCED,
+                        ExchangeStatus.RECEIVED,
+                        betreuerMembers.get(rng.nextInt(betreuerMembers.size())).id(),
+                        "In Bearbeitung");
+            }
+            exchangeCount++;
+        }
+        log.info("Demo: Created {} exchange requests", exchangeCount);
+    }
+
+    private void seedProcurements(
+            int stationId,
+            List<StationMember> anfaengerMembers,
+            List<StationMember> fortgeschrittenMembers) {
+        var inventories = inventoryRepository.findByStation(stationId);
+        if (!inventories.isEmpty()) {
+            var handschuheInv = inventories.stream()
+                    .filter(i -> "Handschuhe".equals(i.name()))
+                    .findFirst();
+            if (handschuheInv.isPresent()) {
+                var sizes = inventoryRepository.findSizes(handschuheInv.get().id());
+                procurementService.create(stationId, handschuheInv.get().id(),
+                        anfaengerMembers.get(2).id(),
+                        sizes.isEmpty() ? null : sizes.get(2 % sizes.size()).id(),
+                        "Handschuhe verloren");
+            }
+        }
+        var sporttascheInv = inventories.stream()
+                .filter(i -> "Sporttasche".equals(i.name()))
+                .findFirst();
+        if (sporttascheInv.isPresent()) {
+            var allKids = new ArrayList<>(anfaengerMembers);
+            allKids.addAll(fortgeschrittenMembers);
+            for (var kid : allKids) {
+                var items = inventoryRepository.findItemsByMember(kid.id());
+                boolean hasSporttasche = items.stream()
+                        .anyMatch(i -> i.inventoryId() == sporttascheInv.get().id());
+                if (!hasSporttasche) {
+                    procurementService.create(stationId, sporttascheInv.get().id(),
+                            kid.id(), null, "Sporttasche fehlt");
+                }
+            }
+        }
+        log.info("Demo: Created procurements");
     }
 }

@@ -7,9 +7,22 @@ import client from './client'
 import type {
     AcknowledgeRequest,
     MemberChangeSummary,
+    MemberIdentity,
     ProfileFieldChange,
     ProfileFieldChangeAcknowledgement,
 } from './types'
+
+interface EnrichedProfileFieldChange {
+    change: ProfileFieldChange
+    memberIdentity?: MemberIdentity | null
+}
+
+interface RawPagedChangesResponse {
+    changes: EnrichedProfileFieldChange[]
+    total: number
+    offset: number
+    limit: number
+}
 
 export interface PagedChangesResponse {
     changes: ProfileFieldChange[]
@@ -18,9 +31,16 @@ export interface PagedChangesResponse {
     limit: number
 }
 
+function flatten(enriched: EnrichedProfileFieldChange): ProfileFieldChange {
+    return { ...enriched.change, memberIdentity: enriched.memberIdentity ?? null }
+}
+
 export async function getAllChanges(offset = 0, limit = 20): Promise<PagedChangesResponse> {
-    const res = await client.get<PagedChangesResponse>('/profile-changes/all', { params: { offset, limit } })
-    return res.data
+    const res = await client.get<RawPagedChangesResponse>('/profile-changes/all', { params: { offset, limit } })
+    return {
+        ...res.data,
+        changes: res.data.changes.map(flatten),
+    }
 }
 
 export async function getPendingSummary(): Promise<MemberChangeSummary[]> {
@@ -29,8 +49,8 @@ export async function getPendingSummary(): Promise<MemberChangeSummary[]> {
 }
 
 export async function getChanges(memberId: number): Promise<ProfileFieldChange[]> {
-    const res = await client.get<ProfileFieldChange[]>(`/station-members/${memberId}/profile-changes`)
-    return res.data
+    const res = await client.get<EnrichedProfileFieldChange[]>(`/station-members/${memberId}/profile-changes`)
+    return res.data.map(flatten)
 }
 
 export async function acknowledge(changeId: number, data: AcknowledgeRequest): Promise<ProfileFieldChangeAcknowledgement> {

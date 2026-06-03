@@ -18,7 +18,7 @@ import InfoBadge from '@/components/badge/InfoBadge.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import SizeBadge from '@/components/badge/SizeBadge.vue'
-import type { InventoryItem, InventorySize, StationMember, ExchangeRequestEntry, ProcurementEntry } from '@/api/types'
+import type { InventoryItem, InventorySize, MemberIdentity, StationMember, ExchangeRequestEntry, ProcurementEntry } from '@/api/types'
 import { ExchangeStatus } from '@/api/types'
 import { inventory, stationMembers, exchanges, procurement } from '@/api'
 import { useStations } from '@/composables/useStations'
@@ -40,6 +40,7 @@ interface LostItem {
   inventoryName: string
   sizeName: string
   ownerName: string
+  ownerIdentity: MemberIdentity | null
 }
 
 const lostItems = ref<LostItem[]>([])
@@ -88,6 +89,7 @@ async function loadData() {
             inventoryName: inv.name ?? '',
             sizeName: size?.label ?? '',
             ownerName: owner ? (owner.name || owner.email || `#${owner.id}`) : '-',
+            ownerIdentity: owner?.identity ?? null,
           })
         }
       }
@@ -143,7 +145,7 @@ watch(() => activeStation.value?.stationId, (newId, oldId) => {
                 <span class="text-sm font-medium">{{ ex.inventoryName }}</span>
                 <component :is="exchangeStatusBadge(ex.status)">{{ t(`exchanges.status.${ex.status}`) }}</component>
               </div>
-              <div class="text-xs text-(--text-muted)"><MemberName :name="ex.memberName"/></div>
+              <div class="text-xs text-(--text-muted)"><MemberName :identity="ex.memberIdentity ?? null"/></div>
               <SizeBadge>{{ ex.oldSizeLabel ?? t('common.unisize') }} &rarr; {{ ex.newSizeLabel ?? t('common.unisize') }}</SizeBadge>
             </NeutralContainer>
           </div>
@@ -165,7 +167,7 @@ watch(() => activeStation.value?.stationId, (newId, oldId) => {
                     {{ ex.inventoryName }}
                     <SizeBadge>{{ ex.oldSizeLabel ?? t('common.unisize') }} &rarr; {{ ex.newSizeLabel ?? t('common.unisize') }}</SizeBadge>
                   </Td>
-                  <Td><MemberName :name="ex.memberName"/></Td>
+                  <Td><MemberName :identity="ex.memberIdentity ?? null"/></Td>
                   <Td>
                     <component :is="exchangeStatusBadge(ex.status)">{{ t(`exchanges.status.${ex.status}`) }}</component>
                   </Td>
@@ -188,7 +190,7 @@ watch(() => activeStation.value?.stationId, (newId, oldId) => {
                 <span class="text-sm font-medium">{{ p.inventoryName }}</span>
                 <SizeBadge>{{ p.sizeLabel || t('common.unisize') }}</SizeBadge>
               </div>
-              <div class="text-xs text-(--text-muted)"><MemberName :name="p.memberName"/></div>
+              <div class="text-xs text-(--text-muted)"><MemberName :identity="p.memberIdentity ?? null"/></div>
               <div v-if="p.notes" class="text-xs text-(--text-muted)">{{ p.notes }}</div>
             </NeutralContainer>
           </div>
@@ -210,7 +212,7 @@ watch(() => activeStation.value?.stationId, (newId, oldId) => {
                     {{ p.inventoryName }}
                     <SizeBadge>{{ p.sizeLabel || t('common.unisize') }}</SizeBadge>
                   </Td>
-                  <Td><MemberName :name="p.memberName"/></Td>
+                  <Td><MemberName :identity="p.memberIdentity ?? null"/></Td>
                   <Td muted>{{ p.notes || '-' }}</Td>
                 </TRow>
               </tbody>
@@ -232,7 +234,7 @@ watch(() => activeStation.value?.stationId, (newId, oldId) => {
                 <SizeBadge lost>{{ a.sizeName || t('common.unisize') }}</SizeBadge>
                 <span v-if="a.item.internalId" class="text-xs text-(--text-muted)">{{ a.item.internalId }}</span>
               </div>
-              <div class="text-xs text-(--text-muted)"><MemberName :name="a.ownerName"/></div>
+              <div class="text-xs text-(--text-muted)"><MemberName :identity="a.ownerIdentity"/></div>
             </NeutralContainer>
           </div>
           <!-- Desktop table -->
@@ -254,7 +256,7 @@ watch(() => activeStation.value?.stationId, (newId, oldId) => {
                     </div>
                     <div v-if="a.item.internalId" class="text-xs text-(--text-muted)">{{ a.item.internalId }}</div>
                   </Td>
-                  <Td><MemberName :name="a.ownerName"/></Td>
+                  <Td><MemberName :identity="a.ownerIdentity"/></Td>
                   <Td>
                     <ErrorBadge>{{ formatDate(a.item.lostAt) }}</ErrorBadge>
                   </Td>

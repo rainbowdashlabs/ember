@@ -12,5 +12,6 @@ public enum ProfileFieldScope {
     MEMBER,
     GUARDIAN,
     TEAM,
+    MANAGER,
     GROUP
 }

@@ -15,7 +15,9 @@ import dev.chojo.ember.feature.inventory.entity.InventorySize;
 import dev.chojo.ember.feature.inventory.entity.Procurement;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
 import dev.chojo.ember.feature.inventory.service.ProcurementService;
+import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
+import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.http.NotFoundResponse;
@@ -41,17 +43,20 @@ public class ProcurementRoutes implements Routes {
     private final AccountRepository accountRepository;
     private final StationMemberRepository stationMemberRepository;
     private final InventoryRepository inventoryRepository;
+    private final MemberIdentityFactory memberIdentityFactory;
 
     @Inject
     public ProcurementRoutes(
             ProcurementService procurementService,
             AccountRepository accountRepository,
             StationMemberRepository stationMemberRepository,
-            InventoryRepository inventoryRepository) {
+            InventoryRepository inventoryRepository,
+            MemberIdentityFactory memberIdentityFactory) {
         this.procurementService = procurementService;
         this.accountRepository = accountRepository;
         this.stationMemberRepository = stationMemberRepository;
         this.inventoryRepository = inventoryRepository;
+        this.memberIdentityFactory = memberIdentityFactory;
     }
 
     @Override
@@ -143,11 +148,13 @@ public class ProcurementRoutes implements Routes {
     }
 
     private ProcurementResponse toResponse(Procurement procurement) {
-        String memberName = stationMemberRepository
-                .findById(procurement.memberId())
-                .flatMap(m -> accountRepository.findById(m.accountId()))
-                .map(a -> (a.firstName() + " " + a.lastName()).trim())
-                .orElse("");
+        var member = stationMemberRepository.findById(procurement.memberId()).orElse(null);
+        String memberName = member != null
+                ? accountRepository.findById(member.accountId())
+                        .map(a -> (a.firstName() + " " + a.lastName()).trim())
+                        .orElse("")
+                : "";
+        MemberIdentity memberIdentity = member != null ? memberIdentityFactory.local(member.stationId(), procurement.memberId()) : null;
         Inventory inventory =
                 inventoryRepository.findById(procurement.inventoryId()).orElse(null);
         String inventoryName = inventory != null ? inventory.name() : "";
@@ -165,6 +172,7 @@ public class ProcurementRoutes implements Routes {
                 inventoryName,
                 procurement.memberId(),
                 memberName,
+                memberIdentity,
                 procurement.sizeId(),
                 sizeLabel,
                 procurement.notes(),
@@ -178,6 +186,7 @@ public class ProcurementRoutes implements Routes {
             String inventoryName,
             int memberId,
             String memberName,
+            MemberIdentity memberIdentity,
             Integer sizeId,
             String sizeLabel,
             String notes,

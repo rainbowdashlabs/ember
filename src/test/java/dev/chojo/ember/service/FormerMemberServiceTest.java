@@ -36,6 +36,7 @@ class FormerMemberServiceTest extends RepositoryTestBase {
                 inventoryRepo,
                 exchangeRepo,
                 memberGroupRepo,
+                userTagRepo,
                 attendanceRepo,
                 profileFieldRepo);
         station = stationRepo.create("FormerStation");

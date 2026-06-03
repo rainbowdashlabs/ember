@@ -35,7 +35,7 @@ const transferringOwnership = ref(false)
 async function loadManagers() {
   try {
     const members = await stationMembers.listMembers()
-    const allRolesList = await stationMembers.listAllRoles()
+    const allRolesList = await stationMembers.listAllPermissions()
     const managerRoleId = allRolesList.find(r => r.permission === 'MANAGER')?.id
     if (!managerRoleId) return
     const result: {id: number, name: string}[] = []

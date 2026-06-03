@@ -132,6 +132,7 @@ public class ManagedMemberRoutes implements Routes {
         if (permissions.contains(StationPermission.USER)) scopes.add(ProfileFieldScope.MEMBER);
         if (permissions.contains(StationPermission.MEMBER_GUARDIAN)) scopes.add(ProfileFieldScope.GUARDIAN);
         if (permissions.stream().anyMatch(TEAM_PERMISSIONS::contains)) scopes.add(ProfileFieldScope.TEAM);
+        if (permissions.contains(StationPermission.STATION_ADMINISTRATOR)) scopes.add(ProfileFieldScope.MANAGER);
         return scopes;
     }
 

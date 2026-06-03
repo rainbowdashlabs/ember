@@ -94,13 +94,17 @@ function getMemberName(memberId: number): string {
   return m?.name ?? m?.email ?? `#${memberId}`
 }
 
+function getMemberIdentity(memberId: number) {
+  return allMembers.value.find(mm => mm.id === memberId)?.identity ?? null
+}
+
 async function loadData() {
   loading.value = true
   error.value = ''
   try {
     const [detail, members, allGroups] = await Promise.all([
       attendance.getSession(sessionId.value),
-      stationMembers.listMembers(),
+      stationMembers.listMembers(true),
       memberGroups.listGroups(),
     ])
     session.value = detail.session ?? null
@@ -137,7 +141,7 @@ async function loadData() {
       for (const tg of templateGroups.value) {
         const members = gm.get(tg.groupId) ?? []
         for (const m of members) {
-          if (!entryMemberIds.has(m.id)) {
+          if (!entryMemberIds.has(m.id) && !m.formerAt) {
             entries.value = await attendance.createEntry(sessionId.value, {memberId: m.id, source: 'EXPECTED'})
             entryMemberIds.add(m.id)
           }
@@ -284,6 +288,7 @@ watch(loaded, (isLoaded) => {
             :check-index="checkIndex"
             :total-unchecked="uncheckedEntries.length"
             :member-name="currentCheckEntry ? getMemberName(currentCheckEntry.memberId) : ''"
+            :member-identity="currentCheckEntry ? getMemberIdentity(currentCheckEntry.memberId) : null"
             @set-status="checkSetStatus"
             @skip="skipCheck"
             @end="checkMode = false"
@@ -299,7 +304,7 @@ watch(loaded, (isLoaded) => {
               @field-member-ids="setFieldMemberIds"
           />
 
-          <AttendanceSummary :entries="entries"/>
+          <AttendanceSummary :entries="entries" :member-sections="memberSections"/>
 
           <MemberListPanel
               :entries="entries"

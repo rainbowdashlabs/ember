@@ -13,6 +13,7 @@ import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.ProfileFieldRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
+import dev.chojo.ember.feature.members.repository.UserTagRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -31,6 +32,7 @@ public class FormerMemberService {
     private final InventoryRepository inventoryRepository;
     private final ExchangeRepository exchangeRepository;
     private final MemberGroupRepository groupRepository;
+    private final UserTagRepository tagRepository;
     private final AttendanceRepository attendanceRepository;
     private final ProfileFieldRepository profileFieldRepository;
 
@@ -41,6 +43,7 @@ public class FormerMemberService {
             InventoryRepository inventoryRepository,
             ExchangeRepository exchangeRepository,
             MemberGroupRepository groupRepository,
+            UserTagRepository tagRepository,
             AttendanceRepository attendanceRepository,
             ProfileFieldRepository profileFieldRepository) {
         this.memberRepository = memberRepository;
@@ -48,6 +51,7 @@ public class FormerMemberService {
         this.inventoryRepository = inventoryRepository;
         this.exchangeRepository = exchangeRepository;
         this.groupRepository = groupRepository;
+        this.tagRepository = tagRepository;
         this.attendanceRepository = attendanceRepository;
         this.profileFieldRepository = profileFieldRepository;
     }
@@ -86,6 +90,7 @@ public class FormerMemberService {
      * - Remove manager relations (both directions)
      * - Delete exchange requests
      * - Remove from all groups
+     * - Remove from all tags
      * - Delete absences
      * - Set former flag
      */
@@ -114,6 +119,12 @@ public class FormerMemberService {
         var groups = groupRepository.findGroupsForMember(memberId);
         for (var group : groups) {
             groupRepository.removeMember(group.id(), memberId);
+        }
+
+        // Remove from all tags
+        var tags = tagRepository.findTagsForMember(memberId);
+        for (var tag : tags) {
+            tagRepository.removeMember(tag.id(), memberId);
         }
 
         // Delete absences

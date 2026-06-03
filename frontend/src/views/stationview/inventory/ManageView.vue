@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
@@ -24,17 +24,15 @@ import Modal from '@/components/feedback/Modal.vue'
 import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
-import type { Inventory, InventoryItem, ProcurementEntry } from '@/api/types'
 import { InventoryTypes } from '@/api/types'
-import { inventory, procurement } from '@/api'
+import { inventory } from '@/api'
+import type { InventorySummary } from '@/api/inventory'
 import MutedText from '@/components/typography/MutedText.vue'
 
 const { t } = useI18n()
 const router = useRouter()
 
-const inventories = ref<Inventory[]>([])
-const itemsByInventory = ref<Map<number, InventoryItem[]>>(new Map())
-const openProcurement = ref<ProcurementEntry[]>([])
+const summaries = ref<InventorySummary[]>([])
 const loading = ref(true)
 const error = ref('')
 
@@ -50,23 +48,13 @@ const saving = ref(false)
 
 // Delete
 const showDeleteModal = ref(false)
-const deleteTarget = ref<Inventory | null>(null)
+const deleteTarget = ref<InventorySummary | null>(null)
 
 async function loadData() {
   loading.value = true
   error.value = ''
   try {
-    const [inv, proc] = await Promise.all([
-      inventory.listInventories(),
-      procurement.listOpen(),
-    ])
-    inventories.value = inv
-    openProcurement.value = proc
-    const map = new Map<number, InventoryItem[]>()
-    for (const i of inv) {
-      map.set(i.id, await inventory.listItems(i.id))
-    }
-    itemsByInventory.value = map
+    summaries.value = await inventory.listSummaries()
   } catch {
     error.value = t('common.error')
   } finally {
@@ -74,19 +62,7 @@ async function loadData() {
   }
 }
 
-function itemCount(invId: number): number {
-  return itemsByInventory.value.get(invId)?.length ?? 0
-}
-
-function lostCount(invId: number): number {
-  return itemsByInventory.value.get(invId)?.filter(i => i.lostAt)?.length ?? 0
-}
-
-function procurementCount(invId: number): number {
-  return openProcurement.value.filter(p => p.inventoryId === invId).length
-}
-
-function viewDetail(inv: Inventory) {
+function viewDetail(inv: InventorySummary) {
   router.push({ name: 'inventory-detail', params: { id: inv.id } })
 }
 
@@ -141,7 +117,7 @@ async function submitCreate() {
   }
 }
 
-function requestDelete(inv: Inventory) {
+function requestDelete(inv: InventorySummary) {
   deleteTarget.value = inv
   showDeleteModal.value = true
 }
@@ -158,11 +134,34 @@ async function confirmDelete() {
   }
 }
 
-function editInventory(inv: Inventory) {
+function editInventory(inv: InventorySummary) {
   router.push({ name: 'inventory-edit', params: { id: inv.id } })
 }
 
-onMounted(loadData)
+const scanInputRef = ref<{ $el: HTMLInputElement } | null>(null)
+const scanInput = ref('')
+const scanError = ref('')
+
+async function onScanSubmit() {
+  const query = scanInput.value.trim()
+  if (!query) return
+  scanError.value = ''
+  const item = await inventory.findByInternalId(query)
+  if (item) {
+    scanInput.value = ''
+    router.push({ name: 'inventory-item-detail', params: { id: item.id } })
+  } else {
+    scanError.value = t('inventory.manage.scanNotFound')
+  }
+}
+
+onMounted(async () => {
+  await loadData()
+  nextTick(() => {
+    const el = scanInputRef.value?.$el
+    if (el instanceof HTMLInputElement) el.focus()
+  })
+})
 </script>
 
 <template>
@@ -179,10 +178,22 @@ onMounted(loadData)
           </PrimaryButton>
         </div>
 
-        <EmptyState v-if="inventories.length === 0">{{ t('inventory.manage.empty') }}</EmptyState>
+        <!-- Barcode / Internal ID scanner -->
+        <NeutralContainer class="space-y-2">
+          <FieldLabel>{{ t('inventory.manage.scanLabel') }}</FieldLabel>
+          <form class="flex items-center gap-2" @submit.prevent="onScanSubmit">
+            <TextInput ref="scanInputRef" v-model="scanInput" :placeholder="t('inventory.manage.scanPlaceholder')" class="flex-1" />
+            <PrimaryButton :icon="['fas', 'magnifying-glass']" type="submit">
+              {{ t('inventory.manage.scanSubmit') }}
+            </PrimaryButton>
+          </form>
+          <Alert v-if="scanError" variant="error" class="text-sm">{{ scanError }}</Alert>
+        </NeutralContainer>
+
+        <EmptyState v-if="summaries.length === 0">{{ t('inventory.manage.empty') }}</EmptyState>
 
         <div class="space-y-3">
-          <NeutralContainer clickable v-for="inv in inventories" :key="inv.id" @click="viewDetail(inv)">
+          <NeutralContainer clickable v-for="inv in summaries" :key="inv.id" @click="viewDetail(inv)">
             <div class="flex items-center justify-between">
               <div>
                 <span class="font-medium">{{ inv.name }}</span>
@@ -195,12 +206,15 @@ onMounted(loadData)
               </div>
             </div>
             <MutedText tag="div" class="mt-1">
-              {{ t('inventory.manage.itemCount', { count: itemCount(inv.id) }) }}
-              <template v-if="lostCount(inv.id) > 0">
-                &middot; <span class="text-error">{{ t('inventory.manage.lostCount', { count: lostCount(inv.id) }) }}</span>
+              {{ t('inventory.manage.itemCount', { count: inv.itemCount }) }}
+              <template v-if="inv.lostCount > 0">
+                &middot; <span class="text-error">{{ t('inventory.manage.lostCount', { count: inv.lostCount }) }}</span>
               </template>
-              <template v-if="procurementCount(inv.id) > 0">
-                &middot; <span class="text-info-accent dark:text-info">{{ t('inventory.manage.procurementCount', { count: procurementCount(inv.id) }) }}</span>
+              <template v-if="inv.lentOutCount > 0">
+                &middot; <span class="text-secondary-accent dark:text-secondary">{{ t('inventory.manage.lentOutCount', { count: inv.lentOutCount }) }}</span>
+              </template>
+              <template v-if="inv.procurementCount > 0">
+                &middot; <span class="text-info-accent dark:text-info">{{ t('inventory.manage.procurementCount', { count: inv.procurementCount }) }}</span>
               </template>
             </MutedText>
           </NeutralContainer>

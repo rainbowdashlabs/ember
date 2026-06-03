@@ -65,6 +65,7 @@ public class ProfileFieldRoutes implements Routes {
         routes.delete(prefix + "/profile-fields/{id}", this::delete, StationPermission.MEMBER_MANAGER);
 
         // Field values per member — MEMBER or TEAM can read/write own, MEMBER_MANAGER for any
+        routes.get(prefix + "/station-members/{memberId}/fields", this::getApplicableFields, StationPermission.USER);
         routes.get(prefix + "/station-members/{memberId}/profile", this::getValues, StationPermission.USER);
         routes.put(prefix + "/station-members/{memberId}/profile", this::setValues, StationPermission.USER);
     }
@@ -101,7 +102,7 @@ public class ProfileFieldRoutes implements Routes {
                         session.stationId(),
                         request.name(),
                         request.fieldType(),
-                        request.config(),
+                        request.parsedConfig(),
                         request.position(),
                         request.scope()));
     }
@@ -145,7 +146,7 @@ public class ProfileFieldRoutes implements Routes {
                         id,
                         request.name(),
                         request.fieldType(),
-                        request.config(),
+                        request.parsedConfig(),
                         request.position(),
                         request.keepOnArchive() != null ? request.keepOnArchive() : false)
                 .ifPresentOrElse(ctx::json, () -> {
@@ -172,6 +173,18 @@ public class ProfileFieldRoutes implements Routes {
         } else {
             throw new NotFoundResponse();
         }
+    }
+
+    @OpenApi(
+            path = "/api/v1/station-members/{memberId}/fields",
+            methods = HttpMethod.GET,
+            summary = "Get applicable profile field definitions for a member based on their user type",
+            tags = {"Profile Fields"},
+            pathParams = @OpenApiParam(name = "memberId", type = Integer.class, required = true),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ProfileField[].class)))
+    private void getApplicableFields(Context ctx) {
+        int memberId = ctx.pathParamAsClass("memberId", Integer.class).get();
+        ctx.json(profileFieldService.findApplicableFields(memberId));
     }
 
     @OpenApi(
@@ -224,10 +237,15 @@ public class ProfileFieldRoutes implements Routes {
     public record ProfileFieldRequest(
             String name,
             ProfileFieldType fieldType,
-            ProfileFieldConfig config,
+            String config,
             int position,
             ProfileFieldScope scope,
-            Boolean keepOnArchive) {}
+            Boolean keepOnArchive) {
+
+        public ProfileFieldConfig parsedConfig() {
+            return ProfileFieldConfig.parse(config);
+        }
+    }
 
     public record SetValuesRequest(List<FieldValueEntry> values) {}
 }

@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.form.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
+import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.roles.StationPermission;
@@ -21,6 +22,7 @@ import dev.chojo.ember.feature.form.entity.QuestionEntry;
 import dev.chojo.ember.feature.form.service.FormService;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
+import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.members.service.StationMemberService;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 import io.javalin.http.BadRequestResponse;
@@ -60,17 +62,20 @@ public class FormRoutes implements Routes {
     private final StationMemberService stationMemberService;
     private final StationMemberRepository stationMemberRepository;
     private final AccountRepository accountRepository;
+    private final MemberIdentityFactory memberIdentityFactory;
 
     @Inject
     public FormRoutes(
             FormService formService,
             StationMemberService stationMemberService,
             StationMemberRepository stationMemberRepository,
-            AccountRepository accountRepository) {
+            AccountRepository accountRepository,
+            MemberIdentityFactory memberIdentityFactory) {
         this.formService = formService;
         this.stationMemberService = stationMemberService;
         this.stationMemberRepository = stationMemberRepository;
         this.accountRepository = accountRepository;
+        this.memberIdentityFactory = memberIdentityFactory;
     }
 
     /**
@@ -667,8 +672,11 @@ public class FormRoutes implements Routes {
      */
     private FormResponseEntry toResponseEntry(FormResponse r) {
         String submittedByName = r.submittedBy() != r.memberId() ? resolveMemberName(r.submittedBy()) : null;
+        MemberIdentity memberIdentity = stationMemberRepository.findById(r.memberId())
+                .map(m -> memberIdentityFactory.local(m.stationId(), r.memberId()))
+                .orElse(null);
         return new FormResponseEntry(
-                r.id(), r.formId(), r.memberId(), r.submittedBy(), submittedByName, r.submittedAt(), r.updatedAt());
+                r.id(), r.formId(), r.memberId(), r.submittedBy(), submittedByName, memberIdentity, r.submittedAt(), r.updatedAt());
     }
 
     private void listResponses(Context ctx) {
@@ -776,6 +784,7 @@ public class FormRoutes implements Routes {
             int memberId,
             int submittedBy,
             String submittedByName,
+            MemberIdentity memberIdentity,
             Instant submittedAt,
             Instant updatedAt) {}
 

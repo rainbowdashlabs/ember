@@ -1,0 +1,129 @@
+/*
+ *     SPDX-License-Identifier: AGPL-3.0-only
+ *
+ *     Copyright (C) RainbowDashLabs and Contributor
+ */
+<script setup lang="ts">
+import {ref} from 'vue'
+import {useI18n} from 'vue-i18n'
+import TextInput from '@/components/input/text/TextInput.vue'
+import ProfileFieldInput from '@/components/input/ProfileFieldInput.vue'
+import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import NeutralContainer from '@/components/container/NeutralContainer.vue'
+import Alert from '@/components/feedback/Alert.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
+import FieldLabel from '@/components/typography/FieldLabel.vue'
+import Th from '@/components/table/Th.vue'
+import Td from '@/components/table/Td.vue'
+import THead from '@/components/table/THead.vue'
+import TRow from '@/components/table/TRow.vue'
+import type {ProfileField, StationMember} from '@/api/types'
+import {parseFieldConfig} from '@/api/types'
+import {profileFields, members} from '@/api'
+
+const {t} = useI18n()
+
+const props = defineProps<{
+  member: StationMember
+  memberId: number
+  fields: ProfileField[]
+  initialValues: Map<number, string>
+}>()
+
+const editFirstName = ref(props.member.name?.split(' ')[0] ?? '')
+const editLastName = ref(props.member.name?.split(' ').slice(1).join(' ') ?? '')
+const editEmail = ref(props.member.email ?? '')
+const editValues = ref(new Map(props.initialValues))
+const saving = ref(false)
+const error = ref('')
+const success = ref('')
+
+function getEditValue(fieldId: number): string {
+  return editValues.value.get(fieldId) ?? ''
+}
+
+function setEditValue(fieldId: number, val: string) {
+  editValues.value = new Map([...editValues.value, [fieldId, val]])
+}
+
+async function save() {
+  saving.value = true
+  error.value = ''
+  success.value = ''
+  try {
+    await members.updateAccount(props.member.accountId, {
+      email: editEmail.value,
+      firstName: editFirstName.value,
+      lastName: editLastName.value,
+    })
+    const entries = fields.value.map(f => ({fieldId: f.id, value: JSON.stringify(getEditValue(f.id))}))
+    await profileFields.setValues(props.memberId, {values: entries})
+    success.value = t('memberEdit.saved')
+  } catch {
+    error.value = t('common.error')
+  } finally {
+    saving.value = false
+  }
+}
+</script>
+
+<template>
+  <div class="space-y-6">
+    <Alert v-if="error" variant="error">{{ error }}</Alert>
+    <Alert v-if="success" variant="success">{{ success }}</Alert>
+
+    <!-- Base fields -->
+    <NeutralContainer class="space-y-4">
+      <SubHeader class="text-sm">{{ t('memberEdit.baseFields') }}</SubHeader>
+      <div class="grid gap-4 sm:grid-cols-3">
+        <div class="space-y-1">
+          <FieldLabel hint>{{ t('memberEdit.firstName') }}</FieldLabel>
+          <TextInput v-model="editFirstName"/>
+        </div>
+        <div class="space-y-1">
+          <FieldLabel hint>{{ t('memberEdit.lastName') }}</FieldLabel>
+          <TextInput v-model="editLastName"/>
+        </div>
+        <div class="space-y-1">
+          <FieldLabel hint>{{ t('memberEdit.email') }}</FieldLabel>
+          <TextInput v-model="editEmail"/>
+        </div>
+      </div>
+    </NeutralContainer>
+
+    <!-- Profile fields -->
+    <NeutralContainer v-if="fields.length > 0" class="space-y-4">
+      <SubHeader class="text-sm">{{ t('memberEdit.fields') }}</SubHeader>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <THead>
+              <Th class="text-(--text-muted)">{{ t('memberEdit.fieldName') }}</Th>
+              <Th class="text-(--text-muted)">{{ t('memberEdit.fieldValue') }}</Th>
+            </THead>
+          </thead>
+          <tbody>
+            <TRow v-for="field in fields" :key="field.id">
+              <Td class="font-medium whitespace-nowrap">{{ field.name }}</Td>
+              <Td>
+                <ProfileFieldInput
+                    :field-type="field.fieldType ?? 'TEXT'"
+                    :model-value="getEditValue(field.id)"
+                    :options="parseFieldConfig(field.config).options as string[]"
+                    @update:model-value="setEditValue(field.id, $event)"
+                />
+              </Td>
+            </TRow>
+          </tbody>
+        </table>
+      </div>
+    </NeutralContainer>
+
+    <!-- Save -->
+    <div class="flex items-center">
+      <PrimaryButton :disabled="saving" @click="save">
+        {{ saving ? t('common.loading') : t('memberEdit.save') }}
+      </PrimaryButton>
+    </div>
+  </div>
+</template>

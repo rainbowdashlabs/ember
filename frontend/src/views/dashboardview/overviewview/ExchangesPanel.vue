@@ -61,7 +61,7 @@ onMounted(loadData)
                           class="flex items-center justify-between gap-2 py-2 px-3 cursor-pointer hover:bg-(--bg-accent)"
                           @click="router.push({ name: 'inventory-exchanges' })">
           <div>
-            <MemberName v-if="isOtherMember(ex.memberId)" :name="ex.memberName"
+            <MemberName v-if="isOtherMember(ex.memberId)" :identity="ex.memberIdentity ?? null"
                         class="text-xs font-semibold text-primary"/>
             <p class="text-sm font-medium">{{ ex.inventoryName }}</p>
             <p class="text-xs text-(--text-muted)">

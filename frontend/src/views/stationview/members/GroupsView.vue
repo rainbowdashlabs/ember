@@ -98,7 +98,7 @@ async function loadData() {
     const [g, m, r] = await Promise.all([
       memberGroups.listGroups(),
       stationMembers.listMembers(),
-      stationMembers.listAllRoles(),
+      stationMembers.listAllPermissions(),
     ])
     groups.value = g
     allMembers.value = m
@@ -300,7 +300,7 @@ onMounted(loadData)
                   <div v-for="member in sortedGroupMembers" :key="member.id"
                        class="flex items-center justify-between rounded-lg px-3 py-2 bg-bg-light-accent dark:bg-bg-dark-accent">
                     <div>
-                      <MemberName :name="memberDisplayName(member)" :identity="member.identity" class="text-sm font-medium"/>
+                      <MemberName :identity="member.identity" class="text-sm font-medium"/>
                       <MutedText class="ml-2" v-if="member.name && member.email">{{ member.email }}</MutedText>
                     </div>
                     <IconButton :icon="['fas', 'xmark']" :label="t('memberGroups.removeMember')" class="text-error hover:text-error/80 text-sm" @click="removeMemberFromGroup(member)"/>
@@ -321,7 +321,7 @@ onMounted(loadData)
                       @click="addMemberToGroup(member)"
                   >
                     <div>
-                      <MemberName :name="memberDisplayName(member)" :identity="member.identity" class="text-sm font-medium"/>
+                      <MemberName :identity="member.identity" class="text-sm font-medium"/>
                       <MutedText class="ml-2" v-if="member.name && member.email">{{ member.email }}</MutedText>
                     </div>
                     <font-awesome-icon :icon="['fas', 'plus']" class="text-primary text-sm"/>

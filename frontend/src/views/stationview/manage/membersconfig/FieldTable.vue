@@ -30,12 +30,12 @@ const emit = defineEmits<{
 }>()
 
 const fieldTypeOptions = [
-  {value: 'text', label: 'Text'},
-  {value: 'number', label: 'Zahl'},
-  {value: 'date', label: 'Datum'},
-  {value: 'boolean', label: 'Ja/Nein'},
-  {value: 'enum', label: 'Auswahl'},
-  {value: 'age', label: 'Alter (berechnet)'},
+  {value: 'TEXT', label: 'Text'},
+  {value: 'NUMBER', label: 'Zahl'},
+  {value: 'DATE', label: 'Datum'},
+  {value: 'BOOLEAN', label: 'Ja/Nein'},
+  {value: 'ENUM', label: 'Auswahl'},
+  {value: 'AGE', label: 'Alter (berechnet)'},
 ]
 
 function fieldTypeLabel(value: string): string {

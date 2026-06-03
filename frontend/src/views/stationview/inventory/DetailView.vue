@@ -71,12 +71,32 @@ const historyTarget = ref<InventoryItem | null>(null)
 const showDeleteModal = ref(false)
 const deleteTarget = ref<InventoryItem | null>(null)
 
+// Lending: map item ID → station name for actively lent items
+const activeLendingStatuses = new Set(['APPROVED', 'LENT'])
+
+const lentItemStationMap = computed(() => {
+  const map = new Map<number, string>()
+  for (const l of lentOutItems.value) {
+    if (l.assignedItemId && activeLendingStatuses.has(l.status)) {
+      map.set(l.assignedItemId, l.requestingStationName)
+    }
+  }
+  return map
+})
+
+function isLentOut(itemId: number): boolean {
+  return lentItemStationMap.value.has(itemId)
+}
+
+function lentToStation(itemId: number): string | null {
+  return lentItemStationMap.value.get(itemId) ?? null
+}
+
 const totalCount = computed(() => items.value.length)
 const lostCount = computed(() => items.value.filter(i => i.lostAt).length)
-const assignedCount = computed(() => items.value.filter(i => i.assignedTo && !i.lostAt).length)
-const freeCount = computed(() => items.value.filter(i => !i.assignedTo && !i.lostAt).length)
-
-const lentOutCount = computed(() => lentOutItems.value.reduce((sum, l) => sum + l.quantity, 0))
+const lentOutCount = computed(() => lentItemStationMap.value.size)
+const assignedCount = computed(() => items.value.filter(i => i.assignedTo && !i.lostAt && !isLentOut(i.id)).length)
+const freeCount = computed(() => items.value.filter(i => !i.assignedTo && !i.lostAt && !isLentOut(i.id)).length)
 const lostItems = computed(() => items.value.filter(i => i.lostAt))
 
 const sizeDistribution = computed(() => {
@@ -86,9 +106,10 @@ const sizeDistribution = computed(() => {
     return {
       size,
       total: sizeItems.length,
-      assigned: sizeItems.filter(i => i.assignedTo && !i.lostAt).length,
-      free: sizeItems.filter(i => !i.assignedTo && !i.lostAt).length,
+      assigned: sizeItems.filter(i => i.assignedTo && !i.lostAt && !isLentOut(i.id)).length,
+      free: sizeItems.filter(i => !i.assignedTo && !i.lostAt && !isLentOut(i.id)).length,
       lost: sizeItems.filter(i => i.lostAt).length,
+      lent: sizeItems.filter(i => isLentOut(i.id)).length,
     }
   })
 })
@@ -100,9 +121,10 @@ const noSizeItems = computed(() => {
   return [{
     size: null as InventorySize | null,
     total: nosizeItems.length,
-    assigned: nosizeItems.filter(i => i.assignedTo && !i.lostAt).length,
-    free: nosizeItems.filter(i => !i.assignedTo && !i.lostAt).length,
+    assigned: nosizeItems.filter(i => i.assignedTo && !i.lostAt && !isLentOut(i.id)).length,
+    free: nosizeItems.filter(i => !i.assignedTo && !i.lostAt && !isLentOut(i.id)).length,
     lost: nosizeItems.filter(i => i.lostAt).length,
+    lent: nosizeItems.filter(i => isLentOut(i.id)).length,
   }]
 })
 
@@ -141,7 +163,7 @@ async function loadData() {
   }
 }
 
-const freeItems = computed(() => items.value.filter(i => !i.assignedTo && !i.lostAt))
+const freeItems = computed(() => items.value.filter(i => !i.assignedTo && !i.lostAt && !isLentOut(i.id)))
 const unassignedMembers = computed(() => [...memberMap.value.values()])
 
 function openAssign(itemId: number) {
@@ -290,6 +312,7 @@ onMounted(loadData)
             :show-actions="true"
             :inventory-type="detail.inventoryType ?? InventoryTypes.INTERNAL"
             :lent-out-items="lentOutItems"
+            :lent-item-map="lentItemStationMap"
             @assign="onAssign"
             @unassign="onUnassign"
             @edit="onEditItem"

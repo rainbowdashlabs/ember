@@ -181,7 +181,7 @@ const maxDepth = 6
       <!-- Comment content -->
       <div v-else-if="editingId !== comment.id" class="space-y-1">
         <div class="flex items-center gap-2">
-          <MemberName :name="memberName(comment)" :identity="comment.author" class="text-sm font-medium"/>
+          <MemberName :identity="comment.author" class="text-sm font-medium"/>
           <MutedText size="xs">{{ formatDate(comment.createdAt) }}</MutedText>
           <MutedText v-if="comment.updatedAt" size="xs">({{ t('comments.edited') }})</MutedText>
         </div>

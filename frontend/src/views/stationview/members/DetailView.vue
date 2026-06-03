@@ -67,20 +67,17 @@ const exchangeSizes = ref<import('@/api/types').InventorySize[]>([])
 
 const modalsRef = ref<InstanceType<typeof DetailModals> | null>(null)
 
-function getScopesForUserType(ut: string): string[] {
-  const scopes: string[] = []
-  if (ut === StationUserType.MEMBER || ut === StationUserType.TRIAL) scopes.push(StationUserType.MEMBER)
-  if (ut === StationUserType.TEAM || ut === StationUserType.MANAGER) scopes.push(StationUserType.TEAM)
-  if (ut === StationUserType.GUARDIAN) scopes.push(StationUserType.GUARDIAN)
-  return scopes
+function getScopeForUserType(ut: string): string {
+  if (ut === StationUserType.MEMBER || ut === StationUserType.TRIAL) return 'MEMBER'
+  if (ut === StationUserType.GUARDIAN) return 'GUARDIAN'
+  if (ut === StationUserType.TEAM) return 'TEAM'
+  if (ut === StationUserType.MANAGER) return 'MANAGER'
+  return 'MEMBER'
 }
 
 const applicableFields = computed(() => {
-  const scopes = getScopesForUserType(memberUserType.value)
-  return fields.value.filter(f => {
-    if (f.scope === 'GROUP') return false
-    return scopes.includes(f.scope ?? StationUserType.MEMBER)
-  })
+  const scope = getScopeForUserType(memberUserType.value)
+  return fields.value.filter(f => f.scope === scope)
 })
 
 const availableManagers = computed(() => {
@@ -135,11 +132,8 @@ function getManagerFieldValue(mgrId: number, fieldId: number): unknown {
 
 function getManagerFields(mgrId: number): ProfileField[] {
   const ut = managerUserTypes.value.get(mgrId) ?? ''
-  const scopes = getScopesForUserType(ut)
-  return fields.value.filter(f => {
-    if (f.scope === 'GROUP') return false
-    return scopes.includes(f.scope ?? StationUserType.MEMBER)
-  })
+  const scope = getScopeForUserType(ut)
+  return fields.value.filter(f => f.scope === scope)
 }
 
 async function loadManagerDetails(mgrs: StationMember[]) {

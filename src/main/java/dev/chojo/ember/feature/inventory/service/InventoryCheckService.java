@@ -75,27 +75,7 @@ public class InventoryCheckService {
      */
     public List<MemberCheckSummary> getCheckOverview(int stationId) {
         checkRepository.releaseExpiredLocks(LOCK_TIMEOUT_MINUTES);
-        var summaries = checkRepository.checkOverview(stationId);
-        // Enrich with roles
-        return summaries.stream()
-                .map(s -> {
-                    var roles = stationMemberRepository.findPermissions(s.memberId()).stream()
-                            .map(Permission::permission)
-                            .toList();
-                    return new MemberCheckSummary(
-                            s.memberId(),
-                            s.firstName(),
-                            s.lastName(),
-                            s.lastCheckedAt(),
-                            s.checkerFirstName(),
-                            s.checkerLastName(),
-                            s.locked(),
-                            s.lockedBy(),
-                            s.lockerFirstName(),
-                            s.lockerLastName(),
-                            roles);
-                })
-                .toList();
+        return checkRepository.checkOverview(stationId);
     }
 
     /**

@@ -116,7 +116,7 @@ function formatDate(iso: string): string {
         <div v-if="activeTab === 'transitions'" class="space-y-2">
             <template v-for="item in changesActivity" :key="`${item.type}-${(item.data as any).id}`">
                 <div v-if="item.type === 'transition'" class="flex items-center gap-2 text-sm text-(--text-muted) flex-wrap">
-                    <MemberName :identity="(item.data as BoardTicketTransition).actor" :name="transitionActorName(item.data as BoardTicketTransition)" size="sm" />
+                    <MemberName :identity="(item.data as BoardTicketTransition).actor" size="sm" />
                     <span>{{ t('boards.movedFrom') }}</span>
                     <span class="font-medium text-xs px-2 py-0.5 rounded-full" :style="{ backgroundColor: lanes.find(l => l.id === (item.data as BoardTicketTransition).fromLaneId)?.color ?? 'var(--primary)', color: contrastTextColor(lanes.find(l => l.id === (item.data as BoardTicketTransition).fromLaneId)?.color ?? '#fd4f00') }">{{ laneName((item.data as BoardTicketTransition).fromLaneId) }}</span>
                     <span>{{ t('boards.movedTo') }}</span>
@@ -124,7 +124,7 @@ function formatDate(iso: string): string {
                     <span class="ml-auto text-xs">{{ formatDate(item.ts) }}</span>
                 </div>
                 <div v-else-if="item.type === 'history'" class="flex items-center gap-2 text-sm text-(--text-muted) flex-wrap">
-                    <MemberName :identity="(item.data as BoardTicketHistoryEntry).actor" :name="historyActorName(item.data as BoardTicketHistoryEntry)" size="sm" />
+                    <MemberName :identity="(item.data as BoardTicketHistoryEntry).actor" size="sm" />
                     <span class="font-medium text-(--text)">{{ historyActionLabel[(item.data as BoardTicketHistoryEntry).action] ?? (item.data as BoardTicketHistoryEntry).action }}</span>
                     <template v-if="(item.data as BoardTicketHistoryEntry).action === 'PRIORITY_CHANGED' && (item.data as BoardTicketHistoryEntry).detail">
                         <template v-for="(part, i) in ((item.data as BoardTicketHistoryEntry).detail ?? '').split(' → ')" :key="i">
@@ -151,14 +151,14 @@ function formatDate(iso: string): string {
                 <div v-if="item.type === 'comment'" class="flex gap-2">
                     <div class="flex-1">
                         <div class="flex items-center gap-2 text-xs text-(--text-muted)">
-                            <MemberName :identity="(item.data as BoardComment).author" :name="(item.data as BoardComment).authorName" size="sm" class="font-medium" />
+                            <MemberName :identity="(item.data as BoardComment).author" size="sm" class="font-medium" />
                             <span>{{ formatDate(item.ts) }}</span>
                         </div>
                         <p class="text-sm mt-0.5 whitespace-pre-wrap">{{ (item.data as BoardComment).content }}</p>
                     </div>
                 </div>
                 <div v-else-if="item.type === 'transition'" class="flex items-center gap-2 text-sm text-(--text-muted) flex-wrap">
-                    <MemberName :identity="(item.data as BoardTicketTransition).actor" :name="transitionActorName(item.data as BoardTicketTransition)" size="sm" />
+                    <MemberName :identity="(item.data as BoardTicketTransition).actor" size="sm" />
                     <span>{{ t('boards.movedFrom') }}</span>
                     <span class="font-medium text-xs px-2 py-0.5 rounded-full" :style="{ backgroundColor: lanes.find(l => l.id === (item.data as BoardTicketTransition).fromLaneId)?.color ?? 'var(--primary)', color: contrastTextColor(lanes.find(l => l.id === (item.data as BoardTicketTransition).fromLaneId)?.color ?? '#fd4f00') }">{{ laneName((item.data as BoardTicketTransition).fromLaneId) }}</span>
                     <span>{{ t('boards.movedTo') }}</span>
@@ -166,7 +166,7 @@ function formatDate(iso: string): string {
                     <span class="ml-auto text-xs">{{ formatDate(item.ts) }}</span>
                 </div>
                 <div v-else-if="item.type === 'history'" class="flex items-center gap-2 text-sm text-(--text-muted) flex-wrap">
-                    <MemberName :identity="(item.data as BoardTicketHistoryEntry).actor" :name="historyActorName(item.data as BoardTicketHistoryEntry)" size="sm" />
+                    <MemberName :identity="(item.data as BoardTicketHistoryEntry).actor" size="sm" />
                     <span class="font-medium text-(--text)">{{ historyActionLabel[(item.data as BoardTicketHistoryEntry).action] ?? (item.data as BoardTicketHistoryEntry).action }}</span>
                     <template v-if="(item.data as BoardTicketHistoryEntry).action === 'PRIORITY_CHANGED' && (item.data as BoardTicketHistoryEntry).detail">
                         <template v-for="(part, i) in ((item.data as BoardTicketHistoryEntry).detail ?? '').split(' → ')" :key="i">

@@ -111,7 +111,7 @@ async function loadData() {
     const [invs, reqs, roles, groups] = await Promise.all([
       inventory.listInventories(),
       inventory.listAllRequirements(),
-      stationMembers.listAllRoles(),
+      stationMembers.listAllPermissions(),
       memberGroups.listGroups(),
     ])
     inventories.value = invs

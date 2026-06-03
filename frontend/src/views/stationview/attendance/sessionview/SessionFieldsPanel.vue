@@ -37,15 +37,15 @@ function parseFieldConfig(configStr?: string): { options?: string[]; groupId?: n
 }
 
 function isMemberField(fieldType: string): boolean {
-  return ['member', 'member_list', 'member_of_group', 'member_list_of_group'].includes(fieldType)
+  return ['MEMBER', 'MEMBER_LIST', 'MEMBER_OF_GROUP', 'MEMBER_LIST_OF_GROUP'].includes(fieldType)
 }
 
 function isListField(fieldType: string): boolean {
-  return ['member_list', 'member_list_of_group'].includes(fieldType)
+  return ['MEMBER_LIST', 'MEMBER_LIST_OF_GROUP'].includes(fieldType)
 }
 
 function isImmediateField(fieldType: string): boolean {
-  return ['boolean', 'date', 'enum', 'member', 'member_list', 'member_of_group', 'member_list_of_group'].includes(fieldType)
+  return ['BOOLEAN', 'DATE', 'ENUM', 'MEMBER', 'MEMBER_LIST', 'MEMBER_OF_GROUP', 'MEMBER_LIST_OF_GROUP'].includes(fieldType)
 }
 
 function getFieldValue(fieldId: number): string {
@@ -107,7 +107,7 @@ function getMemberOptions(field: AttendanceTemplateField): { value: string; labe
         <!-- Regular fields -->
         <template v-else>
           <ProfileFieldInput
-              :field-type="field.fieldType ?? 'text'"
+              :field-type="field.fieldType ?? 'TEXT'"
               :model-value="getFieldValue(field.id)"
               :options="(parseFieldConfig(field.config).options as string[]) ?? []"
               @update:model-value="emit('fieldUpdate', field.id, $event, isImmediateField(field.fieldType ?? ''))"

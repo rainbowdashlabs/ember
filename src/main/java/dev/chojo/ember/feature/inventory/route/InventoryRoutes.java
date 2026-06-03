@@ -17,6 +17,8 @@ import dev.chojo.ember.feature.inventory.entity.InventoryType;
 import dev.chojo.ember.feature.inventory.service.InventoryCheckService;
 import dev.chojo.ember.feature.inventory.service.InventoryExportService;
 import dev.chojo.ember.feature.inventory.service.InventoryService;
+import dev.chojo.ember.api.MemberIdentity;
+import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.ForbiddenResponse;
@@ -47,15 +49,18 @@ public class InventoryRoutes implements Routes {
     private final InventoryService inventoryService;
     private final InventoryCheckService checkService;
     private final InventoryExportService inventoryExportService;
+    private final MemberIdentityFactory memberIdentityFactory;
 
     @Inject
     public InventoryRoutes(
             InventoryService inventoryService,
             InventoryCheckService checkService,
-            InventoryExportService inventoryExportService) {
+            InventoryExportService inventoryExportService,
+            MemberIdentityFactory memberIdentityFactory) {
         this.inventoryService = inventoryService;
         this.checkService = checkService;
         this.inventoryExportService = inventoryExportService;
+        this.memberIdentityFactory = memberIdentityFactory;
     }
 
     private static boolean isBlank(String s) {
@@ -85,6 +90,7 @@ public class InventoryRoutes implements Routes {
         routes.post(prefix + "/inventories", this::create, StationPermission.INVENTORY_MANAGER);
         routes.get(prefix + "/inventories/all-items", this::listAllItems, StationPermission.INVENTORY_MANAGER);
         routes.get(prefix + "/inventories/all-sizes", this::listAllSizes, StationPermission.LOGIN);
+        routes.get(prefix + "/inventories/summary", this::listSummaries, StationPermission.INVENTORY_MANAGER);
         routes.get(prefix + "/inventories/{id}", this::get, StationPermission.INVENTORY_MANAGER);
         routes.put(prefix + "/inventories/{id}", this::update, StationPermission.INVENTORY_MANAGER);
         routes.delete(prefix + "/inventories/{id}", this::delete, StationPermission.INVENTORY_MANAGER);
@@ -99,9 +105,9 @@ public class InventoryRoutes implements Routes {
                 prefix + "/inventories/{inventoryId}/sizes/{sizeId}",
                 this::deleteSize,
                 StationPermission.INVENTORY_MANAGER);
-
         routes.get(prefix + "/inventories/{inventoryId}/items", this::listItems, StationPermission.INVENTORY_MANAGER);
         routes.post(prefix + "/inventories/{inventoryId}/items", this::createItem, StationPermission.INVENTORY_MANAGER);
+        routes.get(prefix + "/inventory-items/by-internal-id", this::findByInternalId, StationPermission.INVENTORY_MANAGER);
         routes.get(prefix + "/inventory-items/{id}", this::getItem, StationPermission.INVENTORY_MANAGER);
         routes.put(prefix + "/inventory-items/{id}", this::updateItem, StationPermission.INVENTORY_MANAGER);
         routes.put(prefix + "/inventory-items/{id}/assign", this::assignItem, StationPermission.INVENTORY_MANAGER);
@@ -220,6 +226,11 @@ public class InventoryRoutes implements Routes {
             summary = "List inventories for the current station",
             tags = {"Inventory"},
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = Inventory[].class)))
+    private void listSummaries(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        ctx.json(inventoryService.findSummaries(session.stationId()));
+    }
+
     private void list(Context ctx) {
         UserSession session = UserSession.from(ctx);
         ctx.json(inventoryService.findByStation(session.stationId()));
@@ -486,6 +497,26 @@ public class InventoryRoutes implements Routes {
     }
 
     @OpenApi(
+            path = "/api/v1/inventory-items/by-internal-id",
+            methods = HttpMethod.GET,
+            summary = "Find an inventory item by internal ID",
+            tags = {"Inventory"},
+            queryParams = @OpenApiParam(name = "internalId", type = String.class, required = true),
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = InventoryItem.class)),
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    private void findByInternalId(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        String internalId = ctx.queryParam("internalId");
+        if (internalId == null || internalId.isBlank()) {
+            throw new BadRequestResponse("internalId is required");
+        }
+        inventoryService.findByInternalId(session.stationId(), internalId)
+                .ifPresentOrElse(ctx::json, () -> { throw new NotFoundResponse(); });
+    }
+
+    @OpenApi(
             path = "/api/v1/inventory-items/{id}",
             methods = HttpMethod.GET,
             summary = "Get an inventory item",
@@ -551,8 +582,16 @@ public class InventoryRoutes implements Routes {
 
     private void getHistory(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
-        ctx.json(inventoryService.findHistory(id));
+        var session = UserSession.from(ctx);
+        ctx.json(inventoryService.findHistory(id).stream()
+                .map(h -> new HistoryResponse(h.id(), h.itemId(), h.memberId(), h.memberName(),
+                        h.memberId() != null ? memberIdentityFactory.local(session.stationId(), h.memberId()) : null,
+                        h.givenOut(), h.returned()))
+                .toList());
     }
+
+    public record HistoryResponse(int id, int itemId, Integer memberId, String memberName,
+                                  MemberIdentity memberIdentity, Instant givenOut, Instant returned) {}
 
     @OpenApi(
             path = "/api/v1/inventory-items/{id}/lost",

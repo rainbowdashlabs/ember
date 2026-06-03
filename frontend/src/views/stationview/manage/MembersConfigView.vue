@@ -21,6 +21,7 @@ import FieldLabel from '@/components/typography/FieldLabel.vue'
 import ProfileFieldModal from './membersconfig/FieldModal.vue'
 import ProfileFieldTable from './membersconfig/FieldTable.vue'
 import type {MemberGroup, ProfileField} from '@/api/types'
+import {parseFieldConfig} from '@/api/types'
 import {memberGroups, profileFields} from '@/api'
 
 const {t} = useI18n()
@@ -34,8 +35,9 @@ const selectedGroupId = ref('')
 
 const tabs = computed(() => [
   {key: 'MEMBER', label: t('membersConfig.tabMember')},
-  {key: 'GUARDIAN', label: t('membersConfig.tabManager')},
+  {key: 'GUARDIAN', label: t('membersConfig.tabGuardian')},
   {key: 'TEAM', label: t('membersConfig.tabTeam')},
+  {key: 'MANAGER', label: t('membersConfig.tabStationManager')},
   {key: 'GROUP', label: t('membersConfig.tabGroup')},
 ])
 
@@ -43,24 +45,16 @@ const currentFields = computed(() => {
   if (activeTab.value === 'MEMBER') return allFields.value.filter(f => f.scope === 'MEMBER')
   if (activeTab.value === 'GUARDIAN') return allFields.value.filter(f => f.scope === 'GUARDIAN')
   if (activeTab.value === 'TEAM') return allFields.value.filter(f => f.scope === 'TEAM')
+  if (activeTab.value === 'MANAGER') return allFields.value.filter(f => f.scope === 'MANAGER')
   if (!selectedGroupId.value) return []
   return allFields.value.filter(f => {
     if (f.scope !== 'GROUP') return false
-    const cfg = parseConfig(f.config)
+    const cfg = parseFieldConfig(f.config)
     return cfg.groupId === Number(selectedGroupId.value)
   })
 })
 
-const dateFields = computed(() => currentFields.value.filter(f => f.fieldType === 'date'))
-
-function parseConfig(configStr: string | undefined): Record<string, unknown> {
-  if (!configStr) return {}
-  try {
-    return JSON.parse(configStr)
-  } catch {
-    return {}
-  }
-}
+const dateFields = computed(() => currentFields.value.filter(f => f.fieldType === 'DATE'))
 
 // Field templates
 interface FieldTemplate {
@@ -72,53 +66,53 @@ interface FieldTemplate {
 const fieldTemplates: FieldTemplate[] = [
   {
     name: 'Adresse', icon: 'house', fields: [
-      {name: 'Straße', fieldType: 'text', config: '{"required":true}'},
-      {name: 'Postleitzahl', fieldType: 'text', config: '{"required":true}'},
-      {name: 'Ort', fieldType: 'text', config: '{"required":true}'},
+      {name: 'Straße', fieldType: 'TEXT', config: '{"required":true}'},
+      {name: 'Postleitzahl', fieldType: 'TEXT', config: '{"required":true}'},
+      {name: 'Ort', fieldType: 'TEXT', config: '{"required":true}'},
     ]
   },
   {
     name: 'Geburtsdatum', icon: 'calendar-plus', fields: [
-      {name: 'Geburtsdatum', fieldType: 'date', config: '{"required":true,"readonly":true}'},
+      {name: 'Geburtsdatum', fieldType: 'DATE', config: '{"required":true,"readonly":true}'},
     ]
   },
   {
     name: 'Festnetz', icon: 'phone', fields: [
-      {name: 'Festnetznummer', fieldType: 'text', config: '{"notifyOnChange":true}'},
+      {name: 'Festnetznummer', fieldType: 'TEXT', config: '{"notifyOnChange":true}'},
     ]
   },
   {
     name: 'Mobilnummer', icon: 'mobile-screen', fields: [
-      {name: 'Mobilnummer', fieldType: 'text', config: '{"notifyOnChange":true}'},
+      {name: 'Mobilnummer', fieldType: 'TEXT', config: '{"notifyOnChange":true}'},
     ]
   },
   {
     name: 'Notfallkontakt', icon: 'triangle-exclamation', fields: [
-      {name: 'Notfallkontakt Name', fieldType: 'text', config: '{"required":true}'},
-      {name: 'Notfallkontakt Telefon', fieldType: 'text', config: '{"required":true}'},
+      {name: 'Notfallkontakt Name', fieldType: 'TEXT', config: '{"required":true}'},
+      {name: 'Notfallkontakt Telefon', fieldType: 'TEXT', config: '{"required":true}'},
     ]
   },
   {
     name: 'Führerschein', icon: 'id-card', fields: [
-      {name: 'Führerscheinklasse', fieldType: 'text', config: '{}'},
-      {name: 'Führerschein gültig bis', fieldType: 'date', config: '{}'},
+      {name: 'Führerscheinklasse', fieldType: 'TEXT', config: '{}'},
+      {name: 'Führerschein gültig bis', fieldType: 'DATE', config: '{}'},
     ]
   },
   {
     name: 'Beitrittsdatum', icon: 'calendar-plus', fields: [
-      {name: 'Beitrittsdatum', fieldType: 'date', config: '{"readonly":true}'},
+      {name: 'Beitrittsdatum', fieldType: 'DATE', config: '{"readonly":true}'},
     ]
   },
   {
     name: 'Personalnummer', icon: 'hashtag', fields: [
-      {name: 'Personalnummer', fieldType: 'text', config: '{"readonly":true}'},
+      {name: 'Personalnummer', fieldType: 'TEXT', config: '{"readonly":true}'},
     ]
   },
   {
     name: 'Geschlecht', icon: 'rainbow', fields: [
       {
         name: 'Geschlecht',
-        fieldType: 'enum',
+        fieldType: 'ENUM',
         config: '{"options":["Männlich","Weiblich","Divers","Nicht-binär","Andere"],"readonly":true}'
       },
     ]
@@ -127,16 +121,16 @@ const fieldTemplates: FieldTemplate[] = [
     name: 'Jugendflamme', icon: 'fire', fields: [
       {
         name: 'Jugendflamme Stufe',
-        fieldType: 'enum',
+        fieldType: 'ENUM',
         config: '{"options":["Jugendflamme 1","Jugendflamme 2","Jugendflamme 3"],"readonly":true}'
       },
-      {name: 'Jugendflamme Datum', fieldType: 'date', config: '{"readonly":true}'},
+      {name: 'Jugendflamme Datum', fieldType: 'DATE', config: '{"readonly":true}'},
     ]
   },
   {
     name: 'Leistungsspange', icon: 'medal', fields: [
-      {name: 'Leistungsspange', fieldType: 'boolean', config: '{"readonly":true}'},
-      {name: 'Leistungsspange Datum', fieldType: 'date', config: '{"readonly":true}'},
+      {name: 'Leistungsspange', fieldType: 'BOOLEAN', config: '{"readonly":true}'},
+      {name: 'Leistungsspange Datum', fieldType: 'DATE', config: '{"readonly":true}'},
     ]
   },
 ]
@@ -194,7 +188,7 @@ function updateFieldLocally(fieldId: number, patch: Partial<ProfileField>) {
 }
 
 async function toggleFieldConfig(field: ProfileField, key: string, value: boolean) {
-  const cfg = parseConfig(field.config)
+  const cfg = parseFieldConfig(field.config)
   if (value) {
     (cfg as Record<string, unknown>)[key] = true
   } else {
@@ -320,8 +314,9 @@ onMounted(loadFields)
 
           <p class="text-sm text-(--text-muted)">
             <template v-if="activeTab === 'MEMBER'">{{ t('membersConfig.memberHint') }}</template>
-            <template v-else-if="activeTab === 'GUARDIAN'">{{ t('membersConfig.managerHint') }}</template>
+            <template v-else-if="activeTab === 'GUARDIAN'">{{ t('membersConfig.guardianHint') }}</template>
             <template v-else-if="activeTab === 'TEAM'">{{ t('membersConfig.teamHint') }}</template>
+            <template v-else-if="activeTab === 'MANAGER'">{{ t('membersConfig.stationManagerHint') }}</template>
             <template v-else>{{ t('membersConfig.groupHint') }}</template>
           </p>
 

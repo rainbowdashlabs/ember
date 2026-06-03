@@ -18,6 +18,8 @@ import dev.chojo.ember.feature.inventory.entity.InventorySize;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
 import dev.chojo.ember.feature.inventory.service.ExchangeExportService;
 import dev.chojo.ember.feature.inventory.service.ExchangeService;
+import dev.chojo.ember.api.MemberIdentity;
+import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
@@ -53,6 +55,7 @@ public class ExchangeRoutes implements Routes {
     private final AccountRepository accountRepository;
     private final StationMemberRepository stationMemberRepository;
     private final InventoryRepository inventoryRepository;
+    private final MemberIdentityFactory memberIdentityFactory;
 
     @Inject
     public ExchangeRoutes(
@@ -60,12 +63,14 @@ public class ExchangeRoutes implements Routes {
             ExchangeExportService exchangeExportService,
             AccountRepository accountRepository,
             StationMemberRepository stationMemberRepository,
-            InventoryRepository inventoryRepository) {
+            InventoryRepository inventoryRepository,
+            MemberIdentityFactory memberIdentityFactory) {
         this.exchangeService = exchangeService;
         this.exchangeExportService = exchangeExportService;
         this.accountRepository = accountRepository;
         this.stationMemberRepository = stationMemberRepository;
         this.inventoryRepository = inventoryRepository;
+        this.memberIdentityFactory = memberIdentityFactory;
     }
 
     @Override
@@ -286,6 +291,7 @@ public class ExchangeRoutes implements Routes {
                 .flatMap(m -> accountRepository.findById(m.accountId()))
                 .map(a -> (a.firstName() + " " + a.lastName()).trim())
                 .orElse("");
+        MemberIdentity memberIdentity = memberIdentityFactory.local(exchange.stationId(), exchange.memberId());
         Inventory inventory =
                 inventoryRepository.findById(exchange.inventoryId()).orElse(null);
         String inventoryName = inventory != null ? inventory.name() : "";
@@ -294,6 +300,7 @@ public class ExchangeRoutes implements Routes {
                 exchange.id(),
                 exchange.memberId(),
                 memberName,
+                memberIdentity,
                 exchange.itemId(),
                 exchange.inventoryId(),
                 inventoryName,
@@ -331,6 +338,7 @@ public class ExchangeRoutes implements Routes {
             int id,
             int memberId,
             String memberName,
+            MemberIdentity memberIdentity,
             Integer itemId,
             int inventoryId,
             String inventoryName,

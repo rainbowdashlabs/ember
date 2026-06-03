@@ -195,7 +195,7 @@ public enum StationPermission implements RouteRole {
     /**
      * Allows managing the member waitlist.
      */
-    WAITLIST_MANAGER(WAITLIST_READ, MEMBER_EDIT),
+    WAITLIST_MANAGER(WAITLIST_EDIT, MEMBER_EDIT),
 
     /**
      * Allows creating news entries

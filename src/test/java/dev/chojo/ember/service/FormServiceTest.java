@@ -318,7 +318,7 @@ class FormServiceTest extends RepositoryTestBase {
         // A different member ID not in the list — should NOT have access
         when(memberService.findById(99999))
                 .thenReturn(Optional.of(new StationMember(
-                        99999, station.id(), UUID.randomUUID(), null, false, null, StationUserType.MEMBER)));
+                        99999, station.id(), UUID.randomUUID(), null, false, null, null, StationUserType.MEMBER)));
         when(groupService.findGroupsForMember(99999)).thenReturn(List.of());
         when(tagService.findTagsForMember(99999)).thenReturn(List.of());
         assertFalse(restrictedService.canMemberAccess(form.id(), 99999));

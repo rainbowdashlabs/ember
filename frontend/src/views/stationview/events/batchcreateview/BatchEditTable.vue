@@ -79,7 +79,7 @@ function formatDate(isoString: string): string {
         <div v-for="fd in activeFields()" :key="'setall-' + fd.name" class="space-y-1 min-w-32">
           <FieldLabel>{{ fd.name }} — {{ t('batchCreate.setAll') }}</FieldLabel>
           <EventFieldValueInput
-              :field-type="fd.fieldType ?? 'string'"
+              :field-type="fd.fieldType ?? 'STRING'"
               :config="fd.config"
               model-value=""
               @update:model-value="setAllColumn(fd.name, $event)"
@@ -106,7 +106,7 @@ function formatDate(isoString: string): string {
             </td>
             <td v-for="fd in activeFields()" :key="fd.name" class="p-2">
               <EventFieldValueInput
-                  :field-type="fd.fieldType ?? 'string'"
+                  :field-type="fd.fieldType ?? 'STRING'"
                   :config="fd.config"
                   :model-value="row.fieldValues?.[fd.name] ?? ''"
                   @update:model-value="updateRow(index, {...row, fieldValues: {...(row.fieldValues ?? {}), [fd.name]: $event}})"

@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.inventory.service;
 
 import dev.chojo.ember.feature.inventory.entity.Inventory;
+import dev.chojo.ember.feature.inventory.entity.InventorySummary;
 import dev.chojo.ember.feature.inventory.entity.InventoryItem;
 import dev.chojo.ember.feature.inventory.entity.InventoryItemHistory;
 import dev.chojo.ember.feature.inventory.entity.InventoryRequirement;
@@ -41,6 +42,10 @@ public class InventoryService {
      */
     public List<Inventory> findByStation(int stationId) {
         return inventoryRepository.findByStation(stationId);
+    }
+
+    public List<InventorySummary> findSummaries(int stationId) {
+        return inventoryRepository.findSummariesByStation(stationId);
     }
 
     public List<InventoryItem> findAllItemsByStation(int stationId) {
@@ -188,6 +193,10 @@ public class InventoryService {
      */
     public Optional<InventoryItem> findItemById(int id) {
         return inventoryRepository.findItemById(id);
+    }
+
+    public Optional<InventoryItem> findByInternalId(int stationId, String internalId) {
+        return inventoryRepository.findByInternalId(stationId, internalId);
     }
 
     /**

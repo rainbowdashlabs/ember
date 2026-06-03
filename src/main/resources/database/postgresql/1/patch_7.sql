@@ -291,3 +291,7 @@ BEGIN
     );
 END;
 $$;
+
+-- 10. Add former_at timestamp to station_member
+ALTER TABLE ember_schema.station_member ADD COLUMN IF NOT EXISTS former_at TIMESTAMPTZ;
+UPDATE ember_schema.station_member SET former_at = NOW() WHERE former = TRUE AND former_at IS NULL;

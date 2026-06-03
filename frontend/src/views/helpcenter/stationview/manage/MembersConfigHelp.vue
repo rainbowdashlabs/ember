@@ -26,8 +26,9 @@ const {t} = useI18n()
 const activeTab = ref('MEMBER')
 const tabs = [
   {key: 'MEMBER', label: t('membersConfig.tabMember')},
-  {key: 'GUARDIAN', label: t('membersConfig.tabManager')},
+  {key: 'GUARDIAN', label: t('membersConfig.tabGuardian')},
   {key: 'TEAM', label: t('membersConfig.tabTeam')},
+  {key: 'MANAGER', label: t('membersConfig.tabStationManager')},
   {key: 'GROUP', label: t('membersConfig.tabGroup')},
 ]
 </script>
@@ -42,8 +43,9 @@ const tabs = [
     <HelpSection :title="t('helpCenter.membersConfig.byRoleTitle')">
       <p>{{ t('helpCenter.membersConfig.byRoleText') }}</p>
       <p>{{ t('helpCenter.membersConfig.roleMember') }}</p>
-      <p>{{ t('helpCenter.membersConfig.roleManager') }}</p>
+      <p>{{ t('helpCenter.membersConfig.roleGuardian') }}</p>
       <p>{{ t('helpCenter.membersConfig.roleTeam') }}</p>
+      <p>{{ t('helpCenter.membersConfig.roleStationManager') }}</p>
       <p>{{ t('helpCenter.membersConfig.roleGroup') }}</p>
     </HelpSection>
 

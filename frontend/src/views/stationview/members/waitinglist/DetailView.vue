@@ -242,11 +242,15 @@ async function doMoveToTesting(entryId: number) {
 async function doMoveToJoined(entryId: number) {
   error.value = ''
   try {
-    await waitingList.moveToJoined(listId.value, entryId)
-    entries.value = await waitingList.listEntries(listId.value)
-    success.value = t('waitingList.entryJoined')
-    setTimeout(() => { success.value = '' }, 3000)
+    const result = await waitingList.moveToJoined(listId.value, entryId)
     refreshSidebarCounts()
+    if (result.memberId) {
+      router.push({ name: 'members-edit', params: { id: result.memberId } })
+    } else {
+      entries.value = await waitingList.listEntries(listId.value)
+      success.value = t('waitingList.entryJoined')
+      setTimeout(() => { success.value = '' }, 3000)
+    }
   } catch {
     error.value = t('common.error')
   }

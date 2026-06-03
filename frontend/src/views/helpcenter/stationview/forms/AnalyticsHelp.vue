@@ -112,7 +112,7 @@ const tabs = [
 
         <NeutralContainer>
           <div class="space-y-1 mb-4">
-            <p class="font-medium"><MemberName name="Max Mustermann"/></p>
+            <p class="font-medium"><MemberName :identity="{ stationUid: '', memberUid: '', name: 'Max Mustermann' }"/></p>
             <p class="text-xs text-(--text-muted)">15.05.2026, 14:32</p>
           </div>
           <div class="space-y-4">

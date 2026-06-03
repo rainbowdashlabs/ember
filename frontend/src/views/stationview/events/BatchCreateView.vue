@@ -71,7 +71,7 @@ async function loadData() {
       events.listLayouts(),
       events.listCategories(),
       attendance.listTemplates(),
-      stationMembers.listAllRoles(),
+      stationMembers.listAllPermissions(),
       memberGroupsApi.listGroups(),
       userTagsApi.listTags(),
     ])

@@ -44,7 +44,7 @@ const fieldTypeOptions = [
 ]
 
 const name = ref(props.modelValue.name ?? '')
-const fieldType = ref(props.modelValue.fieldType ?? 'string')
+const fieldType = ref(props.modelValue.fieldType ?? 'STRING')
 const fieldValue = ref(props.modelValue.value ?? '')
 const overview = ref(props.modelValue.overview ?? false)
 const isPublic = ref(props.modelValue.isPublic ?? false)
@@ -68,7 +68,7 @@ if (cfg.options && Array.isArray(cfg.options)) {
 
 function buildConfig(): string {
   const c: Record<string, unknown> = {}
-  if (fieldType.value === 'enum' && enumOptions.value.trim()) {
+  if (fieldType.value === 'ENUM' && enumOptions.value.trim()) {
     c.options = enumOptions.value.split('\n').map(o => o.trim()).filter(o => o)
   }
   return Object.keys(c).length > 0 ? JSON.stringify(c) : '{}'
@@ -104,7 +104,7 @@ watch(entry, val => emit('update:modelValue', val), {deep: true})
         </SelectInput>
       </div>
 
-      <div v-if="fieldType === 'enum'" class="w-48 space-y-1">
+      <div v-if="fieldType === 'ENUM'" class="w-48 space-y-1">
         <FieldLabel>{{ t('eventFields.enumOptions') }}</FieldLabel>
         <TextAreaInput v-model="enumOptions" :placeholder="t('eventFields.enumOptionsPlaceholder')" :rows="3"/>
       </div>

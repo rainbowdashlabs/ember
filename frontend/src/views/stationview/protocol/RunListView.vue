@@ -68,7 +68,7 @@ async function loadData() {
       protocol.listRuns(),
       protocol.listProtocols(),
       stationMembers.listMembers(),
-      stationMembers.listAllRoles(),
+      stationMembers.listAllPermissions(),
       memberGroups.listGroups(),
       userTags.listTags(),
     ])

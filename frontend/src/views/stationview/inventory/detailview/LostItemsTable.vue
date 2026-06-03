@@ -68,7 +68,7 @@ function formatDate(dateStr?: string | null): string {
               </div>
               <div v-if="item.internalId" class="text-xs text-(--text-muted)">{{ item.internalId }}</div>
             </Td>
-            <Td><MemberName :name="ownerName(item.assignedTo)" :identity="getMemberIdentity(item.assignedTo)"/></Td>
+            <Td><MemberName :identity="getMemberIdentity(item.assignedTo)"/></Td>
             <Td>
               <ErrorBadge>{{ formatDate(item.lostAt) }}</ErrorBadge>
             </Td>

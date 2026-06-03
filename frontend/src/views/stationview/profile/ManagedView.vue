@@ -17,6 +17,7 @@ import EmptyState from '@/components/feedback/EmptyState.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import type { ProfileField } from '@/api/types'
+import { parseFieldConfig } from '@/api/types'
 import { managedMembers } from '@/api'
 import type { ManagedMember } from '@/api/managedMembers'
 import MutedText from '@/components/typography/MutedText.vue'
@@ -36,15 +37,6 @@ const success = ref('')
 function memberDisplayName(member: ManagedMember): string {
   if (member.name && member.name.trim()) return member.name
   return member.email ?? `#${member.id}`
-}
-
-function parseFieldConfig(configStr: string | undefined): { required?: boolean; readonly?: boolean; computed?: boolean; options?: string[]; defaultValue?: unknown } {
-  if (!configStr) return {}
-  try {
-    return JSON.parse(configStr)
-  } catch {
-    return {}
-  }
 }
 
 const editableFields = computed(() => {
@@ -162,7 +154,7 @@ onMounted(loadData)
             </FieldLabel>
 
             <ProfileFieldInput
-              :field-type="field.fieldType ?? 'text'"
+              :field-type="field.fieldType ?? 'TEXT'"
               :model-value="getValue(field.id)"
               :options="(parseFieldConfig(field.config).options as string[]) ?? []"
               :disabled="isReadonly(field)"

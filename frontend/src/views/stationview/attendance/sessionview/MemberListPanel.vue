@@ -32,7 +32,7 @@ const emit = defineEmits<{
 
 const membersNotInSession = computed(() => {
   const entryMemberIds = new Set(props.entries.map(e => e.memberId))
-  return props.allMembers.filter(m => !entryMemberIds.has(m.id))
+  return props.allMembers.filter(m => !entryMemberIds.has(m.id) && !m.formerAt)
 })
 
 function getMemberName(memberId: number): string {

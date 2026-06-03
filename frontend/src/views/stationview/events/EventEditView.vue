@@ -67,7 +67,7 @@ async function applyEventTemplate(templateId: string | undefined) {
     if (detail.fields.length > 0) {
       const newFields = detail.fields.map(f => ({
         name: f.name,
-        fieldType: f.fieldType ?? 'string',
+        fieldType: f.fieldType ?? 'STRING',
         config: f.config ?? '{}',
         value: '',
         overview: f.overview ?? false,
@@ -122,7 +122,7 @@ async function loadData() {
     const [cats, tpl, allRoles, allGroups, allTags, members, evtTpls] = await Promise.all([
       events.listCategories(),
       attendance.listTemplates(),
-      stationMembers.listAllRoles(),
+      stationMembers.listAllPermissions(),
       memberGroups.listGroups(),
       userTags.listTags(),
       stationMembers.listMembers(),
@@ -157,7 +157,7 @@ async function loadData() {
 
       eventCustomFields.value = fields.map(f => ({
         name: f.name ?? '',
-        fieldType: f.fieldType ?? 'string',
+        fieldType: f.fieldType ?? 'STRING',
         config: f.config ?? '{}',
         value: f.value ?? '',
         overview: f.overview ?? false,

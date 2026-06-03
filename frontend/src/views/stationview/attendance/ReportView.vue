@@ -135,7 +135,7 @@ async function loadData() {
   error.value = ''
   try {
     const [allRoles, allGroups, allPresets] = await Promise.all([
-      stationMembers.listAllRoles(),
+      stationMembers.listAllPermissions(),
       memberGroups.listGroups(),
       attendance.listPresets(),
     ])

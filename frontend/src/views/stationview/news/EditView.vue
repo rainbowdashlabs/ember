@@ -67,7 +67,7 @@ async function loadData() {
   try {
     const [groupList, roleList, tagList] = await Promise.all([
       memberGroups.listGroups(),
-      stationMembers.listAllRoles(),
+      stationMembers.listAllPermissions(),
       userTags.listTags(),
     ])
     groups.value = groupList

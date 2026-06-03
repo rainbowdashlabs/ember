@@ -96,8 +96,8 @@ onMounted(async () => {
 
 watch(loaded, (isLoaded) => {
   if (isLoaded) refreshSidebarCounts()
-  if (isLoaded && isModuleEnabled(StationModules.BOARDS)) refreshBoards()
-  if (isLoaded && isModuleEnabled(StationModules.BOARDS) && canManageFederation()) refreshBookmarkedBoards()
+  if (isLoaded && isModuleEnabled(StationModules.BOARDS) && hasPermission(StationPermission.BOARD_USE)) refreshBoards()
+  if (isLoaded && isModuleEnabled(StationModules.BOARDS) && hasPermission(StationPermission.BOARD_USE) && canManageFederation()) refreshBookmarkedBoards()
   if (isLoaded) checkFirstLogin()
 }, {immediate: true})
 

@@ -134,12 +134,34 @@ public class LendingService {
     public boolean approveRequest(int requestId, int stationId) {
         boolean updated = repository.updateRequestStatus(requestId, LendingStatus.APPROVED);
         if (updated) {
+            autoAssignItems(requestId);
             repository.createMessage(requestId, stationId, null, "Anfrage genehmigt", true);
             repository
                     .findRequestById(requestId)
                     .ifPresent(r -> publishStatusChange(r, stationId, LendingStatus.APPROVED));
         }
         return updated;
+    }
+
+    private void autoAssignItems(int requestId) {
+        var request = repository.findRequestById(requestId).orElse(null);
+        if (request == null) return;
+        var requestItems = repository.findItemsByRequest(requestId);
+        for (var ri : requestItems) {
+            if (ri.assignedItemId() != null) continue;
+            // If a specific item was requested, assign that directly
+            if (ri.itemId() != null) {
+                repository.assignItem(ri.id(), ri.itemId());
+                continue;
+            }
+            // Otherwise assign first N free items from the inventory for the requested period
+            if (ri.inventoryId() == null) continue;
+            var dateTo = request.requestedDateTo() != null ? request.requestedDateTo() : request.requestedDateFrom().plusDays(1);
+            var freeItems = inventoryRepository.findFreeItems(ri.inventoryId(), request.requestedDateFrom(), dateTo);
+            for (int q = 0; q < ri.quantity() && q < freeItems.size(); q++) {
+                repository.assignItem(ri.id(), freeItems.get(q).id());
+            }
+        }
     }
 
     public boolean declineRequest(int requestId, int stationId, String reason) {

@@ -119,7 +119,7 @@ async function save() {
     await events.setTemplateFields(templateId.value, {
       fields: fields.value.map((f, i) => ({
         name: f.name,
-        fieldType: f.fieldType ?? 'string',
+        fieldType: f.fieldType ?? 'STRING',
         config: f.config ?? '{}',
         position: i,
         overview: f.overview,

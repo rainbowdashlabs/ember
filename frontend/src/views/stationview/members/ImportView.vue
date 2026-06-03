@@ -124,7 +124,7 @@ function needsValueMap(mapping: ColumnMapping): boolean {
   if (!mapping.target.startsWith('field:')) return false
   const fieldId = parseInt(mapping.target.substring(6))
   const field = fields.value.find(f => f.id === fieldId)
-  return field?.fieldType === 'boolean' || field?.fieldType === 'enum'
+  return field?.fieldType === 'BOOLEAN' || field?.fieldType === 'ENUM'
 }
 
 async function parseCsv() {

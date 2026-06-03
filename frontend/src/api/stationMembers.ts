@@ -4,10 +4,10 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
-import type {CreateMemberRequest, MemberIdentity, PermissionGrant, SetManagersRequest, SetRolesRequest, StationMember,} from './types'
+import type {CreateMemberRequest, MemberIdentity, PermissionGrant, SetManagersRequest, StationMember,} from './types'
 
-export async function listAllRoles(): Promise<PermissionGrant[]> {
-    const res = await client.get<PermissionGrant[]>('/roles')
+export async function listAllPermissions(): Promise<PermissionGrant[]> {
+    const res = await client.get<PermissionGrant[]>('/permissions')
     return res.data
 }
 
@@ -70,17 +70,17 @@ export async function deleteMember(id: number): Promise<void> {
 }
 
 export async function getPermissions(memberId: number): Promise<PermissionGrant[]> {
-    const res = await client.get<PermissionGrant[]>(`/station-members/${memberId}/roles`)
+    const res = await client.get<PermissionGrant[]>(`/station-members/${memberId}/permissions`)
     return res.data
 }
 
 export async function getAllMemberRoles(): Promise<Record<number, PermissionGrant[]>> {
-    const res = await client.get<Record<number, PermissionGrant[]>>('/station-members/all-roles')
+    const res = await client.get<Record<number, PermissionGrant[]>>('/station-members/all-permissions')
     return res.data
 }
 
-export async function setPermissions(memberId: number, data: SetRolesRequest): Promise<PermissionGrant[]> {
-    const res = await client.put<PermissionGrant[]>(`/station-members/${memberId}/roles`, data)
+export async function setPermissions(memberId: number, data: { permissionIds: number[] }): Promise<PermissionGrant[]> {
+    const res = await client.put<PermissionGrant[]>(`/station-members/${memberId}/permissions`, data)
     return res.data
 }
 
@@ -110,6 +110,10 @@ export async function markFormer(memberId: number): Promise<void> {
 
 export async function reactivateMember(memberId: number): Promise<void> {
     await client.post(`/station-members/${memberId}/reactivate`)
+}
+
+export async function setUserType(memberId: number, userType: string): Promise<void> {
+    await client.put(`/station-members/${memberId}/user-type`, { userType })
 }
 
 export async function getUserTypePermissions(userType: string): Promise<PermissionGrant[]> {

@@ -57,7 +57,7 @@ function getValue(fieldId: number): string {
       <div v-for="field in requiredFields" :key="field.id" class="space-y-1">
         <FieldLabel>{{ field.name }} <span class="text-error">*</span></FieldLabel>
         <ProfileFieldInput
-            :field-type="field.fieldType ?? 'text'"
+            :field-type="field.fieldType ?? 'TEXT'"
             :model-value="getValue(field.id)"
             :options="(parseConfig(field.config).options as string[]) ?? []"
             @update:model-value="emit('setValue', field.id, $event)"
@@ -70,7 +70,7 @@ function getValue(fieldId: number): string {
       <div v-for="field in optionalFields" :key="field.id" class="space-y-1">
         <FieldLabel>{{ field.name }}</FieldLabel>
         <ProfileFieldInput
-            :field-type="field.fieldType ?? 'text'"
+            :field-type="field.fieldType ?? 'TEXT'"
             :model-value="getValue(field.id)"
             :options="(parseConfig(field.config).options as string[]) ?? []"
             @update:model-value="emit('setValue', field.id, $event)"

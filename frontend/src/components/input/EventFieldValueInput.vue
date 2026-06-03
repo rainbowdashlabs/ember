@@ -33,11 +33,11 @@ function parseConfig(): { options?: string[]; groupId?: number } {
 }
 
 function isMemberField(): boolean {
-  return ['member', 'member_list', 'member_of_group', 'member_list_of_group'].includes(props.fieldType)
+  return ['MEMBER', 'MEMBER_LIST', 'MEMBER_OF_GROUP', 'MEMBER_LIST_OF_GROUP'].includes(props.fieldType)
 }
 
 function isListField(): boolean {
-  return ['member_list', 'member_list_of_group'].includes(props.fieldType)
+  return ['MEMBER_LIST', 'MEMBER_LIST_OF_GROUP'].includes(props.fieldType)
 }
 
 function getMemberOptions(): { value: string; label: string }[] {
@@ -73,7 +73,7 @@ function setSingleMember(id: string) {
 
 <template>
   <!-- Time -->
-  <template v-if="fieldType === 'time'">
+  <template v-if="fieldType === 'TIME'">
     <TimeShortInput :disabled="disabled" :model-value="modelValue"
                     @update:model-value="emit('update:modelValue', $event ?? '')"/>
   </template>

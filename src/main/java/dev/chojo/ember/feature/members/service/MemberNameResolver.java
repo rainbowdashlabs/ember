@@ -149,7 +149,7 @@ public class MemberNameResolver {
         return new ResolvedMember(enriched, name);
     }
 
-    private record DisplayData(String stationName, String nameColor, MemberIdentity.DisplayTag displayTag) {}
+    private record DisplayData(String name, String stationName, String nameColor, MemberIdentity.DisplayTag displayTag) {}
 
     private final Cache<UUID, DisplayData> displayCache = Caffeine.newBuilder()
             .expireAfterAccess(5, TimeUnit.MINUTES)
@@ -157,7 +157,7 @@ public class MemberNameResolver {
             .build();
 
     /**
-     * Enriches a MemberIdentity with display metadata (station name, name color, visible tag badge).
+     * Enriches a MemberIdentity with display metadata (name, station name, name color, visible tag badge).
      * Results are cached for 5 minutes after last access.
      */
     public MemberIdentity enrichDisplay(MemberIdentity identity) {
@@ -165,14 +165,15 @@ public class MemberNameResolver {
 
         var data = displayCache.get(identity.memberUid(), uid -> {
             var station = stationRepository.findByUid(identity.stationUid()).orElse(null);
-            if (station == null) return new DisplayData(null, null, null);
+            if (station == null) return new DisplayData(null, null, null, null);
             String stationName = station.name();
             var memberId = memberService.resolveId(station.id(), uid);
-            if (memberId.isEmpty()) return new DisplayData(stationName, null, null);
-            return new DisplayData(stationName, resolveNameColor(memberId.get()), resolveDisplayTag(memberId.get()));
+            if (memberId.isEmpty()) return new DisplayData(null, stationName, null, null);
+            String name = resolveLocal(memberId.get());
+            return new DisplayData(name, stationName, resolveNameColor(memberId.get()), resolveDisplayTag(memberId.get()));
         });
 
-        return identity.withDisplay(data.stationName(), data.nameColor(), data.displayTag());
+        return identity.withDisplay(data.name(), data.stationName(), data.nameColor(), data.displayTag());
     }
 
     private String resolveNameColor(int memberId) {

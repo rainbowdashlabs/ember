@@ -143,7 +143,7 @@ async function loadData() {
       const [attemptList, memberList, roleList, groupList, tagList, restrictions] = await Promise.all([
         quiz.listAttempts(testId.value),
         stationMembers.listMembers(),
-        stationMembers.listAllRoles(),
+        stationMembers.listAllPermissions(),
         memberGroups.listGroups(),
         userTags.listTags(),
         quiz.getRestrictions(testId.value),

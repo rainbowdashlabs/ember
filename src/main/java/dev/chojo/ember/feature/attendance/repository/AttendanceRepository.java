@@ -434,9 +434,9 @@ public class AttendanceRepository {
                             SELECT e.id, e.session_id, e.member_id, e.status, e.check_in, e.check_out, e.source
                             FROM attendance_entry e
                             JOIN station_member sm ON sm.id = e.member_id
-                            JOIN account a ON a.id = sm.account_id
+                            LEFT JOIN account a ON a.id = sm.account_id
                             WHERE e.session_id = :session_id
-                            ORDER BY a.first_name, a.last_name;""")
+                            ORDER BY COALESCE(sm.display_name, a.first_name || ' ' || a.last_name);""")
                 .single(Call.of().bind("session_id", sessionId))
                 .map(AttendanceEntry.map())
                 .all();

@@ -19,6 +19,7 @@ import type {
     EventTemplateDetail,
     EventTemplateFieldEntry,
     LayoutFieldEntry,
+    MemberIdentity,
     SetEventFieldsRequest,
     StationEvent
 } from './types'
@@ -117,6 +118,7 @@ export interface EventRegistrationEntry {
     status: string  // RegistrationStatusName
     createdAt: string
     createdByName?: string | null
+    memberIdentity?: MemberIdentity | null
 }
 
 export async function listMyRegistrations(): Promise<EventRegistrationEntry[]> {
@@ -141,6 +143,7 @@ export interface AbsentMember {
     absentFrom: string
     absentUntil: string
     reason?: string | null
+    memberIdentity?: MemberIdentity | null
 }
 
 export async function listAbsencesForDate(eventId: number, date: string): Promise<AbsentMember[]> {

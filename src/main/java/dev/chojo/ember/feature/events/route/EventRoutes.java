@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.events.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.FederationSession;
+import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.api.MessageResponse;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
@@ -39,6 +40,7 @@ import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
+import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.members.service.StationMemberService;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.feature.station.entity.Station;
@@ -90,6 +92,7 @@ public class EventRoutes implements Routes {
     private final FederationService federationService;
     private final FederationRepository federationRepository;
     private final StationRepository stationRepository;
+    private final MemberIdentityFactory memberIdentityFactory;
 
     @Inject
     public EventRoutes(
@@ -104,7 +107,8 @@ public class EventRoutes implements Routes {
             EventFederationService eventFederationService,
             FederationService federationService,
             FederationRepository federationRepository,
-            StationRepository stationRepository) {
+            StationRepository stationRepository,
+            MemberIdentityFactory memberIdentityFactory) {
         this.eventService = eventService;
         this.eventFieldService = eventFieldService;
         this.batchEventService = batchEventService;
@@ -117,6 +121,7 @@ public class EventRoutes implements Routes {
         this.federationService = federationService;
         this.federationRepository = federationRepository;
         this.stationRepository = stationRepository;
+        this.memberIdentityFactory = memberIdentityFactory;
     }
 
     @Override
@@ -592,17 +597,21 @@ public class EventRoutes implements Routes {
         }
         ctx.json(registrations.stream()
                 .map(r -> {
-                    String memberName = stationMemberRepository
-                            .findById(r.memberId())
+                    var member = stationMemberRepository.findById(r.memberId());
+                    String memberName = member
                             .flatMap(m -> accountRepository.findById(m.accountId()))
                             .map(a -> (a.firstName() + " " + a.lastName()).trim())
                             .orElse("");
+                    MemberIdentity memberIdentity = member
+                            .map(m -> memberIdentityFactory.local(m.stationId(), r.memberId()))
+                            .orElse(null);
                     String createdByName = resolveCreatedByName(r.createdBy());
                     return new RegistrationResponse(
                             r.id(),
                             r.eventId(),
                             r.memberId(),
                             memberName,
+                            memberIdentity,
                             r.eventDate(),
                             r.status().name(),
                             r.createdAt(),
@@ -677,17 +686,21 @@ public class EventRoutes implements Routes {
                 : eventService.findAllRegistrations(eventId);
         ctx.json(regs.stream()
                 .map(r -> {
-                    String memberName = stationMemberRepository
-                            .findById(r.memberId())
+                    var member = stationMemberRepository.findById(r.memberId());
+                    String memberName = member
                             .flatMap(m -> accountRepository.findById(m.accountId()))
                             .map(a -> (a.firstName() + " " + a.lastName()).trim())
                             .orElse("");
+                    MemberIdentity memberIdentity = member
+                            .map(m -> memberIdentityFactory.local(m.stationId(), r.memberId()))
+                            .orElse(null);
                     String createdByName = resolveCreatedByName(r.createdBy());
                     return new RegistrationResponse(
                             r.id(),
                             r.eventId(),
                             r.memberId(),
                             memberName,
+                            memberIdentity,
                             r.eventDate(),
                             r.status().name(),
                             r.createdAt(),
@@ -1241,13 +1254,16 @@ public class EventRoutes implements Routes {
         var absences = attendanceService.findAbsencesByStationOnDate(session.stationId(), date);
         ctx.json(absences.stream()
                 .map(a -> {
-                    String memberName = stationMemberRepository
-                            .findById(a.memberId())
+                    var member = stationMemberRepository.findById(a.memberId());
+                    String memberName = member
                             .flatMap(m -> accountRepository.findById(m.accountId()))
                             .map(acc -> (acc.firstName() + " " + acc.lastName()).trim())
                             .orElse("");
+                    MemberIdentity memberIdentity = member
+                            .map(m -> memberIdentityFactory.local(m.stationId(), a.memberId()))
+                            .orElse(null);
                     return new AbsentMemberResponse(
-                            a.memberId(), memberName, a.absentFrom(), a.absentUntil(), a.reason());
+                            a.memberId(), memberName, memberIdentity, a.absentFrom(), a.absentUntil(), a.reason());
                 })
                 .toList());
     }
@@ -1300,6 +1316,7 @@ public class EventRoutes implements Routes {
             int eventId,
             int memberId,
             String memberName,
+            MemberIdentity memberIdentity,
             LocalDate eventDate,
             String status,
             Instant createdAt,
@@ -1350,7 +1367,7 @@ public class EventRoutes implements Routes {
     public record FieldDefaultEntry(int fieldId, String source, String value) {}
 
     public record AbsentMemberResponse(
-            int memberId, String memberName, LocalDate absentFrom, LocalDate absentUntil, String reason) {}
+            int memberId, String memberName, MemberIdentity memberIdentity, LocalDate absentFrom, LocalDate absentUntil, String reason) {}
 
     public record EventExportRequest(
             List<Integer> categoryIds, List<ExportColumnRequest> columns, String from, String to) {}

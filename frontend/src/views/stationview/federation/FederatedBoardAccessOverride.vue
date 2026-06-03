@@ -44,7 +44,7 @@ const saved = ref(false)
 async function loadData() {
     try {
         const [roles, groups, tags, override] = await Promise.all([
-            stationMembers.listAllRoles(),
+            stationMembers.listAllPermissions(),
             memberGroups.listGroups(),
             userTags.listTags(),
             federatedBoards.getAccessOverride(props.partnerUid, props.boardKey),

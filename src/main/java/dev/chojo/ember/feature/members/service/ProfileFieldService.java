@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.members.service;
 
 import dev.chojo.ember.api.roles.StationPermission;
+import dev.chojo.ember.api.roles.StationUserType;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.members.entity.FieldValueEntry;
 import dev.chojo.ember.feature.members.entity.PagedChanges;
@@ -74,6 +75,24 @@ public class ProfileFieldService {
         return profileFieldRepository.findByStationAndScope(stationId, scope);
     }
 
+    public List<ProfileField> findApplicableFields(int memberId) {
+        var member = stationMemberRepository.findById(memberId).orElse(null);
+        if (member == null) return List.of();
+        var scope = scopeForUserType(member.userType());
+        if (scope == null) return List.of();
+        return profileFieldRepository.findByStationAndScope(member.stationId(), scope);
+    }
+
+    private static ProfileFieldScope scopeForUserType(StationUserType userType) {
+        if (userType == null) return ProfileFieldScope.MEMBER;
+        return switch (userType) {
+            case TRIAL, MEMBER -> ProfileFieldScope.MEMBER;
+            case GUARDIAN -> ProfileFieldScope.GUARDIAN;
+            case TEAM -> ProfileFieldScope.TEAM;
+            case MANAGER -> ProfileFieldScope.MANAGER;
+        };
+    }
+
     public Optional<ProfileField> findById(int id) {
         return profileFieldRepository.findById(id);
     }
@@ -127,6 +146,9 @@ public class ProfileFieldService {
                         || r.equals("MEMBER_MANAGER")
                         || r.equals("NEWS_MANAGER"))) {
             scopes.add(ProfileFieldScope.TEAM);
+        }
+        if (roleNames.contains("MANAGER") || roleNames.contains("ADMIN")) {
+            scopes.add(ProfileFieldScope.MANAGER);
         }
 
         for (var field : allFields) {

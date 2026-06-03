@@ -124,27 +124,22 @@ function getMemberTags(memberId: number): string[] {
   return props.memberTagsMap.get(memberId) ?? []
 }
 
-function getScopesForUserType(roles: string[]): string[] {
-  const scopes: string[] = []
-  // roles array now contains user type strings
-  if (roles.includes(StationUserType.MEMBER) || roles.includes(StationUserType.TRIAL)) scopes.push(StationUserType.MEMBER)
-  if (roles.includes(StationUserType.TEAM) || roles.includes(StationUserType.MANAGER)) scopes.push(StationUserType.TEAM)
-  if (roles.includes(StationUserType.GUARDIAN)) scopes.push(StationUserType.GUARDIAN)
-  return scopes
+function getScopeForUserType(roles: string[]): string {
+  if (roles.includes(StationUserType.MANAGER)) return 'MANAGER'
+  if (roles.includes(StationUserType.TEAM)) return 'TEAM'
+  if (roles.includes(StationUserType.GUARDIAN)) return 'GUARDIAN'
+  return 'MEMBER'
 }
 
 function isFieldApplicable(memberId: number, field: ProfileField): boolean {
   const roles = props.memberRolesMap.get(memberId) ?? []
-  return getScopesForUserType(roles).includes(field.scope ?? StationUserType.MEMBER)
+  return getScopeForUserType(roles) === field.scope
 }
 
 function getApplicableOverviewFields(memberId: number): ProfileField[] {
   const roles = props.memberRolesMap.get(memberId) ?? []
-  const scopes = getScopesForUserType(roles)
-  return props.overviewFields.filter(f => {
-    if (f.scope === 'GROUP') return false
-    return scopes.includes(f.scope ?? StationUserType.MEMBER)
-  })
+  const scope = getScopeForUserType(roles)
+  return props.overviewFields.filter(f => f.scope === scope)
 }
 
 function getManagers(memberId: number): StationMember[] {
@@ -181,7 +176,7 @@ function onRowClick(member: StationMember) {
       <div class="flex items-center justify-between">
         <div class="flex items-center gap-2">
           <div>
-            <MemberName :identity="member.identity" :name="memberDisplayName(member)" size="sm" class="font-medium"/>
+            <MemberName :identity="member.identity" size="sm" class="font-medium"/>
             <ErrorBadge v-if="member.profileComplete === false" class="ml-1.5 text-[10px]">{{ t('membersList.incomplete') }}</ErrorBadge>
             <div v-if="member.userType" class="mt-0.5">
               <span
@@ -318,7 +313,7 @@ function onRowClick(member: StationMember) {
           </Td>
           <Td>
             <div class="flex items-center gap-2">
-              <MemberName :identity="member.identity" :name="memberDisplayName(member)" size="sm" class="font-medium"/>
+              <MemberName :identity="member.identity" size="sm" class="font-medium"/>
               <ErrorBadge v-if="member.profileComplete === false" class="ml-1.5 text-[10px]">{{
                   t('membersList.incomplete')
                 }}</ErrorBadge>

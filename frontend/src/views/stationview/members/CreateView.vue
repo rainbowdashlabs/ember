@@ -18,7 +18,7 @@ import GroupsStep from './createview/GroupsStep.vue'
 import ManagerStep from './createview/ManagerStep.vue'
 import DoneStep from './createview/DoneStep.vue'
 import type {MemberGroup, ProfileField, StationMember} from '@/api/types'
-import {StationUserType} from '@/api/types'
+import {StationUserType, parseFieldConfig} from '@/api/types'
 import {memberGroups, members, profileFields, stationMembers} from '@/api'
 import {useStations} from '@/composables/useStations'
 
@@ -51,15 +51,6 @@ const error = ref('')
 
 const scopeFields = computed(() => allFields.value.filter(f => f.scope === selectedRole.value))
 
-function parseConfig(configStr: string | undefined): Record<string, unknown> {
-  if (!configStr) return {}
-  try {
-    return JSON.parse(configStr)
-  } catch {
-    return {}
-  }
-}
-
 async function loadData() {
   loading.value = true
   try {
@@ -80,7 +71,7 @@ async function loadData() {
 
 function nextFromIdentity() {
   for (const field of scopeFields.value) {
-    const cfg = parseConfig(field.config)
+    const cfg = parseFieldConfig(field.config)
     if (cfg.defaultValue !== undefined && !fieldValues.value.has(field.id)) {
       if (cfg.defaultValue === '__TODAY__') {
         setFieldValue(field.id, new Date().toISOString().slice(0, 10))
@@ -167,7 +158,7 @@ async function createAccount() {
 
     // Set user type for the new member — backend handles this via the invite endpoint
     // The user type is determined by the selected role on account creation
-    await stationMembers.setPermissions(newMember.id, {roleIds: []})  // permissions handled separately
+    await stationMembers.setPermissions(newMember.id, {permissionIds: []})  // permissions handled separately
 
     const entries = [...fieldValues.value.entries()]
         .filter(([_, val]) => val.trim())

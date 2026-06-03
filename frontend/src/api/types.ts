@@ -364,15 +364,15 @@ export interface BreakRequest {
 // -- Event Fields --
 
 export const EventFieldTypes = {
-    STRING: 'string',
-    TIME: 'time',
-    DATE: 'date',
-    BOOLEAN: 'boolean',
-    ENUM: 'enum',
-    MEMBER: 'member',
-    MEMBER_LIST: 'member_list',
-    MEMBER_OF_GROUP: 'member_of_group',
-    MEMBER_LIST_OF_GROUP: 'member_list_of_group',
+    STRING: 'STRING',
+    TIME: 'TIME',
+    DATE: 'DATE',
+    BOOLEAN: 'BOOLEAN',
+    ENUM: 'ENUM',
+    MEMBER: 'MEMBER',
+    MEMBER_LIST: 'MEMBER_LIST',
+    MEMBER_OF_GROUP: 'MEMBER_OF_GROUP',
+    MEMBER_LIST_OF_GROUP: 'MEMBER_LIST_OF_GROUP',
 } as const
 
 export type EventFieldTypeName = (typeof EventFieldTypes)[keyof typeof EventFieldTypes]
@@ -555,6 +555,7 @@ export interface FormResponse {
     submittedByName?: string | null
     submittedAt: string
     updatedAt: string
+    memberIdentity?: MemberIdentity | null
 }
 
 export interface FormAnswer {
@@ -685,6 +686,7 @@ export interface StationMember {
     email?: string
     userType?: string
     profileComplete?: boolean
+    formerAt?: string | null
     identity?: MemberIdentity | null
 }
 
@@ -858,12 +860,12 @@ export function needsDayOfWeek(eventType?: string): boolean {
 // -- Profile Field Type --
 
 export const FieldTypes = {
-    TEXT: 'text',
-    NUMBER: 'number',
-    DATE: 'date',
-    BOOLEAN: 'boolean',
-    ENUM: 'enum',
-    AGE: 'age',
+    TEXT: 'TEXT',
+    NUMBER: 'NUMBER',
+    DATE: 'DATE',
+    BOOLEAN: 'BOOLEAN',
+    ENUM: 'ENUM',
+    AGE: 'AGE',
 } as const
 
 export type FieldTypeName = (typeof FieldTypes)[keyof typeof FieldTypes]
@@ -996,6 +998,7 @@ export interface InventoryItemHistory {
     memberName?: string
     givenOut?: string
     returned?: string | null
+    memberIdentity?: MemberIdentity | null
 }
 
 // -- Inventory Checks --
@@ -1011,7 +1014,8 @@ export interface MemberCheckSummary {
     lockedBy?: number | null
     lockerFirstName?: string | null
     lockerLastName?: string | null
-    roles: string[]
+    userType?: string
+    identity?: MemberIdentity | null
 }
 
 export interface CheckDetail {
@@ -1090,10 +1094,16 @@ export interface ProfileField {
     stationId: string
     name?: string
     fieldType?: string
-    config?: string
+    config?: string | Record<string, unknown>
     position: number
     scope?: string
     keepOnArchive?: boolean
+}
+
+export function parseFieldConfig(config: string | Record<string, unknown> | undefined | null): Record<string, unknown> {
+    if (!config) return {}
+    if (typeof config === 'object') return config
+    try { return JSON.parse(config) } catch { return {} }
 }
 
 export interface ProfileFieldRequest {
@@ -1144,6 +1154,7 @@ export interface ProfileFieldChange {
     fieldName?: string
     acknowledgements: ProfileFieldChangeAcknowledgement[]
     memberName?: string | null
+    memberIdentity?: MemberIdentity | null
 }
 
 export interface MemberChangeSummary {
@@ -1151,6 +1162,7 @@ export interface MemberChangeSummary {
     memberName?: string
     pendingCount: number
     latestChange?: string
+    identity?: MemberIdentity | null
 }
 
 export interface AcknowledgeRequest {
@@ -1315,6 +1327,7 @@ export interface ExchangeRequestEntry {
     createdAt: string
     updatedAt: string
     createdByName?: string | null
+    memberIdentity?: MemberIdentity | null
 }
 
 export interface ExchangeLogEntry {
@@ -1355,6 +1368,7 @@ export interface ProcurementEntry {
     notes: string
     requestedAt: string
     fulfilledAt?: string | null
+    memberIdentity?: MemberIdentity | null
 }
 
 export interface CreateProcurementRequest {
@@ -1715,6 +1729,7 @@ export interface QuizCatalogExport {
 export interface MemberIdentity {
     stationUid: string
     memberUid: string
+    name?: string | null
     stationName?: string | null
     nameColor?: string | null
     displayTag?: { name: string; color: string } | null

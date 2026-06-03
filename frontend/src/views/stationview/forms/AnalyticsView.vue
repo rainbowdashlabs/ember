@@ -403,7 +403,7 @@ onMounted(loadData)
 
             <NeutralContainer v-if="currentResponse">
               <div class="space-y-1 mb-4">
-                <p class="font-medium"><MemberName :name="currentMemberName"/></p>
+                <p class="font-medium"><MemberName :identity="currentResponse?.memberIdentity ?? null"/></p>
                 <p class="text-xs text-(--text-muted)">{{ new Date(currentResponse.submittedAt).toLocaleString('de-DE') }}</p>
                 <p v-if="currentResponse.submittedByName" class="text-xs text-(--text-muted) italic">{{ t('common.submittedBy', { name: currentResponse.submittedByName }) }}</p>
               </div>

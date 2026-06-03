@@ -22,7 +22,7 @@ import UserAvatar from '@/components/avatar/UserAvatar.vue'
 import FileUploadButton from '@/components/button/FileUploadButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import type { ProfileField } from '@/api/types'
-import { StationUserType } from '@/api/types'
+import { StationUserType, parseFieldConfig } from '@/api/types'
 import { profileFields, auth, members, session as sessionApi } from '@/api'
 import { useSession } from '@/composables/useSession'
 import { useSidebarCounts } from '@/composables/useSidebarCounts'
@@ -117,15 +117,6 @@ const incompleteFields = computed(() => {
     return !val || val === '""' || val === ''
   })
 })
-
-function parseFieldConfig(configStr: string | undefined): { required?: boolean; readonly?: boolean; options?: string[]; defaultValue?: unknown } {
-  if (!configStr) return {}
-  try {
-    return JSON.parse(configStr)
-  } catch {
-    return {}
-  }
-}
 
 function getValue(fieldId: number): string {
   return values.value.get(fieldId) ?? ''
@@ -337,7 +328,7 @@ onMounted(loadProfile)
             </FieldLabel>
 
             <ProfileFieldInput
-              :field-type="field.fieldType ?? 'text'"
+              :field-type="field.fieldType ?? 'TEXT'"
               :model-value="getValue(field.id)"
               :options="(parseFieldConfig(field.config).options as string[]) ?? []"
               :disabled="!!parseFieldConfig(field.config).readonly"

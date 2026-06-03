@@ -21,6 +21,7 @@ import FieldLabel from '@/components/typography/FieldLabel.vue'
 import PageHeader from '@/components/typography/PageHeader.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import type { WaitingListInviteInfo } from '@/api/types'
+import { parseFieldConfig } from '@/api/types'
 import { waitingList } from '@/api'
 
 const { t } = useI18n()
@@ -67,11 +68,6 @@ function getFieldValueAsBoolean(fieldId: number): boolean {
 
 function setFieldValueFromBoolean(fieldId: number, value: boolean) {
   setFieldValue(fieldId, String(value))
-}
-
-function parseConfig(configStr: string | undefined | null): Record<string, unknown> {
-  if (!configStr) return {}
-  try { return JSON.parse(configStr) } catch { return {} }
 }
 
 async function loadInviteInfo() {
@@ -216,7 +212,7 @@ onMounted(loadInviteInfo)
             >
               <option value="" disabled>{{ t('waitingList.selectOption') }}</option>
               <option
-                v-for="opt in (parseConfig(field.config).options as string[] ?? [])"
+                v-for="opt in (parseFieldConfig(field.config).options as string[] ?? [])"
                 :key="opt"
                 :value="opt"
               >{{ opt }}</option>

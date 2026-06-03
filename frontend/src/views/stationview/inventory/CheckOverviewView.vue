@@ -37,19 +37,19 @@ const {sessionInfo} = useSession()
 const members = ref<MemberCheckSummary[]>([])
 const loading = ref(true)
 const error = ref('')
-const activeTab = ref<'team' | 'member'>('team')
+const activeTab = ref<'team' | 'member'>('member')
 const sortBy = ref<'name' | 'lastChecked'>('name')
 
 const currentMemberId = () => sessionInfo.value?.member?.id
 
 const filteredMembers = computed(() => {
   return members.value.filter(m => {
-    const roles = m.roles ?? []
-    if (roles.includes(StationUserType.GUARDIAN)) return false
+    const ut = m.userType ?? ''
+    if (ut === StationUserType.GUARDIAN) return false
     if (activeTab.value === 'team') {
-      return roles.includes(StationUserType.TEAM) || roles.includes(StationUserType.MANAGER)
+      return ut === StationUserType.TEAM || ut === StationUserType.MANAGER
     } else {
-      return roles.includes(StationUserType.MEMBER) || roles.includes(StationUserType.TRIAL)
+      return ut === StationUserType.MEMBER || ut === StationUserType.TRIAL
     }
   }).sort((a, b) => {
     if (sortBy.value === 'lastChecked') {
@@ -162,7 +162,7 @@ onMounted(loadData)
                 v-for="member in filteredMembers"
                 :key="member.memberId"
             >
-              <Td class="font-medium"><MemberName :name="memberName(member)"/></Td>
+              <Td class="font-medium"><MemberName :identity="member.identity"/></Td>
               <Td muted>{{ formatDate(member.lastCheckedAt) }}</Td>
               <Td muted>{{ checkerName(member) }}</Td>
               <Td>
@@ -206,7 +206,7 @@ onMounted(loadData)
               class="space-y-2"
           >
             <div class="flex items-center justify-between gap-2">
-              <div class="font-medium truncate"><MemberName :name="memberName(member)"/></div>
+              <div class="font-medium truncate"><MemberName :identity="member.identity"/></div>
               <div>
                 <ErrorBadge v-if="isLockedByOther(member)">
                   {{ t('inventory.check.locked') }}: {{ lockerName(member) }}

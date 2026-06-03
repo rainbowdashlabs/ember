@@ -265,7 +265,7 @@ onMounted(loadData)
               <span class="text-sm font-medium">{{ req.inventoryName }}</span>
               <ExchangeStatusBadge :status="req.status" />
             </div>
-            <div v-if="showMemberColumn" class="text-xs text-(--text-muted)"><MemberName :name="req.memberName"/></div>
+            <div v-if="showMemberColumn" class="text-xs text-(--text-muted)"><MemberName :identity="req.memberIdentity ?? null"/></div>
             <div class="text-xs">{{ req.oldSizeLabel ?? t('common.unisize') }} &rarr; {{ req.newSizeLabel ?? t('common.unisize') }}</div>
             <div v-if="req.reason" class="text-xs text-(--text-muted) truncate">{{ req.reason }}</div>
             <div class="text-xs text-(--text-muted)">{{ formatDate(req.createdAt) }}</div>
@@ -322,8 +322,8 @@ onMounted(loadData)
                     v-if="canManageInventory()"
                     class="text-primary hover:underline cursor-pointer"
                     @click="router.push({ name: 'inventory-member', params: { memberId: req.memberId } })"
-                  ><MemberName :name="req.memberName"/></button>
-                  <MemberName v-else :name="req.memberName"/>
+                  ><MemberName :identity="req.memberIdentity ?? null"/></button>
+                  <MemberName v-else :identity="req.memberIdentity ?? null"/>
                 </Td>
                 <Td class="font-medium">{{ req.inventoryName }}</Td>
                 <Td>{{ req.oldSizeLabel ?? t('common.unisize') }}</Td>

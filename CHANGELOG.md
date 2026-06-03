@@ -1,5 +1,124 @@
 # Changelog
 
+## v26.7.0
+
+### New Features
+
+#### Permission System
+- **Granular permissions** — replaced the flat role system with a hierarchical permission tree; each feature area (events, members, inventory, boards, etc.) has its own read/edit/manage permissions
+- **User type permissions** — assign extra permissions to entire user types (Trial, Member, Guardian, Team) station-wide via a new management page
+- **Permission picker** — new hierarchical permission selector with collapsible groups, icons, and descriptions; replaces the old flat role checkboxes in member edit and group management
+- **Sidebar permission gating** — sidebar links are now shown or hidden based on the user's actual permissions rather than all-or-nothing manager checks
+- **Read-only views** — users with read permission but not edit permission see content without edit controls (e.g. waiting list, boards)
+
+#### Member Identity & Display
+- **Group colors** — assign a display color to groups; the highest-priority group's color is used as the member's name color everywhere
+- **Tag badges** — tags can be marked visible with a color and position; they appear as inline colored pill badges next to member names
+- **Unified member identity** — a single identity model (station UUID + member UUID + display name) is used everywhere from database through API to frontend, simplifying federation and enabling consistent display across local and remote members
+- **Identity carries display name** — the `MemberIdentity` object now includes the resolved member name; all API responses that reference members return an enriched identity with avatar, name, group color, and tag badge in one object
+- **MemberName driven by identity** — the `MemberName` component derives its display name solely from the identity object; separate name props have been removed across the entire frontend
+
+#### Federated Comments
+- **Event comments** — comment on events shared by federation partners; comments show the author's station badge
+- **News comments** — comment on news posts shared by partners with full threading support
+- **Knowledge base comments** — threaded comments on KB files with federation support and soft-delete
+
+#### News Federation
+- **Per-post sharing** — choose which news posts to share with partners: all partners or specific ones
+- **Visibility role** — set a minimum role (Member/Team/Manager) for shared news visibility at partner stations
+- **Federated news in feed** — partner news posts appear inline in the news list, marked with a federation badge
+- **Federated news detail** — dedicated view for reading partner station news with full content and comments
+
+#### Event Cancellation
+- **Manual cancellation** — managers can cancel events with a reason; a red alert banner is shown on cancelled events
+- **Auto-cancellation** — events that don't reach the minimum registration count by a threshold date are automatically cancelled
+- **Cancellation notifications** — all registered members receive an EVENT_CANCELLED notification
+
+#### Station Requirements View
+- **Requirements page** — new view showing outstanding requirements for the current member: incomplete profile, forced forms, and forced quizzes
+- **Sidebar badge** — a badge appears when the member has unfinished requirements
+
+#### Board Improvements
+- **Human-readable URLs** — board and ticket URLs now use short keys and ticket numbers (e.g. `/boards/jug/tickets/1`) instead of integer IDs
+- **Federated ticket links** — create and delete ticket links on federated boards with history logging
+- **Assignee change logging** — assignee changes are logged in ticket history and trigger notifications
+- **Lane replacement safety** — replacing lanes preserves existing lane IDs and moves orphaned tickets to the last remaining lane
+- **Chronological activity tab** — the history tab is now sorted chronologically instead of grouped by type
+- **Keyboard navigation in ticket link search** — arrow keys to navigate, Enter to select, self-linking prevented
+
+#### Help Center
+- **Boards help rewrite** — all 9 boards help pages rewritten with detailed sections and tips
+- **Type permissions help** — new article explaining the layered permission model
+- **Requirements help** — help article for the requirements view
+
+#### Other
+- **Layered Ember logo** — new animated logo with blink, bounce, and FAQ shake animations, replacing the old static logo
+- **Sidebar counts** — all sidebar badges now load in a single API call for better performance
+- **Parallel demo seeding** — demo data seeding runs module seeders in parallel using virtual threads, significantly reducing startup time
+
+### Bug Fixes
+
+- Fixed federation comment badges showing incorrectly for own station's federated comments
+- Fixed federation access not respecting role hierarchy (MANAGER not matching TEAM restrictions)
+- Fixed ticket links not working on federated boards
+- Fixed assignee changes not being tracked in board ticket history
+- Fixed lane deletion removing tickets instead of moving them to remaining lanes
+- Fixed protocol views not rendering correctly with new permission model
+- Fixed federation HTTP client serialization issues
+
+---
+
+### Technical Changes
+
+#### Permission Architecture
+- Four new enums: `StationPermission`, `StationUserType`, `InstancePermission`, `InstanceUserType` replacing flat role strings
+- New `station_user_type_permission` DB table (patch 7) with CRUD API endpoints
+- `AccessManager` extended to resolve type-level grants alongside individual and group grants
+- `PermissionPicker.vue` component with hierarchical display and implicit grant hiding
+- `hasAnyXPermission()` composable helpers in `useSession.ts` for all feature areas
+- Waitlist permission split: `WAITLIST_ADD` → `WAITLIST_EDIT`, separate `WAITLIST_READ`
+- Board permissions split: `BOARD_USE`, `BOARD_EDIT`, `BOARD_FEDERATE`, `BOARD_MANAGER`
+- Groups API renamed: `groups/{id}/roles` → `groups/{id}/permissions`, `Role` → `PermissionGrant`
+
+#### Member Identity
+- `uid UUID` column added to `station_member` with unique `(station_id, uid)` index
+- `MemberIdentity(stationUid, memberUid)` record replaces dual local/federated member representation
+- Dropped satellite federation tables: `federated_assignee`, `federated_creator`, `federated_comment_author`, `federated_watcher` for boards, events, news, KB
+- `MemberIdentityFactory` service for enriching identities with display metadata
+- `MemberNameResolver` with Caffeine caching replaces static `StationUidResolver`/`MemberUidResolver`
+- Mention format migrated to `@[stationUid/memberUid:Name]` with legacy support
+- Avatar URLs use `stationUid/memberUid` path segments
+
+#### Group Colors & Tag Badges
+- `MemberGroup` extended with `color` (hex) and `position` (priority) fields
+- `UserTag` extended with `color`, `visible`, and `position` fields
+- `MemberIdentity` API response includes `nameColor`, `displayTag`, `stationName`
+
+#### Federation
+- `FederationHttpClient` refactored to typed generic API (`get<T>`, `getList<T>`, `post`, `put`, `delete`)
+- New tables: `event_comment_federated_author`, `news_comment_federated_author`, `kb_comment`, `kb_comment_federated_author`
+- `news_federation_share` + `news_federation_share_target` tables with `NEWS_SHARE` capability
+- Remote/proxy comment endpoints for events, news, and KB
+- Federated board access: two-tier model with shared required role + local override
+- Board `uid UUID` column for federation references
+- `all_remote_member_id` columns migrated from TEXT to native PostgreSQL UUID
+
+#### Frontend
+- `LayeredEmberLogo.vue` composited from individual image fragments with `useEmberLogo` composable
+- `SidebarCountService` + `useSidebarCounts` composable (replaces `usePendingChanges`)
+- `RequirementsView.vue`, `FederatedDetailView.vue` (news), `FederatedEventDetailView.vue`, `UserTypePermissionsView.vue`
+- `KbCommentSection.vue`, `EventCancelModal.vue`, `MemberName.vue` enriched
+- Dev error reporter (`devErrorReporter.ts`) for in-app exception display in dev mode
+
+#### Backend
+- `SidebarCountService` — single endpoint returning all sidebar badge counts
+- `EventThresholdChecker` — scheduled executor for auto-cancellation (every 30 minutes)
+- `StationExportService`/`StationImportService` extended to cover 45+ tables for full station portability
+- Caffeine cache dependency added (replaces `ConcurrentHashMap` caches)
+- Demo seeding parallelized with `CompletableFuture` + `Executors.newVirtualThreadPerTaskExecutor()`; exchange/procurement code extracted to `seedExchanges()`/`seedProcurements()` helper methods
+
+---
+
 ## v26.6.0
 
 ### New Features

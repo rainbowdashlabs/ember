@@ -145,7 +145,7 @@ async function loadData() {
   try {
     const [catalogRes, roles, groups, tags] = await Promise.all([
       quiz.listCatalogs(),
-      stationMembers.listAllRoles(),
+      stationMembers.listAllPermissions(),
       memberGroups.listGroups(),
       userTags.listTags(),
     ])

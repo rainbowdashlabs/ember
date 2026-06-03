@@ -13,7 +13,7 @@ import InfoButton from '@/components/button/InfoButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import MemberName from '@/components/avatar/MemberName.vue'
 import {useBreakpoint} from '@/composables/useBreakpoint'
-import type {AttendanceEntry, AttendanceStatus} from '@/api/types'
+import type {AttendanceEntry, AttendanceStatus, MemberIdentity} from '@/api/types'
 
 const {t} = useI18n()
 const {isMobile} = useBreakpoint()
@@ -23,6 +23,7 @@ defineProps<{
   checkIndex: number
   totalUnchecked: number
   memberName: string
+  memberIdentity?: MemberIdentity | null
 }>()
 
 const emit = defineEmits<{
@@ -37,7 +38,7 @@ const emit = defineEmits<{
     <SectionHeader>{{ t('attendanceSession.checkMode') }}</SectionHeader>
     <div class="text-center space-y-4 py-4">
       <p class="text-2xl font-bold">
-        <MemberName :name="memberName" size="md"/>
+        <MemberName :identity="memberIdentity" size="md"/>
       </p>
       <p class="text-sm text-(--text-muted)">{{ checkIndex + 1 }} / {{ totalUnchecked }}</p>
       <div class="flex flex-col sm:flex-row justify-center gap-3 sm:gap-4">

@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import TextInput from '@/components/input/text/TextInput.vue'
 import CheckboxInput from '@/components/input/toggle/CheckboxInput.vue'
@@ -51,9 +51,17 @@ const emit = defineEmits<{
   filter: [criteria: FilterCriteria]
 }>()
 
+const searchInput = ref<{ $el: HTMLInputElement } | null>(null)
 const showColumnPicker = ref(false)
 const showSaveFilter = ref(false)
 const filterPresetName = ref('')
+
+onMounted(() => {
+  nextTick(() => {
+    const el = searchInput.value?.$el
+    if (el instanceof HTMLInputElement) el.focus()
+  })
+})
 
 function submitSaveFilter() {
   if (!filterPresetName.value.trim()) return
@@ -86,7 +94,7 @@ function submitSaveFilter() {
   />
 
   <div class="space-y-2">
-    <TextInput :model-value="filterText" :placeholder="t('membersList.filter')" class="w-full" @update:model-value="(v: string | undefined) => emit('update:filterText', v ?? '')" />
+    <TextInput ref="searchInput" :model-value="filterText" :placeholder="t('membersList.filter')" class="w-full" @update:model-value="(v: string | undefined) => emit('update:filterText', v ?? '')" />
     <div class="grid grid-cols-2 sm:flex sm:flex-wrap sm:items-center gap-2">
       <div class="relative">
         <SecondaryButton :icon="['fas', 'table-columns']" :full-width="isMobile" @click="showColumnPicker = !showColumnPicker">

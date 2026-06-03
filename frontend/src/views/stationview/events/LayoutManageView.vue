@@ -87,7 +87,7 @@ async function openEdit(layout: EventLayout) {
 }
 
 function addField() {
-  editFields.value.push({name: '', fieldType: 'string', config: '{}', overview: false, attendanceFieldId: null})
+  editFields.value.push({name: '', fieldType: 'STRING', config: '{}', overview: false, attendanceFieldId: null})
 }
 
 function removeField(index: number) {

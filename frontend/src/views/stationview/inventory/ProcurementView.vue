@@ -173,7 +173,7 @@ onMounted(loadData)
                 <ErrorBadge v-else>{{ t('procurement.open') }}</ErrorBadge>
               </div>
               <div class="text-sm text-(--text-muted)">
-                <MemberName :name="entry.memberName"/> &mdash; {{ formatDate(entry.requestedAt) }}
+                <MemberName :identity="entry.memberIdentity ?? null"/> &mdash; {{ formatDate(entry.requestedAt) }}
               </div>
               <div v-if="entry.fulfilledAt" class="text-xs text-(--text-muted)">
                 {{ t('procurement.fulfilledAt') }}: {{ formatDate(entry.fulfilledAt) }}

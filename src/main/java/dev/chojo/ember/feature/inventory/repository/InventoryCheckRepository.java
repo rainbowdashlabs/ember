@@ -7,7 +7,6 @@ package dev.chojo.ember.feature.inventory.repository;
 
 import de.chojo.sadu.queries.api.call.Call;
 import de.chojo.sadu.queries.api.query.Query;
-import dev.chojo.ember.api.roles.StationPermission;
 import dev.chojo.ember.feature.inventory.entity.CheckDetail;
 import dev.chojo.ember.feature.inventory.entity.CheckResult;
 import dev.chojo.ember.feature.inventory.entity.InventoryCheck;
@@ -74,7 +73,7 @@ public class InventoryCheckRepository {
      */
     public List<MemberCheckSummary> checkOverview(int stationId) {
         return Query.query("""
-                            SELECT sm.id AS member_id, a.first_name, a.last_name,
+                            SELECT sm.id AS member_id, a.first_name, a.last_name, sm.user_type,
                                    lc.checked_at AS last_checked_at, lc.checked_by,
                                    ca.first_name AS checker_first_name, ca.last_name AS checker_last_name,
                                    (l.id IS NOT NULL) AS locked,
@@ -91,7 +90,7 @@ public class InventoryCheckRepository {
                                 LEFT JOIN inventory_check_lock l ON l.member_id = sm.id
                                 LEFT JOIN station_member lsm ON lsm.id = l.locked_by
                                 LEFT JOIN account la ON la.id = lsm.account_id
-                            WHERE sm.station_id = :station_id
+                            WHERE sm.station_id = :station_id AND sm.former = FALSE
                             ORDER BY lc.checked_at ASC NULLS FIRST;""")
                 .single(Call.of().bind("station_id", stationId))
                 .map(row -> new MemberCheckSummary(
@@ -105,7 +104,7 @@ public class InventoryCheckRepository {
                         row.getObject("locked_by", Integer.class),
                         row.getString("locker_first_name"),
                         row.getString("locker_last_name"),
-                        List.of()))
+                        row.getString("user_type")))
                 .all();
     }
 
@@ -308,5 +307,5 @@ public class InventoryCheckRepository {
             Integer lockedBy,
             String lockerFirstName,
             String lockerLastName,
-            List<StationPermission> permissions) {}
+            String userType) {}
 }

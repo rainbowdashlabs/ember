@@ -5,13 +5,16 @@
  */
 package dev.chojo.ember.feature.inventory.route;
 
+import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.roles.StationPermission;
 import dev.chojo.ember.feature.inventory.entity.CheckItemRequest;
 import dev.chojo.ember.feature.inventory.entity.CheckResult;
+import dev.chojo.ember.feature.inventory.repository.InventoryCheckRepository.MemberCheckSummary;
 import dev.chojo.ember.feature.inventory.service.InventoryCheckService;
 import dev.chojo.ember.feature.inventory.service.InventoryService;
+import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
@@ -36,11 +39,14 @@ import java.util.List;
 public class InventoryCheckRoutes implements Routes {
     private final InventoryCheckService checkService;
     private final InventoryService inventoryService;
+    private final MemberIdentityFactory memberIdentityFactory;
 
     @Inject
-    public InventoryCheckRoutes(InventoryCheckService checkService, InventoryService inventoryService) {
+    public InventoryCheckRoutes(InventoryCheckService checkService, InventoryService inventoryService,
+                                MemberIdentityFactory memberIdentityFactory) {
         this.checkService = checkService;
         this.inventoryService = inventoryService;
+        this.memberIdentityFactory = memberIdentityFactory;
     }
 
     @Override
@@ -76,7 +82,21 @@ public class InventoryCheckRoutes implements Routes {
             responses = @OpenApiResponse(status = "200"))
     private void overview(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        ctx.json(checkService.getCheckOverview(session.stationId()));
+        var summaries = checkService.getCheckOverview(session.stationId());
+        var enriched = summaries.stream().map(s -> new EnrichedCheckSummary(s,
+                memberIdentityFactory.local(session.stationId(), s.memberId()))).toList();
+        ctx.json(enriched);
+    }
+
+    public record EnrichedCheckSummary(
+            int memberId, String firstName, String lastName, java.time.Instant lastCheckedAt,
+            String checkerFirstName, String checkerLastName, boolean locked, Integer lockedBy,
+            String lockerFirstName, String lockerLastName, String userType, MemberIdentity identity) {
+        EnrichedCheckSummary(MemberCheckSummary s, MemberIdentity identity) {
+            this(s.memberId(), s.firstName(), s.lastName(), s.lastCheckedAt(),
+                    s.checkerFirstName(), s.checkerLastName(), s.locked(), s.lockedBy(),
+                    s.lockerFirstName(), s.lockerLastName(), s.userType(), identity);
+        }
     }
 
     @OpenApi(

@@ -263,7 +263,7 @@ onMounted(loadData)
                 <div v-for="member in tagMembers" :key="member.id"
                      class="flex items-center justify-between rounded-lg px-3 py-2 bg-bg-light-accent dark:bg-bg-dark-accent">
                   <div>
-                    <MemberName :name="memberDisplayName(member)" :identity="member.identity" class="text-sm font-medium"/>
+                    <MemberName :identity="member.identity" class="text-sm font-medium"/>
                     <div v-if="member.name && member.email" class="text-xs text-(--text-muted) ml-7">{{ member.email }}</div>
                   </div>
                   <IconButton :icon="['fas', 'xmark']" :label="t('userTags.removeMember')" class="text-error hover:text-error/80 text-sm" @click="removeMemberFromTag(member)"/>
@@ -285,7 +285,7 @@ onMounted(loadData)
                     @click="addMemberToTag(member)"
                 >
                   <div>
-                    <MemberName :name="memberDisplayName(member)" :identity="member.identity" class="text-sm font-medium"/>
+                    <MemberName :identity="member.identity" class="text-sm font-medium"/>
                     <div v-if="member.name && member.email" class="text-xs text-(--text-muted) ml-7">{{ member.email }}</div>
                   </div>
                   <font-awesome-icon :icon="['fas', 'plus']" class="text-primary text-sm"/>

@@ -82,7 +82,7 @@ class DomainEventHandlerTest {
     }
 
     private StationMember member(int id) {
-        return new StationMember(id, STATION_ID, UUID.randomUUID(), id, false, "Member " + id, StationUserType.MEMBER);
+        return new StationMember(id, STATION_ID, UUID.randomUUID(), id, false, null, "Member " + id, StationUserType.MEMBER);
     }
 
     // -- EventCreatedHandler --

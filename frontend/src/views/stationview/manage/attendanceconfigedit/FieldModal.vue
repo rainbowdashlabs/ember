@@ -34,31 +34,31 @@ const {t} = useI18n()
 const open = defineModel<boolean>({default: false})
 
 const fieldTypeOptions = [
-  {value: 'string', label: 'Text'},
-  {value: 'time', label: 'Uhrzeit'},
-  {value: 'date', label: 'Datum'},
-  {value: 'boolean', label: 'Ja/Nein'},
-  {value: 'enum', label: 'Auswahl'},
-  {value: 'member', label: 'Mitglied'},
-  {value: 'member_list', label: 'Mitgliederliste'},
-  {value: 'member_of_group', label: 'Mitglied aus Gruppe'},
-  {value: 'member_list_of_group', label: 'Mitgliederliste aus Gruppe'},
+  {value: 'STRING', label: 'Text'},
+  {value: 'TIME', label: 'Uhrzeit'},
+  {value: 'DATE', label: 'Datum'},
+  {value: 'BOOLEAN', label: 'Ja/Nein'},
+  {value: 'ENUM', label: 'Auswahl'},
+  {value: 'MEMBER', label: 'Mitglied'},
+  {value: 'MEMBER_LIST', label: 'Mitgliederliste'},
+  {value: 'MEMBER_OF_GROUP', label: 'Mitglied aus Gruppe'},
+  {value: 'MEMBER_LIST_OF_GROUP', label: 'Mitgliederliste aus Gruppe'},
 ]
 
 const fieldTypeDescriptions: Record<string, string> = {
-  string: 'Ein einfaches Textfeld zur freien Eingabe.',
-  time: 'Eingabefeld für eine Uhrzeit.',
-  date: 'Eingabefeld für ein Datum.',
-  boolean: 'Ein Ja/Nein-Schalter.',
-  enum: 'Auswahl aus vordefinierten Optionen.',
-  member: 'Auswahl eines einzelnen Mitglieds aus allen Mitgliedern der Wache.',
-  member_list: 'Auswahl mehrerer Mitglieder aus allen Mitgliedern der Wache.',
-  member_of_group: 'Auswahl eines einzelnen Mitglieds aus einer bestimmten Gruppe.',
-  member_list_of_group: 'Auswahl mehrerer Mitglieder aus einer bestimmten Gruppe.',
+  STRING: 'Ein einfaches Textfeld zur freien Eingabe.',
+  TIME: 'Eingabefeld für eine Uhrzeit.',
+  DATE: 'Eingabefeld für ein Datum.',
+  BOOLEAN: 'Ein Ja/Nein-Schalter.',
+  ENUM: 'Auswahl aus vordefinierten Optionen.',
+  MEMBER: 'Auswahl eines einzelnen Mitglieds aus allen Mitgliedern der Wache.',
+  MEMBER_LIST: 'Auswahl mehrerer Mitglieder aus allen Mitgliedern der Wache.',
+  MEMBER_OF_GROUP: 'Auswahl eines einzelnen Mitglieds aus einer bestimmten Gruppe.',
+  MEMBER_LIST_OF_GROUP: 'Auswahl mehrerer Mitglieder aus einer bestimmten Gruppe.',
 }
 
 const fieldName = ref('')
-const fieldType = ref('string')
+const fieldType = ref('STRING')
 const fieldConfigGroupId = ref('')
 const fieldConfigRequired = ref(false)
 const fieldConfigAutoAttend = ref(false)
@@ -74,15 +74,15 @@ const isEditing = computed(() => props.field !== null)
 const fieldTypeDescription = computed(() => fieldTypeDescriptions[fieldType.value] ?? '')
 
 function fieldTypeNeedsGroup(type: string): boolean {
-  return ['member_of_group', 'member_list_of_group'].includes(type)
+  return ['MEMBER_OF_GROUP', 'MEMBER_LIST_OF_GROUP'].includes(type)
 }
 
 function fieldTypeCanAutoAttend(type: string): boolean {
-  return ['member', 'member_list', 'member_of_group', 'member_list_of_group'].includes(type)
+  return ['MEMBER', 'MEMBER_LIST', 'MEMBER_OF_GROUP', 'MEMBER_LIST_OF_GROUP'].includes(type)
 }
 
 function fieldTypeCanHaveDefault(type: string): boolean {
-  return ['string', 'time', 'date', 'boolean', 'enum'].includes(type)
+  return ['STRING', 'TIME', 'DATE', 'BOOLEAN', 'ENUM'].includes(type)
 }
 
 function parseConfig(configStr: string | undefined): Record<string, unknown> {
@@ -103,13 +103,13 @@ function buildConfig(): string {
   if (fieldTypeCanAutoAttend(fieldType.value) && fieldConfigAutoAttend.value) {
     cfg.autoAttend = true
   }
-  if (fieldType.value === 'enum' && fieldEnumOptions.value.trim()) {
+  if (fieldType.value === 'ENUM' && fieldEnumOptions.value.trim()) {
     cfg.options = fieldEnumOptions.value.split('\n').map(o => o.trim()).filter(o => o.length > 0)
   }
   if (fieldHasDefault.value && fieldTypeCanHaveDefault(fieldType.value)) {
-    if (fieldType.value === 'boolean') {
+    if (fieldType.value === 'BOOLEAN') {
       cfg.defaultValue = fieldDefaultBool.value
-    } else if (fieldType.value === 'date') {
+    } else if (fieldType.value === 'DATE') {
       cfg.defaultValue = fieldDefaultToday.value ? '__TODAY__' : ''
     } else {
       cfg.defaultValue = fieldDefaultValue.value.trim()
@@ -122,16 +122,16 @@ watch([open, () => props.field], () => {
   if (!open.value) return
   if (props.field) {
     fieldName.value = props.field.name ?? ''
-    fieldType.value = props.field.fieldType ?? 'string'
+    fieldType.value = props.field.fieldType ?? 'STRING'
     const cfg = parseConfig(props.field.config)
     fieldConfigGroupId.value = cfg.groupId ? String(cfg.groupId) : ''
     fieldConfigRequired.value = !!cfg.required
     fieldConfigAutoAttend.value = !!cfg.autoAttend
     fieldEnumOptions.value = ((cfg.options as string[]) ?? []).join('\n')
     fieldHasDefault.value = cfg.defaultValue !== undefined
-    if (props.field.fieldType === 'boolean') {
+    if (props.field.fieldType === 'BOOLEAN') {
       fieldDefaultBool.value = cfg.defaultValue === true
-    } else if (props.field.fieldType === 'date') {
+    } else if (props.field.fieldType === 'DATE') {
       fieldDefaultToday.value = cfg.defaultValue === '__TODAY__'
     } else {
       fieldDefaultValue.value = typeof cfg.defaultValue === 'string' ? cfg.defaultValue : ''
@@ -139,7 +139,7 @@ watch([open, () => props.field], () => {
     fieldPosition.value = props.field.position
   } else {
     fieldName.value = ''
-    fieldType.value = 'string'
+    fieldType.value = 'STRING'
     fieldConfigGroupId.value = ''
     fieldConfigRequired.value = false
     fieldConfigAutoAttend.value = false
@@ -190,7 +190,7 @@ function handleSave() {
       </div>
 
       <!-- Enum options -->
-      <div v-if="fieldType === 'enum'" class="space-y-1">
+      <div v-if="fieldType === 'ENUM'" class="space-y-1">
         <FieldLabel>{{ t('attendanceConfig.fieldEnumOptions') }}</FieldLabel>
         <TextInput v-model="fieldEnumOptions" :placeholder="t('attendanceConfig.fieldEnumOptionsPlaceholder')"/>
         <p class="text-xs text-(--text-muted)">{{ t('attendanceConfig.fieldEnumOptionsHint') }}</p>
@@ -203,14 +203,14 @@ function handleSave() {
           <ToggleInput v-model="fieldHasDefault"/>
         </div>
         <template v-if="fieldHasDefault">
-          <template v-if="fieldType === 'boolean'">
+          <template v-if="fieldType === 'BOOLEAN'">
             <ToggleInput v-model="fieldDefaultBool"/>
           </template>
-          <template v-else-if="fieldType === 'date'">
+          <template v-else-if="fieldType === 'DATE'">
             <ToggleInput v-model="fieldDefaultToday"/>
             <p class="text-xs text-(--text-muted)">{{ t('attendanceConfig.fieldDefaultDateHint') }}</p>
           </template>
-          <template v-else-if="fieldType === 'enum'">
+          <template v-else-if="fieldType === 'ENUM'">
             <SelectInput v-model="fieldDefaultValue">
               <option value="">—</option>
               <option v-for="opt in fieldEnumOptions.split('\n').map(o => o.trim()).filter(o => o)" :key="opt"

@@ -72,7 +72,7 @@ watch(() => props.show, async (visible) => {
 
         try {
             const [roleList, groupList, tagList] = await Promise.all([
-                stationMembers.listAllRoles(),
+                stationMembers.listAllPermissions(),
                 memberGroups.listGroups(),
                 userTags.listTags(),
             ])

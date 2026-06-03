@@ -431,7 +431,7 @@ onMounted(loadData)
                 <tbody>
                 <tr v-for="reg in pendingRegistrations" :key="reg.id" class="border-b border-(--border)">
                   <td class="p-2">
-                    <MemberName :name="reg.memberName"/>
+                    <MemberName :identity="reg.memberIdentity ?? null"/>
                   </td>
                   <template v-if="canManageEvents() && getStatsForMember(reg.memberId)">
                     <td class="p-2 text-center font-bold" :class="getStatsForMember(reg.memberId)!.priority === 'HIGH' ? 'text-[var(--error)]' : getStatsForMember(reg.memberId)!.priority === 'MEDIUM' ? 'text-[var(--info)]' : ''">
@@ -469,7 +469,7 @@ onMounted(loadData)
           <div v-for="group in nonPendingRegistrations" :key="group.status" class="space-y-2">
             <h4 class="text-xs font-semibold uppercase text-(--text-muted) pt-1">{{ statusLabel(group.status) }}</h4>
             <NeutralContainer v-for="reg in group.entries" :key="reg.id" class="flex items-center justify-between">
-              <MemberName :name="reg.memberName"/>
+              <MemberName :identity="reg.memberIdentity ?? null"/>
               <span v-if="reg.eventDate" class="text-xs text-(--text-muted)">{{ formatDate(reg.eventDate) }}</span>
             </NeutralContainer>
           </div>

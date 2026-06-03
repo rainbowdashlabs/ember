@@ -98,7 +98,7 @@ async function loadForm() {
   loading.value = true
   try {
     const [roles, groups, tags] = await Promise.all([
-      stationMembers.listAllRoles(),
+      stationMembers.listAllPermissions(),
       memberGroups.listGroups(),
       userTags.listTags(),
     ])

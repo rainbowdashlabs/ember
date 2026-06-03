@@ -20,14 +20,14 @@ const displayValue = computed(() => {
   const v = props.value
   if (!v) return '–'
   switch (props.fieldType) {
-    case 'boolean':
+    case 'BOOLEAN':
       return v === 'true' ? t('common.yes') : t('common.no')
     default:
       return v
   }
 })
 
-const isBooleanField = computed(() => props.fieldType === 'boolean')
+const isBooleanField = computed(() => props.fieldType === 'BOOLEAN')
 const booleanValue = computed(() => props.value === 'true')
 </script>
 

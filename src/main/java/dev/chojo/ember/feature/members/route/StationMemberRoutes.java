@@ -76,22 +76,23 @@ public class StationMemberRoutes implements Routes {
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        routes.get(prefix + "/roles", this::listAllRoles, StationPermission.LOGIN);
+        routes.get(prefix + "/permissions", this::listAllPermissions, StationPermission.LOGIN);
         routes.get(prefix + "/station-members/completions", this::completions, StationPermission.LOGIN);
         routes.get(prefix + "/station-members", this::listByStation, StationPermission.MEMBER_MANAGER);
         routes.get(prefix + "/station-members/former", this::listFormer, StationPermission.MEMBER_MANAGER);
-        routes.get(prefix + "/station-members/all-roles", this::getAllMemberRoles, StationPermission.MEMBER_MANAGER);
+        routes.get(prefix + "/station-members/all-permissions", this::getAllMemberPermissions, StationPermission.MEMBER_MANAGER);
         routes.get(prefix + "/station-members/rich", this::listRichMembers, StationPermission.MEMBER_MANAGER);
         routes.get(prefix + "/station-members/{id}", this::get, StationPermission.MEMBER_MANAGER);
         routes.post(prefix + "/station-members", this::create, StationPermission.MEMBER_MANAGER);
         routes.delete(prefix + "/station-members/{id}", this::delete, StationPermission.MEMBER_MANAGER);
-        routes.get(prefix + "/station-members/{id}/roles", this::getRoles, StationPermission.MEMBER_MANAGER);
-        routes.put(prefix + "/station-members/{id}/roles", this::setRoles, StationPermission.MEMBER_MANAGER);
+        routes.get(prefix + "/station-members/{id}/permissions", this::getPermissions, StationPermission.MEMBER_MANAGER);
+        routes.put(prefix + "/station-members/{id}/permissions", this::setPermissions, StationPermission.MEMBER_MANAGER);
 
         routes.get(prefix + "/station-members/{id}/managed", this::getManaged, StationPermission.MEMBER_MANAGER);
         routes.get(prefix + "/station-members/{id}/managers", this::getManagers, StationPermission.MEMBER_MANAGER);
         routes.put(prefix + "/station-members/{id}/managers", this::setManagers, StationPermission.MEMBER_MANAGER);
 
+        routes.put(prefix + "/station-members/{id}/user-type", this::setUserType, StationPermission.MEMBER_MANAGER);
         routes.post(prefix + "/station-members/{id}/mark-former", this::markFormer, StationPermission.MEMBER_MANAGER);
         routes.post(prefix + "/station-members/{id}/reactivate", this::reactivate, StationPermission.MEMBER_MANAGER);
 
@@ -116,7 +117,7 @@ public class StationMemberRoutes implements Routes {
             tags = {"Station Members"},
             queryParams = @OpenApiParam(name = "stationId", type = Integer.class, required = true),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MemberWithName[].class)))
-    private void listAllRoles(Context ctx) {
+    private void listAllPermissions(Context ctx) {
         ctx.json(stationMemberRepository.findAllPermissions());
     }
 
@@ -207,13 +208,13 @@ public class StationMemberRoutes implements Routes {
     }
 
     @OpenApi(
-            path = "/api/v1/station-members/{id}/roles",
+            path = "/api/v1/station-members/{id}/permissions",
             methods = HttpMethod.GET,
             summary = "Get roles of a station member",
             tags = {"Station Members"},
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = Permission[].class)))
-    private void getAllMemberRoles(Context ctx) {
+    private void getAllMemberPermissions(Context ctx) {
         UserSession session = UserSession.from(ctx);
         var members = memberService.findByStation(session.stationId());
         var result = new HashMap<Integer, List<Permission>>();
@@ -223,27 +224,27 @@ public class StationMemberRoutes implements Routes {
         ctx.json(result);
     }
 
-    private void getRoles(Context ctx) {
+    private void getPermissions(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
         ctx.json(memberService.findPermissions(id));
     }
 
     @OpenApi(
-            path = "/api/v1/station-members/{id}/roles",
+            path = "/api/v1/station-members/{id}/permissions",
             methods = HttpMethod.PUT,
             summary = "Set roles of a station member (replaces all existing roles)",
             description =
                     "Provide the full list of role IDs. Existing roles not in the list are removed, new ones are added.",
             tags = {"Station Members"},
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
-            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = SetRolesRequest.class)),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = SetPermissionsRequest.class)),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = Permission[].class)))
-    private void setRoles(Context ctx) {
+    private void setPermissions(Context ctx) {
         int memberId = ctx.pathParamAsClass("id", Integer.class).get();
         UserSession session = UserSession.from(ctx);
-        var request = ctx.bodyAsClass(SetRolesRequest.class);
-        List<Integer> roleIds = request.roleIds() != null ? request.roleIds() : List.of();
-        ctx.json(memberService.setPermissions(memberId, roleIds, session.permissions()));
+        var request = ctx.bodyAsClass(SetPermissionsRequest.class);
+        List<Integer> permissionIds = request.permissionIds() != null ? request.permissionIds() : List.of();
+        ctx.json(memberService.setPermissions(memberId, permissionIds, session.permissions()));
     }
 
     @OpenApi(
@@ -348,6 +349,24 @@ public class StationMemberRoutes implements Routes {
         ctx.json(new FormerCheckResponse(true, null));
     }
 
+    // -- User Type --
+
+    @OpenApi(
+            path = "/api/v1/station-members/{id}/user-type",
+            methods = HttpMethod.PUT,
+            summary = "Set the user type of a station member",
+            tags = {"Station Members"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = SetUserTypeRequest.class)),
+            responses = @OpenApiResponse(status = "204"))
+    private void setUserType(Context ctx) {
+        int memberId = ctx.pathParamAsClass("id", Integer.class).get();
+        var request = ctx.bodyAsClass(SetUserTypeRequest.class);
+        StationUserType userType = StationUserType.valueOf(request.userType());
+        stationMemberRepository.setUserType(memberId, userType);
+        ctx.status(HttpStatus.NO_CONTENT);
+    }
+
     // -- User Type Permissions --
 
     @OpenApi(
@@ -406,11 +425,13 @@ public class StationMemberRoutes implements Routes {
 
     public record CreateMemberRequest(Integer stationId, Integer accountId) {}
 
-    public record SetRolesRequest(List<Integer> roleIds) {}
+    public record SetPermissionsRequest(List<Integer> permissionIds) {}
 
     public record SetManagersRequest(List<Integer> managerIds) {}
 
     public record FormerCheckResponse(boolean canMarkFormer, String reason) {}
+
+    public record SetUserTypeRequest(String userType) {}
 
     public record SetUserTypePermissionsRequest(List<Integer> permissionIds) {}
 }

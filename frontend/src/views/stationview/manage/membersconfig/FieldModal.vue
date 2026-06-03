@@ -75,7 +75,7 @@ watch(() => props.modelValue, (open) => {
   const f = props.field
   if (f) {
     fieldName.value = f.name ?? ''
-    fieldType.value = f.fieldType ?? 'text'
+    fieldType.value = f.fieldType ?? FieldTypes.TEXT
     const cfg = parseConfig(f.config)
     fieldRequired.value = !!cfg.required
     fieldReadonly.value = !!cfg.readonly
@@ -173,19 +173,19 @@ function submit() {
       <div class="space-y-1">
         <FieldLabel>{{ t('membersConfig.fieldType') }}</FieldLabel>
         <SelectInput v-model="fieldType">
-          <option v-for="ft in fieldTypeOptions.filter(o => o.value !== 'age' || scope === 'MEMBER')" :key="ft.value"
+          <option v-for="ft in fieldTypeOptions.filter(o => o.value !== 'AGE' || scope === 'MEMBER')" :key="ft.value"
                   :value="ft.value">{{ ft.label }}
           </option>
         </SelectInput>
       </div>
 
-      <div v-if="fieldType === 'enum'" class="space-y-1">
+      <div v-if="fieldType === 'ENUM'" class="space-y-1">
         <FieldLabel>{{ t('membersConfig.fieldEnumOptions') }}</FieldLabel>
         <TextAreaInput v-model="fieldEnumOptions" :placeholder="t('membersConfig.fieldEnumOptionsPlaceholder')"/>
         <p class="text-xs text-(--text-muted)">{{ t('membersConfig.fieldEnumOptionsHint') }}</p>
       </div>
 
-      <div v-if="fieldType === 'age'" class="space-y-3">
+      <div v-if="fieldType === 'AGE'" class="space-y-3">
         <div class="space-y-1">
           <FieldLabel>{{ t('membersConfig.fieldAgeSource') }}</FieldLabel>
           <SelectInput v-model="fieldAgeSource">
@@ -209,17 +209,17 @@ function submit() {
           <ToggleInput v-model="fieldHasDefault"/>
         </div>
         <template v-if="fieldHasDefault">
-          <template v-if="fieldType === 'boolean'">
+          <template v-if="fieldType === 'BOOLEAN'">
             <ToggleInput v-model="fieldDefaultBool"/>
           </template>
-          <template v-else-if="fieldType === 'date'">
+          <template v-else-if="fieldType === 'DATE'">
             <ToggleInput v-model="fieldDefaultToday"/>
             <p class="text-xs text-(--text-muted)">{{ t('membersConfig.fieldDefaultDateHint') }}</p>
           </template>
-          <template v-else-if="fieldType === 'number'">
+          <template v-else-if="fieldType === 'NUMBER'">
             <NumberInput v-model="fieldDefaultNumber"/>
           </template>
-          <template v-else-if="fieldType === 'enum'">
+          <template v-else-if="fieldType === 'ENUM'">
             <SelectInput v-model="fieldDefaultValue">
               <option value="">{{ t('membersConfig.fieldDefaultPlaceholder') }}</option>
               <option v-for="opt in fieldEnumOptions.split('\n').map(o => o.trim()).filter(o => o)" :key="opt"

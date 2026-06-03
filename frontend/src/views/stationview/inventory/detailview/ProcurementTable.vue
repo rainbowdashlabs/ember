@@ -45,7 +45,7 @@ const { t } = useI18n()
         </thead>
         <tbody>
           <TRow v-for="p in props.entries" :key="p.id">
-            <Td><MemberName :name="p.memberName"/></Td>
+            <Td><MemberName :identity="p.memberIdentity ?? null"/></Td>
             <Td><SizeBadge>{{ p.sizeLabel || t('common.unisize') }}</SizeBadge></Td>
             <Td muted>{{ p.notes || '-' }}</Td>
             <Td align="right">

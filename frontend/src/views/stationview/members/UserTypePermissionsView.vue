@@ -32,6 +32,7 @@ const USER_TYPES = [
   {value: StationUserType.MEMBER, label: 'Mitglied', desc: 'Standardmitglieder der Station.'},
   {value: StationUserType.GUARDIAN, label: 'Erziehungsberechtigter', desc: 'Verwalten zugeordnete Mitglieder.'},
   {value: StationUserType.TEAM, label: 'Team', desc: 'Betreuer und Teamer der Station.'},
+  {value: StationUserType.MANAGER, label: 'Leitung', desc: 'Leitungsmitglieder mit Verwaltungsrechten.'},
 ] as const
 
 const permissionIds = computed({
@@ -43,7 +44,7 @@ async function loadData() {
   loading.value = true
   error.value = ''
   try {
-    allRoles.value = await stationMembers.listAllRoles()
+    allRoles.value = await stationMembers.listAllPermissions()
   } catch {
     error.value = t('common.error')
   } finally {

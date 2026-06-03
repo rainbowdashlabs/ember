@@ -50,7 +50,7 @@ const lanes = ref<{ name: string; color: string | null; id?: number }[]>([])
 const newLaneName = ref('')
 const fields = ref<{ name: string; fieldType: string; config: BoardFieldConfig }[]>([])
 const newFieldName = ref('')
-const newFieldType = ref('string')
+const newFieldType = ref('STRING')
 
 // Access restrictions
 const allRoles = ref<PermissionGrant[]>([])
@@ -113,7 +113,7 @@ async function loadData() {
             boards.getBoard(boardKey.value),
             boards.getLanes(boardKey.value),
             boards.getFields(boardKey.value),
-            stationMembers.listAllRoles(),
+            stationMembers.listAllPermissions(),
             memberGroups.listGroups(),
             userTags.listTags(),
             boards.getViewAccess(boardKey.value),
@@ -202,7 +202,7 @@ function addField() {
     if (!newFieldName.value.trim()) return
     fields.value.push({ name: newFieldName.value.trim(), fieldType: newFieldType.value, config: { required: false, options: [] } })
     newFieldName.value = ''
-    newFieldType.value = 'string'
+    newFieldType.value = 'STRING'
 }
 
 function removeField(index: number) {

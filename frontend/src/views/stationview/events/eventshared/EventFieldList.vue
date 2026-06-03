@@ -27,9 +27,9 @@ const emit = defineEmits<{
 const {t} = useI18n()
 
 const quickFields = [
-  {name: 'Ort', fieldType: 'string', overview: true, isPublic: true},
-  {name: 'Treffpunkt', fieldType: 'string', overview: true, isPublic: true},
-  {name: 'Thema', fieldType: 'string', overview: true, isPublic: false},
+  {name: 'Ort', fieldType: 'STRING', overview: true, isPublic: true},
+  {name: 'Treffpunkt', fieldType: 'STRING', overview: true, isPublic: true},
+  {name: 'Thema', fieldType: 'STRING', overview: true, isPublic: false},
 ]
 
 const existingNames = computed(() => new Set(props.fields.map(f => f.name.toLowerCase())))
@@ -41,7 +41,7 @@ function addQuickField(qf: typeof quickFields[number]) {
 }
 
 function addField() {
-  emit('update:fields', [...props.fields, {name: '', fieldType: 'string', config: '{}', value: '', overview: false, attendanceFieldId: null}])
+  emit('update:fields', [...props.fields, {name: '', fieldType: 'STRING', config: '{}', value: '', overview: false, attendanceFieldId: null}])
 }
 
 function removeField(index: number) {
