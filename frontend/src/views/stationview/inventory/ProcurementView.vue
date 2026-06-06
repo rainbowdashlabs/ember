@@ -28,10 +28,14 @@ import type {
   InventorySize,
   StationMember,
 } from '@/api/types'
+import { StationPermission } from '@/api/types'
 import { procurement, inventory, stationMembers } from '@/api'
 import MemberName from '@/components/avatar/MemberName.vue'
+import { useSession } from '@/composables/useSession'
 
 const { t } = useI18n()
+const { hasPermission } = useSession()
+const canManageProcurement = computed(() => hasPermission(StationPermission.INVENTORY_PROCUREMENT))
 
 const entries = ref<ProcurementEntry[]>([])
 const inventories = ref<Inventory[]>([])
@@ -152,7 +156,7 @@ onMounted(loadData)
     <div class="space-y-6">
       <div class="flex items-center justify-between">
         <SectionHeader>{{ t('procurement.title') }}</SectionHeader>
-        <PrimaryButton :icon="['fas', 'plus']" @click="openCreateModal">
+        <PrimaryButton v-if="canManageProcurement" :icon="['fas', 'plus']" @click="openCreateModal">
           {{ t('procurement.create') }}
         </PrimaryButton>
       </div>
@@ -181,7 +185,7 @@ onMounted(loadData)
               <div v-if="entry.notes" class="text-sm">{{ entry.notes }}</div>
             </div>
 
-            <div class="flex items-center gap-2 shrink-0">
+            <div v-if="canManageProcurement" class="flex items-center gap-2 shrink-0">
               <PrimaryButton :icon="['fas', 'check']" v-if="!entry.fulfilledAt" @click="fulfillEntry(entry.id)">
                 {{ t('procurement.markFulfilled') }}
               </PrimaryButton>

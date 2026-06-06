@@ -17,17 +17,22 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import StationBadge from '@/components/badge/StationBadge.vue'
 import CommentThread from '@/components/comment/CommentThread.vue'
-import MentionInput from '@/components/comment/MentionInput.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import ErrorButton from '@/components/button/ErrorButton.vue'
+import SuccessBadge from '@/components/badge/SuccessBadge.vue'
+import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import type {Comment} from '@/api/types'
 import type {MemberCompletion} from '@/api/stationMembers'
 import {comments as commentsApi, events, stationMembers} from '@/api'
-import type {FederatedEventDetail} from '@/api/events'
+import type {FederatedEventDetail, FederatedRegistration} from '@/api/events'
+import SelectInput from '@/components/input/select/SelectInput.vue'
+import {useSession} from '@/composables/useSession'
 
 const {t} = useI18n()
 const route = useRoute()
 const router = useRouter()
+const {sessionInfo} = useSession()
 
 const stationUid = ref(route.params.stationUid as string)
 const eventId = ref(Number(route.params.eventId))
@@ -35,12 +40,67 @@ const eventId = ref(Number(route.params.eventId))
 const detail = ref<FederatedEventDetail | null>(null)
 const loading = ref(true)
 const error = ref('')
+const myRegistrations = ref<FederatedRegistration[]>([])
+const registering = ref(false)
+const selectedMemberUid = ref('')
+
+const currentMemberUid = computed(() => sessionInfo.value?.member?.uid ?? '')
+const managedMembers = computed(() => sessionInfo.value?.managedMembers ?? [])
+
+const eligibleMembers = computed(() => {
+  const result: { uid: string; name: string }[] = []
+  if (currentMemberUid.value) result.push({ uid: currentMemberUid.value, name: t('eventsUpcoming.myself') })
+  for (const m of managedMembers.value) {
+    if (m.uid) result.push({ uid: m.uid, name: m.name ?? m.email ?? `#${m.id}` })
+  }
+  return result
+})
+
+function getRegistration(uid: string): FederatedRegistration | undefined {
+  return myRegistrations.value.find(r => r.eventId === eventId.value && r.remoteMemberId === uid)
+}
+
+function isRegistered(uid: string): boolean {
+  return !!getRegistration(uid)
+}
+
+const membersWithoutReg = computed(() => eligibleMembers.value.filter(m => !isRegistered(m.uid)))
+
+const selectedUid = computed((): string | null => {
+  if (membersWithoutReg.value.length === 1) return membersWithoutReg.value[0].uid
+  return selectedMemberUid.value || null
+})
+
+function getEventDate(): string {
+  if (eventData.value?.startTime) return new Date(eventData.value.startTime as string).toISOString().split('T')[0]
+  return new Date().toISOString().split('T')[0]
+}
+
+async function registerForEvent() {
+  if (!selectedUid.value) return
+  registering.value = true
+  try {
+    await events.registerForFederatedEvent(stationUid.value, eventId.value, getEventDate(), selectedUid.value)
+    myRegistrations.value.push({
+      eventId: eventId.value, remoteMemberId: selectedUid.value,
+      eventDate: getEventDate(), status: 'PENDING', partnerId: 0,
+    })
+  } catch { error.value = t('common.error') }
+  registering.value = false
+}
+
+async function withdrawRegistration(uid: string) {
+  registering.value = true
+  try {
+    await events.withdrawFederatedRegistration(stationUid.value, eventId.value, getEventDate(), uid)
+    myRegistrations.value = myRegistrations.value.filter(r => !(r.eventId === eventId.value && r.remoteMemberId === uid))
+  } catch { error.value = t('common.error') }
+  registering.value = false
+}
 
 // Comments
 const commentsList = ref<Comment[]>([])
 const members = ref<MemberCompletion[]>([])
-const newComment = ref('')
-const posting = ref(false)
 const commentsLoading = ref(false)
 
 const dayNames = ['', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag']
@@ -66,7 +126,12 @@ async function loadData() {
   loading.value = true
   error.value = ''
   try {
-    detail.value = await events.getFederatedEvent(stationUid.value, eventId.value)
+    const [eventDetail, regs] = await Promise.all([
+      events.getFederatedEvent(stationUid.value, eventId.value),
+      events.listMyFederatedRegistrations().catch(() => []),
+    ])
+    detail.value = eventDetail
+    myRegistrations.value = regs
     await loadComments()
   } catch {
     error.value = t('common.error')
@@ -116,14 +181,6 @@ async function deleteComment(commentId: number) {
   } catch {
     error.value = t('common.error')
   }
-}
-
-async function postTopLevel() {
-  if (!newComment.value.trim()) return
-  posting.value = true
-  await createComment(null, newComment.value.trim())
-  newComment.value = ''
-  posting.value = false
 }
 
 onMounted(loadData)
@@ -187,17 +244,42 @@ watch(() => [route.params.stationUid, route.params.eventId], () => {
           </div>
         </NeutralContainer>
 
+        <!-- Registration -->
+        <NeutralContainer v-if="eventData.requiresRegistration" class="space-y-3">
+          <SubHeader>{{ t('eventsUpcoming.registration') }}</SubHeader>
+          <div class="flex items-center gap-2 flex-wrap">
+            <!-- Existing registrations -->
+            <template v-for="m in eligibleMembers" :key="`reg-${m.uid}`">
+              <div v-if="getRegistration(m.uid)" class="flex items-center gap-1">
+                <span v-if="eligibleMembers.length > 1" class="text-xs text-(--text-muted)">{{ m.name }}:</span>
+                <SuccessBadge v-if="getRegistration(m.uid)!.status === 'ACCEPTED'">{{ t('eventsUpcoming.statusAccepted') }}</SuccessBadge>
+                <InfoBadge v-else-if="getRegistration(m.uid)!.status === 'PENDING'">{{ t('eventsUpcoming.statusPending') }}</InfoBadge>
+                <ErrorBadge v-else-if="getRegistration(m.uid)!.status === 'DENIED'">{{ t('eventsUpcoming.statusDenied') }}</ErrorBadge>
+                <ErrorButton :disabled="registering" compact class="text-xs" @click="withdrawRegistration(m.uid)">
+                  <font-awesome-icon :icon="['fas', 'xmark']" />
+                </ErrorButton>
+              </div>
+            </template>
+
+            <!-- Register new -->
+            <template v-if="membersWithoutReg.length > 0">
+              <SelectInput v-if="membersWithoutReg.length > 1" v-model="selectedMemberUid" class="text-sm w-40">
+                <option disabled value="">{{ t('eventsUpcoming.selectMember') }}</option>
+                <option v-for="m in membersWithoutReg" :key="m.uid" :value="m.uid">{{ m.name }}</option>
+              </SelectInput>
+              <PrimaryButton :disabled="registering || !selectedUid" @click="registerForEvent">
+                <font-awesome-icon :icon="['fas', 'check']" class="mr-1"/>
+                {{ t('eventsUpcoming.register') }}
+              </PrimaryButton>
+            </template>
+          </div>
+        </NeutralContainer>
+
         <!-- Comments -->
         <NeutralContainer class="space-y-4">
           <SubHeader>{{ t('comments.title') }}</SubHeader>
           <Spinner v-if="commentsLoading" size="sm"/>
           <template v-if="!commentsLoading">
-            <div class="space-y-2">
-              <MentionInput v-model="newComment" :members="members" :placeholder="t('comments.placeholder')"/>
-              <PrimaryButton :disabled="posting || !newComment.trim()" compact @click="postTopLevel">
-                {{ t('comments.post') }}
-              </PrimaryButton>
-            </div>
             <CommentThread
                 :comments="commentsList"
                 :members="members"

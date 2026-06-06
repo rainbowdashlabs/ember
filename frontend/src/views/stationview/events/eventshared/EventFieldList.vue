@@ -10,13 +10,14 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import EventFieldEditor from '@/components/input/EventFieldEditor.vue'
-import type {AttendanceTemplateField, EventFieldEntry, StationMember} from '@/api/types'
+import type {AttendanceTemplateField, EventFieldEntry, MemberGroup, StationMember} from '@/api/types'
 
 const props = defineProps<{
   fields: EventFieldEntry[]
   attendanceFields?: AttendanceTemplateField[]
   showValue?: boolean
   allMembers?: StationMember[]
+  groups?: MemberGroup[]
   groupMembers?: Map<number, StationMember[]>
 }>()
 
@@ -36,12 +37,12 @@ const existingNames = computed(() => new Set(props.fields.map(f => f.name.toLowe
 
 function addQuickField(qf: typeof quickFields[number]) {
   emit('update:fields', [...props.fields, {
-    name: qf.name, fieldType: qf.fieldType, config: '{}', value: '', overview: qf.overview, attendanceFieldId: null, isPublic: qf.isPublic,
+    name: qf.name, fieldType: qf.fieldType, config: {}, value: '', overview: qf.overview, attendanceFieldId: null, isPublic: qf.isPublic,
   }])
 }
 
 function addField() {
-  emit('update:fields', [...props.fields, {name: '', fieldType: 'STRING', config: '{}', value: '', overview: false, attendanceFieldId: null}])
+  emit('update:fields', [...props.fields, {name: '', fieldType: 'STRING', config: {}, value: '', overview: false, attendanceFieldId: null}])
 }
 
 function removeField(index: number) {
@@ -85,6 +86,7 @@ function updateField(index: number, field: EventFieldEntry) {
       :attendance-fields="attendanceFields"
       :show-value="showValue"
       :all-members="allMembers"
+      :groups="groups"
       :group-members="groupMembers"
       @update:model-value="updateField(index, $event)"
       @remove="removeField(index)"

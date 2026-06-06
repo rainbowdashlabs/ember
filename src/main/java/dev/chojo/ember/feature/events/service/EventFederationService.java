@@ -148,6 +148,62 @@ public class EventFederationService {
         return federationRepository.createRegistration(eventId, partnerId, remoteMemberId, eventDate);
     }
 
+    public List<EventFederationRegistration> findRegistrationsByRemoteMember(UUID remoteMemberId) {
+        return federationRepository.findRegistrationsByRemoteMember(remoteMemberId);
+    }
+
+    /**
+     * Finds all federated event registrations for the given member UIDs.
+     * Queries local federation registrations directly and remote partners via HTTP.
+     */
+    @SuppressWarnings("unchecked")
+    public List<Map<String, Object>> findMyRegistrations(int stationId, List<UUID> memberUids) {
+        var result = new ArrayList<Map<String, Object>>();
+
+        // Local registrations (stored on owning stations that are local partners)
+        for (var uid : memberUids) {
+            var regs = federationRepository.findRegistrationsByRemoteMember(uid);
+            for (var reg : regs) {
+                result.add(Map.of(
+                        "eventId", reg.eventId(),
+                        "remoteMemberId", reg.remoteMemberId().toString(),
+                        "eventDate", reg.eventDate().toString(),
+                        "status", reg.status(),
+                        "partnerId", reg.partnerId()));
+            }
+        }
+
+        // Remote registrations — query each remote partner
+        var partners = partnerRepository.findPartners(stationId).stream()
+                .filter(p -> p.isRemote() && p.status() == FederationStatus.ACTIVE)
+                .toList();
+        for (var partner : partners) {
+            try {
+                var station = stationRepository.findById(stationId).orElse(null);
+                if (station == null) continue;
+                for (var uid : memberUids) {
+                    var remoteRegs = httpClient.get(
+                            partner.remoteHost(),
+                            "/remote/registrations/" + uid,
+                            stationId,
+                            station.federationPrivateKey(),
+                            List.class);
+                    if (remoteRegs != null) {
+                        for (var item : remoteRegs) {
+                            if (item instanceof Map<?, ?> map) {
+                                result.add((Map<String, Object>) map);
+                            }
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                // Remote partner unavailable — skip silently
+            }
+        }
+
+        return result;
+    }
+
     /**
      * Updates the status of a federated registration.
      *

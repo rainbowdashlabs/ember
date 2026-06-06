@@ -25,23 +25,18 @@ public record QuizQuestion(
         double points,
         boolean autoPoints,
         QuestionConfig config,
-        String configRaw,
         int position,
         Instant createdAt,
         Instant updatedAt) {
 
     private static final ObjectMapper MAPPER = JsonMapper.builder().build();
 
-    public String configString() {
-        return configRaw != null ? configRaw : "{}";
-    }
-
     /**
      * Returns the config as a JsonNode (for legacy code that still uses raw JSON).
      */
     public JsonNode configNode() {
         try {
-            return configRaw != null ? MAPPER.readTree(configRaw) : MAPPER.createObjectNode();
+            return MAPPER.valueToTree(config);
         } catch (Exception e) {
             return MAPPER.createObjectNode();
         }
@@ -63,7 +58,6 @@ public record QuizQuestion(
                     row.getDouble("points"),
                     row.getBoolean("auto_points"),
                     config,
-                    raw,
                     row.getInt("position"),
                     row.get("created_at", INSTANT_TIMESTAMP),
                     row.get("updated_at", INSTANT_TIMESTAMP));

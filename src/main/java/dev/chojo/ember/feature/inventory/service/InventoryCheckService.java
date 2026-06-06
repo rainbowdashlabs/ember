@@ -5,7 +5,9 @@
  */
 package dev.chojo.ember.feature.inventory.service;
 
+import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
+import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.inventory.entity.CheckItemRequest;
 import dev.chojo.ember.feature.inventory.entity.CheckResult;
 import dev.chojo.ember.feature.inventory.entity.EnrichedCheckDetail;
@@ -51,6 +53,7 @@ public class InventoryCheckService {
     private final StationMemberRepository stationMemberRepository;
     private final MemberGroupRepository memberGroupRepository;
     private final AccountRepository accountRepository;
+    private final MemberIdentityFactory memberIdentityFactory;
 
     @Inject
     public InventoryCheckService(
@@ -58,12 +61,14 @@ public class InventoryCheckService {
             InventoryRepository inventoryRepository,
             StationMemberRepository stationMemberRepository,
             MemberGroupRepository memberGroupRepository,
-            AccountRepository accountRepository) {
+            AccountRepository accountRepository,
+            MemberIdentityFactory memberIdentityFactory) {
         this.checkRepository = checkRepository;
         this.inventoryRepository = inventoryRepository;
         this.stationMemberRepository = stationMemberRepository;
         this.memberGroupRepository = memberGroupRepository;
         this.accountRepository = accountRepository;
+        this.memberIdentityFactory = memberIdentityFactory;
     }
 
     /**
@@ -123,7 +128,8 @@ public class InventoryCheckService {
             unassigned.put(req.inventoryId(), inventoryRepository.findUnassignedItems(req.inventoryId()));
         }
 
-        return new MemberCheckState(memberName, required, assigned, lastCheck, unassigned);
+        MemberIdentity identity = memberIdentityFactory.local(stationId, memberId);
+        return new MemberCheckState(memberName, identity, required, assigned, lastCheck, unassigned);
     }
 
     /**
@@ -295,6 +301,7 @@ public class InventoryCheckService {
      */
     public record MemberCheckState(
             String memberName,
+            MemberIdentity memberIdentity,
             List<RequiredInventoryItem> required,
             List<InventoryItem> assigned,
             InventoryCheck lastCheck,

@@ -729,7 +729,7 @@ public class QuizService {
                 }
             }
         }
-        return requiredCount == 0 ? 0 : Math.round((float) correct / requiredCount * maxPoints);
+        return requiredCount == 0 ? 0 : (double) correct / requiredCount * maxPoints;
     }
 
     public List<QuizTestAttemptQuestion> findAttemptQuestions(int attemptId) {
@@ -756,6 +756,17 @@ public class QuizService {
                 .filter(QuizTestAnswer::graded)
                 .mapToDouble(a -> a.points() != null ? a.points() : 0)
                 .sum();
+
+        // Recalculate maxPoints from actual question points
+        double maxPoints = 0;
+        for (var answer : answers) {
+            var question = catalogRepository.findQuestionById(answer.questionId());
+            if (question.isPresent()) {
+                maxPoints += question.get().points();
+            }
+        }
+        testRepository.updateAttemptMaxPoints(attemptId, maxPoints);
+
         return testRepository.gradeAttempt(attemptId, total, gradedBy);
     }
 

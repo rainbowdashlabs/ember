@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {computed, ref, useSlots, watch} from 'vue'
+import {Comment as VComment, computed, ref, useSlots, watch} from 'vue'
 import {useRoute} from 'vue-router'
 import type {VNode} from 'vue'
 
@@ -32,7 +32,7 @@ const isActive = computed(() => prefixes.value.some(p => (route.path + '/').star
 function countVisibleVNodes(vnodes: VNode[]): number {
   let count = 0
   for (const vnode of vnodes) {
-    if (vnode.type === Comment) continue
+    if (vnode.type === VComment) continue
     if (typeof vnode.type === 'symbol' && Array.isArray(vnode.children)) {
       // Fragment — recurse into children
       count += countVisibleVNodes(vnode.children as VNode[])

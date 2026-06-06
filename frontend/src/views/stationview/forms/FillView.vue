@@ -82,22 +82,23 @@ const fillTargetOptions = computed(() => {
 
 const effectiveMemberId = computed(() => selectedMemberId.value)
 
-function parseConfig(config: string): Record<string, unknown> {
+function parseConfig(config: Record<string, unknown> | string): Record<string, unknown> {
+  if (typeof config === 'object' && config !== null) return config
   try { return JSON.parse(config || '{}') } catch { return {} }
 }
 
 function initAnswerDefaults() {
   for (const q of questions.value) {
-    if (q.questionType === QuestionTypes.CHOICE) answers.value[q.id] = { selected: [], other: '' }
-    else if (q.questionType === QuestionTypes.TEXT) answers.value[q.id] = { text: '' }
-    else if (q.questionType === QuestionTypes.RATING) answers.value[q.id] = { rating: 0 }
-    else if (q.questionType === QuestionTypes.DATE) answers.value[q.id] = { date: '' }
-    else if (q.questionType === QuestionTypes.RANKING) {
+    if (q.formQuestionType === QuestionTypes.CHOICE) answers.value[q.id] = { selected: [], other: '' }
+    else if (q.formQuestionType === QuestionTypes.TEXT) answers.value[q.id] = { text: '' }
+    else if (q.formQuestionType === QuestionTypes.RATING) answers.value[q.id] = { rating: 0 }
+    else if (q.formQuestionType === QuestionTypes.DATE) answers.value[q.id] = { date: '' }
+    else if (q.formQuestionType === QuestionTypes.RANKING) {
       const cfg = parseConfig(q.config)
       const opts = (cfg.options as string[]) || []
       answers.value[q.id] = { order: opts.map((_: string, i: number) => i) }
     }
-    else if (q.questionType === QuestionTypes.LIKERT) answers.value[q.id] = { ratings: {} }
+    else if (q.formQuestionType === QuestionTypes.LIKERT) answers.value[q.id] = { ratings: {} }
   }
 }
 
@@ -169,15 +170,45 @@ watch(selectedMemberId, async () => {
   }
 })
 
-function toggleChoice(questionId: number, optionIndex: number, multi: boolean) {
+function choiceSelectionCount(questionId: number): number {
+  const ans = answers.value[questionId] as { selected: number[]; other: string } | undefined
+  if (!ans) return 0
+  return ans.selected.length + (ans.other ? 1 : 0)
+}
+
+function isChoiceAtLimit(questionId: number, config: Record<string, unknown>): boolean {
+  const limitType = config.multiLimitType as string | undefined
+  const limit = config.multiLimit as number | undefined
+  if (!limit || (limitType !== 'AT_MOST' && limitType !== 'EXACTLY')) return false
+  return choiceSelectionCount(questionId) >= limit
+}
+
+function toggleChoice(questionId: number, optionIndex: number, config: Record<string, unknown>) {
   const ans = answers.value[questionId] as { selected: number[]; other: string }
+  const multi = !!config.multiSelect
   if (multi) {
     const idx = ans.selected.indexOf(optionIndex)
-    if (idx >= 0) ans.selected.splice(idx, 1)
-    else ans.selected.push(optionIndex)
+    if (idx >= 0) {
+      ans.selected.splice(idx, 1)
+    } else {
+      if (isChoiceAtLimit(questionId, config)) return
+      ans.selected.push(optionIndex)
+    }
   } else {
     ans.selected = [optionIndex]
+    ans.other = ''
   }
+}
+
+function onOtherInput(questionId: number, value: string, config: Record<string, unknown>) {
+  const ans = answers.value[questionId] as { selected: number[]; other: string }
+  if (!value) {
+    ans.other = ''
+    return
+  }
+  // If "other" wasn't set before, check the limit
+  if (!ans.other && isChoiceAtLimit(questionId, config)) return
+  ans.other = value
 }
 
 function setRating(questionId: number, value: number) {
@@ -207,9 +238,13 @@ function ratingIcon(icon: string): string[] {
 async function submit() {
   error.value = ''
   try {
-    const answerMap: Record<number, string> = {}
-    for (const [qId, value] of Object.entries(answers.value)) {
-      answerMap[Number(qId)] = JSON.stringify(value)
+    const answerMap: Record<number, Record<string, unknown>> = {}
+    for (const q of questions.value) {
+      const value = answers.value[q.id]
+      if (value === undefined) continue
+      // Add type discriminator for Jackson @JsonTypeInfo
+      const type = q.formQuestionType
+      answerMap[q.id] = { type, ...value as Record<string, unknown> }
     }
 
     if (effectiveMemberId.value) {
@@ -290,53 +325,78 @@ watch(loaded, (isLoaded) => {
               </div>
 
               <!-- CHOICE -->
-              <template v-if="q.questionType === QuestionTypes.CHOICE">
+              <template v-if="q.formQuestionType === QuestionTypes.CHOICE">
                 <div class="space-y-1">
                   <template v-if="parseConfig(q.config).dropdown">
                     <SelectInput
                         :model-value="String((answers[q.id] as { selected: number[] })?.selected?.[0] ?? '')"
-                        @update:model-value="(v: string | undefined) => toggleChoice(q.id, Number(v), false)">
+                        @update:model-value="(v: string | undefined) => toggleChoice(q.id, Number(v), parseConfig(q.config))">
                       <option value="">--</option>
                       <option v-for="(opt, oi) in (parseConfig(q.config).options as string[])" :key="oi" :value="oi">{{ opt }}</option>
                     </SelectInput>
                   </template>
                   <template v-else>
-                    <div v-for="(opt, oi) in (parseConfig(q.config).options as string[])" :key="oi" class="py-1">
-                      <SelectionToggleButton
-                          :selected="(answers[q.id] as { selected: number[] })?.selected?.includes(oi)"
-                          @toggle="toggleChoice(q.id, oi, !!parseConfig(q.config).multiSelect)"
-                      >
-                        {{ opt }}
-                      </SelectionToggleButton>
+                    <div
+                        v-for="(opt, oi) in (parseConfig(q.config).options as string[])"
+                        :key="oi"
+                        class="flex items-center gap-2 px-4 py-3 rounded-lg border-2 text-sm font-medium transition-all cursor-pointer"
+                        :class="(answers[q.id] as { selected: number[] })?.selected?.includes(oi)
+                          ? 'border-primary bg-primary/10 text-primary'
+                          : 'border-bg-light-accent dark:border-bg-dark-accent text-(--text) hover:border-primary/50'"
+                        @click="toggleChoice(q.id, oi, parseConfig(q.config))"
+                    >
+                      <font-awesome-icon
+                          :icon="['fas', (answers[q.id] as { selected: number[] })?.selected?.includes(oi) ? (parseConfig(q.config).multiSelect ? 'square-check' : 'circle-dot') : (parseConfig(q.config).multiSelect ? 'square' : 'circle')]"
+                          :class="(answers[q.id] as { selected: number[] })?.selected?.includes(oi) ? 'text-primary' : 'text-(--text-muted)'"
+                          class="shrink-0"
+                      />
+                      <span>{{ opt }}</span>
                     </div>
                   </template>
-                  <TextInput v-if="parseConfig(q.config).allowOther"
-                             v-model="(answers[q.id] as { selected: number[]; other: string }).other"
-                             placeholder="Sonstiges..." class="mt-2" />
+                  <div v-if="parseConfig(q.config).allowOther"
+                       class="w-full flex items-center gap-2 px-4 py-3 rounded-lg border-2 transition-all"
+                       :class="(answers[q.id] as { selected: number[]; other: string })?.other
+                         ? 'border-primary bg-primary/10'
+                         : 'border-bg-light-accent dark:border-bg-dark-accent'"
+                  >
+                    <font-awesome-icon
+                        :icon="['fas', (answers[q.id] as { selected: number[]; other: string })?.other ? (parseConfig(q.config).multiSelect ? 'square-check' : 'circle-dot') : (parseConfig(q.config).multiSelect ? 'square' : 'circle')]"
+                        :class="(answers[q.id] as { selected: number[]; other: string })?.other ? 'text-primary' : 'text-(--text-muted)'"
+                        class="shrink-0"
+                    />
+                    <TextInput
+                        :model-value="(answers[q.id] as { selected: number[]; other: string }).other"
+                        :disabled="!(answers[q.id] as { selected: number[]; other: string })?.other && isChoiceAtLimit(q.id, parseConfig(q.config))"
+                        :placeholder="t('forms.otherPlaceholder')"
+                        class="flex-1"
+                        @update:model-value="(v: string | undefined) => onOtherInput(q.id, v ?? '', parseConfig(q.config))"
+                    />
+                  </div>
                 </div>
               </template>
 
               <!-- TEXT -->
-              <template v-if="q.questionType === QuestionTypes.TEXT">
+              <template v-if="q.formQuestionType === QuestionTypes.TEXT">
                 <TextAreaInput v-if="parseConfig(q.config).longAnswer"
                                v-model="(answers[q.id] as { text: string }).text" />
                 <TextInput v-else v-model="(answers[q.id] as { text: string }).text" />
               </template>
 
               <!-- RATING -->
-              <template v-if="q.questionType === QuestionTypes.RATING">
-                <div class="flex gap-1">
+              <template v-if="q.formQuestionType === QuestionTypes.RATING">
+                <div class="flex flex-wrap gap-1">
                   <template v-if="(parseConfig(q.config).icon as string) !== 'NUMBER'">
                     <IconButton v-for="n in (parseConfig(q.config).scale as number || 5)" :key="n"
                             :icon="ratingIcon(parseConfig(q.config).icon as string)"
                             :label="`Rating ${n}`"
                             :class="n <= ((answers[q.id] as { rating: number })?.rating ?? 0) ? 'text-primary' : 'text-(--text-muted)'"
-                            class="text-xl hover:text-primary"
+                            class="text-2xl sm:text-xl hover:text-primary p-1"
                             @click="setRating(q.id, n)" />
                   </template>
                   <template v-else>
                     <SelectionToggleButton v-for="n in (parseConfig(q.config).scale as number || 5)" :key="n"
                             :selected="n <= ((answers[q.id] as { rating: number })?.rating ?? 0)"
+                            size="md"
                             @toggle="setRating(q.id, n)">
                       {{ n }}
                     </SelectionToggleButton>
@@ -345,12 +405,12 @@ watch(loaded, (isLoaded) => {
               </template>
 
               <!-- DATE -->
-              <template v-if="q.questionType === QuestionTypes.DATE">
+              <template v-if="q.formQuestionType === QuestionTypes.DATE">
                 <DateInput v-model="(answers[q.id] as { date: string }).date" />
               </template>
 
               <!-- RANKING -->
-              <template v-if="q.questionType === QuestionTypes.RANKING">
+              <template v-if="q.formQuestionType === QuestionTypes.RANKING">
                 <div class="space-y-1">
                   <div v-for="(optIdx, rank) in ((answers[q.id] as { order: number[] })?.order ?? [])" :key="rank"
                        class="flex items-center gap-2 px-3 py-2 rounded border border-bg-light-accent dark:border-bg-dark-accent">
@@ -363,15 +423,16 @@ watch(loaded, (isLoaded) => {
               </template>
 
               <!-- LIKERT -->
-              <template v-if="q.questionType === QuestionTypes.LIKERT">
-                <div class="overflow-x-auto">
+              <template v-if="q.formQuestionType === QuestionTypes.LIKERT">
+                <!-- Desktop: table layout -->
+                <div class="hidden sm:block overflow-x-auto">
                   <table class="w-full text-sm">
                     <thead>
                     <tr>
                       <th></th>
                       <th v-for="n in ((parseConfig(q.config).scaleMax as number) - (parseConfig(q.config).scaleMin as number) + 1)"
                           :key="n" class="text-center px-2 py-1 text-xs text-(--text-muted)">
-                        {{ (parseConfig(q.config).scaleMin as number) + n - 1 }}
+                        {{ (parseConfig(q.config).scaleLabels as string[] ?? [])[(parseConfig(q.config).scaleMin as number) + n - 2] || ((parseConfig(q.config).scaleMin as number) + n - 1) }}
                       </th>
                     </tr>
                     </thead>
@@ -390,6 +451,23 @@ watch(loaded, (isLoaded) => {
                     </tr>
                     </tbody>
                   </table>
+                </div>
+                <!-- Mobile: card per statement -->
+                <div class="sm:hidden space-y-3">
+                  <div v-for="(stmt, si) in (parseConfig(q.config).statements as string[])" :key="si"
+                       class="p-3 rounded-lg border border-bg-light-accent dark:border-bg-dark-accent space-y-2">
+                    <p class="text-sm font-medium">{{ stmt || `Option ${si + 1}` }}</p>
+                    <div class="flex flex-wrap gap-1">
+                      <SelectionToggleButton
+                          v-for="n in ((parseConfig(q.config).scaleMax as number) - (parseConfig(q.config).scaleMin as number) + 1)"
+                          :key="n"
+                          :selected="(answers[q.id] as { ratings: Record<string, number> })?.ratings?.[String(si)] === (parseConfig(q.config).scaleMin as number) + n - 1"
+                          size="md"
+                          @toggle="setLikertRating(q.id, si, (parseConfig(q.config).scaleMin as number) + n - 1)">
+                        {{ (parseConfig(q.config).scaleMin as number) + n - 1 }}
+                      </SelectionToggleButton>
+                    </div>
+                  </div>
                 </div>
               </template>
             </div>

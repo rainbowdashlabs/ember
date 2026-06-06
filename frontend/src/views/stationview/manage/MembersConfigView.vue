@@ -216,7 +216,7 @@ async function toggleKeepOnArchive(field: ProfileField, value: boolean) {
     await profileFields.updateField(field.id, {
       name: field.name ?? '',
       fieldType: field.fieldType ?? '',
-      config: field.config ?? '{}',
+      config: typeof field.config === 'string' ? field.config : JSON.stringify(field.config ?? {}),
       position: field.position,
       keepOnArchive: value,
     })
@@ -252,7 +252,7 @@ async function onReorder(fromIndex: number, toIndex: number) {
       await profileFields.updateField(arr[i].id, {
         name: arr[i].name ?? '',
         fieldType: arr[i].fieldType ?? '',
-        config: arr[i].config ?? '{}',
+        config: typeof arr[i].config === 'string' ? (arr[i].config as string) : JSON.stringify(arr[i].config ?? {}),
         position: i,
       })
     }

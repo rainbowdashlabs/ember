@@ -51,10 +51,23 @@
 - **Type permissions help** — new article explaining the layered permission model
 - **Requirements help** — help article for the requirements view
 
+#### Quiz Improvements
+- **Shared question input card** — extracted `QuestionInputCard` component used by both test-taking and training views, supporting all question types in one place
+- **New question types** — enumeration, ordering, matching, and fill-in-the-gap questions with dedicated input UIs and answer-reveal rendering
+- **Test evaluation** — improved grading UI with per-answer correct/wrong marking, sample answers, and grader attribution
+- **Test list** — richer test list view with started-at/submitted-at timestamps and status badges
+
 #### Other
 - **Layered Ember logo** — new animated logo with blink, bounce, and FAQ shake animations, replacing the old static logo
 - **Sidebar counts** — all sidebar badges now load in a single API call for better performance
 - **Parallel demo seeding** — demo data seeding runs module seeders in parallel using virtual threads, significantly reducing startup time
+- **Dev tools button** — in development mode, a floating button shows the current session (account, station, permissions, groups, tags) for debugging
+- **Federation share picker** — reusable `FederationSharePicker` component for toggling share scope and selecting target partners, used in events, boards, and news
+- **Attendance group auto-population** — creating a session from a template with groups now auto-populates expected member entries, marking absent members as DECLINED
+- **Manual event registration** — managers can register members directly from the event detail view
+- **Federated event registration browsing** — the federated events section shows registration status and allows registering/withdrawing for partner events
+- **Attendance report filters** — replaced flat role/group dropdowns with multi-select for user types and groups
+- **Board federation settings** — configure share mode, minimum view role, and which user types may edit tickets on partner stations
 
 ### Bug Fixes
 
@@ -72,13 +85,16 @@
 
 #### Permission Architecture
 - Four new enums: `StationPermission`, `StationUserType`, `InstancePermission`, `InstanceUserType` replacing flat role strings
-- New `station_user_type_permission` DB table (patch 7) with CRUD API endpoints
+- New `station_user_type_permission` DB table with CRUD API endpoints
 - `AccessManager` extended to resolve type-level grants alongside individual and group grants
-- `PermissionPicker.vue` component with hierarchical display and implicit grant hiding
+- `PermissionPicker.vue` component with hierarchical display, implicit grant hiding, and "granted by" attribution
 - `hasAnyXPermission()` composable helpers in `useSession.ts` for all feature areas
 - Waitlist permission split: `WAITLIST_ADD` → `WAITLIST_EDIT`, separate `WAITLIST_READ`
 - Board permissions split: `BOARD_USE`, `BOARD_EDIT`, `BOARD_FEDERATE`, `BOARD_MANAGER`
 - Groups API renamed: `groups/{id}/roles` → `groups/{id}/permissions`, `Role` → `PermissionGrant`
+- Permission granularity pass: `ATTENDANCE_CREATE` → `ATTENDANCE_EDIT` + new `ATTENDANCE_READ`; new `INVENTORY_EDIT`, `INVENTORY_EXCHANGE`; `EVENT_CONFIGURE` → `EVENT_EDIT`; new `MEMBER_EXPORT`; new `TEST_RESULT_READ`, `TEST_REVIEW`
+- All route handlers updated to reference the renamed/new permissions; read-only routes accept `_READ` where previously they required the full manager grant
+- Database migration consolidated: patch 7 merged into patch 6 (version 1.6)
 
 #### Member Identity
 - `uid UUID` column added to `station_member` with unique `(station_id, uid)` index
@@ -109,6 +125,12 @@
 - `RequirementsView.vue`, `FederatedDetailView.vue` (news), `FederatedEventDetailView.vue`, `UserTypePermissionsView.vue`
 - `KbCommentSection.vue`, `EventCancelModal.vue`, `MemberName.vue` enriched
 - Dev error reporter (`devErrorReporter.ts`) for in-app exception display in dev mode
+- `DevToolsButton.vue` — floating dev-mode session inspector showing account, station, permissions, groups, tags with JSON export
+- `FederationSharePicker.vue` — reusable toggle+scope+partner selector for federation sharing
+- `RegistrationsPanel.vue` / `FederatedRegistrationsPanel.vue` — extracted event detail panels for local and federated registrations
+- `QuestionInputCard.vue` — unified question input component for all quiz question types, shared between test-taking and training views
+- Attendance report filters refactored from role/group to user-type/group multi-selects
+- `FederatedEventsSection` expanded with inline registration/withdrawal and status display
 
 #### Backend
 - `SidebarCountService` — single endpoint returning all sidebar badge counts
@@ -116,6 +138,13 @@
 - `StationExportService`/`StationImportService` extended to cover 45+ tables for full station portability
 - Caffeine cache dependency added (replaces `ConcurrentHashMap` caches)
 - Demo seeding parallelized with `CompletableFuture` + `Executors.newVirtualThreadPerTaskExecutor()`; exchange/procurement code extracted to `seedExchanges()`/`seedProcurements()` helper methods
+- `AttendanceService` — added `MemberGroupRepository` dependency for template group auto-population; field defaults now serialized via Jackson `toJsonValue()` instead of manual string formatting
+- `EventFederationService` / `EventFederationRepository` — new `findMyRegistrations` (local + remote via HTTP), `findRegistrationsByRemoteMember`
+- `QuizQuestion` record simplified: dropped `configRaw` field; `configNode()` now derives JSON from the typed `config` object
+- `QuizTestRepository` — new `updateAttemptMaxPoints` method for grading
+- `InventoryCheckService` — enriches checker identity via `MemberIdentityFactory`
+- `DemoFormSeeder` — expanded with richer demo data covering more field types
+- `FormAnswerValue` — added `OTHER` type for custom free-text answers
 
 #### Test Coverage
 - Fixed all JaCoCo coverage violations (11 original + 1 discovered), raising total test count from 2151 to 2219

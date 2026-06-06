@@ -51,27 +51,27 @@ public class InventoryCheckRoutes implements Routes {
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        routes.get(prefix + "/inventory-checks", this::overview, StationPermission.INVENTORY_MANAGER);
+        routes.get(prefix + "/inventory-checks", this::overview, StationPermission.INVENTORY_CHECK);
         routes.post(
-                prefix + "/inventory-checks/{memberId}/start", this::startCheck, StationPermission.INVENTORY_MANAGER);
+                prefix + "/inventory-checks/{memberId}/start", this::startCheck, StationPermission.INVENTORY_CHECK);
         routes.post(
                 prefix + "/inventory-checks/{memberId}/complete",
                 this::completeCheck,
-                StationPermission.INVENTORY_MANAGER);
+                StationPermission.INVENTORY_CHECK);
         routes.post(
-                prefix + "/inventory-checks/{memberId}/cancel", this::cancelCheck, StationPermission.INVENTORY_MANAGER);
-        routes.get(prefix + "/inventory-checks/{memberId}/last", this::lastCheck, StationPermission.INVENTORY_MANAGER);
+                prefix + "/inventory-checks/{memberId}/cancel", this::cancelCheck, StationPermission.INVENTORY_CHECK);
+        routes.get(prefix + "/inventory-checks/{memberId}/last", this::lastCheck, StationPermission.INVENTORY_CHECK);
         routes.put(
-                prefix + "/inventory-checks/{memberId}/assign", this::assignItem, StationPermission.INVENTORY_MANAGER);
+                prefix + "/inventory-checks/{memberId}/assign", this::assignItem, StationPermission.INVENTORY_CHECK);
         routes.put(
                 prefix + "/inventory-checks/{memberId}/unassign",
                 this::unassignItem,
-                StationPermission.INVENTORY_MANAGER);
+                StationPermission.INVENTORY_CHECK);
         routes.post(
                 prefix + "/inventory-checks/{memberId}/create-assign",
                 this::createAndAssign,
-                StationPermission.INVENTORY_MANAGER);
-        routes.get(prefix + "/inventory-checks/next", this::nextMember, StationPermission.INVENTORY_MANAGER);
+                StationPermission.INVENTORY_CHECK);
+        routes.get(prefix + "/inventory-checks/next", this::nextMember, StationPermission.INVENTORY_CHECK);
     }
 
     @OpenApi(

@@ -63,12 +63,6 @@ function formatDate(dateStr?: string): string {
   return d.toLocaleDateString('de-DE', {day: '2-digit', month: '2-digit', year: 'numeric'})
 }
 
-function getMemberName(memberId: number): string {
-  if (memberId === currentMemberId.value) return t('profile.absenceMyself')
-  const m = managedMembers.value.find(mm => mm.id === memberId)
-  return m?.name ?? m?.email ?? `#${memberId}`
-}
-
 function toggleMember(memberId: number) {
   const s = new Set(selectedMemberIds.value)
   if (s.has(memberId)) s.delete(memberId); else s.add(memberId)

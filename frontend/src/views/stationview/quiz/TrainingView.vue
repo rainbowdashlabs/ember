@@ -34,16 +34,15 @@ const userMcSelections = ref<Set<number>>(new Set())
 const userTfAnswer = ref<boolean | null>(null)
 const userOrderItems = ref<number[]>([])
 const userConnectPairs = ref<Record<string, string>>({})
+const userFillGaps = ref<Record<string, string>>({})
+const mcDisplayOrder = ref<number[]>([])
+const connectRightOrder = ref<number[]>([])
 
 const currentQuestion = computed(() => questions.value[currentIndex.value] ?? null)
 const progress = computed(() => `${currentIndex.value + 1} / ${questions.value.length}`)
 const progressPercent = computed(() =>
   questions.value.length > 0 ? ((currentIndex.value + 1) / questions.value.length) * 100 : 0
 )
-
-function parseConfig(config: string): Record<string, unknown> {
-  try { return JSON.parse(config || '{}') } catch { return {} }
-}
 
 function toggleCatalog(id: number) {
   const next = new Set(selectedCatalogIds.value)
@@ -62,13 +61,22 @@ function shuffle<T>(array: T[]): T[] {
 }
 
 function initQuestionState(question: QuizQuestion) {
-  const cfg = parseConfig(question.config)
-  if (question.questionType === QuizQuestionTypes.ORDERING) {
+  const cfg = question.config ?? {}
+  if (question.quizQuestionType === QuizQuestionTypes.MULTIPLE_CHOICE) {
+    const opts = (cfg.options as unknown[]) || []
+    mcDisplayOrder.value = shuffle(opts.map((_: unknown, i: number) => i))
+  } else {
+    mcDisplayOrder.value = []
+  }
+  if (question.quizQuestionType === QuizQuestionTypes.ORDERING) {
     const items = (cfg.items as string[]) || []
-    const indices = items.map((_: string, i: number) => i)
-    userOrderItems.value = shuffle(indices)
-  } else if (question.questionType === QuizQuestionTypes.CONNECT) {
+    userOrderItems.value = shuffle(items.map((_: string, i: number) => i))
+  } else if (question.quizQuestionType === QuizQuestionTypes.CONNECT) {
     userConnectPairs.value = {}
+    const pairs = (cfg.pairs as { left: string; right: string }[]) || []
+    connectRightOrder.value = shuffle(pairs.map((_: unknown, i: number) => i))
+  } else {
+    connectRightOrder.value = []
   }
 }
 
@@ -79,6 +87,7 @@ function resetUserInput() {
   userTfAnswer.value = null
   userOrderItems.value = []
   userConnectPairs.value = {}
+  userFillGaps.value = {}
 }
 
 function reorderItems(fromIndex: number, toIndex: number) {
@@ -100,6 +109,10 @@ function moveOrderItem(index: number, direction: -1 | 1) {
 
 function setConnectPair(leftIndex: number, rightValue: string) {
   userConnectPairs.value = { ...userConnectPairs.value, [String(leftIndex)]: rightValue }
+}
+
+function setFillGap(gapIndex: number, value: string) {
+  userFillGaps.value = { ...userFillGaps.value, [String(gapIndex)]: value }
 }
 
 async function startTraining() {
@@ -241,12 +254,16 @@ onMounted(loadCatalogs)
           :user-tf-answer="userTfAnswer"
           :user-order-items="userOrderItems"
           :user-connect-pairs="userConnectPairs"
+          :user-fill-gaps="userFillGaps"
+          :mc-display-order="mcDisplayOrder"
+          :connect-right-order="connectRightOrder"
           @toggle-mc-option="toggleMcOption"
           @update:user-tf-answer="(v: boolean) => userTfAnswer = v"
           @update:user-answer="(v: string) => userAnswer = v"
           @reorder-items="reorderItems"
           @move-order-item="moveOrderItem"
           @set-connect-pair="setConnectPair"
+          @set-fill-gap="setFillGap"
         />
 
         <!-- Single action button: Show Answer → Next Question → Finish -->

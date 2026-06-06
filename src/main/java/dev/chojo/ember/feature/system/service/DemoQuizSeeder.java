@@ -19,6 +19,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -565,7 +566,10 @@ public class DemoQuizSeeder {
         var section2 = quizTestRepository.createSection(
                 test.id(), "Fortgeschrittenen-Wissen", "10 Fragen aus dem Fortgeschrittenen-Katalog", 1);
         quizTestRepository.createSource(section2.id(), fortCatalog.id(), null, 10);
-        // Generate frozen questions and activate the test
+        // Set start/end dates and activate the test
+        quizService.updateTest(test.id(), test.title(), test.description(), test.timeLimit(), test.shuffle(),
+                Instant.now().minus(7, java.time.temporal.ChronoUnit.DAYS),
+                Instant.now().plus(30, java.time.temporal.ChronoUnit.DAYS));
         quizService.activateTest(test.id());
 
         // -- Test 2: Draft test (not yet active) --
@@ -665,6 +669,10 @@ public class DemoQuizSeeder {
         var showcaseSection =
                 quizTestRepository.createSection(showcaseTest.id(), "Alle Typen", "Je eine Frage pro Fragetyp", 0);
         quizTestRepository.createSource(showcaseSection.id(), showcaseCatalog.id(), null, 0);
+        quizService.updateTest(showcaseTest.id(), showcaseTest.title(), showcaseTest.description(),
+                showcaseTest.timeLimit(), showcaseTest.shuffle(),
+                Instant.now().minus(3, java.time.temporal.ChronoUnit.DAYS),
+                Instant.now().plus(60, java.time.temporal.ChronoUnit.DAYS));
         quizService.activateTest(showcaseTest.id());
 
         // -- Demo attempts for the main test --

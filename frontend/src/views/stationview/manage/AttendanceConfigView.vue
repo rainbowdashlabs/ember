@@ -84,7 +84,7 @@ async function duplicateTemplate(tpl: AttendanceTemplate) {
         await attendance.createTemplateField(created.id, {
           name: field.name ?? '',
           fieldType: field.fieldType ?? '',
-          config: field.config ?? '{}',
+          config: field.config ?? {},
           position: field.position,
         })
       }

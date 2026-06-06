@@ -32,14 +32,14 @@ const emit = defineEmits<{
 }>()
 
 export interface GenEntry {
-  questionType: string
+  quizQuestionType: string
   count: number
   categoryId: number | null
 }
 
 const { t } = useI18n()
 
-const genEntries = ref<GenEntry[]>([{ questionType: 'MULTIPLE_CHOICE', count: 5, categoryId: null }])
+const genEntries = ref<GenEntry[]>([{ quizQuestionType: 'MULTIPLE_CHOICE', count: 5, categoryId: null }])
 const genUserPrompt = ref('')
 </script>
 
@@ -51,7 +51,7 @@ const genUserPrompt = ref('')
       <div v-for="(entry, eIdx) in genEntries" :key="eIdx" class="flex flex-col sm:flex-row gap-2 items-start sm:items-end p-3 rounded border border-bg-light-accent dark:border-bg-dark-accent">
         <div class="flex-1">
           <FieldLabel hint class="mb-1">{{ t('quiz.questions.type') }}</FieldLabel>
-          <SelectInput v-model="entry.questionType">
+          <SelectInput v-model="entry.quizQuestionType">
             <option value="MULTIPLE_CHOICE">{{ t('quiz.questionTypes.MULTIPLE_CHOICE') }}</option>
             <option value="TRUE_FALSE">{{ t('quiz.questionTypes.TRUE_FALSE') }}</option>
             <option value="FREE_ANSWER">{{ t('quiz.questionTypes.FREE_ANSWER') }}</option>
@@ -73,7 +73,7 @@ const genUserPrompt = ref('')
         </div>
         <DeleteButton v-if="genEntries.length > 1" @click="genEntries.splice(eIdx, 1)" />
       </div>
-      <SecondaryButton :icon="['fas', 'plus']" @click="genEntries.push({ questionType: 'MULTIPLE_CHOICE', count: 5, categoryId: null })">
+      <SecondaryButton :icon="['fas', 'plus']" @click="genEntries.push({ quizQuestionType: 'MULTIPLE_CHOICE', count: 5, categoryId: null })">
         {{ t('quiz.ai.addEntry') }}
       </SecondaryButton>
     </div>

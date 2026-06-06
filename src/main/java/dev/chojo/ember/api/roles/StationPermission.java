@@ -28,9 +28,14 @@ public enum StationPermission implements RouteRole {
     LOGIN(USER),
 
     /**
-     * Allows creating a new attendance session and register attendance
+     * Allows reading past attendance data
      */
-    ATTENDANCE_CREATE,
+    ATTENDANCE_READ,
+
+    /**
+     * Allows creating a new attendance session, editing and register attendance
+     */
+    ATTENDANCE_EDIT(ATTENDANCE_READ),
 
     /**
      * Allows configuring the attendance templates
@@ -40,12 +45,12 @@ public enum StationPermission implements RouteRole {
     /**
      * Allows exporting attendance data
      */
-    ATTENDANCE_EXPORT,
+    ATTENDANCE_EXPORT(ATTENDANCE_READ),
 
     /**
      * Grants access to all attendance actions.
      */
-    ATTENDANCE_MANAGER(ATTENDANCE_CREATE, ATTENDANCE_CONFIGURE, ATTENDANCE_EXPORT),
+    ATTENDANCE_MANAGER(ATTENDANCE_EDIT, ATTENDANCE_CONFIGURE, ATTENDANCE_EXPORT, ATTENDANCE_READ),
 
     /**
      * Allows creating new inventory items of type {@link InventoryType#EXTERNAL}
@@ -58,18 +63,23 @@ public enum StationPermission implements RouteRole {
     INVENTORY_CREATE_INTERNAL,
 
     /**
-     * Allows creating new inventory items
-     */
-    INVENTORY_CREATE(INVENTORY_CREATE_EXTERNAL, INVENTORY_CREATE_INTERNAL),
-
-    /**
      * Allows reading all inventory data of users
      */
     INVENTORY_READ,
 
     /**
+     * Allows creating new inventory items
+     */
+    INVENTORY_CREATE(INVENTORY_CREATE_EXTERNAL, INVENTORY_CREATE_INTERNAL, INVENTORY_READ),
+
+    /**
+     * Allows managing the inventory exchanges.
+     */
+    INVENTORY_EXCHANGE(INVENTORY_CREATE_EXTERNAL, INVENTORY_READ),
+
+    /**
      * Allows managing inventory procurements.
-     * Only allows creating. To mark as done the {@link #ATTENDANCE_CREATE} permission is required for the matching inventory type
+     * Only allows creating. To mark as done the {@link #ATTENDANCE_EDIT} permission is required for the matching inventory type
      */
     INVENTORY_PROCUREMENT,
 
@@ -86,7 +96,12 @@ public enum StationPermission implements RouteRole {
     /**
      * Allows managing inventory lending requests
      */
-    INVENTORY_LENDING_MANAGER,
+    INVENTORY_LENDING_MANAGER(INVENTORY_LENDING_REQUEST),
+
+    /**
+     * Allows editing all inventory data of users
+     */
+    INVENTORY_EDIT(INVENTORY_CREATE),
 
     /**
      * Allows managing inventory items and lending requests.
@@ -94,8 +109,9 @@ public enum StationPermission implements RouteRole {
     INVENTORY_MANAGER(
             INVENTORY_CHECK,
             INVENTORY_CREATE,
+            INVENTORY_EDIT,
+            INVENTORY_EXCHANGE,
             INVENTORY_LENDING_MANAGER,
-            INVENTORY_LENDING_REQUEST,
             INVENTORY_PROCUREMENT,
             INVENTORY_READ),
 
@@ -112,7 +128,7 @@ public enum StationPermission implements RouteRole {
     /**
      * Allows creating and editing events
      */
-    EVENT_CONFIGURE,
+    EVENT_EDIT,
 
     /**
      * Allows confirming and deny registrations.
@@ -122,7 +138,7 @@ public enum StationPermission implements RouteRole {
     /**
      * Allows federating events to other stations
      */
-    EVENTS_FEDERATE(EVENT_CONFIGURE),
+    EVENTS_FEDERATE(EVENT_EDIT),
 
     /**
      * Allows managing events
@@ -171,12 +187,17 @@ public enum StationPermission implements RouteRole {
     MEMBER_FIELDS,
 
     /**
+     * Allows exporting member data
+     */
+    MEMBER_EXPORT(MEMBER_READ),
+
+    /**
      * Allows managing members
      */
     MEMBER_MANAGER(
             MEMBER_CHANGES,
             MEMBER_EDIT,
-            MEMBER_EDIT,
+            MEMBER_EXPORT,
             MEMBER_FIELDS,
             MEMBER_MANAGE_GROUP,
             MEMBER_MANAGE_TAGS,
@@ -253,10 +274,21 @@ public enum StationPermission implements RouteRole {
      * Allows configuring new quizzes
      */
     TEST_CONFIGURE(TEST_CATALOG_EDIT),
+
+    /**
+     * Allows reading the test results of users
+     */
+    TEST_RESULT_READ,
+
+    /**
+     * Allows reviewing quizzed/grading them
+     */
+    TEST_REVIEW(TEST_RESULT_READ),
+
     /**
      * Allows managing tests
      */
-    TEST_MANAGER(TEST_CONFIGURE),
+    TEST_MANAGER(TEST_CONFIGURE, TEST_REVIEW),
 
     /**
      * Allows filling out a protocol

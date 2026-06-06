@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
@@ -21,7 +21,6 @@ import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import NumberInput from '@/components/input/number/NumberInput.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
-import SuccessButton from '@/components/button/SuccessButton.vue'
 import RestrictionPicker from '@/components/input/RestrictionPicker.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import MultiSelectDropdown from '@/components/input/select/MultiSelectDropdown.vue'
@@ -29,12 +28,15 @@ import DeleteButton from '@/components/button/DeleteButton.vue'
 import { boards, stationMembers, memberGroups, userTags, federation } from '@/api'
 import type { Board, BoardFieldConfig, FederationTarget } from '@/api/boards'
 import type { PermissionGrant, MemberGroup, UserTag } from '@/api/types'
-import { StationUserType } from '@/api/types'
+import { StationUserType, StationPermission } from '@/api/types'
+import { useSession } from '@/composables/useSession'
 import type { PartnerResponse } from '@/api/federation'
 
 const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
+const { hasPermission } = useSession()
+const canFederate = computed(() => hasPermission(StationPermission.BOARD_FEDERATE))
 
 const boardKey = computed(() => route.params.boardKey as string)
 const board = ref<Board | null>(null)
@@ -82,12 +84,16 @@ const hasFullMode = computed(() =>
     federationTargets.value.some(t => t.shareMode === 'FULL'),
 )
 
-const USER_ROLES: readonly string[] = [StationUserType.MEMBER, StationUserType.GUARDIAN, StationUserType.TEAM, StationUserType.MANAGER] as const
+const USER_TYPE_LABELS: Record<string, string> = {
+    TRIAL: 'Probe',
+    MEMBER: 'Mitglied',
+    GUARDIAN: 'Erziehungsberechtigter',
+    TEAM: 'Team',
+    MANAGER: 'Manager',
+}
 
 const roleOptions = computed(() =>
-    allRoles.value
-        .filter(r => (USER_ROLES as readonly string[]).includes(r.permission))
-        .map(r => ({ value: String(r.id), label: r.permission })),
+    Object.values(StationUserType).map(ut => ({ value: ut, label: USER_TYPE_LABELS[ut] ?? ut }))
 )
 
 function partnerName(partnerId: number): string {
@@ -109,7 +115,7 @@ function removePartner(index: number) {
 async function loadData() {
     loading.value = true
     try {
-        const [b, l, f, r, g, tg, va, ea, fedConfig, partners] = await Promise.all([
+        const [b, l, f, r, g, tg, va, ea] = await Promise.all([
             boards.getBoard(boardKey.value),
             boards.getLanes(boardKey.value),
             boards.getFields(boardKey.value),
@@ -118,9 +124,15 @@ async function loadData() {
             userTags.listTags(),
             boards.getViewAccess(boardKey.value),
             boards.getEditAccess(boardKey.value),
-            boards.getBoardFederationConfig(boardKey.value),
-            federation.listPartners(),
         ])
+        let fedConfig = { targets: [] as FederationTarget[], editUserTypes: [] as string[] }
+        let partners: PartnerResponse[] = []
+        try {
+            [fedConfig, partners] = await Promise.all([
+                boards.getBoardFederationConfig(boardKey.value),
+                federation.listPartners(),
+            ]) as [typeof fedConfig, PartnerResponse[]]
+        } catch { /* no federation permission */ }
         board.value = b
         name.value = b.name
         description.value = b.description ?? ''
@@ -147,9 +159,13 @@ async function loadData() {
     }
 }
 
-async function save() {
+const saving = ref(false)
+let saveDebounce: ReturnType<typeof setTimeout> | null = null
+
+async function saveNow() {
+    if (loading.value) return
+    saving.value = true
     error.value = ''
-    saved.value = false
     try {
         await boards.updateBoard(boardKey.value, {
             name: name.value,
@@ -169,16 +185,31 @@ async function save() {
         await boards.setEditAccess(boardKey.value, {
             userTypes: editUserTypes.value, groupIds: editGroupIds.value, tagIds: editTagIds.value,
         })
-        await boards.setBoardFederationConfig(boardKey.value, {
-            targets: federationTargets.value,
-            editUserTypes: federatedEditUserTypes.value,
-        })
+        if (federationTargets.value.length > 0 || federatedEditUserTypes.value.length > 0) {
+            await boards.setBoardFederationConfig(boardKey.value, {
+                targets: federationTargets.value,
+                editUserTypes: federatedEditUserTypes.value,
+            })
+        }
         saved.value = true
         setTimeout(() => saved.value = false, 2000)
     } catch {
         error.value = t('common.error')
+    } finally {
+        saving.value = false
     }
 }
+
+function scheduleSave() {
+    if (saveDebounce) clearTimeout(saveDebounce)
+    saveDebounce = setTimeout(saveNow, 800)
+}
+
+// Auto-save on any change
+watch([name, description, hideDoneAfterDays, hasBacklog, lanes, fields,
+    viewUserTypes, viewGroupIds, viewTagIds,
+    editUserTypes, editGroupIds, editTagIds,
+    federationTargets, federatedEditUserTypes], scheduleSave, { deep: true })
 
 function addLane() {
     if (!newLaneName.value.trim()) return
@@ -240,13 +271,14 @@ onMounted(loadData)
                     <SectionHeader>{{ t('boards.settings') }}</SectionHeader>
                     <span class="text-xs font-mono text-[var(--text-muted)] bg-[var(--bg-muted)] px-1.5 py-0.5 rounded">{{ board.shortKey }}</span>
                 </div>
-                <SuccessButton @click="save">
-                    <font-awesome-icon :icon="['fas', 'check']" class="mr-1" />
-                    {{ t('common.save') }}
-                </SuccessButton>
+                <span v-if="saving" class="text-xs text-[var(--text-muted)] flex items-center gap-1">
+                    <Spinner size="sm" /> {{ t('common.saving') }}
+                </span>
+                <span v-else-if="saved" class="text-xs text-success flex items-center gap-1">
+                    <font-awesome-icon :icon="['fas', 'check']" /> {{ t('common.saved') }}
+                </span>
             </div>
 
-            <Alert v-if="saved" variant="success" class="mb-4">{{ t('common.saved') }}</Alert>
             <Alert v-if="error" variant="error" class="mb-4">{{ error }}</Alert>
 
             <div class="space-y-6 max-w-2xl">
@@ -374,48 +406,67 @@ onMounted(loadData)
                 <!-- Federation -->
                 <NeutralContainer>
                     <SubHeader class="text-sm mb-3">{{ t('boards.federation') }}</SubHeader>
-                    <p class="text-xs text-[var(--text-muted)] mb-3">{{ t('boards.federationShareDesc') }}</p>
 
-                    <!-- Existing share targets -->
-                    <div class="space-y-2">
-                        <div v-for="(target, index) in federationTargets" :key="target.partnerId" class="flex items-center gap-2">
-                            <span class="flex-1 text-sm">{{ partnerName(target.partnerId) }}</span>
-                            <SelectInput :model-value="target.shareMode" @update:model-value="(v: any) => target.shareMode = v">
-                                <option value="READ_ONLY">{{ t('boards.shareModeReadOnly') }}</option>
-                                <option value="FULL">{{ t('boards.shareModeFull') }}</option>
-                            </SelectInput>
-                            <SelectInput :model-value="target.requiredRole" @update:model-value="(v: any) => target.requiredRole = v">
-                                <option value="USER">{{ t('boards.requiredRoleUser') }}</option>
-                                <option value="TEAM">{{ t('boards.requiredRoleTeam') }}</option>
-                                <option value="MANAGER">{{ t('boards.requiredRoleManager') }}</option>
-                            </SelectInput>
-                            <DeleteButton @click="removePartner(index)" />
+                    <template v-if="canFederate">
+                        <p class="text-xs text-[var(--text-muted)] mb-3">{{ t('boards.federationShareDesc') }}</p>
+
+                        <!-- Existing share targets -->
+                        <div class="space-y-2">
+                            <div v-for="(target, index) in federationTargets" :key="target.partnerId" class="flex items-center gap-2 flex-wrap">
+                                <span class="font-medium text-sm min-w-24">{{ partnerName(target.partnerId) }}</span>
+                                <div class="flex items-center gap-1">
+                                    <span class="text-xs text-[var(--text-muted)] shrink-0">{{ t('boards.accessMode') }}:</span>
+                                    <SelectInput :model-value="target.shareMode" @update:model-value="(v: any) => target.shareMode = v">
+                                        <option value="READ_ONLY">{{ t('boards.shareModeReadOnly') }}</option>
+                                        <option value="FULL">{{ t('boards.shareModeFull') }}</option>
+                                    </SelectInput>
+                                </div>
+                                <div class="flex items-center gap-1">
+                                    <span class="text-xs text-[var(--text-muted)] shrink-0">{{ t('boards.minViewRole') }}:</span>
+                                    <SelectInput :model-value="target.requiredRole" @update:model-value="(v: any) => target.requiredRole = v">
+                                        <option value="USER">{{ t('boards.requiredRoleUser') }}</option>
+                                        <option value="TEAM">{{ t('boards.requiredRoleTeam') }}</option>
+                                        <option value="MANAGER">{{ t('boards.requiredRoleManager') }}</option>
+                                    </SelectInput>
+                                </div>
+                                <DeleteButton @click="removePartner(index)" />
+                            </div>
                         </div>
-                    </div>
 
-                    <!-- Add partner -->
-                    <div v-if="availablePartners.length > 0" class="flex gap-2 mt-3">
-                        <SelectInput :model-value="String(addPartnerId ?? '')" class="flex-1" @update:model-value="(v: any) => addPartnerId = v ? Number(v) : null">
-                            <option value="">{{ t('boards.federationShare') }}...</option>
-                            <option v-for="p in availablePartners" :key="p.partner.id" :value="String(p.partner.id)">
-                                {{ p.partnerStationName }}
-                            </option>
-                        </SelectInput>
-                        <SecondaryButton :disabled="addPartnerId == null" @click="addPartner">
-                            <font-awesome-icon :icon="['fas', 'plus']" />
-                        </SecondaryButton>
-                    </div>
+                        <!-- Add partner -->
+                        <div v-if="availablePartners.length > 0" class="flex gap-2 mt-3">
+                            <SelectInput :model-value="String(addPartnerId ?? '')" class="flex-1" @update:model-value="(v: any) => addPartnerId = v ? Number(v) : null">
+                                <option value="">{{ t('boards.federationShare') }}...</option>
+                                <option v-for="p in availablePartners" :key="p.partner.id" :value="String(p.partner.id)">
+                                    {{ p.partnerStationName }}
+                                </option>
+                            </SelectInput>
+                            <SecondaryButton :disabled="addPartnerId == null" @click="addPartner">
+                                <font-awesome-icon :icon="['fas', 'plus']" />
+                            </SecondaryButton>
+                        </div>
 
-                    <!-- Federated edit roles -->
-                    <div v-if="hasFullMode" class="mt-4">
-                        <FieldLabel class="mb-1">{{ t('boards.federatedEditRoles') }}</FieldLabel>
-                        <p class="text-xs text-[var(--text-muted)] mb-2">{{ t('boards.federatedEditRolesDesc') }}</p>
-                        <MultiSelectDropdown
-                            :options="roleOptions"
-                            :model-value="federatedEditUserTypes"
-                            @update:model-value="federatedEditUserTypes = $event"
-                        />
-                    </div>
+                        <!-- Federated edit roles -->
+                        <div v-if="hasFullMode" class="mt-4">
+                            <FieldLabel class="mb-1">{{ t('boards.federatedEditRoles') }}</FieldLabel>
+                            <p class="text-xs text-[var(--text-muted)] mb-2">{{ t('boards.federatedEditRolesDesc') }}</p>
+                            <MultiSelectDropdown
+                                :options="roleOptions"
+                                :model-value="federatedEditUserTypes"
+                                @update:model-value="federatedEditUserTypes = $event"
+                            />
+                        </div>
+                    </template>
+
+                    <!-- Read-only: no federation permission -->
+                    <template v-else>
+                        <p class="text-xs text-[var(--text-muted)] italic">{{ t('boards.federationNoPermission') }}</p>
+                        <div v-if="federationTargets.length > 0" class="space-y-1 mt-2">
+                            <div v-for="target in federationTargets" :key="target.partnerId" class="text-sm text-[var(--text-muted)]">
+                                {{ partnerName(target.partnerId) }} — {{ target.shareMode }}
+                            </div>
+                        </div>
+                    </template>
                 </NeutralContainer>
             </div>
         </template>

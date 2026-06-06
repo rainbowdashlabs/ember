@@ -568,9 +568,12 @@ public class DemoService {
         // Create Betreuer (TEAM — not MEMBER)
         for (var u : betreuer) {
             var m = createTeamMember(u.firstName(), u.lastName(), hash, station.id(), loginRole.id());
-            stationMemberRepository.grantPermission(m.id(), attendanceMgmt.id());
-            stationMemberRepository.grantPermission(m.id(), eventMgmt.id());
-            stationMemberRepository.grantPermission(m.id(), memberMgmt.id());
+            // Max Mustermann gets no additional permissions (plain user for testing)
+            if (!u.lastName().equals("Mustermann")) {
+                stationMemberRepository.grantPermission(m.id(), attendanceMgmt.id());
+                stationMemberRepository.grantPermission(m.id(), eventMgmt.id());
+                stationMemberRepository.grantPermission(m.id(), memberMgmt.id());
+            }
             memberGroupRepository.addMember(groupBetreuer.id(), m.id());
             betreuerMembers.add(m);
 

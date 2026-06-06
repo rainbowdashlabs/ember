@@ -49,7 +49,7 @@ const filteredMembers = computed(() => {
     if (activeTab.value === 'team') {
       return ut === StationUserType.TEAM || ut === StationUserType.MANAGER
     } else {
-      return ut === StationUserType.MEMBER || ut === StationUserType.TRIAL
+      return ut === StationUserType.MEMBER
     }
   }).sort((a, b) => {
     if (sortBy.value === 'lastChecked') {

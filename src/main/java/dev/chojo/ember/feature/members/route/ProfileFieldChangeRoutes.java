@@ -47,27 +47,27 @@ public class ProfileFieldChangeRoutes implements Routes {
         routes.get(
                 prefix + "/profile-changes/all",
                 this::getAllChanges,
-                StationPermission.MEMBER_MANAGER,
+                StationPermission.MEMBER_CHANGES,
                 StationPermission.MEMBER_GUARDIAN);
         routes.get(
                 prefix + "/profile-changes/pending",
                 this::getPendingSummary,
-                StationPermission.MEMBER_MANAGER,
+                StationPermission.MEMBER_CHANGES,
                 StationPermission.MEMBER_GUARDIAN);
         routes.get(
                 prefix + "/station-members/{memberId}/profile-changes",
                 this::getChanges,
-                StationPermission.MEMBER_MANAGER,
+                StationPermission.MEMBER_CHANGES,
                 StationPermission.MEMBER_GUARDIAN);
         routes.post(
                 prefix + "/profile-changes/{changeId}/acknowledge",
                 this::acknowledge,
-                StationPermission.MEMBER_MANAGER,
+                StationPermission.MEMBER_CHANGES,
                 StationPermission.MEMBER_GUARDIAN);
         routes.post(
                 prefix + "/station-members/{memberId}/profile-changes/acknowledge-all",
                 this::acknowledgeAll,
-                StationPermission.MEMBER_MANAGER,
+                StationPermission.MEMBER_CHANGES,
                 StationPermission.MEMBER_GUARDIAN);
     }
 

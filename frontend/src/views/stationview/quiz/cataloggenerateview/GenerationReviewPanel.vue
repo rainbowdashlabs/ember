@@ -14,7 +14,7 @@ import InfoBadge from '@/components/badge/InfoBadge.vue'
 export interface GenPreview {
   title: string
   config: string
-  questionType: string
+  quizQuestionType: string
   categoryId: number | null
   accepted: boolean
 }
@@ -75,10 +75,10 @@ function parseGenConfig(configStr: string): Record<string, unknown> {
           <div class="flex-1 min-w-0">
             <div class="flex items-center gap-2 flex-wrap">
               <p class="font-medium text-sm">{{ q.title }}</p>
-              <InfoBadge>{{ t(`quiz.questionTypes.${q.questionType}`) }}</InfoBadge>
+              <InfoBadge>{{ t(`quiz.questionTypes.${q.quizQuestionType}`) }}</InfoBadge>
             </div>
             <!-- MC: show options with checkmarks -->
-            <template v-if="q.questionType === 'MULTIPLE_CHOICE'">
+            <template v-if="q.quizQuestionType === 'MULTIPLE_CHOICE'">
               <div class="mt-1 space-y-0.5">
                 <div v-for="(opt, oi) in (parseGenConfig(q.config).options as { text: string; correct: boolean }[] || [])" :key="oi" class="flex items-center gap-1 text-xs">
                   <font-awesome-icon :icon="['fas', opt.correct ? 'square-check' : 'square']" :class="opt.correct ? 'text-success' : 'text-(--text-muted)'" class="text-[10px]" />
@@ -87,26 +87,26 @@ function parseGenConfig(configStr: string): Record<string, unknown> {
               </div>
             </template>
             <!-- TF: show correct answer -->
-            <template v-else-if="q.questionType === 'TRUE_FALSE'">
+            <template v-else-if="q.quizQuestionType === 'TRUE_FALSE'">
               <p class="text-xs mt-1" :class="(parseGenConfig(q.config).correctAnswer as boolean) ? 'text-success' : 'text-error'">
                 {{ (parseGenConfig(q.config).correctAnswer as boolean) ? t('quiz.trueLabel') : t('quiz.falseLabel') }}
               </p>
             </template>
             <!-- Free answer: show possible answers -->
-            <template v-else-if="q.questionType === 'FREE_ANSWER'">
+            <template v-else-if="q.quizQuestionType === 'FREE_ANSWER'">
               <p v-for="(ans, ai2) in (parseGenConfig(q.config).answers as string[] || [])" :key="ai2" class="text-xs text-(--text-muted) mt-0.5">
                 {{ ai2 + 1 }}. {{ ans }}
               </p>
             </template>
             <!-- Fill blank: show answers -->
-            <template v-else-if="q.questionType === 'FILL_IN_THE_BLANK'">
+            <template v-else-if="q.quizQuestionType === 'FILL_IN_THE_BLANK'">
               <p class="text-xs text-success mt-1">{{ (parseGenConfig(q.config).answers as string[] || []).join(', ') }}</p>
               <p v-if="(parseGenConfig(q.config).distractors as string[] || []).length > 0" class="text-xs text-error mt-0.5">
                 {{ (parseGenConfig(q.config).distractors as string[] || []).join(', ') }}
               </p>
             </template>
             <!-- Connect: show pairs -->
-            <template v-else-if="q.questionType === 'CONNECT'">
+            <template v-else-if="q.quizQuestionType === 'CONNECT'">
               <div class="mt-1 space-y-0.5">
                 <p v-for="(pair, pi) in (parseGenConfig(q.config).pairs as { left: string; right: string }[] || [])" :key="pi" class="text-xs text-(--text-muted)">
                   {{ pair.left }} &rarr; {{ pair.right }}
@@ -114,7 +114,7 @@ function parseGenConfig(configStr: string): Record<string, unknown> {
               </div>
             </template>
             <!-- Ordering: show items numbered -->
-            <template v-else-if="q.questionType === 'ORDERING'">
+            <template v-else-if="q.quizQuestionType === 'ORDERING'">
               <div class="mt-1 space-y-0.5">
                 <p v-for="(item, ii) in (parseGenConfig(q.config).items as string[] || [])" :key="ii" class="text-xs text-(--text-muted)">
                   {{ ii + 1 }}. {{ item }}

@@ -18,18 +18,20 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import type {AttendanceTemplate, AttendanceTemplateField, EventCategory, EventFieldEntry, EventTemplate, MemberGroup, PermissionGrant, StationMember, UserTag} from '@/api/types'
-import {EventTypes, needsDayOfWeek} from '@/api/types'
+import {EventTypes, StationPermission, needsDayOfWeek} from '@/api/types'
 import type {EventFieldDefault} from '@/api/events'
-import {attendance, events, memberGroups, stationMembers, userTags} from '@/api'
+import {attendance, events, federation, memberGroups, stationMembers, userTags} from '@/api'
+import type {PartnerResponse} from '@/api/federation'
+import FederationSharePicker from '@/components/input/FederationSharePicker.vue'
 import EventFormPanel from './eventshared/EventFormPanel.vue'
-import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import {useSession} from '@/composables/useSession'
 
 const {t} = useI18n()
 const route = useRoute()
 const router = useRouter()
-const {loaded, canManageFederation} = useSession()
+const {loaded, hasPermission} = useSession()
 
+const canFederate = computed(() => hasPermission(StationPermission.EVENTS_FEDERATE))
 const eventId = computed(() => route.params.id ? Number(route.params.id) : null)
 const isEdit = computed(() => eventId.value !== null)
 
@@ -65,10 +67,10 @@ async function applyEventTemplate(templateId: string | undefined) {
     if (tpl.requiresRegistration != null) eventRequiresRegistration.value = tpl.requiresRegistration
     if (tpl.requiresConfirmation != null) eventRequiresConfirmation.value = tpl.requiresConfirmation
     if (detail.fields.length > 0) {
-      const newFields = detail.fields.map(f => ({
+      const newFields: EventFieldEntry[] = detail.fields.map(f => ({
         name: f.name,
         fieldType: f.fieldType ?? 'STRING',
-        config: f.config ?? '{}',
+        config: typeof f.config === 'string' ? (f.config ? JSON.parse(f.config) : {}) : (f.config ?? {}),
         value: '',
         overview: f.overview ?? false,
         attendanceFieldId: f.attendanceFieldId ?? null,
@@ -107,6 +109,9 @@ const selectedGroupIds = ref<number[]>([])
 const selectedTagIds = ref<number[]>([])
 const restrictionMode = ref<'AND' | 'OR'>('AND')
 const federationShared = ref(false)
+const federationScope = ref('ALL_PARTNERS')
+const federationPartnerIds = ref<number[]>([])
+const allPartners = ref<PartnerResponse[]>([])
 const fieldDefaults = ref<Map<number, { source: string; value: string }>>(new Map())
 
 function toLocalDateTime(iso: string): string {
@@ -158,7 +163,7 @@ async function loadData() {
       eventCustomFields.value = fields.map(f => ({
         name: f.name ?? '',
         fieldType: f.fieldType ?? 'STRING',
-        config: f.config ?? '{}',
+        config: f.config ?? {},
         value: f.value ?? '',
         overview: f.overview ?? false,
         attendanceFieldId: f.attendanceFieldId ?? null,
@@ -196,9 +201,18 @@ async function loadData() {
       fieldDefaults.value = fdMap
       eventFieldDefaults.value = defaults
 
-      if (canManageFederation()) {
-        const fedShare = await events.getFederationShare(eventId.value!)
-        federationShared.value = fedShare.shared
+      try {
+        allPartners.value = await federation.listPartners()
+      } catch { /* no federation permission */ }
+      if (canFederate.value && eventId.value) {
+        try {
+          const fedShare = await events.getFederationShare(eventId.value)
+          federationShared.value = fedShare.shared
+          if (fedShare.shared) {
+            federationScope.value = fedShare.scope ?? 'ALL_PARTNERS'
+            federationPartnerIds.value = fedShare.partnerIds ?? []
+          }
+        } catch { /* no federation permission */ }
       }
     }
   } catch {
@@ -289,9 +303,10 @@ async function submit() {
     const customFields = eventCustomFields.value.filter(f => f.name.trim())
     await events.setEventFields(savedEventId, {fields: customFields})
 
-    if (canManageFederation()) {
+    if (canFederate.value) {
       if (federationShared.value) {
-        await events.setFederationShare(savedEventId, 'ALL_PARTNERS')
+        const pIds = federationScope.value === 'SPECIFIC_PARTNERS' ? federationPartnerIds.value : undefined
+        await events.setFederationShare(savedEventId, federationScope.value, pIds)
       } else {
         await events.removeFederationShare(savedEventId).catch(() => {})
       }
@@ -377,13 +392,20 @@ watch(loaded, (isLoaded) => {
           />
         </NeutralContainer>
 
-        <NeutralContainer v-if="canManageFederation()" class="space-y-2">
+        <NeutralContainer class="space-y-2">
           <SubHeader>{{ t('events.federation') }}</SubHeader>
-          <label class="flex items-center gap-3">
-            <ToggleInput v-model="federationShared"/>
-            <span class="text-sm">{{ t('events.federationShare') }}</span>
-          </label>
           <p class="text-xs text-(--text-muted)">{{ t('events.federationShareHint') }}</p>
+          <FederationSharePicker
+              :shared="federationShared"
+              :scope="federationScope"
+              :partner-ids="federationPartnerIds"
+              :partners="allPartners"
+              :disabled="!canFederate"
+              :no-permission-hint="t('events.federationNoPermission')"
+              @update:shared="federationShared = $event"
+              @update:scope="federationScope = $event"
+              @update:partner-ids="federationPartnerIds = $event"
+          />
         </NeutralContainer>
 
         <NeutralContainer v-if="currentTemplateFields.length > 0" class="space-y-4">

@@ -76,14 +76,6 @@ const tabs = computed(() => [
     { key: 'all', label: t('boards.activityAll') },
 ])
 
-function transitionActorName(tr: BoardTicketTransition): string {
-    return tr.actorName ?? '—'
-}
-
-function historyActorName(entry: BoardTicketHistoryEntry): string {
-    return entry.actorName ?? '—'
-}
-
 function laneName(id: number | null): string {
     if (id === null) return '—'
     return props.lanes.find(l => l.id === id)?.name ?? `#${id}`

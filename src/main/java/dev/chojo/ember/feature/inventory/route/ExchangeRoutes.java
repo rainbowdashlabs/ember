@@ -79,9 +79,9 @@ public class ExchangeRoutes implements Routes {
         routes.get(prefix + "/exchanges/{id}", this::get, StationPermission.LOGIN);
         routes.get(prefix + "/exchanges/{id}/logs", this::logs, StationPermission.LOGIN);
         routes.post(prefix + "/exchanges", this::create, StationPermission.LOGIN);
-        routes.put(prefix + "/exchanges/{id}/status", this::updateStatus, StationPermission.INVENTORY_MANAGER);
-        routes.delete(prefix + "/exchanges/{id}", this::delete, StationPermission.INVENTORY_MANAGER);
-        routes.post(prefix + "/exchanges/export", this::exportPdf, StationPermission.INVENTORY_MANAGER);
+        routes.put(prefix + "/exchanges/{id}/status", this::updateStatus, StationPermission.INVENTORY_EXCHANGE);
+        routes.delete(prefix + "/exchanges/{id}", this::delete, StationPermission.INVENTORY_EXCHANGE);
+        routes.post(prefix + "/exchanges/export", this::exportPdf, StationPermission.INVENTORY_EXCHANGE);
     }
 
     @OpenApi(
@@ -93,7 +93,7 @@ public class ExchangeRoutes implements Routes {
     private void list(Context ctx) {
         UserSession session = UserSession.from(ctx);
         List<ExchangeRequest> requests;
-        if (session.hasPermission(StationPermission.INVENTORY_MANAGER)) {
+        if (session.hasPermission(StationPermission.INVENTORY_EXCHANGE)) {
             requests = exchangeService.findByStation(session.stationId());
         } else {
             var own = exchangeService.findByMember(session.member().id());
@@ -162,7 +162,7 @@ public class ExchangeRoutes implements Routes {
         int targetMemberId = callerMemberId;
         if (request.memberId() != null && request.memberId() != callerMemberId) {
             // Verify caller manages the target member or has inventory management
-            if (!session.hasPermission(StationPermission.INVENTORY_MANAGER)) {
+            if (!session.hasPermission(StationPermission.INVENTORY_EXCHANGE)) {
                 boolean manages = stationMemberRepository.findManagers(request.memberId()).stream()
                         .anyMatch(m -> m.id() == callerMemberId);
                 if (!manages) {

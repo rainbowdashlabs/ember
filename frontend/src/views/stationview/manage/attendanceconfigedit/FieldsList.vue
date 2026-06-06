@@ -43,8 +43,9 @@ function fieldTypeLabel(value: string): string {
   return fieldTypeOptions[value] ?? value
 }
 
-function parseConfig(configStr: string | undefined): { groupId?: number; required?: boolean; autoAttend?: boolean } {
+function parseConfig(configStr: string | Record<string, unknown> | undefined): { groupId?: number; required?: boolean; autoAttend?: boolean } {
   if (!configStr) return {}
+  if (typeof configStr === 'object') return configStr as { groupId?: number; required?: boolean; autoAttend?: boolean }
   try {
     return JSON.parse(configStr)
   } catch {

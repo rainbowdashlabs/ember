@@ -41,14 +41,14 @@ public class EventTemplateRoutes implements Routes {
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        routes.get(prefix + "/event-templates", this::list, StationPermission.EVENT_MANAGER);
-        routes.post(prefix + "/event-templates", this::create, StationPermission.EVENT_MANAGER);
-        routes.get(prefix + "/event-templates/{id}", this::get, StationPermission.EVENT_MANAGER);
-        routes.put(prefix + "/event-templates/{id}", this::update, StationPermission.EVENT_MANAGER);
-        routes.delete(prefix + "/event-templates/{id}", this::delete, StationPermission.EVENT_MANAGER);
-        routes.put(prefix + "/event-templates/{id}/fields", this::setFields, StationPermission.EVENT_MANAGER);
+        routes.get(prefix + "/event-templates", this::list, StationPermission.EVENT_EDIT, StationPermission.EVENT_MANAGE_TEMPLATE);
+        routes.post(prefix + "/event-templates", this::create, StationPermission.EVENT_MANAGE_TEMPLATE);
+        routes.get(prefix + "/event-templates/{id}", this::get, StationPermission.EVENT_EDIT, StationPermission.EVENT_MANAGE_TEMPLATE);
+        routes.put(prefix + "/event-templates/{id}", this::update, StationPermission.EVENT_MANAGE_TEMPLATE);
+        routes.delete(prefix + "/event-templates/{id}", this::delete, StationPermission.EVENT_MANAGE_TEMPLATE);
+        routes.put(prefix + "/event-templates/{id}/fields", this::setFields, StationPermission.EVENT_MANAGE_TEMPLATE);
         routes.put(
-                prefix + "/event-templates/{id}/restrictions", this::setRestrictions, StationPermission.EVENT_MANAGER);
+                prefix + "/event-templates/{id}/restrictions", this::setRestrictions, StationPermission.EVENT_MANAGE_TEMPLATE);
     }
 
     @OpenApi(

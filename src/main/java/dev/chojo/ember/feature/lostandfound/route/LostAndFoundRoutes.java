@@ -75,13 +75,13 @@ public class LostAndFoundRoutes implements Routes {
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
         routes.get(prefix + "/lost-and-found", this::list, StationPermission.LOGIN);
-        routes.post(prefix + "/lost-and-found", this::create, StationPermission.LOST_AND_FOUND_MANAGER);
+        routes.post(prefix + "/lost-and-found", this::create, StationPermission.LOST_AND_FOUND_CREATE);
         routes.get(prefix + "/lost-and-found/{id}", this::getById, StationPermission.LOGIN);
         routes.get(prefix + "/lost-and-found/{id}/image", this::getImage, StationPermission.LOGIN);
-        routes.post(prefix + "/lost-and-found/{id}/image", this::uploadImage, StationPermission.LOST_AND_FOUND_MANAGER);
+        routes.post(prefix + "/lost-and-found/{id}/image", this::uploadImage, StationPermission.LOST_AND_FOUND_CREATE);
         routes.post(prefix + "/lost-and-found/{id}/claim", this::claim, StationPermission.LOGIN);
-        routes.post(prefix + "/lost-and-found/{id}/provided", this::provided, StationPermission.LOST_AND_FOUND_MANAGER);
-        routes.delete(prefix + "/lost-and-found/{id}", this::delete, StationPermission.LOST_AND_FOUND_MANAGER);
+        routes.post(prefix + "/lost-and-found/{id}/provided", this::provided, StationPermission.LOST_AND_FOUND_MANAGE);
+        routes.delete(prefix + "/lost-and-found/{id}", this::delete, StationPermission.LOST_AND_FOUND_MANAGE);
     }
 
     @OpenApi(
@@ -96,7 +96,7 @@ public class LostAndFoundRoutes implements Routes {
                             content = @OpenApiContent(from = LostAndFoundItemResponse[].class)))
     private void list(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        boolean isManager = session.permissions().contains(StationPermission.LOST_AND_FOUND_MANAGER);
+        boolean isManager = session.hasPermission(StationPermission.LOST_AND_FOUND_MANAGE);
         var items = isManager
                 ? lostAndFoundService.findByStation(session.stationId())
                 : lostAndFoundService.findUnclaimedOrClaimedBy(

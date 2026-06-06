@@ -22,8 +22,9 @@ import Modal from '@/components/feedback/Modal.vue'
 import ItemsTable from './ItemsTable.vue'
 import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import type { InventoryDetail, InventoryItem, InventorySize, StationMember, ProcurementEntry } from '@/api/types'
-import { InventoryTypes } from '@/api/types'
+import { InventoryTypes, StationPermission } from '@/api/types'
 import { inventory, stationMembers, procurement } from '@/api'
+import { useSession } from '@/composables/useSession'
 import { getLentOutByInventory, type LentOutItem } from '@/api/lending'
 import { useStations } from '@/composables/useStations'
 import InventoryStatsPanel from './detailview/InventoryStatsPanel.vue'
@@ -37,6 +38,9 @@ const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
 const { currentStationId } = useStations()
+const { hasPermission } = useSession()
+const canEdit = computed(() => hasPermission(StationPermission.INVENTORY_EDIT))
+const canProcure = computed(() => hasPermission(StationPermission.INVENTORY_PROCUREMENT))
 
 const inventoryId = computed(() => Number(route.params.id))
 const detail = ref<InventoryDetail | null>(null)
@@ -86,10 +90,6 @@ const lentItemStationMap = computed(() => {
 
 function isLentOut(itemId: number): boolean {
   return lentItemStationMap.value.has(itemId)
-}
-
-function lentToStation(itemId: number): string | null {
-  return lentItemStationMap.value.get(itemId) ?? null
 }
 
 const totalCount = computed(() => items.value.length)
@@ -297,7 +297,7 @@ onMounted(loadData)
           :size-stats="allSizeStats"
         />
 
-        <ProcurementTable :entries="openProcurement" @fulfill="fulfillProcurement" />
+        <ProcurementTable :entries="openProcurement" :readonly="!canProcure" @fulfill="fulfillProcurement" />
 
         <LentOutTable :lent-out-items="lentOutItems" :lent-out-count="lentOutCount" />
 
@@ -309,7 +309,8 @@ onMounted(loadData)
             :has-sizes="detail.hasSizes"
             :sizes="detail.sizes"
             :members="memberMap"
-            :show-actions="true"
+            :show-actions="canEdit"
+            :show-history="true"
             :inventory-type="detail.inventoryType ?? InventoryTypes.INTERNAL"
             :lent-out-items="lentOutItems"
             :lent-item-map="lentItemStationMap"
@@ -324,7 +325,7 @@ onMounted(loadData)
         </template>
 
         <!-- Free items for assignment -->
-        <template v-if="freeItems.length > 0">
+        <template v-if="canEdit && freeItems.length > 0">
           <SubHeader>{{ t('inventory.detail.freeItems') }}</SubHeader>
           <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
             <NeutralContainer v-for="item in freeItems" :key="item.id" class="flex items-center justify-between gap-2">
@@ -343,7 +344,7 @@ onMounted(loadData)
         </template>
 
         <!-- Actions -->
-        <div class="flex gap-2">
+        <div v-if="canProcure" class="flex gap-2">
           <PrimaryButton :icon="['fas', 'folder-plus']" @click="openProcurementModal">
             {{ t('inventory.detail.createProcurement') }}
           </PrimaryButton>

@@ -190,13 +190,15 @@ public class BoardTicketRoutes implements Routes {
 
     private void requireEditAccess(int boardId, UserSession session) {
         if (session.member() == null) throw new BadRequestResponse("Not a station member");
-        if (!boardService.canEdit(boardId, session.member().id()))
+        boolean isManager = session.permissions().contains(StationPermission.BOARD_MANAGER);
+        if (!boardService.canEdit(boardId, session.member().id(), isManager))
             throw new ForbiddenResponse("No edit access to this board");
     }
 
     private void requireViewAccess(int boardId, UserSession session) {
         if (session.member() == null) throw new BadRequestResponse("Not a station member");
-        if (!boardService.canView(boardId, session.member().id()))
+        boolean isManager = session.permissions().contains(StationPermission.BOARD_MANAGER);
+        if (!boardService.canView(boardId, session.member().id(), isManager))
             throw new ForbiddenResponse("No access to this board");
     }
 

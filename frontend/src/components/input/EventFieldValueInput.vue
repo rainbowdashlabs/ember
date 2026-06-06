@@ -5,14 +5,14 @@
  */
 <script lang="ts" setup>
 import ProfileFieldInput from '@/components/input/ProfileFieldInput.vue'
-import SelectInput from '@/components/input/select/SelectInput.vue'
-import MultiSelectInput from '@/components/input/select/MultiSelectInput.vue'
+import SingleSelectDropdown from '@/components/input/select/SingleSelectDropdown.vue'
+import MultiSelectDropdown from '@/components/input/select/MultiSelectDropdown.vue'
 import TimeShortInput from '@/components/input/datetime/TimeShortInput.vue'
 import type {StationMember} from '@/api/types'
 
 const props = defineProps<{
   fieldType: string
-  config?: string
+  config?: Record<string, unknown>
   modelValue: string
   disabled?: boolean
   allMembers?: StationMember[]
@@ -24,12 +24,7 @@ const emit = defineEmits<{
 }>()
 
 function parseConfig(): { options?: string[]; groupId?: number } {
-  if (!props.config) return {}
-  try {
-    return JSON.parse(props.config)
-  } catch {
-    return {}
-  }
+  return (props.config ?? {}) as { options?: string[]; groupId?: number }
 }
 
 function isMemberField(): boolean {
@@ -80,21 +75,24 @@ function setSingleMember(id: string) {
 
   <!-- Member list fields -->
   <template v-else-if="isMemberField() && allMembers">
-    <MultiSelectInput
+    <MultiSelectDropdown
         v-if="isListField()"
         :model-value="getMemberIds()"
         :options="getMemberOptions()"
+        :searchable="true"
+        placeholder="Mitglied wählen"
         @update:model-value="setMemberIds($event)"
     />
-    <SelectInput
+    <SingleSelectDropdown
         v-else
         :disabled="disabled"
         :model-value="modelValue"
-        @update:model-value="setSingleMember($event ?? '')"
-    >
-      <option value="">—</option>
-      <option v-for="opt in getMemberOptions()" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
-    </SelectInput>
+        :options="getMemberOptions()"
+        :searchable="true"
+        :clearable="true"
+        placeholder="Mitglied wählen"
+        @update:model-value="setSingleMember($event)"
+    />
   </template>
 
   <!-- Regular fields -->

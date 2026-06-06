@@ -6,7 +6,7 @@
 import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { ProfileField, StationMember, MemberGroup, UserTag, PermissionGrant } from '@/api/types'
-import { StationUserType, parseFieldConfig } from '@/api/types'
+import { parseFieldConfig } from '@/api/types'
 import { profileFields, stationMembers } from '@/api'
 
 export function computeAge(dateStr: string, mode: string): string {

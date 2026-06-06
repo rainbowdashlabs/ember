@@ -22,7 +22,7 @@ import ManagerSection from './detailview/ManagerSection.vue'
 import InventorySection from './detailview/InventorySection.vue'
 import DetailModals from './detailview/DetailModals.vue'
 import type { ProfileField, ProfileFieldChange, StationMember, Inventory, InventoryItem } from '@/api/types'
-import { StationUserType, ExchangeStatus, StationModules } from '@/api/types'
+import { StationPermission, StationUserType, ExchangeStatus, StationModules } from '@/api/types'
 import type { MyInventoryItem } from '@/api/inventory'
 import type { ExchangeRequestEntry } from '@/api/types'
 import { profileFields, profileFieldChanges, stationMembers, members, inventory, exchanges } from '@/api'
@@ -34,13 +34,15 @@ const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
 
-const { sessionInfo, canManageMembers, isGuardian, canManageInventory, isModuleEnabled } = useSession()
+const { sessionInfo, hasPermission, canManageMembers, isGuardian, canManageInventory, isModuleEnabled } = useSession()
+const canEdit = computed(() => hasPermission(StationPermission.MEMBER_EDIT))
 const inventoryEnabled = computed(() => isModuleEnabled(StationModules.INVENTORY))
-const showInventoryManagement = computed(() => inventoryEnabled.value && canManageInventory())
+const canReadInventory = computed(() => inventoryEnabled.value && hasPermission(StationPermission.INVENTORY_READ))
+const showInventoryManagement = computed(() => canReadInventory.value && canManageInventory())
 
 const memberId = computed(() => Number(route.params.id))
 const currentMemberId = computed(() => sessionInfo.value?.member?.id ?? 0)
-const showChangeHistory = computed(() => canManageMembers() || isGuardian())
+const showChangeHistory = computed(() => hasPermission(StationPermission.MEMBER_CHANGES) || isGuardian())
 
 const member = ref<StationMember | null>(null)
 const fields = ref<ProfileField[]>([])
@@ -178,11 +180,13 @@ async function loadData() {
     if (showChangeHistory.value) {
       try { changes.value = await profileFieldChanges.getChanges(memberId.value) } catch { /* ignore */ }
     }
-    try { memberInventory.value = await inventory.memberItems(memberId.value) } catch { memberInventory.value = [] }
-    try {
-      const allExch = await exchanges.listExchanges()
-      memberExchanges.value = allExch.filter(e => e.memberId === memberId.value && e.status !== ExchangeStatus.EXCHANGED)
-    } catch { memberExchanges.value = [] }
+    if (canReadInventory.value) {
+      try { memberInventory.value = await inventory.memberItems(memberId.value) } catch { memberInventory.value = [] }
+      try {
+        const allExch = await exchanges.listExchanges()
+        memberExchanges.value = allExch.filter(e => e.memberId === memberId.value && e.status !== ExchangeStatus.EXCHANGED)
+      } catch { memberExchanges.value = [] }
+    }
   } catch {
     error.value = t('common.error')
   } finally {
@@ -313,7 +317,7 @@ onMounted(loadData)
         <SecondaryButton :icon="['fas', 'chevron-left']" @click="router.push({ name: 'members-list' })">
           {{ t('memberDetail.back') }}
         </SecondaryButton>
-        <div class="flex items-center gap-2">
+        <div v-if="canEdit" class="flex items-center gap-2">
           <ErrorButton :icon="['fas', 'user-slash']" v-if="canManageMembers() && !formerSuccess && !deleteSuccess" @click="modalsRef?.openFormerModal()">
             {{ t('memberDetail.markFormer') }}
           </ErrorButton>
@@ -355,6 +359,7 @@ onMounted(loadData)
           :manager-values="managerValues"
           :manager-roles="managerUserTypesAsRoleMap"
           :fields="fields"
+          :readonly="!canEdit"
           :member-display-name-fn="memberDisplayName"
           :get-manager-fields-fn="getManagerFields"
           :get-manager-field-value-fn="getManagerFieldValue"
@@ -366,11 +371,11 @@ onMounted(loadData)
 
         <!-- Inventory -->
         <InventorySection
-          v-if="inventoryEnabled && (memberInventory.length > 0 || showInventoryManagement)"
+          v-if="canReadInventory && (memberInventory.length > 0 || showInventoryManagement)"
           :member-inventory="memberInventory"
           :member-exchanges="memberExchanges"
-          :show-inventory-management="showInventoryManagement"
-          :can-manage-inventory="canManageInventory()"
+          :show-inventory-management="showInventoryManagement && canEdit"
+          :can-manage-inventory="canManageInventory() && canEdit"
           @assign-item="modalsRef?.openAssignModal()"
           @request-exchange="modalsRef?.openExchangeModal($event)"
           @unassign="handleUnassignItem"
@@ -413,7 +418,7 @@ onMounted(loadData)
         @load-inventories="handleLoadInventories"
       />
       <!-- Manager Notes -->
-      <NeutralContainer v-if="canManageMembers()">
+      <NeutralContainer v-if="hasPermission(StationPermission.MEMBER_NOTES)">
         <NoteEditor :entity-type="'MEMBER'" :entity-id="memberId"/>
       </NeutralContainer>
     </div>

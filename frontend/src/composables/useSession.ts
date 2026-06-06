@@ -64,13 +64,18 @@ export function useSession() {
         return hasPermission(StationPermission.INVENTORY_MANAGER)
     }
 
+    function canManageExchanges(): boolean {
+        return hasPermission(StationPermission.INVENTORY_EXCHANGE)
+    }
+
     function canManageAttendance(): boolean {
         return hasPermission(StationPermission.ATTENDANCE_MANAGER)
     }
 
     function hasAnyAttendancePermission(): boolean {
         return hasPermission(StationPermission.ATTENDANCE_MANAGER)
-            || hasPermission(StationPermission.ATTENDANCE_CREATE)
+            || hasPermission(StationPermission.ATTENDANCE_READ)
+            || hasPermission(StationPermission.ATTENDANCE_EDIT)
             || hasPermission(StationPermission.ATTENDANCE_CONFIGURE)
             || hasPermission(StationPermission.ATTENDANCE_EXPORT)
     }
@@ -85,7 +90,7 @@ export function useSession() {
 
     function hasAnyEventPermission(): boolean {
         return hasPermission(StationPermission.EVENT_MANAGER)
-            || hasPermission(StationPermission.EVENT_CONFIGURE)
+            || hasPermission(StationPermission.EVENT_EDIT)
             || hasPermission(StationPermission.EVENT_REGISTRATION)
             || hasPermission(StationPermission.EVENT_MANAGE_TEMPLATE)
             || hasPermission(StationPermission.EVENT_MANAGE_CATEGORY)
@@ -156,6 +161,10 @@ export function useSession() {
         return hasPermission(StationPermission.KNOWLEDGE_MANAGER)
     }
 
+    function canEditKnowledge(): boolean {
+        return hasPermission(StationPermission.KNOWLEDGE_EDIT)
+    }
+
     function hasAnyKnowledgePermission(): boolean {
         return hasPermission(StationPermission.KNOWLEDGE_MANAGER)
             || hasPermission(StationPermission.KNOWLEDGE_EDIT)
@@ -204,6 +213,7 @@ export function useSession() {
         canManageMembers,
         hasAnyMemberPermission,
         canManageInventory,
+        canManageExchanges,
         canManageAttendance,
         hasAnyAttendancePermission,
         canExportAttendance,
@@ -221,6 +231,7 @@ export function useSession() {
         canManageQuiz,
         hasAnyQuizPermission,
         canManageKnowledge,
+        canEditKnowledge,
         hasAnyKnowledgePermission,
         canManageBoards,
         canManageFederation,

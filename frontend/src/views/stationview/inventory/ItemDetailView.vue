@@ -26,12 +26,14 @@ import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import NoteEditor from '@/components/comment/NoteEditor.vue'
 import {inventory, stationMembers} from '@/api'
 import type {InventoryItem, InventoryItemHistory, InventorySize, StationMember} from '@/api/types'
+import {StationPermission} from '@/api/types'
 import {useSession} from '@/composables/useSession'
 
 const {t} = useI18n()
 const route = useRoute()
 const router = useRouter()
 const {hasPermission} = useSession()
+const canEdit = computed(() => hasPermission(StationPermission.INVENTORY_EDIT))
 
 const itemId = computed(() => Number(route.params.id))
 const item = ref<InventoryItem | null>(null)
@@ -43,6 +45,7 @@ const error = ref('')
 const success = ref('')
 
 const isManager = computed(() => hasPermission('INVENTORY_MANAGER') || hasPermission('STATION_ADMINISTRATOR'))
+const canEditItem = computed(() => canEdit.value || isManager.value)
 const currentAssignment = computed(() => {
   const current = historyEntries.value.find(h => !h.returned)
   return current?.memberName || null
@@ -194,7 +197,7 @@ onMounted(loadData)
         <NeutralContainer class="space-y-3">
           <div class="flex items-center justify-between">
             <SubHeader>{{ item.name }}</SubHeader>
-            <SecondaryButton v-if="isManager && !editing" :icon="['fas', 'pen']" @click="startEdit">
+            <SecondaryButton v-if="canEditItem && !editing" :icon="['fas', 'pen']" @click="startEdit">
               {{ t('itemDetail.edit') }}
             </SecondaryButton>
           </div>
@@ -247,7 +250,7 @@ onMounted(loadData)
         </NeutralContainer>
 
         <!-- Actions -->
-        <NeutralContainer v-if="isManager" class="space-y-3">
+        <NeutralContainer v-if="canEditItem" class="space-y-3">
           <SubHeader>{{ t('itemDetail.actions') }}</SubHeader>
           <div class="flex flex-wrap gap-2">
             <PrimaryButton :icon="['fas', 'user-plus']" @click="showAssignModal = true">

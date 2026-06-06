@@ -85,38 +85,44 @@ public class InventoryRoutes implements Routes {
                 prefix + "/station-members/{memberId}/inventory-items",
                 this::memberItems,
                 StationPermission.MEMBER_MANAGER,
-                StationPermission.INVENTORY_MANAGER);
-        routes.get(prefix + "/inventories", this::list, StationPermission.INVENTORY_MANAGER);
-        routes.post(prefix + "/inventories", this::create, StationPermission.INVENTORY_MANAGER);
-        routes.get(prefix + "/inventories/all-items", this::listAllItems, StationPermission.INVENTORY_MANAGER);
+                StationPermission.INVENTORY_READ);
+        // Inventory CRUD — read vs write
+        routes.get(prefix + "/inventories", this::list, StationPermission.INVENTORY_READ);
+        routes.post(prefix + "/inventories", this::create, StationPermission.INVENTORY_CREATE);
+        routes.get(prefix + "/inventories/all-items", this::listAllItems, StationPermission.INVENTORY_READ);
         routes.get(prefix + "/inventories/all-sizes", this::listAllSizes, StationPermission.LOGIN);
-        routes.get(prefix + "/inventories/summary", this::listSummaries, StationPermission.INVENTORY_MANAGER);
-        routes.get(prefix + "/inventories/{id}", this::get, StationPermission.INVENTORY_MANAGER);
+        routes.get(prefix + "/inventories/summary", this::listSummaries, StationPermission.INVENTORY_READ);
+        routes.get(prefix + "/inventories/{id}", this::get, StationPermission.INVENTORY_READ);
         routes.put(prefix + "/inventories/{id}", this::update, StationPermission.INVENTORY_MANAGER);
         routes.delete(prefix + "/inventories/{id}", this::delete, StationPermission.INVENTORY_MANAGER);
 
         routes.get(prefix + "/inventories/{inventoryId}/sizes", this::listSizes, StationPermission.LOGIN);
-        routes.post(prefix + "/inventories/{inventoryId}/sizes", this::createSize, StationPermission.INVENTORY_MANAGER);
+        routes.post(prefix + "/inventories/{inventoryId}/sizes", this::createSize, StationPermission.INVENTORY_CREATE);
         routes.put(
                 prefix + "/inventories/{inventoryId}/sizes/{sizeId}",
                 this::updateSize,
-                StationPermission.INVENTORY_MANAGER);
+                StationPermission.INVENTORY_EDIT);
         routes.delete(
                 prefix + "/inventories/{inventoryId}/sizes/{sizeId}",
                 this::deleteSize,
-                StationPermission.INVENTORY_MANAGER);
-        routes.get(prefix + "/inventories/{inventoryId}/items", this::listItems, StationPermission.INVENTORY_MANAGER);
-        routes.post(prefix + "/inventories/{inventoryId}/items", this::createItem, StationPermission.INVENTORY_MANAGER);
-        routes.get(prefix + "/inventory-items/by-internal-id", this::findByInternalId, StationPermission.INVENTORY_MANAGER);
-        routes.get(prefix + "/inventory-items/{id}", this::getItem, StationPermission.INVENTORY_MANAGER);
-        routes.put(prefix + "/inventory-items/{id}", this::updateItem, StationPermission.INVENTORY_MANAGER);
-        routes.put(prefix + "/inventory-items/{id}/assign", this::assignItem, StationPermission.INVENTORY_MANAGER);
-        routes.get(prefix + "/inventory-items/{id}/history", this::getHistory, StationPermission.INVENTORY_MANAGER);
-        routes.put(prefix + "/inventory-items/{id}/lost", this::markLost, StationPermission.INVENTORY_MANAGER);
-        routes.delete(prefix + "/inventory-items/{id}/lost", this::markFound, StationPermission.INVENTORY_MANAGER);
+                StationPermission.INVENTORY_EDIT);
+        // Items — read needs INVENTORY_READ, edit needs INVENTORY_EDIT, create needs INVENTORY_CREATE
+        routes.get(prefix + "/inventories/{inventoryId}/items", this::listItems, StationPermission.INVENTORY_READ);
+        routes.post(
+                prefix + "/inventories/{inventoryId}/items",
+                this::createItem,
+                StationPermission.INVENTORY_CREATE_EXTERNAL,
+                StationPermission.INVENTORY_CREATE_INTERNAL);
+        routes.get(prefix + "/inventory-items/by-internal-id", this::findByInternalId, StationPermission.INVENTORY_READ);
+        routes.get(prefix + "/inventory-items/{id}", this::getItem, StationPermission.INVENTORY_READ);
+        routes.put(prefix + "/inventory-items/{id}", this::updateItem, StationPermission.INVENTORY_EDIT);
+        routes.put(prefix + "/inventory-items/{id}/assign", this::assignItem, StationPermission.INVENTORY_EDIT);
+        routes.get(prefix + "/inventory-items/{id}/history", this::getHistory, StationPermission.INVENTORY_READ);
+        routes.put(prefix + "/inventory-items/{id}/lost", this::markLost, StationPermission.INVENTORY_EDIT);
+        routes.delete(prefix + "/inventory-items/{id}/lost", this::markFound, StationPermission.INVENTORY_EDIT);
         routes.delete(prefix + "/inventory-items/{id}", this::deleteItem, StationPermission.INVENTORY_MANAGER);
 
-        routes.get(prefix + "/inventory-requirements", this::listAllRequirements, StationPermission.INVENTORY_MANAGER);
+        routes.get(prefix + "/inventory-requirements", this::listAllRequirements, StationPermission.INVENTORY_READ);
         routes.post(prefix + "/inventory-requirements", this::createRequirement, StationPermission.INVENTORY_MANAGER);
         routes.put(
                 prefix + "/inventory-requirements/{id}", this::updateRequirement, StationPermission.INVENTORY_MANAGER);
@@ -127,7 +133,7 @@ public class InventoryRoutes implements Routes {
         routes.delete(
                 prefix + "/inventory-requirements/{id}", this::deleteRequirement, StationPermission.INVENTORY_MANAGER);
 
-        routes.post(prefix + "/inventories/members/export", this::exportMembers, StationPermission.INVENTORY_MANAGER);
+        routes.post(prefix + "/inventories/members/export", this::exportMembers, StationPermission.INVENTORY_READ);
     }
 
     @OpenApi(
@@ -485,6 +491,13 @@ public class InventoryRoutes implements Routes {
         InventoryItem.ItemSource source = InventoryItem.ItemSource.INTERNAL;
         if (request.itemSource() != null) {
             source = InventoryItem.ItemSource.valueOf(request.itemSource());
+        }
+        StationPermission required = source == InventoryItem.ItemSource.EXTERNAL
+                ? StationPermission.INVENTORY_CREATE_EXTERNAL
+                : StationPermission.INVENTORY_CREATE_INTERNAL;
+        if (!session.hasPermission(required)) {
+            throw new ForbiddenResponse("Missing permission " + required.name() + " to create "
+                    + source.name().toLowerCase() + " items");
         }
         ctx.status(HttpStatus.CREATED)
                 .json(inventoryService.createItem(

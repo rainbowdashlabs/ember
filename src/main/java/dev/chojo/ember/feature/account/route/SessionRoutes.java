@@ -181,8 +181,14 @@ public class SessionRoutes implements Routes {
                     var managedStation = stationService.findById(m.stationId()).orElse(null);
                     String managedStationUid =
                             managedStation != null ? managedStation.uid().toString() : null;
+                    String memberUid = m.uid() != null ? m.uid().toString() : null;
                     return new ManagedMemberInfo(
-                            m.id(), managedStationUid, m.accountId() != null ? m.accountId() : 0, name, email);
+                            m.id(),
+                            managedStationUid,
+                            memberUid,
+                            m.accountId() != null ? m.accountId() : 0,
+                            name,
+                            email);
                 })
                 .toList();
 
@@ -507,7 +513,7 @@ public class SessionRoutes implements Routes {
      * @param name      the member's display name
      * @param email     the member's email, or empty string if unavailable
      */
-    public record ManagedMemberInfo(int id, String stationId, int accountId, String name, String email) {}
+    public record ManagedMemberInfo(int id, String stationId, String uid, int accountId, String name, String email) {}
 
     /**
      * Account information included in the session response.

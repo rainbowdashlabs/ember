@@ -469,12 +469,48 @@ export async function getFederatedEvent(stationUid: string, eventId: number): Pr
     return res.data
 }
 
-export async function registerForFederatedEvent(stationUid: string, eventId: number, eventDate: string): Promise<void> {
-    await client.post(`/federated/${stationUid}/events/${eventId}/register`, { eventDate })
+export interface FederatedRegistration {
+    eventId: number
+    remoteMemberId: string
+    eventDate: string
+    status: string
+    partnerId: number
 }
 
-export async function withdrawFederatedRegistration(stationUid: string, eventId: number, eventDate: string): Promise<void> {
-    await client.delete(`/federated/${stationUid}/events/${eventId}/register`, { data: { eventDate } })
+export async function listMyFederatedRegistrations(): Promise<FederatedRegistration[]> {
+    const res = await client.get<FederatedRegistration[]>('/federated/my-registrations')
+    return res.data
+}
+
+export async function registerForFederatedEvent(stationUid: string, eventId: number, eventDate: string, memberId?: string): Promise<void> {
+    await client.post(`/federated/${stationUid}/events/${eventId}/register`, { eventDate, memberId: memberId ?? null })
+}
+
+export async function withdrawFederatedRegistration(stationUid: string, eventId: number, eventDate: string, memberId?: string): Promise<void> {
+    await client.delete(`/federated/${stationUid}/events/${eventId}/register`, { data: { eventDate, memberId: memberId ?? null } })
+}
+
+export interface FederatedEventRegistration {
+    registration: {
+        id: number
+        eventId: number
+        partnerId: number
+        remoteMemberId: string
+        eventDate: string
+        status: string
+        createdAt: string
+    }
+    memberIdentity: MemberIdentity | null
+}
+
+export async function listFederationRegistrations(eventId: number, date?: string): Promise<FederatedEventRegistration[]> {
+    const params = date ? { date } : {}
+    const res = await client.get<FederatedEventRegistration[]>(`/events/${eventId}/federation-registrations`, { params })
+    return res.data
+}
+
+export async function updateFederationRegistrationStatus(registrationId: number, status: string): Promise<void> {
+    await client.put(`/events/federation-registrations/${registrationId}/status`, { status })
 }
 
 export interface EventFederationShareInfo {

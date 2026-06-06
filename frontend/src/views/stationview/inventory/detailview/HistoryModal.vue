@@ -38,11 +38,6 @@ watch(show, async (visible) => {
   }
 })
 
-function ownerName(memberId: number | null | undefined): string {
-  if (!memberId) return '-'
-  const m = props.memberMap.get(memberId)
-  return m ? (m.name || m.email || `#${m.id}`) : `#${memberId}`
-}
 
 function formatDate(dateStr?: string | null): string {
   if (!dateStr) return ''

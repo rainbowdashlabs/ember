@@ -27,8 +27,12 @@ import FieldLabel from '@/components/typography/FieldLabel.vue'
 import type {UserTag, StationMember} from '@/api/types'
 import {userTags, stationMembers} from '@/api'
 import MutedText from '@/components/typography/MutedText.vue'
+import {StationPermission} from '@/api/types'
+import {useSession} from '@/composables/useSession'
 
 const {t} = useI18n()
+const {hasPermission} = useSession()
+const canConvertToGroup = computed(() => hasPermission(StationPermission.MEMBER_MANAGE_GROUP))
 
 
 const tags = ref<UserTag[]>([])
@@ -62,11 +66,6 @@ const availableMembers = computed(() => {
   const memberIds = new Set(tagMembers.value.map(m => m.id))
   return allMembers.value.filter(m => !memberIds.has(m.id))
 })
-
-function memberDisplayName(member: StationMember): string {
-  if (member.name && member.name.trim()) return member.name
-  return member.email ?? `#${member.id}`
-}
 
 async function loadData() {
   loading.value = true
@@ -236,9 +235,7 @@ onMounted(loadData)
                 <font-awesome-icon v-if="tag.visible" :icon="['fas', 'eye']" class="text-xs text-(--text-muted)" />
               </span>
               <div class="flex items-center gap-2">
-                <SecondaryButton :icon="['fas', 'people-group']" @click.stop="requestConvert(tag)">
-                  {{ t('userTags.convertToGroup') }}
-                </SecondaryButton>
+                <IconButton v-if="canConvertToGroup" :icon="['fas', 'people-group']" :label="t('userTags.convertToGroup')" class="text-(--text-muted) hover:text-primary" @click.stop="requestConvert(tag)"/>
                 <EditButton @click.stop="openEditTag(tag)"/>
                 <DeleteButton @click.stop="requestDelete(tag)"/>
               </div>

@@ -48,9 +48,9 @@ public class MemberRoutes implements Routes {
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        routes.post(prefix + "/members/invite", this::invite, StationPermission.MEMBER_MANAGER);
-        routes.put(prefix + "/members/{accountId}", this::updateAccount, StationPermission.MEMBER_MANAGER);
-        routes.post(prefix + "/members/reset-password", this::resetPassword, StationPermission.MEMBER_MANAGER);
+        routes.post(prefix + "/members/invite", this::invite, StationPermission.MEMBER_EDIT);
+        routes.put(prefix + "/members/{accountId}", this::updateAccount, StationPermission.MEMBER_EDIT);
+        routes.post(prefix + "/members/reset-password", this::resetPassword, StationPermission.MEMBER_EDIT);
     }
 
     @OpenApi(

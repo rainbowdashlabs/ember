@@ -9,11 +9,16 @@ package dev.chojo.ember.feature.attendance.entity;
  * Supported data types for attendance template fields.
  */
 public enum AttendanceFieldType {
+    STRING,
+    NUMBER,
+    DATE,
+    TIME,
+    BOOLEAN,
+    ENUM,
+    URL,
+    TEXTAREA,
     MEMBER,
     MEMBER_LIST,
-    STRING,
-    TIME,
-    DATE,
     MEMBER_OF_GROUP,
     MEMBER_LIST_OF_GROUP
 }

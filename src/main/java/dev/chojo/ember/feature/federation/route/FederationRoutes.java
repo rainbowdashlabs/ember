@@ -42,7 +42,7 @@ public class FederationRoutes implements Routes {
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
         // Partner management
-        routes.get(prefix + "/federation/partners", this::listPartners, StationPermission.STATION_FEDERATION);
+        routes.get(prefix + "/federation/partners", this::listPartners, StationPermission.STATION_FEDERATION, StationPermission.BOARD_FEDERATE, StationPermission.EVENTS_FEDERATE, StationPermission.NEWS_FEDERATE, StationPermission.KNOWLEDGE_FEDERATE);
         routes.post(prefix + "/federation/invite", this::createInvite, StationPermission.STATION_FEDERATION);
         routes.post(prefix + "/federation/accept", this::acceptInvite, StationPermission.STATION_FEDERATION);
         routes.get(prefix + "/federation/partners/{id}", this::getPartner, StationPermission.STATION_FEDERATION);

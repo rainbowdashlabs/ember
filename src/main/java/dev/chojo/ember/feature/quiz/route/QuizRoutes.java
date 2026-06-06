@@ -17,6 +17,7 @@ import dev.chojo.ember.feature.media.service.ImageService;
 import dev.chojo.ember.feature.quiz.entity.AttemptStatus;
 import dev.chojo.ember.feature.quiz.entity.QuizCatalog;
 import dev.chojo.ember.feature.quiz.entity.QuizCategory;
+import dev.chojo.ember.feature.quiz.entity.QuestionConfig;
 import dev.chojo.ember.feature.quiz.entity.QuizQuestion;
 import dev.chojo.ember.feature.quiz.entity.QuizQuestionType;
 import dev.chojo.ember.feature.quiz.entity.QuizTest;
@@ -376,7 +377,7 @@ public class QuizRoutes implements Routes {
         result.put("id", question.id());
         result.put("catalogId", question.catalogId());
         result.put("categoryId", question.categoryId());
-        result.put("questionType", question.quizQuestionType().name());
+        result.put("quizQuestionType", question.quizQuestionType().name());
         result.put("title", question.title());
         result.put("description", question.description());
         result.put("imageUrl", question.imageUrl());
@@ -387,24 +388,25 @@ public class QuizRoutes implements Routes {
     }
 
     @SuppressWarnings("unchecked")
-    private String sanitizeConfig(QuizQuestionType type, JsonNode node) {
+    private Map<String, Object> sanitizeConfig(QuizQuestionType type, JsonNode node) {
         try {
-            var mapper = new ObjectMapper();
             return switch (type) {
                 case MULTIPLE_CHOICE -> {
                     var options = node.get("options");
                     var sanitized = new ArrayList<Map<String, Object>>();
+                    long correctCount = 0;
                     if (options != null && options.isArray()) {
                         for (var opt : options) {
                             sanitized.add(Map.of("text", opt.get("text").asString()));
+                            if (opt.has("correct") && opt.get("correct").asBoolean()) correctCount++;
                         }
                     }
-                    yield mapper.writeValueAsString(Map.of("options", sanitized));
+                    yield Map.of("options", sanitized, "multiSelect", correctCount > 1);
                 }
-                case TRUE_FALSE -> "{}";
+                case TRUE_FALSE -> Map.of();
                 case FREE_ANSWER -> {
                     int lines = node.has("lines") ? node.get("lines").asInt() : 3;
-                    yield mapper.writeValueAsString(Map.of("lines", lines));
+                    yield Map.of("lines", lines);
                 }
                 case FILL_IN_THE_BLANK -> {
                     var answers = new ArrayList<String>();
@@ -415,15 +417,14 @@ public class QuizRoutes implements Routes {
                         for (var d : node.get("distractors")) distractors.add(d.asString());
                     var wordBank = new ArrayList<>(answers);
                     wordBank.addAll(distractors);
-                    Collections.shuffle(wordBank);
                     String text = node.has("text") ? node.get("text").asString() : "";
                     boolean useDropdown =
                             node.has("useDropdown") && node.get("useDropdown").asBoolean();
-                    yield mapper.writeValueAsString(Map.of(
+                    yield Map.of(
                             "text", text,
                             "wordBank", wordBank,
                             "gapCount", answers.size(),
-                            "useDropdown", useDropdown));
+                            "useDropdown", useDropdown);
                 }
                 case CONNECT -> {
                     var pairs = node.get("pairs");
@@ -435,26 +436,24 @@ public class QuizRoutes implements Routes {
                             rightItems.add(pair.get("right").asString());
                         }
                     }
-                    Collections.shuffle(rightItems);
-                    yield mapper.writeValueAsString(Map.of("leftItems", leftItems, "rightItems", rightItems));
+                    yield Map.of("leftItems", leftItems, "rightItems", rightItems);
                 }
                 case ORDERING -> {
                     var items = new ArrayList<String>();
                     if (node.has("items") && node.get("items").isArray())
                         for (var item : node.get("items")) items.add(item.asString());
-                    Collections.shuffle(items);
-                    yield mapper.writeValueAsString(Map.of("items", items));
+                    yield Map.of("items", items);
                 }
-                case IMAGE_TEXT -> "{}";
+                case IMAGE_TEXT -> Map.of();
                 case ENUMERATION -> {
                     int requiredCount = node.has("requiredCount")
                             ? node.get("requiredCount").asInt()
                             : 3;
-                    yield mapper.writeValueAsString(Map.of("requiredCount", requiredCount));
+                    yield Map.of("requiredCount", requiredCount);
                 }
             };
         } catch (Exception e) {
-            return "{}";
+            return Map.of();
         }
     }
 
@@ -547,7 +546,16 @@ public class QuizRoutes implements Routes {
         var tests = quizService.findTestsForMember(session.stationId(), memberId).stream()
                 .filter(t -> t.status() == TestStatus.ACTIVE)
                 .toList();
-        ctx.json(tests);
+        var result = tests.stream()
+                .map(t -> {
+                    var attempt = quizService.findAttempt(t.id(), memberId).orElse(null);
+                    String attemptStatus = attempt != null ? attempt.status().name() : null;
+                    Instant startedAt = attempt != null ? attempt.startedAt() : null;
+                    Instant submittedAt = attempt != null ? attempt.submittedAt() : null;
+                    return new AvailableTest(t, attemptStatus, startedAt, submittedAt);
+                })
+                .toList();
+        ctx.json(result);
     }
 
     private void getTest(Context ctx) {
@@ -991,7 +999,7 @@ public class QuizRoutes implements Routes {
                         q.imageUrl(),
                         q.points(),
                         q.autoPoints(),
-                        q.quizQuestionType().parseConfig(q.configString()),
+                        q.config() != null ? q.config() : new QuestionConfig.Unknown(),
                         q.position());
             }
         }
@@ -1343,6 +1351,8 @@ public class QuizRoutes implements Routes {
             boolean trainingEnabled,
             List<QuizCategory> categories,
             List<QuizQuestion> questions) {}
+
+    public record AvailableTest(QuizTest test, String attemptStatus, Instant startedAt, Instant submittedAt) {}
 
     private record CatalogListResponse(List<QuizCatalog> catalogs, List<SharedCatalogItem> sharedCatalogs) {}
 

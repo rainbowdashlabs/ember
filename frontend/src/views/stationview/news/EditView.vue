@@ -23,7 +23,7 @@ import RestrictionPicker from '@/components/input/RestrictionPicker.vue'
 import type { MemberGroup, PermissionGrant, UserTag } from '@/api/types'
 import type { PartnerResponse } from '@/api/federation'
 import { news, memberGroups, stationMembers, userTags, federation } from '@/api'
-import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
+import FederationSharePicker from '@/components/input/FederationSharePicker.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import { useSession } from '@/composables/useSession'
 
@@ -193,43 +193,21 @@ watch(loaded, (isLoaded) => {
           />
         </NeutralContainer>
 
-        <NeutralContainer v-if="canManageFederation()" class="space-y-3">
+        <NeutralContainer class="space-y-3">
           <SubHeader>{{ t('news.federation') }}</SubHeader>
-          <label class="flex items-center gap-3">
-            <ToggleInput v-model="federationShared"/>
-            <span class="text-sm">{{ t('news.federationShare') }}</span>
-          </label>
           <p class="text-xs text-(--text-muted)">{{ t('news.federationShareHint') }}</p>
-
-          <template v-if="federationShared">
-            <div class="space-y-1">
-              <FieldLabel>{{ t('news.federationScope') }}</FieldLabel>
-              <SelectInput v-model="federationScope">
-                <option value="ALL_PARTNERS">{{ t('news.scopeAllPartners') }}</option>
-                <option value="SPECIFIC_PARTNERS">{{ t('news.scopeSpecificPartners') }}</option>
-              </SelectInput>
-            </div>
-
-            <div v-if="federationScope === 'SPECIFIC_PARTNERS'" class="space-y-1">
-              <FieldLabel>{{ t('news.federationPartners') }}</FieldLabel>
-              <div class="space-y-1">
-                <label v-for="p in partners" :key="p.partner.id" class="flex items-center gap-2 text-sm">
-                  <input
-                    type="checkbox"
-                    :value="p.partner.id"
-                    :checked="federationPartnerIds.includes(p.partner.id)"
-                    @change="(e: Event) => {
-                      const checked = (e.target as HTMLInputElement).checked
-                      if (checked) federationPartnerIds.push(p.partner.id)
-                      else federationPartnerIds = federationPartnerIds.filter(id => id !== p.partner.id)
-                    }"
-                    class="accent-primary"
-                  />
-                  {{ p.partnerStationName }}
-                </label>
-              </div>
-            </div>
-
+          <FederationSharePicker
+              :shared="federationShared"
+              :scope="federationScope"
+              :partner-ids="federationPartnerIds"
+              :partners="partners"
+              :disabled="!canManageFederation()"
+              :no-permission-hint="t('news.federationNoPermission')"
+              @update:shared="federationShared = $event"
+              @update:scope="federationScope = $event"
+              @update:partner-ids="federationPartnerIds = $event"
+          />
+          <template v-if="federationShared && canManageFederation()">
             <div class="space-y-1">
               <FieldLabel>{{ t('news.federationVisibility') }}</FieldLabel>
               <SelectInput v-model="federationVisibilityRole">

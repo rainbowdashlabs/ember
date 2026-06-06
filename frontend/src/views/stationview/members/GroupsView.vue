@@ -31,7 +31,10 @@ import {useSession} from '@/composables/useSession'
 import MutedText from '@/components/typography/MutedText.vue'
 
 const {t} = useI18n()
-const {canManageMembers, isManager} = useSession()
+import {StationPermission} from '@/api/types'
+
+const {canManageMembers, isManager, hasPermission} = useSession()
+const canConvertToTag = computed(() => hasPermission(StationPermission.MEMBER_MANAGE_TAGS))
 
 const groups = ref<MemberGroup[]>([])
 const allMembers = ref<StationMember[]>([])
@@ -272,7 +275,7 @@ onMounted(loadData)
                 <span class="font-medium">{{ group.name }}</span>
               </span>
               <div class="flex items-center gap-2">
-                <IconButton :icon="['fas', 'hashtag']" :label="t('memberGroups.convertToTag')" class="text-(--text-muted) hover:text-primary" @click.stop="requestConvertToTag(group)"/>
+                <IconButton v-if="canConvertToTag" :icon="['fas', 'hashtag']" :label="t('memberGroups.convertToTag')" class="text-(--text-muted) hover:text-primary" @click.stop="requestConvertToTag(group)"/>
                 <EditButton @click.stop="openEditGroup(group)"/>
                 <DeleteButton @click.stop="requestDelete(group)"/>
               </div>

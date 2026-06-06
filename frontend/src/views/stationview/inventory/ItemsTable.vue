@@ -37,11 +37,13 @@ const props = withDefaults(defineProps<{
   sizes?: InventorySize[]
   members?: Map<number, StationMember>
   showActions?: boolean
+  showHistory?: boolean
   inventoryType?: string
   lentOutItems?: LentOutItem[]
   lentItemMap?: Map<number, string>
 }>(), {
   showActions: false,
+  showHistory: false,
   inventoryType: InventoryTypes.INTERNAL,
 })
 
@@ -68,13 +70,6 @@ const emit = defineEmits<{
 function getSizeLabel(sizeId: number | null | undefined): string {
   if (!sizeId || !props.sizes) return t('common.unisize')
   return props.sizes.find(s => s.id === sizeId)?.label ?? t('common.unisize')
-}
-
-function getMemberName(memberId: number | null | undefined): string {
-  if (!memberId) return ''
-  if (!props.members) return `#${memberId}`
-  const m = props.members.get(memberId)
-  return m ? (m.name && m.name.trim() ? m.name : m.email ?? `#${m.id}`) : `#${memberId}`
 }
 
 function getMemberIdentity(memberId: number | null | undefined) {
@@ -121,14 +116,18 @@ function formatDate(iso: string | null | undefined): string {
           </SecondaryButton>
         </div>
       </div>
-      <div v-if="showActions" class="flex items-center gap-0.5 pt-1 border-t border-bg-light-accent/50 dark:border-bg-dark-accent/50">
-        <IconButton v-if="!item.lostAt && !isLentOut(item.id)" :icon="['fas', 'user']" :label="item.assignedTo ? t('inventory.edit.reassign') : t('inventory.edit.assign')" class="text-primary hover:bg-primary/15" @click="emit('assign', item)"/>
-        <IconButton class="text-(--text-muted) hover:bg-bg-light-accent dark:hover:bg-bg-dark-accent" v-if="item.assignedTo && !item.lostAt && !isLentOut(item.id)" :icon="['fas', 'right-from-bracket']" :label="t('inventory.edit.unassign')" @click="emit('unassign', item)"/>
-        <IconButton v-if="!item.lostAt && !isLentOut(item.id)" :icon="['fas', 'triangle-exclamation']" :label="t('inventory.edit.markLost')" class="text-error hover:bg-error/15" @click="emit('markLost', item)"/>
-        <IconButton v-if="item.lostAt" :icon="['fas', 'check']" :label="t('inventory.edit.markFound')" class="text-success hover:bg-success/15" @click="emit('markFound', item)"/>
+      <div v-if="showActions || showHistory" class="flex items-center gap-0.5 pt-1 border-t border-bg-light-accent/50 dark:border-bg-dark-accent/50">
+        <template v-if="showActions">
+          <IconButton v-if="!item.lostAt && !isLentOut(item.id)" :icon="['fas', 'user']" :label="item.assignedTo ? t('inventory.edit.reassign') : t('inventory.edit.assign')" class="text-primary hover:bg-primary/15" @click="emit('assign', item)"/>
+          <IconButton class="text-(--text-muted) hover:bg-bg-light-accent dark:hover:bg-bg-dark-accent" v-if="item.assignedTo && !item.lostAt && !isLentOut(item.id)" :icon="['fas', 'right-from-bracket']" :label="t('inventory.edit.unassign')" @click="emit('unassign', item)"/>
+          <IconButton v-if="!item.lostAt && !isLentOut(item.id)" :icon="['fas', 'triangle-exclamation']" :label="t('inventory.edit.markLost')" class="text-error hover:bg-error/15" @click="emit('markLost', item)"/>
+          <IconButton v-if="item.lostAt" :icon="['fas', 'check']" :label="t('inventory.edit.markFound')" class="text-success hover:bg-success/15" @click="emit('markFound', item)"/>
+        </template>
         <IconButton class="text-(--text-muted) hover:bg-bg-light-accent dark:hover:bg-bg-dark-accent" :icon="['fas', 'clock-rotate-left']" :label="t('inventory.edit.historyTitle')" @click="emit('history', item)"/>
-        <EditButton @click="emit('edit', item)"/>
-        <DeleteButton v-if="!isLentOut(item.id)" @click="emit('delete', item)"/>
+        <template v-if="showActions">
+          <EditButton @click="emit('edit', item)"/>
+          <DeleteButton v-if="!isLentOut(item.id)" @click="emit('delete', item)"/>
+        </template>
       </div>
     </NeutralContainer>
   </div>
@@ -143,7 +142,7 @@ function formatDate(iso: string | null | undefined): string {
           <Th v-if="hasSizes">{{ t('inventory.edit.colSize') }}</Th>
           <Th v-if="isMixed">{{ t('inventory.edit.colSource') }}</Th>
           <Th>{{ t('inventory.edit.colAssigned') }}</Th>
-          <th v-if="showActions" class="px-3 py-2"></th>
+          <th v-if="showActions || showHistory" class="px-3 py-2"></th>
         </THead>
       </thead>
       <tbody>
@@ -174,25 +173,29 @@ function formatDate(iso: string | null | undefined): string {
             <SecondaryButton v-if="item.assignedTo" class="!bg-transparent !p-0 text-primary font-medium hover:underline" @click.stop="router.push({ name: 'inventory-member', params: { memberId: item.assignedTo } })"><MemberName :identity="getMemberIdentity(item.assignedTo)"/></SecondaryButton>
             <span v-else class="text-(--text-muted)">–</span>
           </Td>
-          <Td v-if="showActions" align="right">
+          <Td v-if="showActions || showHistory" align="right">
             <div class="flex items-center justify-end gap-0.5">
-              <IconButton v-if="!item.lostAt && !isLentOut(item.id)" :icon="['fas', 'user']"
-                          :label="item.assignedTo ? t('inventory.edit.reassign') : t('inventory.edit.assign')"
-                          class="text-primary hover:bg-primary/15" @click="emit('assign', item)" />
-              <IconButton v-if="item.assignedTo && !item.lostAt && !isLentOut(item.id)" :icon="['fas', 'right-from-bracket']"
-                          :label="t('inventory.edit.unassign')"
-                          class="text-(--text-muted) hover:bg-bg-light-accent dark:hover:bg-bg-dark-accent"
-                          @click="emit('unassign', item)" />
-              <IconButton v-if="!item.lostAt && !isLentOut(item.id)" :icon="['fas', 'triangle-exclamation']"
-                          :label="t('inventory.edit.markLost')" class="text-error hover:bg-error/15"
-                          @click="emit('markLost', item)" />
-              <IconButton v-if="item.lostAt" :icon="['fas', 'check']" :label="t('inventory.edit.markFound')"
-                          class="text-success hover:bg-success/15" @click="emit('markFound', item)" />
+              <template v-if="showActions">
+                <IconButton v-if="!item.lostAt && !isLentOut(item.id)" :icon="['fas', 'user']"
+                            :label="item.assignedTo ? t('inventory.edit.reassign') : t('inventory.edit.assign')"
+                            class="text-primary hover:bg-primary/15" @click="emit('assign', item)" />
+                <IconButton v-if="item.assignedTo && !item.lostAt && !isLentOut(item.id)" :icon="['fas', 'right-from-bracket']"
+                            :label="t('inventory.edit.unassign')"
+                            class="text-(--text-muted) hover:bg-bg-light-accent dark:hover:bg-bg-dark-accent"
+                            @click="emit('unassign', item)" />
+                <IconButton v-if="!item.lostAt && !isLentOut(item.id)" :icon="['fas', 'triangle-exclamation']"
+                            :label="t('inventory.edit.markLost')" class="text-error hover:bg-error/15"
+                            @click="emit('markLost', item)" />
+                <IconButton v-if="item.lostAt" :icon="['fas', 'check']" :label="t('inventory.edit.markFound')"
+                            class="text-success hover:bg-success/15" @click="emit('markFound', item)" />
+              </template>
               <IconButton :icon="['fas', 'clock-rotate-left']" :label="t('inventory.edit.historyTitle')"
                           class="text-(--text-muted) hover:bg-bg-light-accent dark:hover:bg-bg-dark-accent"
                           @click="emit('history', item)" />
-              <EditButton @click="emit('edit', item)" />
-              <DeleteButton v-if="!isLentOut(item.id)" @click="emit('delete', item)" />
+              <template v-if="showActions">
+                <EditButton @click="emit('edit', item)" />
+                <DeleteButton v-if="!isLentOut(item.id)" @click="emit('delete', item)" />
+              </template>
             </div>
           </Td>
         </TRow>

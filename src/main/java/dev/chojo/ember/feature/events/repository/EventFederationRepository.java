@@ -187,6 +187,13 @@ public class EventFederationRepository {
      * @return the list of registrations
      */
     public List<EventFederationRegistration> findRegistrations(int eventId, LocalDate eventDate) {
+        if (eventDate == null) {
+            return Query.query(
+                            "SELECT id, event_id, partner_id, remote_member_id, event_date, status, created_at FROM event_federation_registration WHERE event_id = :event_id ORDER BY created_at;")
+                    .single(Call.of().bind("event_id", eventId))
+                    .map(EventFederationRegistration.map())
+                    .all();
+        }
         return Query.query(
                         "SELECT id, event_id, partner_id, remote_member_id, event_date, status, created_at FROM event_federation_registration WHERE event_id = :event_id AND event_date = :event_date ORDER BY created_at;")
                 .single(Call.of().bind("event_id", eventId).bind("event_date", eventDate))
@@ -200,6 +207,14 @@ public class EventFederationRepository {
      * @param partnerId the federation partner ID
      * @return the list of registrations
      */
+    public List<EventFederationRegistration> findRegistrationsByRemoteMember(UUID remoteMemberId) {
+        return Query.query(
+                        "SELECT id, event_id, partner_id, remote_member_id, event_date, status, created_at FROM event_federation_registration WHERE remote_member_id = :remote_member_id::uuid ORDER BY event_date;")
+                .single(Call.of().bind("remote_member_id", remoteMemberId, StandardValueConverter.UUID_STRING))
+                .map(EventFederationRegistration.map())
+                .all();
+    }
+
     public List<EventFederationRegistration> findRegistrationsByPartner(int partnerId) {
         return Query.query(
                         "SELECT id, event_id, partner_id, remote_member_id, event_date, status, created_at FROM event_federation_registration WHERE partner_id = :partner_id ORDER BY event_date;")

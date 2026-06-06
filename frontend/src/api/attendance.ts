@@ -233,24 +233,12 @@ export interface ReportPreset {
     rounding: string
 }
 
-export async function reportPreview(params: {
-    role?: string;
-    groupId?: number;
-    from: string;
-    to: string;
-    rounding: string
-}): Promise<ReportData> {
+export async function reportPreview(params: URLSearchParams): Promise<ReportData> {
     const res = await client.get<ReportData>('/attendance/report/preview', {params})
     return res.data
 }
 
-export async function reportExport(params: {
-    role?: string;
-    groupId?: number;
-    from: string;
-    to: string;
-    rounding: string
-}): Promise<Blob> {
+export async function reportExport(params: URLSearchParams): Promise<Blob> {
     const res = await client.get('/attendance/report/export', {params, responseType: 'blob'})
     return res.data as Blob
 }

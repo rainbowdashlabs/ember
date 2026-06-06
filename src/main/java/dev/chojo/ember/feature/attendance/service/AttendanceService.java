@@ -6,6 +6,8 @@
 package dev.chojo.ember.feature.attendance.service;
 
 import dev.chojo.ember.feature.attendance.entity.AttendanceEntry;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import dev.chojo.ember.feature.attendance.entity.AttendanceFieldConfig;
 import dev.chojo.ember.feature.attendance.entity.AttendanceFieldType;
 import dev.chojo.ember.feature.attendance.entity.AttendanceFieldValueEntry;
@@ -19,6 +21,7 @@ import dev.chojo.ember.feature.attendance.repository.AttendanceRepository.Templa
 import dev.chojo.ember.feature.events.repository.EventFieldRepository;
 import dev.chojo.ember.feature.events.repository.EventRepository;
 import dev.chojo.ember.feature.members.entity.MemberAbsence;
+import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import jakarta.inject.Inject;
@@ -27,6 +30,7 @@ import jakarta.inject.Singleton;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -42,17 +46,31 @@ public class AttendanceService {
     private final EventRepository eventRepository;
     private final EventFieldRepository eventFieldRepository;
     private final StationMemberRepository stationMemberRepository;
+    private final MemberGroupRepository memberGroupRepository;
 
     @Inject
     public AttendanceService(
             AttendanceRepository attendanceRepository,
             EventRepository eventRepository,
             EventFieldRepository eventFieldRepository,
-            StationMemberRepository stationMemberRepository) {
+            StationMemberRepository stationMemberRepository,
+            MemberGroupRepository memberGroupRepository) {
         this.attendanceRepository = attendanceRepository;
         this.eventRepository = eventRepository;
         this.eventFieldRepository = eventFieldRepository;
         this.stationMemberRepository = stationMemberRepository;
+        this.memberGroupRepository = memberGroupRepository;
+    }
+
+    private static final ObjectMapper JSON = JsonMapper.builder().build();
+
+    private static String toJsonValue(Object value) {
+        if (value == null) return null;
+        try {
+            return JSON.writeValueAsString(value);
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     public Set<Integer> findManagedMemberIds(int managerId) {
@@ -209,13 +227,11 @@ public class AttendanceService {
                     for (var def : defaults) {
                         String resolved =
                                 switch (def.source()) {
-                                    case "VALUE" -> def.value();
-                                    case "EVENT_NAME" -> event.name();
-                                    case "EVENT_DESCRIPTION" -> event.description();
-                                    case "EVENT_START_TIME" ->
-                                        event.startTime() != null ? "\"" + event.startTime() + "\"" : null;
-                                    case "EVENT_END_TIME" ->
-                                        event.endTime() != null ? "\"" + event.endTime() + "\"" : null;
+                                    case "VALUE" -> toJsonValue(def.value());
+                                    case "EVENT_NAME" -> toJsonValue(event.name());
+                                    case "EVENT_DESCRIPTION" -> toJsonValue(event.description());
+                                    case "EVENT_START_TIME" -> toJsonValue(event.startTime());
+                                    case "EVENT_END_TIME" -> toJsonValue(event.endTime());
                                     default -> null;
                                 };
                         if (resolved != null) {
@@ -236,6 +252,25 @@ public class AttendanceService {
                 }
             }
         }
+
+        // Auto-populate expected member entries from template groups
+        var tplGroups = attendanceRepository.findTemplateGroups(templateId);
+        var existingMemberIds = new HashSet<Integer>();
+        for (var tg : tplGroups) {
+            var members = memberGroupRepository.findMembers(tg.groupId());
+            for (var m : members) {
+                if (!existingMemberIds.contains(m.id()) && !m.former()) {
+                    attendanceRepository.createEntry(
+                            session.id(), m.id(),
+                            attendanceRepository.isAbsent(m.id())
+                                    ? AttendanceEntry.AttendanceStatus.DECLINED
+                                    : AttendanceEntry.AttendanceStatus.UNCONFIRMED,
+                            AttendanceEntry.EntrySource.EXPECTED);
+                    existingMemberIds.add(m.id());
+                }
+            }
+        }
+
         return session;
     }
 

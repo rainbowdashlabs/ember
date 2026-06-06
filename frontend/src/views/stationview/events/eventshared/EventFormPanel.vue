@@ -213,6 +213,7 @@ const {t} = useI18n()
         :attendance-fields="attendanceFields"
         :show-value="showValue"
         :all-members="allMembers"
+        :groups="groups"
         :group-members="groupMembers"
         @update:fields="fields = $event"
     />

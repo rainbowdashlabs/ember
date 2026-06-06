@@ -19,7 +19,7 @@ import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import SizeBadge from '@/components/badge/SizeBadge.vue'
 import type { InventoryItem, InventorySize, MemberIdentity, StationMember, ExchangeRequestEntry, ProcurementEntry } from '@/api/types'
-import { ExchangeStatus } from '@/api/types'
+import { ExchangeStatus, InventoryTypes } from '@/api/types'
 import { inventory, stationMembers, exchanges, procurement } from '@/api'
 import { useStations } from '@/composables/useStations'
 import { useBreakpoint } from '@/composables/useBreakpoint'
@@ -38,6 +38,7 @@ const { isMobile } = useBreakpoint()
 interface LostItem {
   item: InventoryItem
   inventoryName: string
+  inventoryType: string
   sizeName: string
   ownerName: string
   ownerIdentity: MemberIdentity | null
@@ -46,10 +47,22 @@ interface LostItem {
 const lostItems = ref<LostItem[]>([])
 const exchangeList = ref<ExchangeRequestEntry[]>([])
 const openProcurement = ref<ProcurementEntry[]>([])
+const inventoryTypeMap = ref<Map<number, string>>(new Map())
 const loading = ref(true)
 const error = ref('')
 
-const openExchanges = computed(() => exchangeList.value.filter(e => e.status !== ExchangeStatus.EXCHANGED))
+const openExchanges = computed(() => exchangeList.value
+    .filter(e => e.status !== ExchangeStatus.EXCHANGED)
+    .slice()
+    .sort((a, b) => a.createdAt.localeCompare(b.createdAt)))
+
+const openProcurementSorted = computed(() => openProcurement.value
+    .slice()
+    .sort((a, b) => a.requestedAt.localeCompare(b.requestedAt)))
+
+const lostItemsSorted = computed(() => lostItems.value
+    .slice()
+    .sort((a, b) => (a.item.lostAt ?? '').localeCompare(b.item.lostAt ?? '')))
 
 async function loadData() {
   loading.value = true
@@ -67,6 +80,10 @@ async function loadData() {
 
     exchangeList.value = exch
     openProcurement.value = proc
+
+    const typeMap = new Map<number, string>()
+    for (const inv of inventories) typeMap.set(inv.id, inv.inventoryType ?? '')
+    inventoryTypeMap.value = typeMap
 
     const memberMap = new Map<number, StationMember>()
     for (const m of members) memberMap.set(m.id, m)
@@ -87,6 +104,7 @@ async function loadData() {
           lost.push({
             item,
             inventoryName: inv.name ?? '',
+            inventoryType: inv.inventoryType ?? '',
             sizeName: size?.label ?? '',
             ownerName: owner ? (owner.name || owner.email || `#${owner.id}`) : '-',
             ownerIdentity: owner?.identity ?? null,
@@ -105,6 +123,20 @@ async function loadData() {
 function formatDate(dateStr?: string | null): string {
   if (!dateStr) return ''
   return new Date(dateStr).toLocaleDateString('de-DE')
+}
+
+function inventoryTypeLabel(type?: string | null): string {
+  if (!type) return ''
+  return t(`inventory.manage.type.${type}`)
+}
+
+function inventoryTypeBadge(type?: string | null) {
+  switch (type) {
+    case InventoryTypes.INTERNAL: return InfoBadge
+    case InventoryTypes.EXTERNAL: return SecondaryBadge
+    case InventoryTypes.MIXED: return SuccessBadge
+    default: return SecondaryBadge
+  }
 }
 
 function exchangeStatusBadge(status: string) {
@@ -145,8 +177,15 @@ watch(() => activeStation.value?.stationId, (newId, oldId) => {
                 <span class="text-sm font-medium">{{ ex.inventoryName }}</span>
                 <component :is="exchangeStatusBadge(ex.status)">{{ t(`exchanges.status.${ex.status}`) }}</component>
               </div>
+              <div class="flex flex-wrap items-center gap-1">
+                <component :is="inventoryTypeBadge(ex.inventoryType)">{{ inventoryTypeLabel(ex.inventoryType) }}</component>
+                <SizeBadge>{{ ex.oldSizeLabel ?? t('common.unisize') }} &rarr; {{ ex.newSizeLabel ?? t('common.unisize') }}</SizeBadge>
+              </div>
               <div class="text-xs text-(--text-muted)"><MemberName :identity="ex.memberIdentity ?? null"/></div>
-              <SizeBadge>{{ ex.oldSizeLabel ?? t('common.unisize') }} &rarr; {{ ex.newSizeLabel ?? t('common.unisize') }}</SizeBadge>
+              <div class="text-xs text-(--text-muted)">
+                {{ t('inventory.overview.createdAt') }}: {{ formatDate(ex.createdAt) }}
+                <span v-if="ex.updatedAt && ex.updatedAt !== ex.createdAt"> &middot; {{ t('inventory.overview.updatedAt') }}: {{ formatDate(ex.updatedAt) }}</span>
+              </div>
             </NeutralContainer>
           </div>
           <!-- Desktop table -->
@@ -155,8 +194,11 @@ watch(() => activeStation.value?.stationId, (newId, oldId) => {
               <thead>
                 <THead>
                   <Th>{{ t('inventory.overview.colItem') }}</Th>
+                  <Th>{{ t('inventory.overview.colType') }}</Th>
                   <Th>{{ t('inventory.overview.colOwner') }}</Th>
                   <Th>{{ t('inventory.overview.colStatus') }}</Th>
+                  <Th>{{ t('inventory.overview.colCreated') }}</Th>
+                  <Th>{{ t('inventory.overview.colUpdated') }}</Th>
                 </THead>
               </thead>
               <tbody>
@@ -167,10 +209,15 @@ watch(() => activeStation.value?.stationId, (newId, oldId) => {
                     {{ ex.inventoryName }}
                     <SizeBadge>{{ ex.oldSizeLabel ?? t('common.unisize') }} &rarr; {{ ex.newSizeLabel ?? t('common.unisize') }}</SizeBadge>
                   </Td>
+                  <Td>
+                    <component :is="inventoryTypeBadge(ex.inventoryType)">{{ inventoryTypeLabel(ex.inventoryType) }}</component>
+                  </Td>
                   <Td><MemberName :identity="ex.memberIdentity ?? null"/></Td>
                   <Td>
                     <component :is="exchangeStatusBadge(ex.status)">{{ t(`exchanges.status.${ex.status}`) }}</component>
                   </Td>
+                  <Td muted>{{ formatDate(ex.createdAt) }}</Td>
+                  <Td muted>{{ formatDate(ex.updatedAt) }}</Td>
                 </TRow>
               </tbody>
             </table>
@@ -185,13 +232,17 @@ watch(() => activeStation.value?.stationId, (newId, oldId) => {
           </SubHeader>
           <!-- Mobile cards -->
           <div v-if="isMobile" class="space-y-2">
-            <NeutralContainer v-for="p in openProcurement" :key="p.id" class="space-y-1 cursor-pointer" @click="router.push({ name: 'inventory-procurement' })">
+            <NeutralContainer v-for="p in openProcurementSorted" :key="p.id" class="space-y-1 cursor-pointer" @click="router.push({ name: 'inventory-procurement' })">
               <div class="flex items-center justify-between">
                 <span class="text-sm font-medium">{{ p.inventoryName }}</span>
                 <SizeBadge>{{ p.sizeLabel || t('common.unisize') }}</SizeBadge>
               </div>
+              <div class="flex flex-wrap items-center gap-1">
+                <component :is="inventoryTypeBadge(inventoryTypeMap.get(p.inventoryId))">{{ inventoryTypeLabel(inventoryTypeMap.get(p.inventoryId)) }}</component>
+              </div>
               <div class="text-xs text-(--text-muted)"><MemberName :identity="p.memberIdentity ?? null"/></div>
               <div v-if="p.notes" class="text-xs text-(--text-muted)">{{ p.notes }}</div>
+              <div class="text-xs text-(--text-muted)">{{ t('inventory.overview.requestedAt') }}: {{ formatDate(p.requestedAt) }}</div>
             </NeutralContainer>
           </div>
           <!-- Desktop table -->
@@ -200,20 +251,26 @@ watch(() => activeStation.value?.stationId, (newId, oldId) => {
               <thead>
                 <THead>
                   <Th>{{ t('inventory.overview.colItem') }}</Th>
+                  <Th>{{ t('inventory.overview.colType') }}</Th>
                   <Th>{{ t('inventory.overview.colOwner') }}</Th>
                   <Th>{{ t('inventory.overview.colNotes') }}</Th>
+                  <Th>{{ t('inventory.overview.colRequested') }}</Th>
                 </THead>
               </thead>
               <tbody>
-                <TRow v-for="p in openProcurement" :key="p.id"
+                <TRow v-for="p in openProcurementSorted" :key="p.id"
                     class="cursor-pointer hover:bg-(--bg-accent)"
                     @click="router.push({ name: 'inventory-procurement' })">
                   <Td>
                     {{ p.inventoryName }}
                     <SizeBadge>{{ p.sizeLabel || t('common.unisize') }}</SizeBadge>
                   </Td>
+                  <Td>
+                    <component :is="inventoryTypeBadge(inventoryTypeMap.get(p.inventoryId))">{{ inventoryTypeLabel(inventoryTypeMap.get(p.inventoryId)) }}</component>
+                  </Td>
                   <Td><MemberName :identity="p.memberIdentity ?? null"/></Td>
                   <Td muted>{{ p.notes || '-' }}</Td>
+                  <Td muted>{{ formatDate(p.requestedAt) }}</Td>
                 </TRow>
               </tbody>
             </table>
@@ -225,12 +282,13 @@ watch(() => activeStation.value?.stationId, (newId, oldId) => {
           <SubHeader>{{ t('inventory.overview.lost') }}</SubHeader>
           <!-- Mobile cards -->
           <div v-if="isMobile" class="space-y-2">
-            <NeutralContainer v-for="a in lostItems" :key="a.item.id" class="space-y-1">
+            <NeutralContainer v-for="a in lostItemsSorted" :key="a.item.id" class="space-y-1">
               <div class="flex items-center justify-between">
                 <span class="text-sm font-medium">{{ a.item.name }}</span>
                 <ErrorBadge>{{ formatDate(a.item.lostAt) }}</ErrorBadge>
               </div>
               <div class="flex items-center gap-2">
+                <component :is="inventoryTypeBadge(a.inventoryType)">{{ inventoryTypeLabel(a.inventoryType) }}</component>
                 <SizeBadge lost>{{ a.sizeName || t('common.unisize') }}</SizeBadge>
                 <span v-if="a.item.internalId" class="text-xs text-(--text-muted)">{{ a.item.internalId }}</span>
               </div>
@@ -243,18 +301,22 @@ watch(() => activeStation.value?.stationId, (newId, oldId) => {
               <thead>
                 <THead>
                   <Th>{{ t('inventory.overview.colItem') }}</Th>
+                  <Th>{{ t('inventory.overview.colType') }}</Th>
                   <Th>{{ t('inventory.overview.colOwner') }}</Th>
                   <Th>{{ t('inventory.overview.colLostSince') }}</Th>
                 </THead>
               </thead>
               <tbody>
-                <TRow v-for="a in lostItems" :key="a.item.id">
+                <TRow v-for="a in lostItemsSorted" :key="a.item.id">
                   <Td>
                     <div class="font-medium">
                       {{ a.item.name }}
                       <SizeBadge lost>{{ a.sizeName || t('common.unisize') }}</SizeBadge>
                     </div>
                     <div v-if="a.item.internalId" class="text-xs text-(--text-muted)">{{ a.item.internalId }}</div>
+                  </Td>
+                  <Td>
+                    <component :is="inventoryTypeBadge(a.inventoryType)">{{ inventoryTypeLabel(a.inventoryType) }}</component>
                   </Td>
                   <Td><MemberName :identity="a.ownerIdentity"/></Td>
                   <Td>

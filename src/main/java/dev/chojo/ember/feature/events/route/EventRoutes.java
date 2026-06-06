@@ -20,6 +20,7 @@ import dev.chojo.ember.feature.events.entity.BatchRow;
 import dev.chojo.ember.feature.events.entity.EventBreak;
 import dev.chojo.ember.feature.events.entity.EventCategory;
 import dev.chojo.ember.feature.events.entity.EventField;
+import dev.chojo.ember.feature.events.entity.EventFederationRegistration;
 import dev.chojo.ember.feature.events.entity.EventFieldConfig;
 import dev.chojo.ember.feature.events.entity.EventFieldDefault;
 import dev.chojo.ember.feature.events.entity.EventFieldType;
@@ -129,32 +130,32 @@ public class EventRoutes implements Routes {
         routes.get(prefix + "/events", this::list, StationPermission.USER);
         routes.get(prefix + "/events/upcoming", this::listUpcoming, StationPermission.USER);
         routes.get(prefix + "/events/today", this::listToday, StationPermission.USER);
-        routes.post(prefix + "/events", this::create, StationPermission.EVENT_MANAGER);
+        routes.post(prefix + "/events", this::create, StationPermission.EVENT_EDIT);
 
-        routes.post(prefix + "/events/export", this::exportPdf, StationPermission.EVENT_MANAGER);
-        routes.get(prefix + "/events/field-names", this::listFieldNames, StationPermission.EVENT_MANAGER);
+        routes.post(prefix + "/events/export", this::exportPdf, StationPermission.EVENT_EDIT);
+        routes.get(prefix + "/events/field-names", this::listFieldNames, StationPermission.EVENT_EDIT);
 
         routes.get(prefix + "/events/categories", this::listCategories, StationPermission.USER);
-        routes.post(prefix + "/events/categories", this::createCategory, StationPermission.EVENT_MANAGER);
-        routes.put(prefix + "/events/categories/reorder", this::reorderCategories, StationPermission.EVENT_MANAGER);
-        routes.put(prefix + "/events/categories/{id}", this::updateCategory, StationPermission.EVENT_MANAGER);
-        routes.delete(prefix + "/events/categories/{id}", this::deleteCategory, StationPermission.EVENT_MANAGER);
+        routes.post(prefix + "/events/categories", this::createCategory, StationPermission.EVENT_MANAGE_CATEGORY);
+        routes.put(prefix + "/events/categories/reorder", this::reorderCategories, StationPermission.EVENT_MANAGE_CATEGORY);
+        routes.put(prefix + "/events/categories/{id}", this::updateCategory, StationPermission.EVENT_MANAGE_CATEGORY);
+        routes.delete(prefix + "/events/categories/{id}", this::deleteCategory, StationPermission.EVENT_MANAGE_CATEGORY);
 
         routes.get(prefix + "/events/breaks", this::listBreaks, StationPermission.USER);
-        routes.post(prefix + "/events/breaks", this::createBreak, StationPermission.EVENT_MANAGER);
-        routes.put(prefix + "/events/breaks/{id}", this::updateBreak, StationPermission.EVENT_MANAGER);
-        routes.delete(prefix + "/events/breaks/{id}", this::deleteBreak, StationPermission.EVENT_MANAGER);
+        routes.post(prefix + "/events/breaks", this::createBreak, StationPermission.EVENT_EDIT);
+        routes.put(prefix + "/events/breaks/{id}", this::updateBreak, StationPermission.EVENT_EDIT);
+        routes.delete(prefix + "/events/breaks/{id}", this::deleteBreak, StationPermission.EVENT_EDIT);
 
         routes.get(prefix + "/events/registrations/mine", this::listMyRegistrations, StationPermission.USER);
         routes.get(
                 prefix + "/events/registrations/pending",
                 this::listPendingRegistrations,
-                StationPermission.EVENT_MANAGER);
+                StationPermission.EVENT_REGISTRATION);
         routes.get(prefix + "/events/registrations/counts", this::listRegistrationCounts, StationPermission.USER);
         routes.put(
                 prefix + "/events/registrations/{id}/status",
                 this::updateRegistrationStatus,
-                StationPermission.EVENT_MANAGER);
+                StationPermission.EVENT_REGISTRATION);
         routes.delete(prefix + "/events/registrations/{id}", this::withdrawRegistration, StationPermission.USER);
 
         routes.get(prefix + "/events/restrictions", this::listAllRestrictions, StationPermission.USER);
@@ -164,46 +165,50 @@ public class EventRoutes implements Routes {
         routes.get(prefix + "/events/overview-fields", this::getOverviewFields, StationPermission.USER);
 
         // Federation sharing
-        routes.get(prefix + "/events/{id}/federation", this::getFederationShare, StationPermission.EVENT_MANAGER);
-        routes.put(prefix + "/events/{id}/federation", this::setFederationShare, StationPermission.EVENT_MANAGER);
-        routes.delete(prefix + "/events/{id}/federation", this::removeFederationShare, StationPermission.EVENT_MANAGER);
+        routes.get(prefix + "/events/{id}/federation", this::getFederationShare, StationPermission.EVENTS_FEDERATE);
+        routes.put(prefix + "/events/{id}/federation", this::setFederationShare, StationPermission.EVENTS_FEDERATE);
+        routes.delete(prefix + "/events/{id}/federation", this::removeFederationShare, StationPermission.EVENTS_FEDERATE);
         routes.get(
                 prefix + "/events/{id}/federation-registrations",
                 this::listFederationRegistrations,
-                StationPermission.EVENT_MANAGER);
+                StationPermission.EVENT_REGISTRATION);
+        routes.put(
+                prefix + "/events/federation-registrations/{id}/status",
+                this::updateFederationRegistrationStatus,
+                StationPermission.EVENT_REGISTRATION);
 
         // Batch creation
-        routes.post(prefix + "/events/batch", this::batchCreate, StationPermission.EVENT_MANAGER);
-        routes.post(prefix + "/events/batch/generate-dates", this::generateDates, StationPermission.EVENT_MANAGER);
+        routes.post(prefix + "/events/batch", this::batchCreate, StationPermission.EVENT_EDIT);
+        routes.post(prefix + "/events/batch/generate-dates", this::generateDates, StationPermission.EVENT_EDIT);
 
         routes.get(
                 prefix + "/events/{eventId}/registration-stats",
                 this::getRegistrationStats,
-                StationPermission.EVENT_MANAGER);
+                StationPermission.EVENT_REGISTRATION);
         routes.get(prefix + "/events/{eventId}/registrations", this::listRegistrations, StationPermission.USER);
         routes.post(prefix + "/events/{eventId}/register", this::register, StationPermission.USER);
         routes.post(prefix + "/events/{eventId}/decline", this::decline, StationPermission.USER);
 
-        routes.post(prefix + "/events/{id}/cancel", this::cancelEvent, StationPermission.EVENT_MANAGER);
+        routes.post(prefix + "/events/{id}/cancel", this::cancelEvent, StationPermission.EVENT_EDIT);
 
         routes.get(prefix + "/events/{id}", this::get, StationPermission.USER);
-        routes.put(prefix + "/events/{id}", this::update, StationPermission.EVENT_MANAGER);
-        routes.delete(prefix + "/events/{id}", this::delete, StationPermission.EVENT_MANAGER);
+        routes.put(prefix + "/events/{id}", this::update, StationPermission.EVENT_EDIT);
+        routes.delete(prefix + "/events/{id}", this::delete, StationPermission.EVENT_EDIT);
 
         routes.get(prefix + "/events/{id}/restrictions", this::getRestrictions, StationPermission.USER);
-        routes.put(prefix + "/events/{id}/restrictions", this::setRestrictions, StationPermission.EVENT_MANAGER);
+        routes.put(prefix + "/events/{id}/restrictions", this::setRestrictions, StationPermission.EVENT_EDIT);
 
         routes.get(prefix + "/events/{id}/field-defaults", this::getFieldDefaults, StationPermission.USER);
-        routes.put(prefix + "/events/{id}/field-defaults", this::setFieldDefaults, StationPermission.EVENT_MANAGER);
+        routes.put(prefix + "/events/{id}/field-defaults", this::setFieldDefaults, StationPermission.EVENT_EDIT);
 
         routes.get(prefix + "/events/{id}/fields", this::getFields, StationPermission.USER);
-        routes.put(prefix + "/events/{id}/fields", this::setFields, StationPermission.EVENT_MANAGER);
+        routes.put(prefix + "/events/{id}/fields", this::setFields, StationPermission.EVENT_EDIT);
 
         routes.get(
                 prefix + "/events/{id}/absences",
                 this::listAbsencesForDate,
-                StationPermission.EVENT_MANAGER,
-                StationPermission.ATTENDANCE_MANAGER);
+                StationPermission.EVENT_EDIT,
+                StationPermission.ATTENDANCE_EDIT);
 
         // Federated (user-facing, bearer token auth)
         routes.get(prefix + "/federated/events", this::federatedListEvents, StationPermission.USER);
@@ -215,6 +220,10 @@ public class EventRoutes implements Routes {
         routes.delete(
                 prefix + "/federated/{stationuid}/events/{id}/register",
                 this::federatedWithdraw,
+                StationPermission.USER);
+        routes.get(
+                prefix + "/federated/my-registrations",
+                this::federatedMyRegistrations,
                 StationPermission.USER);
 
         // Federated event comment proxy endpoints (bearer auth)
@@ -241,6 +250,7 @@ public class EventRoutes implements Routes {
         routes.post(prefix + "/remote/events/{id}/register", this::remoteRegister);
         routes.delete(prefix + "/remote/events/{id}/register", this::remoteWithdraw);
         routes.get(prefix + "/remote/events/{id}/registrations", this::remoteListRegistrations);
+        routes.get(prefix + "/remote/registrations/{memberUid}", this::remoteListMemberRegistrations);
         routes.post(prefix + "/remote/webhook/event-registration-status", this::remoteOnRegistrationStatus);
 
         // Remote event comment endpoints (federation, RSA auth)
@@ -628,7 +638,23 @@ public class EventRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = EventRegistration[].class)))
     private void listPendingRegistrations(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        ctx.json(eventService.findPendingRegistrationsByStation(session.stationId()));
+        var regs = eventService.findPendingRegistrationsByStation(session.stationId());
+        ctx.json(regs.stream()
+                .map(r -> {
+                    var member = stationMemberRepository.findById(r.memberId());
+                    String memberName = member
+                            .flatMap(m -> accountRepository.findById(m.accountId()))
+                            .map(a -> (a.firstName() + " " + a.lastName()).trim())
+                            .orElse("");
+                    MemberIdentity identity = member
+                            .map(m -> memberIdentityFactory.local(m.stationId(), r.memberId()))
+                            .orElse(null);
+                    String createdByName = resolveCreatedByName(r.createdBy());
+                    return new RegistrationResponse(
+                            r.id(), r.eventId(), r.memberId(), memberName, identity,
+                            r.eventDate(), r.status().name(), r.createdAt(), createdByName);
+                })
+                .toList());
     }
 
     @OpenApi(
@@ -870,7 +896,9 @@ public class EventRoutes implements Routes {
                 && session.hasPermission(StationPermission.MEMBER_GUARDIAN)
                 && stationMemberService.findManaged(session.member().id()).stream()
                         .anyMatch(m -> m.id() == regMemberId);
-        if (!isOwn && !manages && !session.hasPermission(StationPermission.EVENT_MANAGER)) {
+        if (!isOwn && !manages
+                && !session.hasPermission(StationPermission.EVENT_MANAGER)
+                && !session.hasPermission(StationPermission.EVENT_REGISTRATION)) {
             throw new ForbiddenResponse("You cannot withdraw this registration");
         }
 
@@ -1481,17 +1509,44 @@ public class EventRoutes implements Routes {
         var registrations = date != null
                 ? eventFederationService.findRegistrations(id, date)
                 : eventFederationService.findRegistrations(id, null);
-        // Enrich with cached names
         var enriched = registrations.stream()
                 .map(r -> {
-                    String name = eventFederationService
-                            .getCachedName(r.partnerId(), r.remoteMemberId())
-                            .orElse("?");
-                    return Map.of("registration", r, "displayName", name);
+                    var partner = federationRepository.findPartnerById(r.partnerId()).orElse(null);
+                    UUID partnerStationUid = partner != null ? partner.partnerStationId() : null;
+
+                    // Try to resolve as a local member (same-instance federation)
+                    MemberIdentity identity = null;
+                    if (partnerStationUid != null) {
+                        var partnerStation = stationRepository.findByUid(partnerStationUid);
+                        if (partnerStation.isPresent()) {
+                            var localMember = stationMemberRepository.findByUid(
+                                    partnerStation.get().id(), r.remoteMemberId());
+                            if (localMember.isPresent()) {
+                                identity = memberIdentityFactory.local(
+                                        localMember.get().stationId(), localMember.get().id());
+                            }
+                        }
+                    }
+
+                    // Fall back to federated identity with cached name
+                    if (identity == null && partnerStationUid != null) {
+                        String cachedName = eventFederationService
+                                .getCachedName(r.partnerId(), r.remoteMemberId())
+                                .orElse(null);
+                        String stationName = stationRepository.findByUid(partnerStationUid)
+                                .map(s -> s.name()).orElse(null);
+                        identity = new MemberIdentity(partnerStationUid, r.remoteMemberId())
+                                .withDisplay(cachedName, stationName, null, null);
+                    }
+
+                    return new EnrichedFederationRegistration(r, identity);
                 })
                 .toList();
         ctx.json(enriched);
     }
+
+    public record EnrichedFederationRegistration(
+            EventFederationRegistration registration, MemberIdentity memberIdentity) {}
 
     public record SetFederationShareRequest(String scope, List<Integer> partnerIds) {}
 
@@ -1519,7 +1574,7 @@ public class EventRoutes implements Routes {
         var partner = resolvePartner(ctx, session.stationId());
         int eventId = ctx.pathParamAsClass("id", Integer.class).get();
         var req = ctx.bodyAsClass(FederatedRegBody.class);
-        UUID remoteMemberId = session.member().uid();
+        UUID remoteMemberId = req.memberId() != null ? req.memberId() : session.member().uid();
 
         if (partner.isRemote()) {
             boolean success = eventFederationService.registerForFederatedEvent(
@@ -1537,13 +1592,39 @@ public class EventRoutes implements Routes {
         ctx.status(HttpStatus.CREATED).json(Map.of("status", "PENDING"));
     }
 
+    private void updateFederationRegistrationStatus(Context ctx) {
+        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        var req = ctx.bodyAsClass(StatusUpdateRequest.class);
+        var reg = eventFederationService.findRegistrationById(id).orElseThrow(NotFoundResponse::new);
+        var event = eventService.findById(reg.eventId()).orElseThrow(NotFoundResponse::new);
+        UserSession session = UserSession.from(ctx);
+        if (event.stationId() != session.stationId()) throw new ForbiddenResponse();
+        eventFederationService.updateRegistrationStatus(id, req.status());
+        ctx.json(new MessageResponse("Status updated"));
+    }
+
+    private void federatedMyRegistrations(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        if (session.member() == null) {
+            ctx.json(List.of());
+            return;
+        }
+        var memberUids = new ArrayList<UUID>();
+        memberUids.add(session.member().uid());
+        var managed = stationMemberRepository.findManaged(session.member().id());
+        for (var m : managed) {
+            if (m.uid() != null) memberUids.add(m.uid());
+        }
+        ctx.json(eventFederationService.findMyRegistrations(session.stationId(), memberUids));
+    }
+
     private void federatedWithdraw(Context ctx) {
         UserSession session = UserSession.from(ctx);
         var station = stationRepository.findById(session.stationId()).orElseThrow();
         var partner = resolvePartner(ctx, session.stationId());
         int eventId = ctx.pathParamAsClass("id", Integer.class).get();
         var req = ctx.bodyAsClass(FederatedRegBody.class);
-        UUID remoteMemberId = session.member().uid();
+        UUID remoteMemberId = req.memberId() != null ? req.memberId() : session.member().uid();
 
         if (partner.isRemote()) {
             eventFederationService.withdrawFederatedRegistration(
@@ -1623,6 +1704,20 @@ public class EventRoutes implements Routes {
         ctx.json(registrations);
     }
 
+    private void remoteListMemberRegistrations(Context ctx) {
+        requireFederationPartner(ctx);
+        var memberUid = UUID.fromString(ctx.pathParam("memberUid"));
+        var registrations = eventFederationService.findRegistrationsByRemoteMember(memberUid);
+        ctx.json(registrations.stream()
+                .map(r -> Map.of(
+                        "eventId", r.eventId(),
+                        "remoteMemberId", r.remoteMemberId().toString(),
+                        "eventDate", r.eventDate().toString(),
+                        "status", r.status(),
+                        "partnerId", r.partnerId()))
+                .toList());
+    }
+
     private void remoteOnRegistrationStatus(Context ctx) {
         requireFederationPartner(ctx);
         ctx.json(Map.of("status", "ok"));
@@ -1665,7 +1760,7 @@ public class EventRoutes implements Routes {
                 "requiresConfirmation", true);
     }
 
-    public record FederatedRegBody(String eventDate) {}
+    public record FederatedRegBody(String eventDate, UUID memberId) {}
 
     public record RemoteRegistrationRequest(UUID remoteMemberId, LocalDate eventDate) {}
 

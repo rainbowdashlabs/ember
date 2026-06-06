@@ -176,7 +176,7 @@ async function generateQuestions() {
 }
 
 function questionTypeName(q: QuizQuestion): string {
-  return t(`quiz.questionTypes.${q.questionType}`)
+  return t(`quiz.questionTypes.${q.quizQuestionType}`)
 }
 
 async function randomReplace(position: number) {

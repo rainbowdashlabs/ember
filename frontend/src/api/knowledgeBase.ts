@@ -267,7 +267,7 @@ export async function revertToVersion(fileId: number, version: number): Promise<
 // -- Access Restrictions --
 
 export interface KbRestrictions {
-    roleIds: number[]
+    userTypes: string[]
     groupIds: number[]
     tagIds: number[]
     memberIds: number[]

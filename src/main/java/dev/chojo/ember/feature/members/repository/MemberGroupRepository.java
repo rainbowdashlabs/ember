@@ -94,7 +94,7 @@ public class MemberGroupRepository {
                     station_member sm
                         JOIN member_group_entry mge
                         ON sm.id = mge.member_id
-                WHERE mge.group_id = :group_id;""")
+                WHERE mge.group_id = :group_id AND NOT sm.former;""")
                 .single(Call.of().bind("group_id", groupId))
                 .map(StationMember.map())
                 .all();

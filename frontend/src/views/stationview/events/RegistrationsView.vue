@@ -75,11 +75,6 @@ function getStats(memberId: number): MemberRegistrationStats | undefined {
   return registrationStats.value.find(s => s.memberId === memberId)
 }
 
-function memberName(memberId: number): string {
-  const m = allMembers.value.find(m => m.id === memberId)
-  if (!m) return `#${memberId}`
-  return m.name && m.name.trim() ? m.name : m.email ?? `#${memberId}`
-}
 
 function formatDeadline(iso?: string | null): string {
   if (!iso) return ''

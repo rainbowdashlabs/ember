@@ -118,7 +118,7 @@ function expandEditQuestion(q: QuizQuestion) {
   editingQuestion.value = q
   questionTitle.value = q.title
   questionDescription.value = q.description
-  questionType.value = q.questionType
+  questionType.value = q.quizQuestionType
   questionCategoryId.value = q.categoryId
   questionPoints.value = q.points
   questionAutoPoints.value = q.autoPoints
@@ -126,11 +126,7 @@ function expandEditQuestion(q: QuizQuestion) {
   questionImagePreview.value = null
   questionAuthImageSrc.value = q.imageUrl ? quiz.questionImageUrl(q.id, 300) : null
   questionHasImage.value = !!q.imageUrl
-  try {
-    questionConfig.value = typeof q.config === 'string' ? JSON.parse(q.config) : JSON.parse(JSON.stringify(q.config))
-  } catch {
-    questionConfig.value = getDefaultConfig(q.questionType)
-  }
+  questionConfig.value = JSON.parse(JSON.stringify(q.config ?? getDefaultConfig(q.quizQuestionType)))
   expandedQuestion.value = q.id
 }
 
@@ -171,7 +167,7 @@ async function saveQuestion() {
   const data: Record<string, unknown> = {
     title: questionTitle.value.trim(),
     description: questionDescription.value.trim(),
-    questionType: questionType.value,
+    quizQuestionType: questionType.value,
     categoryId: questionCategoryId.value,
     points: questionPoints.value,
     autoPoints: questionAutoPoints.value,
@@ -230,7 +226,7 @@ const filterCategory = ref<string>('')
 
 const filteredQuestions = computed(() => {
   return props.questions.filter(q => {
-    if (filterType.value && q.questionType !== filterType.value) return false
+    if (filterType.value && q.quizQuestionType !== filterType.value) return false
     if (filterCategory.value === 'none' && q.categoryId !== null) return false
     if (filterCategory.value && filterCategory.value !== 'none' && q.categoryId !== Number(filterCategory.value)) return false
     return true
@@ -238,7 +234,7 @@ const filteredQuestions = computed(() => {
 })
 
 const questionTypeOptions = computed(() => {
-  const types = new Set(props.questions.map(q => q.questionType))
+  const types = new Set(props.questions.map(q => q.quizQuestionType))
   return [...types].map(type => ({value: type, label: t(`quiz.questionTypes.${type}`)}))
 })
 
@@ -261,7 +257,7 @@ function deselectAll() {
 
 const selectedQuestions = computed(() => props.questions.filter(q => selectedIds.value.has(q.id)))
 const hasSelection = computed(() => selectedIds.value.size > 0)
-const selectedHasMc = computed(() => selectedQuestions.value.some(q => q.questionType === QuizQuestionTypes.MULTIPLE_CHOICE))
+const selectedHasMc = computed(() => selectedQuestions.value.some(q => q.quizQuestionType === QuizQuestionTypes.MULTIPLE_CHOICE))
 
 // --- Batch Actions ---
 const showBatchModal = ref(false)
@@ -373,7 +369,7 @@ function onBatchDone() {
               <CheckboxInput :model-value="selectedIds.has(q.id)" @update:model-value="toggleSelect(q.id)"/>
               <div class="flex-1" @click="expandEditQuestion(q)">
                 <div class="flex items-center gap-1.5 flex-wrap mb-0.5">
-                  <InfoBadge>{{ t(`quiz.questionTypes.${q.questionType}`) }}</InfoBadge>
+                  <InfoBadge>{{ t(`quiz.questionTypes.${q.quizQuestionType}`) }}</InfoBadge>
                   <SecondaryBadge>{{ getCategoryName(q.categoryId) }}</SecondaryBadge>
                   <span class="text-xs text-(--text-muted)">{{ q.points }} {{ t('quiz.questions.points') }}</span>
                 </div>
@@ -394,7 +390,7 @@ function onBatchDone() {
             </div>
             <div class="flex-1 min-w-0 space-y-0.5 cursor-pointer" @click="expandEditQuestion(q)">
               <div class="flex items-center gap-1.5 flex-wrap">
-                <InfoBadge>{{ t(`quiz.questionTypes.${q.questionType}`) }}</InfoBadge>
+                <InfoBadge>{{ t(`quiz.questionTypes.${q.quizQuestionType}`) }}</InfoBadge>
                 <SecondaryBadge>{{ getCategoryName(q.categoryId) }}</SecondaryBadge>
                 <span class="text-xs text-(--text-muted)">{{ q.points }} {{ t('quiz.questions.points') }}</span>
               </div>
@@ -455,7 +451,7 @@ function onBatchDone() {
           <div class="flex-1 min-w-0 space-y-1">
             <div class="flex items-center gap-2 flex-wrap">
               <span class="font-medium">{{ q.title }}</span>
-              <InfoBadge>{{ t(`quiz.questionTypes.${q.questionType}`) }}</InfoBadge>
+              <InfoBadge>{{ t(`quiz.questionTypes.${q.quizQuestionType}`) }}</InfoBadge>
               <SecondaryBadge>{{ getCategoryName(q.categoryId) }}</SecondaryBadge>
             </div>
             <p v-if="q.description" class="text-xs text-(--text-muted) truncate">{{ q.description }}</p>

@@ -19,6 +19,9 @@ import SectionHeader from '@/components/typography/SectionHeader.vue'
 import CheckboxInput from '@/components/input/toggle/CheckboxInput.vue'
 import MemberName from '@/components/avatar/MemberName.vue'
 import ExchangeStatusBadge from './exchangeview/ExchangeStatusBadge.vue'
+import InfoBadge from '@/components/badge/InfoBadge.vue'
+import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
+import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import ExchangeStatusUpdatePanel from './exchangeview/ExchangeStatusUpdatePanel.vue'
 import ExchangeCreateModal from './exchangeview/ExchangeCreateModal.vue'
 import ExchangeLogModal from './exchangeview/ExchangeLogModal.vue'
@@ -44,7 +47,7 @@ import { useBreakpoint } from '@/composables/useBreakpoint'
 
 const { t } = useI18n()
 const router = useRouter()
-const { canManageInventory, isGuardian, sessionInfo } = useSession()
+const { canManageExchanges, isGuardian, sessionInfo } = useSession()
 const { activeStation } = useStations()
 const { isMobile } = useBreakpoint()
 
@@ -61,7 +64,7 @@ const selectedExportFields = ref<Set<number>>(new Set())
 const allFields = ref<ProfileField[]>([])
 const exporting = ref(false)
 
-const showMemberColumn = computed(() => canManageInventory() || isGuardian())
+const showMemberColumn = computed(() => canManageExchanges() || isGuardian())
 const showCreateModal = ref(false)
 
 const membersWithItemsList = computed(() =>
@@ -101,8 +104,8 @@ async function loadData() {
     const stationId = activeStation.value?.stationId
     const [r, inv, m, mgd] = await Promise.all([
       exchanges.listExchanges(),
-      canManageInventory() ? inventory.listInventories() : Promise.resolve([]),
-      stationId && canManageInventory() ? stationMembers.listMembers() : Promise.resolve([]),
+      canManageExchanges() ? inventory.listInventories() : Promise.resolve([]),
+      stationId && canManageExchanges() ? stationMembers.listMembers() : Promise.resolve([]),
       isGuardian() ? managedMembers.listManaged() : Promise.resolve([]),
     ])
     requests.value = r
@@ -138,6 +141,20 @@ async function loadData() {
 
 function formatDate(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })
+}
+
+function inventoryTypeLabel(type?: string | null): string {
+  if (!type) return ''
+  return t(`inventory.manage.type.${type}`)
+}
+
+function inventoryTypeBadge(type?: string | null) {
+  switch (type) {
+    case InventoryTypes.INTERNAL: return InfoBadge
+    case InventoryTypes.EXTERNAL: return SecondaryBadge
+    case InventoryTypes.MIXED: return SuccessBadge
+    default: return SecondaryBadge
+  }
 }
 
 async function startStatusUpdate(request: ExchangeRequestEntry) {
@@ -235,7 +252,7 @@ onMounted(loadData)
             <SecondaryButton @click="cancelExport">{{ t('common.cancel') }}</SecondaryButton>
           </template>
           <template v-else>
-            <SecondaryButton :icon="['fas', 'file-export']" v-if="canManageInventory() && requests.length > 0" @click="enterExportMode">
+            <SecondaryButton :icon="['fas', 'file-export']" v-if="canManageExchanges() && requests.length > 0" @click="enterExportMode">
               {{ t('exchanges.export') }}
             </SecondaryButton>
             <PrimaryButton :icon="['fas', 'plus']" @click="showCreateModal = true">
@@ -265,6 +282,9 @@ onMounted(loadData)
               <span class="text-sm font-medium">{{ req.inventoryName }}</span>
               <ExchangeStatusBadge :status="req.status" />
             </div>
+            <div>
+              <component :is="inventoryTypeBadge(req.inventoryType)">{{ inventoryTypeLabel(req.inventoryType) }}</component>
+            </div>
             <div v-if="showMemberColumn" class="text-xs text-(--text-muted)"><MemberName :identity="req.memberIdentity ?? null"/></div>
             <div class="text-xs">{{ req.oldSizeLabel ?? t('common.unisize') }} &rarr; {{ req.newSizeLabel ?? t('common.unisize') }}</div>
             <div v-if="req.reason" class="text-xs text-(--text-muted) truncate">{{ req.reason }}</div>
@@ -274,10 +294,10 @@ onMounted(loadData)
               <SecondaryButton @click="openLog(req.id)">
                 <font-awesome-icon :icon="['fas', 'clock-rotate-left']" />
               </SecondaryButton>
-              <SecondaryButton v-if="canManageInventory() && req.status !== ExchangeStatus.EXCHANGED" @click="startStatusUpdate(req)">
+              <SecondaryButton v-if="canManageExchanges() && req.status !== ExchangeStatus.EXCHANGED" @click="startStatusUpdate(req)">
                 <font-awesome-icon :icon="['fas', 'arrow-right']" />
               </SecondaryButton>
-              <DeleteButton v-if="canManageInventory()" @click="deleteRequest(req.id)" />
+              <DeleteButton v-if="canManageExchanges()" @click="deleteRequest(req.id)" />
             </div>
             <div v-if="updatingId === req.id" class="pt-2 border-t border-bg-light-accent dark:border-bg-dark-accent">
               <ExchangeStatusUpdatePanel
@@ -303,6 +323,7 @@ onMounted(loadData)
               </th>
               <Th v-if="showMemberColumn">{{ t('exchanges.colMember') }}</Th>
               <Th>{{ t('exchanges.colInventory') }}</Th>
+              <Th>{{ t('exchanges.colType') }}</Th>
               <Th>{{ t('exchanges.colOldSize') }}</Th>
               <Th>{{ t('exchanges.colNewSize') }}</Th>
               <Th>{{ t('exchanges.colStatus') }}</Th>
@@ -319,13 +340,16 @@ onMounted(loadData)
                 </td>
                 <Td v-if="showMemberColumn">
                   <button
-                    v-if="canManageInventory()"
+                    v-if="canManageExchanges()"
                     class="text-primary hover:underline cursor-pointer"
                     @click="router.push({ name: 'inventory-member', params: { memberId: req.memberId } })"
                   ><MemberName :identity="req.memberIdentity ?? null"/></button>
                   <MemberName v-else :identity="req.memberIdentity ?? null"/>
                 </Td>
                 <Td class="font-medium">{{ req.inventoryName }}</Td>
+                <Td>
+                  <component :is="inventoryTypeBadge(req.inventoryType)">{{ inventoryTypeLabel(req.inventoryType) }}</component>
+                </Td>
                 <Td>{{ req.oldSizeLabel ?? t('common.unisize') }}</Td>
                 <Td>{{ req.newSizeLabel ?? t('common.unisize') }}</Td>
                 <Td><ExchangeStatusBadge :status="req.status" /></Td>
@@ -339,15 +363,15 @@ onMounted(loadData)
                     <SecondaryButton @click="openLog(req.id)">
                       <font-awesome-icon :icon="['fas', 'clock-rotate-left']" />
                     </SecondaryButton>
-                    <SecondaryButton v-if="canManageInventory() && req.status !== ExchangeStatus.EXCHANGED" @click="startStatusUpdate(req)">
+                    <SecondaryButton v-if="canManageExchanges() && req.status !== ExchangeStatus.EXCHANGED" @click="startStatusUpdate(req)">
                       <font-awesome-icon :icon="['fas', 'arrow-right']" />
                     </SecondaryButton>
-                    <DeleteButton v-if="canManageInventory()" @click="deleteRequest(req.id)" />
+                    <DeleteButton v-if="canManageExchanges()" @click="deleteRequest(req.id)" />
                   </div>
                 </Td>
               </TRow>
               <tr v-if="updatingId === req.id" class="bg-(--bg-accent)/30">
-                <td :colspan="(showMemberColumn ? 8 : 7) + (exportMode ? 1 : 0)" class="px-3 py-3">
+                <td :colspan="(showMemberColumn ? 9 : 8) + (exportMode ? 1 : 0)" class="px-3 py-3">
                   <ExchangeStatusUpdatePanel
                     :request="req"
                     :next-statuses="nextStatuses(req.status, req.inventoryType)"

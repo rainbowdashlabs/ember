@@ -57,12 +57,12 @@ public class ProfileFieldRoutes implements Routes {
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        // Field definitions (station config) — requires MEMBER_MANAGER
+        // Field definitions (station config)
         routes.get(prefix + "/profile-fields", this::list, StationPermission.USER);
-        routes.post(prefix + "/profile-fields", this::create, StationPermission.MEMBER_MANAGER);
+        routes.post(prefix + "/profile-fields", this::create, StationPermission.MEMBER_FIELDS);
         routes.get(prefix + "/profile-fields/{id}", this::get, StationPermission.USER);
-        routes.put(prefix + "/profile-fields/{id}", this::update, StationPermission.MEMBER_MANAGER);
-        routes.delete(prefix + "/profile-fields/{id}", this::delete, StationPermission.MEMBER_MANAGER);
+        routes.put(prefix + "/profile-fields/{id}", this::update, StationPermission.MEMBER_FIELDS);
+        routes.delete(prefix + "/profile-fields/{id}", this::delete, StationPermission.MEMBER_FIELDS);
 
         // Field values per member — MEMBER or TEAM can read/write own, MEMBER_MANAGER for any
         routes.get(prefix + "/station-members/{memberId}/fields", this::getApplicableFields, StationPermission.USER);

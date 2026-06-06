@@ -68,9 +68,6 @@ const memberItemMap = computed(() => {
 })
 
 const {
-  userTypeOptions: filterUserTypeOptions,
-  groupOptions: filterGroupOptions,
-  tagOptions: filterTagOptions,
   onFilter,
   applyFilter: applyMemberFilter,
 } = useMemberFilter(
@@ -302,9 +299,8 @@ onMounted(loadData)
       <template v-if="!loading">
         <MemberListFilters
           v-model:show-empty="showEmpty"
-          :roles="filterUserTypeOptions"
-          :groups="filterGroupOptions"
-          :tags="filterTagOptions"
+          :groups="groups"
+          :tags="tags"
           :inventories="inventories"
           :visible-inventory-ids="visibleInventoryIds"
           :show-name="showName"

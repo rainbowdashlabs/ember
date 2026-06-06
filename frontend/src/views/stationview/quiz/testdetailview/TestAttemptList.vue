@@ -72,6 +72,9 @@ function attemptStatusLabel(status: string): string {
               {{ attempt.totalPoints }}/{{ attempt.maxPoints }} {{ t('quiz.attempt.points') }}
             </span>
           </div>
+          <div v-if="attempt.gradedBy" class="text-xs text-(--text-muted)">
+            {{ t('quiz.evaluate.gradedBy') }}: {{ memberName(attempt.gradedBy) }}
+          </div>
         </div>
       </NeutralContainer>
     </template>
@@ -96,6 +99,9 @@ function attemptStatusLabel(status: string): string {
             <span v-if="attempt.submittedAt">{{ formatDateTime(attempt.submittedAt) }}</span>
             <span v-if="attempt.status === QuizAttemptStatus.GRADED" class="font-medium text-sm text-(--text)">
               {{ attempt.totalPoints }}/{{ attempt.maxPoints }} {{ t('quiz.attempt.points') }}
+            </span>
+            <span v-if="attempt.gradedBy" class="text-xs">
+              {{ t('quiz.evaluate.gradedBy') }}: {{ memberName(attempt.gradedBy) }}
             </span>
           </div>
         </div>

@@ -20,7 +20,8 @@ import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import { QuizTestStatus } from '@/api/types'
-import type { QuizTest, QuizTestSummary } from '@/api/types'
+import type { QuizTest, QuizTestSummary, QuizAvailableTest } from '@/api/types'
+import InfoBadge from '@/components/badge/InfoBadge.vue'
 import { quiz } from '@/api'
 import { useSession } from '@/composables/useSession'
 import { useBreakpoint } from '@/composables/useBreakpoint'
@@ -34,6 +35,7 @@ const { isMobile } = useBreakpoint()
 
 const testSummaries = ref<QuizTestSummary[]>([])
 const tests = ref<QuizTest[]>([])
+const availableTests = ref<QuizAvailableTest[]>([])
 const loading = ref(true)
 const error = ref('')
 
@@ -64,6 +66,16 @@ function attemptCount(test: QuizTest): number {
   return summary?.attemptCount ?? 0
 }
 
+function attemptStatus(test: QuizTest): string | null {
+  const available = availableTests.value.find(a => a.test.id === test.id)
+  return available?.attemptStatus ?? null
+}
+
+function isSubmitted(test: QuizTest): boolean {
+  const status = attemptStatus(test)
+  return status === 'SUBMITTED' || status === 'GRADED'
+}
+
 async function loadData() {
   loading.value = true
   error.value = ''
@@ -71,9 +83,11 @@ async function loadData() {
     if (canManageQuiz()) {
       testSummaries.value = await quiz.listTests()
       tests.value = testSummaries.value.map(s => s.test)
+      availableTests.value = []
     } else {
       testSummaries.value = []
-      tests.value = await quiz.listAvailableTests()
+      availableTests.value = await quiz.listAvailableTests()
+      tests.value = availableTests.value.map(a => a.test)
     }
   } catch {
     error.value = t('common.error')
@@ -89,9 +103,20 @@ function deleteTest(test: QuizTest) {
   })
 }
 
-function formatDate(dateStr: string | null): string {
+function formatDateTime(dateStr: string | null): string {
   if (!dateStr) return '-'
-  return new Date(dateStr).toLocaleDateString()
+  const d = new Date(dateStr)
+  return d.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })
+}
+
+function attemptStartedAt(test: QuizTest): string | null {
+  const available = availableTests.value.find(a => a.test.id === test.id)
+  return available?.startedAt ?? null
+}
+
+function attemptSubmittedAt(test: QuizTest): string | null {
+  const available = availableTests.value.find(a => a.test.id === test.id)
+  return available?.submittedAt ?? null
 }
 
 onMounted(() => {
@@ -134,15 +159,23 @@ watch(loaded, (isLoaded) => {
                 <SuccessBadge v-if="test.status === QuizTestStatus.ACTIVE">{{ t('quiz.tests.statusActive') }}</SuccessBadge>
                 <ErrorBadge v-else-if="test.status === QuizTestStatus.CLOSED">{{ t('quiz.tests.statusClosed') }}</ErrorBadge>
                 <SecondaryBadge v-else>{{ t('quiz.tests.statusDraft') }}</SecondaryBadge>
+                <InfoBadge v-if="isSubmitted(test)">{{ t('quiz.tests.taken') }}</InfoBadge>
               </div>
               <p v-if="test.description" class="text-xs text-(--text-muted) line-clamp-2">{{ test.description }}</p>
-              <div class="flex items-center justify-between text-xs text-(--text-muted)">
-                <span>{{ t('quiz.tests.startAt') }}: {{ formatDate(test.startAt) }}</span>
-                <span v-if="canManageQuiz()">{{ attemptCount(test) }} {{ t('quiz.attemptCount') }}</span>
-                <span>{{ t('quiz.tests.endAt') }}: {{ formatDate(test.endAt) }}</span>
+              <div v-if="canManageQuiz() && (test.startAt || test.endAt)" class="flex items-center justify-between text-xs text-(--text-muted)">
+                <span v-if="test.startAt">{{ t('quiz.tests.startAt') }}: {{ formatDateTime(test.startAt) }}</span>
+                <span>{{ attemptCount(test) }} {{ t('quiz.attemptCount') }}</span>
+                <span v-if="test.endAt">{{ t('quiz.tests.endAt') }}: {{ formatDateTime(test.endAt) }}</span>
+              </div>
+              <div v-else-if="canManageQuiz()" class="text-xs text-(--text-muted)">
+                {{ attemptCount(test) }} {{ t('quiz.attemptCount') }}
+              </div>
+              <div v-if="!canManageQuiz() && isSubmitted(test)" class="flex items-center justify-between text-xs text-(--text-muted)">
+                <span v-if="attemptStartedAt(test)">{{ t('quiz.tests.startedAt') }}: {{ formatDateTime(attemptStartedAt(test)) }}</span>
+                <span v-if="attemptSubmittedAt(test)">{{ t('quiz.tests.submittedAt') }}: {{ formatDateTime(attemptSubmittedAt(test)) }}</span>
               </div>
               <div class="flex items-center gap-2 pt-2 border-t border-bg-light-accent dark:border-bg-dark-accent">
-                <PrimaryButton v-if="test.status === QuizTestStatus.ACTIVE && !canManageQuiz()" @click.stop="router.push({ name: 'quiz-test-take', params: { id: test.id } })">
+                <PrimaryButton v-if="test.status === QuizTestStatus.ACTIVE && !canManageQuiz() && !isSubmitted(test)" @click.stop="router.push({ name: 'quiz-test-take', params: { id: test.id } })">
                   {{ t('quiz.tests.takeTest') }}
                 </PrimaryButton>
                 <template v-if="canManageQuiz()">
@@ -174,17 +207,22 @@ watch(loaded, (isLoaded) => {
                   <SuccessBadge v-if="test.status === QuizTestStatus.ACTIVE">{{ t('quiz.tests.statusActive') }}</SuccessBadge>
                   <ErrorBadge v-else-if="test.status === QuizTestStatus.CLOSED">{{ t('quiz.tests.statusClosed') }}</ErrorBadge>
                   <SecondaryBadge v-else>{{ t('quiz.tests.statusDraft') }}</SecondaryBadge>
+                  <InfoBadge v-if="isSubmitted(test)">{{ t('quiz.tests.taken') }}</InfoBadge>
                 </div>
                 <p v-if="test.description" class="text-xs text-(--text-muted) line-clamp-1">{{ test.description }}</p>
               </div>
               <div class="flex items-center gap-4 text-xs text-(--text-muted) shrink-0">
                 <span v-if="canManageQuiz()">{{ attemptCount(test) }} {{ t('quiz.attemptCount') }}</span>
-                <div class="text-right">
-                  <div>{{ t('quiz.tests.startAt') }}: {{ formatDate(test.startAt) }}</div>
-                  <div>{{ t('quiz.tests.endAt') }}: {{ formatDate(test.endAt) }}</div>
+                <div v-if="canManageQuiz() && (test.startAt || test.endAt)" class="text-right">
+                  <div v-if="test.startAt">{{ t('quiz.tests.startAt') }}: {{ formatDateTime(test.startAt) }}</div>
+                  <div v-if="test.endAt">{{ t('quiz.tests.endAt') }}: {{ formatDateTime(test.endAt) }}</div>
+                </div>
+                <div v-if="!canManageQuiz() && isSubmitted(test)" class="text-right">
+                  <div v-if="attemptStartedAt(test)">{{ t('quiz.tests.startedAt') }}: {{ formatDateTime(attemptStartedAt(test)) }}</div>
+                  <div v-if="attemptSubmittedAt(test)">{{ t('quiz.tests.submittedAt') }}: {{ formatDateTime(attemptSubmittedAt(test)) }}</div>
                 </div>
                 <div class="flex items-center gap-2" @click.stop>
-                  <PrimaryButton v-if="test.status === QuizTestStatus.ACTIVE && !canManageQuiz()" @click="router.push({ name: 'quiz-test-take', params: { id: test.id } })">
+                  <PrimaryButton v-if="test.status === QuizTestStatus.ACTIVE && !canManageQuiz() && !isSubmitted(test)" @click="router.push({ name: 'quiz-test-take', params: { id: test.id } })">
                     {{ t('quiz.tests.takeTest') }}
                   </PrimaryButton>
                   <template v-if="canManageQuiz()">

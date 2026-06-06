@@ -15,18 +15,22 @@ import MemberFilterBar from './listview/FilterBar.vue'
 import MemberTable from './listview/Table.vue'
 import ExportModal from './listview/ExportModal.vue'
 import type { StationMember } from '@/api/types'
-import { StationUserType, parseFieldConfig } from '@/api/types'
+import { StationPermission, StationUserType, parseFieldConfig } from '@/api/types'
 import { useMemberData, memberDisplayName } from './listview/useMemberData'
 import { useSavedFilters, emptyTabState, type TabFilterState } from './listview/useSavedFilters'
 import { useExport } from './listview/useExport'
 import { useMemberFilter } from '@/composables/useMemberFilter'
+import { useSession } from '@/composables/useSession'
 
 const { t } = useI18n()
 const router = useRouter()
+const { hasPermission } = useSession()
+const canExport = computed(() => hasPermission(StationPermission.MEMBER_EXPORT))
+const canEdit = computed(() => hasPermission(StationPermission.MEMBER_EDIT))
 
 // --- Member data ---
 const {
-  members, fields, allGroups, allTags, allRoles,
+  members, fields, allGroups, allTags,
   memberRolesMap, memberGroupsMap, memberTagsMap, memberManagers,
   loading, error, expandedId, overviewFields,
   getFieldValue, getFieldValueAsString, getMemberType, getMemberGroups, getColumnValues,
@@ -99,9 +103,6 @@ function toggleExtraColumn(fieldId: number) {
 
 // --- Member filter ---
 const {
-  userTypeOptions: filterUserTypeOptions,
-  groupOptions: filterGroupOptions,
-  tagOptions: filterTagOptions,
   onFilter: onMemberFilter,
   applyFilter: applyMemberFilter,
 } = useMemberFilter(
@@ -214,9 +215,9 @@ onMounted(() => {
           :extra-column-ids="extraColumnIds"
           :export-mode="exportMode"
           :selected-count="selectedIds.size"
-          :roles="filterUserTypeOptions"
-          :groups="filterGroupOptions"
-          :tags="filterTagOptions"
+          :can-export="canExport"
+          :groups="allGroups"
+          :tags="allTags"
           @clear-filters="clearFilters"
           @apply-filter="applyFilter"
           @delete-filter="deleteFilter"
@@ -244,6 +245,7 @@ onMounted(() => {
           :get-field-value="getFieldValue"
           :export-mode="exportMode"
           :selected-ids="selectedIds"
+          :can-edit="canEdit"
           @toggle-sort="toggleSort"
           @apply-column-filter="applyColumnFilter"
           @toggle-expand="toggleExpand"

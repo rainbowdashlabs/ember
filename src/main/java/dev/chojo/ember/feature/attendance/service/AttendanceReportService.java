@@ -33,6 +33,7 @@ import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -103,24 +104,23 @@ public class AttendanceReportService {
      * Filters members by role or group and aggregates hours within the given time range.
      */
     public ReportData buildReport(
-            int stationId, String roleName, Integer groupId, Instant from, Instant to, String rounding) {
+            int stationId, List<String> userTypes, List<Integer> groupIds, Instant from, Instant to, String rounding) {
         ZoneId zone = resolveTimezone(stationId);
         Locale locale = resolveLocale(stationId);
         DateTimeFormatter monthFmt = DateTimeFormatter.ofPattern("MMMM yyyy", locale);
-        List<Integer> rawIds;
-        String filterLabel;
-        if (groupId != null) {
-            rawIds = attendanceRepository.findMemberIdsByGroup(groupId);
-            var group = memberGroupRepository.findById(groupId);
-            filterLabel = group.map(MemberGroup::name).orElse("Gruppe #" + groupId);
-        } else if (roleName != null && !roleName.isBlank()) {
-            rawIds = attendanceRepository.findMemberIdsByUserType(stationId, roleName);
-            filterLabel = roleName;
-        } else {
-            rawIds = List.of();
-            filterLabel = "";
+        var rawIdSet = new LinkedHashSet<Integer>();
+        var filterLabels = new ArrayList<String>();
+        for (var gid : groupIds) {
+            rawIdSet.addAll(attendanceRepository.findMemberIdsByGroup(gid));
+            var group = memberGroupRepository.findById(gid);
+            filterLabels.add(group.map(MemberGroup::name).orElse("Gruppe #" + gid));
         }
-        var memberIds = Set.copyOf(rawIds);
+        for (var ut : userTypes) {
+            rawIdSet.addAll(attendanceRepository.findMemberIdsByUserType(stationId, ut));
+            filterLabels.add(ut);
+        }
+        String filterLabel = String.join(", ", filterLabels);
+        var memberIds = Set.copyOf(rawIdSet);
         var sessions = attendanceRepository.findSessionsByStationInRange(stationId, from, to);
 
         var memberNames = new LinkedHashMap<Integer, String>();
@@ -258,14 +258,14 @@ public class AttendanceReportService {
      */
     public Optional<byte[]> exportReportPdf(
             int stationId,
-            String roleName,
-            Integer groupId,
+            List<String> userTypes,
+            List<Integer> groupIds,
             Instant from,
             Instant to,
             String rounding,
             String generatedBy,
             boolean isYearReport) {
-        var report = buildReport(stationId, roleName, groupId, from, to, rounding);
+        var report = buildReport(stationId, userTypes, groupIds, from, to, rounding);
         ZoneId zone = resolveTimezone(stationId);
 
         var data = new LinkedHashMap<String, Object>();

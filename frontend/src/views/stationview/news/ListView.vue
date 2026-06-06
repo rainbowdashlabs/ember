@@ -22,7 +22,7 @@ import ErrorButton from '@/components/button/ErrorButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 
 import NewsCommentSection from '@/components/comment/NewsCommentSection.vue'
-import type { NewsEntry } from '@/api/types'
+import type { NewsEntry, MemberIdentity } from '@/api/types'
 import type { FederatedNewsItem } from '@/api/news'
 import { news } from '@/api'
 import UserAvatar from '@/components/avatar/UserAvatar.vue'
@@ -55,6 +55,7 @@ interface UnifiedNewsItem {
   title: string
   contentHtml?: string
   authorName?: string
+  author?: MemberIdentity | null
   publishedAt?: string
   commentCount: number
   restricted?: boolean
@@ -72,6 +73,7 @@ const allNews = computed<UnifiedNewsItem[]>(() => {
     title: e.title,
     contentHtml: e.contentHtml,
     authorName: e.authorName,
+    author: e.author,
     publishedAt: e.publishedAt,
     commentCount: e.commentCount,
     restricted: e.restricted,
@@ -202,7 +204,7 @@ onUnmounted(() => {
           <!-- Header -->
           <div class="flex items-start justify-between gap-3">
             <div class="flex items-center gap-2">
-              <UserAvatar v-if="item.authorName" :name="item.authorName" size="md"/>
+              <UserAvatar v-if="item.author || item.authorName" :identity="item.author" :name="item.author?.name ?? item.authorName" size="md"/>
               <div>
                 <SubHeader class="flex items-center gap-1">
                   <router-link v-if="item.kind === 'local'" :to="{name: 'news-detail', params: {id: item.id}}" class="hover:text-primary hover:underline">{{ item.title }}</router-link>
@@ -211,7 +213,7 @@ onUnmounted(() => {
                   <StationBadge v-if="item.kind === 'federated'" :station-name="item.stationName!" class="ml-1"/>
                 </SubHeader>
                 <p class="text-xs text-(--text-muted)">
-                  <template v-if="item.authorName">{{ item.authorName }} &middot; </template>
+                  <template v-if="item.author?.name || item.authorName">{{ item.author?.name ?? item.authorName }} &middot; </template>
                   {{ formatDate(item.publishedAt) }}
                 </p>
               </div>

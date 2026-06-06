@@ -21,6 +21,7 @@ const props = defineProps<{
   member: StationMember
   entry?: AttendanceEntry
   memberName: string
+  readonly?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -68,7 +69,7 @@ function formatTime(iso?: string): string {
         />
         <MemberName :identity="member.identity" class="font-medium text-sm truncate"/>
       </div>
-      <div v-if="entry" class="flex flex-col sm:flex-row sm:items-center gap-2">
+      <div v-if="entry && !readonly" class="flex flex-col sm:flex-row sm:items-center gap-2">
         <!-- Status buttons -->
         <div class="flex items-center gap-2 w-full sm:w-auto">
           <SuccessButton
@@ -119,6 +120,12 @@ function formatTime(iso?: string): string {
               @click="emit('resetTimes', entry.id)"
           />
         </div>
+      </div>
+      <!-- Read-only: show times as text -->
+      <div v-else-if="entry && readonly" class="flex items-center gap-2 text-xs text-(--text-muted)">
+        <span v-if="entry.status === 'PRESENT' && (entry.checkIn || entry.checkOut)">
+          {{ formatTime(entry.checkIn) || '—' }} – {{ formatTime(entry.checkOut) || '—' }}
+        </span>
       </div>
       <span v-else class="text-xs text-(--text-muted)">{{ t('attendanceSession.noEntry') }}</span>
     </div>

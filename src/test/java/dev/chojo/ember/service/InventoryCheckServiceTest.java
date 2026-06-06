@@ -40,7 +40,7 @@ class InventoryCheckServiceTest extends RepositoryTestBase {
     @BeforeAll
     static void setup() {
         service = new InventoryCheckService(
-                inventoryCheckRepo, inventoryRepo, stationMemberRepo, memberGroupRepo, accountRepo);
+                inventoryCheckRepo, inventoryRepo, stationMemberRepo, memberGroupRepo, accountRepo, memberIdentityFactory);
         station = stationRepo.create("CheckSvcStation");
         checkerAccount = accountRepo.create("checker-svc@test.com", "Check", "Er");
         targetAccount = accountRepo.create("target-svc@test.com", "Target", "Member");
@@ -82,7 +82,7 @@ class InventoryCheckServiceTest extends RepositoryTestBase {
                 .filter(s -> s.memberId() == target.id())
                 .findFirst()
                 .orElseThrow();
-        assertFalse(summary.permissions().isEmpty());
+        assertNotNull(summary.userType());
     }
 
     @Test

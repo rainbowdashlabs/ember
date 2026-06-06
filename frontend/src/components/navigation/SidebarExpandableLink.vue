@@ -4,8 +4,9 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {computed, ref, watch} from 'vue'
+import {Comment as VComment, computed, ref, useSlots, watch} from 'vue'
 import {useRoute} from 'vue-router'
+import type {VNode} from 'vue'
 
 const props = defineProps<{
   to: string
@@ -29,6 +30,27 @@ const isChildActive = computed(() => {
   return prefixes.value.some(p => (route.path + '/').startsWith(p + '/') || route.path === p)
 })
 const isInPath = computed(() => isLinkActive.value || isChildActive.value)
+const slots = useSlots()
+
+function countVisibleVNodes(vnodes: VNode[]): number {
+  let count = 0
+  for (const vnode of vnodes) {
+    if (vnode.type === VComment) continue
+    if (typeof vnode.type === 'symbol' && Array.isArray(vnode.children)) {
+      count += countVisibleVNodes(vnode.children as VNode[])
+    } else {
+      count++
+    }
+  }
+  return count
+}
+
+const hasVisibleChildren = computed(() => {
+  const slotFn = slots.default
+  if (!slotFn) return false
+  return countVisibleVNodes(slotFn()) > 0
+})
+
 const expanded = ref(isInPath.value)
 
 watch(isInPath, (active) => {
@@ -51,6 +73,7 @@ watch(isInPath, (active) => {
         <span class="flex-1"><slot name="label"/></span>
       </router-link>
       <button
+          v-if="hasVisibleChildren"
           class="flex items-center justify-center w-8 h-8 rounded-theme text-[var(--text)] transition-colors duration-150"
           @click="expanded = !expanded"
       >
@@ -60,7 +83,7 @@ watch(isInPath, (active) => {
         />
       </button>
     </div>
-    <div v-if="expanded" class="ml-3 flex flex-col gap-0.5 mt-0.5">
+    <div v-if="hasVisibleChildren && expanded" class="ml-3 flex flex-col gap-0.5 mt-0.5">
       <slot/>
     </div>
   </div>

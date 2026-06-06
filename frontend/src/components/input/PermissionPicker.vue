@@ -62,7 +62,7 @@ const tree = computed<TreeNode[]>(() => {
         .map(n => ({...n, children: filterHidden(n.children)}))
   }
 
-  return filterHidden(admin.children.map(buildNode))
+  return filterHidden([buildNode('STATION_ADMINISTRATOR'), ...admin.children.map(buildNode)])
 })
 
 // Map permission name -> PermissionGrant (db id)
@@ -72,9 +72,42 @@ const roleByName = computed(() => {
   return map
 })
 
-function isSelected(name: string): boolean {
+function isDirectlySelected(name: string): boolean {
   const role = roleByName.value.get(name)
   return role ? props.modelValue.has(role.id) : false
+}
+
+// Map: permission name -> name of the ancestor that implicitly grants it
+const implicitlyGrantedBy = computed<Map<string, string>>(() => {
+  const map = new Map<string, string>()
+  function markChildren(node: TreeNode, grantedBy: string) {
+    for (const child of node.children) {
+      if (!map.has(child.name)) map.set(child.name, grantedBy)
+      markChildren(child, grantedBy)
+    }
+  }
+  function walk(nodes: TreeNode[]) {
+    for (const node of nodes) {
+      if (isDirectlySelected(node.name)) markChildren(node, node.name)
+      walk(node.children)
+    }
+  }
+  walk(tree.value)
+  return map
+})
+
+function isEffectivelyEnabled(name: string): boolean {
+  return isDirectlySelected(name) || implicitlyGrantedBy.value.has(name)
+}
+
+function isImplicit(name: string): boolean {
+  return implicitlyGrantedBy.value.has(name)
+}
+
+function grantedByLabel(name: string): string {
+  const grantedBy = implicitlyGrantedBy.value.get(name)
+  if (!grantedBy) return ''
+  return t(`permissions.${grantedBy}.label`)
 }
 
 function allChildNames(node: TreeNode): string[] {
@@ -87,27 +120,26 @@ function allChildNames(node: TreeNode): string[] {
 }
 
 function toggle(name: string, node: TreeNode) {
+  if (isImplicit(name)) return
   const newSet = new Set(props.modelValue)
   const role = roleByName.value.get(name)
   if (!role) return
 
   if (newSet.has(role.id)) {
     newSet.delete(role.id)
+  } else {
+    newSet.add(role.id)
+    // Remove explicitly selected children (now implicit)
     for (const childName of allChildNames(node)) {
       const childRole = roleByName.value.get(childName)
       if (childRole) newSet.delete(childRole.id)
-    }
-  } else {
-    newSet.add(role.id)
-    for (const childName of allChildNames(node)) {
-      const childRole = roleByName.value.get(childName)
-      if (childRole) newSet.add(childRole.id)
     }
   }
   emit('update:modelValue', newSet)
 }
 
 function toggleLeaf(name: string) {
+  if (isImplicit(name)) return
   const newSet = new Set(props.modelValue)
   const role = roleByName.value.get(name)
   if (!role) return
@@ -129,32 +161,46 @@ function isExpanded(name: string): boolean {
   return expanded.value.has(name)
 }
 
-function hasAnyChildSelected(node: TreeNode): boolean {
-  for (const child of node.children) {
-    if (isSelected(child.name)) return true
-    if (hasAnyChildSelected(child)) return true
-  }
-  return false
+interface FlatItem {
+  name: string
+  node: TreeNode
+  chainDepth: number
 }
 
-function selectedChildCount(node: TreeNode): number {
-  let count = 0
-  for (const child of node.children) {
-    if (isSelected(child.name)) count++
-    count += selectedChildCount(child)
+// Flatten all descendants of a node, sorted by chain depth (longest first)
+function flattenDescendants(node: TreeNode): FlatItem[] {
+  const items: FlatItem[] = []
+  const seen = new Set<string>()
+  function walk(n: TreeNode) {
+    for (const child of n.children) {
+      if (!seen.has(child.name)) {
+        seen.add(child.name)
+        items.push({ name: child.name, node: child, chainDepth: countMaxDepth(child) })
+      }
+      walk(child)
+    }
   }
-  return count
+  walk(node)
+  items.sort((a, b) => b.chainDepth - a.chainDepth)
+  return items
 }
 
-function totalChildCount(node: TreeNode): number {
-  let count = node.children.length
-  for (const child of node.children) {
-    count += totalChildCount(child)
-  }
-  return count
+function countEnabledDescendants(node: TreeNode): number {
+  const items = flattenDescendants(node)
+  return items.filter(i => isEffectivelyEnabled(i.name)).length
+}
+
+function countTotalDescendants(node: TreeNode): number {
+  return flattenDescendants(node).length
+}
+
+function countMaxDepth(node: TreeNode): number {
+  if (node.children.length === 0) return 0
+  return 1 + Math.max(...node.children.map(countMaxDepth))
 }
 
 const GROUP_ICONS: Record<string, string[]> = {
+  STATION_ADMINISTRATOR: ['fas', 'user-shield'],
   LOGIN: ['fas', 'right-to-bracket'],
   ATTENDANCE_MANAGER: ['fas', 'clipboard-check'],
   INVENTORY_MANAGER: ['fas', 'boxes-stacked'],
@@ -177,104 +223,70 @@ const GROUP_ICONS: Record<string, string[]> = {
     <Spinner v-if="loading" size="sm" />
 
     <div v-else class="space-y-2">
-      <template v-for="node in tree" :key="node.name">
-        <div class="rounded-lg border border-(--border) overflow-hidden transition-shadow" :class="{'shadow-sm border-primary/30': isSelected(node.name) || hasAnyChildSelected(node)}">
-          <!-- Group header -->
+      <div
+          v-for="node in tree"
+          :key="node.name"
+          class="rounded-lg border border-(--border) overflow-hidden transition-shadow"
+          :class="{'shadow-sm border-primary/30': isEffectivelyEnabled(node.name) || countEnabledDescendants(node) > 0}"
+      >
+        <!-- Top-level group header -->
+        <div
+            class="flex items-center gap-3 px-3 py-2.5 cursor-pointer select-none transition-colors"
+            :class="[isEffectivelyEnabled(node.name) ? 'bg-primary/5' : 'hover:bg-bg-light-accent/40 dark:hover:bg-bg-dark-accent/40', isImplicit(node.name) ? 'opacity-60' : '']"
+            @click="node.children.length > 0 && toggleExpand(node.name)"
+        >
+          <ToggleInput
+              :model-value="isEffectivelyEnabled(node.name)"
+              :disabled="isImplicit(node.name)"
+              @update:model-value="toggle(node.name, node)"
+              @click.stop
+          />
+          <font-awesome-icon
+              v-if="GROUP_ICONS[node.name]"
+              :icon="GROUP_ICONS[node.name]"
+              class="h-4 w-4 text-(--text-muted)"
+          />
+          <div class="flex-1 min-w-0">
+            <div class="font-medium text-sm">{{ t(`permissions.${node.name}.label`) }}</div>
+            <div class="text-xs text-(--text-muted) leading-tight">{{ t(`permissions.${node.name}.desc`) }}</div>
+            <div v-if="isImplicit(node.name)" class="text-[10px] text-primary italic mt-0.5">
+              {{ t('permissions.grantedBy', { name: grantedByLabel(node.name) }) }}
+            </div>
+          </div>
+          <span
+              v-if="!isEffectivelyEnabled(node.name) && node.children.length > 0 && countEnabledDescendants(node) > 0"
+              class="text-[10px] text-primary font-medium whitespace-nowrap"
+          >{{ countEnabledDescendants(node) }}/{{ countTotalDescendants(node) }}</span>
+          <font-awesome-icon
+              v-if="node.children.length > 0"
+              :icon="['fas', isExpanded(node.name) ? 'chevron-up' : 'chevron-down']"
+              class="h-3 w-3 text-(--text-muted) shrink-0"
+          />
+        </div>
+
+        <!-- Flat list of all descendants -->
+        <div v-if="node.children.length > 0 && isExpanded(node.name)" class="border-t border-(--border)">
           <div
-              class="flex items-center gap-3 px-3 py-2.5 cursor-pointer select-none transition-colors"
-              :class="isSelected(node.name) ? 'bg-primary/5' : 'hover:bg-bg-light-accent/40 dark:hover:bg-bg-dark-accent/40'"
-              @click="toggleExpand(node.name)"
+              v-for="item in flattenDescendants(node)"
+              :key="item.name"
+              class="flex items-center gap-3 px-3 py-2 pl-10 transition-colors"
+              :class="isImplicit(item.name) ? 'opacity-60 bg-bg-light-accent/10 dark:bg-bg-dark-accent/10' : 'hover:bg-bg-light-accent/40 dark:hover:bg-bg-dark-accent/40'"
           >
             <ToggleInput
-                :model-value="isSelected(node.name)"
-                @update:model-value="toggle(node.name, node)"
-                @click.stop
+                :model-value="isEffectivelyEnabled(item.name)"
+                :disabled="isImplicit(item.name)"
+                @update:model-value="item.node.children.length > 0 ? toggle(item.name, item.node) : toggleLeaf(item.name)"
             />
-            <font-awesome-icon
-                v-if="GROUP_ICONS[node.name]"
-                :icon="GROUP_ICONS[node.name]"
-                class="h-4 w-4 text-(--text-muted)"
-            />
-            <div class="flex-1 min-w-0">
-              <div class="font-medium text-sm">{{ t(`permissions.${node.name}.label`) }}</div>
-              <div class="text-xs text-(--text-muted) leading-tight">{{ t(`permissions.${node.name}.desc`) }}</div>
+            <div class="min-w-0">
+              <div class="text-sm" :class="item.node.children.length > 0 ? 'font-medium' : ''">{{ t(`permissions.${item.name}.label`) }}</div>
+              <div class="text-xs text-(--text-muted) leading-tight">{{ t(`permissions.${item.name}.desc`) }}</div>
+              <div v-if="isImplicit(item.name)" class="text-[10px] text-primary italic mt-0.5">
+                {{ t('permissions.grantedBy', { name: grantedByLabel(item.name) }) }}
+              </div>
             </div>
-            <span
-                v-if="!isSelected(node.name) && hasAnyChildSelected(node)"
-                class="text-[10px] text-primary font-medium whitespace-nowrap"
-            >{{ selectedChildCount(node) }}/{{ totalChildCount(node) }}</span>
-            <font-awesome-icon
-                v-if="node.children.length > 0"
-                :icon="['fas', isExpanded(node.name) ? 'chevron-up' : 'chevron-down']"
-                class="h-3 w-3 text-(--text-muted) shrink-0"
-            />
-          </div>
-
-          <!-- Children -->
-          <div v-if="node.children.length > 0 && isExpanded(node.name)" class="border-t border-(--border) bg-bg-light-accent/20 dark:bg-bg-dark-accent/20">
-            <template v-for="child in node.children" :key="child.name">
-              <!-- Leaf permission -->
-              <div
-                  v-if="child.children.length === 0"
-                  class="flex items-center gap-3 px-3 py-2 pl-10 transition-colors"
-                  :class="isSelected(node.name) ? 'opacity-40' : 'hover:bg-bg-light-accent/40 dark:hover:bg-bg-dark-accent/40'"
-              >
-                <ToggleInput
-                    :model-value="isSelected(child.name) || isSelected(node.name)"
-                    :disabled="isSelected(node.name)"
-                    @update:model-value="toggleLeaf(child.name)"
-                />
-                <div class="min-w-0">
-                  <div class="text-sm">{{ t(`permissions.${child.name}.label`) }}</div>
-                  <div class="text-xs text-(--text-muted) leading-tight">{{ t(`permissions.${child.name}.desc`) }}</div>
-                </div>
-              </div>
-
-              <!-- Nested group -->
-              <div v-else>
-                <div
-                    class="flex items-center gap-3 px-3 py-2 pl-10 cursor-pointer select-none transition-colors"
-                    :class="isSelected(node.name) ? 'opacity-40' : 'hover:bg-bg-light-accent/40 dark:hover:bg-bg-dark-accent/40'"
-                    @click="toggleExpand(child.name)"
-                >
-                  <ToggleInput
-                      :model-value="isSelected(child.name) || isSelected(node.name)"
-                      :disabled="isSelected(node.name)"
-                      @update:model-value="toggle(child.name, child)"
-                      @click.stop
-                  />
-                  <div class="flex-1 min-w-0">
-                    <div class="text-sm font-medium">{{ t(`permissions.${child.name}.label`) }}</div>
-                    <div class="text-xs text-(--text-muted) leading-tight">{{ t(`permissions.${child.name}.desc`) }}</div>
-                  </div>
-                  <font-awesome-icon
-                      :icon="['fas', isExpanded(child.name) ? 'chevron-up' : 'chevron-down']"
-                      class="h-3 w-3 text-(--text-muted) shrink-0"
-                  />
-                </div>
-                <div v-if="isExpanded(child.name)">
-                  <div
-                      v-for="leaf in child.children"
-                      :key="leaf.name"
-                      class="flex items-center gap-3 px-3 py-2 pl-16 transition-colors"
-                      :class="(isSelected(node.name) || isSelected(child.name)) ? 'opacity-40' : 'hover:bg-bg-light-accent/40 dark:hover:bg-bg-dark-accent/40'"
-                  >
-                    <ToggleInput
-                        :model-value="isSelected(leaf.name) || isSelected(child.name) || isSelected(node.name)"
-                        :disabled="isSelected(node.name) || isSelected(child.name)"
-                        @update:model-value="toggleLeaf(leaf.name)"
-                    />
-                    <div class="min-w-0">
-                      <div class="text-sm">{{ t(`permissions.${leaf.name}.label`) }}</div>
-                      <div class="text-xs text-(--text-muted) leading-tight">{{ t(`permissions.${leaf.name}.desc`) }}</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </template>
           </div>
         </div>
-      </template>
+      </div>
     </div>
   </div>
 </template>

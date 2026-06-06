@@ -25,7 +25,7 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  save: [data: { name: string; fieldType: string; config: string; position: number }]
+  save: [data: { name: string; fieldType: string; config: Record<string, unknown>; position: number }]
   close: []
 }>()
 
@@ -85,16 +85,11 @@ function fieldTypeCanHaveDefault(type: string): boolean {
   return ['STRING', 'TIME', 'DATE', 'BOOLEAN', 'ENUM'].includes(type)
 }
 
-function parseConfig(configStr: string | undefined): Record<string, unknown> {
-  if (!configStr) return {}
-  try {
-    return JSON.parse(configStr)
-  } catch {
-    return {}
-  }
+function parseConfig(config?: Record<string, unknown>): Record<string, unknown> {
+  return config ?? {}
 }
 
-function buildConfig(): string {
+function buildConfig(): Record<string, unknown> {
   const cfg: Record<string, unknown> = {}
   if (fieldConfigRequired.value) cfg.required = true
   if (fieldTypeNeedsGroup(fieldType.value) && fieldConfigGroupId.value) {
@@ -115,7 +110,7 @@ function buildConfig(): string {
       cfg.defaultValue = fieldDefaultValue.value.trim()
     }
   }
-  return JSON.stringify(cfg)
+  return cfg
 }
 
 watch([open, () => props.field], () => {

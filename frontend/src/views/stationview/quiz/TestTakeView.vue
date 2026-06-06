@@ -67,9 +67,37 @@ const currentQuestionDetail = computed(() => {
   return questionData.value.get(currentQuestion.value.questionId) ?? null
 })
 
+// Display permutations — shuffled once per question on load, stored by key.
+// Answers always store ORIGINAL indices so grading is straightforward.
+const displayOrders = ref<Map<string, number[]>>(new Map())
+
+function shuffle<T>(array: T[]): T[] {
+  const result = [...array]
+  for (let i = result.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[result[i], result[j]] = [result[j], result[i]]
+  }
+  return result
+}
+
+function getDisplayOrder(key: string, length: number): number[] {
+  if (displayOrders.value.has(key)) return displayOrders.value.get(key)!
+  const order = shuffle(Array.from({ length }, (_, i) => i))
+  displayOrders.value.set(key, order)
+  return order
+}
+
+// Current MC display order: maps display position -> original option index
+const mcDisplayOrder = computed<number[]>(() => {
+  if (!currentQuestion.value || !currentQuestionDetail.value) return []
+  if (currentQuestionDetail.value.quizQuestionType !== QuizQuestionTypes.MULTIPLE_CHOICE) return []
+  const opts = (currentQuestionDetail.value.config?.options as unknown[]) ?? []
+  return getDisplayOrder(`mc-${currentQuestion.value.questionId}`, opts.length)
+})
+
 const currentConfig = computed(() => {
   if (!currentQuestionDetail.value) return {}
-  try { return JSON.parse(currentQuestionDetail.value.config || '{}') } catch { return {} }
+  return currentQuestionDetail.value.config ?? {}
 })
 
 // Connect items — support both sanitized (leftItems/rightItems) and full (pairs) config
@@ -79,11 +107,17 @@ const connectLeftItems = computed<string[]>(() => {
   if (cfg.pairs) return (cfg.pairs as { left: string; right: string }[]).map(p => p.left)
   return []
 })
-const connectRightItems = computed<string[]>(() => {
+const connectRightItemsRaw = computed<string[]>(() => {
   const cfg = currentConfig.value
   if (cfg.rightItems) return cfg.rightItems as string[]
   if (cfg.pairs) return (cfg.pairs as { left: string; right: string }[]).map(p => p.right)
   return []
+})
+const connectRightItems = computed<string[]>(() => {
+  const raw = connectRightItemsRaw.value
+  if (!currentQuestion.value || raw.length === 0) return raw
+  const order = getDisplayOrder(`connect-${currentQuestion.value.questionId}`, raw.length)
+  return order.map(i => raw[i])
 })
 
 const currentAnswer = computed({
@@ -169,7 +203,7 @@ function setMCAnswer(optionIndex: number, isMulti: boolean) {
     selected = [optionIndex]
   }
 
-  currentAnswer.value = JSON.stringify({ ...parsed, selected })
+  currentAnswer.value = JSON.stringify({ selected })
 }
 
 function setFillBlankGap(gapIndex: number, value: string) {
@@ -247,13 +281,12 @@ async function doSubmit() {
   submitModalOpen.value = false
   if (!attempt.value || submitted.value) return
 
-  // Save current answer first
-  if (currentQuestion.value) {
-    const answerStr = answers.value.get(currentQuestion.value.questionId) ?? ''
+  // Save all answers before submitting
+  for (const [questionId, answerStr] of answers.value.entries()) {
     if (answerStr) {
       try {
-        await quiz.saveAnswer(attempt.value.id, currentQuestion.value.questionId, answerStr)
-      } catch { /* continue submit */ }
+        await quiz.saveAnswer(attempt.value.id, questionId, answerStr)
+      } catch { /* continue */ }
     }
   }
 
@@ -313,17 +346,17 @@ async function loadData() {
       if (!answers.value.has(aq.questionId)) {
         const q = qMap.get(aq.questionId)
         if (q) {
-          const config = (() => { try { return JSON.parse(q.config || '{}') } catch { return {} } })()
-          if (q.questionType === QuizQuestionTypes.MULTIPLE_CHOICE) {
+          const config = q.config ?? {}
+          if (q.quizQuestionType === QuizQuestionTypes.MULTIPLE_CHOICE) {
             answers.value.set(aq.questionId, JSON.stringify({ selected: [] }))
-          } else if (q.questionType === QuizQuestionTypes.ORDERING) {
+          } else if (q.quizQuestionType === QuizQuestionTypes.ORDERING) {
             const items = (config.items as string[]) ?? []
-            answers.value.set(aq.questionId, JSON.stringify({ order: items.map((_: string, i: number) => i) }))
-          } else if (q.questionType === QuizQuestionTypes.TRUE_FALSE) {
+            answers.value.set(aq.questionId, JSON.stringify({ order: shuffle(items.map((_: string, i: number) => i)) }))
+          } else if (q.quizQuestionType === QuizQuestionTypes.TRUE_FALSE) {
             answers.value.set(aq.questionId, JSON.stringify({ value: null }))
-          } else if (q.questionType === QuizQuestionTypes.CONNECT) {
+          } else if (q.quizQuestionType === QuizQuestionTypes.CONNECT) {
             answers.value.set(aq.questionId, JSON.stringify({ pairs: {} }))
-          } else if (q.questionType === QuizQuestionTypes.FILL_IN_THE_BLANK) {
+          } else if (q.quizQuestionType === QuizQuestionTypes.FILL_IN_THE_BLANK) {
             answers.value.set(aq.questionId, JSON.stringify({ gaps: {} }))
           } else {
             answers.value.set(aq.questionId, JSON.stringify({ text: '' }))
@@ -369,7 +402,7 @@ onUnmounted(() => {
             <font-awesome-icon :icon="['fas', 'check-circle']" class="text-4xl text-success" />
             <SectionHeader>{{ t('quiz.attempt.submitted') }}</SectionHeader>
             <p class="text-sm text-(--text-muted)">{{ t('quiz.attempt.submittedInfo') }}</p>
-            <PrimaryButton @click="router.push({ name: 'quiz-test-detail', params: { id: testId } })">
+            <PrimaryButton @click="router.push({ name: 'quiz-tests' })">
               {{ t('quiz.attempt.backToTest') }}
             </PrimaryButton>
           </div>
@@ -415,6 +448,7 @@ onUnmounted(() => {
           :answer-parsed="currentAnswerParsed"
           :connect-left-items="connectLeftItems"
           :connect-right-items="connectRightItems"
+          :mc-display-order="mcDisplayOrder"
           @set-m-c-answer="setMCAnswer"
           @set-fill-blank-gap="setFillBlankGap"
           @set-free-answer="setFreeAnswer"

@@ -127,12 +127,12 @@ async function loadForm() {
 
     questions.value = qs.map(q => ({
       id: `existing-${q.id}`,
-      questionType: q.questionType,
+      questionType: q.formQuestionType,
       title: q.title,
       description: q.description,
       required: q.required,
       shuffle: q.shuffle,
-      config: typeof q.config === 'string' ? JSON.parse(q.config || '{}') : (q.config ?? {}),
+      config: typeof q.config === 'object' ? { ...q.config } : {},
     }))
   } catch {
     error.value = t('common.error')

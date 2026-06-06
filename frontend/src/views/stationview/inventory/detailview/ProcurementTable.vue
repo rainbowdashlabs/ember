@@ -16,9 +16,12 @@ import THead from '@/components/table/THead.vue'
 import TRow from '@/components/table/TRow.vue'
 import type { ProcurementEntry } from '@/api/types'
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   entries: ProcurementEntry[]
-}>()
+  readonly?: boolean
+}>(), {
+  readonly: false,
+})
 
 const emit = defineEmits<{
   fulfill: [id: number]
@@ -40,7 +43,7 @@ const { t } = useI18n()
             <Th>{{ t('inventory.detail.owner') }}</Th>
             <Th>{{ t('inventory.detail.size') }}</Th>
             <Th>{{ t('inventory.detail.notes') }}</Th>
-            <th class="px-3 py-2"></th>
+            <th v-if="!props.readonly" class="px-3 py-2"></th>
           </THead>
         </thead>
         <tbody>
@@ -48,7 +51,7 @@ const { t } = useI18n()
             <Td><MemberName :identity="p.memberIdentity ?? null"/></Td>
             <Td><SizeBadge>{{ p.sizeLabel || t('common.unisize') }}</SizeBadge></Td>
             <Td muted>{{ p.notes || '-' }}</Td>
-            <Td align="right">
+            <Td v-if="!props.readonly" align="right">
               <PrimaryButton :icon="['fas', 'check']" @click="emit('fulfill', p.id)">
                 {{ t('procurement.markFulfilled') }}
               </PrimaryButton>

@@ -64,10 +64,6 @@ function childrenOf(commentId: number): Comment[] {
   return props.comments.filter(c => c.parentId === commentId)
 }
 
-function memberName(comment: Comment): string {
-  return comment.authorName || 'Unknown'
-}
-
 function resolveMentions(text: string): Array<{ type: 'text'; value: string } | { type: 'mention'; name: string }> {
   const parts: Array<{ type: 'text'; value: string } | { type: 'mention'; name: string }> = []
   // Match both new format @[stationUid/memberUid:Name] and legacy @[123:Name]

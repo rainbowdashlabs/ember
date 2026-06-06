@@ -267,6 +267,13 @@ public class QuizTestRepository {
                 .changed();
     }
 
+    public boolean updateAttemptMaxPoints(int id, double maxPoints) {
+        return Query.query("UPDATE quiz_test_attempt SET max_points = :max_points WHERE id = :id;")
+                .single(Call.of().bind("id", id).bind("max_points", maxPoints))
+                .update()
+                .changed();
+    }
+
     public boolean gradeAttempt(int id, double totalPoints, int gradedBy) {
         return Query.query("""
                         UPDATE quiz_test_attempt
@@ -314,7 +321,7 @@ public class QuizTestRepository {
         Query.query("""
                         INSERT INTO quiz_test_answer(attempt_id, question_id, section_id, answer, position)
                         VALUES (:attempt_id, :question_id, :section_id, :answer::jsonb, :position)
-                        ON CONFLICT (id) DO UPDATE SET answer = :answer::jsonb;""")
+                        ON CONFLICT (attempt_id, question_id) DO UPDATE SET answer = EXCLUDED.answer, section_id = EXCLUDED.section_id, position = EXCLUDED.position;""")
                 .single(Call.of()
                         .bind("attempt_id", attemptId)
                         .bind("question_id", questionId)
@@ -328,20 +335,12 @@ public class QuizTestRepository {
         Query.query("""
                         INSERT INTO quiz_test_answer(attempt_id, question_id, answer)
                         VALUES (:attempt_id, :question_id, :answer::jsonb)
-                        ON CONFLICT DO NOTHING;""")
+                        ON CONFLICT (attempt_id, question_id) DO UPDATE SET answer = EXCLUDED.answer;""")
                 .single(Call.of()
                         .bind("attempt_id", attemptId)
                         .bind("question_id", questionId)
                         .bind("answer", answer))
                 .insert();
-        Query.query("""
-                        UPDATE quiz_test_answer SET answer = :answer::jsonb
-                        WHERE attempt_id = :attempt_id AND question_id = :question_id;""")
-                .single(Call.of()
-                        .bind("attempt_id", attemptId)
-                        .bind("question_id", questionId)
-                        .bind("answer", answer))
-                .update();
     }
 
     public boolean gradeAnswer(int answerId, double points) {

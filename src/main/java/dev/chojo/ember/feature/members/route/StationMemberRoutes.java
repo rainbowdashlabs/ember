@@ -78,18 +78,18 @@ public class StationMemberRoutes implements Routes {
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
         routes.get(prefix + "/permissions", this::listAllPermissions, StationPermission.LOGIN);
         routes.get(prefix + "/station-members/completions", this::completions, StationPermission.LOGIN);
-        routes.get(prefix + "/station-members", this::listByStation, StationPermission.MEMBER_MANAGER);
-        routes.get(prefix + "/station-members/former", this::listFormer, StationPermission.MEMBER_MANAGER);
+        routes.get(prefix + "/station-members", this::listByStation, StationPermission.MEMBER_READ, StationPermission.ATTENDANCE_READ, StationPermission.EVENT_EDIT, StationPermission.INVENTORY_READ);
+        routes.get(prefix + "/station-members/former", this::listFormer, StationPermission.MEMBER_READ, StationPermission.ATTENDANCE_READ);
         routes.get(prefix + "/station-members/all-permissions", this::getAllMemberPermissions, StationPermission.MEMBER_MANAGER);
-        routes.get(prefix + "/station-members/rich", this::listRichMembers, StationPermission.MEMBER_MANAGER);
-        routes.get(prefix + "/station-members/{id}", this::get, StationPermission.MEMBER_MANAGER);
-        routes.post(prefix + "/station-members", this::create, StationPermission.MEMBER_MANAGER);
+        routes.get(prefix + "/station-members/rich", this::listRichMembers, StationPermission.MEMBER_READ);
+        routes.get(prefix + "/station-members/{id}", this::get, StationPermission.MEMBER_READ);
+        routes.post(prefix + "/station-members", this::create, StationPermission.MEMBER_EDIT);
         routes.delete(prefix + "/station-members/{id}", this::delete, StationPermission.MEMBER_MANAGER);
         routes.get(prefix + "/station-members/{id}/permissions", this::getPermissions, StationPermission.MEMBER_MANAGER);
         routes.put(prefix + "/station-members/{id}/permissions", this::setPermissions, StationPermission.MEMBER_MANAGER);
 
         routes.get(prefix + "/station-members/{id}/managed", this::getManaged, StationPermission.MEMBER_MANAGER);
-        routes.get(prefix + "/station-members/{id}/managers", this::getManagers, StationPermission.MEMBER_MANAGER);
+        routes.get(prefix + "/station-members/{id}/managers", this::getManagers, StationPermission.MEMBER_READ);
         routes.put(prefix + "/station-members/{id}/managers", this::setManagers, StationPermission.MEMBER_MANAGER);
 
         routes.put(prefix + "/station-members/{id}/user-type", this::setUserType, StationPermission.MEMBER_MANAGER);

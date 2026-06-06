@@ -4,12 +4,9 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import { useI18n } from 'vue-i18n'
-import NeutralContainer from '@/components/container/NeutralContainer.vue'
-import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
-import IconButton from '@/components/button/IconButton.vue'
+import { computed } from 'vue'
+import QuestionInputCard from '../questioncard/QuestionInputCard.vue'
 import type { QuizQuestion } from '@/api/types'
-import { QuizQuestionTypes } from '@/api/types'
 
 const props = defineProps<{
   questionDetail: QuizQuestion
@@ -17,6 +14,7 @@ const props = defineProps<{
   answerParsed: Record<string, unknown>
   connectLeftItems: string[]
   connectRightItems: string[]
+  mcDisplayOrder?: number[]
 }>()
 
 const emit = defineEmits<{
@@ -30,189 +28,82 @@ const emit = defineEmits<{
   moveOrderItem: [index: number, direction: -1 | 1]
 }>()
 
-const { t } = useI18n()
-
-function mcOptions(): { text: string; correct?: boolean }[] {
-  const opts = props.config.options
-  if (Array.isArray(opts)) return opts as { text: string; correct?: boolean }[]
-  return []
-}
-
-function isMcSelected(i: number): boolean {
+const mcSelections = computed<Set<number>>(() => {
   const selected = (props.answerParsed as { selected?: number[] }).selected ?? []
-  return selected.includes(i)
-}
+  return new Set(selected)
+})
 
-function fillGapValue(gapIndex: number): string {
-  const gaps = (props.answerParsed as { gaps?: Record<string, string> }).gaps ?? {}
-  return gaps[String(gapIndex)] ?? ''
-}
-
-function freeAnswerText(): string {
-  return (props.answerParsed as { text?: string }).text ?? ''
-}
-
-function connectPairValue(leftIndex: number): string {
-  const pairs = (props.answerParsed as { pairs?: Record<string, string> }).pairs ?? {}
-  return pairs[String(leftIndex)] ?? ''
-}
-
-function tfValue(): boolean | null {
+const tfAnswer = computed<boolean | null>(() => {
   const v = (props.answerParsed as { value?: boolean | null }).value
   return v ?? null
-}
+})
 
-function orderItems(): string[] {
-  const cfgItems = (props.config.items as string[]) ?? []
-  const order = (props.answerParsed as { order?: number[] }).order
-  if (order && order.length === cfgItems.length) return order.map(i => cfgItems[i])
-  return cfgItems
-}
+const freeAnswer = computed<string>(() => {
+  return (props.answerParsed as { text?: string }).text ?? ''
+})
 
-function orderIndices(): number[] {
+const fillGaps = computed<Record<string, string>>(() => {
+  return (props.answerParsed as { gaps?: Record<string, string> }).gaps ?? {}
+})
+
+const orderItems = computed<number[]>(() => {
   const cfgItems = (props.config.items as string[]) ?? []
   const order = (props.answerParsed as { order?: number[] }).order
   if (order && order.length === cfgItems.length) return order
   return cfgItems.map((_, i) => i)
+})
+
+const connectPairs = computed<Record<string, string>>(() => {
+  return (props.answerParsed as { pairs?: Record<string, string> }).pairs ?? {}
+})
+
+const isMultipleCorrect = computed(() => {
+  // Use the multiSelect hint from sanitized config, or fall back to counting correct options
+  if (props.config.multiSelect !== undefined) return props.config.multiSelect as boolean
+  const opts = props.config.options
+  if (!Array.isArray(opts)) return false
+  return (opts as { correct?: boolean }[]).filter(o => o.correct).length > 1
+})
+
+// Use the config with connect items injected for the shared component
+const effectiveConfig = computed<Record<string, unknown>>(() => {
+  const cfg = { ...props.config }
+  if (props.connectLeftItems.length > 0) cfg.leftItems = props.connectLeftItems
+  if (props.connectRightItems.length > 0) cfg.rightItems = props.connectRightItems
+  return cfg
+})
+
+function handleToggleMc(idx: number) {
+  emit('setMCAnswer', idx, isMultipleCorrect.value)
 }
 
-const isMultipleCorrect = (): boolean => {
-  const opts = mcOptions()
-  return opts.filter(o => o.correct).length > 1
+function handleFreeAnswer(text: string) {
+  if (props.questionDetail.quizQuestionType === 'IMAGE_TEXT') {
+    emit('setImageTextAnswer', text)
+  } else {
+    emit('setFreeAnswer', text)
+  }
 }
 </script>
 
 <template>
-  <NeutralContainer class="space-y-4">
-    <!-- Question header -->
-    <div class="space-y-1">
-      <p class="font-semibold">{{ questionDetail.title }}</p>
-      <p v-if="questionDetail.description" class="text-sm text-(--text-muted)">{{ questionDetail.description }}</p>
-      <img
-        v-if="questionDetail.imageUrl"
-        :src="questionDetail.imageUrl"
-        class="max-h-48 rounded-lg object-contain"
-        alt=""
-      />
-    </div>
-
-    <!-- Multiple Choice -->
-    <template v-if="questionDetail.questionType === QuizQuestionTypes.MULTIPLE_CHOICE">
-      <div class="space-y-2">
-        <div
-          v-for="(opt, i) in mcOptions()"
-          :key="i"
-          class="flex items-center gap-2 p-3 rounded-lg border-2 cursor-pointer transition-colors"
-          :class="isMcSelected(i) ? 'border-primary bg-primary/10' : 'border-bg-light-accent dark:border-bg-dark-accent hover:border-primary/50'"
-          @click="emit('setMCAnswer', i, isMultipleCorrect())"
-        >
-          <font-awesome-icon
-            :icon="['fas', isMultipleCorrect() ? (isMcSelected(i) ? 'square-check' : 'square') : (isMcSelected(i) ? 'circle-dot' : 'circle')]"
-            :class="isMcSelected(i) ? 'text-primary' : 'text-(--text-muted)'"
-          />
-          <span class="text-sm">{{ opt.text }}</span>
-        </div>
-      </div>
-    </template>
-
-    <!-- True / False -->
-    <template v-else-if="questionDetail.questionType === QuizQuestionTypes.TRUE_FALSE">
-      <div class="flex gap-3">
-        <SelectionToggleButton :selected="tfValue() === true" @toggle="emit('setTrueFalse', true)">
-          {{ t('quiz.attempt.true') }}
-        </SelectionToggleButton>
-        <SelectionToggleButton :selected="tfValue() === false" @toggle="emit('setTrueFalse', false)">
-          {{ t('quiz.attempt.false') }}
-        </SelectionToggleButton>
-      </div>
-    </template>
-
-    <!-- Fill in the Blank -->
-    <template v-else-if="questionDetail.questionType === QuizQuestionTypes.FILL_IN_THE_BLANK">
-      <div class="space-y-2">
-        <div
-          v-for="(_, gapIdx) in ((config.answers as string[]) ?? [])"
-          :key="gapIdx"
-          class="flex items-center gap-2"
-        >
-          <span class="text-sm text-(--text-muted) w-6">{{ gapIdx + 1 }}.</span>
-          <input
-            :value="fillGapValue(gapIdx)"
-            class="flex-1 px-3 py-2 rounded-lg border border-bg-light-accent dark:border-bg-dark-accent bg-transparent focus:outline-none focus:border-primary text-sm"
-            :placeholder="t('quiz.attempt.fillGapPlaceholder', { n: gapIdx + 1 })"
-            @input="emit('setFillBlankGap', gapIdx, ($event.target as HTMLInputElement).value)"
-          />
-        </div>
-      </div>
-    </template>
-
-    <!-- Free Answer -->
-    <template v-else-if="questionDetail.questionType === QuizQuestionTypes.FREE_ANSWER">
-      <textarea
-        :value="freeAnswerText()"
-        rows="4"
-        class="w-full px-3 py-2 rounded-lg border border-bg-light-accent dark:border-bg-dark-accent bg-transparent focus:outline-none focus:border-primary text-sm resize-none"
-        :placeholder="t('quiz.attempt.freeAnswerPlaceholder')"
-        @input="emit('setFreeAnswer', ($event.target as HTMLTextAreaElement).value)"
-      />
-    </template>
-
-    <!-- Image Text -->
-    <template v-else-if="questionDetail.questionType === QuizQuestionTypes.IMAGE_TEXT">
-      <textarea
-        :value="freeAnswerText()"
-        rows="4"
-        class="w-full px-3 py-2 rounded-lg border border-bg-light-accent dark:border-bg-dark-accent bg-transparent focus:outline-none focus:border-primary text-sm resize-none"
-        :placeholder="t('quiz.attempt.freeAnswerPlaceholder')"
-        @input="emit('setImageTextAnswer', ($event.target as HTMLTextAreaElement).value)"
-      />
-    </template>
-
-    <!-- Connect -->
-    <template v-else-if="questionDetail.questionType === QuizQuestionTypes.CONNECT">
-      <div class="space-y-2">
-        <div v-for="(left, leftIdx) in connectLeftItems" :key="leftIdx" class="flex items-center gap-2">
-          <span class="text-sm font-medium w-1/3 shrink-0">{{ left }}</span>
-          <select
-            :value="connectPairValue(leftIdx)"
-            class="flex-1 px-3 py-2 rounded-lg border border-bg-light-accent dark:border-bg-dark-accent bg-bg-light dark:bg-bg-dark text-sm focus:outline-none focus:border-primary"
-            @change="emit('setConnectPair', leftIdx, ($event.target as HTMLSelectElement).value)"
-          >
-            <option value="">—</option>
-            <option v-for="right in connectRightItems" :key="right" :value="right">{{ right }}</option>
-          </select>
-        </div>
-      </div>
-    </template>
-
-    <!-- Ordering -->
-    <template v-else-if="questionDetail.questionType === QuizQuestionTypes.ORDERING">
-      <div class="space-y-2">
-        <div
-          v-for="(item, i) in orderItems()"
-          :key="orderIndices()[i]"
-          class="flex items-center gap-2 p-2 rounded-lg border border-bg-light-accent dark:border-bg-dark-accent"
-        >
-          <span class="text-xs text-(--text-muted) w-5 text-right shrink-0">{{ i + 1 }}.</span>
-          <span class="flex-1 text-sm">{{ item }}</span>
-          <div class="flex flex-col gap-0.5 shrink-0">
-            <IconButton
-              :icon="['fas', 'chevron-up']"
-              :label="t('quiz.attempt.moveUp')"
-              :disabled="i === 0"
-              class="text-xs"
-              @click="emit('moveOrderItem', i, -1)"
-            />
-            <IconButton
-              :icon="['fas', 'chevron-down']"
-              :label="t('quiz.attempt.moveDown')"
-              :disabled="i === orderItems().length - 1"
-              class="text-xs"
-              @click="emit('moveOrderItem', i, 1)"
-            />
-          </div>
-        </div>
-      </div>
-    </template>
-  </NeutralContainer>
+  <QuestionInputCard
+    :question="questionDetail"
+    :config="effectiveConfig"
+    :disabled="false"
+    :mc-selections="mcSelections"
+    :tf-answer="tfAnswer"
+    :free-answer="freeAnswer"
+    :fill-gaps="fillGaps"
+    :order-items="orderItems"
+    :connect-pairs="connectPairs"
+    :mc-display-order="mcDisplayOrder"
+    @toggle-mc-option="handleToggleMc"
+    @update:tf-answer="(v: boolean) => emit('setTrueFalse', v)"
+    @update:free-answer="handleFreeAnswer"
+    @set-fill-gap="(gi: number, v: string) => emit('setFillBlankGap', gi, v)"
+    @reorder-items="(from: number, to: number) => emit('reorderItems', from, to)"
+    @move-order-item="(i: number, d: -1 | 1) => emit('moveOrderItem', i, d)"
+    @set-connect-pair="(li: number, rv: string) => emit('setConnectPair', li, rv)"
+  />
 </template>

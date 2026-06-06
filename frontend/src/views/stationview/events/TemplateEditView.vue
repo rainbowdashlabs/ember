@@ -87,7 +87,7 @@ async function loadData() {
     fields.value = detail.fields.map(f => ({
       name: f.name,
       fieldType: f.fieldType,
-      config: f.config ?? '{}',
+      config: f.config ? JSON.parse(f.config) : {},
       value: '',
       overview: f.overview,
       attendanceFieldId: f.attendanceFieldId ?? null,
@@ -120,7 +120,7 @@ async function save() {
       fields: fields.value.map((f, i) => ({
         name: f.name,
         fieldType: f.fieldType ?? 'STRING',
-        config: f.config ?? '{}',
+        config: typeof f.config === 'string' ? f.config : JSON.stringify(f.config ?? {}),
         position: i,
         overview: f.overview,
         isPublic: f.isPublic,

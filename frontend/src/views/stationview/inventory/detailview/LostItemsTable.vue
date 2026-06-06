@@ -24,11 +24,6 @@ const props = defineProps<{
 
 const { t } = useI18n()
 
-function ownerName(memberId: number | null | undefined): string {
-  if (!memberId) return '-'
-  const m = props.memberMap.get(memberId)
-  return m ? (m.name || m.email || `#${m.id}`) : `#${memberId}`
-}
 
 function getMemberIdentity(memberId: number | null | undefined) {
   if (!memberId) return undefined

@@ -51,6 +51,11 @@ public class BoardService {
     }
 
     public List<Board> findVisibleBoards(int stationId, int memberId) {
+        return findVisibleBoards(stationId, memberId, false);
+    }
+
+    public List<Board> findVisibleBoards(int stationId, int memberId, boolean isBoardManager) {
+        if (isBoardManager) return repository.findByStation(stationId);
         return repository.findByStation(stationId).stream()
                 .filter(b -> canView(b.id(), memberId))
                 .toList();
@@ -187,6 +192,11 @@ public class BoardService {
     // -- Access control --
 
     public boolean canView(int boardId, int memberId) {
+        return canView(boardId, memberId, false);
+    }
+
+    public boolean canView(int boardId, int memberId, boolean isBoardManager) {
+        if (isBoardManager) return true;
         if (!repository.hasViewRestrictions(boardId)) return true;
         return matchesAccess(
                 memberId,
@@ -196,7 +206,12 @@ public class BoardService {
     }
 
     public boolean canEdit(int boardId, int memberId) {
-        if (!repository.hasEditRestrictions(boardId)) return canView(boardId, memberId);
+        return canEdit(boardId, memberId, false);
+    }
+
+    public boolean canEdit(int boardId, int memberId, boolean isBoardManager) {
+        if (isBoardManager) return true;
+        if (!repository.hasEditRestrictions(boardId)) return canView(boardId, memberId, isBoardManager);
         return matchesAccess(
                 memberId,
                 repository.findEditAccessUserTypes(boardId),

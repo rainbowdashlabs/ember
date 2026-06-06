@@ -65,7 +65,7 @@ public class MemberGroupRoutes implements Routes {
         routes.put(prefix + "/groups/{id}", this::update, StationPermission.MEMBER_MANAGE_GROUP);
         routes.delete(prefix + "/groups/{id}", this::delete, StationPermission.MEMBER_MANAGE_GROUP);
 
-        routes.get(prefix + "/groups/{id}/members", this::getMembers, StationPermission.MEMBER_MANAGE_GROUP);
+        routes.get(prefix + "/groups/{id}/members", this::getMembers, StationPermission.MEMBER_MANAGE_GROUP, StationPermission.ATTENDANCE_READ, StationPermission.EVENT_EDIT, StationPermission.INVENTORY_READ);
         routes.put(prefix + "/groups/{id}/members", this::setMembers, StationPermission.MEMBER_MANAGE_GROUP);
 
         routes.get(

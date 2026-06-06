@@ -17,7 +17,7 @@ import Modal from '@/components/feedback/Modal.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import type {ProfileField} from '@/api/types'
-import {FieldTypes} from '@/api/types'
+import {FieldTypes, parseFieldConfig} from '@/api/types'
 
 const {t} = useI18n()
 
@@ -61,22 +61,13 @@ const fieldPosition = ref(0)
 const fieldKeepOnArchive = ref(false)
 const saving = ref(false)
 
-function parseConfig(configStr: string | undefined): Record<string, unknown> {
-  if (!configStr) return {}
-  try {
-    return JSON.parse(configStr)
-  } catch {
-    return {}
-  }
-}
-
 watch(() => props.modelValue, (open) => {
   if (!open) return
   const f = props.field
   if (f) {
     fieldName.value = f.name ?? ''
     fieldType.value = f.fieldType ?? FieldTypes.TEXT
-    const cfg = parseConfig(f.config)
+    const cfg = parseFieldConfig(f.config)
     fieldRequired.value = !!cfg.required
     fieldReadonly.value = !!cfg.readonly
     fieldNotifyOnChange.value = !!cfg.notifyOnChange

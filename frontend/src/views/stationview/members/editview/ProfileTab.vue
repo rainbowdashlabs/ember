@@ -56,7 +56,7 @@ async function save() {
       firstName: editFirstName.value,
       lastName: editLastName.value,
     })
-    const entries = fields.value.map(f => ({fieldId: f.id, value: JSON.stringify(getEditValue(f.id))}))
+    const entries = props.fields.map(f => ({fieldId: f.id, value: JSON.stringify(getEditValue(f.id))}))
     await profileFields.setValues(props.memberId, {values: entries})
     success.value = t('memberEdit.saved')
   } catch {

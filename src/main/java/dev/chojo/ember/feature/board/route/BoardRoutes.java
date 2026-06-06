@@ -415,8 +415,9 @@ public class BoardRoutes implements Routes {
     private void get(Context ctx) {
         UserSession session = UserSession.from(ctx);
         var board = resolveBoard(ctx, session.stationId());
+        boolean isManager = session.permissions().contains(StationPermission.BOARD_MANAGER);
         if (session.member() != null
-                && !boardService.canView(board.id(), session.member().id()))
+                && !boardService.canView(board.id(), session.member().id(), isManager))
             throw new ForbiddenResponse("No access to this board");
         ctx.json(board);
     }
@@ -431,8 +432,9 @@ public class BoardRoutes implements Routes {
     private void canEdit(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int id = resolveBoardId(ctx, session.stationId());
+        boolean isManager = session.permissions().contains(StationPermission.BOARD_MANAGER);
         boolean editable = session.member() != null
-                && boardService.canEdit(id, session.member().id());
+                && boardService.canEdit(id, session.member().id(), isManager);
         ctx.json(Map.of("canEdit", editable));
     }
 

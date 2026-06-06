@@ -15,6 +15,7 @@ import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import type {ProfileField} from '@/api/types'
+import {parseFieldConfig} from '@/api/types'
 
 const {t} = useI18n()
 
@@ -29,17 +30,8 @@ const emit = defineEmits<{
   setValue: [fieldId: number, value: string]
 }>()
 
-function parseConfig(configStr: string | undefined): Record<string, unknown> {
-  if (!configStr) return {}
-  try {
-    return JSON.parse(configStr)
-  } catch {
-    return {}
-  }
-}
-
-const requiredFields = computed(() => props.fields.filter(f => parseConfig(f.config).required))
-const optionalFields = computed(() => props.fields.filter(f => !parseConfig(f.config).required))
+const requiredFields = computed(() => props.fields.filter(f => parseFieldConfig(f.config).required))
+const optionalFields = computed(() => props.fields.filter(f => !parseFieldConfig(f.config).required))
 
 function getValue(fieldId: number): string {
   return props.values.get(fieldId) ?? ''
@@ -59,7 +51,7 @@ function getValue(fieldId: number): string {
         <ProfileFieldInput
             :field-type="field.fieldType ?? 'TEXT'"
             :model-value="getValue(field.id)"
-            :options="(parseConfig(field.config).options as string[]) ?? []"
+            :options="(parseFieldConfig(field.config).options as string[]) ?? []"
             @update:model-value="emit('setValue', field.id, $event)"
         />
       </div>
@@ -72,7 +64,7 @@ function getValue(fieldId: number): string {
         <ProfileFieldInput
             :field-type="field.fieldType ?? 'TEXT'"
             :model-value="getValue(field.id)"
-            :options="(parseConfig(field.config).options as string[]) ?? []"
+            :options="(parseFieldConfig(field.config).options as string[]) ?? []"
             @update:model-value="emit('setValue', field.id, $event)"
         />
       </div>

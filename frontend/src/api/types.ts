@@ -19,7 +19,8 @@ export type StationUserTypeName = (typeof StationUserType)[keyof typeof StationU
 export const StationPermission = {
     LOGIN: 'LOGIN',
     USER: 'USER',
-    ATTENDANCE_CREATE: 'ATTENDANCE_CREATE',
+    ATTENDANCE_READ: 'ATTENDANCE_READ',
+    ATTENDANCE_EDIT: 'ATTENDANCE_EDIT',
     ATTENDANCE_CONFIGURE: 'ATTENDANCE_CONFIGURE',
     ATTENDANCE_EXPORT: 'ATTENDANCE_EXPORT',
     ATTENDANCE_MANAGER: 'ATTENDANCE_MANAGER',
@@ -27,14 +28,16 @@ export const StationPermission = {
     INVENTORY_CREATE_INTERNAL: 'INVENTORY_CREATE_INTERNAL',
     INVENTORY_CREATE: 'INVENTORY_CREATE',
     INVENTORY_READ: 'INVENTORY_READ',
+    INVENTORY_EDIT: 'INVENTORY_EDIT',
     INVENTORY_PROCUREMENT: 'INVENTORY_PROCUREMENT',
+    INVENTORY_EXCHANGE: 'INVENTORY_EXCHANGE',
     INVENTORY_CHECK: 'INVENTORY_CHECK',
     INVENTORY_LENDING_REQUEST: 'INVENTORY_LENDING_REQUEST',
     INVENTORY_LENDING_MANAGER: 'INVENTORY_LENDING_MANAGER',
     INVENTORY_MANAGER: 'INVENTORY_MANAGER',
     EVENT_MANAGE_TEMPLATE: 'EVENT_MANAGE_TEMPLATE',
     EVENT_MANAGE_CATEGORY: 'EVENT_MANAGE_CATEGORY',
-    EVENT_CONFIGURE: 'EVENT_CONFIGURE',
+    EVENT_EDIT: 'EVENT_EDIT',
     EVENT_REGISTRATION: 'EVENT_REGISTRATION',
     EVENTS_FEDERATE: 'EVENTS_FEDERATE',
     EVENT_MANAGER: 'EVENT_MANAGER',
@@ -46,6 +49,7 @@ export const StationPermission = {
     MEMBER_MANAGE_TAGS: 'MEMBER_MANAGE_TAGS',
     MEMBER_EDIT: 'MEMBER_EDIT',
     MEMBER_FIELDS: 'MEMBER_FIELDS',
+    MEMBER_EXPORT: 'MEMBER_EXPORT',
     MEMBER_MANAGER: 'MEMBER_MANAGER',
     WAITLIST_READ: 'WAITLIST_READ',
     WAITLIST_EDIT: 'WAITLIST_EDIT',
@@ -163,6 +167,15 @@ export interface MemberInfo {
     uid: string
 }
 
+export interface ManagedMemberSummary {
+    id: number
+    stationId: string
+    uid?: string | null
+    accountId: number
+    name?: string
+    email?: string
+}
+
 export interface SessionInfo {
     account?: AccountInfo
     stationId?: string
@@ -170,7 +183,7 @@ export interface SessionInfo {
     permissions?: string[]
     userType?: string
     instanceUserType?: string
-    managedMembers?: StationMember[]
+    managedMembers?: ManagedMemberSummary[]
     groups?: MemberGroup[]
     tags?: UserTag[]
     groupIds?: number[]
@@ -365,10 +378,13 @@ export interface BreakRequest {
 
 export const EventFieldTypes = {
     STRING: 'STRING',
+    NUMBER: 'NUMBER',
     TIME: 'TIME',
     DATE: 'DATE',
     BOOLEAN: 'BOOLEAN',
     ENUM: 'ENUM',
+    URL: 'URL',
+    TEXTAREA: 'TEXTAREA',
     MEMBER: 'MEMBER',
     MEMBER_LIST: 'MEMBER_LIST',
     MEMBER_OF_GROUP: 'MEMBER_OF_GROUP',
@@ -382,7 +398,7 @@ export interface EventField {
     eventId: number
     name?: string
     fieldType?: string
-    config?: string
+    config?: Record<string, unknown>
     value?: string
     position: number
     overview?: boolean
@@ -394,7 +410,7 @@ export interface EventField {
 export interface EventFieldEntry {
     name: string
     fieldType?: string
-    config?: string
+    config?: Record<string, unknown>
     value?: string
     overview?: boolean
     attendanceFieldId?: number | null
@@ -539,12 +555,12 @@ export interface FormQuestion {
     id: number
     formId: number
     position: number
-    questionType: QuestionType
+    formQuestionType: QuestionType
     title: string
     description: string
     required: boolean
     shuffle: boolean
-    config: string
+    config: Record<string, unknown>
 }
 
 export interface FormResponse {
@@ -591,7 +607,7 @@ export interface FormRestrictions {
 }
 
 export interface FormSubmitRequest {
-    answers: Record<number, string>
+    answers: Record<number, Record<string, unknown>>
 }
 
 export interface FormResponseDetail {
@@ -609,7 +625,7 @@ export interface FormQuestionAnalytics {
     questionId: number
     questionType: string
     title: string
-    config: string
+    config: Record<string, unknown>
     values: string[]
 }
 
@@ -758,14 +774,14 @@ export interface AttendanceTemplateField {
     templateId: number
     name?: string
     fieldType?: string
-    config?: string
+    config?: Record<string, unknown>
     position: number
 }
 
 export interface TemplateFieldRequest {
     name?: string
     fieldType?: string
-    config?: string
+    config?: Record<string, unknown>
     position: number
 }
 
@@ -1046,6 +1062,7 @@ export interface InventoryCheckItem {
 
 export interface MemberCheckState {
     memberName: string
+    memberIdentity?: MemberIdentity | null
     required: RequiredInventoryItem[]
     assigned: InventoryItem[]
     lastCheck?: InventoryCheck | null
@@ -1600,13 +1617,13 @@ export interface QuizQuestion {
     id: number
     catalogId: number
     categoryId: number | null
-    questionType: QuizQuestionTypeName
+    quizQuestionType: QuizQuestionTypeName
     title: string
     description: string
     imageUrl: string | null
     points: number
     autoPoints: boolean
-    config: string
+    config: Record<string, unknown>
     position: number
     createdAt: string
     updatedAt: string
@@ -1640,6 +1657,13 @@ export interface QuizTest {
     updatedAt: string
     restrictionMode?: string
     restricted?: boolean
+}
+
+export interface QuizAvailableTest {
+    test: QuizTest
+    attemptStatus: string | null
+    startedAt: string | null
+    submittedAt: string | null
 }
 
 export interface QuizTestSummary {

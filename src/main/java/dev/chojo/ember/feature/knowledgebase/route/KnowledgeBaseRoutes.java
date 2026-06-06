@@ -162,40 +162,40 @@ public class KnowledgeBaseRoutes implements Routes {
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
         // Folders
         routes.get(prefix + "/kb/folders", this::listFolders, StationPermission.USER);
-        routes.post(prefix + "/kb/folders", this::createFolder, StationPermission.KNOWLEDGE_MANAGER);
+        routes.post(prefix + "/kb/folders", this::createFolder, StationPermission.KNOWLEDGE_EDIT);
         routes.get(prefix + "/kb/folders/{id}", this::getFolder, StationPermission.USER);
-        routes.put(prefix + "/kb/folders/{id}", this::updateFolder, StationPermission.KNOWLEDGE_MANAGER);
-        routes.delete(prefix + "/kb/folders/{id}", this::deleteFolder, StationPermission.KNOWLEDGE_MANAGER);
+        routes.put(prefix + "/kb/folders/{id}", this::updateFolder, StationPermission.KNOWLEDGE_EDIT);
+        routes.delete(prefix + "/kb/folders/{id}", this::deleteFolder, StationPermission.KNOWLEDGE_EDIT);
 
         // Files
         routes.get(prefix + "/kb/files", this::listFiles, StationPermission.USER);
         routes.get(prefix + "/kb/files/{id}", this::getFile, StationPermission.USER);
-        routes.put(prefix + "/kb/files/{id}", this::updateFile, StationPermission.KNOWLEDGE_MANAGER);
-        routes.delete(prefix + "/kb/files/{id}", this::deleteFile, StationPermission.KNOWLEDGE_MANAGER);
+        routes.put(prefix + "/kb/files/{id}", this::updateFile, StationPermission.KNOWLEDGE_EDIT);
+        routes.delete(prefix + "/kb/files/{id}", this::deleteFile, StationPermission.KNOWLEDGE_EDIT);
 
         // File creation
-        routes.post(prefix + "/kb/files/markdown", this::createMarkdownFile, StationPermission.KNOWLEDGE_MANAGER);
-        routes.post(prefix + "/kb/files/youtube", this::createYoutubeFile, StationPermission.KNOWLEDGE_MANAGER);
-        routes.post(prefix + "/kb/files/upload", this::uploadFile, StationPermission.KNOWLEDGE_MANAGER);
-        routes.post(prefix + "/kb/files/import-document", this::importDocument, StationPermission.KNOWLEDGE_MANAGER);
-        routes.post(prefix + "/kb/files/link", this::createLinkFile, StationPermission.KNOWLEDGE_MANAGER);
+        routes.post(prefix + "/kb/files/markdown", this::createMarkdownFile, StationPermission.KNOWLEDGE_EDIT);
+        routes.post(prefix + "/kb/files/youtube", this::createYoutubeFile, StationPermission.KNOWLEDGE_EDIT);
+        routes.post(prefix + "/kb/files/upload", this::uploadFile, StationPermission.KNOWLEDGE_EDIT);
+        routes.post(prefix + "/kb/files/import-document", this::importDocument, StationPermission.KNOWLEDGE_EDIT);
+        routes.post(prefix + "/kb/files/link", this::createLinkFile, StationPermission.KNOWLEDGE_EDIT);
 
         // File content
         routes.get(prefix + "/kb/files/{id}/content", this::getFileContent, StationPermission.USER);
         routes.get(prefix + "/kb/files/{id}/html", this::getMarkdownHtml, StationPermission.USER);
-        routes.put(prefix + "/kb/files/{id}/content", this::updateMarkdownContent, StationPermission.KNOWLEDGE_MANAGER);
+        routes.put(prefix + "/kb/files/{id}/content", this::updateMarkdownContent, StationPermission.KNOWLEDGE_EDIT);
 
         // Versions (markdown only)
-        routes.get(prefix + "/kb/files/{id}/versions", this::listVersions, StationPermission.KNOWLEDGE_MANAGER);
-        routes.get(prefix + "/kb/files/{id}/versions/{version}", this::getVersion, StationPermission.KNOWLEDGE_MANAGER);
+        routes.get(prefix + "/kb/files/{id}/versions", this::listVersions, StationPermission.USER);
+        routes.get(prefix + "/kb/files/{id}/versions/{version}", this::getVersion, StationPermission.USER);
         routes.post(
                 prefix + "/kb/files/{id}/versions/{version}/revert",
                 this::revertToVersion,
-                StationPermission.KNOWLEDGE_MANAGER);
+                StationPermission.KNOWLEDGE_EDIT);
 
         // Related files
         routes.get(prefix + "/kb/files/{id}/related", this::getRelatedFiles, StationPermission.USER);
-        routes.put(prefix + "/kb/files/{id}/related", this::setRelatedFiles, StationPermission.KNOWLEDGE_MANAGER);
+        routes.put(prefix + "/kb/files/{id}/related", this::setRelatedFiles, StationPermission.KNOWLEDGE_EDIT);
 
         // Search
         routes.get(prefix + "/kb/search", this::search, StationPermission.USER);
@@ -207,30 +207,48 @@ public class KnowledgeBaseRoutes implements Routes {
         routes.get(
                 prefix + "/kb/folders/{id}/restrictions",
                 this::getFolderRestrictions,
-                StationPermission.KNOWLEDGE_MANAGER);
+                StationPermission.KNOWLEDGE_FEDERATE);
         routes.put(
                 prefix + "/kb/folders/{id}/restrictions",
                 this::setFolderRestrictions,
-                StationPermission.KNOWLEDGE_MANAGER);
+                StationPermission.KNOWLEDGE_FEDERATE);
         routes.get(
-                prefix + "/kb/files/{id}/restrictions", this::getFileRestrictions, StationPermission.KNOWLEDGE_MANAGER);
+                prefix + "/kb/files/{id}/restrictions", this::getFileRestrictions, StationPermission.KNOWLEDGE_FEDERATE);
         routes.put(
-                prefix + "/kb/files/{id}/restrictions", this::setFileRestrictions, StationPermission.KNOWLEDGE_MANAGER);
+                prefix + "/kb/files/{id}/restrictions", this::setFileRestrictions, StationPermission.KNOWLEDGE_FEDERATE);
+
+        // Public visibility overrides
+        routes.get(
+                prefix + "/kb/files/{id}/public-visibility",
+                this::getFilePublicVisibility,
+                StationPermission.KNOWLEDGE_EDIT);
+        routes.put(
+                prefix + "/kb/files/{id}/public-visibility",
+                this::setFilePublicVisibility,
+                StationPermission.KNOWLEDGE_EDIT);
+        routes.get(
+                prefix + "/kb/folders/{id}/public-visibility",
+                this::getFolderPublicVisibility,
+                StationPermission.KNOWLEDGE_EDIT);
+        routes.put(
+                prefix + "/kb/folders/{id}/public-visibility",
+                this::setFolderPublicVisibility,
+                StationPermission.KNOWLEDGE_EDIT);
 
         // Folder icons
         routes.get(prefix + "/kb/folders/{id}/icon", this::getFolderIcon, StationPermission.USER);
-        routes.post(prefix + "/kb/folders/{id}/icon", this::uploadFolderIcon, StationPermission.KNOWLEDGE_MANAGER);
+        routes.post(prefix + "/kb/folders/{id}/icon", this::uploadFolderIcon, StationPermission.KNOWLEDGE_EDIT);
 
         // KB Images (for markdown embedding)
-        routes.post(prefix + "/kb/files/{id}/images", this::uploadKbImage, StationPermission.KNOWLEDGE_MANAGER);
+        routes.post(prefix + "/kb/files/{id}/images", this::uploadKbImage, StationPermission.KNOWLEDGE_EDIT);
         routes.get(prefix + "/kb/images/{imageId}", this::getKbImage, StationPermission.USER);
 
         // Tags
         routes.get(prefix + "/kb/tags", this::listTags, StationPermission.USER);
         routes.get(prefix + "/kb/files/{id}/tags", this::getFileTags, StationPermission.USER);
-        routes.put(prefix + "/kb/files/{id}/tags", this::setFileTags, StationPermission.KNOWLEDGE_MANAGER);
+        routes.put(prefix + "/kb/files/{id}/tags", this::setFileTags, StationPermission.KNOWLEDGE_EDIT);
         routes.get(prefix + "/kb/folders/{id}/tags", this::getFolderTags, StationPermission.USER);
-        routes.put(prefix + "/kb/folders/{id}/tags", this::setFolderTags, StationPermission.KNOWLEDGE_MANAGER);
+        routes.put(prefix + "/kb/folders/{id}/tags", this::setFolderTags, StationPermission.KNOWLEDGE_EDIT);
 
         // KB Comments (local)
         routes.get(prefix + "/kb/files/{fileId}/comments", this::listComments, StationPermission.LOGIN);
@@ -246,11 +264,11 @@ public class KnowledgeBaseRoutes implements Routes {
                 this::federatedGetFileContent,
                 StationPermission.USER);
         routes.post(
-                prefix + "/federated/kb/files/{id}/copy", this::federatedCopyFile, StationPermission.KNOWLEDGE_MANAGER);
+                prefix + "/federated/kb/files/{id}/copy", this::federatedCopyFile, StationPermission.KNOWLEDGE_EDIT);
         routes.post(
                 prefix + "/federated/{stationuid}/kb/files/{id}/copy",
                 this::federatedCopyFile,
-                StationPermission.KNOWLEDGE_MANAGER);
+                StationPermission.KNOWLEDGE_EDIT);
 
         // Federated KB comments (user-facing proxy)
         routes.get(
@@ -768,9 +786,59 @@ public class KnowledgeBaseRoutes implements Routes {
         return new RestrictionResponse(userTypes, groupIds, tagIds, memberIds);
     }
 
+    // -- Public Visibility --
+
+    private void getFilePublicVisibility(Context ctx) {
+        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        var visible = service.findPublicVisibility(null, id).orElse(null);
+        ctx.json(new PublicVisibilityResponse(visible));
+    }
+
+    private void setFilePublicVisibility(Context ctx) {
+        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        var session = UserSession.from(ctx);
+        var file = service.findFile(id).orElseThrow(NotFoundResponse::new);
+        if (file.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot access resources from another station");
+        }
+        var req = ctx.bodyAsClass(PublicVisibilityRequest.class);
+        if (req.visible() == null) {
+            service.removePublicVisibility(null, id);
+        } else {
+            service.setPublicVisibility(null, id, req.visible());
+        }
+        ctx.json(new PublicVisibilityResponse(req.visible()));
+    }
+
+    private void getFolderPublicVisibility(Context ctx) {
+        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        var visible = service.findPublicVisibility(id, null).orElse(null);
+        ctx.json(new PublicVisibilityResponse(visible));
+    }
+
+    private void setFolderPublicVisibility(Context ctx) {
+        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        var session = UserSession.from(ctx);
+        var folder = service.findFolder(id).orElseThrow(NotFoundResponse::new);
+        if (folder.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot access resources from another station");
+        }
+        var req = ctx.bodyAsClass(PublicVisibilityRequest.class);
+        if (req.visible() == null) {
+            service.removePublicVisibility(id, null);
+        } else {
+            service.setPublicVisibility(id, null, req.visible());
+        }
+        ctx.json(new PublicVisibilityResponse(req.visible()));
+    }
+
     // -- Request/Response Records --
 
     public record FolderRequest(Integer parentId, String name, String description, String iconUrl, Integer position) {}
+
+    public record PublicVisibilityRequest(Boolean visible) {}
+
+    public record PublicVisibilityResponse(Boolean visible) {}
 
     public record FileUpdateRequest(String name, String description, String iconUrl, Integer position) {}
 

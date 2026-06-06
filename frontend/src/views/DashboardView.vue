@@ -28,6 +28,7 @@ import {useSidebarCounts} from '@/composables/useSidebarCounts'
 import HelpCenterLink from '@/components/navigation/HelpCenterLink.vue'
 import OnboardingTour from '@/components/onboarding/OnboardingTour.vue'
 import ReportProblemButton from '@/components/feedback/ReportProblemButton.vue'
+import DevToolsButton from '@/components/feedback/DevToolsButton.vue'
 import UserAvatar from '@/components/avatar/UserAvatar.vue'
 import {useOnboardingTour} from '@/composables/useOnboardingTour'
 
@@ -43,16 +44,12 @@ const {
   hasPermission,
   canManageMembers,
   hasAnyMemberPermission,
-  canManageInventory,
-  canManageAttendance,
   hasAnyAttendancePermission,
   canExportAttendance,
-  canManageEvents,
   canManagePolls,
   hasAnyWaitlistPermission,
   canManageQuiz,
   canManageProtocol,
-  canManageBoards,
   canManageFederation,
   canTestProtocol,
   isGuardian,
@@ -118,7 +115,7 @@ const membersDefaultRoute = computed(() => {
 })
 
 const attendanceDefaultRoute = computed(() => {
-  if (hasPermission(StationPermission.ATTENDANCE_CREATE)) return '/station/attendance/new'
+  if (hasPermission(StationPermission.ATTENDANCE_EDIT)) return '/station/attendance/new'
   return undefined // no link — group header just toggles expand
 })
 
@@ -239,7 +236,7 @@ async function handleLogout() {
       </SidebarGroup>
 
       <SidebarGroup :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => openGroup = v" v-if="isModuleEnabled(StationModules.INVENTORY)" :icon="['fas', 'boxes-stacked']" :label="t('sidebar.inventory')" prefix="/station/inventory">
-        <SidebarLink v-if="canManageInventory()" :icon="['fas', 'house']" name="inventory-overview" to="/station/inventory/overview"
+        <SidebarLink v-if="hasPermission(StationPermission.INVENTORY_READ)" :icon="['fas', 'house']" name="inventory-overview" to="/station/inventory/overview"
                      @navigate="close">
           {{ t('sidebar.overview') }}
         </SidebarLink>
@@ -251,27 +248,27 @@ async function handleLogout() {
                      @navigate="close">
           {{ t('sidebar.inventoryExchanges') }}
         </SidebarLink>
-        <SidebarLink v-if="canManageInventory()" :icon="['fas', 'users']" name="inventory-members" to="/station/inventory/members"
+        <SidebarLink v-if="hasPermission(StationPermission.INVENTORY_READ)" :icon="['fas', 'users']" name="inventory-members" to="/station/inventory/members"
                      @navigate="close">
           {{ t('sidebar.inventoryMembers') }}
         </SidebarLink>
-        <SidebarLink v-if="canManageInventory()" :icon="['fas', 'box-open']" name="inventory-manage" to="/station/inventory/manage"
+        <SidebarLink v-if="hasPermission(StationPermission.INVENTORY_CREATE)" :icon="['fas', 'box-open']" name="inventory-manage" to="/station/inventory/manage"
                      @navigate="close">
           {{ t('sidebar.inventoryManage') }}
         </SidebarLink>
-        <SidebarLink v-if="canManageInventory()" :icon="['fas', 'clipboard-list']" name="inventory-requirements"
+        <SidebarLink v-if="hasPermission(StationPermission.INVENTORY_READ)" :icon="['fas', 'clipboard-list']" name="inventory-requirements"
                      to="/station/inventory/requirements" @navigate="close">
           {{ t('sidebar.inventoryRequirements') }}
         </SidebarLink>
-        <SidebarLink v-if="canManageInventory()" :icon="['fas', 'clipboard-check']" name="inventory-checks" to="/station/inventory/checks"
+        <SidebarLink v-if="hasPermission(StationPermission.INVENTORY_CHECK)" :icon="['fas', 'clipboard-check']" name="inventory-checks" to="/station/inventory/checks"
                      @navigate="close">
           {{ t('sidebar.inventoryCheck') }}
         </SidebarLink>
-        <SidebarLink v-if="canManageInventory()" :icon="['fas', 'folder-plus']" name="inventory-procurement" to="/station/inventory/procurement"
+        <SidebarLink v-if="hasPermission(StationPermission.INVENTORY_PROCUREMENT)" :icon="['fas', 'folder-plus']" name="inventory-procurement" to="/station/inventory/procurement"
                      @navigate="close">
           {{ t('sidebar.inventoryProcurement') }}
         </SidebarLink>
-        <SidebarLink v-if="canManageInventory() && canManageFederation()" :badge="counts.lendingRequests" :icon="['fas', 'handshake']" name="inventory-lending" to="/station/inventory/lending"
+        <SidebarLink v-if="hasPermission(StationPermission.INVENTORY_LENDING_REQUEST) || hasPermission(StationPermission.INVENTORY_LENDING_MANAGER)" :badge="counts.lendingRequests" :icon="['fas', 'handshake']" name="inventory-lending" to="/station/inventory/lending"
                      @navigate="close">
           {{ t('sidebar.inventoryLending') }}
         </SidebarLink>
@@ -279,7 +276,7 @@ async function handleLogout() {
 
       <SidebarGroup :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => openGroup = v" v-if="hasAnyAttendancePermission() && isModuleEnabled(StationModules.ATTENDANCE)" :icon="['fas', 'clipboard-user']" :label="t('sidebar.attendance')"
                     prefix="/station/attendance" :to="attendanceDefaultRoute" name="attendance-new" @navigate="close">
-        <SidebarLink v-if="hasPermission(StationPermission.ATTENDANCE_CREATE)" :icon="['fas', 'clock-rotate-left']" name="attendance-past" to="/station/attendance/past"
+        <SidebarLink v-if="hasPermission(StationPermission.ATTENDANCE_READ)" :icon="['fas', 'clock-rotate-left']" name="attendance-past" to="/station/attendance/past"
                      @navigate="close">
           {{ t('sidebar.pastAttendance') }}
         </SidebarLink>
@@ -287,26 +284,26 @@ async function handleLogout() {
                      to="/station/attendance/report" @navigate="close">
           {{ t('sidebar.attendanceReport') }}
         </SidebarLink>
-        <SidebarLink v-if="canManageAttendance()" :icon="['fas', 'gear']" name="station-attendance-config"
+        <SidebarLink v-if="hasPermission(StationPermission.ATTENDANCE_CONFIGURE)" :icon="['fas', 'gear']" name="station-attendance-config"
                      to="/station/attendance/config" @navigate="close">
           {{ t('sidebar.attendanceConfig') }}
         </SidebarLink>
       </SidebarGroup>
 
       <SidebarGroup :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => openGroup = v" v-if="isModuleEnabled(StationModules.EVENTS)" :badge="counts.pendingRegistrations + counts.openEvents" :icon="['fas', 'calendar-days']" :label="t('sidebar.events')" prefix="/station/events" to="/station/events/upcoming" name="events-upcoming" @navigate="close">
-        <SidebarLink v-if="canManageEvents()" :badge="counts.pendingRegistrations" :icon="['fas', 'clipboard-list']" name="events-registrations"
+        <SidebarLink v-if="hasPermission(StationPermission.EVENT_REGISTRATION)" :badge="counts.pendingRegistrations" :icon="['fas', 'clipboard-list']" name="events-registrations"
                      to="/station/events/registrations" @navigate="close">
           {{ t('sidebar.pendingRegistrations') }}
         </SidebarLink>
-        <SidebarLink v-if="canManageEvents()" :icon="['fas', 'gears']" name="events" to="/station/events"
+        <SidebarLink v-if="hasPermission(StationPermission.EVENT_EDIT)" :icon="['fas', 'gears']" name="events" to="/station/events"
                      @navigate="close">
           {{ t('sidebar.manageEvents') }}
         </SidebarLink>
-        <SidebarLink v-if="canManageEvents()" :icon="['fas', 'folder-plus']" name="event-categories" to="/station/events/categories"
+        <SidebarLink v-if="hasPermission(StationPermission.EVENT_MANAGE_CATEGORY)" :icon="['fas', 'folder-plus']" name="event-categories" to="/station/events/categories"
                      @navigate="close">
           {{ t('sidebar.eventCategories') }}
         </SidebarLink>
-        <SidebarLink v-if="canManageEvents()" :icon="['fas', 'clipboard-list']" name="event-templates" to="/station/events/templates"
+        <SidebarLink v-if="hasPermission(StationPermission.EVENT_MANAGE_TEMPLATE)" :icon="['fas', 'clipboard-list']" name="event-templates" to="/station/events/templates"
                      @navigate="close">
           {{ t('sidebar.eventTemplates') }}
         </SidebarLink>
@@ -354,7 +351,7 @@ async function handleLogout() {
         <SidebarLink :icon="['fas', 'globe']" name="federated-boards" to="/station/federation/boards" @navigate="close">
           {{ t('boards.federatedBoards') }}
         </SidebarLink>
-        <SidebarLink v-if="canManageBoards()" :icon="['fas', 'gears']" name="board-manage" to="/station/boards/manage" @navigate="close">
+        <SidebarLink v-if="hasPermission(StationPermission.BOARD_EDIT)" :icon="['fas', 'gears']" name="board-manage" to="/station/boards/manage" @navigate="close">
           {{ t('sidebar.boardManage') }}
         </SidebarLink>
       </SidebarGroup>
@@ -394,5 +391,6 @@ async function handleLogout() {
     <RouterView/>
     <OnboardingTour/>
     <ReportProblemButton/>
+    <DevToolsButton/>
   </SidebarLayout>
 </template>

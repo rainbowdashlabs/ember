@@ -82,7 +82,11 @@ async function generateQuestions(entries: GenEntry[], userPrompt: string) {
       userPrompt: userPrompt || null,
       locale: 'de',
       catalogId: catalogId.value,
-      entries: entries.filter(e => e.count > 0),
+      entries: entries.filter(e => e.count > 0).map(e => ({
+        questionType: e.quizQuestionType,
+        count: e.count,
+        categoryId: e.categoryId,
+      })),
     })
 
     while (true) {
@@ -91,7 +95,7 @@ async function generateQuestions(entries: GenEntry[], userPrompt: string) {
       for (const q of poll.questions) {
         genPreviews.value.push({
           title: q.title, config: q.config,
-          questionType: q.questionType, categoryId: q.categoryId, accepted: true,
+          quizQuestionType: q.questionType, categoryId: q.categoryId, accepted: true,
         })
       }
       if (poll.done) break
@@ -111,12 +115,12 @@ async function regenerateQuestion(index: number) {
       ...ai,
       userPrompt: null,
       locale: 'de',
-      entries: [{ questionType: prev.questionType, count: 1, categoryId: prev.categoryId }],
+      entries: [{ questionType: prev.quizQuestionType, count: 1, categoryId: prev.categoryId }],
     })
     if (generated.length > 0) {
       genPreviews.value[index] = {
         title: generated[0].title, config: generated[0].config,
-        questionType: generated[0].questionType, categoryId: generated[0].categoryId, accepted: true,
+        quizQuestionType: generated[0].questionType, categoryId: generated[0].categoryId, accepted: true,
       }
     }
   } catch (e: unknown) {
@@ -137,7 +141,7 @@ async function saveGeneratedQuestions() {
     const accepted = genPreviews.value.filter(q => q.accepted)
     for (const q of accepted) {
       await quiz.createQuestion(catalogId.value, {
-        questionType: q.questionType,
+        quizQuestionType: q.quizQuestionType,
         title: q.title,
         config: q.config,
         categoryId: q.categoryId,

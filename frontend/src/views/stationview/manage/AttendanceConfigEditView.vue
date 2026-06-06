@@ -140,7 +140,7 @@ function openEditField(field: AttendanceTemplateField) {
   showFieldModal.value = true
 }
 
-async function saveField(data: { name: string; fieldType: string; config: string; position: number }) {
+async function saveField(data: { name: string; fieldType: string; config: Record<string, unknown>; position: number }) {
   if (!templateId.value) return
   fieldSaving.value = true
   error.value = ''
@@ -170,7 +170,7 @@ async function reorderFields(fromIndex: number, toIndex: number) {
       await attendance.updateTemplateField(templateId.value!, f.id, {
         name: f.name ?? '',
         fieldType: f.fieldType ?? '',
-        config: f.config ?? '{}',
+        config: f.config ?? {},
         position: f.position,
       })
     }

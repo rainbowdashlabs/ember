@@ -45,6 +45,7 @@ const props = defineProps<{
   getFieldValue: (memberId: number, fieldId: number) => unknown
   exportMode?: boolean
   selectedIds?: Set<number>
+  canEdit?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -192,7 +193,7 @@ function onRowClick(member: StationMember) {
         </div>
         <div v-if="!exportMode" class="flex gap-1" @click.stop>
           <IconButton :icon="['fas', 'eye']" :label="t('membersList.detail')" class="text-primary hover:bg-primary/15" @click="emit('navigateDetail', member, $event)"/>
-          <EditButton @click="emit('navigateEdit', member, $event)"/>
+          <EditButton v-if="canEdit" @click="emit('navigateEdit', member, $event)"/>
         </div>
         <div v-else @click.stop>
           <CheckboxInput :model-value="selectedIds?.has(member.id) ?? false" @update:model-value="emit('toggleSelect', member.id)"/>
@@ -309,7 +310,7 @@ function onRowClick(member: StationMember) {
             <IconButton :icon="['fas', 'eye']" :label="t('membersList.detail')"
                         class="text-primary hover:bg-primary/15"
                         @click="emit('navigateDetail', member, $event)"/>
-            <EditButton @click="emit('navigateEdit', member, $event)"/>
+            <EditButton v-if="canEdit" @click="emit('navigateEdit', member, $event)"/>
           </Td>
           <Td>
             <div class="flex items-center gap-2">

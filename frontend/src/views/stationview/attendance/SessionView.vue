@@ -18,8 +18,9 @@ import type {
   AttendanceTemplateField,
   MemberGroup,
   StationMember,
-  TemplateGroupEntry
+  TemplateGroupEntry,
 } from '@/api/types'
+import {StationPermission} from '@/api/types'
 import {attendance, memberGroups, stationMembers} from '@/api'
 import {useSession} from '@/composables/useSession'
 import {useSessionMeta} from './sessionview/useSessionMeta'
@@ -35,7 +36,9 @@ import MemberListPanel from './sessionview/MemberListPanel.vue'
 const {t} = useI18n()
 const route = useRoute()
 const router = useRouter()
-const {loaded} = useSession()
+const {loaded, hasPermission} = useSession()
+
+const canEdit = computed(() => hasPermission(StationPermission.ATTENDANCE_EDIT))
 
 const sessionId = computed(() => Number(route.params.id))
 
@@ -137,16 +140,6 @@ async function loadData() {
       }
       groupMembers.value = gm
 
-      const entryMemberIds = new Set(entries.value.map(e => e.memberId))
-      for (const tg of templateGroups.value) {
-        const members = gm.get(tg.groupId) ?? []
-        for (const m of members) {
-          if (!entryMemberIds.has(m.id) && !m.formerAt) {
-            entries.value = await attendance.createEntry(sessionId.value, {memberId: m.id, source: 'EXPECTED'})
-            entryMemberIds.add(m.id)
-          }
-        }
-      }
     }
 
     initFieldValues(sessionFields.value)
@@ -265,6 +258,7 @@ watch(loaded, (isLoaded) => {
       <SessionToolbar
           :check-mode="checkMode"
           :unchecked-count="uncheckedEntries.length"
+          :readonly="!canEdit"
           @back="goBack"
           @export="exportPdf"
           @sync="syncFromEvent"
@@ -277,6 +271,7 @@ watch(loaded, (isLoaded) => {
       <template v-if="!loading && session">
         <SessionHeader
             :session="session"
+            :readonly="!canEdit"
             @update-title="setSessionTitle"
             @update-start-time="setSessionStartTime"
             @update-end-time="setSessionEndTime"
@@ -300,6 +295,7 @@ watch(loaded, (isLoaded) => {
               :field-values="fieldValues"
               :group-members="groupMembers"
               :all-members="allMembers"
+              :readonly="!canEdit"
               @field-update="onFieldUpdate"
               @field-member-ids="setFieldMemberIds"
           />
@@ -311,6 +307,7 @@ watch(loaded, (isLoaded) => {
               :all-members="allMembers"
               :member-sections="memberSections"
               :selected-member-id="selectedMemberId"
+              :readonly="!canEdit"
               @set-status="setStatus"
               @check-in="setCheckIn"
               @check-out="setCheckOut"

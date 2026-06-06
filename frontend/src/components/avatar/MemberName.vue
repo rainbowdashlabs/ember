@@ -11,7 +11,7 @@ import {useSession} from '@/composables/useSession'
 import {computed} from 'vue'
 
 const props = withDefaults(defineProps<{
-  identity: MemberIdentity | null
+  identity: MemberIdentity | null | undefined
   size?: 'sm' | 'md' | 'lg'
 }>(), {
   size: 'sm',
