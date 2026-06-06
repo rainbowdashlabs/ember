@@ -746,8 +746,174 @@ class EventRepositoryTest extends RepositoryTestBase {
         eventRepo.delete(tmpEvent.id());
     }
 
+    // -- Cancellation & Threshold --
+
     @Test
     @Order(115)
+    void cancelEvent() {
+        var tmpEvent = eventRepo.create(
+                station.id(),
+                "Cancel Me",
+                "desc",
+                StationEvent.EventType.ONE_TIME,
+                null,
+                Instant.parse("2027-08-15T09:00:00Z"),
+                Instant.parse("2027-08-15T12:00:00Z"),
+                null,
+                false,
+                null,
+                false,
+                null,
+                null,
+                null,
+                null);
+        assertTrue(eventRepo.cancelEvent(tmpEvent.id(), "Testing cancellation"));
+        var cancelled = eventRepo.findById(tmpEvent.id()).orElseThrow();
+        assertTrue(cancelled.cancelled());
+        assertEquals("Testing cancellation", cancelled.cancelReason());
+        assertNotNull(cancelled.cancelledAt());
+        eventRepo.delete(tmpEvent.id());
+    }
+
+    @Test
+    @Order(116)
+    void cancelEventNotFound() {
+        assertFalse(eventRepo.cancelEvent(99999, "reason"));
+    }
+
+    @Test
+    @Order(117)
+    void findAutoCancel() {
+        // Create event with threshold in the past and no registrations
+        var tmpEvent = eventRepo.create(
+                station.id(),
+                "Auto Cancel Event",
+                "desc",
+                StationEvent.EventType.ONE_TIME,
+                null,
+                Instant.parse("2027-09-15T09:00:00Z"),
+                Instant.parse("2027-09-15T12:00:00Z"),
+                null,
+                true,
+                null,
+                false,
+                null,
+                null,
+                5,
+                Instant.now().minusSeconds(3600));
+        var candidates = eventRepo.findAutoCancel();
+        assertTrue(candidates.stream().anyMatch(e -> e.id() == tmpEvent.id()));
+        eventRepo.delete(tmpEvent.id());
+    }
+
+    @Test
+    @Order(118)
+    void setThresholdNotified() {
+        var tmpEvent = eventRepo.create(
+                station.id(),
+                "Threshold Notify Event",
+                "desc",
+                StationEvent.EventType.ONE_TIME,
+                null,
+                Instant.parse("2027-10-15T09:00:00Z"),
+                Instant.parse("2027-10-15T12:00:00Z"),
+                null,
+                false,
+                null,
+                false,
+                null,
+                null,
+                3,
+                Instant.now().plusSeconds(86400));
+        assertTrue(eventRepo.setThresholdNotified(tmpEvent.id()));
+        var updated = eventRepo.findById(tmpEvent.id()).orElseThrow();
+        assertTrue(updated.thresholdNotified());
+        eventRepo.delete(tmpEvent.id());
+    }
+
+    @Test
+    @Order(119)
+    void countAcceptedRegistrations() {
+        var tmpEvent = eventRepo.create(
+                station.id(),
+                "Count Accepted Event",
+                "desc",
+                StationEvent.EventType.ONE_TIME,
+                null,
+                Instant.parse("2027-11-15T09:00:00Z"),
+                Instant.parse("2027-11-15T12:00:00Z"),
+                null,
+                true,
+                null,
+                false,
+                null,
+                null,
+                null,
+                null);
+        assertEquals(0, eventRepo.countAcceptedRegistrations(tmpEvent.id()));
+        var reg = eventRepo.createRegistration(
+                tmpEvent.id(), member.id(), LocalDate.of(2027, 11, 15), RegistrationStatus.ACCEPTED, null);
+        assertEquals(1, eventRepo.countAcceptedRegistrations(tmpEvent.id()));
+        eventRepo.deleteRegistration(reg.id());
+        eventRepo.delete(tmpEvent.id());
+    }
+
+    @Test
+    @Order(120)
+    void findRegisteredMemberIds() {
+        var tmpEvent = eventRepo.create(
+                station.id(),
+                "Registered Ids Event",
+                "desc",
+                StationEvent.EventType.ONE_TIME,
+                null,
+                Instant.parse("2027-12-15T09:00:00Z"),
+                Instant.parse("2027-12-15T12:00:00Z"),
+                null,
+                true,
+                null,
+                false,
+                null,
+                null,
+                null,
+                null);
+        var reg = eventRepo.createRegistration(
+                tmpEvent.id(), member.id(), LocalDate.of(2027, 12, 15), RegistrationStatus.ACCEPTED, null);
+        var ids = eventRepo.findRegisteredMemberIds(tmpEvent.id());
+        assertTrue(ids.contains(member.id()));
+        eventRepo.deleteRegistration(reg.id());
+        eventRepo.delete(tmpEvent.id());
+    }
+
+    @Test
+    @Order(121)
+    void countPendingRegistrations() {
+        var tmpEvent = eventRepo.create(
+                station.id(),
+                "Pending Count Event",
+                "desc",
+                StationEvent.EventType.ONE_TIME,
+                null,
+                Instant.parse("2028-01-15T09:00:00Z"),
+                Instant.parse("2028-01-15T12:00:00Z"),
+                null,
+                true,
+                null,
+                false,
+                null,
+                null,
+                null,
+                null);
+        assertEquals(0, eventRepo.countPendingRegistrations(station.id()));
+        var reg = eventRepo.createRegistration(
+                tmpEvent.id(), member.id(), LocalDate.of(2028, 1, 15), RegistrationStatus.PENDING, null);
+        assertTrue(eventRepo.countPendingRegistrations(station.id()) >= 1);
+        eventRepo.deleteRegistration(reg.id());
+        eventRepo.delete(tmpEvent.id());
+    }
+
+    @Test
+    @Order(122)
     void createRegistrationUpsertConflict() {
         var tmpEvent = eventRepo.create(
                 station.id(),

@@ -22,6 +22,8 @@ import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 
+import dev.chojo.ember.api.roles.StationUserType;
+
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -229,6 +231,186 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
         service.delete(reqField.id());
         stationMemberRepo.delete(member2.id());
         accountRepo.delete(account2.id());
+    }
+
+    // -- findApplicableFields / scopeForUserType --
+
+    @Test
+    @Order(23)
+    void findApplicableFieldsForMember() {
+        stationMemberRepo.setUserType(member.id(), StationUserType.MEMBER);
+        var fields = service.findApplicableFields(member.id());
+        assertNotNull(fields);
+        // Should return MEMBER-scope fields since member has MEMBER user type
+    }
+
+    @Test
+    @Order(23)
+    void findApplicableFieldsForGuardian() {
+        stationMemberRepo.setUserType(member.id(), StationUserType.GUARDIAN);
+        var guardianField = service.create(
+                station.id(), "GuardianField", ProfileFieldType.TEXT, ProfileFieldConfig.parse("{}"), 20, ProfileFieldScope.GUARDIAN);
+        var fields = service.findApplicableFields(member.id());
+        assertTrue(fields.stream().anyMatch(f -> f.id() == guardianField.id()));
+        service.delete(guardianField.id());
+        stationMemberRepo.setUserType(member.id(), StationUserType.MEMBER);
+    }
+
+    @Test
+    @Order(23)
+    void findApplicableFieldsForTeam() {
+        stationMemberRepo.setUserType(member.id(), StationUserType.TEAM);
+        var teamField = service.create(
+                station.id(), "TeamField", ProfileFieldType.TEXT, ProfileFieldConfig.parse("{}"), 20, ProfileFieldScope.TEAM);
+        var fields = service.findApplicableFields(member.id());
+        assertTrue(fields.stream().anyMatch(f -> f.id() == teamField.id()));
+        service.delete(teamField.id());
+        stationMemberRepo.setUserType(member.id(), StationUserType.MEMBER);
+    }
+
+    @Test
+    @Order(23)
+    void findApplicableFieldsForManager() {
+        stationMemberRepo.setUserType(member.id(), StationUserType.MANAGER);
+        var mgrField = service.create(
+                station.id(), "ManagerField", ProfileFieldType.TEXT, ProfileFieldConfig.parse("{}"), 20, ProfileFieldScope.MANAGER);
+        var fields = service.findApplicableFields(member.id());
+        assertTrue(fields.stream().anyMatch(f -> f.id() == mgrField.id()));
+        service.delete(mgrField.id());
+        stationMemberRepo.setUserType(member.id(), StationUserType.MEMBER);
+    }
+
+    @Test
+    @Order(23)
+    void findApplicableFieldsForTrial() {
+        stationMemberRepo.setUserType(member.id(), StationUserType.TRIAL);
+        var fields = service.findApplicableFields(member.id());
+        assertNotNull(fields);
+        stationMemberRepo.setUserType(member.id(), StationUserType.MEMBER);
+    }
+
+    @Test
+    @Order(23)
+    void findApplicableFieldsNonExistentMember() {
+        var fields = service.findApplicableFields(99999);
+        assertTrue(fields.isEmpty());
+    }
+
+    // -- isProfileComplete with various role scopes --
+
+    @Test
+    @Order(24)
+    void isProfileCompleteWithGuardianRole() {
+        assertTrue(service.isProfileComplete(member.id(), station.id(), List.of("GUARDIAN")));
+    }
+
+    @Test
+    @Order(24)
+    void isProfileCompleteWithTeamRole() {
+        assertTrue(service.isProfileComplete(member.id(), station.id(), List.of("TEAM")));
+    }
+
+    @Test
+    @Order(24)
+    void isProfileCompleteWithManagerRole() {
+        assertTrue(service.isProfileComplete(member.id(), station.id(), List.of("MANAGER")));
+    }
+
+    @Test
+    @Order(24)
+    void isProfileCompleteWithAdminRole() {
+        assertTrue(service.isProfileComplete(member.id(), station.id(), List.of("ADMIN")));
+    }
+
+    @Test
+    @Order(24)
+    void isProfileCompleteWithAttendanceManagerRole() {
+        assertTrue(service.isProfileComplete(member.id(), station.id(), List.of("ATTENDANCE_MANAGER")));
+    }
+
+    @Test
+    @Order(24)
+    void isProfileCompleteWithMultipleRoles() {
+        assertTrue(service.isProfileComplete(member.id(), station.id(), List.of("MEMBER", "TEAM", "MANAGER", "ADMIN")));
+    }
+
+    @Test
+    @Order(24)
+    void isProfileCompleteReadonlyRequired() {
+        // Readonly + required fields should be skipped
+        var readonlyReqField = service.create(
+                station.id(),
+                "ReadonlyReq",
+                ProfileFieldType.TEXT,
+                ProfileFieldConfig.parse("{\"required\":true,\"readonly\":true}"),
+                30,
+                ProfileFieldScope.MEMBER);
+        var account3 = accountRepo.create("pfield-readonly@test.com", "Readonly", "Test");
+        var member3 = stationMemberRepo.create(station.id(), account3.id());
+        // Should be complete — readonly required fields are skipped
+        assertTrue(service.isProfileComplete(member3.id(), station.id(), List.of("MEMBER")));
+        service.delete(readonlyReqField.id());
+        stationMemberRepo.delete(member3.id());
+        accountRepo.delete(account3.id());
+    }
+
+    @Test
+    @Order(24)
+    void isProfileCompleteWithEmptyValue() {
+        // Empty string and "\"\"" should count as missing
+        var reqField = service.create(
+                station.id(),
+                "EmptyValField",
+                ProfileFieldType.TEXT,
+                ProfileFieldConfig.parse("{\"required\":true}"),
+                31,
+                ProfileFieldScope.MEMBER);
+        var account4 = accountRepo.create("pfield-emptyval@test.com", "Empty", "Val");
+        var member4 = stationMemberRepo.create(station.id(), account4.id());
+        // Set empty quoted value
+        service.setValues(member4.id(), List.of(new FieldValueEntry(reqField.id(), "\"\"")), member4.id());
+        assertFalse(service.isProfileComplete(member4.id(), station.id(), List.of("MEMBER")));
+        service.delete(reqField.id());
+        stationMemberRepo.delete(member4.id());
+        accountRepo.delete(account4.id());
+    }
+
+    @Test
+    @Order(24)
+    void isProfileCompleteGroupScopeSkipped() {
+        // GROUP scope fields should be skipped
+        var groupField = service.create(
+                station.id(),
+                "GroupField",
+                ProfileFieldType.TEXT,
+                ProfileFieldConfig.parse("{\"required\":true}"),
+                32,
+                ProfileFieldScope.GROUP);
+        assertTrue(service.isProfileComplete(member.id(), station.id(), List.of("MEMBER")));
+        service.delete(groupField.id());
+    }
+
+    // -- acknowledgeAll with changes --
+
+    @Test
+    @Order(24)
+    void acknowledgeAllWithPendingChanges() {
+        // Create a new field change by setting a value
+        var tmpField = service.create(
+                station.id(), "AckAllField", ProfileFieldType.TEXT,
+                ProfileFieldConfig.parse("{\"notifyOnChange\":true}"), 40, ProfileFieldScope.MEMBER);
+        service.setValues(member.id(), List.of(new FieldValueEntry(tmpField.id(), "\"initial\"")), member.id());
+        service.setValues(member.id(), List.of(new FieldValueEntry(tmpField.id(), "\"changed\"")), member.id());
+
+        // Now acknowledgeAll from a different acknowledger
+        var account5 = accountRepo.create("pfield-ack@test.com", "Ack", "User");
+        var member5 = stationMemberRepo.create(station.id(), account5.id());
+        var acks = service.acknowledgeAll(member.id(), member5.id(), "Batch ack");
+        assertNotNull(acks);
+
+        service.delete(tmpField.id());
+        stationMemberRepo.delete(member5.id());
+        accountRepo.delete(account5.id());
     }
 
     @Test

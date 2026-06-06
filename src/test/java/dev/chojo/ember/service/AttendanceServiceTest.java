@@ -46,7 +46,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
 
     @BeforeAll
     static void setup() {
-        service = new AttendanceService(attendanceRepo, eventRepo, eventFieldRepo, stationMemberRepo);
+        service = new AttendanceService(attendanceRepo, eventRepo, eventFieldRepo, stationMemberRepo, memberGroupRepo);
         station = stationRepo.create("AttendanceSvc Station");
         account = accountRepo.create("attend-svc@test.com", "Attend", "User");
         member = stationMemberRepo.create(station.id(), account.id());
@@ -826,6 +826,167 @@ class AttendanceServiceTest extends RepositoryTestBase {
 
     @Test
     @Order(63)
+    void createSessionWithEventFieldDefaultSources() {
+        // Test EVENT_NAME, EVENT_DESCRIPTION, EVENT_START_TIME, EVENT_END_TIME sources
+        var event = eventRepo.create(
+                station.id(),
+                "SourceDefaults Event",
+                "A description",
+                StationEvent.EventType.ONE_TIME,
+                null,
+                Instant.now().plus(10, ChronoUnit.DAYS),
+                Instant.now().plus(10, ChronoUnit.DAYS).plus(2, ChronoUnit.HOURS),
+                null,
+                false,
+                null,
+                false,
+                null,
+                null,
+                null,
+                null);
+
+        var fieldTemplate = service.createTemplate(station.id(), "Source Defaults Template");
+        var nameField = service.createTemplateField(
+                fieldTemplate.id(), "EventName", AttendanceFieldType.STRING, AttendanceFieldConfig.parse("{}"), 1);
+        int nameFieldId = nameField.getFirst().id();
+        var descField = service.createTemplateField(
+                fieldTemplate.id(), "EventDesc", AttendanceFieldType.STRING, AttendanceFieldConfig.parse("{}"), 2);
+        int descFieldId = descField.stream()
+                .filter(f -> "EventDesc".equals(f.name()))
+                .findFirst()
+                .orElseThrow()
+                .id();
+        var startField = service.createTemplateField(
+                fieldTemplate.id(), "EventStart", AttendanceFieldType.STRING, AttendanceFieldConfig.parse("{}"), 3);
+        int startFieldId = startField.stream()
+                .filter(f -> "EventStart".equals(f.name()))
+                .findFirst()
+                .orElseThrow()
+                .id();
+        var endField = service.createTemplateField(
+                fieldTemplate.id(), "EventEnd", AttendanceFieldType.STRING, AttendanceFieldConfig.parse("{}"), 4);
+        int endFieldId = endField.stream()
+                .filter(f -> "EventEnd".equals(f.name()))
+                .findFirst()
+                .orElseThrow()
+                .id();
+
+        // Set field defaults with different sources
+        eventRepo.setFieldDefaults(event.id(), List.of(
+                new dev.chojo.ember.feature.events.entity.EventFieldDefault(event.id(), nameFieldId, "EVENT_NAME", null),
+                new dev.chojo.ember.feature.events.entity.EventFieldDefault(event.id(), descFieldId, "EVENT_DESCRIPTION", null),
+                new dev.chojo.ember.feature.events.entity.EventFieldDefault(event.id(), startFieldId, "EVENT_START_TIME", null),
+                new dev.chojo.ember.feature.events.entity.EventFieldDefault(event.id(), endFieldId, "EVENT_END_TIME", null)));
+
+        var session = service.createSession(fieldTemplate.id(), null, null, event.id(), null);
+        assertNotNull(session);
+
+        var sessionFields = service.findSessionFields(session.id());
+        assertTrue(sessionFields.stream().anyMatch(f -> f.fieldId() == nameFieldId && f.value() != null && f.value().contains("SourceDefaults Event")));
+        assertTrue(sessionFields.stream().anyMatch(f -> f.fieldId() == descFieldId && f.value() != null && f.value().contains("A description")));
+        assertTrue(sessionFields.stream().anyMatch(f -> f.fieldId() == startFieldId && f.value() != null));
+        assertTrue(sessionFields.stream().anyMatch(f -> f.fieldId() == endFieldId && f.value() != null));
+
+        service.deleteSession(session.id());
+        eventRepo.setFieldDefaults(event.id(), List.of());
+        eventRepo.delete(event.id());
+        service.deleteTemplate(fieldTemplate.id());
+    }
+
+    @Test
+    @Order(64)
+    void createSessionWithGroupAutoPopulation() {
+        // Template with a group — members should be auto-populated
+        var group = memberGroupRepo.create(station.id(), "Auto Pop Group");
+        memberGroupRepo.addMember(group.id(), member.id());
+
+        var autoTemplate = service.createTemplate(station.id(), "Group Auto Template");
+        service.setTemplateGroups(
+                autoTemplate.id(),
+                List.of(new dev.chojo.ember.feature.attendance.repository.AttendanceRepository.TemplateGroup(group.id(), 1)));
+
+        var session = service.createSession(
+                autoTemplate.id(), Instant.now(), Instant.now().plus(1, ChronoUnit.HOURS), null, "Group Session");
+        var entries = service.findEntries(session.id());
+        assertTrue(entries.stream().anyMatch(e -> e.memberId() == member.id()));
+
+        service.deleteSession(session.id());
+        service.setTemplateGroups(autoTemplate.id(), List.of());
+        service.deleteTemplate(autoTemplate.id());
+        memberGroupRepo.removeMember(group.id(), member.id());
+        memberGroupRepo.delete(group.id());
+    }
+
+    @Test
+    @Order(65)
+    void syncFromEventWithPendingRegistrationSkipped() {
+        // PENDING registration status should be skipped (not ACCEPTED or DECLINED)
+        var account9 = accountRepo.create("attend-pending@test.com", "Pending", "User");
+        var member9 = stationMemberRepo.create(station.id(), account9.id());
+
+        var event = eventRepo.create(
+                station.id(),
+                "Pending Sync Event",
+                "",
+                StationEvent.EventType.ONE_TIME,
+                null,
+                Instant.now().plus(9, ChronoUnit.DAYS),
+                Instant.now().plus(9, ChronoUnit.DAYS).plus(1, ChronoUnit.HOURS),
+                templateId,
+                true,
+                null,
+                false,
+                null,
+                null,
+                null,
+                null);
+
+        eventRepo.createRegistration(event.id(), member9.id(), LocalDate.now(), dev.chojo.ember.feature.events.entity.RegistrationStatus.PENDING, null);
+
+        var session = service.createSession(templateId, null, null, event.id(), null);
+        var entries = service.syncFromEvent(session.id());
+        // PENDING status should NOT create an entry (only ACCEPTED or DECLINED do)
+        assertFalse(entries.stream().anyMatch(e -> e.memberId() == member9.id()));
+
+        service.deleteSession(session.id());
+        eventRepo.delete(event.id());
+        stationMemberRepo.delete(member9.id());
+        accountRepo.delete(account9.id());
+    }
+
+    @Test
+    @Order(66)
+    void syncFromEventAutoAttendNewMember() {
+        // Member not already in session — autoAttend should add as PRESENT
+        var account10 = accountRepo.create("attend-auto@test.com", "Auto", "New");
+        var member10 = stationMemberRepo.create(station.id(), account10.id());
+
+        var autoTemplate = service.createTemplate(station.id(), "AutoNew Template");
+        var fieldJson = "{\"autoAttend\":true}";
+        service.createTemplateField(
+                autoTemplate.id(), "Members", AttendanceFieldType.MEMBER, AttendanceFieldConfig.parse(fieldJson), 1);
+        var fields = service.findTemplateFields(autoTemplate.id());
+        int fieldId = fields.getFirst().id();
+
+        var session = service.createSession(
+                autoTemplate.id(), Instant.now(), Instant.now().plus(1, ChronoUnit.HOURS), null, "AutoNew Session");
+
+        // Set field value with member10's ID
+        service.setSessionFields(
+                session.id(), List.of(new AttendanceFieldValueEntry(fieldId, "[" + member10.id() + "]")));
+
+        var entries = service.syncFromEvent(session.id());
+        assertTrue(entries.stream()
+                .anyMatch(e -> e.memberId() == member10.id() && e.status() == AttendanceEntry.AttendanceStatus.PRESENT));
+
+        service.deleteSession(session.id());
+        service.deleteTemplate(autoTemplate.id());
+        stationMemberRepo.delete(member10.id());
+        accountRepo.delete(account10.id());
+    }
+
+    @Test
+    @Order(66)
     void createSessionNoTimeFallsBackToNow() {
         // No event, no title, no time provided — should use now()
         var session = service.createSession(templateId, null, null, null, "No Time Session");

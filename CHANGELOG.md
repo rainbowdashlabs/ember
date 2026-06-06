@@ -117,6 +117,20 @@
 - Caffeine cache dependency added (replaces `ConcurrentHashMap` caches)
 - Demo seeding parallelized with `CompletableFuture` + `Executors.newVirtualThreadPerTaskExecutor()`; exchange/procurement code extracted to `seedExchanges()`/`seedProcurements()` helper methods
 
+#### Test Coverage
+- Fixed all JaCoCo coverage violations (11 original + 1 discovered), raising total test count from 2151 to 2219
+- New test class `EventCancelledHandlerTest` — verifies handler dispatches `EVENT_CANCELLED` notifications to registered members
+- New test class `EventThresholdCheckerTest` — verifies auto-cancellation logic: events below threshold are cancelled, events meeting threshold are left alone
+- New test class `MemberIdentityFactoryTest` — covers `local()`, `federated()`, `fromMemberId()`, `enrich()`, and `enrichCompletions()` factory methods
+- `EventRepositoryTest` — added tests for `cancelEvent`, `findAutoCancel`, `setThresholdNotified`, `countAcceptedRegistrations`, `findRegisteredMemberIds`, `countPendingRegistrations`
+- `EventFederationServiceTest` — added tests for `findRegistrationsNullDate`, `findRegistrationsByRemoteMember`, `findMyRegistrations`
+- `StationMemberRepositoryTest` — added tests for `invalidateMemberCache`, `resolveIdentity`, `setUserTypePermissions`, UID resolution caching
+- `StationMemberServiceTest` — added tests for `resolveUid`, `resolveId`, `resolveIdentity`, `findAllPermissions`, `setUserType`, LOGIN permission grant with onboarding
+- `ProfileFieldServiceTest` — added tests for `findApplicableFields` across all user types, `isProfileComplete` with GUARDIAN/TEAM/MANAGER/ADMIN/ATTENDANCE_MANAGER roles, readonly-required field skip, empty-value detection, GROUP scope exclusion, `acknowledgeAll`
+- `AttendanceServiceTest` — added tests for session creation with `EVENT_NAME`/`EVENT_DESCRIPTION`/`EVENT_START_TIME`/`EVENT_END_TIME` field default sources, group auto-population, PENDING registration sync skip, autoAttend new member creation
+- `BoardServiceTest` — added tests for due date change tracking, assignee change with unassign notifications, non-existent attachment delete, self-link prevention, watcher management by identity, new-format UUID mentions
+- `AccountRepositoryTest` — added tests for `anyAdministratorExists`, `deleteSessionById`, `findAllConsents`
+
 ---
 
 ## v26.6.0

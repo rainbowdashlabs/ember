@@ -276,6 +276,24 @@ class EventFederationServiceTest extends RepositoryTestBase {
 
     @Test
     @Order(16)
+    void findRegistrationsNullDate() {
+        // Null event date should return all registrations for the event
+        var regs = service.findRegistrations(eventId, null);
+        assertNotNull(regs);
+        assertFalse(regs.isEmpty());
+    }
+
+    @Test
+    @Order(16)
+    void findRegistrationsByRemoteMember() {
+        var regs = service.findRegistrationsByRemoteMember(REMOTE_MEMBER_1);
+        assertNotNull(regs);
+        assertFalse(regs.isEmpty());
+        assertTrue(regs.stream().allMatch(r -> r.remoteMemberId().equals(REMOTE_MEMBER_1)));
+    }
+
+    @Test
+    @Order(17)
     void withdrawRegistration() {
         UUID toWithdraw = UUID.fromString("00000000-0000-0000-0000-000000000099");
         service.registerFederated(eventId, partnerId, toWithdraw, LocalDate.of(2026, 8, 1));
@@ -899,6 +917,23 @@ class EventFederationServiceTest extends RepositoryTestBase {
     }
 
     // -- getFederatedEvent edge cases --
+
+    @Test
+    @Order(84)
+    void findMyRegistrationsLocal() {
+        // findMyRegistrations uses remote member UIDs to look up registrations
+        var regs = service.findMyRegistrations(stationA.id(), List.of(REMOTE_MEMBER_1));
+        assertNotNull(regs);
+        // REMOTE_MEMBER_1 has registrations from earlier tests
+        assertFalse(regs.isEmpty());
+    }
+
+    @Test
+    @Order(84)
+    void findMyRegistrationsEmpty() {
+        var regs = service.findMyRegistrations(stationA.id(), List.of(UUID.randomUUID()));
+        assertNotNull(regs);
+    }
 
     @Test
     @Order(85)

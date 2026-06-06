@@ -254,6 +254,79 @@ class StationMemberRepositoryTest extends RepositoryTestBase {
 
     @Test
     @Order(39)
+    void resolveUidAndIdCaching() {
+        // resolveUid populates the cache
+        var uid = stationMemberRepo.resolveUid(memberId1);
+        assertNotNull(uid);
+        // Call again to hit cache
+        var uid2 = stationMemberRepo.resolveUid(memberId1);
+        assertEquals(uid, uid2);
+
+        // resolveId populates the cache
+        var id = stationMemberRepo.resolveId(station.id(), uid);
+        assertTrue(id.isPresent());
+        assertEquals(memberId1, id.get());
+        // Call again to hit cache
+        var id2 = stationMemberRepo.resolveId(station.id(), uid);
+        assertTrue(id2.isPresent());
+        assertEquals(memberId1, id2.get());
+    }
+
+    @Test
+    @Order(39)
+    void invalidateMemberCache() {
+        // Populate cache
+        var uid = stationMemberRepo.resolveUid(memberId1);
+        assertNotNull(uid);
+        stationMemberRepo.resolveId(station.id(), uid);
+
+        // Invalidate — should not throw
+        stationMemberRepo.invalidateMemberCache(memberId1);
+
+        // After invalidation, a fresh resolve should still work
+        var freshUid = stationMemberRepo.resolveUid(memberId1);
+        assertEquals(uid, freshUid);
+    }
+
+    @Test
+    @Order(39)
+    void resolveIdentity() {
+        var identity = stationMemberRepo.resolveIdentity(memberId1);
+        assertNotNull(identity);
+        assertNotNull(identity.stationUid());
+        assertNotNull(identity.memberUid());
+    }
+
+    @Test
+    @Order(39)
+    void setUserTypePermissions() {
+        var allPerms = stationMemberRepo.findAllPermissions();
+        var loginPerm = allPerms.stream()
+                .filter(p -> p.permission() == StationPermission.LOGIN)
+                .findFirst()
+                .orElseThrow();
+
+        stationMemberRepo.setUserTypePermissions(
+                station.id(), StationUserType.GUARDIAN, List.of(loginPerm.id()));
+        var perms = stationMemberRepo.findUserTypePermissions(station.id(), StationUserType.GUARDIAN);
+        assertFalse(perms.isEmpty());
+        assertTrue(perms.stream().anyMatch(p -> p.permission() == StationPermission.LOGIN));
+
+        // Clear
+        stationMemberRepo.setUserTypePermissions(station.id(), StationUserType.GUARDIAN, List.of());
+        var cleared = stationMemberRepo.findUserTypePermissions(station.id(), StationUserType.GUARDIAN);
+        assertTrue(cleared.isEmpty());
+    }
+
+    @Test
+    @Order(39)
+    void findUserTypePermissionsEmpty() {
+        var perms = stationMemberRepo.findUserTypePermissions(station.id(), StationUserType.TRIAL);
+        assertTrue(perms.isEmpty());
+    }
+
+    @Test
+    @Order(40)
     void removeAllManagedAndManagers() {
         stationMemberRepo.addManager(memberId1, memberId2);
         assertFalse(stationMemberRepo.findManaged(memberId1).isEmpty());

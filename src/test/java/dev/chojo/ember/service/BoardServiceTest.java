@@ -818,6 +818,125 @@ class BoardServiceTest extends RepositoryTestBase {
     // -- Comment with mentions --
 
     @Test
+    @Order(893)
+    void updateTicketWithDueDateChange() {
+        var tk = ticketService.createTicket(
+                boardId,
+                laneId,
+                "DueDate Ticket",
+                "Desc",
+                null,
+                TicketPriority.MEDIUM,
+                null,
+                memberIdentityFactory.local(station.id(), member.id()));
+        // Update with due date
+        assertTrue(ticketService.updateTicket(
+                tk.id(),
+                "DueDate Ticket",
+                "Desc",
+                null,
+                TicketPriority.MEDIUM,
+                java.time.LocalDate.of(2026, 12, 1),
+                memberIdentityFactory.local(station.id(), member.id())));
+        // Now change the due date
+        assertTrue(ticketService.updateTicket(
+                tk.id(),
+                "DueDate Ticket",
+                "Desc",
+                null,
+                TicketPriority.MEDIUM,
+                java.time.LocalDate.of(2026, 12, 15),
+                memberIdentityFactory.local(station.id(), member.id())));
+        // Remove due date
+        assertTrue(ticketService.updateTicket(
+                tk.id(),
+                "DueDate Ticket",
+                "Desc",
+                null,
+                TicketPriority.MEDIUM,
+                null,
+                memberIdentityFactory.local(station.id(), member.id())));
+        ticketService.deleteTicket(tk.id());
+    }
+
+    @Test
+    @Order(893)
+    void assignTicketWithUnassign() {
+        var tk = ticketService.createTicket(
+                boardId,
+                laneId,
+                "Assign Test",
+                null,
+                null,
+                TicketPriority.LOW,
+                null,
+                memberIdentityFactory.local(station.id(), member.id()));
+        // Assign
+        ticketService.watchTicket(tk.id(), member.id());
+        assertTrue(ticketService.assignTicket(
+                tk.id(), memberIdentityFactory.local(station.id(), member.id()), member.id()));
+        // Reassign to someone else (create second member)
+        var account2 = accountRepo.create("board-assign@test.com", "Assign", "User");
+        var member2 = stationMemberRepo.create(station.id(), account2.id());
+        assertTrue(ticketService.assignTicket(
+                tk.id(), memberIdentityFactory.local(station.id(), member2.id()), member.id()));
+        // Unassign
+        assertTrue(ticketService.assignTicket(tk.id(), null, member.id()));
+        ticketService.unwatchTicket(tk.id(), member.id());
+        ticketService.deleteTicket(tk.id());
+        stationMemberRepo.delete(member2.id());
+        accountRepo.delete(account2.id());
+    }
+
+    @Test
+    @Order(893)
+    void deleteAttachmentNonExistent() {
+        assertFalse(ticketService.deleteAttachment(99999));
+    }
+
+    @Test
+    @Order(893)
+    void findByAssigneeNonExistentMember() {
+        var results = ticketService.findByAssignee(boardId, 99999);
+        assertTrue(results.isEmpty());
+    }
+
+    @Test
+    @Order(893)
+    void linkTicketToSelf() {
+        // Linking a ticket to itself should be a no-op
+        ticketService.linkTickets(
+                ticketId1, ticketId1, LinkType.RELATES_TO, memberIdentityFactory.local(station.id(), member.id()));
+        // Should have no self-links
+        var links = ticketService.findLinks(ticketId1);
+        assertTrue(links.stream().noneMatch(l -> l.linkedTicketId() == ticketId1));
+    }
+
+    @Test
+    @Order(893)
+    void addAndRemoveWatcherByIdentity() {
+        var identity = memberIdentityFactory.local(station.id(), member.id());
+        ticketService.addWatcher(ticketId1, identity);
+        assertTrue(ticketService.isWatching(ticketId1, member.id()));
+        assertTrue(ticketService.removeWatcher(ticketId1, identity));
+        assertFalse(ticketService.isWatching(ticketId1, member.id()));
+    }
+
+    @Test
+    @Order(894)
+    void commentWithNewFormatMentions() {
+        var memberIdentity = memberIdentityFactory.local(station.id(), member.id());
+        String mentionText = "Hello @[" + memberIdentity.stationUid() + "/" + memberIdentity.memberUid() + ":TestUser]!";
+        var comment = ticketService.createComment(
+                ticketId1,
+                null,
+                memberIdentityFactory.local(station.id(), member.id()),
+                mentionText);
+        assertNotNull(comment);
+        ticketService.deleteComment(comment.id());
+    }
+
+    @Test
     @Order(894)
     void commentWithMentions() {
         var comment = ticketService.createComment(

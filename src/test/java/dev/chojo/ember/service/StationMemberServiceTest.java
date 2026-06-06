@@ -150,6 +150,89 @@ class StationMemberServiceTest extends RepositoryTestBase {
     }
 
     @Test
+    @Order(23)
+    void resolveUid() {
+        var uid = service.resolveUid(member1.id());
+        assertNotNull(uid);
+    }
+
+    @Test
+    @Order(23)
+    void resolveId() {
+        var uid = service.resolveUid(member1.id());
+        var resolved = service.resolveId(station.id(), uid);
+        assertTrue(resolved.isPresent());
+        assertEquals(member1.id(), resolved.get());
+    }
+
+    @Test
+    @Order(23)
+    void resolveIdentity() {
+        var identity = service.resolveIdentity(member1.id());
+        assertNotNull(identity);
+        assertNotNull(identity.stationUid());
+        assertNotNull(identity.memberUid());
+    }
+
+    @Test
+    @Order(23)
+    void findAllPermissions() {
+        var permissions = service.findAllPermissions();
+        assertNotNull(permissions);
+        assertFalse(permissions.isEmpty());
+    }
+
+    @Test
+    @Order(24)
+    void setUserType() {
+        assertTrue(service.setUserType(member1.id(), dev.chojo.ember.api.roles.StationUserType.TEAM));
+        var m = service.findById(member1.id()).orElseThrow();
+        assertEquals(dev.chojo.ember.api.roles.StationUserType.TEAM, m.userType());
+        // Reset
+        service.setUserType(member1.id(), dev.chojo.ember.api.roles.StationUserType.MEMBER);
+    }
+
+    @Test
+    @Order(25)
+    void setPermissionsGrantsLoginAndTriggersOnboarding() {
+        // Create a member with email for LOGIN permission testing
+        var account3 = accountRepo.create("svc-login@test.com", "Login", "Test");
+        var member3 = service.create(station.id(), account3.id());
+
+        var loginPerm = stationMemberRepo.findPermissionByName(StationPermission.LOGIN).orElseThrow();
+        var userPerm = stationMemberRepo.findPermissionByName(StationPermission.USER).orElseThrow();
+
+        var result = service.setPermissions(
+                member3.id(),
+                List.of(userPerm.id(), loginPerm.id()),
+                EnumSet.of(StationPermission.STATION_ADMINISTRATOR, StationPermission.USER, StationPermission.LOGIN));
+        assertTrue(result.stream().anyMatch(r -> r.permission() == StationPermission.LOGIN));
+
+        // Cleanup
+        service.delete(member3.id());
+        accountRepo.delete(account3.id());
+    }
+
+    @Test
+    @Order(26)
+    void setPermissionsRevokesExisting() {
+        var userPerm = stationMemberRepo.findPermissionByName(StationPermission.USER).orElseThrow();
+        // Grant first
+        service.setPermissions(
+                member2.id(),
+                List.of(userPerm.id()),
+                EnumSet.of(StationPermission.STATION_ADMINISTRATOR, StationPermission.USER));
+        assertTrue(service.findPermissions(member2.id()).stream()
+                .anyMatch(p -> p.permission() == StationPermission.USER));
+        // Revoke by passing empty list
+        service.setPermissions(
+                member2.id(),
+                List.of(),
+                EnumSet.of(StationPermission.STATION_ADMINISTRATOR, StationPermission.USER));
+        assertTrue(service.findPermissions(member2.id()).isEmpty());
+    }
+
+    @Test
     @Order(30)
     void delete() {
         // Create a third member to delete
