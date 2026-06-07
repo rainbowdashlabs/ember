@@ -90,7 +90,7 @@ tasks {
                             System.getenv("GITHUB_SHA").substring(0, 7)
                         } @ $formattedDate"
 
-                        "tag" -> "$version ${System.getenv("GITHUB_REF_NAME").substring(1)} @ $formattedDate"
+                        "tag" -> "$version @ $formattedDate"
                         else -> "$version snapshot"
                     }
                 }
