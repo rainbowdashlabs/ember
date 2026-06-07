@@ -327,6 +327,7 @@ export interface StationEvent {
     minRegistrations?: number | null
     thresholdDate?: string | null
     thresholdNotified?: boolean
+    registrationCloseDays?: number | null
 }
 
 export interface EventRequest {
@@ -341,25 +342,26 @@ export interface EventRequest {
     registrationDeadline?: string | null
     requiresConfirmation?: boolean
     categoryId?: number | null
-    restrictedRoleIds?: number[]
+    restrictedUserTypes?: string[]
     restrictedGroupIds?: number[]
+    restrictedTagIds?: number[]
     isPublic?: boolean
     registrationLimit?: number | null
     minRegistrations?: number | null
     thresholdDate?: string | null
+    registrationCloseDays?: number | null
 }
 
 export interface EventRestrictions {
-    roleIds: number[]
+    userTypes: string[]
     groupIds: number[]
     tagIds: number[]
+    memberIds: number[]
     mode?: string
 }
 
 export interface AllEventRestrictions {
-    roleRestrictions: Record<number, number[]>
-    groupRestrictions: Record<number, number[]>
-    tagRestrictions: Record<number, number[]>
+    [eventId: number]: EventRestrictions
 }
 
 export interface EventBreak {
@@ -998,7 +1000,7 @@ export interface AssignRequest {
 export interface InventoryRequirement {
     id: number
     inventoryId: number
-    roleId: number
+    userType: string
     groupId: number
     quantity: number
     position: number
@@ -1006,7 +1008,7 @@ export interface InventoryRequirement {
 
 export interface RequirementRequest {
     inventoryId: number
-    roleId?: number
+    userType?: string
     groupId?: number
     quantity?: number
 }
@@ -1258,7 +1260,7 @@ export interface NewsEntry {
     authorName: string
     publishedAt?: string
     createdAt?: string
-    roleIds: number[]
+    userTypes: string[]
     groupIds: number[]
     tagIds: number[]
     memberIds: number[]
@@ -1270,7 +1272,7 @@ export interface NewsRequest {
     title: string
     contentMarkdown: string
     contentHtml: string
-    roleIds: number[]
+    userTypes: string[]
     groupIds: number[]
     tagIds: number[]
     memberIds: number[]

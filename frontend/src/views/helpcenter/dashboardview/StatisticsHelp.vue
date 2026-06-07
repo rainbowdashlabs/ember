@@ -8,6 +8,7 @@ import {useI18n} from 'vue-i18n'
 import HelpArticle from '@/components/helpcenter/HelpArticle.vue'
 import HelpSection from '@/components/helpcenter/HelpSection.vue'
 import HelpTip from '@/components/helpcenter/HelpTip.vue'
+
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 
 const {t} = useI18n()
@@ -84,6 +85,12 @@ const {t} = useI18n()
         </div>
       </NeutralContainer>
     </div>
+
+    <HelpSection :title="t('helpCenter.statistics.howToReadTitle')">
+      <p>{{ t('helpCenter.statistics.howToReadText') }}</p>
+      <p>{{ t('helpCenter.statistics.howToReadText2') }}</p>
+      <p>{{ t('helpCenter.statistics.howToReadText3') }}</p>
+    </HelpSection>
 
     <HelpTip>{{ t('helpCenter.statistics.tip') }}</HelpTip>
   </HelpArticle>

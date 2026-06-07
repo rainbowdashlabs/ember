@@ -30,37 +30,40 @@ const {t} = useI18n()
         <li>{{ t('helpCenter.basics.federation.shared2') }}</li>
         <li>{{ t('helpCenter.basics.federation.shared3') }}</li>
         <li>{{ t('helpCenter.basics.federation.shared4') }}</li>
+        <li>{{ t('helpCenter.basics.federation.shared5') }}</li>
+        <li>{{ t('helpCenter.basics.federation.shared6') }}</li>
+        <li>{{ t('helpCenter.basics.federation.shared7') }}</li>
       </BulletList>
     </HelpSection>
 
     <HelpSection :title="t('helpCenter.basics.federation.howRecognize')">
       <p>{{ t('helpCenter.basics.federation.howRecognizeText') }}</p>
-    </HelpSection>
 
-    <!-- Dummy: Content with station badge -->
-    <NeutralContainer>
-      <div class="space-y-3">
-        <div class="flex items-center gap-2">
-          <font-awesome-icon :icon="['fas', 'file-lines']" class="text-xl text-primary" />
-          <div class="flex-1 min-w-0">
-            <div class="flex items-center gap-2">
-              <span class="text-sm font-medium">Grundlagen PSA</span>
-              <StationBadge station-name="JF Partnerwache" />
+      <!-- Dummy: Content with station badge -->
+      <NeutralContainer class="mt-3">
+        <div class="space-y-3">
+          <div class="flex items-center gap-2">
+            <font-awesome-icon :icon="['fas', 'file-lines']" class="text-xl text-primary" />
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-2">
+                <span class="text-sm font-medium">{{ t('helpCenter.basics.federation.dummySharedFile') }}</span>
+                <StationBadge station-name="JF Partnerwache" />
+              </div>
+              <span class="text-xs text-(--text-muted)">{{ t('helpCenter.basics.federation.dummySharedDesc') }}</span>
             </div>
-            <span class="text-xs text-(--text-muted)">Schutzausrüstung erklärt</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <font-awesome-icon :icon="['fas', 'file-lines']" class="text-xl text-(--text-muted)" />
+            <div class="flex-1 min-w-0">
+              <span class="text-sm font-medium">{{ t('helpCenter.basics.federation.dummyOwnFile') }}</span>
+              <p class="text-xs text-(--text-muted)">{{ t('helpCenter.basics.federation.dummyOwnHint') }}</p>
+            </div>
           </div>
         </div>
-        <div class="flex items-center gap-2">
-          <font-awesome-icon :icon="['fas', 'file-lines']" class="text-xl text-(--text-muted)" />
-          <div class="flex-1 min-w-0">
-            <span class="text-sm font-medium">Knotenkunde</span>
-            <p class="text-xs text-(--text-muted)">Eigene Datei — kein Badge</p>
-          </div>
-        </div>
-      </div>
-    </NeutralContainer>
+      </NeutralContainer>
 
-    <MutedText tag="p" class="mt-1">{{ t('helpCenter.basics.federation.badgeHint') }}</MutedText>
+      <MutedText tag="p" class="mt-1">{{ t('helpCenter.basics.federation.badgeHint') }}</MutedText>
+    </HelpSection>
 
     <HelpSection :title="t('helpCenter.basics.federation.viewTitle')">
       <p>{{ t('helpCenter.basics.federation.viewText') }}</p>
@@ -68,24 +71,24 @@ const {t} = useI18n()
 
     <HelpSection :title="t('helpCenter.basics.federation.copyTitle')">
       <p>{{ t('helpCenter.basics.federation.copyText') }}</p>
-    </HelpSection>
 
-    <!-- Dummy: Copy button example -->
-    <NeutralContainer>
-      <div class="flex items-center gap-2">
-        <font-awesome-icon :icon="['fas', 'book']" class="text-xl text-primary" />
-        <div class="flex-1 min-w-0">
-          <div class="flex items-center gap-2">
-            <span class="text-sm font-medium">Erste Hilfe Grundlagen</span>
-            <StationBadge station-name="JF Partnerwache" />
+      <!-- Dummy: Copy button example -->
+      <NeutralContainer class="mt-3">
+        <div class="flex items-center gap-2">
+          <font-awesome-icon :icon="['fas', 'book']" class="text-xl text-primary" />
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-2">
+              <span class="text-sm font-medium">{{ t('helpCenter.basics.federation.dummyCopyFile') }}</span>
+              <StationBadge station-name="JF Partnerwache" />
+            </div>
+            <span class="text-xs text-(--text-muted)">{{ t('helpCenter.basics.federation.dummyCopyDesc') }}</span>
           </div>
-          <span class="text-xs text-(--text-muted)">Erste Hilfe Kurs</span>
+          <IconButton :icon="['fas', 'copy']" :label="t('federation.copyToStation')" />
         </div>
-        <IconButton :icon="['fas', 'copy']" :label="t('federation.copyToStation')" />
-      </div>
-    </NeutralContainer>
+      </NeutralContainer>
 
-    <MutedText tag="p" class="mt-1">{{ t('helpCenter.basics.federation.copyHint') }}</MutedText>
+      <MutedText tag="p" class="mt-1">{{ t('helpCenter.basics.federation.copyHint') }}</MutedText>
+    </HelpSection>
 
     <HelpSection :title="t('helpCenter.basics.federation.editTitle')">
       <p>{{ t('helpCenter.basics.federation.editText') }}</p>

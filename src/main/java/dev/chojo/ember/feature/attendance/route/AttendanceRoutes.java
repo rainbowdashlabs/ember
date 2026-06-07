@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.attendance.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
+import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.roles.StationPermission;
@@ -26,6 +27,7 @@ import dev.chojo.ember.feature.attendance.service.AttendanceReportService.Report
 import dev.chojo.ember.feature.attendance.service.AttendanceService;
 import dev.chojo.ember.feature.members.entity.MemberAbsence;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
+import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.ForbiddenResponse;
@@ -64,6 +66,7 @@ public class AttendanceRoutes implements Routes {
     private final AttendanceReportService reportService;
     private final StationMemberRepository stationMemberRepository;
     private final AccountRepository accountRepository;
+    private final MemberIdentityFactory memberIdentityFactory;
 
     @Inject
     public AttendanceRoutes(
@@ -71,12 +74,14 @@ public class AttendanceRoutes implements Routes {
             AttendanceExportService exportService,
             AttendanceReportService reportService,
             StationMemberRepository stationMemberRepository,
-            AccountRepository accountRepository) {
+            AccountRepository accountRepository,
+            MemberIdentityFactory memberIdentityFactory) {
         this.attendanceService = attendanceService;
         this.exportService = exportService;
         this.reportService = reportService;
         this.stationMemberRepository = stationMemberRepository;
         this.accountRepository = accountRepository;
+        this.memberIdentityFactory = memberIdentityFactory;
     }
 
     private static boolean isBlank(String s) {
@@ -245,7 +250,8 @@ public class AttendanceRoutes implements Routes {
                 a.absentUntil(),
                 a.reason(),
                 a.createdAt(),
-                resolveCreatedByName(a.createdBy()));
+                resolveCreatedByName(a.createdBy()),
+                memberIdentityFactory.fromMemberId(a.memberId()));
     }
 
     @OpenApi(
@@ -1284,5 +1290,6 @@ public class AttendanceRoutes implements Routes {
             LocalDate absentUntil,
             String reason,
             Instant createdAt,
-            String createdByName) {}
+            String createdByName,
+            MemberIdentity memberIdentity) {}
 }

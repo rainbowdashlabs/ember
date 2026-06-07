@@ -48,9 +48,8 @@ interface UpcomingEvent {
 }
 
 const upcomingEvents = computed((): UpcomingEvent[] => {
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-  const todayStr = today.toISOString().slice(0, 10)
+  const now = new Date()
+  const todayStr = now.toISOString().slice(0, 10)
   const upcoming: UpcomingEvent[] = []
   const myId = sessionInfo.value?.member?.id ?? 0
 
@@ -73,12 +72,11 @@ const upcomingEvents = computed((): UpcomingEvent[] => {
   }
 
   for (let offset = 0; offset <= 14; offset++) {
-    const date = new Date(today)
-    date.setDate(date.getDate() + offset)
+    const date = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + offset))
     const dateStr = date.toISOString().slice(0, 10)
-    const dow = date.getDay() === 0 ? 7 : date.getDay()
-    const dayOfMonth = date.getDate()
-    const month = date.getMonth()
+    const dow = date.getUTCDay() === 0 ? 7 : date.getUTCDay()
+    const dayOfMonth = date.getUTCDate()
+    const month = date.getUTCMonth()
     const inBreak = eventBreaks.value.some(b => b.startDate && b.endDate && dateStr >= b.startDate && dateStr <= b.endDate)
     if (inBreak) continue
 

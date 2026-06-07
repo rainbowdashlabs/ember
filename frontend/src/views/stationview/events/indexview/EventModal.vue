@@ -16,7 +16,7 @@ import Modal from '@/components/feedback/Modal.vue'
 import RestrictionPicker from '@/components/input/RestrictionPicker.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
-import type { StationEvent, EventCategory, AttendanceTemplate, AttendanceTemplateField, PermissionGrant, MemberGroup, UserTag } from '@/api/types'
+import type { StationEvent, EventCategory, AttendanceTemplate, AttendanceTemplateField, MemberGroup, UserTag } from '@/api/types'
 import { EventTypes } from '@/api/types'
 import type { EventFieldDefault } from '@/api/events'
 
@@ -27,10 +27,9 @@ const props = defineProps<{
   event: StationEvent | null
   categories: EventCategory[]
   templates: AttendanceTemplate[]
-  roles: PermissionGrant[]
   groups: MemberGroup[]
   tags: UserTag[]
-  eventRoleIds: number[]
+  eventUserTypes: string[]
   eventGroupIds: number[]
   eventTagIds: number[]
   templateFields: AttendanceTemplateField[]
@@ -60,7 +59,7 @@ const eventRequiresRegistration = ref(false)
 const eventHasDeadline = ref(false)
 const eventRegistrationDeadline = ref('')
 const eventRequiresConfirmation = ref(false)
-const selectedRoleIds = ref<number[]>([])
+const selectedUserTypes = ref<string[]>([])
 const selectedGroupIds = ref<number[]>([])
 const selectedTagIds = ref<number[]>([])
 // field defaults: fieldId -> { source, value }
@@ -89,7 +88,7 @@ watch(() => props.modelValue, (open) => {
     eventHasDeadline.value = !!ev.registrationDeadline
     eventRegistrationDeadline.value = ev.registrationDeadline ? toLocalDateTime(ev.registrationDeadline) : ''
     eventRequiresConfirmation.value = ev.requiresConfirmation ?? false
-    selectedRoleIds.value = [...props.eventRoleIds]
+    selectedUserTypes.value = [...props.eventUserTypes]
     selectedGroupIds.value = [...props.eventGroupIds]
     selectedTagIds.value = [...props.eventTagIds]
     const fdMap = new Map<number, { source: string; value: string }>()
@@ -110,7 +109,7 @@ watch(() => props.modelValue, (open) => {
     eventHasDeadline.value = false
     eventRegistrationDeadline.value = ''
     eventRequiresConfirmation.value = false
-    selectedRoleIds.value = []
+    selectedUserTypes.value = []
     selectedGroupIds.value = []
     selectedTagIds.value = []
     fieldDefaults.value = new Map()
@@ -166,7 +165,7 @@ function submit() {
     registrationDeadline: eventHasDeadline.value && eventRegistrationDeadline.value
       ? new Date(eventRegistrationDeadline.value).toISOString() : null,
     requiresConfirmation: eventRequiresConfirmation.value,
-    restrictedRoleIds: selectedRoleIds.value,
+    restrictedUserTypes: selectedUserTypes.value,
     restrictedGroupIds: selectedGroupIds.value,
     restrictedTagIds: selectedTagIds.value,
     fieldDefaults: [...fieldDefaults.value.entries()]
@@ -296,13 +295,12 @@ function submit() {
         <FieldLabel>{{ t('events.restrictToRoles') }}</FieldLabel>
         <p class="text-xs text-(--text-muted)">{{ t('events.restrictToRolesHint') }}</p>
         <RestrictionPicker
-          :roles="roles"
           :groups="groups"
           :tags="tags"
-          :selected-role-ids="selectedRoleIds"
+          :selected-user-types="selectedUserTypes"
           :selected-group-ids="selectedGroupIds"
           :selected-tag-ids="selectedTagIds"
-          @update:selected-role-ids="selectedRoleIds = $event"
+          @update:selected-user-types="selectedUserTypes = $event"
           @update:selected-group-ids="selectedGroupIds = $event"
           @update:selected-tag-ids="selectedTagIds = $event"
         />

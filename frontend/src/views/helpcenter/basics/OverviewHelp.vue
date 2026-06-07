@@ -21,6 +21,7 @@ const features = [
   {icon: ['fas', 'newspaper'], key: 'news'},
   {icon: ['fas', 'square-poll-vertical'], key: 'forms'},
   {icon: ['fas', 'box-open'], key: 'lostAndFound'},
+  {icon: ['fas', 'circle-question'], key: 'quiz'},
 ]
 </script>
 

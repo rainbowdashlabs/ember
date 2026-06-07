@@ -77,6 +77,7 @@ class CommentServiceTest extends RepositoryTestBase {
                 null,
                 null,
                 null,
+                null,
                 null);
         eventId = event.id();
     }
@@ -349,6 +350,7 @@ class CommentServiceTest extends RepositoryTestBase {
                 false,
                 null,
                 false,
+                null,
                 null,
                 null,
                 null,

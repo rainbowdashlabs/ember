@@ -295,10 +295,9 @@ public class EventRoutes implements Routes {
         Integer categoryId = catParam != null ? Integer.valueOf(catParam) : null;
         String regParam = ctx.queryParam("requiresRegistration");
         Boolean requiresRegistration = regParam != null ? Boolean.valueOf(regParam) : null;
-        Integer memberId = session.hasPermission(StationPermission.EVENT_MANAGER)
-                ? null
-                : (session.member() != null ? session.member().id() : -1);
-        var events = eventService.findFiltered(session.stationId(), memberId, categoryId, requiresRegistration);
+        List<Integer> memberIds = resolveVisibleMemberIds(session);
+        var events =
+                eventService.findFilteredForMembers(session.stationId(), memberIds, categoryId, requiresRegistration);
         ctx.json(events.stream().map(EventSummary::of).toList());
     }
 
@@ -342,11 +341,9 @@ public class EventRoutes implements Routes {
         Boolean requiresRegistration = regParam != null ? Boolean.valueOf(regParam) : null;
         int limit = ctx.queryParamAsClass("limit", Integer.class).getOrDefault(10);
         int offset = ctx.queryParamAsClass("offset", Integer.class).getOrDefault(0);
-        Integer memberId = session.hasPermission(StationPermission.EVENT_MANAGER)
-                ? null
-                : (session.member() != null ? session.member().id() : -1);
+        List<Integer> memberIds = resolveVisibleMemberIds(session);
         ctx.json(eventService.findUpcomingOccurrences(
-                session.stationId(), memberId, categoryId, requiresRegistration, limit, offset));
+                session.stationId(), memberIds, categoryId, requiresRegistration, limit, offset));
     }
 
     @OpenApi(
@@ -379,7 +376,8 @@ public class EventRoutes implements Routes {
                 req.categoryId(),
                 req.registrationLimit(),
                 req.minRegistrations(),
-                req.thresholdDate());
+                req.thresholdDate(),
+                req.registrationCloseDays());
         eventService.setRestrictions(
                 event.id(), req.restrictedUserTypes(), req.restrictedGroupIds(), req.restrictedTagIds(), List.of());
 
@@ -444,7 +442,8 @@ public class EventRoutes implements Routes {
                         req.isPublic(),
                         req.registrationLimit(),
                         req.minRegistrations(),
-                        req.thresholdDate())
+                        req.thresholdDate(),
+                        req.registrationCloseDays())
                 .ifPresentOrElse(
                         event -> {
                             eventService.setRestrictions(
@@ -580,6 +579,21 @@ public class EventRoutes implements Routes {
     }
 
     // -- Helpers --
+
+    private List<Integer> resolveVisibleMemberIds(UserSession session) {
+        if (session.hasPermission(StationPermission.EVENT_MANAGER)) {
+            return null;
+        }
+        if (session.member() == null) {
+            return List.of(-1);
+        }
+        var ids = new ArrayList<Integer>();
+        ids.add(session.member().id());
+        if (session.hasPermission(StationPermission.MEMBER_GUARDIAN)) {
+            stationMemberService.findManaged(session.member().id()).forEach(m -> ids.add(m.id()));
+        }
+        return ids;
+    }
 
     private void validate(EventRequest req) {
         if (req.name() == null || req.name().isBlank()) throw new BadRequestResponse("name is required");
@@ -1376,7 +1390,8 @@ public class EventRoutes implements Routes {
             Boolean isPublic,
             Integer registrationLimit,
             Integer minRegistrations,
-            Instant thresholdDate) {}
+            Instant thresholdDate,
+            Integer registrationCloseDays) {}
 
     public record CancelEventRequest(String reason) {}
 

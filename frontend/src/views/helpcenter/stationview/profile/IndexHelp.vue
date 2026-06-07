@@ -16,6 +16,9 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import PasswordInput from '@/components/input/text/PasswordInput.vue'
 import MutedText from '@/components/typography/MutedText.vue'
+import UserAvatar from '@/components/avatar/UserAvatar.vue'
+import FileUploadButton from '@/components/button/FileUploadButton.vue'
+import DeleteButton from '@/components/button/DeleteButton.vue'
 
 const {t} = useI18n()
 </script>
@@ -25,6 +28,25 @@ const {t} = useI18n()
     <HelpSection :title="t('helpCenter.profile.whatIs')">
       <p>{{ t('helpCenter.profile.whatIsText') }}</p>
     </HelpSection>
+
+    <HelpSection :title="t('helpCenter.profile.avatarTitle')">
+      <p>{{ t('helpCenter.profile.avatarText') }}</p>
+    </HelpSection>
+
+    <!-- Dummy: Avatar section -->
+    <NeutralContainer class="space-y-4">
+      <SectionHeader>{{ t('profile.avatar') }}</SectionHeader>
+      <div class="flex items-center gap-4">
+        <UserAvatar :name="'Max Mustermann'" size="lg"/>
+        <div class="flex items-center gap-2">
+          <FileUploadButton accept="image/png,image/jpeg,image/webp" disabled>
+            {{ t('profile.uploadAvatar') }}
+          </FileUploadButton>
+          <DeleteButton disabled/>
+        </div>
+      </div>
+      <p class="text-xs text-(--text-muted)">{{ t('profile.avatarHint') }}</p>
+    </NeutralContainer>
 
     <HelpSection :title="t('helpCenter.profile.accountTitle')">
       <p>{{ t('helpCenter.profile.accountText') }}</p>

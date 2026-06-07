@@ -98,6 +98,7 @@ class EventServiceTest extends RepositoryTestBase {
                 categoryId,
                 null,
                 null,
+                null,
                 null);
         assertNotNull(event);
         assertEquals("Weekly Training", event.name());
@@ -140,6 +141,7 @@ class EventServiceTest extends RepositoryTestBase {
                 false,
                 null,
                 null,
+                null,
                 null);
         assertTrue(result.isPresent());
         var updated = result.get();
@@ -168,6 +170,7 @@ class EventServiceTest extends RepositoryTestBase {
                 false,
                 categoryId,
                 false,
+                null,
                 null,
                 null,
                 null);
@@ -312,6 +315,7 @@ class EventServiceTest extends RepositoryTestBase {
                 categoryId,
                 null,
                 null,
+                null,
                 null);
 
         var reg = service.register(event.id(), member.id(), LocalDate.of(2026, 10, 1), false, null);
@@ -344,6 +348,7 @@ class EventServiceTest extends RepositoryTestBase {
                 categoryId,
                 null,
                 null,
+                null,
                 null);
 
         var reg = service.register(event.id(), member.id(), LocalDate.of(2026, 10, 2), false, null);
@@ -371,6 +376,7 @@ class EventServiceTest extends RepositoryTestBase {
                 categoryId,
                 null,
                 null,
+                null,
                 null);
 
         var reg = service.decline(event.id(), member.id(), LocalDate.of(2026, 10, 3), null);
@@ -396,6 +402,7 @@ class EventServiceTest extends RepositoryTestBase {
                 null,
                 false,
                 categoryId,
+                null,
                 null,
                 null,
                 null);
@@ -445,6 +452,7 @@ class EventServiceTest extends RepositoryTestBase {
                 categoryId,
                 null,
                 null,
+                null,
                 null);
 
         service.setRestrictions(event.id(), List.of("MEMBER"), List.of(), List.of(), List.of());
@@ -470,6 +478,7 @@ class EventServiceTest extends RepositoryTestBase {
                 null,
                 false,
                 categoryId,
+                null,
                 null,
                 null,
                 null);
@@ -499,6 +508,7 @@ class EventServiceTest extends RepositoryTestBase {
                 categoryId,
                 null,
                 null,
+                null,
                 null);
 
         // No restrictions set — member should be eligible
@@ -525,6 +535,7 @@ class EventServiceTest extends RepositoryTestBase {
                 null,
                 false,
                 categoryId,
+                null,
                 null,
                 null,
                 null);
@@ -556,6 +567,7 @@ class EventServiceTest extends RepositoryTestBase {
                 null,
                 false,
                 categoryId,
+                null,
                 null,
                 null,
                 null);
@@ -601,6 +613,7 @@ class EventServiceTest extends RepositoryTestBase {
                 categoryId,
                 null,
                 null,
+                null,
                 null);
 
         var reg = service.register(event.id(), member.id(), LocalDate.of(2027, 1, 1), true, null);
@@ -625,6 +638,7 @@ class EventServiceTest extends RepositoryTestBase {
                 null,
                 false,
                 categoryId,
+                null,
                 null,
                 null,
                 null);
@@ -662,6 +676,7 @@ class EventServiceTest extends RepositoryTestBase {
                 null,
                 false,
                 categoryId,
+                null,
                 null,
                 null,
                 null);
@@ -725,6 +740,7 @@ class EventServiceTest extends RepositoryTestBase {
                 categoryId,
                 null,
                 null,
+                null,
                 null);
 
         var occurrences = service.findUpcomingOccurrences(station.id(), null, null, null, 100, 0);
@@ -754,6 +770,7 @@ class EventServiceTest extends RepositoryTestBase {
                 categoryId,
                 null,
                 null,
+                null,
                 null);
 
         var occurrences = service.findUpcomingOccurrences(station.id(), null, null, null, 100, 0);
@@ -780,7 +797,8 @@ class EventServiceTest extends RepositoryTestBase {
     @Test
     @Order(124)
     void findUpcomingOccurrencesWithFilters() {
-        var occurrences = service.findUpcomingOccurrences(station.id(), member.id(), categoryId, false, 100, 0);
+        var occurrences =
+                service.findUpcomingOccurrences(station.id(), List.of(member.id()), categoryId, false, 100, 0);
         assertNotNull(occurrences);
     }
 
@@ -805,6 +823,7 @@ class EventServiceTest extends RepositoryTestBase {
                 null,
                 false,
                 categoryId,
+                null,
                 null,
                 null,
                 null);
@@ -836,6 +855,7 @@ class EventServiceTest extends RepositoryTestBase {
                 categoryId,
                 null,
                 null,
+                null,
                 null);
 
         var occurrences = service.findUpcomingOccurrences(station.id(), null, null, null, 100, 0);
@@ -864,6 +884,7 @@ class EventServiceTest extends RepositoryTestBase {
                 null,
                 false,
                 categoryId,
+                null,
                 null,
                 null,
                 null);
@@ -903,6 +924,7 @@ class EventServiceTest extends RepositoryTestBase {
                 null,
                 null,
                 null,
+                null,
                 null);
 
         var occurrences = service.findUpcomingOccurrences(breakStation.id(), null, null, null, 100, 0);
@@ -937,6 +959,7 @@ class EventServiceTest extends RepositoryTestBase {
                 categoryId,
                 null,
                 null,
+                null,
                 null);
 
         var occurrences = service.findUpcomingOccurrences(station.id(), null, null, null, 100, 0);
@@ -963,6 +986,7 @@ class EventServiceTest extends RepositoryTestBase {
                 null,
                 false,
                 categoryId,
+                null,
                 null,
                 null,
                 null);
@@ -1004,6 +1028,7 @@ class EventServiceTest extends RepositoryTestBase {
                 categoryId,
                 null,
                 null,
+                null,
                 null);
 
         // Register and auto-accept
@@ -1034,6 +1059,7 @@ class EventServiceTest extends RepositoryTestBase {
                 null,
                 false,
                 categoryId,
+                null,
                 null,
                 null,
                 null);
@@ -1072,6 +1098,7 @@ class EventServiceTest extends RepositoryTestBase {
                 categoryId,
                 null,
                 null,
+                null,
                 null);
 
         service.setFieldDefaults(
@@ -1106,6 +1133,7 @@ class EventServiceTest extends RepositoryTestBase {
                 null,
                 false,
                 categoryId,
+                null,
                 null,
                 null,
                 null);
@@ -1146,6 +1174,7 @@ class EventServiceTest extends RepositoryTestBase {
                 categoryId,
                 null,
                 null,
+                null,
                 null);
 
         service.setFieldDefaults(
@@ -1181,6 +1210,7 @@ class EventServiceTest extends RepositoryTestBase {
                 null,
                 false,
                 categoryId,
+                null,
                 null,
                 null,
                 null);
@@ -1225,6 +1255,7 @@ class EventServiceTest extends RepositoryTestBase {
                 categoryId,
                 null,
                 null,
+                null,
                 null);
 
         var reg = service.register(event.id(), member.id(), LocalDate.of(2027, 8, 1), false, member.id());
@@ -1256,6 +1287,7 @@ class EventServiceTest extends RepositoryTestBase {
                 categoryId,
                 null,
                 null,
+                null,
                 null);
 
         var today = service.findTodayEvents(station.id());
@@ -1283,6 +1315,7 @@ class EventServiceTest extends RepositoryTestBase {
                 null,
                 false,
                 categoryId,
+                null,
                 null,
                 null,
                 null);
@@ -1316,6 +1349,7 @@ class EventServiceTest extends RepositoryTestBase {
                 categoryId,
                 null,
                 null,
+                null,
                 null);
 
         var today = service.findTodayEvents(station.id());
@@ -1344,6 +1378,7 @@ class EventServiceTest extends RepositoryTestBase {
                 null,
                 false,
                 categoryId,
+                null,
                 null,
                 null,
                 null);
@@ -1380,6 +1415,7 @@ class EventServiceTest extends RepositoryTestBase {
                 categoryId,
                 null,
                 null,
+                null,
                 null);
 
         var todayEvents = service.findTodayEvents(station.id());
@@ -1413,6 +1449,7 @@ class EventServiceTest extends RepositoryTestBase {
                 categoryId,
                 null,
                 null,
+                null,
                 null);
 
         var todayEvents = service.findTodayEvents(station.id());
@@ -1437,6 +1474,7 @@ class EventServiceTest extends RepositoryTestBase {
                 false,
                 null,
                 false,
+                null,
                 null,
                 null,
                 null);
@@ -1468,6 +1506,7 @@ class EventServiceTest extends RepositoryTestBase {
                 null,
                 false,
                 categoryId,
+                null,
                 null,
                 null,
                 null);
@@ -1517,6 +1556,7 @@ class EventServiceTest extends RepositoryTestBase {
                 categoryId,
                 null,
                 null,
+                null,
                 null);
 
         // Use separate field IDs — no duplicates
@@ -1559,6 +1599,7 @@ class EventServiceTest extends RepositoryTestBase {
                 categoryId,
                 null,
                 null,
+                null,
                 null);
 
         service.setFieldDefaults(
@@ -1593,6 +1634,7 @@ class EventServiceTest extends RepositoryTestBase {
                 null,
                 false,
                 categoryId,
+                null,
                 null,
                 null,
                 null);
@@ -1632,6 +1674,7 @@ class EventServiceTest extends RepositoryTestBase {
                 null,
                 false,
                 categoryId,
+                null,
                 null,
                 null,
                 null);

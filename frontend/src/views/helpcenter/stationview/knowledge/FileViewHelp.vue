@@ -58,8 +58,28 @@ const {t} = useI18n()
       </div>
     </NeutralContainer>
 
+    <HelpSection :title="t('helpCenter.kbFileView.fileTypesDetailTitle')">
+      <p>{{ t('helpCenter.kbFileView.fileTypesDetailText') }}</p>
+    </HelpSection>
+
+    <HelpSection :title="t('helpCenter.kbFileView.tagsTitle')">
+      <p>{{ t('helpCenter.kbFileView.tagsText') }}</p>
+    </HelpSection>
+
+    <HelpSection :title="t('helpCenter.kbFileView.relatedTitle')">
+      <p>{{ t('helpCenter.kbFileView.relatedText') }}</p>
+    </HelpSection>
+
+    <HelpSection :title="t('helpCenter.kbFileView.commentsTitle')">
+      <p>{{ t('helpCenter.kbFileView.commentsText') }}</p>
+    </HelpSection>
+
     <HelpSection :title="t('helpCenter.kbFileView.editTitle')">
       <p>{{ t('helpCenter.kbFileView.editText') }}</p>
+    </HelpSection>
+
+    <HelpSection :title="t('helpCenter.kbFileView.shareLinkTitle')">
+      <p>{{ t('helpCenter.kbFileView.shareLinkText') }}</p>
     </HelpSection>
 
     <HelpSection :title="t('helpCenter.kbFileView.versionsTitle')">

@@ -137,6 +137,11 @@ const tabs = [
       <p>{{ t('helpCenter.formsAnalytics.responsesText') }}</p>
     </HelpSection>
 
+    <HelpSection :title="t('helpCenter.formsAnalytics.exportTitle')">
+      <p>{{ t('helpCenter.formsAnalytics.exportText') }}</p>
+      <p>{{ t('helpCenter.formsAnalytics.exportFieldsText') }}</p>
+    </HelpSection>
+
     <HelpTip>{{ t('helpCenter.formsAnalytics.tip') }}</HelpTip>
   </HelpArticle>
 </template>

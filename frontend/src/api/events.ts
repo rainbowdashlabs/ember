@@ -402,7 +402,7 @@ export interface BatchCreateRequest {
     requiresRegistration?: boolean
     requiresConfirmation?: boolean
     registrationDeadline?: string | null
-    restrictedRoleIds?: number[]
+    restrictedUserTypes?: string[]
     restrictedGroupIds?: number[]
     restrictedTagIds?: number[]
 }

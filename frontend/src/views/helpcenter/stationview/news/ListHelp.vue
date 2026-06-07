@@ -10,21 +10,24 @@ import HelpArticle from '@/components/helpcenter/HelpArticle.vue'
 import HelpSection from '@/components/helpcenter/HelpSection.vue'
 import HelpTip from '@/components/helpcenter/HelpTip.vue'
 import HelpRoleToggle from '@/components/helpcenter/HelpRoleToggle.vue'
-import type {HelpRole} from '@/components/helpcenter/HelpRoleToggle.vue'
+import type {HelpPerspective} from '@/components/helpcenter/HelpRoleToggle.vue'
+import {StationPermission} from '@/api/types'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import EditButton from '@/components/button/EditButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import StationBadge from '@/components/badge/StationBadge.vue'
 
 const {t} = useI18n()
 
-const roles: HelpRole[] = [
-  {key: 'member', label: t('helpCenter.roles.member')},
-  {key: 'manager', label: t('helpCenter.roles.manager')},
+const perspectives: HelpPerspective[] = [
+  {key: 'member', label: t('helpCenter.roles.member'), permissions: [StationPermission.USER]},
+  {key: 'manager', label: t('helpCenter.roles.manager'), permissions: [StationPermission.NEWS_MANAGER]},
 ]
-const activeRole = ref('')
+const activeView = ref('')
 </script>
 
 <template>
@@ -33,7 +36,7 @@ const activeRole = ref('')
       <p>{{ t('helpCenter.news.whatIsText') }}</p>
     </HelpSection>
 
-    <HelpRoleToggle v-model="activeRole" :roles="roles"/>
+    <HelpRoleToggle v-model="activeView" :perspectives="perspectives"/>
 
     <HelpSection :title="t('helpCenter.news.reading')">
       <p>{{ t('helpCenter.news.readingText') }}</p>
@@ -43,7 +46,7 @@ const activeRole = ref('')
     <!-- Dummy: News list -->
     <div class="flex items-center justify-between">
       <SectionHeader>{{ t('news.title') }}</SectionHeader>
-      <PrimaryButton :icon="['fas', 'plus']" v-if="activeRole === 'manager'">
+      <PrimaryButton :icon="['fas', 'plus']" v-if="activeView === 'manager'">
         {{ t('news.create') }}
       </PrimaryButton>
     </div>
@@ -55,7 +58,7 @@ const activeRole = ref('')
             <SubHeader>Dienstplanänderung Mai</SubHeader>
             <p class="text-xs text-(--text-muted)">Admin &middot; 14.05.2026, 10:30</p>
           </div>
-          <div v-if="activeRole === 'manager'" class="flex items-center gap-1 shrink-0">
+          <div v-if="activeView === 'manager'" class="flex items-center gap-1 shrink-0">
             <EditButton/>
             <DeleteButton/>
           </div>
@@ -78,7 +81,7 @@ const activeRole = ref('')
             <SubHeader>Neue Ausrüstung eingetroffen</SubHeader>
             <p class="text-xs text-(--text-muted)">Admin &middot; 10.05.2026, 14:00</p>
           </div>
-          <div v-if="activeRole === 'manager'" class="flex items-center gap-1 shrink-0">
+          <div v-if="activeView === 'manager'" class="flex items-center gap-1 shrink-0">
             <EditButton/>
             <DeleteButton/>
           </div>
@@ -94,9 +97,33 @@ const activeRole = ref('')
           </SecondaryButton>
         </div>
       </NeutralContainer>
+
+      <!-- Federated news item -->
+      <NeutralContainer class="space-y-3">
+        <div class="flex items-start justify-between gap-3">
+          <div>
+            <SubHeader class="flex items-center gap-1">
+              {{ t('helpCenter.newsList.federatedTitle') }}
+              <StationBadge station-name="JF Partnerwache" class="ml-1"/>
+            </SubHeader>
+            <p class="text-xs text-(--text-muted)">08.05.2026, 09:00</p>
+          </div>
+        </div>
+        <div class="prose prose-sm dark:prose-invert max-w-none">
+          <p>{{ t('helpCenter.newsList.federatedContent') }}</p>
+        </div>
+      </NeutralContainer>
     </div>
 
-    <template v-if="activeRole === 'manager'">
+    <HelpSection :title="t('helpCenter.newsList.detailTitle')">
+      <p>{{ t('helpCenter.newsList.detailText') }}</p>
+    </HelpSection>
+
+    <HelpSection :title="t('helpCenter.newsList.federatedTitle')">
+      <p>{{ t('helpCenter.newsList.federatedText') }}</p>
+    </HelpSection>
+
+    <template v-if="activeView === 'manager'">
       <HelpSection :title="t('helpCenter.news.managerTitle')">
         <p>{{ t('helpCenter.news.managerText') }}</p>
         <p>{{ t('helpCenter.news.managerCreate') }}</p>

@@ -234,6 +234,47 @@ class StationMemberServiceTest extends RepositoryTestBase {
     }
 
     @Test
+    @Order(27)
+    void setManaged() {
+        // Set member1 as manager of member2 via setManaged
+        var result = service.setManaged(member1.id(), List.of(member2.id()));
+        assertTrue(result.stream().anyMatch(m -> m.id() == member2.id()));
+
+        // Remove via empty list
+        var cleared = service.setManaged(member1.id(), List.of());
+        assertTrue(cleared.isEmpty());
+    }
+
+    @Test
+    @Order(28)
+    void setManagedIdempotent() {
+        service.setManaged(member1.id(), List.of(member2.id()));
+        var result = service.setManaged(member1.id(), List.of(member2.id()));
+        assertEquals(1, result.size());
+        service.setManaged(member1.id(), List.of());
+    }
+
+    @Test
+    @Order(29)
+    void setPermissionsRejectsLoginWithoutEmail() {
+        // Create an account without email
+        var noEmailAccount = accountRepo.create(null, "NoEmail", "User");
+        var noEmailMember = service.create(station.id(), noEmailAccount.id());
+
+        var loginPerm =
+                stationMemberRepo.findPermissionByName(StationPermission.LOGIN).orElseThrow();
+        assertThrows(
+                io.javalin.http.BadRequestResponse.class,
+                () -> service.setPermissions(
+                        noEmailMember.id(),
+                        List.of(loginPerm.id()),
+                        EnumSet.of(StationPermission.STATION_ADMINISTRATOR, StationPermission.LOGIN)));
+
+        service.delete(noEmailMember.id());
+        accountRepo.delete(noEmailAccount.id());
+    }
+
+    @Test
     @Order(30)
     void delete() {
         // Create a third member to delete

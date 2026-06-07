@@ -44,10 +44,21 @@ const {t} = useI18n()
       <div class="flex items-center gap-3">
         <font-awesome-icon :icon="['fas', 'square-poll-vertical']" class="text-primary text-xl"/>
         <div class="flex-1">
-          <SubHeader>Sicherheitsunterweisung</SubHeader>
+          <SubHeader>{{ t('helpCenter.requirements.exampleForm') }}</SubHeader>
           <p class="text-sm text-(--text-muted)">{{ t('requirements.formText') }}</p>
         </div>
         <PrimaryButton>{{ t('requirements.fillOut') }}</PrimaryButton>
+      </div>
+    </NeutralContainer>
+
+    <NeutralContainer>
+      <div class="flex items-center gap-3">
+        <font-awesome-icon :icon="['fas', 'graduation-cap']" class="text-primary text-xl"/>
+        <div class="flex-1">
+          <SubHeader>{{ t('helpCenter.requirements.exampleQuiz') }}</SubHeader>
+          <p class="text-sm text-(--text-muted)">{{ t('requirements.quizText') }}</p>
+        </div>
+        <PrimaryButton>{{ t('requirements.startQuiz') }}</PrimaryButton>
       </div>
     </NeutralContainer>
 

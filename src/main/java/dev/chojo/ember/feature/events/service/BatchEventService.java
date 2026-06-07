@@ -66,6 +66,7 @@ public class BatchEventService {
                     request.categoryId(),
                     null,
                     null,
+                    null,
                     null);
 
             if (request.restrictedUserTypes() != null

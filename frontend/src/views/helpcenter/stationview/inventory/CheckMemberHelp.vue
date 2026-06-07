@@ -32,86 +32,113 @@ const {t} = useI18n()
     </HelpSection>
 
     <!-- Dummy: Check member view -->
-    <NeutralContainer class="space-y-4">
-      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-        <div>
-          <SectionHeader>Max Mustermann</SectionHeader>
-          <p class="text-sm text-(--text-muted)">{{ t('inventory.check.title') }}</p>
+    <HelpSection :title="t('helpCenter.inventoryCheckMember.dummyTitle')">
+      <NeutralContainer class="space-y-4">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+          <div>
+            <SectionHeader>Max Mustermann</SectionHeader>
+            <p class="text-sm text-(--text-muted)">{{ t('inventory.check.title') }}</p>
+          </div>
+          <div class="flex gap-2">
+            <PrimaryButton :icon="['fas', 'list-check']">
+              {{ t('inventory.check.rapidCheck') }}
+            </PrimaryButton>
+            <SecondaryButton>{{ t('inventory.check.markAll') }}</SecondaryButton>
+            <SecondaryButton>{{ t('inventory.check.cancel') }}</SecondaryButton>
+          </div>
         </div>
-        <div class="flex gap-2">
-          <SecondaryButton>{{ t('inventory.check.markAll') }}</SecondaryButton>
+
+        <!-- Dummy: Inventory section with confirmed item -->
+        <NeutralContainer class="space-y-3">
+          <div class="flex items-center justify-between gap-2">
+            <SubHeader>Helme</SubHeader>
+            <span class="text-sm text-(--text-muted) shrink-0">1 / 1</span>
+          </div>
+
+          <!-- Assigned item - confirmed -->
+          <div class="rounded border border-bg-light-accent/50 dark:border-bg-dark-accent/50 p-3 space-y-2 ring-2 ring-success bg-success/10">
+            <div class="flex flex-col sm:flex-row sm:items-center gap-2">
+              <div class="flex-1 min-w-0">
+                <div class="font-medium text-sm">Helm <span class="font-normal text-(--text-muted)">[M]</span></div>
+                <div class="text-xs text-(--text-muted)">INV-0001</div>
+              </div>
+              <div class="flex gap-1 shrink-0">
+                <SuccessButton class="text-xs px-2 py-1">
+                  <font-awesome-icon :icon="['fas', 'check']" />
+                </SuccessButton>
+                <ErrorButton class="text-xs px-2 py-1 opacity-40">
+                  <font-awesome-icon :icon="['fas', 'xmark']" />
+                </ErrorButton>
+                <SecondaryButton class="text-xs px-2 py-1">
+                  <font-awesome-icon :icon="['fas', 'right-from-bracket']" />
+                </SecondaryButton>
+              </div>
+            </div>
+          </div>
+        </NeutralContainer>
+
+        <!-- Dummy: Inventory section with lost item -->
+        <NeutralContainer class="space-y-3">
+          <div class="flex items-center justify-between gap-2">
+            <SubHeader>Jacken</SubHeader>
+            <span class="text-sm text-(--text-muted) shrink-0">1 / 1</span>
+          </div>
+
+          <!-- Assigned item - lost -->
+          <div class="rounded border border-bg-light-accent/50 dark:border-bg-dark-accent/50 p-3 space-y-2 ring-2 ring-error bg-error/10">
+            <div class="flex flex-col sm:flex-row sm:items-center gap-2">
+              <div class="flex-1 min-w-0">
+                <div class="font-medium text-sm">Jacke <span class="font-normal text-(--text-muted)">[L]</span></div>
+                <div class="text-xs text-(--text-muted)">INV-0015</div>
+              </div>
+              <div class="flex gap-1 shrink-0">
+                <SuccessButton class="text-xs px-2 py-1 opacity-40">
+                  <font-awesome-icon :icon="['fas', 'check']" />
+                </SuccessButton>
+                <ErrorButton class="text-xs px-2 py-1">
+                  <font-awesome-icon :icon="['fas', 'xmark']" />
+                </ErrorButton>
+                <SecondaryButton class="text-xs px-2 py-1">
+                  <font-awesome-icon :icon="['fas', 'right-from-bracket']" />
+                </SecondaryButton>
+                <SecondaryButton :icon="['fas', 'folder-plus']" class="text-xs px-2 py-1">
+                  {{ t('inventory.check.createProcurement') }}
+                </SecondaryButton>
+              </div>
+            </div>
+          </div>
+        </NeutralContainer>
+
+        <!-- Dummy: Empty slot (item not assigned yet) -->
+        <NeutralContainer class="space-y-3">
+          <div class="flex items-center justify-between gap-2">
+            <SubHeader>Stiefel</SubHeader>
+            <span class="text-sm text-(--text-muted) shrink-0">0 / 1</span>
+          </div>
+
+          <div class="rounded border border-bg-light-accent/50 dark:border-bg-dark-accent/50 p-3 border-dashed">
+            <div class="text-sm text-(--text-muted)">{{ t('helpCenter.inventoryCheckMember.emptySlotText') }}</div>
+          </div>
+        </NeutralContainer>
+
+        <!-- Dummy: Submit bar -->
+        <div class="flex justify-end gap-3">
           <SecondaryButton>{{ t('inventory.check.cancel') }}</SecondaryButton>
-        </div>
-      </div>
-
-      <!-- Dummy: Inventory section -->
-      <NeutralContainer class="space-y-3">
-        <div class="flex items-center justify-between gap-2">
-          <SubHeader>Helme</SubHeader>
-          <span class="text-sm text-(--text-muted) shrink-0">1 / 1</span>
-        </div>
-
-        <!-- Assigned item - confirmed -->
-        <div class="rounded border border-bg-light-accent/50 dark:border-bg-dark-accent/50 p-3 space-y-2 ring-2 ring-success bg-success/10">
-          <div class="flex flex-col sm:flex-row sm:items-center gap-2">
-            <div class="flex-1 min-w-0">
-              <div class="font-medium text-sm">Helm <span class="font-normal text-(--text-muted)">[M]</span></div>
-              <div class="text-xs text-(--text-muted)">INV-0001</div>
-            </div>
-            <div class="flex gap-1 shrink-0">
-              <SuccessButton class="text-xs px-2 py-1">
-                <font-awesome-icon :icon="['fas', 'check']" />
-              </SuccessButton>
-              <ErrorButton class="text-xs px-2 py-1 opacity-40">
-                <font-awesome-icon :icon="['fas', 'xmark']" />
-              </ErrorButton>
-              <SecondaryButton class="text-xs px-2 py-1">
-                <font-awesome-icon :icon="['fas', 'right-from-bracket']" />
-              </SecondaryButton>
-            </div>
-          </div>
+          <PrimaryButton>{{ t('inventory.check.complete') }}</PrimaryButton>
         </div>
       </NeutralContainer>
+    </HelpSection>
 
-      <NeutralContainer class="space-y-3">
-        <div class="flex items-center justify-between gap-2">
-          <SubHeader>Jacken</SubHeader>
-          <span class="text-sm text-(--text-muted) shrink-0">
-            1 / 1
-          </span>
-        </div>
+    <!-- Rapid Check mode -->
+    <HelpSection :title="t('helpCenter.inventoryCheckMember.rapidCheckTitle')">
+      <p>{{ t('helpCenter.inventoryCheckMember.rapidCheckText') }}</p>
+      <p>{{ t('helpCenter.inventoryCheckMember.rapidCheckText2') }}</p>
+    </HelpSection>
 
-        <!-- Assigned item - lost -->
-        <div class="rounded border border-bg-light-accent/50 dark:border-bg-dark-accent/50 p-3 space-y-2 ring-2 ring-error bg-error/10">
-          <div class="flex flex-col sm:flex-row sm:items-center gap-2">
-            <div class="flex-1 min-w-0">
-              <div class="font-medium text-sm">Jacke <span class="font-normal text-(--text-muted)">[L]</span></div>
-              <div class="text-xs text-(--text-muted)">INV-0015</div>
-            </div>
-            <div class="flex gap-1 shrink-0">
-              <SuccessButton class="text-xs px-2 py-1 opacity-40">
-                <font-awesome-icon :icon="['fas', 'check']" />
-              </SuccessButton>
-              <ErrorButton class="text-xs px-2 py-1">
-                <font-awesome-icon :icon="['fas', 'xmark']" />
-              </ErrorButton>
-              <SecondaryButton class="text-xs px-2 py-1">
-                <font-awesome-icon :icon="['fas', 'right-from-bracket']" />
-              </SecondaryButton>
-              <SecondaryButton :icon="['fas', 'folder-plus']" class="text-xs px-2 py-1">
-                {{ t('inventory.check.createProcurement') }}
-              </SecondaryButton>
-            </div>
-          </div>
-        </div>
-      </NeutralContainer>
-
-      <!-- Dummy: Submit bar -->
-      <div class="flex justify-end gap-3">
-        <SecondaryButton>{{ t('inventory.check.cancel') }}</SecondaryButton>
-        <PrimaryButton>{{ t('inventory.check.complete') }}</PrimaryButton>
-      </div>
-    </NeutralContainer>
+    <!-- Item change/swap -->
+    <HelpSection :title="t('helpCenter.inventoryCheckMember.changeItemTitle')">
+      <p>{{ t('helpCenter.inventoryCheckMember.changeItemText') }}</p>
+    </HelpSection>
 
     <HelpSection :title="t('helpCenter.inventoryCheckMember.actionsTitle')">
       <p>{{ t('helpCenter.inventoryCheckMember.actionsText') }}</p>

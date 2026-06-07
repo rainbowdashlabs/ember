@@ -12,6 +12,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
+import SectionHeader from '@/components/typography/SectionHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 
 const {t} = useI18n()
@@ -29,6 +30,7 @@ const {t} = useI18n()
 
     <HelpSection :title="t('helpCenter.newsEdit.contentTitle')">
       <p>{{ t('helpCenter.newsEdit.contentText') }}</p>
+      <p>{{ t('helpCenter.newsEdit.markdownEditorText') }}</p>
     </HelpSection>
 
     <!-- Dummy: Editor -->
@@ -76,6 +78,7 @@ const {t} = useI18n()
 
     <HelpSection :title="t('helpCenter.newsEdit.visibilityTitle')">
       <p>{{ t('helpCenter.newsEdit.visibilityText') }}</p>
+      <p>{{ t('helpCenter.newsEdit.tagRestrictionsText') }}</p>
     </HelpSection>
 
     <!-- Dummy: Visibility groups -->
@@ -94,6 +97,10 @@ const {t} = useI18n()
         </span>
       </div>
     </NeutralContainer>
+
+    <HelpSection :title="t('helpCenter.newsEdit.federationTitle')">
+      <p>{{ t('helpCenter.newsEdit.federationText') }}</p>
+    </HelpSection>
 
     <!-- Dummy: Save buttons -->
     <div class="flex justify-end gap-3">

@@ -214,6 +214,7 @@ class StationTransferTest extends RepositoryTestBase {
                 catTraining.id(),
                 null,
                 null,
+                null,
                 null);
         eventRepo.create(
                 sourceStationId,
@@ -230,6 +231,7 @@ class StationTransferTest extends RepositoryTestBase {
                 catTraining.id(),
                 null,
                 null,
+                null,
                 null);
         eventRepo.create(
                 sourceStationId,
@@ -244,6 +246,7 @@ class StationTransferTest extends RepositoryTestBase {
                 now.plusSeconds(2505600),
                 false,
                 catSonder.id(),
+                null,
                 null,
                 null,
                 null);

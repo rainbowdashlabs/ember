@@ -25,7 +25,8 @@ import EventFieldValue from '@/components/display/EventFieldValue.vue'
 import type {AttendanceTemplate, EventCategory, EventField, StationEvent} from '@/api/types'
 import {EventTypes, RegistrationStatus, StationPermission, isRecurringEvent} from '@/api/types'
 import type {AbsentMember, EventRegistrationEntry, MemberRegistrationStats, FederatedEventRegistration} from '@/api/events'
-import {attendance, events, stationMembers} from '@/api'
+import {attendance, events, stationMembers, managedMembers as managedMembersApi} from '@/api'
+import type {StationMember} from '@/api/types'
 import {useSession} from '@/composables/useSession'
 import {useSidebarCounts} from '@/composables/useSidebarCounts'
 import CommentSection from '@/components/comment/CommentSection.vue'
@@ -37,7 +38,7 @@ import RegistrationsPanel from './eventdetailview/RegistrationsPanel.vue'
 const {t} = useI18n()
 const route = useRoute()
 const router = useRouter()
-const {canManageEvents, canManageAttendance, hasPermission, sessionInfo} = useSession()
+const {canManageEvents, canManageAttendance, hasPermission, isGuardian, sessionInfo} = useSession()
 const {refresh: refreshSidebarCounts} = useSidebarCounts()
 
 const eventId = computed(() => Number(route.params.id))
@@ -53,6 +54,8 @@ const absentMembers = ref<AbsentMember[]>([])
 const registrationStats = ref<MemberRegistrationStats[]>([])
 const federatedRegs = ref<FederatedEventRegistration[]>([])
 const allMembers = ref<{ id: number; name: string }[]>([])
+const managedMembers = ref<StationMember[]>([])
+const eligibleMembers = ref<Record<number, number[]>>({})
 const loading = ref(true)
 const error = ref('')
 
@@ -178,6 +181,16 @@ async function loadData() {
     if (canManageEvents()) {
       templates.value = await attendance.listTemplates()
     }
+    if (isGuardian()) {
+      const [managed, elig] = await Promise.all([
+        managedMembersApi.listManaged(),
+        events.listEligibleMembers(),
+      ])
+      managedMembers.value = managed.map(m => ({
+        id: m.id, stationId: m.stationId, accountId: m.accountId, name: m.name, email: m.email,
+      }))
+      eligibleMembers.value = elig
+    }
     await loadRegistrations()
     if ((canManageEvents() || canManageAttendance()) && isRecurringEvent(ev.eventType) && ev.dayOfWeek) {
       await loadAbsences()
@@ -245,45 +258,61 @@ async function denyRegistration(id: number) {
   } catch { error.value = t('common.error') }
 }
 
-// Self-registration for members
-const myRegistration = computed(() => registrations.value.find(r => r.memberId === currentMemberId.value))
+// Registration actions for self + managed members
 const registering = ref(false)
 const showCancelModal = ref(false)
+
+const registrableMembers = computed((): { id: number; name: string }[] => {
+  const eligible = eligibleMembers.value[eventId.value]
+  const ids = eligible ?? [currentMemberId.value, ...managedMembers.value.map(m => m.id)]
+  const result: { id: number; name: string }[] = []
+  for (const id of ids) {
+    if (id === currentMemberId.value) {
+      result.push({id, name: t('eventsUpcoming.myself')})
+    } else {
+      const m = managedMembers.value.find(mm => mm.id === id)
+      if (m) result.push({id, name: m.name ?? m.email ?? `#${id}`})
+    }
+  }
+  return result
+})
+
+const hasManagedMembers = computed(() => managedMembers.value.length > 0)
+
+function getRegistrationForMember(memberId: number): EventRegistrationEntry | undefined {
+  return registrations.value.find(r => r.memberId === memberId)
+}
 
 async function onEventCancelled() {
   showCancelModal.value = false
   await loadData()
 }
 
-async function registerSelf() {
+async function registerMember(memberId: number) {
   if (!event.value) return
   registering.value = true
   try {
-    await events.registerForEvent(event.value.id, {memberId: currentMemberId.value})
+    await events.registerForEvent(event.value.id, {
+      memberId: memberId !== currentMemberId.value ? memberId : undefined,
+    })
     await reloadRegistrationsAndCounts()
   } catch { error.value = t('common.error') }
   finally { registering.value = false }
 }
 
-async function declineSelf() {
+async function declineMember(memberId: number) {
   if (!event.value) return
   registering.value = true
   try {
-    await events.declineEvent(event.value.id, {memberId: currentMemberId.value})
+    await events.declineEvent(event.value.id, {
+      memberId: memberId !== currentMemberId.value ? memberId : undefined,
+    })
     await reloadRegistrationsAndCounts()
   } catch { error.value = t('common.error') }
   finally { registering.value = false }
 }
 
-async function withdrawSelf() {
-  if (!myRegistration.value) return
-  registering.value = true
-  try {
-    await events.withdrawRegistration(myRegistration.value.id)
-    await reloadRegistrationsAndCounts()
-  } catch { error.value = t('common.error') }
-  finally { registering.value = false }
-}
+
 
 const manualRegisterMemberId = ref('')
 const unregisteredMembers = computed(() => {
@@ -403,24 +432,31 @@ onMounted(loadData)
 
         <NeutralContainer v-if="event.requiresRegistration && !canManageEvents()" class="space-y-3">
           <SubHeader>{{ t('eventDetail.myRegistration') }}</SubHeader>
-          <div v-if="myRegistration" class="flex items-center gap-3">
-            <component :is="myRegistration.status === RegistrationStatus.ACCEPTED ? SuccessBadge : myRegistration.status === RegistrationStatus.PENDING ? InfoBadge : ErrorBadge">
-              {{ statusLabel(myRegistration.status) }}
-            </component>
-            <SecondaryButton v-if="myRegistration.status !== RegistrationStatus.DECLINED" :disabled="registering" @click="withdrawSelf">
-              <font-awesome-icon :icon="['fas', 'xmark']" class="mr-1"/>
-              {{ t('eventsUpcoming.withdraw') }}
-            </SecondaryButton>
-          </div>
-          <div v-else class="flex gap-2">
-            <PrimaryButton :disabled="registering" @click="registerSelf">
-              <font-awesome-icon :icon="['fas', 'check']" class="mr-1"/>
-              {{ t('eventsUpcoming.register') }}
-            </PrimaryButton>
-            <ErrorButton :disabled="registering" @click="declineSelf">
-              <font-awesome-icon :icon="['fas', 'xmark']" class="mr-1"/>
-              {{ t('eventsUpcoming.decline') }}
-            </ErrorButton>
+          <div v-for="member in registrableMembers" :key="member.id" class="flex items-center gap-3 flex-wrap">
+            <span v-if="hasManagedMembers" class="text-sm font-medium min-w-24">{{ member.name }}</span>
+            <template v-if="getRegistrationForMember(member.id)">
+              <component :is="getRegistrationForMember(member.id)!.status === RegistrationStatus.ACCEPTED ? SuccessBadge : getRegistrationForMember(member.id)!.status === RegistrationStatus.PENDING ? InfoBadge : ErrorBadge">
+                {{ statusLabel(getRegistrationForMember(member.id)!.status) }}
+              </component>
+              <ErrorButton v-if="getRegistrationForMember(member.id)!.status !== RegistrationStatus.DECLINED" :disabled="registering" @click="declineMember(member.id)">
+                <font-awesome-icon :icon="['fas', 'ban']" class="mr-1"/>
+                {{ t('eventsUpcoming.decline') }}
+              </ErrorButton>
+              <PrimaryButton v-if="getRegistrationForMember(member.id)!.status === RegistrationStatus.DECLINED" :disabled="registering" @click="registerMember(member.id)">
+                <font-awesome-icon :icon="['fas', 'check']" class="mr-1"/>
+                {{ t('eventsUpcoming.register') }}
+              </PrimaryButton>
+            </template>
+            <template v-else>
+              <PrimaryButton :disabled="registering" @click="registerMember(member.id)">
+                <font-awesome-icon :icon="['fas', 'check']" class="mr-1"/>
+                {{ t('eventsUpcoming.register') }}
+              </PrimaryButton>
+              <ErrorButton :disabled="registering" @click="declineMember(member.id)">
+                <font-awesome-icon :icon="['fas', 'ban']" class="mr-1"/>
+                {{ t('eventsUpcoming.decline') }}
+              </ErrorButton>
+            </template>
           </div>
         </NeutralContainer>
 

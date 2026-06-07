@@ -20,9 +20,9 @@ import MutedText from '@/components/typography/MutedText.vue'
 import EventFormPanel from './eventshared/EventFormPanel.vue'
 import BatchScheduleStep from './batchcreateview/BatchScheduleStep.vue'
 import BatchEditTable from './batchcreateview/BatchEditTable.vue'
-import type {AttendanceTemplate, AttendanceTemplateField, EventCategory, EventFieldEntry, EventLayout, LayoutFieldEntry, MemberGroup, PermissionGrant, UserTag} from '@/api/types'
+import type {AttendanceTemplate, AttendanceTemplateField, EventCategory, EventFieldEntry, EventLayout, LayoutFieldEntry, MemberGroup, UserTag} from '@/api/types'
 import type {BatchRow} from '@/api/events'
-import {attendance, events, memberGroups as memberGroupsApi, stationMembers, userTags as userTagsApi} from '@/api'
+import {attendance, events, memberGroups as memberGroupsApi, userTags as userTagsApi} from '@/api'
 import {useSession} from '@/composables/useSession'
 
 const {t} = useI18n()
@@ -41,7 +41,6 @@ const layouts = ref<EventLayout[]>([])
 const categories = ref<EventCategory[]>([])
 const templates = ref<AttendanceTemplate[]>([])
 const attendanceFields = ref<AttendanceTemplateField[]>([])
-const roles = ref<PermissionGrant[]>([])
 const groups = ref<MemberGroup[]>([])
 const tags = ref<UserTag[]>([])
 
@@ -56,7 +55,7 @@ const requiresRegistration = ref(false)
 const requiresConfirmation = ref(false)
 const hasDeadline = ref(false)
 const registrationDeadline = ref('')
-const selectedRoleIds = ref<number[]>([])
+const selectedUserTypes = ref<string[]>([])
 const selectedGroupIds = ref<number[]>([])
 const selectedTagIds = ref<number[]>([])
 
@@ -67,18 +66,16 @@ const rows = ref<BatchRow[]>([])
 async function loadData() {
   loading.value = true
   try {
-    const [layoutList, catList, tplList, roleList, groupList, tagList] = await Promise.all([
+    const [layoutList, catList, tplList, groupList, tagList] = await Promise.all([
       events.listLayouts(),
       events.listCategories(),
       attendance.listTemplates(),
-      stationMembers.listAllPermissions(),
       memberGroupsApi.listGroups(),
       userTagsApi.listTags(),
     ])
     layouts.value = layoutList
     categories.value = catList
     templates.value = tplList
-    roles.value = roleList
     groups.value = groupList
     tags.value = tagList
     const allFields: AttendanceTemplateField[] = []
@@ -139,7 +136,7 @@ async function createBatch() {
       requiresRegistration: requiresRegistration.value,
       requiresConfirmation: requiresConfirmation.value,
       registrationDeadline: registrationDeadline.value || undefined,
-      restrictedRoleIds: selectedRoleIds.value.length > 0 ? selectedRoleIds.value : undefined,
+      restrictedUserTypes: selectedUserTypes.value.length > 0 ? selectedUserTypes.value : undefined,
       restrictedGroupIds: selectedGroupIds.value.length > 0 ? selectedGroupIds.value : undefined,
       restrictedTagIds: selectedTagIds.value.length > 0 ? selectedTagIds.value : undefined,
     })
@@ -183,14 +180,13 @@ async function createBatch() {
             v-model:requires-confirmation="requiresConfirmation"
             v-model:has-deadline="hasDeadline"
             v-model:registration-deadline="registrationDeadline"
-            v-model:selected-role-ids="selectedRoleIds"
+            v-model:selected-user-types="selectedUserTypes"
             v-model:selected-group-ids="selectedGroupIds"
             v-model:selected-tag-ids="selectedTagIds"
             v-model:fields="fieldDefs"
             :categories="categories"
             :templates="templates"
             :attendance-fields="attendanceFields"
-            :roles="roles"
             :groups="groups"
             :tags="tags"
         />

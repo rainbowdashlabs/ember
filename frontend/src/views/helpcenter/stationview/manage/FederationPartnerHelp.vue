@@ -11,6 +11,8 @@ import HelpTip from '@/components/helpcenter/HelpTip.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
+import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import DeleteButton from '@/components/button/DeleteButton.vue'
 import {ref} from 'vue'
 import Td from '@/components/table/Td.vue'
 import Th from '@/components/table/Th.vue'
@@ -23,6 +25,14 @@ const dummyQuizReceive = ref(true)
 const dummyQuizSend = ref(true)
 const dummyProtocolReceive = ref(false)
 const dummyProtocolSend = ref(false)
+const dummyEventReceive = ref(true)
+const dummyEventSend = ref(false)
+const dummyBoardReceive = ref(false)
+const dummyBoardSend = ref(false)
+const dummyNewsReceive = ref(true)
+const dummyNewsSend = ref(true)
+const dummyInventoryReceive = ref(false)
+const dummyInventorySend = ref(false)
 </script>
 
 <template>
@@ -31,7 +41,7 @@ const dummyProtocolSend = ref(false)
       <p>{{ t('helpCenter.federationPartner.whatIsText') }}</p>
     </HelpSection>
 
-    <!-- Dummy: partner header -->
+    <!-- Dummy: partner header with action buttons -->
     <NeutralContainer class="space-y-2">
       <div class="flex items-center gap-2">
         <div class="flex-1">
@@ -39,6 +49,10 @@ const dummyProtocolSend = ref(false)
           <div class="text-xs text-(--text-muted)">Verbunden seit 1. März 2026 · Protokollversion v1</div>
         </div>
         <SuccessBadge>{{ t('federation.active') }}</SuccessBadge>
+        <div class="flex gap-2">
+          <SecondaryButton class="!text-sm" disabled>{{ t('federation.suspend') }}</SecondaryButton>
+          <DeleteButton :label="t('federation.end')" disabled/>
+        </div>
       </div>
     </NeutralContainer>
 
@@ -67,10 +81,30 @@ const dummyProtocolSend = ref(false)
             <Td align="center"><ToggleInput v-model="dummyQuizReceive" /></Td>
             <Td align="center"><ToggleInput v-model="dummyQuizSend" /></Td>
           </tr>
-          <tr>
+          <tr class="border-b border-[var(--border)]">
             <Td>{{ t('federation.cap.protocol') }}</Td>
             <Td align="center"><ToggleInput v-model="dummyProtocolReceive" /></Td>
             <Td align="center"><ToggleInput v-model="dummyProtocolSend" /></Td>
+          </tr>
+          <tr class="border-b border-[var(--border)]">
+            <Td>{{ t('federation.cap.event') }}</Td>
+            <Td align="center"><ToggleInput v-model="dummyEventReceive" /></Td>
+            <Td align="center"><ToggleInput v-model="dummyEventSend" /></Td>
+          </tr>
+          <tr class="border-b border-[var(--border)]">
+            <Td>{{ t('federation.cap.board') }}</Td>
+            <Td align="center"><ToggleInput v-model="dummyBoardReceive" /></Td>
+            <Td align="center"><ToggleInput v-model="dummyBoardSend" /></Td>
+          </tr>
+          <tr class="border-b border-[var(--border)]">
+            <Td>{{ t('federation.cap.news') }}</Td>
+            <Td align="center"><ToggleInput v-model="dummyNewsReceive" /></Td>
+            <Td align="center"><ToggleInput v-model="dummyNewsSend" /></Td>
+          </tr>
+          <tr>
+            <Td>{{ t('federation.cap.inventory') }}</Td>
+            <Td align="center"><ToggleInput v-model="dummyInventoryReceive" /></Td>
+            <Td align="center"><ToggleInput v-model="dummyInventorySend" /></Td>
           </tr>
         </tbody>
       </table>

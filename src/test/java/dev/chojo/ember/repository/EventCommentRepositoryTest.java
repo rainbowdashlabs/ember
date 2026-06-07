@@ -50,6 +50,7 @@ class EventCommentRepositoryTest extends RepositoryTestBase {
                 null,
                 null,
                 null,
+                null,
                 null);
         eventId = event.id();
     }

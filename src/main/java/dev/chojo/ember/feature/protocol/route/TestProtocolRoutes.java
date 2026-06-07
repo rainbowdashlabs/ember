@@ -9,6 +9,7 @@ import dev.chojo.ember.api.FederationSession;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.roles.StationPermission;
+import dev.chojo.ember.api.roles.StationUserType;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
@@ -323,15 +324,11 @@ public class TestProtocolRoutes implements Routes {
         if (req.memberIds() != null) {
             resolvedIds.addAll(req.memberIds());
         }
-        if (req.roleIds() != null) {
-            var allPermissions = stationMemberRepository.findAllPermissions();
-            for (int roleId : req.roleIds()) {
-                allPermissions.stream()
-                        .filter(p -> p.id() == roleId)
-                        .findFirst()
-                        .ifPresent(r -> stationMemberRepository
-                                .findMembersWithPermission(session.stationId(), r.permission())
-                                .forEach(m -> resolvedIds.add(m.id())));
+        if (req.userTypes() != null) {
+            for (String userType : req.userTypes()) {
+                stationMemberRepository
+                        .findByStationAndUserType(session.stationId(), StationUserType.valueOf(userType))
+                        .forEach(m -> resolvedIds.add(m.id()));
             }
         }
         if (req.groupIds() != null) {
@@ -581,7 +578,7 @@ public class TestProtocolRoutes implements Routes {
             String name,
             LocalDate testDate,
             List<Integer> memberIds,
-            List<Integer> roleIds,
+            List<String> userTypes,
             List<Integer> groupIds,
             List<Integer> tagIds) {}
 

@@ -861,6 +861,7 @@ public class DemoService {
                 catUebung.id(),
                 null,
                 null,
+                null,
                 null);
         var evGesamt = eventService.create(
                 station.id(),
@@ -875,6 +876,7 @@ public class DemoService {
                 null,
                 false,
                 catUebung.id(),
+                null,
                 null,
                 null,
                 null);
@@ -895,6 +897,7 @@ public class DemoService {
                 catVeranstaltung.id(),
                 null,
                 null,
+                null,
                 null);
 
         // Quarterly: first Saturday = Dienstbesprechung
@@ -911,6 +914,7 @@ public class DemoService {
                 null,
                 false,
                 catVeranstaltung.id(),
+                null,
                 null,
                 null,
                 null);
@@ -934,6 +938,7 @@ public class DemoService {
                 null,
                 false,
                 catVeranstaltung.id(),
+                null,
                 null,
                 null,
                 null);
@@ -960,6 +965,7 @@ public class DemoService {
                 null,
                 false,
                 catUebung.id(),
+                null,
                 null,
                 null,
                 null);
@@ -992,6 +998,7 @@ public class DemoService {
                 catVeranstaltung.id(),
                 null,
                 null,
+                null,
                 null);
 
         Instant oeffentlichkeit = LocalDate.now().plusWeeks(3).atTime(14, 0).toInstant(ZoneOffset.UTC);
@@ -1012,6 +1019,7 @@ public class DemoService {
                 oeffentlichkeitDeadline,
                 false,
                 catVeranstaltung.id(),
+                null,
                 null,
                 null,
                 null);
@@ -1036,6 +1044,7 @@ public class DemoService {
                 wettbewerbDeadline,
                 true,
                 catWettbewerb.id(),
+                null,
                 null,
                 null,
                 null);
@@ -1134,6 +1143,7 @@ public class DemoService {
                     catOeffentlichkeit.id(),
                     null,
                     null,
+                    null,
                     null);
             eventFieldRepository.create(
                     oeEvent.id(),
@@ -1184,6 +1194,7 @@ public class DemoService {
                 openDeadline,
                 true,
                 catOeffentlichkeit.id(),
+                null,
                 null,
                 null,
                 null);

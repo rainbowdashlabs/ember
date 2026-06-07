@@ -384,6 +384,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
                 null,
                 null,
                 null,
+                null,
                 null);
 
         // Create session linked to event — should inherit event name and times
@@ -462,6 +463,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
                 null,
                 null,
                 null,
+                null,
                 null);
 
         var account2 = accountRepo.create("attend-svc2@test.com", "Attend2", "User");
@@ -495,6 +497,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
                 true,
                 null,
                 false,
+                null,
                 null,
                 null,
                 null,
@@ -535,6 +538,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
                 null,
                 null,
                 null,
+                null,
                 null);
 
         var absence = service.createAbsence(
@@ -571,6 +575,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
                 true,
                 null,
                 false,
+                null,
                 null,
                 null,
                 null,
@@ -631,6 +636,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
                 null,
                 null,
                 null,
+                null,
                 null);
 
         var session = service.createSession(templateId, null, null, event.id(), null);
@@ -678,6 +684,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
                 false,
                 null,
                 false,
+                null,
                 null,
                 null,
                 null,
@@ -737,6 +744,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
                 true,
                 null,
                 false,
+                null,
                 null,
                 null,
                 null,
@@ -840,6 +848,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
                 false,
                 null,
                 false,
+                null,
                 null,
                 null,
                 null,
@@ -949,6 +958,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
                 true,
                 null,
                 false,
+                null,
                 null,
                 null,
                 null,

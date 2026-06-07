@@ -411,6 +411,33 @@ class WaitingListServiceTest extends RepositoryTestBase {
     }
 
     @Test
+    void findGuardiansByEntry() {
+        var entry = service.createEntry(
+                listId,
+                "GuardianTest",
+                "Last",
+                List.of(
+                        new GuardianInput("Parent1", "p1@test.com", "123"),
+                        new GuardianInput("Parent2", "p2@test.com", "")),
+                Map.of(),
+                "");
+        var guardians = service.findGuardiansByEntry(entry.id());
+        assertEquals(2, guardians.size());
+        assertTrue(guardians.stream().anyMatch(g -> g.email().equals("p1@test.com")));
+        assertTrue(guardians.stream().anyMatch(g -> g.email().equals("p2@test.com")));
+    }
+
+    @Test
+    void findGuardiansByList() {
+        service.createEntry(
+                listId, "ListGuardian1", "", List.of(new GuardianInput("G1", "lg1@test.com", "")), Map.of(), "");
+        service.createEntry(
+                listId, "ListGuardian2", "", List.of(new GuardianInput("G2", "lg2@test.com", "")), Map.of(), "");
+        var guardians = service.findGuardiansByList(listId);
+        assertTrue(guardians.size() >= 2);
+    }
+
+    @Test
     void registerViaInvalidInviteCodeThrows() {
         assertThrows(
                 IllegalArgumentException.class,
@@ -462,6 +489,61 @@ class WaitingListServiceTest extends RepositoryTestBase {
         // Cleanup
         memberGroupRepo.delete(testingGroup.id());
         memberGroupRepo.delete(joinGroup.id());
+    }
+
+    @Test
+    void moveToJoinedCreatesGuardianAccounts() {
+        var list = service.create(station.id(), "GuardianAcct " + UUID.randomUUID(), "", null, 180, null, null, 5);
+        var entry = service.createEntry(
+                list.id(),
+                "Child",
+                "Name",
+                List.of(new GuardianInput("Max Mustermann", "guardian-new-" + UUID.randomUUID() + "@test.com", "123")),
+                Map.of(),
+                "");
+
+        // Go through the full lifecycle: invite -> testing -> joined
+        var invited = service.inviteEntry(entry.id());
+        var testing = service.moveToTesting(invited.id());
+        var joined = service.moveToJoined(testing.id());
+        assertEquals(WaitingListEntryStatus.JOINED, joined.status());
+    }
+
+    @Test
+    void moveToJoinedWithExistingGuardianAccount() {
+        // Pre-create an account with the guardian's email
+        var existingAccount = accountRepo.create("existing-guardian@test.com", "Existing", "Guardian");
+        var existingMember = stationMemberRepo.create(station.id(), existingAccount.id());
+
+        var list = service.create(station.id(), "ExistGuardian " + UUID.randomUUID(), "", null, 180, null, null, 5);
+        var entry = service.createEntry(
+                list.id(),
+                "Child2",
+                "Name",
+                List.of(new GuardianInput("Existing Guardian", "existing-guardian@test.com", "")),
+                Map.of(),
+                "");
+
+        var invited = service.inviteEntry(entry.id());
+        var testing = service.moveToTesting(invited.id());
+        var joined = service.moveToJoined(testing.id());
+        assertEquals(WaitingListEntryStatus.JOINED, joined.status());
+
+        // Cleanup
+        stationMemberRepo.delete(existingMember.id());
+        accountRepo.delete(existingAccount.id());
+    }
+
+    @Test
+    void moveToJoinedGuardianWithBlankEmail() {
+        var list = service.create(station.id(), "BlankGuardian " + UUID.randomUUID(), "", null, 180, null, null, 5);
+        var entry = service.createEntry(
+                list.id(), "Child3", "Name", List.of(new GuardianInput("NoEmail Guardian", "", "")), Map.of(), "");
+
+        var invited = service.inviteEntry(entry.id());
+        var testing = service.moveToTesting(invited.id());
+        var joined = service.moveToJoined(testing.id());
+        assertEquals(WaitingListEntryStatus.JOINED, joined.status());
     }
 
     @Test

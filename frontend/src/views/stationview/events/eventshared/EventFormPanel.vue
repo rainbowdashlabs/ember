@@ -16,14 +16,13 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import RestrictionPicker from '@/components/input/RestrictionPicker.vue'
 import EventFieldList from './EventFieldList.vue'
-import type {AttendanceTemplate, AttendanceTemplateField, EventCategory, EventFieldEntry, MemberGroup, PermissionGrant, StationMember, UserTag} from '@/api/types'
+import type {AttendanceTemplate, AttendanceTemplateField, EventCategory, EventFieldEntry, MemberGroup, StationMember, UserTag} from '@/api/types'
 import {EventTypes, needsDayOfWeek} from '@/api/types'
 
 defineProps<{
   categories: EventCategory[]
   templates: AttendanceTemplate[]
   attendanceFields?: AttendanceTemplateField[]
-  roles?: PermissionGrant[]
   groups?: MemberGroup[]
   tags?: UserTag[]
   showSchedule?: boolean
@@ -51,8 +50,9 @@ const registrationLimit = defineModel<number>('registrationLimit')
 const minRegistrations = defineModel<number>('minRegistrations')
 const hasThreshold = defineModel<boolean>('hasThreshold')
 const thresholdDate = defineModel<string>('thresholdDate')
+const registrationCloseDays = defineModel<number>('registrationCloseDays')
 
-const selectedRoleIds = defineModel<number[]>('selectedRoleIds')
+const selectedUserTypes = defineModel<string[]>('selectedUserTypes')
 const selectedGroupIds = defineModel<number[]>('selectedGroupIds')
 const selectedTagIds = defineModel<number[]>('selectedTagIds')
 
@@ -187,22 +187,27 @@ const {t} = useI18n()
             <p class="text-xs text-(--text-muted)">{{ t('events.thresholdHint') }}</p>
           </div>
         </template>
+
+        <div v-if="eventType !== undefined && eventType !== 'ONE_TIME'" class="space-y-1">
+          <FieldLabel>{{ t('events.registrationCloseDays') }}</FieldLabel>
+          <NumberInput v-model="registrationCloseDays" :placeholder="t('events.registrationCloseDaysHint')"/>
+          <p class="text-xs text-(--text-muted)">{{ t('events.registrationCloseDaysHint') }}</p>
+        </div>
       </template>
     </template>
 
     <!-- Restrictions -->
-    <template v-if="roles && groups && tags && selectedRoleIds !== undefined">
+    <template v-if="groups && tags && selectedUserTypes !== undefined">
       <hr class="border-(--border)"/>
       <SubHeader>{{ t('events.restrictions') }}</SubHeader>
       <p class="text-xs text-(--text-muted)">{{ t('events.restrictToRolesHint') }}</p>
       <RestrictionPicker
-          :roles="roles"
           :groups="groups"
           :tags="tags"
-          :selected-role-ids="selectedRoleIds ?? []"
+          :selected-user-types="selectedUserTypes ?? []"
           :selected-group-ids="selectedGroupIds ?? []"
           :selected-tag-ids="selectedTagIds ?? []"
-          @update:selected-role-ids="selectedRoleIds = $event"
+          @update:selected-user-types="selectedUserTypes = $event"
           @update:selected-group-ids="selectedGroupIds = $event"
           @update:selected-tag-ids="selectedTagIds = $event"
       />

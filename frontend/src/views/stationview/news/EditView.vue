@@ -20,9 +20,9 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import RestrictionPicker from '@/components/input/RestrictionPicker.vue'
-import type { MemberGroup, PermissionGrant, UserTag } from '@/api/types'
+import type { MemberGroup, UserTag } from '@/api/types'
 import type { PartnerResponse } from '@/api/federation'
-import { news, memberGroups, stationMembers, userTags, federation } from '@/api'
+import { news, memberGroups, userTags, federation } from '@/api'
 import FederationSharePicker from '@/components/input/FederationSharePicker.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import { useSession } from '@/composables/useSession'
@@ -39,10 +39,9 @@ const newsId = computed(() => isEdit.value ? Number(route.params.id) : null)
 
 const title = ref('')
 const contentMarkdown = ref('')
-const selectedRoleIds = ref<number[]>([])
+const selectedUserTypes = ref<string[]>([])
 const selectedGroupIds = ref<number[]>([])
 const selectedTagIds = ref<number[]>([])
-const roles = ref<PermissionGrant[]>([])
 const groups = ref<MemberGroup[]>([])
 const tags = ref<UserTag[]>([])
 const loading = ref(true)
@@ -67,13 +66,11 @@ const contentHtml = computed(() => {
 async function loadData() {
   loading.value = true
   try {
-    const [groupList, roleList, tagList] = await Promise.all([
+    const [groupList, tagList] = await Promise.all([
       memberGroups.listGroups(),
-      stationMembers.listAllPermissions(),
       userTags.listTags(),
     ])
     groups.value = groupList
-    roles.value = roleList
     tags.value = tagList
     if (canFederateNews()) {
       partners.value = (await federation.listPartners()).filter(p => p.partner.status === 'ACTIVE')
@@ -83,7 +80,7 @@ async function loadData() {
       const entry = await news.getNews(newsId.value)
       title.value = entry.title
       contentMarkdown.value = entry.contentMarkdown
-      selectedRoleIds.value = entry.roleIds ?? []
+      selectedUserTypes.value = entry.userTypes ?? []
       selectedGroupIds.value = entry.groupIds ?? []
       selectedTagIds.value = entry.tagIds ?? []
 
@@ -113,7 +110,7 @@ async function save() {
       title: title.value,
       contentMarkdown: contentMarkdown.value,
       contentHtml: contentHtml.value,
-      roleIds: selectedRoleIds.value,
+      userTypes: selectedUserTypes.value,
       groupIds: selectedGroupIds.value,
       tagIds: selectedTagIds.value,
       memberIds: [] as number[],
@@ -183,13 +180,12 @@ watch(loaded, (isLoaded) => {
           <SubHeader>{{ t('news.restrictToGroups') }}</SubHeader>
           <p class="text-xs text-(--text-muted)">{{ t('news.restrictHint') }}</p>
           <RestrictionPicker
-              :roles="roles"
               :groups="groups"
               :tags="tags"
-              :selected-role-ids="selectedRoleIds"
+              :selected-user-types="selectedUserTypes"
               :selected-group-ids="selectedGroupIds"
               :selected-tag-ids="selectedTagIds"
-
+              @update:selected-user-types="v => selectedUserTypes = v"
               @update:selected-group-ids="v => selectedGroupIds = v"
               @update:selected-tag-ids="v => selectedTagIds = v"
           />

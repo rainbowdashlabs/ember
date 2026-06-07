@@ -158,6 +158,31 @@ class EventTemplateServiceTest extends RepositoryTestBase {
     }
 
     @Test
+    @Order(30)
+    void setAndFindReminders() {
+        service.setReminders(templateId, List.of(1, 3, 7));
+        var days = service.findReminderDays(templateId);
+        assertEquals(3, days.size());
+        assertEquals(List.of(1, 3, 7), days);
+    }
+
+    @Test
+    @Order(31)
+    void setRemindersReplaces() {
+        service.setReminders(templateId, List.of(2));
+        var days = service.findReminderDays(templateId);
+        assertEquals(1, days.size());
+        assertEquals(2, days.getFirst());
+    }
+
+    @Test
+    @Order(32)
+    void setRemindersEmpty() {
+        service.setReminders(templateId, List.of());
+        assertTrue(service.findReminderDays(templateId).isEmpty());
+    }
+
+    @Test
     @Order(99)
     void deleteTemplate() {
         assertTrue(service.delete(templateId));

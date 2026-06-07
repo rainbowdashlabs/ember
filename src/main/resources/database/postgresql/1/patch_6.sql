@@ -2254,3 +2254,7 @@ CREATE TABLE IF NOT EXISTS ember_schema.event_reminder_sent (
 );
 CREATE INDEX IF NOT EXISTS idx_event_reminder_sent_event ON ember_schema.event_reminder_sent (event_id);
 
+-- Registration close days for recurring events (days before occurrence to close registration)
+ALTER TABLE ember_schema.station_event ADD COLUMN IF NOT EXISTS registration_close_days INTEGER;
+COMMENT ON COLUMN ember_schema.station_event.registration_close_days IS 'Number of days before a recurring event occurrence when registration closes. NULL means no auto-close.';
+

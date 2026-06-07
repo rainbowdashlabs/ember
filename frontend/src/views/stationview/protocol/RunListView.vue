@@ -27,7 +27,7 @@ import FieldLabel from '@/components/typography/FieldLabel.vue'
 import { useSession } from '@/composables/useSession'
 import { protocol, stationMembers, memberGroups, userTags } from '@/api'
 import type { TestProtocol, TestProtocolRun } from '@/api/protocol'
-import type { StationMember, PermissionGrant, MemberGroup, UserTag } from '@/api/types'
+import type { StationMember, MemberGroup, UserTag } from '@/api/types'
 import { StationPermission } from '@/api/types'
 
 const { t } = useI18n()
@@ -38,7 +38,6 @@ const canCreateRun = computed(() => hasPermission(StationPermission.PROTOCOL_CRE
 const runs = ref<TestProtocolRun[]>([])
 const protocols = ref<TestProtocol[]>([])
 const members = ref<StationMember[]>([])
-const allRoles = ref<PermissionGrant[]>([])
 const allGroups = ref<MemberGroup[]>([])
 const allTags = ref<UserTag[]>([])
 const loading = ref(true)
@@ -49,7 +48,7 @@ const showCreateModal = ref(false)
 const newProtocolId = ref<string>('')
 const newName = ref('')
 const newDate = ref(new Date().toISOString().split('T')[0])
-const selectedRoleIds = ref<number[]>([])
+const selectedUserTypes = ref<string[]>([])
 const selectedGroupIds = ref<number[]>([])
 const selectedTagIds = ref<number[]>([])
 const selectedMemberIds = ref<number[]>([])
@@ -66,18 +65,16 @@ function onMembersChange(values: string[]) {
 async function loadData() {
   loading.value = true
   try {
-    const [r, p, m, roles, groups, tags] = await Promise.all([
+    const [r, p, m, groups, tags] = await Promise.all([
       protocol.listRuns(),
       protocol.listProtocols(),
       stationMembers.listMembers(),
-      stationMembers.listAllPermissions(),
       memberGroups.listGroups(),
       userTags.listTags(),
     ])
     runs.value = r
     protocols.value = Array.isArray(p) ? p : (p.protocols ?? [])
     members.value = m
-    allRoles.value = roles
     allGroups.value = groups
     allTags.value = tags
   } catch { error.value = t('common.error') }
@@ -93,7 +90,7 @@ async function handleCreate() {
       name: newName.value.trim(),
       testDate: newDate.value,
       memberIds: selectedMemberIds.value.length > 0 ? selectedMemberIds.value : undefined,
-      roleIds: selectedRoleIds.value.length > 0 ? selectedRoleIds.value : undefined,
+      userTypes: selectedUserTypes.value.length > 0 ? selectedUserTypes.value : undefined,
       groupIds: selectedGroupIds.value.length > 0 ? selectedGroupIds.value : undefined,
       tagIds: selectedTagIds.value.length > 0 ? selectedTagIds.value : undefined,
     })
@@ -106,7 +103,7 @@ function resetCreateModal() {
   newProtocolId.value = ''
   newName.value = ''
   newDate.value = new Date().toISOString().split('T')[0]
-  selectedRoleIds.value = []
+  selectedUserTypes.value = []
   selectedGroupIds.value = []
   selectedTagIds.value = []
   selectedMemberIds.value = []
@@ -165,14 +162,13 @@ onMounted(() => { if (loaded.value) loadData() })
         <div>
           <FieldLabel class="mb-1">{{ t('protocol.selectByRestriction') }}</FieldLabel>
           <RestrictionPicker
-            :roles="allRoles"
             :groups="allGroups"
             :tags="allTags"
-            :selected-role-ids="selectedRoleIds"
+            :selected-user-types="selectedUserTypes"
             :selected-group-ids="selectedGroupIds"
             :selected-tag-ids="selectedTagIds"
             :show-mode="false"
-            @update:selected-role-ids="selectedRoleIds = $event"
+            @update:selected-user-types="selectedUserTypes = $event"
             @update:selected-group-ids="selectedGroupIds = $event"
             @update:selected-tag-ids="selectedTagIds = $event"
           />

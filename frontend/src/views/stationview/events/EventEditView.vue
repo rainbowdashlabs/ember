@@ -18,10 +18,10 @@ import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
-import type {AttendanceTemplate, AttendanceTemplateField, EventCategory, EventFieldEntry, EventTemplate, MemberGroup, PermissionGrant, StationMember, UserTag} from '@/api/types'
+import type {AttendanceTemplate, AttendanceTemplateField, EventCategory, EventFieldEntry, EventTemplate, MemberGroup, StationMember, UserTag} from '@/api/types'
 import {EventTypes, StationPermission, needsDayOfWeek} from '@/api/types'
 import type {EventFieldDefault} from '@/api/events'
-import {attendance, events, federation, memberGroups, stationMembers, userTags} from '@/api'
+import {attendance, events, federation, memberGroups, userTags, stationMembers} from '@/api'
 import type {PartnerResponse} from '@/api/federation'
 import FederationSharePicker from '@/components/input/FederationSharePicker.vue'
 import EventFormPanel from './eventshared/EventFormPanel.vue'
@@ -40,13 +40,12 @@ const isEdit = computed(() => eventId.value !== null)
 const categories = ref<EventCategory[]>([])
 const templates = ref<AttendanceTemplate[]>([])
 const eventTemplates = ref<EventTemplate[]>([])
-const roles = ref<PermissionGrant[]>([])
 const groups = ref<MemberGroup[]>([])
 const tags = ref<UserTag[]>([])
 const allTemplateFields = ref<AttendanceTemplateField[]>([])
 const allMembers = ref<StationMember[]>([])
 const groupMembersMap = ref(new Map<number, StationMember[]>())
-const eventRoleIds = ref<number[]>([])
+const eventUserTypes = ref<string[]>([])
 const eventGroupIds = ref<number[]>([])
 const eventTagIds = ref<number[]>([])
 const eventFieldDefaults = ref<EventFieldDefault[]>([])
@@ -112,9 +111,11 @@ const eventMinRegistrations = ref<number | undefined>(undefined)
 const eventHasThreshold = ref(false)
 const eventThresholdDate = ref('')
 
+const eventRegistrationCloseDays = ref<number | undefined>(undefined)
+
 const eventReminders = ref<number[]>([])
 
-const selectedRoleIds = ref<number[]>([])
+const selectedUserTypes = ref<string[]>([])
 const selectedGroupIds = ref<number[]>([])
 const selectedTagIds = ref<number[]>([])
 const restrictionMode = ref<'AND' | 'OR'>('AND')
@@ -134,10 +135,9 @@ async function loadData() {
   loading.value = true
   error.value = ''
   try {
-    const [cats, tpl, allRoles, allGroups, allTags, members, evtTpls] = await Promise.all([
+    const [cats, tpl, allGroups, allTags, members, evtTpls] = await Promise.all([
       events.listCategories(),
       attendance.listTemplates(),
-      stationMembers.listAllPermissions(),
       memberGroups.listGroups(),
       userTags.listTags(),
       stationMembers.listMembers(),
@@ -146,7 +146,6 @@ async function loadData() {
     categories.value = cats
     templates.value = tpl
     eventTemplates.value = evtTpls
-    roles.value = allRoles
     groups.value = allGroups
     tags.value = allTags
     allMembers.value = members
@@ -195,11 +194,12 @@ async function loadData() {
       eventMinRegistrations.value = ev.minRegistrations ?? undefined
       eventHasThreshold.value = !!ev.thresholdDate
       eventThresholdDate.value = ev.thresholdDate ? toLocalDateTime(ev.thresholdDate) : ''
+      eventRegistrationCloseDays.value = ev.registrationCloseDays ?? undefined
 
-      eventRoleIds.value = restrictions.roleIds ?? []
+      eventUserTypes.value = restrictions.userTypes ?? []
       eventGroupIds.value = restrictions.groupIds ?? []
       eventTagIds.value = restrictions.tagIds ?? []
-      selectedRoleIds.value = [...eventRoleIds.value]
+      selectedUserTypes.value = [...eventUserTypes.value]
       selectedGroupIds.value = [...eventGroupIds.value]
       selectedTagIds.value = [...eventTagIds.value]
       restrictionMode.value = (restrictions.mode as 'AND' | 'OR') ?? 'AND'
@@ -297,9 +297,10 @@ async function submit() {
       minRegistrations: eventMinRegistrations.value ?? undefined,
       thresholdDate: eventHasThreshold.value && eventThresholdDate.value
           ? new Date(eventThresholdDate.value).toISOString() : undefined,
-      restrictedRoleIds: selectedRoleIds.value,
+      restrictedUserTypes: selectedUserTypes.value,
       restrictedGroupIds: selectedGroupIds.value,
       restrictedTagIds: selectedTagIds.value,
+      registrationCloseDays: eventRegistrationCloseDays.value ?? undefined,
     }
 
     let savedEventId: number
@@ -393,14 +394,14 @@ watch(loaded, (isLoaded) => {
               v-model:min-registrations="eventMinRegistrations"
               v-model:has-threshold="eventHasThreshold"
               v-model:threshold-date="eventThresholdDate"
-              v-model:selected-role-ids="selectedRoleIds"
+              v-model:registration-close-days="eventRegistrationCloseDays"
+              v-model:selected-user-types="selectedUserTypes"
               v-model:selected-group-ids="selectedGroupIds"
               v-model:selected-tag-ids="selectedTagIds"
               v-model:fields="eventCustomFields"
               :categories="categories"
               :templates="templates"
               :attendance-fields="allTemplateFields"
-              :roles="roles"
               :groups="groups"
               :tags="tags"
               :all-members="allMembers"

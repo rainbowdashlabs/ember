@@ -9,8 +9,10 @@ import HelpArticle from '@/components/helpcenter/HelpArticle.vue'
 import HelpSection from '@/components/helpcenter/HelpSection.vue'
 import HelpTip from '@/components/helpcenter/HelpTip.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
+import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
-import InfoBadge from '@/components/badge/InfoBadge.vue'
+import PrimaryBadge from '@/components/badge/PrimaryBadge.vue'
+import SectionHeader from '@/components/typography/SectionHeader.vue'
 
 const { t } = useI18n()
 </script>
@@ -26,31 +28,46 @@ const { t } = useI18n()
     </HelpSection>
 
     <!-- Dummy: Run list -->
-    <NeutralContainer>
-      <div class="space-y-2 text-sm">
-        <div class="flex items-center justify-between p-2 rounded border border-[var(--border)]">
-          <div>
-            <div class="font-medium">Jugendflamme Stufe 1 — Frühjahr 2025</div>
-            <div class="text-xs text-[var(--text-muted)]">12.04.2025 · 8 Mitglieder</div>
-          </div>
-          <InfoBadge>{{ t('helpCenter.protocolRunList.statusActive') }}</InfoBadge>
-        </div>
-        <div class="flex items-center justify-between p-2 rounded border border-[var(--border)]">
-          <div>
-            <div class="font-medium">Jugendflamme Stufe 2 — Herbst 2024</div>
-            <div class="text-xs text-[var(--text-muted)]">05.11.2024 · 5 Mitglieder</div>
-          </div>
-          <SuccessBadge>{{ t('helpCenter.protocolRunList.statusDone') }}</SuccessBadge>
-        </div>
-        <div class="flex items-center justify-between p-2 rounded border border-[var(--border)]">
-          <div>
-            <div class="font-medium">Leistungsspange — Herbst 2024</div>
-            <div class="text-xs text-[var(--text-muted)]">18.10.2024 · 3 Mitglieder</div>
-          </div>
-          <SuccessBadge>{{ t('helpCenter.protocolRunList.statusDone') }}</SuccessBadge>
-        </div>
+    <HelpSection :title="t('helpCenter.protocolRunList.exampleTitle')">
+      <div class="flex items-center justify-between mb-3">
+        <SectionHeader>{{ t('protocol.runs') }}</SectionHeader>
+        <PrimaryButton disabled>
+          <font-awesome-icon :icon="['fas', 'plus']" class="mr-1" /> {{ t('protocol.createRun') }}
+        </PrimaryButton>
       </div>
-    </NeutralContainer>
+
+      <div class="space-y-2">
+        <NeutralContainer class="cursor-pointer">
+          <div class="flex items-center gap-2">
+            <div class="flex-1 min-w-0">
+              <div class="font-medium">Jugendflamme Stufe 1 — Fruehjahr 2025</div>
+              <div class="text-sm text-[var(--text-muted)]">Jugendflamme Stufe 1 &mdash; 12.04.2025</div>
+            </div>
+            <PrimaryBadge>{{ t('protocol.open') }}</PrimaryBadge>
+          </div>
+        </NeutralContainer>
+
+        <NeutralContainer class="cursor-pointer">
+          <div class="flex items-center gap-2">
+            <div class="flex-1 min-w-0">
+              <div class="font-medium">Jugendflamme Stufe 2 — Herbst 2024</div>
+              <div class="text-sm text-[var(--text-muted)]">Jugendflamme Stufe 2 &mdash; 05.11.2024</div>
+            </div>
+            <SuccessBadge>{{ t('protocol.closed') }}</SuccessBadge>
+          </div>
+        </NeutralContainer>
+
+        <NeutralContainer class="cursor-pointer">
+          <div class="flex items-center gap-2">
+            <div class="flex-1 min-w-0">
+              <div class="font-medium">Leistungsspange — Herbst 2024</div>
+              <div class="text-sm text-[var(--text-muted)]">Leistungsspange &mdash; 18.10.2024</div>
+            </div>
+            <SuccessBadge>{{ t('protocol.closed') }}</SuccessBadge>
+          </div>
+        </NeutralContainer>
+      </div>
+    </HelpSection>
 
     <HelpSection :title="t('helpCenter.protocolRunList.howTo')">
       <p>{{ t('helpCenter.protocolRunList.step1') }}</p>

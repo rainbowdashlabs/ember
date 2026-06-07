@@ -62,6 +62,7 @@ class EventCancelledHandlerTest extends RepositoryTestBase {
                 null,
                 null,
                 null,
+                null,
                 null);
         eventId = event.id();
 
@@ -109,6 +110,7 @@ class EventCancelledHandlerTest extends RepositoryTestBase {
                 false,
                 null,
                 false,
+                null,
                 null,
                 null,
                 null,

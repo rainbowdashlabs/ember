@@ -63,7 +63,6 @@ export function useSession() {
             || hasPermission(StationPermission.MEMBER_MANAGE_GROUP)
             || hasPermission(StationPermission.MEMBER_MANAGE_TAGS)
             || hasPermission(StationPermission.MEMBER_FIELDS)
-            || hasPermission(StationPermission.MEMBER_GUARDIAN)
     }
 
     function canManageInventory(): boolean {

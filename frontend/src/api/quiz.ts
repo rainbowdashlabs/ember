@@ -240,7 +240,6 @@ export interface QuizTestRestrictions {
     userTypes?: string[]
     groupIds: number[]
     tagIds: number[]
-    roleIds?: number[]
     mode?: string
 }
 

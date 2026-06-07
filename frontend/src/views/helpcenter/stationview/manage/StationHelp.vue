@@ -9,14 +9,23 @@ import HelpArticle from '@/components/helpcenter/HelpArticle.vue'
 import HelpSection from '@/components/helpcenter/HelpSection.vue'
 import HelpTip from '@/components/helpcenter/HelpTip.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
+import ErrorContainer from '@/components/container/ErrorContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
+import SearchSelectInput from '@/components/input/select/SearchSelectInput.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import ErrorButton from '@/components/button/ErrorButton.vue'
 import FileUploadButton from '@/components/button/FileUploadButton.vue'
 
 const {t} = useI18n()
+
+const timezoneOptions = [
+  {value: 'Europe/Berlin', label: 'Europe/Berlin'},
+  {value: 'Europe/London', label: 'Europe/London'},
+  {value: 'Europe/Paris', label: 'Europe/Paris'},
+]
 </script>
 
 <template>
@@ -38,9 +47,7 @@ const {t} = useI18n()
       </div>
       <div class="space-y-1">
         <FieldLabel>{{ t('stationManage.timezone') }}</FieldLabel>
-        <SelectInput model-value="Europe/Berlin" disabled>
-          <option value="Europe/Berlin">Europe/Berlin</option>
-        </SelectInput>
+        <SearchSelectInput model-value="Europe/Berlin" :options="timezoneOptions" :placeholder="t('stationManage.timezone')" disabled/>
       </div>
       <div class="space-y-1">
         <FieldLabel>{{ t('stationManage.locale') }}</FieldLabel>
@@ -64,6 +71,34 @@ const {t} = useI18n()
       </FileUploadButton>
       <p class="text-xs text-(--text-muted)">{{ t('stationManage.logoHint') }}</p>
     </NeutralContainer>
+
+    <!-- Owner section -->
+    <HelpSection :title="t('helpCenter.stationManage.ownerTitle')">
+      <p>{{ t('helpCenter.stationManage.ownerText') }}</p>
+    </HelpSection>
+
+    <NeutralContainer class="space-y-4">
+      <SectionHeader>{{ t('stationManage.ownerHandoverTitle') }}</SectionHeader>
+      <p class="text-sm text-(--text-muted)">{{ t('stationManage.ownerHandoverHint') }}</p>
+      <SelectInput model-value="" disabled class="w-full">
+        <option value="">{{ t('stationManage.ownerHandoverSelect') }}</option>
+        <option value="1">Anna Schmidt</option>
+        <option value="2">Thomas Weber</option>
+      </SelectInput>
+      <PrimaryButton disabled>{{ t('stationManage.ownerHandoverSubmit') }}</PrimaryButton>
+    </NeutralContainer>
+
+    <HelpSection :title="t('helpCenter.stationManage.deleteStationTitle')">
+      <p>{{ t('helpCenter.stationManage.deleteStationText') }}</p>
+    </HelpSection>
+
+    <ErrorContainer class="space-y-4">
+      <SectionHeader>{{ t('stationManage.deleteTitle') }}</SectionHeader>
+      <p class="text-sm text-(--text-muted)">{{ t('stationManage.deleteHint') }}</p>
+      <ErrorButton :icon="['fas', 'trash']" disabled>
+        {{ t('stationManage.deleteRequest') }}
+      </ErrorButton>
+    </ErrorContainer>
 
     <HelpSection :title="t('helpCenter.stationManage.mailTitle')">
       <p>{{ t('helpCenter.stationManage.mailText') }}</p>

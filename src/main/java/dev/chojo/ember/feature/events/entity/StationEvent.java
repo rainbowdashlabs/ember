@@ -52,7 +52,8 @@ public record StationEvent(
         String cancelReason,
         Integer minRegistrations,
         Instant thresholdDate,
-        boolean thresholdNotified) {
+        boolean thresholdNotified,
+        Integer registrationCloseDays) {
 
     /**
      * Creates a row mapping for database result set conversion.
@@ -81,7 +82,8 @@ public record StationEvent(
                 row.getString("cancel_reason"),
                 row.getObject("min_registrations", Integer.class),
                 row.get("threshold_date", INSTANT_TIMESTAMP),
-                row.getBoolean("threshold_notified"));
+                row.getBoolean("threshold_notified"),
+                row.getObject("registration_close_days", Integer.class));
     }
 
     /**

@@ -4,28 +4,86 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
+import {useI18n} from 'vue-i18n'
 import HelpArticle from '@/components/helpcenter/HelpArticle.vue'
 import HelpSection from '@/components/helpcenter/HelpSection.vue'
 import HelpTip from '@/components/helpcenter/HelpTip.vue'
+import NeutralContainer from '@/components/container/NeutralContainer.vue'
+import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import DeleteButton from '@/components/button/DeleteButton.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
+import FieldLabel from '@/components/typography/FieldLabel.vue'
+import TextInput from '@/components/input/text/TextInput.vue'
+import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
+import SelectInput from '@/components/input/select/SelectInput.vue'
+
+const {t} = useI18n()
 </script>
 
 <template>
-    <HelpArticle title="Boards verwalten" subtitle="Boards erstellen, bearbeiten und löschen">
-        <HelpSection title="Board erstellen">
-            <p>Klicke auf „Board erstellen" und gib einen Namen und ein Kürzel ein. Das Kürzel wird als Präfix für Ticket-Nummern verwendet (z.B. PLAN-1, PLAN-2).</p>
-            <p class="mt-2">Nach dem Erstellen kannst du in den Einstellungen Spalten, Felder und Zugriffsrechte konfigurieren.</p>
+    <HelpArticle :title="t('helpCenter.boardManage.title')" :subtitle="t('helpCenter.boardManage.subtitle')">
+        <HelpSection :title="t('helpCenter.boardManage.whatIs')">
+            <p>{{ t('helpCenter.boardManage.whatIsText') }}</p>
         </HelpSection>
 
-        <HelpSection title="Board bearbeiten">
-            <p>Über das Zahnrad-Symbol gelangst du zu den Einstellungen eines Boards. Hier kannst du den Namen ändern, Spalten anpassen und Zugriffsrechte festlegen.</p>
+        <HelpSection :title="t('helpCenter.boardManage.createTitle')">
+            <p>{{ t('helpCenter.boardManage.createText') }}</p>
+            <ul class="list-disc ml-4 space-y-1">
+                <li>{{ t('helpCenter.boardManage.createName') }}</li>
+                <li>{{ t('helpCenter.boardManage.createShortKey') }}</li>
+                <li>{{ t('helpCenter.boardManage.createDesc') }}</li>
+                <li>{{ t('helpCenter.boardManage.createPreset') }}</li>
+            </ul>
         </HelpSection>
 
-        <HelpSection title="Board löschen">
-            <p>Ein Board kann nur gelöscht werden, wenn es keine Tickets mehr enthält. Archiviere oder lösche zuerst alle Tickets, bevor du das Board entfernst.</p>
+        <!-- Dummy: Create modal -->
+        <HelpSection :title="t('helpCenter.boardManage.createModalTitle')">
+            <NeutralContainer class="space-y-4 max-w-md">
+                <SubHeader>{{ t('boards.createBoard') }}</SubHeader>
+                <div>
+                    <FieldLabel class="mb-1">{{ t('boards.boardName') }} *</FieldLabel>
+                    <TextInput :model-value="'Dienstplanung'" />
+                </div>
+                <div>
+                    <FieldLabel class="mb-1">{{ t('boards.shortKey') }} *</FieldLabel>
+                    <TextInput :model-value="'PLAN'" :placeholder="t('boards.shortKeyHint')" />
+                </div>
+                <div>
+                    <FieldLabel class="mb-1">{{ t('boards.boardDescription') }}</FieldLabel>
+                    <TextAreaInput :model-value="'Aufgaben rund um den Dienstplan.'" :rows="3" />
+                </div>
+                <div>
+                    <FieldLabel class="mb-1">{{ t('boards.preset') }}</FieldLabel>
+                    <SelectInput :model-value="'SIMPLE'" class="w-full">
+                        <option value="SIMPLE">{{ t('boards.presetSimple') }}</option>
+                        <option value="FEEDBACK">{{ t('boards.presetFeedback') }}</option>
+                        <option value="">{{ t('boards.presetNone') }}</option>
+                    </SelectInput>
+                </div>
+                <div class="flex justify-end gap-2">
+                    <PrimaryButton>{{ t('common.create') }}</PrimaryButton>
+                </div>
+            </NeutralContainer>
         </HelpSection>
 
-        <HelpTip>
-            Das Kürzel eines Boards kann nach dem Erstellen nicht mehr geändert werden, da es in allen Ticket-Nummern verwendet wird.
-        </HelpTip>
+        <HelpSection :title="t('helpCenter.boardManage.deleteTitle')">
+            <p>{{ t('helpCenter.boardManage.deleteText') }}</p>
+            <p>{{ t('helpCenter.boardManage.deleteWarning') }}</p>
+
+            <!-- Dummy: Delete confirmation -->
+            <NeutralContainer class="space-y-4 max-w-md mt-3">
+                <SubHeader>{{ t('boards.deleteBoard') }}</SubHeader>
+                <p class="text-sm">{{ t('boards.deleteBoardConfirm') }}</p>
+                <div class="flex justify-end gap-2">
+                    <DeleteButton>{{ t('common.delete') }}</DeleteButton>
+                </div>
+            </NeutralContainer>
+        </HelpSection>
+
+        <HelpSection :title="t('helpCenter.boardManage.settingsTitle')">
+            <p>{{ t('helpCenter.boardManage.settingsText') }}</p>
+        </HelpSection>
+
+        <HelpTip>{{ t('helpCenter.boardManage.tip') }}</HelpTip>
     </HelpArticle>
 </template>

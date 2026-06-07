@@ -35,6 +35,7 @@ import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -86,6 +87,20 @@ public class EventService {
         return eventRepository.findFiltered(stationId, memberId, categoryId, requiresRegistration);
     }
 
+    public List<StationEvent> findFilteredForMembers(
+            int stationId, List<Integer> memberIds, Integer categoryId, Boolean requiresRegistration) {
+        if (memberIds == null) {
+            return eventRepository.findFiltered(stationId, null, categoryId, requiresRegistration);
+        }
+        var eventMap = new LinkedHashMap<Integer, StationEvent>();
+        for (int mid : memberIds) {
+            for (var ev : eventRepository.findFiltered(stationId, mid, categoryId, requiresRegistration)) {
+                eventMap.putIfAbsent(ev.id(), ev);
+            }
+        }
+        return new ArrayList<>(eventMap.values());
+    }
+
     /**
      * Finds a station event by its ID.
      *
@@ -128,7 +143,8 @@ public class EventService {
             Integer categoryId,
             Integer registrationLimit,
             Integer minRegistrations,
-            Instant thresholdDate) {
+            Instant thresholdDate,
+            Integer registrationCloseDays) {
         var event = eventRepository.create(
                 stationId,
                 name,
@@ -144,7 +160,8 @@ public class EventService {
                 categoryId,
                 registrationLimit,
                 minRegistrations,
-                thresholdDate);
+                thresholdDate,
+                registrationCloseDays);
         eventBus.publish(new EventCreated(stationId, event));
         return event;
     }
@@ -182,7 +199,8 @@ public class EventService {
             Boolean isPublic,
             Integer registrationLimit,
             Integer minRegistrations,
-            Instant thresholdDate) {
+            Instant thresholdDate,
+            Integer registrationCloseDays) {
         if (eventRepository.update(
                 id,
                 name,
@@ -199,7 +217,8 @@ public class EventService {
                 isPublic,
                 registrationLimit,
                 minRegistrations,
-                thresholdDate)) {
+                thresholdDate,
+                registrationCloseDays)) {
             return eventRepository.findById(id);
         }
         return Optional.empty();
@@ -287,8 +306,13 @@ public class EventService {
      * applying optional server-side filters, with pagination on the expanded list.
      */
     public List<UpcomingEventOccurrence> findUpcomingOccurrences(
-            int stationId, Integer memberId, Integer categoryId, Boolean requiresRegistration, int limit, int offset) {
-        var events = eventRepository.findFiltered(stationId, memberId, categoryId, requiresRegistration);
+            int stationId,
+            List<Integer> memberIds,
+            Integer categoryId,
+            Boolean requiresRegistration,
+            int limit,
+            int offset) {
+        var events = findFilteredForMembers(stationId, memberIds, categoryId, requiresRegistration);
         var breaks = eventRepository.findBreaksByStation(stationId);
 
         LocalDate today = LocalDate.now(ZoneOffset.UTC);

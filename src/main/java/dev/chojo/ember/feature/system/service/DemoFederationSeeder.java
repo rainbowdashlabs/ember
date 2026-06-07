@@ -365,6 +365,7 @@ public class DemoFederationSeeder {
                 eventCategory.id(),
                 null,
                 null,
+                null,
                 null);
         eventFederationService.setShare(fedEvent.id(), "ALL_PARTNERS", List.of());
 

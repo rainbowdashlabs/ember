@@ -17,7 +17,7 @@ import {stationManage} from '@/api'
 import {StationPermission} from '@/api/types'
 import {useSession} from '@/composables/useSession'
 
-const {hasPermission} = useSession()
+const {hasPermission, load: reloadSession} = useSession()
 const router = useRouter()
 if (!hasPermission(StationPermission.STATION_MODULES)) {
   router.replace({name: 'dashboard-overview'})
@@ -56,6 +56,7 @@ async function toggleModule(key: string) {
   try {
     const res = await stationManage.setDisabledModules([...next])
     disabledModules.value = new Set(res.disabledModules)
+    reloadSession()
   } catch {
     error.value = t('common.error')
   }

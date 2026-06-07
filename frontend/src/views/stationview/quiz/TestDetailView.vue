@@ -28,7 +28,7 @@ import DateTimeInput from '@/components/input/datetime/DateTimeInput.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 
 import { QuizTestStatus } from '@/api/types'
-import type { QuizTestDetail, QuizTestAttempt, QuizCatalog, PermissionGrant, MemberGroup, UserTag, QuizQuestion } from '@/api/types'
+import type { QuizTestDetail, QuizTestAttempt, QuizCatalog, MemberGroup, UserTag, QuizQuestion } from '@/api/types'
 import type { FrozenQuestionDetail } from '@/api/quiz'
 import { quiz, stationMembers, memberGroups, userTags } from '@/api'
 import type { StationMember } from '@/api/types'
@@ -73,10 +73,9 @@ const availableQuestions = ref<QuizQuestion[]>([])
 const pickSearch = ref('')
 
 // Restrictions
-const allRoles = ref<PermissionGrant[]>([])
 const allGroups = ref<MemberGroup[]>([])
 const allTags = ref<UserTag[]>([])
-const selectedRoleIds = ref<number[]>([])
+const selectedUserTypes = ref<string[]>([])
 const selectedGroupIds = ref<number[]>([])
 const selectedTagIds = ref<number[]>([])
 const restrictionsDirty = ref(false)
@@ -151,20 +150,18 @@ async function loadData() {
 
     if (canReadResults()) {
       loadFrozenQuestions()
-      const [attemptList, memberList, roleList, groupList, tagList, restrictions] = await Promise.all([
+      const [attemptList, memberList, groupList, tagList, restrictions] = await Promise.all([
         quiz.listAttempts(testId.value),
         stationMembers.listMembers(),
-        stationMembers.listAllPermissions(),
         memberGroups.listGroups(),
         userTags.listTags(),
         quiz.getRestrictions(testId.value),
       ])
       attempts.value = attemptList
       members.value = memberList
-      allRoles.value = roleList
       allGroups.value = groupList
       allTags.value = tagList
-      selectedRoleIds.value = restrictions.roleIds ?? []
+      selectedUserTypes.value = restrictions.userTypes ?? []
       selectedGroupIds.value = restrictions.groupIds ?? []
       selectedTagIds.value = restrictions.tagIds ?? []
       restrictionsDirty.value = false
@@ -232,8 +229,8 @@ function closeTest() {
   showConfirm(t('quiz.tests.confirmClose'), async () => { await quiz.closeTest(testId.value); await loadData() })
 }
 
-function onRoleIdsUpdate(ids: number[]) {
-  selectedRoleIds.value = ids
+function onUserTypesUpdate(types: string[]) {
+  selectedUserTypes.value = types
   restrictionsDirty.value = true
 }
 
@@ -251,7 +248,7 @@ async function saveRestrictions() {
   error.value = ''
   try {
     await quiz.setRestrictions(testId.value, {
-      roleIds: selectedRoleIds.value,
+      userTypes: selectedUserTypes.value,
       groupIds: selectedGroupIds.value,
       tagIds: selectedTagIds.value,
     })
@@ -440,14 +437,13 @@ watch(loaded, (isLoaded) => { if (isLoaded && loading.value) loadData() })
         <!-- Restrictions (readonly for result readers, editable for configurers) -->
         <template v-if="canReadResults()">
           <TestRestrictions
-            :all-roles="allRoles"
             :all-groups="allGroups"
             :all-tags="allTags"
-            :selected-role-ids="selectedRoleIds"
+            :selected-user-types="selectedUserTypes"
             :selected-group-ids="selectedGroupIds"
             :selected-tag-ids="selectedTagIds"
             :restrictions-dirty="canConfigure() && restrictionsDirty"
-            @update:selected-role-ids="canConfigure() && onRoleIdsUpdate($event)"
+            @update:selected-user-types="canConfigure() && onUserTypesUpdate($event)"
             @update:selected-group-ids="canConfigure() && onGroupIdsUpdate($event)"
             @update:selected-tag-ids="canConfigure() && onTagIdsUpdate($event)"
             @save="saveRestrictions"

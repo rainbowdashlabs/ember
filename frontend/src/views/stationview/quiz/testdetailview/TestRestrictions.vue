@@ -9,20 +9,19 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import RestrictionPicker from '@/components/input/RestrictionPicker.vue'
-import type {PermissionGrant, MemberGroup, UserTag} from '@/api/types'
+import type {MemberGroup, UserTag} from '@/api/types'
 
 defineProps<{
-  allRoles: PermissionGrant[]
   allGroups: MemberGroup[]
   allTags: UserTag[]
-  selectedRoleIds: number[]
+  selectedUserTypes: string[]
   selectedGroupIds: number[]
   selectedTagIds: number[]
   restrictionsDirty: boolean
 }>()
 
 const emit = defineEmits<{
-  'update:selectedRoleIds': [ids: number[]]
+  'update:selectedUserTypes': [types: string[]]
   'update:selectedGroupIds': [ids: number[]]
   'update:selectedTagIds': [ids: number[]]
   save: []
@@ -36,13 +35,12 @@ const {t} = useI18n()
     <SectionHeader>{{ t('quiz.tests.restrictions') }}</SectionHeader>
     <NeutralContainer>
       <RestrictionPicker
-          :roles="allRoles"
           :groups="allGroups"
           :tags="allTags"
-          :selected-role-ids="selectedRoleIds"
+          :selected-user-types="selectedUserTypes"
           :selected-group-ids="selectedGroupIds"
           :selected-tag-ids="selectedTagIds"
-
+          @update:selected-user-types="types => emit('update:selectedUserTypes', types)"
           @update:selected-group-ids="ids => emit('update:selectedGroupIds', ids)"
           @update:selected-tag-ids="ids => emit('update:selectedTagIds', ids)"
       />

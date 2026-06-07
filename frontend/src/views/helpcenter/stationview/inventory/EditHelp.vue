@@ -10,9 +10,14 @@ import HelpSection from '@/components/helpcenter/HelpSection.vue'
 import HelpTip from '@/components/helpcenter/HelpTip.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
+import FieldLabel from '@/components/typography/FieldLabel.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import EditButton from '@/components/button/EditButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
+import IconButton from '@/components/button/IconButton.vue'
+import TextInput from '@/components/input/text/TextInput.vue'
+import SelectInput from '@/components/input/select/SelectInput.vue'
 import Th from '@/components/table/Th.vue'
 import Td from '@/components/table/Td.vue'
 import THead from '@/components/table/THead.vue'
@@ -27,12 +32,66 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.inventoryEdit.whatShownText') }}</p>
     </HelpSection>
 
+    <!-- Dummy: Settings section -->
     <HelpSection :title="t('helpCenter.inventoryEdit.settingsTitle')">
       <p>{{ t('helpCenter.inventoryEdit.settingsText') }}</p>
+
+      <NeutralContainer class="space-y-3">
+        <SubHeader>{{ t('helpCenter.inventoryEdit.dummySettings') }}</SubHeader>
+        <div class="grid sm:grid-cols-2 gap-4">
+          <div class="space-y-1">
+            <FieldLabel>{{ t('inventory.manage.name') }}</FieldLabel>
+            <TextInput model-value="Helme" disabled />
+          </div>
+          <div class="space-y-1">
+            <FieldLabel>{{ t('inventory.manage.typeLabel') }}</FieldLabel>
+            <SelectInput model-value="INTERNAL" disabled>
+              <option value="INTERNAL">{{ t('inventory.manage.type.INTERNAL') }}</option>
+            </SelectInput>
+          </div>
+        </div>
+        <PrimaryButton>{{ t('common.save') }}</PrimaryButton>
+      </NeutralContainer>
     </HelpSection>
 
+    <!-- Dummy: Sizes section -->
     <HelpSection :title="t('helpCenter.inventoryEdit.sizesTitle')">
       <p>{{ t('helpCenter.inventoryEdit.sizesText') }}</p>
+      <p>{{ t('helpCenter.inventoryEdit.sizesDragText') }}</p>
+
+      <NeutralContainer class="space-y-2">
+        <SubHeader>{{ t('helpCenter.inventoryEdit.dummySizes') }}</SubHeader>
+        <div class="flex items-center justify-between rounded-lg px-3 py-2 border border-bg-light-accent dark:border-bg-dark-accent">
+          <div class="flex items-center gap-2">
+            <font-awesome-icon :icon="['fas', 'grip-vertical']" class="text-(--text-muted) cursor-grab" />
+            <span class="text-sm">S</span>
+          </div>
+          <div class="flex gap-1">
+            <EditButton />
+            <IconButton :icon="['fas', 'xmark']" :label="t('common.delete')" class="text-(--text-muted) hover:text-error text-sm" />
+          </div>
+        </div>
+        <div class="flex items-center justify-between rounded-lg px-3 py-2 border border-bg-light-accent dark:border-bg-dark-accent">
+          <div class="flex items-center gap-2">
+            <font-awesome-icon :icon="['fas', 'grip-vertical']" class="text-(--text-muted) cursor-grab" />
+            <span class="text-sm">M</span>
+          </div>
+          <div class="flex gap-1">
+            <EditButton />
+            <IconButton :icon="['fas', 'xmark']" :label="t('common.delete')" class="text-(--text-muted) hover:text-error text-sm" />
+          </div>
+        </div>
+        <div class="flex items-center justify-between rounded-lg px-3 py-2 border border-bg-light-accent dark:border-bg-dark-accent">
+          <div class="flex items-center gap-2">
+            <font-awesome-icon :icon="['fas', 'grip-vertical']" class="text-(--text-muted) cursor-grab" />
+            <span class="text-sm">L</span>
+          </div>
+          <div class="flex gap-1">
+            <EditButton />
+            <IconButton :icon="['fas', 'xmark']" :label="t('common.delete')" class="text-(--text-muted) hover:text-error text-sm" />
+          </div>
+        </div>
+      </NeutralContainer>
     </HelpSection>
 
     <HelpSection :title="t('helpCenter.inventoryEdit.itemsTitle')">
@@ -41,11 +100,16 @@ const {t} = useI18n()
 
     <!-- Dummy: Items table -->
     <NeutralContainer class="space-y-4">
-      <div class="flex items-center justify-between">
+      <div class="flex items-center justify-between flex-wrap gap-2">
         <SubHeader>{{ t('inventory.edit.itemsTitle') }}</SubHeader>
-        <PrimaryButton :icon="['fas', 'plus']">
-          {{ t('inventory.edit.addItem') }}
-        </PrimaryButton>
+        <div class="flex gap-2">
+          <SecondaryButton :icon="['fas', 'user-plus']">
+            {{ t('helpCenter.inventoryEdit.dummyQuickAssign') }}
+          </SecondaryButton>
+          <PrimaryButton :icon="['fas', 'plus']">
+            {{ t('inventory.edit.addItem') }}
+          </PrimaryButton>
+        </div>
       </div>
       <div class="overflow-x-auto">
         <table class="w-full text-sm">

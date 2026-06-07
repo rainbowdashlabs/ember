@@ -10,7 +10,8 @@ import HelpArticle from '@/components/helpcenter/HelpArticle.vue'
 import HelpSection from '@/components/helpcenter/HelpSection.vue'
 import HelpTip from '@/components/helpcenter/HelpTip.vue'
 import HelpRoleToggle from '@/components/helpcenter/HelpRoleToggle.vue'
-import type {HelpRole} from '@/components/helpcenter/HelpRoleToggle.vue'
+import type {HelpPerspective} from '@/components/helpcenter/HelpRoleToggle.vue'
+import {StationPermission} from '@/api/types'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
@@ -18,6 +19,7 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import PrimaryBadge from '@/components/badge/PrimaryBadge.vue'
+import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import Th from '@/components/table/Th.vue'
 import Td from '@/components/table/Td.vue'
@@ -26,12 +28,12 @@ import TRow from '@/components/table/TRow.vue'
 
 const {t} = useI18n()
 
-const roles: HelpRole[] = [
-  {key: 'member', label: t('helpCenter.roles.member')},
-  {key: 'guardian', label: t('helpCenter.roles.memberManager')},
-  {key: 'manager', label: t('helpCenter.roles.manager')},
+const perspectives: HelpPerspective[] = [
+  {key: 'member', label: t('helpCenter.roles.member'), permissions: [StationPermission.USER]},
+  {key: 'guardian', label: t('helpCenter.roles.memberManager'), permissions: [StationPermission.MEMBER_GUARDIAN]},
+  {key: 'manager', label: t('helpCenter.roles.manager'), permissions: [StationPermission.INVENTORY_EXCHANGE]},
 ]
-const activeRole = ref('')
+const activeView = ref('')
 </script>
 
 <template>
@@ -45,7 +47,7 @@ const activeRole = ref('')
       <p>{{ t('helpCenter.inventoryExchanges.statusExchanged') }}</p>
     </HelpSection>
 
-    <HelpRoleToggle v-model="activeRole" :roles="roles" />
+    <HelpRoleToggle v-model="activeView" :perspectives="perspectives" />
 
     <!-- Dummy: Exchange table -->
     <NeutralContainer class="space-y-3">
@@ -59,8 +61,9 @@ const activeRole = ref('')
         <table class="w-full text-sm">
           <thead>
             <THead>
-              <Th v-if="activeRole === 'manager'">{{ t('exchanges.colMember') }}</Th>
+              <Th v-if="activeView === 'manager'">{{ t('exchanges.colMember') }}</Th>
               <Th>{{ t('exchanges.colInventory') }}</Th>
+              <Th>{{ t('exchanges.colType') }}</Th>
               <Th>{{ t('exchanges.colOldSize') }}</Th>
               <Th>{{ t('exchanges.colNewSize') }}</Th>
               <Th>{{ t('exchanges.colStatus') }}</Th>
@@ -71,8 +74,9 @@ const activeRole = ref('')
           </thead>
           <tbody>
             <TRow>
-              <Td v-if="activeRole === 'manager'" class="text-primary">Max Mustermann</Td>
+              <Td v-if="activeView === 'manager'" class="text-primary">Max Mustermann</Td>
               <Td class="font-medium">Helme</Td>
+              <Td><InfoBadge>{{ t('inventory.manage.type.INTERNAL') }}</InfoBadge></Td>
               <Td>M</Td>
               <Td>L</Td>
               <Td><InfoBadge>{{ t('exchanges.status.ANNOUNCED') }}</InfoBadge></Td>
@@ -81,7 +85,7 @@ const activeRole = ref('')
               <Td align="right">
                 <div class="flex items-center justify-end gap-1">
                   <SecondaryButton><font-awesome-icon :icon="['fas', 'clock-rotate-left']" /></SecondaryButton>
-                  <template v-if="activeRole === 'manager'">
+                  <template v-if="activeView === 'manager'">
                     <SecondaryButton><font-awesome-icon :icon="['fas', 'arrow-right']" /></SecondaryButton>
                     <DeleteButton />
                   </template>
@@ -89,8 +93,9 @@ const activeRole = ref('')
               </Td>
             </TRow>
             <TRow>
-              <Td v-if="activeRole === 'manager'" class="text-primary">Erika Musterfrau</Td>
+              <Td v-if="activeView === 'manager'" class="text-primary">Erika Musterfrau</Td>
               <Td class="font-medium">Jacken</Td>
+              <Td><SecondaryBadge>{{ t('inventory.manage.type.EXTERNAL') }}</SecondaryBadge></Td>
               <Td>S</Td>
               <Td>M</Td>
               <Td><PrimaryBadge>{{ t('exchanges.status.RECEIVED') }}</PrimaryBadge></Td>
@@ -99,7 +104,7 @@ const activeRole = ref('')
               <Td align="right">
                 <div class="flex items-center justify-end gap-1">
                   <SecondaryButton><font-awesome-icon :icon="['fas', 'clock-rotate-left']" /></SecondaryButton>
-                  <template v-if="activeRole === 'manager'">
+                  <template v-if="activeView === 'manager'">
                     <SecondaryButton><font-awesome-icon :icon="['fas', 'arrow-right']" /></SecondaryButton>
                     <DeleteButton />
                   </template>
@@ -107,8 +112,9 @@ const activeRole = ref('')
               </Td>
             </TRow>
             <TRow>
-              <Td v-if="activeRole === 'manager'" class="text-primary">Jan Schmidt</Td>
+              <Td v-if="activeView === 'manager'" class="text-primary">Jan Schmidt</Td>
               <Td class="font-medium">Stiefel</Td>
+              <Td><InfoBadge>{{ t('inventory.manage.type.INTERNAL') }}</InfoBadge></Td>
               <Td>42</Td>
               <Td>44</Td>
               <Td><SuccessBadge>{{ t('exchanges.status.EXCHANGED') }}</SuccessBadge></Td>
@@ -117,7 +123,7 @@ const activeRole = ref('')
               <Td align="right">
                 <div class="flex items-center justify-end gap-1">
                   <SecondaryButton><font-awesome-icon :icon="['fas', 'clock-rotate-left']" /></SecondaryButton>
-                  <template v-if="activeRole === 'manager'">
+                  <template v-if="activeView === 'manager'">
                     <DeleteButton />
                   </template>
                 </div>
@@ -128,19 +134,19 @@ const activeRole = ref('')
       </NeutralContainer>
     </NeutralContainer>
 
-    <template v-if="activeRole === 'member' || activeRole === ''">
+    <template v-if="activeView === 'member' || activeView === ''">
       <HelpSection :title="t('helpCenter.inventoryExchanges.asMember')">
         <p>{{ t('helpCenter.inventoryExchanges.asMemberText') }}</p>
       </HelpSection>
     </template>
 
-    <template v-if="activeRole === 'guardian'">
+    <template v-if="activeView === 'guardian'">
       <HelpSection :title="t('helpCenter.inventoryExchanges.asMemberManager')">
         <p>{{ t('helpCenter.inventoryExchanges.asMemberManagerText') }}</p>
       </HelpSection>
     </template>
 
-    <template v-if="activeRole === 'manager'">
+    <template v-if="activeView === 'manager'">
       <HelpSection :title="t('helpCenter.inventoryExchanges.asManager')">
         <p>{{ t('helpCenter.inventoryExchanges.asManagerText') }}</p>
         <p>{{ t('helpCenter.inventoryExchanges.managerStatusChange') }}</p>

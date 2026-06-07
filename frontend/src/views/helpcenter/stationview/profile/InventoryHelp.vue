@@ -10,7 +10,8 @@ import HelpArticle from '@/components/helpcenter/HelpArticle.vue'
 import HelpSection from '@/components/helpcenter/HelpSection.vue'
 import HelpTip from '@/components/helpcenter/HelpTip.vue'
 import HelpRoleToggle from '@/components/helpcenter/HelpRoleToggle.vue'
-import type {HelpRole} from '@/components/helpcenter/HelpRoleToggle.vue'
+import type {HelpPerspective} from '@/components/helpcenter/HelpRoleToggle.vue'
+import {StationPermission} from '@/api/types'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
@@ -26,11 +27,11 @@ import type {ExchangeRequestEntry} from '@/api/types'
 
 const {t} = useI18n()
 
-const roles: HelpRole[] = [
-  {key: 'member', label: t('helpCenter.roles.member')},
-  {key: 'memberManager', label: t('helpCenter.roles.memberManager')},
+const perspectives: HelpPerspective[] = [
+  {key: 'member', label: t('helpCenter.roles.member'), permissions: [StationPermission.USER]},
+  {key: 'memberManager', label: t('helpCenter.roles.memberManager'), permissions: [StationPermission.MEMBER_GUARDIAN]},
 ]
-const activeRole = ref('')
+const activeView = ref('')
 const showExchangeModal = ref(false)
 
 const dummyHelm: MyInventoryItem = {
@@ -60,10 +61,10 @@ const dummyStiefel: MyInventoryItem = {
       <p>{{ t('helpCenter.inventoryMy.whatIsText') }}</p>
     </HelpSection>
 
-    <HelpRoleToggle v-model="activeRole" :roles="roles"/>
+    <HelpRoleToggle v-model="activeView" :perspectives="perspectives"/>
 
     <!-- Dummy: Member selector for managers -->
-    <template v-if="activeRole === 'memberManager'">
+    <template v-if="activeView === 'memberManager'">
       <div class="flex items-center justify-between flex-wrap gap-2">
         <SectionHeader>{{ t('profile.inventory') }}</SectionHeader>
         <SelectInput model-value="self" class="w-48 text-sm">

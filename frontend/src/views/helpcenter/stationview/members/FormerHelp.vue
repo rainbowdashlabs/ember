@@ -33,42 +33,47 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.membersFormer.reactivateText') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Former members table -->
-    <SectionHeader>{{ t('formerMembers.title') }}</SectionHeader>
+    <!-- Dummy: Former members table with formerAt column -->
+    <HelpSection :title="t('helpCenter.membersFormer.exampleTitle')">
+      <SectionHeader>{{ t('formerMembers.title') }}</SectionHeader>
 
-    <NeutralContainer class="overflow-x-auto">
-      <table class="w-full text-sm">
-        <thead>
-          <THead>
-            <Th>{{ t('membersList.colName') }}</Th>
-            <Th>{{ t('membersList.colEmail') }}</Th>
-            <th class="px-3 py-2"></th>
-          </THead>
-        </thead>
-        <tbody>
-          <TRow>
-            <Td class="font-medium text-(--text-muted)">Jan Müller</Td>
-            <Td muted>jan@example.com</Td>
-            <Td align="right">
-              <PrimaryButton :icon="['fas', 'user-check']">
-                {{ t('formerMembers.reactivate') }}
-              </PrimaryButton>
-            </Td>
-          </TRow>
-          <TRow>
-            <Td class="font-medium text-(--text-muted)">Sara Klein</Td>
-            <Td muted>sara@example.com</Td>
-            <Td align="right">
-              <PrimaryButton :icon="['fas', 'user-check']">
-                {{ t('formerMembers.reactivate') }}
-              </PrimaryButton>
-            </Td>
-          </TRow>
-        </tbody>
-      </table>
-    </NeutralContainer>
+      <NeutralContainer class="overflow-x-auto mt-2">
+        <table class="w-full text-sm">
+          <thead>
+            <THead>
+              <Th>{{ t('membersList.colName') }}</Th>
+              <Th>{{ t('membersList.colEmail') }}</Th>
+              <Th>{{ t('formerMembers.colFormerAt') }}</Th>
+              <th class="px-3 py-2"></th>
+            </THead>
+          </thead>
+          <tbody>
+            <TRow>
+              <Td class="font-medium text-(--text-muted)">Jan Müller</Td>
+              <Td muted>jan@example.com</Td>
+              <Td muted>15.04.2026</Td>
+              <Td align="right">
+                <PrimaryButton :icon="['fas', 'user-check']">
+                  {{ t('formerMembers.reactivate') }}
+                </PrimaryButton>
+              </Td>
+            </TRow>
+            <TRow>
+              <Td class="font-medium text-(--text-muted)">Sara Klein</Td>
+              <Td muted>sara@example.com</Td>
+              <Td muted>02.03.2026</Td>
+              <Td align="right">
+                <PrimaryButton :icon="['fas', 'user-check']">
+                  {{ t('formerMembers.reactivate') }}
+                </PrimaryButton>
+              </Td>
+            </TRow>
+          </tbody>
+        </table>
+      </NeutralContainer>
 
-    <p class="text-xs text-(--text-muted)">2 {{ t('formerMembers.count') }}</p>
+      <p class="text-xs text-(--text-muted) mt-1">2 {{ t('formerMembers.count') }}</p>
+    </HelpSection>
 
     <HelpTip>{{ t('helpCenter.membersFormer.tip') }}</HelpTip>
   </HelpArticle>

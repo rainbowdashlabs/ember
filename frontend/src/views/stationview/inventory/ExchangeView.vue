@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
@@ -47,7 +47,7 @@ import { useBreakpoint } from '@/composables/useBreakpoint'
 
 const { t } = useI18n()
 const router = useRouter()
-const { canManageExchanges, isGuardian, sessionInfo } = useSession()
+const { canManageExchanges, isGuardian, sessionInfo, loaded } = useSession()
 const { activeStation } = useStations()
 const { isMobile } = useBreakpoint()
 
@@ -236,7 +236,13 @@ async function onCreated() {
   requests.value = await exchanges.listExchanges()
 }
 
-onMounted(loadData)
+onMounted(() => {
+  if (loaded.value) loadData()
+})
+
+watch(loaded, (isLoaded) => {
+  if (isLoaded && loading.value) loadData()
+})
 </script>
 
 <template>

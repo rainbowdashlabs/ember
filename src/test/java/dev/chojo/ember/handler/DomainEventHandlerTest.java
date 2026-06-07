@@ -116,7 +116,8 @@ class DomainEventHandlerTest {
                 null,
                 null,
                 null,
-                false);
+                false,
+                null);
         handler.handle(new EventCreated(STATION_ID, stationEvent));
 
         verify(notificationService)
@@ -150,7 +151,8 @@ class DomainEventHandlerTest {
                 null,
                 null,
                 null,
-                false);
+                false,
+                null);
         handler.handle(new EventCreated(STATION_ID, stationEvent));
 
         verify(notificationService).notifyStation(eq(STATION_ID), eq(NotificationType.NEW_EVENT), argThat(data -> {
@@ -185,7 +187,8 @@ class DomainEventHandlerTest {
                 null,
                 null,
                 null,
-                false);
+                false,
+                null);
         handler.handle(new EventCreated(STATION_ID, stationEvent));
 
         verify(notificationService)

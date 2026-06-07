@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
+import type {MemberIdentity} from '@/api/types'
 
 export interface MemberAbsence {
     id: number
@@ -13,6 +14,7 @@ export interface MemberAbsence {
     reason?: string
     createdAt?: string
     createdByName?: string | null
+    memberIdentity?: MemberIdentity | null
 }
 
 export async function listMyAbsences(): Promise<MemberAbsence[]> {

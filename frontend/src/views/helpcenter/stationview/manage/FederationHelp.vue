@@ -29,6 +29,12 @@ const dummyQuizImport = ref(true)
 const dummyQuizExport = ref(true)
 const dummyProtocolImport = ref(false)
 const dummyProtocolExport = ref(false)
+const dummyEventImport = ref(true)
+const dummyEventExport = ref(false)
+const dummyBoardImport = ref(false)
+const dummyBoardExport = ref(false)
+const dummyNewsImport = ref(true)
+const dummyNewsExport = ref(true)
 const dummyInventoryImport = ref(false)
 const dummyInventoryExport = ref(false)
 </script>
@@ -146,11 +152,26 @@ const dummyInventoryExport = ref(false)
             <Td align="center"><ToggleInput v-model="dummyProtocolImport" /></Td>
             <Td align="center"><ToggleInput v-model="dummyProtocolExport" /></Td>
           </TRow>
-          <tr>
+          <TRow>
+            <Td>{{ t('federation.cap.event') }}</Td>
+            <Td align="center"><ToggleInput v-model="dummyEventImport" /></Td>
+            <Td align="center"><ToggleInput v-model="dummyEventExport" /></Td>
+          </TRow>
+          <TRow>
+            <Td>{{ t('federation.cap.board') }}</Td>
+            <Td align="center"><ToggleInput v-model="dummyBoardImport" /></Td>
+            <Td align="center"><ToggleInput v-model="dummyBoardExport" /></Td>
+          </TRow>
+          <TRow>
+            <Td>{{ t('federation.cap.news') }}</Td>
+            <Td align="center"><ToggleInput v-model="dummyNewsImport" /></Td>
+            <Td align="center"><ToggleInput v-model="dummyNewsExport" /></Td>
+          </TRow>
+          <TRow>
             <Td>{{ t('federation.cap.inventory') }}</Td>
             <Td align="center"><ToggleInput v-model="dummyInventoryImport" /></Td>
             <Td align="center"><ToggleInput v-model="dummyInventoryExport" /></Td>
-          </tr>
+          </TRow>
         </tbody>
       </table>
     </NeutralContainer>

@@ -67,13 +67,19 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.membersCreate.step5Text') }}</p>
     </HelpSection>
 
+    <HelpSection :title="t('helpCenter.membersCreate.step6')">
+      <p>{{ t('helpCenter.membersCreate.step6Text') }}</p>
+    </HelpSection>
+
     <!-- Dummy: Link to import -->
-    <NeutralContainer class="flex items-center justify-between">
-      <p class="text-sm">{{ t('memberImport.linkFromCreate') }}</p>
-      <SecondaryButton :icon="['fas', 'upload']">
-        {{ t('memberImport.linkFromCreate') }}
-      </SecondaryButton>
-    </NeutralContainer>
+    <HelpSection :title="t('helpCenter.membersCreate.importTitle')">
+      <NeutralContainer class="flex items-center justify-between">
+        <p class="text-sm">{{ t('memberImport.linkFromCreate') }}</p>
+        <SecondaryButton :icon="['fas', 'upload']">
+          {{ t('memberImport.linkFromCreate') }}
+        </SecondaryButton>
+      </NeutralContainer>
+    </HelpSection>
 
     <HelpTip>{{ t('helpCenter.membersCreate.tip') }}</HelpTip>
   </HelpArticle>
