@@ -204,7 +204,7 @@ public class EventFederationRepository {
     /**
      * Finds all federated registrations by partner.
      *
-     * @param partnerId the federation partner ID
+     * @param remoteMemberId the federation partner ID
      * @return the list of registrations
      */
     public List<EventFederationRegistration> findRegistrationsByRemoteMember(UUID remoteMemberId) {

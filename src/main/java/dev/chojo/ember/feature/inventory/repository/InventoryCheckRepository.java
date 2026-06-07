@@ -294,7 +294,7 @@ public class InventoryCheckRepository {
      * @param lockedBy         the member who holds the lock, or {@code null}
      * @param lockerFirstName  the locker's first name
      * @param lockerLastName   the locker's last name
-     * @param permissions      the member's permissions
+     * @param userType         the member's user type
      */
     public record MemberCheckSummary(
             int memberId,
