@@ -22,11 +22,11 @@ import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import EventFieldValue from '@/components/display/EventFieldValue.vue'
-import type {AttendanceTemplate, EventCategory, EventField, StationEvent} from '@/api/types'
+import DetailLabel from '@/components/typography/DetailLabel.vue'
+import type {AttendanceTemplate, EventCategory, EventField, StationEvent, StationMember} from '@/api/types'
 import {EventTypes, RegistrationStatus, StationPermission, isRecurringEvent} from '@/api/types'
 import type {AbsentMember, EventRegistrationEntry, MemberRegistrationStats, FederatedEventRegistration} from '@/api/events'
 import {attendance, events, stationMembers, managedMembers as managedMembersApi} from '@/api'
-import type {StationMember} from '@/api/types'
 import {useSession} from '@/composables/useSession'
 import {useSidebarCounts} from '@/composables/useSidebarCounts'
 import CommentSection from '@/components/comment/CommentSection.vue'
@@ -58,7 +58,6 @@ const managedMembers = ref<StationMember[]>([])
 const eligibleMembers = ref<Record<number, number[]>>({})
 const loading = ref(true)
 const error = ref('')
-
 const dayNames = ['', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag']
 
 interface StatusGroup {
@@ -115,7 +114,6 @@ function statusLabel(status: string): string {
   if (status === RegistrationStatus.DECLINED) return t('eventsUpcoming.statusDeclined')
   return status
 }
-
 function getStatsForMember(memberId: number): MemberRegistrationStats | undefined {
   return registrationStats.value.find(s => s.memberId === memberId)
 }
@@ -163,7 +161,6 @@ function formatDatetime(iso?: string): string {
     hour: '2-digit', minute: '2-digit',
   })
 }
-
 
 async function loadData() {
   loading.value = true
@@ -312,8 +309,6 @@ async function declineMember(memberId: number) {
   finally { registering.value = false }
 }
 
-
-
 const manualRegisterMemberId = ref('')
 const unregisteredMembers = computed(() => {
   const regIds = new Set(registrations.value.map(r => r.memberId))
@@ -379,33 +374,33 @@ onMounted(loadData)
           <SubHeader>{{ t('events.general') }}</SubHeader>
           <div class="grid gap-4 sm:grid-cols-2">
             <div class="sm:col-span-2">
-              <span class="text-xs font-medium text-(--text-muted) uppercase">{{ t('events.description') }}</span>
+              <DetailLabel>{{ t('events.description') }}</DetailLabel>
               <div v-if="event.description" class="prose prose-sm dark:prose-invert max-w-none mt-1" v-html="renderMarkdown(event.description)"/>
               <p v-else class="text-sm">–</p>
             </div>
             <div>
-              <span class="text-xs font-medium text-(--text-muted) uppercase">{{ t('events.category') }}</span>
+              <DetailLabel>{{ t('events.category') }}</DetailLabel>
               <p class="text-sm">{{ categoryName(event.categoryId) }}</p>
             </div>
             <div v-if="isRecurringEvent(event.eventType)">
-              <span class="text-xs font-medium text-(--text-muted) uppercase">{{ t('events.dayOfWeek') }}</span>
+              <DetailLabel>{{ t('events.dayOfWeek') }}</DetailLabel>
               <p class="text-sm">{{ event.dayOfWeek ? dayNames[event.dayOfWeek] : '–' }}</p>
             </div>
             <div v-else>
-              <span class="text-xs font-medium text-(--text-muted) uppercase">{{ t('events.date') }}</span>
+              <DetailLabel>{{ t('events.date') }}</DetailLabel>
               <p class="text-sm">{{ formatDate(event.startTime) }}</p>
             </div>
             <div>
-              <span class="text-xs font-medium text-(--text-muted) uppercase">{{ t('events.startTime') }} – {{ t('events.endTime') }}</span>
+              <DetailLabel>{{ t('events.startTime') }} – {{ t('events.endTime') }}</DetailLabel>
               <p class="text-sm">{{ formatTime(event.startTime) }} – {{ formatTime(event.endTime) }}</p>
             </div>
             <div v-if="canManageEvents()">
-              <span class="text-xs font-medium text-(--text-muted) uppercase">{{ t('events.template') }}</span>
+              <DetailLabel>{{ t('events.template') }}</DetailLabel>
               <p class="text-sm">{{ templateName(event.templateId) }}</p>
             </div>
             <!-- Event Fields inline -->
             <div v-for="field in fields" :key="field.id">
-              <span class="text-xs font-medium text-(--text-muted) uppercase">{{ field.name }}</span>
+              <DetailLabel>{{ field.name }}</DetailLabel>
               <p class="text-sm">
                 <EventFieldValue :field-type="field.fieldType" :value="field.value"/>
               </p>

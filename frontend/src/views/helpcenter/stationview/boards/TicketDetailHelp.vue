@@ -8,6 +8,7 @@ import {useI18n} from 'vue-i18n'
 import HelpArticle from '@/components/helpcenter/HelpArticle.vue'
 import HelpSection from '@/components/helpcenter/HelpSection.vue'
 import HelpTip from '@/components/helpcenter/HelpTip.vue'
+import HelpList from '@/components/helpcenter/HelpList.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
@@ -302,21 +303,21 @@ const dummyTabs = [
     <!-- Link types -->
     <HelpSection :title="t('helpCenter.ticketDetail.linkTypesTitle')">
       <p>{{ t('helpCenter.ticketDetail.linkTypesText') }}</p>
-      <ul class="list-disc ml-4 space-y-1">
+      <HelpList>
         <li><strong>{{ t('boards.linkRelatesTo') }}:</strong> {{ t('helpCenter.ticketDetail.linkRelatesDesc') }}</li>
         <li><strong>{{ t('boards.linkBlocks') }} / {{ t('boards.linkBlockedBy') }}:</strong> {{ t('helpCenter.ticketDetail.linkBlocksDesc') }}</li>
         <li><strong>{{ t('boards.linkCauses') }} / {{ t('boards.linkCausedBy') }}:</strong> {{ t('helpCenter.ticketDetail.linkCausesDesc') }}</li>
-      </ul>
+      </HelpList>
     </HelpSection>
 
     <!-- Activity section -->
     <HelpSection :title="t('helpCenter.ticketDetail.activityTitle')">
       <p>{{ t('helpCenter.ticketDetail.activityText') }}</p>
-      <ul class="list-disc ml-4 space-y-1">
+      <HelpList>
         <li><strong>{{ t('helpCenter.ticketDetail.tabComments') }}:</strong> {{ t('helpCenter.ticketDetail.tabCommentsDesc') }}</li>
         <li><strong>{{ t('helpCenter.ticketDetail.tabChanges') }}:</strong> {{ t('helpCenter.ticketDetail.tabChangesDesc') }}</li>
         <li><strong>{{ t('helpCenter.ticketDetail.tabAll') }}:</strong> {{ t('helpCenter.ticketDetail.tabAllDesc') }}</li>
-      </ul>
+      </HelpList>
     </HelpSection>
 
     <!-- Watch & delete -->

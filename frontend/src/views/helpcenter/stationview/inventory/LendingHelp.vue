@@ -21,6 +21,7 @@ import InfoBadge from '@/components/badge/InfoBadge.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
+import InlineDetail from '@/components/typography/InlineDetail.vue'
 
 const {t} = useI18n()
 </script>
@@ -120,7 +121,7 @@ const {t} = useI18n()
             <div class="flex flex-col gap-0.5">
               <div>
                 <span class="font-medium">DLRG Neustadt</span>
-                <span class="text-sm text-(--text-muted) ml-2">01.06.2026 - 15.06.2026</span>
+                <InlineDetail>01.06.2026 - 15.06.2026</InlineDetail>
               </div>
               <span class="text-xs text-(--text-muted)">Rettungsring (3x)</span>
             </div>
@@ -133,7 +134,7 @@ const {t} = useI18n()
             <div class="flex flex-col gap-0.5">
               <div>
                 <span class="font-medium">DLRG Beispielburg</span>
-                <span class="text-sm text-(--text-muted) ml-2">10.05.2026 - 20.05.2026</span>
+                <InlineDetail>10.05.2026 - 20.05.2026</InlineDetail>
               </div>
               <span class="text-xs text-(--text-muted)">Taucheranzug (1x)</span>
             </div>
@@ -149,7 +150,7 @@ const {t} = useI18n()
             <div class="flex flex-col gap-0.5">
               <div>
                 <span class="font-medium">DLRG Musterstadt</span>
-                <span class="text-sm text-(--text-muted) ml-2">05.07.2026 - 10.07.2026</span>
+                <InlineDetail>05.07.2026 - 10.07.2026</InlineDetail>
               </div>
               <span class="text-xs text-(--text-muted)">Erste-Hilfe-Koffer (2x)</span>
             </div>
@@ -162,7 +163,7 @@ const {t} = useI18n()
             <div class="flex flex-col gap-0.5">
               <div>
                 <span class="font-medium">DLRG Neustadt</span>
-                <span class="text-sm text-(--text-muted) ml-2">01.04.2026 - 05.04.2026</span>
+                <InlineDetail>01.04.2026 - 05.04.2026</InlineDetail>
               </div>
               <span class="text-xs text-(--text-muted)">Schwimmweste (1x)</span>
             </div>
@@ -175,7 +176,7 @@ const {t} = useI18n()
             <div class="flex flex-col gap-0.5">
               <div>
                 <span class="font-medium">DLRG Musterstadt</span>
-                <span class="text-sm text-(--text-muted) ml-2">20.03.2026 - 25.03.2026</span>
+                <InlineDetail>20.03.2026 - 25.03.2026</InlineDetail>
               </div>
               <span class="text-xs text-(--text-muted)">Schwimmflossen (4x)</span>
             </div>
@@ -188,7 +189,7 @@ const {t} = useI18n()
             <div class="flex flex-col gap-0.5">
               <div>
                 <span class="font-medium">DLRG Beispielburg</span>
-                <span class="text-sm text-(--text-muted) ml-2">01.02.2026 - 10.02.2026</span>
+                <InlineDetail>01.02.2026 - 10.02.2026</InlineDetail>
               </div>
               <span class="text-xs text-(--text-muted)">Taucherbrille (2x)</span>
             </div>

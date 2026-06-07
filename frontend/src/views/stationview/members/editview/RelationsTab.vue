@@ -15,6 +15,7 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
+import InlineDetail from '@/components/typography/InlineDetail.vue'
 import type { StationMember } from '@/api/types'
 import { StationUserType } from '@/api/types'
 import { stationMembers } from '@/api'
@@ -131,7 +132,7 @@ onMounted(loadData)
         <div v-for="mgr in managers" :key="mgr.id" class="flex items-center justify-between rounded-lg px-4 py-3 bg-bg-light-accent/40 dark:bg-bg-dark-accent/40">
           <div>
             <span class="font-medium">{{ displayName(mgr) }}</span>
-            <span v-if="mgr.email" class="ml-2 text-sm text-(--text-muted)">{{ mgr.email }}</span>
+            <InlineDetail v-if="mgr.email">{{ mgr.email }}</InlineDetail>
           </div>
           <DeleteButton @click="removeRelation(mgr.id)" />
         </div>
@@ -156,7 +157,7 @@ onMounted(loadData)
         <div v-for="m in managed" :key="m.id" class="flex items-center justify-between rounded-lg px-4 py-3 bg-bg-light-accent/40 dark:bg-bg-dark-accent/40">
           <div>
             <span class="font-medium">{{ displayName(m) }}</span>
-            <span v-if="m.email" class="ml-2 text-sm text-(--text-muted)">{{ m.email }}</span>
+            <InlineDetail v-if="m.email">{{ m.email }}</InlineDetail>
           </div>
           <DeleteButton @click="removeRelation(m.id)" />
         </div>
@@ -179,7 +180,7 @@ onMounted(loadData)
         <SubHeader>{{ t('memberEdit.relations.guardians') }}</SubHeader>
         <div v-for="mgr in managers" :key="mgr.id" class="flex items-center rounded-lg px-4 py-3 bg-bg-light-accent/40 dark:bg-bg-dark-accent/40">
           <span class="font-medium">{{ displayName(mgr) }}</span>
-          <span v-if="mgr.email" class="ml-2 text-sm text-(--text-muted)">{{ mgr.email }}</span>
+          <InlineDetail v-if="mgr.email">{{ mgr.email }}</InlineDetail>
         </div>
       </NeutralContainer>
 
@@ -187,7 +188,7 @@ onMounted(loadData)
         <SubHeader>{{ t('memberEdit.relations.managedMembers') }}</SubHeader>
         <div v-for="m in managed" :key="m.id" class="flex items-center rounded-lg px-4 py-3 bg-bg-light-accent/40 dark:bg-bg-dark-accent/40">
           <span class="font-medium">{{ displayName(m) }}</span>
-          <span v-if="m.email" class="ml-2 text-sm text-(--text-muted)">{{ m.email }}</span>
+          <InlineDetail v-if="m.email">{{ m.email }}</InlineDetail>
         </div>
       </NeutralContainer>
     </template>

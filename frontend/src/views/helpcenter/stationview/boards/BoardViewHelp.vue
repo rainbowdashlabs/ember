@@ -8,6 +8,7 @@ import {useI18n} from 'vue-i18n'
 import HelpArticle from '@/components/helpcenter/HelpArticle.vue'
 import HelpSection from '@/components/helpcenter/HelpSection.vue'
 import HelpTip from '@/components/helpcenter/HelpTip.vue'
+import HelpList from '@/components/helpcenter/HelpList.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import IconButton from '@/components/button/IconButton.vue'
@@ -37,7 +38,7 @@ const {t} = useI18n()
 
         <HelpSection :title="t('helpCenter.boardView.ticketTitle')">
             <p>{{ t('helpCenter.boardView.ticketText') }}</p>
-            <ul class="list-disc ml-4 space-y-1">
+            <HelpList>
                 <li>{{ t('helpCenter.boardView.ticketItem1') }}</li>
                 <li>{{ t('helpCenter.boardView.ticketItem2') }}</li>
                 <li>{{ t('helpCenter.boardView.ticketItem3') }}</li>
@@ -46,12 +47,12 @@ const {t} = useI18n()
                 <li>{{ t('helpCenter.boardView.ticketItem6') }}</li>
                 <li>{{ t('helpCenter.boardView.ticketItem7') }}</li>
                 <li>{{ t('helpCenter.boardView.ticketItem8') }}</li>
-            </ul>
+            </HelpList>
         </HelpSection>
 
         <HelpSection :title="t('helpCenter.boardView.timeDotsTitle')">
             <p>{{ t('helpCenter.boardView.timeDotsText') }}</p>
-            <ul class="list-disc ml-4 space-y-1">
+            <HelpList>
                 <li>
                     <span class="inline-flex gap-0.5 mr-1 align-middle"><span class="w-1.5 h-1.5 rounded-full bg-green-500 inline-block" /><span class="w-1.5 h-1.5 rounded-full bg-green-500 inline-block" /></span>
                     {{ t('helpCenter.boardView.timeDots1') }}
@@ -64,16 +65,16 @@ const {t} = useI18n()
                     <span class="inline-flex gap-0.5 mr-1 align-middle"><span class="w-1.5 h-1.5 rounded-full bg-red-500 inline-block" /><span class="w-1.5 h-1.5 rounded-full bg-red-500 inline-block" /><span class="w-1.5 h-1.5 rounded-full bg-red-500 inline-block" /><span class="w-1.5 h-1.5 rounded-full bg-red-500 inline-block" /></span>
                     {{ t('helpCenter.boardView.timeDots3') }}
                 </li>
-            </ul>
+            </HelpList>
         </HelpSection>
 
         <HelpSection :title="t('helpCenter.boardView.filterTitle')">
             <p>{{ t('helpCenter.boardView.filterText') }}</p>
-            <ul class="list-disc ml-4 space-y-1">
+            <HelpList>
                 <li>{{ t('helpCenter.boardView.filterSearch') }}</li>
                 <li>{{ t('helpCenter.boardView.filterAssignee') }}</li>
                 <li>{{ t('helpCenter.boardView.filterLabel') }}</li>
-            </ul>
+            </HelpList>
         </HelpSection>
 
         <HelpSection :title="t('helpCenter.boardView.createTicketTitle')">

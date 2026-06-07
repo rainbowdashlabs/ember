@@ -8,6 +8,7 @@ import {useI18n} from 'vue-i18n'
 import HelpArticle from '@/components/helpcenter/HelpArticle.vue'
 import HelpSection from '@/components/helpcenter/HelpSection.vue'
 import HelpTip from '@/components/helpcenter/HelpTip.vue'
+import HelpList from '@/components/helpcenter/HelpList.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
@@ -26,10 +27,10 @@ const {t} = useI18n()
 
         <HelpSection :title="t('helpCenter.federatedBoards.accessTitle')">
             <p>{{ t('helpCenter.federatedBoards.accessText') }}</p>
-            <ul class="list-disc ml-4 space-y-1">
+            <HelpList>
                 <li>{{ t('helpCenter.federatedBoards.accessReadOnly') }}</li>
                 <li>{{ t('helpCenter.federatedBoards.accessFull') }}</li>
-            </ul>
+            </HelpList>
         </HelpSection>
 
         <HelpSection :title="t('helpCenter.federatedBoards.overviewTitle')">

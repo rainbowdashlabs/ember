@@ -8,6 +8,7 @@ import {useI18n} from 'vue-i18n'
 import HelpArticle from '@/components/helpcenter/HelpArticle.vue'
 import HelpSection from '@/components/helpcenter/HelpSection.vue'
 import HelpTip from '@/components/helpcenter/HelpTip.vue'
+import HelpList from '@/components/helpcenter/HelpList.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
@@ -170,14 +171,14 @@ const {t} = useI18n()
 
     <HelpSection :title="t('helpCenter.boardSettings.fieldTypesTitle')">
       <p>{{ t('helpCenter.boardSettings.fieldTypesText') }}</p>
-      <ul class="list-disc ml-4 space-y-1">
+      <HelpList>
         <li><strong>{{ t('boards.fieldTypeString') }}:</strong> {{ t('helpCenter.boardSettings.typeStringDesc') }}</li>
         <li><strong>{{ t('boards.fieldTypeNumber') }}:</strong> {{ t('helpCenter.boardSettings.typeNumberDesc') }}</li>
         <li><strong>{{ t('boards.fieldTypeBoolean') }}:</strong> {{ t('helpCenter.boardSettings.typeBooleanDesc') }}</li>
         <li><strong>{{ t('boards.fieldTypeEnum') }}:</strong> {{ t('helpCenter.boardSettings.typeEnumDesc') }}</li>
         <li><strong>{{ t('boards.fieldTypeDate') }}:</strong> {{ t('helpCenter.boardSettings.typeDateDesc') }}</li>
         <li><strong>{{ t('boards.fieldTypeLaneAssignee') }}:</strong> {{ t('helpCenter.boardSettings.typeLaneAssigneeDesc') }}</li>
-      </ul>
+      </HelpList>
     </HelpSection>
 
     <!-- Dummy UI: Federation -->
@@ -221,10 +222,10 @@ const {t} = useI18n()
 
     <HelpSection :title="t('helpCenter.boardSettings.shareModesTitle')">
       <p>{{ t('helpCenter.boardSettings.shareModesText') }}</p>
-      <ul class="list-disc ml-4 space-y-1">
+      <HelpList>
         <li><strong>{{ t('boards.shareModeReadOnly') }}:</strong> {{ t('helpCenter.boardSettings.readOnlyDesc') }}</li>
         <li><strong>{{ t('boards.shareModeFull') }}:</strong> {{ t('helpCenter.boardSettings.fullDesc') }}</li>
-      </ul>
+      </HelpList>
     </HelpSection>
 
     <HelpSection :title="t('helpCenter.boardSettings.autoSaveTitle')">

@@ -19,6 +19,7 @@ import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
+import DetailLabel from '@/components/typography/DetailLabel.vue'
 import {StationPermission} from '@/api/types'
 
 const {t} = useI18n()
@@ -53,19 +54,19 @@ const {t} = useI18n()
         <SubHeader>{{ t('events.general') }}</SubHeader>
         <div class="grid gap-4 sm:grid-cols-2">
           <div class="sm:col-span-2">
-            <span class="text-xs font-medium text-(--text-muted) uppercase">{{ t('events.description') }}</span>
+            <DetailLabel>{{ t('events.description') }}</DetailLabel>
             <p class="text-sm mt-1">Vorbereitung auf den Kreiswettkampf. Bitte pünktlich erscheinen.</p>
           </div>
           <div>
-            <span class="text-xs font-medium text-(--text-muted) uppercase">{{ t('events.category') }}</span>
+            <DetailLabel>{{ t('events.category') }}</DetailLabel>
             <p class="text-sm">Wettkampf</p>
           </div>
           <div>
-            <span class="text-xs font-medium text-(--text-muted) uppercase">{{ t('events.date') }}</span>
+            <DetailLabel>{{ t('events.date') }}</DetailLabel>
             <p class="text-sm">25.05.2026</p>
           </div>
           <div>
-            <span class="text-xs font-medium text-(--text-muted) uppercase">{{ t('events.startTime') }} – {{ t('events.endTime') }}</span>
+            <DetailLabel>{{ t('events.startTime') }} – {{ t('events.endTime') }}</DetailLabel>
             <p class="text-sm">14:00 – 17:00</p>
           </div>
         </div>

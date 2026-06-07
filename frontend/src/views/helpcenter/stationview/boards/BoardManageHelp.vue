@@ -8,6 +8,7 @@ import {useI18n} from 'vue-i18n'
 import HelpArticle from '@/components/helpcenter/HelpArticle.vue'
 import HelpSection from '@/components/helpcenter/HelpSection.vue'
 import HelpTip from '@/components/helpcenter/HelpTip.vue'
+import HelpList from '@/components/helpcenter/HelpList.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
@@ -28,12 +29,12 @@ const {t} = useI18n()
 
         <HelpSection :title="t('helpCenter.boardManage.createTitle')">
             <p>{{ t('helpCenter.boardManage.createText') }}</p>
-            <ul class="list-disc ml-4 space-y-1">
+            <HelpList>
                 <li>{{ t('helpCenter.boardManage.createName') }}</li>
                 <li>{{ t('helpCenter.boardManage.createShortKey') }}</li>
                 <li>{{ t('helpCenter.boardManage.createDesc') }}</li>
                 <li>{{ t('helpCenter.boardManage.createPreset') }}</li>
-            </ul>
+            </HelpList>
         </HelpSection>
 
         <!-- Dummy: Create modal -->

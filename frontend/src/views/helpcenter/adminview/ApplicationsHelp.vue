@@ -9,6 +9,7 @@ import HelpArticle from '@/components/helpcenter/HelpArticle.vue'
 import HelpSection from '@/components/helpcenter/HelpSection.vue'
 import HelpTip from '@/components/helpcenter/HelpTip.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
+import TabBar from '@/components/navigation/TabBar.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
@@ -49,15 +50,8 @@ const {t} = useI18n()
     <HelpSection :title="t('helpCenter.adminApplications.exampleTitle')">
       <SectionHeader>{{ t('adminApplications.title') }}</SectionHeader>
 
-      <!-- Tabs (raw buttons like real view) -->
-      <div class="flex gap-2 border-b border-bg-light-accent dark:border-bg-dark-accent mb-4">
-        <button class="px-4 py-2 text-sm font-medium border-b-2 border-primary text-primary">
-          {{ t('adminApplications.pending') }}
-        </button>
-        <button class="px-4 py-2 text-sm font-medium text-(--text-muted)">
-          {{ t('adminApplications.all') }}
-        </button>
-      </div>
+      <!-- Tabs -->
+      <TabBar model-value="pending" :tabs="[{key: 'pending', label: t('adminApplications.pending')}, {key: 'all', label: t('adminApplications.all')}]" class="mb-4" />
 
       <!-- Applications table -->
       <NeutralContainer class="overflow-x-auto">

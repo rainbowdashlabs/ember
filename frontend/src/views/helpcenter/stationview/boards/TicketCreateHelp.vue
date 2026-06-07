@@ -8,6 +8,7 @@ import {useI18n} from 'vue-i18n'
 import HelpArticle from '@/components/helpcenter/HelpArticle.vue'
 import HelpSection from '@/components/helpcenter/HelpSection.vue'
 import HelpTip from '@/components/helpcenter/HelpTip.vue'
+import HelpList from '@/components/helpcenter/HelpList.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
@@ -171,11 +172,11 @@ const dummyMembers = [
 
     <HelpSection :title="t('helpCenter.ticketCreate.linkTypesTitle')">
       <p>{{ t('helpCenter.ticketCreate.linkTypesText') }}</p>
-      <ul class="list-disc ml-4 space-y-1">
+      <HelpList>
         <li><strong>{{ t('boards.linkRelatesTo') }}:</strong> {{ t('helpCenter.ticketCreate.linkRelatesDesc') }}</li>
         <li><strong>{{ t('boards.linkBlocks') }} / {{ t('boards.linkBlockedBy') }}:</strong> {{ t('helpCenter.ticketCreate.linkBlocksDesc') }}</li>
         <li><strong>{{ t('boards.linkCauses') }} / {{ t('boards.linkCausedBy') }}:</strong> {{ t('helpCenter.ticketCreate.linkCausesDesc') }}</li>
-      </ul>
+      </HelpList>
     </HelpSection>
 
     <HelpSection :title="t('helpCenter.ticketCreate.mentionsTitle')">
